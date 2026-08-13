@@ -5,10 +5,11 @@ use std::path::Path;
 
 use zerocopy::FromBytes as _;
 
-use super::{Endianness, FileHeader, PolicyRow};
+use super::{FileHeader, PolicyRow};
 use crate::file::region::{
     PAGE_BYTES,
     header::{HeaderError, HeaderMap},
+    machine::Architecture,
 };
 
 /// Opening a policy file failed.
@@ -26,9 +27,9 @@ pub(crate) enum OpenPolicyError {
         actual: u64,
     },
     /// The rows are stored in the other byte order.
-    Endianness {
+    Architecture {
         /// The order the file's writer stamped.
-        found: Endianness,
+        found: Architecture,
     },
 }
 
@@ -50,10 +51,10 @@ impl fmt::Display for OpenPolicyError {
                 fmt,
                 "the file holds {actual} bytes where the header describes no table",
             ),
-            Self::Endianness { found } => write!(
+            Self::Architecture { found } => write!(
                 fmt,
                 "the file stores {found} rows where this machine reads {native}",
-                native = Endianness::NATIVE,
+                native = Architecture::HOST,
             ),
         }
     }
@@ -63,7 +64,7 @@ impl Error for OpenPolicyError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Header(error) => Some(error),
-            Self::Length { .. } | Self::Endianness { .. } => None,
+            Self::Length { .. } | Self::Architecture { .. } => None,
         }
     }
 }
@@ -86,7 +87,7 @@ impl PolicyFile {
     ///
     /// Returns [`OpenPolicyError::Header`] when the header page cannot be read,
     /// [`OpenPolicyError::Length`] when the file length contradicts the header's geometry, and
-    /// [`OpenPolicyError::Endianness`] when the rows are stored in the other byte order.
+    /// [`OpenPolicyError::Architecture`] when the rows are stored in the other byte order.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenPolicyError> {
         let map = HeaderMap::<FileHeader>::open(path).map_err(OpenPolicyError::Header)?;
@@ -97,9 +98,9 @@ impl PolicyFile {
             return Err(OpenPolicyError::Length { expected, actual });
         }
 
-        let endianness = map.header().endianness();
-        if endianness != Endianness::NATIVE {
-            return Err(OpenPolicyError::Endianness { found: endianness });
+        let endianness = map.header().architecture();
+        if endianness != Architecture::HOST {
+            return Err(OpenPolicyError::Architecture { found: endianness });
         }
 
         Ok(Self { map })

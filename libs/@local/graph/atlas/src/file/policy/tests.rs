@@ -12,11 +12,11 @@ use std::{fs, path::PathBuf};
 use zerocopy::IntoBytes as _;
 
 use super::{
-    Endianness, FileHeader, PaddedFileHeader, PolicyRow,
+    FileHeader, PaddedFileHeader, PolicyRow,
     read::{OpenPolicyError, PolicyFile},
     write::write_rows,
 };
-use crate::file::region::header::HeaderError;
+use crate::file::region::{header::HeaderError, machine::Machine};
 
 #[test]
 fn header_wire_layout() {
@@ -26,9 +26,12 @@ fn header_wire_layout() {
     // The literal length pins the layout and bounds the region slice.
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[..8], b"SALTPLCY");
-    assert_eq!(&bytes[8..12], &1_u32.to_le_bytes(), "version 1");
-    assert_eq!(bytes[12], Endianness::NATIVE as u8, "row byte order");
-    assert_eq!(&bytes[13..16], &[0; 3], "reserved");
+    assert_eq!(&bytes[8..12], &2_u32.to_le_bytes(), "version 2");
+    assert_eq!(
+        &bytes[12..16],
+        Machine::current().as_bytes(),
+        "machine information"
+    );
     assert_eq!(&bytes[16..24], &3_u64.to_le_bytes(), "policy count");
     assert!(
         bytes[24..].iter().all(|&byte| byte == 0),
@@ -126,7 +129,7 @@ fn open_rejects_foreign_and_torn_bytes() {
 
     let future = scratch("future-version.plcy");
     let mut bytes = fixture_bytes();
-    bytes[8..12].copy_from_slice(&2_u32.to_le_bytes());
+    bytes[8..12].copy_from_slice(&3_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
     assert_matches!(PolicyFile::open(&future), Err(OpenPolicyError::Header(_)),);
 
@@ -136,24 +139,23 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&torn, &bytes).expect("the scratch file is writable");
     assert_matches!(PolicyFile::open(&torn), Err(OpenPolicyError::Length { .. }),);
 
-    // The other valid byte-order flag parses and then refuses by name: the rows are stored in
-    // the writer's native order, and this reader's differs.
+    // The other byte-order bit parses and then refuses by name: the rows are stored in the
+    // writer's native order, and this reader's differs. The bit lives in the machine
+    // information's final byte.
     let foreign_order = scratch("foreign-order.plcy");
     let mut bytes = fixture_bytes();
-    bytes[12] ^= 1;
+    bytes[15] ^= 1;
     fs::write(&foreign_order, &bytes).expect("the scratch file is writable");
     assert_matches!(
         PolicyFile::open(&foreign_order),
-        Err(OpenPolicyError::Endianness { .. }),
+        Err(OpenPolicyError::Architecture { .. }),
     );
 
-    // A byte that names no order at all fails the pinned header parse outright.
-    let unnamed_order = scratch("unnamed-order.plcy");
+    // The machine information's reserved bits admit every pattern, so an unknown bit alone
+    // refuses nothing: relying on one is a layout-version decision.
+    let reserved_bits = scratch("reserved-bits.plcy");
     let mut bytes = fixture_bytes();
     bytes[12] = 2;
-    fs::write(&unnamed_order, &bytes).expect("the scratch file is writable");
-    assert_matches!(
-        PolicyFile::open(&unnamed_order),
-        Err(OpenPolicyError::Header(_)),
-    );
+    fs::write(&reserved_bits, &bytes).expect("the scratch file is writable");
+    let _file = PolicyFile::open(&reserved_bits).expect("unknown machine bits still open");
 }

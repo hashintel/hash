@@ -23,6 +23,11 @@ use std::{
 use memmap2::Mmap;
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 
+pub(crate) mod header;
+pub(crate) mod machine;
+#[cfg(test)]
+mod tests;
+
 /// A byte-level stable element of a persisted region.
 ///
 /// One whose value is exactly its bytes, at any alignment.
@@ -154,7 +159,3 @@ impl PageMap {
         &self.map[offset..offset + len]
     }
 }
-
-pub(crate) mod header;
-#[cfg(test)]
-mod tests;

@@ -1,6 +1,6 @@
 //! Raw scalar array files.
 //!
-//! Layout version 0 is mutable, so change the layout to fit what the pipeline needs and increment
+//! Layout version 1 is mutable, so change the layout to fit what the pipeline needs and increment
 //! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
 //! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
@@ -11,26 +11,22 @@
 //! | offset | size | field                                          |
 //! |--------|------|------------------------------------------------|
 //! | 0      | 8    | magic `SALTARRY`                               |
-//! | 8      | 4    | layout version, `u32` = 0                      |
-//! | 12     | 1    | element variant, `u8`                          |
-//! | 13     | 64   | shape, `[u64; 8]`                              |
-//! | 77     | 4    | flags, `u32` little-endian                     |
+//! | 8      | 4    | layout version, `u32` = 1                      |
+//! | 12     | 4    | machine information, [`Machine`]               |
+//! | 16     | 1    | element variant, `u8`                          |
+//! | 17     | 64   | shape, `[u64; 8]`                              |
 //! | 81     | 4015 | padding; writers emit zero, readers ignore     |
 //! | 4096   |      | data                                           |
 //! ```
 //!
-//! The flags field takes four bytes from the padding region. Writers emit zero padding, so an
-//! all-zero flags word and plain padding are byte-identical, and zero is therefore every flag's
-//! default. Unknown bits read as zero and remain reserved.
-//!
 //! # Byte order
 //!
-//! Element bytes are the writer's native byte order, and bit 0 of the flags field records the
-//! writer's architecture, where clear means little-endian and set means big-endian. The open
-//! refuses a file whose multi-byte native elements use the other byte order, so every view a reader
-//! obtains is exact on its own host. Variants that pin a byte order in the element type itself -
-//! [`ArrayVariant::U64Le`] - are readable on every architecture and carry the pin in the view's
-//! type. The format pins the flags field to little-endian, so it means the same bits on every host.
+//! Element bytes are the writer's native byte order, and the header's machine information
+//! ([`Machine`]) records the writer's architecture. The open refuses a file whose multi-byte
+//! native elements use the other byte order, so every view a reader obtains is exact on its own
+//! host. Variants that pin a byte order in the element type itself - [`ArrayVariant::U64Le`] -
+//! are readable on every architecture and carry the pin in the view's type. The machine
+//! information is a byte array, so it means the same bits on every host.
 //!
 //! The shape is the longest prefix of nonzero dimensions. The first zero terminates it, and the
 //! parse ignores everything after. An empty shape (leading zero) is a zero-element array, and the
@@ -66,7 +62,7 @@
 
 use core::fmt;
 
-use zerocopy::{LE, U32, U64, Unalign};
+use zerocopy::{LE, U64, Unalign};
 
 mod read;
 #[cfg(test)]
@@ -77,6 +73,7 @@ pub(crate) use self::{
     read::{ArrayFile, OpenArrayError},
     write::{ArrayWriter, SizedArrayWriter},
 };
+use super::region::machine::{Architecture, Machine};
 use crate::file::region::{PAGE, header::header};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
@@ -141,79 +138,7 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V0 = 0,
-}
-
-/// The header's flag word, pinned little-endian.
-///
-/// Bit 0 records the writer's byte order. The remaining bits stay reserved and read as zero, and a
-/// flag's zero value is its default, so an all-zero word is byte-identical to plain padding.
-// The little-endian pin keeps the word self-describing: a native flag
-// word would byte-swap the architecture bit it records.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    zerocopy::FromBytes,
-    zerocopy::IntoBytes,
-    zerocopy::Immutable,
-    zerocopy::KnownLayout,
-    zerocopy::Unaligned,
-)]
-#[repr(transparent)]
-pub(crate) struct HeaderFlags(U32<LE>);
-
-impl HeaderFlags {
-    /// The big-endian-writer bit.
-    ///
-    /// A clear bit means little-endian.
-    const BIG_ENDIAN: u32 = 1 << 0;
-    /// The flags this host writes.
-    pub(crate) const HOST: Self = Self(U32::new(if cfg!(target_endian = "big") {
-        Self::BIG_ENDIAN
-    } else {
-        0
-    }));
-
-    /// Returns the architecture that wrote the file.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn architecture(self) -> Architecture {
-        if self.0.get() & Self::BIG_ENDIAN == 0 {
-            Architecture::LittleEndian
-        } else {
-            Architecture::BigEndian
-        }
-    }
-}
-
-/// A writer byte order.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Architecture {
-    /// Least-significant byte first.
-    LittleEndian,
-    /// Most-significant byte first.
-    BigEndian,
-}
-
-impl Architecture {
-    /// This host's byte order.
-    pub(crate) const HOST: Self = if cfg!(target_endian = "big") {
-        Self::BigEndian
-    } else {
-        Self::LittleEndian
-    };
-}
-
-impl fmt::Display for Architecture {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str(match self {
-            Self::LittleEndian => "little-endian",
-            Self::BigEndian => "big-endian",
-        })
-    }
+    V1 = 1,
 }
 
 /// The element type of an array file.
@@ -441,9 +366,9 @@ impl ArrayShape {
 pub(crate) struct FileHeader {
     pub magic: Unalign<FileHeaderMagic>,
     pub version: Unalign<Version>,
+    pub machine: Machine,
     pub variant: ArrayVariant,
     pub shape: ArrayShape,
-    pub flags: HeaderFlags,
 }
 
 header!(FileHeader);
@@ -454,10 +379,10 @@ impl FileHeader {
     pub(crate) const fn new(variant: ArrayVariant, shape: ArrayShape) -> Self {
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V0),
+            version: Unalign::new(Version::V1),
+            machine: Machine::current(),
             variant,
             shape,
-            flags: HeaderFlags::HOST,
         }
     }
 
@@ -472,7 +397,7 @@ impl FileHeader {
     #[inline]
     #[must_use]
     pub(crate) const fn architecture(&self) -> Architecture {
-        self.flags.architecture()
+        self.machine.architecture()
     }
 
     /// Borrows the shape.

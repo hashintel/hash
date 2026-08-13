@@ -2,7 +2,7 @@
 //!
 //! Bucket fenceposts and a page index in front of the delivery-ordered morton codes.
 //!
-//! Layout version 1 is **mutable**. Change the layout to fit what the pipeline needs and increment
+//! Layout version 2 is **mutable**. Change the layout to fit what the pipeline needs and increment
 //! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
 //! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
@@ -16,10 +16,11 @@
 //! | offset | size | region                                          |
 //! |--------|------|-------------------------------------------------|
 //! | 0      | 8    | magic `SALTMRTN`                                |
-//! | 8      | 4    | layout version, `u32` = 1                       |
-//! | 12     | 4    | index stride, `u32`, codes per index key        |
-//! | 16     | 272  | bucket fenceposts, 34 `u64` positions           |
-//! | 288    | 3808 | padding; writers emit zero, readers ignore      |
+//! | 8      | 4    | layout version, `u32` = 2                       |
+//! | 12     | 4    | machine information, [`Machine`]                |
+//! | 16     | 4    | index stride, `u32`, codes per index key        |
+//! | 20     | 272  | bucket fenceposts, 34 `u64` positions           |
+//! | 292    | 3804 | padding; writers emit zero, readers ignore      |
 //! | 4096   |      | index: `u64` keys, one per stride of codes      |
 //! |        |      | zero padding to the next 4096-byte boundary     |
 //! | ...    |      | codes: `u64[N]`, bucket-major, ascending within |
@@ -36,9 +37,11 @@
 //! stride: two faulted pages instead of `log2(N)` scattered ones. All region offsets derive from
 //! the stride and the last fencepost with checked arithmetic ([`FileHeader::codes_offset`],
 //! [`FileHeader::expected_file_len`]); a header whose geometry overflows, or whose stride is zero,
-//! matches no real file. Both regions start on 4096-byte boundaries, so the whole-file-mapping
-//! alignment guarantee of the array format applies unchanged: map the whole file and slice, never
-//! mmap at a file offset.
+//! matches no real file. The header's machine information ([`Machine`]) records the writing
+//! machine. Every multi-byte field pins little-endian, so the file reads exactly on either byte
+//! order and opening compares nothing against the host. Both regions start on 4096-byte
+//! boundaries, so the whole-file-mapping alignment guarantee of the array format applies
+//! unchanged: map the whole file and slice, never mmap at a file offset.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -59,7 +62,7 @@ pub(crate) mod write;
 #[cfg(test)]
 mod tests;
 
-use crate::file::region::{PAGE, header::header, padded_size};
+use crate::file::region::{PAGE, header::header, machine::Machine, padded_size};
 
 /// A fencepost breaks a structural rule of the segmentation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -303,7 +306,7 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V1 = 1,
+    V2 = 2,
 }
 
 /// The 4096-byte header of a morton file.
@@ -320,6 +323,7 @@ pub(crate) enum Version {
 pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
+    machine: Machine,
     stride: U32<LE>,
     fenceposts: [U64<LE>; POSTS],
 }
@@ -334,7 +338,8 @@ impl FileHeader {
 
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V1),
+            version: Unalign::new(Version::V2),
+            machine: Machine::current(),
             stride: U32::new(stride),
             fenceposts: posts,
         }
@@ -407,6 +412,7 @@ impl fmt::Debug for FileHeader {
         fmt.debug_struct("FileHeader")
             .field("magic", &self.magic.get())
             .field("version", &self.version.get())
+            .field("machine", &self.machine)
             .field("stride", &self.stride)
             .field("fenceposts", &self.fenceposts)
             .finish_non_exhaustive()

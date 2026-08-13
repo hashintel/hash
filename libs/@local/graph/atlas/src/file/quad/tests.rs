@@ -15,7 +15,7 @@ use super::{
     write::write_regions,
 };
 use crate::{
-    file::region::{PAGE_BYTES, header::HeaderError},
+    file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
     morton::{Depth, MortonCell},
 };
 
@@ -72,10 +72,15 @@ fn header_wire_layout() {
     let bytes = header.as_bytes();
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[0..8], b"SALTQUAD");
-    assert_eq!(bytes[8..12], 1_u32.to_le_bytes(), "version 1");
-    assert_eq!(bytes[12..20], 4_u64.to_le_bytes(), "node count");
-    assert_eq!(bytes[20..28], 10_u64.to_le_bytes(), "type-id entries");
-    assert!(bytes[28..].iter().all(|&byte| byte == 0));
+    assert_eq!(bytes[8..12], 2_u32.to_le_bytes(), "version 2");
+    assert_eq!(
+        &bytes[12..16],
+        Machine::current().as_bytes(),
+        "machine information"
+    );
+    assert_eq!(bytes[16..24], 4_u64.to_le_bytes(), "node count");
+    assert_eq!(bytes[24..32], 10_u64.to_le_bytes(), "type-id entries");
+    assert!(bytes[32..].iter().all(|&byte| byte == 0));
 }
 
 #[test]
@@ -95,7 +100,7 @@ fn header_parse_pins_identity() {
     wrong_magic[0] = b'W';
     PaddedFileHeader::try_ref_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
 
-    // Version 0 is the retired layout. Its bytes must not parse as V1.
+    // Version 0 is a retired layout. Its bytes must not parse as V2.
     let mut wrong_version = bytes;
     wrong_version[8] = 0;
     PaddedFileHeader::try_ref_from_bytes(&wrong_version)

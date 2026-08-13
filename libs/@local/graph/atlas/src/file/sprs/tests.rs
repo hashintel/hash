@@ -244,6 +244,26 @@ fn written_matrix_reopens_as_the_same_view() {
         Err(OpenSprsError::Length { .. }),
     );
 
+    // The other byte-order bit parses and then refuses by name: the regions are stored in the
+    // writer's native order, and this reader's differs. The bit lives in the machine
+    // information's final byte.
+    let foreign_order_path = dir.join("foreign-order.sprs");
+    let mut foreign_order = bytes.clone();
+    foreign_order[15] ^= 1;
+    std::fs::write(&foreign_order_path, &foreign_order).expect("the foreign-order file writes");
+    assert_matches!(
+        SprsFile::open(&foreign_order_path),
+        Err(OpenSprsError::Architecture { .. }),
+    );
+
+    // The machine information's reserved bits admit every pattern, so an unknown bit alone
+    // refuses nothing: relying on one is a layout-version decision.
+    let reserved_bits_path = dir.join("reserved-bits.sprs");
+    let mut reserved_bits = bytes.clone();
+    reserved_bits[12] = 2;
+    std::fs::write(&reserved_bits_path, &reserved_bits).expect("the reserved-bits file writes");
+    let _file = SprsFile::open(&reserved_bits_path).expect("unknown machine bits still open");
+
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
 }
 

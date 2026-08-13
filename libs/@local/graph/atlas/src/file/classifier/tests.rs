@@ -16,7 +16,7 @@ use super::{
     read::{ClassifierFile, OpenClassifierError},
     write::write_regions,
 };
-use crate::file::region::header::HeaderError;
+use crate::file::region::{header::HeaderError, machine::Machine};
 
 #[test]
 fn header_wire_layout() {
@@ -26,8 +26,12 @@ fn header_wire_layout() {
     // The literal length pins the layout and bounds the region slices.
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[..8], b"SALTCLSF");
-    assert_eq!(&bytes[8..12], &0_u32.to_le_bytes(), "version 0");
-    assert_eq!(&bytes[12..16], &0_u32.to_le_bytes(), "reserved");
+    assert_eq!(&bytes[8..12], &1_u32.to_le_bytes(), "version 1");
+    assert_eq!(
+        &bytes[12..16],
+        Machine::current().as_bytes(),
+        "machine information"
+    );
     assert_eq!(&bytes[16..24], &4_u64.to_le_bytes(), "dimension");
     assert_eq!(&bytes[24..32], &6_u64.to_le_bytes(), "distance count");
     assert_eq!(&bytes[32..40], &1.5_f64.to_le_bytes(), "temperature");
@@ -143,7 +147,7 @@ fn open_rejects_foreign_and_torn_bytes() {
 
     let future = scratch("future-version.clsf");
     let mut bytes = fixture_bytes();
-    bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
+    bytes[8..12].copy_from_slice(&2_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
     assert_matches!(
         ClassifierFile::open(&future),
@@ -158,6 +162,26 @@ fn open_rejects_foreign_and_torn_bytes() {
         ClassifierFile::open(&torn),
         Err(OpenClassifierError::Length { .. }),
     );
+
+    // The other byte-order bit parses and then refuses by name: the regions are stored in the
+    // writer's native order, and this reader's differs. The bit lives in the machine
+    // information's final byte.
+    let foreign_order = scratch("foreign-order.clsf");
+    let mut bytes = fixture_bytes();
+    bytes[15] ^= 1;
+    fs::write(&foreign_order, &bytes).expect("the scratch file is writable");
+    assert_matches!(
+        ClassifierFile::open(&foreign_order),
+        Err(OpenClassifierError::Architecture { .. }),
+    );
+
+    // The machine information's reserved bits admit every pattern, so an unknown bit alone
+    // refuses nothing: relying on one is a layout-version decision.
+    let reserved_bits = scratch("reserved-bits.clsf");
+    let mut bytes = fixture_bytes();
+    bytes[12] = 2;
+    fs::write(&reserved_bits, &bytes).expect("the scratch file is writable");
+    let _file = ClassifierFile::open(&reserved_bits).expect("unknown machine bits still open");
 }
 
 #[test]

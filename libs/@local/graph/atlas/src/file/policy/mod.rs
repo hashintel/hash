@@ -1,6 +1,6 @@
 //! The resolved geometry policy table.
 //!
-//! Layout version 1 is **mutable**: change the layout to fit what the pipeline needs and increment
+//! Layout version 2 is **mutable**: change the layout to fit what the pipeline needs and increment
 //! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
 //! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
@@ -10,9 +10,8 @@
 //! | offset | size | region                                          |
 //! |--------|------|-------------------------------------------------|
 //! | 0      | 8    | magic `SALTPLCY`                                |
-//! | 8      | 4    | layout version, `u32` = 1                       |
-//! | 12     | 1    | row byte order: `u8`, 0 little, 1 big           |
-//! | 13     | 3    | reserved                                        |
+//! | 8      | 4    | layout version, `u32` = 2                       |
+//! | 12     | 4    | machine information, [`Machine`]                |
 //! | 16     | 8    | policy count `P`, `u64`                         |
 //! | 24     | 4072 | padding; writers emit zero, readers ignore      |
 //! | 4096   |      | policies: `PolicyRow[P]`, ascending by relation |
@@ -22,7 +21,7 @@
 //! effective attraction and selected class distributions (Coincident and Proximal components;
 //! Overlay is the remainder), the calibrated applicability, and the strength multiplier. The rows
 //! store native byte order so the typed layer serves them borrowed straight from the mapping; the
-//! header's [`Endianness`] flag records which order that is, and opening refuses a mismatch, so a
+//! header's [`Machine`] word records which order that is, and opening refuses a mismatch, so a
 //! cross-endian file fails by name instead of being reinterpreted. The file length is
 //! `4096 + 56 · P` with checked arithmetic ([`FileHeader::expected_file_len`]); a header whose
 //! geometry overflows matches no real file. The region starts on a 4096-byte boundary, so the
@@ -50,6 +49,7 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
+use super::region::machine::{Architecture, Machine};
 use crate::file::region::{PAGE, header::header};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
@@ -112,56 +112,13 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V1 = 1,
-}
-
-/// The byte order of the policy rows.
-///
-/// The writer stamps its native order and opening verifies the flag against the reader's, so a
-/// file carried across endianness refuses at the header instead of serving reinterpreted rows.
-/// The discriminants are pinned: little is zero, big is one. A flag written on the other order
-/// also fails the pinned parse outright, because its bytes read back as neither discriminant.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    zerocopy::TryFromBytes,
-    zerocopy::IntoBytes,
-    zerocopy::Immutable,
-    zerocopy::KnownLayout,
-)]
-#[repr(u8)]
-pub(crate) enum Endianness {
-    /// Lowest-order byte first.
-    Little = 0,
-    /// Highest-order byte first.
-    Big = 1,
-}
-
-impl Endianness {
-    /// The order this build compiles for.
-    #[cfg(target_endian = "little")]
-    pub(crate) const NATIVE: Self = Self::Little;
-    /// The order this build compiles for.
-    #[cfg(target_endian = "big")]
-    pub(crate) const NATIVE: Self = Self::Big;
-}
-
-impl fmt::Display for Endianness {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str(match self {
-            Self::Little => "little-endian",
-            Self::Big => "big-endian",
-        })
-    }
+    V2 = 2,
 }
 
 /// One resolved relation policy in wire form.
 ///
 /// Any byte pattern parses at this layer. The domain ranges are the typed layer's contract. The
-/// fields are native byte order under the header's verified [`Endianness`] flag, which is what
+/// fields are native byte order under the header's verified [`Machine`] word, which is what
 /// lets the typed layer cast the mapped region in place instead of decoding it.
 #[derive(
     Debug,
@@ -208,9 +165,7 @@ const _: () = assert!(size_of::<PolicyRow>() == 56);
 pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
-    /// The row region's byte order, verified against the reader's at open.
-    endianness: Unalign<Endianness>,
-    reserved: [u8; 3],
+    machine: Machine,
     policies: U64<LE>,
 }
 
@@ -222,9 +177,8 @@ impl FileHeader {
     pub(crate) const fn new(policies: u64) -> Self {
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V1),
-            endianness: Unalign::new(Endianness::NATIVE),
-            reserved: [0; 3],
+            version: Unalign::new(Version::V2),
+            machine: Machine::current(),
             policies: U64::new(policies),
         }
     }
@@ -232,8 +186,8 @@ impl FileHeader {
     /// Returns the row region's byte order.
     #[inline]
     #[must_use]
-    pub(crate) fn endianness(&self) -> Endianness {
-        self.endianness.get()
+    pub(crate) const fn architecture(&self) -> Architecture {
+        self.machine.architecture()
     }
 
     /// Returns the policy count `P`.
@@ -263,7 +217,7 @@ impl fmt::Debug for FileHeader {
         fmt.debug_struct("FileHeader")
             .field("magic", &self.magic.get())
             .field("version", &self.version.get())
-            .field("endianness", &self.endianness.get())
+            .field("machine", &self.machine)
             .field("policies", &self.policies)
             .finish_non_exhaustive()
     }

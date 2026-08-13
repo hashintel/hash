@@ -2,7 +2,7 @@
 //!
 //! Per-type membership over the base delivery order, and the type graph's direct parent edges.
 //!
-//! Layout version 0 is mutable. Change the layout to fit what the pipeline needs and increment
+//! Layout version 1 is mutable. Change the layout to fit what the pipeline needs and increment
 //! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
 //! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
@@ -29,14 +29,15 @@
 //! | offset | size | region                                          |
 //! |--------|------|-------------------------------------------------|
 //! | 0      | 8    | magic `SALTPOST`                                |
-//! | 8      | 4    | layout version, `u32` = 0                       |
-//! | 12     | 8    | type count `T`, `u64`                           |
-//! | 20     | 8    | point count `N`, `u64`                          |
-//! | 28     | 8    | list entry count `L`, `u64`                     |
-//! | 36     | 8    | dense set count `D`, `u64`                      |
-//! | 44     | 8    | parent edge count `P`, `u64`                    |
-//! | 52     | 8    | direct entry count `M`, `u64`                   |
-//! | 60     | 4036 | padding; writers emit zero, readers ignore      |
+//! | 8      | 4    | layout version, `u32` = 1                       |
+//! | 12     | 4    | machine information, [`Machine`]                |
+//! | 16     | 8    | type count `T`, `u64`                           |
+//! | 24     | 8    | point count `N`, `u64`                          |
+//! | 32     | 8    | list entry count `L`, `u64`                     |
+//! | 40     | 8    | dense set count `D`, `u64`                      |
+//! | 48     | 8    | parent edge count `P`, `u64`                    |
+//! | 56     | 8    | direct entry count `M`, `u64`                   |
+//! | 64     | 4032 | padding; writers emit zero, readers ignore      |
 //! | 4096   |      | representation flags: one bit set frame over    |
 //! |        |      | the type domain, bit `t` set = type `t` dense;  |
 //! |        |      | zero padding to the next 4096-byte boundary     |
@@ -79,9 +80,11 @@
 //! header once at open, together with the flag population restating `D`. The membership, direct
 //! map, and parent contracts (fencepost coverage, ascending lists, empty list runs for dense
 //! types, domains, the pair count tying the two membership directions) are the postings artifact
-//! contract, validated where the domain type lives. Every region starts on a
-//! 4096-byte boundary, so the whole-file-mapping alignment guarantee of the array format applies
-//! unchanged: map the whole file and slice, never mmap at a file offset.
+//! contract, validated where the domain type lives. The header's machine information
+//! ([`Machine`]) records the writing machine. Every multi-byte field pins little-endian, so the
+//! file reads exactly on either byte order and opening compares nothing against the host. Every
+//! region starts on a 4096-byte boundary, so the whole-file-mapping alignment guarantee of the
+//! array format applies unchanged: map the whole file and slice, never mmap at a file offset.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -100,7 +103,7 @@ pub(crate) mod write;
 
 use crate::{
     bitset::{DenseBitSlice, DenseBitSliceArray},
-    file::region::{PAGE, header::header, padded_size},
+    file::region::{PAGE, header::header, machine::Machine, padded_size},
     identity::{BasePosition, OntologyRowId},
 };
 
@@ -164,7 +167,7 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V0 = 0,
+    V1 = 1,
 }
 
 /// The header of a postings file.
@@ -181,6 +184,7 @@ pub(crate) enum Version {
 pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
+    machine: Machine,
     types: U64<LE>,
     points: U64<LE>,
     list_entries: U64<LE>,
@@ -206,7 +210,8 @@ impl FileHeader {
     ) -> Self {
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V0),
+            version: Unalign::new(Version::V1),
+            machine: Machine::current(),
             types: U64::new(types),
             points: U64::new(points),
             list_entries: U64::new(list_entries),
@@ -390,6 +395,7 @@ impl fmt::Debug for FileHeader {
         fmt.debug_struct("FileHeader")
             .field("magic", &self.magic.get())
             .field("version", &self.version.get())
+            .field("machine", &self.machine)
             .field("types", &self.types)
             .field("points", &self.points)
             .field("list_entries", &self.list_entries)

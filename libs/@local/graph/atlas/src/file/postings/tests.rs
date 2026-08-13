@@ -17,7 +17,7 @@ use crate::{
     bitset::{
         DenseBitSlice, DenseBitSliceArray, ParseDenseBitSliceArrayError, ParseDenseBitSliceError,
     },
-    file::region::{PAGE_BYTES, header::HeaderError},
+    file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
     identity::{BasePosition, OntologyRowId},
 };
 
@@ -102,13 +102,18 @@ fn header_wire_layout() {
     let bytes = header.as_bytes();
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[0..8], b"SALTPOST");
-    assert_eq!(bytes[8..12], 0_u32.to_le_bytes(), "version 0");
-    assert_eq!(bytes[12..20], 3_u64.to_le_bytes(), "type count");
-    assert_eq!(bytes[20..28], 10_u64.to_le_bytes(), "point count");
-    assert_eq!(bytes[28..36], 3_u64.to_le_bytes(), "list entries");
-    assert_eq!(bytes[36..44], 1_u64.to_le_bytes(), "dense sets");
-    assert_eq!(bytes[44..52], 2_u64.to_le_bytes(), "parent edges");
-    assert_eq!(bytes[52..60], 6_u64.to_le_bytes(), "direct entries");
+    assert_eq!(bytes[8..12], 1_u32.to_le_bytes(), "version 1");
+    assert_eq!(
+        &bytes[12..16],
+        Machine::current().as_bytes(),
+        "machine information"
+    );
+    assert_eq!(bytes[16..24], 3_u64.to_le_bytes(), "type count");
+    assert_eq!(bytes[24..32], 10_u64.to_le_bytes(), "point count");
+    assert_eq!(bytes[32..40], 3_u64.to_le_bytes(), "list entries");
+    assert_eq!(bytes[40..48], 1_u64.to_le_bytes(), "dense sets");
+    assert_eq!(bytes[48..56], 2_u64.to_le_bytes(), "parent edges");
+    assert_eq!(bytes[56..64], 6_u64.to_le_bytes(), "direct entries");
 
     let mut wrong_magic = bytes.to_vec();
     wrong_magic[0] = b'W';
@@ -257,7 +262,7 @@ fn open_rejects_foreign_and_torn_bytes() {
 
     let future = scratch("future-version.post");
     let mut bytes = fixture_bytes();
-    bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
+    bytes[8..12].copy_from_slice(&2_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
     assert_matches!(
         PostingsFile::open(&future),

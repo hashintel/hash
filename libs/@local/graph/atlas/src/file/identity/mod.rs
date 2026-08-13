@@ -1,6 +1,6 @@
 //! An identity file binds a row domain to its source identifiers and their display bytes.
 //!
-//! Layout version 1 is mutable: change the layout to fit what the pipeline needs and increment
+//! Layout version 2 is mutable: change the layout to fit what the pipeline needs and increment
 //! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
 //! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
@@ -15,13 +15,14 @@
 //! | offset | size | region                                          |
 //! |--------|------|-------------------------------------------------|
 //! | 0      | 8    | magic `SALTIDNT`                                |
-//! | 8      | 4    | layout version, `u32` = 1                       |
-//! | 12     | 2    | file kind, `u16`, what the payload means        |
-//! | 14     | 2    | key kind, `u16`, the key type and width `K`     |
-//! | 16     | 8    | row count `N`, `u64`                            |
-//! | 24     | 8    | index size `F`, `u64`, exact index bytes        |
-//! | 32     | 8    | payload size `P`, `u64`, exact payload bytes    |
-//! | 40     | 4056 | padding; writers emit zero, readers ignore      |
+//! | 8      | 4    | layout version, `u32` = 2                       |
+//! | 12     | 4    | machine information, [`Machine`]                |
+//! | 16     | 2    | file kind, `u16`, what the payload means        |
+//! | 18     | 2    | key kind, `u16`, the key type and width `K`     |
+//! | 20     | 8    | row count `N`, `u64`                            |
+//! | 28     | 8    | index size `F`, `u64`, exact index bytes        |
+//! | 36     | 8    | payload size `P`, `u64`, exact payload bytes    |
+//! | 44     | 4052 | padding; writers emit zero, readers ignore      |
 //! | 4096   |      | keys: `[u8; K][N]` in row order;                |
 //! |        |      | zero padding to the next 4096-byte boundary     |
 //! | ...    |      | index: `F` bytes, an fst map of key bytes → row |
@@ -45,7 +46,10 @@
 //! [`read::IdentityFile`] opens a file under these rules and hands out the regions, and
 //! [`write::write_regions`] streams them into place. The format owns geometry alone. The table's
 //! domain invariants (index agreement with the key column, spans lying inside the payload) are
-//! the typed table's contract, validated where the typed table lives.
+//! the typed table's contract, validated where the typed table lives. The header's machine
+//! information ([`Machine`]) records the writing machine. Every multi-byte field pins
+//! little-endian, so the file reads exactly on either byte order and opening compares nothing
+//! against the host.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -58,7 +62,7 @@ use core::fmt;
 use hashql_core::id::Id;
 use zerocopy::{LE, U16, U64, Unalign};
 
-use super::region::header::header;
+use super::region::{header::header, machine::Machine};
 use crate::{
     dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::region::{ByteStable, PAGE, padded_size},
@@ -130,7 +134,7 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V1 = 1,
+    V2 = 2,
 }
 
 /// The row domain an identity file covers.
@@ -332,6 +336,7 @@ impl PayloadSpan {
 pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
+    machine: Machine,
     kind: Unalign<Kind>,
     key_kind: Unalign<KeyKind>,
     rows: U64<LE>,
@@ -354,7 +359,8 @@ impl FileHeader {
     ) -> Self {
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V1),
+            version: Unalign::new(Version::V2),
+            machine: Machine::current(),
             kind: Unalign::new(kind),
             key_kind: Unalign::new(key_kind),
             rows: U64::new(rows),
@@ -447,6 +453,7 @@ impl fmt::Debug for FileHeader {
         fmt.debug_struct("FileHeader")
             .field("magic", &self.magic.get())
             .field("version", &self.version.get())
+            .field("machine", &self.machine)
             .field("kind", &self.kind.get())
             .field("key_kind", &self.key_kind.get())
             .field("rows", &self.rows)

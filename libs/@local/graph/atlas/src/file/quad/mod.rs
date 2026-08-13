@@ -1,6 +1,6 @@
 //! The quad file stores quadtree topology over the base delivery order.
 //!
-//! Layout version 1 is **mutable**: change the layout to fit what the pipeline needs and increment
+//! Layout version 2 is **mutable**: change the layout to fit what the pipeline needs and increment
 //! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
 //! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
@@ -24,10 +24,11 @@
 //! | offset | size | region                                          |
 //! |--------|------|-------------------------------------------------|
 //! | 0      | 8    | magic `SALTQUAD`                                |
-//! | 8      | 4    | layout version, `u32` = 1                       |
-//! | 12     | 8    | node count `N`, `u64`                           |
-//! | 20     | 8    | type-id entry count `T`, `u64`                  |
-//! | 28     | 4068 | padding; writers emit zero, readers ignore      |
+//! | 8      | 4    | layout version, `u32` = 2                       |
+//! | 12     | 4    | machine information, [`Machine`]                |
+//! | 16     | 8    | node count `N`, `u64`                           |
+//! | 24     | 8    | type-id entry count `T`, `u64`                  |
+//! | 32     | 4064 | padding; writers emit zero, readers ignore      |
 //! | 4096   |      | node table: `N` records of 32 bytes             |
 //! |        |      | zero padding to the next 4096-byte boundary     |
 //! | ...    |      | type-set fenceposts: `N + 1` `u64` entry counts |
@@ -60,7 +61,10 @@
 //! path views any region. Opening validates the header, the length equation
 //! ([`FileHeader::expected_file_len`]), the fencepost rules (anchored at zero, non-decreasing,
 //! closing at `T`), and the child rules (below the node count, pointing deeper in the table - the
-//! writer emits depth-first pre-order), so traversals and set slices never re-check. Within-set
+//! writer emits depth-first pre-order), so traversals and set slices never re-check. The header's
+//! machine information ([`Machine`]) records the writing machine. Every multi-byte field pins
+//! little-endian, so the file reads exactly on either byte order and opening compares nothing
+//! against the host. Within-set
 //! ascending order is the writer's contract, asserted before the bytes exist and then trusted the
 //! way every merge trusts its sorted inputs. Both variable regions start on 4096-byte boundaries,
 //! so the whole-file-mapping alignment guarantee of the array format applies unchanged: map the
@@ -82,7 +86,7 @@ pub(crate) mod write;
 #[cfg(test)]
 mod tests;
 
-use crate::file::region::{PAGE, header::header, padded_size};
+use crate::file::region::{PAGE, header::header, machine::Machine, padded_size};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
@@ -144,7 +148,7 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V1 = 1,
+    V2 = 2,
 }
 
 /// One quadtree node with child links, the own-bucket run, and the subtree point count.
@@ -357,6 +361,7 @@ impl TypeSets {
 pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
+    machine: Machine,
     nodes: U64<LE>,
     type_ids: U64<LE>,
 }
@@ -369,7 +374,8 @@ impl FileHeader {
     pub(crate) const fn new(nodes: u64, type_ids: u64) -> Self {
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V1),
+            version: Unalign::new(Version::V2),
+            machine: Machine::current(),
             nodes: U64::new(nodes),
             type_ids: U64::new(type_ids),
         }
@@ -429,6 +435,7 @@ impl fmt::Debug for FileHeader {
         fmt.debug_struct("FileHeader")
             .field("magic", &self.magic.get())
             .field("version", &self.version.get())
+            .field("machine", &self.machine)
             .field("nodes", &self.nodes)
             .field("type_ids", &self.type_ids)
             .finish_non_exhaustive()

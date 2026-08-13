@@ -13,7 +13,10 @@ use super::{
     read::{LandmarkFile, OpenLandmarkError},
     write::write_regions,
 };
-use crate::{file::region::header::HeaderError, math::Vec2};
+use crate::{
+    file::region::{header::HeaderError, machine::Machine},
+    math::Vec2,
+};
 
 #[test]
 fn header_wire_layout() {
@@ -23,8 +26,12 @@ fn header_wire_layout() {
     // The literal length pins the layout and bounds the region slices.
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[..8], b"SALTLNDM");
-    assert_eq!(&bytes[8..12], &0_u32.to_le_bytes(), "version 0");
-    assert_eq!(&bytes[12..16], &0_u32.to_le_bytes(), "reserved");
+    assert_eq!(&bytes[8..12], &1_u32.to_le_bytes(), "version 1");
+    assert_eq!(
+        &bytes[12..16],
+        Machine::current().as_bytes(),
+        "machine information"
+    );
     assert_eq!(&bytes[16..24], &3_u64.to_le_bytes(), "landmark count");
     assert_eq!(&bytes[24..32], &7_u64.to_le_bytes(), "corpus row count");
     assert!(
@@ -148,7 +155,7 @@ fn open_rejects_foreign_and_torn_bytes() {
 
     let future = scratch("future-version.lndm");
     let mut bytes = fixture_bytes();
-    bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
+    bytes[8..12].copy_from_slice(&2_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
     assert_matches!(
         LandmarkFile::open(&future),
@@ -163,6 +170,26 @@ fn open_rejects_foreign_and_torn_bytes() {
         LandmarkFile::open(&torn),
         Err(OpenLandmarkError::Length { .. }),
     );
+
+    // The other byte-order bit parses and then refuses by name: the coordinates are stored in
+    // the writer's native order, and this reader's differs. The bit lives in the machine
+    // information's final byte.
+    let foreign_order = scratch("foreign-order.lndm");
+    let mut bytes = fixture_bytes();
+    bytes[15] ^= 1;
+    fs::write(&foreign_order, &bytes).expect("the scratch file is writable");
+    assert_matches!(
+        LandmarkFile::open(&foreign_order),
+        Err(OpenLandmarkError::Architecture { .. }),
+    );
+
+    // The machine information's reserved bits admit every pattern, so an unknown bit alone
+    // refuses nothing: relying on one is a layout-version decision.
+    let reserved_bits = scratch("reserved-bits.lndm");
+    let mut bytes = fixture_bytes();
+    bytes[12] = 2;
+    fs::write(&reserved_bits, &bytes).expect("the scratch file is writable");
+    let _file = LandmarkFile::open(&reserved_bits).expect("unknown machine bits still open");
 }
 
 #[test]

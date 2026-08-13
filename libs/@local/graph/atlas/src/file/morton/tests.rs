@@ -15,7 +15,7 @@ use super::{
     write::{PAGE_STRIDE, write_regions},
 };
 use crate::{
-    file::region::{PAGE_BYTES, header::HeaderError},
+    file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
     identity::BasePosition,
     morton::{Depth, MortonCell, MortonKey},
 };
@@ -89,16 +89,21 @@ fn header_wire_layout() {
     let bytes = header.as_bytes();
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[0..8], b"SALTMRTN");
-    assert_eq!(bytes[8..12], 1_u32.to_le_bytes(), "version 1");
-    assert_eq!(bytes[12..16], 512_u32.to_le_bytes(), "index stride");
+    assert_eq!(bytes[8..12], 2_u32.to_le_bytes(), "version 2");
+    assert_eq!(
+        &bytes[12..16],
+        Machine::current().as_bytes(),
+        "machine information"
+    );
+    assert_eq!(bytes[16..20], 512_u32.to_le_bytes(), "index stride");
     // Fenceposts: 0, 600, then 1000 repeated to the last post.
-    assert_eq!(bytes[16..24], 0_u64.to_le_bytes());
-    assert_eq!(bytes[24..32], 600_u64.to_le_bytes());
+    assert_eq!(bytes[20..28], 0_u64.to_le_bytes());
+    assert_eq!(bytes[28..36], 600_u64.to_le_bytes());
     for post in 2..POSTS {
-        let offset = 16 + post * 8;
+        let offset = 20 + post * 8;
         assert_eq!(bytes[offset..offset + 8], 1000_u64.to_le_bytes());
     }
-    assert!(bytes[16 + POSTS * 8..].iter().all(|&byte| byte == 0));
+    assert!(bytes[20 + POSTS * 8..].iter().all(|&byte| byte == 0));
 }
 
 #[test]
@@ -118,7 +123,7 @@ fn header_parse_pins_identity() {
     wrong_magic[0] = b'W';
     PaddedFileHeader::try_ref_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
 
-    // Version 0 is the retired layout. Its bytes must not parse as V1.
+    // Version 0 is a retired layout. Its bytes must not parse as V2.
     let mut wrong_version = bytes;
     wrong_version[8] = 0;
     PaddedFileHeader::try_ref_from_bytes(&wrong_version)
@@ -302,7 +307,7 @@ fn open_rejects_foreign_and_torn_bytes() {
     // Decreasing fenceposts parse as a header but fail validation.
     let malformed = scratch("malformed-posts.mrtn");
     let mut bytes = fixture_bytes(2);
-    bytes[24..32].copy_from_slice(&u64::MAX.to_le_bytes());
+    bytes[28..36].copy_from_slice(&u64::MAX.to_le_bytes());
     fs::write(&malformed, &bytes).expect("the scratch file is writable");
     assert_matches!(
         MortonFile::open(&malformed),

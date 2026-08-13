@@ -1,6 +1,6 @@
 //! A landmark file stores the selected rows, the assignment, and the coordinates.
 //!
-//! Layout version 0 is mutable: change the layout to fit what the pipeline needs and increment
+//! Layout version 1 is mutable: change the layout to fit what the pipeline needs and increment
 //! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
 //! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
@@ -12,8 +12,8 @@
 //! | offset | size | region                                          |
 //! |--------|------|-------------------------------------------------|
 //! | 0      | 8    | magic `SALTLNDM`                                |
-//! | 8      | 4    | layout version, `u32` = 0                       |
-//! | 12     | 4    | padding; writers emit zero, readers ignore      |
+//! | 8      | 4    | layout version, `u32` = 1                       |
+//! | 12     | 4    | machine information, [`Machine`]                |
 //! | 16     | 8    | landmark count `M`, `u64`                       |
 //! | 24     | 8    | corpus row count `N`, `u64`                     |
 //! | 32     | 4064 | padding; writers emit zero, readers ignore      |
@@ -33,6 +33,11 @@
 //! whole-file-mapping alignment guarantee of the array format applies unchanged. A reader maps the
 //! whole file and slices it rather than mmapping at a file offset.
 //!
+//! The rows and the assignment pin little-endian, while the coordinates store the writer's
+//! native byte order. The header's machine information ([`Machine`]) records which order that
+//! is, and opening refuses a mismatch, so a cross-endian file fails by name instead of being
+//! reinterpreted.
+//!
 //! [`read::LandmarkFile`] opens a file under these rules and hands out the raw typed regions, and
 //! [`write::write_regions`] streams them into place. The format owns geometry alone. The skeleton's
 //! domain invariants (ascending rows, ordinals below `M`, finite coordinates) are
@@ -46,14 +51,19 @@
 
 use core::fmt;
 
-use zerocopy::{LE, U32, U64, Unalign};
+use zerocopy::{LE, U64, Unalign};
 
 pub(crate) mod read;
 #[cfg(test)]
 mod tests;
 pub(crate) mod write;
 
-use crate::file::region::{PAGE, header::header, padded_size};
+use crate::file::region::{
+    PAGE,
+    header::header,
+    machine::{Architecture, Machine},
+    padded_size,
+};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
@@ -115,7 +125,7 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V0 = 0,
+    V1 = 1,
 }
 
 /// The header of a landmark file.
@@ -132,8 +142,7 @@ pub(crate) enum Version {
 pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
-    /// Alignment filler so the counts sit on natural boundaries.
-    reserved: U32<LE>,
+    machine: Machine,
     landmarks: U64<LE>,
     rows: U64<LE>,
 }
@@ -146,11 +155,18 @@ impl FileHeader {
     pub(crate) const fn new(landmarks: u64, rows: u64) -> Self {
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V0),
-            reserved: U32::new(0),
+            version: Unalign::new(Version::V1),
+            machine: Machine::current(),
             landmarks: U64::new(landmarks),
             rows: U64::new(rows),
         }
+    }
+
+    /// Returns the byte order the file's writer stamped.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn architecture(&self) -> Architecture {
+        self.machine.architecture()
     }
 
     /// Returns the landmark count `M`.
@@ -207,6 +223,7 @@ impl fmt::Debug for FileHeader {
         fmt.debug_struct("FileHeader")
             .field("magic", &self.magic.get())
             .field("version", &self.version.get())
+            .field("machine", &self.machine)
             .field("landmarks", &self.landmarks)
             .field("rows", &self.rows)
             .finish_non_exhaustive()

@@ -1,6 +1,6 @@
 //! The classifier file format for the fitted relation-policy model.
 //!
-//! Layout version 0 is mutable. Change the layout to fit what the pipeline needs and increment
+//! Layout version 1 is mutable. Change the layout to fit what the pipeline needs and increment
 //! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
 //! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
@@ -13,8 +13,8 @@
 //! | offset | size | region                                          |
 //! |--------|------|-------------------------------------------------|
 //! | 0      | 8    | magic `SALTCLSF`                                |
-//! | 8      | 4    | layout version, `u32` = 0                       |
-//! | 12     | 4    | padding; writers emit zero, readers ignore      |
+//! | 8      | 4    | layout version, `u32` = 1                       |
+//! | 12     | 4    | machine information, [`Machine`]                |
 //! | 16     | 8    | embedding dimension `D`, `u64`                  |
 //! | 24     | 8    | training-distance count `T`, `u64`              |
 //! | 32     | 8    | calibration temperature, `f64`                  |
@@ -37,6 +37,11 @@
 //! alignment guarantee of the array format applies unchanged. Map the whole file and slice, never
 //! mmap at a file offset.
 //!
+//! The header's scalar parameters pin little-endian, while the regions store the writer's native
+//! byte order. The header's machine information ([`Machine`]) records which order that is, and
+//! opening refuses a mismatch, so a cross-endian file fails by name instead of being
+//! reinterpreted.
+//!
 //! [`read::ClassifierFile`] opens a file under these rules and hands out the raw typed regions;
 //! [`write::write_regions`] streams them into place. The format owns geometry alone - the model's
 //! domain invariants (finite parameters, positive temperature, positive inverse scales, sorted
@@ -51,14 +56,19 @@
 
 use core::fmt;
 
-use zerocopy::{F64, LE, U32, U64, Unalign};
+use zerocopy::{F64, LE, U64, Unalign};
 
 pub(crate) mod read;
 #[cfg(test)]
 mod tests;
 pub(crate) mod write;
 
-use crate::file::region::{PAGE, header::header, padded_size};
+use crate::file::region::{
+    PAGE,
+    header::header,
+    machine::{Architecture, Machine},
+    padded_size,
+};
 
 /// Geometry classes per model: pinned by the layout version.
 pub(crate) const CLASSES: usize = 3;
@@ -123,7 +133,7 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V0 = 0,
+    V1 = 1,
 }
 
 /// The header of a classifier file.
@@ -140,8 +150,7 @@ pub(crate) enum Version {
 pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
-    /// Alignment filler so the counts sit on natural boundaries.
-    reserved: U32<LE>,
+    machine: Machine,
     dimension: U64<LE>,
     distances: U64<LE>,
     temperature: F64<LE>,
@@ -162,8 +171,8 @@ impl FileHeader {
     ) -> Self {
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V0),
-            reserved: U32::new(0),
+            version: Unalign::new(Version::V1),
+            machine: Machine::current(),
             dimension: U64::new(dimension),
             distances: U64::new(distances),
             temperature: F64::new(temperature),
@@ -173,6 +182,13 @@ impl FileHeader {
                 F64::new(intercepts[2]),
             ],
         }
+    }
+
+    /// Returns the byte order the file's writer stamped.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn architecture(&self) -> Architecture {
+        self.machine.architecture()
     }
 
     /// Returns the embedding dimension `D`.
@@ -262,6 +278,7 @@ impl fmt::Debug for FileHeader {
         fmt.debug_struct("FileHeader")
             .field("magic", &self.magic.get())
             .field("version", &self.version.get())
+            .field("machine", &self.machine)
             .field("dimension", &self.dimension)
             .field("distances", &self.distances)
             .field("temperature", &self.temperature)

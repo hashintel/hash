@@ -18,7 +18,7 @@ use crate::{
         auxiliary::{Icon, Label},
         memory::{MemoryNodeId, MemoryOntologyId},
     },
-    file::region::header::HeaderError,
+    file::region::{header::HeaderError, machine::Machine},
     identity::{NodeRowId, OntologyRowId},
 };
 
@@ -30,18 +30,23 @@ fn header_wire_layout() {
     // The literal length pins the layout and bounds the region slices.
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[..8], b"SALTIDNT");
-    assert_eq!(&bytes[8..12], &1_u32.to_le_bytes(), "version 1");
-    assert_eq!(&bytes[12..14], &1_u16.to_le_bytes(), "kind: nodes");
+    assert_eq!(&bytes[8..12], &2_u32.to_le_bytes(), "version 2");
     assert_eq!(
-        &bytes[14..16],
+        &bytes[12..16],
+        Machine::current().as_bytes(),
+        "machine information"
+    );
+    assert_eq!(&bytes[16..18], &1_u16.to_le_bytes(), "kind: nodes");
+    assert_eq!(
+        &bytes[18..20],
         &0x0102_u16.to_le_bytes(),
         "key kind: u64 LE",
     );
-    assert_eq!(&bytes[16..24], &7_u64.to_le_bytes(), "row count");
-    assert_eq!(&bytes[24..32], &100_u64.to_le_bytes(), "index size");
-    assert_eq!(&bytes[32..40], &50_u64.to_le_bytes(), "payload size");
+    assert_eq!(&bytes[20..28], &7_u64.to_le_bytes(), "row count");
+    assert_eq!(&bytes[28..36], &100_u64.to_le_bytes(), "index size");
+    assert_eq!(&bytes[36..44], &50_u64.to_le_bytes(), "payload size");
     assert!(
-        bytes[40..].iter().all(|&byte| byte == 0),
+        bytes[44..].iter().all(|&byte| byte == 0),
         "writers emit zero padding",
     );
 }
@@ -197,7 +202,7 @@ fn open_rejects_foreign_and_torn_bytes() {
         Err(OpenIdentityError::Header(_)),
     );
 
-    // Layout version 0 is the predecessor format's, and this parse speaks only version 1.
+    // Layout version 0 is a predecessor format's, and this parse speaks only version 2.
     let old_version = scratch("old-version.idnt");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&0_u32.to_le_bytes());
@@ -209,7 +214,7 @@ fn open_rejects_foreign_and_torn_bytes() {
 
     let alien_kind = scratch("alien-kind.idnt");
     let mut bytes = fixture_bytes();
-    bytes[12..14].copy_from_slice(&3_u16.to_le_bytes());
+    bytes[16..18].copy_from_slice(&3_u16.to_le_bytes());
     fs::write(&alien_kind, &bytes).expect("the scratch file is writable");
     assert_matches!(
         IdentityFile::open(&alien_kind),
@@ -218,7 +223,7 @@ fn open_rejects_foreign_and_torn_bytes() {
 
     let alien_key_kind = scratch("alien-key-kind.idnt");
     let mut bytes = fixture_bytes();
-    bytes[14..16].copy_from_slice(&0x0200_u16.to_le_bytes());
+    bytes[18..20].copy_from_slice(&0x0200_u16.to_le_bytes());
     fs::write(&alien_key_kind, &bytes).expect("the scratch file is writable");
     assert_matches!(
         IdentityFile::open(&alien_key_kind),
@@ -236,10 +241,10 @@ fn open_rejects_foreign_and_torn_bytes() {
 
     // Zeroing the index region leaves the geometry intact and the fst parse is what refuses.
     // Three eight-byte keys pad to one region unit, so the index starts at 8192; its exact size
-    // sits at header bytes 24..32.
+    // sits at header bytes 28..36.
     let mangled_index = scratch("mangled-index.idnt");
     let mut bytes = fixture_bytes();
-    let index_bytes = u64::from_le_bytes(bytes[24..32].try_into().expect("eight bytes"));
+    let index_bytes = u64::from_le_bytes(bytes[28..36].try_into().expect("eight bytes"));
     let start = 8192_usize;
     let end = start + usize::try_from(index_bytes).expect("the index fits the address space");
     bytes[start..end].fill(0);

@@ -11,7 +11,7 @@ use super::{
     read::{ArrayFile, OpenArrayError},
 };
 use crate::{
-    file::region::{PAGE_BYTES, header::HeaderError},
+    file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
     integrity::{Sha256, Update as _},
 };
 
@@ -56,14 +56,12 @@ fn header_wire_layout() {
     let bytes = header.as_bytes();
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[0..8], b"SALTARRY");
-    assert_eq!(bytes[8..12], 0_u32.to_le_bytes());
-    assert_eq!(bytes[12], 0x0D);
-    assert_eq!(bytes[13..21], (1_u64 << 18).to_le_bytes());
-    assert_eq!(bytes[21..29], 2_u64.to_le_bytes());
-    // The flags word is zero on a little-endian writer, so the whole
-    // tail is byte-identical to a pre-flags header.
-    assert_eq!(bytes[77..81], 0_u32.to_le_bytes());
-    assert!(bytes[29..].iter().all(|&byte| byte == 0));
+    assert_eq!(bytes[8..12], 1_u32.to_le_bytes());
+    assert_eq!(&bytes[12..16], Machine::current().as_bytes());
+    assert_eq!(bytes[16], 0x0D);
+    assert_eq!(bytes[17..25], (1_u64 << 18).to_le_bytes());
+    assert_eq!(bytes[25..33], 2_u64.to_le_bytes());
+    assert!(bytes[33..].iter().all(|&byte| byte == 0));
 }
 
 #[test]
@@ -77,9 +75,10 @@ fn foreign_native_elements_fail_the_open() {
         .expect("the rows should write");
     let _digest = writer.finish().expect("the writer should finish");
 
-    // Flip the architecture bit: the same bytes now claim the other
-    // byte order wrote them, and native elements refuse the open.
-    bytes[77] ^= 0x01;
+    // Flip the architecture bit in the machine information's final byte: the
+    // same bytes now claim the other byte order wrote them, and native
+    // elements refuse the open.
+    bytes[15] ^= 0x01;
     let file = TempFile::create(&bytes);
     assert_matches!(
         ArrayFile::open(&file.path),
@@ -103,7 +102,7 @@ fn le_pinned_elements_survive_a_foreign_writer() {
 
     // The element type carries the byte order, so the writer's
     // architecture is irrelevant to the reader.
-    bytes[77] ^= 0x01;
+    bytes[15] ^= 0x01;
     let file = TempFile::create(&bytes);
     let mapped = ArrayFile::open(&file.path).expect("an le-pinned file opens on every host");
     let pairs = mapped.u64_le_pairs().expect("the pairs view exists");
@@ -132,12 +131,12 @@ fn header_parse_pins_identity() {
     PaddedFileHeader::try_ref_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
 
     let mut wrong_version = bytes;
-    wrong_version[8] = 1;
+    wrong_version[8] = 2;
     PaddedFileHeader::try_ref_from_bytes(&wrong_version)
         .expect_err("an unsupported version should not parse");
 
     let mut wrong_variant = bytes;
-    wrong_variant[12] = 0xFF;
+    wrong_variant[16] = 0xFF;
     PaddedFileHeader::try_ref_from_bytes(&wrong_variant)
         .expect_err("an unknown variant should not parse");
 
@@ -170,7 +169,7 @@ fn shape_is_the_longest_nonzero_prefix() {
 #[test]
 fn u8_variant_pins_its_identity_and_width() {
     let header = FileHeader::new(ArrayVariant::U8, shape(&[3, 32]));
-    assert_eq!(header.as_bytes()[12], 0x01);
+    assert_eq!(header.as_bytes()[16], 0x01);
     assert_eq!(ArrayVariant::U8.width(), 1);
     assert_eq!(header.byte_length(), Some(96));
     assert_eq!(header.expected_file_len(), Some(4096 + 96));

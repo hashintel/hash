@@ -10,6 +10,7 @@ use super::{FileHeader, IndexVariant, SprsIndex, SprsValue, StorageVariant, Valu
 use crate::file::region::{
     PAGE,
     header::{HeaderError, HeaderMap},
+    machine::Architecture,
 };
 
 /// Opening a sparse matrix file failed.
@@ -26,6 +27,11 @@ pub enum OpenSprsError {
         /// which case it matches no real file.
         expected: Option<u64>,
         actual: u64,
+    },
+    /// The regions are stored in the other byte order.
+    Architecture {
+        /// The order the file's writer stamped.
+        found: Architecture,
     },
 }
 
@@ -47,6 +53,11 @@ impl fmt::Display for OpenSprsError {
                 fmt,
                 "the file holds {actual} bytes where the header describes no matrix",
             ),
+            Self::Architecture { found } => write!(
+                fmt,
+                "the file stores {found} regions where this machine reads {native}",
+                native = Architecture::HOST,
+            ),
         }
     }
 }
@@ -55,7 +66,7 @@ impl Error for OpenSprsError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Header(error) => Some(error),
-            Self::Length { .. } => None,
+            Self::Length { .. } | Self::Architecture { .. } => None,
         }
     }
 }
@@ -139,8 +150,9 @@ impl SprsFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenSprsError::Header`] when the header page cannot be read, and
-    /// [`OpenSprsError::Length`] when the file length contradicts the header's geometry.
+    /// Returns [`OpenSprsError::Header`] when the header page cannot be read,
+    /// [`OpenSprsError::Length`] when the file length contradicts the header's geometry, and
+    /// [`OpenSprsError::Architecture`] when the regions are stored in the other byte order.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenSprsError> {
         let map = HeaderMap::<FileHeader>::open(path).map_err(OpenSprsError::Header)?;
 
@@ -148,6 +160,11 @@ impl SprsFile {
         let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenSprsError::Length { expected, actual });
+        }
+
+        let endianness = map.header().architecture();
+        if endianness != Architecture::HOST {
+            return Err(OpenSprsError::Architecture { found: endianness });
         }
 
         Ok(Self { map })

@@ -1,6 +1,6 @@
 //! The sparse matrix file, one mappable compressed-sparse-row matrix.
 //!
-//! Layout version 1 is **mutable**: change the layout to fit what the pipeline needs and increment
+//! Layout version 2 is **mutable**: change the layout to fit what the pipeline needs and increment
 //! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
 //! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
@@ -12,15 +12,16 @@
 //! | offset | size | region                                          |
 //! |--------|------|-------------------------------------------------|
 //! | 0      | 8    | magic `SALTSPRS`                                |
-//! | 8      | 4    | layout version, `u32` = 1                       |
-//! | 12     | 1    | value type tag, [`ValueTag`]                    |
-//! | 13     | 1    | index element type, [`IndexVariant`]            |
-//! | 14     | 1    | pointer element type, [`IndexVariant`]          |
-//! | 15     | 1    | compressed dimension, [`StorageVariant`]        |
-//! | 16     | 8    | value entry width in bytes, `u64`               |
-//! | 24     | 64   | shape, [`ArrayShape`]: `[rows, columns]`        |
-//! | 88     | 8    | stored entries `nnz`, `u64`                     |
-//! | 96     | 4000 | padding; writers emit zero, readers ignore      |
+//! | 8      | 4    | layout version, `u32` = 2                       |
+//! | 12     | 4    | machine information, [`Machine`]                |
+//! | 16     | 1    | value type tag, [`ValueTag`]                    |
+//! | 17     | 1    | index element type, [`IndexVariant`]            |
+//! | 18     | 1    | pointer element type, [`IndexVariant`]          |
+//! | 19     | 1    | compressed dimension, [`StorageVariant`]        |
+//! | 20     | 8    | value entry width in bytes, `u64`               |
+//! | 28     | 64   | shape, [`ArrayShape`]: `[rows, columns]`        |
+//! | 92     | 8    | stored entries `nnz`, `u64`                     |
+//! | 100    | 3996 | padding; writers emit zero, readers ignore      |
 //! | 4096   |      | pointers: `iptr[outer + 1]`, ascending from     |
 //! |        |      | zero to `nnz`, where `outer` is the compressed  |
 //! |        |      | dimension's extent (rows for [`Csr`], columns   |
@@ -43,9 +44,11 @@
 //! no real file, so a matrix with zero rows or columns is unrepresentable on purpose. All region
 //! offsets derive from the header fields with checked arithmetic
 //! ([`FileHeader::expected_file_len`]). A header whose geometry overflows matches no real file.
-//! Every region starts on a 4096-byte boundary, so the whole-file-mapping alignment guarantee of
-//! the array format applies unchanged. Map the whole file and slice it, never mmap at a file
-//! offset.
+//! The regions store the writer's native byte order. The header's machine information
+//! ([`Machine`]) records which order that is, and opening refuses a mismatch, so a cross-endian
+//! file fails by name instead of being reinterpreted. Every region starts on a 4096-byte
+//! boundary, so the whole-file-mapping alignment guarantee of the array format applies unchanged.
+//! Map the whole file and slice it, never mmap at a file offset.
 //!
 //! [`read::SprsFile`] opens a file under these rules. [`write::write_matrix`] streams a borrowed
 //! [`CsMatBase`](sprs::CsMatBase) into them. Reader and writer speak the same matrix types, so
@@ -69,7 +72,12 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-use crate::file::region::{PAGE, header::header, padded_size};
+use crate::file::region::{
+    PAGE,
+    header::header,
+    machine::{Architecture, Machine},
+    padded_size,
+};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
@@ -131,7 +139,7 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V1 = 1,
+    V2 = 2,
 }
 
 /// The element type of an index region.
@@ -419,6 +427,7 @@ impl From<CompressedStorage> for StorageVariant {
 pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
+    machine: Machine,
     value: ValueTag,
     index: IndexVariant,
     iptr: IndexVariant,
@@ -447,7 +456,8 @@ impl FileHeader {
     ) -> Self {
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V1),
+            version: Unalign::new(Version::V2),
+            machine: Machine::current(),
             value,
             index,
             iptr,
@@ -456,6 +466,13 @@ impl FileHeader {
             shape,
             nnz: U64::new(nnz),
         }
+    }
+
+    /// Returns the byte order the file's writer stamped.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn architecture(&self) -> Architecture {
+        self.machine.architecture()
     }
 
     /// Returns the value type tag.
@@ -565,6 +582,7 @@ impl fmt::Debug for FileHeader {
         fmt.debug_struct("FileHeader")
             .field("magic", &self.magic.get())
             .field("version", &self.version.get())
+            .field("machine", &self.machine)
             .field("value", &self.value)
             .field("value_width", &self.value_width)
             .field("index", &self.index)

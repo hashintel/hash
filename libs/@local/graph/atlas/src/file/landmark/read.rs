@@ -10,6 +10,7 @@ use crate::{
     file::region::{
         PAGE,
         header::{HeaderError, HeaderMap},
+        machine::Architecture,
     },
     math::Vec2,
 };
@@ -27,6 +28,11 @@ pub(crate) enum OpenLandmarkError {
         /// file.
         expected: Option<u64>,
         actual: u64,
+    },
+    /// The coordinates are stored in the other byte order.
+    Architecture {
+        /// The order the file's writer stamped.
+        found: Architecture,
     },
 }
 
@@ -48,6 +54,11 @@ impl fmt::Display for OpenLandmarkError {
                 fmt,
                 "the file holds {actual} bytes where the header describes no skeleton",
             ),
+            Self::Architecture { found } => write!(
+                fmt,
+                "the file stores {found} coordinates where this machine reads {native}",
+                native = Architecture::HOST,
+            ),
         }
     }
 }
@@ -56,7 +67,7 @@ impl Error for OpenLandmarkError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Header(error) => Some(error),
-            Self::Length { .. } => None,
+            Self::Length { .. } | Self::Architecture { .. } => None,
         }
     }
 }
@@ -77,8 +88,10 @@ impl LandmarkFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenLandmarkError::Header`] when the header page cannot be read, and
-    /// [`OpenLandmarkError::Length`] when the file length contradicts the header's geometry.
+    /// Returns [`OpenLandmarkError::Header`] when the header page cannot be read,
+    /// [`OpenLandmarkError::Length`] when the file length contradicts the header's geometry, and
+    /// [`OpenLandmarkError::Architecture`] when the coordinates are stored in the other byte
+    /// order.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenLandmarkError> {
         let map = HeaderMap::<FileHeader>::open(path).map_err(OpenLandmarkError::Header)?;
@@ -87,6 +100,11 @@ impl LandmarkFile {
         let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenLandmarkError::Length { expected, actual });
+        }
+
+        let endianness = map.header().architecture();
+        if endianness != Architecture::HOST {
+            return Err(OpenLandmarkError::Architecture { found: endianness });
         }
 
         Ok(Self { map })
