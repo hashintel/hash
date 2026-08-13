@@ -43,6 +43,16 @@ runs:
         MISE_VERBOSE: 1
         GITHUB_TOKEN: ${{ inputs.token }}
 
+    # Without `mise` on `PATH` there is no install to retry, only five minutes of `not found`.
+    - name: Fail fast if `mise` itself is missing
+      if: ${{ steps.mise-install.outcome != 'success' }}
+      shell: bash
+      run: |
+        command -v mise > /dev/null || {
+          echo "::error::mise is not on PATH: jdx/mise-action failed during its own setup, so there is no install to retry"
+          exit 1
+        }
+
     # Skipped on the happy path. The condition is `!= 'success'` rather than `== 'failure'` so
     # that an unresolved `outcome` retries instead of silently swallowing the failure above.
     - name: Retry `mise install` if it failed
