@@ -251,7 +251,8 @@ jobs:
         if: ${{ success() || failure() }}
         run: |
           mise run doc:dependency-diagram
-          git --no-pager diff --exit-code --color '**/docs/dependency-diagram.mmd'
+          git add --intent-to-add -- ':(glob)**/docs/**'
+          git --no-pager diff --exit-code --color -- ':(glob)**/docs/**'
 
       - name: Run yarn lint:constraints
         if: ${{ success() || failure() }}
