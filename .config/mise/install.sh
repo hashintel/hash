@@ -30,20 +30,6 @@ if [[ -n ${github_token} ]]; then
   curl_auth=(--header "Authorization: Bearer ${github_token}")
 fi
 
-# Human-readable names for the curl exit codes seen on Vercel builds.
-curl_exit_label() {
-  case "$1" in
-    0) echo "no transport error" ;;
-    6) echo "could not resolve host" ;;
-    7) echo "could not connect to host" ;;
-    22) echo "HTTP error returned" ;;
-    28) echo "operation timed out" ;;
-    35) echo "TLS connect error" ;;
-    56) echo "failure receiving network data" ;;
-    *) echo "see EXIT CODES in 'man curl'" ;;
-  esac
-}
-
 # Downloads $1 to $2. `--fail` is deliberately omitted so that the response body
 # survives to be printed: a bare `curl: (22)` explains nothing about why a build broke.
 #
@@ -72,7 +58,9 @@ fetch() {
   if [[ ${curl_status} -ne 0 || ${status} -lt 200 || ${status} -ge 300 ]]; then
     {
       echo "error: failed to download ${url}"
-      echo "  curl exit code: ${curl_status} ($(curl_exit_label "${curl_status}"))"
+      # `-S` already prints curl's own message for a transport failure, so only
+      # the bare number is added here.
+      echo "  curl exit code: ${curl_status}"
       echo "  http status:    ${status}"
       # `--dump-header` appends, so the file holds every retry and every redirect
       # hop. Reset on each status line and keep only what followed the last one,
