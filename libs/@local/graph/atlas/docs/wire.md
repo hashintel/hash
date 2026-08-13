@@ -87,7 +87,9 @@ The (kind, slot) pair names each section; the names are labels, the slots are th
 
 TRAILER (all kinds): CBOR tail outside the directory - declared by the HEAD `trailer` key on tile and edges, always present on locate.
 
-Trailer property values are the entity's **deliverable set**, every property the deployment's property protection does not withhold. Protection is a per-actor rule in the store; the trailer applies it to every caller alike, so a trailer's property map is one function of the entity and carries no protected property for anyone - and a property's absence is invisible in the completeness flags, which measure completeness against the deliverable set. Labels are outside that rule. A label is a property value materialized per edition through the type's `labelProperty` path, delivered as the graph's own read path delivers it, so a type whose label property falls under protection carries that value in `LABELS` and in the trailer's link labels.
+Trailer property values are the entity's **deliverable set** for the requesting actor: every property the store's actor-specific protection does not withhold. Atlas compiles the property selections through that store rule using the actor and instance-admin status resolved with the view. An entitled owner receives a protected value that the store permits, a stranger does not, and an instance admin reads unmasked. A withheld property's absence is invisible in the completeness flags, which measure completeness against that actor's deliverable set.
+
+Labels are outside property masking. A label is a property value materialized per edition through the type's `labelProperty` path without an actor in the derivation. A type whose label property falls under protection therefore carries that value in `LABELS` and in the trailer's link labels. Deployments must not protect a label property until the store enforces that configuration premise or Atlas refuses the affected detail mode.
 
 `POSITIONS` interleaves xy within one section (a vec2 vertex attribute, stride 8); SoA applies per attribute, never within one attribute.
 
