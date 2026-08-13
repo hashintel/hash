@@ -12,6 +12,7 @@ members = [
     "libs/@local/codegen",
     "libs/@local/effect-dns/hickory",
     "libs/@local/graph/api",
+    "libs/@local/graph/authentication/",
     "libs/@local/graph/authorization",
     "libs/@local/graph/embeddings",
     "libs/@local/graph/migrations",
@@ -75,6 +76,7 @@ harpc-wire-protocol.path            = "libs/@local/harpc/wire-protocol"
 hash-codec.path                     = "libs/@local/codec"
 hash-codegen.path                   = "libs/@local/codegen"
 hash-graph-api.path                 = "libs/@local/graph/api"
+hash-graph-authentication.path      = "libs/@local/graph/authentication/"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"
 hash-graph-embeddings.path          = "libs/@local/graph/embeddings"
 hash-graph-migrations.path          = "libs/@local/graph/migrations"

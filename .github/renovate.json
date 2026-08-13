@@ -31,8 +31,8 @@
     },
     {
       "customType": "regex",
-      "description": "Update MISE_VERSION pins annotated with a `# renovate:` comment in Dockerfiles",
-      "managerFilePatterns": ["**/Dockerfile"],
+      "description": "Update the MISE_VERSION pin annotated with a `# renovate:` comment in the mise install script",
+      "managerFilePatterns": [".config/mise/install.sh"],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\n\\s*(?:export )?MISE_VERSION=(?<currentValue>[0-9][^\\s]*)\\s"
       ],

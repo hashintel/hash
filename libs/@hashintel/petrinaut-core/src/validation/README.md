@@ -1,3 +1,8 @@
+---
+layer: core.validation
+role: Structural integrity validators for SDCPN entities, enforcing naming conventions
+---
+
 # validation/
 
 Structural integrity validators for SDCPN entities. These enforce naming

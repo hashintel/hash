@@ -9,9 +9,7 @@ echo "updating certificates"
 yum update ca-certificates -y
 
 echo "installing mise"
-yum install -y yum-utils
-yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
-yum install -y mise
+./.config/mise/install.sh
 eval "$(mise activate bash --shims)"
 
 mise install --locked yq

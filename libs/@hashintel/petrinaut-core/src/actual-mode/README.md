@@ -1,3 +1,8 @@
+---
+layer: core.actual-mode
+role: Renders an execution supplied by an external source rather than by simulation
+---
+
 # Actual Mode Core
 
 This folder contains the experimental, transport-neutral pieces of Petrinaut

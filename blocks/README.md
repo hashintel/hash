@@ -94,9 +94,4 @@ yarn create-block block-name
 
 ## Publishing blocks
 
-The HASH-developed blocks in this repository are currently published via manually-triggered GitHub actions:
-
-- Publish blocks to preview (choose a branch)
-- Publish blocks to production
-
-To publish your own block, in another [Þ Hub](https://blockprotocol.org/hub) namespace (and separate from this repository), see the "[Publishing Blocks](https://blockprotocol.org/docs/blocks/develop#publish)" guide in the Þ Docs.
+To publish a block to the [Þ Hub](https://blockprotocol.org/hub), see the "[Publishing Blocks](https://blockprotocol.org/docs/blocks/develop#publish)" guide in the Þ Docs.

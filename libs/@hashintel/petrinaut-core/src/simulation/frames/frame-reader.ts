@@ -1,3 +1,8 @@
+/**
+ * @layerRoot core.simulation.frames
+ * @role The frame layout and the readers hosts use to inspect one frame
+ */
+
 import { readTokenRecord } from "../engine/token-layout";
 import {
   createEngineFrameLayout,

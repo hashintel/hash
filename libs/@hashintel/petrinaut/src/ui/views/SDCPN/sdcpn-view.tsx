@@ -1,3 +1,8 @@
+/**
+ * @layerRoot ui.views.canvas
+ * @role Renders the net as an interactive graph, with node and arc interaction
+ */
+
 import "@xyflow/react/dist/style.css";
 import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
 import {

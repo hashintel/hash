@@ -1,3 +1,15 @@
+/**
+ * Public surface for `@hashintel/petrinaut` — the host-facing entry point.
+ *
+ * Re-exports the handful of contexts and types a host needs to embed the editor
+ * and inject its own capabilities (error tracking, optimization, slots). The
+ * editor itself is reached through `/ui`, and the React bindings through
+ * `/react`.
+ *
+ * @layerRoot petrinaut
+ * @role The host-facing entry point: the contexts and types an embedder wires up
+ */
+
 export type { ErrorTracker } from "./react/error-tracker-context";
 export { ErrorTrackerContext } from "./react/error-tracker-context";
 export type { PetrinautOptimization } from "./react/optimization-context";

@@ -114,7 +114,11 @@ export const RadioGroup = <const ValueType extends string>({
                   onChange(optionValue);
                 }
               }}
-              autoFocus={autoFocus && index === autoFocusIndex}
+              autoFocus={
+                autoFocus === "never"
+                  ? "never"
+                  : autoFocus && index === autoFocusIndex
+              }
             />
           </ArkRadioGroup.Item>
         );

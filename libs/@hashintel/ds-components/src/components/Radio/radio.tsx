@@ -2,6 +2,7 @@ import { useId } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { styles } from "./radio.recipe";
 
 import type { SharedInputProps, Tone } from "../../util/form-shared";
@@ -77,7 +78,7 @@ export const Radio = ({
         checked={value}
         disabled={disabled}
         required={required}
-        autoFocus={autoFocus}
+        {...resolveAutoFocusProps(autoFocus)}
         onChange={(event) => onChange(event.target.checked)}
         onFocus={onFocus}
         onBlur={onBlur}

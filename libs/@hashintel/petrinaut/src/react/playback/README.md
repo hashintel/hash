@@ -1,3 +1,8 @@
+---
+layer: react.playback
+role: Drives the viewed frame with a requestAnimationFrame loop and applies the per-mode ack policy
+---
+
 # Playback Module
 
 React context for viewing simulation frames at controlled speeds.

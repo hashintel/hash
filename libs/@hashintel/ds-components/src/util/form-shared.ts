@@ -47,6 +47,20 @@ export type SharedInputProps<
   ref?: React.Ref<HTMLElement>;
   /** The input ref - this could be different to the ref, which may be a containing element. Use this to access the internal input state and/or to set focus */
   inputRef?: React.Ref<Element>;
-  /** Set to true to make the element focused on mount */
-  autoFocus?: boolean;
+  /** Set to true to make the element focused on mount or 'never' to prevent the item being auto-focused */
+  autoFocus?: boolean | "never";
 } & SharedInputAndFieldProps;
+
+/**
+ * Resolve the DOM props implied by the shared `autoFocus` prop.
+ *
+ * `'never'` emits `data-no-autofocus` so focus-management (e.g. a containing
+ * dialog/popover) skips this element when choosing what to focus on mount, and
+ * never sets the native `autoFocus`.
+ */
+export const resolveAutoFocusProps = (
+  autoFocus?: boolean | "never",
+): { autoFocus?: true; "data-no-autofocus"?: "" } => ({
+  autoFocus: autoFocus === true ? true : undefined,
+  "data-no-autofocus": autoFocus === "never" ? "" : undefined,
+});

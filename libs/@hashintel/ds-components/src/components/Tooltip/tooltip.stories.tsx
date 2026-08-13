@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { Button } from "../Button/button";
 import { Icon } from "../Icon/icon";
+import { BaseTooltip } from "./base-tooltip";
 import { Tooltip } from "./tooltip";
 
 import type { Story, StoryDefault } from "@ladle/react";
@@ -41,6 +42,77 @@ const richContent = (
     <span>
       This tooltip contains structured content with multiple elements.
     </span>
+  </div>
+);
+
+const kbdKeyStyles = css({
+  paddingX: "1",
+  paddingY: "0.5",
+  borderRadius: "sm",
+  backgroundColor: "neutral.s10",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.s30",
+  color: "fg.body",
+  fontFamily: "[inherit]",
+});
+
+// BaseTooltip is unstyled: `content` is rendered via `asChild`, so it must be a
+// single element that carries its own styling. This shows a fully custom overlay
+// that the standard light/dark Tooltip variants can't produce.
+const customTooltipContent = (
+  <div
+    className={css({
+      display: "flex",
+      flexDirection: "column",
+      gap: "2",
+      width: "[260px]",
+      padding: "3",
+      borderRadius: "lg",
+      backgroundColor: "white",
+      borderWidth: "[1px]",
+      borderStyle: "solid",
+      borderColor: "neutral.s30",
+      boxShadow: "[0 8px 24px rgba(0, 0, 0, 0.16)]",
+    })}
+  >
+    <div className={css({ display: "flex", alignItems: "center", gap: "2" })}>
+      <span
+        className={css({
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "[24px]",
+          height: "[24px]",
+          borderRadius: "md",
+          backgroundColor: "blue.s85",
+          color: "white",
+        })}
+      >
+        <Icon name="sparkles" size="sm" />
+      </span>
+      <strong className={css({ textStyle: "sm", color: "fg.heading" })}>
+        Custom tooltip UI
+      </strong>
+    </div>
+    <span className={css({ textStyle: "xs", color: "fg.muted" })}>
+      BaseTooltip is unstyled, so you can render any layout you like — icons,
+      headings, and keyboard hints included.
+    </span>
+    <div
+      className={css({
+        display: "flex",
+        alignItems: "center",
+        gap: "1",
+        textStyle: "xs",
+        color: "fg.subtle",
+      })}
+    >
+      <span>Press</span>
+      <kbd className={kbdKeyStyles}>⌘</kbd>
+      <kbd className={kbdKeyStyles}>K</kbd>
+      <span>to learn more</span>
+    </div>
   </div>
 );
 
@@ -107,6 +179,23 @@ export const Default: Story<TooltipProps> = (args) => (
         </div>
       </div>
     ))}
+
+    <div>
+      <h3 style={{ marginBottom: 12 }}>Custom UI (BaseTooltip)</h3>
+      <div className={css({ "& > *": { marginX: "3" } })}>
+        <BaseTooltip
+          position={args.position}
+          disableTooltip={args.disableTooltip}
+          openDelay={args.openDelay}
+          closeDelay={args.closeDelay}
+          content={customTooltipContent}
+        >
+          <Button size="sm" onClick={noop}>
+            Hover for custom tooltip
+          </Button>
+        </BaseTooltip>
+      </div>
+    </div>
   </div>
 );
 

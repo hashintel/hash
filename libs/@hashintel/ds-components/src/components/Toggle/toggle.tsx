@@ -2,6 +2,7 @@ import { Switch } from "@ark-ui/react/switch";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { useFieldId } from "../Form/field-id-context";
 import { styles } from "./toggle.recipe";
 
@@ -68,7 +69,7 @@ export const Toggle = ({
       )}
       <Switch.HiddenInput
         ref={inputRef}
-        autoFocus={autoFocus}
+        {...resolveAutoFocusProps(autoFocus)}
         onFocus={onFocus}
         onBlur={onBlur}
       />

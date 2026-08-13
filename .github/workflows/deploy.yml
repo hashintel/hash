@@ -38,7 +38,7 @@ jobs:
   setup:
     runs-on: ubuntu-24.04
     permissions:
-      id-token: write
+      contents: read
     outputs:
       sourcemaps: ${{ steps.packages.outputs.sourcemaps }}
       backend-images: ${{ steps.packages.outputs.backend-images }}
@@ -52,12 +52,9 @@ jobs:
           fetch-depth: 2
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
           rust: false
 
       # Service catalog: the single source of truth for build/manifest/deploy.
@@ -84,7 +81,7 @@ jobs:
           SOURCEMAPS_PACKAGES=$(turbo query "$SOURCEMAPS_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 
-          echo "sourcemaps=$SOURCEMAPS_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "sourcemaps=$SOURCEMAPS_PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
           CATALOG=$(jq -nc '[
             {
@@ -226,14 +223,34 @@ jobs:
             map(select(.push | index("ecr"))) | { service: [.[].service] }
           ' <<<"$AFFECTED_CATALOG")
 
-          echo "backend-images=$BUILD_MATRIX" | tee -a $GITHUB_OUTPUT
-          echo "backend-manifests=$MANIFEST_MATRIX" | tee -a $GITHUB_OUTPUT
-          echo "backend-deploys=$DEPLOY_MATRIX" | tee -a $GITHUB_OUTPUT
-          echo "backend-staging=$STAGING_MATRIX" | tee -a $GITHUB_OUTPUT
+          echo "backend-images=$BUILD_MATRIX" | tee -a "$GITHUB_OUTPUT"
+          echo "backend-manifests=$MANIFEST_MATRIX" | tee -a "$GITHUB_OUTPUT"
+          echo "backend-deploys=$DEPLOY_MATRIX" | tee -a "$GITHUB_OUTPUT"
+          echo "backend-staging=$STAGING_MATRIX" | tee -a "$GITHUB_OUTPUT"
+
+  sccache-credentials:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Mint sccache credentials
+        id: mint
+        uses: $/.github/actions/mint-sccache-credentials
+        with:
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   sourcemaps:
     name: Sourcemaps
-    needs: [setup]
+    needs: [setup, sccache-credentials]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.sourcemaps) }}
       fail-fast: false
@@ -276,20 +293,19 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: ${{ matrix.name }}
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Log in to Sentry
         run: sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
@@ -388,7 +404,7 @@ jobs:
 
       - name: Build${{ steps.targets.outputs.push == 'true' && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
         id: build
-        uses: ./.github/actions/docker-build-push
+        uses: $/.github/actions/docker-build-push
         with:
           CONTEXT_PATH: ${{ github.workspace }}/${{ matrix.context }}
           DOCKERFILE_LOCATION: ${{ github.workspace }}/${{ matrix.dockerfile }}
@@ -450,7 +466,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to ECR
-        uses: ./.github/actions/docker-ecr-login
+        uses: $/.github/actions/docker-ecr-login
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
@@ -458,7 +474,7 @@ jobs:
       # ECR images are single-arch (arm64). Advance :staging onto this commit's
       # immutable sha tag only if it is newer than the one currently tagged.
       - name: Advance :staging if newer
-        uses: ./.github/actions/tag-if-newer
+        uses: $/.github/actions/tag-if-newer
         with:
           image: ${{ env.AWS_ECR_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ github.repository }}/${{ matrix.service }}
           mutable-tag: staging
@@ -528,7 +544,7 @@ jobs:
       # descends from, permanently blocking the guard from ever advancing it again.
       - name: Advance :latest if newer
         if: github.ref == 'refs/heads/main'
-        uses: ./.github/actions/tag-if-newer
+        uses: $/.github/actions/tag-if-newer
         with:
           image: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}
           mutable-tag: latest
@@ -561,7 +577,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Redeploy ${{ matrix.service }} staging service
-        uses: ./.github/actions/redeploy-ecs-service
+        uses: $/.github/actions/redeploy-ecs-service
         with:
           ECS_CLUSTER_NAME: ${{ matrix.cluster }}
           ECS_SERVICE_NAME: ${{ matrix.service_name }}
@@ -575,13 +591,17 @@ jobs:
   # `needs: deploy` notifier would miss, since a skipped job is not a failure).
   passed:
     name: Deployments passed
-    needs: [setup, sourcemaps, build, stage, manifest, deploy]
+    needs:
+      [setup, sccache-credentials, sourcemaps, build, stage, manifest, deploy]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check setup
         run: |
           [[ ${{ needs.setup.result }} = success ]]
+      - name: Check sccache credentials
+        run: |
+          [[ ${{ needs.sccache-credentials.result }} = success ]]
       - name: Check sourcemaps
         run: |
           [[ ${{ needs.sourcemaps.result }} =~ success|skipped ]]

@@ -2,6 +2,7 @@ import { Checkbox as BaseCheckbox } from "@ark-ui/react/checkbox";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { styles } from "./checkbox.recipe";
 
 import type { SharedInputProps, Tone } from "../../util/form-shared";
@@ -97,7 +98,7 @@ export const Checkbox = ({
       )}
       <BaseCheckbox.HiddenInput
         ref={inputRef}
-        autoFocus={autoFocus}
+        {...resolveAutoFocusProps(autoFocus)}
         onFocus={onFocus}
         onBlur={onBlur}
       />

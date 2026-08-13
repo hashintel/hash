@@ -1,3 +1,8 @@
+---
+layer: core.hir
+role: Lowers user-authored TypeScript to a source-spanned IR, then typechecks, lints and emits it
+---
+
 # Petrinaut HIR
 
 The HIR is Petrinaut's source-spanned intermediate representation for
