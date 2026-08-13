@@ -212,6 +212,12 @@ pub struct Atlas {
     ranks: Column<BasePosition, ImportanceRank>,
     /// The position permutation in row order.
     positions_of_row: Column<NodeRowId, BasePosition>,
+    /// The reverse rank permutation, mapping each rank to its base position.
+    ///
+    /// The open pass proves it the inverse of the rank column, so a traversal in rank order
+    /// visits every base position exactly once, and the scoped schedule's gather reads it
+    /// instead of sorting the view by rank.
+    positions_of_rank: Column<ImportanceRank, BasePosition>,
     postings: PostingsArchive,
     closure: ClosureMap,
     /// The ontology identity table, joining type uuids to ontology rows.

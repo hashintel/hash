@@ -248,6 +248,22 @@ fn shorten_u32_column(path: &Utf8PathBuf, rows: u64) {
     writer.finish().expect("the column seals");
 }
 
+/// Rewrites a little-endian `u32` column with `rows` copies of `value`.
+///
+/// A constant column keeps its length and its format and cannot be a permutation, which is what
+/// the rank roundtrip sample refuses.
+fn constant_u32_column(path: &Utf8PathBuf, rows: u64, value: u32) {
+    let file = recreate_writable(path);
+    let mut writer = SizedArrayWriter::new(file, ArrayVariant::U32Le, &[Dim::new(rows)])
+        .expect("the header writes");
+    for _ in 0..rows {
+        writer
+            .write_row(&value.to_le_bytes())
+            .expect("the row writes");
+    }
+    writer.finish().expect("the column seals");
+}
+
 /// Every artifact disagreement `open` checks answers with its own variant, and repair restores it.
 ///
 /// The tampers all run against a single published generation, changing one artifact at a time. Each
@@ -266,6 +282,10 @@ fn shorten_u32_column(path: &Utf8PathBuf, rows: u64) {
 /// above `u32::MAX` rows, which no fixture constructs. They guard arithmetic the fixture cannot
 /// reach, so no tamper can exercise them. Every other variant of the cross-artifact pass has its
 /// tamper here.
+#[expect(
+    clippy::too_many_lines,
+    reason = "one tamper-and-repair block per cross-artifact variant; the taxonomy is the length"
+)]
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn every_cross_artifact_disagreement_names_its_own_variant() {
@@ -325,12 +345,19 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     shorten_u32_column(&ranks.path, nodes - 1);
     assert_matches!(
         open().expect_err("a short rank column is refused"),
-        OpenAtlasError::Columns { codes, coordinates, rows, ranks: ranked, positions }
-            if codes == nodes
-                && coordinates == nodes
-                && rows == nodes
-                && ranked == nodes - 1
-                && positions == nodes,
+        OpenAtlasError::Columns {
+            codes,
+            coordinates,
+            rows,
+            ranks: ranked,
+            positions,
+            rank_positions,
+        } if codes == nodes
+            && coordinates == nodes
+            && rows == nodes
+            && ranked == nodes - 1
+            && positions == nodes
+            && rank_positions == nodes,
     );
     ranks.restore();
     open().expect("the repaired fixture opens");
@@ -384,5 +411,67 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
             if spanned == nodes + 1 && codes == nodes,
     );
     postings.restore();
+    open().expect("the repaired fixture opens");
+}
+
+/// Each rank-pair tamper names its own variant, and repair restores the open.
+///
+/// The rank column and its reverse invert each other by the fit pipeline's construction, and
+/// open spot-checks a bounded sample of roundtrips rather than paging both columns whole. The
+/// tampers here keep each column valid at its own format, so the only thing that moves is the
+/// pairing under test, and the reopen after each repair is the negative control.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn rank_pair_tampers_name_their_own_variants() {
+    let (root, generation) = fit_fixture("open-rank-pair").await;
+    store_identities(&generation);
+
+    let open = || Atlas::open(&root, generation.id(), test_open_options());
+    let files = &generation.repository().files;
+
+    let atlas = open().expect("the published fixture opens");
+    let nodes = atlas.row_ids().len() as u64;
+    drop(atlas);
+
+    // The reverse rank permutation against the code column.
+    let rank_positions = Saved::of(generation.path_of(&files.position_of_rank.name));
+    shorten_u32_column(&rank_positions.path, nodes - 1);
+    assert_matches!(
+        open().expect_err("a short reverse rank permutation is refused"),
+        OpenAtlasError::Columns {
+            codes,
+            rank_positions: reversed,
+            ..
+        } if codes == nodes && reversed == nodes - 1,
+    );
+    rank_positions.restore();
+    open().expect("the repaired fixture opens");
+
+    // Every rank claiming position zero keeps the length and the format and is no permutation,
+    // so the spot check refuses the pairing at the first sampled position past zero.
+    constant_u32_column(&rank_positions.path, nodes, 0);
+    assert_matches!(
+        open().expect_err("a non-inverse reverse rank permutation is refused"),
+        OpenAtlasError::RankInverse {
+            position,
+            rank: _,
+            roundtrip: Some(0),
+        } if position > 0,
+    );
+    rank_positions.restore();
+    open().expect("the repaired fixture opens");
+
+    // When a rank lies outside the domain, the sample reports the roundtrip as absent.
+    let ranks = Saved::of(generation.path_of(&files.rank_of_position.name));
+    constant_u32_column(&ranks.path, nodes, u32::MAX);
+    assert_matches!(
+        open().expect_err("an out-of-domain rank is refused"),
+        OpenAtlasError::RankInverse {
+            position: 0,
+            rank,
+            roundtrip: None,
+        } if rank == u64::from(u32::MAX),
+    );
+    ranks.restore();
     open().expect("the repaired fixture opens");
 }

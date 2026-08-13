@@ -80,6 +80,8 @@ struct Artifacts {
     ranks: Column<BasePosition, ImportanceRank>,
     /// The position permutation in row order.
     positions_of_row: Column<NodeRowId, BasePosition>,
+    /// The reverse rank permutation, mapping each rank to its base position.
+    positions_of_rank: Column<ImportanceRank, BasePosition>,
     postings: PostingsArchive,
     /// The ontology identity table, joining type uuids to ontology rows.
     ontology_ids: IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId>,
@@ -111,6 +113,11 @@ impl Artifacts {
             open_column(generation, &files.rank_of_position, ArrayKind::Ranks)?;
         let positions_of_row: Column<NodeRowId, BasePosition> =
             open_column(generation, &files.position_of_row, ArrayKind::Positions)?;
+        let positions_of_rank: Column<ImportanceRank, BasePosition> = open_column(
+            generation,
+            &files.position_of_rank,
+            ArrayKind::RankPositions,
+        )?;
         let adjacency =
             AdjacencyArchive::new(SprsFile::open(generation.path_of(&files.adjacency.name))?)?;
         let postings = PostingsArchive::new(PostingsFile::open(
@@ -133,6 +140,7 @@ impl Artifacts {
             endpoints,
             ranks,
             positions_of_row,
+            positions_of_rank,
             postings,
             ontology_ids,
             node_ids,
@@ -160,6 +168,7 @@ impl Artifacts {
             || self.rows.len() as u64 != codes
             || self.ranks.len() as u64 != codes
             || self.positions_of_row.len() as u64 != codes
+            || self.positions_of_rank.len() as u64 != codes
         {
             return Err(OpenAtlasError::Columns {
                 codes,
@@ -167,7 +176,49 @@ impl Artifacts {
                 rows: self.rows.len() as u64,
                 ranks: self.ranks.len() as u64,
                 positions: self.positions_of_row.len() as u64,
+                rank_positions: self.positions_of_rank.len() as u64,
             });
+        }
+
+        // The rank columns invert each other by the fit pipeline's own construction, and
+        // re-proving that whole contract here would fault every page of both columns at open. A
+        // bounded sample of roundtrips spot-checks the pairing instead: a mispaired or shuffled
+        // artifact almost surely fails a sampled roundtrip, and the spread costs a fixed number
+        // of page faults. The verdict is deterministic for a given generation, and a single
+        // corrupt entry outside the sample stays the fit-time contract's to exclude.
+        if codes > 0 && u32::try_from(codes - 1).is_ok() {
+            const SAMPLES: u64 = 64;
+
+            let ranks = self.ranks.view();
+            let positions_of_rank = self.positions_of_rank.view();
+            let samples = SAMPLES.min(codes);
+            for index in 0..samples {
+                // Evenly spread over the domain, first and last position included.
+                #[expect(
+                    clippy::integer_division,
+                    clippy::integer_division_remainder_used,
+                    reason = "an evenly spaced sample point is the floor of its proportional \
+                              position"
+                )]
+                let at = if samples == 1 {
+                    0
+                } else {
+                    index * (codes - 1) / (samples - 1)
+                };
+                let position = BasePosition::from_u32(
+                    u32::try_from(at).expect("the sampled position lies in the checked domain"),
+                );
+
+                let rank = ranks[position];
+                let roundtrip = positions_of_rank.get(rank).copied();
+                if roundtrip != Some(position) {
+                    return Err(OpenAtlasError::RankInverse {
+                        position: u64::from(position.as_u32()),
+                        rank: u64::from(rank.as_u32()),
+                        roundtrip: roundtrip.map(|found| u64::from(found.as_u32())),
+                    });
+                }
+            }
         }
 
         if self.adjacency.rows() != codes {
@@ -289,6 +340,7 @@ impl Atlas {
             endpoints,
             ranks,
             positions_of_row,
+            positions_of_rank,
             postings,
             ontology_ids,
             node_ids,
@@ -329,6 +381,7 @@ impl Atlas {
             endpoints,
             ranks,
             positions_of_row,
+            positions_of_rank,
             postings,
             closure,
             ontology_ids,

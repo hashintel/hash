@@ -25,6 +25,7 @@ pub enum ArrayKind {
     Endpoints,
     Ranks,
     Positions,
+    RankPositions,
 }
 
 impl fmt::Display for ArrayKind {
@@ -35,6 +36,7 @@ impl fmt::Display for ArrayKind {
             Self::Endpoints => write!(fmt, "endpoints"),
             Self::Ranks => write!(fmt, "ranks"),
             Self::Positions => write!(fmt, "positions"),
+            Self::RankPositions => write!(fmt, "rank positions"),
         }
     }
 }
@@ -125,6 +127,22 @@ pub enum OpenAtlasError {
         ranks: u64,
         /// Entries in the position permutation.
         positions: u64,
+        /// Entries in the reverse rank permutation.
+        rank_positions: u64,
+    },
+    /// The rank columns disagree on a sampled position.
+    ///
+    /// The rank column and its reverse invert each other, a contract the fit pipeline proves
+    /// when it constructs the generation. Open spot-checks a bounded sample of roundtrips, so a
+    /// mispaired or corrupted artifact is refused at open without paging both columns whole.
+    RankInverse {
+        /// The sampled base position whose roundtrip failed.
+        position: u64,
+        /// The position's recorded rank.
+        rank: u64,
+        /// The position the reverse column holds at that rank, absent when the rank lies
+        /// outside the domain.
+        roundtrip: Option<u64>,
     },
     /// The adjacency's node domain contradicts the code column.
     Nodes {
@@ -250,6 +268,27 @@ fn schedule(fmt: &mut fmt::Formatter<'_>, span_log2: u8, max_tile_depth: u8) -> 
     )
 }
 
+/// Writes the rank-inverse arm: the sampled roundtrip that failed, with what it found.
+fn rank_inverse(
+    fmt: &mut fmt::Formatter<'_>,
+    position: u64,
+    rank: u64,
+    roundtrip: Option<u64>,
+) -> fmt::Result {
+    match roundtrip {
+        Some(roundtrip) => write!(
+            fmt,
+            "the rank columns are not inverse: position {position} carries rank {rank}, which the \
+             reverse column sends to position {roundtrip}",
+        ),
+        None => write!(
+            fmt,
+            "the rank columns are not inverse: position {position} carries rank {rank}, which \
+             lies outside the rank domain",
+        ),
+    }
+}
+
 /// Writes the base-order arm: the point count each column of the shared order holds.
 fn columns(
     fmt: &mut fmt::Formatter<'_>,
@@ -258,15 +297,21 @@ fn columns(
     rows: u64,
     ranks: u64,
     positions: u64,
+    rank_positions: u64,
 ) -> fmt::Result {
     write!(
         fmt,
         "the base-order columns disagree on the point count: {codes} codes, {coordinates} \
-         coordinates, {rows} rows, {ranks} ranks, {positions} positions",
+         coordinates, {rows} rows, {ranks} ranks, {positions} positions, {rank_positions} rank \
+         positions",
     )
 }
 
 impl fmt::Display for OpenAtlasError {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one display arm per open refusal; the taxonomy is the length"
+    )]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Unpublished(id) => {
@@ -300,7 +345,21 @@ impl fmt::Display for OpenAtlasError {
                 rows,
                 ranks,
                 positions,
-            } => columns(fmt, *codes, *coordinates, *rows, *ranks, *positions),
+                rank_positions,
+            } => columns(
+                fmt,
+                *codes,
+                *coordinates,
+                *rows,
+                *ranks,
+                *positions,
+                *rank_positions,
+            ),
+            Self::RankInverse {
+                position,
+                rank,
+                roundtrip,
+            } => rank_inverse(fmt, *position, *rank, *roundtrip),
             Self::Nodes { adjacency, codes } => write!(
                 fmt,
                 "the adjacency spans {adjacency} node rows where the code column holds {codes}",
@@ -385,6 +444,7 @@ impl Error for OpenAtlasError {
             | Self::Schedule { .. }
             | Self::Shape { .. }
             | Self::Columns { .. }
+            | Self::RankInverse { .. }
             | Self::Nodes { .. }
             | Self::Edges { .. }
             | Self::Subtree { .. }
