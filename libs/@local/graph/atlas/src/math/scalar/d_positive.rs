@@ -6,7 +6,7 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use super::{Positive, unsafe_impl_try_from_bytes};
+use super::{Positive, raw_interop, unsafe_impl_try_from_bytes};
 
 /// Validates a positive double-precision literal at compile time.
 ///
@@ -198,4 +198,5 @@ impl<'de> serde::Deserialize<'de> for DPositive {
     }
 }
 
+raw_interop!(DPositive[f64]);
 unsafe_impl_try_from_bytes!(DPositive[f64]);

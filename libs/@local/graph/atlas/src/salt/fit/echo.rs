@@ -712,7 +712,7 @@ struct RecallCheckOptionsDef {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "SmoothingOptions")]
 struct SmoothingOptionsDef {
-    tolerance: f64,
+    tolerance: DPositive,
     bandwidth_floor: f32,
     bisection_iterations: usize,
 }

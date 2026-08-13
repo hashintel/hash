@@ -31,7 +31,7 @@ use sprs::{CsMatI, CsMatViewI, binop::csmat_binop};
 
 pub(crate) use self::error::SemanticValidationError;
 use super::knn::table::KnnView;
-use crate::math::PositiveUnitFraction;
+use crate::math::{DPositive, PositiveUnitFraction, d_positive};
 
 pub(crate) mod artifact;
 mod bandwidth;
@@ -52,7 +52,7 @@ pub(crate) type SemanticMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SmoothingOptions {
     /// Absolute tolerance on the membership-sum equation at which the bisection stops early.
-    pub tolerance: f64 = 1.0e-5,
+    pub tolerance: DPositive = d_positive!(1.0e-5),
     /// Scale factor of the `σ` floor.
     ///
     /// `σ` never falls below this fraction of the row's mean distance (the corpus mean for rows
