@@ -244,6 +244,7 @@ export const Button = (props: ButtonProps) => {
         download={isInactive ? undefined : props.download || undefined}
         tabIndex={isInactive ? -1 : props.tabIndex}
         aria-label={props["aria-label"] ?? (!children ? tooltip : undefined)}
+        draggable={false}
       >
         {content}
       </a>
