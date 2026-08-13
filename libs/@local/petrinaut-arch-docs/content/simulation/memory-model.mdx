@@ -1,0 +1,191 @@
+---
+title: Memory model
+description: Where simulation state actually lives, and the binary frame format it lives in.
+sidebar_order: 10
+attachTo: core.simulation
+---
+
+import { ByteMap } from "@diagrams/byte-map";
+import { Lanes } from "@diagrams/lanes";
+
+Everything the simulation computes is stored in raw `ArrayBuffer`s read through
+typed-array views. There is no object graph of tokens: tokens are packed structs,
+decoded to JavaScript objects only at the read boundary.
+
+Knowing which buffer lives on which thread is the thing that makes the rest of
+the simulation layers make sense.
+
+## Where each piece lives
+
+<Lanes
+  title="Who owns which buffer"
+  lanes={[
+    {
+      title: "Main thread — host",
+      accent: "ui",
+      boxes: [
+        {
+          label: "Run configuration",
+          note: "Marking, parameters, seed, `dt`, `maxTime`",
+        },
+        {
+          label: "Frame store",
+          note: "Retains every payload so playback can scrub",
+        },
+        {
+          label: "Frame readers",
+          note: "Zero-copy views over a stored buffer",
+        },
+      ],
+    },
+    {
+      title: "Simulation worker",
+      accent: "core",
+      boxes: [
+        {
+          label: "Engine instance",
+          note: "Frame history — the compute source of truth",
+        },
+        { label: "EngineFrame", note: "One immutable ArrayBuffer per step" },
+      ],
+    },
+    {
+      title: "Monte Carlo worker",
+      accent: "worker",
+      boxes: [
+        {
+          label: "2 buffers per run",
+          note: "Current and next, swapped each step",
+        },
+        {
+          label: "Metric aggregates",
+          note: "The only thing that crosses back",
+        },
+      ],
+    },
+  ]}
+  legend={[
+    { label: "Host", accent: "ui" },
+    { label: "Simulation worker", accent: "core" },
+    { label: "Monte Carlo worker", accent: "worker" },
+  ]}
+/>
+
+| Memory              | Structure                                                            | Thread        | Lifetime                                                                                   |
+| ------------------- | -------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------ |
+| SDCPN document      | Plain JS objects (editor state)                                      | Main          | Structured-cloned into the worker at init. Later edits do not affect a running simulation. |
+| Initial marking     | JSON — count or `TokenRecord[]` per place                            | Main          | Packed into frame 0 by `buildSimulation`.                                                  |
+| `EngineFrame`       | `ArrayBuffer` — 64-byte header plus typed sections and packed tokens | Worker        | Immutable snapshot per step, appended to the instance's frame history.                     |
+| Frame payload       | `{ time, frame: ArrayBuffer }`                                       | Worker → Main | Structured-clone copy per frame. Retained by the frame store for scrubbing.                |
+| Frame reader        | Typed-array views over the stored buffer                             | Main          | Zero-copy. Materialises `TokenRecord`s only when asked.                                    |
+| Monte Carlo buffers | 2 × `ArrayBuffer` per run                                            | MC worker     | Swapped each step. Never cross to the main thread.                                         |
+| Compiled user code  | Versioned HIR buffer programs                                        | Workers       | Produced once at init.                                                                     |
+
+The asymmetry between rows 4 and 6 is the whole difference between the two
+execution paths — see [Two execution paths](doc:two-execution-paths).
+
+## The frame format
+
+One `ArrayBuffer` per frame, read through section-typed views. The frame stores
+**no IDs and no time**: decoding requires the layout derived from the SDCPN
+(place and transition order, per-place stride and slot layout), and time travels
+alongside as payload metadata.
+
+`createEngineFrame()` computes every offset and is the only frame constructor;
+`readEngineFrame()` recreates the same views for reading.
+
+<ByteMap
+  title="One frame — worked example, 2 places and 2 transitions"
+  segments={[
+    {
+      offset: 0,
+      name: "header",
+      type: "64 B fixed",
+      view: "DataView, little-endian",
+      accent: "core",
+    },
+    {
+      offset: 64,
+      name: "place token counts",
+      type: "u32 × P",
+      view: "Uint32Array(buf, 64, P)",
+    },
+    {
+      offset: 72,
+      name: "place value offsets",
+      type: "u32 × P",
+      view: "Uint32Array(buf, 72, P)",
+    },
+    {
+      offset: 80,
+      name: "transition elapsed",
+      type: "f64 × T",
+      view: "Float64Array(buf, 80, T)",
+    },
+    {
+      offset: 96,
+      name: "transition firings",
+      type: "u32 × T",
+      view: "Uint32Array(buf, 96, T)",
+    },
+    {
+      offset: 104,
+      name: "fired flags",
+      type: "u8 × T",
+      view: "Uint8Array(buf, 104, T)",
+    },
+    {
+      offset: 106,
+      name: "padding",
+      type: "6 B",
+      view: "alignTo(8) keeps f64 views aligned",
+    },
+    {
+      offset: 112,
+      name: "packed token structs",
+      type: "place-major, then token-major",
+      view: "tokenBytes / tokenF64",
+      accent: "worker",
+    },
+  ]}
+  byteLength={176}
+  caption="The header records the section offsets and the total length, both checked on read. Sections and strides are padded to 8-byte boundaries, so every f64 field stays 8-aligned and hot paths use plain typed-array views rather than DataView."
+/>
+
+Header fields worth knowing: `magic` (`0x5046524d`, a corrupt-frame guard),
+`version` (currently `2`, asserted on decode), `placeCount`/`transitionCount`
+(checked against the layout on read), and `byteLength` (checked on read).
+
+### Token packing
+
+Each coloured place owns a contiguous run of `count × strideBytes` starting at
+its byte offset, giving O(1) access to any place. Uncoloured places have stride
+0 and only a count.
+
+| Element type | Physical                   | Notes                                                                                                                                                         |
+| ------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `real`       | `f64` — 8 B                |                                                                                                                                                               |
+| `integer`    | `f64` — 8 B, rounded       | Exact within ±2^53. `i32` was rejected for silent wraparound; `i64` because bigint is contagious into user code.                                              |
+| `boolean`    | `u8` — 1 B                 | Not bit-packed: that would break byte-granular copies for marginal savings.                                                                                   |
+| `uuid`       | `u64 × 2` — 16 B           | Two little-endian lanes via a shared `BigUint64Array`, combined to one `bigint` at the boundary. Never routed through `number`.                               |
+| `string`     | `u64` pool reference — 8 B | The frame stores an ID into an append-only per-run intern pool. The pool lives on the instance, not the frame, so frames stay fixed-stride and byte-copyable. |
+
+Fields are ordered per colour by decreasing alignment, and the stride is rounded
+up to 8 bytes. One module owns all token-byte indexing; every whole-token move is
+a byte-range copy.
+
+Because the string pool never crosses the worker boundary with the frames, each
+frame payload ships an append-only delta of new strings that the main-thread
+store accumulates and hands to the reader for decoding.
+
+## Known cost: triple retention
+
+Each quick-simulation frame currently exists three times — in the worker's frame
+history, as a structured-clone copy in the main-thread store, and transiently in
+the `postMessage` queue. Frames are never transferred, and the worker's history
+is only ever read at its latest entry.
+
+Retention is deliberately isolated behind the frame store, so this can change
+without touching consumers. Transferring buffers instead of copying is not a drop-in
+fix: computing the next frame re-reads the latest stored frame, so detaching the
+posted buffer first requires stepping from a retained working copy.
