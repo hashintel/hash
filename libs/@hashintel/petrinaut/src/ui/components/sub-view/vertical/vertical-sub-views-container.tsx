@@ -1,7 +1,11 @@
 import React, { Fragment, use, useRef, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
-import { HelpTooltip, Icon } from "@hashintel/ds-components";
+import {
+  HelpTooltip,
+  Icon,
+  useAvoidScrollWidthChange,
+} from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
@@ -72,6 +76,7 @@ const scrollContainerStyle = css({
 
 const panelContentStyle = css({
   overflowY: "auto",
+  scrollbarWidth: "[thin]",
   flex: "[1]",
   minHeight: "[0]",
   display: "flex",
@@ -287,6 +292,7 @@ const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const { scrollRef, canScrollUp, canScrollDown, onScroll } =
     useScrollOverflow();
+  useAvoidScrollWidthChange(scrollRef);
 
   return (
     <div className={scrollContainerStyle}>

@@ -155,6 +155,10 @@ const parameterListStyle = css({
   gap: "2.5",
 });
 
+const errorsStyle = css({
+  whiteSpace: "pre-wrap",
+});
+
 type Direction = "maximize" | "minimize";
 type MetricSource = "saved" | "custom";
 type ParameterDrafts = Record<string, OptimizationParameterDraft>;
@@ -801,7 +805,7 @@ export const CreateOptimizationDrawer = ({
 
           {selectedScenario ? (
             <>
-              <Section title="Optimization" collapsible defaultOpen>
+              <Section title="Optimization" collapsible defaultOpen indented>
                 <Form.Field label="Name" size="sm">
                   <TextInput size="sm" value={name} onChange={setName} />
                 </Form.Field>
@@ -842,6 +846,7 @@ export const CreateOptimizationDrawer = ({
                 tooltip="Only scenario parameters can be optimized. The optimizer receives a flat list of identifiers."
                 collapsible
                 defaultOpen
+                indented
               >
                 <span className={hintStyle}>
                   Parameters are fixed by default.
@@ -866,7 +871,7 @@ export const CreateOptimizationDrawer = ({
                 </div>
               </Section>
 
-              <Section title="Objective" collapsible defaultOpen>
+              <Section title="Objective" collapsible defaultOpen indented>
                 <span className={hintStyle}>
                   Choose a saved metric or write custom code for this run.
                   <br />
@@ -919,6 +924,7 @@ export const CreateOptimizationDrawer = ({
           (selectedScenario ? configurationError : null) ||
           visibleCustomMetricError ? (
             <Form.Field.Errors
+              className={errorsStyle}
               errors={[
                 error ??
                   (selectedScenario ? configurationError : null) ??

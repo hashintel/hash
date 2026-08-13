@@ -49,6 +49,13 @@ import type {
 
 // -- Styles -------------------------------------------------------------------
 
+// metric rows use slightly lighter field labels than the default
+const metricFieldLabelStyle = css({
+  "& :is(label, legend)": {
+    fontWeight: "medium",
+  },
+});
+
 const fieldStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -167,11 +174,12 @@ const metricKindTriggerLabelStyle = css({
   fontWeight: "medium",
 });
 
+// top padding separates the properties from the metric row's collapse header
 const metricExpandedContentStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "2",
-  padding: "[0 16px 16px]",
+  padding: "[1px 16px 16px]",
 });
 
 const metricCollapsibleContentStyle = css({
@@ -199,6 +207,10 @@ const emptyParamsStyle = css({
   paddingY: "[16px]",
   fontSize: "sm",
   color: "neutral.s80",
+});
+
+const errorsStyle = css({
+  whiteSpace: "pre-wrap",
 });
 
 // -- Constants ----------------------------------------------------------------
@@ -508,6 +520,7 @@ const ExperimentExpressionMetricEditor = ({
     <Form.Field
       label="Code"
       size="sm"
+      className={metricFieldLabelStyle}
       errors={
         lspDiagnostics.count > 0
           ? [
@@ -718,7 +731,11 @@ const ExperimentMetricRow = ({
           metric.kind === "transitionFiringCount" ? (
             <div className={metricSpecificFieldsStyle}>
               {metric.kind === "placeTokenCountMean" ? (
-                <Form.Field label="Place" size="sm">
+                <Form.Field
+                  label="Place"
+                  size="sm"
+                  className={metricFieldLabelStyle}
+                >
                   <Select
                     required
                     value={metric.placeId}
@@ -730,7 +747,11 @@ const ExperimentMetricRow = ({
               ) : null}
               {metric.kind === "transitionFiringCount" ? (
                 <>
-                  <Form.Field label="Transition" size="sm">
+                  <Form.Field
+                    label="Transition"
+                    size="sm"
+                    className={metricFieldLabelStyle}
+                  >
                     <Select
                       required
                       value={metric.transitionId}
@@ -741,7 +762,11 @@ const ExperimentMetricRow = ({
                       size="sm"
                     />
                   </Form.Field>
-                  <Form.Field label="Count" size="sm">
+                  <Form.Field
+                    label="Count"
+                    size="sm"
+                    className={metricFieldLabelStyle}
+                  >
                     <Select
                       required
                       value={metric.transitionMode}
@@ -961,7 +986,7 @@ export const CreateExperimentDrawer = ({
       />
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
-          <Section title="Experiment" collapsible defaultOpen>
+          <Section title="Experiment" collapsible defaultOpen indented>
             <Form.Field label="Name" size="sm">
               <TextInput size="sm" value={name} onChange={setName} />
             </Form.Field>
@@ -1003,7 +1028,7 @@ export const CreateExperimentDrawer = ({
             </Form.Row>
           </Section>
 
-          <Section title="Scenario" collapsible defaultOpen>
+          <Section title="Scenario" collapsible defaultOpen indented>
             <div className={fieldStyle}>
               <Select
                 required
@@ -1100,7 +1125,11 @@ export const CreateExperimentDrawer = ({
       <Drawer.Footer
         secondaryActions={
           footerError ? (
-            <Form.Field.Errors errors={[footerError]} size="sm" />
+            <Form.Field.Errors
+              className={errorsStyle}
+              errors={[footerError]}
+              size="sm"
+            />
           ) : undefined
         }
         actions={

@@ -4,20 +4,21 @@ import {
   Button,
   Checkbox,
   Form,
+  HelpTooltip,
   Icon,
   Select,
   TextInput,
   Toggle,
   Tooltip,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { Section, SectionList } from "../../../../../../components/section";
+import { SectionList } from "../../../../../../components/section";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useDraftField } from "../../../../../../hooks/use-draft-field";
@@ -33,9 +34,9 @@ const jumpButtonContainerStyle = css({
   textAlign: "right",
 });
 
-const hintTextStyle = css({
-  fontSize: "[12px]",
-  color: "neutral.s95",
+// spacing between a field's input and the jump button below it
+const inFieldJumpButtonStyle = css({
+  marginTop: "3",
 });
 
 const typeColorDotStyle = css({
@@ -49,6 +50,28 @@ const arcStyle = css({
   display: "flex",
   gap: "2",
   alignItems: "center",
+});
+
+// the tooltip sits outside the Checkbox so clicking it doesn't toggle; the
+// textStyle sizes its 1em icon like a size="sm" form-field label tooltip
+const checkboxRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  textStyle: "sm",
+});
+
+// section-header typography for the checkbox labels
+const checkboxTitleStyle = css({
+  fontWeight: "semibold",
+  fontSize: "sm",
+  lineHeight: "[14px]",
+  color: "neutral.fg.body",
+});
+
+const checkboxHintStyle = css({
+  fontSize: "[12px]",
+  color: "neutral.s95",
+  marginTop: "2",
 });
 
 /**
@@ -118,6 +141,23 @@ const PlaceMainContent: React.FC = () => {
   const availableDiffEqs = place.colorId
     ? differentialEquations.filter((eq) => eq.colorId === place.colorId)
     : [];
+
+  const dynamicsToggleTooltip = isReadOnly
+    ? UI_MESSAGES.READ_ONLY_MODE
+    : place.colorId === null
+      ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
+      : availableDiffEqs.length === 0
+        ? "Create a differential equation for this type first"
+        : undefined;
+
+  const dynamicsHint =
+    place.colorId === null
+      ? availableTypes.length === 0
+        ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
+        : "Select a type to enable dynamics"
+      : availableDiffEqs.length === 0
+        ? "Create a differential equation for the selected type in the left-hand sidebar first"
+        : undefined;
 
   return (
     <div ref={rootDivRef}>
@@ -212,7 +252,12 @@ const PlaceMainContent: React.FC = () => {
               </Tooltip>
 
               {place.colorId && (
-                <div className={jumpButtonContainerStyle}>
+                <div
+                  className={cx(
+                    jumpButtonContainerStyle,
+                    inFieldJumpButtonStyle,
+                  )}
+                >
                   <Button
                     variant="subtle"
                     tone="neutral"
@@ -236,73 +281,63 @@ const PlaceMainContent: React.FC = () => {
         </Form.Section>
 
         {extensions.colors && extensions.dynamics && (
-          <Section
-            title="Dynamics"
-            tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation."
-            renderHeaderAction={() => {
-              const dynamicsTooltip = isReadOnly
-                ? UI_MESSAGES.READ_ONLY_MODE
-                : place.colorId === null
-                  ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
-                  : availableDiffEqs.length === 0
-                    ? "Create a differential equation for this type first"
-                    : undefined;
+          <Form.Section className={fieldsSectionStyle}>
+            <Form.Field
+              layout="inline"
+              inputAlign="end"
+              label="Dynamics"
+              size="sm"
+              disabled={isReadOnly}
+              labelTooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation."
+              descriptionBottom={dynamicsHint}
+            >
+              <Tooltip
+                content={dynamicsToggleTooltip}
+                disableTooltip={!dynamicsToggleTooltip}
+              >
+                <Toggle
+                  size="sm"
+                  tone="success"
+                  value={!!place.colorId && place.dynamicsEnabled}
+                  disabled={
+                    isReadOnly ||
+                    place.colorId === null ||
+                    availableDiffEqs.length === 0
+                  }
+                  onChange={(checked) => {
+                    const update: {
+                      dynamicsEnabled: boolean;
+                      differentialEquationId?: string | null;
+                    } = { dynamicsEnabled: checked };
 
-              return (
-                <Tooltip
-                  content={dynamicsTooltip}
-                  disableTooltip={!dynamicsTooltip}
-                >
-                  <Toggle
-                    size="sm"
-                    tone="success"
-                    value={!!place.colorId && place.dynamicsEnabled}
-                    disabled={
-                      isReadOnly ||
-                      place.colorId === null ||
-                      availableDiffEqs.length === 0
-                    }
-                    onChange={(checked) => {
-                      const update: {
-                        dynamicsEnabled: boolean;
-                        differentialEquationId?: string | null;
-                      } = { dynamicsEnabled: checked };
-
-                      if (checked) {
-                        // Auto-select first available diff eq if none selected or previous no longer exists
-                        const currentIsValid = availableDiffEqs.some(
-                          (eq) => eq.id === place.differentialEquationId,
-                        );
-                        if (!currentIsValid && availableDiffEqs.length > 0) {
-                          update.differentialEquationId =
-                            availableDiffEqs[0]!.id;
-                        }
+                    if (checked) {
+                      // Auto-select first available diff eq if none selected or previous no longer exists
+                      const currentIsValid = availableDiffEqs.some(
+                        (eq) => eq.id === place.differentialEquationId,
+                      );
+                      if (!currentIsValid && availableDiffEqs.length > 0) {
+                        update.differentialEquationId = availableDiffEqs[0]!.id;
                       }
+                    }
 
-                      updatePlace({
-                        placeId: place.id,
-                        update,
-                      });
-                    }}
-                  />
-                </Tooltip>
-              );
-            }}
-          >
-            {place.colorId === null ? (
-              <div className={hintTextStyle}>
-                {availableTypes.length === 0
-                  ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
-                  : "Select a type to enable dynamics"}
-              </div>
-            ) : availableDiffEqs.length === 0 ? (
-              <div className={hintTextStyle}>
-                Create a differential equation for the selected type in the
-                left-hand sidebar first
-              </div>
-            ) : (
+                    updatePlace({
+                      placeId: place.id,
+                      update,
+                    });
+                  }}
+                />
+              </Tooltip>
+            </Form.Field>
+
+            {place.colorId !== null &&
+              availableDiffEqs.length > 0 &&
               place.dynamicsEnabled && (
-                <>
+                <Form.Field
+                  label="Differential equation"
+                  hideLabel
+                  size="sm"
+                  disabled={isReadOnly}
+                >
                   <Tooltip
                     content={UI_MESSAGES.READ_ONLY_MODE}
                     disableTooltip={!isReadOnly}
@@ -328,7 +363,12 @@ const PlaceMainContent: React.FC = () => {
                   </Tooltip>
 
                   {place.differentialEquationId && (
-                    <div className={jumpButtonContainerStyle}>
+                    <div
+                      className={cx(
+                        jumpButtonContainerStyle,
+                        inFieldJumpButtonStyle,
+                      )}
+                    >
                       <Button
                         variant="subtle"
                         tone="neutral"
@@ -347,16 +387,15 @@ const PlaceMainContent: React.FC = () => {
                       </Button>
                     </div>
                   )}
-                </>
-              )
-            )}
-          </Section>
+                </Form.Field>
+              )}
+          </Form.Section>
         )}
-        <Section
-          title="Component port"
-          tooltip="Exposes this place as an arc endpoint when its subnet is instantiated as a component."
-          renderHeaderLeading={() => (
+
+        <div className={fieldsSectionStyle}>
+          <div className={checkboxRowStyle}>
             <Checkbox
+              label={<span className={checkboxTitleStyle}>Component port</span>}
               value={!!place.isPort}
               disabled={isReadOnly}
               onChange={(checked) => {
@@ -366,20 +405,24 @@ const PlaceMainContent: React.FC = () => {
                 });
               }}
             />
-          )}
-        >
-          <div className={hintTextStyle}>
+            <HelpTooltip content="Exposes this place as an arc endpoint when its subnet is instantiated as a component." />
+          </div>
+          <div className={checkboxHintStyle}>
             {place.isPort
               ? "Transitions in the parent net can connect arcs to this subnet place through a component instance."
               : "Enable this for subnet boundary places that should be available as component instance arc endpoints."}
           </div>
-        </Section>
-        <Section
-          title="Default starting place"
-          tooltip="Pre-selects this place when creating a new scenario."
-          renderHeaderLeading={() => (
+        </div>
+
+        <div className={fieldsSectionStyle}>
+          <div className={checkboxRowStyle}>
             <Checkbox
               size="sm"
+              label={
+                <span className={checkboxTitleStyle}>
+                  Default starting place
+                </span>
+              }
               value={!!place.showAsInitialState}
               disabled={isReadOnly}
               onChange={(checked) => {
@@ -389,14 +432,14 @@ const PlaceMainContent: React.FC = () => {
                 });
               }}
             />
-          )}
-        >
-          <div className={hintTextStyle}>
+            <HelpTooltip content="Pre-selects this place when creating a new scenario." />
+          </div>
+          <div className={checkboxHintStyle}>
             {place.showAsInitialState
               ? "This place should have an initial marking defined to run the net, and will be pre-selected in new scenarios."
               : "Enable if this place should have an initial marking defined to run the net. It will be pre-selected in new scenarios."}
           </div>
-        </Section>
+        </div>
       </SectionList>
     </div>
   );

@@ -17,6 +17,12 @@ import { InitialStateEditor } from "./initial-state-editor";
 
 import type { SubView } from "../../../../../../../components/sub-view/types";
 
+// the subview content wrapper has no top padding (it belongs to the sticky
+// header), so a lone field provides its own
+const stateFieldStyle = css({
+  marginTop: "3",
+});
+
 const scenarioInfoStyle = css({
   display: "flex",
   alignItems: "center",
@@ -119,6 +125,7 @@ const PlaceInitialStateContent: React.FC = () => {
 
     return (
       <Form.Field
+        className={stateFieldStyle}
         label={hasSimulationFrames ? "Current tokens" : "Initial tokens"}
         size="sm"
         disabled
@@ -149,7 +156,12 @@ const PlaceInitialStateContent: React.FC = () => {
     }
 
     return (
-      <Form.Field label="Token count" size="sm" disabled={hasSimulationFrames}>
+      <Form.Field
+        className={stateFieldStyle}
+        label="Token count"
+        size="sm"
+        disabled={hasSimulationFrames}
+      >
         <Tooltip
           content={UI_MESSAGES.READ_ONLY_MODE}
           disableTooltip={!hasSimulationFrames}

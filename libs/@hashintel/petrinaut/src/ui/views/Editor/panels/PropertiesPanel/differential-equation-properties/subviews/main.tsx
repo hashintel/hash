@@ -18,7 +18,6 @@ import {
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { Section, SectionList } from "../../../../../../components/section";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
@@ -27,8 +26,24 @@ import { useDiffEqPropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
 
+// the section fills the panel; the last row (Code) takes the remaining height
 const fieldsSectionStyle = css({
   paddingY: "3",
+  flex: "[1]",
+  minHeight: "[0]",
+  gridTemplateRows: "[auto auto minmax(0, 1fr)]",
+});
+
+// the Code fieldset stretches to its grid row; hand the height to the editor
+const codeFieldStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  minHeight: "[0]",
+});
+
+const codeEditorBoxStyle = css({
+  flex: "[1]",
+  minHeight: "[0]",
 });
 
 const colorDotStyle = css({
@@ -114,7 +129,7 @@ const DiffEqMainContent: React.FC = () => {
   };
 
   return (
-    <SectionList>
+    <>
       <Form.Section className={fieldsSectionStyle}>
         <DraftFieldInput
           label="Name"
@@ -165,6 +180,33 @@ const DiffEqMainContent: React.FC = () => {
               }}
             />
           </Tooltip>
+        </Form.Field>
+
+        <Form.Field
+          as="legend"
+          label="Code"
+          size="sm"
+          className={codeFieldStyle}
+        >
+          <div className={codeEditorBoxStyle}>
+            <CodeEditor
+              path={getDocumentUri(
+                "differential-equation",
+                differentialEquation.id,
+              )}
+              language="typescript"
+              value={differentialEquation.code}
+              height="100%"
+              onChange={(newCode) => {
+                updateDifferentialEquation({
+                  equationId: differentialEquation.id,
+                  update: { code: newCode ?? "" },
+                });
+              }}
+              options={{ readOnly: isReadOnly }}
+              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+            />
+          </div>
         </Form.Field>
       </Form.Section>
 
@@ -219,27 +261,7 @@ const DiffEqMainContent: React.FC = () => {
           />
         </Dialog>
       )}
-
-      <Section title="Code" fillHeight>
-        <CodeEditor
-          path={getDocumentUri(
-            "differential-equation",
-            differentialEquation.id,
-          )}
-          language="typescript"
-          value={differentialEquation.code}
-          height="100%"
-          onChange={(newCode) => {
-            updateDifferentialEquation({
-              equationId: differentialEquation.id,
-              update: { code: newCode ?? "" },
-            });
-          }}
-          options={{ readOnly: isReadOnly }}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        />
-      </Section>
-    </SectionList>
+    </>
   );
 };
 

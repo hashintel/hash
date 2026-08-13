@@ -58,6 +58,12 @@ const aiMenuItemStyle = css({
   gap: "[6px]",
 });
 
+const headerActionsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+});
+
 /**
  * Renders the visualizer preview for the current place,
  * using simulation frame data or initial marking.
@@ -146,7 +152,7 @@ const VisualizerHeaderAction: React.FC = () => {
   const hasVisualizer = place.visualizerCode !== undefined;
 
   return (
-    <>
+    <div className={headerActionsStyle}>
       {globalMode === "edit" && (
         <Tooltip
           content={UI_MESSAGES.READ_ONLY_MODE}
@@ -233,7 +239,7 @@ const VisualizerHeaderAction: React.FC = () => {
           ]}
         />
       )}
-    </>
+    </div>
   );
 };
 

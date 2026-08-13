@@ -96,18 +96,8 @@ const titleStyle = css({
   color: "neutral.fg.body",
 });
 
+// only the chevron rotation — the button itself is a stock ghost Button
 const triggerButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[20px]",
-  height: "[20px]",
-  borderRadius: "md",
-  cursor: "pointer",
-  background: "[transparent]",
-  border: "[none]",
-  color: "neutral.s110",
-  padding: "[0]",
   "& svg": {
     transition: "[transform 150ms ease-out]",
   },
@@ -115,6 +105,14 @@ const triggerButtonStyle = css({
     transform: "[rotate(180deg)]",
   },
 });
+
+// Collapsible.Trigger injects aria-expanded, which the ds Button renders as
+// pressed — strip it so the trigger keeps the resting ghost look. data-state
+// still carries open/closed for the chevron rotation.
+const TriggerButton = ({
+  "aria-expanded": _ariaExpanded,
+  ...props
+}: React.ComponentProps<typeof Button>) => <Button {...props} />;
 
 const collapsibleContentStyle = css({
   overflow: "hidden",
@@ -133,20 +131,22 @@ const contentStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "3",
-  pl: "2",
 });
 
 const collapsibleContentInnerStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "3",
-  pl: "2",
   pt: "2",
 });
 
 const fillHeightContentStyle = css({
   flex: "[1]",
   minHeight: "[0]",
+});
+
+const indentedContentStyle = css({
+  paddingLeft: "2",
 });
 
 interface SectionProps {
@@ -159,6 +159,8 @@ interface SectionProps {
   renderHeaderAction?: () => ReactNode;
   children: ReactNode;
   className?: string;
+  /** Slightly indent the content against the section header */
+  indented?: boolean;
 }
 
 export const Section = ({
@@ -171,6 +173,7 @@ export const Section = ({
   renderHeaderAction,
   children,
   className,
+  indented = false,
 }: SectionProps) => {
   const headerLeft = (
     <div className={headerLeftStyle}>
@@ -192,7 +195,7 @@ export const Section = ({
           {headerLeft}
           {renderHeaderAction && <div>{renderHeaderAction()}</div>}
           <Collapsible.Trigger className={triggerButtonStyle} asChild>
-            <Button
+            <TriggerButton
               size="xs"
               variant="ghost"
               aria-label="Toggle section"
@@ -207,7 +210,14 @@ export const Section = ({
             contentPaddingStyle,
           )}
         >
-          <div className={collapsibleContentInnerStyle}>{children}</div>
+          <div
+            className={cx(
+              collapsibleContentInnerStyle,
+              indented && indentedContentStyle,
+            )}
+          >
+            {children}
+          </div>
         </Collapsible.Content>
       </Collapsible.Root>
     );
@@ -231,6 +241,7 @@ export const Section = ({
           contentStyle,
           contentPaddingStyle,
           fillHeight && fillHeightContentStyle,
+          indented && indentedContentStyle,
         )}
       >
         {children}

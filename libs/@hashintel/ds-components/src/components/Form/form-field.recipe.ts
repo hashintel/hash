@@ -11,7 +11,9 @@ export const styles = sva({
     "descriptionBottom",
     "errors",
   ],
-  base: {},
+  base: {
+    root: { minWidth: "0" },
+  },
   variants: {
     layout: {
       block: {},

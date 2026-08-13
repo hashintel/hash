@@ -139,6 +139,16 @@ export function useMetricLspSession(
 
 // -- Form sections ------------------------------------------------------------
 
+// the compact pre-migration hint treatment for the code description
+const codeFieldDescriptionStyle = css({
+  '& [data-part="description"]': {
+    fontSize: "xs",
+    color: "neutral.s80",
+    lineHeight: "[1.4]",
+    marginBottom: "3",
+  },
+});
+
 interface MetricFormSectionsProps {
   state: MetricFormState;
   callbacks: MetricFormCallbacks;
@@ -194,6 +204,7 @@ const MetricFormSections = ({
           label="Code"
           hideLabel
           size="sm"
+          className={codeFieldDescriptionStyle}
           description={
             <>
               Function body invoked with{" "}

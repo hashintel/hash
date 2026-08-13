@@ -69,11 +69,12 @@ const FormField = ({
         : "left",
   });
   const id = useId();
-  // inline nests the visible label inside inlineControl, where a <legend>
-  // would not name the fieldset — the label becomes a <span> and the
-  // fieldset is aria-labelledby'd to just the label text (wrapped in an id'd
-  // span), keeping the tooltip trigger and actions out of the name
-  const isInlineLegend = as === "legend" && layout === "inline";
+  // a legend keeps the required mark and (in block layout) the tooltip
+  // trigger inside it, so the fieldset is aria-labelledby'd to just the label
+  // text (wrapped in an id'd span) to keep them out of its accessible name.
+  // inline additionally nests the label inside inlineControl, where a
+  // <legend> would not name the fieldset — the label becomes a <span>
+  const isLegend = as === "legend";
   const labelType =
     as === "label"
       ? { as, htmlFor: id }
@@ -91,7 +92,7 @@ const FormField = ({
       hide={hideLabel}
       className={classes.label}
     >
-      {isInlineLegend ? <span id={id}>{label}</span> : label}
+      {isLegend ? <span id={id}>{label}</span> : label}
     </Label>
   );
 
@@ -139,7 +140,7 @@ const FormField = ({
   if (layout === "inline") {
     return (
       <fieldset
-        aria-labelledby={isInlineLegend ? id : undefined}
+        aria-labelledby={isLegend ? id : undefined}
         className={cx(classes.root, className)}
         data-part="form-field"
         data-layout="inline"
@@ -161,7 +162,11 @@ const FormField = ({
   }
 
   return (
-    <fieldset className={cx(classes.root, className)} data-part="form-field">
+    <fieldset
+      aria-labelledby={isLegend ? id : undefined}
+      className={cx(classes.root, className)}
+      data-part="form-field"
+    >
       {labelEl}
       {descriptionEl}
       {controlEl}

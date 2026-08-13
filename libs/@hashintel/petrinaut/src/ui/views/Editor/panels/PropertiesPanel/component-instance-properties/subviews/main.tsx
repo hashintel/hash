@@ -33,6 +33,15 @@ const paramVarNameStyle = css({
   fontFamily: "mono",
 });
 
+// the compact pre-migration label treatment for the parameter rows
+const paramFieldLabelStyle = css({
+  "& :is(label, legend)": {
+    fontSize: "xs",
+    fontWeight: "medium",
+    color: "neutral.s100",
+  },
+});
+
 const hintTextStyle = css({
   fontSize: "xs",
   color: "neutral.s85",
@@ -105,6 +114,7 @@ const ComponentInstanceMainContent: React.FC = () => {
                 labelTooltip={`Variable: ${param.variableName} (${param.type})`}
                 size="sm"
                 disabled={isDisabled}
+                className={paramFieldLabelStyle}
                 descriptionBottom={
                   <span className={paramVarNameStyle}>
                     {param.variableName}

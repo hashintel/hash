@@ -10,7 +10,7 @@ import {
   TextInput,
   Toggle,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { Section, SectionList } from "../../../../../components/section";
@@ -45,6 +45,15 @@ const paramIdentifierFieldStyle = css({
 const paramDefaultFieldStyle = css({
   width: "[64px]",
   flex: "[0 0 auto]",
+});
+
+// the compact pre-migration label treatment for the parameter rows
+const paramFieldLabelStyle = css({
+  "& :is(label, legend)": {
+    fontSize: "xs",
+    fontWeight: "medium",
+    color: "neutral.s100",
+  },
 });
 
 // -- Override row styles -------------------------------------------------------
@@ -144,6 +153,7 @@ const switchLabelStyle = css({
   fontWeight: "medium",
   color: "neutral.s80",
   cursor: "pointer",
+  marginRight: "3",
 });
 
 const monospaceInputStyle = css({
@@ -590,6 +600,7 @@ const ScenarioFormSections = ({
         title="Scenario Parameters"
         collapsible
         defaultOpen
+        indented
         renderHeaderAction={() => (
           <Button
             size="xs"
@@ -615,7 +626,10 @@ const ScenarioFormSections = ({
                 <Form.Field
                   label="Identifier"
                   size="sm"
-                  className={paramIdentifierFieldStyle}
+                  className={cx(
+                    paramIdentifierFieldStyle,
+                    paramFieldLabelStyle,
+                  )}
                   errors={error ? [error] : undefined}
                 >
                   <TextInput
@@ -640,7 +654,11 @@ const ScenarioFormSections = ({
                   />
                 </Form.Field>
                 <Form.Row gap="none" noWrap>
-                  <Form.Field label="Type" size="sm">
+                  <Form.Field
+                    label="Type"
+                    size="sm"
+                    className={paramFieldLabelStyle}
+                  >
                     <Select
                       required
                       size="sm"
@@ -669,7 +687,7 @@ const ScenarioFormSections = ({
                   <Form.Field
                     label="Default"
                     size="sm"
-                    className={paramDefaultFieldStyle}
+                    className={cx(paramDefaultFieldStyle, paramFieldLabelStyle)}
                   >
                     {param.type === "boolean" ? (
                       <div className={css({ marginLeft: "3", marginTop: "1" })}>
@@ -719,7 +737,7 @@ const ScenarioFormSections = ({
       </Section>
 
       {/* -- Parameters (net-level overrides) ------------------------- */}
-      <Section title="Parameter Bindings" collapsible defaultOpen>
+      <Section title="Parameter Bindings" collapsible defaultOpen indented>
         <span className={hintStyle}>
           Override the default values of net-level parameters for this scenario.
         </span>
@@ -770,6 +788,7 @@ const ScenarioFormSections = ({
         title="Initial State"
         collapsible
         defaultOpen
+        indented
         renderHeaderAction={() => (
           <div className={switchLabelStyle}>
             {!state.initialStateAsCode && (
