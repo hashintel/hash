@@ -3,6 +3,7 @@
 //! The edges among the listed tiles' delivered rows, as `SALTILEE` bytes.
 
 use alloc::sync::Arc;
+use core::panic::AssertUnwindSafe;
 
 use aide::transform::TransformOperation;
 use axum::{extract::State, http::StatusCode};
@@ -83,11 +84,11 @@ pub(super) async fn handler(
     };
 
     let (result, ()) = tokio::join!(
-        spawn(move || {
+        spawn(AssertUnwindSafe(move || {
             let view = visibility.view(&atlas)?;
 
             atlas.edges(&request, limits, view, store)
-        }),
+        })),
         async {
             // An order never arrives when the request skips the trailer, rejects, or panics first.
             let Ok(links) = order_receiver.await else {

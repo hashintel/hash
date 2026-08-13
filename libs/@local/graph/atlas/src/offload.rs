@@ -8,7 +8,7 @@
 //! rayon's response to a panic no join point observes.
 
 use alloc::borrow::Cow;
-use core::{any::Any, error::Error, fmt};
+use core::{any::Any, error::Error, fmt, panic::UnwindSafe};
 
 /// An offloaded computation that produced no value.
 ///
@@ -49,7 +49,7 @@ impl Error for OffloadError {}
 /// payload was one, and [`OffloadError::Vanished`] when the pool drops the job without running
 /// it.
 pub(crate) async fn run<T: Send + 'static>(
-    work: impl FnOnce() -> T + Send + 'static,
+    work: impl FnOnce() -> T + Send + UnwindSafe + 'static,
 ) -> Result<T, OffloadError> {
     let (sender, receiver) = tokio::sync::oneshot::channel();
 
@@ -57,7 +57,7 @@ pub(crate) async fn run<T: Send + 'static>(
         // AssertUnwindSafe: the panic is answered as a value rather than resumed, so nothing
         // observes the closure's state after the unwind - the captures drop with the worker's
         // frame.
-        let result = std::panic::catch_unwind(core::panic::AssertUnwindSafe(work));
+        let result = std::panic::catch_unwind(work);
 
         // A send failure means the caller's future was dropped and nothing wants the value.
         let _cancelled: Result<(), _> = sender.send(result);

@@ -4,6 +4,7 @@
 //! posture. [`spawn`] runs the CPU-bound assembly off the async runtime.
 
 use alloc::borrow::Cow;
+use core::panic::UnwindSafe;
 
 use aide::{OperationOutput, generate::GenContext, openapi};
 use axum::{
@@ -81,7 +82,7 @@ impl OperationOutput for Saltile {
 
 /// Runs CPU-bound response assembly on a rayon worker, answering a panic as an internal problem.
 pub(super) async fn spawn<T: Send + 'static>(
-    work: impl FnOnce() -> T + Send + 'static,
+    work: impl FnOnce() -> T + Send + UnwindSafe + 'static,
 ) -> Result<T, Problem<'static>> {
     offload::run(work).await.map_err(|error| match error {
         OffloadError::Panicked(payload) => {

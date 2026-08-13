@@ -3,6 +3,7 @@
 //! The source entity's ego-graph - its edges and the partners they connect - as `SALTILEL` bytes.
 
 use alloc::sync::Arc;
+use core::panic::AssertUnwindSafe;
 
 use aide::transform::TransformOperation;
 use axum::{extract::State, http::StatusCode};
@@ -95,11 +96,11 @@ pub(super) async fn handler(
     };
 
     let (result, ()) = tokio::join!(
-        spawn(move || {
+        spawn(AssertUnwindSafe(move || {
             let view = visibility.view(&atlas)?;
 
             atlas.locate(&request, limits, view, store)
-        }),
+        })),
         async {
             // An order never arrives when the pipeline rejects the request or panics first.
             let Ok(order) = order_receiver.await else {
