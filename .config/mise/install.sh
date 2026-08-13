@@ -46,6 +46,13 @@ curl_exit_label() {
 
 # Downloads $1 to $2. `--fail` is deliberately omitted so that the response body
 # survives to be printed: a bare `curl: (22)` explains nothing about why a build broke.
+#
+# `--retry-max-time` is what actually bounds the wait. curl honours a server
+# `Retry-After` in preference to `--retry-delay`, and GitHub answers a rate limit
+# with `Retry-After: 60` — the very case these retries exist for — so without a
+# ceiling the five retries stall the build for ~5 minutes per download, silently,
+# because `-s` hides curl's "Will retry" notices. `--max-time` does not help: it
+# caps a single attempt, not the series.
 fetch() {
   local url=$1 output=$2
   local headers="${output}.headers"
@@ -53,7 +60,7 @@ fetch() {
 
   status=$(
     curl -sS -L \
-      --retry 5 --retry-all-errors --retry-delay 2 \
+      --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 60 \
       --connect-timeout 10 --max-time 300 \
       ${curl_auth[@]+"${curl_auth[@]}"} \
       --dump-header "${headers}" \
@@ -67,8 +74,14 @@ fetch() {
       echo "error: failed to download ${url}"
       echo "  curl exit code: ${curl_status} ($(curl_exit_label "${curl_status}"))"
       echo "  http status:    ${status}"
-      grep -iE '^(retry-after|x-ratelimit-[a-z]+):' "${headers}" 2> /dev/null \
-        | tr -d '\r' | sed 's/^/  /' || true
+      # `--dump-header` appends, so the file holds every retry and every redirect
+      # hop. Reset on each status line and keep only what followed the last one,
+      # otherwise a rate-limited download repeats the same block once per attempt.
+      awk '
+        /^[Hh][Tt][Tt][Pp]\// { count = 0; next }
+        tolower($0) ~ /^(retry-after|x-ratelimit-[a-z-]+):/ { header[++count] = $0 }
+        END { for (i = 1; i <= count; i++) print header[i] }
+      ' "${headers}" 2> /dev/null | tr -d '\r' | sed 's/^/  /' || true
       echo "  response body (first 2000 bytes):"
       head -c 2000 "${output}" 2> /dev/null | tr -d '\r' | tr -c '[:print:]\n\t' '.' | sed 's/^/    /'
       echo
