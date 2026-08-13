@@ -1,7 +1,12 @@
-// Public surface for `@hashintel/petrinaut-core` — the headless engine.
-//
-// No React, no DOM, no Monaco. Stateful handles, streams, and pure logic for
-// SDCPN documents, simulation, LSP, and playback.
+/**
+ * Public surface for `@hashintel/petrinaut-core` — the headless engine.
+ *
+ * No React, no DOM, no Monaco. Stateful handles, streams, and pure logic for
+ * SDCPN documents, simulation, LSP, and playback.
+ *
+ * @layerRoot core
+ * @role SDCPN document model, compiler, simulation runtimes and LSP, with no UI framework
+ */
 
 // --- Document ---
 export {

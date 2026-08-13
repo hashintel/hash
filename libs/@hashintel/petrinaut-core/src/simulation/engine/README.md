@@ -1,3 +1,8 @@
+---
+layer: core.simulation.engine
+role: Builds an SDCPN definition into a runnable instance and computes frames
+---
+
 # Simulation Engine
 
 Core simulation logic for SDCPN Petri net execution.

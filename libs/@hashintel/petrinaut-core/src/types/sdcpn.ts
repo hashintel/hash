@@ -1,3 +1,8 @@
+/**
+ * @layerRoot core.types
+ * @role The canonical TypeScript types describing an SDCPN document
+ */
+
 export type ID = string;
 
 export type ColorElementType =

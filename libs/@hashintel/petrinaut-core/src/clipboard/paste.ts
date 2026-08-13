@@ -1,3 +1,8 @@
+/**
+ * @layerRoot core.clipboard
+ * @role Serialises a selection and pastes it back, resolving name collisions
+ */
+
 import { v4 as generateUuid } from "uuid";
 
 import { getArcEndpointPlaceId } from "../arc-endpoints";

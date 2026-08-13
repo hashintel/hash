@@ -1,3 +1,8 @@
+/**
+ * @layerRoot core.file-format
+ * @role Reads and writes the on-disk SDCPN document format, plus export converters
+ */
+
 import {
   legacySdcpnFileSchema,
   SDCPN_FILE_FORMAT_VERSION,

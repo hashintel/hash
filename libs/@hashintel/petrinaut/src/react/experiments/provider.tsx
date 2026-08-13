@@ -1,3 +1,8 @@
+/**
+ * @layerRoot react.experiments
+ * @role Tracks Monte Carlo experiment handles and their streamed metric results
+ */
+
 import { use, useEffect, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 

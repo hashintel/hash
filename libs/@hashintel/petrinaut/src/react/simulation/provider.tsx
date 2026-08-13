@@ -1,3 +1,8 @@
+/**
+ * @layerRoot react.simulation
+ * @role Owns the run configuration and mirrors the core simulation handle into React
+ */
+
 import { use, useEffect, useRef, useState } from "react";
 
 import {

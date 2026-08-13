@@ -1,11 +1,16 @@
+---
+layer: core.simulation
+role: Executes SDCPN nets — stepping, frames, workers and batch statistics
+---
+
 # Simulation Module
 
 Headless SDCPN simulation runtime.
 
-> Illustrated architecture documentation (memory layouts, sequence diagrams,
-> protocols) lives in
-> [`../../docs/architecture/index.html`](../../docs/architecture/index.html) —
-> self-contained HTML, open it in a browser.
+> Deep-dive documentation (memory layouts, the frame format, worker protocol,
+> Monte Carlo) lives in the architecture docs. They are added by #9205 under
+> `libs/@local/petrinaut-arch-docs/content/simulation/`, and #9206 adds a site
+> that renders them.
 
 ## Overview
 
