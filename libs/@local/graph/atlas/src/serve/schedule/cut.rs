@@ -9,7 +9,7 @@ use core::{cmp::Ordering, ops::Range};
 
 use hashql_core::id::Id as _;
 
-use super::{BucketPost, ScheduleWidthError, ScopeSchedule};
+use super::{BucketPost, ScheduleWidthError, ScopeRow, ScopeSchedule};
 use crate::{
     identity::BasePosition,
     morton::{Depth, MortonCell},
@@ -106,8 +106,10 @@ impl ScheduleCut<'_> {
     /// Feeds one bucket's delivered positions inside `cell` to `deliver`, ascending by
     /// `(key, rank)`, and returns the run length.
     ///
-    /// Buckets above the catch-all read from the slot column, and the catch-all reads from its
-    /// tail. A bucket past the catch-all holds nothing by construction.
+    /// Buckets above the catch-all read one slot range each. The catch-all gathers its cell's
+    /// rows from every bucket at or beyond the cut - each already `(key, rank)`-sorted inside
+    /// the column - and restores that order across them for exactly the delivered rows. A
+    /// bucket past the catch-all holds nothing by construction.
     fn run(&self, bucket: Depth, cell: MortonCell, deliver: &mut impl FnMut(BasePosition)) -> u32 {
         match bucket.cmp(&self.deepest) {
             Ordering::Less => {
@@ -117,15 +119,23 @@ impl ScheduleCut<'_> {
                 for slot in &slots[bounds] {
                     deliver(slot.row.position);
                 }
+
                 u32::try_from(count).expect("run lengths lie within the u32 universe")
             }
             Ordering::Equal => {
-                let tail = self.schedule.tail(self.deepest);
-                let bounds = ScopeSchedule::cell_bounds(tail, |row| row.key, cell);
-                let count = bounds.len();
-                for row in &tail[bounds] {
+                let mut rows: Vec<ScopeRow> = Vec::new();
+                for bucket in (self.deepest.get()..=Depth::MAX.get()).filter_map(Depth::new) {
+                    let slots = self.schedule.bucket_slots(bucket);
+                    let bounds = ScopeSchedule::cell_bounds(slots, |slot| slot.row.key, cell);
+                    rows.extend(slots[bounds].iter().map(|slot| slot.row));
+                }
+
+                rows.sort_unstable_by_key(|row| (row.key, row.rank));
+                let count = rows.len();
+                for row in rows {
                     deliver(row.position);
                 }
+
                 u32::try_from(count).expect("run lengths lie within the u32 universe")
             }
             Ordering::Greater => 0,
@@ -139,10 +149,13 @@ impl ScheduleCut<'_> {
                 let slots = self.schedule.bucket_slots(bucket);
                 ScopeSchedule::cell_bounds(slots, |slot| slot.row.key, cell).len()
             }
-            Ordering::Equal => {
-                let tail = self.schedule.tail(self.deepest);
-                ScopeSchedule::cell_bounds(tail, |row| row.key, cell).len()
-            }
+            Ordering::Equal => (self.deepest.get()..=Depth::MAX.get())
+                .filter_map(Depth::new)
+                .map(|bucket| {
+                    let slots = self.schedule.bucket_slots(bucket);
+                    ScopeSchedule::cell_bounds(slots, |slot| slot.row.key, cell).len()
+                })
+                .sum(),
             Ordering::Greater => 0,
         }
     }

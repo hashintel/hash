@@ -12,13 +12,12 @@
 //! natural depth, and every offset shares it, because depths at or above `d` decide the
 //! first-occupant scan at depth `d`. A deeper catch-all therefore never changes which row claims a
 //! shallower cell, and a row's bucket at deepest cut `D` is `min(natural, D)`. One slot column in
-//! `(bucket, key, rank)` order therefore serves every admissible `k`. Buckets above the cut read as
-//! slot ranges, and only the catch-all tail re-sorts into Morton order, once per offset, on first
-//! read.
+//! `(bucket, key, rank)` order therefore serves every admissible `k`. Buckets above the cut read
+//! as slot ranges, and the catch-all reads the buckets at or beyond the cut as per-bucket
+//! segments, restoring `(key, rank)` order across exactly the rows a cell delivers.
 
 use alloc::sync::Arc;
 use core::ops::Range;
-use std::sync::OnceLock;
 
 use hashql_core::id::{Id as _, IdArray, IdSlice};
 
@@ -178,8 +177,8 @@ impl core::error::Error for ScheduleWidthError {}
 /// first representative in rank order - the same first-occupant law behind the corpus schedule -
 /// and orders the slots bucket-major, ascending by key inside a bucket, rank breaking exact-key
 /// ties. [`Self::cut`] binds a resolved offset over the result. The value is immutable after
-/// construction and per-offset catch-all tails materialize behind [`OnceLock`]s, so one schedule
-/// serves every request of its scope concurrently.
+/// construction and holds no per-offset state, so one schedule serves every request of its scope
+/// concurrently.
 ///
 /// A schedule resolves once per scope beside the proof it builds from, and the requests under that
 /// scope share it.
@@ -195,8 +194,6 @@ pub(crate) struct ScopeSchedule {
     posts: IdArray<BucketPost, ScopeSlot, { Self::BUCKETS + 1 }>,
     /// The natural buckets ascending by position: the row-to-bucket lookup, binary-searched.
     by_position: Box<[PositionBucket]>,
-    /// Per-cut catch-all tails, keyed by the catch-all's opening post, built on first read.
-    tails: IdArray<BucketPost, OnceLock<Box<[ScopeRow]>>, { Self::BUCKETS }>,
 }
 
 impl ScopeSchedule {
@@ -234,14 +231,14 @@ impl ScopeSchedule {
         Self::over(Vec::new())
     }
 
-    /// Returns the schedule's retained heap in bytes, pricing one materialized catch-all tail.
+    /// Returns the schedule's retained heap in bytes: the slot column and its lookups, exactly.
     ///
-    /// Construction retains one slot and one position-lookup entry per visible row. Tails build
-    /// lazily per read offset and a served scope reads the one offset its authority sealed, so
-    /// the price covers one full tail. `size_of` carries the element widths, so the figure moves
+    /// Construction retains one slot and one position-lookup entry per visible row, and nothing
+    /// accrues afterward - the catch-all reads straight off the column, so no offset ever
+    /// materializes per-offset state. `size_of` carries the element widths, so the figure moves
     /// with the layout.
     pub(crate) fn heap_bytes(&self) -> u64 {
-        let per_row = size_of::<SlottedRow>() + size_of::<PositionBucket>() + size_of::<ScopeRow>();
+        let per_row = size_of::<SlottedRow>() + size_of::<PositionBucket>();
 
         size_of::<Self>() as u64 + self.slots.len() as u64 * per_row as u64
     }
@@ -296,7 +293,6 @@ impl ScopeSchedule {
             slots: IdSlice::from_boxed_slice(slots.into_boxed_slice()),
             posts,
             by_position: by_position.into_boxed_slice(),
-            tails: IdArray::from_fn(|_| OnceLock::new()),
         }
     }
 
@@ -330,22 +326,6 @@ impl ScopeSchedule {
         };
 
         &self.slots[range]
-    }
-
-    /// Returns the catch-all tail at `deepest`, building it on first read.
-    ///
-    /// The tail is every row whose natural bucket lies at or beyond the cut, re-sorted from
-    /// bucket-major order into `(key, rank)` order - the order law every shallower bucket
-    /// already satisfies.
-    fn tail(&self, deepest: Depth) -> &[ScopeRow] {
-        let opening = BucketPost::opening(deepest);
-        self.tails[opening].get_or_init(|| {
-            let start = self.posts[opening];
-            let mut tail: Vec<ScopeRow> = self.slots[start..].iter().map(|slot| slot.row).collect();
-            tail.sort_unstable_by_key(|row| (row.key, row.rank));
-
-            tail.into_boxed_slice()
-        })
     }
 
     /// Returns the bounds of `cell`'s keys within one key-sorted slice.
