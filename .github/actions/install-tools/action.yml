@@ -22,12 +22,37 @@ runs:
   using: composite
 
   steps:
+    # `idiomatic_version_file_enable_tools = ["rust"]` makes `mise install` read
+    # `rust-toolchain.toml`, and mise's `core:rust` plugin installs the toolchain by shelling
+    # out to `rustup` rather than downloading anything itself. So mise's own `http_retries`
+    # does not cover those downloads, and a `static.rust-lang.org` connect timeout failed this
+    # step outright — before the retry-wrapped `Install Rust` step below ever ran, which is why
+    # that wrapper never protected the download it was added for. Treat a failed install as
+    # non-fatal and retry it in the next step; the action still sets mise up and saves its cache
+    # here, so moving `mise install` out entirely (`install: false`) is not an option — the
+    # action only saves the cache on the path that runs the install.
     - name: Run `mise install` with `ci` environment
+      id: mise-install
       uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+      continue-on-error: true
       with:
         # renovate: datasource=github-releases depName=jdx/mise
         version: 2026.7.14
         install_args: --env ci --jobs 1 --locked
+      env:
+        MISE_VERBOSE: 1
+        GITHUB_TOKEN: ${{ inputs.token }}
+
+    # Skipped on the happy path. The condition is `!= 'success'` rather than `== 'failure'` so
+    # that an unresolved `outcome` retries instead of silently swallowing the failure above.
+    - name: Retry `mise install` if it failed
+      if: ${{ steps.mise-install.outcome != 'success' }}
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      with:
+        timeout_minutes: 20
+        max_attempts: 5
+        retry_wait_seconds: 60
+        command: mise install --env ci --jobs 1 --locked
       env:
         MISE_VERBOSE: 1
         GITHUB_TOKEN: ${{ inputs.token }}
