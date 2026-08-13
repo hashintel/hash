@@ -165,6 +165,36 @@ impl MortonKey {
         }
     }
 
+    /// Returns the deepest depth at which this key and `other` share a cell.
+    ///
+    /// A depth-`d` cell is the leading `2 · d` key bits, so the shared depth counts the agreed
+    /// leading bit pairs. Equal keys share every grid and return [`Depth::MAX`].
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let key = MortonKey::new(0, 0);
+    /// assert_eq!(key.shared_depth(key), Depth::MAX);
+    /// assert_eq!(key.shared_depth(MortonKey::new(0, 1 << 31)).get(), 0);
+    /// ```
+    #[expect(
+        clippy::integer_division,
+        clippy::integer_division_remainder_used,
+        reason = "a cell index is two key bits, so the shared depth is the agreed bit count halved"
+    )]
+    #[inline]
+    #[must_use]
+    pub const fn shared_depth(self, other: Self) -> Depth {
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "half of at most 64 leading zeros fits u8"
+        )]
+        let agreed = ((self.0 ^ other.0).leading_zeros() / 2) as u8;
+
+        // At most 64 agreed bits halve to 32, which is `Depth::MAX` itself.
+        Depth::new(agreed).unwrap_or_else(const || unreachable!())
+    }
+
     /// Returns the cell containing this key at `depth`.
     #[inline]
     #[must_use]

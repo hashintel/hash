@@ -265,6 +265,58 @@ fn base_order_sorts_buckets_then_keys_then_ranks() {
     );
 }
 
+#[test]
+fn separation_assigns_the_hand_computed_natural_buckets() {
+    // hand_keys() in ascending (key, rank) order: a, c, d, b with ranks 0, 2, 3, 1.
+    let keys = hand_keys();
+    let points = [
+        (keys[0], ImportanceRank::from_u32(0)),
+        (keys[2], ImportanceRank::from_u32(2)),
+        (keys[3], ImportanceRank::from_u32(3)),
+        (keys[1], ImportanceRank::from_u32(1)),
+    ];
+
+    let buckets = cascade::separation_buckets(&points, |point| point.0, |point| point.1);
+
+    // a claims the whole domain. c shares a's cells through depth 31, so it first claims at 32.
+    // d shares depth 1 with a and c and claims depth 2. b parts from everything at the first
+    // subdivision and claims depth 1.
+    assert_eq!(*buckets, [depth(0), depth(32), depth(2), depth(1)]);
+
+    // Equal keys share every grid: the worse-ranked co-resident takes the catch-all.
+    let tied = [
+        (keys[0], ImportanceRank::from_u32(0)),
+        (keys[0], ImportanceRank::from_u32(2)),
+        (keys[1], ImportanceRank::from_u32(1)),
+    ];
+    let buckets = cascade::separation_buckets(&tied, |point| point.0, |point| point.1);
+    assert_eq!(*buckets, [depth(0), depth(32), depth(1)]);
+}
+
+/// The neighbour-separation closed form is the cascade at the full key width.
+#[property_test]
+fn separation_is_the_cascade_at_the_key_width(
+    #[strategy = proptest::collection::vec(any::<u64>(), 1..48)] bits: Vec<u64>,
+    seed: u64,
+) {
+    let keys: Vec<_> = bits.iter().copied().map(MortonKey::from_bits).collect();
+    let ranking = seeded_ranking(keys.len(), seed);
+
+    let keyed = IdSlice::<NodeRowId, _>::from_raw(&keys);
+    let expected = cascade::buckets(keyed, &ranking, Depth::MAX);
+
+    let mut points: Vec<_> = keyed
+        .iter_enumerated()
+        .map(|(row, &key)| (key, ranking.rank_of_row[row], row))
+        .collect();
+    points.sort_unstable_by_key(|&(key, rank, _)| (key, rank));
+
+    let buckets = cascade::separation_buckets(&points, |point| point.0, |point| point.1);
+    for (&(_, _, row), &bucket) in points.iter().zip(&buckets) {
+        prop_assert_eq!(bucket, expected[row]);
+    }
+}
+
 /// Coverage holds for every input.
 ///
 /// Each occupied cell at each depth of the schedule keeps a representative in the delivered prefix.

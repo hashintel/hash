@@ -38,12 +38,16 @@ use core::{
     sync::atomic::{Atomic, Ordering},
     time::Duration,
 };
-use std::{sync::OnceLock, time::Instant};
+use std::{borrow::Cow, time::Instant};
 
 use moka::ops::compute::Op;
 use type_system::principal::actor::ActorEntityUuid;
 
-use super::{Atlas, ViewCensus, VisibilityProof, hydrate::MaskingActor, schedule::ViewSchedule};
+use super::{
+    Atlas, ViewCensus, VisibilityProof,
+    hydrate::{MaskingActor, compile::ProofError},
+    schedule::ViewSchedule,
+};
 use crate::{
     file::generation::GenerationId,
     integrity::{Sha256, Sha256Digest, Update as _},
@@ -132,11 +136,11 @@ pub(crate) struct CacheKey {
     pub filter: Option<FilterDigest>,
 }
 
-/// A proof and the census of the view it admits, from one resolution.
+/// A proof with the census and schedule of the view it admits, from one resolution.
 ///
-/// The pair exists because one resolution produces both per scope, and neither is a function of a
-/// request. Its production constructor censuses the proof it stores, so a census paired with a
-/// foreign proof is unconstructible rather than forbidden.
+/// The value exists because one resolution produces all three per scope, and none is a function
+/// of a request. Its production constructor censuses and schedules the proof it stores, so a
+/// census or schedule paired with a foreign proof is unconstructible rather than forbidden.
 #[derive(Debug)]
 pub(crate) struct PendingCacheEntry {
     /// The rows the actor may see.
@@ -145,6 +149,8 @@ pub(crate) struct PendingCacheEntry {
     masking: MaskingActor,
     /// The corpus-wide census of what [`Self::proof`] admits.
     census: ViewCensus,
+    /// The delivery schedule of [`Self::proof`]'s view.
+    schedule: ViewSchedule,
     /// The filter document the resolution of [`Self::proof`] ran over, as presented, absent when
     /// unfiltered.
     ///
@@ -154,32 +160,70 @@ pub(crate) struct PendingCacheEntry {
 }
 
 impl PendingCacheEntry {
-    /// Pairs `proof` with its census over `atlas` and the `filter` document, as presented.
+    /// Pairs `proof` with its census and schedule over `atlas` and the `filter` document.
     ///
-    /// The `filter` is the document the resolution ran over. The census walks the base column once
-    /// for a masked proof and reads the artifacts for an unmasked one, so the resolution pays that
-    /// cost rather than the requests that share it.
-    pub(crate) fn of(
-        atlas: &Atlas,
+    /// The `filter` is the document the resolution ran over, as presented. The census walks the
+    /// base column once for a masked proof and reads the artifacts for an unmasked one, and the
+    /// schedule builds a scoped proof's cascade, so the resolution pays those costs rather than
+    /// the requests that share them. The first request of a scope reads a held schedule instead
+    /// of building one.
+    pub(crate) async fn of(
+        atlas: Arc<Atlas>,
         proof: VisibilityProof,
         masking: MaskingActor,
         filter: Option<Arc<[u8]>>,
-    ) -> Self {
-        Self {
-            census: atlas.census(&proof),
+    ) -> Result<Self, ProofError> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        rayon::spawn(move || {
+            let result = std::panic::catch_unwind(core::panic::AssertUnwindSafe(|| {
+                let schedule = ViewSchedule::of(&atlas, &proof);
+                let census = atlas.census(&proof);
+
+                (schedule, census)
+            }));
+
+            let result = result.map_err(|payload| match payload.downcast_ref::<&'static str>() {
+                Some(&message) => Some(Cow::Borrowed(message)),
+                None => payload
+                    .downcast::<String>()
+                    .map_or(None, |message| Some(Cow::Owned(*message))),
+            });
+
+            if let Err(error) = tx.send((result, proof)) {
+                tracing::warn!(
+                    ?error,
+                    "while trying to compute the view schedule, the parent async task either \
+                     panicked or was cancelled"
+                );
+            }
+        });
+
+        let (schedule, census, proof) = match rx.await {
+            Ok((Err(panic), _)) => {
+                return Err(ProofError::Panic(panic));
+            }
+            Ok((Ok((schedule, census)), proof)) => (schedule, census, proof),
+            Err(error) => {
+                return Err(ProofError::ComputeView(error));
+            }
+        };
+
+        Ok(Self {
             proof,
             masking,
+            census,
+            schedule,
             filter,
-        }
+        })
     }
 
-    /// Pairs `proof` with the empty view's census.
+    /// Pairs `proof` with the empty view's census and schedule.
     ///
-    /// The cache neither reads a census nor derives one, so its own tests - over holding,
-    /// refreshing and expiring entries - need no walked one. Production keeps exactly one
-    /// constructor, [`Self::of`], which censuses the proof it stores.
+    /// The cache neither reads a census or schedule nor derives one, so its own tests - over
+    /// holding, refreshing and expiring entries - need no walked ones. Production keeps exactly
+    /// one constructor, [`Self::of`], which censuses and schedules the proof it stores.
     #[cfg(test)]
-    pub(crate) const fn with_empty_census(proof: VisibilityProof) -> Self {
+    pub(crate) fn with_empty_view(proof: VisibilityProof) -> Self {
         Self {
             proof,
             masking: MaskingActor {
@@ -187,6 +231,9 @@ impl PendingCacheEntry {
                 instance_admin: false,
             },
             census: ViewCensus::EMPTY,
+            schedule: ViewSchedule::Scope(Arc::new(super::schedule::ScopeSchedule::over(
+                Vec::new(),
+            ))),
             filter: None,
         }
     }
@@ -213,11 +260,11 @@ pub(crate) struct CacheEntry {
     /// The filter document the resolution of [`Self::proof`] ran over, as presented, absent when
     /// unfiltered.
     filter: Option<Arc<[u8]>>,
-    /// The delivery schedule of [`Self::proof`]'s view, built on first read.
+    /// The delivery schedule of [`Self::proof`]'s view, resolved with it.
     ///
-    /// One scope builds its cascade once, and every request under it reads that one. Replacing the
-    /// entry retires the schedule along with the proof it describes.
-    schedule: OnceLock<ViewSchedule>,
+    /// One scope builds its cascade once, at resolution, and every request under it reads that
+    /// one. Replacing the entry retires the schedule along with the proof it describes.
+    schedule: ViewSchedule,
     /// When the resolution behind [`Self::proof`] ran.
     resolved_at: Instant,
     /// Which write into the slot published this entry.
@@ -237,6 +284,7 @@ impl CacheEntry {
             proof,
             masking,
             census,
+            schedule,
             filter,
         }: PendingCacheEntry,
         resolved_at: Instant,
@@ -247,7 +295,7 @@ impl CacheEntry {
             masking,
             census,
             filter,
-            schedule: OnceLock::new(),
+            schedule,
             resolved_at,
             publication,
             refreshing: Atomic::<bool>::new(false),
@@ -269,13 +317,9 @@ impl CacheEntry {
         &self.census
     }
 
-    /// Returns the delivery schedule of this entry's view, building it on first read.
-    ///
-    /// Concurrent first readers of one scope wait for a single construction rather than duplicating
-    /// it.
-    pub(crate) fn view_schedule(&self, atlas: &Atlas) -> &ViewSchedule {
-        self.schedule
-            .get_or_init(|| ViewSchedule::of(atlas, &self.proof))
+    /// Returns the delivery schedule of this entry's view, resolved with its proof.
+    pub(crate) const fn view_schedule(&self) -> &ViewSchedule {
+        &self.schedule
     }
 
     /// Returns the filter document the resolution ran over, as presented.
@@ -680,7 +724,7 @@ mod tests {
 
             async move || {
                 calls.fetch_add(1, Ordering::Relaxed);
-                Ok::<_, ()>(PendingCacheEntry::with_empty_census(proof_of($rows)))
+                Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of($rows)))
             }
         }};
     }
@@ -912,7 +956,7 @@ mod tests {
                     // before this task was first polled or after.
                     gate.notified().await;
                     calls.fetch_add(1, Ordering::Relaxed);
-                    Ok::<_, ()>(PendingCacheEntry::with_empty_census(proof_of(&[1, 2, 3])))
+                    Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of(&[1, 2, 3])))
                 }
             })
             .await
@@ -985,7 +1029,7 @@ mod tests {
                 async move {
                     gate.notified().await;
                     calls.fetch_add(1, Ordering::Relaxed);
-                    Ok::<_, ()>(PendingCacheEntry::with_empty_census(proof_of(&[1, 2, 3])))
+                    Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of(&[1, 2, 3])))
                 }
             })
             .await
@@ -1054,7 +1098,7 @@ mod tests {
                 async move {
                     gate.notified().await;
                     calls.fetch_add(1, Ordering::Relaxed);
-                    Ok::<_, ()>(PendingCacheEntry::with_empty_census(proof_of(&[1, 2, 3])))
+                    Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of(&[1, 2, 3])))
                 }
             })
             .await

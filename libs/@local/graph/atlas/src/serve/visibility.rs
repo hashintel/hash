@@ -177,6 +177,18 @@ impl VisibilityProof {
         }
     }
 
+    /// Returns whether the node axis admits every row of the universe `[0, n)`.
+    ///
+    /// The answer reads visibility rather than the constructor, so a mask admitting the whole
+    /// universe answers `true` exactly as the full constructor does, and stays a declared scope
+    /// under [`Self::kind`]. Rows a mask admits at or above `n` never count against the answer.
+    pub(super) fn nodes_saturated_below(&self, n: u64) -> bool {
+        match &self.nodes {
+            Rows::Full => true,
+            Rows::Mask(mask) => mask.contains_below(n),
+        }
+    }
+
     /// Proves one node row visible: the sole [`VisibleRow`] constructor.
     ///
     /// Wire-domain ingress reaches this through [`Atlas::resolve`]; identity-domain ingress

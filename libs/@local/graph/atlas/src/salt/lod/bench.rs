@@ -1273,6 +1273,7 @@ impl WalkBench {
         let mut order: Vec<u32> =
             (0..u32::try_from(count).expect("visible rows fit u32")).collect();
         order.sort_unstable_by_key(|&entry| keys[entry as usize]);
+
         let mut place = vec![0_u32; count];
         for (at, &entry) in order.iter().enumerate() {
             place[entry as usize] = u32::try_from(at).expect("visible rows fit u32");
@@ -1295,20 +1296,21 @@ impl WalkBench {
         for &entry in &worst {
             let at = place[entry as usize] as usize;
             let key = keys[entry as usize];
-            let mut shared = 0_u8;
+
+            let mut shared = Depth::MIN;
             let mut separated = true;
             for neighbour in [before[at], after[at]] {
                 if neighbour == count {
                     continue;
                 }
                 separated = false;
-                shared = shared.max(shared_depth(key, keys[order[neighbour] as usize]));
+                shared = shared.max(key.shared_depth(keys[order[neighbour] as usize]));
             }
+
             buckets[entry as usize] = if separated {
                 Depth::MIN
             } else {
-                Depth::new(shared.saturating_add(1).min(Depth::MAX.get()))
-                    .expect("the clamped successor lies within the key width")
+                shared.saturating_add(1)
             };
 
             let (low, high) = (before[at], after[at]);
@@ -1331,34 +1333,11 @@ impl WalkBench {
     ) -> ServedGeneration {
         let positions: Vec<BasePosition> = positions.into_iter().collect();
         let count = positions.len();
-        let mut buckets = vec![Depth::MIN; count];
-        let mut stack: Vec<usize> = Vec::with_capacity(count);
-
-        let separation_bucket = |left: usize, right: usize| {
-            let shared = shared_depth(
-                self.codes[positions[left].as_usize()],
-                self.codes[positions[right].as_usize()],
-            );
-            Depth::new(shared.saturating_add(1).min(Depth::MAX.get()))
-                .expect("the clamped successor lies within the key width")
-        };
-
-        for current in 0..count {
-            let current_rank = self.rank_of_position[positions[current].as_usize()];
-            while let Some(&previous) = stack.last() {
-                let previous_rank = self.rank_of_position[positions[previous].as_usize()];
-                if previous_rank < current_rank {
-                    break;
-                }
-
-                let previous = stack.pop().expect("the stack held the previous entry");
-                buckets[previous] = buckets[previous].max(separation_bucket(previous, current));
-            }
-            if let Some(&previous) = stack.last() {
-                buckets[current] = separation_bucket(previous, current);
-            }
-            stack.push(current);
-        }
+        let buckets = cascade::separation_buckets(
+            &positions,
+            |&position| self.codes[position.as_usize()],
+            |&position| ImportanceRank::from_u32(self.rank_of_position[position.as_usize()]),
+        );
 
         let mut lengths = [0_usize; SEGMENTS];
         for bucket in &buckets {
@@ -1571,6 +1550,7 @@ impl WalkBench {
         let mut keys: Vec<MortonKey> = Vec::with_capacity(self.visible.count());
         let mut positions: Vec<u32> = Vec::with_capacity(self.visible.count());
         let mut ranks: Vec<u32> = Vec::with_capacity(self.visible.count());
+
         for (position, code) in self.codes.iter().enumerate() {
             if self
                 .visible
@@ -1918,7 +1898,7 @@ impl WalkBench {
 
             for &position in &delivered {
                 taken.insert(BasePosition::from_u32(position));
-                let depth = shared_depth(self.codes[position as usize], key).min(z);
+                let depth = self.codes[position as usize].shared_depth(key).get().min(z);
                 nesting[usize::from(depth)] += 1;
                 if rule == FillRule::CoverageCells {
                     history[usize::from(depth)].push(position);
@@ -4094,21 +4074,6 @@ const fn cell_of(z: u8, x: u32, y: u32) -> MortonCell {
         y,
     )
     .expect("the coordinate lies on the zoom's grid")
-}
-
-/// Returns the deepest grid depth at which two keys share a cell.
-#[expect(
-    clippy::integer_division,
-    clippy::integer_division_remainder_used,
-    reason = "a cell index is two key bits, so the shared depth is the shared bit count halved"
-)]
-fn shared_depth(left: MortonKey, right: MortonKey) -> u8 {
-    let difference = left.to_bits() ^ right.to_bits();
-    if difference == 0 {
-        return Depth::MAX.get();
-    }
-
-    u8::try_from(difference.leading_zeros() / 2).expect("halved key widths fit u8")
 }
 
 /// Every bucket's full segment, in the instrument's scan offsets.

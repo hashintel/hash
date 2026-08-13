@@ -384,16 +384,14 @@ impl ViewOccupancy {
         }
 
         let mut separations = [0_u64; Self::DEPTHS];
-        for (earlier, later) in keys.iter().zip(keys.iter().skip(1)) {
-            let difference = earlier.to_bits() ^ later.to_bits();
-            if difference == 0 {
+        for &[earlier, later] in keys.array_windows::<2>() {
+            if earlier == later {
                 continue;
             }
 
-            // The highest differing bit sits in the level that separates the two cells: two
-            // subdivision bits per depth, counting from the key's top.
-            let depth = (difference.leading_zeros() >> 1) + 1;
-            separations[depth as usize] += 1;
+            // The keys part one level below their deepest shared grid.
+            let depth = earlier.shared_depth(later).get() + 1;
+            separations[usize::from(depth)] += 1;
         }
 
         // Every key shares the whole domain, so the profile starts at one cell and gains each

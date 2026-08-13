@@ -248,8 +248,6 @@ pub(super) async fn resolve(
                 .transpose()
                 .map_err(ProofError::Document)?;
 
-            // The census rides the resolution, not the request: one pass over the base column
-            // per scope, shared by every root tile it answers.
             let (proof, masking) = visibility_proof(
                 actor,
                 filter.as_ref(),
@@ -259,7 +257,7 @@ pub(super) async fn resolve(
             )
             .await?;
 
-            Ok::<_, ProofError>(PendingCacheEntry::of(&atlas, proof, masking, document))
+            PendingCacheEntry::of(atlas, proof, masking, document).await
         })
         .await
         .map_err(|error| proof_problem(&error))?;
@@ -310,7 +308,9 @@ fn proof_problem(error: &ProofError) -> Problem<'static> {
         | ProofError::Policies(_)
         | ProofError::Document(_)
         | ProofError::Query(_)
-        | ProofError::Rows(_) => visibility_unavailable(error),
+        | ProofError::Rows(_)
+        | ProofError::ComputeView(_)
+        | ProofError::Panic(_) => visibility_unavailable(error),
     }
 }
 

@@ -57,6 +57,51 @@ fn from_rows_admits_every_row_and_iterates_in_order() {
     );
 }
 
+/// Range coverage demands exactly the rows below `n`.
+///
+/// Rows above `n` never count against the answer, and `n = 0` holds vacuously. The fixture rows
+/// straddle roaring's container boundary at 2^16, so a covered range crosses containers as well
+/// as words, and no set covers a domain wider than the representable rows.
+#[test]
+fn contains_below_demands_every_row_of_the_range() {
+    let empty = CompressedBitSet::<NodeRowId>::new();
+    assert!(
+        empty.contains_below(0),
+        "an empty range is covered vacuously"
+    );
+    assert!(!empty.contains_below(1));
+
+    let hole = 0x1_0040_u64;
+    let mut set =
+        CompressedBitSet::from_rows((0..0x1_0100).filter(|&row| row != hole).map(NodeRowId::new));
+    assert!(
+        set.contains_below(hole),
+        "the range below the hole is covered"
+    );
+    assert!(
+        !set.contains_below(hole + 1),
+        "the hole breaks coverage at its own row"
+    );
+    assert!(
+        !set.contains_below(0x1_0100),
+        "a row above the hole cannot repair the range below it"
+    );
+
+    set.insert(NodeRowId::new(hole));
+    assert!(
+        set.contains_below(0x1_0100),
+        "filling the hole covers the range"
+    );
+    assert!(
+        !set.contains_below(0x1_0101),
+        "coverage ends at the last admitted row"
+    );
+    assert!(
+        !set.contains_below(u64::from(u32::MAX) + 2),
+        "a range wider than the representable domain is never covered"
+    );
+}
+
 #[test]
 fn removal_reports_whether_the_set_changed() {
     let mut set = CompressedBitSet::from_rows([1, 2].map(EdgeRowId::new));

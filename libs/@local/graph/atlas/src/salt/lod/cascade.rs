@@ -1,6 +1,11 @@
 //! The first-occupant cascade, which gives every point a minimum-zoom bucket.
+//!
+//! [`buckets`] assigns by scanning the grids coarse to fine, one rank-ordered pass per depth.
+//! [`separation_buckets`] computes the same assignment at [`Depth::MAX`] in one pass over the
+//! `(key, rank)` order.
 
-use std::collections::HashSet;
+use core::alloc::Allocator;
+use std::{alloc::Global, collections::HashSet};
 
 use hashql_core::{
     collections::fast_hash_set,
@@ -8,7 +13,10 @@ use hashql_core::{
 };
 
 use super::rank::Ranking;
-use crate::morton::{Depth, MortonKey};
+use crate::{
+    identity::ImportanceRank,
+    morton::{Depth, MortonKey},
+};
 
 /// Assigns every point its bucket.
 ///
@@ -75,6 +83,84 @@ pub(crate) fn buckets<R: Id>(
     }
 
     buckets.into_boxed_slice()
+}
+
+/// Assigns every point its natural bucket by neighbour separation.
+///
+/// The closed form of [`buckets`] at [`Depth::MAX`], over points sorted ascending by
+/// `(key, rank)`: both assign the same bucket to every point. A point's bucket is one past the
+/// deepest grid it shares with any better-ranked point, because that is the first depth at which
+/// its cell holds no better-ranked occupant. The best-ranked point takes [`Depth::MIN`], and a
+/// point sharing its key with a better-ranked point shares every grid and takes [`Depth::MAX`],
+/// the catch-all.
+///
+/// The keys ascend, so the deepest grid a point shares with any better-ranked point is the
+/// deepest it shares with the key-nearest better-ranked point on either side. One
+/// monotonic-stack pass finds both neighbours, and the assignment costs `O(points)` after the
+/// sort that ordered them.
+///
+/// Caller requirement: `points` ascends by `(key, rank)` under the given accessors, and the
+/// ranks are pairwise distinct.
+#[must_use]
+pub(crate) fn separation_buckets_in<T, A: Allocator, S: Allocator>(
+    points: &[T],
+    key: impl Fn(&T) -> MortonKey,
+    rank: impl Fn(&T) -> ImportanceRank,
+    alloc: A,
+    scratch: S,
+) -> Box<[Depth], A> {
+    debug_assert!(
+        points
+            .array_windows::<2>()
+            .all(|[lhs, rhs]| (key(lhs), rank(lhs)) <= (key(rhs), rank(rhs))),
+        "the points must ascend by (key, rank)",
+    );
+
+    let separation = |left: &T, right: &T| key(left).shared_depth(key(right)).saturating_add(1);
+
+    // The stack holds the points whose nearest better-ranked right neighbour is still unseen, ranks
+    // ascending from bottom to top. The point that pops an entry is that neighbour, and
+    // the entry below a pushed point is its nearest better-ranked left neighbour.
+    let mut buckets = Box::new_uninit_slice_in(points.len(), alloc);
+    buckets.write_filled(Depth::MIN);
+    // SAFETY: `buckets` got initialized to `Depth::MIN` above.
+    let mut buckets: Box<[Depth], A> = unsafe { buckets.assume_init() };
+
+    let mut stack = Vec::with_capacity_in(points.len(), scratch);
+
+    for current in 0..points.len() {
+        let current_rank = rank(&points[current]);
+        while let Some(&previous) = stack.last() {
+            if rank(&points[previous]) < current_rank {
+                break;
+            }
+
+            stack.pop();
+
+            let previous_depth: Depth = buckets[previous];
+            buckets[previous] = previous_depth.max(separation(&points[previous], &points[current]));
+        }
+
+        if let Some(&previous) = stack.last() {
+            buckets[current] = separation(&points[previous], &points[current]);
+        }
+
+        stack.push(current);
+    }
+
+    buckets
+}
+
+/// Assigns every point its natural bucket by neighbour separation.
+///
+/// See: [`separation_buckets_in`].
+#[must_use]
+pub(crate) fn separation_buckets<T>(
+    points: &[T],
+    key: impl Fn(&T) -> MortonKey,
+    rank: impl Fn(&T) -> ImportanceRank,
+) -> Box<[Depth]> {
+    separation_buckets_in(points, key, rank, Global, Global)
 }
 
 /// A cell some published prefix fails to cover.

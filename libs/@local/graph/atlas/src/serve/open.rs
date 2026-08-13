@@ -6,6 +6,8 @@
 //! state (the schedule, the wire codec and its encoded row column, the frame extent), and construct
 //! the [`Atlas`] whole - no half-initialized value exists at any point.
 
+use std::sync::OnceLock;
+
 use hashql_core::id::Id;
 
 use super::{
@@ -153,6 +155,7 @@ impl Artifacts {
     /// `u32` edge-row domain.
     fn agree(&self) -> Result<(), OpenAtlasError> {
         let codes = self.morton.count();
+
         if self.points.len() as u64 != codes
             || self.rows.len() as u64 != codes
             || self.ranks.len() as u64 != codes
@@ -166,18 +169,21 @@ impl Artifacts {
                 positions: self.positions_of_row.len() as u64,
             });
         }
+
         if self.adjacency.rows() != codes {
             return Err(OpenAtlasError::Nodes {
                 adjacency: self.adjacency.rows(),
                 codes,
             });
         }
+
         if self.endpoints.len() as u64 != self.adjacency.edges() {
             return Err(OpenAtlasError::Edges {
                 adjacency: self.adjacency.edges(),
                 endpoints: self.endpoints.len() as u64,
             });
         }
+
         if let Some(root_node) = self.quad.nodes().first()
             && u64::from(root_node.points()) != codes
         {
@@ -186,30 +192,35 @@ impl Artifacts {
                 codes,
             });
         }
+
         if self.postings.points() != codes {
             return Err(OpenAtlasError::Points {
                 postings: self.postings.points(),
                 codes,
             });
         }
+
         if self.ontology_ids.len() != self.postings.types() {
             return Err(OpenAtlasError::Types {
                 postings: self.postings.types(),
                 identities: self.ontology_ids.len(),
             });
         }
+
         if self.node_ids.len() != codes {
             return Err(OpenAtlasError::Identities {
                 identities: self.node_ids.len(),
                 codes,
             });
         }
+
         if self.edge_ids.len() != self.adjacency.edges() {
             return Err(OpenAtlasError::EdgeIdentities {
                 identities: self.edge_ids.len(),
                 edges: self.adjacency.edges(),
             });
         }
+
         if u32::try_from(self.adjacency.edges()).is_err() {
             return Err(OpenAtlasError::EdgeUniverse {
                 edges: self.adjacency.edges(),
@@ -326,6 +337,7 @@ impl Atlas {
             node_codec,
             wire_rows,
             bounds,
+            saturated: OnceLock::new(),
         })
     }
 }

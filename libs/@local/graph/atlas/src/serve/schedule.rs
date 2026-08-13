@@ -16,17 +16,20 @@
 //! slot ranges, and only the catch-all tail re-sorts into Morton order, once per offset, on first
 //! read.
 
-use alloc::sync::Arc;
-use core::{cmp::Ordering, ops::Range};
+use alloc::{collections::BinaryHeap, sync::Arc};
+use core::{
+    cmp::{Ordering, Reverse},
+    ops::Range,
+};
 use std::sync::OnceLock;
 
-use hashql_core::id::{Id as _, IdArray, IdSlice, IdVec};
+use hashql_core::id::{Id as _, IdArray, IdSlice};
 
 use super::grid::Grid;
 use crate::{
     identity::{BasePosition, ImportanceRank},
     morton::{Depth, MortonCell, MortonKey},
-    salt::lod::{cascade, rank::Ranking},
+    salt::lod::cascade,
     serve::{Atlas, VisibilityProof, density::CutOffset, visibility::ProofKind},
 };
 
@@ -38,16 +41,6 @@ hashql_core::id::newtype! {
     /// the schedule that assigned it, because two views, or one view under two proofs, share no
     /// slot vocabulary.
     pub struct ScopeSlot(u32)
-}
-
-hashql_core::id::newtype! {
-    /// A visible row's ordinal in one scope's gather order.
-    ///
-    /// The cascade's local row domain, private to one schedule build: ordinals ascend by base
-    /// position over the view. The gather order and the
-    /// slot order are two permutations of the same visible rows, exactly as rows and base
-    /// positions are at corpus level.
-    struct ViewOrdinal(u32)
 }
 
 hashql_core::id::newtype! {
@@ -92,12 +85,18 @@ impl ViewSchedule {
     /// Derives the schedule variant `proof` serves under.
     ///
     /// An operator proof reads the corpus artifacts; any scoped proof - saturated or empty
-    /// included - gets its own cascade, because the serving contract follows the scope
-    /// declaration rather than the visible cardinality.
+    /// included - serves a cascade, because the serving contract follows the scope declaration
+    /// rather than the visible cardinality. A scope whose node mask admits the whole corpus
+    /// reads the generation's shared saturated cascade instead of building one. A cascade is a
+    /// function of the visible node rows alone, so every saturated scope builds identical
+    /// buckets and the sharing changes which allocation answers, never which contract.
     #[must_use]
     pub(crate) fn of(atlas: &Atlas, proof: &VisibilityProof) -> Self {
         match proof.kind() {
             ProofKind::Corpus => Self::Corpus,
+            ProofKind::Scope if proof.nodes_saturated_below(atlas.morton.count()) => {
+                Self::Scope(Arc::clone(atlas.saturated_scope_schedule()))
+            }
             ProofKind::Scope => Self::Scope(Arc::new(ScopeSchedule::of(atlas, proof))),
         }
     }
@@ -223,37 +222,32 @@ impl ScopeSchedule {
             }
         }
 
-        Self::over(rows)
+        // The base order is bucket-major and ascends by (key, rank) inside a bucket, so the
+        // position-ordered gather is one ascending run per corpus bucket. Merging the runs hands
+        // `over` its (key, rank) order without a comparison sort over the view.
+        let runs = atlas.morton.fenceposts().segments().map(|segment| {
+            let start = rows.partition_point(|row| row.position < segment.start);
+            let end = start + rows[start..].partition_point(|row| row.position < segment.end);
+            start..end
+        });
+
+        Self::over(merge_key_order(&rows, &runs))
     }
 
     /// Builds the cascade over exactly the given rows.
     ///
-    /// [`cascade::buckets`], the function behind the corpus schedule at fit time, runs over the
-    /// rows' keys under their restricted rank order, down to [`Depth::MAX`]. Rows co-located at the
+    /// [`cascade::separation_buckets`] assigns each row its natural bucket - the assignment
+    /// [`cascade::buckets`], the function behind the corpus schedule at fit time, computes at
+    /// [`Depth::MAX`] - in one pass over the rows' `(key, rank)` order. Rows co-located at the
     /// complete key width never claim a cell and take the deepest bucket, exactly as the corpus
     /// catch-all takes them. An empty view builds an empty schedule, which delivers nothing and
     /// occupies no cell at any depth.
-    pub(crate) fn over(rows: Vec<ScopeRow>) -> Self {
-        // The cascade claims cells in ascending restricted rank; the gather order is the local
-        // row domain.
-        let rows: IdVec<ViewOrdinal, ScopeRow> = IdVec::from_raw(rows);
-        let keys: IdVec<ViewOrdinal, MortonKey> = rows.iter().map(|row| row.key).collect();
-
-        let mut row_of_rank: IdVec<ImportanceRank, ViewOrdinal> = rows.as_slice().ids().collect();
-        row_of_rank.sort_unstable_by_key(|&local| rows[local].rank);
-
-        let mut rank_of_row =
-            IdVec::<ViewOrdinal, ImportanceRank>::from_elem(ImportanceRank::MIN, rows.len());
-
-        for (rank, &local) in row_of_rank.iter_enumerated() {
-            rank_of_row[local] = rank;
-        }
-        let ranking = Ranking {
-            row_of_rank: row_of_rank.into_boxed_slice(),
-            rank_of_row: rank_of_row.into_boxed_slice(),
-        };
-
-        let buckets = cascade::buckets(keys.as_slice(), &ranking, Depth::MAX);
+    pub(crate) fn over(mut rows: Vec<ScopeRow>) -> Self {
+        // A merged gather arrives already ordered, and the sort degenerates to one verification
+        // pass. The ranks are distinct because the corpus rank column is a permutation and the
+        // view restricts it.
+        rows.sort_unstable_by_key(|row| (row.key, row.rank));
+        let buckets = cascade::separation_buckets(&rows, |row| row.key, |row| row.rank);
 
         // Slot order: bucket-major, ascending key within a bucket, rank breaking exact-key
         // ties. One sorted column is the whole schedule.
@@ -583,6 +577,36 @@ impl ScheduleCut<'_> {
             runs,
         }
     }
+}
+
+/// Merges the gather's per-bucket runs into one `(key, rank)`-ascending column.
+///
+/// Each run must ascend by `(key, rank)` on its own, which the base order guarantees inside one
+/// corpus bucket. The heap holds one head per unexhausted run, so the merge costs
+/// `O(rows · log(runs))`.
+fn merge_key_order(rows: &[ScopeRow], runs: &[Range<usize>]) -> Vec<ScopeRow> {
+    let mut next: Vec<_> = runs.iter().map(|run| run.start).collect();
+    let mut heap: BinaryHeap<_> = BinaryHeap::with_capacity(runs.len());
+
+    for (index, run) in runs.iter().enumerate() {
+        if next[index] < run.end {
+            let row = rows[next[index]];
+            heap.push(Reverse((row.key, row.rank, index)));
+        }
+    }
+
+    let mut merged = Vec::with_capacity(rows.len());
+    while let Some(Reverse((_, _, index))) = heap.pop() {
+        merged.push(rows[next[index]]);
+        next[index] += 1;
+
+        if next[index] < runs[index].end {
+            let row = rows[next[index]];
+            heap.push(Reverse((row.key, row.rank, index)));
+        }
+    }
+
+    merged
 }
 
 /// The gathered positions and the wire head's run vocabulary of one scope delivery.

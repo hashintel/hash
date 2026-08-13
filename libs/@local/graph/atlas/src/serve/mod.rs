@@ -48,9 +48,11 @@
 //! document. Below the [`Atlas`] facade nothing reaches into the whole value: the domain types
 //! borrow exactly the columns they read.
 
+use alloc::sync::Arc;
+use std::sync::OnceLock;
+
 use hashql_core::id::{IdSlice, IdVec};
 
-use self::grid::Grid;
 pub use self::{
     cache::VisibilityLimits, locate::LocateLimits, tile::TileLimits, translate::TranslateLimits,
 };
@@ -71,6 +73,7 @@ pub(crate) use self::{
     visibility::VisibilityProof,
     walk::ViewCensus,
 };
+use self::{grid::Grid, schedule::ScopeSchedule};
 use crate::{
     dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{generation::Generation, morton::read::MortonFile, quad::read::QuadFile},
@@ -235,6 +238,12 @@ pub struct Atlas {
     /// anchors each non-degenerate axis's extremes onto the frame edges and collapses degenerate
     /// axes to the centre, so the extent follows without scanning the column.
     bounds: Option<Bounds2>,
+    /// The cascade every saturated scope serves, built on first use.
+    ///
+    /// A scope schedule is a function of the visible node rows alone, so every scope whose node
+    /// mask admits the whole corpus builds the same cascade. One copy per generation serves them
+    /// all.
+    saturated: OnceLock<Arc<ScopeSchedule>>,
 }
 
 /// The validated column views.
@@ -287,5 +296,15 @@ impl Atlas {
     /// Views the position permutation in row order.
     fn positions_of_row(&self) -> &IdSlice<NodeRowId, BasePosition> {
         self.positions_of_row.view()
+    }
+
+    /// Returns the cascade a saturated scope serves, building it on first use.
+    ///
+    /// Concurrent first callers wait for a single construction rather than duplicating it. The
+    /// build gathers under the full-visibility proof, which admits exactly the rows a saturated
+    /// node mask admits.
+    fn saturated_scope_schedule(&self) -> &Arc<ScopeSchedule> {
+        self.saturated
+            .get_or_init(|| Arc::new(ScopeSchedule::of(self, &VisibilityProof::full_visibility())))
     }
 }

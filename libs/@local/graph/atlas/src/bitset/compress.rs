@@ -77,6 +77,21 @@ impl<T> CompressedBitSet<T> {
     pub(crate) fn is_empty(&self) -> bool {
         self.rows.is_empty()
     }
+
+    /// Returns whether the set admits every row of `[0, n)`.
+    ///
+    /// Rows at or above `n` never count against the answer: a set may admit them and still cover
+    /// the range below. `n = 0` asks for no rows and answers `true`, and a range wider than the
+    /// representable domain answers `false`. The check runs on the set's compressed runs rather
+    /// than its rows, so a covered million-row range costs what a handful of rows cost.
+    #[must_use]
+    pub(crate) fn contains_below(&self, n: u64) -> bool {
+        let Some(last) = n.checked_sub(1) else {
+            return true;
+        };
+
+        u32::try_from(last).is_ok_and(|last| self.rows.contains_range(0..=last))
+    }
 }
 
 impl<T: Id> CompressedBitSet<T> {

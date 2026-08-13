@@ -14,6 +14,7 @@
     reason = "`k` is the delivery-cut offset's name throughout the density contract"
 )]
 
+use alloc::sync::Arc;
 use std::collections::{HashMap, HashSet};
 
 use hashql_core::id::Id as _;
@@ -21,8 +22,8 @@ use hashql_core::id::Id as _;
 use super::{
     Bound, CutOffset, EdgesLimits, FIXTURE_LOD, FULL, HEAD, ROW_IDS, TileCoordinate, TileLimits,
     UntouchedStore, View, children_of, codec, decode_rows, edges_request, entity_string_of,
-    expected_edges_bytes, head_counts, head_global, mask_hiding, open_edge_artifacts, publish,
-    qualifying_columns, request, section, test_codec, wire_columns,
+    expected_edges_bytes, head_counts, head_global, mask_hiding, mask_hiding_rows,
+    open_edge_artifacts, publish, qualifying_columns, request, section, test_codec, wire_columns,
 };
 use crate::{
     identity::{BasePosition, ImportanceRank, NodeRowId},
@@ -890,6 +891,47 @@ async fn an_all_row_scope_serves_the_restricted_contract() {
             );
         }
     }
+}
+
+/// Saturated scopes share one cascade, and a scope hiding any row builds its own.
+///
+/// A scope schedule is a function of the visible node rows alone, so every scope whose node mask
+/// admits the whole corpus builds identical buckets, and one shared allocation answers them all.
+/// The link mask never enters the cascade, so a scope masking link rows over a saturated node
+/// axis shares it too. The overfire is the bug class on the other side. A scope hiding even one
+/// node row must build its own cascade, because the shared one delivers the hidden row.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn saturated_scopes_share_one_cascade() {
+    let (_generation, atlas) = publish("saturated-memo").await;
+
+    let first = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[]));
+    let second = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[]));
+    let (ViewSchedule::Scope(first), ViewSchedule::Scope(second)) = (&first, &second) else {
+        panic!("a saturated mask is a declared scope and serves the scope contract");
+    };
+    assert!(
+        Arc::ptr_eq(first, second),
+        "two saturated scopes read one cascade"
+    );
+
+    let link_masked = ViewSchedule::of(&atlas, &mask_hiding_rows(&atlas, &[], &[0]));
+    let ViewSchedule::Scope(link_masked) = &link_masked else {
+        panic!("a link-masked proof is a declared scope");
+    };
+    assert!(
+        Arc::ptr_eq(first, link_masked),
+        "the link mask never enters the cascade, so a saturated node axis shares it"
+    );
+
+    let masked = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[0]));
+    let ViewSchedule::Scope(masked) = &masked else {
+        panic!("a masked proof is a declared scope");
+    };
+    assert!(
+        !Arc::ptr_eq(first, masked),
+        "a scope hiding a node row builds its own cascade"
+    );
 }
 
 /// Sweeps the whole fixture grid at one offset for

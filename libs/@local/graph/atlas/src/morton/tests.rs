@@ -1,4 +1,4 @@
-use proptest::{prop_assert, prop_assert_eq, property_test};
+use proptest::{prop_assert, prop_assert_eq, prop_assert_ne, property_test};
 
 use super::{Depth, MortonCell, MortonKey};
 
@@ -92,10 +92,36 @@ fn prefixes_index_the_depth_grid_in_key_order() {
     assert_eq!(key.prefix(Depth::MAX), key.to_bits());
 }
 
+#[test]
+fn shared_depth_counts_the_agreed_bit_pairs() {
+    let key = MortonKey::new(0, 0);
+
+    assert_eq!(key.shared_depth(key), Depth::MAX);
+    // y's top bit differs: the keys part at the first subdivision.
+    assert_eq!(key.shared_depth(MortonKey::new(0, 1 << 31)).get(), 0);
+    // x's second bit differs: one agreed bit pair, so one shared subdivision.
+    assert_eq!(key.shared_depth(MortonKey::new(1 << 30, 0)).get(), 1);
+}
+
 /// Interleaving then deinterleaving returns the axes exactly.
 #[property_test]
 fn round_trips_axes(x: u32, y: u32) {
     prop_assert_eq!(MortonKey::new(x, y).coordinates(), [x, y]);
+}
+
+/// The shared depth names the deepest grid whose cells hold both keys.
+#[property_test]
+fn shared_depth_is_the_deepest_shared_cell(left: u64, right: u64) {
+    let left = MortonKey::from_bits(left);
+    let right = MortonKey::from_bits(right);
+    let shared = left.shared_depth(right);
+
+    prop_assert_eq!(left.prefix(shared), right.prefix(shared));
+    if let Some(finer) = Depth::new(shared.get() + 1) {
+        prop_assert_ne!(left.prefix(finer), right.prefix(finer));
+    } else {
+        prop_assert_eq!(left, right);
+    }
 }
 
 /// Every key lies in its own containing cell at every depth.

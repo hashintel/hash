@@ -159,7 +159,7 @@ impl<'scope> View<'scope> {
             atlas.grid,
             entry.proof(),
             *entry.census(),
-            entry.view_schedule(atlas),
+            entry.view_schedule(),
             k,
         )
     }
