@@ -26,6 +26,7 @@
       "inputs": [
         "package.json",
         "turbo.json",
+        "expected-payload.json",
         "scripts/sync-styled-system.mjs",
         "../ds-components/package.json",
         "../ds-components/panda.config.ts",

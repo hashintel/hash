@@ -11,19 +11,40 @@
  * metadata files (0.1.1, 0.2.0 and 0.2.1 on npm all look like that).
  *
  * Panda now writes to a `ds-components`-private `styled-system/` directory and
- * keeps `--clean`, so stale artifacts are still swept. This script copies that
- * directory here, and is careful in two directions:
+ * keeps `--clean`, so stale artifacts are still swept; this script copies that
+ * directory here.
  *
- * - **The source may be emptied mid-copy** by a concurrent `panda codegen
- *   --clean`. The copy is therefore assembled in a temporary sibling directory
- *   and validated against this package's own `exports` map before it is used.
- *   An incomplete copy is retried, and a source that is missing or empty is a
- *   hard failure — never a silently empty payload.
- * - **The destination must never be observed half-populated** by a consumer or
- *   by `npm pack`. It is only ever replaced by `rename(2)`, never written into
- *   in place. When the staged copy is byte-for-byte identical to what is
- *   already on disk — the case during a concurrent publish, since Panda's
- *   output is deterministic — nothing is written at all.
+ * The source is shared mutable state. A concurrent `panda codegen --clean` — from
+ * any sibling package's publish hook, or a developer's `yarn codegen` — empties it
+ * and rewrites ~120 files asynchronously, so any read of it can land
+ * mid-rewrite. Two invariants make that harmless, and both are load-bearing:
+ *
+ * 1. **A tree is only installed if it is complete**, judged against
+ *    `expected-payload.json` — a checked-in list of every file Panda produces
+ *    here. Checking the handful of entry points named in `exports` is *not*
+ *    enough: a mid-generation tree can hold those index files and none of the
+ *    other ~110, and an earlier version of this script would copy exactly that
+ *    over a good payload, reducing it to nine files while still satisfying the
+ *    pack-time verifier. A checked-in expectation is the one authority a racing
+ *    process cannot move, which is why the check is not derived from whatever
+ *    happens to be on disk.
+ *
+ * 2. **The payload directory is never unlinked.** POSIX cannot swap two
+ *    populated directories atomically, so an earlier version renamed the old one
+ *    out of the way first — reopening the very window this package exists to
+ *    close. Instead each file is written to a staging directory outside
+ *    `styled-system/` and moved onto its target with `rename(2)`, which *is*
+ *    atomic, and extra files are pruned last. `styled-system/` therefore always
+ *    exists and always holds a complete set of entry points, whenever a packer
+ *    reads it.
+ *
+ * The common case — a publish, where the payload already matches the source
+ * because Panda's output is deterministic — writes nothing at all.
+ *
+ * If Panda's generated file set legitimately changes, this fails loudly and
+ * `expected-payload.json` has to be regenerated; see this package's README.
+ * That is deliberate: silent drift in what gets published is the failure mode
+ * being designed out.
  *
  * Intentionally dependency-free: this package declares no dependencies and must
  * keep it that way, and this runs under a bare `node` during `prepack`.
@@ -31,26 +52,33 @@
 
 import { randomUUID } from "node:crypto";
 import {
-  cpSync,
   existsSync,
+  mkdirSync,
   readFileSync,
   readdirSync,
   renameSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const sourceDir = resolve(packageDir, "..", "ds-components", "styled-system");
-const destinationDir = join(packageDir, "styled-system");
+const payloadDir = join(packageDir, "styled-system");
 
 const manifest = JSON.parse(
   readFileSync(join(packageDir, "package.json"), "utf8"),
 );
+const expected = JSON.parse(
+  readFileSync(join(packageDir, "expected-payload.json"), "utf8"),
+);
 
-const ATTEMPTS = 3;
+/** @type {string[]} */
+const expectedFiles = [...expected.files].sort();
+
+const ATTEMPTS = 5;
 const RETRY_DELAY_MS = 250;
 
 /** Synchronous sleep — this script must stay dependency-free and single-pass. */
@@ -58,59 +86,33 @@ const sleep = (/** @type {number} */ milliseconds) => {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
 };
 
-const scratchPath = (/** @type {string} */ kind) =>
-  join(
-    packageDir,
-    `styled-system.${kind}-${process.pid}-${randomUUID().slice(0, 8)}`,
-  );
-
 /**
- * Every literal path this package's `exports`/`main`/`types` map points at,
- * relative to `styled-system/`. Used as the completeness check on a staged copy,
- * so the check can never drift from what the package actually promises.
- *
- * @returns {string[]}
- */
-const requiredEntryPoints = () => {
-  /** @type {Set<string>} */
-  const paths = new Set();
-
-  const collect = (/** @type {unknown} */ value) => {
-    if (typeof value === "string") {
-      if (value.startsWith("./styled-system/") && !value.includes("*")) {
-        paths.add(value.slice("./styled-system/".length));
-      }
-      return;
-    }
-    if (value && typeof value === "object") {
-      for (const nested of Object.values(value)) {
-        collect(nested);
-      }
-    }
-  };
-
-  for (const field of ["main", "module", "types", "typings", "browser"]) {
-    collect(manifest[field]);
-  }
-  collect(manifest.exports);
-
-  return [...paths].sort();
-};
-
-/**
- * Relative paths of every file under `directory`, sorted.
+ * Relative paths of every file under `directory`, sorted. `null` if the
+ * directory disappears mid-walk, which a concurrent `--clean` can cause.
  *
  * @param {string} directory
  * @param {string} [prefix]
- * @returns {string[]}
+ * @returns {string[] | null}
  */
 const listFiles = (directory, prefix = "") => {
+  /** @type {import("node:fs").Dirent[]} */
+  let entries;
+  try {
+    entries = readdirSync(directory, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+
   /** @type {string[]} */
   const files = [];
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+  for (const entry of entries) {
     const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
-      files.push(...listFiles(join(directory, entry.name), relativePath));
+      const nested = listFiles(join(directory, entry.name), relativePath);
+      if (nested === null) {
+        return null;
+      }
+      files.push(...nested);
     } else {
       files.push(relativePath);
     }
@@ -119,35 +121,114 @@ const listFiles = (directory, prefix = "") => {
 };
 
 /**
- * True when both directories hold exactly the same files with the same bytes.
+ * Reads a whole directory tree into memory. ~120 files / ~1.8 MB here, so this
+ * is cheap and removes any need to stage a copy on disk just to inspect it.
+ * `null` if the tree could not be read consistently.
  *
- * @param {string} left
- * @param {string} right
+ * @param {string} directory
+ * @returns {Map<string, Buffer> | null}
  */
-const treesAreIdentical = (left, right) => {
-  const leftFiles = listFiles(left);
-  const rightFiles = listFiles(right);
-
-  if (leftFiles.length !== rightFiles.length) {
-    return false;
-  }
-  if (leftFiles.some((file, index) => file !== rightFiles[index])) {
-    return false;
+const readTree = (directory) => {
+  const files = listFiles(directory);
+  if (files === null) {
+    return null;
   }
 
-  return leftFiles.every((file) =>
-    readFileSync(join(left, file)).equals(readFileSync(join(right, file))),
-  );
+  /** @type {Map<string, Buffer>} */
+  const tree = new Map();
+  for (const file of files) {
+    try {
+      tree.set(file, readFileSync(join(directory, file)));
+    } catch {
+      return null;
+    }
+  }
+  return tree;
 };
 
 /**
- * Stages a complete copy of the source in a temporary sibling directory.
- *
- * @returns {{ staged: string } | { failure: string }}
+ * @param {Map<string, Buffer>} left
+ * @param {Map<string, Buffer>} right
  */
-const stageCopy = () => {
-  /** @type {string} */
-  let lastFailure = "the source directory was never readable";
+const treesAreIdentical = (left, right) => {
+  if (left.size !== right.size) {
+    return false;
+  }
+  for (const [path, contents] of left) {
+    const other = right.get(path);
+    if (!other || !other.equals(contents)) {
+      return false;
+    }
+  }
+  return true;
+};
+
+/**
+ * How a tree differs from `expected-payload.json`. An empty result means the
+ * tree is exactly the payload this package is supposed to publish.
+ *
+ * @param {Map<string, Buffer>} tree
+ */
+const completenessProblems = (tree) => {
+  /** @type {string[]} */
+  const problems = [];
+
+  const absent = expectedFiles.filter((path) => !tree.has(path));
+  const empty = expectedFiles.filter((path) => tree.get(path)?.length === 0);
+  const unexpected = [...tree.keys()].filter(
+    (path) => !expectedFiles.includes(path),
+  );
+
+  if (absent.length > 0) {
+    problems.push(
+      `${absent.length} of ${expectedFiles.length} expected file(s) missing, ` +
+        `including ${absent.slice(0, 4).join(", ")}`,
+    );
+  }
+  if (empty.length > 0) {
+    problems.push(`empty file(s): ${empty.slice(0, 4).join(", ")}`);
+  }
+  if (unexpected.length > 0) {
+    problems.push(
+      `${unexpected.length} unexpected file(s), including ` +
+        `${unexpected.slice(0, 4).join(", ")}`,
+    );
+  }
+
+  return problems;
+};
+
+const fail = (/** @type {string[]} */ problems) => {
+  console.error(
+    `\n${manifest.name}: refusing to touch \`styled-system/\` — the generated ` +
+      `source does not match \`expected-payload.json\`.\n`,
+  );
+  for (const problem of problems) {
+    console.error(`  - ${problem}`);
+  }
+  console.error(`\n  source:  ${sourceDir}`);
+  console.error(`  payload: ${payloadDir}\n`);
+  console.error(
+    "Either the source was mid-generation (another `panda codegen` running\n" +
+      "concurrently), in which case retry; or Panda's generated file set really\n" +
+      "changed, in which case regenerate `expected-payload.json` — see this\n" +
+      "package's README. Run `yarn workspace @hashintel/ds-components codegen`\n" +
+      "to regenerate the source.\n",
+  );
+  process.exit(1);
+};
+
+/**
+ * Reads the source until it is both complete and stable: a full match against
+ * the checked-in expectation, confirmed by a second identical read. Completeness
+ * is what prevents a truncated copy; stability additionally rules out reading
+ * during a rewrite that happens to pass through a complete-looking state.
+ *
+ * @returns {Map<string, Buffer>}
+ */
+const readCompleteSource = () => {
+  /** @type {string[]} */
+  let problems = ["the source directory was never readable"];
 
   for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
     if (attempt > 1) {
@@ -155,101 +236,143 @@ const stageCopy = () => {
     }
 
     if (!existsSync(sourceDir) || !statSync(sourceDir).isDirectory()) {
-      lastFailure = "the source directory does not exist";
-      continue;
-    }
-    if (listFiles(sourceDir).length === 0) {
-      lastFailure = "the source directory is empty";
+      problems = ["the source directory does not exist"];
       continue;
     }
 
-    const staged = scratchPath("tmp");
-    try {
-      cpSync(sourceDir, staged, { recursive: true, dereference: true });
-    } catch (error) {
-      rmSync(staged, { force: true, recursive: true });
-      // A concurrent `panda codegen --clean` can empty the source mid-copy.
-      lastFailure = `the copy failed: ${error instanceof Error ? error.message : String(error)}`;
+    const tree = readTree(sourceDir);
+    if (tree === null) {
+      problems = ["the source directory changed while it was being read"];
+      continue;
+    }
+    if (tree.size === 0) {
+      problems = ["the source directory is empty"];
       continue;
     }
 
-    const missing = requiredEntryPoints().filter((entryPoint) => {
-      const absolute = join(staged, entryPoint);
-      return !existsSync(absolute) || statSync(absolute).size === 0;
-    });
-
-    if (missing.length > 0) {
-      rmSync(staged, { force: true, recursive: true });
-      lastFailure = `the copy was incomplete (missing ${missing.join(", ")})`;
+    problems = completenessProblems(tree);
+    if (problems.length > 0) {
       continue;
     }
 
-    return { staged };
+    const again = readTree(sourceDir);
+    if (again === null || !treesAreIdentical(tree, again)) {
+      problems = ["the source directory kept changing between two reads"];
+      continue;
+    }
+
+    return tree;
   }
 
-  return { failure: lastFailure };
+  return fail(problems);
 };
 
 /**
- * Moves the staged copy into place without ever exposing a partial directory.
+ * Installs a tree into an absent payload directory with one atomic rename, so
+ * there is no window in which `styled-system/` exists but is incomplete.
  *
- * @param {string} staged
- * @returns {"created" | "unchanged" | "replaced"}
+ * @param {Map<string, Buffer>} tree
+ * @param {string} stagingDir
  */
-const promote = (staged) => {
-  if (!existsSync(destinationDir)) {
-    // Nothing to displace: a single atomic rename, with no window at all.
-    renameSync(staged, destinationDir);
-    return "created";
+const createPayload = (tree, stagingDir) => {
+  const root = join(stagingDir, "payload");
+
+  for (const [path, contents] of tree) {
+    const target = join(root, path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, contents);
   }
 
-  if (treesAreIdentical(staged, destinationDir)) {
-    // The common case during a concurrent publish. Writing nothing means a
-    // packer reading `styled-system/` cannot be disturbed by this run.
-    rmSync(staged, { force: true, recursive: true });
-    return "unchanged";
-  }
-
-  // POSIX cannot swap two directories atomically, so retire the old one and
-  // move the new one in. The gap is two consecutive `rename(2)` calls, and it
-  // is only ever reached when the generated output has genuinely changed —
-  // never during a publish, where the staged copy is identical.
-  const retired = scratchPath("old");
-  renameSync(destinationDir, retired);
   try {
-    renameSync(staged, destinationDir);
+    renameSync(root, payloadDir);
   } catch (error) {
-    renameSync(retired, destinationDir);
+    // Another process may have created it in the meantime — update in place
+    // rather than clobbering.
+    if (existsSync(payloadDir)) {
+      return updatePayload(tree, stagingDir);
+    }
     throw error;
   }
-  rmSync(retired, { force: true, recursive: true });
-  return "replaced";
+
+  return { written: tree.size, removed: 0 };
 };
 
-const result = stageCopy();
+/**
+ * Updates an existing payload in place. Every file is replaced by an atomic
+ * `rename` and the directory is never unlinked, so no reader can observe
+ * `styled-system/` absent or short of an entry point.
+ *
+ * @param {Map<string, Buffer>} tree
+ * @param {string} stagingDir
+ */
+const updatePayload = (tree, stagingDir) => {
+  let written = 0;
 
-if ("failure" in result) {
-  console.error(
-    `\n${manifest.name}: cannot materialise \`styled-system/\` — ${result.failure}.\n`,
+  for (const [path, contents] of tree) {
+    const target = join(payloadDir, path);
+
+    let existing;
+    try {
+      existing = readFileSync(target);
+    } catch {
+      existing = null;
+    }
+    if (existing?.equals(contents)) {
+      continue;
+    }
+
+    mkdirSync(dirname(target), { recursive: true });
+    // Staged outside `styled-system/` so a concurrent `npm pack` can never see
+    // a temporary file inside the published directory. Same filesystem, so the
+    // rename onto the target is still atomic.
+    const temporary = join(stagingDir, randomUUID().slice(0, 8));
+    writeFileSync(temporary, contents);
+    renameSync(temporary, target);
+    written += 1;
+  }
+
+  // Pruned last: while a stale file lingers the payload is a superset of the
+  // truth, which is safe to read. Removing first could expose a gap.
+  let removed = 0;
+  for (const path of listFiles(payloadDir) ?? []) {
+    if (!tree.has(path)) {
+      rmSync(join(payloadDir, path), { force: true });
+      removed += 1;
+    }
+  }
+
+  return { written, removed };
+};
+
+// ---------------------------------------------------------------------------
+
+const source = readCompleteSource();
+const current = existsSync(payloadDir) ? readTree(payloadDir) : null;
+
+if (current !== null && treesAreIdentical(source, current)) {
+  // The publish path: the payload already matches, so nothing is written, which
+  // is what keeps a concurrent `npm pack` of this package undisturbed.
+  console.log(
+    `${manifest.name}: styled-system/ already up to date (${source.size} files)`,
   );
-  console.error(`  source:      ${sourceDir}`);
-  console.error(`  destination: ${destinationDir}\n`);
-  console.error(
-    "`styled-system/` is generated by `@hashintel/ds-components`' Panda config\n" +
-      "and copied here. Run `yarn workspace @hashintel/ds-components codegen`\n" +
-      "to generate it, then try again.\n",
+} else {
+  const stagingDir = join(
+    packageDir,
+    `styled-system.tmp-${process.pid}-${randomUUID().slice(0, 8)}`,
   );
-  process.exit(1);
-}
+  mkdirSync(stagingDir, { recursive: true });
 
-let outcome;
-try {
-  outcome = promote(result.staged);
-} finally {
-  rmSync(result.staged, { force: true, recursive: true });
-}
+  let result;
+  try {
+    result = existsSync(payloadDir)
+      ? updatePayload(source, stagingDir)
+      : createPayload(source, stagingDir);
+  } finally {
+    rmSync(stagingDir, { force: true, recursive: true });
+  }
 
-const fileCount = listFiles(destinationDir).length;
-console.log(
-  `${manifest.name}: styled-system/ ${outcome} (${fileCount} files) from ${sourceDir}`,
-);
+  console.log(
+    `${manifest.name}: styled-system/ synced (${source.size} files; ` +
+      `${result.written} written, ${result.removed} removed) from ${sourceDir}`,
+  );
+}

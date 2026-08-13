@@ -96,9 +96,96 @@ for (const entry of manifest.files ?? []) {
   }
 }
 
+/**
+ * Whole-tree check.
+ *
+ * The entry-point checks above are necessary but nowhere near sufficient: a
+ * `styled-system/` truncated to just its `index` files satisfies every one of
+ * them, and would pack a tarball that imports cleanly and then fails at the
+ * first token lookup. That is not hypothetical — it is what an earlier revision
+ * of `sync-styled-system.mjs` could install from a mid-generation source, and
+ * this verifier passed it.
+ *
+ * The payload is therefore compared against `expected-payload.json`, a
+ * checked-in list of every file Panda produces here. It deliberately is *not*
+ * derived from what the sync just did: a record written by the same step that
+ * may have truncated the tree cannot detect the truncation.
+ */
+const expected = JSON.parse(
+  readFileSync(join(packageDir, "expected-payload.json"), "utf8"),
+);
+
+const payloadRoot = join(packageDir, expected.directory);
+
+/**
+ * @param {string} directory
+ * @param {string} [prefix]
+ * @returns {string[]}
+ */
+const listFiles = (directory, prefix = "") => {
+  /** @type {string[]} */
+  const found = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      found.push(...listFiles(join(directory, entry.name), relativePath));
+    } else {
+      found.push(relativePath);
+    }
+  }
+  return found;
+};
+
+/** @type {string[]} */
+let present = [];
+try {
+  present = listFiles(payloadRoot);
+} catch {
+  problems.push(`${expected.directory}/ is missing entirely`);
+}
+
+const presentSet = new Set(present);
+
+const absent = expected.files.filter(
+  (/** @type {string} */ path) => !presentSet.has(path),
+);
+if (absent.length > 0) {
+  problems.push(
+    `${absent.length} of ${expected.files.length} expected generated file(s) ` +
+      `are missing from ${expected.directory}/, including ` +
+      `${absent.slice(0, 5).join(", ")}`,
+  );
+}
+
+const emptyFiles = expected.files.filter((/** @type {string} */ path) => {
+  if (!presentSet.has(path)) {
+    return false;
+  }
+  try {
+    return statSync(join(payloadRoot, path)).size === 0;
+  } catch {
+    return true;
+  }
+});
+if (emptyFiles.length > 0) {
+  problems.push(
+    `${emptyFiles.length} generated file(s) are empty, including ` +
+      `${emptyFiles.slice(0, 5).join(", ")}`,
+  );
+}
+
+const unexpected = present.filter((path) => !expected.files.includes(path));
+if (unexpected.length > 0) {
+  problems.push(
+    `${unexpected.length} unexpected file(s) in ${expected.directory}/, ` +
+      `including ${unexpected.slice(0, 5).join(", ")} — either stale output or ` +
+      `\`expected-payload.json\` needs regenerating`,
+  );
+}
+
 if (problems.length > 0) {
   console.error(
-    `\n${manifest.name}: refusing to pack — the generated payload is missing.\n`,
+    `\n${manifest.name}: refusing to pack — the generated payload is incomplete.\n`,
   );
   for (const problem of problems) {
     console.error(`  - ${problem}`);
@@ -111,5 +198,6 @@ if (problems.length > 0) {
 }
 
 console.log(
-  `${manifest.name}: verified ${targets.size} entry-point target(s) present.`,
+  `${manifest.name}: verified ${targets.size} entry-point target(s) and all ` +
+    `${expected.files.length} generated file(s).`,
 );
