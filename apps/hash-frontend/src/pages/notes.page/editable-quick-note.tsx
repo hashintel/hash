@@ -361,6 +361,7 @@ export const EditableQuickNote: FunctionComponent<{
                   </IconButton>
                 ) : (
                   <Link
+                    draggable={false}
                     href={constructPageRelativeUrl({
                       workspaceShortname: authenticatedUser.shortname!,
                       pageEntityUuid: extractEntityUuidFromEntityId(

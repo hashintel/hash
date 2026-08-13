@@ -35,6 +35,7 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
       <Link
         href={href}
         noLinkStyle
+        draggable={false}
         sx={[
           ({ palette, transitions, spacing }) => ({
             display: "flex",

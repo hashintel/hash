@@ -148,6 +148,7 @@ const SidebarItem = ({
           color={itemColor}
           href={item.href}
           level={level}
+          draggable={false}
         >
           {item.label}
         </ItemLink>

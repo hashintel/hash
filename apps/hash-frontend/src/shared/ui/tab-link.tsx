@@ -38,6 +38,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
     value={value}
     onClick={onClick}
     href={href}
+    draggable={false}
     component={Link}
     label={
       <Typography
