@@ -50,7 +50,7 @@ impl Legend {
 
 const _: () = {
     assert!(align_of::<OntologyRowId>() == 1);
-    assert!(offset_of!(Legend, representative) == 0);
+    assert!(offset_of!(Legend, representative_ontology) == 0);
 };
 
 // SAFETY: `repr(C)` with `OntologyRowId` (`Unaligned` + `IntoBytes`) followed by `str` gives
