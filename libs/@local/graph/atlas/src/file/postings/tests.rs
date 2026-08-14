@@ -266,7 +266,10 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&future, &bytes).expect("the scratch file is writable");
     assert_matches!(
         PostingsFile::open(&future),
-        Err(OpenPostingsError::Header(_)),
+        Err(OpenPostingsError::Header(HeaderError::Version {
+            found: 2,
+            expected: 1,
+        })),
     );
 
     let torn = scratch("torn.post");

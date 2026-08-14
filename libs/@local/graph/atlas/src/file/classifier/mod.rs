@@ -157,7 +157,7 @@ pub(crate) struct FileHeader {
     intercepts: [F64<LE>; CLASSES],
 }
 
-header!(FileHeader);
+header!(FileHeader, FileHeaderMagic, Version::V1);
 
 impl FileHeader {
     /// Creates a header for a `D = dimension` model whose applicability evidence holds `distances`

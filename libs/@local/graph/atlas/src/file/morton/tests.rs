@@ -302,7 +302,13 @@ fn open_rejects_foreign_and_torn_bytes() {
     let mut bytes = fixture_bytes(2);
     bytes[8..12].copy_from_slice(&0_u32.to_le_bytes());
     fs::write(&retired, &bytes).expect("the scratch file is writable");
-    assert_matches!(MortonFile::open(&retired), Err(OpenMortonError::Header(_)),);
+    assert_matches!(
+        MortonFile::open(&retired),
+        Err(OpenMortonError::Header(HeaderError::Version {
+            found: 0,
+            expected: 2,
+        })),
+    );
 
     // Decreasing fenceposts parse as a header but fail validation.
     let malformed = scratch("malformed-posts.mrtn");

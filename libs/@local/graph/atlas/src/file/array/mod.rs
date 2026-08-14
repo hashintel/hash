@@ -371,7 +371,7 @@ pub(crate) struct FileHeader {
     pub shape: ArrayShape,
 }
 
-header!(FileHeader);
+header!(FileHeader, FileHeaderMagic, Version::V1);
 
 impl FileHeader {
     /// Creates a header recording this host as the writer architecture.

@@ -328,7 +328,7 @@ pub(crate) struct FileHeader {
     fenceposts: [U64<LE>; POSTS],
 }
 
-header!(FileHeader);
+header!(FileHeader, FileHeaderMagic, Version::V2);
 
 impl FileHeader {
     /// Creates a header for `fenceposts`-segmented codes indexed every `stride` codes.

@@ -260,7 +260,10 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&retired, &bytes).expect("the scratch file is writable");
     assert_matches!(
         QuadFile::open(&retired),
-        Err(OpenQuadError::Header(HeaderError::Invalid)),
+        Err(OpenQuadError::Header(HeaderError::Version {
+            found: 0,
+            expected: 2,
+        })),
     );
 
     // Open rejects a node count colliding with the sentinel before the length equation could demand

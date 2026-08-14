@@ -210,7 +210,10 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&future, &bytes).expect("the scratch file is writable");
     assert_matches!(
         AttractionFile::<NodeRowId, EdgeRowId>::open(&future),
-        Err(OpenAttractionError::Header(_)),
+        Err(OpenAttractionError::Header(HeaderError::Version {
+            found: 3,
+            expected: 2,
+        })),
     );
 
     let torn = scratch("torn.atrc");
@@ -230,7 +233,7 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&unminted_endpoint, &bytes).expect("the scratch file is writable");
     assert_matches!(
         AttractionFile::<NodeRowId, EdgeRowId>::open(&unminted_endpoint),
-        Err(OpenAttractionError::Header(_)),
+        Err(OpenAttractionError::Header(HeaderError::Invalid)),
     );
 
     let unminted_edge = scratch("unminted-edge.atrc");

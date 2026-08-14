@@ -193,7 +193,7 @@ pub(crate) struct FileHeader {
     direct_entries: U64<LE>,
 }
 
-header!(FileHeader);
+header!(FileHeader, FileHeaderMagic, Version::V1);
 
 impl FileHeader {
     /// Creates a header for `types` ontology rows over `points` base positions, with

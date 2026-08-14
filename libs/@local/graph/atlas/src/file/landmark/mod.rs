@@ -147,7 +147,7 @@ pub(crate) struct FileHeader {
     rows: U64<LE>,
 }
 
-header!(FileHeader);
+header!(FileHeader, FileHeaderMagic, Version::V1);
 
 impl FileHeader {
     /// Creates a header for `landmarks` selected out of `rows`.

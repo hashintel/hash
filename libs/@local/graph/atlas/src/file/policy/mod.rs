@@ -169,7 +169,7 @@ pub(crate) struct FileHeader {
     policies: U64<LE>,
 }
 
-header!(FileHeader);
+header!(FileHeader, FileHeaderMagic, Version::V2);
 
 impl FileHeader {
     /// Creates a header for `policies` resolved relations.

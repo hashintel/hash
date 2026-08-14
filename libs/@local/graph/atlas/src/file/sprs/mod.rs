@@ -437,7 +437,7 @@ pub(crate) struct FileHeader {
     nnz: U64<LE>,
 }
 
-header!(FileHeader);
+header!(FileHeader, FileHeaderMagic, Version::V2);
 
 impl FileHeader {
     /// Creates a matrix header from its full geometry.

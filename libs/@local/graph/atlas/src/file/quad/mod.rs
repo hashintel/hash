@@ -366,7 +366,7 @@ pub(crate) struct FileHeader {
     type_ids: U64<LE>,
 }
 
-header!(FileHeader);
+header!(FileHeader, FileHeaderMagic, Version::V2);
 
 impl FileHeader {
     /// Creates a header for `nodes` records over `type_ids` type-id entries.

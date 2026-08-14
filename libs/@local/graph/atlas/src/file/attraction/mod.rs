@@ -448,7 +448,7 @@ pub(crate) struct FileHeader {
     rows: U64<LE>,
 }
 
-header!(FileHeader);
+header!(FileHeader, FileHeaderMagic, Version::V2);
 
 impl FileHeader {
     /// Creates an attraction file header.

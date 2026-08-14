@@ -131,7 +131,13 @@ fn open_rejects_foreign_and_torn_bytes() {
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&3_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
-    assert_matches!(PolicyFile::open(&future), Err(OpenPolicyError::Header(_)),);
+    assert_matches!(
+        PolicyFile::open(&future),
+        Err(OpenPolicyError::Header(HeaderError::Version {
+            found: 3,
+            expected: 2,
+        })),
+    );
 
     let torn = scratch("torn.plcy");
     let mut bytes = fixture_bytes();

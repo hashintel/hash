@@ -209,7 +209,10 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&old_version, &bytes).expect("the scratch file is writable");
     assert_matches!(
         IdentityFile::open(&old_version),
-        Err(OpenIdentityError::Header(_)),
+        Err(OpenIdentityError::Header(HeaderError::Version {
+            found: 0,
+            expected: 2,
+        })),
     );
 
     let alien_kind = scratch("alien-kind.idnt");
@@ -218,7 +221,7 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&alien_kind, &bytes).expect("the scratch file is writable");
     assert_matches!(
         IdentityFile::open(&alien_kind),
-        Err(OpenIdentityError::Header(_)),
+        Err(OpenIdentityError::Header(HeaderError::Invalid)),
     );
 
     let alien_key_kind = scratch("alien-key-kind.idnt");

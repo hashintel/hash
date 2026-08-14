@@ -344,7 +344,7 @@ pub(crate) struct FileHeader {
     payload_bytes: U64<LE>,
 }
 
-header!(FileHeader);
+header!(FileHeader, FileHeaderMagic, Version::V2);
 
 impl FileHeader {
     /// Creates a header for `rows` keys of `key_kind`, an `index_bytes`-byte index, and a

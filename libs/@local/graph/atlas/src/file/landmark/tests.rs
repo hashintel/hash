@@ -159,7 +159,10 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&future, &bytes).expect("the scratch file is writable");
     assert_matches!(
         LandmarkFile::open(&future),
-        Err(OpenLandmarkError::Header(HeaderError::Invalid)),
+        Err(OpenLandmarkError::Header(HeaderError::Version {
+            found: 2,
+            expected: 1,
+        })),
     );
 
     let torn = scratch("torn.lndm");
