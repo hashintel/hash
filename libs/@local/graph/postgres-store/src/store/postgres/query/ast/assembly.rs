@@ -34,7 +34,7 @@ use tokio_postgres::types::ToSql;
 use crate::store::postgres::query::{
     ColumnReference, Expression, FromItem, SelectExpression, SelectStatement, TableName,
     TableReference, Transpile as _,
-    table::{DatabaseColumn, Table},
+    table::{Alias, DatabaseColumn, Table},
 };
 
 /// A `$n` parameter slot, created by binding its value.
@@ -219,10 +219,10 @@ impl<C> Aliased<C> {
     }
 }
 
-impl<C: DatabaseColumn<'static> + Copy> Aliased<C> {
+impl<C: DatabaseColumn<'static>> Aliased<C> {
     /// Returns the vocabulary's column, qualified through the standing name.
     #[must_use]
-    pub fn column(self, column: C) -> Expression {
+    pub fn column(self, column: &C) -> Expression {
         Expression::ColumnReference(ColumnReference {
             correlation: Some(self.reference()),
             name: column.name(),
@@ -282,12 +282,25 @@ impl<C> Correlation<C> {
             alias: None,
         }
     }
+
+    /// Stands the relation under an allocator-issued alias: the `"name_c_d_n"` form.
+    ///
+    /// Derived relations of the same kind in one statement render distinct names when each
+    /// takes its own alias.
+    #[must_use]
+    pub const fn at(self, alias: Alias) -> AliasedCorrelation<C> {
+        AliasedCorrelation {
+            name: self.name,
+            alias,
+            columns: PhantomData,
+        }
+    }
 }
 
-impl<C: DatabaseColumn<'static> + Copy> Correlation<C> {
+impl<C: DatabaseColumn<'static>> Correlation<C> {
     /// Returns the vocabulary's column, qualified through the standing name.
     #[must_use]
-    pub fn column(self, column: C) -> Expression {
+    pub fn column(self, column: &C) -> Expression {
         Expression::ColumnReference(ColumnReference {
             correlation: Some(self.reference()),
             name: column.name(),
@@ -304,6 +317,57 @@ impl<C> From<Correlation<C>> for TableReference<'static> {
 impl<C> From<Correlation<C>> for TableName<'static> {
     fn from(relation: Correlation<C>) -> Self {
         Self::from(relation.name)
+    }
+}
+
+/// A derived relation standing under the compiler's alias vocabulary, created by
+/// [`Correlation::at`].
+///
+/// It keeps the correlation's column vocabulary: other clauses cite the relation through
+/// [`reference`](Self::reference) and its columns through [`column`](Self::column), both
+/// rendering the `"name_c_d_n"` form.
+pub struct AliasedCorrelation<C> {
+    /// The name the derived relation stands under, before the alias suffix.
+    name: &'static str,
+    /// The allocator-issued alias the rendered name carries.
+    alias: Alias,
+    columns: PhantomData<fn() -> C>,
+}
+
+impl<C> AliasedCorrelation<C> {
+    /// Returns the reference other clauses cite the relation by.
+    #[must_use]
+    pub fn reference(&self) -> TableReference<'static> {
+        TableReference {
+            schema: None,
+            name: TableName::from(self.name),
+            alias: Some(self.alias),
+        }
+    }
+}
+
+impl<C: DatabaseColumn<'static>> AliasedCorrelation<C> {
+    /// Returns the vocabulary's column, qualified through the standing name.
+    #[must_use]
+    pub fn column(&self, column: &C) -> Expression {
+        Expression::ColumnReference(ColumnReference {
+            correlation: Some(self.reference()),
+            name: column.name(),
+        })
+    }
+}
+
+impl<C> Clone for AliasedCorrelation<C> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<C> Copy for AliasedCorrelation<C> {}
+
+impl<C> From<AliasedCorrelation<C>> for TableReference<'static> {
+    fn from(relation: AliasedCorrelation<C>) -> Self {
+        relation.reference()
     }
 }
 
@@ -336,8 +400,8 @@ mod tests {
 
         let mut select = SelectList::default();
 
-        let first = select.output(META.column(EntityTemporalMetadata::WebId));
-        let second = select.output(META.column(EntityTemporalMetadata::EntityUuid));
+        let first = select.output(META.column(&EntityTemporalMetadata::WebId));
+        let second = select.output(META.column(&EntityTemporalMetadata::EntityUuid));
 
         assert_eq!(first, 0);
         assert_eq!(second, 1);
@@ -363,15 +427,15 @@ mod tests {
 
         assert_eq!(META.reference().transpile_to_string(), "\"meta\"");
         assert_eq!(
-            META.column(EntityTemporalMetadata::TransactionTime)
+            META.column(&EntityTemporalMetadata::TransactionTime)
                 .transpile_to_string(),
             "\"meta\".\"transaction_time\""
         );
 
-        // `META.column(EntityEmbeddings::WebId)` is the compile error the type parameter buys.
+        // `META.column(&EntityEmbeddings::WebId)` is the compile error the type parameter buys.
         assert_eq!(
             EMBEDDING
-                .column(EntityEmbeddings::WebId)
+                .column(&EntityEmbeddings::WebId)
                 .transpile_to_string(),
             "\"embedding\".\"web_id\""
         );

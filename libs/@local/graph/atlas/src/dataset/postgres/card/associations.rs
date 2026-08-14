@@ -265,13 +265,13 @@ fn current_types(transaction_point: Placeholder) -> SelectStatement {
     const META: Aliased<OntologyTemporalMetadata> =
         Aliased::of(Table::OntologyTemporalMetadata, "meta");
 
-    let schema = || TYPES.column(EntityTypes::Schema);
+    let schema = || TYPES.column(&EntityTypes::Schema);
 
     SelectStatement::builder()
         .distinct({
             // SELECT DISTINCT ON (ids.base_url): with the version-descending ordering below,
             // each base id keeps its newest current version.
-            vec![IDS.column(OntologyIds::BaseUrl)]
+            vec![IDS.column(&OntologyIds::BaseUrl)]
         })
         .selects(vec![
             // SELECT
@@ -282,11 +282,11 @@ fn current_types(transaction_point: Placeholder) -> SelectStatement {
             //     types.schema ->> 'description' AS description,
             //     types.closed_schema -> 'links' AS links
             SelectExpression::aliased(
-                IDS.column(OntologyIds::BaseUrl),
+                IDS.column(&OntologyIds::BaseUrl),
                 CurrentType::BaseUrl.name().into_identifier(),
             ),
             SelectExpression::aliased(
-                TYPES.column(EntityTypes::OntologyId),
+                TYPES.column(&EntityTypes::OntologyId),
                 CurrentType::OntologyId.name().into_identifier(),
             ),
             SelectExpression::aliased(
@@ -302,7 +302,7 @@ fn current_types(transaction_point: Placeholder) -> SelectStatement {
                 CurrentType::Description.name().into_identifier(),
             ),
             SelectExpression::aliased(
-                json_field(TYPES.column(EntityTypes::ClosedSchema), LINKS_KEY),
+                json_field(TYPES.column(&EntityTypes::ClosedSchema), LINKS_KEY),
                 CurrentType::Links.name().into_identifier(),
             ),
         ])
@@ -317,16 +317,16 @@ fn current_types(transaction_point: Placeholder) -> SelectStatement {
                 .inner_join_on(
                     IDS.from_item(),
                     vec![
-                        IDS.column(OntologyIds::OntologyId)
-                            .equal(TYPES.column(EntityTypes::OntologyId)),
+                        IDS.column(&OntologyIds::OntologyId)
+                            .equal(TYPES.column(&EntityTypes::OntologyId)),
                     ],
                 )
                 .inner_join_on(
                     META.from_item(),
                     vec![
-                        META.column(OntologyTemporalMetadata::OntologyId)
-                            .equal(TYPES.column(EntityTypes::OntologyId)),
-                        META.column(OntologyTemporalMetadata::TransactionTime)
+                        META.column(&OntologyTemporalMetadata::OntologyId)
+                            .equal(TYPES.column(&EntityTypes::OntologyId)),
+                        META.column(&OntologyTemporalMetadata::TransactionTime)
                             .time_interval_contains_timestamp(transaction_point),
                     ],
                 )
@@ -334,8 +334,12 @@ fn current_types(transaction_point: Placeholder) -> SelectStatement {
         .order_by_expression({
             // ORDER BY ids.base_url, ids.version DESC
             OrderByExpression::default()
-                .with(IDS.column(OntologyIds::BaseUrl), Ordering::Ascending, None)
-                .with(IDS.column(OntologyIds::Version), Ordering::Descending, None)
+                .with(IDS.column(&OntologyIds::BaseUrl), Ordering::Ascending, None)
+                .with(
+                    IDS.column(&OntologyIds::Version),
+                    Ordering::Descending,
+                    None,
+                )
         })
         .build()
 }
@@ -347,9 +351,9 @@ fn relations(types: Placeholder) -> SelectStatement {
     SelectStatement::builder()
         .selects(vec![
             // SELECT mapping.ordinality, ids.base_url AS base_url
-            SelectExpression::new(MAPPING.column(Mapping::Ordinality)),
+            SelectExpression::new(MAPPING.column(&Mapping::Ordinality)),
             SelectExpression::aliased(
-                IDS.column(OntologyIds::BaseUrl),
+                IDS.column(&OntologyIds::BaseUrl),
                 Relation::BaseUrl.name().into_identifier(),
             ),
         ])
@@ -359,8 +363,8 @@ fn relations(types: Placeholder) -> SelectStatement {
             type_mapping(types).inner_join_on(
                 IDS.from_item(),
                 vec![
-                    IDS.column(OntologyIds::OntologyId)
-                        .equal(MAPPING.column(Mapping::OntologyId)),
+                    IDS.column(&OntologyIds::OntologyId)
+                        .equal(MAPPING.column(&Mapping::OntologyId)),
                 ],
             )
         })
@@ -380,10 +384,10 @@ fn matched(version_suffix: Placeholder) -> SelectStatement {
     // substring(constraint_entry.key FROM char_length(relations.base_url) + <offset>)
     let key_remainder = |offset: u32| {
         Expression::from(Function::Substring {
-            string: Box::new(CONSTRAINT_ENTRY.column(ConstraintEntry::Key)),
+            string: Box::new(CONSTRAINT_ENTRY.column(&ConstraintEntry::Key)),
             start: Box::new(
                 Expression::from(Function::CharLength(Box::new(
-                    RELATIONS.column(Relation::BaseUrl),
+                    RELATIONS.column(&Relation::BaseUrl),
                 )))
                 .add(Constant::U32(offset)),
             ),
@@ -394,8 +398,8 @@ fn matched(version_suffix: Placeholder) -> SelectStatement {
         .distinct({
             // SELECT DISTINCT ON (relations.ordinality, source.base_url)
             vec![
-                RELATIONS.column(Relation::Ordinality),
-                SOURCE.column(CurrentType::BaseUrl),
+                RELATIONS.column(&Relation::Ordinality),
+                SOURCE.column(&CurrentType::BaseUrl),
             ]
         })
         .selects(vec![
@@ -409,22 +413,22 @@ fn matched(version_suffix: Placeholder) -> SelectStatement {
             //     constraint_entry.value -> 'items' -> 'oneOf' AS one_of,
             //     (constraint_entry.value ->> 'minItems')::bigint AS min_items,
             //     (constraint_entry.value ->> 'maxItems')::bigint AS max_items
-            SelectExpression::new(RELATIONS.column(Relation::Ordinality)),
-            SelectExpression::new(SOURCE.column(CurrentType::BaseUrl)),
-            SelectExpression::new(SOURCE.column(CurrentType::OntologyId)),
-            SelectExpression::new(SOURCE.column(CurrentType::VersionedUrl)),
-            SelectExpression::new(SOURCE.column(CurrentType::Title)),
-            SelectExpression::new(SOURCE.column(CurrentType::Description)),
+            SelectExpression::new(RELATIONS.column(&Relation::Ordinality)),
+            SelectExpression::new(SOURCE.column(&CurrentType::BaseUrl)),
+            SelectExpression::new(SOURCE.column(&CurrentType::OntologyId)),
+            SelectExpression::new(SOURCE.column(&CurrentType::VersionedUrl)),
+            SelectExpression::new(SOURCE.column(&CurrentType::Title)),
+            SelectExpression::new(SOURCE.column(&CurrentType::Description)),
             SelectExpression::aliased(
                 json_field(
-                    json_field(CONSTRAINT_ENTRY.column(ConstraintEntry::Value), ITEMS_KEY),
+                    json_field(CONSTRAINT_ENTRY.column(&ConstraintEntry::Value), ITEMS_KEY),
                     ONE_OF_KEY,
                 ),
                 Matched::OneOf.name().into_identifier(),
             ),
             SelectExpression::aliased(
                 json_text(
-                    CONSTRAINT_ENTRY.column(ConstraintEntry::Value),
+                    CONSTRAINT_ENTRY.column(&ConstraintEntry::Value),
                     MIN_ITEMS_KEY,
                 )
                 .grouped()
@@ -433,7 +437,7 @@ fn matched(version_suffix: Placeholder) -> SelectStatement {
             ),
             SelectExpression::aliased(
                 json_text(
-                    CONSTRAINT_ENTRY.column(ConstraintEntry::Value),
+                    CONSTRAINT_ENTRY.column(&ConstraintEntry::Value),
                     MAX_ITEMS_KEY,
                 )
                 .grouped()
@@ -452,7 +456,7 @@ fn matched(version_suffix: Placeholder) -> SelectStatement {
                 .build()
                 .cross_join(
                     FromItem::function(Function::JsonEach(Box::new(
-                        SOURCE.column(CurrentType::Links),
+                        SOURCE.column(&CurrentType::Links),
                     )))
                     .lateral(true)
                     .alias(CONSTRAINT_ENTRY)
@@ -464,8 +468,8 @@ fn matched(version_suffix: Placeholder) -> SelectStatement {
                 .join(JoinType::Inner, FromItem::table(RELATIONS))
                 .on(vec![
                     CONSTRAINT_ENTRY
-                        .column(ConstraintEntry::Key)
-                        .starts_with(RELATIONS.column(Relation::BaseUrl)),
+                        .column(&ConstraintEntry::Key)
+                        .starts_with(RELATIONS.column(&Relation::BaseUrl)),
                     key_remainder(1).regex_match(version_suffix),
                 ])
                 .build(),
@@ -478,12 +482,12 @@ fn matched(version_suffix: Placeholder) -> SelectStatement {
             // characters.
             OrderByExpression::default()
                 .with(
-                    RELATIONS.column(Relation::Ordinality),
+                    RELATIONS.column(&Relation::Ordinality),
                     Ordering::Ascending,
                     None,
                 )
                 .with(
-                    SOURCE.column(CurrentType::BaseUrl),
+                    SOURCE.column(&CurrentType::BaseUrl),
                     Ordering::Ascending,
                     None,
                 )
@@ -505,7 +509,7 @@ fn targets(trailing_version_suffix: Placeholder, version_erasure: Placeholder) -
     // regexp_replace(reference.value ->> '$ref', <trailing version suffix>, '')
     let reference_base = || {
         Expression::from(Function::RegexpReplace {
-            string: Box::new(json_text(ELEMENTS.column(ReferenceValue::Value), REF_KEY)),
+            string: Box::new(json_text(ELEMENTS.column(&ReferenceValue::Value), REF_KEY)),
             pattern: Box::new(trailing_version_suffix.into()),
             replacement: Box::new(version_erasure.into()),
         })
@@ -525,7 +529,7 @@ fn targets(trailing_version_suffix: Placeholder, version_erasure: Placeholder) -
         .from(
             // FROM jsonb_array_elements(matched.one_of) AS reference(value)
             FromItem::function(Function::JsonArrayElements(Box::new(
-                MATCHED.column(Matched::OneOf),
+                MATCHED.column(&Matched::OneOf),
             )))
             .alias(ELEMENTS)
             .column_aliases(vec![ReferenceValue::Value.name()])
@@ -537,9 +541,9 @@ fn targets(trailing_version_suffix: Placeholder, version_erasure: Placeholder) -
     let aggregated = |column: CurrentType, alias: Targets| {
         SelectExpression::aliased(
             Function::ArrayAgg {
-                expression: Box::new(TARGET.column(column)),
+                expression: Box::new(TARGET.column(&column)),
                 order_by: OrderByExpression::default().with(
-                    TARGET.column(CurrentType::BaseUrl),
+                    TARGET.column(&CurrentType::BaseUrl),
                     Ordering::Ascending,
                     None,
                 ),
@@ -572,8 +576,8 @@ fn targets(trailing_version_suffix: Placeholder, version_erasure: Placeholder) -
                     TARGET.from_item(),
                     vec![
                         TARGET
-                            .column(CurrentType::BaseUrl)
-                            .equal(REFERENCE.column(ReferenceBase::RefBaseUrl)),
+                            .column(&CurrentType::BaseUrl)
+                            .equal(REFERENCE.column(&ReferenceBase::RefBaseUrl)),
                     ],
                 )
         })
@@ -618,19 +622,19 @@ fn association_statement<'params>(
     // SELECT matched.<the source and constraint columns>, targets.<the aggregated targets>
     let mut select = SelectList::default();
     let columns = AssociationColumns {
-        ordinality: select.output(MATCHED.column(Matched::Ordinality)),
-        base_url: select.output(MATCHED.column(Matched::BaseUrl)),
-        versioned_url: select.output(MATCHED.column(Matched::VersionedUrl)),
-        ontology_id: select.output(MATCHED.column(Matched::OntologyId)),
-        title: select.output(MATCHED.column(Matched::Title)),
-        description: select.output(MATCHED.column(Matched::Description)),
-        min_items: select.output(MATCHED.column(Matched::MinItems)),
-        max_items: select.output(MATCHED.column(Matched::MaxItems)),
-        target_titles: select.output(TARGETS.column(Targets::Titles)),
-        target_descriptions: select.output(TARGETS.column(Targets::Descriptions)),
-        target_base_urls: select.output(TARGETS.column(Targets::BaseUrls)),
-        target_versioned_urls: select.output(TARGETS.column(Targets::VersionedUrls)),
-        target_ontology_ids: select.output(TARGETS.column(Targets::OntologyIds)),
+        ordinality: select.output(MATCHED.column(&Matched::Ordinality)),
+        base_url: select.output(MATCHED.column(&Matched::BaseUrl)),
+        versioned_url: select.output(MATCHED.column(&Matched::VersionedUrl)),
+        ontology_id: select.output(MATCHED.column(&Matched::OntologyId)),
+        title: select.output(MATCHED.column(&Matched::Title)),
+        description: select.output(MATCHED.column(&Matched::Description)),
+        min_items: select.output(MATCHED.column(&Matched::MinItems)),
+        max_items: select.output(MATCHED.column(&Matched::MaxItems)),
+        target_titles: select.output(TARGETS.column(&Targets::Titles)),
+        target_descriptions: select.output(TARGETS.column(&Targets::Descriptions)),
+        target_base_urls: select.output(TARGETS.column(&Targets::BaseUrls)),
+        target_versioned_urls: select.output(TARGETS.column(&Targets::VersionedUrls)),
+        target_ontology_ids: select.output(TARGETS.column(&Targets::OntologyIds)),
     };
 
     let statement = SelectStatement::builder()
@@ -658,11 +662,11 @@ fn association_statement<'params>(
             // ORDER BY matched.ordinality, matched.base_url
             OrderByExpression::default()
                 .with(
-                    MATCHED.column(Matched::Ordinality),
+                    MATCHED.column(&Matched::Ordinality),
                     Ordering::Ascending,
                     None,
                 )
-                .with(MATCHED.column(Matched::BaseUrl), Ordering::Ascending, None)
+                .with(MATCHED.column(&Matched::BaseUrl), Ordering::Ascending, None)
         })
         .build();
 

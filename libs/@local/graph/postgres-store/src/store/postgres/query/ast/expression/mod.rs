@@ -1125,7 +1125,7 @@ mod tests {
                     convert: None,
                 },
             )]),
-            r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
+            r#""data_types_0_1_0"."schema"->>'$id' = $1"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
 
@@ -1174,7 +1174,7 @@ mod tests {
                     convert: None,
                 },
             )]),
-            r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
+            r#""data_types_0_1_0"."schema"->>'$id' = $1"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
 
@@ -1290,7 +1290,7 @@ mod tests {
                     path: DataTypeQueryPath::Title,
                 },
             )]),
-            r#"("data_types_0_1_0"."schema"->>'description' = "data_types_0_1_0"."schema"->>'title')"#,
+            r#""data_types_0_1_0"."schema"->>'description' = "data_types_0_1_0"."schema"->>'title'"#,
             &[],
         );
     }

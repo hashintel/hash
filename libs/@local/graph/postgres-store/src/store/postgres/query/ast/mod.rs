@@ -9,7 +9,9 @@ mod statement;
 mod table_reference;
 
 pub use self::{
-    assembly::{Aliased, Binder, BoundStatement, Correlation, Placeholder, SelectList},
+    assembly::{
+        Aliased, AliasedCorrelation, Binder, BoundStatement, Correlation, Placeholder, SelectList,
+    },
     clause::{
         FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
         FromItemTableBuilder, GroupByExpression, JoinType, OrderByExpression, SelectExpression,

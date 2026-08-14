@@ -154,8 +154,8 @@ fn relations(types: Placeholder, link_root: Placeholder) -> SelectStatement {
     SelectStatement::builder()
         .selects(vec![
             // SELECT mapping.ordinality, mapping.ontology_id
-            SelectExpression::new(MAPPING.column(Mapping::Ordinality)),
-            SelectExpression::new(MAPPING.column(Mapping::OntologyId)),
+            SelectExpression::new(MAPPING.column(&Mapping::Ordinality)),
+            SelectExpression::new(MAPPING.column(&Mapping::OntologyId)),
         ])
         .from({
             // FROM unnest(<types>) WITH ORDINALITY AS mapping(ontology_id, ordinality)
@@ -173,17 +173,17 @@ fn relations(types: Placeholder, link_root: Placeholder) -> SelectStatement {
                     .build(),
                     vec![
                         INHERITS
-                            .column(EntityTypeInheritsFrom::SourceEntityTypeOntologyId)
-                            .equal(MAPPING.column(Mapping::OntologyId)),
+                            .column(&EntityTypeInheritsFrom::SourceEntityTypeOntologyId)
+                            .equal(MAPPING.column(&Mapping::OntologyId)),
                     ],
                 )
                 .inner_join_on(
                     ROOT.from_item(),
                     vec![
-                        ROOT.column(OntologyIds::OntologyId).equal(
-                            INHERITS.column(EntityTypeInheritsFrom::TargetEntityTypeOntologyId),
+                        ROOT.column(&OntologyIds::OntologyId).equal(
+                            INHERITS.column(&EntityTypeInheritsFrom::TargetEntityTypeOntologyId),
                         ),
-                        ROOT.column(OntologyIds::BaseUrl).equal(link_root),
+                        ROOT.column(&OntologyIds::BaseUrl).equal(link_root),
                     ],
                 )
         })
@@ -200,8 +200,8 @@ fn instances(axes: Axes) -> SelectStatement {
     // temporal.entity_edition_id = is_of_type.entity_edition_id AND <currency conditions>
     let mut instance_gates = vec![
         TEMPORAL
-            .column(EntityTemporalMetadata::EditionId)
-            .equal(IS_OF_TYPE.column(EntityIsOfType::EntityEditionId)),
+            .column(&EntityTemporalMetadata::EditionId)
+            .equal(IS_OF_TYPE.column(&EntityIsOfType::EntityEditionId)),
     ];
     instance_gates.extend(time_axis_conjunction(TEMPORAL, axes));
 
@@ -212,17 +212,17 @@ fn instances(axes: Axes) -> SelectStatement {
             //     relations.ontology_id AS relation_id,
             //     temporal.web_id AS web_id,
             //     temporal.entity_uuid AS entity_uuid
-            SelectExpression::new(RELATIONS.column(Mapping::Ordinality)),
+            SelectExpression::new(RELATIONS.column(&Mapping::Ordinality)),
             SelectExpression::aliased(
-                RELATIONS.column(Mapping::OntologyId),
+                RELATIONS.column(&Mapping::OntologyId),
                 Example::RelationId.name().into_identifier(),
             ),
             SelectExpression::aliased(
-                TEMPORAL.column(EntityTemporalMetadata::WebId),
+                TEMPORAL.column(&EntityTemporalMetadata::WebId),
                 Example::WebId.name().into_identifier(),
             ),
             SelectExpression::aliased(
-                TEMPORAL.column(EntityTemporalMetadata::EntityUuid),
+                TEMPORAL.column(&EntityTemporalMetadata::EntityUuid),
                 Example::EntityUuid.name().into_identifier(),
             ),
         ])
@@ -243,10 +243,10 @@ fn instances(axes: Axes) -> SelectStatement {
                     IS_OF_TYPE.from_item(),
                     vec![
                         IS_OF_TYPE
-                            .column(EntityIsOfType::EntityTypeOntologyId)
-                            .equal(RELATIONS.column(Mapping::OntologyId)),
+                            .column(&EntityIsOfType::EntityTypeOntologyId)
+                            .equal(RELATIONS.column(&Mapping::OntologyId)),
                         IS_OF_TYPE
-                            .column(EntityIsOfType::InheritanceDepth)
+                            .column(&EntityIsOfType::InheritanceDepth)
                             .equal(Constant::U32(0)),
                     ],
                 )
@@ -255,7 +255,7 @@ fn instances(axes: Axes) -> SelectStatement {
                     EDITION.from_item(),
                     edition_conjunction(
                         EDITION,
-                        IS_OF_TYPE.column(EntityIsOfType::EntityEditionId),
+                        IS_OF_TYPE.column(&EntityIsOfType::EntityEditionId),
                     ),
                 )
         })
@@ -272,10 +272,7 @@ const TARGET_CACHE: Aliased<EntityEditionCache> =
 
 /// The edition cache's first display label: `(<cache>.labels)[1]`.
 fn first_label(cache: Aliased<EntityEditionCache>) -> Expression {
-    Expression::ArrayElement {
-        expr: Box::new(cache.column(EntityEditionCache::Labels)),
-        index: 1,
-    }
+    cache.column(&EntityEditionCache::Labels).array_element(1)
 }
 
 /// Builds the outputs of one raw example row.
@@ -287,9 +284,9 @@ fn raw_example_outputs(
     // the slice's first element is the first direct type, and NULL when the edition lists none.
     let direct_type = Expression::ArrayElement {
         expr: Box::new(Expression::ArraySlice {
-            expr: Box::new(SOURCE_CACHE.column(EntityEditionCache::BaseUrls)),
+            expr: Box::new(SOURCE_CACHE.column(&EntityEditionCache::BaseUrls)),
             lower: Box::new(Constant::U32(1).into()),
-            upper: Box::new(SOURCE_CACHE.column(EntityEditionCache::DirectTypes)),
+            upper: Box::new(SOURCE_CACHE.column(&EntityEditionCache::DirectTypes)),
         }),
         index: 1,
     };
@@ -310,24 +307,24 @@ fn raw_example_outputs(
         //         AS source_direct_type,
         //     source_cache.base_urls AS source_type_closure,
         //     md5(concat_ws(<separator>, the instance and endpoint identities)) AS stable_hash
-        SelectExpression::new(LINKS.column(Example::Ordinality)),
-        SelectExpression::new(LINKS.column(Example::RelationId)),
-        SelectExpression::new(LINKS.column(Example::WebId)),
-        SelectExpression::new(LINKS.column(Example::EntityUuid)),
+        SelectExpression::new(LINKS.column(&Example::Ordinality)),
+        SelectExpression::new(LINKS.column(&Example::RelationId)),
+        SelectExpression::new(LINKS.column(&Example::WebId)),
+        SelectExpression::new(LINKS.column(&Example::EntityUuid)),
         SelectExpression::aliased(
-            LEFT_EDGE.column(EntityEdge::TargetWebId),
+            LEFT_EDGE.column(&EntityEdge::TargetWebId),
             Example::SourceWebId.name().into_identifier(),
         ),
         SelectExpression::aliased(
-            LEFT_EDGE.column(EntityEdge::TargetEntityUuid),
+            LEFT_EDGE.column(&EntityEdge::TargetEntityUuid),
             Example::SourceEntityUuid.name().into_identifier(),
         ),
         SelectExpression::aliased(
-            RIGHT_EDGE.column(EntityEdge::TargetWebId),
+            RIGHT_EDGE.column(&EntityEdge::TargetWebId),
             Example::TargetWebId.name().into_identifier(),
         ),
         SelectExpression::aliased(
-            RIGHT_EDGE.column(EntityEdge::TargetEntityUuid),
+            RIGHT_EDGE.column(&EntityEdge::TargetEntityUuid),
             Example::TargetEntityUuid.name().into_identifier(),
         ),
         SelectExpression::aliased(
@@ -343,7 +340,7 @@ fn raw_example_outputs(
             Example::SourceDirectType.name().into_identifier(),
         ),
         SelectExpression::aliased(
-            SOURCE_CACHE.column(EntityEditionCache::BaseUrls),
+            SOURCE_CACHE.column(&EntityEditionCache::BaseUrls),
             Example::SourceTypeClosure.name().into_identifier(),
         ),
         SelectExpression::aliased(
@@ -351,13 +348,13 @@ fn raw_example_outputs(
                 Function::ConcatWs {
                     separator: Box::new(field_separator.into()),
                     expressions: vec![
-                        LINKS.column(Example::RelationId),
-                        LINKS.column(Example::WebId),
-                        LINKS.column(Example::EntityUuid),
-                        LEFT_EDGE.column(EntityEdge::TargetWebId),
-                        LEFT_EDGE.column(EntityEdge::TargetEntityUuid),
-                        RIGHT_EDGE.column(EntityEdge::TargetWebId),
-                        RIGHT_EDGE.column(EntityEdge::TargetEntityUuid),
+                        LINKS.column(&Example::RelationId),
+                        LINKS.column(&Example::WebId),
+                        LINKS.column(&Example::EntityUuid),
+                        LEFT_EDGE.column(&EntityEdge::TargetWebId),
+                        LEFT_EDGE.column(&EntityEdge::TargetEntityUuid),
+                        RIGHT_EDGE.column(&EntityEdge::TargetWebId),
+                        RIGHT_EDGE.column(&EntityEdge::TargetEntityUuid),
                     ],
                 }
                 .into(),
@@ -385,12 +382,12 @@ fn raw_examples(
     // <edge>.source names the link instance, with the wanted kind, outgoing
     let attachment_join = |edge: Aliased<EntityEdge>, kind: Placeholder| {
         vec![
-            edge.column(EntityEdge::SourceWebId)
-                .equal(LINKS.column(Example::WebId)),
-            edge.column(EntityEdge::SourceEntityUuid)
-                .equal(LINKS.column(Example::EntityUuid)),
-            edge.column(EntityEdge::Kind).equal(kind),
-            edge.column(EntityEdge::Direction)
+            edge.column(&EntityEdge::SourceWebId)
+                .equal(LINKS.column(&Example::WebId)),
+            edge.column(&EntityEdge::SourceEntityUuid)
+                .equal(LINKS.column(&Example::EntityUuid)),
+            edge.column(&EntityEdge::Kind).equal(kind),
+            edge.column(&EntityEdge::Direction)
                 .equal(attachments.outgoing),
         ]
     };
@@ -432,8 +429,8 @@ fn raw_examples(
                     current_identity_join(
                         SOURCE_META,
                         axes,
-                        LEFT_EDGE.column(EntityEdge::TargetWebId),
-                        LEFT_EDGE.column(EntityEdge::TargetEntityUuid),
+                        LEFT_EDGE.column(&EntityEdge::TargetWebId),
+                        LEFT_EDGE.column(&EntityEdge::TargetEntityUuid),
                     ),
                 )
                 .inner_join_on(
@@ -441,24 +438,24 @@ fn raw_examples(
                     current_identity_join(
                         TARGET_META,
                         axes,
-                        RIGHT_EDGE.column(EntityEdge::TargetWebId),
-                        RIGHT_EDGE.column(EntityEdge::TargetEntityUuid),
+                        RIGHT_EDGE.column(&EntityEdge::TargetWebId),
+                        RIGHT_EDGE.column(&EntityEdge::TargetEntityUuid),
                     ),
                 )
                 .inner_join_on(
                     SOURCE_CACHE.from_item(),
                     vec![
                         SOURCE_CACHE
-                            .column(EntityEditionCache::EntityEditionId)
-                            .equal(SOURCE_META.column(EntityTemporalMetadata::EditionId)),
+                            .column(&EntityEditionCache::EntityEditionId)
+                            .equal(SOURCE_META.column(&EntityTemporalMetadata::EditionId)),
                     ],
                 )
                 .inner_join_on(
                     TARGET_CACHE.from_item(),
                     vec![
                         TARGET_CACHE
-                            .column(EntityEditionCache::EntityEditionId)
-                            .equal(TARGET_META.column(EntityTemporalMetadata::EditionId)),
+                            .column(&EntityEditionCache::EntityEditionId)
+                            .equal(TARGET_META.column(&EntityTemporalMetadata::EditionId)),
                     ],
                 )
         })
@@ -476,9 +473,9 @@ fn scored_examples() -> SelectStatement {
         SelectExpression::aliased(
             Expression::Window(
                 Box::new(Function::Count(None).into()),
-                WindowStatement::partition_by(RAW_EXAMPLES.column(Example::Ordinality))
-                    .then_partition_by(RAW_EXAMPLES.column(web_id))
-                    .then_partition_by(RAW_EXAMPLES.column(entity_uuid)),
+                WindowStatement::partition_by(RAW_EXAMPLES.column(&Example::Ordinality))
+                    .then_partition_by(RAW_EXAMPLES.column(&web_id))
+                    .then_partition_by(RAW_EXAMPLES.column(&entity_uuid)),
             ),
             alias.name().into_identifier(),
         )
@@ -506,13 +503,13 @@ fn scored_examples() -> SelectStatement {
             SelectExpression::aliased(
                 Expression::Window(
                     Box::new(Function::RowNumber.into()),
-                    WindowStatement::partition_by(RAW_EXAMPLES.column(Example::Ordinality))
-                        .then_partition_by(RAW_EXAMPLES.column(Example::SourceWebId))
-                        .then_partition_by(RAW_EXAMPLES.column(Example::SourceEntityUuid))
-                        .then_partition_by(RAW_EXAMPLES.column(Example::TargetWebId))
-                        .then_partition_by(RAW_EXAMPLES.column(Example::TargetEntityUuid))
+                    WindowStatement::partition_by(RAW_EXAMPLES.column(&Example::Ordinality))
+                        .then_partition_by(RAW_EXAMPLES.column(&Example::SourceWebId))
+                        .then_partition_by(RAW_EXAMPLES.column(&Example::SourceEntityUuid))
+                        .then_partition_by(RAW_EXAMPLES.column(&Example::TargetWebId))
+                        .then_partition_by(RAW_EXAMPLES.column(&Example::TargetEntityUuid))
                         .then_order_by(
-                            RAW_EXAMPLES.column(Example::StableHash),
+                            RAW_EXAMPLES.column(&Example::StableHash),
                             Ordering::Ascending,
                             None,
                         ),
@@ -533,7 +530,7 @@ fn stratified_examples() -> SelectStatement {
     // stays integral and its logarithm equals the fractional form's.
     let log_frequency = |column: Example| {
         Expression::from(Function::Ln(Box::new(
-            Expression::from(Constant::U32(1)).add(SCORED_EXAMPLES.column(column)),
+            Expression::from(Constant::U32(1)).add(SCORED_EXAMPLES.column(&column)),
         )))
     };
 
@@ -553,10 +550,10 @@ fn stratified_examples() -> SelectStatement {
             SelectExpression::aliased(
                 Expression::Window(
                     Box::new(Function::RowNumber.into()),
-                    WindowStatement::partition_by(SCORED_EXAMPLES.column(Example::Ordinality))
-                        .then_partition_by(SCORED_EXAMPLES.column(Example::SourceDirectType))
+                    WindowStatement::partition_by(SCORED_EXAMPLES.column(&Example::Ordinality))
+                        .then_partition_by(SCORED_EXAMPLES.column(&Example::SourceDirectType))
                         .then_order_by(
-                            SCORED_EXAMPLES.column(Example::StableHash),
+                            SCORED_EXAMPLES.column(&Example::StableHash),
                             Ordering::Ascending,
                             None,
                         ),
@@ -569,7 +566,7 @@ fn stratified_examples() -> SelectStatement {
             FromItem::table(SCORED_EXAMPLES)
         })
         .where_expression(WhereExpression::from_iter([SCORED_EXAMPLES
-            .column(Example::PairRank)
+            .column(&Example::PairRank)
             .equal(Constant::U32(1))]))
         .build()
 }
@@ -582,30 +579,30 @@ fn ranked_examples(field_separator: Placeholder, subgroup_pool: Placeholder) -> 
     let subgroup_shuffle =
         Expression::from(Function::Md5(Box::new(Expression::concatenate(vec![
             STRATIFIED_EXAMPLES
-                .column(Example::RelationId)
+                .column(&Example::RelationId)
                 .cast(PostgresType::Text),
             field_separator.into(),
-            STRATIFIED_EXAMPLES.column(Example::SourceDirectType),
+            STRATIFIED_EXAMPLES.column(&Example::SourceDirectType),
         ]))));
 
     // row_number() OVER (
     //     PARTITION BY ordinality
     //     ORDER BY subgroup_rank, <the subgroup shuffle>, recognizability DESC, stable_hash
     // ) AS relation_rank
-    let window = WindowStatement::partition_by(STRATIFIED_EXAMPLES.column(Example::Ordinality))
+    let window = WindowStatement::partition_by(STRATIFIED_EXAMPLES.column(&Example::Ordinality))
         .then_order_by(
-            STRATIFIED_EXAMPLES.column(Example::SubgroupRank),
+            STRATIFIED_EXAMPLES.column(&Example::SubgroupRank),
             Ordering::Ascending,
             None,
         )
         .then_order_by(subgroup_shuffle, Ordering::Ascending, None)
         .then_order_by(
-            STRATIFIED_EXAMPLES.column(Example::Recognizability),
+            STRATIFIED_EXAMPLES.column(&Example::Recognizability),
             Ordering::Descending,
             None,
         )
         .then_order_by(
-            STRATIFIED_EXAMPLES.column(Example::StableHash),
+            STRATIFIED_EXAMPLES.column(&Example::StableHash),
             Ordering::Ascending,
             None,
         );
@@ -624,7 +621,7 @@ fn ranked_examples(field_separator: Placeholder, subgroup_pool: Placeholder) -> 
             FromItem::table(STRATIFIED_EXAMPLES)
         })
         .where_expression(WhereExpression::from_iter([STRATIFIED_EXAMPLES
-            .column(Example::SubgroupRank)
+            .column(&Example::SubgroupRank)
             .less_or_equal(subgroup_pool)]))
         .build()
 }
@@ -671,7 +668,7 @@ fn example_statement<'params>(
     // SELECT the identity, label, closure, and frequency columns of each pooled row
     let mut select = SelectList::default();
     let output =
-        |select: &mut SelectList, column: Example| select.output(RANKED_EXAMPLES.column(column));
+        |select: &mut SelectList, column: Example| select.output(RANKED_EXAMPLES.column(&column));
     let columns = ExampleColumns {
         ordinality: output(&mut select, Example::Ordinality),
         web_id: output(&mut select, Example::WebId),
@@ -712,18 +709,18 @@ fn example_statement<'params>(
             FromItem::table(RANKED_EXAMPLES)
         })
         .where_expression(WhereExpression::from_iter([RANKED_EXAMPLES
-            .column(Example::RelationRank)
+            .column(&Example::RelationRank)
             .less_or_equal(pool_placeholder)]))
         .order_by_expression({
             // ORDER BY ranked_examples.ordinality, ranked_examples.relation_rank
             OrderByExpression::default()
                 .with(
-                    RANKED_EXAMPLES.column(Example::Ordinality),
+                    RANKED_EXAMPLES.column(&Example::Ordinality),
                     Ordering::Ascending,
                     None,
                 )
                 .with(
-                    RANKED_EXAMPLES.column(Example::RelationRank),
+                    RANKED_EXAMPLES.column(&Example::RelationRank),
                     Ordering::Ascending,
                     None,
                 )

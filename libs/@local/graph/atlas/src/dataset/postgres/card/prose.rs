@@ -39,7 +39,7 @@ pub(super) async fn prose_rows(
     let mut binder = Binder::default();
     let types_placeholder = binder.bind(&types);
 
-    let schema = || TYPES.column(EntityTypes::Schema);
+    let schema = || TYPES.column(&EntityTypes::Schema);
 
     // SELECT
     //     ids.base_url,
@@ -48,7 +48,7 @@ pub(super) async fn prose_rows(
     //     types.schema ->> 'description',
     //     types.schema -> 'inverse' ->> 'title'
     let mut select = SelectList::default();
-    let base_url_index = select.output(IDS.column(OntologyIds::BaseUrl));
+    let base_url_index = select.output(IDS.column(&OntologyIds::BaseUrl));
     let versioned_url_index = select.output(json_text(schema(), ID_KEY));
     let title_index = select.output(json_text(schema(), TITLE_KEY));
     let description_index = select.output(json_text(schema(), DESCRIPTION_KEY));
@@ -66,22 +66,22 @@ pub(super) async fn prose_rows(
                     TYPES.from_item(),
                     vec![
                         TYPES
-                            .column(EntityTypes::OntologyId)
-                            .equal(MAPPING.column(Mapping::OntologyId)),
+                            .column(&EntityTypes::OntologyId)
+                            .equal(MAPPING.column(&Mapping::OntologyId)),
                     ],
                 )
                 .inner_join_on(
                     IDS.from_item(),
                     vec![
-                        IDS.column(OntologyIds::OntologyId)
-                            .equal(MAPPING.column(Mapping::OntologyId)),
+                        IDS.column(&OntologyIds::OntologyId)
+                            .equal(MAPPING.column(&Mapping::OntologyId)),
                     ],
                 )
         })
         .order_by_expression({
             // ORDER BY mapping.ordinality
             OrderByExpression::default().with(
-                MAPPING.column(Mapping::Ordinality),
+                MAPPING.column(&Mapping::Ordinality),
                 Ordering::Ascending,
                 None,
             )
@@ -142,8 +142,8 @@ pub(super) async fn ancestor_rows(
     let types_placeholder = binder.bind(&types);
     let link_root = binder.bind(&LINK_ROOT_BASE_URL);
 
-    let schema = || TYPES.column(EntityTypes::Schema);
-    let ancestor = || INHERITS.column(EntityTypeInheritsFrom::TargetEntityTypeOntologyId);
+    let schema = || TYPES.column(&EntityTypes::Schema);
+    let ancestor = || INHERITS.column(&EntityTypeInheritsFrom::TargetEntityTypeOntologyId);
 
     // SELECT
     //     mapping.ordinality,
@@ -153,8 +153,8 @@ pub(super) async fn ancestor_rows(
     //     types.schema ->> 'description',
     //     inherits.target_entity_type_ontology_id
     let mut select = SelectList::default();
-    let ordinality_index = select.output(MAPPING.column(Mapping::Ordinality));
-    let base_url_index = select.output(IDS.column(OntologyIds::BaseUrl));
+    let ordinality_index = select.output(MAPPING.column(&Mapping::Ordinality));
+    let base_url_index = select.output(IDS.column(&OntologyIds::BaseUrl));
     let versioned_url_index = select.output(json_text(schema(), ID_KEY));
     let title_index = select.output(json_text(schema(), TITLE_KEY));
     let description_index = select.output(json_text(schema(), DESCRIPTION_KEY));
@@ -178,47 +178,47 @@ pub(super) async fn ancestor_rows(
                     .build(),
                     vec![
                         INHERITS
-                            .column(EntityTypeInheritsFrom::SourceEntityTypeOntologyId)
-                            .equal(MAPPING.column(Mapping::OntologyId)),
+                            .column(&EntityTypeInheritsFrom::SourceEntityTypeOntologyId)
+                            .equal(MAPPING.column(&Mapping::OntologyId)),
                     ],
                 )
                 .inner_join_on(
                     TYPES.from_item(),
-                    vec![TYPES.column(EntityTypes::OntologyId).equal(ancestor())],
+                    vec![TYPES.column(&EntityTypes::OntologyId).equal(ancestor())],
                 )
                 .inner_join_on(
                     IDS.from_item(),
                     vec![
-                        IDS.column(OntologyIds::OntologyId)
-                            .equal(TYPES.column(EntityTypes::OntologyId)),
+                        IDS.column(&OntologyIds::OntologyId)
+                            .equal(TYPES.column(&EntityTypes::OntologyId)),
                     ],
                 )
                 .inner_join_on(
                     OWN.from_item(),
                     vec![
-                        OWN.column(OntologyIds::OntologyId)
-                            .equal(MAPPING.column(Mapping::OntologyId)),
+                        OWN.column(&OntologyIds::OntologyId)
+                            .equal(MAPPING.column(&Mapping::OntologyId)),
                     ],
                 )
         })
         .where_expression({
             // WHERE ids.base_url <> <link_root> AND ids.base_url <> own.base_url
             WhereExpression::from_iter([
-                IDS.column(OntologyIds::BaseUrl).not_equal(link_root),
-                IDS.column(OntologyIds::BaseUrl)
-                    .not_equal(OWN.column(OntologyIds::BaseUrl)),
+                IDS.column(&OntologyIds::BaseUrl).not_equal(link_root),
+                IDS.column(&OntologyIds::BaseUrl)
+                    .not_equal(OWN.column(&OntologyIds::BaseUrl)),
             ])
         })
         .order_by_expression({
             // ORDER BY mapping.ordinality, inherits.depth, the ancestor id
             OrderByExpression::default()
                 .with(
-                    MAPPING.column(Mapping::Ordinality),
+                    MAPPING.column(&Mapping::Ordinality),
                     Ordering::Ascending,
                     None,
                 )
                 .with(
-                    INHERITS.column(EntityTypeInheritsFrom::Depth),
+                    INHERITS.column(&EntityTypeInheritsFrom::Depth),
                     Ordering::Ascending,
                     None,
                 )

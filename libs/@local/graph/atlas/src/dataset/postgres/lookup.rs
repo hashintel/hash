@@ -114,15 +114,15 @@ fn requests(axes: Axes, web_ids: Placeholder, entity_uuids: Placeholder) -> Sele
             //     meta.entity_uuid AS entity_uuid,
             //     meta.entity_edition_id AS entity_edition_id
             SelectExpression::aliased(
-                META.column(EntityTemporalMetadata::WebId),
+                META.column(&EntityTemporalMetadata::WebId),
                 Requests::WebId.name().into_identifier(),
             ),
             SelectExpression::aliased(
-                META.column(EntityTemporalMetadata::EntityUuid),
+                META.column(&EntityTemporalMetadata::EntityUuid),
                 Requests::EntityUuid.name().into_identifier(),
             ),
             SelectExpression::aliased(
-                META.column(EntityTemporalMetadata::EditionId),
+                META.column(&EntityTemporalMetadata::EditionId),
                 Requests::EntityEditionId.name().into_identifier(),
             ),
         ])
@@ -140,13 +140,13 @@ fn requests(axes: Axes, web_ids: Placeholder, entity_uuids: Placeholder) -> Sele
                     current_identity_join(
                         META,
                         axes,
-                        REQUEST.column(Request::WebId),
-                        REQUEST.column(Request::EntityUuid),
+                        REQUEST.column(&Request::WebId),
+                        REQUEST.column(&Request::EntityUuid),
                     ),
                 )
                 .inner_join_on(
                     EDITION.from_item(),
-                    edition_conjunction(EDITION, META.column(EntityTemporalMetadata::EditionId)),
+                    edition_conjunction(EDITION, META.column(&EntityTemporalMetadata::EditionId)),
                 )
         })
         .build()
@@ -180,9 +180,9 @@ pub(super) fn canonical_embedding_statement<'params>(
     // SELECT embeddings.web_id, embeddings.entity_uuid, embeddings.embedding
     let mut select = SelectList::default();
     let columns = CanonicalEmbeddingColumns {
-        web_id: select.output(EMBEDDING.column(EntityEmbeddings::WebId)),
-        entity_uuid: select.output(EMBEDDING.column(EntityEmbeddings::EntityUuid)),
-        embedding: select.output(EMBEDDING.column(EntityEmbeddings::Embedding)),
+        web_id: select.output(EMBEDDING.column(&EntityEmbeddings::WebId)),
+        entity_uuid: select.output(EMBEDDING.column(&EntityEmbeddings::EntityUuid)),
+        embedding: select.output(EMBEDDING.column(&EntityEmbeddings::Embedding)),
     };
 
     let statement = SelectStatement::builder()
@@ -196,17 +196,17 @@ pub(super) fn canonical_embedding_statement<'params>(
                 EMBEDDING.from_item(),
                 vec![
                     EMBEDDING
-                        .column(EntityEmbeddings::WebId)
-                        .equal(REQUEST.column(Request::WebId)),
+                        .column(&EntityEmbeddings::WebId)
+                        .equal(REQUEST.column(&Request::WebId)),
                     EMBEDDING
-                        .column(EntityEmbeddings::EntityUuid)
-                        .equal(REQUEST.column(Request::EntityUuid)),
+                        .column(&EntityEmbeddings::EntityUuid)
+                        .equal(REQUEST.column(&Request::EntityUuid)),
                 ],
             )
         })
         .where_expression({
             // WHERE embeddings.property IS NULL
-            WhereExpression::from_iter([EMBEDDING.column(EntityEmbeddings::Property).is_null()])
+            WhereExpression::from_iter([EMBEDDING.column(&EntityEmbeddings::Property).is_null()])
         })
         .build();
 
@@ -329,7 +329,7 @@ pub(super) struct LabelColumns {
 
 /// The edition cache's first display label, unwrapped by the decoder.
 fn first_label(cache: Aliased<EntityEditionCache>) -> Expression {
-    cache.column(EntityEditionCache::Labels).array_element(1)
+    cache.column(&EntityEditionCache::Labels).array_element(1)
 }
 
 /// Builds the node label statement, ordered by node row.
@@ -343,7 +343,7 @@ pub(super) fn node_label_statement(axes: &TemporalAxes) -> BoundStatement<'_, La
     // SELECT (cache.labels)[1]
     let mut select = SelectList::default();
     let columns = LabelColumns {
-        label: select.output(CACHE.column(EntityEditionCache::Labels).array_element(1)),
+        label: select.output(CACHE.column(&EntityEditionCache::Labels).array_element(1)),
     };
 
     let statement = SelectStatement::builder()
@@ -361,7 +361,7 @@ pub(super) fn node_label_statement(axes: &TemporalAxes) -> BoundStatement<'_, La
                 CACHE.from_item(),
                 vec![
                     CACHE
-                        .column(EntityEditionCache::EntityEditionId)
+                        .column(&EntityEditionCache::EntityEditionId)
                         .equal(CorpusTable::Scope.column(Scope::EntityEditionId)),
                 ],
             )
@@ -410,7 +410,7 @@ pub(super) fn edge_label_statement(axes: &TemporalAxes) -> BoundStatement<'_, La
                 CACHE.from_item(),
                 vec![
                     CACHE
-                        .column(EntityEditionCache::EntityEditionId)
+                        .column(&EntityEditionCache::EntityEditionId)
                         .equal(CorpusTable::Links.column(Links::EntityEditionId)),
                 ],
             )
@@ -477,8 +477,8 @@ pub(super) async fn ontology<'t>(
     let mut binder = Binder::default();
     let types_placeholder = binder.bind(&types);
 
-    let source = INHERITS.column(EntityTypeInheritsFrom::SourceEntityTypeOntologyId);
-    let target = INHERITS.column(EntityTypeInheritsFrom::TargetEntityTypeOntologyId);
+    let source = INHERITS.column(&EntityTypeInheritsFrom::SourceEntityTypeOntologyId);
+    let target = INHERITS.column(&EntityTypeInheritsFrom::TargetEntityTypeOntologyId);
 
     // SELECT inherits.source_entity_type_ontology_id, inherits.target_entity_type_ontology_id
     let mut select = SelectList::default();
@@ -499,7 +499,7 @@ pub(super) async fn ontology<'t>(
             // WHERE inherits.depth = 0 AND the source = ANY(<types>)
             WhereExpression::from_iter([
                 INHERITS
-                    .column(EntityTypeInheritsFrom::Depth)
+                    .column(&EntityTypeInheritsFrom::Depth)
                     .equal(Constant::U32(0)),
                 source
                     .clone()
@@ -608,7 +608,7 @@ pub(super) async fn ontology_icons<'t>(
     let mut binder = Binder::default();
     let types_placeholder = binder.bind(&types);
 
-    let display_icon = || json_text(DISPLAY.column(Display::Value), ICON_KEY);
+    let display_icon = || json_text(DISPLAY.column(&Display::Value), ICON_KEY);
 
     let nearest_icon = SelectStatement::builder()
         .selects(vec![
@@ -619,7 +619,7 @@ pub(super) async fn ontology_icons<'t>(
             // FROM jsonb_array_elements(types.closed_schema -> 'allOf')
             //     WITH ORDINALITY AS display(value, position)
             FromItem::function(Function::JsonArrayElements(Box::new(json_field(
-                TYPES.column(EntityTypes::ClosedSchema),
+                TYPES.column(&EntityTypes::ClosedSchema),
                 ALL_OF_KEY,
             ))))
             .with_ordinality(true)
@@ -638,13 +638,17 @@ pub(super) async fn ontology_icons<'t>(
             // `serve::hydrate`'s tile hydration query, and a change to either belongs in both.
             OrderByExpression::default()
                 .with(
-                    json_text(DISPLAY.column(Display::Value), DEPTH_KEY)
+                    json_text(DISPLAY.column(&Display::Value), DEPTH_KEY)
                         .grouped()
                         .cast(PostgresType::Int4),
                     Ordering::Ascending,
                     None,
                 )
-                .with(DISPLAY.column(Display::Position), Ordering::Ascending, None)
+                .with(
+                    DISPLAY.column(&Display::Position),
+                    Ordering::Ascending,
+                    None,
+                )
         })
         .limit({
             // LIMIT 1
@@ -654,7 +658,7 @@ pub(super) async fn ontology_icons<'t>(
 
     // SELECT icon.value
     let mut select = SelectList::default();
-    let icon_index = select.output(ICON.column(Icon::Value));
+    let icon_index = select.output(ICON.column(&Icon::Value));
 
     let statement = SelectStatement::builder()
         .selects(select.into_selects())
@@ -670,8 +674,8 @@ pub(super) async fn ontology_icons<'t>(
                     TYPES.from_item(),
                     vec![
                         TYPES
-                            .column(EntityTypes::OntologyId)
-                            .equal(MAPPING.column(Mapping::OntologyId)),
+                            .column(&EntityTypes::OntologyId)
+                            .equal(MAPPING.column(&Mapping::OntologyId)),
                     ],
                 )
                 .left_join_on(
@@ -682,7 +686,7 @@ pub(super) async fn ontology_icons<'t>(
         .order_by_expression({
             // ORDER BY mapping.ordinality
             OrderByExpression::default().with(
-                MAPPING.column(Mapping::Ordinality),
+                MAPPING.column(&Mapping::Ordinality),
                 Ordering::Ascending,
                 None,
             )

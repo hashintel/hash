@@ -32,6 +32,11 @@ pub enum PostgresType {
         /// A cast to a dimensioned vector type asserts the count and fails the query when the
         /// value disagrees. `None` casts to the undimensioned `vector` type, which accepts any
         /// length.
+        ///
+        /// The embedding columns declare `None` against a schema storing `vector(3072)`.
+        /// That is the safe direction: the declared type feeds the tuple-membership
+        /// casts, and narrowing the declaration would make those casts assert a count
+        /// the direct equality never checked.
         dimensions: Option<usize>,
     },
     // `entity_edge_kind` enum

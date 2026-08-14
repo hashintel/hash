@@ -463,6 +463,21 @@ pub trait DatabaseColumn<'name> {
 pub trait FilterColumn<'name>: DatabaseColumn<'name> {
     /// The logical type filter values compared against this column must have.
     fn parameter_type(&self) -> ParameterType;
+
+    /// Whether the column holds an array of textual values ([`BaseUrl`] and
+    /// [`VersionedUrl`] columns transpile to `text[]`).
+    ///
+    /// [`BaseUrl`]: ParameterType::BaseUrl
+    /// [`VersionedUrl`]: ParameterType::VersionedUrl
+    fn is_text_array(&self) -> bool {
+        matches!(
+            self.parameter_type(),
+            ParameterType::Vector(inner) if matches!(
+                *inner,
+                ParameterType::Text | ParameterType::BaseUrl | ParameterType::VersionedUrl
+            )
+        )
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

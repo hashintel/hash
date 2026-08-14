@@ -17,10 +17,11 @@ use hash_graph_store::{
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
+use hash_graph_temporal_versioning::Timestamp;
 use hash_graph_types::Embedding;
 use postgres_types::ToSql;
 use type_system::{
-    knowledge::Entity,
+    knowledge::{Entity, PropertyValue},
     ontology::{
         BaseUrl, DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
         VersionedUrl,
@@ -57,6 +58,17 @@ fn test_compilation<'p, 'q: 'p, T: PostgresRecord + 'static>(
         .collect::<Vec<_>>();
 
     pretty_assertions::assert_eq!(compiled_parameters, expected_parameters);
+}
+
+/// An equality filter pinning `path`'s column to a UUID parameter.
+fn uuid_equality(path: EntityQueryPath<'static>, uuid: Uuid) -> Filter<'static, Entity> {
+    Filter::Equal(
+        FilterExpression::Path { path },
+        FilterExpression::Parameter {
+            parameter: Parameter::Uuid(uuid),
+            convert: None,
+        },
+    )
 }
 
 #[test]
@@ -1326,7 +1338,7 @@ fn filter_entity_by_any_type_versioned_url() {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
                 AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
                 AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-                AND ("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[])
+                AND "entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[]
             "#,
         &[
             &pinned_timestamp,
@@ -1365,7 +1377,7 @@ fn filter_entity_by_all_type_versioned_url() {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
                 AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
                 AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-                AND ("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3, $4]::text[])
+                AND "entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3, $4]::text[]
             "#,
         &[
             &pinned_timestamp,
@@ -1493,7 +1505,7 @@ fn filter_entity_by_no_type_versioned_url() {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
                 AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
                 AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-                AND (NOT("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[]))
+                AND NOT("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[])
             "#,
         &[
             &pinned_timestamp,
@@ -1730,7 +1742,7 @@ fn transpile_offset() {
 
 mod predefined {
     use type_system::{
-        knowledge::entity::id::{EntityId, EntityUuid},
+        knowledge::entity::id::{DraftId, EntityId, EntityUuid},
         ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
         principal::actor_group::WebId,
     };
@@ -1803,6 +1815,479 @@ mod predefined {
                 &temporal_axes.variable_interval(),
                 &Uuid::from(entity_id.web_id),
                 &Uuid::from(entity_id.entity_uuid),
+            ],
+        );
+    }
+
+    fn published_entity_id() -> EntityId {
+        EntityId {
+            web_id: WebId::new(Uuid::new_v4()),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            draft_id: None,
+        }
+    }
+
+    fn drafted_entity_id() -> EntityId {
+        EntityId {
+            web_id: WebId::new(Uuid::new_v4()),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            draft_id: Some(DraftId::new(Uuid::new_v4())),
+        }
+    }
+
+    /// An `Any` of published-entity identities bundles into one row-membership predicate
+    /// over the unnested pair arrays instead of an N-way disjunction, which planned as a
+    /// `BitmapOr` with one index-scan branch per identity. The tuple's column order is
+    /// canonical (sorted by the column's transpiled identity), so `entity_uuid` leads.
+    #[test]
+    fn for_entity_by_entity_ids_bundle_into_pair_membership() {
+        let ids = [
+            published_entity_id(),
+            published_entity_id(),
+            published_entity_id(),
+        ];
+
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let filter = Filter::Any(ids.map(Filter::for_entity_by_entity_id).to_vec());
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(ARRAY[$3, $5, $7]::uuid[], ARRAY[$4, $6, $8]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2"))
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &Uuid::from(ids[0].entity_uuid),
+                &Uuid::from(ids[0].web_id),
+                &Uuid::from(ids[1].entity_uuid),
+                &Uuid::from(ids[1].web_id),
+                &Uuid::from(ids[2].entity_uuid),
+                &Uuid::from(ids[2].web_id),
+            ],
+        );
+    }
+
+    /// A nested `Any` states the same disjunction, so its identities bundle with the outer
+    /// group's into one membership predicate rather than one predicate per nesting level.
+    #[test]
+    fn nested_any_groups_bundle_across_the_boundary() {
+        let ids = [
+            published_entity_id(),
+            published_entity_id(),
+            published_entity_id(),
+        ];
+
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let filter = Filter::Any(vec![
+            Filter::Any(vec![
+                Filter::for_entity_by_entity_id(ids[0]),
+                Filter::for_entity_by_entity_id(ids[1]),
+            ]),
+            Filter::for_entity_by_entity_id(ids[2]),
+        ]);
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(ARRAY[$3, $5, $7]::uuid[], ARRAY[$4, $6, $8]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2"))
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &Uuid::from(ids[0].entity_uuid),
+                &Uuid::from(ids[0].web_id),
+                &Uuid::from(ids[1].entity_uuid),
+                &Uuid::from(ids[1].web_id),
+                &Uuid::from(ids[2].entity_uuid),
+                &Uuid::from(ids[2].web_id),
+            ],
+        );
+    }
+
+    /// `All([x])`, `Any([x])` and `x` decide alike, so redundant singleton groups inside an
+    /// identity conjunction dissolve and the conjunction still recognizes as a tuple.
+    #[test]
+    fn singleton_groups_dissolve_before_recognition() {
+        let ids = [published_entity_id(), published_entity_id()];
+
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let filter = Filter::Any(vec![
+            Filter::All(vec![
+                uuid_equality(EntityQueryPath::WebId, Uuid::from(ids[0].web_id)),
+                Filter::Any(vec![Filter::All(vec![uuid_equality(
+                    EntityQueryPath::Uuid,
+                    Uuid::from(ids[0].entity_uuid),
+                )])]),
+            ]),
+            Filter::for_entity_by_entity_id(ids[1]),
+        ]);
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(ARRAY[$3, $5]::uuid[], ARRAY[$4, $6]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2"))
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &Uuid::from(ids[0].entity_uuid),
+                &Uuid::from(ids[0].web_id),
+                &Uuid::from(ids[1].entity_uuid),
+                &Uuid::from(ids[1].web_id),
+            ],
+        );
+    }
+
+    /// A single identity gains nothing from an unnest, so it keeps its direct conjunction
+    /// and the identity indexes serve it. The conjunction is built from the recognizer's
+    /// resolved halves, so its column order is canonical (`entity_uuid` before `web_id`)
+    /// rather than the group's own.
+    #[test]
+    fn for_entity_by_entity_id_alone_stays_direct() {
+        let entity_id = published_entity_id();
+
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let filter = Filter::Any(vec![Filter::for_entity_by_entity_id(entity_id)]);
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $3) AND ("entity_temporal_metadata_0_0_0"."web_id" = $4)
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &Uuid::from(entity_id.entity_uuid),
+                &Uuid::from(entity_id.web_id),
+            ],
+        );
+    }
+
+    /// A specially-compiled equality inside a recognized tuple sends the whole group
+    /// back to the plain path. `version == "latest"` passes every scalar check, since
+    /// the version column is a hook-free int8 with no JSON field. Built as a direct
+    /// equality it would drop the latest-version rewrite and bind the text `"latest"`
+    /// against that int8 column, which Postgres rejects at execution (`invalid input
+    /// syntax for type bigint`) after the filter's meaning already changed. The
+    /// recognizer refuses whatever [`SelectCompiler::compile_special_filter`]'s shared
+    /// predicate claims, so the group compiles with the `ontology_ids` CTE exactly as
+    /// it does outside an `Any` group. Review r3 caught this on the live DB; the
+    /// earlier suite was all-uuid, which is why no test here failed.
+    #[test]
+    fn latest_version_pair_in_any_group_keeps_the_cte() {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler =
+            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
+
+        let filter = Filter::Any(vec![Filter::All(vec![
+            Filter::Equal(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::Version,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("latest")),
+                    convert: None,
+                },
+            ),
+            Filter::Equal(
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::BaseUrl,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+                    )),
+                    convert: None,
+                },
+            ),
+        ])]);
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0")
+            SELECT *
+            FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+              ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND ("ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version") AND ("ontology_ids_0_1_0"."base_url" = $2)
+            "#,
+            &[
+                &pinned_timestamp,
+                &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+            ],
+        );
+    }
+
+    /// A tuple whose columns stand on two tables is excluded from bundling: its
+    /// membership form would be a condition above the join, which the planner answers by
+    /// materializing the whole join first (measured at 14x the disjunction). The shape is
+    /// client-reachable (the REST filter body deserializes arbitrary `Any`/`All` nesting,
+    /// and a custom web policy builds it through `CreatedByPrincipal`), so it must stay a
+    /// plain disjunction of conjunctions with each qual pushed to its own table.
+    #[test]
+    fn cross_table_uuid_pairs_stay_direct() {
+        let webs = [Uuid::new_v4(), Uuid::new_v4()];
+        let actors = [Uuid::new_v4(), Uuid::new_v4()];
+
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let filter = Filter::Any(
+            webs.into_iter()
+                .zip(actors)
+                .map(|(web_id, actor_id)| {
+                    Filter::All(vec![
+                        Filter::Equal(
+                            FilterExpression::Path {
+                                path: EntityQueryPath::WebId,
+                            },
+                            FilterExpression::Parameter {
+                                parameter: Parameter::Uuid(web_id),
+                                convert: None,
+                            },
+                        ),
+                        Filter::Equal(
+                            FilterExpression::Path {
+                                path: EntityQueryPath::CreatedById,
+                            },
+                            FilterExpression::Parameter {
+                                parameter: Parameter::Uuid(actor_id),
+                                convert: None,
+                            },
+                        ),
+                    ])
+                })
+                .collect(),
+        );
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_ids" AS "entity_ids_0_1_0"
+                ON "entity_ids_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+                AND "entity_ids_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ((("entity_ids_0_1_0"."created_by_id" = $3) AND ("entity_temporal_metadata_0_0_0"."web_id" = $4)) OR (("entity_ids_0_1_0"."created_by_id" = $5) AND ("entity_temporal_metadata_0_0_0"."web_id" = $6)))
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &actors[0],
+                &webs[0],
+                &actors[1],
+                &webs[1],
+            ],
+        );
+    }
+
+    /// Drafted identities carry a third equality, so they bundle as their own
+    /// three-column tuple beside the published pairs: two membership predicates and no
+    /// disjunction tail. Canonical order puts `draft_id` first, then `entity_uuid`, then
+    /// `web_id`.
+    #[test]
+    fn drafted_entity_ids_bundle_as_their_own_triple() {
+        let published = [published_entity_id(), published_entity_id()];
+        let drafted = [drafted_entity_id(), drafted_entity_id()];
+
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), true);
+
+        let filter = Filter::Any(vec![
+            Filter::for_entity_by_entity_id(published[0]),
+            Filter::for_entity_by_entity_id(drafted[0]),
+            Filter::for_entity_by_entity_id(published[1]),
+            Filter::for_entity_by_entity_id(drafted[1]),
+        ]);
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ((ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(ARRAY[$3, $5]::uuid[], ARRAY[$4, $6]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2"))) OR (ROW("entity_temporal_metadata_0_0_0"."draft_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_1"."elem_1", "unnest_0_0_1"."elem_2", "unnest_0_0_1"."elem_3" FROM UNNEST(ARRAY[$7, $10]::uuid[], ARRAY[$8, $11]::uuid[], ARRAY[$9, $12]::uuid[]) AS "unnest_0_0_1"("elem_1", "elem_2", "elem_3"))))
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &Uuid::from(published[0].entity_uuid),
+                &Uuid::from(published[0].web_id),
+                &Uuid::from(published[1].entity_uuid),
+                &Uuid::from(published[1].web_id),
+                &Uuid::from(drafted[0].draft_id.expect("drafted id")),
+                &Uuid::from(drafted[0].entity_uuid),
+                &Uuid::from(drafted[0].web_id),
+                &Uuid::from(drafted[1].draft_id.expect("drafted id")),
+                &Uuid::from(drafted[1].entity_uuid),
+                &Uuid::from(drafted[1].web_id),
+            ],
+        );
+    }
+
+    /// A tuple is as wide as its group pins columns: four same-table equalities bundle
+    /// into a four-member membership, whatever order the group wrote them in.
+    #[test]
+    fn four_column_tuples_bundle_at_their_own_width() {
+        let tuples: [[Uuid; 4]; 2] = [
+            [
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+            ],
+            [
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+            ],
+        ];
+
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), true);
+
+        // Written web → edition → uuid → draft, and canonical order sorts draft_id first.
+        let filter = Filter::Any(
+            tuples
+                .iter()
+                .map(|&[draft, edition, uuid, web]| {
+                    Filter::All(vec![
+                        uuid_equality(EntityQueryPath::WebId, web),
+                        uuid_equality(EntityQueryPath::EditionId, edition),
+                        uuid_equality(EntityQueryPath::Uuid, uuid),
+                        uuid_equality(EntityQueryPath::DraftId, draft),
+                    ])
+                })
+                .collect(),
+        );
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ROW("entity_temporal_metadata_0_0_0"."draft_id", "entity_temporal_metadata_0_0_0"."entity_edition_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2", "unnest_0_0_0"."elem_3", "unnest_0_0_0"."elem_4" FROM UNNEST(ARRAY[$3, $7]::uuid[], ARRAY[$4, $8]::uuid[], ARRAY[$5, $9]::uuid[], ARRAY[$6, $10]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2", "elem_3", "elem_4"))
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &tuples[0][0],
+                &tuples[0][1],
+                &tuples[0][2],
+                &tuples[0][3],
+                &tuples[1][0],
+                &tuples[1][1],
+                &tuples[1][2],
+                &tuples[1][3],
+            ],
+        );
+    }
+
+    /// Each member's array carries its own column's stored type, so a tuple mixing a
+    /// timestamp column with a uuid column binds `timestamptz[]` beside `uuid[]`.
+    #[test]
+    fn mixed_type_tuples_type_each_array_from_its_column() {
+        let actors = [Uuid::new_v4(), Uuid::new_v4()];
+
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+
+        let filter = Filter::Any(
+            actors
+                .iter()
+                .map(|&actor| {
+                    Filter::All(vec![
+                        uuid_equality(EntityQueryPath::CreatedById, actor),
+                        Filter::Equal(
+                            FilterExpression::Path {
+                                path: EntityQueryPath::CreatedAtTransactionTime,
+                            },
+                            FilterExpression::Parameter {
+                                parameter: Parameter::Timestamp(Timestamp::UNIX_EPOCH),
+                                convert: None,
+                            },
+                        ),
+                    ])
+                })
+                .collect(),
+        );
+        compiler.add_filter(&filter).expect("Failed to add filter");
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_ids" AS "entity_ids_0_1_0"
+                ON "entity_ids_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+                AND "entity_ids_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ROW("entity_ids_0_1_0"."created_at_transaction_time", "entity_ids_0_1_0"."created_by_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(ARRAY[$3, $5]::timestamptz[], ARRAY[$4, $6]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2"))
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &Timestamp::<()>::UNIX_EPOCH,
+                &actors[0],
+                &Timestamp::<()>::UNIX_EPOCH,
+                &actors[1],
             ],
         );
     }
@@ -2047,5 +2532,331 @@ mod scalar_properties {
             "the second call appended a second subquery: {compiled_statement}"
         );
         assert_eq!(parameters.len(), 1, "the second call bound its own copy");
+    }
+}
+
+/// The column-tuple recognizer against its oracle: every shape it gathers and then
+/// excludes must compile to the bytes the plain path produces, and every exclusion must
+/// keep the semantics the plain path owns.
+mod tuple_bundling {
+    use super::*;
+
+    fn compile(filter: &Filter<'_, Entity>) -> (String, Vec<String>) {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        compile_with(&temporal_axes, filter)
+    }
+
+    fn compile_with(
+        temporal_axes: &hash_graph_store::subgraph::temporal_axes::QueryTemporalAxes,
+        filter: &Filter<'_, Entity>,
+    ) -> (String, Vec<String>) {
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(temporal_axes), false);
+        compiler.add_filter(filter).expect("should compile");
+        let (statement, parameters) = compiler.compile();
+        (
+            trim_whitespace(&statement),
+            parameters
+                .iter()
+                .map(|parameter| format!("{parameter:?}"))
+                .collect(),
+        )
+    }
+
+    /// For every shape the recognizer gathers and then excludes, the hand-built
+    /// conjunction must be the expression the re-compile would have produced. The oracle
+    /// is the same equalities in canonical order under an `All` group, which the
+    /// recognizer never sees and which therefore still goes through `compile_filter` and
+    /// `compile_path_column`.
+    #[track_caller]
+    fn assert_matches_recompile(
+        recognized: Vec<Filter<'static, Entity>>,
+        canonical_order: Vec<Filter<'static, Entity>>,
+    ) {
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let through_recognizer =
+            compile_with(&temporal_axes, &Filter::Any(vec![Filter::All(recognized)]));
+        let through_compile_filter = compile_with(
+            &temporal_axes,
+            &Filter::All(vec![Filter::All(canonical_order)]),
+        );
+        pretty_assertions::assert_eq!(
+            through_recognizer.0,
+            through_compile_filter.0,
+            "the hand-built conjunction is not what the re-compile produces"
+        );
+        pretty_assertions::assert_eq!(through_recognizer.1, through_compile_filter.1);
+    }
+
+    #[test]
+    fn singleton_pair_matches_recompile() {
+        let web = Uuid::new_v4();
+        let uuid = Uuid::new_v4();
+        assert_matches_recompile(
+            vec![
+                uuid_equality(EntityQueryPath::WebId, web),
+                uuid_equality(EntityQueryPath::Uuid, uuid),
+            ],
+            vec![
+                uuid_equality(EntityQueryPath::Uuid, uuid),
+                uuid_equality(EntityQueryPath::WebId, web),
+            ],
+        );
+    }
+
+    #[test]
+    fn repeated_column_matches_recompile() {
+        let first = Uuid::new_v4();
+        let second = Uuid::new_v4();
+        assert_matches_recompile(
+            vec![
+                uuid_equality(EntityQueryPath::Uuid, first),
+                uuid_equality(EntityQueryPath::Uuid, second),
+            ],
+            vec![
+                uuid_equality(EntityQueryPath::Uuid, first),
+                uuid_equality(EntityQueryPath::Uuid, second),
+            ],
+        );
+    }
+
+    #[test]
+    fn cross_table_pair_matches_recompile() {
+        let web = Uuid::new_v4();
+        let creator = Uuid::new_v4();
+        assert_matches_recompile(
+            vec![
+                uuid_equality(EntityQueryPath::WebId, web),
+                uuid_equality(EntityQueryPath::CreatedById, creator),
+            ],
+            vec![
+                uuid_equality(EntityQueryPath::CreatedById, creator),
+                uuid_equality(EntityQueryPath::WebId, web),
+            ],
+        );
+    }
+
+    #[test]
+    fn cross_table_triple_matches_recompile() {
+        let web = Uuid::new_v4();
+        let uuid = Uuid::new_v4();
+        let creator = Uuid::new_v4();
+        assert_matches_recompile(
+            vec![
+                uuid_equality(EntityQueryPath::WebId, web),
+                uuid_equality(EntityQueryPath::Uuid, uuid),
+                uuid_equality(EntityQueryPath::CreatedById, creator),
+            ],
+            vec![
+                uuid_equality(EntityQueryPath::CreatedById, creator),
+                uuid_equality(EntityQueryPath::Uuid, uuid),
+                uuid_equality(EntityQueryPath::WebId, web),
+            ],
+        );
+    }
+
+    /// A triple standing on three tables at once.
+    #[test]
+    fn three_table_triple_stays_direct() {
+        let (statement, _) = compile(&Filter::Any(vec![Filter::All(vec![
+            uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
+            uuid_equality(EntityQueryPath::CreatedById, Uuid::new_v4()),
+            uuid_equality(EntityQueryPath::EditionCreatedById, Uuid::new_v4()),
+        ])]));
+        assert!(
+            !statement.contains("UNNEST"),
+            "a three-table triple was bundled: {statement}"
+        );
+    }
+
+    /// The `bundleable` fold checks `correlation` equality on *adjacent* pairs of the
+    /// sorted halves, which is only sound because the sort key (`<table>.<column>`)
+    /// groups by table. This triple interleaves tables A, B, A when sorted by column name
+    /// alone, so it is the shape that would be wrongly bundled if the sort key ever
+    /// narrowed.
+    #[test]
+    fn interleaving_triple_stays_direct() {
+        let (statement, _) = compile(&Filter::Any(vec![Filter::All(vec![
+            uuid_equality(EntityQueryPath::Uuid, Uuid::new_v4()),
+            uuid_equality(
+                EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    direction: EdgeDirection::Outgoing,
+                },
+                Uuid::new_v4(),
+            ),
+            uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
+        ])]));
+        assert!(
+            !statement.contains("UNNEST"),
+            "a two-table triple was bundled: {statement}"
+        );
+    }
+
+    /// One `Any` group carrying both bundleable and excluded tuples. The same-table pairs
+    /// bundle into one membership while the cross-table pair stays direct, and no filter
+    /// compiles twice.
+    #[test]
+    fn mixed_group_bundles_only_the_same_table_tuples() {
+        let (statement, parameters) = compile(&Filter::Any(vec![
+            Filter::All(vec![
+                uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
+                uuid_equality(EntityQueryPath::Uuid, Uuid::new_v4()),
+            ]),
+            Filter::All(vec![
+                uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
+                uuid_equality(EntityQueryPath::Uuid, Uuid::new_v4()),
+            ]),
+            Filter::All(vec![
+                uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
+                uuid_equality(EntityQueryPath::CreatedById, Uuid::new_v4()),
+            ]),
+        ]));
+        assert_eq!(
+            statement.matches("FROM UNNEST").count(),
+            1,
+            "expected exactly one membership predicate: {statement}"
+        );
+        assert_eq!(
+            parameters.len(),
+            8,
+            "two temporal parameters and six uuids: {statement}"
+        );
+        assert_eq!(
+            statement.matches("INNER JOIN \"entity_ids\"").count(),
+            1,
+            "the cross-table pair should add exactly one join: {statement}"
+        );
+    }
+
+    /// The excluded-shape fallback builds from the halves already resolved instead of
+    /// re-compiling the filter, because a re-compile resolves the same joins a second
+    /// time and leaves the first resolution orphaned in the FROM clause. Some qual must
+    /// therefore reference every alias standing in FROM.
+    #[test]
+    fn edge_path_tuple_leaves_no_orphan_join() {
+        let edge = |kind, path| EntityQueryPath::EntityEdge {
+            edge_kind: kind,
+            path: Box::new(path),
+            direction: EdgeDirection::Outgoing,
+        };
+        let (statement, _) = compile(&Filter::Any(vec![
+            uuid_equality(
+                edge(
+                    KnowledgeGraphEdgeKind::HasLeftEntity,
+                    EntityQueryPath::EditionId,
+                ),
+                Uuid::new_v4(),
+            ),
+            Filter::All(vec![
+                uuid_equality(
+                    edge(
+                        KnowledgeGraphEdgeKind::HasRightEntity,
+                        EntityQueryPath::EditionId,
+                    ),
+                    Uuid::new_v4(),
+                ),
+                uuid_equality(
+                    edge(
+                        KnowledgeGraphEdgeKind::HasRightEntity,
+                        EntityQueryPath::DraftId,
+                    ),
+                    Uuid::new_v4(),
+                ),
+            ]),
+        ]));
+
+        let joins = statement.matches(" JOIN ").count();
+        let mut orphans = Vec::new();
+        for alias in statement.split(" AS ").skip(1) {
+            let Some(alias) = alias.split_whitespace().next() else {
+                continue;
+            };
+            let alias = alias.trim_end_matches([',', ')']);
+            // Something other than its own definition must reference every alias in
+            // FROM, so `AS "x"` needs at least one `"x"."column"` elsewhere.
+            if statement.matches(&format!("{alias}.")).count() == 0 {
+                orphans.push(alias.to_owned());
+            }
+        }
+        assert!(
+            orphans.is_empty(),
+            "orphaned aliases {orphans:?} in {joins} joins: {statement}"
+        );
+        assert_eq!(joins, 5, "join count drifted: {statement}");
+    }
+
+    /// An equality on an array-backed cache column means containment, never scalar
+    /// equality, so the recognizer refuses the whole group and it compiles through the
+    /// array predicates.
+    #[test]
+    fn array_backed_column_group_matches_recompile_and_keeps_containment() {
+        let web = Uuid::new_v4();
+        let group = || {
+            vec![
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::VersionedUrl,
+                            inheritance_depth: None,
+                        },
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Text(Cow::Borrowed(
+                            "https://example.com/types/entity-type/person/v/1",
+                        )),
+                        convert: None,
+                    },
+                ),
+                uuid_equality(EntityQueryPath::WebId, web),
+            ]
+        };
+        assert_matches_recompile(group(), group());
+        let (statement, _) = compile(&Filter::Any(vec![Filter::All(group())]));
+        assert!(
+            !statement.contains("UNNEST"),
+            "an array-backed column was bundled: {statement}"
+        );
+        assert!(
+            statement.contains("@>"),
+            "the containment predicate is gone: {statement}"
+        );
+    }
+
+    /// A column carrying a column hook never enters a tuple, because the tuple forms
+    /// build their column references directly and would skip the hook's rewrite: a
+    /// masked properties read stays masked when a filter reads it.
+    #[test]
+    fn hooked_column_group_stays_on_the_plain_path() {
+        let config = PropertyProtectionFilterConfig::hash_default();
+        let property_filter = config.to_property_protection_filter(None);
+
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+        compiler.with_property_masking(&property_filter);
+
+        let filter = Filter::Any(vec![Filter::All(vec![
+            Filter::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::Properties(None),
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Any(PropertyValue::Null),
+                    convert: None,
+                },
+            ),
+            uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
+        ])]);
+        compiler.add_filter(&filter).expect("should compile");
+        let (statement, _) = compiler.compile();
+        assert!(
+            !statement.contains("UNNEST"),
+            "a hooked column was bundled: {statement}"
+        );
+        assert!(
+            statement.contains("CASE WHEN"),
+            "the masked read lost its rewrite: {statement}"
+        );
     }
 }

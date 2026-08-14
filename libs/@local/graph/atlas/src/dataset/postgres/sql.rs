@@ -40,8 +40,8 @@ pub(super) fn current_identity_join(
     entity_uuid: impl Into<Expression>,
 ) -> Vec<Expression> {
     let mut conditions = vec![
-        meta.column(EntityTemporalMetadata::WebId).equal(web_id),
-        meta.column(EntityTemporalMetadata::EntityUuid)
+        meta.column(&EntityTemporalMetadata::WebId).equal(web_id),
+        meta.column(&EntityTemporalMetadata::EntityUuid)
             .equal(entity_uuid),
     ];
 
@@ -58,10 +58,10 @@ pub(super) fn time_axis_conjunction(
     // AND transaction_time @> $transaction_time
     // AND decision_time @> $decision_time
     [
-        meta.column(EntityTemporalMetadata::DraftId).is_null(),
-        meta.column(EntityTemporalMetadata::TransactionTime)
+        meta.column(&EntityTemporalMetadata::DraftId).is_null(),
+        meta.column(&EntityTemporalMetadata::TransactionTime)
             .time_interval_contains_timestamp(axes.transaction_time),
-        meta.column(EntityTemporalMetadata::DecisionTime)
+        meta.column(&EntityTemporalMetadata::DecisionTime)
             .time_interval_contains_timestamp(axes.decision_time),
     ]
 }
@@ -74,8 +74,8 @@ pub(super) fn edition_conjunction(
     // edition_id = $edition_id
     // AND archived = false
     vec![
-        edition.column(EntityEditions::EditionId).equal(edition_id),
-        edition.column(EntityEditions::Archived).not(),
+        edition.column(&EntityEditions::EditionId).equal(edition_id),
+        edition.column(&EntityEditions::Archived).not(),
     ]
 }
 

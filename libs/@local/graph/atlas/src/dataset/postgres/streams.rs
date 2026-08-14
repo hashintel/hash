@@ -51,7 +51,7 @@ fn normalized_prefix(embedding: Aliased<EntityEmbeddings>) -> Expression {
     // l2_normalize(subvector(embedding.embedding, 1, <prefix>))::vector(<prefix>)
     Expression::from(Function::L2Normalize(Box::new(
         Function::Subvector {
-            vector: Box::new(embedding.column(EntityEmbeddings::Embedding)),
+            vector: Box::new(embedding.column(&EntityEmbeddings::Embedding)),
             start: 1,
             count: PROJECTOR_DIMENSIONS,
         }
@@ -99,7 +99,7 @@ pub(super) fn node_statement<'params>(
         web_id: select.output(CorpusTable::Scope.column(Scope::WebId)),
         entity_uuid: select.output(CorpusTable::Scope.column(Scope::EntityUuid)),
         embedding: select.output(normalized_prefix(EMBEDDING)),
-        confidence: select.output(EDITION.column(EntityEditions::Confidence)),
+        confidence: select.output(EDITION.column(&EntityEditions::Confidence)),
         ordinals: select.output(ordinals_or_empty()),
     };
 
@@ -130,19 +130,19 @@ pub(super) fn node_statement<'params>(
                     EMBEDDING.from_item(),
                     vec![
                         EMBEDDING
-                            .column(EntityEmbeddings::WebId)
+                            .column(&EntityEmbeddings::WebId)
                             .equal(CorpusTable::Scope.column(Scope::WebId)),
                         EMBEDDING
-                            .column(EntityEmbeddings::EntityUuid)
+                            .column(&EntityEmbeddings::EntityUuid)
                             .equal(CorpusTable::Scope.column(Scope::EntityUuid)),
-                        EMBEDDING.column(EntityEmbeddings::Property).is_null(),
+                        EMBEDDING.column(&EntityEmbeddings::Property).is_null(),
                     ],
                 )
                 .inner_join_on(
                     EDITION.from_item(),
                     vec![
                         EDITION
-                            .column(EntityEditions::EditionId)
+                            .column(&EntityEditions::EditionId)
                             .equal(CorpusTable::Scope.column(Scope::EntityEditionId)),
                     ],
                 )
@@ -247,7 +247,7 @@ pub(super) fn edge_statement<'params>(
         target: select.output(CorpusTable::Links.column(Links::TargetRow)),
         ordinals: select.output(ordinals_or_empty()),
         embedding: select.output(normalized_prefix(EMBEDDING)),
-        confidence: select.output(EDITION.column(EntityEditions::Confidence)),
+        confidence: select.output(EDITION.column(&EntityEditions::Confidence)),
         source_confidence: select.output(CorpusTable::Links.column(Links::SourceConfidence)),
         target_confidence: select.output(CorpusTable::Links.column(Links::TargetConfidence)),
     };
@@ -279,19 +279,19 @@ pub(super) fn edge_statement<'params>(
                 .inner_join_on(
                     EDITION.from_item(),
                     [EDITION
-                        .column(EntityEditions::EditionId)
+                        .column(&EntityEditions::EditionId)
                         .equal(CorpusTable::Links.column(Links::EntityEditionId))],
                 )
                 .left_join_on(
                     EMBEDDING.from_item(),
                     [
                         EMBEDDING
-                            .column(EntityEmbeddings::WebId)
+                            .column(&EntityEmbeddings::WebId)
                             .equal(CorpusTable::Links.column(Links::WebId)),
                         EMBEDDING
-                            .column(EntityEmbeddings::EntityUuid)
+                            .column(&EntityEmbeddings::EntityUuid)
                             .equal(CorpusTable::Links.column(Links::EntityUuid)),
-                        EMBEDDING.column(EntityEmbeddings::Property).is_null(),
+                        EMBEDDING.column(&EntityEmbeddings::Property).is_null(),
                     ],
                 )
                 .left_join_on(

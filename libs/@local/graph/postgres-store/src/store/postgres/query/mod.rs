@@ -30,14 +30,14 @@ use type_system::knowledge::{Entity, PropertyValue};
 
 pub use self::{
     ast::{
-        Aliased, BinaryExpression, BinaryOperator, Binder, BoundStatement, ColumnName,
-        ColumnReference, Constant, Correlation, Distinctness, EqualityOperator, Expression,
-        FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
-        FromItemTableBuilder, Function, GroupByExpression, Identifier, JoinType, OnConflict,
-        OrderByExpression, Placeholder, SelectExpression, SelectList, SelectStatement,
-        SetOperation, SetOperator, Statement, TableName, TableReference, UnaryExpression,
-        UnaryOperator, VariadicExpression, VariadicOperator, WhereExpression, WindowStatement,
-        WithExpression, bulk_insert,
+        Aliased, AliasedCorrelation, BinaryExpression, BinaryOperator, Binder, BoundStatement,
+        ColumnName, ColumnReference, Constant, Correlation, Distinctness, EqualityOperator,
+        Expression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
+        FromItemSubqueryBuilder, FromItemTableBuilder, Function, GroupByExpression, Identifier,
+        JoinType, OnConflict, OrderByExpression, Placeholder, SelectExpression, SelectList,
+        SelectStatement, SetOperation, SetOperator, Statement, TableName, TableReference,
+        UnaryExpression, UnaryOperator, VariadicExpression, VariadicOperator, WhereExpression,
+        WindowStatement, WithExpression, bulk_insert,
     },
     compile::{SelectCompiler, SelectCompilerError},
     postgres_type::PostgresType,
