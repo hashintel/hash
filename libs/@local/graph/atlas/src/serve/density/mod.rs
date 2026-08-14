@@ -153,18 +153,18 @@ const impl Default for DensityBand {
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
-pub struct CutOffset(u8);
+pub(crate) struct CutOffset(u8);
 
 impl CutOffset {
     /// The generation's own schedule.
     ///
     /// Every zoom keeps its recorded cut. Every schedule leaves room for this offset, so it is the
     /// resolution of a view with no occupancy to aim with.
-    pub const ZERO: Self = Self(0);
+    pub(crate) const ZERO: Self = Self(0);
 
     /// Returns the offset.
     #[must_use]
-    pub const fn get(self) -> u8 {
+    pub(crate) const fn get(self) -> u8 {
         self.0
     }
 

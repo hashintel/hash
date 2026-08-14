@@ -32,13 +32,12 @@ use crate::{
     identity::{BasePosition, NodeRowId, OntologyRowId},
     math::{Bounds2, Vec2},
     salt::wire::{
+        Mode,
         cbor::CborWriter,
         tests::section,
-        tile::{DeliveredSet, GlobalHead, TileHead, TileResponse, TileTrailer},
+        tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
     },
-    serve::{
-        CutOffset, Mode, TileCoordinate, TileLimits, TileQuery, TileRequest, tile::TileDetail,
-    },
+    serve::{CutOffset, TileLimits, TileQuery, TileRequest, tile::TileDetail},
 };
 
 /// Each ontology row's own icon, by row, empty for a row that displays none.

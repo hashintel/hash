@@ -22,9 +22,9 @@ use type_system::ontology::id::{BaseUrl, VersionedUrl};
 use zerocopy::{LE, U64};
 
 use super::{
-    Atlas, CutOffset, EdgesError, EdgesLimits, EdgesRequest, GenerationId, GenerationRoot, Mode,
-    OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest, View,
-    ViewCensus, VisibilityLimits, VisibilityProof, WireRow, WireSecret, codec,
+    Atlas, CutOffset, EdgesError, EdgesLimits, EdgesRequest, GenerationId, OpenOptions,
+    ServeLimits, TileError, TileLimits, TileQuery, TileRequest, View, ViewCensus, VisibilityLimits,
+    VisibilityProof, WireRow, WireSecret, codec,
     edges::EdgesDetail,
     error::OpenAtlasError,
     hydrate::{
@@ -37,11 +37,13 @@ use super::{
 };
 use crate::{
     bitset::{CompressedBitSet, DenseBitSlice},
+    file::generation::GenerationRoot,
     identity::{BasePosition, CardRow, EdgeRowId, NodeRowId, OntologyRowId},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         landmark::select::SelectionOptions,
         policy::classifier,
+        wire::{Mode, tile::TileCoordinate},
     },
 };
 

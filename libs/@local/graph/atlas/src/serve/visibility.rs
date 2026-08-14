@@ -101,7 +101,7 @@ pub(crate) enum ProofKind {
 /// nothing, so masks from the wrong universe mask the wrong rows undetected, and pinning the proof
 /// to its own generation is the caller's contract.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VisibilityProof {
+pub(crate) struct VisibilityProof {
     nodes: Rows<NodeRowId>,
     edges: Rows<EdgeRowId>,
 }
@@ -117,7 +117,7 @@ impl VisibilityProof {
     /// This value is the authority of a context that holds the corpus outright, such as operator
     /// tooling over a trusted port and the fixtures that assert unmasked delivery.
     #[must_use]
-    pub const fn full_visibility() -> Self {
+    pub(crate) const fn full_visibility() -> Self {
         Self {
             nodes: Rows::Full,
             edges: Rows::Full,
@@ -240,7 +240,7 @@ impl VisibilityProof {
 /// function that takes a [`VisibleRow`]. The value is the internal row id for in-process gathers,
 /// and it never crosses the wire.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct VisibleRow(NodeRowId);
+pub(crate) struct VisibleRow(NodeRowId);
 
 impl VisibleRow {
     /// Returns the proven row id.
@@ -275,7 +275,11 @@ impl Atlas {
     /// downstream. The transport renders one problem body for both, and nothing upstream
     /// of this seam logs or branches on the cause.
     #[must_use]
-    pub fn resolve(&self, proof: &VisibilityProof, wire: WireRow<NodeRowId>) -> Option<VisibleRow> {
+    pub(crate) fn resolve(
+        &self,
+        proof: &VisibilityProof,
+        wire: WireRow<NodeRowId>,
+    ) -> Option<VisibleRow> {
         proof.verify(self.node_codec.decode(wire)?)
     }
 }

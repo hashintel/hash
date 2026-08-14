@@ -226,7 +226,7 @@ impl FromStr for GenerationId {
 
 /// The directory of published generations.
 #[derive(Debug, Clone)]
-pub struct GenerationRoot {
+pub(crate) struct GenerationRoot {
     path: Utf8PathBuf,
 }
 
@@ -236,7 +236,7 @@ impl GenerationRoot {
     /// # Errors
     ///
     /// Returns an error when creating the directory fails.
-    pub fn new(path: impl Into<Utf8PathBuf>) -> io::Result<Self> {
+    pub(crate) fn new(path: impl Into<Utf8PathBuf>) -> io::Result<Self> {
         let path = path.into();
         fs::create_dir_all(&path)?;
 
@@ -293,7 +293,7 @@ impl GenerationRoot {
     /// # Errors
     ///
     /// Returns an error when reading the pointer fails or its content does not name a generation.
-    pub fn current(&self) -> Result<Option<GenerationId>, CurrentError> {
+    pub(crate) fn current(&self) -> Result<Option<GenerationId>, CurrentError> {
         // Parsed, never mapped: the pointer is one hex line, rewritten
         // on every activation, and hand-editable for rollback.
         let content = match fs::read_to_string(self.path.join(CURRENT_FILE)) {

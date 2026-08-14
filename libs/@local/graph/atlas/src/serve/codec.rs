@@ -70,13 +70,13 @@ pub(crate) const NODE_LABEL: &[u8] = b"atlas.wire.node.v1";
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, schemars::JsonSchema)]
 #[repr(transparent)]
 #[schemars(transparent)]
-pub struct WireRow<I>(u32, #[schemars(skip)] PhantomData<I>);
+pub(crate) struct WireRow<I>(u32, #[schemars(skip)] PhantomData<I>);
 
 impl<I> WireRow<I> {
     /// Returns the wire value.
     #[inline]
     #[must_use]
-    pub const fn get(self) -> u32 {
+    pub(crate) const fn get(self) -> u32 {
         self.0
     }
 }

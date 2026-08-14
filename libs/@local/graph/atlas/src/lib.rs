@@ -124,13 +124,13 @@
 #![allow(rustdoc::private_intra_doc_links)]
 extern crate alloc;
 
-pub mod api;
+pub(crate) mod api;
 #[cfg(feature = "bench")]
 pub mod bench;
 pub(crate) mod bitset;
 pub mod cli;
 pub(crate) mod dataset;
-mod file;
+pub(crate) mod file;
 pub(crate) mod identity;
 pub(crate) mod integrity;
 pub(crate) mod math;
@@ -139,5 +139,5 @@ pub(crate) mod offload;
 pub(crate) mod progress;
 pub(crate) mod random;
 pub(crate) mod runs;
-mod salt;
-pub mod serve;
+pub(crate) mod salt;
+pub(crate) mod serve;

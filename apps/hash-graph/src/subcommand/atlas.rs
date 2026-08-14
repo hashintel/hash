@@ -92,7 +92,7 @@ pub(crate) async fn run_atlas(
     let router = cli::ServeCommand::new(root, serve)
         .run(
             Arc::new(pool),
-            hash_graph_atlas::serve::VisibilityLimits::default(),
+            hash_graph_atlas::cli::VisibilityLimits::default(),
         )
         .map_err(Report::new)
         .change_context(GraphError)?

@@ -9,10 +9,10 @@ use hash_graph_postgres_store::store::PostgresStorePool;
 
 use crate::{
     api,
+    file::generation::{CurrentError, GenerationRoot},
     serve::{
-        Atlas, CurrentError, EdgesLimits, GenerationRoot, GraphDatabaseClient, LocateLimits,
-        OpenAtlasError, OpenOptions, ServeLimits, TileLimits, TranslateLimits, VisibilityLimits,
-        WireSecret,
+        Atlas, EdgesLimits, GraphDatabaseClient, LocateLimits, OpenAtlasError, OpenOptions,
+        ServeLimits, TileLimits, TranslateLimits, VisibilityLimits, WireSecret,
     },
 };
 

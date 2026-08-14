@@ -9,7 +9,7 @@ use hashql_core::id::{IdVec, bit_vec::DenseBitSet};
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
-    Atlas, TileCoordinate, grid,
+    Atlas, grid,
     hydrate::{DetailError, EdgeLinkDetails, EdgeSlot, EdgesStore},
     intern::{Table, TableIndex},
     neighbourhood::{EdgeColumns, Neighbourhood},
@@ -19,7 +19,10 @@ use super::{
 };
 use crate::{
     identity::NodeRowId,
-    salt::wire::edges::{EdgesResponse, EdgesTrailer},
+    salt::wire::{
+        edges::{EdgesResponse, EdgesTrailer},
+        tile::TileCoordinate,
+    },
 };
 
 /// An edges request the atlas rejects, by name.
@@ -125,7 +128,7 @@ pub(crate) struct EdgesRequest {
 /// one value and the manifest publishes the same value, so enforcement and advertisement cannot
 /// disagree.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct EdgesLimits {
+pub(crate) struct EdgesLimits {
     /// Most tiles one request may list.
     ///
     /// The manifest publishes this value as `limits.edgesTiles`.
@@ -150,7 +153,7 @@ const impl Default for EdgesLimits {
 /// encoding - the envelope was designed for hydration-last, and the split mirrors it: assembly and
 /// encoding are CPU-bound, hydration awaits the store between them.
 #[derive(Debug)]
-pub struct EdgesDocument {
+pub(crate) struct EdgesDocument {
     complete: bool,
     /// The delivered edges in column form, ascending link-entity identity bytes.
     edges: EdgeColumns,
@@ -286,7 +289,7 @@ impl Atlas {
     /// This panics when supplied details do not cover the document's delivered edges, which is a
     /// transport bug rather than request data.
     #[must_use]
-    pub fn encode_edges(
+    fn encode_edges(
         &self,
         document: &EdgesDocument,
         details: Option<&EdgeLinkDetails<'_>>,

@@ -58,7 +58,7 @@ const impl Default for TranslateLimits {
 /// Every variant is a named, data-carrying rejection for the transport layer to map onto its error
 /// vocabulary.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TranslateError {
+pub(crate) enum TranslateError {
     /// The request lists more entity ids than the cap admits.
     Ids {
         /// The listed id count.
@@ -86,7 +86,7 @@ impl Error for TranslateError {}
 /// The ratified POST body of one translate read.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct TranslateRequest {
+pub(crate) struct TranslateRequest {
     /// The upstream entity ids to translate, in the `webId~entityUuid` form.
     ///
     /// Duplicates are legal and collapse.
@@ -97,7 +97,7 @@ pub struct TranslateRequest {
 ///
 /// The row id every binary response uses, plus the node's position in the map's coordinate frame.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, schemars::JsonSchema)]
-pub struct TranslatedNode {
+pub(crate) struct TranslatedNode {
     /// The node row id, the `ROW_IDS` domain.
     pub id: WireRow<NodeRowId>,
     /// The wire-frame x coordinate, the `POSITIONS` domain.
@@ -111,7 +111,7 @@ pub struct TranslatedNode {
 /// An edge has no row id of its own. Binary responses identify it by its link entity id, which the
 /// requester already holds, so translation answers the two points it joins.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
-pub struct TranslatedEdge {
+pub(crate) struct TranslatedEdge {
     /// The source node row id, the `ROW_IDS` domain.
     pub source: WireRow<NodeRowId>,
     /// The target node row id, the `ROW_IDS` domain.
@@ -125,7 +125,7 @@ pub struct TranslatedEdge {
 ///
 /// The maps serialize in key order, so identical requests yield identical response bytes.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, schemars::JsonSchema)]
-pub struct TranslateResponse {
+pub(crate) struct TranslateResponse {
     /// Resolved nodes by requested id.
     pub nodes: BTreeMap<String, TranslatedNode>,
     /// Resolved edges by requested id.
@@ -147,7 +147,7 @@ impl Atlas {
     ///
     /// Returns [`TranslateError::Ids`] when the request lists more entity ids than
     /// `limits.entity_ids`.
-    pub fn translate(
+    pub(crate) fn translate(
         &self,
         request: TranslateRequest,
         limits: TranslateLimits,

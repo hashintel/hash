@@ -8,7 +8,7 @@ use core::{error::Error, fmt};
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
-    Atlas, Mode, TileCoordinate,
+    Atlas,
     colour::{MaskSet, Palette},
     density::ViewOccupancy,
     grid,
@@ -21,7 +21,10 @@ use crate::{
     dataset::auxiliary::{Icon, Label},
     salt::{
         postings::closure::IconSource,
-        wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
+        wire::{
+            Mode,
+            tile::{GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
+        },
     },
 };
 
@@ -52,7 +55,7 @@ const impl Default for TileLimits {
 /// vocabulary; none of them can result from a well-formed request against the serving contract's
 /// limits, which the manifest publishes as data.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TileError {
+pub(crate) enum TileError {
     /// The request carries more `coloredTypeIds` than the cap admits.
     Types {
         /// The carried id count.
@@ -121,7 +124,7 @@ impl From<ViewError> for TileError {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub enum TileDetail {
+pub(crate) enum TileDetail {
     #[default]
     Minimal,
     Auxiliary,
@@ -130,7 +133,7 @@ pub enum TileDetail {
 /// The query context of one tile request: the ratified POST body, every field optional.
 #[derive(Debug, Clone, Default, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct TileQuery {
+pub(crate) struct TileQuery {
     /// The delivery mode, defaulting to delta when the request names none.
     #[serde(default)]
     pub mode: Mode,
@@ -150,7 +153,7 @@ pub struct TileQuery {
 ///
 /// The route's coordinate plus the body's query context, joined by the transport layer.
 #[derive(Debug, Clone)]
-pub struct TileRequest {
+pub(crate) struct TileRequest {
     /// The tile address from the route.
     pub coordinate: TileCoordinate,
     /// The query context from the request body.
@@ -188,7 +191,7 @@ impl Atlas {
     /// # Errors
     ///
     /// As [`Atlas::assemble_tile`].
-    pub fn tile(
+    pub(crate) fn tile(
         &self,
         request: &TileRequest,
         limits: TileLimits,

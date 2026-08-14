@@ -12,7 +12,10 @@ use super::{
     saltile::{Saltile, spawn},
     visibility::{Visibility, view_problem},
 };
-use crate::serve::{TileCoordinate, TileError, TileQuery, TileRequest};
+use crate::{
+    salt::wire::tile::TileCoordinate,
+    serve::{TileError, TileQuery, TileRequest},
+};
 
 /// The operation's description.
 const DESCRIPTION: &str =

@@ -46,7 +46,7 @@ use crate::{
 /// default: every open names its secret explicitly, so no deployment can serve under key material
 /// it never configured.
 #[derive(Debug, Clone)]
-pub struct OpenOptions {
+pub(crate) struct OpenOptions {
     /// The server secret behind the wire row-id codec.
     ///
     /// The keyed permutation derives from it per generation at open.
@@ -320,7 +320,7 @@ impl Atlas {
     /// Deriving the wire codec returns [`OpenAtlasError::Universe`] when the row count exceeds the
     /// wire's `u32` id domain.
     #[tracing::instrument(skip_all)]
-    pub fn open(
+    pub(crate) fn open(
         root: &GenerationRoot,
         id: GenerationId,
         OpenOptions { wire_secret }: OpenOptions,

@@ -62,7 +62,7 @@ pub(crate) enum Kind {
 /// request names none.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
-pub enum Mode {
+pub(crate) enum Mode {
     /// This tile's own additions, on top of the ancestor deliveries the client accumulates. The
     /// default.
     #[default]

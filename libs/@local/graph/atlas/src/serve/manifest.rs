@@ -6,8 +6,8 @@
 
 use core::fmt;
 
-use super::{Atlas, GenerationId, ServeLimits, VARIANTS, VisibilityLimits, density::CutOffset};
-use crate::salt::wire::WIRE_VERSION;
+use super::{Atlas, ServeLimits, VARIANTS, VisibilityLimits, density::CutOffset};
+use crate::{file::generation::GenerationId, salt::wire::WIRE_VERSION};
 
 /// The serving limits of the manifest's `limits` block.
 ///
@@ -31,7 +31,7 @@ use crate::salt::wire::WIRE_VERSION;
 // Never built freehand outside tests: `ServeLimits::manifest_limits` is the one derivation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct ManifestLimits {
+pub(crate) struct ManifestLimits {
     /// Most `coloredTypeIds` entries one request may carry.
     pub colored_type_ids: u32,
     /// Most tiles one edges request may list.
@@ -59,7 +59,7 @@ impl ServeLimits {
     /// windows from `visibility`, the pair the cache enforces. One source per value, so the
     /// published limits cannot disagree with enforcement.
     #[must_use]
-    pub const fn manifest_limits(&self, visibility: VisibilityLimits) -> ManifestLimits {
+    pub(crate) const fn manifest_limits(&self, visibility: VisibilityLimits) -> ManifestLimits {
         ManifestLimits {
             colored_type_ids: self.tile.colored_type_ids,
             edges_tiles: self.edges.tiles,
@@ -81,7 +81,7 @@ impl ServeLimits {
 /// own, sealed into the authority token minted beside this document.
 #[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Manifest {
+pub(crate) struct Manifest {
     /// The generation identity, echoing the route.
     pub generation: GenerationId,
     /// The `SALTILE` family version the tile bytes speak.
@@ -112,7 +112,7 @@ pub struct Manifest {
 /// The manifest's `bucketSchedule` block.
 #[derive(Debug, Copy, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct BucketSchedule {
+pub(crate) struct BucketSchedule {
     /// Cells per tile axis of the delivery cut: `2^span`.
     pub span: u32,
     /// The rule by which zoom `z` delivers buckets at or below `z + span`.
@@ -129,7 +129,7 @@ pub struct BucketSchedule {
 )]
 #[derive(Debug, Copy, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct ScopeCutSchedule {
+pub(crate) struct ScopeCutSchedule {
     /// The resolved delivery-cut offset the authority token seals.
     pub k: u8,
     /// The rule by which zoom `z` delivers scope buckets at or below `z + span + k`.
@@ -142,7 +142,7 @@ pub struct ScopeCutSchedule {
 /// Zoom `z`'s cumulative schedule delivers buckets at or below `z + span`, and the wire form is
 /// that formula: the string `z+<span>`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct BucketCut {
+pub(crate) struct BucketCut {
     /// The schedule's span exponent, the formula's addend.
     span_log2: u8,
 }
@@ -169,7 +169,7 @@ impl Atlas {
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
     )]
-    pub fn manifest(&self, limits: ManifestLimits, k: CutOffset) -> Manifest {
+    pub(crate) fn manifest(&self, limits: ManifestLimits, k: CutOffset) -> Manifest {
         // Timestamps serialize as ISO-8601 strings; anything else
         // degrades to an absent `createdAt` rather than panicking a
         // read path.

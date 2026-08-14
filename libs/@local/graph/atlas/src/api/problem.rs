@@ -17,7 +17,7 @@ use axum::{
 };
 
 use super::AppState;
-use crate::serve::{GenerationId, VARIANTS};
+use crate::{file::generation::GenerationId, serve::VARIANTS};
 
 /// The `type` member of one problem document: Surface v1's stable root-relative URIs.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]

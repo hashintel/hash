@@ -21,7 +21,7 @@ use crate::integrity::{ParseHexError, SecretHexBytes};
 
 /// A wire secret the configured form does not encode.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum WireSecretError {
+pub(crate) enum WireSecretError {
     /// The text is not exactly 64 characters.
     Length {
         /// The carried character count.
@@ -62,15 +62,15 @@ impl Error for WireSecretError {}
 /// [`WireSecret::from_hex`] decodes the configured form - exactly 64 lowercase hexadecimal
 /// characters - and [`WireSecret::new`] takes the raw bytes directly.
 #[derive(Clone)]
-pub struct WireSecret(SecretHexBytes<{ Self::BYTES }>);
+pub(crate) struct WireSecret(SecretHexBytes<{ Self::BYTES }>);
 
 impl WireSecret {
     /// The key width, bytes.
-    pub const BYTES: usize = 32;
+    pub(crate) const BYTES: usize = 32;
 
     /// Wraps raw key bytes.
     #[must_use]
-    pub const fn new(bytes: [u8; Self::BYTES]) -> Self {
+    pub(crate) const fn new(bytes: [u8; Self::BYTES]) -> Self {
         Self(SecretHexBytes::new(bytes))
     }
 
@@ -87,7 +87,7 @@ impl WireSecret {
     /// let secret =
     ///     WireSecret::from_hex("6ad599a5c17e1fc4d7e2988bd4f3e0367f3c4a35d6dae135f9a1e0efc775ce55")?;
     /// ```
-    pub fn from_hex(text: &str) -> Result<Self, WireSecretError> {
+    pub(crate) fn from_hex(text: &str) -> Result<Self, WireSecretError> {
         let bytes = text.parse().map_err(|error| match error {
             ParseHexError::Length { actual, .. } => WireSecretError::Length { characters: actual },
             ParseHexError::Character { index, .. } => WireSecretError::Digit { position: index },

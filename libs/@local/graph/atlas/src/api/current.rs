@@ -4,7 +4,7 @@ use aide::{axum::IntoApiResponse, transform::TransformOperation};
 use axum::{Json, extract::State, http::header};
 
 use super::{AppState, headers};
-use crate::serve::GenerationId;
+use crate::file::generation::GenerationId;
 
 /// The operation's description.
 const DESCRIPTION: &str = "Returns the generation this server serves, pinned at startup.

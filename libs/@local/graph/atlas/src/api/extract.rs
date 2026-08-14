@@ -29,7 +29,7 @@ use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
 
 use super::problem::{Problem, ProblemType};
-use crate::serve::GenerationId;
+use crate::file::generation::GenerationId;
 
 /// The generation/variant pair addressing one fitted layout.
 ///
@@ -189,6 +189,7 @@ mod tests {
     use tower::ServiceExt as _;
 
     use super::{Body, Coordinates, Generation};
+    use crate::file::generation::GenerationId;
 
     /// A minimal operation body for the extraction tests.
     #[derive(Debug, PartialEq, Eq, serde::Deserialize, schemars::JsonSchema)]
@@ -339,7 +340,7 @@ mod tests {
     /// A generation-bearing path shape.
     #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
     struct Layout {
-        generation: crate::serve::GenerationId,
+        generation: GenerationId,
     }
 
     /// Routes a generation id through a real router, where path extraction runs.

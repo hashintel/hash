@@ -34,16 +34,6 @@ use std::io;
 
 use clap::ValueHint;
 
-use crate::serve::GenerationRoot;
-
-mod fit;
-mod postgres;
-mod report;
-mod serve;
-mod shell;
-#[cfg(feature = "cli")]
-mod tui;
-
 pub(crate) use self::report::ReportCommand;
 #[cfg(feature = "cli")]
 pub use self::shell::main;
@@ -52,7 +42,19 @@ pub use self::{
     postgres::{ConnectError, PostgresArgs, connect},
     serve::{ServeArgs, ServeCommand, ServeError},
 };
-pub use crate::salt::runner::live::{ClassifierSource, Options, Placement, RunError, Summary};
+use crate::file::generation::GenerationRoot;
+pub use crate::{
+    salt::runner::live::{ClassifierSource, Options, Placement, RunError, Summary},
+    serve::{LocateLimits, TileLimits, TranslateLimits, VisibilityLimits},
+};
+
+mod fit;
+mod postgres;
+mod report;
+mod serve;
+mod shell;
+#[cfg(feature = "cli")]
+mod tui;
 
 /// The generation-root flag, shared by every command that opens one.
 ///

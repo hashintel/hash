@@ -29,7 +29,7 @@ use super::{
 /// [`ViewError::Offset`] is the one a caller can act on. Its token sealed an offset under a
 /// contract this process no longer serves, and a fresh mint reseals it.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ViewError {
+pub(crate) enum ViewError {
     /// The proof and the schedule it travelled with pair the wrong variants.
     ///
     /// Each proof constructor pairs with exactly one [`ViewSchedule`] variant, and binding refuses
@@ -79,7 +79,7 @@ impl Error for ViewError {}
 /// The value borrows the resolution it binds, which a scope holds for its reuse window, so
 /// construction costs only per-request arithmetic and repeats no per-scope work.
 #[derive(Debug, Copy, Clone)]
-pub struct View<'scope> {
+pub(crate) struct View<'scope> {
     /// The rows the scope may see.
     proof: &'scope VisibilityProof,
     /// The corpus-wide census of what [`Self::proof`] admits, resolved with it.

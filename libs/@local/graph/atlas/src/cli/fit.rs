@@ -11,6 +11,7 @@ use tokio_postgres::Client;
 
 use crate::{
     dataset::TemporalAxes,
+    file::generation::GenerationRoot,
     integrity::SecretString,
     progress::{NoProgress, Progress},
     salt::{
@@ -20,7 +21,6 @@ use crate::{
         knn::recall::RecallAdmission,
         runner::live::{ClassifierSource, Options, Placement, RunError, Summary, live},
     },
-    serve::GenerationRoot,
 };
 
 /// The embedding endpoint the fit dials.

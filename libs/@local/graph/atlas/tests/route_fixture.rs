@@ -54,10 +54,7 @@ use axum::{
     http::{Request, StatusCode, header::CONTENT_TYPE},
 };
 use clap::Parser;
-use hash_graph_atlas::{
-    cli::{RootArgs, ServeArgs, ServeCommand},
-    serve::VisibilityLimits,
-};
+use hash_graph_atlas::cli::{RootArgs, ServeArgs, ServeCommand, VisibilityLimits};
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,

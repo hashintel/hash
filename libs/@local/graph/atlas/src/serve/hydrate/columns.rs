@@ -319,7 +319,7 @@ impl<'details> LocateLinkDetails<'details> {
 ///
 /// One label and one first-type reference per edge.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EdgeLinkDetails<'details> {
+pub(crate) struct EdgeLinkDetails<'details> {
     /// The link entity's display label per delivered edge.
     labels: IdVec<EdgeSlot, &'details Label>,
     /// The link's first direct type's versioned URL per delivered edge.

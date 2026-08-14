@@ -77,7 +77,11 @@ pub(crate) use self::{
 use self::{grid::Grid, schedule::ScopeSchedule};
 use crate::{
     dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
-    file::{generation::Generation, morton::read::MortonFile, quad::read::QuadFile},
+    file::{
+        generation::{Generation, GenerationId},
+        morton::read::MortonFile,
+        quad::read::QuadFile,
+    },
     identity::{BasePosition, Column, EdgeRowId, ImportanceRank, NodeRowId, OntologyRowId},
     math::{Bounds2, Log2, Vec2},
     salt::{
@@ -85,10 +89,6 @@ use crate::{
         fit::prepare::identity::IdentityTableArchive,
         postings::{artifact::PostingsArchive, closure::ClosureMap},
     },
-};
-pub use crate::{
-    file::generation::{CurrentError, GenerationId, GenerationRoot},
-    salt::wire::{Mode, tile::TileCoordinate},
 };
 
 pub(crate) mod cache;
@@ -131,7 +131,7 @@ pub(crate) const VARIANTS: [&str; 1] = ["plain"];
 /// manifest publishes only some of the controls. The per-endpoint limits types document their
 /// defaults, and none of those defaults is a wire constant.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ServeLimits {
+pub(crate) struct ServeLimits {
     /// The tile endpoint's limits.
     pub tile: TileLimits = TileLimits::default(),
     /// The edges endpoint's limits.
@@ -190,7 +190,7 @@ const impl Default for ServeLimits {
 /// )?;
 /// ```
 #[derive(Debug)]
-pub struct Atlas {
+pub(crate) struct Atlas {
     generation: Generation,
     /// The server secret this generation opened under.
     ///

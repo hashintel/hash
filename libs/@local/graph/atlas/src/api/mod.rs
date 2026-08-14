@@ -136,7 +136,7 @@ struct AppState {
 ///
 /// This panics when the OpenAPI document fails to serialize, which the statically declared route
 /// table rules out.
-pub fn router(
+pub(crate) fn router(
     atlas: Arc<Atlas>,
     limits: ServeLimits,
     details: Arc<GraphDatabaseClient>,

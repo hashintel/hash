@@ -12,7 +12,7 @@ use hashql_core::id::{IdSlice, IdVec};
 use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
 use super::{
-    Atlas, ServeLimits, TileCoordinate, WireRow,
+    Atlas, ServeLimits, WireRow,
     colour::Palette,
     grid,
     hydrate::{
@@ -29,7 +29,10 @@ use crate::{
     dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
     identity::{BasePosition, NodeRowId},
     morton::MortonKey,
-    salt::wire::locate::{LocateResponse, LocateTrailer, PropertyMap, PropertyValue},
+    salt::wire::{
+        locate::{LocateResponse, LocateTrailer, PropertyMap, PropertyValue},
+        tile::TileCoordinate,
+    },
 };
 
 /// The locate endpoint's limits.

@@ -145,7 +145,7 @@ struct PositionBucket {
     reason = "`k` is the delivery-cut offset's name throughout the density contract"
 )]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ScheduleWidthError {
+pub(crate) struct ScheduleWidthError {
     /// The generation's deepest served tile zoom.
     pub max_tile_depth: u8,
     /// The generation's span exponent.

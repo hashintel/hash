@@ -200,14 +200,14 @@ async fn read_detail(
 /// The pool's settings carry the deployment's property protection, so a serving process masks
 /// exactly the properties that process's store protects.
 #[derive(Debug)]
-pub struct GraphDatabaseClient {
+pub(crate) struct GraphDatabaseClient {
     pool: Arc<PostgresStorePool>,
 }
 
 impl GraphDatabaseClient {
     /// Opens the detail path over the serving store pool.
     #[must_use]
-    pub const fn new(pool: Arc<PostgresStorePool>) -> Self {
+    pub(crate) const fn new(pool: Arc<PostgresStorePool>) -> Self {
         Self { pool }
     }
 

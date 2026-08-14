@@ -27,9 +27,10 @@ use super::{
     visibility::{self, Actor},
 };
 use crate::{
+    file::generation::GenerationId,
     integrity::HexBytes,
     serve::{
-        Atlas, CutOffset, DensityPolicy, GenerationId, Manifest, ViewOccupancy, VisibilityProof,
+        Atlas, CutOffset, DensityPolicy, Manifest, ViewOccupancy, VisibilityProof,
         authorization::{Scope, ScopeFilter},
         cache::scope::FilterDigest,
         visibility::ProofKind,
