@@ -11,6 +11,11 @@ export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Chip, type ChipColor } from "./components/Chip/chip";
 export { Dialog } from "./components/Dialog/dialog";
 export { Drawer } from "./components/Drawer/drawer";
+export { Filter, type FilterOperator } from "./components/Filter/filter";
+export type {
+  FilterChange,
+  FilterValue,
+} from "./components/Filter/filter-util";
 export { Form } from "./components/Form/form";
 export { HelpTooltip } from "./components/HelpTooltip/help-tooltip";
 export { Icon, type IconName, iconNames } from "./components/Icon/icon";

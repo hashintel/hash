@@ -28,9 +28,25 @@ export type InputFor<Value> = [Value] extends [null]
     ? TextInput
     : [Value] extends [number]
       ? NumberInput
-      : [Value] extends [ReadonlyArray<unknown>]
-        ? { [Index in keyof Value]: InputFor<Value[Index]> }
-        : Input | ReadonlyArray<Input> | null;
+      : [Value] extends [infer Tuple extends ReadonlyArray<unknown>]
+        ? InputArrayFor<Tuple>
+        : Input | ReadonlyArray<Input | string> | null;
+
+/**
+ * Tuple of inputs matching a value tuple element-wise, optionally with a
+ * static string segment (rendered as separator text, e.g. "-") between
+ * consecutive inputs. Separators carry no value, so they may only appear
+ * between inputs — never leading or trailing.
+ */
+type InputArrayFor<Value extends ReadonlyArray<unknown>> =
+  Value extends readonly [
+    infer Head,
+    ...infer Rest extends ReadonlyArray<unknown>,
+  ]
+    ? Rest extends readonly []
+      ? readonly [InputFor<Head>]
+      : readonly [InputFor<Head>, ...([] | [string]), ...InputArrayFor<Rest>]
+    : readonly [];
 
 export type FilterValue<ValueMap extends Record<string, unknown>> = {
   [Key in keyof ValueMap & string]: { key: Key; value: ValueMap[Key] | null };
