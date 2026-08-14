@@ -1,0 +1,67 @@
+---
+title: Running locally
+description: Running the architecture docs locally, and what to do when a page looks stale.
+sidebar_order: 2
+---
+
+## Running the docs
+
+```bash
+turbo run dev --filter @apps/petrinaut-docs   # http://localhost:4321
+```
+
+Run it through Turborepo, not through the package script. `yarn workspace @apps/petrinaut-docs dev` skips the task graph, so the bundle is never regenerated and the site renders whatever was last synced.
+
+Three tasks run in order, and Turborepo reports each one:
+
+```
+doc:architecture → sync:bundle → dev
+```
+
+`doc:architecture` reads the annotations and writes `bundle/`. `sync:bundle` copies that into the site's content tree. Neither is cached, because the annotations they read are source comments in other packages, which Turborepo does not hash as inputs.
+
+## Reading without a server
+
+```bash
+turbo run doc:architecture --filter @local/petrinaut-arch-docs
+```
+
+Then open `libs/@local/petrinaut-arch-docs/bundle/architecture.md` for the whole model in one file, or `bundle/diagrams/` for the rendered SVGs.
+
+## Checking annotations
+
+```bash
+yarn workspace @local/petrinaut-arch-docs lint:arch-docs
+```
+
+Around two seconds, and it needs no `d2`, because it builds the model and reports on it without rendering anything. This is the fastest way to find out whether a declaration you just wrote is valid.
+
+## When a page looks stale
+
+The site serves a copy of the bundle, so three caches sit between an annotation and what the browser shows.
+
+**A page is missing, or Astro reports `UnknownContentCollectionError`.** The synced tree no longer matches the manifest. Re-sync, then restart the dev server:
+
+```bash
+turbo run sync:bundle --filter @apps/petrinaut-docs
+```
+
+**A page is still wrong after re-syncing.** Astro caches the content collection separately. Remove it and rebuild:
+
+```bash
+rm -rf apps/petrinaut-docs/.astro
+```
+
+**A component renders in a state your code never produces.** React Refresh keeps component state across hot reloads, so a diagram can hold a value from before your edit. Open a fresh tab before deciding a bug is real.
+
+**Diagrams are missing entirely.** `d2` renders them, and the build only warns when it is absent. Install the repo's tools:
+
+```bash
+mise install
+```
+
+## Changing what the docs say
+
+The pages under [Architecture](../architecture) are generated. Editing them does nothing, since the next build overwrites the lot. Change the `@layerRoot` and `@role` annotations in the source instead, or the frontmatter of the folder README that declares the layer. See [Declaring layers](doc:maintaining/declaring-layers).
+
+Pages like this one are hand-written and live in `libs/@local/petrinaut-arch-docs/content/`. They are optional: the generator produces a complete bundle with that directory absent.
