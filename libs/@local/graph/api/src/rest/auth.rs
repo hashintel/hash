@@ -21,7 +21,10 @@ use axum::{
     middleware::Next,
     response::{IntoResponse as _, Response},
 };
-pub use hash_graph_authentication::provider::StaticAuthenticationProvider;
+pub use hash_graph_authentication::{
+    actor::StorePoolActorResolver,
+    kratos::{KratosSessionConfig, KratosSessionProvider},
+};
 use hash_graph_authentication::{
     provider::AuthenticationProvider,
     request::{
@@ -155,14 +158,15 @@ mod tests {
     use alloc::sync::Arc;
 
     use axum::{Router, body::Body, middleware, routing::get};
+    use hash_graph_authentication::provider::StaticAuthenticationProvider;
     use http::{Request, StatusCode};
     use tower::ServiceExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
     use super::{
-        AuthenticatedActorId, StaticAuthenticationProvider, actor_id_header_middleware,
-        authentication_middleware, is_bootstrap_route,
+        AuthenticatedActorId, actor_id_header_middleware, authentication_middleware,
+        is_bootstrap_route,
     };
 
     #[test]

@@ -16,8 +16,8 @@ use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
     rest::{
-        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, entity::ClusteringContext,
-        hashql::CompilerContext, rest_api_router,
+        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, auth::KratosSessionConfig,
+        entity::ClusteringContext, hashql::CompilerContext, rest_api_router,
     },
     rpc::Dependencies,
 };
@@ -167,6 +167,45 @@ pub struct CompilerConfig {
     pub compiler_exec_pool_size: PoolSize,
 }
 
+/// Configuration for Kratos session authentication.
+#[derive(Debug, Clone, Parser)]
+pub struct KratosSessionAuthConfig {
+    /// Kratos public API URL for session verification.
+    ///
+    /// Requests can authenticate with a Kratos session, provided as an `X-Session-Token` header
+    /// or an `ory_kratos_session` cookie.
+    //
+    // Optional at parse time so `--healthcheck` does not require the environment variable. The
+    // server refuses to start without it.
+    #[clap(long, env = "HASH_KRATOS_PUBLIC_URL")]
+    pub kratos_public_url: Option<Url>,
+
+    /// HTTP client timeout for session verification requests (in seconds).
+    #[clap(
+        long,
+        env = "HASH_GRAPH_SESSION_HTTP_TIMEOUT",
+        default_value_t = 10,
+        value_parser = clap::value_parser!(u64).range(1..)
+    )]
+    pub session_http_timeout_secs: u64,
+}
+
+impl KratosSessionAuthConfig {
+    /// Converts the CLI configuration into the session provider configuration.
+    fn into_provider_config(self) -> Result<KratosSessionConfig, Report<GraphError>> {
+        let kratos_public_url = self.kratos_public_url.ok_or_else(|| {
+            Report::new(GraphError).attach(
+                "--kratos-public-url (HASH_KRATOS_PUBLIC_URL) is required when running the server",
+            )
+        })?;
+
+        Ok(KratosSessionConfig {
+            kratos_public_url,
+            http_timeout: Duration::from_secs(self.session_http_timeout_secs),
+        })
+    }
+}
+
 /// Configuration for the main graph API server.
 ///
 /// Groups HTTP address, RPC address, temporal client, store behavior, and
@@ -237,6 +276,9 @@ pub struct ServerConfig {
 
     #[clap(flatten)]
     pub api_config: ApiConfig,
+
+    #[clap(flatten)]
+    pub session_auth: KratosSessionAuthConfig,
 
     #[clap(flatten)]
     pub compiler: CompilerConfig,
@@ -481,6 +523,7 @@ where
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
+        session_auth: config.session_auth.into_provider_config()?,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
         serve_api_reference: config.serve_api_reference,
