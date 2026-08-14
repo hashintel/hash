@@ -87,6 +87,26 @@ const labellingFetcher = (): TileFetcher & {
   return Object.assign(fetcher, { calls });
 };
 
+interface DeferredTileFetch {
+  readonly signal: AbortSignal | undefined;
+  readonly resolve: (tile: FetchedTile) => void;
+  readonly reject: (error: Error) => void;
+}
+
+/** A manually settled tile fetcher that records each request's abort signal. */
+const deferredFetcher = (): TileFetcher & {
+  readonly requests: DeferredTileFetch[];
+} => {
+  const requests: DeferredTileFetch[] = [];
+  const fetcher = vi.fn<TileFetcher>(
+    (_zoom, _tileIndex, controls) =>
+      new Promise((resolve, reject) => {
+        requests.push({ signal: controls?.signal, resolve, reject });
+      }),
+  );
+  return Object.assign(fetcher, { requests });
+};
+
 const viewportAt = (
   centreX: number,
   centreY: number,
@@ -546,6 +566,127 @@ describe("TileCache", () => {
 
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(a).toBe(b);
+  });
+
+  it.each(["resolve", "reject"] as const)(
+    "keeps a newer auxiliary fetch shared when an older minimal fetch %ss",
+    async (settlement) => {
+      const fetcher = deferredFetcher();
+      const { requests } = fetcher;
+      const cache = new TileCache({ fetcher });
+      const coordinate = { z: 3, x: 1, y: 2 };
+
+      const minimal = cache.load(coordinate);
+      const minimalSettlement = minimal.then(
+        () => "resolve",
+        () => "reject",
+      );
+      const auxiliary = cache.load(coordinate, "auxiliary");
+      expect(fetcher).toHaveBeenCalledTimes(2);
+
+      if (settlement === "resolve") {
+        requests[0]?.resolve({
+          nodes: [{ id: 1, x: 0, y: 0 }],
+          complete: false,
+        });
+      } else {
+        requests[0]?.reject(new Error("minimal failed"));
+      }
+      expect(await minimalSettlement).toBe(settlement);
+
+      const sharedAuxiliary = cache.load(coordinate, "auxiliary");
+      expect(fetcher).toHaveBeenCalledTimes(2);
+      requests[1]?.resolve({
+        nodes: [{ id: 2, x: 0, y: 0, label: "auxiliary" }],
+        complete: false,
+      });
+
+      expect((await auxiliary)[0]?.label).toBe("auxiliary");
+      expect((await sharedAuxiliary)[0]?.label).toBe("auxiliary");
+    },
+  );
+
+  it.each(["resolve", "reject"] as const)(
+    "keeps a newer auxiliary fetch shared when an older prefetch %ss",
+    async (settlement) => {
+      const fetcher = deferredFetcher();
+      const { requests } = fetcher;
+      const cache = new TileCache({ fetcher });
+      const coordinate = { z: 3, x: 1, y: 2 };
+
+      cache.prefetchBatch([coordinate]);
+      const auxiliary = cache.load(coordinate, "auxiliary");
+      expect(fetcher).toHaveBeenCalledTimes(2);
+
+      if (settlement === "resolve") {
+        requests[0]?.resolve({
+          nodes: [{ id: 1, x: 0, y: 0 }],
+          complete: false,
+        });
+      } else {
+        requests[0]?.reject(new Error("prefetch failed"));
+      }
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+
+      const sharedAuxiliary = cache.load(coordinate, "auxiliary");
+      expect(fetcher).toHaveBeenCalledTimes(2);
+      requests[1]?.resolve({
+        nodes: [{ id: 2, x: 0, y: 0, label: "auxiliary" }],
+        complete: false,
+      });
+
+      expect((await auxiliary)[0]?.label).toBe("auxiliary");
+      expect((await sharedAuxiliary)[0]?.label).toBe("auxiliary");
+    },
+  );
+
+  it("keeps an older prefetch cancellable after a newer auxiliary fetch settles", async () => {
+    const fetcher = deferredFetcher();
+    const { requests } = fetcher;
+    const cache = new TileCache({ fetcher });
+    const coordinate = { z: 3, x: 1, y: 2 };
+
+    cache.prefetchBatch([coordinate]);
+    const auxiliary = cache.load(coordinate, "auxiliary");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    requests[1]?.resolve({
+      nodes: [{ id: 2, x: 0, y: 0, label: "auxiliary" }],
+      complete: false,
+    });
+    await auxiliary;
+    expect(requests[0]?.signal?.aborted).toBe(false);
+
+    cache.prefetchBatch([]);
+    expect(requests[0]?.signal?.aborted).toBe(true);
+    expect(cache.prefetchStats.cancelled).toBe(1);
+    requests[0]?.reject(new Error("prefetch cancelled"));
+  });
+
+  it("does not let an auxiliary claim remove an older prefetch controller", async () => {
+    const fetcher = deferredFetcher();
+    const { requests } = fetcher;
+    const cache = new TileCache({ fetcher });
+    const coordinate = { z: 3, x: 1, y: 2 };
+
+    cache.prefetchBatch([coordinate]);
+    const auxiliary = cache.load(coordinate, "auxiliary");
+    const sharedAuxiliary = cache.load(coordinate, "auxiliary");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    cache.prefetchBatch([]);
+    expect(requests[0]?.signal?.aborted).toBe(true);
+    expect(cache.prefetchStats.cancelled).toBe(1);
+    requests[0]?.reject(new Error("prefetch cancelled"));
+    requests[1]?.resolve({
+      nodes: [{ id: 2, x: 0, y: 0, label: "auxiliary" }],
+      complete: false,
+    });
+
+    expect((await auxiliary)[0]?.label).toBe("auxiliary");
+    expect((await sharedAuxiliary)[0]?.label).toBe("auxiliary");
   });
 
   it("evicts the furthest tiles to stay within budget while pinning the viewport", async () => {

@@ -354,6 +354,8 @@ interface CacheEntry {
 interface InflightFetch {
   /** The `detail` mode the pending fetch requested. */
   readonly detail: SaltileDetail;
+  /** The abort signal owned by a prefetch, absent for a required load. */
+  readonly signal: AbortSignal | undefined;
   readonly promise: Promise<readonly TileNode[]>;
 }
 
@@ -586,7 +588,12 @@ export class TileCache {
       // must not abort a fetch this viewport now depends on, and the prefetch
       // counts as a hit once it lands (marked when it settles, since the tile
       // stores only after this shared promise has already returned).
-      this.#prefetchControllers.delete(key);
+      if (
+        inFlight.signal !== undefined &&
+        this.#prefetchControllers.get(key)?.signal === inFlight.signal
+      ) {
+        this.#prefetchControllers.delete(key);
+      }
       void inFlight.promise.then(
         () => this.#markUsed(key),
         () => {},
@@ -764,19 +771,25 @@ export class TileCache {
       priority: origin === "prefetch" ? "low" : "high",
       signal,
       detail,
-    })
-      .then((fetched) => {
+    }).then((fetched) => {
+      this.#store(key, coordinate, fetched, origin);
+      return fetched.nodes;
+    });
+    this.#inflight.set(key, { detail, signal, promise: pending });
+
+    const removeSettled = () => {
+      if (this.#inflight.get(key)?.promise === pending) {
         this.#inflight.delete(key);
+      }
+      if (
+        signal !== undefined &&
+        this.#prefetchControllers.get(key)?.signal === signal
+      ) {
         this.#prefetchControllers.delete(key);
-        this.#store(key, coordinate, fetched, origin);
-        return fetched.nodes;
-      })
-      .catch((error: unknown) => {
-        this.#inflight.delete(key);
-        this.#prefetchControllers.delete(key);
-        throw error;
-      });
-    this.#inflight.set(key, { detail, promise: pending });
+      }
+    };
+    void pending.then(removeSettled, removeSettled);
+
     return pending;
   }
 
