@@ -12,10 +12,20 @@ use zerocopy::{LE, U64};
 pub(crate) use self::id::{MemoryEdgeId, MemoryNodeId, MemoryOntologyId};
 use super::{
     CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, TemporalAxes,
-    auxiliary::{OwnedIcon, OwnedLabel},
+    auxiliary::{OwnedIcon, OwnedLegend},
     card::Card,
 };
 use crate::math::BoxedVecN;
+
+/// The construction-time legend of a row: its first direct type under the empty label.
+///
+/// A typeless row's legend names ontology row 0.
+fn default_legend(ontology: &[OntologyRowId]) -> OwnedLegend {
+    OwnedLegend::new(
+        ontology.first().copied().unwrap_or(OntologyRowId::new(0)),
+        "",
+    )
+}
 
 /// A [`Dataset`] held entirely in memory.
 ///
@@ -32,21 +42,22 @@ pub(crate) struct MemoryDataset {
     ontology: Vec<Ontology<MemoryOntologyId>>,
     canonical: HashMap<u64, BoxedVecN<CANONICAL_DIMENSIONS>>,
     cards: HashMap<u64, Card>,
-    /// Display labels by node row, one entry per node.
+    /// Display legends by node row, one entry per node.
     ///
-    /// [`new`](Self::new) fills the column with empty labels, the display of a row that has
-    /// none. Assigning a replacement column gives the fixture display text. Its length must
+    /// [`new`](Self::new) fills the column with each node's first direct type under the empty
+    /// label, and a typeless node's entry names ontology row 0. Assigning a replacement column
+    /// gives the fixture display text and representatives of its own choosing. Its length must
     /// stay one entry per node row.
-    pub node_labels: Vec<OwnedLabel>,
-    /// Display labels by edge row, one entry per edge.
+    pub node_legends: Vec<OwnedLegend>,
+    /// Display legends by edge row, one entry per edge.
     ///
-    /// Empty by construction, replaceable, and one entry per edge row, as for
-    /// [`node_labels`](Self::node_labels).
-    pub edge_labels: Vec<OwnedLabel>,
+    /// Filled by construction, replaceable, and one entry per edge row, as for
+    /// [`node_legends`](Self::node_legends).
+    pub edge_legends: Vec<OwnedLegend>,
     /// Display icons by ontology row, one entry per type.
     ///
     /// Empty by construction, replaceable, and one entry per ontology row, as for
-    /// [`node_labels`](Self::node_labels).
+    /// [`node_legends`](Self::node_legends).
     pub ontology_icons: Vec<OwnedIcon>,
 }
 
@@ -117,8 +128,14 @@ impl MemoryDataset {
         }
 
         Self {
-            node_labels: vec![OwnedLabel::default(); nodes.len()],
-            edge_labels: vec![OwnedLabel::default(); edges.len()],
+            node_legends: nodes
+                .iter()
+                .map(|node| default_legend(&node.ontology))
+                .collect(),
+            edge_legends: edges
+                .iter()
+                .map(|edge| default_legend(&edge.ontology))
+                .collect(),
             ontology_icons: vec![OwnedIcon::default(); ontology.len()],
             nodes: nodes
                 .into_iter()
@@ -164,9 +181,9 @@ impl Dataset for MemoryDataset {
     type CanonicalNodeEmbeddingsStream<'this, I: Iterator<Item = Self::NodeId>> = impl Stream<Item = Result<(MemoryNodeId, BoxedVecN<CANONICAL_DIMENSIONS>), !>>
         + use<'this, I>;
     type CardStream<'this> = impl Stream<Item = io::Result<(MemoryOntologyId, Card)>> + 'this;
-    type EdgeAuxiliaryPayloadStream<'this> = impl Stream<Item = Result<OwnedLabel, !>> + 'this;
+    type EdgeAuxiliaryPayloadStream<'this> = impl Stream<Item = Result<OwnedLegend, !>> + 'this;
     type EdgeStream<'this> = impl Stream<Item = Result<Edge<MemoryEdgeId>, !>> + 'this;
-    type NodeAuxiliaryPayloadStream<'this> = impl Stream<Item = Result<OwnedLabel, !>> + 'this;
+    type NodeAuxiliaryPayloadStream<'this> = impl Stream<Item = Result<OwnedLegend, !>> + 'this;
     type NodeStream<'this> = impl Stream<Item = Result<Node<MemoryNodeId>, !>> + 'this;
     type NodeTypesStream<'this, I: Iterator<Item = Self::NodeId>> =
         impl Stream<Item = Result<(MemoryNodeId, SmallVec<OntologyRowId, 2>), !>> + use<'this, I>;
@@ -228,34 +245,34 @@ impl Dataset for MemoryDataset {
         })
     }
 
-    /// Opens the stream of fixture node labels, in row order.
+    /// Opens the stream of fixture node legends, in row order.
     ///
     /// # Panics
     ///
-    /// The stream panics when [`node_labels`](Self::node_labels) does not hold exactly one
+    /// The stream panics when [`node_legends`](Self::node_legends) does not hold exactly one
     /// entry per node row.
     fn node_auxiliary_payload(&self) -> Self::NodeAuxiliaryPayloadStream<'_> {
         assert_eq!(
-            self.node_labels.len(),
+            self.node_legends.len(),
             self.nodes.len(),
-            "the fixture carries one label per node row",
+            "the fixture carries one legend per node row",
         );
-        stream::iter(self.node_labels.iter().cloned().map(Ok::<_, !>))
+        stream::iter(self.node_legends.iter().cloned().map(Ok::<_, !>))
     }
 
-    /// Opens the stream of fixture edge labels, in row order.
+    /// Opens the stream of fixture edge legends, in row order.
     ///
     /// # Panics
     ///
-    /// The stream panics when [`edge_labels`](Self::edge_labels) does not hold exactly one
+    /// The stream panics when [`edge_legends`](Self::edge_legends) does not hold exactly one
     /// entry per edge row.
     fn edge_auxiliary_payload(&self) -> Self::EdgeAuxiliaryPayloadStream<'_> {
         assert_eq!(
-            self.edge_labels.len(),
+            self.edge_legends.len(),
             self.edges.len(),
-            "the fixture carries one label per edge row",
+            "the fixture carries one legend per edge row",
         );
-        stream::iter(self.edge_labels.iter().cloned().map(Ok::<_, !>))
+        stream::iter(self.edge_legends.iter().cloned().map(Ok::<_, !>))
     }
 
     /// Opens the stream of fixture ontology icons, in row order.

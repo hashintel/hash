@@ -8,8 +8,8 @@
 //!
 //! The id type is the dataset's ([`Dataset::NodeId`] / [`Dataset::EdgeId`]): byte-level stable,
 //! opaque to the pipeline, ordered by its bytes since source identifiers carry no other order.
-//! The payload is the row's display bytes, a label for node and edge rows and an icon for
-//! ontology rows, empty when the row displays nothing. The file format is
+//! The payload is the row's display bytes, a legend for node and edge rows and an icon for
+//! ontology rows, its type's empty value when the row displays nothing. The file format is
 //! [`file::identity`](crate::file::identity)'s, and the row domain a file covers travels in
 //! its header, so a file reopens only under the row type that wrote it.
 //!
@@ -292,7 +292,7 @@ where
 
     /// Returns the display payload of `row`, or [`None`] beyond the domain.
     ///
-    /// A row without a display value returns the empty payload.
+    /// A row without a display value returns its payload type's empty value.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "`Self::new` bounded every span by the payload region, whose length is a `usize`"
@@ -325,12 +325,12 @@ mod tests {
     use std::{fs, path::PathBuf};
 
     use fst::MapBuilder;
-    use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
+    use zerocopy::{IntoBytes as _, LE, U64};
 
     use super::{IdentityTable, IdentityTableArchive, InvalidIdentityFile};
     use crate::{
         dataset::{
-            auxiliary::{Icon, Label},
+            auxiliary::{Icon, OwnedLegend},
             memory::{MemoryNodeId, MemoryOntologyId},
             postgres::id::ArchivedOntologyTypeUuid,
         },
@@ -352,9 +352,9 @@ mod tests {
         dir.join(name)
     }
 
-    /// Borrows `text` as a label.
-    fn label(text: &str) -> &Label {
-        Label::try_ref_from_bytes(text.as_bytes()).expect("UTF-8 text is a valid label")
+    /// Owns `text` as a legend representing ontology row 0.
+    fn legend(text: &str) -> OwnedLegend {
+        OwnedLegend::new(OntologyRowId::new(0), text)
     }
 
     // Ids in row order; ascending id-byte order is rows 2, 0, 1.
@@ -376,9 +376,10 @@ mod tests {
         assert_eq!(table.push(IDS[2]), NodeRowId::new(2));
         assert_eq!(table.len(), 3);
 
+        let payloads = [legend("beta"), legend("alpha"), legend("")];
         let mut bytes = Vec::new();
         let digest = table
-            .write_into([label("beta"), label("alpha"), label("")], &mut bytes)
+            .write_into(payloads.iter().map(AsRef::as_ref), &mut bytes)
             .expect("writing into a vector cannot fail");
 
         let path = scratch(name);
@@ -410,10 +411,19 @@ mod tests {
         assert_eq!(table.id(NodeRowId::new(3)), None);
         assert_eq!(table.row_of(MemoryNodeId::new(0)), None);
 
-        // row → payload slices the interned region, empty bytes included.
-        assert_eq!(table.payload_of(NodeRowId::new(0)), Some(label("beta")));
-        assert_eq!(table.payload_of(NodeRowId::new(1)), Some(label("alpha")));
-        assert_eq!(table.payload_of(NodeRowId::new(2)), Some(label("")));
+        // row → payload slices the interned region, the empty label included.
+        assert_eq!(
+            table.payload_of(NodeRowId::new(0)),
+            Some(legend("beta").as_ref())
+        );
+        assert_eq!(
+            table.payload_of(NodeRowId::new(1)),
+            Some(legend("alpha").as_ref())
+        );
+        assert_eq!(
+            table.payload_of(NodeRowId::new(2)),
+            Some(legend("").as_ref())
+        );
         assert_eq!(table.payload_of(NodeRowId::new(3)), None);
     }
 
@@ -443,7 +453,8 @@ mod tests {
         table.push(MemoryNodeId::new(7));
         table.push(MemoryNodeId::new(7));
 
-        let _result = table.write_into(core::iter::repeat_n(label(""), 2), &mut Vec::new());
+        let empty = legend("");
+        let _result = table.write_into(core::iter::repeat_n(empty.as_ref(), 2), &mut Vec::new());
     }
 
     #[test]
@@ -454,9 +465,10 @@ mod tests {
         for id in 0..600_u64 {
             table.push(MemoryNodeId::new(id));
         }
+        let empty = legend("");
         let mut bytes = Vec::new();
         let _digest = table
-            .write_into(core::iter::repeat_n(label(""), 600), &mut bytes)
+            .write_into(core::iter::repeat_n(empty.as_ref(), 600), &mut bytes)
             .expect("writing into a vector cannot fail");
 
         let path = scratch("six-hundred.idnt");
@@ -548,10 +560,11 @@ mod tests {
     fn archive_refuses_a_payload_that_is_not_utf8() {
         let (path, _digest) = written_fixture("invalid-payload.idnt");
 
-        // The payload region starts at 0x4000 and row 0's span selects its first four bytes.
-        // 0xFF appears in no UTF-8 sequence, so the typed cast refuses.
+        // The payload region starts at 0x4000 and row 0's span selects its first twelve bytes:
+        // the eight-byte representative, then the label. No UTF-8 sequence contains 0xFF, so
+        // corrupting the label's first byte makes the typed cast refuse.
         let mut bytes = fs::read(&path).expect("the scratch file reads back");
-        bytes[0x4000] = 0xFF;
+        bytes[0x4000 + 8] = 0xFF;
         fs::write(&path, &bytes).expect("the scratch file is writable");
 
         assert_matches!(

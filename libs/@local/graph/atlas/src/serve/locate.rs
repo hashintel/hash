@@ -487,6 +487,7 @@ impl Atlas {
                     self.node_ids
                         .payload_of(row)
                         .expect("open validated the identity rows against the code column")
+                        .label()
                 } else {
                     Label::empty()
                 }
@@ -509,6 +510,7 @@ impl Atlas {
                     self.edge_ids
                         .payload_of(row)
                         .expect("open validated the identity rows against the adjacency's edges")
+                        .label()
                 } else {
                     Label::empty()
                 }

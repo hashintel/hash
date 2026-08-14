@@ -13,7 +13,7 @@ use zerocopy::{FromBytes as _, IntoBytes as _, LE, U64};
 
 use super::{
     CANONICAL_DIMENSIONS, Dataset as _, Edge, Node, Ontology, PROJECTOR_DIMENSIONS,
-    auxiliary::{OwnedIcon, OwnedLabel},
+    auxiliary::{OwnedIcon, OwnedLegend},
     card::Card,
     memory::{MemoryDataset, MemoryNodeId, MemoryOntologyId},
     postgres::id::{ArchivedEntityUuid, ArchivedOntologyTypeUuid, ArchivedWebId},
@@ -232,34 +232,53 @@ async fn memory_dataset_renders_cards() {
 async fn memory_dataset_streams_display_columns() {
     let mut dataset = fixture();
 
-    // A fresh fixture streams one empty display value per row.
-    let labels: Vec<_> = dataset
-        .node_auxiliary_payload()
-        .try_collect()
-        .await
-        .unwrap_or_else(|never| never);
-    assert_eq!(labels, vec![OwnedLabel::default(); 2]);
-
-    dataset.node_labels = vec![OwnedLabel::from("alpha"), OwnedLabel::from("beta")];
-    dataset.edge_labels = vec![OwnedLabel::from("alpha employs beta")];
-    dataset.ontology_icons = vec![OwnedIcon::from("person"), OwnedIcon::from("\u{3bb}")];
-
-    let labels: Vec<_> = dataset
+    // A fresh fixture streams each row's first direct type under the empty label.
+    let legends: Vec<_> = dataset
         .node_auxiliary_payload()
         .try_collect()
         .await
         .unwrap_or_else(|never| never);
     assert_eq!(
-        labels,
-        [OwnedLabel::from("alpha"), OwnedLabel::from("beta")]
+        legends,
+        vec![OwnedLegend::new(OntologyRowId::new(0), ""); 2]
     );
 
-    let labels: Vec<_> = dataset
+    // Node 1's replacement names a representative its ascending type list does not start with.
+    dataset.node_legends = vec![
+        OwnedLegend::new(OntologyRowId::new(0), "alpha"),
+        OwnedLegend::new(OntologyRowId::new(1), "beta"),
+    ];
+    dataset.edge_legends = vec![OwnedLegend::new(
+        OntologyRowId::new(1),
+        "alpha employs beta",
+    )];
+    dataset.ontology_icons = vec![OwnedIcon::from("person"), OwnedIcon::from("\u{3bb}")];
+
+    let legends: Vec<_> = dataset
+        .node_auxiliary_payload()
+        .try_collect()
+        .await
+        .unwrap_or_else(|never| never);
+    assert_eq!(
+        legends,
+        [
+            OwnedLegend::new(OntologyRowId::new(0), "alpha"),
+            OwnedLegend::new(OntologyRowId::new(1), "beta"),
+        ]
+    );
+
+    let legends: Vec<_> = dataset
         .edge_auxiliary_payload()
         .try_collect()
         .await
         .unwrap_or_else(|never| never);
-    assert_eq!(labels, [OwnedLabel::from("alpha employs beta")]);
+    assert_eq!(
+        legends,
+        [OwnedLegend::new(
+            OntologyRowId::new(1),
+            "alpha employs beta"
+        )]
+    );
 
     let icons: Vec<_> = dataset
         .ontology_auxiliary_payload()
@@ -273,10 +292,10 @@ async fn memory_dataset_streams_display_columns() {
 }
 
 #[test]
-#[should_panic(expected = "one label per node row")]
-fn memory_dataset_rejects_a_short_label_column() {
+#[should_panic(expected = "one legend per node row")]
+fn memory_dataset_rejects_a_short_legend_column() {
     let mut dataset = fixture();
-    dataset.node_labels.pop();
+    dataset.node_legends.pop();
 
     let _stream = dataset.node_auxiliary_payload();
 }

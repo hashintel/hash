@@ -2,13 +2,140 @@
 //!
 //! An identity file carries one display value per row in its payload region, stored as raw
 //! bytes and read back as the typed view the id type declares through
-//! [`Key::Payload`](crate::file::identity::Key::Payload). [`Label`] is the display value of a
-//! node or edge row and [`Icon`] the display value of an ontology-type row. Both are UTF-8
-//! text at byte level, so casting a payload span to either type validates UTF-8 and rejects a
-//! span that holds anything else. A row that displays nothing carries the empty value.
+//! [`Key::Payload`](crate::file::identity::Key::Payload). [`Legend`] is the display value of a
+//! node or edge row - the row's representative ontology type beside its display label - and
+//! [`Icon`] the display value of an ontology-type row. Text is UTF-8 at byte level, so casting
+//! a payload span validates it and rejects a span that holds anything else. A row that
+//! displays nothing carries its type's empty value: the empty icon, or a legend whose label
+//! is empty.
 
 use alloc::sync::Arc;
-use core::{borrow::Borrow, ops::Deref};
+use core::{borrow::Borrow, clone::CloneToUninit, mem::offset_of, ops::Deref};
+
+use zerocopy::FromZeros as _;
+
+use crate::identity::OntologyRowId;
+
+/// The display payload of a node or edge row.
+///
+/// A legend pairs a row's representative ontology type with the row's display label. Which
+/// type represents a row is the dataset's contract. Reading a legend out of a payload
+/// region validates the label bytes as UTF-8 and rejects a span shorter than the
+/// representative header. The legend of a row that displays nothing carries the empty label.
+#[derive(
+    Debug,
+    zerocopy::ByteEq,
+    zerocopy::FromZeros,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+    zerocopy::Unaligned,
+)]
+#[repr(C)]
+pub(crate) struct Legend {
+    representative_ontology: OntologyRowId,
+    label: Label,
+}
+
+impl Legend {
+    /// Returns the ontology row of the type standing for the row.
+    pub(crate) const fn representative_ontology(&self) -> OntologyRowId {
+        self.representative_ontology
+    }
+
+    /// Views the display text.
+    pub(crate) const fn label(&self) -> &Label {
+        &self.label
+    }
+}
+
+const _: () = {
+    assert!(align_of::<OntologyRowId>() == 1);
+    assert!(offset_of!(Legend, representative) == 0);
+};
+
+// SAFETY: `repr(C)` with `OntologyRowId` (`Unaligned` + `IntoBytes`) followed by `str` gives
+// every field alignment 1, so no padding exists at any length and every byte of the value is
+// initialized. The derive cannot compute this because its padding proof sizes each field and
+// special-cases only a trailing slice. `str` is layout-identical to `[u8]` but not a slice type.
+unsafe impl zerocopy::IntoBytes for Legend {
+    fn only_derive_is_allowed_to_implement_this_trait() {}
+}
+
+// SAFETY: the implementation writes the label at its in-value offset and the representative at
+// offset 0. `repr(C)` at alignment 1 puts no padding between them, so the two writes
+// initialize every byte of the clone and `dest` holds a valid `Legend` on return.
+unsafe impl CloneToUninit for Legend {
+    unsafe fn clone_to_uninit(&self, dest: *mut u8) {
+        // SAFETY: `self.label` is a field of `self`, so both pointers lie in one allocation
+        // with the field's address not below the value's.
+        let offset_of_label = unsafe { (&raw const self.label).byte_offset_from_unsigned(self) };
+
+        // SAFETY: the caller provides `dest` valid for `size_of_val(self)` bytes at alignment
+        // 1; the label's span and the representative's eight bytes at offset 0 both lie inside
+        // that span.
+        unsafe {
+            self.label.clone_to_uninit(dest.add(offset_of_label));
+            dest.add(offset_of!(Self, representative_ontology))
+                .cast::<OntologyRowId>()
+                .write(self.representative_ontology);
+        }
+    }
+}
+
+impl ToOwned for Legend {
+    type Owned = OwnedLegend;
+
+    fn to_owned(&self) -> Self::Owned {
+        OwnedLegend(Box::clone_from_ref(self))
+    }
+}
+
+/// The owned display payload of a node or edge row.
+///
+/// An `OwnedLegend` is to [`Legend`] what `String` is to `str`: dataset streams deliver owned
+/// legends, and borrowing one yields the payload view an identity write persists.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct OwnedLegend(Box<Legend>);
+
+impl OwnedLegend {
+    /// Creates the legend pairing `representative` with `label`.
+    pub(crate) fn new(representative: OntologyRowId, label: &str) -> Self {
+        let mut boxed = Legend::new_box_zeroed_with_elems(label.len())
+            .expect("a label's length fits the allocator's limits");
+        boxed.representative_ontology = representative;
+
+        // SAFETY: the write copies the bytes of a valid `&str` whole, so the field holds
+        // valid UTF-8 when the borrow ends.
+        unsafe { boxed.label.0.as_bytes_mut() }.copy_from_slice(label.as_bytes());
+        Self(boxed)
+    }
+}
+
+impl Clone for OwnedLegend {
+    fn clone(&self) -> Self {
+        Self(Box::clone_from_ref(&self.0))
+    }
+}
+
+impl AsRef<Legend> for OwnedLegend {
+    fn as_ref(&self) -> &Legend {
+        &self.0
+    }
+}
+
+impl Borrow<Legend> for OwnedLegend {
+    fn borrow(&self) -> &Legend {
+        &self.0
+    }
+}
+
+impl Deref for OwnedLegend {
+    type Target = Legend;
+
+    fn deref(&self) -> &Legend {
+        &self.0
+    }
+}
 
 /// The display text of a node or edge row.
 ///
@@ -18,7 +145,7 @@ use core::{borrow::Borrow, ops::Deref};
     Debug,
     zerocopy::ByteEq,
     zerocopy::IntoBytes,
-    zerocopy::TryFromBytes,
+    zerocopy::FromZeros,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
     zerocopy::Unaligned,
@@ -47,9 +174,27 @@ impl Label {
     }
 }
 
+// SAFETY: `Label` is `repr(C)` around `str` alone, so its clone is its text's clone and
+// `str`'s implementation initializes every byte of `dest`.
+unsafe impl CloneToUninit for Label {
+    unsafe fn clone_to_uninit(&self, dest: *mut u8) {
+        // SAFETY: `Label` has `str`'s size and alignment, so the caller's contract for this
+        // value is `str`'s contract for its text.
+        unsafe {
+            <str as CloneToUninit>::clone_to_uninit(&self.0, dest);
+        }
+    }
+}
+
 impl AsRef<str> for Label {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+impl PartialEq<str> for Label {
+    fn eq(&self, other: &str) -> bool {
+        &self.0 == other
     }
 }
 
@@ -189,9 +334,42 @@ mod tests {
     #![expect(clippy::non_ascii_literal)]
     use core::ptr;
 
+    use hashql_core::id::Id as _;
     use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
-    use super::{Icon, Label, OwnedIcon, OwnedLabel};
+    use super::{Icon, Label, Legend, OwnedIcon, OwnedLabel, OwnedLegend};
+    use crate::identity::OntologyRowId;
+
+    #[test]
+    fn legend_payload_reads_validate() {
+        let representative = OntologyRowId::from_usize(7);
+        let owned = OwnedLegend::new(representative, "naïve 🦀");
+        let legend: &Legend = owned.as_ref();
+        assert_eq!(legend.representative_ontology(), representative);
+        assert_eq!(legend.label(), "naïve 🦀");
+
+        let bytes = legend.as_bytes();
+        assert_eq!(bytes.len(), 8 + "naïve 🦀".len());
+        let back = Legend::try_ref_from_bytes(bytes).expect("wrote valid bytes");
+        assert_eq!(back.representative_ontology(), representative);
+        assert_eq!(back.label(), "naïve 🦀");
+
+        let mut corrupt = bytes.to_vec();
+        corrupt[8] = 0xFF;
+        Legend::try_ref_from_bytes(&corrupt).expect_err("invalid UTF-8 in the label");
+
+        for len in 1..8 {
+            Legend::try_ref_from_bytes(&bytes[..len]).expect_err("shorter than the header");
+        }
+
+        let empty = OwnedLegend::new(representative, "");
+        assert_eq!(empty.as_ref().as_bytes().len(), 8);
+        assert_eq!(empty.as_ref().label(), "");
+
+        let reowned = legend.to_owned();
+        assert_eq!(reowned.as_ref().as_bytes(), bytes);
+        assert_eq!(reowned, owned.clone());
+    }
 
     /// Every UTF-8 shape the cast has to carry: empty, ASCII, two-byte, combining mark, and a
     /// four-byte scalar.

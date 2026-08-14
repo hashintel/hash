@@ -8,7 +8,7 @@ use type_system::{
 
 use crate::{
     dataset::{
-        auxiliary::{Icon, Label},
+        auxiliary::{Icon, Legend},
         ontology::OntologyIdentity,
     },
     file::identity::{Key, KeyKind},
@@ -202,7 +202,7 @@ impl From<ArchivedEntityId> for EntityId {
 }
 
 impl Key for ArchivedEntityId {
-    type Payload = Label;
+    type Payload = Legend;
 
     const KIND: KeyKind = KeyKind::EntityId;
 }

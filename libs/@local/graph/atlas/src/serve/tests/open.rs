@@ -55,7 +55,8 @@ fn shorten_entities<R: Row>(path: &Utf8PathBuf, rows: u64, seed: u8) {
         let row = u8::try_from(row).expect("fixture row counts fit u8");
         table.push(entity_id_of(seed + row));
     }
-    let empty = vec![Vec::new(); usize::try_from(rows).expect("fixture row counts fit usize")];
+    // The all-zero legend payload names ontology row 0 under the empty label.
+    let empty = vec![vec![0_u8; 8]; usize::try_from(rows).expect("fixture row counts fit usize")];
     rewrite_identities(path, &table, &empty);
 }
 

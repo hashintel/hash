@@ -99,7 +99,7 @@ use self::id::{ArchivedEntityId, ArchivedOntologyTypeUuid};
 pub(crate) use self::{card::CardParameters, error::PostgresDatasetError};
 use super::{
     CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, TemporalAxes,
-    auxiliary::{OwnedIcon, OwnedLabel},
+    auxiliary::{OwnedIcon, OwnedLegend},
     card::Card,
 };
 use crate::math::BoxedVecN;
@@ -205,7 +205,7 @@ impl Dataset for PostgresDataset<'_> {
     where
         Self: 'this;
     type EdgeAuxiliaryPayloadStream<'this>
-        = impl Stream<Item = Result<OwnedLabel, PostgresDatasetError>> + 'this
+        = impl Stream<Item = Result<OwnedLegend, PostgresDatasetError>> + 'this
     where
         Self: 'this;
     type EdgeStream<'this>
@@ -213,7 +213,7 @@ impl Dataset for PostgresDataset<'_> {
     where
         Self: 'this;
     type NodeAuxiliaryPayloadStream<'this>
-        = impl Stream<Item = Result<OwnedLabel, PostgresDatasetError>> + 'this
+        = impl Stream<Item = Result<OwnedLegend, PostgresDatasetError>> + 'this
     where
         Self: 'this;
     type NodeStream<'this>
@@ -381,26 +381,28 @@ impl Dataset for PostgresDataset<'_> {
         .try_flatten()
     }
 
-    /// Opens the stream of node display labels, in row order.
+    /// Opens the stream of node display legends, in row order.
     ///
-    /// Each label reads the store's derived display label for the node's edition, and a row
-    /// without one delivers the empty label. The statement attaches the corpus scope and
-    /// orders by the scope row, so positions agree with [`nodes`](Dataset::nodes) under the
-    /// frozen snapshot.
+    /// Each legend pairs the entity's representative type - its edition cache's canonically
+    /// first direct type, resolved to its type-table row - with the store's derived display
+    /// label, and a row without a cached label delivers the empty label. The statement
+    /// attaches the corpus scope and orders by the scope row, so positions agree with
+    /// [`nodes`](Dataset::nodes) under the frozen snapshot.
     fn node_auxiliary_payload(&self) -> Self::NodeAuxiliaryPayloadStream<'_> {
         async move {
+            let types = self.type_table().await?;
             let BoundStatement {
                 sql,
                 parameters,
                 columns,
-            } = lookup::node_label_statement(&self.axes);
+            } = lookup::node_legend_statement(&self.axes, &types);
 
             self.transaction
                 .query_raw(&sql, parameters)
                 .await
                 .map(move |rows| {
                     rows.map_err(From::from).and_then(move |row| {
-                        core::future::ready(lookup::decode_label(&row, &columns))
+                        core::future::ready(lookup::decode_legend(&row, &columns))
                     })
                 })
                 .map_err(PostgresDatasetError::from)
@@ -409,26 +411,28 @@ impl Dataset for PostgresDataset<'_> {
         .try_flatten()
     }
 
-    /// Opens the stream of edge display labels, in row order.
+    /// Opens the stream of edge display legends, in row order.
     ///
-    /// Each label reads the store's derived display label for the link entity's edition, and a
-    /// link without one delivers the empty label. The statement attaches the corpus scope
-    /// and links and orders by link identity, the same total order as [`edges`](Dataset::edges),
-    /// so positions agree under the frozen snapshot.
+    /// Each legend pairs the link entity's representative type - its edition cache's
+    /// canonically first direct type, resolved to its type-table row - with the store's
+    /// derived display label, and a link without a cached label delivers the empty label. The
+    /// statement attaches the corpus scope and links and orders by link identity, the same
+    /// total order as [`edges`](Dataset::edges), so positions agree under the frozen snapshot.
     fn edge_auxiliary_payload(&self) -> Self::EdgeAuxiliaryPayloadStream<'_> {
         async move {
+            let types = self.type_table().await?;
             let BoundStatement {
                 sql,
                 parameters,
                 columns,
-            } = lookup::edge_label_statement(&self.axes);
+            } = lookup::edge_legend_statement(&self.axes, &types);
 
             self.transaction
                 .query_raw(&sql, parameters)
                 .await
                 .map(move |rows| {
                     rows.map_err(From::from).and_then(move |row| {
-                        core::future::ready(lookup::decode_label(&row, &columns))
+                        core::future::ready(lookup::decode_legend(&row, &columns))
                     })
                 })
                 .map_err(PostgresDatasetError::from)
@@ -489,8 +493,14 @@ mod prepare_probe {
                 "node type",
                 lookup::node_type_statement(&axes, &types, &web_ids, &entity_uuids).sql,
             ),
-            ("node label", lookup::node_label_statement(&axes).sql),
-            ("edge label", lookup::edge_label_statement(&axes).sql),
+            (
+                "node legend",
+                lookup::node_legend_statement(&axes, &types).sql,
+            ),
+            (
+                "edge legend",
+                lookup::edge_legend_statement(&axes, &types).sql,
+            ),
         ] {
             if let Err(error) = client.prepare(&sql).await {
                 panic!("{name}: {error}");

@@ -1,12 +1,12 @@
 //! An identity file binds a row domain to its source identifiers and their display bytes.
 //!
-//! Layout version 2 is mutable: change the layout to fit what the pipeline needs and increment
+//! Layout version 3 is mutable: change the layout to fit what the pipeline needs and increment
 //! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
 //! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
 //! One file covers one row domain (nodes, edges, or ontology types). It binds each row to its
-//! source identifier in both directions and carries one display payload per row: label bytes for
-//! nodes and edges, icon bytes for ontology types. `row → key` is indexing into the key column,
+//! source identifier in both directions and carries one display payload per row: legend bytes
+//! for nodes and edges, icon bytes for ontology types. `row → key` is indexing into the key column,
 //! `key → row` is one lookup in the index, and `row → payload` is indexing into the span table
 //! and slicing the payload region. Keys are opaque fixed-width byte strings whose width `K` the
 //! [`KeyKind`] declares. The regions:
@@ -15,7 +15,7 @@
 //! | offset | size | region                                          |
 //! |--------|------|-------------------------------------------------|
 //! | 0      | 8    | magic `SALTIDNT`                                |
-//! | 8      | 4    | layout version, `u32` = 2                       |
+//! | 8      | 4    | layout version, `u32` = 3                       |
 //! | 12     | 4    | machine information, [`Machine`]                |
 //! | 16     | 2    | file kind, `u16`, what the payload means        |
 //! | 18     | 2    | key kind, `u16`, the key type and width `K`     |
@@ -134,13 +134,13 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V2 = 2,
+    V3 = 3,
 }
 
 /// The row domain an identity file covers.
 ///
 /// The kind decides what the payload region holds: icon bytes for [`Ontology`](Self::Ontology)
-/// files, label bytes for [`Nodes`](Self::Nodes) and [`Edges`](Self::Edges) files.
+/// files, legend bytes for [`Nodes`](Self::Nodes) and [`Edges`](Self::Edges) files.
 #[derive(
     Debug,
     Copy,
@@ -241,8 +241,8 @@ pub(crate) trait Key: ByteStable {
     /// The typed view of this key's display payload.
     ///
     /// A row's payload enters the file as the value's raw bytes. Opening a typed table casts
-    /// every span once, validating on the way, and readback trusts that validation. Every
-    /// payload type admits the empty byte string, which is what a row without a display value
+    /// every span once, validating on the way, and readback trusts that validation. Each
+    /// payload type defines its own empty value, which is what a row without a display value
     /// carries. The header pins [`KIND`](Self::KIND) but not the payload type, so two `Key`
     /// impls sharing a kind may cast one file's payloads differently. The open-time casts
     /// validate per impl, so a mismatched open fails loudly instead of misreading bytes.
@@ -344,7 +344,7 @@ pub(crate) struct FileHeader {
     payload_bytes: U64<LE>,
 }
 
-header!(FileHeader, FileHeaderMagic, Version::V2);
+header!(FileHeader, FileHeaderMagic, Version::V3);
 
 impl FileHeader {
     /// Creates a header for `rows` keys of `key_kind`, an `index_bytes`-byte index, and a
@@ -359,7 +359,7 @@ impl FileHeader {
     ) -> Self {
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V2),
+            version: Unalign::new(Version::V3),
             machine: Machine::current(),
             kind: Unalign::new(kind),
             key_kind: Unalign::new(key_kind),

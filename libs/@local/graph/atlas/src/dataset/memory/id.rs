@@ -8,7 +8,7 @@ use zerocopy::{LE, U64};
 
 use crate::{
     dataset::{
-        auxiliary::{Icon, Label},
+        auxiliary::{Icon, Legend},
         ontology::OntologyIdentity,
     },
     file::identity::{Key, KeyKind},
@@ -45,7 +45,7 @@ impl MemoryNodeId {
 }
 
 impl Key for MemoryNodeId {
-    type Payload = Label;
+    type Payload = Legend;
 
     const KIND: KeyKind = KeyKind::U64Le;
 }
@@ -81,7 +81,7 @@ impl MemoryEdgeId {
 }
 
 impl Key for MemoryEdgeId {
-    type Payload = Label;
+    type Payload = Legend;
 
     const KIND: KeyKind = KeyKind::U64Le;
 }

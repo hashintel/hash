@@ -12,6 +12,8 @@ pub enum PostgresDatasetError {
         /// The ordinal the row carried.
         value: i64,
     },
+    /// A row's representative type resolved to no type-table row.
+    Representative,
     /// Requested canonical embeddings that the store does not hold.
     MissingCanonicalEmbeddings {
         /// How many requested embeddings are absent.
@@ -26,6 +28,9 @@ impl fmt::Display for PostgresDatasetError {
             Self::Ordinal { value } => {
                 write!(fmt, "type ordinal {value} is not a valid row")
             }
+            Self::Representative => {
+                fmt.write_str("a row's representative type resolved to no type-table row")
+            }
             Self::MissingCanonicalEmbeddings { missing } => write!(
                 fmt,
                 "{missing} requested canonical embeddings are absent from the store"
@@ -38,7 +43,9 @@ impl Error for PostgresDatasetError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Query(error) => Some(error),
-            Self::Ordinal { .. } | Self::MissingCanonicalEmbeddings { .. } => None,
+            Self::Ordinal { .. }
+            | Self::Representative
+            | Self::MissingCanonicalEmbeddings { .. } => None,
         }
     }
 }

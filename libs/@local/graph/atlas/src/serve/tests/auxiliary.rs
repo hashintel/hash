@@ -25,7 +25,7 @@ use super::{
 use crate::{
     dataset::{
         Edge, Ontology,
-        auxiliary::{Icon, Label, OwnedIcon, OwnedLabel},
+        auxiliary::{Icon, Label, OwnedIcon, OwnedLegend},
         card::Card,
         memory::MemoryDataset,
     },
@@ -170,10 +170,10 @@ fn displaying_dataset() -> MemoryDataset {
         .collect();
 
     let mut dataset = MemoryDataset::new(nodes, edges, ontology, canonical, cards);
-    let rows = u32::try_from(NODES).expect("fixture counts fit u32");
-    dataset.node_labels = (0..rows)
-        .map(|row| OwnedLabel::from(expected_label(row)))
-        .collect();
+    for (row, legend) in dataset.node_legends.iter_mut().enumerate() {
+        let row = u32::try_from(row).expect("fixture counts fit u32");
+        *legend = OwnedLegend::new(legend.representative_ontology(), &expected_label(row));
+    }
     dataset.ontology_icons = ICONS.iter().map(|&icon| OwnedIcon::from(icon)).collect();
 
     dataset

@@ -105,6 +105,8 @@
     sync_nonpoison,
     time_saturating_systemtime,
     variant_count,
+    clone_from_ref,
+    clone_to_uninit
 )]
 // The dashboard's interrupt path leaves through an exit code, and it is
 // the only consumer of the feature.

@@ -190,9 +190,12 @@ impl Atlas {
                     .rows()
                     .iter()
                     .map(|&edge| {
-                        self.edge_ids.payload_of(edge).expect(
-                            "open validated the identity rows against the adjacency's edges",
-                        )
+                        self.edge_ids
+                            .payload_of(edge)
+                            .expect(
+                                "open validated the identity rows against the adjacency's edges",
+                            )
+                            .label()
                     })
                     .collect();
                 let first_type_urls = store

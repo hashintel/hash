@@ -6,7 +6,7 @@ use core::assert_matches;
 use std::{fs, path::PathBuf};
 
 use hashql_core::id::IdSlice;
-use zerocopy::{IntoBytes as _, TryFromBytes as _};
+use zerocopy::IntoBytes as _;
 
 use super::{
     FileHeader, Key as _, KeyKind, Kind, PaddedFileHeader, PayloadSpan,
@@ -15,7 +15,7 @@ use super::{
 };
 use crate::{
     dataset::{
-        auxiliary::{Icon, Label},
+        auxiliary::{Icon, OwnedLegend},
         memory::{MemoryNodeId, MemoryOntologyId},
     },
     file::region::{header::HeaderError, machine::Machine},
@@ -30,7 +30,7 @@ fn header_wire_layout() {
     // The literal length pins the layout and bounds the region slices.
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[..8], b"SALTIDNT");
-    assert_eq!(&bytes[8..12], &2_u32.to_le_bytes(), "version 2");
+    assert_eq!(&bytes[8..12], &3_u32.to_le_bytes(), "version 3");
     assert_eq!(
         &bytes[12..16],
         Machine::current().as_bytes(),
@@ -103,17 +103,18 @@ const KEYS: [MemoryNodeId; 3] = [
 // Rows 0 and 2 carry equal payload bytes, so interning gives them one span.
 const PAYLOADS: [&str; 3] = ["beta", "alpha", "beta"];
 
-/// Borrows `text` as a label.
-fn label(text: &str) -> &Label {
-    Label::try_ref_from_bytes(text.as_bytes()).expect("UTF-8 text is a valid label")
+/// Owns `text` as a legend representing ontology row 0.
+fn legend(text: &str) -> OwnedLegend {
+    OwnedLegend::new(OntologyRowId::new(0), text)
 }
 
 fn fixture_bytes() -> Vec<u8> {
+    let payloads = PAYLOADS.map(legend);
     let mut bytes = Vec::new();
     write_regions(
         Kind::Nodes,
         IdSlice::<NodeRowId, _>::from_raw(&KEYS),
-        PAYLOADS.map(label),
+        payloads.iter().map(AsRef::as_ref),
         &mut bytes,
     )
     .expect("writing into a vector cannot fail");
@@ -144,13 +145,16 @@ fn written_regions_reopen_verbatim() {
 
     // Interning writes each distinct payload once, in first-appearance order, and rows carrying
     // equal bytes share one span.
-    assert_eq!(file.payload(), b"betaalpha".as_slice());
+    let mut expected = Vec::new();
+    expected.extend_from_slice(legend("beta").as_ref().as_bytes());
+    expected.extend_from_slice(legend("alpha").as_ref().as_bytes());
+    assert_eq!(file.payload(), expected);
     assert_eq!(
         file.spans(),
         [
-            PayloadSpan::new(0, 4),
-            PayloadSpan::new(4, 5),
-            PayloadSpan::new(0, 4),
+            PayloadSpan::new(0, 12),
+            PayloadSpan::new(12, 13),
+            PayloadSpan::new(0, 12),
         ],
     );
 }
@@ -202,7 +206,7 @@ fn open_rejects_foreign_and_torn_bytes() {
         Err(OpenIdentityError::Header(_)),
     );
 
-    // Layout version 0 is a predecessor format's, and this parse speaks only version 2.
+    // Layout version 0 is a predecessor format's, and this parse speaks only version 3.
     let old_version = scratch("old-version.idnt");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&0_u32.to_le_bytes());
@@ -211,7 +215,7 @@ fn open_rejects_foreign_and_torn_bytes() {
         IdentityFile::open(&old_version),
         Err(OpenIdentityError::Header(HeaderError::Version {
             found: 0,
-            expected: 2,
+            expected: 3,
         })),
     );
 
@@ -261,12 +265,12 @@ fn open_rejects_foreign_and_torn_bytes() {
 #[test]
 #[should_panic(expected = "one payload per key")]
 fn writer_rejects_disagreeing_columns() {
-    let payloads = ["a", "b"].map(label);
+    let payloads = ["a", "b"].map(legend);
     let mut bytes = Vec::new();
     let _result = write_regions(
         Kind::Nodes,
         IdSlice::<NodeRowId, _>::from_raw(&KEYS),
-        payloads,
+        payloads.iter().map(AsRef::as_ref),
         &mut bytes,
     );
 }
@@ -275,12 +279,12 @@ fn writer_rejects_disagreeing_columns() {
 #[should_panic(expected = "two rows carry one key")]
 fn writer_rejects_duplicate_keys() {
     let keys = [KEYS[0], KEYS[0]];
-    let payloads = ["a", "b"].map(label);
+    let payloads = ["a", "b"].map(legend);
     let mut bytes = Vec::new();
     let _result = write_regions(
         Kind::Nodes,
         IdSlice::<NodeRowId, _>::from_raw(&keys),
-        payloads,
+        payloads.iter().map(AsRef::as_ref),
         &mut bytes,
     );
 }

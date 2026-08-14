@@ -20,7 +20,7 @@ use super::{
 use crate::{
     dataset::{
         CANONICAL_DIMENSIONS, Edge, Node, Ontology, PROJECTOR_DIMENSIONS,
-        auxiliary::{OwnedIcon, OwnedLabel},
+        auxiliary::{OwnedIcon, OwnedLegend},
         card::Card,
         memory::{MemoryDataset, MemoryEdgeId, MemoryNodeId, MemoryOntologyId},
         postgres::id::ArchivedOntologyTypeUuid,
@@ -183,12 +183,12 @@ fn dataset_with_edge_confidences(
     ]);
 
     let mut dataset = MemoryDataset::new(nodes, edges, ontology, HashMap::new(), cards);
-    dataset.node_labels = (0..NODES)
-        .map(|row| OwnedLabel::from(format!("node {row}")))
+    dataset.node_legends = (0..NODES)
+        .map(|row| OwnedLegend::new(OntologyRowId::from_usize(row & 1), &format!("node {row}")))
         .collect();
-    dataset.edge_labels = vec![
-        OwnedLabel::from("employs 100"),
-        OwnedLabel::from("employs 101"),
+    dataset.edge_legends = vec![
+        OwnedLegend::new(OntologyRowId::new(2), "employs 100"),
+        OwnedLegend::new(OntologyRowId::new(2), "employs 101"),
     ];
     dataset.ontology_icons = vec![
         OwnedIcon::from("person"),
@@ -648,10 +648,10 @@ fn assert_identities_translate(published: &Utf8Path) {
             Some(NodeRowId::new(row)),
             "id {row}"
         );
-        let label = OwnedLabel::from(format!("node {row}"));
+        let legend = OwnedLegend::new(OntologyRowId::new(row & 1), &format!("node {row}"));
         assert_eq!(
             nodes.payload_of(NodeRowId::new(row)),
-            Some(&*label),
+            Some(&*legend),
             "payload of row {row}"
         );
     }
@@ -668,9 +668,9 @@ fn assert_identities_translate(published: &Utf8Path) {
         edge_ids.row_of(MemoryEdgeId::new(101)),
         Some(EdgeRowId::new(1))
     );
-    let employs_100 = OwnedLabel::from("employs 100");
+    let employs_100 = OwnedLegend::new(OntologyRowId::new(2), "employs 100");
     assert_eq!(edge_ids.payload_of(EdgeRowId::new(0)), Some(&*employs_100));
-    let employs_101 = OwnedLabel::from("employs 101");
+    let employs_101 = OwnedLegend::new(OntologyRowId::new(2), "employs 101");
     assert_eq!(edge_ids.payload_of(EdgeRowId::new(1)), Some(&*employs_101));
 
     let ontology_ids = IdentityTableArchive::<MemoryOntologyId, OntologyRowId>::new(

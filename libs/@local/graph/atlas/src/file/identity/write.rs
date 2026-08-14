@@ -37,10 +37,10 @@ impl<A: IntoBytes + Immutable + ?Sized> Hash for ByteKeyed<'_, A> {
 ///
 /// `keys` is the key column in row order and `auxiliary` yields each row's display payload in
 /// the same order, with the payload's bytes entering the region verbatim. Node and edge files
-/// carry label bytes, ontology files carry icon bytes, and a row
-/// without a display value carries empty bytes. The index derives from the key column, and the
-/// span table from the payloads, with equal payloads sharing one span. Every region streams in
-/// file order behind the header, so wrap a raw [`File`](std::fs::File) in a
+/// carry legend bytes, ontology files carry icon bytes, and the payload of a row that
+/// displays nothing is its type's empty value. The index derives from the key
+/// column, and the span table from the payloads, with equal payloads sharing one span. Every region
+/// streams in file order behind the header, so wrap a raw [`File`](std::fs::File) in a
 /// [`BufWriter`](io::BufWriter).
 ///
 /// # Errors

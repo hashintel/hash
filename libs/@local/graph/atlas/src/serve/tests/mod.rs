@@ -2128,10 +2128,9 @@ fn entity_identity_table<R: Row>(
     }
     let mut file = std::fs::File::create(path).expect("the identity file creates");
     let empty =
-        <crate::dataset::auxiliary::Label as zerocopy::TryFromBytes>::try_ref_from_bytes(&[])
-            .expect("every payload type admits the empty byte string");
+        crate::dataset::auxiliary::OwnedLegend::new(crate::identity::OntologyRowId::new(0), "");
     let _digest = table
-        .write_into(core::iter::repeat_n(empty, ids.len()), &mut file)
+        .write_into(core::iter::repeat_n(empty.as_ref(), ids.len()), &mut file)
         .expect("the identities should write");
     drop(file);
     crate::salt::fit::prepare::identity::IdentityTableArchive::new(

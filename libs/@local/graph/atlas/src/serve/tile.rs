@@ -207,7 +207,10 @@ impl Atlas {
 
                 for position in document.delivered.iter() {
                     let id = self.rows.view()[position];
-                    let label = self.node_ids.payload_of(id).unwrap_or(Label::empty());
+                    let label = self
+                        .node_ids
+                        .payload_of(id)
+                        .map_or(Label::empty(), |legend| legend.label());
 
                     labels.push(label);
 

@@ -3,7 +3,7 @@
 //! Every statement here resolves bound arrays or the cached type table against the same frozen
 //! transaction the corpus streams read, so a lookup answers about exactly the state the streams
 //! delivered. Result identity keys each item, so no statement here orders its rows unless a
-//! consumer aligns them by position, and the two that do - the label and icon payloads - state
+//! consumer aligns them by position, and the two that do - the legend and icon payloads - state
 //! the row order they share with their positional counterpart.
 
 use futures::{Stream, stream};
@@ -13,7 +13,7 @@ use hash_graph_postgres_store::store::postgres::query::{
     SelectList, SelectStatement, Table, Transpile as _, WhereExpression, WithExpression,
     table::{
         DatabaseColumn, EntityEditionCache, EntityEditions, EntityEmbeddings,
-        EntityTemporalMetadata, EntityTypeInheritsFrom, EntityTypes,
+        EntityTemporalMetadata, EntityTypeInheritsFrom, EntityTypes, OntologyIds,
     },
 };
 use hash_graph_store::query::Ordering;
@@ -24,7 +24,7 @@ use uuid::Uuid;
 use super::{
     super::{
         CANONICAL_DIMENSIONS, Ontology, TemporalAxes,
-        auxiliary::{OwnedIcon, OwnedLabel},
+        auxiliary::{OwnedIcon, OwnedLegend},
     },
     LINK_ROOT_BASE_URL, PostgresDatasetError, corpus,
     sql::{
@@ -321,10 +321,12 @@ pub(super) fn decode_node_types(
     ))
 }
 
-/// The output columns of the label payload statements.
-pub(super) struct LabelColumns {
+/// The output columns of the legend payload statements.
+pub(super) struct LegendColumns {
     /// The display label, SQL NULL when the edition carries none.
     pub label: usize,
+    /// The representative type's type-table ordinal, SQL NULL when the row resolves none.
+    pub representative: usize,
 }
 
 /// The edition cache's first display label, unwrapped by the decoder.
@@ -332,18 +334,68 @@ fn first_label(cache: Aliased<EntityEditionCache>) -> Expression {
     cache.column(&EntityEditionCache::Labels).array_element(1)
 }
 
-/// Builds the node label statement, ordered by node row.
-pub(super) fn node_label_statement(axes: &TemporalAxes) -> BoundStatement<'_, LabelColumns> {
+/// The type-table position joined for the edition cache's first type.
+fn representative_ordinal() -> Expression {
+    // mapping.ordinality - 1
+    MAPPING
+        .column(&Mapping::Ordinality)
+        .subtract(Constant::U32(1))
+}
+
+/// The joins resolving the edition cache's first type to its type-table ordinal.
+///
+/// Both joins are outer: a row without a cache entry, and a first type outside the type table,
+/// leave the ordinal SQL NULL for the decoder to refuse.
+fn representative_joins(
+    from: FromItem<'static>,
+    cache: Aliased<EntityEditionCache>,
+    first_type: Aliased<OntologyIds>,
+    types: Placeholder,
+) -> FromItem<'static> {
+    // LEFT JOIN ontology_ids AS first_type
+    //   ON first_type.base_url = (cache.base_urls)[1]
+    //  AND first_type.version = (cache.versions)[1]
+    // LEFT JOIN unnest(<types>) WITH ORDINALITY AS mapping(ontology_id, ordinality)
+    //   ON mapping.ontology_id = first_type.ontology_id
+    from.left_join_on(
+        first_type.from_item(),
+        vec![
+            first_type
+                .column(&OntologyIds::BaseUrl)
+                .equal(cache.column(&EntityEditionCache::BaseUrls).array_element(1)),
+            first_type
+                .column(&OntologyIds::Version)
+                .equal(cache.column(&EntityEditionCache::Versions).array_element(1)),
+        ],
+    )
+    .left_join_on(
+        type_mapping(types),
+        vec![
+            MAPPING
+                .column(&Mapping::OntologyId)
+                .equal(first_type.column(&OntologyIds::OntologyId)),
+        ],
+    )
+}
+
+/// Builds the node legend statement, ordered by node row.
+pub(super) fn node_legend_statement<'params>(
+    axes: &'params TemporalAxes,
+    types: &'params (impl ToSql + Sync),
+) -> BoundStatement<'params, LegendColumns> {
     const CACHE: Aliased<EntityEditionCache> = Aliased::of(Table::EntityEditionCache, "cache");
+    const FIRST_TYPE: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "first_type");
 
     let mut binder = Binder::default();
     let axes_points = Axes::bind(&mut binder, axes);
     let link_root = binder.bind(&LINK_ROOT_BASE_URL);
+    let types_placeholder = binder.bind(types);
 
-    // SELECT (cache.labels)[1]
+    // SELECT (cache.labels)[1], mapping.ordinality - 1
     let mut select = SelectList::default();
-    let columns = LabelColumns {
-        label: select.output(CACHE.column(&EntityEditionCache::Labels).array_element(1)),
+    let columns = LegendColumns {
+        label: select.output(first_label(CACHE)),
+        representative: select.output(representative_ordinal()),
     };
 
     let statement = SelectStatement::builder()
@@ -357,13 +409,18 @@ pub(super) fn node_label_statement(axes: &TemporalAxes) -> BoundStatement<'_, La
             // FROM scope
             // LEFT JOIN entity_edition_cache AS cache
             //   ON cache.entity_edition_id = scope.entity_edition_id
-            FromItem::table(CorpusTable::Scope).build().left_join_on(
-                CACHE.from_item(),
-                vec![
-                    CACHE
-                        .column(&EntityEditionCache::EntityEditionId)
-                        .equal(CorpusTable::Scope.column(Scope::EntityEditionId)),
-                ],
+            representative_joins(
+                FromItem::table(CorpusTable::Scope).build().left_join_on(
+                    CACHE.from_item(),
+                    vec![
+                        CACHE
+                            .column(&EntityEditionCache::EntityEditionId)
+                            .equal(CorpusTable::Scope.column(Scope::EntityEditionId)),
+                    ],
+                ),
+                CACHE,
+                FIRST_TYPE,
+                types_placeholder,
             )
         })
         .order_by_expression({
@@ -379,19 +436,25 @@ pub(super) fn node_label_statement(axes: &TemporalAxes) -> BoundStatement<'_, La
     BoundStatement::new(&statement, binder, columns)
 }
 
-/// Builds the edge label statement, ordered by link identity.
-pub(super) fn edge_label_statement(axes: &TemporalAxes) -> BoundStatement<'_, LabelColumns> {
+/// Builds the edge legend statement, ordered by link identity.
+pub(super) fn edge_legend_statement<'params>(
+    axes: &'params TemporalAxes,
+    types: &'params (impl ToSql + Sync),
+) -> BoundStatement<'params, LegendColumns> {
     const CACHE: Aliased<EntityEditionCache> = Aliased::of(Table::EntityEditionCache, "cache");
+    const FIRST_TYPE: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "first_type");
 
     let mut binder = Binder::default();
     let axes_points = Axes::bind(&mut binder, axes);
     let link_root = binder.bind(&LINK_ROOT_BASE_URL);
     let attachments = AttachmentVocabulary::bind(&mut binder);
+    let types_placeholder = binder.bind(types);
 
-    // SELECT (cache.labels)[1]
+    // SELECT (cache.labels)[1], mapping.ordinality - 1
     let mut select = SelectList::default();
-    let columns = LabelColumns {
+    let columns = LegendColumns {
         label: select.output(first_label(CACHE)),
+        representative: select.output(representative_ordinal()),
     };
 
     let statement = SelectStatement::builder()
@@ -406,13 +469,18 @@ pub(super) fn edge_label_statement(axes: &TemporalAxes) -> BoundStatement<'_, La
             // FROM links
             // LEFT JOIN entity_edition_cache AS cache
             //   ON cache.entity_edition_id = links.entity_edition_id
-            FromItem::table(CorpusTable::Links).build().left_join_on(
-                CACHE.from_item(),
-                vec![
-                    CACHE
-                        .column(&EntityEditionCache::EntityEditionId)
-                        .equal(CorpusTable::Links.column(Links::EntityEditionId)),
-                ],
+            representative_joins(
+                FromItem::table(CorpusTable::Links).build().left_join_on(
+                    CACHE.from_item(),
+                    vec![
+                        CACHE
+                            .column(&EntityEditionCache::EntityEditionId)
+                            .equal(CorpusTable::Links.column(Links::EntityEditionId)),
+                    ],
+                ),
+                CACHE,
+                FIRST_TYPE,
+                types_placeholder,
             )
         })
         .order_by_expression({
@@ -444,16 +512,25 @@ pub(super) fn edge_label_statement(axes: &TemporalAxes) -> BoundStatement<'_, La
     BoundStatement::new(&statement, binder, columns)
 }
 
-/// Decodes one display-label row into its owned label.
+/// Decodes one display-legend row into its owned legend.
 ///
-/// An edition without a cached label decodes as the empty label.
-pub(super) fn decode_label(
+/// An edition without a cached label decodes as the empty label. A row whose first type
+/// resolves to no type-table ordinal fails the decode.
+pub(super) fn decode_legend(
     row: &Row,
-    columns: &LabelColumns,
-) -> Result<OwnedLabel, PostgresDatasetError> {
+    columns: &LegendColumns,
+) -> Result<OwnedLegend, PostgresDatasetError> {
     let label: Option<String> = row.try_get(columns.label)?;
+    let representative: Option<i64> = row.try_get(columns.representative)?;
 
-    Ok(OwnedLabel::from(label.unwrap_or_default()))
+    let representative = representative.ok_or(PostgresDatasetError::Representative)?;
+    let representative = u64::try_from(representative)
+        .map(OntologyRowId::new)
+        .map_err(|_error| PostgresDatasetError::Ordinal {
+            value: representative,
+        })?;
+
+    Ok(OwnedLegend::new(representative, &label.unwrap_or_default()))
 }
 
 /// Opens the ontology stream: each type's direct supertypes, in ontology row order.
@@ -716,7 +793,7 @@ mod tests {
             sql::{assert_placeholders_dense, normalize},
             streams,
         },
-        canonical_embedding_statement, edge_label_statement, node_label_statement,
+        canonical_embedding_statement, edge_legend_statement, node_legend_statement,
         node_type_statement,
     };
     use crate::dataset::TemporalAxes;
@@ -735,17 +812,17 @@ mod tests {
         let statement = node_type_statement(&axes, &types, &web_ids, &entity_uuids);
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
 
-        let statement = node_label_statement(&axes);
+        let statement = node_legend_statement(&axes, &types);
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
 
-        let statement = edge_label_statement(&axes);
+        let statement = edge_legend_statement(&axes, &types);
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The label streams order exactly as their positional partners, which is the whole
+    /// The legend streams order exactly as their positional partners, which is the whole
     /// agreement that lets a payload row annotate the stream row at the same position.
     #[test]
-    fn label_streams_share_their_partners_ordering() {
+    fn legend_streams_share_their_partners_ordering() {
         let axes = TemporalAxes::now();
         let types = vec![Uuid::nil()];
 
@@ -758,14 +835,14 @@ mod tests {
         };
 
         assert_eq!(
-            order_of(&node_label_statement(&axes).sql),
+            order_of(&node_legend_statement(&axes, &types).sql),
             order_of(&streams::node_statement(&axes, &types).sql),
-            "the node labels align to the node stream by shared ordering"
+            "the node legends align to the node stream by shared ordering"
         );
         assert_eq!(
-            order_of(&edge_label_statement(&axes).sql),
+            order_of(&edge_legend_statement(&axes, &types).sql),
             order_of(&streams::edge_statement(&axes, &types).sql),
-            "the edge labels align to the edge stream by shared ordering"
+            "the edge legends align to the edge stream by shared ordering"
         );
     }
 }

@@ -32,9 +32,10 @@
 //! payload region. The auxiliary streams deliver those values in owned form
 //! ([`ToOwned::Owned`] of the payload) in row order, the empty value standing for a row that
 //! carries none. What a payload means is the id type's contract. The datasets in this module
-//! declare [`Label`] for node and edge rows and [`Icon`] for ontology-type rows, each resolved
-//! by its source at the same frozen view as every other stream, so the identity artifacts
-//! persist the display the graph showed at fit time.
+//! declare [`Legend`] for node and edge rows - the row's representative type beside its
+//! display label - and [`Icon`] for ontology-type rows, each resolved by its source at the
+//! same frozen view as every other stream, so the identity artifacts persist the display the
+//! graph showed at fit time.
 //!
 //! # Snapshot semantics
 //!
@@ -61,7 +62,7 @@
 //! [`node_auxiliary_payload`]: Dataset::node_auxiliary_payload
 //! [`edge_auxiliary_payload`]: Dataset::edge_auxiliary_payload
 //! [`ontology_auxiliary_payload`]: Dataset::ontology_auxiliary_payload
-//! [`Label`]: auxiliary::Label
+//! [`Legend`]: auxiliary::Legend
 //! [`Icon`]: auxiliary::Icon
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
