@@ -106,15 +106,19 @@ impl EdgesResponse<'_> {
 
 /// The edges detail trailer.
 ///
-/// The type intern table comes first, then per-edge detail arrays in edge order. A `null` marks an
-/// edge whose store entry did not resolve. The bulk surface stays lean, with one label and one
-/// first-type reference per edge, and locate is the detail view.
+/// The type intern table comes first, then per-edge detail arrays in edge order. A label `null`
+/// marks a link the generation records no label text for, and a first-type `null` marks one the
+/// store did not resolve. The bulk surface stays lean, with one label and one first-type
+/// reference per edge, and locate is the detail view.
 #[derive(Debug)]
 pub(crate) struct EdgesTrailer<'trailer> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
     /// bytewise-sorted.
     pub type_table: &'trailer IdSlice<TableIndex<VersionedUrl>, Cow<'trailer, str>>,
     /// Trailer key 1: link labels, edge order.
+    ///
+    /// Labels are the generation's own payloads, resolved in process. `null` marks a link the
+    /// generation records no label text for.
     pub link_labels: &'trailer IdSlice<EdgeSlot, &'trailer Label>,
     /// Trailer key 2.
     ///

@@ -343,9 +343,10 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         .response_with::<400, Problem<'static>, _>(|response| {
             response.description(
                 "`invalid-generation`: a malformed generation id, or `invalid-body`: a body that \
-                 is not a filter document, or one the entity query surface cannot compile",
+                 is not JSON, or a filter the entity query surface cannot compile",
             )
         })
+        .with(clause::invalid_body_data)
         .response_with::<401, Problem<'static>, _>(|response| {
             response.description(
                 "`unauthorized`: the presented token is invalid or names another actor; a \

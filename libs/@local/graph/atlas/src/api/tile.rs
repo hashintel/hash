@@ -134,9 +134,10 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                 "`invalid-coordinate` (an unparsable `z`/`x`/`y` segment, a zoom past the deepest \
                  cut, or `x`/`y` off the `2^z` grid), `invalid-generation` (a malformed \
                  generation id), `too-many-types` (`coloredTypeIds` exceeds the manifest's cap), \
-                 or `invalid-body` (a body that is not this operation's JSON shape)",
+                 or `invalid-body` (a body that is not JSON)",
             )
         })
+        .with(clause::invalid_body_data)
         .with(clause::unauthorized)
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(

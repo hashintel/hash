@@ -235,9 +235,10 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         .response_with::<400, Problem<'static>, _>(|response| {
             response.description(
                 "`too-many-types`, `invalid-source`, `invalid-generation`, `missing-body`, or \
-                 `invalid-body` (a body that is not this operation's JSON shape)",
+                 `invalid-body` (a body that is not JSON)",
             )
         })
+        .with(clause::invalid_body_data)
         .with(clause::unauthorized)
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(

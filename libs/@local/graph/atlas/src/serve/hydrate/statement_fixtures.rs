@@ -6,9 +6,11 @@
 //! silent swap of what runs against the store.
 //!
 //! A compiler fixture pins the one-identity request under the deployment's default protection
-//! with no resolved actor, which is the shape the masking assertions read. The identity
-//! conjunction grows per requested id and the CASE conditions per protected property, and
-//! neither growth changes the grammar pinned here.
+//! with no resolved actor, which is the shape the masking assertions read. A request naming
+//! more than one identity compiles its membership as a row comparison over unnested arrays
+//! rather than a grown conjunction, so the pinned grammar belongs to the one-identity request
+//! alone. The CASE conditions grow per protected property without changing the grammar pinned
+//! here.
 
 /// The type-URL read over one requested identity.
 pub(super) const TYPES: &str = r#"SELECT "entity_temporal_metadata_0_0_0"."web_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_edition_cache_1_1_0"."versioned_urls", "entity_edition_cache_1_1_0"."direct_types"
@@ -17,7 +19,7 @@ INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
   ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
 INNER JOIN "entity_edition_cache" AS "entity_edition_cache_1_1_0"
   ON "entity_edition_cache_1_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entity_temporal_metadata_0_0_0"."decision_time" && $2 AND ((("entity_temporal_metadata_0_0_0"."web_id" = $3) AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4))) AND ("entity_editions_0_1_0"."archived" = $5)"#;
+WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entity_temporal_metadata_0_0_0"."decision_time" && $2 AND ("entity_temporal_metadata_0_0_0"."web_id" = $3) AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4) AND ("entity_editions_0_1_0"."archived" = $5)"#;
 
 /// The masked detail read over one requested identity, under the deployment's default
 /// protection with no resolved actor.
@@ -32,4 +34,4 @@ INNER JOIN "entity_edition_cache" AS "entity_edition_cache_1_1_0"
   ON "entity_edition_cache_1_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
 INNER JOIN "entity_editions" AS "entity_editions_1_1_0"
   ON "entity_editions_1_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entity_temporal_metadata_0_0_0"."decision_time" && $2 AND ((("entity_temporal_metadata_0_0_0"."web_id" = $3) AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4))) AND ("entity_editions_0_1_0"."archived" = $5)"#;
+WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entity_temporal_metadata_0_0_0"."decision_time" && $2 AND ("entity_temporal_metadata_0_0_0"."web_id" = $3) AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4) AND ("entity_editions_0_1_0"."archived" = $5)"#;

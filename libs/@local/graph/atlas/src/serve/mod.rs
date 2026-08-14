@@ -14,8 +14,8 @@
 //! them on a compute pool - rayon plus `catch_unwind` - never inline on its runtime threads.
 //!
 //! The route and body vocabulary and the response bytes form pinned public contracts. The one
-//! deferral rejects instead of serving wrong bytes. A request that names a visibility `filter`
-//! receives an `Unsupported` rejection.
+//! deferral rejects instead of serving wrong bytes: no request body admits a visibility `filter`
+//! member, so a request naming one rejects as `invalid-body`.
 //!
 //! Every assembly path takes a [`VisibilityProof`], the server-held statement of which node rows
 //! and which link rows the bound scope may see. Responses compute over the masked view. Delivered

@@ -224,16 +224,15 @@ impl Atlas {
     /// before edges qualify, and the link row carries the link entity's own authorization, which
     /// its endpoints do not imply.
     ///
-    /// Version 0 serves the full unfiltered edge set. The endpoint rejects a request naming a
-    /// visibility filter by name rather than answering it with bytes that ignore the filter without
-    /// saying so.
+    /// Version 0 serves the full unfiltered edge set. The body vocabulary admits no visibility
+    /// filter, so a request naming one rejects as `invalid-body` rather than receiving bytes that
+    /// ignore the filter without saying so.
     ///
     /// # Errors
     ///
     /// Returns [`EdgesError::Tiles`] when the request lists more tiles than `limits.tiles`,
-    /// [`EdgesError::Depth`] when a listed zoom exceeds the generation's deepest served tile,
-    /// [`EdgesError::Grid`] when a listed coordinate lies outside its zoom's grid, and
-    /// [`EdgesError::Unsupported`] when the request names a version-0 deferral. The delivery
+    /// [`EdgesError::Depth`] when a listed zoom exceeds the generation's deepest served tile, and
+    /// [`EdgesError::Grid`] when a listed coordinate lies outside its zoom's grid. The delivery
     /// contract is `view`'s, checked when it bound, so no rejection here is about it.
     fn assemble_edges(
         &self,

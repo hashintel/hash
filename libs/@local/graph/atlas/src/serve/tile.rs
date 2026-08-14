@@ -278,16 +278,17 @@ impl Atlas {
     /// so a scope's tile carries no evidence of what the mask removed: a fully masked tile is a
     /// tile that never had rows.
     ///
-    /// Version 0 serves the full unfiltered visible set in both modes. Delivery rejects a request
-    /// naming a filter by name rather than answering with bytes that ignore it without saying so.
+    /// Version 0 serves the full unfiltered visible set in both modes. The body vocabulary admits
+    /// no visibility filter, so a request naming one rejects as `invalid-body` rather than
+    /// receiving bytes that ignore it without saying so.
     ///
     /// # Errors
     ///
     /// Returns [`TileError::Types`] when the request carries more `coloredTypeIds` than
     /// `limits.colored_type_ids`, [`TileError::Depth`] when the zoom exceeds the generation's
-    /// deepest served tile, [`TileError::Grid`] when the coordinate lies outside the zoom's
-    /// grid, and [`TileError::Unsupported`] when the query names a version-0 deferral. The
-    /// delivery contract is `view`'s, checked when it bound, so no rejection here is about it.
+    /// deepest served tile, and [`TileError::Grid`] when the coordinate lies outside the zoom's
+    /// grid. The delivery contract is `view`'s, checked when it bound, so no rejection here is
+    /// about it.
     fn assemble_tile(
         &self,
         request: &TileRequest,

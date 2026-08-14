@@ -363,7 +363,8 @@ impl GlobalHead {
 
 /// The tile detail trailer.
 ///
-/// Hydrated labels and icons, delivered order, `null` marking a row whose entry did not resolve.
+/// Labels and icons from the generation's own payloads, delivered order, `null` marking a row the
+/// generation records no text for.
 #[derive(Debug)]
 pub(crate) struct TileTrailer<'trailer> {
     /// Trailer key 0.
@@ -386,7 +387,7 @@ impl TileTrailer<'_> {
     }
 }
 
-/// Emits one detail array: text entries with `null` for unresolved.
+/// Emits one detail array: text entries, `null` for an empty entry.
 pub(super) fn encode_details(
     cbor: &mut CborWriter<'_>,
     entries: impl ExactSizeIterator<Item: AsRef<str>>,

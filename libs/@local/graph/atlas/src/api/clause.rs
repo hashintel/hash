@@ -19,6 +19,20 @@ pub(super) fn unauthorized(operation: TransformOperation<'_>) -> TransformOperat
     })
 }
 
+/// States the `422` every body-bearing route answers alike.
+///
+/// The body extractor keeps the framework's own status, so well-formed JSON that is not the
+/// operation's shape - a mistyped member or an unknown one - answers `invalid-body` at 422,
+/// while a body that is not JSON at all answers it at 400.
+pub(super) fn invalid_body_data(operation: TransformOperation<'_>) -> TransformOperation<'_> {
+    operation.response_with::<422, Problem<'static>, _>(|response| {
+        response.description(
+            "`invalid-body`: well-formed JSON that is not this operation's shape - a mistyped \
+             member or an unknown one",
+        )
+    })
+}
+
 /// States the catch-all clause covering what the enumerated responses do not.
 pub(super) fn any_problem(operation: TransformOperation<'_>) -> TransformOperation<'_> {
     operation.default_response_with::<Problem<'static>, _>(|response| {

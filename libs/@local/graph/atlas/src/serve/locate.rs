@@ -529,17 +529,17 @@ impl Atlas {
     /// The `coloredTypeIds` cap is the tile endpoint's own - one manifest key,
     /// `limits.coloredTypeIds`, governs the field wherever it occurs.
     ///
-    /// Version 0 serves the full unfiltered set. Assembly rejects a request naming a visibility
-    /// filter by name rather than answering it with bytes that ignore the filter.
+    /// Version 0 serves the full unfiltered set. The body vocabulary admits no visibility filter,
+    /// so a request naming one rejects as `invalid-body` rather than receiving bytes that ignore
+    /// the filter.
     ///
     /// # Errors
     ///
     /// Returns [`LocateError::Source`] when the body does not name exactly one of `entityId` and
     /// `row`, [`LocateError::UnknownEntity`] when the source does not resolve to a visible node,
-    /// [`LocateError::Types`] when the request carries more `coloredTypeIds` than
-    /// `limits.tile.colored_type_ids`, and [`LocateError::Unsupported`] when the request names a
-    /// version-0 deferral. The delivery contract is `view`'s, checked when it bound, so no
-    /// rejection here is about it.
+    /// and [`LocateError::Types`] when the request carries more `coloredTypeIds` than
+    /// `limits.tile.colored_type_ids`. The delivery contract is `view`'s, checked when it bound,
+    /// so no rejection here is about it.
     fn assemble_locate(
         &self,
         request: &LocateRequest,
