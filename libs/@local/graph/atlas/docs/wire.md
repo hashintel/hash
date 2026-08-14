@@ -239,3 +239,5 @@ Per-point invariants - duplicate row ids, positions inside the tile extent - are
 ## 10. Fixtures
 
 Checked-in fixture envelopes pin the contract bytes. The encoder writes small hand-built responses as fixtures, and every decoder implementation asserts field-for-field equality against their JSON sidecars (floats as bit patterns, never printed decimals). "Matches the server" is never asserted by eye. The fixtures live in the atlas crate under `fixtures/wire/`.
+
+One fixture, `r1-scoped-route-tile`, carries served bytes rather than hand-built ones. Its manifest resolution over a live store declared a nonzero `scopeSchedule` offset beside the authority token, and the tile request presented that token. The sidecar records the served declaration verbatim beside the response bytes, and decoders derive that fixture's delivery cut from the recorded declaration rather than from a constant, which makes it the declaration-readback witness. The capture and verification harness is the atlas crate's `tests/route_fixture.rs`.

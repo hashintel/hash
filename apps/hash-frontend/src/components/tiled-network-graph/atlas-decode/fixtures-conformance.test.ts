@@ -265,6 +265,81 @@ describe("wire fixtures", () => {
     expect(high.sidecar.appended).not.toBeNull();
   });
 
+  it("decodes r1-scoped-route-tile under its served manifest declaration", () => {
+    // The one fixture whose bytes came through the served route rather than
+    // from the encoder (RFC-0002): a live manifest resolution declared the
+    // nonzero scope offset beside the authority token, the tile request
+    // presented that token, and the response bytes were checked in with the
+    // declaration verbatim. The delivery cut is therefore derived from the
+    // declaration the server sent - not from TILE_CUT_ADDEND, which pins the
+    // hand-built corpus - so this case is the declaration-readback witness.
+    const { buffer, sidecar } = readFixture(
+      "r1-scoped-route-tile",
+    ) as unknown as {
+      buffer: ArrayBuffer;
+      sidecar: TileSidecar & {
+        declaration: {
+          generation: string;
+          wireVersion: number;
+          bucketSchedule: { span: number; cut: string; maxZoom: number };
+          scopeSchedule: { k: number; cut: string };
+        };
+      };
+    };
+    const { declaration, head } = sidecar;
+
+    const spanLog2 = Math.log2(declaration.bucketSchedule.span);
+    expect(Number.isInteger(spanLog2)).toBe(true);
+    // The fixture's charter: the served declaration carries a nonzero offset,
+    // and the cut rule it prints is the span and offset it declares.
+    expect(declaration.scopeSchedule.k).toBeGreaterThanOrEqual(1);
+    const cutAddend = spanLog2 + declaration.scopeSchedule.k;
+    expect(declaration.scopeSchedule.cut).toBe(`z+${cutAddend}`);
+    expect(head.generation).toBe(declaration.generation);
+
+    const decoded = decodeSaltileTile(buffer, {
+      generation: bytesFromHex(head.generation),
+      variant: head.variant,
+      coordinate: {
+        z: head.coordinate[0],
+        x: head.coordinate[1],
+        y: head.coordinate[2],
+      },
+      mode: head.mode as SaltileMode,
+      deliverySpanLog2: cutAddend,
+      coloredTypeIdCount: 0,
+      detail: "minimal",
+    });
+
+    expect(decoded.delivered).toBe(head.delivered);
+    expect(decoded.visible).toBe(head.visible);
+    expect(decoded.firstBucket).toBe(head.firstBucket);
+    expect(decoded.runs).toEqual(head.runs);
+    expect(decoded.children).toBe(head.children);
+
+    // A scoped root carries one run per bucket through the declared cut, and
+    // sum(runs) = delivered holds in every response (wire.md, the runs
+    // contract). Under k = 0 this length would be spanLog2 + 1, so the extra
+    // runs are the nonzero offset made visible on the wire.
+    expect(decoded.runs).toHaveLength(cutAddend + 1);
+    expect(decoded.runs.reduce((sum, run) => sum + run, 0)).toBe(
+      head.delivered,
+    );
+
+    expect(bitsOfF32(decoded.positions)).toEqual(sidecar.positions);
+    expect(decoded.positions.length).toBe(head.delivered * 2);
+    expect([...decoded.rowIds]).toEqual(sidecar.rowIds);
+    expect(decoded.typeMask).toBeNull();
+    expect(decoded.detail).toBeNull();
+
+    const global = head.global!;
+    expect(decoded.global).toEqual({
+      visibleAtZoom: global.visibleAtZoom,
+      bounds: f32FromBits(global.boundsBits!),
+      minResolution: global.minResolution,
+    });
+  });
+
   it("decodes g6-edges field-for-field against its sidecar", () => {
     const { buffer, sidecar } = readFixture("g6-edges") as {
       buffer: ArrayBuffer;
