@@ -4,8 +4,7 @@ export const triggerStyles = css({
   lineHeight: "[0]",
 
   "&:focus-visible": {
-    outline: "[2px solid]",
-    outlineColor: "neutral.s30",
+    outline: "[2px solid {colors.neutral.s30}]",
     outlineOffset: "[2px]",
     borderRadius: "md",
   },

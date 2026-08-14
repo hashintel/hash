@@ -15,7 +15,8 @@ export const styles = sva({
       cursor: "pointer",
       display: "inline-block",
       fontWeight: "medium",
-      border: "var(--form-border-width) solid",
+      borderWidth: "var(--form-border-width)",
+      borderStyle: "solid",
       textAlign: "center",
       transition:
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
@@ -23,7 +24,8 @@ export const styles = sva({
       minWidth:
         "[calc(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2)]",
       "&:focus-visible": {
-        outline: "2px solid",
+        outlineWidth: "2px",
+        outlineStyle: "solid",
       },
       '&[aria-disabled="true"]': {
         cursor: "auto",

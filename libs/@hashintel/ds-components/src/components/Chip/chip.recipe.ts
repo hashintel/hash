@@ -21,7 +21,9 @@ export const styles = sva({
       // (which bleeds into the border region) isn't clipped away.
       overflowClipMargin: "[var(--chip-border-width)]",
       outline: "none",
-      border: "var(--chip-border-width) solid transparent",
+      borderWidth: "var(--chip-border-width)",
+      borderStyle: "solid",
+      borderColor: "[transparent]",
       borderRadius: "[var(--chip-radius)]",
       paddingInlineStart: "var(--chip-padding-x)",
       paddingInlineEnd: "var(--chip-padding-x)",

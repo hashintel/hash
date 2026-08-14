@@ -34,7 +34,9 @@ export const selectRecipe = sva({
       minWidth: "[min-content]",
       position: "relative",
       background: "[var(--base-input-background-color)]",
-      border: "var(--form-border-width) solid transparent",
+      borderWidth: "var(--form-border-width)",
+      borderStyle: "solid",
+      borderColor: "[transparent]",
       borderRadius: "var(--base-input-border-radius)",
       transition: "[background 0.15s ease, border 0.15s ease]",
       "--base-input-background-color": "var(--colors-white)",
@@ -208,7 +210,9 @@ export const selectRecipe = sva({
             insetY: "[-1px]",
             insetX: "[calc(-1 * var(--base-input-padding-x))]",
             borderRadius: "var(--base-input-border-radius)",
-            border: "1px solid transparent",
+            borderWidth: "1px",
+            borderStyle: "solid",
+            borderColor: "[transparent]",
             pointerEvents: "none",
             background: "[var(--base-input-background-color)]",
             transition: "[background 0.15s ease, border 0.15s ease]",
@@ -257,9 +261,9 @@ export const selectRecipe = sva({
         },
         readonly: { textStyle: formSizes.variants.sizes.xxs.textStyle },
         select: {
-          "&:after": {
-            borderRightWidth: "[1px]",
-            borderBottomWidth: "[1px]",
+          "&::after": {
+            borderRight: "[1px solid currentColor]",
+            borderBottom: "[1px solid currentColor]",
           },
         },
       },
@@ -271,9 +275,9 @@ export const selectRecipe = sva({
         },
         readonly: { textStyle: formSizes.variants.sizes.xs.textStyle },
         select: {
-          "&:after": {
-            borderRightWidth: "[1px]",
-            borderBottomWidth: "[1px]",
+          "&::after": {
+            borderRight: "[1px solid currentColor]",
+            borderBottom: "[1px solid currentColor]",
           },
         },
       },
