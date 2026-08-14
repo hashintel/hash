@@ -156,7 +156,7 @@ Tile TRAILER, present iff the request set `detail: "auxiliary"`:
 | 0   | `labels` | `[tstr or null ...]` | delivered order |
 | 1   | `icons`  | `[tstr or null ...]` | delivered order |
 
-Parsed, not viewed - one decode pass. The trailer-last layout permits geometry-first streaming, but current servers buffer the whole body, so hydration latency delays the first byte (section 2). Null marks a row whose label did not resolve.
+The trailer-last layout permits geometry-first streaming, but current servers buffer the whole body, so hydration latency delays the first byte (section 2). Null marks a row whose label did not resolve.
 
 ## 7. Edges response
 
