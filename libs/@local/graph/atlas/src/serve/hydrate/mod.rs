@@ -1,8 +1,8 @@
 //! Live store reads that hydrate detail for delivered points and edges.
 //!
-//! Detail hydrates at request time from Postgres, inline in the trailer, with no published label
-//! columns. Every read runs at the request's own instant instead of at the snapshot's decision
-//! time, so text edited after publish shows on snapshot geometry.
+//! Detail hydrates properties and type references at request time from Postgres, inline in the
+//! trailer. Labels are generation payloads materialized during fitting, so a later label edit does
+//! not change an existing generation.
 //!
 //! # What a trailer carries
 //!
@@ -13,38 +13,27 @@
 //! requesting actor. Property values reach a trailer from the deliverable set, and the caps,
 //! counts, and completeness flags below all describe that set.
 //!
-//! The store's protection is a per-actor condition, and the hydration queries evaluate it for
-//! the requesting actor. Each order carries the actor its scope's policy resolution produced
-//! ([`MaskingActor`]), and the property statements compile through the store's own query
-//! compiler under the read path's masking conditions, so a trailer withholds exactly what the
-//! graph's entity reads withhold from that actor: an owner reads a protected value of their own
-//! where a stranger does not, and an instance admin reads unmasked.
+//! The store's protection is a per-actor condition, and the hydration queries evaluate it for the
+//! requesting actor. Each order carries the actor its scope's policy resolution produced
+//! ([`MaskingActor`]), and the property statements compile through the store's own query compiler
+//! under the read path's masking conditions, so a trailer withholds exactly what the graph's entity
+//! reads withhold from that actor: an owner reads a protected value of their own where a stranger
+//! does not, and an instance admin reads unmasked.
 //!
 //! Labels stand outside that rule, here and on the graph's own read path. A label is a property
 //! value materialized per edition. The store derives `entity_edition_cache.labels[1]` from the
 //! whole properties object through the type's `labelProperty` path, with no actor in the
 //! derivation, so a type whose label property the deployment protects keeps that value in its label
-//! column. A deployment that protects a label property makes that true of its labels with no code
-//! change here. The locate responses also name the base URL behind the label, which states that the
-//! entity has a value at that path without delivering it.
+//! column. Fitting copies that value into the generation's identity tables. Locate and edges read
+//! those generation payloads while hydration determines whether an entity still resolves and which
+//! live type references and properties may leave the store. The locate responses also name the base
+//! URL behind the label, which states that the entity has a value at that path without delivering
+//! it.
 //!
-//! The tile trailer's per-point rules are the graph's own display resolution rather than a second
-//! implementation of a client's. The label is the value the store's label column resolved from the
-//! type's `labelProperty`, and the icon follows the SDK's display-field rule. Where the graph's
-//! resolution and a client's differ, the value delivered here is the graph's. Convergence is the
-//! graph's to make. This module re-derives neither rule.
-//!
-//! - Label: `entity_edition_cache.labels[1]`, the entity's display label; `null` when the entity
-//!   has none.
-//! - Icon: `icon` on the entity when its value is a string, else the graph's display-field rule
-//!   (the SDK's `getDisplayFieldsForClosedEntityType`). Every direct type's `closed_schema.allOf`
-//!   carries per-ancestor display metadata, and the first non-null icon by inheritance depth wins,
-//!   so a type inherits its ancestors' icons nearest first. `null` when no chain carries one, and
-//!   the client owns the fallback glyph.
-//!
-//! The locate and edges responses deliver type *references* instead of rendered display. Each
+//! The locate and edges responses deliver type *references* instead of rendered type display. Each
 //! entity's direct types read from `entity_edition_cache.versioned_urls`, and the client resolves
-//! labels and icons through its own type metadata, so one owner holds each display concern.
+//! their labels and icons through its own type metadata, so one owner holds each type display
+//! concern.
 //!
 //! Properties reach the wire as [`ScalarValue`] entries only, covering strings, numbers, booleans,
 //! and explicit nulls. Nested objects and arrays never survive the store-side filter. An over-cap
@@ -56,8 +45,8 @@
 //! double otherwise. Each hydration also counts the entity's *whole deliverable* set, so the
 //! trailer reports completeness (nothing filtered, nothing capped) per entity from that count.
 //!
-//! An id that resolves to no visible entity - deleted since publish, archived, drafted, or with
-//! its derived edition cache not yet landed - reads `null` in every column and `false` in every
+//! An id that resolves to no visible entity - deleted since publish, archived, drafted, or with its
+//! derived edition cache not yet landed - reads `null` in every column and `false` in every
 //! completeness flag, mirroring the zero-mask rule for unresolvable type ids.
 //!
 //! The module splits by altitude: [`columns`] is the hydrated data model the documents and encoders
@@ -74,8 +63,8 @@ pub(crate) mod select;
 mod statement_fixtures;
 mod statements;
 
-// The hydration column constructors are test vocabulary: a fixture store builds its
-// all-unresolved answer from them, and no production caller constructs a hydration by hand.
+// The hydration column constructors are test-only inputs for a fixture store's all-unresolved
+// answer. No production caller constructs a hydration by hand.
 #[cfg(test)]
 pub(crate) use self::order::{LocateLinkHydration, LocateNodeHydration};
 pub(crate) use self::{
