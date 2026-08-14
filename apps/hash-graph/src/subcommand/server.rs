@@ -198,6 +198,11 @@ impl KratosSessionAuthConfig {
                 "--kratos-public-url (HASH_KRATOS_PUBLIC_URL) is required when running the server",
             )
         })?;
+        if !matches!(kratos_public_url.scheme(), "http" | "https") {
+            return Err(Report::new(GraphError).attach(
+                "--kratos-public-url (HASH_KRATOS_PUBLIC_URL) must be an http or https URL",
+            ));
+        }
 
         Ok(KratosSessionConfig {
             kratos_public_url,
