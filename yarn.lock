@@ -14416,6 +14416,7 @@ __metadata:
     "@rust/harpc-tower": "workspace:*"
     "@rust/harpc-types": "workspace:*"
     "@rust/hash-codec": "workspace:*"
+    "@rust/hash-graph-authentication": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
     "@rust/hash-graph-embeddings": "workspace:*"
     "@rust/hash-graph-postgres-store": "workspace:*"
@@ -14437,9 +14438,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-authentication@workspace:libs/@local/graph/authentication":
+"@rust/hash-graph-authentication@workspace:*, @rust/hash-graph-authentication@workspace:libs/@local/graph/authentication":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-authentication@workspace:libs/@local/graph/authentication"
+  dependencies:
+    "@blockprotocol/type-system-rs": "workspace:*"
+    "@rust/error-stack": "workspace:*"
+    "@rust/hash-status": "workspace:*"
   languageName: unknown
   linkType: soft
 

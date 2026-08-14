@@ -8,15 +8,24 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+error-stack = { workspace = true, public = true }
+hash-status = { workspace = true, public = true }
+type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
+http = { workspace = true, public = true, features = ["std"] }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
+derive_more    = { workspace = true, features = ["display"] }
 simple-mermaid = { workspace = true }
+tracing        = { workspace = true }
+uuid           = { workspace = true }
 
 [dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+uuid  = { workspace = true, features = ["v4"] }
 
 [lints]
 workspace = true

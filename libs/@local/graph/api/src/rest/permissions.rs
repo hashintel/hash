@@ -20,7 +20,7 @@ use http::StatusCode;
 use utoipa::OpenApi;
 
 use super::status::BoxedResponse;
-use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_response};
+use crate::rest::{AuthenticatedActorId, json::Json, status::report_to_response};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -86,7 +86,7 @@ impl PermissionResource {
     )
 )]
 async fn create_policy<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(policy): Json<PolicyCreationParams>,
@@ -120,7 +120,7 @@ where
     )
 )]
 async fn get_policy_by_id<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -154,7 +154,7 @@ where
     )
 )]
 async fn query_policies<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(filter): Json<PolicyFilter>,
@@ -188,7 +188,7 @@ where
     )
 )]
 async fn resolve_policies_for_actor<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(params): Json<ResolvePoliciesParams<'static>>,
@@ -223,7 +223,7 @@ where
     )
 )]
 async fn update_policy_by_id<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -258,7 +258,7 @@ where
     )
 )]
 async fn archive_policy_by_id<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -292,7 +292,7 @@ where
     )
 )]
 async fn delete_policy_by_id<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,

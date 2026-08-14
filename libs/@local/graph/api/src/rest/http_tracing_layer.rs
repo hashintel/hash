@@ -69,6 +69,7 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
         { trace::NETWORK_PEER_PORT } = Empty,
         { trace::HTTP_RESPONSE_STATUS_CODE } = Empty,
         { trace::HTTP_RESPONSE_BODY_SIZE } = Empty,
+        // The authentication middleware records this field.
         { "actor_entity_uuid" } = Empty,
     );
 
@@ -101,12 +102,6 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
         && let Ok(body_size) = content_length_str.parse::<i64>()
     {
         http_span.record(trace::HTTP_REQUEST_BODY_SIZE, body_size);
-    }
-
-    if let Some(actor_id_header) = headers.get("X-Authenticated-User-Actor-Id")
-        && let Ok(actor_id) = actor_id_header.to_str()
-    {
-        http_span.record("actor_entity_uuid", actor_id);
     }
 
     if let Some(ConnectInfo(addr)) = request.extensions().get::<ConnectInfo<SocketAddr>>() {
