@@ -58,6 +58,7 @@ export type BaseInputProps = {
   max?: number;
   step?: number | "any";
   maxLength?: number;
+  minLength?: number;
   pattern?: string;
   spellcheck?: boolean;
   tabIndex?: number;
@@ -171,6 +172,7 @@ export const BaseInput = ({
   max,
   step,
   maxLength,
+  minLength,
   pattern,
   spellcheck,
   autocomplete = false,
@@ -270,6 +272,7 @@ export const BaseInput = ({
       max={max}
       step={step}
       maxLength={maxLength}
+      minLength={minLength}
       pattern={pattern}
       spellCheck={spellcheck}
       // there is no standard for turning off autocomplete, so we need to include all the

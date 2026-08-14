@@ -70,7 +70,13 @@ export const NumberInput = ({
   ...props
 }: Omit<
   BaseInputProps,
-  "type" | "maxLength" | "spellcheck" | "value" | "onChange" | "width"
+  | "type"
+  | "minLength"
+  | "maxLength"
+  | "spellcheck"
+  | "value"
+  | "onChange"
+  | "width"
 > & {
   value: number | null | undefined;
   // maxNumber sets the width to be equal to the width of the max value if set, assuming that stepper is hidden
