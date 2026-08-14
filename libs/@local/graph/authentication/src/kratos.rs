@@ -200,14 +200,10 @@ where
             .text()
             .await
             .change_context(AuthenticationError::ProviderUnreachable)?;
-        let whoami: WhoamiResponse = match serde_json::from_str(&body) {
-            Ok(whoami) => whoami,
-            Err(error) => {
-                return Err(Report::new(error)
-                    .change_context(AuthenticationError::InvalidProviderResponse)
-                    .attach(provider_response(status, Ok(body))));
-            }
-        };
+        // A whoami body carries the identity and its traits, so it stays out of the report.
+        // Failure bodies above are Kratos error responses without identity data.
+        let whoami: WhoamiResponse = serde_json::from_str(&body)
+            .change_context(AuthenticationError::InvalidProviderResponse)?;
 
         // The schema does not require `active`, so only an explicit `true` passes.
         if whoami.active != Some(true) {
@@ -746,7 +742,8 @@ mod tests {
 
     #[tokio::test]
     async fn undeserializable_whoami_response_fails_verification() {
-        let provider = provider_with_static_response(StatusCode::OK, "not json").await;
+        let provider =
+            provider_with_static_response(StatusCode::OK, r#"{"identity-like": "body"}"#).await;
 
         let report = expect_rejection(provider.authenticate(&session_token_header()).await);
         assert!(
@@ -755,6 +752,10 @@ mod tests {
                 AuthenticationError::InvalidProviderResponse
             ),
             "an undeserializable whoami response should fail as an invalid provider response"
+        );
+        assert!(
+            !format!("{report:?}").contains("identity-like"),
+            "the report should not carry the whoami response body"
         );
     }
 }
