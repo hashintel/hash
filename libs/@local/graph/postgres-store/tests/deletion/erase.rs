@@ -21,9 +21,9 @@ use crate::{
 /// Erases the `entity_ids` row entirely, leaving no tombstone.
 ///
 /// After erase, `entity_ids` has zero rows for the `(web_id, entity_uuid)` pair. Unlike purge
-/// (which calls `stamp_deletion_tombstone` to stamp a tombstone), erase calls
-/// `delete_entity_ids` to remove the row completely. `count_incoming_links` always runs for erase
-/// scope to prevent FK violations from `entity_edge.target → entity_ids`.
+/// (which calls `update_entity_ids_provenance` to write a tombstone), erase calls
+/// `delete_entity_ids` to remove the row completely. `count_incoming_link_edges` always runs
+/// for erase scope to prevent FK violations from `entity_edge.target` to `entity_ids`.
 #[tokio::test]
 async fn removes_entity_ids_row() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -344,7 +344,7 @@ async fn entity_reuse_after_erase() {
 /// Draft-only entity with all drafts matched → `promote_draft_only_entities` clears the draft vec
 /// (no published version and no unmatched drafts found in `entity_temporal_metadata`) → entity
 /// becomes a full target → Erase scope calls `delete_entity_ids` instead of
-/// `stamp_deletion_tombstone`. The `entity_ids` row must be gone, not tombstoned.
+/// `update_entity_ids_provenance`. The `entity_ids` row must be gone, not tombstoned.
 #[tokio::test]
 async fn promoted_draft_only_entity() {
     let mut database = DatabaseTestWrapper::new().await;

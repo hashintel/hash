@@ -33,25 +33,26 @@ hash-status                    = { workspace = true }
 type-system                    = { workspace = true, features = ["postgres"] }
 
 # Private third-party dependencies
-async-scoped   = { workspace = true, features = ["use-tokio"] }
-bytes          = { workspace = true }
-clap           = { workspace = true, optional = true, features = ["derive", "env"] }
-derive-where   = { workspace = true }
-derive_more    = { workspace = true }
-dotenv-flow    = { workspace = true }
-futures        = { workspace = true }
-postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"] }
-rayon          = { workspace = true }
-refinery       = { workspace = true, features = ["tokio-postgres"] }
-regex          = { workspace = true }
-semver         = { workspace = true, features = ["serde"] }
-serde          = { workspace = true, features = ["derive"] }
-serde_json     = { workspace = true }
-simple-mermaid = { workspace = true }
-time           = { workspace = true }
-tracing        = { workspace = true }
-utoipa         = { workspace = true, optional = true, features = ["uuid"] }
-uuid           = { workspace = true, features = ["v4", "serde"] }
+async-scoped     = { workspace = true, features = ["use-tokio"] }
+bytes            = { workspace = true }
+clap             = { workspace = true, optional = true, features = ["derive", "env"] }
+derive-where     = { workspace = true }
+derive_more      = { workspace = true }
+dotenv-flow      = { workspace = true }
+futures          = { workspace = true }
+pin-project-lite = { workspace = true }
+postgres-types   = { workspace = true, features = ["derive", "with-serde_json-1"] }
+rayon            = { workspace = true }
+refinery         = { workspace = true, features = ["tokio-postgres"] }
+regex            = { workspace = true }
+semver           = { workspace = true, features = ["serde"] }
+serde            = { workspace = true, features = ["derive"] }
+serde_json       = { workspace = true }
+simple-mermaid   = { workspace = true }
+time             = { workspace = true }
+tracing          = { workspace = true }
+utoipa           = { workspace = true, optional = true, features = ["uuid"] }
+uuid             = { workspace = true, features = ["v4", "serde"] }
 
 [dev-dependencies]
 # The crate's own test suites wrap each test in a rollback transaction, so they need the

@@ -314,10 +314,10 @@ async fn include_drafts_irrelevant_for_published() {
 
 /// `Purge` with [`LinkDeletionBehavior::Error`] succeeds when no incoming links exist.
 ///
-/// All other purge tests use `Ignore` link behavior, skipping `count_incoming_links` entirely.
-/// This test exercises the `Error` path: `count_incoming_links` runs, finds 0 incoming edges from
-/// sources outside the batch, and deletion proceeds normally. Confirms the happy path through the
-/// link check doesn't spuriously block deletion.
+/// All other purge tests use `Ignore` link behavior, skipping `count_incoming_link_edges` entirely.
+/// This test exercises the `Error` path: `count_incoming_link_edges` runs, finds 0 incoming
+/// edges from sources outside the batch, and deletion proceeds normally. Confirms the happy
+/// path through the link check doesn't spuriously block deletion.
 #[tokio::test]
 async fn purge_error_succeeds_without_incoming_links() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -792,7 +792,7 @@ async fn query_after_purge_returns_empty() {
 
 /// Verifies provenance records the deleting actor, not the creating actor.
 ///
-/// Actor A creates the entity, Actor B deletes it. `stamp_deletion_tombstone` receives the
+/// Actor A creates the entity, Actor B deletes it. `update_entity_ids_provenance` receives the
 /// `actor_id` from the `delete_entities` caller and stores it in the `deleted_by_id` column.
 /// The tombstone's `deleted_by_id` must be Actor B's ID, not A's.
 #[tokio::test]

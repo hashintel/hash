@@ -1,4 +1,5 @@
 mod delete;
+pub(crate) mod feed;
 pub(crate) mod provenance;
 mod query;
 mod read;
@@ -1010,10 +1011,10 @@ where
 {
     /// Rebuilds the entity edition cache and the inherited `entity_is_of_type` rows.
     ///
-    /// This is inherent rather than only an [`EntityStore`] method so that code paths already
-    /// operating inside an enclosing transaction — snapshot restore and entity-type reindexing —
-    /// can rebuild the cache without requiring the [`EntityStore`] impl, whose snapshot-consistent
-    /// reads are only available where [`BeginReadOnlyTransaction`] is implemented.
+    /// This is inherent rather than only an [`EntityStore`] method so that snapshot restore and
+    /// entity-type reindexing, which already operate inside an enclosing transaction, can rebuild
+    /// the cache without requiring the [`EntityStore`] impl, whose snapshot-consistent reads are
+    /// only available where [`BeginReadOnlyTransaction`] is implemented.
     ///
     /// # Errors
     ///
@@ -1077,7 +1078,7 @@ where
     ///
     /// This is inherent rather than only an [`EntityStore`] method because the snapshot-consistent
     /// read implementations invoke it on the [`InTransaction`] store, where the [`EntityStore`]
-    /// impl — bounded on [`BeginReadOnlyTransaction`] — is not available.
+    /// impl, bounded on [`BeginReadOnlyTransaction`], is not available.
     ///
     /// # Errors
     ///

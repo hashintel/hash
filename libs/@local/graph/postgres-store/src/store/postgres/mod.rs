@@ -77,6 +77,9 @@ use type_system::{
 use uuid::Uuid;
 
 pub use self::{
+    knowledge::entity::feed::{
+        EntityDeletion, EntityEnd, EntityEvent, EntityEventStream, EntityUpdate,
+    },
     pool::{
         AsClient, InTransaction, NoTransaction, PostgresStorePool, TransactionOptions,
         TransactionState,
@@ -2498,7 +2501,7 @@ where
     ///
     /// On a store which is not inside a transaction this issues a plain `BEGIN` using the
     /// database's default transaction characteristics. On a store which is already inside a
-    /// transaction it creates a savepoint instead; a savepoint has no characteristics of its own
+    /// transaction it creates a savepoint instead. A savepoint has no characteristics of its own
     /// and runs within the enclosing transaction.
     ///
     /// Transaction characteristics such as the isolation level can only be configured when
@@ -3350,7 +3353,7 @@ impl Transaction for PostgresStore<tokio_postgres::Transaction<'_>, InTransactio
 ///
 /// - In the [`NoTransaction`] state a `REPEATABLE READ, READ ONLY` transaction is begun, giving all
 ///   statements of the read one shared snapshot.
-/// - In the [`InTransaction`] state — only available with the `test-utils` feature — a savepoint is
+/// - In the [`InTransaction`] state, which only the `test-utils` feature provides, a savepoint is
 ///   created instead: the read runs within the enclosing transaction and observes that
 ///   transaction's snapshot semantics.
 // TODO(BE-688): The `InTransaction` impl exists only for the rollback-isolation test harness,

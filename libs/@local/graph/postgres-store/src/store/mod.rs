@@ -8,7 +8,8 @@ pub mod postgres;
 pub use self::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
     postgres::{
-        AsClient, BeginReadOnlyTransaction, Context, InTransaction, IsolationLevel, NoTransaction,
+        AsClient, BeginReadOnlyTransaction, Context, EntityDeletion, EntityEnd, EntityEvent,
+        EntityEventStream, EntityUpdate, InTransaction, IsolationLevel, NoTransaction,
         PostgresStore, PostgresStorePool, PostgresStoreSettings, PostgresStoreTransactionBuilder,
         Transaction, TransactionBuilder, TransactionOptions, TransactionState,
     },

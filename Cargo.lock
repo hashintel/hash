@@ -6137,6 +6137,7 @@ dependencies = [
  "hash-telemetry",
  "hash-temporal-client",
  "indoc",
+ "pin-project-lite",
  "postgres-types",
  "pretty_assertions",
  "rayon",

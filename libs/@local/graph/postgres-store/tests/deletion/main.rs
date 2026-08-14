@@ -6,6 +6,7 @@ mod common;
 mod created_by_columns;
 mod drafts;
 mod erase;
+mod feed;
 mod links;
 mod purge;
 mod validation;
