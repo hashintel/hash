@@ -39,14 +39,15 @@ struct ResolvedAuthentication(AuthenticationOutcome);
 
 /// Converts an authentication failure into the response returned to the client.
 ///
-/// Only logs at debug level: [`resolve_request_actor`] already logs failures with their full
-/// report at the level matching the fault domain.
+/// The response carries the client-safe message. Identifiers stay in the server-side logs. Only
+/// logs at debug level: [`resolve_request_actor`] already logs failures with their full report at
+/// the level matching the fault domain.
 fn rejection(error: &AuthenticationError) -> BoxedResponse {
     let status_code = error.status_code();
     tracing::debug!(%error, "request rejected");
     status_to_response(Status::<()>::new(
         status_code,
-        Some(error.to_string()),
+        Some(error.client_message().to_owned()),
         vec![],
     ))
 }

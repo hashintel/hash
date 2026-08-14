@@ -78,6 +78,31 @@ impl AuthenticationError {
             | Self::NotAUser { .. } => StatusCode::Unauthenticated,
         }
     }
+
+    /// Returns the message reported to the client for this error.
+    ///
+    /// Never carries identifiers. Those remain in the [`Display`] representation used for
+    /// server-side logs.
+    ///
+    /// [`Display`]: core::fmt::Display
+    #[must_use]
+    pub const fn client_message(&self) -> &'static str {
+        match self {
+            Self::MissingCredentials => "no credentials provided",
+            Self::MalformedCredential => "credential is malformed",
+            Self::InvalidActorIdHeader => {
+                "`X-Authenticated-User-Actor-Id` header is not a valid UUID"
+            }
+            Self::ProviderUnreachable => "failed to verify the credential against the provider",
+            Self::ProviderRejection => "the credential provider rejected the verification request",
+            Self::InvalidProviderResponse => "the credential provider returned an invalid response",
+            Self::InvalidSession => "session is invalid or expired",
+            Self::NotProvisioned { .. } => "identity has no Graph actor provisioned",
+            Self::ActorNotFound { .. } => "actor does not exist",
+            Self::NotAUser { .. } => "actor is not a user actor",
+            Self::StoreError => "failed to validate actor against the principal store",
+        }
+    }
 }
 
 /// The result of resolving a request's credentials.
@@ -112,6 +137,15 @@ where
                 StatusCode::Unavailable | StatusCode::Internal
             ) {
                 tracing::error!(error = ?report, "credential verification failed");
+            } else if matches!(
+                error,
+                AuthenticationError::NotProvisioned { .. }
+                    | AuthenticationError::ActorNotFound { .. }
+                    | AuthenticationError::NotAUser { .. }
+            ) {
+                // A verified credential pointing at a missing or non-user actor is broken
+                // provisioning. The client cannot resolve this on its own.
+                tracing::warn!(error = ?report, "credential rejected due to broken actor provisioning");
             } else {
                 tracing::debug!(error = ?report, "credential rejected");
             }
