@@ -77,9 +77,11 @@ const API_DESCRIPTION: &str =
 
 - Query-bearing endpoints are `POST` with a JSON body; the body is part of the client's cache key.
 - Binary responses ship `Cache-Control: private, no-store`: the client's application-layer cache \
-     is the cache, keyed on (authorization context, generation, route, canonical body). Detailed \
-     responses read their trailers from the store at request time and leave the immutable cache - \
-     cache the geometry surfaces, refetch detail.
+     is the cache, keyed on (authorization context, generation, route, canonical body). Tile \
+     labels and icons and edges labels come from the generation. Edges type references and locate \
+     type and property values read request-time store state. Do not retain a detailed response as \
+     an immutable generation tile. Cache geometry and refetch edges and locate detail where \
+     request-time state matters.
 - Every error is an RFC 9457 problem document (`application/problem+json`) whose `type` member is \
      a stable root-relative URI (`/problems/atlas/<slug>`): an absent required body answers \
      `missing-body`, a body that is not the operation's JSON shape answers `invalid-body`, an \

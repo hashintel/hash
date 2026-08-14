@@ -15,8 +15,9 @@
  * query against the common label properties and then refine case-insensitively
  * on the generated label. The results carry no coordinates, so the parent view
  * locates each (by entity id) to place and reveal a picked result — it prefetches
- * the whole result set via `onResultsChange` so a pick is instant (see
- * `network-graph-view.tsx`).
+ * the whole result set via `onResultsChange` so a pick made while its locate is
+ * still pending can share that request (see `network-graph-view.tsx`). A locate
+ * that has already settled is deliberately fetched again for request-time detail.
  */
 
 import { useQuery } from "@apollo/client";
@@ -134,8 +135,9 @@ export const NetworkGraphSearch = ({
   onHover?: (result: NetworkGraphSearchResult | null) => void;
   /**
    * Called with the current result set whenever it changes (empty when the query
-   * clears). Lets the parent prefetch each result's locate ego-graph so a later
-   * pick renders without an on-demand round trip.
+   * clears). Lets the parent start each result's locate ego-graph so a hover or pick
+   * can share it while it remains pending. Settled detail is not retained, so a
+   * later interaction starts a fresh request.
    */
   onResultsChange?: (results: NetworkGraphSearchResult[]) => void;
   /**

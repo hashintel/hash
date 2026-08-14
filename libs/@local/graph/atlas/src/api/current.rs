@@ -9,10 +9,12 @@ use crate::serve::GenerationId;
 /// The operation's description.
 const DESCRIPTION: &str = "Returns the generation this server serves, pinned at startup.
 
-Every other route's geometry and configuration are pinned per generation (detail trailers read \
-                           live store state); this pointer is the only read that changes. Re-read \
-                           it whenever any route answers `unknown-generation`, then retry against \
-                           the returned generation.";
+Every other route's geometry and configuration are pinned per generation. Detail provenance varies \
+                           by route: tile detail is generation-local, while edges and locate \
+                           combine generation payloads with request-time store state. This \
+                           pointer is the only generation read that changes. Re-read it whenever \
+                           any route answers `unknown-generation`, then retry against the \
+                           returned generation.";
 
 /// The `current` document: the one mutable read.
 #[derive(

@@ -60,6 +60,10 @@ import {
   FetchTileError,
 } from "../../../components/tiled-network-graph/tiling/fetch-tile";
 import {
+  inflightRequestBindingFor,
+  shareInflightRequest,
+} from "../../../components/tiled-network-graph/tiling/inflight-request-map";
+import {
   useGetViewportNodes,
   ViewportTilesError,
   WORLD_SIZE,
@@ -216,8 +220,8 @@ const boundsOf = (points: readonly NetworkGraphPoint[]): Bounds => {
  * The SVG URL for a HASH entity/type icon value (the form the graph and popover
  * draw directly, as a tintable mask — the same served type icons `EntityOrTypeIcon`
  * shows elsewhere), or `undefined` for an emoji or other non-SVG value. A `/path`
- * is returned as-is: it's fed to an `<img>`/`IconLayer`/CSS `mask`, which resolves
- * it against the document, so no `window` access (SSR-safe).
+ * is returned as-is: the image element, `IconLayer`, or CSS `mask` resolves it against the
+ * document, so no `window` access is needed (SSR-safe).
  */
 const svgIconUrl = (icon: string | undefined): string | undefined => {
   if (
@@ -1091,29 +1095,28 @@ export const NetworkGraphView = ({
     [selectNode, primaryTypeId, emojiIconFor, resolveTypeMeta],
   );
 
-  // Prefetched locate ego-graphs for the current search results, keyed by entity
-  // id — a search result carries no atlas row id, so it locates by `entityId`.
-  // The cache is tagged with the binding it was built against: the queried type
-  // set keys each node's type mask, and the atlas session names the rows its
-  // entries carry, so when that session is replaced its entries name rows the new
-  // one does not answer for. Either change invalidates every entry. Colour-only
-  // changes keep `coloredTypeIdsSignature` stable and don't.
-  const locateCacheSignature = `${coloredTypeIdsSignature}|session:${sessionRevision}`;
-  const locateCacheRef = useRef<{
+  // In-flight locate requests for the current binding, keyed by entity id. A
+  // search result carries no atlas row id, so it locates by `entityId`. The map
+  // lets a search prefetch and an immediate hover or pick share one request, but
+  // removes every settled response because labels, types, and properties may
+  // depend on request-time store state. The queried type set keys each node's
+  // type mask, and the atlas session names the rows its entries carry, so either
+  // change replaces the map. Colour-only changes keep
+  // `coloredTypeIdsSignature` stable and don't.
+  const locateInflightSignature = `${coloredTypeIdsSignature}|session:${sessionRevision}`;
+  const locateInflightRef = useRef<{
     signature: string;
     entries: Map<EntityId, Promise<LocatedEntity>>;
-  }>({ signature: locateCacheSignature, entries: new Map() });
+  }>({ signature: locateInflightSignature, entries: new Map() });
 
-  // The live cache for the current binding, reset lazily when it changes.
-  const getLocateCache = useCallback(() => {
-    if (locateCacheRef.current.signature !== locateCacheSignature) {
-      locateCacheRef.current = {
-        signature: locateCacheSignature,
-        entries: new Map(),
-      };
-    }
-    return locateCacheRef.current.entries;
-  }, [locateCacheSignature]);
+  // The live in-flight map for the current binding, reset lazily when it changes.
+  const getLocateInflight = useCallback(() => {
+    locateInflightRef.current = inflightRequestBindingFor(
+      locateInflightRef.current,
+      locateInflightSignature,
+    );
+    return locateInflightRef.current.entries;
+  }, [locateInflightSignature]);
 
   // A replaced session also invalidates the row ids held in *painted* state:
   // `selected` and `hoveredByExternal` are row ids, and hydrating one afterwards
@@ -1162,37 +1165,27 @@ export const NetworkGraphView = ({
     boundsRef.current = null;
   }
 
-  // Locate an entity by id, memoized in the cache (read-or-start) so a prefetch
-  // and a later pick share one request. A rejected locate is dropped so it can
-  // be retried.
+  // Locate an entity by id, sharing only a request that is still in flight. The
+  // entry is removed on either settlement path before any consumer handles the
+  // response, so later hover or selection refetches request-time detail.
   const locateEntity = useCallback(
     (entityId: EntityId): Promise<LocatedEntity> => {
-      const entries = getLocateCache();
-      const existing = entries.get(entityId);
-      if (existing) {
-        return existing;
-      }
-      const promise = fetchLocate(
-        { entityId },
-        { baseUrl: ATLAS_API_BASE_URL, coloredTypeIds },
+      const entries = getLocateInflight();
+      return shareInflightRequest(entries, entityId, () =>
+        fetchLocate(
+          { entityId },
+          { baseUrl: ATLAS_API_BASE_URL, coloredTypeIds },
+        ),
       );
-      entries.set(entityId, promise);
-      void promise.catch(() => {
-        const current = getLocateCache();
-        if (current.get(entityId) === promise) {
-          current.delete(entityId);
-        }
-      });
-      return promise;
     },
-    [coloredTypeIds, getLocateCache],
+    [coloredTypeIds, getLocateInflight],
   );
 
-  // Prefetch the whole result set so a pick renders without an on-demand round
-  // trip, and drop the entries no longer in the results.
+  // Start one locate per result so an immediate hover or pick can share its
+  // in-flight request. Drop requests for results that have left the list.
   const handleSearchResults = useCallback(
     (results: NetworkGraphSearchResult[]) => {
-      const entries = getLocateCache();
+      const entries = getLocateInflight();
       const wanted = new Set(results.map(({ entityId }) => entityId));
       for (const entityId of entries.keys()) {
         if (!wanted.has(entityId)) {
@@ -1203,11 +1196,11 @@ export const NetworkGraphView = ({
         void locateEntity(entityId);
       }
     },
-    [getLocateCache, locateEntity],
+    [getLocateInflight, locateEntity],
   );
 
-  // Pick a search result → resolve its prefetched (usually already resolved)
-  // locate, overlay its ego-graph with a popover, and reveal the source in the
+  // Pick a search result → share its locate only if the prefetch is still in
+  // flight, overlay its ego-graph with a popover, and reveal the source in the
   // camera. The sequence guard drops a stale locate if a newer pick/click lands
   // first; a failed locate leaves nothing selected and toasts the error.
   const handleSearchSelect = useCallback(
@@ -1239,8 +1232,8 @@ export const NetworkGraphView = ({
     [locateEntity, showLocatedEntity, notifyGraphError],
   );
 
-  // Hover a search result → resolve its prefetched (usually already resolved)
-  // locate and light up its ego-graph as an external hover — no popover, no camera
+  // Hover a search result → share its locate only if the prefetch is still in
+  // flight and light up its ego-graph as an external hover — no popover, no camera
   // move. Leaving the results (null) clears it. The sequence guard drops a stale
   // locate so an earlier hover can't land over a newer one.
   const handleSearchHover = useCallback(

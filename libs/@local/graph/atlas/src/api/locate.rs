@@ -53,18 +53,19 @@ The HEAD also carries the source's first visible zoom and its tile there (the fl
      protection withholds from the requesting actor). `coloredTypeIds` behaves exactly as on the \
      tile route.
 
-The response always carries the detail trailer, read from the store at request time. Every node \
-     carries a label and a first direct type; the source additionally carries its properties, \
-     capped by `limits.locateProperties`. Every edge carries a label, its direct types (capped by \
-     `limits.locateLinkTypeIds`), and its properties (capped by `limits.locateLinkProperties`), \
-     each cap paired with a per-edge completeness flag. Type and property references are integer \
-     indexes into the trailer's two sorted URL tables.
+The response always carries the detail trailer. Labels come from the generation and are admitted \
+     only when the request-time store read resolves the corresponding entity. The store also \
+     supplies each node's first direct type, the source's properties capped by \
+     `limits.locateProperties`, and each edge's direct types and properties capped by \
+     `limits.locateLinkTypeIds` and `limits.locateLinkProperties`. Each edge cap has a \
+     completeness flag. Type and property references are integer indexes into the trailer's two \
+     sorted URL tables.
 
 A source that does not name a visible node answers `unknown-entity`: nonexistent, inaccessible, \
      unparsable, and out-of-range `row` values are indistinguishable by design.
 
-The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
-     rather than answered with bytes that silently ignore it.
+Filtering binds at the manifest. This body has no `filter` field, and an unknown member is \
+     rejected as `invalid-body`.
 ";
 
 /// `POST /v1/atlas/locate/{generation}/{variant}`.
@@ -244,6 +245,5 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                  nonexistent, inaccessible, unparsable, and out-of-range sources)",
             )
         })
-        .with(clause::reserved_filter)
         .with(clause::any_problem)
 }

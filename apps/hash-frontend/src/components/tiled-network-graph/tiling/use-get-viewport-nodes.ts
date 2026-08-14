@@ -54,14 +54,14 @@
  * request yields the intra-tile edges *and* the inter-tile edges crossing
  * between any two tiles.
  *
- * The {@link TileCache} caches that result decomposed into buckets keyed by a
- * single node tile (its intra-tile edges) or an unordered pair of node tiles
- * (the edges crossing between them). The edge an endpoint pair produces is
- * placed by mapping each endpoint's node id back to the tile that delivered it.
- * Buckets share the node cache's byte budget and distance eviction; a pair
- * bucket is additionally evicted when either endpoint tile leaves the node
- * cache, since edges touching an evicted tile can no longer be drawn. An
- * unchanged tile set serves its edges entirely from the resident buckets.
+ * For minimal requests, the {@link TileCache} caches that result decomposed
+ * into buckets keyed by a single node tile (its intra-tile edges) or an unordered
+ * pair of node tiles (the edges crossing between them). The edge an endpoint
+ * pair produces is placed by mapping each endpoint's node id back to the tile
+ * that delivered it. Buckets share the node cache's byte budget and distance
+ * eviction; a pair bucket is additionally evicted when either endpoint tile
+ * leaves the node cache, since edges touching an evicted tile can no longer be
+ * drawn. Auxiliary edge detail is request-time data and bypasses residency.
  *
  * ## Sessions and generations
  *
@@ -169,10 +169,9 @@ const MAX_DESCENT_FRONTIER = 1024;
 
 /**
  * Default cache budget. The ~256 fully-delivered node tiles this once targeted
- * (64 MiB) was a node-only figure; edge buckets now share the same pool
- * (see the "Edges" note), so 128 MiB restores that node residency with edges
- * co-resident — which also keeps more cross-tile edge buckets alive against
- * cascade eviction. Tunable per instance for dense graphs; see {@link maxBytes}.
+ * (64 MiB) was a node-only figure; minimal edge buckets share the same pool
+ * (see the "Edges" note), so 128 MiB preserves room for geometry from both
+ * routes. Tunable per instance for dense graphs; see {@link maxBytes}.
  */
 const DEFAULT_MAX_BYTES = 128 * 1024 * 1024;
 
@@ -328,12 +327,16 @@ const validateViewport = (viewport: Viewport): void => {
 type TileOrigin = "required" | "prefetch";
 
 /**
- * Whether a resident or in-flight fetch at `have` satisfies a load wanting
- * `want`: an auxiliary tile is a superset of the minimal one (same geometry
- * plus labels), so auxiliary serves both modes while minimal serves only its
- * own — see {@link TileCache.load}.
+ * Whether an in-flight fetch at `have` satisfies a load wanting `want`.
+ *
+ * An auxiliary response is a superset of the minimal one, so one in-flight
+ * request serves both modes. Completed auxiliary detail is not cache-resident;
+ * {@link TileCache.load} refetches it when a later load asks for detail.
  */
-const detailServes = (have: SaltileDetail, want: SaltileDetail): boolean =>
+const inFlightDetailServes = (
+  have: SaltileDetail,
+  want: SaltileDetail,
+): boolean =>
   have === SaltileDetail.Auxiliary || want === SaltileDetail.Minimal;
 
 interface CacheEntry {
@@ -341,11 +344,6 @@ interface CacheEntry {
   readonly nodes: readonly TileNode[];
   /** Whether the tile delivered its whole subtree; drives the descent's pruning. */
   readonly complete: boolean;
-  /**
-   * The `detail` mode this entry was fetched with. An auxiliary entry's nodes
-   * carry labels; {@link detailServes} orders which loads it satisfies.
-   */
-  readonly detail: SaltileDetail;
   readonly bytes: number;
   readonly origin: TileOrigin;
   /** A prefetch-origin tile that a later required load has since claimed. */
@@ -445,8 +443,6 @@ export class TileCache {
 
   #bytes = 0;
   #viewport: ViewportRegion | null = null;
-  /** Detail mode of the active viewport; prefetches inherit it. */
-  #detail: SaltileDetail = SaltileDetail.Minimal;
   #prefetchIssued = 0;
   #prefetchCancelled = 0;
   #prefetchUsed = 0;
@@ -536,11 +532,9 @@ export class TileCache {
   setActiveViewport(
     rect: Rect,
     depth: number,
-    detail: SaltileDetail,
     requiredKeys?: ReadonlySet<string>,
   ): void {
     this.#viewport = { rect, depth };
-    this.#detail = detail;
     this.#pinned.clear();
     if (requiredKeys) {
       for (const key of requiredKeys) {
@@ -568,11 +562,9 @@ export class TileCache {
    * Returns the tile's nodes, fetching and caching on a miss. Concurrent
    * requests for the same tile share one in-flight fetch.
    *
-   * `detail: "auxiliary"` requests the labelled variant. {@link detailServes}
-   * orders the modes: a resident or in-flight auxiliary fetch satisfies a
-   * minimal load, but a minimal one does *not* satisfy an auxiliary load —
-   * entering the detailed view refetches the resident minimal tiles, upgrading
-   * each entry in place (see {@link #store}).
+   * `detail: "auxiliary"` requests ephemeral labels. A resident entry serves
+   * only minimal loads. An in-flight auxiliary fetch can also serve a minimal
+   * load, but completed auxiliary detail is not retained in the geometry cache.
    */
   async load(
     coordinate: AtlasTileCoordinate,
@@ -580,7 +572,7 @@ export class TileCache {
   ): Promise<readonly TileNode[]> {
     const key = atlasTileKey(coordinate);
     const cached = this.#entries.get(key);
-    if (cached && detailServes(cached.detail, detail)) {
+    if (cached && detail === SaltileDetail.Minimal) {
       // A required load landing on a prefetched tile is the prefetch paying off.
       if (cached.origin === "prefetch" && !cached.used) {
         cached.used = true;
@@ -589,7 +581,7 @@ export class TileCache {
       return cached.nodes;
     }
     const inFlight = this.#inflight.get(key);
-    if (inFlight && detailServes(inFlight.detail, detail)) {
+    if (inFlight && inFlightDetailServes(inFlight.detail, detail)) {
       // A required load riding an in-flight prefetch claims it: a later batch
       // must not abort a fetch this viewport now depends on, and the prefetch
       // counts as a hit once it lands (marked when it settles, since the tile
@@ -601,8 +593,8 @@ export class TileCache {
       );
       return inFlight.promise;
     }
-    // A cold miss, or a detail upgrade over a minimal-only resident/in-flight
-    // tile: fetch the auxiliary variant, which replaces the entry on store.
+    // A cold miss, or an auxiliary load over cache-resident geometry: fetch the
+    // requested form. Auxiliary detail remains ephemeral when it lands.
     this.#requiredColdMiss += 1;
     return this.#fetch(key, coordinate, "required", detail);
   }
@@ -611,17 +603,12 @@ export class TileCache {
    * Returns the edges among `tiles` — the edges within each tile and the edges
    * crossing between any two of them — fetching and bucketing on a miss.
    *
-   * The edges are cached decomposed into per-tile and per-tile-pair buckets (see
-   * {@link edgeBucketKey}) so a repeated tile set serves entirely from the
-   * resident buckets. `tiles` must be resident node tiles (the caller loads them
-   * first): their delivered nodes map each edge endpoint back to the tile that
-   * carries it, which is how an edge is routed to its bucket. Pass them in
-   * priority order — the transport trims the list to the served `edgesTiles` cap.
-   *
-   * `detail: "auxiliary"` requests the per-edge detail trailer (link labels
-   * and type references) and is folded into the cache signature, so entering
-   * (or leaving) the detailed view refetches rather than serving stale minimal
-   * buckets — mirroring how {@link load} upgrades a minimal node tile.
+   * Minimal edges are cached in per-tile and per-tile-pair buckets (see
+   * {@link edgeBucketKey}) so a repeated tile set can reuse its geometry.
+   * Auxiliary edge detail is ephemeral and always refetched. `tiles` must be
+   * resident node tiles (the caller loads them first): their delivered nodes map
+   * each edge endpoint back to the tile that carries it. Pass them in priority
+   * order — the transport trims the list to the served `edgesTiles` cap.
    */
   async loadEdges(
     tiles: readonly AtlasTileCoordinate[],
@@ -630,16 +617,25 @@ export class TileCache {
     if (tiles.length === 0) {
       return [];
     }
-    const signature = `${detail}:${tiles.map(atlasTileKey).sort().join(",")}`;
+    const signature = tiles.map(atlasTileKey).sort().join(",");
 
-    // Fast path: the same tile set as last time, with every backing bucket still
-    // resident (none cascade- or distance-evicted since it was assembled).
-    if (
-      signature === this.#edgeSignature &&
-      [...this.#edgeBucketKeys].every((key) => this.#edgeEntries.has(key))
-    ) {
-      this.pin(this.#edgeBucketKeys);
-      return this.#assembleEdges(this.#edgeBucketKeys);
+    // Fast path: only minimal edge geometry is cache-resident. Auxiliary detail
+    // always crosses the request-time store seam again.
+    if (detail === SaltileDetail.Minimal) {
+      if (
+        signature === this.#edgeSignature &&
+        [...this.#edgeBucketKeys].every((key) => this.#edgeEntries.has(key))
+      ) {
+        this.pin(this.#edgeBucketKeys);
+        return this.#assembleEdges(this.#edgeBucketKeys);
+      }
+    } else {
+      return (
+        await this.#edgeFetcher(tiles, {
+          priority: "high",
+          detail,
+        })
+      ).edges;
     }
 
     // Map each delivered node id to the tile that carries it, so an edge's
@@ -657,7 +653,7 @@ export class TileCache {
 
     const fetched = await this.#edgeFetcher(tiles, {
       priority: "high",
-      detail,
+      detail: SaltileDetail.Minimal,
     });
 
     // Bucket the flat edge list by its endpoints' tiles.
@@ -688,16 +684,15 @@ export class TileCache {
       bucket.edges.push(edge);
     }
 
+    const bucketKeys = new Set(buckets.keys());
     for (const [key, bucket] of buckets) {
       this.#storeEdgeBucket(key, bucket.tiles, bucket.edges);
     }
-    const bucketKeys = new Set(buckets.keys());
     this.#edgeSignature = signature;
     this.#edgeBucketKeys = bucketKeys;
     // Pin before eviction so the just-stored buckets survive a tight budget.
     this.pin(bucketKeys);
     this.#evict();
-
     return this.#assembleEdges(bucketKeys);
   }
 
@@ -735,9 +730,9 @@ export class TileCache {
   }
 
   /**
-   * Starts one low-priority, cancellable prefetch; a no-op if already held.
-   * Prefetches inherit the active viewport's detail mode so a tile pulled ahead
-   * of need is usable without a re-fetch when that viewport reaches it.
+   * Starts one low-priority, cancellable geometry prefetch; a no-op if already
+   * held. Auxiliary viewports skip the prefetch scheduler because their required
+   * loads cannot consume a minimal prefetch.
    */
   #prefetchOne(coordinate: AtlasTileCoordinate): void {
     const key = atlasTileKey(coordinate);
@@ -753,7 +748,7 @@ export class TileCache {
       key,
       coordinate,
       "prefetch",
-      this.#detail,
+      SaltileDetail.Minimal,
       controller.signal,
     ).catch(() => undefined);
   }
@@ -773,7 +768,7 @@ export class TileCache {
       .then((fetched) => {
         this.#inflight.delete(key);
         this.#prefetchControllers.delete(key);
-        this.#store(key, coordinate, fetched, origin, detail);
+        this.#store(key, coordinate, fetched, origin);
         return fetched.nodes;
       })
       .catch((error: unknown) => {
@@ -797,28 +792,22 @@ export class TileCache {
     coordinate: AtlasTileCoordinate,
     fetched: FetchedTile,
     origin: TileOrigin,
-    detail: SaltileDetail,
   ): void {
     const existing = this.#entries.get(key);
-    // Never downgrade: an auxiliary entry serves minimal loads too, so a
-    // minimal fetch that lands after a detail upgrade (or a stray concurrent
-    // one) must not replace the richer entry and drop its labels.
-    if (
-      existing &&
-      existing.detail === SaltileDetail.Auxiliary &&
-      detail === SaltileDetail.Minimal
-    ) {
-      return;
-    }
+    const nodes = fetched.nodes.map(({ id, x, y, typeIndices }) => ({
+      id,
+      x,
+      y,
+      ...(typeIndices === undefined ? {} : { typeIndices }),
+    }));
     if (existing) {
       this.#bytes -= existing.bytes;
     }
-    const bytes = estimateBytes(fetched.nodes);
+    const bytes = estimateBytes(nodes);
     this.#entries.set(key, {
       coordinate,
-      nodes: fetched.nodes,
+      nodes,
       complete: fetched.complete,
-      detail,
       bytes,
       origin,
       used: false,
@@ -1010,17 +999,17 @@ export interface GetViewportNodesOptions {
  *
  * With {@link GetViewportNodesOptions.detail} at `"auxiliary"` the whole
  * descent is fetched with the detail trailer, so every returned node —
- * ancestors included — carries its `label`. Crossing into (or out of) that
- * mode refetches the resident minimal tiles, upgrading each in place (see
- * {@link TileCache.load}).
+ * ancestors included — carries its `label`. Detail remains ephemeral; later
+ * detailed reads refetch it through {@link TileCache.load}.
  *
  * Once the nodes are in, it fetches the edges among the delivered tiles (see the
  * module's "Edges" note); edges are supplementary, so a failure there leaves the
  * nodes intact and returns them with no edges.
  *
- * After serving the current viewport it records the movement and, while the
- * user is navigating, prefetches the tiles the next viewport is predicted to
- * need (see {@link schedulePrefetch}).
+ * After serving a minimal viewport it records the movement and, while the user
+ * is navigating, prefetches the tiles the next viewport is predicted to need
+ * (see {@link schedulePrefetch}). Auxiliary viewports do not speculate because
+ * detail is never retained and a minimal prefetch cannot serve them.
  *
  * @throws {@link ViewportTilesError} when the viewport is malformed, or when
  *   every tile fetch attempted for the viewport fails (a partial failure returns
@@ -1036,7 +1025,7 @@ export const getViewportNodes = async (
 
   // Reset the eviction anchor and pins to this viewport; the descent pins each
   // tile it touches below, so a concurrent store/evict can't drop one mid-call.
-  cache.setActiveViewport(rect, targetDepth, detail);
+  cache.setActiveViewport(rect, targetDepth);
 
   const nodes = new Map<number | string, ViewportNode>();
   const requiredKeys = new Set<string>();
@@ -1115,9 +1104,13 @@ export const getViewportNodes = async (
     );
   }
 
-  // Record movement, then prefetch for where the viewport is heading.
+  // Record movement in every mode, but speculate only when a later required
+  // load can consume the geometry prefetch. Auxiliary loads always refetch
+  // detail, so issuing minimal prefetches for them would spend every hit twice.
   cache.recordHistory(rect, targetDepth);
-  schedulePrefetch(cache, requiredKeys);
+  if (detail === SaltileDetail.Minimal) {
+    schedulePrefetch(cache, requiredKeys);
+  }
 
   // Edges among the delivered tiles, ordered nearest-first so the transport's
   // tile cap keeps the most relevant tiles. Supplementary: a failure (or the
@@ -1326,8 +1319,8 @@ export interface UseGetViewportNodesOptions {
    * The viewport's `detail` mode: `"auxiliary"` fetches the visible tiles with
    * the detail trailer so their nodes carry a `label` (the detailed view).
    * Unlike {@link fetcher}, this is *not* a cache-identity input — changing it
-   * refetches the viewport (upgrading resident tiles in place) rather than
-   * recreating the cache. Defaults to `"minimal"`.
+   * refetches the viewport while the cache keeps only geometry. Defaults to
+   * `"minimal"`.
    */
   readonly detail?: SaltileDetail;
   /**
@@ -1386,7 +1379,7 @@ const viewportKey = (
   coloredTypeIds: readonly string[],
 ): string => {
   // The detail mode is part of the key: crossing the detail threshold must
-  // refetch (upgrading resident tiles), not serve the cached minimal result.
+  // refetch rather than serve the cached minimal result.
   const detailKey = detail === SaltileDetail.Auxiliary ? "|detail" : "";
   // The colored-type set is part of the key too: changing it recreates the
   // cache (see `useGetViewportNodes`), and the key must change alongside so the

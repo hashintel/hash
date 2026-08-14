@@ -29,12 +29,14 @@ The JSON body is optional; an absent body reads as the all-defaults query. `mode
      An id that matches no type in this generation is legal and reads 0 in every mask. The \
      manifest's `limits.coloredTypeIds` caps the list.
 
-`detail: \"auxiliary\"` adds the detail trailer - per-point labels and icons, read from the store \
-     at request time. `\"minimal\"`, the default, sends geometry alone. Geometry sections are \
-     immutable per generation; the trailer is not, so cache geometry and refetch detail.
+`detail: \"auxiliary\"` adds the detail trailer - per-point labels and icons read from the \
+     generation. `\"minimal\"`, the default, sends geometry alone. The tile geometry and \
+     auxiliary trailer are generation-local, but a client must not retain a detailed response as \
+     an immutable generation tile. Cache geometry. Section 2 of the Atlas wire format defines the \
+     detail that clients refetch where request-time state matters.
 
-The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
-     rather than answered with bytes that silently ignore it.";
+Filtering binds at the manifest. This body has no `filter` field, and an unknown member is \
+     rejected as `invalid-body`.";
 
 /// The `z/x/y` grid cell.
 ///
@@ -141,6 +143,5 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                 "`unknown-generation` or `unknown-variant`: re-read `current` and retry",
             )
         })
-        .with(clause::reserved_filter)
         .with(clause::any_problem)
 }

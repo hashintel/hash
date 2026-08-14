@@ -19,16 +19,6 @@ pub(super) fn unauthorized(operation: TransformOperation<'_>) -> TransformOperat
     })
 }
 
-/// States the `501` a request carrying the reserved `filter` field answers.
-pub(super) fn reserved_filter(operation: TransformOperation<'_>) -> TransformOperation<'_> {
-    operation.response_with::<501, Problem<'static>, _>(|response| {
-        response.description(
-            "`unsupported-feature`: the request carries a reserved field (`filter`) this server \
-             does not yet serve",
-        )
-    })
-}
-
 /// States the catch-all clause covering what the enumerated responses do not.
 pub(super) fn any_problem(operation: TransformOperation<'_>) -> TransformOperation<'_> {
     operation.default_response_with::<Problem<'static>, _>(|response| {

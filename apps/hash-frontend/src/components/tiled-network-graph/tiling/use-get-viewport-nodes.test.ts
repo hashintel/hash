@@ -266,6 +266,25 @@ describe("getViewportNodes", () => {
     expect(prefetched).toBe(true);
   });
 
+  it("does not issue unusable geometry prefetches for auxiliary viewports", async () => {
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+    const options = { detail: "auxiliary" as const };
+
+    await getViewportNodes(
+      viewportAt(10_000, 10_000, 1_024, 5),
+      cache,
+      options,
+    );
+    await getViewportNodes(
+      viewportAt(12_048, 10_000, 1_024, 5),
+      cache,
+      options,
+    );
+    await cache.settled();
+
+    expect(cache.prefetchStats.issued).toBe(0);
+  });
+
   it("does not prefetch when the viewport is unchanged", async () => {
     const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
     await getViewportNodes(viewportAt(30_000, 30_000, 1_024, 5), cache);
@@ -389,18 +408,28 @@ describe("getViewportNodes edges", () => {
     expect(cache.edgeBucketCount).toBe(3);
   });
 
-  it("serves a repeated viewport's edges from cache without refetching", async () => {
+  it("serves repeated minimal edges from cache but refetches auxiliary detail", async () => {
     const fetcher = countingFetcher();
-    const edgesFetcher = stubEdges([
-      { id: "id-700" as EntityId, source: 1_000_000, target: 1_000_010 },
-    ]);
+    const controls: Array<string | undefined> = [];
+    const edge: TileEdge = {
+      id: "id-700" as EntityId,
+      source: 1_000_000,
+      target: 1_000_010,
+    };
+    const edgesFetcher: EdgesFetcher = (_tiles, options) => {
+      controls.push(options?.detail);
+      return Promise.resolve({ edges: [edge], complete: true });
+    };
     const cache = new TileCache({ fetcher, edgesFetcher });
 
     const first = await getViewportNodes(null, cache);
     const second = await getViewportNodes(null, cache);
-
-    expect(edgesFetcher.calls).toHaveLength(1);
+    expect(controls).toEqual(["minimal"]);
     expect(second.edges).toEqual(first.edges);
+
+    await getViewportNodes(null, cache, { detail: "auxiliary" });
+    await getViewportNodes(null, cache, { detail: "auxiliary" });
+    expect(controls).toEqual(["minimal", "auxiliary", "auxiliary"]);
   });
 
   it("returns the nodes with no edges when the edge fetch fails", async () => {
@@ -439,6 +468,28 @@ describe("getViewportNodes detailed data", () => {
     expect(fetcher.calls.every((call) => call.detailed)).toBe(true);
   });
 
+  it("keeps labels out of geometry residency after an in-flight detail fetch", async () => {
+    let resolveFetch: ((tile: FetchedTile) => void) | undefined;
+    const fetcher: TileFetcher = () =>
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+    const coordinate = { z: 0, x: 0, y: 0 };
+
+    const auxiliary = cache.load(coordinate, "auxiliary");
+    const minimal = cache.load(coordinate);
+    resolveFetch?.({
+      nodes: [{ id: 1, x: 0, y: 0, label: "ephemeral" }],
+      complete: true,
+    });
+
+    expect((await auxiliary)[0]?.label).toBe("ephemeral");
+    expect((await minimal)[0]?.label).toBe("ephemeral");
+    expect(cache.tileCount).toBe(1);
+    expect((await cache.load(coordinate))[0]?.label).toBeUndefined();
+  });
+
   it("refetches a resident compact tile with detail on entering the detailed view", async () => {
     const fetcher = labellingFetcher();
     const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
@@ -457,19 +508,19 @@ describe("getViewportNodes detailed data", () => {
     expect(fetcher.calls.at(-1)?.detailed).toBe(true);
   });
 
-  it("serves a compact load from a resident detailed tile without downgrading it", async () => {
+  it("refetches detail instead of retaining it as cache-resident geometry", async () => {
     const fetcher = labellingFetcher();
     const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
 
     await getViewportNodes(null, cache, { detail: "auxiliary" });
-    const detailedCalls = fetcher.calls.length;
+    const firstDetailedCalls = fetcher.calls.length;
 
-    const { nodes } = await getViewportNodes(null, cache);
+    const second = await getViewportNodes(null, cache, { detail: "auxiliary" });
 
-    // A detailed tile is a superset of the compact one, so the compact load hits
-    // the resident entry — no refetch — and its labels survive.
-    expect(fetcher.calls.length).toBe(detailedCalls);
-    expect(nodes.every((node) => node.label !== undefined)).toBe(true);
+    expect(fetcher.calls.length).toBe(firstDetailedCalls * 2);
+    expect(second.nodes.every((node) => node.label !== undefined)).toBe(true);
+    expect(cache.tileCount).toBe(1);
+    expect((await cache.load({ z: 0, x: 0, y: 0 }))[0]?.label).toBeUndefined();
   });
 });
 
@@ -503,7 +554,6 @@ describe("TileCache", () => {
     cache.setActiveViewport(
       viewportAt(0, 0, 500, 5),
       5,
-      "minimal",
       new Set(["5/0/0"]), // atlasTileKey of { z: 5, x: 0, y: 0 }
     );
 
@@ -570,7 +620,7 @@ describe("TileCache", () => {
       maxBytes: bytesPerTile * 2 + bytesPerSingleEdgeBucket,
     });
 
-    cache.setActiveViewport(viewportAt(1_024, 1_024, 500, 5), 5, "minimal");
+    cache.setActiveViewport(viewportAt(1_024, 1_024, 500, 5), 5);
     await cache.load(tileA);
     await cache.load(tileB);
     await cache.loadEdges([tileA, tileB]);
@@ -578,7 +628,7 @@ describe("TileCache", () => {
 
     // Move far away (clearing pins), then load a tile near the new viewport: the
     // furthest resident tile (A or B) is evicted, cascading to the pair bucket.
-    cache.setActiveViewport(viewportAt(60_000, 60_000, 500, 5), 5, "minimal");
+    cache.setActiveViewport(viewportAt(60_000, 60_000, 500, 5), 5);
     await cache.load({ z: 5, x: 29, y: 29 });
 
     expect(cache.edgeBucketCount).toBe(0);

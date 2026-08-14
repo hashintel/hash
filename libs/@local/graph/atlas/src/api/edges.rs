@@ -48,12 +48,13 @@ The response's three columns - sources, targets, and `EDGE_IDS` (each edge's 32-
 When the server's edge cap truncates the set, the response keeps the edges whose worse endpoint \
      ranks best, and the HEAD's `complete` key reads `false`.
 
-`detail: \"auxiliary\"` adds the detail trailer, read from the store at request time \
-     (`\"minimal\"`, the default, sends the columns alone): a sorted type-URL table and, per \
-     edge, a label and a first direct type as an integer index into the table.
+`detail: \"auxiliary\"` adds the detail trailer (`\"minimal\"`, the default, sends the columns \
+     alone). Each edge's label comes from the generation. A request-time store read supplies each \
+     edge's first direct type, represented as an integer index into the trailer's sorted type-URL \
+     table.
 
-The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
-     rather than answered with bytes that silently ignore it.
+Filtering binds at the manifest. This body has no `filter` field, and an unknown member is \
+     rejected as `invalid-body`.
 ";
 
 /// `POST /v1/atlas/edges/{generation}/{variant}`.
@@ -188,6 +189,5 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                 "`unknown-generation` or `unknown-variant`: re-read `current` and retry",
             )
         })
-        .with(clause::reserved_filter)
         .with(clause::any_problem)
 }

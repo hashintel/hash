@@ -149,9 +149,9 @@ export interface FetchTileOptions {
    */
   readonly priority?: RequestPriority;
   /**
-   * The request's `detail` mode. `"auxiliary"` requests the detail trailer —
-   * per-point labels (and icons) the server hydrates live from the store — so
-   * decoded {@link TileNode}s carry a `label`. Defaults to `"minimal"` (the
+   * The request's `detail` mode. `"auxiliary"` requests the generation-local
+   * per-point label and icon trailer, so decoded {@link TileNode}s carry a
+   * `label`. Defaults to `"minimal"` (the
    * geometry-only response). The detailed view sends `"auxiliary"` for the
    * tiles it draws.
    */
