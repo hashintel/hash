@@ -98,7 +98,7 @@ use type_system::{
 use uuid::Uuid;
 
 use crate::store::{
-    AsClient, PostgresStore,
+    AsClient, GenericClientIter as _, PostgresStore,
     error::{EntityDoesNotExist, RaceConditionOnUpdate},
     postgres::{
         BeginReadOnlyTransaction, InTransaction, TransactionState, TraversalContext,
@@ -620,7 +620,7 @@ where
 
         let rows = self
             .as_client()
-            .query(&statement, parameters)
+            .query_params_iter(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -1138,7 +1138,7 @@ where
         let (statement, parameters) = compiler.compile();
         let () = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -2022,7 +2022,7 @@ where
 
         let rows = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",

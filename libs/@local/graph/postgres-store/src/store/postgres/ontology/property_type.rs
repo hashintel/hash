@@ -52,7 +52,7 @@ use type_system::{
 use crate::store::{
     error::DeletionError,
     postgres::{
-        AsClient, PostgresStore, TransactionState, TraversalContext,
+        AsClient, GenericClientIter as _, PostgresStore, TransactionState, TraversalContext,
         crud::{QueryIndices, QueryRecordDecode, TypedRow},
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{
@@ -110,7 +110,7 @@ where
                 provider
                     .store
                     .as_client()
-                    .query_raw(&statement, parameters.iter().copied())
+                    .query_raw(&statement, parameters)
                     .instrument(tracing::info_span!(
                         "SELECT",
                         otel.kind = "client",
@@ -170,7 +170,7 @@ where
 
             let property_type_rows = self
                 .as_client()
-                .query(&statement, parameters)
+                .query_params_iter(&statement, parameters)
                 .instrument(tracing::info_span!(
                     "SELECT",
                     otel.kind = "client",
@@ -205,7 +205,7 @@ where
 
         let rows = self
             .as_client()
-            .query(&statement, parameters)
+            .query_params_iter(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -670,7 +670,7 @@ where
 
         Ok(self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -1190,7 +1190,7 @@ where
 
         let (statement, parameters) = compiler.compile();
         self.as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",

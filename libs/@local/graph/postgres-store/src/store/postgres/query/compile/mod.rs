@@ -50,8 +50,13 @@ pub struct TableInfo<'p> {
     variable_interval_index: Option<usize>,
 }
 
+pub enum SqlParameter<'param> {
+    Owned(Box<dyn ToSql + Sync + Send>),
+    Borrowed(&'param (dyn ToSql + Sync)),
+}
+
 pub struct CompilerArtifacts<'p> {
-    parameters: Vec<&'p (dyn ToSql + Sync)>,
+    parameters: Vec<SqlParameter<'p>>,
     condition_index: usize,
     required_tables: HashSet<TableReference<'p>>,
     table_info: TableInfo<'p>,
@@ -226,7 +231,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 .table_info
                 .pinned_timestamp_index
                 .get_or_insert_with(|| {
-                    self.artifacts.parameters.push(&pinned.timestamp);
+                    self.artifacts
+                        .parameters
+                        .push(SqlParameter::Borrowed(&pinned.timestamp));
                     self.artifacts.parameters.len()
                 }),
             (QueryTemporalAxes::DecisionTime { pinned, .. }, TimeAxis::TransactionTime) => *self
@@ -234,7 +241,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 .table_info
                 .pinned_timestamp_index
                 .get_or_insert_with(|| {
-                    self.artifacts.parameters.push(&pinned.timestamp);
+                    self.artifacts
+                        .parameters
+                        .push(SqlParameter::Borrowed(&pinned.timestamp));
                     self.artifacts.parameters.len()
                 }),
             (QueryTemporalAxes::TransactionTime { variable, .. }, TimeAxis::TransactionTime) => {
@@ -243,7 +252,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     .table_info
                     .variable_interval_index
                     .get_or_insert_with(|| {
-                        self.artifacts.parameters.push(&variable.interval);
+                        self.artifacts
+                            .parameters
+                            .push(SqlParameter::Borrowed(&variable.interval));
                         self.artifacts.parameters.len()
                     })
             }
@@ -252,7 +263,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 .table_info
                 .variable_interval_index
                 .get_or_insert_with(|| {
-                    self.artifacts.parameters.push(&variable.interval);
+                    self.artifacts
+                        .parameters
+                        .push(SqlParameter::Borrowed(&variable.interval));
                     self.artifacts.parameters.len()
                 }),
         }
@@ -460,10 +473,21 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
     #[instrument(level = "info", skip_all)]
-    pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
+    pub fn compile(
+        &self,
+    ) -> (
+        String,
+        impl ExactSizeIterator<Item = &(dyn ToSql + Sync)> + Sync + Send,
+    ) {
         (
             self.statement.transpile_to_string(),
-            &self.artifacts.parameters,
+            self.artifacts
+                .parameters
+                .iter()
+                .map(|parameter| match parameter {
+                    SqlParameter::Owned(boxed) => boxed.as_ref(),
+                    &SqlParameter::Borrowed(borrowed) => borrowed,
+                }),
         )
     }
 
@@ -826,18 +850,25 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     #[instrument(level = "debug", skip_all)]
+    /// Owns the JSON field, binding the parameter a [`JsonField::JsonPath`] carries.
+    fn bind_json_field(&mut self, field: JsonField<'p>) -> JsonField<'static> {
+        let (field, parameter) = field.into_owned(self.artifacts.parameters.len() + 1);
+
+        if let Some(parameter) = parameter {
+            self.artifacts
+                .parameters
+                .push(SqlParameter::Borrowed(parameter));
+        }
+
+        field
+    }
+
     pub fn compile_path_column<'f: 'q>(&mut self, path: &'p R::QueryPath<'f>) -> Expression
     where
         R::QueryPath<'f>: PostgresQueryPath,
     {
         let (column, json_field) = path.terminating_column();
-        let parameter = json_field.map(|field| {
-            let (field, parameter) = field.into_owned(self.artifacts.parameters.len() + 1);
-            if let Some(parameter) = parameter {
-                self.artifacts.parameters.push(parameter);
-            }
-            field
-        });
+        let parameter = json_field.map(|field| self.bind_json_field(field));
 
         let alias = self.add_join_statements(path);
 
@@ -942,7 +973,20 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     pub fn add_parameter(&mut self, parameter: &'p (dyn ToSql + Sync)) -> Expression {
-        self.artifacts.parameters.push(parameter);
+        self.artifacts
+            .parameters
+            .push(SqlParameter::Borrowed(parameter));
+        Expression::Parameter(self.artifacts.parameters.len())
+    }
+
+    /// Binds one owned value, typically a whole array, as a single statement parameter.
+    ///
+    /// The borrowed twin is [`Self::add_parameter`]. The owned form exists for values built
+    /// during compilation itself, which have no caller-owned home to borrow from.
+    pub fn add_owned_parameter(&mut self, parameter: Box<dyn ToSql + Sync + Send>) -> Expression {
+        self.artifacts
+            .parameters
+            .push(SqlParameter::Owned(parameter));
         Expression::Parameter(self.artifacts.parameters.len())
     }
 
@@ -953,35 +997,43 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ) -> (Expression, ParameterType) {
         let parameter_type = match parameter {
             Parameter::Decimal(number) => {
-                self.artifacts.parameters.push(number);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(number));
                 ParameterType::Decimal
             }
             Parameter::Text(text) => {
-                self.artifacts.parameters.push(text);
+                self.artifacts.parameters.push(SqlParameter::Borrowed(text));
                 ParameterType::Text
             }
             Parameter::Boolean(bool) => {
-                self.artifacts.parameters.push(bool);
+                self.artifacts.parameters.push(SqlParameter::Borrowed(bool));
                 ParameterType::Boolean
             }
             Parameter::Vector(vector) => {
-                self.artifacts.parameters.push(vector);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(vector));
                 ParameterType::Vector(Box::new(ParameterType::Decimal))
             }
             Parameter::Any(json) => {
-                self.artifacts.parameters.push(json);
+                self.artifacts.parameters.push(SqlParameter::Borrowed(json));
                 ParameterType::Any
             }
             Parameter::Uuid(uuid) => {
-                self.artifacts.parameters.push(uuid);
+                self.artifacts.parameters.push(SqlParameter::Borrowed(uuid));
                 ParameterType::Uuid
             }
             Parameter::OntologyTypeVersion(version) => {
-                self.artifacts.parameters.push(&**version);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(&**version));
                 ParameterType::OntologyTypeVersion
             }
             Parameter::Timestamp(timestamp) => {
-                self.artifacts.parameters.push(timestamp);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(timestamp));
                 ParameterType::Timestamp
             }
         };
@@ -1054,27 +1106,39 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ) -> (Expression, ParameterType) {
         let parameter_type = match parameters {
             ParameterList::DataTypeIds(uuids) => {
-                self.artifacts.parameters.push(uuids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(uuids));
                 ParameterType::Uuid
             }
             ParameterList::PropertyTypeIds(uuids) => {
-                self.artifacts.parameters.push(uuids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(uuids));
                 ParameterType::Uuid
             }
             ParameterList::EntityTypeIds(uuids) => {
-                self.artifacts.parameters.push(uuids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(uuids));
                 ParameterType::Uuid
             }
             ParameterList::EntityEditionIds(uuids) => {
-                self.artifacts.parameters.push(uuids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(uuids));
                 ParameterType::Uuid
             }
             ParameterList::EntityUuids(uuids) => {
-                self.artifacts.parameters.push(uuids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(uuids));
                 ParameterType::Uuid
             }
             ParameterList::WebIds(web_ids) => {
-                self.artifacts.parameters.push(web_ids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(web_ids));
                 ParameterType::Uuid
             }
         };

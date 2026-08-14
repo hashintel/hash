@@ -251,7 +251,7 @@ where
     let (statement, parameters) = compiler.compile();
     let stream = store
         .as_client()
-        .query_raw(&statement, parameters.iter().copied())
+        .query_raw(&statement, parameters)
         .await
         .map_err(ProofError::Query)?;
 

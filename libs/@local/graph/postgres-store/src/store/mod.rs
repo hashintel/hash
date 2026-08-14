@@ -9,9 +9,10 @@ pub use self::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
     postgres::{
         AsClient, BeginReadOnlyTransaction, Context, EntityDeletion, EntityEnd, EntityEvent,
-        EntityEventStream, EntityUpdate, InTransaction, IsolationLevel, NoTransaction,
-        PostgresStore, PostgresStorePool, PostgresStoreSettings, PostgresStoreTransactionBuilder,
-        Transaction, TransactionBuilder, TransactionOptions, TransactionState,
+        EntityEventStream, EntityUpdate, GenericClientIter, InTransaction, IsolationLevel,
+        NoTransaction, PostgresStore, PostgresStorePool, PostgresStoreSettings,
+        PostgresStoreTransactionBuilder, Transaction, TransactionBuilder, TransactionOptions,
+        TransactionState,
     },
     validation::{StoreCache, StoreProvider},
 };

@@ -81,8 +81,8 @@ pub use self::{
         EntityDeletion, EntityEnd, EntityEvent, EntityEventStream, EntityUpdate,
     },
     pool::{
-        AsClient, InTransaction, NoTransaction, PostgresStorePool, TransactionOptions,
-        TransactionState,
+        AsClient, GenericClientIter, InTransaction, NoTransaction, PostgresStorePool,
+        TransactionOptions, TransactionState,
     },
     traversal_context::TraversalContext,
 };

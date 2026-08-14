@@ -49,7 +49,6 @@ fn test_compilation<'p, 'q: 'p, T: PostgresRecord + 'static>(
     );
 
     let compiled_parameters = compiled_parameters
-        .iter()
         .map(|parameter| format!("{parameter:?}"))
         .collect::<Vec<_>>();
     let expected_parameters = expected_parameters
@@ -1862,17 +1861,21 @@ mod predefined {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(ARRAY[$3, $5, $7]::uuid[], ARRAY[$4, $6, $8]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2"))
+              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2"))
             "#,
             &[
                 &pinned_timestamp,
                 &temporal_axes.variable_interval(),
-                &Uuid::from(ids[0].entity_uuid),
-                &Uuid::from(ids[0].web_id),
-                &Uuid::from(ids[1].entity_uuid),
-                &Uuid::from(ids[1].web_id),
-                &Uuid::from(ids[2].entity_uuid),
-                &Uuid::from(ids[2].web_id),
+                &[
+                    Uuid::from(ids[0].entity_uuid),
+                    Uuid::from(ids[1].entity_uuid),
+                    Uuid::from(ids[2].entity_uuid),
+                ],
+                &[
+                    Uuid::from(ids[0].web_id),
+                    Uuid::from(ids[1].web_id),
+                    Uuid::from(ids[2].web_id),
+                ],
             ],
         );
     }
@@ -1908,17 +1911,21 @@ mod predefined {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(ARRAY[$3, $5, $7]::uuid[], ARRAY[$4, $6, $8]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2"))
+              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2"))
             "#,
             &[
                 &pinned_timestamp,
                 &temporal_axes.variable_interval(),
-                &Uuid::from(ids[0].entity_uuid),
-                &Uuid::from(ids[0].web_id),
-                &Uuid::from(ids[1].entity_uuid),
-                &Uuid::from(ids[1].web_id),
-                &Uuid::from(ids[2].entity_uuid),
-                &Uuid::from(ids[2].web_id),
+                &[
+                    Uuid::from(ids[0].entity_uuid),
+                    Uuid::from(ids[1].entity_uuid),
+                    Uuid::from(ids[2].entity_uuid),
+                ],
+                &[
+                    Uuid::from(ids[0].web_id),
+                    Uuid::from(ids[1].web_id),
+                    Uuid::from(ids[2].web_id),
+                ],
             ],
         );
     }
@@ -1953,15 +1960,16 @@ mod predefined {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(ARRAY[$3, $5]::uuid[], ARRAY[$4, $6]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2"))
+              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2"))
             "#,
             &[
                 &pinned_timestamp,
                 &temporal_axes.variable_interval(),
-                &Uuid::from(ids[0].entity_uuid),
-                &Uuid::from(ids[0].web_id),
-                &Uuid::from(ids[1].entity_uuid),
-                &Uuid::from(ids[1].web_id),
+                &[
+                    Uuid::from(ids[0].entity_uuid),
+                    Uuid::from(ids[1].entity_uuid),
+                ],
+                &[Uuid::from(ids[0].web_id), Uuid::from(ids[1].web_id)],
             ],
         );
     }
@@ -2155,21 +2163,28 @@ mod predefined {
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ((ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(ARRAY[$3, $5]::uuid[], ARRAY[$4, $6]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2"))) OR (ROW("entity_temporal_metadata_0_0_0"."draft_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_1"."elem_1", "unnest_0_0_1"."elem_2", "unnest_0_0_1"."elem_3" FROM UNNEST(ARRAY[$7, $10]::uuid[], ARRAY[$8, $11]::uuid[], ARRAY[$9, $12]::uuid[]) AS "unnest_0_0_1"("elem_1", "elem_2", "elem_3"))))
+              AND ((ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2"))) OR (ROW("entity_temporal_metadata_0_0_0"."draft_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_1"."elem_1", "unnest_0_0_1"."elem_2", "unnest_0_0_1"."elem_3" FROM UNNEST(($5::uuid[]), ($6::uuid[]), ($7::uuid[])) AS "unnest_0_0_1"("elem_1", "elem_2", "elem_3"))))
             "#,
             &[
                 &pinned_timestamp,
                 &temporal_axes.variable_interval(),
-                &Uuid::from(published[0].entity_uuid),
-                &Uuid::from(published[0].web_id),
-                &Uuid::from(published[1].entity_uuid),
-                &Uuid::from(published[1].web_id),
-                &Uuid::from(drafted[0].draft_id.expect("drafted id")),
-                &Uuid::from(drafted[0].entity_uuid),
-                &Uuid::from(drafted[0].web_id),
-                &Uuid::from(drafted[1].draft_id.expect("drafted id")),
-                &Uuid::from(drafted[1].entity_uuid),
-                &Uuid::from(drafted[1].web_id),
+                &[
+                    Uuid::from(published[0].entity_uuid),
+                    Uuid::from(published[1].entity_uuid),
+                ],
+                &[
+                    Uuid::from(published[0].web_id),
+                    Uuid::from(published[1].web_id),
+                ],
+                &[
+                    Uuid::from(drafted[0].draft_id.expect("drafted id")),
+                    Uuid::from(drafted[1].draft_id.expect("drafted id")),
+                ],
+                &[
+                    Uuid::from(drafted[0].entity_uuid),
+                    Uuid::from(drafted[1].entity_uuid),
+                ],
+                &[Uuid::from(drafted[0].web_id), Uuid::from(drafted[1].web_id)],
             ],
         );
     }
@@ -2220,19 +2235,15 @@ mod predefined {
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ROW("entity_temporal_metadata_0_0_0"."draft_id", "entity_temporal_metadata_0_0_0"."entity_edition_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2", "unnest_0_0_0"."elem_3", "unnest_0_0_0"."elem_4" FROM UNNEST(ARRAY[$3, $7]::uuid[], ARRAY[$4, $8]::uuid[], ARRAY[$5, $9]::uuid[], ARRAY[$6, $10]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2", "elem_3", "elem_4"))
+              AND ROW("entity_temporal_metadata_0_0_0"."draft_id", "entity_temporal_metadata_0_0_0"."entity_edition_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2", "unnest_0_0_0"."elem_3", "unnest_0_0_0"."elem_4" FROM UNNEST(($3::uuid[]), ($4::uuid[]), ($5::uuid[]), ($6::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2", "elem_3", "elem_4"))
             "#,
             &[
                 &pinned_timestamp,
                 &temporal_axes.variable_interval(),
-                &tuples[0][0],
-                &tuples[0][1],
-                &tuples[0][2],
-                &tuples[0][3],
-                &tuples[1][0],
-                &tuples[1][1],
-                &tuples[1][2],
-                &tuples[1][3],
+                &[tuples[0][0], tuples[1][0]],
+                &[tuples[0][1], tuples[1][1]],
+                &[tuples[0][2], tuples[1][2]],
+                &[tuples[0][3], tuples[1][3]],
             ],
         );
     }
@@ -2279,15 +2290,13 @@ mod predefined {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ROW("entity_ids_0_1_0"."created_at_transaction_time", "entity_ids_0_1_0"."created_by_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(ARRAY[$3, $5]::timestamptz[], ARRAY[$4, $6]::uuid[]) AS "unnest_0_0_0"("elem_1", "elem_2"))
+              AND ROW("entity_ids_0_1_0"."created_at_transaction_time", "entity_ids_0_1_0"."created_by_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::timestamptz[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2"))
             "#,
             &[
                 &pinned_timestamp,
                 &temporal_axes.variable_interval(),
-                &Timestamp::<()>::UNIX_EPOCH,
-                &actors[0],
-                &Timestamp::<()>::UNIX_EPOCH,
-                &actors[1],
+                &[Timestamp::<()>::UNIX_EPOCH, Timestamp::<()>::UNIX_EPOCH],
+                &[actors[0], actors[1]],
             ],
         );
     }
@@ -2556,7 +2565,6 @@ mod tuple_bundling {
         (
             trim_whitespace(&statement),
             parameters
-                .iter()
                 .map(|parameter| format!("{parameter:?}"))
                 .collect(),
         )
@@ -2693,6 +2701,45 @@ mod tuple_bundling {
         );
     }
 
+    /// A column whose members mix parameter variants has no single typed array to bind, so
+    /// the bundle falls back to one parameter per member inside array literals, exactly as
+    /// the direct equalities would have bound them.
+    #[test]
+    fn mixed_variant_members_bind_per_element() {
+        let (statement, parameters) = compile(&Filter::Any(vec![
+            Filter::All(vec![
+                uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
+                uuid_equality(EntityQueryPath::Uuid, Uuid::new_v4()),
+            ]),
+            Filter::All(vec![
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::WebId,
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Text(Cow::Borrowed("not-a-uuid")),
+                        convert: None,
+                    },
+                ),
+                uuid_equality(EntityQueryPath::Uuid, Uuid::new_v4()),
+            ]),
+        ]));
+        assert_eq!(
+            statement.matches("FROM UNNEST").count(),
+            1,
+            "the bundle still compiles as one membership predicate: {statement}"
+        );
+        assert!(
+            statement.contains("UNNEST(ARRAY[$"),
+            "a mixed-variant column binds per element: {statement}"
+        );
+        assert_eq!(
+            parameters.len(),
+            6,
+            "two temporal parameters and one parameter per tuple member: {statement}"
+        );
+    }
+
     /// One `Any` group carrying both bundleable and excluded tuples. The same-table pairs
     /// bundle into one membership while the cross-table pair stays direct, and no filter
     /// compiles twice.
@@ -2719,8 +2766,9 @@ mod tuple_bundling {
         );
         assert_eq!(
             parameters.len(),
-            8,
-            "two temporal parameters and six uuids: {statement}"
+            6,
+            "two temporal parameters, the cross-table pair's two uuids, and one array per bundled \
+             column: {statement}"
         );
         assert_eq!(
             statement.matches("INNER JOIN \"entity_ids\"").count(),

@@ -20,7 +20,7 @@ use alloc::sync::Arc;
 use core::pin::pin;
 
 use error_stack::Report;
-use futures::StreamExt as _;
+use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_postgres_store::store::{
     AsClient, PostgresStorePool, error::StoreError, postgres::query::SelectCompiler,
 };
@@ -75,6 +75,8 @@ pub(crate) enum DetailError {
     /// The party holding the store side of the order dropped it, which happens when its request
     /// ends early, so no answer can reach the response either way.
     Disconnected,
+    /// The query returned too many rows.
+    TooManyRows,
 }
 
 impl From<tokio_postgres::Error> for DetailError {
@@ -96,6 +98,7 @@ impl core::fmt::Display for DetailError {
             Self::Disconnected => {
                 fmt.write_str("the hydration channel closed before an answer arrived")
             }
+            Self::TooManyRows => fmt.write_str("the detail hydration returned too many rows"),
         }
     }
 }
@@ -104,7 +107,7 @@ impl core::error::Error for DetailError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::Query(error) => Some(error),
-            Self::Connect(_) | Self::Disconnected => None,
+            Self::Connect(_) | Self::Disconnected | Self::TooManyRows => None,
         }
     }
 }
@@ -130,9 +133,7 @@ async fn read_types(
     let columns = TypeColumns::select(&mut compiler);
     let (statement, parameters) = compiler.compile();
 
-    let rows = client
-        .query_raw(&statement, parameters.iter().copied())
-        .await?;
+    let rows = client.query_raw(&statement, parameters).await?;
 
     let lookup: FastHashMap<_, _> = ids
         .iter_enumerated()
@@ -164,7 +165,7 @@ async fn read_types(
 /// This panics when a column does not decode at its assigned position, and when a stored key
 /// does not parse as a base URL.
 async fn read_detail(
-    client: &impl GenericClient,
+    client: &(impl GenericClient + Sync),
     source: ArchivedEntityId,
     protection: Option<&PropertyProtectionFilter<'_, '_>>,
     cap: usize,
@@ -180,9 +181,15 @@ async fn read_detail(
     let columns = DetailColumns::select(&mut compiler, protection);
     let (statement, parameters) = compiler.compile();
 
-    let Some(row) = client.query_opt(&statement, parameters).await? else {
+    let stream = client.query_raw(&statement, parameters).await?;
+    let mut stream = pin!(stream);
+    let Some(row) = stream.try_next().await? else {
         return Ok((None, false));
     };
+
+    if stream.try_next().await?.is_some() {
+        return Err(DetailError::TooManyRows);
+    }
 
     let (properties, complete) = columns.capped_properties(&row, cap);
     Ok((Some(properties), complete))
@@ -313,9 +320,7 @@ impl GraphDatabaseClient {
         let columns = DetailColumns::select(&mut compiler, protection.as_ref());
         let (statement, parameters) = compiler.compile();
 
-        let rows = client
-            .query_raw(&statement, parameters.iter().copied())
-            .await?;
+        let rows = client.query_raw(&statement, parameters).await?;
 
         let lookup: FastHashMap<_, _> = ids
             .iter_enumerated()
@@ -391,9 +396,7 @@ impl GraphDatabaseClient {
         let columns = TypeColumns::select(&mut compiler);
         let (statement, parameters) = compiler.compile();
 
-        let rows = client
-            .query_raw(&statement, parameters.iter().copied())
-            .await?;
+        let rows = client.query_raw(&statement, parameters).await?;
 
         let lookup: FastHashMap<_, _> = ids
             .iter_enumerated()
