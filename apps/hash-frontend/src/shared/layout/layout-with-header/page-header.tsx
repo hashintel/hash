@@ -98,7 +98,7 @@ export const PageHeader: FunctionComponent = () => {
                 <ActionsDropdown />
                 <NotificationsDropdown />
                 <Tooltip title="Actions" placement="bottom">
-                  <Link noLinkStyle href="/actions">
+                  <Link noLinkStyle href="/actions" draggable={false}>
                     <HeaderIconButtonWithCount
                       icon={
                         <CheckRegularIcon

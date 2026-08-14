@@ -123,6 +123,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
         <Link
           href={`/@${authenticatedUser.shortname}`}
           noLinkStyle
+          draggable={false}
           sx={{
             [`&:hover .${typographyClasses.root}`]: {
               color: ({ palette }) => palette.blue[70],

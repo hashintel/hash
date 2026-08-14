@@ -13,6 +13,10 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     return (
       <MuiIconButton
         ref={ref}
+        // buttons rendered as anchors shouldn't have the browser's native link dragging
+        {...("href" in props && props.href !== undefined
+          ? { draggable: false }
+          : {})}
         {...props}
         sx={[
           {

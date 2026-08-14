@@ -13,7 +13,7 @@ export const ViewAllLink: FunctionComponent<{
   children: ReactNode;
 }> = ({ href, sx, children }) => {
   return (
-    <Link href={href} noLinkStyle tabIndex={-1} sx={sx}>
+    <Link href={href} noLinkStyle tabIndex={-1} draggable={false} sx={sx}>
       <Typography
         variant="smallTextLabels"
         sx={({ palette }) => ({

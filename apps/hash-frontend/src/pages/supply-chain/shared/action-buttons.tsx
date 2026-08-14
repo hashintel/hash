@@ -94,6 +94,7 @@ export const BriefLink = ({
       href={href}
       className={cx(briefLinkStyle, className)}
       target="_blank"
+      draggable={false}
       onClick={onClick}
     >
       <Icon name="fileLines" size="xs" />
