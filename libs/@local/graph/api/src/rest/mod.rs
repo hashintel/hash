@@ -557,7 +557,7 @@ where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
 {
-    // TODO(BE-332): replace with the Kratos session provider
+    // TODO(BE-760): replace with the Kratos session provider
     let session_provider = Arc::new(auth::StaticAuthenticationProvider::NotRecognized);
 
     // All api resources are merged together into a super-router.
