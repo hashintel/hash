@@ -49,7 +49,7 @@ export type TransitionCapacityConstraint = {
  * authoring layer is responsible for rejecting bad input with a diagnostic
  * rather than having the engine guess.
  */
-function normalizePlaceCapacity(capacity: Place["capacity"]): number {
+export function normalizePlaceCapacity(capacity: Place["capacity"]): number {
   if (capacity === undefined || capacity === null) {
     return PLACE_CAPACITY_UNBOUNDED;
   }

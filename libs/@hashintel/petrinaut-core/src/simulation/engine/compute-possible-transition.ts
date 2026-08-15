@@ -37,6 +37,11 @@ export function computePossibleTransition(
   simulation: SimulationInstance,
   transitionId: string,
   rngState: number,
+  /**
+   * Tokens earlier transitions in the same step have produced but not yet
+   * written into the frame; see `executeTransitions`.
+   */
+  pendingOutputCounts: Uint32Array | null = null,
 ): {
   firing: null | {
     remove: Record<PlaceID, Set<number> | number>;
@@ -86,18 +91,19 @@ export function computePossibleTransition(
   }
 
   // A full output place blocks its producers, mirroring an input arc that
-  // cannot be satisfied. Transitions are executed one at a time here, with
-  // removals applied between them, so the frame's counts are already current
-  // and there is no pending output to account for.
+  // cannot be satisfied. Removals are applied between transitions, so the
+  // frame's counts are current, but additions land once at the end of the
+  // step: `pendingOutputCounts` carries them so several transitions feeding
+  // one capped place cannot collectively overflow it.
   if (
     transition.capacityConstraints.length > 0 &&
     !hasCapacityHeadroom(
       transition.capacityConstraints,
       readEngineFrame(simulation.frameLayout, frame).placeCounts,
-      null,
+      pendingOutputCounts,
     )
   ) {
-    return null;
+    return { firing: null, newRngState: rngState };
   }
 
   //

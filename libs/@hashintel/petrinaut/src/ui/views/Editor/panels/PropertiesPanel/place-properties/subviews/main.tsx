@@ -380,8 +380,9 @@ const PlaceMainContent: React.FC = () => {
               onChange={(checked) => {
                 updatePlace({
                   placeId: place.id,
-                  // Default to the current token count so enabling the limit
-                  // cannot retroactively invalidate the initial marking.
+                  // Starts at 1; a scenario marking above the cap fails the
+                  // build with a message naming the place, so a too-low
+                  // default is loud rather than silent.
                   update: { capacity: checked === true ? 1 : null },
                 });
               }}
@@ -398,9 +399,15 @@ const PlaceMainContent: React.FC = () => {
               <NumberInput
                 size="sm"
                 min={0}
+                // One below the engine's unbounded sentinel (2^32 - 1).
+                max={4294967294}
                 value={place.capacity}
                 onChange={(nextCapacity) => {
-                  if (nextCapacity !== null && nextCapacity >= 0) {
+                  if (
+                    nextCapacity !== null &&
+                    nextCapacity >= 0 &&
+                    nextCapacity <= 4294967294
+                  ) {
                     updatePlace({
                       placeId: place.id,
                       update: { capacity: Math.floor(nextCapacity) },

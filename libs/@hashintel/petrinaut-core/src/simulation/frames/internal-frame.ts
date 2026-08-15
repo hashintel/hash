@@ -1,8 +1,8 @@
-import { createPlaceCapacities, hasAnyPlaceCapacity } from "../engine/capacity";
 import {
   createUserKeyedRecord,
   isDangerousRecordKey,
 } from "../../validation/record-keys";
+import { createPlaceCapacities, hasAnyPlaceCapacity } from "../engine/capacity";
 import {
   computeTokenSlotLayout,
   createTokenRegionViews,
