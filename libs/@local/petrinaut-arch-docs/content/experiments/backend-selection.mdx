@@ -7,14 +7,14 @@ attachTo: core.experiments
 
 The runtime half of swappability already existed: every backend produces a
 `MonteCarloExperiment`, and consumers drive one with no branching. This layer adds
-the part that was hardcoded — asking a backend whether it can run a net, and
+the part that was hardcoded: asking a backend whether it can run a net, and
 choosing between backends when one declines.
 
 ## Two phases
 
 `assess` settles whether the *net and configuration* are runnable, without
 acquiring a device or a worker pool. An eligible result carries an `instantiate()`
-closure, so work already done — a compiled shader, a shard plan — flows into the
+closure, so work already done (a compiled shader, a shard plan) flows into the
 run and the verdict can never be about a different thing.
 
 Instantiation can still fail, but only for `environment` or `capacity` reasons. A
@@ -36,16 +36,16 @@ not an exception. Blockers carry a `code`, an optional `itemId`, and an `origin`
 | --- | --- | --- |
 | `model` | edit the net | a typed place with no capacity |
 | `configuration` | edit the experiment | a metric shape the backend cannot serve |
-| `environment` | nobody — hide the option | no WebGPU in this browser |
+| `environment` | nobody, so hide the option | no WebGPU in this browser |
 | `capacity` | retry, or use fewer runs | device out of memory |
 
-`capacity` is deliberately separate from `environment` because it is transient:
-"use fewer runs" is right where "hide the option" would be wrong.
+`capacity` is separate from `environment` because it is transient: "use fewer
+runs" is right where "hide the option" would be wrong.
 
 ## What stays out of the request
 
 `ExperimentRequest` is plain, serializable data. Anything describing *how* to
-compute — a worker factory, an ODE method, an abort signal, a note callback —
-belongs to the backend's construction or to per-call options. That rule is what
+compute, such as a worker factory, an ODE method, an abort signal or a note
+callback, belongs to the backend's construction or to per-call options. That rule is what
 keeps the request from becoming a union of every backend's knobs, and what leaves
 room for a backend that runs out of process.
