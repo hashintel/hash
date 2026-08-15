@@ -6,15 +6,15 @@ attachTo: core.webgpu
 ---
 
 Runs are independent, so the GPU runs **one invocation per run** and steps the
-whole net on the device. WGSL is generated from the net's lowered HIR — the same
-HIR the CPU engine compiles to buffer programs — so dynamics, firing rates and
+whole net on the device. WGSL is generated from the net's lowered HIR, the same
+HIR the CPU engine compiles to buffer programs, so dynamics, firing rates and
 transition kernels execute rather than being interpreted per frame.
 
 ## Why the API is whole-experiment
 
 A per-frame interface would force a `mapAsync` readback every frame: hundreds of
 microseconds against roughly a microsecond of per-frame work. A GPU path shaped
-like the CPU one would be *slower* than the CPU. So the host dispatches a chunk of
+like the CPU one would be _slower_ than the CPU. So the host dispatches a chunk of
 frames and results come back as aggregates.
 
 ```text
@@ -44,8 +44,8 @@ arcs consuming at most two typed tokens per place, no `string` or `uuid`
 attributes, and metrics that measure place token counts.
 
 A weight-2 pairwise condition is scanned over every pair by combinatorial
-unranking, which preserves the CPU's lexicographic firing order — the pair that
-fires must be the lowest-indexed passing one, not the one with the largest rate.
+unranking, which preserves the CPU's lexicographic firing order. The pair that
+fires is the lowest-indexed passing one, not the one with the largest rate.
 
 ## Results are not seed-identical
 

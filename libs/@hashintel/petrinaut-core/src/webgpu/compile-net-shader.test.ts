@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
 import { sirModel } from "../examples/sir-model";
+import { compileHirArtifacts } from "../hir";
 import { resolveNetParameterValues } from "../parameter-values";
 import { compileNetShader } from "./compile-net-shader";
 import { assessGpuEligibility } from "./eligibility";
-import { lowerNetHir } from "./lower-net-hir";
+import { hirFromArtifacts } from "./hir-from-artifacts";
 
 import type { SDCPN } from "../types/sdcpn";
 import type { GpuOdeMethod } from "./compile-net-shader";
@@ -30,7 +31,10 @@ function compileFor(
       `net not eligible: ${eligibility.reasons.map((r) => r.code).join(", ")}`,
     );
   }
-  const lowered = lowerNetHir(sdcpn);
+  const lowered = hirFromArtifacts(
+    sdcpn,
+    compileHirArtifacts(sdcpn, undefined, { includeHir: true }).artifacts,
+  );
   return compileNetShader({
     sdcpn,
     profile: eligibility.profile,
@@ -530,7 +534,11 @@ describe("transition kernels", () => {
     if (!eligibility.eligible) {
       throw new Error("fixture should be eligible");
     }
-    const lowered = lowerNetHir(crashNet());
+    const lowered = hirFromArtifacts(
+      crashNet(),
+      compileHirArtifacts(crashNet(), undefined, { includeHir: true })
+        .artifacts,
+    );
     const compiled = compileNetShader({
       sdcpn: crashNet(),
       profile: eligibility.profile,
@@ -650,9 +658,7 @@ describe("run summary ABI", () => {
   it("writes one word per place plus the status", () => {
     const shader = summaryFor(sir);
 
-    expect(shader.summaryWordsPerRun).toBe(
-      shader.placeCountOffsets.length + 1,
-    );
+    expect(shader.summaryWordsPerRun).toBe(shader.placeCountOffsets.length + 1);
     // Far smaller than the state it replaces, which is the entire point.
     expect(shader.summaryWordsPerRun).toBeLessThan(shader.stateWordsPerRun);
   });

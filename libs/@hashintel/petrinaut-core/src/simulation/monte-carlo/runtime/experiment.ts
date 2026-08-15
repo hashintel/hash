@@ -1,6 +1,5 @@
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions";
 import { resolveNetParameterValues } from "../../../parameter-values";
-import { createUserKeyedRecord } from "../../../validation/record-keys";
 import { createWorkerTransport } from "../../runtime/transport";
 import {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
