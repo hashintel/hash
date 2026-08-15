@@ -11,7 +11,7 @@
  * shader-compile time where the cause would be opaque.
  */
 import { getArcEndpointPlaceId } from "../arc-endpoints";
-import { PLACE_CAPACITY_UNBOUNDED } from "../simulation/engine/capacity";
+import { normalizePlaceCapacity } from "../simulation/engine/capacity";
 
 import type { SDCPN } from "../types/sdcpn";
 
@@ -51,8 +51,15 @@ export type GpuNetProfile = {
   places: {
     id: string;
     name: string;
-    /** Maximum tokens; equals 0 for uncoloured places, which store only a count. */
+    /** Token *slots* to allocate; 0 for uncoloured places, which store only a count. */
     capacity: number;
+    /**
+     * The place's declared #9177 token limit in its dense runtime form
+     * (`PLACE_CAPACITY_UNBOUNDED` when absent). Distinct from `capacity`:
+     * an uncoloured place allocates no slots but may still be capped, and
+     * dropping that cap would let the GPU run past a limit the CPU enforces.
+     */
+    declaredCapacity: number;
     /** Names of `real` attributes, in declaration order. These are integrated. */
     realFields: string[];
     /** Names of `integer`/`boolean` attributes, carried but not integrated. */
@@ -137,6 +144,7 @@ export function assessGpuEligibility(
         id: place.id,
         name: place.name,
         capacity,
+        declaredCapacity: normalizePlaceCapacity(place.capacity),
         realFields,
         discreteFields,
         colored: true,
@@ -146,6 +154,7 @@ export function assessGpuEligibility(
         id: place.id,
         name: place.name,
         capacity: 0,
+        declaredCapacity: normalizePlaceCapacity(place.capacity),
         realFields: [],
         discreteFields: [],
         colored: false,
@@ -216,5 +225,3 @@ export function formatGpuIneligibility(
   }
   return `${reasons.length} reasons: ${reasons.map((reason) => reason.message).join(" ")}`;
 }
-
-export { PLACE_CAPACITY_UNBOUNDED };

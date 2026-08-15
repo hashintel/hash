@@ -16,10 +16,7 @@
  * (600 frames × 1M runs × 4 B ≈ 2.4 GB) while a histogram is under a megabyte.
  */
 import { getArcEndpointPlaceId } from "../arc-endpoints";
-import {
-  buildKernelContext,
-  buildLambdaContext,
-} from "../hir/surface-context";
+import { buildKernelContext, buildLambdaContext } from "../hir/surface-context";
 import { computeTransitionCapacityConstraints } from "../simulation/engine/capacity";
 import { WgslBailError, WgslEmitter, emitF32Literal } from "./emit-wgsl";
 import { emitPairScanWgsl } from "./pair-selection";
@@ -557,9 +554,7 @@ export function compileNetShader(
     // token array back. Of a run's state the host only needs its place counts and
     // its status — a handful of words against hundreds — and the mappable buffer
     // a readback needs is the scarcest memory in the system.
-    push(
-      `@group(0) @binding(3) var<storage, read_write> summary: array<u32>;`,
-    );
+    push(`@group(0) @binding(3) var<storage, read_write> summary: array<u32>;`);
     push("");
     push(wgslPrelude());
     push("");
@@ -721,10 +716,11 @@ export function compileNetShader(
       const capacityConstraints = computeTransitionCapacityConstraints({
         transition,
         placeIndexById,
+        // The declared limit, not the slot allocation: an uncoloured place
+        // has no slots but may still be capped, and the CPU path enforces
+        // that cap, so dropping it here would make the two backends diverge.
         placeCapacities: Uint32Array.from(
-          profile.places.map((place) =>
-            place.colored ? place.capacity : 0xffffffff,
-          ),
+          profile.places.map((place) => place.declaredCapacity),
         ),
       });
 
@@ -1023,9 +1019,7 @@ export function compileNetShader(
           const stride = placeTokenStride[index]!;
           const tokenBase = placeTokenOffsets[index]!;
           for (const [tokenOrdinal, tokenWrites] of write.tokens.entries()) {
-            push(
-              `        {`,
-            );
+            push(`        {`);
             push(
               `          let out = base + ${tokenBase}u + (counts[${index}u] + u32(max(0, pending[${index}u])) + ${tokenOrdinal}u) * ${stride}u;`,
             );

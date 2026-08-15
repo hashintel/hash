@@ -88,7 +88,9 @@ describe("unrankPair", () => {
         const [i, j] = unrankF32(x, n);
         const [wantI, wantJ] = unrankPair(x, n);
         if (i !== wantI || j !== wantJ) {
-          mismatches.push(`n=${n} x=${x}: f32 (${i},${j}) != (${wantI},${wantJ})`);
+          mismatches.push(
+            `n=${n} x=${x}: f32 (${i},${j}) != (${wantI},${wantJ})`,
+          );
         }
       }
     }

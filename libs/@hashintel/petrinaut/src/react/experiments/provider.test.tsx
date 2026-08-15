@@ -174,18 +174,23 @@ const flushWorkerSetup = async () => {
  * Acquiring a device still fails, which is what makes the CPU fallback happen.
  */
 const withWebGpuAvailable = async (body: () => Promise<void>) => {
-  const descriptor = Reflect.getOwnPropertyDescriptor(globalThis, "navigator");
-  Object.defineProperty(globalThis, "navigator", {
+  // Defined on the navigator itself rather than by replacing it: its properties
+  // are prototype getters, so a spread copy would drop everything but `gpu`.
+  const descriptor = Reflect.getOwnPropertyDescriptor(
+    globalThis.navigator,
+    "gpu",
+  );
+  Object.defineProperty(globalThis.navigator, "gpu", {
     configurable: true,
-    value: { ...globalThis.navigator, gpu: {} },
+    value: {},
   });
   try {
     await body();
   } finally {
     if (descriptor) {
-      Object.defineProperty(globalThis, "navigator", descriptor);
+      Object.defineProperty(globalThis.navigator, "gpu", descriptor);
     } else {
-      Reflect.deleteProperty(globalThis, "navigator");
+      Reflect.deleteProperty(globalThis.navigator, "gpu");
     }
   }
 };
