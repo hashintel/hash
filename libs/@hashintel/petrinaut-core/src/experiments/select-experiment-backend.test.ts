@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { selectExperimentBackend } from "./select-experiment-backend";
 
+import type { MonteCarloExperiment } from "../simulation/monte-carlo/runtime/experiment";
 import type {
   ExperimentAssessment,
   ExperimentBlockers,
@@ -11,7 +12,6 @@ import type {
   ExperimentBackendRegistration,
 } from "./experiment-backend";
 import type { ExperimentRequest } from "./experiment-request";
-import type { MonteCarloExperiment } from "../simulation/monte-carlo/runtime/experiment";
 
 /** Enough of a handle to be identity-compared; nothing here starts it. */
 function stubHandle(name: string): MonteCarloExperiment {
@@ -51,7 +51,10 @@ function registrationFor(
 }
 
 /** An eligible assessment whose `instantiate` succeeds. */
-function accepts(handleName: string, runtimeInfo?: string): ExperimentAssessment {
+function accepts(
+  handleName: string,
+  runtimeInfo?: string,
+): ExperimentAssessment {
   return {
     eligible: true,
     notes: [],
@@ -79,7 +82,9 @@ describe("selectExperimentBackend", () => {
     // bundle until a GPU run is attempted; if selection loaded every candidate
     // eagerly that would be pointless.
     const secondLoad = vi.fn(() =>
-      Promise.resolve(stubBackend({ id: "second", assessment: () => accepts("b") })),
+      Promise.resolve(
+        stubBackend({ id: "second", assessment: () => accepts("b") }),
+      ),
     );
 
     const result = await selectExperimentBackend({
@@ -131,7 +136,7 @@ describe("selectExperimentBackend", () => {
 
   it("treats a failed instantiation as a refusal and keeps going", async () => {
     // Assessment is authoritative about the net; instantiation can still fail for
-    // the environment — a device that will not allocate. Surfacing that as a dead
+    // the environment, a device that will not allocate. Surfacing that as a dead
     // end rather than falling through would strand the user on a working net.
     const result = await selectExperimentBackend({
       registrations: [
@@ -147,7 +152,8 @@ describe("selectExperimentBackend", () => {
                   blockers: [
                     {
                       code: "gpu-allocation-failed",
-                      message: "The GPU could not allocate memory for 1000000 runs.",
+                      message:
+                        "The GPU could not allocate memory for 1000000 runs.",
                       origin: "capacity",
                     },
                   ],
@@ -242,12 +248,14 @@ describe("selectExperimentBackend", () => {
 
     expect(result.ok && result.backendId).toBe("cpu");
     if (!result.ok) return;
-    expect(result.declined[0]?.reason).toMatch(/could not be loaded.*chunk load/);
+    expect(result.declined[0]?.reason).toMatch(
+      /could not be loaded.*chunk load/,
+    );
   });
 
   it("builds the request once per distinct artifact requirement", async () => {
     // Compiling HIR trees roughly triples artifact size, so the worker-pool path
-    // must not pay for them — but two backends wanting the same artifacts should
+    // must not pay for them, but two backends wanting the same artifacts should
     // not compile twice either.
     const buildRequest = vi.fn((_options: { needsHirTrees: boolean }) =>
       Promise.resolve(REQUEST),

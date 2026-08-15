@@ -20,6 +20,7 @@ import {
 import {
   createWorkerPoolExperimentBackend,
   selectExperimentBackend,
+  WORKER_POOL_BACKEND_ID,
   type ExperimentBackendRegistration,
   type ExperimentRequest,
 } from "@hashintel/petrinaut-core/experiments";
@@ -526,7 +527,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         // rather than an edit to this branch.
         const registrations: ExperimentBackendRegistration[] = [
           {
-            id: "cpu",
+            id: WORKER_POOL_BACKEND_ID,
             label: "CPU (Web Workers)",
             load: () =>
               Promise.resolve(
