@@ -353,7 +353,7 @@ impl<'doc> IntoIterator for DeliveredSet<'doc> {
 
 /// The tile `HEAD` document, slot 0.
 ///
-/// Keys 5 and 11 are reserved: no response emits either.
+/// Keys 5 and 11 stay reserved: no response emits either.
 #[derive(Debug)]
 pub(crate) struct TileHead<'doc> {
     /// Key 0: the generation identity, echoing the route.

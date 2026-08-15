@@ -318,7 +318,10 @@ fn unclassified_lists_only_live_unfitted_arrivals() {
     assert!(register.apply(event(4, 1, live(40))));
     assert!(register.classify(entity(4), Classification::Node));
 
-    assert_eq!(register.unclassified(&tables), [entity(1)]);
+    assert_eq!(
+        register.unclassified(&tables).collect::<Vec<_>>(),
+        [entity(1)]
+    );
 }
 
 #[test]
@@ -379,7 +382,7 @@ fn incomplete_link_publishes_nowhere() {
     assert_eq!(snapshot.link(entity(1)), None);
     assert!(!snapshot.withdraws(entity(1)));
     // The verdict holds, so the identity never re-lists for classification.
-    assert_eq!(register.unclassified(&tables), []);
+    assert_eq!(register.unclassified(&tables).collect::<Vec<_>>(), []);
 }
 
 #[test]
@@ -410,7 +413,7 @@ fn withdraw_then_unarchive_keeps_the_held_verdict() {
 
     // The unarchive re-stages through the held verdict, with no second lookup owed.
     assert!(register.apply(event(1, 3, live(11))));
-    assert_eq!(register.unclassified(&tables), []);
+    assert_eq!(register.unclassified(&tables).collect::<Vec<_>>(), []);
     assert_eq!(
         snapshot(&register, &tables).staged(entity(1)),
         Some(edition(11))

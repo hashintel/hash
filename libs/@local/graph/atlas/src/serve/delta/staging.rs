@@ -8,6 +8,30 @@
 //! freshness and nothing else - withdrawal publication continues however long a staging cycle
 //! runs.
 //!
+//! One arrival's phases, and every move between them:
+//!
+//! ```text
+//! enter - the published staged set names a fresh identity
+//!   |
+//!   v
+//! Reading ------ a granted ensure after the ------> Ensured
+//!   |            spent reading budget                 |    \
+//!   |                                                 |     \   the spent post-ensure budget
+//!   |<----- the embedding read answers, either side --+      \
+//!   v                                                         '--> Exhausted
+//! Ready, display pending                                           (reconciliation or refit)
+//!   |
+//!   |   the display read answers
+//!   v
+//! Ready, display captured
+//!   |
+//!   +---- an in-frame projection the publisher accepts ----> Placed
+//!   |
+//!   +---- an out-of-frame or non-finite projection --------> Held (until refit)
+//!
+//! leave - an identity the staged set stops naming drops from any phase
+//! ```
+//!
 //! The pipeline restates the accepted embedding-retry contract, whose one observable is the
 //! store read. Entity insert and patch commit before their embedding workflow starts, and the
 //! worker writes the embeddings table without a second feed event, so the indexed read is what
@@ -37,7 +61,7 @@
 //! arm's publisher over the placement channel, keeping the register's single writer. An
 //! out-of-frame or non-finite projection parks the arrival under a warning until a refit
 //! recalibrates the frame, and a serving process without a placer - a baseline-placed
-//! generation, or a generation whose replay did not certify - stages arrivals forever.
+//! generation, the one shape that serves without one - stages arrivals forever.
 
 use alloc::sync::Arc;
 use core::fmt;
@@ -59,7 +83,7 @@ use type_system::{
 use super::{
     DeltaCell, FrozenPlacement,
     consumer::DeltaPolling,
-    placement::{Placer, Projection},
+    placement::{NonFiniteProjection, Placer, Projection},
 };
 use crate::{
     dataset::{
@@ -360,6 +384,12 @@ impl fmt::Display for StagingError {
 
 impl core::error::Error for StagingError {}
 
+/// One ready arrival's owned hand-off key: its identity, edition and captured display.
+type PlacementKey = (ArchivedEntityId, EntityEditionId, EditionDisplay);
+
+/// Every row's placement from one projected batch, or the batch's first non-finite row.
+type ProjectionOutcome = Result<Vec<Projection>, NonFiniteProjection>;
+
 /// The long-lived task owning one generation's arrivals pipeline.
 ///
 /// One arm serves one generation beside its poll arm. Dropping the task drops the pipeline with
@@ -375,7 +405,8 @@ pub(crate) struct StagingArm {
     polling: DeltaPolling,
     /// The ensure client and its exclusions, or [`None`] to stage without ensuring.
     ensure: Option<EmbeddingEnsure>,
-    /// The generation's publish path, or [`None`] to stage without placing.
+    /// The generation's publish path, or [`None`] for a baseline-placed generation, which
+    /// stages without placing.
     placer: Option<Placer>,
     /// The channel carrying frozen placements to the poll arm's publisher.
     placements: UnboundedSender<(ArchivedEntityId, FrozenPlacement)>,
@@ -442,10 +473,13 @@ impl StagingArm {
     /// Neither failure moves a budget, because a budget counts reads the store answered rather
     /// than cycles the infrastructure lost.
     async fn cycle(&mut self) -> Result<(), StagingError> {
-        let Some(snapshot) = self.cell.load_full() else {
-            return Ok(());
-        };
-        self.pipeline.sync(snapshot.staged_arrivals());
+        {
+            let guard = self.cell.load();
+            let Some(snapshot) = guard.as_deref() else {
+                return Ok(());
+            };
+            self.pipeline.sync(snapshot.staged_arrivals());
+        }
 
         let pending = self.pipeline.pending();
         if !pending.is_empty() || !self.pipeline.uncaptured().is_empty() {
@@ -478,7 +512,7 @@ impl StagingArm {
                         }
                         MissAction::Park => tracing::warn!(
                             ?identity,
-                            "an arrival's retry budget is spent, it stays unplaced until \
+                            "an arrival's retry budget ran out, it stays unplaced until \
                              reconciliation or refit"
                         ),
                     }
@@ -531,7 +565,7 @@ impl StagingArm {
             tracing::warn!(
                 answers = answers.len(),
                 requests = uncaptured.len(),
-                "the display read answered a different edition count than it was asked"
+                "the display read answered a different edition count than the request named"
             );
         }
 
@@ -552,24 +586,8 @@ impl StagingArm {
     /// rows behind it retry at the next cycle. A closed channel leaves every entry ready, so the
     /// next cycle retries the hand-off.
     fn place_ready(&mut self) {
-        let Some(placer) = &self.placer else {
+        let Some((keyed, outcome)) = self.project_ready() else {
             return;
-        };
-
-        let (keyed, outcome) = {
-            let batch: Vec<_> = self.pipeline.ready().collect();
-            if batch.is_empty() {
-                return;
-            }
-            let keyed: Vec<(ArchivedEntityId, EntityEditionId, EditionDisplay)> = batch
-                .iter()
-                .map(|&(identity, edition, _, display)| (identity, edition, display.clone()))
-                .collect();
-            let embeddings: Vec<&BoxedVecN<PROJECTOR_DIMENSIONS>> = batch
-                .iter()
-                .map(|&(_, _, embedding, _)| embedding)
-                .collect();
-            (keyed, placer.project(&embeddings))
         };
 
         match outcome {
@@ -591,7 +609,7 @@ impl StagingArm {
                                 .is_err()
                             {
                                 tracing::warn!(
-                                    "the placement channel is closed, placements retry next cycle"
+                                    "the placement channel closed, placements retry next cycle"
                                 );
                                 return;
                             }
@@ -618,6 +636,27 @@ impl StagingArm {
                 self.pipeline.held(identity);
             }
         }
+    }
+
+    /// Projects the ready batch through the publish path, keyed for the hand-off.
+    ///
+    /// The keys own their identity, edition and display, so the caller walks the outcome while
+    /// mutating the pipeline. [`None`] means the arm holds no placer or nothing is ready.
+    fn project_ready(&self) -> Option<(Vec<PlacementKey>, ProjectionOutcome)> {
+        let placer = self.placer.as_ref()?;
+
+        let batch: Vec<_> = self.pipeline.ready().collect();
+        if batch.is_empty() {
+            return None;
+        }
+
+        let keyed = batch
+            .iter()
+            .map(|&(identity, edition, _, display)| (identity, edition, display.clone()))
+            .collect();
+        let outcome = placer.project(batch.iter().map(|&(_, _, embedding, _)| embedding));
+
+        Some((keyed, outcome))
     }
 
     /// Submits the deduplicated ensure for one arrival whose reading budget ran out.
@@ -667,7 +706,7 @@ impl StagingArm {
             .await
         {
             Ok(start) => {
-                tracing::debug!(?identity, ?start, "the embedding ensure is submitted");
+                tracing::debug!(?identity, ?start, "the embedding ensure is in flight");
                 self.pipeline.ensured(identity);
             }
             Err(error) => {

@@ -112,7 +112,7 @@ pub(crate) mod consumer;
 mod placement;
 pub(crate) mod staging;
 
-pub(crate) use self::placement::Placer;
+pub(crate) use self::placement::{PlacementError, Placer};
 
 #[cfg(test)]
 mod tests;
@@ -684,14 +684,16 @@ impl DeltaRegister {
         }
     }
 
-    /// Lists the live arrivals holding no classification verdict.
+    /// Iterates the live arrivals holding no classification verdict.
     ///
     /// An arrival is a live identity the generation never fitted. A withdrawn identity never
     /// lists, because it serves nothing whatever its category, and the feed's own withdrawal is
     /// what resolves an arrival whose present ended between its event and a lookup. A fitted
     /// identity never lists, because the generation's tables already decide its category.
-    #[must_use]
-    pub(crate) fn unclassified(&self, tables: &impl IdentityTables) -> Vec<ArchivedEntityId> {
+    pub(crate) fn unclassified(
+        &self,
+        tables: &impl IdentityTables,
+    ) -> impl Iterator<Item = ArchivedEntityId> {
         self.registers
             .iter()
             .filter(|&(entity, register)| {
@@ -701,7 +703,6 @@ impl DeltaRegister {
                     && tables.edge_row_of(*entity).is_none()
             })
             .map(|(&entity, _)| entity)
-            .collect()
     }
 
     /// Holds one classification verdict, returning whether publication's resolution input changed.
@@ -906,7 +907,8 @@ impl DeltaCell {
     /// Returns an owned handle on the current publication, or [`None`] before the first.
     ///
     /// The owned handle pins one publication for as long as the caller holds it, the shape a
-    /// whole request or a whole staging cycle reads through.
+    /// whole request reads through. A read that ends before its next await point takes
+    /// [`Self::load`] instead, whose guard is cheaper than the reference-count round trip.
     pub(crate) fn load_full(&self) -> Option<Arc<DeltaSnapshot>> {
         self.snapshot.load_full()
     }

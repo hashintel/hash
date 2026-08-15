@@ -403,7 +403,7 @@ impl<const N: usize> AlignedVecN<N> {
 
     /// Wraps a mutably borrowed slice in place as consecutive aligned vectors.
     ///
-    /// The layout and the conditions are [`from_slice`](Self::from_slice)'s; the exclusive borrow
+    /// The layout and the conditions are [`from_slice`](Self::from_slice)'s. The exclusive borrow
     /// carries through to the vectors.
     #[must_use]
     pub fn from_slice_mut(components: &mut [f32]) -> Option<&mut [Self]> {
@@ -546,6 +546,13 @@ impl<const N: usize> AlignedVecN<N> {
 const impl<const N: usize> PartialEq for AlignedVecN<N> {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
+    }
+}
+
+const impl<const N: usize> AsRef<Self> for AlignedVecN<N> {
+    #[inline]
+    fn as_ref(&self) -> &Self {
+        self
     }
 }
 

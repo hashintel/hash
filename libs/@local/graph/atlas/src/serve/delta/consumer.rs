@@ -286,7 +286,7 @@ where
     /// poll itself still succeeding. An identity the read answers nothing about stays
     /// unclassified the same way, until the feed's own withdrawal resolves it.
     async fn classify_arrivals(&mut self, store: &impl AsClient) -> bool {
-        let unclassified = self.register.unclassified(self.tables.as_ref());
+        let unclassified: Vec<_> = self.register.unclassified(self.tables.as_ref()).collect();
         if unclassified.is_empty() {
             return false;
         }
@@ -310,7 +310,7 @@ where
             tracing::warn!(
                 answers = verdicts.len(),
                 requests = unclassified.len(),
-                "the classification read answered more identities than it was asked, a store \
+                "the classification read answered more identities than the request named, a store \
                  invariant the statement relies on broke"
             );
         }

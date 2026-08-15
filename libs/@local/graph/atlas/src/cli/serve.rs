@@ -13,8 +13,8 @@ use crate::{
     file::generation::{CurrentError, GenerationRoot},
     serve::{
         Atlas, DeltaCell, DeltaConsumer, DeltaEpoch, DeltaPolling, EdgesLimits, EmbeddingEnsure,
-        GraphDatabaseClient, LocateLimits, OpenAtlasError, OpenOptions, ServeLimits, StagingArm,
-        TileLimits, TranslateLimits, VisibilityLimits, WireSecret,
+        GraphDatabaseClient, LocateLimits, OpenAtlasError, OpenOptions, PlacementError,
+        ServeLimits, StagingArm, TileLimits, TranslateLimits, VisibilityLimits, WireSecret,
     },
 };
 
@@ -174,8 +174,8 @@ pub struct ServeArgs {
     /// The server secret behind the wire row-id codec.
     ///
     /// Required for serving: exactly 64 hexadecimal characters (32 bytes). Generate one with
-    /// `openssl rand -hex 32`. The secret must not change for a generation that has ever served;
-    /// rotate generations to rotate secrets.
+    /// `openssl rand -hex 32`. The secret must not change for a generation that has ever served.
+    /// Rotate generations to rotate secrets.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_SECRET",
@@ -196,6 +196,8 @@ pub enum ServeError {
     Secret,
     /// The active generation's artifacts could not open.
     Open(OpenAtlasError),
+    /// The generation stages a projector checkpoint whose publish path did not reopen.
+    Placement(PlacementError),
     /// Drawing the delta epoch failed.
     ///
     /// Entropy failure refuses the serve rather than starting a register lifetime under a
@@ -216,6 +218,10 @@ impl fmt::Display for ServeError {
                  characters (openssl rand -hex 32)",
             ),
             Self::Open(_) => fmt.write_str("the active generation's artifacts could not open"),
+            Self::Placement(_) => fmt.write_str(
+                "the generation promises online placement its artifacts cannot deliver; refit, or \
+                 disable the delta consumer with --no-delta",
+            ),
             Self::Epoch(_) => fmt.write_str("the delta epoch could not be drawn"),
         }
     }
@@ -227,6 +233,7 @@ impl Error for ServeError {
             Self::Current(error) => Some(error),
             Self::Missing | Self::Secret => None,
             Self::Open(error) => Some(error),
+            Self::Placement(error) => Some(error),
             Self::Epoch(error) => Some(error.as_ref()),
         }
     }
@@ -313,7 +320,7 @@ impl ServeCommand {
         let cell = Arc::new(DeltaCell::default());
 
         let epoch = if self.delta.no_delta {
-            tracing::info!("the delta consumer is disabled by configuration");
+            tracing::info!("configuration turns the delta consumer off");
             None
         } else if let Some(fitted) = atlas.fitted_at() {
             // The epoch draw is the first act of consumer initialization, so a failed draw
@@ -322,8 +329,7 @@ impl ServeCommand {
                 .map_err(|error| ServeError::Epoch(Box::new(error)))?;
             let polling = DeltaPolling::from(&self.delta);
             let ensuring = ensure.is_some();
-            let placer = atlas.arrival_placer();
-            let placing = placer.is_some();
+            let placer = atlas.arrival_placer().map_err(ServeError::Placement)?;
             let (placements_tx, placements_rx) = tokio::sync::mpsc::unbounded_channel();
             let consumer = DeltaConsumer::new(
                 Arc::clone(&pool),
@@ -344,15 +350,12 @@ impl ServeCommand {
             );
             let _consumer_handle = tokio::spawn(consumer.run());
             let _staging_handle = tokio::spawn(arm.run());
-            if !placing {
-                tracing::info!("no placer opened, arrivals stage until a refit");
-            }
             if ensuring {
                 tracing::info!("the delta consumer polls the entity feed");
             } else {
                 tracing::info!(
                     "the delta consumer polls the entity feed, and arrivals stage without \
-                     embedding ensures because no Temporal client is configured"
+                     embedding ensures because the configuration names no Temporal client"
                 );
             }
             Some(epoch)

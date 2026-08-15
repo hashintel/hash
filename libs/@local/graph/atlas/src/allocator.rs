@@ -30,7 +30,7 @@ impl MemoryUsage {
 /// An allocator that counts the live bytes allocated through it.
 ///
 /// Every allocation adds its requested layout size and every deallocation subtracts it, so the
-/// counter reads the bytes currently held. The count covers requested layout sizes alone: an
+/// counter reads the bytes currently held. The count covers requested layout sizes alone. An
 /// allocator's own padding or over-allocation stays invisible. Clones share one counter, so a
 /// collection may clone its allocator freely and the total stays one number.
 #[derive(Debug, Clone)]

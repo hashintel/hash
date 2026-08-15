@@ -5,8 +5,8 @@
 //! endpoint column, and the rank and position permutations - and validates each format plus their
 //! cross-artifact agreement once, so every read after that is mmap gathers and wire encoding.
 //! [`Atlas::tile`] answers one tile request with `SALTILET` envelope bytes and [`Atlas::edges`] one
-//! edges request with `SALTILEE` bytes, both ready to send under `application/vnd.hash.saltile-v1`;
-//! the manifest document of the Surface v1 bootstrap is [`Atlas::manifest`].
+//! edges request with `SALTILEE` bytes, both ready to send under `application/vnd.hash.saltile-v1`.
+//! The manifest document of the Surface v1 bootstrap is [`Atlas::manifest`].
 //!
 //! An [`Atlas`] is immutable after open and `Send + Sync`, so hold it in an
 //! [`Arc`] across requests for the process lifetime of the generation. Reads are
@@ -61,7 +61,7 @@ pub use self::{
 pub(crate) use self::{
     codec::{Universe, WireRow},
     delta::{
-        DeltaCell, DeltaEpoch, DeltaSnapshot, PlacementCohort,
+        DeltaCell, DeltaEpoch, DeltaSnapshot, PlacementCohort, PlacementError,
         consumer::{DeltaConsumer, DeltaPolling},
         staging::StagingArm,
     },
@@ -125,7 +125,7 @@ mod tests;
 
 /// The variant names one generation serves, in variant-index order.
 ///
-/// Surface v1 serves exactly `plain`; routes and manifests take variant names and indices from this
+/// Surface v1 serves exactly `plain`. Routes and manifests take variant names and indices from this
 /// constant.
 pub(crate) const VARIANTS: [&str; 1] = ["plain"];
 
@@ -303,10 +303,14 @@ impl Atlas {
 
     /// Opens the generation's publish path for placing arrivals online.
     ///
-    /// Returns [`None`] when the generation placed rows by landmark baseline or when the reopened
-    /// publish path does not reproduce the generation's own published coordinates. Each refusal
-    /// logs its own line, and serving without a placer stages arrivals until a refit.
-    pub(crate) fn arrival_placer(&self) -> Option<delta::Placer> {
+    /// Returns `Ok(None)` for a generation that placed rows by landmark baseline: it promises no
+    /// publish path, and its arrivals stage until a refit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`delta::PlacementError`] when the generation stages a projector checkpoint whose
+    /// publish path does not reopen and certify. Each refusal logs its own line at the site.
+    pub(crate) fn arrival_placer(&self) -> Result<Option<delta::Placer>, delta::PlacementError> {
         delta::Placer::open(&self.generation)
     }
 

@@ -417,7 +417,7 @@ impl ScopeSchedule {
         Self::over(rows, arrivals.into_boxed_slice())
     }
 
-    /// Builds the empty schedule: nothing delivers, and no cell is occupied at any depth.
+    /// Builds the empty schedule: nothing delivers, and no cell holds a row at any depth.
     pub(crate) fn empty() -> Self {
         Self::over(Vec::new(), Box::new_in([], MemoryUsageAllocator::global()))
     }
@@ -426,8 +426,8 @@ impl ScopeSchedule {
     ///
     /// Every retained column allocates through one counting allocator, and nothing accrues
     /// after construction - the catch-all reads straight off the column, so no offset ever
-    /// materializes per-offset state. The count covers the columns' requested layouts alone:
-    /// heap an arrival's display payload owns, allocated at capture, stays outside it.
+    /// materializes per-offset state. The count covers the columns' requested layouts alone.
+    /// The heap an arrival's captured display payload owns stays outside it.
     pub(crate) fn heap_bytes(&self) -> u64 {
         self.memory_usage.get() as u64
     }
@@ -687,8 +687,8 @@ impl ArrivalOverlay {
     /// Returns the overlay's retained heap in bytes: its own allocator's live count.
     ///
     /// The slots, the arrival table, and the bucket lookup allocate through one counting
-    /// allocator. The count covers their requested layouts alone: heap an arrival's display
-    /// payload owns, allocated at capture, stays outside it.
+    /// allocator. The count covers their requested layouts alone. The heap an arrival's
+    /// captured display payload owns stays outside it.
     pub(crate) fn heap_bytes(&self) -> u64 {
         self.memory_usage.get() as u64
     }

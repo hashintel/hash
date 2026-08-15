@@ -20,15 +20,17 @@
 //! of the generation's own fitted rows and compares the aligned result against the published
 //! coordinate column, per component in world units, under the ladder report's own reproduction
 //! bound. A checkpoint, an echo, or a backend that does not reproduce the published bytes within
-//! that bound would place arrivals on a lookalike map, so certification failure builds no placer.
+//! that bound would place arrivals on a lookalike map, so certification failure refuses the
+//! serve.
 //!
-//! Every refusal fails closed. [`Placer::open`] returns [`None`] for a baseline-placed
-//! generation, a document whose placement records disagree, an artifact that does not open or
-//! decode, and a failed certificate, each under its own log line. Serving without a placer stages
-//! arrivals forever, the same disposition as a deployment without a Temporal client. An arrival
-//! whose coordinate projects outside the frozen world frame stays unplaced under a warning,
-//! because a clamped coordinate would serve a lie about position. The frame comes from fit-time
-//! data, and the next refit recalibrates it.
+//! Every refusal fails closed, each under its own log line. [`Placer::open`] answers `Ok(None)`
+//! for a baseline-placed generation alone, the one shape that promises no publish path, and
+//! serving without a placer stages arrivals forever, the same disposition as a deployment
+//! without a Temporal client. A generation that stages a projector checkpoint must reopen it:
+//! every reopening failure is a [`PlacementError`], and the serve refuses to start rather than
+//! silently staging every arrival. At runtime, an arrival projecting outside the frozen world
+//! frame stays unplaced under a warning, because a clamped coordinate would serve a lie about
+//! position. The frame comes from fit-time data, and the next refit recalibrates it.
 
 use std::fs::File;
 
@@ -37,7 +39,7 @@ use hashql_core::id::{Id as _, IdSlice};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{array::ArrayFile, generation::Generation},
-    math::{AlignedVecN, Bounds2, BoxedVecN, NonNegative, Similarity, Vec2},
+    math::{AlignedVecN, Bounds2, MatrixN, NonNegative, Similarity, Vec2},
     salt::{
         fit::{PlacementInner, PlacementOptions, placement_device},
         ladder::report::CERTIFICATE_TOLERANCE,
@@ -94,6 +96,54 @@ pub(super) struct NonFiniteProjection {
     pub row: usize,
 }
 
+/// The refusals that stop a staged projector checkpoint from reopening.
+///
+/// Each case logs its own line at the refusal site. The error names the case for the serve
+/// refusal that carries it. A baseline-placed generation is not a refusal: it promises no
+/// publish path, and [`Placer::open`] answers `Ok(None)` for it.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum PlacementError {
+    /// The configuration echo records a baseline placement while the generation stages a
+    /// projector checkpoint.
+    EchoDisagrees,
+    /// The generation stages a projector checkpoint without training evidence.
+    MissingEvidence,
+    /// The ladder evidence names a canonical rung outside its own schedule.
+    CanonicalRung,
+    /// The projector checkpoint does not open, or does not decode against the echoed
+    /// architecture.
+    Checkpoint,
+    /// The reopened publish path does not reproduce the generation's own published coordinates.
+    Certificate,
+}
+
+impl core::fmt::Display for PlacementError {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::EchoDisagrees => fmt.write_str(
+                "the generation stages a projector checkpoint while its configuration echo \
+                 records a baseline placement",
+            ),
+            Self::MissingEvidence => fmt.write_str(
+                "the generation stages a projector checkpoint without training evidence",
+            ),
+            Self::CanonicalRung => {
+                fmt.write_str("the ladder evidence names a canonical rung outside its own schedule")
+            }
+            Self::Checkpoint => fmt.write_str(
+                "the projector checkpoint does not open or does not decode against the echoed \
+                 architecture",
+            ),
+            Self::Certificate => fmt.write_str(
+                "the reopened publish path does not reproduce the generation's own published \
+                 coordinates",
+            ),
+        }
+    }
+}
+
+impl core::error::Error for PlacementError {}
+
 /// The online half of the placement stage, bound to one published generation.
 ///
 /// Holds the reopened checkpoint together with the recorded canonical condition, alignment, and
@@ -127,16 +177,22 @@ impl core::fmt::Debug for Placer {
 impl Placer {
     /// Opens the generation's publish path for online projection.
     ///
-    /// Refusals fail closed, each under its own log line, and every one returns [`None`]:
+    /// Answers `Ok(None)` for a baseline-placed generation, the one shape that promises no
+    /// publish path. Its arrivals stage until a refit.
     ///
-    /// - a baseline-placed generation
-    /// - a document whose placement discriminant and configuration echo disagree
-    /// - a missing or undecodable checkpoint or artifact column
-    /// - a ladder evidence body naming a rung outside its own schedule
-    /// - a certificate whose reproduction error reaches the tolerance
+    /// # Errors
     ///
-    /// A serving process without a placer stages arrivals until a refit.
-    pub(crate) fn open(generation: &Generation) -> Option<Self> {
+    /// Refusals fail closed, each under its own log line at the refusal site:
+    ///
+    /// - [`PlacementError::EchoDisagrees`] when the placement discriminant and the configuration
+    ///   echo disagree
+    /// - [`PlacementError::MissingEvidence`] when the checkpoint stages without training evidence
+    /// - [`PlacementError::CanonicalRung`] when the ladder evidence names a rung outside its own
+    ///   schedule
+    /// - [`PlacementError::Checkpoint`] when the checkpoint does not open or does not decode
+    /// - [`PlacementError::Certificate`] when the reopened path does not reproduce the generation's
+    ///   own published coordinates
+    pub(crate) fn open(generation: &Generation) -> Result<Option<Self>, PlacementError> {
         let repository = generation.repository();
         let metadata = &repository.metadata;
 
@@ -144,22 +200,21 @@ impl Placer {
             tracing::info!(
                 "the generation placed rows by landmark baseline, arrivals stage until a refit"
             );
-            return None;
+            return Ok(None);
         };
         let PlacementOptions::Projector(options) = &metadata.reproducibility.config.placement
         else {
             tracing::warn!(
                 "the generation stages a projector checkpoint while its configuration echo \
-                 records a baseline placement, arrivals stage until a refit"
+                 records a baseline placement"
             );
-            return None;
+            return Err(PlacementError::EchoDisagrees);
         };
         let Some(evidence) = &metadata.evidence.projector else {
             tracing::warn!(
-                "the generation stages a projector checkpoint without training evidence, arrivals \
-                 stage until a refit"
+                "the generation stages a projector checkpoint without training evidence"
             );
-            return None;
+            return Err(PlacementError::MissingEvidence);
         };
 
         let (condition, alignment) = match &evidence.ladder {
@@ -168,10 +223,9 @@ impl Placer {
                     tracing::warn!(
                         canonical_index = ladder.canonical_index,
                         rungs = ladder.rungs.len(),
-                        "the ladder evidence names a canonical rung outside its own schedule, \
-                         arrivals stage until a refit"
+                        "the ladder evidence names a canonical rung outside its own schedule"
                     );
-                    return None;
+                    return Err(PlacementError::CanonicalRung);
                 };
                 (ladder.canonical, Some(rung.alignment))
             }
@@ -182,8 +236,8 @@ impl Placer {
         let checkpoint = match File::open(generation.path_of(&checkpoint.name)) {
             Ok(file) => file,
             Err(error) => {
-                tracing::warn!(%error, "the projector checkpoint does not open, arrivals stage until a refit");
-                return None;
+                tracing::warn!(%error, "the projector checkpoint does not open");
+                return Err(PlacementError::Checkpoint);
             }
         };
         let model: Projector<PlacementInner> =
@@ -192,10 +246,9 @@ impl Placer {
                 Err(error) => {
                     tracing::warn!(
                         %error,
-                        "the projector checkpoint does not decode against the echoed \
-                         architecture, arrivals stage until a refit"
+                        "the projector checkpoint does not decode against the echoed architecture"
                     );
-                    return None;
+                    return Err(PlacementError::Checkpoint);
                 }
             };
 
@@ -206,7 +259,11 @@ impl Placer {
             world: metadata.evidence.lod.world,
             forward_rows: options.forward_rows,
         };
-        placer.certify(generation).then_some(placer)
+        if placer.certify(generation) {
+            Ok(Some(placer))
+        } else {
+            Err(PlacementError::Certificate)
+        }
     }
 
     /// Certifies the reopened publish path against the published coordinate column.
@@ -222,29 +279,24 @@ impl Placer {
         {
             Ok(file) => file,
             Err(error) => {
-                tracing::warn!(%error, "the representation matrix does not open, arrivals stage until a refit");
+                tracing::warn!(%error, "the representation matrix does not open");
                 return false;
             }
         };
         let Some(representations) = representations.vectors::<PROJECTOR_DIMENSIONS>() else {
-            tracing::warn!(
-                "the representation matrix does not read as projector-width rows, arrivals stage \
-                 until a refit"
-            );
+            tracing::warn!("the representation matrix does not read as projector-width rows");
             return false;
         };
 
         let coordinates = match ArrayFile::open(generation.path_of(&files.coordinates.name)) {
             Ok(file) => file,
             Err(error) => {
-                tracing::warn!(%error, "the coordinate column does not open, arrivals stage until a refit");
+                tracing::warn!(%error, "the coordinate column does not open");
                 return false;
             }
         };
         let Some(coordinates) = coordinates.points() else {
-            tracing::warn!(
-                "the coordinate column does not read as points, arrivals stage until a refit"
-            );
+            tracing::warn!("the coordinate column does not read as points");
             return false;
         };
 
@@ -254,7 +306,7 @@ impl Placer {
                 representations = rows,
                 coordinates = coordinates.len(),
                 "the representation matrix and the coordinate column do not describe one \
-                 populated corpus, arrivals stage until a refit"
+                 populated corpus"
             );
             return false;
         }
@@ -266,17 +318,13 @@ impl Placer {
             reason = "the floored stride spreads the sample evenly over the row domain"
         )]
         let sampled: Vec<usize> = (0..width).map(|index| index * rows / width).collect();
-        let inputs: Vec<&[f32; PROJECTOR_DIMENSIONS]> = sampled
-            .iter()
-            .map(|&row| representations[row].as_array())
-            .collect();
-
-        let aligned = match self.forward_aligned(&inputs) {
+        let sampled_rows = sampled.iter().map(|&row| &representations[row]);
+        let aligned = match self.forward_aligned(sampled_rows) {
             Ok(aligned) => aligned,
             Err(failure) => {
                 tracing::warn!(
                     row = sampled[failure.row],
-                    "a fitted row's reprojection is non-finite, arrivals stage until a refit"
+                    "a fitted row's reprojection is non-finite"
                 );
                 return false;
             }
@@ -304,8 +352,7 @@ impl Placer {
                 rows,
                 max_error,
                 tolerance = CERTIFICATE_TOLERANCE,
-                "the online projection does not reproduce the published coordinates, arrivals \
-                 stage until a refit"
+                "the online projection does not reproduce the published coordinates"
             );
             false
         }
@@ -324,13 +371,9 @@ impl Placer {
     /// coordinate. Rows after it were not projected, and the caller retries them.
     pub(super) fn project(
         &self,
-        embeddings: &[&BoxedVecN<PROJECTOR_DIMENSIONS>],
+        embeddings: impl IntoIterator<Item: AsRef<AlignedVecN<PROJECTOR_DIMENSIONS>>>,
     ) -> Result<Vec<Projection>, NonFiniteProjection> {
-        let inputs: Vec<&[f32; PROJECTOR_DIMENSIONS]> = embeddings
-            .iter()
-            .map(|embedding| embedding.as_array())
-            .collect();
-        let world = self.forward_aligned(&inputs)?;
+        let world = self.forward_aligned(embeddings)?;
         let wire = self.world.normalize_into(WIRE_FRAME, &world);
 
         Ok(world
@@ -348,7 +391,7 @@ impl Placer {
 
     /// Forwards a batch through the checkpoint and aligns it into the baseline frame.
     ///
-    /// The rows copy into an aligned scratch in bounded slices, every row projects at the
+    /// The rows copy into an aligned scratch matrix in bounded slices, every row projects at the
     /// placer's condition under the knowledge-entity role, and the recorded alignment maps each
     /// point. The result is in world units, in the batch's own order.
     ///
@@ -358,24 +401,27 @@ impl Placer {
     /// coordinate.
     fn forward_aligned(
         &self,
-        rows: &[&[f32; PROJECTOR_DIMENSIONS]],
+        rows: impl IntoIterator<Item: AsRef<AlignedVecN<PROJECTOR_DIMENSIONS>>>,
     ) -> Result<Vec<Vec2>, NonFiniteProjection> {
-        let mut aligned = Vec::with_capacity(rows.len());
-        let mut scratch = BoxedVecN::<{ SCRATCH_ROWS * PROJECTOR_DIMENSIONS }>::zero();
+        let mut rows = rows.into_iter();
+        let mut aligned = Vec::with_capacity(rows.size_hint().0);
+        let mut scratch = MatrixN::<PROJECTOR_DIMENSIONS>::zeroed(SCRATCH_ROWS);
+        let roles = vec![NodeRole::KnowledgeEntity; SCRATCH_ROWS];
 
-        for (chunk_index, chunk) in rows.chunks(SCRATCH_ROWS).enumerate() {
-            for (slot, &row) in chunk.iter().enumerate() {
-                scratch.as_array_mut()[slot * PROJECTOR_DIMENSIONS..][..PROJECTOR_DIMENSIONS]
-                    .copy_from_slice(row);
+        let mut base = 0;
+        loop {
+            let mut filled = 0;
+            for (slot, row) in scratch.rows_mut().iter_mut().zip(&mut rows) {
+                slot.as_array_mut().copy_from_slice(row.as_ref().as_array());
+                filled += 1;
             }
-            let staged =
-                AlignedVecN::from_slice(&scratch.as_array()[..chunk.len() * PROJECTOR_DIMENSIONS])
-                    .expect("boxed scratch storage is aligned for whole projector rows");
+            if filled == 0 {
+                break;
+            }
 
-            let roles = vec![NodeRole::KnowledgeEntity; chunk.len()];
             let columns: NodeColumns<'_, BatchRow> = NodeColumns {
-                representations: IdSlice::from_raw(staged),
-                roles: IdSlice::from_raw(&roles),
+                representations: IdSlice::from_raw(&scratch.rows()[..filled]),
+                roles: IdSlice::from_raw(&roles[..filled]),
             };
 
             let frame = refresh::forward(
@@ -388,7 +434,7 @@ impl Placer {
             .map_err(|error| match error {
                 refresh::RefreshError::Diverged { row, .. }
                 | refresh::RefreshError::NonFiniteScale { row, .. } => NonFiniteProjection {
-                    row: chunk_index * SCRATCH_ROWS + row.as_usize(),
+                    row: base + row.as_usize(),
                 },
             })?;
 
@@ -398,6 +444,11 @@ impl Placer {
                 }
                 None => aligned.extend(frame.iter().copied()),
             }
+
+            if filled < SCRATCH_ROWS {
+                break;
+            }
+            base += filled;
         }
 
         Ok(aligned)
@@ -413,7 +464,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        math::{Rotation, non_negative},
+        math::{BoxedVecN, Rotation, non_negative},
         salt::projector::model::Architecture,
     };
 
