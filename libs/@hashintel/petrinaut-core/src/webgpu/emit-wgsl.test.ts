@@ -366,9 +366,9 @@ describe("Math.hypot arity", () => {
     expect(hypotOf("Math.hypot(parameters.rate, parameters.rate, 3)")).toBe(
       "length(vec3<f32>(0.5, 0.5, 3.0))",
     );
-    expect(
-      hypotOf("Math.hypot(parameters.rate, 1, 2, 3)"),
-    ).toBe("length(vec4<f32>(0.5, 1.0, 2.0, 3.0))");
+    expect(hypotOf("Math.hypot(parameters.rate, 1, 2, 3)")).toBe(
+      "length(vec4<f32>(0.5, 1.0, 2.0, 3.0))",
+    );
   });
 
   it("folds past four arguments, since WGSL vectors stop at four components", () => {

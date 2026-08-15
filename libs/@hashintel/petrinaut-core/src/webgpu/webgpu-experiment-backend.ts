@@ -50,7 +50,10 @@ export type WebGpuExperimentBackendOptions = {
  * answer. `no-device` is the only one the author cannot do anything about.
  */
 function originFor(
-  cause: Extract<CreateGpuMonteCarloExperimentResult, { supported: false }>["cause"],
+  cause: Extract<
+    CreateGpuMonteCarloExperimentResult,
+    { supported: false }
+  >["cause"],
 ): ExperimentBlockerOrigin {
   switch (cause) {
     case "no-device":

@@ -19,7 +19,7 @@ const badgeStyle = css({
   fontWeight: "medium",
   color: "neutral.s110",
   backgroundColor: "neutral.s10",
-})
+});
 
 const rowStyle = css({
   display: "grid",

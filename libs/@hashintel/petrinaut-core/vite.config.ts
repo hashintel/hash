@@ -27,8 +27,9 @@ export default defineConfig(({ command }) => ({
         // WebGPU backend does not drag the shader generator in with it: this
         // holds the contract and the worker-pool backend only.
         experiments: resolve(packageRoot, "src/experiments.ts"),
-        // Experimental WebGPU compute backend. Separate entry: it pulls in the
-        // HIR frontend and is opt-in, so it must stay out of the main bundle.
+        // Experimental WebGPU compute backend. Separate entry: it is opt-in
+        // and carries the whole shader generator, so it must stay out of the
+        // main bundle and load only when a GPU experiment is requested.
         webgpu: resolve(packageRoot, "src/webgpu.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),

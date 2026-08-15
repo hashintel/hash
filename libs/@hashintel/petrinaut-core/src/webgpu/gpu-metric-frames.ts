@@ -1,7 +1,7 @@
 /**
  * Translating between metric specs and the GPU's on-device histograms.
  *
- * Shared by the one-shot API (`gpu-experiment.ts`) and the handle
+ * Shared by the compilation report and the experiment handle
  * (`gpu-experiment-handle.ts`) so a spec accepted by one is accepted by the
  * other, and both produce byte-identical frames.
  */
