@@ -3,10 +3,10 @@ import { resolveNetParameterValues } from "../../../parameter-values";
 import { createUserKeyedRecord } from "../../../validation/record-keys";
 import { createWorkerTransport } from "../../runtime/transport";
 import {
-  createMonteCarloMetricShardMerger,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
 } from "../metrics";
+import { createMonteCarloMetricShardMerger } from "../metrics/merge";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 import {
   getDefaultMonteCarloShardCount,
