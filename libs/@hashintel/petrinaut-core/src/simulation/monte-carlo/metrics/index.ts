@@ -3,7 +3,6 @@ export {
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
 } from "./accumulators";
-export { createMonteCarloMetricShardMerger } from "./merge";
 export { createMonteCarloUserDefinedMetricConfigsFromSpecs } from "./specs";
 export { createMonteCarloUserDefinedMetric } from "./user-defined";
 export type {

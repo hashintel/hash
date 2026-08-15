@@ -679,8 +679,8 @@ Blocking design decisions:
 
 Sequencing:
 
-4. Should I start with §4 items 1–6 (measurable, behaviour-preserving, no new
+1. Should I start with §4 items 1–6 (measurable, behaviour-preserving, no new
    concepts), or do you want the §3 sharding landed first because it is the
    visible feature?
-5. Is the §9 event-driven mode in scope at all, or is fixed-`dt` a fixed
+2. Is the §9 event-driven mode in scope at all, or is fixed-`dt` a fixed
    product decision?

@@ -5,7 +5,7 @@ sidebar_order: 20
 attachTo: core.simulation.monte-carlo
 ---
 
-Runs are independent — own seed, own RNG state, own frame buffers, no shared
+Runs are independent: own seed, own RNG state, own frame buffers, no shared
 mutable state. An experiment therefore splits them across one worker per logical
 core minus one, each running its own `MonteCarloSimulator` over a slice of the
 runs. Measured ~4x at 8 shards on a 10-core machine.
@@ -18,22 +18,26 @@ message-passing shards over independent runs need no shared memory.
 Two properties carry it, and both are easy to break:
 
 **Seeds derive from the run's global index.** `runIndexOffset + localIndex`, so
-run *i* gets the same seed whichever worker owns it. Seeding from the position
-*within* a shard would silently correlate runs that must be independent.
+run _i_ gets the same seed whichever worker owns it. Seeding from the position
+_within_ a shard would silently correlate runs that must be independent.
 
 **Frames merge through a monoid.** `frameValue` on a scalar metric frame is
-already reduced and cannot be combined — a mean of means is not a mean — so
-frames carry their pre-reduction accumulator state, and `metrics/merge.ts`
-recombines it. Output is byte-identical at every shard count.
+already reduced and cannot be combined, because a mean of means is not a mean.
+Frames carry their pre-reduction accumulator state, and `metrics/merge.ts`
+recombines it. Output is byte-identical at every shard count while every
+shard still has an active run. The one divergence is a shard that finishes
+early: finished shards drop out of the merge watermark, so their completed
+runs stop contributing samples to later frames, where a single simulator
+keeps sampling every run's frozen state to the end.
 
 ## The frame watermark
 
-A frame is finalised only once every *still-running* shard has reported it.
+A frame is finalised only once every _still-running_ shard has reported it.
 Finished shards are dropped from the watermark rather than blocking it, which is
 what stops a completed shard stalling the experiment.
 
-Progress therefore reports the slowest shard's position — the bar never runs
-ahead of the results behind it.
+Progress reports the slowest shard's position, so the bar never runs ahead of
+the results behind it.
 
 ```text
 runs 0..k    -> Worker 1 ┐

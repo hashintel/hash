@@ -2,10 +2,10 @@ import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions";
 import { resolveNetParameterValues } from "../../../parameter-values";
 import { createWorkerTransport } from "../../runtime/transport";
 import {
-  createMonteCarloMetricShardMerger,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
 } from "../metrics";
+import { createMonteCarloMetricShardMerger } from "../metrics/merge";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 import {
   getDefaultMonteCarloShardCount,

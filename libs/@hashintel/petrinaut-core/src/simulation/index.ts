@@ -23,18 +23,14 @@ export {
   createMonteCarloExperiment,
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
-  createMonteCarloMetricShardMerger,
   createMonteCarloSimulator,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
   deriveRunSeed,
-  getDefaultMonteCarloShardCount,
-  planMonteCarloShards,
 } from "./monte-carlo";
 export type {
   CreateMonteCarloExperimentConfig,
   MonteCarloAdvanceResult,
-  MonteCarloShardPlanEntry,
   MonteCarloActiveRunPlaceCountsVisitor,
   MonteCarloExperiment,
   MonteCarloExperimentEvent,

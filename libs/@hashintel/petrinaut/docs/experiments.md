@@ -44,7 +44,7 @@ Experiments run in background Web Workers, so simulation playback and editor int
 
 Because every run is independent, an experiment splits its runs across several workers and runs them at the same time -- by default one worker per processor core, leaving one core free so the editor stays responsive. A 1000-run experiment on an 8-core machine runs roughly 4x faster than it would on a single worker.
 
-This never changes an experiment's results. Each run's seed is derived from its position in the experiment rather than from which worker happens to execute it, and the per-frame statistics from each worker are combined into the same distributions you would get from running everything sequentially. Re-running an experiment with the same configuration and seed gives the same numbers regardless of how many cores the machine has.
+Each run's seed is derived from its position in the experiment rather than from which worker happens to execute it, and the per-frame statistics from each worker are combined into the same distributions you would get from running everything sequentially. Re-running an experiment with the same configuration and seed gives the same numbers regardless of how many cores the machine has, so long as runs keep going for the full experiment; when every run a worker owns stops early (for example, the net deadlocks), those runs stop counting toward later time points, which can shift late-experiment statistics slightly between machines with different core counts.
 
 Two consequences worth knowing:
 
