@@ -17,13 +17,13 @@
  */
 import { createMonteCarloExperiment } from "../simulation/monte-carlo/runtime/experiment";
 
+import type { WorkerFactory } from "../simulation/api";
 import type {
   ExperimentAssessment,
   ExperimentBlockers,
 } from "./experiment-assessment";
 import type { ExperimentBackend } from "./experiment-backend";
 import type { ExperimentRequest } from "./experiment-request";
-import type { WorkerFactory } from "../simulation/api";
 
 export const WORKER_POOL_BACKEND_ID = "cpu";
 
@@ -32,7 +32,7 @@ export type WorkerPoolExperimentBackendOptions = {
    * Spawns one simulation worker.
    *
    * Bound here rather than passed per request because it is host wiring, not part
-   * of what to compute — the same reason it is absent from `ExperimentRequest`. A
+   * of what to compute, the same reason it is absent from `ExperimentRequest`. A
    * React provider supplies it once for the whole app.
    */
   createWorker: WorkerFactory;
@@ -92,6 +92,12 @@ function assess(
               : `Web Workers (${options.shardCount} shards)`,
         };
       } catch (error) {
+        // A cancellation is the caller's decision, not a refusal: reporting it
+        // as a blocker would send the selection walk on to the next backend
+        // for an experiment nobody wants any more.
+        if (error instanceof Error && error.name === "AbortError") {
+          throw error;
+        }
         // The engine refuses a net whose user code has no compiled artifact, and
         // it phrases that better than this layer could. Reported as
         // `configuration` because the fix is to compile, not to edit the net.

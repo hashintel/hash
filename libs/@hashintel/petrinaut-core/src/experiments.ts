@@ -1,20 +1,16 @@
 /**
- * Swappable experiment backends.
+ * The contract both compute backends satisfy, and the registry that picks one.
  *
- * The runtime half of swappability already existed and is unchanged: both the
- * worker-pool and WebGPU paths produce a `MonteCarloExperiment`, and consumers
- * drive one with no branching. What this adds is the part that was hardcoded —
- * asking a backend whether it can run a net, and choosing between backends when
- * one declines.
+ * Backends already produce a `MonteCarloExperiment` that consumers drive without
+ * branching. This adds the two things that were hardcoded: asking a backend
+ * whether it can run a net, and choosing when one declines.
  *
- * Backends are constructed with their own wiring (a worker factory, an ODE
- * method) and then registered as data, which is what makes a React context
- * provider a small step from here rather than a redesign: the provider builds the
- * backends its environment supports and publishes the registration list.
+ * A backend is constructed with its own wiring (a worker factory, an ODE method)
+ * and registered as data. A React context provider can therefore build the
+ * backends its environment supports and publish the list.
  *
- * Registration carries a deferred `load`, so a heavy backend can be registered
- * without pulling its implementation into a bundle that never uses it — it is
- * imported the first time selection reaches it.
+ * Registration carries a deferred `load`. A heavy backend is imported the first
+ * time selection reaches it, so it stays out of bundles that never use it.
  */
 export type {
   ExperimentAssessment,
