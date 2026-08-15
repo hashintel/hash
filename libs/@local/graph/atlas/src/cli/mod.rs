@@ -45,7 +45,7 @@ pub use self::{
 use crate::file::generation::GenerationRoot;
 pub use crate::{
     salt::runner::live::{ClassifierSource, Options, Placement, RunError, Summary},
-    serve::{LocateLimits, TileLimits, TranslateLimits, VisibilityLimits},
+    serve::{EmbeddingEnsure, LocateLimits, TileLimits, TranslateLimits, VisibilityLimits},
 };
 
 mod fit;

@@ -89,16 +89,22 @@ mod vocabulary;
 use std::io;
 
 use futures::{FutureExt as _, Stream, TryStreamExt as _, stream};
-use hash_graph_postgres_store::store::postgres::query::BoundStatement;
+use hash_graph_postgres_store::store::{AsClient, postgres::query::BoundStatement};
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
-use tokio_postgres::{IsolationLevel, Transaction};
+use tokio_postgres::{GenericClient as _, IsolationLevel, Transaction};
+use type_system::knowledge::entity::id::EntityEditionId;
 use uuid::Uuid;
 
 use self::id::{ArchivedEntityId, ArchivedOntologyTypeUuid};
-pub(crate) use self::{card::CardParameters, error::PostgresDatasetError};
+pub(crate) use self::{
+    card::CardParameters,
+    error::PostgresDatasetError,
+    lookup::{Classification, EditionDisplay, LinkDisplay},
+};
 use super::{
-    CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, TemporalAxes,
+    CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
+    TemporalAxes,
     auxiliary::{OwnedIcon, OwnedLegend},
     card::Card,
 };
@@ -106,6 +112,123 @@ use crate::math::BoxedVecN;
 
 /// The type every link entity type descends from.
 const LINK_ROOT_BASE_URL: &str = "https://blockprotocol.org/@blockprotocol/types/entity-type/link/";
+
+/// Classifies the requested identities against the store's current state.
+///
+/// One batched read per call, at axes taken at the call itself, so the verdicts describe the
+/// store as it stands rather than any fit's frozen view. The answers arrive keyed by identity,
+/// and the caller counts them against its requests. An identity the read answers nothing about
+/// resolved to no current edition at the read's axes.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError`] when the store rejects the read or a row does not decode.
+pub(crate) async fn classify_entities(
+    store: &impl AsClient,
+    ids: impl Iterator<Item = ArchivedEntityId>,
+) -> Result<Vec<(ArchivedEntityId, Classification)>, PostgresDatasetError> {
+    let (web_ids, entity_uuids) = lookup::request_arrays(ids);
+    let axes = TemporalAxes::now();
+    let statement = lookup::classification_statement(&axes, &web_ids, &entity_uuids);
+
+    let rows = store
+        .as_client()
+        .query(&statement.sql, &statement.parameters)
+        .await
+        .map_err(PostgresDatasetError::from)?;
+
+    rows.iter()
+        .map(|row| lookup::decode_classification(row, &statement.columns))
+        .collect()
+}
+
+/// Reads each requested identity's stored whole-entity embedding as its projector input.
+///
+/// One batched read per call, bound to identities rather than editions: whichever edition's
+/// embedding the store holds answers the request. Each answer is the embedding's leading
+/// [`PROJECTOR_DIMENSIONS`] components, l2-normalized inside the statement by the node stream's
+/// own expression, so an answer is bit-identical to the representation row a fit reads for the
+/// same stored embedding. The answers arrive keyed by identity, and the caller counts them
+/// against its requests. An identity the read answers nothing about holds no whole-entity
+/// embedding yet.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError`] when the store rejects the read or a row does not decode.
+pub(crate) async fn read_projector_embeddings(
+    store: &impl AsClient,
+    ids: impl Iterator<Item = ArchivedEntityId>,
+) -> Result<Vec<(ArchivedEntityId, BoxedVecN<PROJECTOR_DIMENSIONS>)>, PostgresDatasetError> {
+    let (web_ids, entity_uuids) = lookup::request_arrays(ids);
+    let statement = lookup::projector_embedding_statement(&web_ids, &entity_uuids);
+
+    let rows = store
+        .as_client()
+        .query(&statement.sql, &statement.parameters)
+        .await
+        .map_err(PostgresDatasetError::from)?;
+
+    rows.iter()
+        .map(|row| lookup::decode_projector_embedding(row, &statement.columns))
+        .collect()
+}
+
+/// Reads each requested edition's display payload: its cached label and first cached type.
+///
+/// One batched read per call, keyed by edition rather than identity, because a placement records
+/// the edition whose data it captured and an edition id names one immutable row. Every requested
+/// edition answers exactly once. An edition without a cache row answers the empty label and no
+/// type, the disposition a fitted row's legend shares.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError`] when the store rejects the read or a row does not decode.
+pub(crate) async fn read_edition_displays(
+    store: &impl AsClient,
+    editions: impl Iterator<Item = EntityEditionId>,
+) -> Result<Vec<(EntityEditionId, EditionDisplay)>, PostgresDatasetError> {
+    let edition_ids: Vec<Uuid> = editions.map(|edition| *edition.as_uuid()).collect();
+    let statement = lookup::edition_display_statement(&edition_ids);
+
+    let rows = store
+        .as_client()
+        .query(&statement.sql, &statement.parameters)
+        .await
+        .map_err(PostgresDatasetError::from)?;
+
+    rows.iter()
+        .map(|row| lookup::decode_edition_display(row, &statement.columns))
+        .collect()
+}
+
+/// Reads each requested link identity's display payload: its current edition's cached label and
+/// first cached type as a versioned URL.
+///
+/// One batched read per call, at axes taken at the call itself, so the payloads describe the
+/// store as it stands rather than any fit's frozen view. The answers arrive keyed by identity,
+/// and the caller counts them against its requests. An identity the read answers nothing about
+/// resolved to no current edition at the read's axes.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError`] when the store rejects the read or a row does not decode.
+pub(crate) async fn read_link_displays(
+    store: &impl AsClient,
+    ids: impl Iterator<Item = ArchivedEntityId>,
+) -> Result<Vec<(ArchivedEntityId, LinkDisplay)>, PostgresDatasetError> {
+    let (web_ids, entity_uuids) = lookup::request_arrays(ids);
+    let axes = TemporalAxes::now();
+    let statement = lookup::link_display_statement(&axes, &web_ids, &entity_uuids);
+
+    let rows = store
+        .as_client()
+        .query(&statement.sql, &statement.parameters)
+        .await?;
+
+    rows.iter()
+        .map(|row| lookup::decode_link_display(row, &statement.columns))
+        .collect()
+}
 
 /// A [`Dataset`] reading one frozen view of the HASH graph store.
 ///
@@ -492,6 +615,10 @@ mod prepare_probe {
             (
                 "node type",
                 lookup::node_type_statement(&axes, &types, &web_ids, &entity_uuids).sql,
+            ),
+            (
+                "classification",
+                lookup::classification_statement(&axes, &web_ids, &entity_uuids).sql,
             ),
             (
                 "node legend",

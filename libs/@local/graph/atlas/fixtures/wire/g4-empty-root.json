@@ -1,41 +1,40 @@
 {
-  "appended": null,
+  "golden": "g4-empty-root",
+  "layer": "tile",
+  "prefix": {
+    "magic": "SALTILET",
+    "wireVersion": 1,
+    "flags": 0,
+    "slotCount": 5,
+    "reserved": 0
+  },
   "directory": [
-    [56, 122],
-    [128, 128],
-    [128, 128],
+    [56, 120],
+    [120, 120],
+    [120, 120],
     [0, 0],
     [0, 0]
   ],
-  "golden": "g4-empty-root",
   "head": {
-    "children": 0,
+    "generation": "4444444444444444444444444444444444444444444444444444444444444444",
+    "variant": 0,
     "coordinate": [0, 0, 0],
+    "mode": 0,
     "delivered": 0,
     "firstBucket": 0,
-    "generation": "4444444444444444444444444444444444444444444444444444444444444444",
-    "global": {
-      "boundsBits": null,
-      "minResolution": 0,
-      "visibleAtZoom": 0
-    },
-    "mode": 0,
     "runs": [0, 0, 0],
-    "trailer": false,
-    "variant": 0,
-    "visible": 0
+    "global": {
+      "visibleAtZoom": 0,
+      "boundsBits": null,
+      "minResolution": 0
+    },
+    "children": 0,
+    "trailer": false
   },
-  "layer": "tile",
-  "mass": null,
   "positions": [],
-  "prefix": {
-    "flags": 0,
-    "magic": "SALTILET",
-    "reserved": 0,
-    "slotCount": 5,
-    "wireVersion": 1
-  },
   "rowIds": [],
-  "trailer": null,
-  "typeMask": null
+  "typeMask": null,
+  "mass": null,
+  "appended": null,
+  "trailer": null
 }

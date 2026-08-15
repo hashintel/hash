@@ -13,7 +13,8 @@ use crate::{
         auxiliary::{Icon, Label},
         postgres::id::ArchivedEntityId,
     },
-    identity::NodeRowId,
+    identity::{BasePosition, NodeRowId},
+    serve::schedule::{ArrivalIndex, ArrivalRow, ViewRow},
 };
 
 hashql_core::id::newtype! {
@@ -36,15 +37,20 @@ hashql_core::id::newtype! {
 
 /// The node identities behind one delivered set, viewed in slot order.
 ///
-/// The hydration request's node subject. The view joins the generation's identity column over
-/// the delivered rows on demand, so building one allocates nothing. The transport that must own
-/// the identities collects the iterator, which is the one copy the boundary pays.
+/// The hydration request's node subject. The view joins the delivered rows to their identities
+/// on demand - a fitted row through the generation's identity column, a placed arrival through
+/// the view's arrival table - and building one therefore allocates nothing. The transport that
+/// must own the identities collects the iterator, which is the one copy the boundary pays.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct DeliveredNodes<'doc> {
     /// The generation's identity column, row order.
     ids: &'doc IdSlice<NodeRowId, ArchivedEntityId>,
-    /// The delivered rows, slot order.
-    rows: &'doc IdSlice<NodeSlot, NodeRowId>,
+    /// The generation's row column, base order.
+    rows: &'doc IdSlice<BasePosition, NodeRowId>,
+    /// The delivered rows, slot order, each in the domain that publishes it.
+    delivered: &'doc IdSlice<NodeSlot, ViewRow>,
+    /// The view's arrival table, which the delivered arrival vessels address.
+    arrivals: &'doc IdSlice<ArrivalIndex, ArrivalRow>,
 }
 
 impl<'doc> DeliveredNodes<'doc> {
@@ -53,21 +59,23 @@ impl<'doc> DeliveredNodes<'doc> {
     /// The order is the hydration key: every detail column the store answers aligns to it.
     pub(crate) const fn new(
         ids: &'doc IdSlice<NodeRowId, ArchivedEntityId>,
-        rows: &'doc IdSlice<NodeSlot, NodeRowId>,
+        rows: &'doc IdSlice<BasePosition, NodeRowId>,
+        delivered: &'doc IdSlice<NodeSlot, ViewRow>,
+        arrivals: &'doc IdSlice<ArrivalIndex, ArrivalRow>,
     ) -> Self {
-        Self { ids, rows }
+        Self {
+            ids,
+            rows,
+            delivered,
+            arrivals,
+        }
     }
 
     /// Returns the delivered count the details must cover.
     #[inline]
     #[must_use]
     pub(crate) const fn count(&self) -> usize {
-        self.rows.len()
-    }
-
-    /// Views the delivered rows, in slot order.
-    pub(crate) const fn rows(&self) -> &'doc IdSlice<NodeSlot, NodeRowId> {
-        self.rows
+        self.delivered.len()
     }
 
     /// Iterates the delivered identities, in slot order.
@@ -77,8 +85,17 @@ impl<'doc> DeliveredNodes<'doc> {
     /// Iteration panics on a delivered row outside the identity column, which open's
     /// cross-artifact validation rules out.
     pub(crate) fn iter(&self) -> impl Iterator<Item = ArchivedEntityId> + 'doc {
-        let ids = self.ids;
-        self.rows.iter().map(move |&row| ids[row])
+        let Self {
+            ids,
+            rows,
+            delivered,
+            arrivals,
+        } = *self;
+
+        delivered.iter().map(move |&vessel| match vessel {
+            ViewRow::Base(position) => ids[rows[position]],
+            ViewRow::Arrival(index) => arrivals[index].identity,
+        })
     }
 }
 

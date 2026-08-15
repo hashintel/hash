@@ -6,13 +6,15 @@
 //! [`VisibilityProof`] is the visible row set `V_u` as a value, the caller-supplied row masks
 //! interpreted against the opened generation's row universes. The value carries the row sets alone.
 //! Generation, scope, and permission-epoch binding are its caller's contract rather than fields of
-//! the type. The proof covers two domains, node rows and link rows, because a link entity carries
-//! authorization of its own that its endpoints do not imply. Reading two entities never implies
-//! reading the relation between them, so an edge delivers only when the proof admits its link row
-//! and both of its endpoints. A node mask and a link mask are separate types, so nothing reads one
-//! where the other belongs. Every assembly path takes a proof by construction. No `Option` exists
-//! whose `None` means "everything", and the full-visibility value is a distinct, named constructor
-//! rather than a default.
+//! the type. The proof covers two row domains, node rows and link rows, because a link entity
+//! carries authorization of its own that its endpoints do not imply. A third, identity-keyed
+//! domain covers delta links, the post-fit links a placement cohort publishes, which occupy no
+//! row in either universe and therefore admit by entity identity. Reading two entities never
+//! implies reading the relation between them, so an edge delivers only when the proof admits its
+//! link row and both of its endpoints. A node mask and a link mask are separate types, so nothing
+//! reads one where the other belongs. Every assembly path takes a proof by construction. No
+//! `Option` exists whose `None` means "everything", and the full-visibility value is a distinct,
+//! named constructor rather than a default.
 //!
 //! [`Atlas::resolve`] is the single resolution seam. It decodes the wire id and then tests mask
 //! membership, with decode failure, out-of-universe values, and mask misses all collapsing to the
@@ -23,11 +25,15 @@
 //! [`VisibilityProof::intersect`] and [`VisibilityProof::contains`] wholesale instead of minting a
 //! value per row.
 
-use hashql_core::id::{Id, bit_vec::DenseBitSet};
+use hashql_core::{
+    collections::FastHashSet,
+    id::{Id, bit_vec::DenseBitSet},
+};
 
-use super::{Atlas, WireRow};
+use super::{Atlas, WireRow, delta::PlacementCohort};
 use crate::{
     bitset::CompressedBitSet,
+    dataset::postgres::id::ArchivedEntityId,
     identity::{EdgeRowId, NodeRowId},
 };
 
@@ -88,6 +94,41 @@ pub(crate) enum ProofKind {
     Scope,
 }
 
+/// The delta-link identities a proof admits, either every one or exactly the captured set.
+///
+/// Delta links occupy no row domain, so their admission keys by entity identity where node and
+/// link rows mask by row id. The full arm admits every live delta link of the caller's snapshot,
+/// the same all-admitted semantics the row domains carry. The admitted arm holds exactly the
+/// identities the scope's own resolution returned.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum DeltaLinks {
+    /// The proof admits every live delta link of the caller's snapshot.
+    Full,
+    /// The proof admits exactly the captured identities.
+    Admitted(FastHashSet<ArchivedEntityId>),
+}
+
+impl DeltaLinks {
+    /// Returns whether the set admits the delta link `id` names.
+    ///
+    /// Fail-closed exactly as [`Rows::contains`]: an identity the captured set does not hold is
+    /// not admitted, whatever the caller's snapshot publishes for it.
+    fn admits(&self, id: ArchivedEntityId) -> bool {
+        match self {
+            Self::Full => true,
+            Self::Admitted(links) => links.contains(&id),
+        }
+    }
+
+    /// Returns the axis's retained set bytes, zero for the unmasked one.
+    fn heap_bytes(&self) -> u64 {
+        match self {
+            Self::Full => 0,
+            Self::Admitted(links) => links.allocation_size() as u64,
+        }
+    }
+}
+
 /// The server-held visibility proof, the visible node-row and link-row sets every assembly path
 /// masks by.
 ///
@@ -104,6 +145,7 @@ pub(crate) enum ProofKind {
 pub(crate) struct VisibilityProof {
     nodes: Rows<NodeRowId>,
     edges: Rows<EdgeRowId>,
+    delta_links: DeltaLinks,
 }
 
 impl VisibilityProof {
@@ -121,26 +163,31 @@ impl VisibilityProof {
         Self {
             nodes: Rows::Full,
             edges: Rows::Full,
+            delta_links: DeltaLinks::Full,
         }
     }
 
     /// Constructs a proof from server-held visibility masks, one per domain.
     ///
-    /// An admitted row is visible: `nodes` masks the node rows, `edges` the link rows. The proof
-    /// needs both, because neither implies the other - the link rows a caller may read are not a
-    /// function of the node rows it may read.
+    /// An admitted row is visible: `nodes` masks the node rows, `edges` the link rows, and
+    /// `delta_links` admits the delta-link identities beside them. The proof needs all of them,
+    /// because none implies another - the link rows a caller may read are not a function of the
+    /// node rows it may read, and a delta link occupies no row either mask could name.
     ///
     /// Caller requirement: the masks are server-held state (a fresh visibility evaluation or a
     /// verified sealed blob), never client-supplied values - the constructor accepts any masks and
-    /// verifies no origin. A row either mask does not admit stays hidden.
+    /// verifies no origin. A row either mask does not admit stays hidden, and a delta link
+    /// outside the captured set never serves.
     #[must_use]
     pub(crate) const fn from_masks(
         nodes: CompressedBitSet<NodeRowId>,
         edges: CompressedBitSet<EdgeRowId>,
+        delta_links: FastHashSet<ArchivedEntityId>,
     ) -> Self {
         Self {
             nodes: Rows::Mask(nodes),
             edges: Rows::Mask(edges),
+            delta_links: DeltaLinks::Admitted(delta_links),
         }
     }
 
@@ -200,9 +247,19 @@ impl VisibilityProof {
     /// Returns the proof's retained mask bytes.
     ///
     /// A full axis holds no mask and counts zero, so the figure prices exactly what holding
-    /// this proof keeps allocated.
+    /// this proof keeps allocated. The delta-link set prices its identities beside the two row
+    /// masks.
     pub(super) fn heap_bytes(&self) -> u64 {
-        self.nodes.heap_bytes() + self.edges.heap_bytes()
+        self.nodes.heap_bytes() + self.edges.heap_bytes() + self.delta_links.heap_bytes()
+    }
+
+    /// Returns whether the proof admits the delta link `id` names.
+    ///
+    /// The full-visibility proof admits every one, and a scoped proof exactly the identities its
+    /// own resolution captured. The caller's snapshot bounds which links exist. This answers
+    /// which of them the scope may see.
+    pub(super) fn admits_delta_link(&self, id: ArchivedEntityId) -> bool {
+        self.delta_links.admits(id)
     }
 
     /// Proves one node row visible: the sole [`VisibleRow`] constructor.
@@ -265,21 +322,53 @@ impl VisibleEdge {
     }
 }
 
+/// One wire node ingress resolved into the domain that publishes it.
+///
+/// The decode seam answers from two domains under one universe. A row below the generation's
+/// fitted bound is a fitted row and carries its visibility proof in the vessel. A row at or past
+/// the bound is a cohort slot serving a placed arrival, answered by the identity it publishes,
+/// and the caller resolves the arrival's delivery values against the view's own arrival table,
+/// which holds exactly the admitted arrivals.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum ResolvedRow {
+    /// A fitted row, proven visible.
+    Fitted(VisibleRow),
+    /// A placed arrival's identity, admitted on its cohort slot.
+    Arrival(ArchivedEntityId),
+}
+
 impl Atlas {
-    /// Resolves a wire node row id to its proven-visible internal row.
+    /// Resolves a wire node row id into the domain that publishes it.
     ///
-    /// The single join point of the response discipline.
+    /// The single join point of the response discipline. The decode runs under `cohort`'s
+    /// accepted universe, so a wire id minted for a cohort slot resolves exactly while an entry
+    /// bound to that publication serves the request. A decoded row below the generation's fitted
+    /// bound resolves against the proof as a fitted row, and a row at or past it resolves through
+    /// the cohort's slot index as a placed arrival, admitted exactly when the proof's widened
+    /// mask holds the slot.
     ///
-    /// Decode failure (out-of-universe wire values) and mask misses (rows the proof hides) both
-    /// answer the same [`None`]. Forbidden and nonexistent are indistinguishable to everything
-    /// downstream. The transport renders one problem body for both, and nothing upstream
-    /// of this seam logs or branches on the cause.
+    /// Decode failure (out-of-universe wire values), mask misses (rows the proof hides), and
+    /// slots the cohort does not serve all answer the same [`None`]. Forbidden and nonexistent
+    /// are indistinguishable to everything downstream. The transport renders one problem body
+    /// for both, and nothing upstream of this seam logs or branches on the cause.
     #[must_use]
     pub(crate) fn resolve(
         &self,
         proof: &VisibilityProof,
+        cohort: PlacementCohort<'_>,
         wire: WireRow<NodeRowId>,
-    ) -> Option<VisibleRow> {
-        proof.verify(self.node_codec.decode(wire)?)
+    ) -> Option<ResolvedRow> {
+        let row = self
+            .node_codec
+            .decode(wire, cohort.universe(self.universe))?;
+        if self.universe.admits(row.as_u32()) {
+            proof.verify(row).map(ResolvedRow::Fitted)
+        } else {
+            let (identity, _) = cohort.placed_at(row)?;
+
+            proof
+                .contains(row)
+                .then_some(ResolvedRow::Arrival(identity))
+        }
     }
 }

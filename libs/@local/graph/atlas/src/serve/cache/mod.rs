@@ -41,6 +41,7 @@ use moka::ops::compute::Op;
 use self::scope::{CacheKey, Publication, Publications, VisibilityLimits};
 use super::{
     Atlas, ViewCensus, VisibilityProof,
+    delta::{DeltaSnapshot, PlacementCohort},
     hydrate::{MaskingActor, compile::ProofError},
     schedule::ViewSchedule,
 };
@@ -70,6 +71,9 @@ pub(crate) struct PendingCacheEntry {
     /// Held so a refresh can recompile the filter without a client round trip: the client is the
     /// document's durable holder, and this copy lives exactly as long as the entry it resolved.
     filter: Option<Arc<[u8]>>,
+    /// The arrivals snapshot the resolution read, the entry's placement cohort, absent when the
+    /// resolution read none.
+    cohort: Option<Arc<DeltaSnapshot>>,
     /// The entry's estimated weight, folded into moka's weight domain at resolution.
     weight: u32,
 }
@@ -87,7 +91,7 @@ fn weight_of(retained: u64, filter: Option<&[u8]>) -> u32 {
         .saturating_add(inline)
         .saturating_add(filter.map_or(0, |document| document.len() as u64));
 
-    u32::try_from(total).unwrap_or(u32::MAX)
+    total.saturating_cast()
 }
 
 impl PendingCacheEntry {
@@ -98,33 +102,44 @@ impl PendingCacheEntry {
     /// schedule builds a scoped proof's cascade, so the resolution pays those costs rather than
     /// the requests that share them. The first request of a scope reads a held schedule instead
     /// of building one.
+    ///
+    /// `cohort` is the arrivals snapshot the resolution read, bound here for the entry's
+    /// lifetime.
+    ///
+    /// Caller requirement: `proof` resolved against that same snapshot, so the slots its node
+    /// mask admits are the cohort's own.
     pub(crate) async fn of(
         atlas: Arc<Atlas>,
         proof: VisibilityProof,
         masking: MaskingActor,
         filter: Option<Arc<[u8]>>,
+        cohort: Option<Arc<DeltaSnapshot>>,
     ) -> Result<Self, ProofError> {
-        let (schedule, census, proof, retained) = crate::offload::run(move || {
-            let schedule = ViewSchedule::of(&atlas, &proof);
+        let (schedule, census, proof, retained, cohort) = crate::offload::run(move || {
+            let schedule = ViewSchedule::of(&atlas, &proof, PlacementCohort::of(cohort.as_deref()));
             let census = atlas.census(&proof);
 
-            // The saturated cascade is the generation's own memo, alive for the atlas's
-            // lifetime, so an entry sharing it retains none of it. A sharer took its `Arc`
-            // from the memo itself, so an unbuilt memo already proves this schedule is not
-            // shared - recognition peeks and never forces the full-corpus build.
+            // The saturated cascade is the generation's own memo, alive for the atlas's lifetime,
+            // so an entry sharing it retains none of it. A sharer took its `Arc` from the memo
+            // itself, so an unbuilt memo already proves this schedule is not shared - recognition
+            // peeks and never forces the full-corpus build. The arrival overlay is the entry's own
+            // either way and prices in full.
             let schedule_bytes = match &schedule {
-                ViewSchedule::Corpus => 0,
-                ViewSchedule::Scope(scope) => match atlas.saturated_scope_schedule_if_built() {
-                    Some(memo) if Arc::ptr_eq(scope, memo) => 0,
-                    _ => scope.heap_bytes(),
-                },
+                ViewSchedule::Corpus(overlay) => overlay.heap_bytes(),
+                ViewSchedule::Scope(scope, overlay) => {
+                    let cascade = match atlas.saturated_scope_schedule_if_built() {
+                        Some(memo) if Arc::ptr_eq(scope, memo) => 0,
+                        _ => scope.heap_bytes(),
+                    };
+
+                    cascade + overlay.heap_bytes()
+                }
             };
             let retained = proof.heap_bytes() + schedule_bytes;
 
-            (schedule, census, proof, retained)
+            (schedule, census, proof, retained, cohort)
         })
-        .await
-        .map_err(ProofError::ComputeView)?;
+        .await?;
 
         Ok(Self {
             proof,
@@ -133,6 +148,7 @@ impl PendingCacheEntry {
             schedule,
             weight: weight_of(retained, filter.as_deref()),
             filter,
+            cohort,
         })
     }
 
@@ -150,10 +166,24 @@ impl PendingCacheEntry {
                 instance_admin: false,
             },
             census: ViewCensus::EMPTY,
-            schedule: ViewSchedule::Scope(Arc::new(super::schedule::ScopeSchedule::empty())),
+            schedule: ViewSchedule::Scope(
+                Arc::new(super::schedule::ScopeSchedule::empty()),
+                super::schedule::ArrivalOverlay::empty(),
+            ),
             filter: None,
+            cohort: None,
             weight: weight_of(0, None),
         }
+    }
+
+    /// Binds `snapshot` as the pending entry's cohort.
+    ///
+    /// The cache neither reads a cohort nor resolves one, so its tests bind snapshots directly
+    /// where production receives them through [`Self::of`].
+    #[cfg(test)]
+    fn with_cohort(mut self, snapshot: Arc<DeltaSnapshot>) -> Self {
+        self.cohort = Some(snapshot);
+        self
     }
 }
 
@@ -178,6 +208,13 @@ pub(crate) struct CacheEntry {
     /// The filter document the resolution of [`Self::proof`] ran over, as presented, absent when
     /// unfiltered.
     filter: Option<Arc<[u8]>>,
+    /// The arrivals snapshot the resolution read, the entry's placement cohort, absent when the
+    /// resolution read none.
+    ///
+    /// The entry keeps a separate [`Arc`], so the cohort outlives snapshot republication while
+    /// any request still answers from this entry, and a refresh rebinds the then-current
+    /// snapshot beside the proof it resolves.
+    cohort: Option<Arc<DeltaSnapshot>>,
     /// The delivery schedule of [`Self::proof`]'s view, resolved with it.
     ///
     /// One scope builds its cascade once, at resolution, and every request under it reads that
@@ -206,6 +243,7 @@ impl CacheEntry {
             census,
             schedule,
             filter,
+            cohort,
             weight,
         }: PendingCacheEntry,
         resolved_at: Instant,
@@ -216,6 +254,7 @@ impl CacheEntry {
             masking,
             census,
             filter,
+            cohort,
             schedule,
             resolved_at,
             publication,
@@ -247,6 +286,16 @@ impl CacheEntry {
     /// Returns the filter document the resolution ran over, as presented.
     pub(crate) fn filter_document(&self) -> Option<Arc<[u8]>> {
         self.filter.clone()
+    }
+
+    /// Returns the entry's placement cohort, the arrivals snapshot its resolution read.
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "`Option::as_deref` needs `Arc: [const] Deref`, which the standard library does \
+                  not provide"
+    )]
+    pub(crate) fn cohort(&self) -> PlacementCohort<'_> {
+        PlacementCohort::of(self.cohort.as_deref())
     }
 
     /// Returns whether this entry has reached its refresh horizon by `now`.

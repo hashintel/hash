@@ -199,6 +199,7 @@ mod tests {
                 .expect("64 hexadecimal digits name a generation"),
             &SecretHexBytes::new([0x5A; 32]),
             Duration::from_mins(10),
+            None,
             ChaCha20Rng::from_seed([7; 32]),
         )
     }

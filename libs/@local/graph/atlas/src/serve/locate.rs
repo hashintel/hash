@@ -20,18 +20,21 @@ use super::{
         LocateStore, NodeSlot, ScalarValue,
     },
     intern::{Table, TableIndex},
-    neighbourhood::{DeliveredEdge, EdgeColumns, Neighbourhood},
-    schedule::cut::ScheduleCut,
+    neighbourhood::{DeliveredEdge, EdgeColumns, EdgeOrigin, Neighbourhood, ServedEdge},
+    schedule::{ArrivalIndex, ArrivalRow, ViewRow, cut::ScheduleCut},
     view::{View, ViewError},
-    visibility::VisibleRow,
+    visibility::{ResolvedRow, VisibleRow},
 };
 use crate::{
     dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
     identity::{BasePosition, NodeRowId},
     morton::MortonKey,
-    salt::wire::{
-        locate::{LocateResponse, LocateTrailer, PropertyMap, PropertyValue},
-        tile::TileCoordinate,
+    salt::{
+        lod::stage::WIRE_FRAME,
+        wire::{
+            locate::{LocateResponse, LocateTrailer, PropertyMap, PropertyValue},
+            tile::TileCoordinate,
+        },
     },
 };
 
@@ -70,14 +73,31 @@ const impl Default for LocateLimits {
 /// The subject's identity in every domain a locate response speaks.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct SourcePoint {
-    /// The node row id.
-    pub row: VisibleRow,
-    /// The base position behind the row.
-    pub position: BasePosition,
+    /// The subject, in the domain that publishes it.
+    pub subject: SourceSubject,
     /// The first zoom whose cumulative schedule delivers the point.
     pub zoom: u8,
     /// The point's tile at that zoom: the client's fly-to target.
     pub cell: TileCoordinate,
+}
+
+/// A locate subject in the domain that publishes it.
+///
+/// The response speaks two row domains, exactly as a tile's delivered set does. Fitted rows
+/// resolve their payloads from the generation's columns, and placed arrivals resolve theirs
+/// from the view's arrival table, which holds exactly the admitted arrivals of the entry's
+/// cohort.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum SourceSubject {
+    /// A fitted row, proven visible, with the base position behind it.
+    Base {
+        /// The node row id.
+        row: VisibleRow,
+        /// The base position behind the row.
+        position: BasePosition,
+    },
+    /// A placed arrival, addressed into the view's arrival table.
+    Arrival(ArrivalIndex),
 }
 
 impl Atlas {
@@ -87,13 +107,18 @@ impl Atlas {
     ///
     /// [`None`] for everything that does not name a visible node - unparsable, draft-suffixed,
     /// unknown, hidden by the proof, or an edge id - the transport's `unknown-entity` problem,
-    /// identical for missing and denied.
+    /// identical for missing and denied. An identity the generation never fitted resolves
+    /// through the view's arrival table instead, under the same absent answer for everything
+    /// the table does not hold.
     pub(crate) fn resolve_source(&self, view: &View<'_>, entity_id: &str) -> Option<SourcePoint> {
         let id = super::translate::parse(entity_id)?;
-        let row = self.node_ids.row_of(id)?;
-        let row = view.proof().verify(row)?;
+        if let Some(row) = self.node_ids.row_of(id) {
+            let row = view.proof().verify(row)?;
 
-        self.source_point(view, row)
+            return self.source_point(view, row);
+        }
+
+        self.arrival_source(view, id)
     }
 
     /// Resolves a locate source named by its wire node row id.
@@ -102,15 +127,18 @@ impl Atlas {
     ///
     /// Ingress goes through [`Atlas::resolve`], the same keyed codec as egress, so the lookup is
     /// pure arithmetic that resolves in process. [`None`] for out-of-universe values and for rows
-    /// the proof hides, collapsed at the seam before any caller observes the cause.
+    /// the proof hides, collapsed at the seam before any caller observes the cause. A wire id
+    /// minted for a cohort slot resolves through the view's arrival table, exactly as the same
+    /// arrival's entity id does.
     pub(crate) fn resolve_wire_source(
         &self,
         view: &View<'_>,
         wire: WireRow<NodeRowId>,
     ) -> Option<SourcePoint> {
-        let row = self.resolve(view.proof(), wire)?;
-
-        self.source_point(view, row)
+        match self.resolve(view.proof(), view.cohort(), wire)? {
+            ResolvedRow::Fitted(row) => self.source_point(view, row),
+            ResolvedRow::Arrival(identity) => self.arrival_source(view, identity),
+        }
     }
 
     /// Returns the first zoom whose cumulative schedule delivers a base position under `cut`.
@@ -141,6 +169,15 @@ impl Atlas {
     /// endpoint's `unknown-entity`: a source the view's own delivery never reaches is a source
     /// this view cannot locate, and the seam already answers missing and denied alike.
     fn source_point(&self, view: &View<'_>, row: VisibleRow) -> Option<SourcePoint> {
+        // Both ingress paths converge here, so the withdrawal check covers the entity-keyed and
+        // the wire-keyed resolutions alike, and a withdrawn source is nonexistent to both.
+        if view
+            .delta()
+            .is_some_and(|delta| delta.withdraws_node(row.get()))
+        {
+            return None;
+        }
+
         let position = self.positions_of_row()[row.get()];
         let zoom = self.first_visible_zoom(view.cut(), position)?;
 
@@ -148,8 +185,50 @@ impl Atlas {
         let cell = grid::tile_of(key, zoom);
 
         Some(SourcePoint {
-            row,
-            position,
+            subject: SourceSubject::Base { row, position },
+            zoom,
+            cell,
+        })
+    }
+
+    /// Answers an admitted placed arrival's identity in every domain a locate response speaks.
+    ///
+    /// Arrival table index, first visible zoom, and fly-to tile. Both ingress paths converge
+    /// here, exactly as fitted rows converge on [`Self::source_point`], so the ingress
+    /// withdrawal filter covers the entity-keyed and the wire-keyed resolutions alike.
+    ///
+    /// The zoom inverts the view's own cut rule over the arrival's bucket. Under a bound cut
+    /// the bucket is the schedule's or the overlay's, and an operator view reads the overlay's
+    /// natural bucket clamped into the corpus catch-all, below which the fit lets nothing sit.
+    ///
+    /// [`None`] when the ingress capture withdraws the identity and when the view's arrival
+    /// table does not hold it - an arrival the scope's own resolution never admitted - both
+    /// collapsing into the endpoint's `unknown-entity` exactly as every fitted refusal does.
+    fn arrival_source(&self, view: &View<'_>, id: ArchivedEntityId) -> Option<SourcePoint> {
+        if view.delta().is_some_and(|delta| delta.withdraws(id)) {
+            return None;
+        }
+
+        let arrivals = view.arrivals();
+        let index = arrivals.partition_point(|row| row.identity < id);
+        let row = arrivals.get(index)?;
+        if row.identity != id {
+            return None;
+        }
+
+        let zoom = view.cut().map_or_else(
+            || {
+                self.grid
+                    .first_zoom(view.overlay().bucket_of(index).min(self.grid.deepest()))
+            },
+            |cut| cut.arrival_first_zoom(index),
+        );
+
+        let [x, y] = WIRE_FRAME.quantize(row.point);
+        let cell = grid::tile_of(MortonKey::new(x, y), zoom);
+
+        Some(SourcePoint {
+            subject: SourceSubject::Arrival(index),
             zoom,
             cell,
         })
@@ -164,22 +243,42 @@ impl Atlas {
     /// ascending by wire row id. Partners derive from the post-cap edge set - a partner whose
     /// every edge truncated is not delivered. Edges ride ascending by link-entity identity bytes
     /// after the cap - the order is client-verifiable from the `EDGE_IDS` column alone.
+    ///
+    /// A placed arrival delivers alone and complete: the generation's adjacency never names a
+    /// cohort slot, and post-fit links serve through the delta-edge read rather than this probe.
     pub(crate) fn locate_subgraph(
         &self,
         source: SourcePoint,
         limits: LocateLimits,
         view: &View<'_>,
     ) -> LocateSubgraph {
+        let (source_row, source_position) = match source.subject {
+            SourceSubject::Base { row, position } => (row, position),
+            SourceSubject::Arrival(index) => {
+                return LocateSubgraph {
+                    delivered: core::iter::once(ViewRow::Arrival(index)).collect(),
+                    edges: Vec::new(),
+                    complete: true,
+                };
+            }
+        };
+
         // Hidden partners drop before selection: the cap selects among visible edges alone, and a
         // response's cardinality is a function of the masked view.
-        let mut edges: Vec<_> = Neighbourhood::of(self, view.proof())
-            .incident(source.row.get())
+        let mut edges: Vec<_> = Neighbourhood::of(self, view.proof(), view.delta())
+            .incident(source_row.get())
             .into_iter()
             .collect();
 
         let complete = edges.len() <= limits.edges as usize;
         if !complete {
-            self.truncate_nearest(&mut edges, limits.edges as usize, source, view.cut());
+            self.truncate_nearest(
+                &mut edges,
+                limits.edges as usize,
+                source_row,
+                source_position,
+                view.cut(),
+            );
         }
 
         edges.sort_unstable_by_key(|&(_, id)| id);
@@ -191,24 +290,20 @@ impl Atlas {
         let mut partners: Vec<_> = edges
             .iter()
             .flat_map(|&(edge, _)| [edge.source, edge.target])
-            .filter(|&row| row != source.row.get())
-            .map(|row| (self.node_codec.encode(row), row))
+            .filter(|&row| row != source_row.get())
+            .map(|row| (self.node_codec.encode(row, self.universe), row))
             .collect();
         partners.sort_unstable();
         partners.dedup();
 
-        let mut rows = IdVec::with_capacity(partners.len() + 1);
         let mut delivered = IdVec::with_capacity(partners.len() + 1);
-        rows.push(source.row.get());
-        delivered.push(source.position);
+        delivered.push(ViewRow::Base(source_position));
         for &(_, row) in &partners {
-            rows.push(row);
-            delivered.push(positions_of_row[row]);
+            delivered.push(ViewRow::Base(positions_of_row[row]));
         }
 
         LocateSubgraph {
-            rows,
-            positions: delivered,
+            delivered,
             edges,
             complete,
         }
@@ -228,7 +323,8 @@ impl Atlas {
         &self,
         edges: &mut Vec<(DeliveredEdge, ArchivedEntityId)>,
         cap: usize,
-        source: SourcePoint,
+        source_row: VisibleRow,
+        source_position: BasePosition,
         cut: Option<ScheduleCut<'_>>,
     ) {
         if cap == 0 {
@@ -238,12 +334,12 @@ impl Atlas {
 
         let positions = self.positions();
         let positions_of_row = self.positions_of_row();
-        let origin = positions[source.position];
+        let origin = positions[source_position];
 
         let mut ranked: Vec<(NearestKey, (DeliveredEdge, ArchivedEntityId))> = edges
             .drain(..)
             .map(|(edge, id)| {
-                let partner = edge.partner_of(source.row.get());
+                let partner = edge.partner_of(source_row.get());
 
                 let position = positions_of_row[partner];
                 let point = positions[position];
@@ -300,14 +396,12 @@ struct NearestKey {
 
 /// One assembled locate ego-graph.
 ///
-/// The delivered nodes (source first, then partners ascending wire row id) and the capped edge
+/// The delivered rows (source first, then partners ascending wire row id) and the capped edge
 /// set among them.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct LocateSubgraph {
-    /// The delivered node rows, in delivered order.
-    pub rows: IdVec<NodeSlot, NodeRowId>,
-    /// The delivered base positions, parallel to `rows`.
-    pub positions: IdVec<NodeSlot, BasePosition>,
+    /// The delivered rows in delivered order, each in the domain that publishes it.
+    pub delivered: IdVec<NodeSlot, ViewRow>,
     /// The delivered edges paired with their link-entity identities, ascending by those bytes.
     pub edges: Vec<(DeliveredEdge, ArchivedEntityId)>,
     /// Whether the response delivers every qualifying edge. `false` iff the cap truncated.
@@ -423,14 +517,17 @@ impl From<ViewError> for LocateError {
 
 /// One assembled locate response: everything [`Atlas::encode_locate`] needs.
 ///
-/// The document owns its columns, so it crosses thread boundaries between assembly, hydration, and
-/// encoding. The envelope places hydration last, and the split mirrors it. Assembly and encoding
-/// are CPU-bound, and hydration awaits the store between them.
+/// The document owns its columns apart from the view's arrival table, which it borrows for the
+/// request's own scope. The envelope places hydration last, and the split mirrors it. Assembly
+/// and encoding are CPU-bound, and hydration awaits the store between them - the hydration
+/// boundary materializes the identities it sends, so the borrow never leaves the request.
 #[derive(Debug)]
-pub(crate) struct LocateDocument {
+pub(crate) struct LocateDocument<'view> {
     source: SourcePoint,
-    delivered: IdVec<NodeSlot, BasePosition>,
-    rows: IdVec<NodeSlot, NodeRowId>,
+    /// The delivered rows, source first, each in the domain that publishes it.
+    delivered: IdVec<NodeSlot, ViewRow>,
+    /// The view's arrival table, which the delivered arrival vessels address.
+    arrivals: &'view IdSlice<ArrivalIndex, ArrivalRow>,
     /// The delivered edges in column form, ascending link-entity identity bytes.
     edges: EdgeColumns,
     complete: bool,
@@ -479,17 +576,25 @@ impl Atlas {
             })
             .map_err(LocateError::Details)?;
 
-        let node_labels = nodes
-            .rows()
+        let row_ids = self.rows.view();
+        let node_labels = document
+            .delivered
             .iter_enumerated()
-            .map(|(slot, &row)| {
-                if hydration.nodes.resolved.contains(slot) {
-                    self.node_ids
-                        .payload_of(row)
+            .map(|(slot, &vessel)| -> &Label {
+                if !hydration.nodes.resolved.contains(slot) {
+                    return Label::empty();
+                }
+
+                match vessel {
+                    ViewRow::Base(position) => self
+                        .node_ids
+                        .payload_of(row_ids[position])
                         .expect("open validated the identity rows against the code column")
-                        .label()
-                } else {
-                    Label::empty()
+                        .label(),
+                    // The generation holds no payload for an entity placed after the fit: the
+                    // label is the placement's captured display, under the same store-resolution
+                    // gate every fitted label takes.
+                    ViewRow::Arrival(index) => &document.arrivals[index].display.label,
                 }
             })
             .collect();
@@ -502,19 +607,21 @@ impl Atlas {
 
         let link_labels = document
             .edges
-            .rows()
+            .origins()
             .iter()
             .zip(&hydration.links.properties)
-            .map(|(&row, properties)| {
-                if properties.is_some() {
-                    self.edge_ids
+            .map(
+                |(&origin, properties)| match (origin, properties.is_some()) {
+                    (EdgeOrigin::Fitted(row), true) => self
+                        .edge_ids
                         .payload_of(row)
                         .expect("open validated the identity rows against the adjacency's edges")
-                        .label()
-                } else {
-                    Label::empty()
-                }
-            })
+                        .label(),
+                    // The incident assembly is generation-structural, so no delta origin reaches
+                    // this pass, and an unresolved link reads the empty label either way.
+                    (EdgeOrigin::Fitted(_) | EdgeOrigin::Delta, _) => Label::empty(),
+                },
+            )
             .collect();
         let link_details = LocateLinkDetails::new(
             link_labels,
@@ -545,12 +652,12 @@ impl Atlas {
     /// and [`LocateError::Types`] when the request carries more `coloredTypeIds` than
     /// `limits.tile.colored_type_ids`. The delivery contract is `view`'s, checked when it bound,
     /// so no rejection here is about it.
-    fn assemble_locate(
+    fn assemble_locate<'view>(
         &self,
         request: &LocateRequest,
         limits: ServeLimits,
-        view: &View<'_>,
-    ) -> Result<LocateDocument, LocateError> {
+        view: &View<'view>,
+    ) -> Result<LocateDocument<'view>, LocateError> {
         if request.colored_type_ids.len() > limits.tile.colored_type_ids as usize {
             return Err(LocateError::Types {
                 count: request.colored_type_ids.len(),
@@ -572,8 +679,7 @@ impl Atlas {
         .ok_or(LocateError::UnknownEntity)?;
 
         let LocateSubgraph {
-            rows,
-            positions,
+            delivered,
             edges,
             complete,
         } = self.locate_subgraph(source, limits.locate, view);
@@ -581,11 +687,16 @@ impl Atlas {
         let palette = Palette::of(&request.colored_type_ids);
         let mask_set = (!palette.is_empty()).then(|| self.resolve_masks(&palette));
 
+        let edges: Vec<(ServedEdge, ArchivedEntityId)> = edges
+            .into_iter()
+            .map(|(edge, id)| (ServedEdge::Fitted(edge), id))
+            .collect();
+
         Ok(LocateDocument {
             source,
-            delivered: positions,
-            rows,
-            edges: EdgeColumns::of(&self.node_codec, &edges),
+            delivered,
+            arrivals: view.arrivals(),
+            edges: EdgeColumns::of(&self.node_codec, self.universe, &edges),
             complete,
             mask_set,
             palette,
@@ -599,9 +710,14 @@ impl Atlas {
     #[must_use]
     pub(crate) fn locate_node_entities<'doc>(
         &'doc self,
-        document: &'doc LocateDocument,
+        document: &'doc LocateDocument<'_>,
     ) -> DeliveredNodes<'doc> {
-        DeliveredNodes::new(self.node_ids.ids(), &document.rows)
+        DeliveredNodes::new(
+            self.node_ids.ids(),
+            self.rows.view(),
+            &document.delivered,
+            document.arrivals,
+        )
     }
 
     /// Encodes an assembled document with its hydrated details.
@@ -624,7 +740,7 @@ impl Atlas {
     #[must_use]
     fn encode_locate(
         &self,
-        document: &LocateDocument,
+        document: &LocateDocument<'_>,
         nodes: &LocateNodeDetails,
         links: &LocateLinkDetails,
     ) -> Vec<u8> {
@@ -635,11 +751,15 @@ impl Atlas {
 
         // The source's identity always travels in HEAD, and the
         // per-edge link identities are first-class columns. Both read
-        // the generation-frozen tables in process.
-        let entity_id = self
-            .node_ids
-            .id(document.rows[NodeSlot::new(0)])
-            .expect("open validated the identity rows against the code column");
+        // in process: a fitted source from the generation-frozen
+        // tables, an arrival from the view's own table.
+        let entity_id = match document.source.subject {
+            SourceSubject::Base { row, .. } => self
+                .node_ids
+                .id(row.get())
+                .expect("open validated the identity rows against the code column"),
+            SourceSubject::Arrival(index) => document.arrivals[index].identity,
+        };
 
         let type_ids_complete = covers_source_types(
             nodes.source_properties().is_some(),
@@ -667,6 +787,7 @@ impl Atlas {
             type_ids_complete,
             properties_complete: nodes.source_properties_complete(),
             delivered: &document.delivered,
+            arrivals: document.arrivals,
             positions: self.positions(),
             rows: self.wire_rows(),
             masks: masks.as_deref(),

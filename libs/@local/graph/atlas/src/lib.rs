@@ -106,7 +106,8 @@
     time_saturating_systemtime,
     variant_count,
     clone_from_ref,
-    clone_to_uninit
+    clone_to_uninit,
+    integer_casts
 )]
 // The dashboard's interrupt path leaves through an exit code, and it is
 // the only consumer of the feature.
@@ -126,6 +127,7 @@
 #![allow(rustdoc::private_intra_doc_links)]
 extern crate alloc;
 
+mod allocator;
 pub(crate) mod api;
 #[cfg(feature = "bench")]
 pub mod bench;

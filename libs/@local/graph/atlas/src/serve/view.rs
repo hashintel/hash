@@ -13,12 +13,18 @@
 
 use core::{error::Error, fmt};
 
+use hashql_core::id::IdSlice;
+
 use super::{
     Atlas, ViewCensus, VisibilityProof,
     cache::CacheEntry,
+    delta::{DeltaSnapshot, PlacementCohort},
     density::CutOffset,
     grid::Grid,
-    schedule::{ScheduleWidthError, ViewSchedule, cut::ScheduleCut},
+    schedule::{
+        ArrivalIndex, ArrivalOverlay, ArrivalRow, ScheduleWidthError, ViewSchedule,
+        cut::ScheduleCut,
+    },
     visibility::ProofKind,
 };
 
@@ -89,18 +95,40 @@ pub(crate) struct View<'scope> {
     /// Absent exactly when the view serves the generation's corpus schedule. Binding established
     /// that equivalence, so the assembly paths read this one discriminant.
     cut: Option<ScheduleCut<'scope>>,
+    /// The view's arrival overlay, taken from the schedule it bound.
+    ///
+    /// A bound cut merges it into every delivery query, and the corpus assembly reads it
+    /// directly, because the corpus fast paths take no cut.
+    overlay: &'scope ArrivalOverlay,
+    /// The entry's placement cohort, the arrivals snapshot its resolution read.
+    ///
+    /// The cohort names the accepted row universe every wire decode in the request runs under,
+    /// and the reverse lookup for the slots past the generation's fitted rows. The view's
+    /// arrival tables derive from this same snapshot, so the vessels and the decodes agree on
+    /// one publication.
+    cohort: PlacementCohort<'scope>,
+    /// The withdrawal snapshot captured at the request's ingress, absent before the first
+    /// publication and for a serve that starts no consumer.
+    ///
+    /// One capture answers every admission in the request, so the delta-sensitive assembly stays
+    /// a pure function of the generation, the request, the proof, and this one snapshot. The
+    /// capture contributes current withdrawals alone.
+    delta: Option<&'scope DeltaSnapshot>,
 }
 
 impl<'scope> View<'scope> {
     /// Binds one resolved scope's delivery inputs at `k`.
     ///
     /// An operator proof binds the corpus schedule with no cut, and a scoped proof its own cascade
-    /// read at `k`.
+    /// read at `k`. `delta` is the request's ingress withdrawal capture, carried whole to every
+    /// admission: binding checks nothing about it, because absence is lawful before the first
+    /// publication and the snapshot pairs with the request rather than with the scope.
     ///
-    /// Caller requirement: `census` is [`Atlas::census`] of `proof`, and `schedule` is
-    /// [`ViewSchedule::of`] over that same proof. Binding checks only that the proof and the
-    /// schedule name the same serving contract. A census resolved from another proof of the same
-    /// shape passes that check, so the pairing is the caller's to hold.
+    /// Caller requirement: `census` is [`Atlas::census`] of `proof`, `schedule` is
+    /// [`ViewSchedule::of`] over that same proof, and `cohort` is the resolution's own - the
+    /// snapshot the schedule folded its arrivals from. Binding checks only that the proof and
+    /// the schedule name the same serving contract. A census resolved from another proof of the
+    /// same shape passes that check, so the pairing is the caller's to hold.
     ///
     /// # Errors
     ///
@@ -117,22 +145,32 @@ impl<'scope> View<'scope> {
             reason = "`k` is the delivery-cut offset's name throughout the density contract"
         )]
         k: CutOffset,
+        cohort: PlacementCohort<'scope>,
+        delta: Option<&'scope DeltaSnapshot>,
     ) -> Result<Self, ViewError> {
-        let cut = match (proof.kind(), schedule) {
-            (ProofKind::Corpus, ViewSchedule::Corpus) if k != CutOffset::ZERO => {
+        let (cut, overlay) = match (proof.kind(), schedule) {
+            (ProofKind::Corpus, ViewSchedule::Corpus(_)) if k != CutOffset::ZERO => {
                 return Err(ViewError::Offset(k));
             }
-            (ProofKind::Corpus, ViewSchedule::Corpus) => None,
-            (ProofKind::Scope, ViewSchedule::Scope(scope)) => {
-                Some(scope.cut(grid, k).map_err(ViewError::Schedule)?)
-            }
-            (ProofKind::Corpus, ViewSchedule::Scope(_))
-            | (ProofKind::Scope, ViewSchedule::Corpus) => {
+            (ProofKind::Corpus, ViewSchedule::Corpus(overlay)) => (None, overlay),
+            (ProofKind::Scope, ViewSchedule::Scope(scope, overlay)) => (
+                Some(scope.cut(overlay, grid, k).map_err(ViewError::Schedule)?),
+                overlay,
+            ),
+            (ProofKind::Corpus, ViewSchedule::Scope(..))
+            | (ProofKind::Scope, ViewSchedule::Corpus(_)) => {
                 return Err(ViewError::Contract);
             }
         };
 
-        Ok(Self { proof, census, cut })
+        Ok(Self {
+            proof,
+            census,
+            cut,
+            overlay,
+            cohort,
+            delta,
+        })
     }
 
     /// Binds one held resolution at `k`.
@@ -154,6 +192,7 @@ impl<'scope> View<'scope> {
             reason = "`k` is the delivery-cut offset's name throughout the density contract"
         )]
         k: CutOffset,
+        delta: Option<&'scope DeltaSnapshot>,
     ) -> Result<Self, ViewError> {
         Self::bind(
             atlas.grid,
@@ -161,6 +200,8 @@ impl<'scope> View<'scope> {
             *entry.census(),
             entry.view_schedule(),
             k,
+            entry.cohort(),
+            delta,
         )
     }
 
@@ -179,6 +220,37 @@ impl<'scope> View<'scope> {
     /// Returns the bound scope cut, [`None`] under an operator proof.
     pub(super) const fn cut(&self) -> Option<ScheduleCut<'scope>> {
         self.cut
+    }
+
+    /// Returns the view's arrival overlay.
+    ///
+    /// Empty for a scope that folded its arrivals into its own cascade, and for a view whose
+    /// resolution read no cohort.
+    pub(super) const fn overlay(&self) -> &'scope ArrivalOverlay {
+        self.overlay
+    }
+
+    /// Views the arrival table the delivered [`ViewRow::Arrival`] vessels address.
+    ///
+    /// The bound cut answers under a scoped proof and the overlay under an operator proof, so
+    /// one table serves each view.
+    ///
+    /// [`ViewRow::Arrival`]: super::schedule::ViewRow::Arrival
+    pub(crate) const fn arrivals(&self) -> &'scope IdSlice<ArrivalIndex, ArrivalRow> {
+        match self.cut {
+            Some(cut) => cut.arrivals(),
+            None => self.overlay.arrivals(),
+        }
+    }
+
+    /// Returns the ingress withdrawal snapshot, [`None`] before the first publication.
+    pub(super) const fn delta(&self) -> Option<&'scope DeltaSnapshot> {
+        self.delta
+    }
+
+    /// Returns the entry's placement cohort, the arrivals snapshot its resolution read.
+    pub(super) const fn cohort(&self) -> PlacementCohort<'scope> {
+        self.cohort
     }
 
     /// Returns whether the view serves the generation's corpus schedule.

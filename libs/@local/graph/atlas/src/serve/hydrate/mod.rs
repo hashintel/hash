@@ -73,5 +73,5 @@ pub(crate) use self::{
         DeliveredNodes, EdgeLinkDetails, EdgeSlot, LocateLinkDetails, LocateNodeDetails,
         NodeDetails, NodeSlot, ScalarValue,
     },
-    order::{EdgesStore, LocateHydration, LocateOrder, LocateStore},
+    order::{EdgesHydration, EdgesOrder, EdgesStore, LocateHydration, LocateOrder, LocateStore},
 };

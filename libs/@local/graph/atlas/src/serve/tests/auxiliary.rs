@@ -274,7 +274,6 @@ async fn detailed_tiles_hydrate_labels_and_icons_from_the_generation() {
             variant: 0,
             coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
             mode: Mode::Delta,
-            visible: morton.count(),
             first_bucket: 0,
             runs: &morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
                 .iter()
@@ -305,9 +304,10 @@ async fn detailed_tiles_hydrate_labels_and_icons_from_the_generation() {
             let node_codec = test_codec(&atlas);
             row_ids
                 .iter()
-                .map(|&row| node_codec.encode(NodeRowId::from_u32(row)))
+                .map(|&row| node_codec.encode(NodeRowId::from_u32(row), atlas.universe()))
                 .collect::<Vec<_>>()
         }),
+        arrivals: IdSlice::from_raw(&[]),
         masks: None,
         trailer: Some(TileTrailer {
             labels: &labels,
@@ -334,7 +334,14 @@ async fn deepest_grid_tiles_align_every_icon_precedence_case() {
     let node_codec = test_codec(&atlas);
     let rows = u32::try_from(NODES).expect("fixture counts fit u32");
     let decode: HashMap<u32, u32> = (0..rows)
-        .map(|row| (node_codec.encode(NodeRowId::from_u32(row)).get(), row))
+        .map(|row| {
+            (
+                node_codec
+                    .encode(NodeRowId::from_u32(row), atlas.universe())
+                    .get(),
+                row,
+            )
+        })
         .collect();
 
     let mut seen: HashSet<u32> = HashSet::new();

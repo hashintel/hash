@@ -17,8 +17,9 @@
 //!
 //! `header | ciphertext | trailer`, [`TOKEN_BYTES`] wide, with every field at a fixed offset:
 //! [`SealedAuthority`] is the envelope as a type, and a blob resolves into one by a zerocopy cast.
-//! The header is [`AuthorityHeader`] in the clear, the ciphertext seals the [`Scope`] itself - the
-//! scope is its own byte-level form - and the trailer is Poly1305's tag.
+//! The header is [`AuthorityHeader`] in the clear, the ciphertext seals [`SealedState`] - the
+//! scope and the authority's delta epoch, each its own byte-level form - and the trailer is
+//! Poly1305's tag.
 //!
 //! The associated data is the header's own bytes, so both sides authenticate an identical form. The
 //! clear header stays as minted, because a rewritten `issued_at` invalidates the tag.
@@ -26,11 +27,21 @@
 //! # The key
 //!
 //! The key comes from `HKDF-SHA256` over the server secret, with the generation digest as the salt
-//! and the fixed label `atlas.authorization.v0` as the expansion label. RFC 5869 admits a public
+//! and the fixed label `atlas.authorization.v1` as the expansion label. RFC 5869 admits a public
 //! and predictable salt, and this one separates generations cryptographically, so a token opens
 //! only under the generation that sealed it. The secret arrives as [`SecretHexBytes`], which fixes
 //! its width by type. The derivation runs once, when this module constructs the authority, and the
 //! authority keeps only the key, never the secret.
+//!
+//! # The epoch
+//!
+//! The sealed state carries the delta epoch the authority held at mint, absent for a process
+//! serving without a delta consumer. Every open compares the sealed value against the held one
+//! and refuses any other, the renewal read included, because slot assignment is process-local: a
+//! token minted beside one delta register must not authorize reads over another. The refusal is
+//! the same uniform answer as every other cause, and the client's remedy is the same fresh
+//! manifest, which mints under the held epoch. A process serving with no delta consumer holds the
+//! absent form, so its tokens survive restarts.
 //!
 //! # The nonce
 //!
@@ -59,11 +70,11 @@ use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
 
-use super::{CutOffset, cache::scope::FilterDigest};
+use super::{CutOffset, cache::scope::FilterDigest, delta::DeltaEpoch};
 use crate::{file::generation::GenerationId, integrity::SecretHexBytes};
 
 /// The HKDF expansion label, versioned in place for the one value this module seals.
-const LABEL: &[u8] = b"atlas.authorization.v0";
+const LABEL: &[u8] = b"atlas.authorization.v1";
 
 /// The nonce width: the cipher's own.
 const NONCE_BYTES: usize = <<XChaCha20Poly1305 as AeadCore>::NonceSize as Unsigned>::USIZE;
@@ -93,6 +104,11 @@ pub(crate) enum AuthorityError {
     /// The tag proves the server minted the token, not that the presenter is its subject; without
     /// this refusal a leaked token would grant any authenticated actor the subject's scope.
     Actor,
+    /// The token seals a delta epoch other than the held one.
+    ///
+    /// Slot assignment is process-local, so authority minted beside one delta register must not
+    /// reach another.
+    Epoch,
 }
 
 impl core::fmt::Display for AuthorityError {
@@ -102,6 +118,7 @@ impl core::fmt::Display for AuthorityError {
             Self::Authentication => "the authority token failed authentication",
             Self::Stale => "the authority token's issue time is outside the acceptance window",
             Self::Actor => "the authority token names an actor other than its presenter",
+            Self::Epoch => "the authority token seals a delta epoch other than the held one",
         })
     }
 }
@@ -125,7 +142,7 @@ impl core::error::Error for AuthorityError {}
 )]
 #[repr(u8)]
 enum MessageVersion {
-    V0 = 0,
+    V1 = 1,
 }
 
 /// The token envelope's clear header.
@@ -256,6 +273,37 @@ impl From<Option<FilterDigest>> for ScopeFilter {
     }
 }
 
+/// A sealed delta epoch, by presence.
+///
+/// The discriminant is the presence and the payload is the epoch, one validated field: parsing
+/// admits the two written forms and a tampered discriminant refuses as
+/// [`AuthorityError::Envelope`]. The absent form zeroes its payload bytes and names a mint with
+/// no delta consumer, so equality between two absent values is what lets those tokens survive a
+/// restart.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::TryFromBytes,
+)]
+#[repr(u8)]
+enum ScopeEpoch {
+    Absent([u8; 16]),
+    Present(DeltaEpoch),
+}
+
+impl From<Option<DeltaEpoch>> for ScopeEpoch {
+    fn from(epoch: Option<DeltaEpoch>) -> Self {
+        epoch.map_or(Self::Absent([0; 16]), Self::Present)
+    }
+}
+
 /// One view's sealed identity and state.
 ///
 /// The actor and filter digest name the visibility proof the view answers under. `k` is the
@@ -311,6 +359,29 @@ impl Scope {
     }
 }
 
+/// The caller's scope and the authority's delta epoch, sealed as one plaintext.
+///
+/// Its own byte-level form exactly as [`Scope`] is. The epoch is the authority's rather than the
+/// caller's: the mint stamps the held value and the open refuses any other, so no caller can seal
+/// a scope under an epoch the process does not hold.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::TryFromBytes,
+)]
+#[repr(C)]
+struct SealedState {
+    scope: Scope,
+    epoch: ScopeEpoch,
+}
+
 /// One sealed token, the envelope as a type, read in place.
 ///
 /// Every field sits at a fixed offset, so a blob of [`TOKEN_BYTES`] resolves into header,
@@ -329,7 +400,7 @@ impl Scope {
 #[repr(C)]
 struct SealedAuthority {
     header: AuthorityHeader,
-    ciphertext: [u8; size_of::<Scope>()],
+    ciphertext: [u8; size_of::<SealedState>()],
     trailer: AuthorityTrailer,
 }
 
@@ -337,7 +408,7 @@ impl SealedAuthority {
     const SIZE: usize = size_of::<Self>();
 }
 
-/// The token envelope's width, covering the clear header, the sealed scope, and the tag.
+/// The token envelope's width, covering the clear header, the sealed state, and the tag.
 ///
 /// Derived from the envelope type itself, so it moves when the layout does.
 pub(crate) const TOKEN_BYTES: usize = SealedAuthority::SIZE;
@@ -345,10 +416,11 @@ pub(crate) const TOKEN_BYTES: usize = SealedAuthority::SIZE;
 /// Mints and opens the authority tokens of one generation.
 ///
 /// One value holds the whole judgment context. The generation's sealing key comes from one
-/// derivation at construction, the acceptance window bounds a token's age, and the entropy source
+/// derivation at construction, and the acceptance window bounds a token's age. The held delta
+/// epoch binds a token to the register lifetime whose process minted it, and the entropy source
 /// stays behind its own lock, held for the nonce draw alone, so opening never contends with
-/// minting. A token opens under the authority whose generation sealed it, for the actor it names,
-/// and only while its issue time lies inside the window.
+/// minting. A token opens under the authority whose generation sealed it, under the epoch it
+/// holds, for the actor it names, and only while its issue time lies inside the window.
 #[derive(Debug)]
 pub(crate) struct TokenAuthority<R> {
     /// This generation's sealing key.
@@ -359,6 +431,8 @@ pub(crate) struct TokenAuthority<R> {
     ///
     /// A token older than this at open refuses as stale.
     hard: Duration,
+    /// The delta epoch every mint stamps and every open requires.
+    epoch: ScopeEpoch,
     rng: Mutex<R>,
 }
 
@@ -369,11 +443,13 @@ where
     /// Builds the authority of one generation.
     ///
     /// The key derives from `secret` with the generation digest as its salt. A token stays
-    /// acceptable for `hard` after its issue time, and nonces come from `rng`.
+    /// acceptable for `hard` after its issue time, nonces come from `rng`, and `epoch` is the
+    /// serving process's delta epoch, [`None`] when no delta consumer runs.
     pub(crate) fn new<const N: usize>(
         generation: GenerationId,
         secret: &SecretHexBytes<N>,
         hard: Duration,
+        epoch: Option<DeltaEpoch>,
         rng: R,
     ) -> Self {
         let salt = generation.digest().to_bytes();
@@ -386,11 +462,12 @@ where
         Self {
             key: SecretHexBytes::new(key),
             hard,
+            epoch: ScopeEpoch::from(epoch),
             rng: Mutex::new(rng),
         }
     }
 
-    /// Mints the token naming `scope`, issued at `now`.
+    /// Mints the token naming `scope`, issued at `now`, stamped with the held delta epoch.
     ///
     /// `now` is wall-clock time, because whichever process opens the token judges its age, and
     /// [`SystemTime`] is the clock whose value still means the same in another process.
@@ -404,11 +481,16 @@ where
         scope: Scope,
         now: SystemTime,
     ) -> Result<[u8; SealedAuthority::SIZE], R::Error> {
+        let sealed = SealedState {
+            scope,
+            epoch: self.epoch,
+        };
+
         let mut nonce = [0_u8; NONCE_BYTES];
         self.rng.lock().try_fill_bytes(&mut nonce)?;
 
         let header = AuthorityHeader {
-            version: MessageVersion::V0,
+            version: MessageVersion::V1,
             issued_at: U64::new(
                 now.saturating_duration_since(SystemTime::UNIX_EPOCH)
                     .as_secs(),
@@ -420,16 +502,16 @@ where
         header
             .write_to_prefix(&mut blob)
             .expect("the envelope begins with its header");
-        scope
+        sealed
             .write_to_prefix(&mut blob[size_of::<AuthorityHeader>()..])
-            .expect("the envelope seals the scope past its header");
+            .expect("the envelope seals the state past its header");
 
         let sealed_tag = XChaCha20Poly1305::new(self.key.as_bytes().into())
             .encrypt_in_place_detached(
                 XNonce::from_slice(&nonce),
                 header.as_bytes(),
                 &mut blob[size_of::<AuthorityHeader>()
-                    ..size_of::<AuthorityHeader>() + size_of::<Scope>()],
+                    ..size_of::<AuthorityHeader>() + size_of::<SealedState>()],
             )
             .unwrap_or_else(|_error| {
                 unreachable!("XChaCha20-Poly1305 encryption is infallible for in-memory payloads")
@@ -444,23 +526,26 @@ where
 
     /// Opens `blob` as presented by `actor` at `now`, returning the view state it seals.
     ///
-    /// Refuses a token whose issue time is older than the acceptance window at `now`, one dated
-    /// after `now`, and one naming an actor other than `actor`. The tag check comes first, so a
-    /// rewritten issue time refuses as [`AuthorityError::Authentication`] and only an authentic
-    /// token reaches the window and the actor comparison.
+    /// Refuses a token sealed under any delta epoch other than the held one, one whose issue
+    /// time is older than the acceptance window at `now`, one dated after `now`, and one naming
+    /// an actor other than `actor`. The tag check comes first, so a rewritten issue time refuses
+    /// as [`AuthorityError::Authentication`] and only an authentic token reaches the epoch, the
+    /// window, and the actor comparison.
     ///
     /// # Errors
     ///
     /// [`AuthorityError::Envelope`] for a blob that is not this format,
-    /// [`AuthorityError::Authentication`] when the tag refuses, [`AuthorityError::Stale`] outside
-    /// the window, and [`AuthorityError::Actor`] for a presenter the token does not name.
+    /// [`AuthorityError::Authentication`] when the tag refuses, [`AuthorityError::Epoch`] for a
+    /// sealed delta epoch other than the held one, [`AuthorityError::Stale`] outside the window,
+    /// and [`AuthorityError::Actor`] for a presenter the token does not name.
     pub(crate) fn open(
         &self,
         blob: &[u8; TOKEN_BYTES],
         actor: ActorEntityUuid,
         now: SystemTime,
     ) -> Result<Scope, AuthorityError> {
-        let (issued_at, scope) = self.unseal(blob)?;
+        let (issued_at, sealed) = self.unseal(blob)?;
+        let scope = self.alive(sealed)?;
 
         if issued_at > now || now.saturating_duration_since(issued_at) >= self.hard {
             return Err(AuthorityError::Stale);
@@ -473,28 +558,35 @@ where
     ///
     /// This read does not judge the acceptance window. An expired token is no longer authority, yet
     /// it remains authentic evidence of the view state a past mint sealed, and carrying that state
-    /// into a fresh mint keeps a view stable across a refresh. The tag and the actor still bind,
-    /// and the leniency reaches no further than the mint. This read authenticates a scope and
-    /// carries it forward, while every data request under the fresh token resolves that scope
-    /// through the visibility cache, whose own hard window bounds how old a resolution may answer.
+    /// into a fresh mint keeps a view stable across a refresh. The tag, the epoch, and the actor
+    /// still bind, and the leniency reaches no further than the mint. This read authenticates a
+    /// scope and carries it forward, while every data request under the fresh token resolves that
+    /// scope through the visibility cache, whose own hard window bounds how old a resolution may
+    /// answer. The epoch binds here exactly because this is the renewal: view state accumulated
+    /// beside a dead register must not carry into a mint under the live one.
     ///
     /// # Errors
     ///
     /// [`AuthorityError::Envelope`] for a blob that is not this format,
-    /// [`AuthorityError::Authentication`] when the tag refuses, and [`AuthorityError::Actor`] for a
-    /// presenter the token does not name.
+    /// [`AuthorityError::Authentication`] when the tag refuses, [`AuthorityError::Epoch`] for a
+    /// sealed delta epoch other than the held one, and [`AuthorityError::Actor`] for a presenter
+    /// the token does not name.
     pub(crate) fn carried(
         &self,
         blob: &[u8; TOKEN_BYTES],
         actor: ActorEntityUuid,
     ) -> Result<Scope, AuthorityError> {
-        let (_issued_at, scope) = self.unseal(blob)?;
+        let (_issued_at, sealed) = self.unseal(blob)?;
+        let scope = self.alive(sealed)?;
 
         Self::subject(scope, actor)
     }
 
     /// Parses and authenticates one envelope: the zerocopy cast and the tag, nothing judged.
-    fn unseal(&self, blob: &[u8; TOKEN_BYTES]) -> Result<(SystemTime, Scope), AuthorityError> {
+    fn unseal(
+        &self,
+        blob: &[u8; TOKEN_BYTES],
+    ) -> Result<(SystemTime, SealedState), AuthorityError> {
         let sealed =
             SealedAuthority::try_ref_from_bytes(blob).map_err(|_error| AuthorityError::Envelope)?;
 
@@ -508,13 +600,26 @@ where
             )
             .map_err(|_error| AuthorityError::Authentication)?;
 
-        let scope =
-            Scope::try_read_from_bytes(&plaintext).map_err(|_error| AuthorityError::Envelope)?;
+        let state = SealedState::try_read_from_bytes(&plaintext)
+            .map_err(|_error| AuthorityError::Envelope)?;
 
         Ok((
             SystemTime::UNIX_EPOCH + Duration::from_secs(sealed.header.issued_at.get()),
-            scope,
+            state,
         ))
+    }
+
+    /// Resolves the sealed scope, refusing a delta epoch other than the held one.
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "the derived `PartialEq` behind `!=` is not const-callable"
+    )]
+    fn alive(&self, sealed: SealedState) -> Result<Scope, AuthorityError> {
+        if sealed.epoch != self.epoch {
+            return Err(AuthorityError::Epoch);
+        }
+
+        Ok(sealed.scope)
     }
 
     /// Resolves the sealed state for `actor`, refusing a presenter the token does not name.

@@ -16,7 +16,10 @@ use hashql_core::id::{IdSlice, IdVec, bit_vec::DenseBitSet};
 use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
 use super::{DeliveredNodes, EdgeSlot, NodeSlot, ScalarValue, client::DetailError};
-use crate::{bitset::DenseBitSlice, dataset::postgres::id::ArchivedEntityId};
+use crate::{
+    bitset::DenseBitSlice,
+    dataset::postgres::{LinkDisplay, id::ArchivedEntityId},
+};
 
 /// One locate response's store order.
 ///
@@ -125,22 +128,43 @@ pub(crate) trait LocateStore {
     fn hydrate(self, order: LocateOrder<'_>) -> Result<LocateHydration, DetailError>;
 }
 
+/// The store order of one edges response, holding an identity list per serving domain.
+///
+/// A fitted link resolves its first direct-type versioned URL from the live store, and a delta
+/// link resolves its whole display, so the order splits by provenance. Each list keeps its
+/// delivered slot subsequence's order, and the answer aligns to it by position.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct EdgesOrder<'doc> {
+    /// The fitted links' identities, in delivered order.
+    pub fitted: &'doc [ArchivedEntityId],
+    /// The delta links' identities, in delivered order.
+    pub delta: &'doc [ArchivedEntityId],
+}
+
+/// The store's answer to one [`EdgesOrder`], each list aligned to its order by position.
+#[derive(Debug)]
+pub(crate) struct EdgesHydration {
+    /// Each fitted link's first direct-type versioned URL.
+    ///
+    /// `None` marks a link the store no longer serves or records no types for.
+    pub fitted: Vec<Option<VersionedUrl>>,
+    /// Each delta link's display payload.
+    ///
+    /// An identity the store no longer resolves answers the empty label and no type.
+    pub delta: Vec<LinkDisplay>,
+}
+
 /// The store half of one edges response's detail trailer.
 ///
 /// One call consumes the capability, so a response hydrates at most once and the type carries
 /// that contract instead of a runtime check. An implementation answers from wherever its
 /// store lives, and a test answers from a fixture table with no store at all.
 pub(crate) trait EdgesStore {
-    /// Answers each delivered link's first direct-type versioned URL, in delivered order.
-    ///
-    /// `None` marks a link the store no longer serves or records no types for.
+    /// Answers one edges order with every store-derived column.
     ///
     /// # Errors
     ///
-    /// Returns [`DetailError`] when the store rejects the query or the answer can no longer reach
+    /// Returns [`DetailError`] when the store rejects a query or the answer can no longer reach
     /// the caller.
-    fn hydrate(
-        self,
-        links: &IdSlice<EdgeSlot, ArchivedEntityId>,
-    ) -> Result<IdVec<EdgeSlot, Option<VersionedUrl>>, DetailError>;
+    fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError>;
 }

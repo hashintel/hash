@@ -1,10 +1,11 @@
 //! The tile response: `HEAD`, columns, and trailer as one envelope.
 //!
 //! A tile document borrows the generation's base-order columns and names its delivered set in one
-//! of [`DeliveredSet`]'s two shapes. Contiguous base-position ranges in delivery order are what
+//! of [`DeliveredSet`]'s shapes. Contiguous base-position ranges in delivery order are what
 //! both modes produce unmasked, where a non-root delta tile is its quad node's one run and the
 //! delta root and every total tile are bucket-major run lists. A gathered position list in delivery
-//! order is the shape a visibility mask leaves behind. Encoding gathers the column entries and the
+//! order is the shape a visibility mask leaves behind, and ranges with spliced arrivals are the
+//! unmasked shape when a cohort interleaves. Encoding gathers the column entries and the
 //! per-point type masks from the postings membership, then writes the `SALTILET` five-slot envelope
 //! of `HEAD`, `POSITIONS`, `ROW_IDS`, `TYPE_MASK`, and the reserved `MASS` slot, which stays absent
 //! until the product wants density.
@@ -29,7 +30,10 @@ use crate::{
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
-    serve::WireRow,
+    serve::{
+        WireRow,
+        schedule::{ArrivalIndex, ArrivalRow, Splice, ViewRow},
+    },
 };
 
 /// One tile response in writable form.
@@ -43,6 +47,10 @@ pub(crate) struct TileResponse<'doc> {
     pub positions: &'doc IdSlice<BasePosition, Vec2>,
     /// The generation's row-id column (row by base position), in full.
     pub rows: &'doc IdSlice<BasePosition, WireRow<NodeRowId>>,
+    /// The entry cohort's arrivals, addressed by the delivered set's arrival rows.
+    ///
+    /// Empty when the view holds no admitted arrival.
+    pub arrivals: &'doc IdSlice<ArrivalIndex, ArrivalRow>,
     /// Per-type membership for the request's `coloredTypeIds`, in request order.
     ///
     /// Bit `i` of every point's mask reads from `masks[i]`. `None` when the request carried no
@@ -104,18 +112,25 @@ impl TileResponse<'_> {
 
     /// Writes the `POSITIONS` column: f32 xy pairs, delivered order.
     fn write_positions(&self, column: &mut Vec<u8>) {
-        self.delivered.for_each(|position| {
-            let point = self.positions[position];
+        for row in self.delivered {
+            let point = match row {
+                ViewRow::Base(position) => self.positions[position],
+                ViewRow::Arrival(index) => self.arrivals[index].point,
+            };
             column.extend_from_slice(&point.x().to_le_bytes());
             column.extend_from_slice(&point.y().to_le_bytes());
-        });
+        }
     }
 
     /// Writes the `ROW_IDS` column: u32 row ids, delivered order.
     fn write_rows(&self, column: &mut Vec<u8>) {
-        self.delivered.for_each(|position| {
-            column.extend_from_slice(&self.rows[position].get().to_le_bytes());
-        });
+        for row in self.delivered {
+            let wire = match row {
+                ViewRow::Base(position) => self.rows[position],
+                ViewRow::Arrival(index) => self.arrivals[index].wire,
+            };
+            column.extend_from_slice(&wire.get().to_le_bytes());
+        }
     }
 
     /// Assembles the `TYPE_MASK` column.
@@ -130,8 +145,10 @@ impl TileResponse<'_> {
     /// The merge needs the delivered set in ascending base-position order, which delivery order
     /// does not supply. A range list numbers each point from its own range's start. For a gathered
     /// list that does not already ascend, the merge walks a permutation of its point indices sorted
-    /// by position, built once and reused by every membership. Either way the bits for a point
-    /// occupy its delivery index, so the column stays in delivery order.
+    /// by position, built once and reused by every membership. A spliced list numbers its base
+    /// rows as a range list does and shifts each by the splices sitting before it, whose own bits
+    /// stay zero. Either way the bits for a point occupy its delivery index, so the column stays
+    /// in delivery order.
     fn write_masks(&self, buf: &mut Vec<u8>, masks: &[Membership<'_>]) {
         let delivered =
             usize::try_from(self.delivered.count()).expect("delivered counts fit usize");
@@ -156,20 +173,50 @@ impl TileResponse<'_> {
                     }
                 }
             }
+            DeliveredSet::Spliced { ranges, splices } => {
+                for (bit, membership) in masks.iter().enumerate() {
+                    let byte = bit >> 3;
+                    let flag = 1_u8 << (bit & 7);
+
+                    // Splice `cursor` counts the arrivals delivered before base ordinal
+                    // `base + offset`: splice `m` precedes it exactly when `at - m` does, and
+                    // both sides of that bound ascend through the walk.
+                    let mut base = 0_usize;
+                    let mut cursor = 0_usize;
+                    for range in ranges {
+                        for position in membership.positions_in(range.clone()) {
+                            let ordinal = base + (position.as_usize() - range.start.as_usize());
+                            while cursor < splices.len()
+                                && splices[cursor].at as usize - cursor <= ordinal
+                            {
+                                cursor += 1;
+                            }
+                            let point = ordinal + cursor;
+                            column[point * stride + byte] |= flag;
+                        }
+                        base += range.end.as_usize() - range.start.as_usize();
+                    }
+                }
+            }
             DeliveredSet::Positions(list) => {
-                if list.is_empty() {
+                // Only base rows carry postings memberships. An arrival has no postings row,
+                // so its bits stay zero, the mask's own answer for an id the generation never
+                // tabulated.
+                let mut base_points: Vec<(usize, BasePosition)> = list
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(point, row)| match *row {
+                        ViewRow::Base(position) => Some((point, position)),
+                        ViewRow::Arrival(_) => None,
+                    })
+                    .collect();
+                if base_points.is_empty() {
                     return;
                 }
+                base_points.sort_unstable_by_key(|&(_, position)| position);
 
-                let ascending = (!list.is_sorted()).then(|| {
-                    let mut points: Vec<usize> = (0..list.len()).collect();
-                    points.sort_unstable_by_key(|&point| list[point]);
-                    points
-                });
-                let point_at = |rank: usize| ascending.as_ref().map_or(rank, |points| points[rank]);
-
-                let lowest = list[point_at(0)];
-                let highest = list[point_at(list.len() - 1)];
+                let lowest = base_points[0].1;
+                let highest = base_points[base_points.len() - 1].1;
 
                 for (bit, membership) in masks.iter().enumerate() {
                     let byte = bit >> 3;
@@ -178,14 +225,14 @@ impl TileResponse<'_> {
                     let mut rank = 0_usize;
                     let past_highest = BasePosition::from_u64(highest.as_u64() + 1);
                     for position in membership.positions_in(lowest..past_highest) {
-                        while rank < list.len() && list[point_at(rank)] < position {
+                        while rank < base_points.len() && base_points[rank].1 < position {
                             rank += 1;
                         }
-                        if rank == list.len() {
+                        if rank == base_points.len() {
                             break;
                         }
-                        let point = point_at(rank);
-                        if list[point] == position {
+                        let (point, held) = base_points[rank];
+                        if held == position {
                             column[point * stride + byte] |= flag;
                         }
                     }
@@ -195,19 +242,29 @@ impl TileResponse<'_> {
     }
 }
 
-/// One delivered point set, in either of the two shapes a producer holds.
+/// One delivered point set, in one of the shapes a producer holds.
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum DeliveredSet<'doc> {
     /// Contiguous base-position ranges in delivery order.
     ///
     /// The unmasked gather. Zero-length ranges are legal and deliver nothing.
     Ranges(&'doc [Range<BasePosition>]),
-    /// Gathered base positions in delivery order: the masked gather, visibility already applied.
+    /// Gathered view rows in delivery order: the masked gather, visibility already applied.
     ///
-    /// Delivery order is the producer's and carries no relation to base order. Today's masked walk
-    /// gathers by ascending corpus bucket and so happens to ascend. The encoder does not depend on
-    /// it.
-    Positions(&'doc [BasePosition]),
+    /// Delivery order is the producer's own, and nothing in the encoder depends on it relating
+    /// to base order.
+    Positions(&'doc [ViewRow]),
+    /// Contiguous base-position ranges with arrivals spliced among them.
+    ///
+    /// The unmasked gather when a cohort interleaves. Each splice's delivery index counts rows
+    /// of both kinds, so the walk emits the named arrival whenever its output index reaches a
+    /// splice and a base position otherwise.
+    Spliced {
+        /// The delivered base-position ranges, in delivery order.
+        ranges: &'doc [Range<BasePosition>],
+        /// The spliced arrivals, ascending by delivery index.
+        splices: &'doc [Splice],
+    },
 }
 
 impl DeliveredSet<'_> {
@@ -219,29 +276,84 @@ impl DeliveredSet<'_> {
                 .map(|range| range.end.as_u64() - range.start.as_u64())
                 .sum(),
             Self::Positions(list) => list.len() as u64,
-        }
-    }
+            Self::Spliced { ranges, splices } => {
+                let bases: u64 = ranges
+                    .iter()
+                    .map(|range| range.end.as_u64() - range.start.as_u64())
+                    .sum();
 
-    /// Visits the delivered base positions in delivery order.
-    pub(crate) fn for_each(self, mut visit: impl FnMut(BasePosition)) {
-        match self {
-            Self::Ranges(ranges) => {
-                for range in ranges {
-                    for position in range.clone() {
-                        visit(position);
-                    }
-                }
-            }
-            Self::Positions(list) => {
-                for &position in list {
-                    visit(position);
-                }
+                bases + splices.len() as u64
             }
         }
     }
 }
 
-/// The tile `HEAD` document, slot 0: keys 0 through 10.
+/// An iterator over a delivered set's rows, in delivery order.
+///
+/// A range-shaped set's positions arrive as base rows, and a spliced set's arrivals arrive at
+/// their delivery indexes among the base rows.
+#[derive(Debug)]
+pub(crate) struct DeliveredRows<'doc> {
+    /// The remaining ranges of a range-shaped set.
+    ranges: core::slice::Iter<'doc, Range<BasePosition>>,
+    /// The positions remaining in the current range.
+    current: Range<BasePosition>,
+    /// The splices not yet reached, ascending by delivery index.
+    splices: core::iter::Peekable<core::slice::Iter<'doc, Splice>>,
+    /// The delivery index of the next row.
+    output: u32,
+    /// The remaining rows of a list-shaped set.
+    list: core::slice::Iter<'doc, ViewRow>,
+}
+
+impl Iterator for DeliveredRows<'_> {
+    type Item = ViewRow;
+
+    fn next(&mut self) -> Option<ViewRow> {
+        loop {
+            let output = self.output;
+            if let Some(splice) = self.splices.next_if(|splice| splice.at == output) {
+                self.output += 1;
+                return Some(ViewRow::Arrival(splice.arrival));
+            }
+
+            if let Some(position) = self.current.next() {
+                self.output += 1;
+                return Some(ViewRow::Base(position));
+            }
+
+            match self.ranges.next() {
+                Some(range) => self.current = range.clone(),
+                None => return self.list.next().copied(),
+            }
+        }
+    }
+}
+
+impl<'doc> IntoIterator for DeliveredSet<'doc> {
+    type IntoIter = DeliveredRows<'doc>;
+    type Item = ViewRow;
+
+    fn into_iter(self) -> DeliveredRows<'doc> {
+        let (ranges, splices, list): (&[Range<BasePosition>], &[Splice], &[ViewRow]) = match self {
+            Self::Ranges(ranges) => (ranges, &[], &[]),
+            Self::Positions(list) => (&[], &[], list),
+            Self::Spliced { ranges, splices } => (ranges, splices, &[]),
+        };
+
+        DeliveredRows {
+            ranges: ranges.iter(),
+            current: BasePosition::MIN..BasePosition::MIN,
+            splices: splices.iter().peekable(),
+            output: 0,
+            list: list.iter(),
+        }
+    }
+}
+
+/// The tile `HEAD` document, slot 0.
+///
+/// Keys 5 and 11 are reserved: no response emits either.
 #[derive(Debug)]
 pub(crate) struct TileHead<'doc> {
     /// Key 0: the generation identity, echoing the route.
@@ -252,8 +364,6 @@ pub(crate) struct TileHead<'doc> {
     pub coordinate: TileCoordinate,
     /// Key 3: the delivery mode, echoing the request.
     pub mode: Mode,
-    /// Key 5: the visible subtree count for the extent.
-    pub visible: u64,
     /// Key 6: the first bucket of the runs array.
     pub first_bucket: u8,
     /// Key 7: per-bucket delivered counts from the first bucket up.
@@ -281,7 +391,7 @@ impl TileHead<'_> {
         );
 
         let mut cbor = CborWriter::over(buf);
-        cbor.map(10 + u64::from(self.global.is_some()));
+        cbor.map(9 + u64::from(self.global.is_some()));
 
         cbor.uint(0);
         cbor.bytes(&self.generation.to_bytes());
@@ -296,8 +406,6 @@ impl TileHead<'_> {
         cbor.uint(self.mode.code());
         cbor.uint(4);
         cbor.uint(delivered);
-        cbor.uint(5);
-        cbor.uint(self.visible);
         cbor.uint(6);
         cbor.uint(u64::from(self.first_bucket));
         cbor.uint(7);

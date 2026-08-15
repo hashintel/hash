@@ -8,6 +8,7 @@ use hash_graph_atlas::cli;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
+use hash_graph_store::filter::protection::PropertyProtectionFilterConfig;
 use reqwest::Client;
 use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
@@ -15,7 +16,11 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::{HealthcheckArgs, ServerLifecycle, wait_healthcheck},
+    subcommand::{
+        HealthcheckArgs, ServerLifecycle,
+        server::{TemporalConfig, create_temporal_client},
+        wait_healthcheck,
+    },
 };
 
 /// Address configuration for the atlas server.
@@ -55,6 +60,16 @@ pub struct AtlasArgs {
     #[clap(flatten)]
     pub db_pool_config: DatabasePoolConfig,
 
+    #[clap(flatten)]
+    pub temporal: TemporalConfig,
+
+    /// Disables filter protection that prevents enumeration attacks on protected properties.
+    ///
+    /// The flag matches the server subcommand's, so the embedding exclusions the atlas ensures
+    /// carry stay equal to the exclusions the store's own workflow starts carry.
+    #[clap(long, env = "HASH_GRAPH_SKIP_FILTER_PROTECTION")]
+    pub skip_filter_protection: bool,
+
     #[command(subcommand)]
     pub command: Option<AtlasCommand>,
 }
@@ -69,36 +84,54 @@ pub enum AtlasCommand {
 
 /// Runs the atlas server, shutting down when `shutdown` is cancelled.
 pub(crate) async fn run_atlas(
-    address: AtlasAddress,
-    root: cli::RootArgs,
-    serve: cli::ServeArgs,
-    db_info: &DatabaseConnectionInfo,
-    db_pool_config: &DatabasePoolConfig,
+    args: AtlasArgs,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
+    // The same filter-protection configuration the server subcommand parses, so the embedding
+    // exclusions the staging arm's ensures carry stay equal to the exclusions the store's own
+    // workflow starts carry.
+    let filter_protection = if args.skip_filter_protection {
+        PropertyProtectionFilterConfig::new()
+    } else {
+        PropertyProtectionFilterConfig::hash_default()
+    };
+    let exclusions = filter_protection.embedding_exclusions().clone();
+
     // One pool serves the process: detail trailers and the permission
     // resolution behind every request read through it, so neither
     // waits on a connection the other holds.
     let pool = PostgresStorePool::new(
-        db_info,
-        db_pool_config,
+        &args.db_info,
+        &args.db_pool_config,
         NoTls,
-        PostgresStoreSettings::default(),
+        PostgresStoreSettings {
+            filter_protection,
+            ..PostgresStoreSettings::default()
+        },
     )
     .await
     .change_context(GraphError)?;
 
+    // Absent a configured Temporal server, arrivals stage and never ensure, which fails closed.
+    let ensure = create_temporal_client(&args.temporal)
+        .await?
+        .map(|client| cli::EmbeddingEnsure {
+            temporal: client,
+            exclusions,
+        });
+
     // Every request answers under the scope of the actor it names.
-    let router = cli::ServeCommand::new(root, serve)
+    let router = cli::ServeCommand::new(args.root, args.serve)
         .run(
             Arc::new(pool),
             hash_graph_atlas::cli::VisibilityLimits::default(),
+            ensure,
         )
         .map_err(Report::new)
         .change_context(GraphError)?
         .layer(HttpTracingLayer);
 
-    let listener = TcpListener::bind((&*address.atlas_host, address.atlas_port))
+    let listener = TcpListener::bind((&*args.address.atlas_host, args.address.atlas_port))
         .await
         .change_context(GraphError)?;
 
@@ -136,8 +169,8 @@ fn print_verdict(verdict: &cli::FitVerdict) {
     clippy::exit,
     reason = "Force shutdown on double ctrl-c is intentional"
 )]
-pub async fn atlas(args: AtlasArgs) -> Result<(), Report<GraphError>> {
-    if let Some(AtlasCommand::Fit(fit_args)) = args.command {
+pub async fn atlas(mut args: AtlasArgs) -> Result<(), Report<GraphError>> {
+    if let Some(AtlasCommand::Fit(fit_args)) = args.command.take() {
         let mut client = cli::connect(&args.db_info.url())
             .await
             .map_err(Report::new)
@@ -160,17 +193,7 @@ pub async fn atlas(args: AtlasArgs) -> Result<(), Report<GraphError>> {
 
     let lifecycle = ServerLifecycle::new();
     let shutdown = lifecycle.shutdown.clone();
-    lifecycle.spawn("Atlas", async move {
-        run_atlas(
-            args.address,
-            args.root,
-            args.serve,
-            &args.db_info,
-            &args.db_pool_config,
-            shutdown,
-        )
-        .await
-    });
+    lifecycle.spawn("Atlas", async move { run_atlas(args, shutdown).await });
 
     // Wait for shutdown signal or unexpected server exit
     let aborted = tokio::select! {

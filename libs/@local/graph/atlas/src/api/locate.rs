@@ -40,6 +40,12 @@ The JSON body is required and names the source in exactly one of two fields: `en
      body carrying both or neither answers `invalid-source`. Either field reaches identical \
      geometry bytes for the same source.
 
+A source may also name an entity placed since the generation was fitted: it resolves through the \
+     serving session's own records in either field form, answers its frozen coordinate and \
+     captured display, and delivers alone - the generation's adjacency never names an entity \
+     placed after the fit, so its ego-graph is empty and complete. The row ids such entities \
+     carry die with the serving session that minted them, exactly as translate describes.
+
 The source is delivered first, partners follow ascending by row id, and edges are ordered \
      ascending by link-entity identity bytes (the `EDGE_IDS` column: each edge's 32-byte entity \
      id, web uuid then entity uuid). The manifest's `limits.locateEdges` caps the edge set; under \
@@ -53,13 +59,13 @@ The HEAD also carries the source's first visible zoom and its tile there (the fl
      protection withholds from the requesting actor). `coloredTypeIds` behaves exactly as on the \
      tile route.
 
-The response always carries the detail trailer. Labels come from the generation and are admitted \
-     only when the request-time store read resolves the corresponding entity. The store also \
-     supplies each node's first direct type, the source's properties capped by \
-     `limits.locateProperties`, and each edge's direct types and properties capped by \
-     `limits.locateLinkTypeIds` and `limits.locateLinkProperties`. Each edge cap has a \
-     completeness flag. Type and property references are integer indexes into the trailer's two \
-     sorted URL tables.
+The response always carries the detail trailer. Labels come from the generation (for an entity \
+     placed since the fit, from its placement's captured display) and are admitted only when the \
+     request-time store read resolves the corresponding entity. The store also supplies each \
+     node's first direct type, the source's properties capped by `limits.locateProperties`, and \
+     each edge's direct types and properties capped by `limits.locateLinkTypeIds` and \
+     `limits.locateLinkProperties`. Each edge cap has a completeness flag. Type and property \
+     references are integer indexes into the trailer's two sorted URL tables.
 
 A source that does not name a visible node answers `unknown-entity`: nonexistent, inaccessible, \
      unparsable, and out-of-range `row` values are indistinguishable by design.

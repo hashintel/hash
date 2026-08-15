@@ -53,7 +53,9 @@ use crate::{
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
-    serve::{TableIndex, WireRow, hydrate::EdgeSlot, neighbourhood::EdgeColumns},
+    serve::{
+        TableIndex, WireRow, hydrate::EdgeSlot, neighbourhood::EdgeColumns, schedule::ViewRow,
+    },
 };
 
 /// One pinned fixture with its name, response bytes, and sidecar.
@@ -177,12 +179,15 @@ fn tile_sidecar(
 
     let mut positions_bits = Vec::new();
     let mut row_ids = Vec::new();
-    response.delivered.for_each(|position| {
+    for row in response.delivered {
+        let ViewRow::Base(position) = row else {
+            unreachable!("the wire fixtures deliver base rows alone")
+        };
         let point = response.positions[position];
         positions_bits.push(point.x().to_bits());
         positions_bits.push(point.y().to_bits());
         row_ids.push(response.rows[position]);
-    });
+    }
 
     let global = head.global.as_ref().map_or(Value::Null, |global| {
         let bounds_bits = global.bounds.as_ref().map_or(Value::Null, |bounds| {
@@ -213,7 +218,6 @@ fn tile_sidecar(
         "coordinate": [head.coordinate.z, head.coordinate.x, head.coordinate.y],
         "mode": head.mode.code(),
         "delivered": row_ids.len(),
-        "visible": head.visible,
         "firstBucket": head.first_bucket,
         "runs": head.runs,
         "global": global,
@@ -318,7 +322,6 @@ fn g1_minimal_tile() -> Fixture {
             variant: 0,
             coordinate: TileCoordinate { z: 2, x: 3, y: 1 },
             mode: Mode::Delta,
-            visible: 17,
             first_bucket: 4,
             runs: &[3],
             global: None,
@@ -327,6 +330,7 @@ fn g1_minimal_tile() -> Fixture {
         delivered: DeliveredSet::Ranges(&ranges),
         positions: IdSlice::from_raw(&positions),
         rows: IdSlice::from_raw(&rows),
+        arrivals: IdSlice::from_raw(&[]),
         masks: Some(&masks),
         trailer: None,
     };
@@ -383,7 +387,6 @@ fn g2_root_tile() -> Fixture {
             variant: 0,
             coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
             mode: Mode::Delta,
-            visible: 4,
             first_bucket: 0,
             runs: &[1, 0, 2],
             global: Some(GlobalHead {
@@ -396,6 +399,7 @@ fn g2_root_tile() -> Fixture {
         delivered: DeliveredSet::Ranges(&ranges),
         positions: IdSlice::from_raw(&positions),
         rows: IdSlice::from_raw(&rows),
+        arrivals: IdSlice::from_raw(&[]),
         masks: None,
         trailer: None,
     };
@@ -464,7 +468,6 @@ fn g3_total_tile() -> Fixture {
             variant: 0,
             coordinate: TileCoordinate { z: 1, x: 1, y: 0 },
             mode: Mode::Total,
-            visible: 6,
             first_bucket: 0,
             runs: &[1, 0, 3, 2],
             global: None,
@@ -473,6 +476,7 @@ fn g3_total_tile() -> Fixture {
         delivered: DeliveredSet::Ranges(&ranges),
         positions: IdSlice::from_raw(&positions),
         rows: IdSlice::from_raw(&rows),
+        arrivals: IdSlice::from_raw(&[]),
         masks: Some(&masks),
         trailer: None,
     };
@@ -517,7 +521,6 @@ fn g4_empty_root() -> Fixture {
             variant: 0,
             coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
             mode: Mode::Delta,
-            visible: 0,
             first_bucket: 0,
             runs: &[0, 0, 0],
             global: Some(GlobalHead {
@@ -530,6 +533,7 @@ fn g4_empty_root() -> Fixture {
         delivered: DeliveredSet::Ranges(&[]),
         positions: IdSlice::from_raw(&[]),
         rows: IdSlice::from_raw(&[]),
+        arrivals: IdSlice::from_raw(&[]),
         masks: None,
         trailer: None,
     };
@@ -589,7 +593,6 @@ fn g5_trailer_tile() -> Fixture {
             variant: 0,
             coordinate: TileCoordinate { z: 1, x: 1, y: 0 },
             mode: Mode::Delta,
-            visible: 8,
             first_bucket: 3,
             runs: &[4],
             global: None,
@@ -598,6 +601,7 @@ fn g5_trailer_tile() -> Fixture {
         delivered: DeliveredSet::Ranges(&ranges),
         positions: IdSlice::from_raw(&positions),
         rows: IdSlice::from_raw(&rows),
+        arrivals: IdSlice::from_raw(&[]),
         masks: None,
         trailer: Some(TileTrailer {
             labels: &labels,
@@ -796,7 +800,8 @@ fn g7_locate() -> Fixture {
     // Source at base position 6, then partners ascending by wire row id per the delivery pin. Row
     // 61 comes first, then 11 < 21 < 41, so the fixture matches the ratified order, not the
     // envelope structure alone.
-    let delivered = [6_u32, 1, 2, 4].map(BasePosition::from_u32);
+    let delivered =
+        [6_u32, 1, 2, 4].map(|position| ViewRow::Base(BasePosition::from_u32(position)));
 
     // type 0: list members at 1 and 6; type 1: dense bit at 4 over
     // N = 8. Delivered order 6, 1, 2, 4:
@@ -824,6 +829,7 @@ fn g7_locate() -> Fixture {
         type_ids_complete: true,
         properties_complete: false,
         delivered: IdSlice::from_raw(&delivered),
+        arrivals: IdSlice::from_raw(&[]),
         positions: IdSlice::from_raw(&positions),
         rows: IdSlice::from_raw(&rows),
         masks: Some(&masks),
@@ -907,11 +913,17 @@ fn locate_sidecar(
 ) -> Value {
     let mut positions_bits = Vec::new();
     let mut row_ids = Vec::new();
-    for &position in response.delivered {
-        let point = response.positions[position];
+    for &vessel in response.delivered {
+        let (point, wire) = match vessel {
+            ViewRow::Base(position) => (response.positions[position], response.rows[position]),
+            ViewRow::Arrival(index) => {
+                let arrival = &response.arrivals[index];
+                (arrival.point, arrival.wire)
+            }
+        };
         positions_bits.push(point.x().to_bits());
         positions_bits.push(point.y().to_bits());
-        row_ids.push(response.rows[position]);
+        row_ids.push(wire);
     }
 
     let trailer = &response.trailer;
@@ -1027,7 +1039,6 @@ fn g8_appended_slot() -> Fixture {
             variant: 0,
             coordinate: TileCoordinate { z: 3, x: 5, y: 2 },
             mode: Mode::Delta,
-            visible: 6,
             first_bucket: 5,
             runs: &[3],
             global: None,
@@ -1036,6 +1047,7 @@ fn g8_appended_slot() -> Fixture {
         delivered: DeliveredSet::Ranges(&ranges),
         positions: IdSlice::from_raw(&positions),
         rows: IdSlice::from_raw(&rows),
+        arrivals: IdSlice::from_raw(&[]),
         masks: None,
         trailer: None,
     };
@@ -1107,18 +1119,17 @@ fn g9_padding_low() -> Fixture {
     let response = TileResponse {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x99; 32]),
-            variant: 0,
-            // x = 1000 and visible = 1200 take two-byte arguments and
-            // y = 30 a one-byte argument, sizing the HEAD to 63
+            variant: 24,
+            // The variant, z, and firstBucket take two-byte arguments
+            // and x and y three-byte ones, sizing the HEAD to 63
             // bytes: pad 1.
             coordinate: TileCoordinate {
-                z: 10,
+                z: 24,
                 x: 1000,
-                y: 30,
+                y: 3000,
             },
             mode: Mode::Delta,
-            visible: 1200,
-            first_bucket: 12,
+            first_bucket: 26,
             runs: &[5],
             global: None,
             children: 0b0011,
@@ -1126,6 +1137,7 @@ fn g9_padding_low() -> Fixture {
         delivered: DeliveredSet::Ranges(&ranges),
         positions: IdSlice::from_raw(&positions),
         rows: IdSlice::from_raw(&rows),
+        arrivals: IdSlice::from_raw(&[]),
         masks: Some(&masks),
         trailer: None,
     };
@@ -1179,18 +1191,17 @@ fn g10_padding_high() -> Fixture {
     let response = TileResponse {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0xAA; 32]),
-            variant: 0,
-            // x = 300 and visible = 400 take two-byte arguments and
-            // y = 17 rides inline, sizing the HEAD to 62 bytes:
-            // pad 2.
+            variant: 25,
+            // The variant, z, y, and firstBucket take two-byte
+            // arguments and x a three-byte one, sizing the HEAD to 62
+            // bytes: pad 2.
             coordinate: TileCoordinate {
-                z: 9,
+                z: 25,
                 x: 300,
-                y: 17,
+                y: 170,
             },
             mode: Mode::Delta,
-            visible: 400,
-            first_bucket: 11,
+            first_bucket: 27,
             runs: &[3],
             global: None,
             children: 0b1000,
@@ -1198,6 +1209,7 @@ fn g10_padding_high() -> Fixture {
         delivered: DeliveredSet::Ranges(&ranges),
         positions: IdSlice::from_raw(&positions),
         rows: IdSlice::from_raw(&rows),
+        arrivals: IdSlice::from_raw(&[]),
         masks: Some(&masks),
         trailer: None,
     };

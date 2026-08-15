@@ -7,10 +7,8 @@ use core::panic::AssertUnwindSafe;
 
 use aide::transform::TransformOperation;
 use axum::{extract::State, http::StatusCode};
-use hashql_core::id::{IdSlice, IdVec};
 use tokio::sync::oneshot;
 use tracing::Instrument as _;
-use type_system::ontology::id::VersionedUrl;
 
 use super::{
     AppState, clause,
@@ -23,7 +21,7 @@ use crate::{
     dataset::postgres::id::ArchivedEntityId,
     serve::{
         EdgesError, EdgesRequest,
-        hydrate::{DetailError, EdgeSlot, EdgesStore},
+        hydrate::{DetailError, EdgesHydration, EdgesOrder, EdgesStore},
     },
 };
 
@@ -49,9 +47,16 @@ When the server's edge cap truncates the set, the response keeps the edges whose
      ranks best, and the HEAD's `complete` key reads `false`.
 
 `detail: \"auxiliary\"` adds the detail trailer (`\"minimal\"`, the default, sends the columns \
-     alone). Each edge's label comes from the generation. A request-time store read supplies each \
-     edge's first direct type, represented as an integer index into the trailer's sorted type-URL \
-     table.
+     alone). Each fitted edge's label comes from the generation. A request-time store read \
+     supplies each edge's first direct type, represented as an integer index into the trailer's \
+     sorted type-URL table, and each delta edge's label beside it.
+
+Entities and links that arrive after the serving generation's fit can also appear. A post-fit link \
+     is an ordinary edge row wherever both of its endpoints deliver, merged into the same \
+     identity order, and its label and first type come from the request-time store read rather \
+     than the generation. An endpoint placed since the fit takes a session-scoped row id, and \
+     such ids die with the serving session that minted them, exactly as locate and translate \
+     describe.
 
 Filtering binds at the manifest. This body has no `filter` field, and an unknown member is \
      rejected as `invalid-body`.
@@ -92,15 +97,20 @@ pub(super) async fn handler(
         })),
         async {
             // An order never arrives when the request skips the trailer, rejects, or panics first.
-            let Ok(links) = order_receiver.await else {
+            let Ok((fitted, delta)) = order_receiver.await else {
                 return;
             };
 
-            let answer = state
-                .remote
-                .edges_link_hydration(&links)
-                .in_current_span()
-                .await;
+            let answer = async {
+                let (fitted, delta) = tokio::try_join!(
+                    state.remote.edges_link_hydration(&fitted),
+                    state.remote.link_display_hydration(&delta),
+                )?;
+
+                Ok(EdgesHydration { fitted, delta })
+            }
+            .in_current_span()
+            .await;
 
             let _: Result<(), _> = answer_sender.send(answer);
         },
@@ -142,20 +152,17 @@ pub(super) async fn handler(
 
 /// The transport's edges store, carrying one order out to the handler and one answer back in.
 struct ChannelEdgesStore {
-    order: oneshot::Sender<IdVec<EdgeSlot, ArchivedEntityId>>,
-    answer: oneshot::Receiver<Result<IdVec<EdgeSlot, Option<VersionedUrl>>, DetailError>>,
+    order: oneshot::Sender<(Vec<ArchivedEntityId>, Vec<ArchivedEntityId>)>,
+    answer: oneshot::Receiver<Result<EdgesHydration, DetailError>>,
 }
 
 impl EdgesStore for ChannelEdgesStore {
-    fn hydrate(
-        self,
-        links: &IdSlice<EdgeSlot, ArchivedEntityId>,
-    ) -> Result<IdVec<EdgeSlot, Option<VersionedUrl>>, DetailError> {
-        // The channel is the one boundary that owns the identities, so the column materializes
+    fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError> {
+        // The channel is the one boundary that owns the identities, so the lists materialize
         // here and nowhere earlier.
         self.order
-            .send(links.iter().copied().collect())
-            .map_err(|_links| DetailError::Disconnected)?;
+            .send((order.fitted.to_vec(), order.delta.to_vec()))
+            .map_err(|_order| DetailError::Disconnected)?;
 
         self.answer
             .blocking_recv()

@@ -72,7 +72,6 @@ export interface SaltileTileDetail {
 /** One decoded tile response; typed arrays are views, not copies. */
 export interface DecodedSaltileTile {
   readonly delivered: number;
-  readonly visible: number;
   readonly firstBucket: number;
   /** Per-bucket delivered counts for buckets firstBucket.. */
   readonly runs: readonly number[];
@@ -91,14 +90,13 @@ export interface DecodedSaltileTile {
   readonly global: SaltileTileGlobal | null;
 }
 
-/** HEAD keys of the tile schema. */
+/** HEAD keys of the tile schema. Keys 5 and 11 are retired: no response emits either. */
 const tileHeadKeys = {
   generation: 0,
   variant: 1,
   coordinate: 2,
   mode: 3,
   delivered: 4,
-  visible: 5,
   firstBucket: 6,
   runs: 7,
   global: 8,
@@ -238,18 +236,6 @@ export const decodeSaltileTile = (
     "delivered",
     headOffset,
   );
-  const visible = requireUint(
-    head,
-    tileHeadKeys.visible,
-    "visible",
-    headOffset,
-  );
-  if (visible < delivered) {
-    return fail(
-      `HEAD visible ${visible} is below delivered ${delivered}`,
-      headOffset,
-    );
-  }
 
   const firstBucket = requireUint(
     head,
@@ -384,7 +370,6 @@ export const decodeSaltileTile = (
 
   return {
     delivered,
-    visible,
     firstBucket,
     runs,
     children,

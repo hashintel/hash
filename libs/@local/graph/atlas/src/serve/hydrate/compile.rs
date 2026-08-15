@@ -4,7 +4,11 @@
 //! filter. The caller's own filter intersects with it when the request carries one. The result
 //! selects the web id and entity uuid of every entity in the actor's viewable set. Each returned id
 //! resolves against the generation's identity tables, and the rows that resolve form the proof's
-//! two masks. Node rows go in one mask and link rows in the other.
+//! two masks. Node rows go in one mask and link rows in the other. An id the generation never
+//! fitted resolves once more through the resolution's placement cohort. A placed arrival
+//! admits its slot into the node mask, so the proof's width follows the cohort's universe rather
+//! than the generation's, and a published delta link enters the proof's admitted identity set,
+//! so the same resolution authorizes the post-fit edges a response may append.
 //!
 //! Because the caller's filter and the policy filter meet in the same statement, a filtered request
 //! and a permission-restricted request arrive at serving in the same shape, a proof
@@ -45,6 +49,7 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_types::ontology::DataTypeLookup;
+use hashql_core::collections::fast_hash_set;
 use tokio_postgres::GenericClient as _;
 use type_system::{
     knowledge::{Entity, entity::id::EntityUuid},
@@ -57,7 +62,7 @@ use crate::{
     bitset::CompressedBitSet,
     dataset::postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
     offload::OffloadError,
-    serve::{Atlas, VisibilityProof},
+    serve::{Atlas, VisibilityProof, delta::PlacementCohort},
 };
 
 /// Resolving an actor's visible rows against the store failed.
@@ -84,6 +89,12 @@ pub(crate) enum ProofError {
     Rows(tokio_postgres::Error),
     /// The offloaded schedule-and-census computation produced no value.
     ComputeView(OffloadError),
+}
+
+impl From<OffloadError> for ProofError {
+    fn from(error: OffloadError) -> Self {
+        Self::ComputeView(error)
+    }
 }
 
 impl fmt::Display for ProofError {
@@ -154,6 +165,14 @@ const fn admits_every_row(
 /// A row is visible when the query returned its entity id. Both masks stay separate because the
 /// link rows an actor's policies admit are not a function of the node rows they admit.
 ///
+/// `cohort` is the arrivals snapshot this resolution reads. A returned identity the generation
+/// never fitted admits its cohort slot into the node mask, so a scoped proof answers placed
+/// arrivals exactly where it answers fitted rows, and the mask's width follows the cohort's
+/// universe. A returned identity the cohort publishes as a delta link enters the proof's
+/// admitted identity set, the same admission one query grants the other three shapes. The
+/// caller binds the same snapshot beside the proof, so the slots and links the proof admits and
+/// the placements a request reads come from one publication.
+///
 /// Caller requirement: `atlas` is the generation the proof serves, since row ids are that
 /// generation's own. Caller requirement: the generation's node and link identity tables carry
 /// disjoint entity ids. An id that both tables carry resolves as a node row.
@@ -173,12 +192,10 @@ pub(crate) async fn visibility_proof<S>(
     protection: &PropertyProtectionFilterConfig<'static>,
     store: &S,
     atlas: &Atlas,
+    cohort: PlacementCohort<'_>,
 ) -> Result<(VisibilityProof, MaskingActor), ProofError>
 where
     S: PrincipalStore + PolicyStore + AsClient + Sync,
-    // The conversion resolves a caller filter's parameters to their paths' types through the
-    // store, exactly as the entity read path does, so the store must back the same
-    // `DataTypeLookup` provider.
     for<'a> StoreProvider<'a, S>: DataTypeLookup + Sync,
 {
     let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
@@ -257,8 +274,11 @@ where
 
     let mut nodes = CompressedBitSet::default();
     let mut edges = CompressedBitSet::default();
-    // Entities the actor may view that this generation does not carry: created after publish, or of
-    // a shape the corpus does not place.
+    let mut links = fast_hash_set();
+    // Placed arrivals the actor may view, admitted into the node mask on their cohort slots.
+    let mut placed = 0_u64;
+    // Entities the actor may view that neither the generation nor the cohort carries: staged or
+    // unplaced arrivals, or of a shape the corpus does not place.
     let mut unplaced = 0_u64;
 
     let mut stream = pin!(stream);
@@ -277,6 +297,11 @@ where
             nodes.insert(row_id);
         } else if let Some(row_id) = atlas.edge_ids.row_of(id) {
             edges.insert(row_id);
+        } else if let Some(arrival) = cohort.placed(id) {
+            nodes.insert(arrival.slot);
+            placed += 1;
+        } else if cohort.link(id).is_some() {
+            links.insert(id);
         } else {
             unplaced += 1;
         }
@@ -285,11 +310,13 @@ where
     tracing::debug!(
         nodes = nodes.count(),
         edges = edges.count(),
+        links = links.len(),
+        placed,
         unplaced,
         "resolved the actor's visible rows"
     );
 
-    Ok((VisibilityProof::from_masks(nodes, edges), masking))
+    Ok((VisibilityProof::from_masks(nodes, edges, links), masking))
 }
 
 #[cfg(test)]

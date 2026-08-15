@@ -6,7 +6,8 @@
 //! matching entity queries without ever producing a readable event. Consumers that maintain a
 //! derived view of published entities need those events, and this module supplies them as one
 //! feed: [`PostgresStore::entity_events_since`], a stream whose single statement reads the
-//! temporal-metadata rows and the `entity_ids` tombstone columns together.
+//! temporal-metadata rows, the present editions' archived flags, and the `entity_ids` tombstone
+//! columns together.
 //!
 //! The feed takes a transaction-time watermark and yields events that occurred strictly after
 //! it. An event's time comes from the writing process's own wall clock, taken before any write
@@ -61,15 +62,18 @@ const ENTITY_EVENT_FEED: &str = "
 -- entity's state at the current decision time. Writes mutate it in place, so its
 -- transaction-time start is the moment the present last changed and its edition is the one
 -- current now. A patch confined to closed decision history never touches this row, so pure
--- history corrections do not appear.
+-- history corrections do not appear. The archived flag lives on the edition rather than the
+-- temporal row, and the foreign key from temporal rows to editions makes the join total.
 SELECT web_id,
        entity_uuid,
        entity_edition_id,
+       archived,
        lower(transaction_time) AS occurred_at,
        'updated' AS reason,
        NULL::UUID AS deleted_by_id,
        NULL::TIMESTAMPTZ AS deleted_at_decision_time
 FROM entity_temporal_metadata
+JOIN entity_editions USING (entity_edition_id)
 WHERE draft_id IS NULL
   AND upper_inf(transaction_time)
   AND upper_inf(decision_time)
@@ -85,6 +89,7 @@ UNION ALL
 SELECT closed.web_id,
        closed.entity_uuid,
        NULL::UUID AS entity_edition_id,
+       NULL::BOOLEAN AS archived,
        max(lower(closed.transaction_time)) AS occurred_at,
        'ended' AS reason,
        NULL::UUID AS deleted_by_id,
@@ -114,6 +119,7 @@ UNION ALL
 SELECT web_id,
        entity_uuid,
        NULL::UUID AS entity_edition_id,
+       NULL::BOOLEAN AS archived,
        deleted_at_transaction_time AS occurred_at,
        'deleted' AS reason,
        deleted_by_id,
@@ -132,6 +138,8 @@ pub struct EntityUpdate {
     pub entity: EntityId,
     /// The edition current at the present, read in the same snapshot that observed the change.
     pub edition: EntityEditionId,
+    /// The carried edition's archived flag, read in the same snapshot that observed the change.
+    pub archived: bool,
     /// When the present last changed, on the transaction-time axis.
     pub changed_at: Timestamp<TransactionTime>,
 }
@@ -203,22 +211,23 @@ fn decode_event(row: &Row) -> Result<EntityEvent, tokio_postgres::Error> {
         draft_id: None,
     };
 
-    Ok(match row.try_get(4)? {
+    Ok(match row.try_get(5)? {
         EventKind::Updated => EntityEvent::Updated(EntityUpdate {
             entity,
             edition: row.try_get(2)?,
-            changed_at: row.try_get(3)?,
+            archived: row.try_get(3)?,
+            changed_at: row.try_get(4)?,
         }),
         EventKind::Ended => EntityEvent::Ended(EntityEnd {
             entity,
-            ended_at: row.try_get(3)?,
+            ended_at: row.try_get(4)?,
         }),
         EventKind::Deleted => EntityEvent::Deleted(EntityDeletion {
             entity,
             provenance: EntityDeletionProvenance {
-                deleted_by_id: row.try_get(5)?,
-                deleted_at_transaction_time: row.try_get(3)?,
-                deleted_at_decision_time: row.try_get(6)?,
+                deleted_by_id: row.try_get(6)?,
+                deleted_at_transaction_time: row.try_get(4)?,
+                deleted_at_decision_time: row.try_get(7)?,
             },
         }),
     })
@@ -288,9 +297,10 @@ where
     ///   unbounded, and it holds the entity's state at the current decision time. Creating or
     ///   undrafting an entity, publishing a draft over a live one, and every patch whose decision
     ///   time falls inside the open present slice all fire this kind, each event carrying only the
-    ///   edition current at the present, so editions written and replaced between two reads never
-    ///   appear. A patch that only flips the archived flag fires it too, because that flag lives on
-    ///   the new edition rather than on the temporal row.
+    ///   edition current at the present, with that edition's archived flag, so editions written and
+    ///   replaced between two reads never appear. A patch that only flips the archived flag fires
+    ///   it too, because the flag lives on the new edition rather than on the temporal row, and the
+    ///   carried flag is the value after the flip.
     /// - [`EntityEvent::Ended`]: the entity has a transaction-time-current row written after
     ///   `since` whose decision axis is bounded, and no present row remains. The condition ranges
     ///   over current rows only: an ended entity's transaction-time-closed history keeps unbounded
@@ -313,8 +323,9 @@ where
     /// delivered.
     /// To maintain a view of current state, apply [`Updated`](EntityEvent::Updated) as an upsert
     /// of the carried edition, and [`Ended`](EntityEvent::Ended) and
-    /// [`Deleted`](EntityEvent::Deleted) as removals. Draft rows never enter the feed, and pure
-    /// history corrections to live entities fire nothing.
+    /// [`Deleted`](EntityEvent::Deleted) as removals. A view that excludes archived entities
+    /// reads the carried flag and treats a set flag as a removal. Draft rows never enter the feed,
+    /// and pure history corrections to live entities fire nothing.
     ///
     /// The comparison against `since` is strict, so an event that occurred exactly at `since`
     /// stays

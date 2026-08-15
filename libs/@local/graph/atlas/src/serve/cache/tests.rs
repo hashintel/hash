@@ -5,7 +5,7 @@ use core::{
 };
 use std::time::Instant;
 
-use hashql_core::id::Id as _;
+use hashql_core::{collections::fast_hash_set, id::Id as _};
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
@@ -55,6 +55,7 @@ fn proof_of(nodes: &[u32]) -> VisibilityProof {
     VisibilityProof::from_masks(
         CompressedBitSet::from_rows(nodes.iter().copied().map(NodeRowId::from_u32)),
         CompressedBitSet::<EdgeRowId>::new(),
+        fast_hash_set(),
     )
 }
 
@@ -265,6 +266,7 @@ async fn weighing_a_small_scope_leaves_the_memo_unbuilt() {
             id: None,
             instance_admin: false,
         },
+        None,
         None,
     )
     .await
@@ -540,5 +542,78 @@ async fn failed_resolution_holds_no_entry() {
     assert!(
         cache.get(&key()).await.is_none(),
         "a failed resolution leaves no entry"
+    );
+}
+
+/// Identity tables of a generation that fitted nothing, so a snapshot resolves no rows.
+struct Unfitted;
+
+impl crate::serve::delta::IdentityTables for Unfitted {
+    fn node_row_of(
+        &self,
+        _id: crate::dataset::postgres::id::ArchivedEntityId,
+    ) -> Option<NodeRowId> {
+        None
+    }
+
+    fn edge_row_of(
+        &self,
+        _id: crate::dataset::postgres::id::ArchivedEntityId,
+    ) -> Option<EdgeRowId> {
+        None
+    }
+}
+
+/// An entry hands requests the cohort its resolution bound.
+///
+/// The universe check reads the bound snapshot's own bound rather than the base the caller
+/// offers, so the entry's arrival-sensitive reads follow the resolution's publication. An entry
+/// resolved with no publication answers the base, which is the empty cohort's contract.
+#[tokio::test]
+async fn an_entry_exposes_the_cohort_its_resolution_bound() {
+    use hash_graph_temporal_versioning::Timestamp;
+
+    use crate::serve::{
+        codec::Universe,
+        delta::{DeltaRegister, DeltaRevision},
+    };
+
+    let register = DeltaRegister::new(Universe::new(10));
+    let snapshot = Arc::new(register.snapshot(
+        &Unfitted,
+        DeltaRevision::FIRST,
+        Timestamp::from_unix_timestamp(1),
+    ));
+
+    let cache = VisibilityCache::new(LIMITS);
+    let now = Instant::now();
+
+    let bound = cache
+        .resolve(key(), now, {
+            let snapshot = Arc::clone(&snapshot);
+            async move || {
+                Ok::<_, ()>(
+                    PendingCacheEntry::with_empty_view(proof_of(&[1])).with_cohort(snapshot),
+                )
+            }
+        })
+        .await
+        .expect("the resolution answers");
+    assert_eq!(
+        bound.cohort().universe(Universe::new(7)),
+        Universe::new(10),
+        "the bound snapshot's universe answers"
+    );
+
+    let unbound = cache
+        .resolve(key_of(12), now, async || {
+            Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of(&[2])))
+        })
+        .await
+        .expect("the resolution answers");
+    assert_eq!(
+        unbound.cohort().universe(Universe::new(7)),
+        Universe::new(7),
+        "an empty cohort answers the base"
     );
 }

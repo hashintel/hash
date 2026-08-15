@@ -5,6 +5,7 @@
 
 use core::{error::Error, fmt};
 
+use hashql_core::id::IdSlice;
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
@@ -13,12 +14,17 @@ use super::{
     density::ViewOccupancy,
     grid,
     hydrate::NodeDetails,
+    schedule::{ArrivalIndex, ArrivalRow, ViewRow},
     view::{View, ViewError},
     visibility::VisibilityProof,
-    walk::{DeliveredPoints, ViewCensus, Walk, full::occupied_children},
+    walk::{
+        DeliveredPoints, ViewCensus, Walk, full::occupied_children, subtract::subtract_withdrawn,
+    },
 };
 use crate::{
     dataset::auxiliary::{Icon, Label},
+    file::quad::Node,
+    morton::MortonCell,
     salt::{
         postings::closure::IconSource,
         wire::{
@@ -171,7 +177,6 @@ pub(crate) struct TileRequest {
 struct TileDocument {
     coordinate: TileCoordinate,
     mode: Mode,
-    visible: u64,
     first_bucket: u8,
     runs: Vec<u32>,
     delivered: DeliveredPoints,
@@ -185,8 +190,8 @@ impl Atlas {
     ///
     /// `SALTILET` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`. A
     /// request asking for the detail trailer resolves per-point labels and icons in process from
-    /// the generation's own payloads, so every section of the envelope assembles from the opened
-    /// artifacts alone.
+    /// the generation's own payloads and the arrivals' captured displays, so every section of
+    /// the envelope assembles from the opened artifacts and the view's own cohort alone.
     ///
     /// # Errors
     ///
@@ -199,38 +204,61 @@ impl Atlas {
     ) -> Result<Vec<u8>, TileError> {
         let document = self.assemble_tile(request, limits, &view)?;
 
+        let arrivals = view.arrivals();
+
         let details = match request.query.detail {
             TileDetail::Minimal => None,
             TileDetail::Auxiliary => {
                 let mut labels = Vec::with_capacity(document.delivered.count());
                 let mut icons = Vec::with_capacity(document.delivered.count());
 
-                for position in document.delivered.iter() {
-                    let id = self.rows.view()[position];
-                    let label = self
-                        .node_ids
-                        .payload_of(id)
-                        .map_or(Label::empty(), |legend| legend.label());
+                for row in document.delivered.iter() {
+                    match row {
+                        ViewRow::Base(position) => {
+                            let id = self.rows.view()[position];
+                            let label = self
+                                .node_ids
+                                .payload_of(id)
+                                .map_or(Label::empty(), |legend| legend.label());
 
-                    labels.push(label);
+                            labels.push(label);
 
-                    if let Some(types) = self.postings.direct_types(position)
-                        && let Some((_, icon, _)) = types
-                            .iter()
-                            .enumerate()
-                            .filter_map(|(index, &r#type)| {
-                                let IconSource { source, depth } =
-                                    self.closure.icon_source(r#type)?;
+                            if let Some(types) = self.postings.direct_types(position)
+                                && let Some((_, icon, _)) = types
+                                    .iter()
+                                    .enumerate()
+                                    .filter_map(|(index, &r#type)| {
+                                        let IconSource { source, depth } =
+                                            self.closure.icon_source(r#type)?;
 
-                                self.ontology_ids
-                                    .payload_of(source)
-                                    .map(|icon| (index, icon, depth))
-                            })
-                            .min_by_key(|&(index, _, depth)| (depth, index))
-                    {
-                        icons.push(icon);
-                    } else {
-                        icons.push(Icon::empty());
+                                        self.ontology_ids
+                                            .payload_of(source)
+                                            .map(|icon| (index, icon, depth))
+                                    })
+                                    .min_by_key(|&(index, _, depth)| (depth, index))
+                            {
+                                icons.push(icon);
+                            } else {
+                                icons.push(Icon::empty());
+                            }
+                        }
+                        ViewRow::Arrival(index) => {
+                            let arrival = &arrivals[index];
+                            labels.push(&arrival.display.label);
+
+                            // The capture holds the arrival's first type as a store uuid. A
+                            // type the generation never tabulated resolves no row and the
+                            // icon stays empty, the trailer's answer for every unresolved id.
+                            let icon = arrival
+                                .display
+                                .first_type
+                                .and_then(|uuid| self.ontology_ids.row_of(uuid))
+                                .and_then(|row| self.closure.icon_source(row))
+                                .and_then(|IconSource { source, .. }| {
+                                    self.ontology_ids.payload_of(source)
+                                });
+                            icons.push(icon.unwrap_or(Icon::empty()));
+                        }
                     }
                 }
 
@@ -238,7 +266,7 @@ impl Atlas {
             }
         };
 
-        Ok(self.encode_tile(&document, details.as_ref()))
+        Ok(self.encode_tile(&document, arrivals, details.as_ref()))
     }
 
     /// Censuses the visible view `proof` admits over this generation.
@@ -283,6 +311,10 @@ impl Atlas {
     /// metadata) reduced over the visible view alone. A hidden point contributes to none of them,
     /// so a scope's tile carries no evidence of what the mask removed: a fully masked tile is a
     /// tile that never had rows.
+    ///
+    /// The view's admitted arrivals join both delivery laws at their own first-occupant
+    /// buckets. A bound cut merges them from its overlay or its own slots, and the operator
+    /// delivery splices them into its ranges. Every `HEAD` field folds them in the same way.
     ///
     /// Version 0 serves the full unfiltered visible set in both modes. The body vocabulary admits
     /// no visibility filter, so a request naming one rejects as `invalid-body` rather than
@@ -343,7 +375,7 @@ impl Atlas {
             reason = "both arms borrow `walk` and `node`, which `map_or_else` closures cannot \
                       share"
         )]
-        let (delivered, first_bucket, runs, children) = if let Some(cut) = scope_cut {
+        let (mut delivered, first_bucket, mut runs, children) = if let Some(cut) = scope_cut {
             let delivery = match request.query.mode {
                 Mode::Delta => cut.delta(coordinate.z, cell),
                 Mode::Total => cut.total(coordinate.z, cell),
@@ -351,44 +383,51 @@ impl Atlas {
             let children = cut.children(coordinate.z, cell);
 
             (
-                DeliveredPoints::Positions(delivery.positions),
+                DeliveredPoints::Positions(delivery.rows),
                 delivery.first_bucket,
                 delivery.runs,
                 children,
             )
         } else {
-            let full = match (request.query.mode, coordinate.z) {
-                (Mode::Delta, 0) => walk.root_delta(),
-                (Mode::Delta, _) => walk.delta(coordinate.z, node),
-                (Mode::Total, _) => walk.total(coordinate.z, cell),
-            };
-            let children = node.map_or(0, occupied_children);
-
-            (
-                DeliveredPoints::Ranges(full.ranges),
-                full.first_bucket,
-                full.runs,
-                children,
-            )
+            self.corpus_delivery(&walk, view, request.query.mode, coordinate.z, cell, node)
         };
 
-        let visible = if coordinate.z == 0 {
-            proof.visible_below(self.morton.count())
-        } else if view.is_full() {
-            node.map_or_else(|| walk.population(cell), |node| u64::from(node.points()))
-        } else {
-            walk.visible_population(cell)
-        };
+        // Admission subtraction: the ingress snapshot's withdrawn rows leave the document here,
+        // before the trailer gathers any detail, so labels stay aligned to the surviving points
+        // by construction. An empty projection skips the walk whole. The gate widens for a
+        // view holding arrivals, because a retained cohort can serve an identity the
+        // ingress set withdraws without any fitted row entering the bitsets.
+        if let Some(delta) = view.delta()
+            && (delta.withdraws_any_node()
+                || (delta.withdraws_any() && !view.arrivals().is_empty()))
+        {
+            let row_ids = self.row_ids();
+            let arrivals = view.arrivals();
+            subtract_withdrawn(&mut delivered, &mut runs, |row| match row {
+                ViewRow::Base(position) => delta.withdraws_node(row_ids[position]),
+                ViewRow::Arrival(index) => delta.withdraws(arrivals[index].identity),
+            });
+        }
 
         // The root publishes the view's own aggregates. The scope resolved the extent once, and the
         // count and resolution are the schedule's, so a scoped root names its own cascade rather
-        // than the corpus one.
+        // than the corpus one. The census is position-bounded, so the corpus arm folds the
+        // overlay's delivered count and resolution in here, exactly as a bound cut folds its own.
         let global = (coordinate.z == 0).then(|| {
             scope_cut.map_or_else(
-                || GlobalHead {
-                    visible: census.visible(),
-                    bounds: census.bounds(),
-                    min_resolution: census.min_resolution(),
+                || {
+                    let overlay = view.overlay();
+                    let deepest = self.grid.deepest();
+                    let arrivals = overlay
+                        .min_resolution(deepest)
+                        .map_or(0, |bucket| u64::from(bucket.get()));
+
+                    GlobalHead {
+                        visible: census.visible()
+                            + overlay.delivered_through(self.grid.cut(0), deepest),
+                        bounds: census.bounds(),
+                        min_resolution: census.min_resolution().max(arrivals),
+                    }
                 },
                 |cut| GlobalHead {
                     visible: cut.root_delivered(),
@@ -404,7 +443,6 @@ impl Atlas {
         Ok(TileDocument {
             coordinate,
             mode: request.query.mode,
-            visible,
             first_bucket,
             runs,
             delivered,
@@ -412,6 +450,57 @@ impl Atlas {
             global,
             mask_set,
         })
+    }
+
+    /// Assembles the operator delivery: the corpus fast paths with the view's arrivals merged.
+    ///
+    /// The view's arrivals join the delivery as splices, and the child bitmask as occupancy the
+    /// cumulative schedule has yet to deliver. The deepest zoom's cut is the catch-all, below
+    /// which nothing exists. A view holding no arrival keeps the borrowed range shape whole.
+    fn corpus_delivery(
+        &self,
+        walk: &Walk<'_>,
+        view: &View<'_>,
+        mode: Mode,
+        z: u8,
+        cell: MortonCell,
+        node: Option<&Node>,
+    ) -> (DeliveredPoints, u8, Vec<u32>, u8) {
+        let mut full = match (mode, z) {
+            (Mode::Delta, 0) => walk.root_delta(),
+            (Mode::Delta, _) => walk.delta(z, node),
+            (Mode::Total, _) => walk.total(z, cell),
+        };
+        let mut children = node.map_or(0, occupied_children);
+
+        let overlay = view.overlay();
+        let splices = if overlay.is_empty() {
+            Vec::new()
+        } else {
+            let cut = self.grid.cut(z);
+            if cut < self.grid.deepest()
+                && let Some(cells) = cell.children()
+            {
+                for (index, child) in cells.into_iter().enumerate() {
+                    if overlay.occupied_past(cut, child) {
+                        children |= 1_u8 << index;
+                    }
+                }
+            }
+
+            walk.splice_arrivals(&mut full, overlay, cell)
+        };
+
+        let delivered = if splices.is_empty() {
+            DeliveredPoints::Ranges(full.ranges)
+        } else {
+            DeliveredPoints::Spliced {
+                ranges: full.ranges,
+                splices,
+            }
+        };
+
+        (delivered, full.first_bucket, full.runs, children)
     }
 
     /// Encodes an assembled document.
@@ -424,7 +513,12 @@ impl Atlas {
     /// This panics when supplied details do not cover the document's delivered points, a transport
     /// bug rather than request data.
     #[must_use]
-    fn encode_tile(&self, document: &TileDocument, details: Option<&NodeDetails>) -> Vec<u8> {
+    fn encode_tile(
+        &self,
+        document: &TileDocument,
+        arrivals: &IdSlice<ArrivalIndex, ArrivalRow>,
+        details: Option<&NodeDetails>,
+    ) -> Vec<u8> {
         let masks = document
             .mask_set
             .as_ref()
@@ -441,7 +535,6 @@ impl Atlas {
                 variant: 0,
                 coordinate: document.coordinate,
                 mode: document.mode,
-                visible: document.visible,
                 first_bucket: document.first_bucket,
                 runs: &document.runs,
                 global: document.global,
@@ -450,6 +543,7 @@ impl Atlas {
             delivered: document.delivered.as_wire(),
             positions: self.positions(),
             rows: self.wire_rows(),
+            arrivals,
             masks: masks.as_deref(),
             trailer,
         };
@@ -522,7 +616,7 @@ mod tests {
         // and the encoded envelope equals the directly built wire
         // document.
         let details = NodeDetails::empty(document.delivered.count());
-        let bytes = atlas.encode_tile(&document, Some(&details));
+        let bytes = atlas.encode_tile(&document, IdSlice::from_raw(&[]), Some(&details));
 
         let no_labels: Vec<&Label> = vec![Label::empty(); delivered];
         let no_icons: Vec<&Icon> = vec![Icon::empty(); delivered];
@@ -533,7 +627,6 @@ mod tests {
                 variant: 0,
                 coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
                 mode: Mode::Delta,
-                visible: morton.count(),
                 first_bucket: 0,
                 runs: &morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
                     .iter()
@@ -562,12 +655,13 @@ mod tests {
             delivered: DeliveredSet::Ranges(&[
                 BasePosition::from_u32(0)..BasePosition::from_u32(end)
             ]),
+            arrivals: IdSlice::from_raw(&[]),
             positions: IdSlice::from_raw(points),
             rows: IdSlice::from_raw(&{
                 let node_codec = test_codec(&atlas);
                 row_ids
                     .iter()
-                    .map(|&row| node_codec.encode(NodeRowId::from_u32(row)))
+                    .map(|&row| node_codec.encode(NodeRowId::from_u32(row), atlas.universe()))
                     .collect::<Vec<_>>()
             }),
             masks: None,

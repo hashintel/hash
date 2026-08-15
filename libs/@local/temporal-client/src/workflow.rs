@@ -6,7 +6,8 @@ use opentelemetry::{global, propagation::Injector};
 use serde::{Serialize, de::DeserializeOwned};
 use temporalio_client::{
     NamespacedClient, UntypedWorkflowHandle, WorkflowExecutionInfo, WorkflowGetResultOptions,
-    grpc::WorkflowService, tonic::IntoRequest as _,
+    grpc::WorkflowService,
+    tonic::{Code, IntoRequest as _, Status},
 };
 use temporalio_common::protos::{
     ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL,
@@ -99,6 +100,24 @@ pub struct WorkflowRun {
     pub run_id: String,
 }
 
+/// The server's answer to a caller-identified workflow start.
+#[derive(Debug, Clone)]
+pub enum WorkflowStart {
+    /// The server accepted the start and created a new execution.
+    Started(WorkflowRun),
+    /// An execution under the supplied workflow ID is already running, so the server refused
+    /// this start. The refusal returns no run to await.
+    AlreadyStarted,
+}
+
+/// Whether the report's underlying gRPC status is the server refusing a start because an
+/// execution with the same workflow ID is already running.
+fn is_already_started(report: &Report<WorkflowError>) -> bool {
+    report
+        .downcast_ref::<Status>()
+        .is_some_and(|status| status.code() == Code::AlreadyExists)
+}
+
 impl TemporalClient {
     /// Starts a workflow of the given type on the given task queue, injecting
     /// the active OTEL trace context into the workflow start headers so the
@@ -113,9 +132,7 @@ impl TemporalClient {
     /// execution. Production callers pass `None` (no server-side limit);
     /// tests set it so abandoned executions cannot linger forever.
     ///
-    /// Goes via the low-level `WorkflowService::start_workflow_execution`
-    /// because the high-level `Client::start_workflow` does not expose the
-    /// proto `header` field. The span is annotated with `otel.kind = "producer"` for the
+    /// The span is annotated with `otel.kind = "producer"` for the
     /// asynchronous fire-and-forget shape (the value is case-sensitive;
     /// `tracing-opentelemetry` falls back to `Internal` on typos).
     ///
@@ -133,13 +150,79 @@ impl TemporalClient {
         payload: &(impl Serialize + Sync),
         execution_timeout: Option<Duration>,
     ) -> Result<WorkflowRun, Report<WorkflowError>> {
+        self.execute_workflow_start(
+            Uuid::new_v4().to_string(),
+            task_queue,
+            workflow,
+            payload,
+            execution_timeout,
+        )
+        .await
+    }
+
+    /// Starts a workflow like [`Self::start_workflow`], under a workflow ID the caller supplies.
+    ///
+    /// The ID is the deduplication key. While an execution with this ID runs, the server refuses
+    /// a second start, and the refusal returns as [`WorkflowStart::AlreadyStarted`] rather than
+    /// as an error. The refusal carries no run to await, so the work's outcome stays observable
+    /// only through its own effects.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the workflow fails to start for any reason other than an execution
+    /// already running under the supplied ID.
+    #[instrument(
+        skip(self, payload, execution_timeout),
+        fields(workflow_type = workflow, task_queue = task_queue, otel.kind = "producer"),
+    )]
+    pub async fn start_workflow_with_id(
+        &self,
+        workflow_id: String,
+        task_queue: &str,
+        workflow: &'static str,
+        payload: &(impl Serialize + Sync),
+        execution_timeout: Option<Duration>,
+    ) -> Result<WorkflowStart, Report<WorkflowError>> {
+        match self
+            .execute_workflow_start(
+                workflow_id,
+                task_queue,
+                workflow,
+                payload,
+                execution_timeout,
+            )
+            .await
+        {
+            Ok(run) => Ok(WorkflowStart::Started(run)),
+            Err(report) if is_already_started(&report) => Ok(WorkflowStart::AlreadyStarted),
+            Err(report) => Err(report),
+        }
+    }
+
+    /// Sends one start request for the given workflow ID.
+    ///
+    /// Goes via the low-level `WorkflowService::start_workflow_execution`
+    /// because the high-level `Client::start_workflow` does not expose the
+    /// proto `header` field.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the payload fails to serialize or the server refuses the start,
+    /// including the refusal of a workflow ID whose execution is already running.
+    async fn execute_workflow_start(
+        &self,
+        workflow_id: String,
+        task_queue: &str,
+        workflow: &'static str,
+        payload: &(impl Serialize + Sync),
+        execution_timeout: Option<Duration>,
+    ) -> Result<WorkflowRun, Report<WorkflowError>> {
         let mut client = self.client.clone();
         // `identity` is read back from the client's connection options, where
         // `TemporalClientConfig::new` sets it to `pid@hostname` (matching the
         // Temporal SDK convention), so workflow starts are attributed to this
         // client in the Temporal server / UI.
         let identity = client.identity();
-        let workflow_id = Uuid::new_v4().to_string();
         let request = StartWorkflowExecutionRequest {
             namespace: <_ as NamespacedClient>::namespace(&client),
             input: vec![Payload {
@@ -235,5 +318,34 @@ impl TemporalClient {
             workflow_id: workflow_id.to_owned(),
             run_id: run_id.to_owned(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use error_stack::Report;
+    use temporalio_client::tonic::Status;
+
+    use super::is_already_started;
+    use crate::WorkflowError;
+
+    #[test]
+    fn already_exists_status_reads_as_already_started() {
+        let report = Report::new(Status::already_exists("workflow execution already started"))
+            .change_context(WorkflowError("updateEntityEmbeddings"));
+        assert!(is_already_started(&report));
+    }
+
+    #[test]
+    fn other_status_codes_stay_errors() {
+        let report = Report::new(Status::internal("connection reset"))
+            .change_context(WorkflowError("updateEntityEmbeddings"));
+        assert!(!is_already_started(&report));
+    }
+
+    #[test]
+    fn a_report_without_a_status_stays_an_error() {
+        let report = Report::new(WorkflowError("updateEntityEmbeddings"));
+        assert!(!is_already_started(&report));
     }
 }

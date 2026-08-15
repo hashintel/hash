@@ -83,7 +83,7 @@ use crate::{
 /// One order above the measured reproduction floor: independent full-corpus rebuilds of two prior
 /// generations reached maximum component errors of `7.6e-5` and `1.03e-4` against their published
 /// coordinate columns.
-const CERTIFICATE_TOLERANCE: f64 = 1e-3;
+pub(crate) const CERTIFICATE_TOLERANCE: f64 = 1e-3;
 
 /// The relation-effect report of one published generation's condition ladder.
 ///

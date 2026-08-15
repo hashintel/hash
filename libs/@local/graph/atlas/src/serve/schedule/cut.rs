@@ -7,19 +7,24 @@
 
 use core::{cmp::Ordering, ops::Range};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice};
 
-use super::{BucketPost, ScheduleWidthError, ScopeRow, ScopeSchedule};
+use super::{
+    ArrivalIndex, ArrivalOverlay, ArrivalRow, BucketPost, ScheduleWidthError, ScopeSchedule,
+    ViewRow,
+};
 use crate::{
     identity::BasePosition,
-    morton::{Depth, MortonCell},
+    morton::{Depth, MortonCell, MortonKey},
     serve::{density::CutOffset, grid::Grid},
 };
 
 /// One scope schedule read at one resolved cut offset.
 ///
-/// The delivery vocabulary of a restricted response: zoom `z` cuts at `d(z) = z + span + k`, the
-/// deepest bucket is the catch-all, and every query answers from the cascade's buckets alone.
+/// The delivery vocabulary of a restricted response: zoom `z` cuts at `d(z) = z + span + k` with
+/// the deepest bucket as the catch-all, and every query answers from the cascade's buckets and
+/// the view's arrival overlay together. A scope that folded its arrivals into its own cascade
+/// binds the empty overlay, which every merge reads as absent.
 #[expect(
     clippy::min_ident_chars,
     reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -27,6 +32,8 @@ use crate::{
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ScheduleCut<'schedule> {
     schedule: &'schedule ScopeSchedule,
+    /// The view's arrival overlay, merged into every delivery query.
+    overlay: &'schedule ArrivalOverlay,
     /// The generation's span exponent.
     span: u8,
     /// The resolved cut offset.
@@ -36,10 +43,15 @@ pub(crate) struct ScheduleCut<'schedule> {
 }
 
 impl<'schedule> ScheduleCut<'schedule> {
-    /// Binds one resolved cut offset over `schedule`.
+    /// Binds one resolved cut offset over `schedule` and `overlay`.
     ///
     /// The bound cut serves `grid`'s zooms at `d(z) = z + span + k`, with the deepest bucket
-    /// `max_tile_depth + span + k` as the catch-all.
+    /// `max_tile_depth + span + k` as the catch-all. The overlay's buckets clamp into that same
+    /// catch-all, so the merged delivery obeys one bucket domain.
+    ///
+    /// Caller requirement: a schedule holding arrivals of its own pairs with the empty overlay,
+    /// and a non-empty overlay pairs with a schedule holding none. The view's
+    /// [`ViewRow::Arrival`] vessels then address exactly one table.
     ///
     /// # Errors
     ///
@@ -52,9 +64,15 @@ impl<'schedule> ScheduleCut<'schedule> {
     )]
     pub(super) fn bind(
         schedule: &'schedule ScopeSchedule,
+        overlay: &'schedule ArrivalOverlay,
         grid: Grid,
         k: CutOffset,
     ) -> Result<Self, ScheduleWidthError> {
+        debug_assert!(
+            overlay.is_empty() || schedule.arrivals().is_empty(),
+            "a view's arrivals live in its schedule or its overlay, never both",
+        );
+
         let width_error = ScheduleWidthError {
             max_tile_depth: grid.max_tile_depth(),
             span: grid.span_log2(),
@@ -69,10 +87,23 @@ impl<'schedule> ScheduleCut<'schedule> {
 
         Ok(Self {
             schedule,
+            overlay,
             span: grid.span_log2(),
             k,
             deepest,
         })
+    }
+
+    /// Views the arrival table the view's [`ViewRow::Arrival`] vessels address.
+    ///
+    /// The overlay's table when the overlay holds the view's arrivals, and the schedule's own
+    /// otherwise. Binding checked that exactly one of the two holds any.
+    pub(crate) const fn arrivals(&self) -> &'schedule IdSlice<ArrivalIndex, ArrivalRow> {
+        if self.overlay.is_empty() {
+            self.schedule.arrivals()
+        } else {
+            self.overlay.arrivals()
+        }
     }
 }
 
@@ -103,27 +134,33 @@ impl ScheduleCut<'_> {
         self.deepest
     }
 
-    /// Feeds one bucket's delivered positions inside `cell` to `deliver`, ascending by
-    /// `(key, rank)`, and returns the run length.
+    /// Feeds one bucket's delivered rows inside `cell` to `deliver`, ascending by `(key, rank)`,
+    /// and returns the run length.
     ///
     /// Buckets above the catch-all read one slot range each. The catch-all gathers its cell's
     /// rows from every bucket at or beyond the cut - each already `(key, rank)`-sorted inside
     /// the column - and restores that order across them for exactly the delivered rows. A
     /// bucket past the catch-all holds nothing by construction.
-    fn run(&self, bucket: Depth, cell: MortonCell, deliver: &mut impl FnMut(BasePosition)) -> u32 {
-        match bucket.cmp(&self.deepest) {
+    ///
+    /// The overlay's arrivals of the same bucket merge in on their keys, after any fitted row
+    /// sharing a key, because every fitted row outranks every arrival.
+    fn run(&self, bucket: Depth, cell: MortonCell, deliver: &mut impl FnMut(ViewRow)) -> u32 {
+        let arrivals = self.overlay.run(bucket, cell, self.deepest);
+
+        let count = match bucket.cmp(&self.deepest) {
             Ordering::Less => {
                 let slots = self.schedule.bucket_slots(bucket);
                 let bounds = ScopeSchedule::cell_bounds(slots, |slot| slot.row.key, cell);
-                let count = bounds.len();
-                for slot in &slots[bounds] {
-                    deliver(slot.row.position);
-                }
-
-                u32::try_from(count).expect("run lengths lie within the u32 universe")
+                Self::merge(
+                    slots[bounds]
+                        .iter()
+                        .map(|slot| (slot.row.key, slot.row.vessel)),
+                    &arrivals,
+                    deliver,
+                )
             }
             Ordering::Equal => {
-                let mut rows: Vec<ScopeRow> = Vec::new();
+                let mut rows = Vec::new();
                 for bucket in (self.deepest.get()..=Depth::MAX.get()).filter_map(Depth::new) {
                     let slots = self.schedule.bucket_slots(bucket);
                     let bounds = ScopeSchedule::cell_bounds(slots, |slot| slot.row.key, cell);
@@ -131,33 +168,65 @@ impl ScheduleCut<'_> {
                 }
 
                 rows.sort_unstable_by_key(|row| (row.key, row.rank));
-                let count = rows.len();
-                for row in rows {
-                    deliver(row.position);
-                }
-
-                u32::try_from(count).expect("run lengths lie within the u32 universe")
+                Self::merge(
+                    rows.into_iter().map(|row| (row.key, row.vessel)),
+                    &arrivals,
+                    deliver,
+                )
             }
             Ordering::Greater => 0,
+        };
+
+        u32::try_from(count).expect("run lengths lie within the u32 universe")
+    }
+
+    /// Feeds the fitted rows and one bucket's arrivals to `deliver` in `(key, rank)` order,
+    /// returning the merged count.
+    ///
+    /// Both inputs ascend by key, and an arrival delivers after every fitted row at its key,
+    /// because every fitted row outranks every arrival.
+    fn merge(
+        fitted: impl Iterator<Item = (MortonKey, ViewRow)>,
+        arrivals: &[(MortonKey, ArrivalIndex)],
+        deliver: &mut impl FnMut(ViewRow),
+    ) -> usize {
+        let mut count = 0_usize;
+        let mut pending = arrivals.iter().peekable();
+        for (key, vessel) in fitted {
+            while let Some(&(_, arrival)) = pending.next_if(|&&(held, _)| held < key) {
+                deliver(ViewRow::Arrival(arrival));
+                count += 1;
+            }
+            deliver(vessel);
+            count += 1;
         }
+        for &(_, arrival) in pending {
+            deliver(ViewRow::Arrival(arrival));
+            count += 1;
+        }
+
+        count
     }
 
     /// Counts one bucket's rows inside `cell` without delivering them.
     fn run_count(&self, bucket: Depth, cell: MortonCell) -> usize {
-        match bucket.cmp(&self.deepest) {
-            Ordering::Less => {
-                let slots = self.schedule.bucket_slots(bucket);
-                ScopeSchedule::cell_bounds(slots, |slot| slot.row.key, cell).len()
-            }
-            Ordering::Equal => (self.deepest.get()..=Depth::MAX.get())
-                .filter_map(Depth::new)
-                .map(|bucket| {
+        let arrivals = self.overlay.run_count(bucket, cell, self.deepest);
+
+        arrivals
+            + match bucket.cmp(&self.deepest) {
+                Ordering::Less => {
                     let slots = self.schedule.bucket_slots(bucket);
                     ScopeSchedule::cell_bounds(slots, |slot| slot.row.key, cell).len()
-                })
-                .sum(),
-            Ordering::Greater => 0,
-        }
+                }
+                Ordering::Equal => (self.deepest.get()..=Depth::MAX.get())
+                    .filter_map(Depth::new)
+                    .map(|bucket| {
+                        let slots = self.schedule.bucket_slots(bucket);
+                        ScopeSchedule::cell_bounds(slots, |slot| slot.row.key, cell).len()
+                    })
+                    .sum(),
+                Ordering::Greater => 0,
+            }
     }
 
     /// Returns whether `cell` holds a view row in any bucket of `buckets`.
@@ -169,14 +238,17 @@ impl ScheduleCut<'_> {
 
     /// Counts the view's rows delivered by the root's cumulative schedule.
     ///
-    /// The root's visible count covers rows whose scope bucket lies at or below `d(0)`.
+    /// The root's visible count covers rows whose scope bucket lies at or below `d(0)`,
+    /// arrivals included.
     pub(crate) fn root_delivered(&self) -> u64 {
         let cut = self.cut_of(0);
-        if cut >= self.deepest {
+        let fitted = if cut >= self.deepest {
             self.schedule.slots.len() as u64
         } else {
             u64::from(self.schedule.posts[BucketPost::closing(cut)].as_u32())
-        }
+        };
+
+        fitted + self.overlay.delivered_through(cut, self.deepest)
     }
 
     /// Returns the deepest occupied scope bucket, zero for an empty view.
@@ -185,8 +257,13 @@ impl ScheduleCut<'_> {
             self.schedule.posts[BucketPost::closing(bucket)]
                 > self.schedule.posts[BucketPost::opening(bucket)]
         });
+        let fitted = deepest_natural.map_or(0, |bucket| u64::from(bucket.min(self.deepest).get()));
+        let arrivals = self
+            .overlay
+            .min_resolution(self.deepest)
+            .map_or(0, |bucket| u64::from(bucket.get()));
 
-        deepest_natural.map_or(0, |bucket| u64::from(bucket.min(self.deepest).get()))
+        fitted.max(arrivals)
     }
 
     /// Reads the occupied-child bitmask of `cell` at zoom `z`.
@@ -206,7 +283,8 @@ impl ScheduleCut<'_> {
 
         let mut bits = 0_u8;
         for (index, child) in children.into_iter().enumerate() {
-            let occupied = self.occupied((cut.get() + 1)..(self.deepest.get() + 1), child);
+            let occupied = self.occupied((cut.get() + 1)..(self.deepest.get() + 1), child)
+                || self.overlay.occupied_past(cut, child);
             bits |= u8::from(occupied) << index;
         }
 
@@ -229,6 +307,25 @@ impl ScheduleCut<'_> {
         // Binding validated `max_tile_depth + span + k` into the key width, so the subtrahend is
         // itself a depth and the difference is a served zoom.
         Some(bucket.get().saturating_sub(self.span + self.k.get()))
+    }
+
+    /// Returns the first zoom whose cumulative schedule delivers an arrival.
+    ///
+    /// [`Self::first_zoom`]'s arrival counterpart, over the same inversion. The arrival's bucket
+    /// (the overlay's when the overlay holds the view's arrivals, the schedule's own otherwise)
+    /// clamps into the catch-all and inverts through the cut rule. Every arrival carries a
+    /// bucket, so every arrival has a delivering zoom on the served grid.
+    pub(crate) fn arrival_first_zoom(&self, index: ArrivalIndex) -> u8 {
+        let natural = if self.overlay.is_empty() {
+            self.schedule.arrival_bucket(index)
+        } else {
+            self.overlay.bucket_of(index)
+        };
+
+        natural
+            .min(self.deepest)
+            .get()
+            .saturating_sub(self.span + self.k.get())
     }
 
     /// Returns a position's scope bucket, [`None`] when the position is not in the view.
@@ -263,29 +360,29 @@ impl ScheduleCut<'_> {
 
     /// Gathers the contiguous bucket interval `first..=last` inside `cell`.
     fn gather(&self, first: Depth, last: Depth, cell: MortonCell) -> ScopeDelivery {
-        let mut positions = Vec::new();
+        let mut rows = Vec::new();
         let mut runs = Vec::with_capacity(usize::from(last.get() - first.get()) + 1);
 
         for bucket in (first.get()..=last.get()).filter_map(Depth::new) {
-            let count = self.run(bucket, cell, &mut |position| {
-                positions.push(position);
+            let count = self.run(bucket, cell, &mut |row| {
+                rows.push(row);
             });
             runs.push(count);
         }
 
         ScopeDelivery {
-            positions,
+            rows,
             first_bucket: first.get(),
             runs,
         }
     }
 }
 
-/// The gathered positions and the wire head's run vocabulary of one scope delivery.
+/// The gathered rows and the wire head's run vocabulary of one scope delivery.
 #[derive(Debug)]
 pub(crate) struct ScopeDelivery {
-    /// The delivered base positions, bucket-major, ascending by `(key, rank)` within a bucket.
-    pub positions: Vec<BasePosition>,
+    /// The delivered rows, bucket-major, ascending by `(key, rank)` within a bucket.
+    pub rows: Vec<ViewRow>,
     /// The first bucket the runs describe.
     pub first_bucket: u8,
     /// Per-bucket delivered counts, bucket-major from `first_bucket`.

@@ -46,7 +46,12 @@ use super::{
     order::{LocateLinkHydration, LocateNodeHydration},
     statements::{DetailColumns, TypeColumns, identity_filter},
 };
-use crate::{bitset::DenseBitSlice, dataset::postgres::id::ArchivedEntityId};
+use crate::{
+    bitset::DenseBitSlice,
+    dataset::postgres::{
+        LinkDisplay, PostgresDatasetError, id::ArchivedEntityId, read_link_displays,
+    },
+};
 
 /// The resolved actor one hydration masks properties for.
 ///
@@ -77,6 +82,14 @@ pub(crate) enum DetailError {
     Disconnected,
     /// The query returned too many rows.
     TooManyRows,
+    /// The dataset-layer read behind a delta display failed.
+    Dataset(PostgresDatasetError),
+}
+
+impl From<PostgresDatasetError> for DetailError {
+    fn from(value: PostgresDatasetError) -> Self {
+        Self::Dataset(value)
+    }
 }
 
 impl From<tokio_postgres::Error> for DetailError {
@@ -99,6 +112,7 @@ impl core::fmt::Display for DetailError {
                 fmt.write_str("the hydration channel closed before an answer arrived")
             }
             Self::TooManyRows => fmt.write_str("the detail hydration returned too many rows"),
+            Self::Dataset(error) => write!(fmt, "the link-display read failed: {error}"),
         }
     }
 }
@@ -107,6 +121,7 @@ impl core::error::Error for DetailError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::Query(error) => Some(error),
+            Self::Dataset(error) => Some(error),
             Self::Connect(_) | Self::Disconnected | Self::TooManyRows => None,
         }
     }
@@ -376,10 +391,10 @@ impl GraphDatabaseClient {
     #[tracing::instrument(skip_all, fields(edges = ids.len()))]
     pub(crate) async fn edges_link_hydration(
         &self,
-        ids: &IdSlice<EdgeSlot, ArchivedEntityId>,
-    ) -> Result<IdVec<EdgeSlot, Option<VersionedUrl>>, DetailError> {
+        ids: &[ArchivedEntityId],
+    ) -> Result<Vec<Option<VersionedUrl>>, DetailError> {
         if ids.is_empty() {
-            return Ok(IdVec::new());
+            return Ok(Vec::new());
         }
 
         let connection = self.connection().await?;
@@ -399,10 +414,11 @@ impl GraphDatabaseClient {
         let rows = client.query_raw(&statement, parameters).await?;
 
         let lookup: FastHashMap<_, _> = ids
-            .iter_enumerated()
-            .map(|(slot, id)| (*id, slot))
+            .iter()
+            .enumerate()
+            .map(|(slot, &id)| (id, slot))
             .collect();
-        let mut first_type_urls: IdVec<_, _> = IdVec::from_elem(None, ids.len());
+        let mut first_type_urls: Vec<Option<VersionedUrl>> = vec![None; ids.len()];
 
         let mut rows = pin!(rows);
         while let Some(row) = rows.next().await {
@@ -413,5 +429,33 @@ impl GraphDatabaseClient {
         }
 
         Ok(first_type_urls)
+    }
+
+    /// Answers each delta link's display payload: its current edition's cached label and first
+    /// cached type as a versioned URL.
+    ///
+    /// Identities the store no longer resolves answer the empty label and no type. The read
+    /// touches no property value, so it takes no masking actor.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DetailError`] when the store rejects the query.
+    #[tracing::instrument(skip_all, fields(links = ids.len()))]
+    pub(crate) async fn link_display_hydration(
+        &self,
+        ids: &[ArchivedEntityId],
+    ) -> Result<Vec<LinkDisplay>, DetailError> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let connection = self.connection().await?;
+        let answers = read_link_displays(&connection, ids.iter().copied()).await?;
+
+        let mut lookup: FastHashMap<ArchivedEntityId, LinkDisplay> = answers.into_iter().collect();
+        Ok(ids
+            .iter()
+            .map(|id| lookup.remove(id).unwrap_or_else(LinkDisplay::empty))
+            .collect())
     }
 }

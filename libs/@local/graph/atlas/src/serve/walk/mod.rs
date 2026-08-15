@@ -5,7 +5,8 @@
 //! [`Walk`] carries the columns that walk needs - the quadtree, the Morton column, the row column,
 //! the validated schedule - bound to one visibility proof, and the submodules deliver over it:
 //!
-//! - [`full`]: the full-visibility deliveries, borrowed-shape base-order ranges.
+//! - [`full`]: the full-visibility deliveries, borrowed-shape base-order ranges, with the view's
+//!   arrivals spliced among them.
 //! - [`census`]: point counts and occupancy, unmasked and masked.
 //!
 //! A scoped view's delivery reads its own cascade instead - [`ScopeSchedule`] - built over exactly
@@ -18,13 +19,19 @@
 
 mod census;
 pub(super) mod full;
+pub(super) mod subtract;
 
 use core::ops::Range;
 
 use hashql_core::id::{Id as _, IdSlice};
 
 pub(crate) use self::census::ViewCensus;
-use super::{Atlas, grid::Grid, visibility::VisibilityProof};
+use super::{
+    Atlas,
+    grid::Grid,
+    schedule::{Splice, ViewRow},
+    visibility::VisibilityProof,
+};
 use crate::{
     file::{
         morton::read::MortonFile,
@@ -32,7 +39,7 @@ use crate::{
     },
     identity::{BasePosition, NodeRowId},
     morton::{Depth, MortonCell},
-    salt::wire::tile::DeliveredSet,
+    salt::wire::tile::{DeliveredRows, DeliveredSet},
 };
 
 /// One generation's walkable columns under one visibility proof.
@@ -92,14 +99,22 @@ impl<'atlas> Walk<'atlas> {
 
 /// The delivered point set of one tile.
 ///
-/// Borrowed-shape ranges when every row is visible, a gathered ascending position list under a
-/// mask.
+/// Borrowed-shape ranges when every row is visible, a gathered row list under a mask, and ranges
+/// with spliced arrivals when an operator delivery interleaves a cohort, where a row is either a
+/// base position or a cohort arrival.
 #[derive(Debug)]
 pub(super) enum DeliveredPoints {
     /// Contiguous base-position ranges in delivery order.
     Ranges(Vec<Range<BasePosition>>),
-    /// Gathered base positions, ascending, visibility already applied.
-    Positions(Vec<BasePosition>),
+    /// Gathered view rows in delivery order, visibility already applied.
+    Positions(Vec<ViewRow>),
+    /// Contiguous base-position ranges with arrivals spliced among them.
+    Spliced {
+        /// The delivered base-position ranges, in delivery order.
+        ranges: Vec<Range<BasePosition>>,
+        /// The spliced arrivals, ascending by delivery index.
+        splices: Vec<Splice>,
+    },
 }
 
 impl DeliveredPoints {
@@ -108,6 +123,7 @@ impl DeliveredPoints {
         match self {
             Self::Ranges(ranges) => DeliveredSet::Ranges(ranges),
             Self::Positions(list) => DeliveredSet::Positions(list),
+            Self::Spliced { ranges, splices } => DeliveredSet::Spliced { ranges, splices },
         }
     }
 
@@ -119,50 +135,19 @@ impl DeliveredPoints {
                 .map(|range| range.end.as_usize() - range.start.as_usize())
                 .sum(),
             Self::Positions(list) => list.len(),
+            Self::Spliced { ranges, splices } => {
+                let bases: usize = ranges
+                    .iter()
+                    .map(|range| range.end.as_usize() - range.start.as_usize())
+                    .sum();
+
+                bases + splices.len()
+            }
         }
     }
 
-    /// Iterates the delivered base positions in delivery order.
-    pub(super) fn iter(&self) -> PositionIter<'_> {
-        match self {
-            Self::Ranges(ranges) => PositionIter {
-                ranges: ranges.iter(),
-                current: BasePosition::MIN..BasePosition::MIN,
-                list: [].iter(),
-            },
-            Self::Positions(list) => PositionIter {
-                ranges: [].iter(),
-                current: BasePosition::MIN..BasePosition::MIN,
-                list: list.iter(),
-            },
-        }
-    }
-}
-
-/// An iterator over a delivered set's base positions, in delivery order.
-#[derive(Debug)]
-pub(super) struct PositionIter<'set> {
-    /// The remaining ranges of a range-shaped set.
-    ranges: core::slice::Iter<'set, Range<BasePosition>>,
-    /// The positions remaining in the current range.
-    current: Range<BasePosition>,
-    /// The remaining positions of a list-shaped set.
-    list: core::slice::Iter<'set, BasePosition>,
-}
-
-impl Iterator for PositionIter<'_> {
-    type Item = BasePosition;
-
-    fn next(&mut self) -> Option<BasePosition> {
-        loop {
-            if let Some(position) = self.current.next() {
-                return Some(position);
-            }
-
-            match self.ranges.next() {
-                Some(range) => self.current = range.clone(),
-                None => return self.list.next().copied(),
-            }
-        }
+    /// Iterates the delivered rows in delivery order, a range's positions as base rows.
+    pub(super) fn iter(&self) -> DeliveredRows<'_> {
+        self.as_wire().into_iter()
     }
 }

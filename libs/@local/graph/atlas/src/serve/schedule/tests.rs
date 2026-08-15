@@ -11,12 +11,17 @@
 
 use hashql_core::id::Id as _;
 
-use super::{ScopeRow, ScopeSchedule, ViewSchedule};
+use super::{
+    ArrivalIndex, ArrivalOverlay, ArrivalRow, ScopeRow, ScopeSchedule, ViewRow, ViewSchedule,
+};
 use crate::{
+    allocator::MemoryUsageAllocator,
+    dataset::postgres::id::ArchivedEntityId,
     identity::{BasePosition, ImportanceRank},
     morton::{Depth, MortonCell, MortonKey},
     serve::{
         VisibilityProof,
+        delta::PlacementCohort,
         density::CutOffset,
         grid::Grid,
         tests::{FIXTURE_LOD, mask_hiding, publish},
@@ -40,36 +45,37 @@ fn hand_cascade_pins_the_first_occupant_law() {
     let d = MortonKey::new(0x4000_0000, 0x1000_0000);
     let rows = vec![
         ScopeRow {
-            position: BasePosition::new(0),
+            vessel: ViewRow::Base(BasePosition::new(0)),
             key: a,
             rank: ImportanceRank::from_u32(0),
         },
         ScopeRow {
-            position: BasePosition::new(1),
+            vessel: ViewRow::Base(BasePosition::new(1)),
             key: b,
             rank: ImportanceRank::from_u32(3),
         },
         ScopeRow {
-            position: BasePosition::new(2),
+            vessel: ViewRow::Base(BasePosition::new(2)),
             key: c,
             rank: ImportanceRank::from_u32(1),
         },
         ScopeRow {
-            position: BasePosition::new(3),
+            vessel: ViewRow::Base(BasePosition::new(3)),
             key: d,
             rank: ImportanceRank::from_u32(2),
         },
     ];
 
-    let schedule = ScopeSchedule::over(rows);
+    let schedule = ScopeSchedule::over(rows, Box::new_in([], MemoryUsageAllocator::global()));
     let grid = crate::serve::grid::Grid::new(crate::salt::lod::stage::LodConfig {
         span: crate::math::Log2::new(1).expect("1 lies below the shift width"),
         max_tile_depth: 1,
     })
     .expect("the hand grid is valid");
 
+    let overlay = ArrivalOverlay::empty();
     let cut = schedule
-        .cut(grid, CutOffset::ZERO)
+        .cut(&overlay, grid, CutOffset::ZERO)
         .expect("k = 0 lies on the key width");
     let root = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists");
 
@@ -80,8 +86,8 @@ fn hand_cascade_pins_the_first_occupant_law() {
     // the catch-all beside b.
     let delta = cut.delta(0, root);
     assert_eq!(
-        delta.positions,
-        [0, 2].map(BasePosition::from_u32),
+        delta.rows,
+        [0, 2].map(|n| ViewRow::Base(BasePosition::from_u32(n))),
         "the root delivers a then c",
     );
     assert_eq!(delta.runs, vec![1, 1], "one first-occupant per depth");
@@ -92,8 +98,8 @@ fn hand_cascade_pins_the_first_occupant_law() {
     // y-bit 28 (bits 61 and 57), so b < d and the tail reads b then d.
     let total = cut.total(1, root);
     assert_eq!(
-        total.positions,
-        [0, 2, 1, 3].map(BasePosition::from_u32),
+        total.rows,
+        [0, 2, 1, 3].map(|n| ViewRow::Base(BasePosition::from_u32(n))),
         "the catch-all takes b and d"
     );
     assert_eq!(total.runs, vec![1, 1, 2]);
@@ -113,10 +119,13 @@ fn hand_cascade_pins_the_first_occupant_law() {
     // k = 1 deepens the catch-all to 3: d keeps its natural depth-2 bucket and only b stays
     // terminal, so bucket-major order now reads d before b.
     let deeper = schedule
-        .cut(grid, CutOffset::new(1))
+        .cut(&overlay, grid, CutOffset::new(1))
         .expect("k = 1 lies on the key width");
     let total = deeper.total(1, root);
-    assert_eq!(total.positions, [0, 2, 3, 1].map(BasePosition::from_u32));
+    assert_eq!(
+        total.rows,
+        [0, 2, 3, 1].map(|n| ViewRow::Base(BasePosition::from_u32(n)))
+    );
     assert_eq!(
         total.runs,
         vec![1, 1, 1, 1],
@@ -124,22 +133,118 @@ fn hand_cascade_pins_the_first_occupant_law() {
     );
 }
 
-/// An empty view builds an empty schedule: nothing delivers, nothing descends.
+/// Arrivals extend the hand cascade under the same first-occupant law.
+///
+/// One arrival shares a's complete key with the worst rank, so it takes the catch-all
+/// exactly as a co-located fitted row would, ordered after its better-ranked cell-mates. The
+/// other arrival occupies a cell of its own and claims it at the first depth apart from a,
+/// exactly as a fitted first occupant would.
 #[test]
-fn empty_view_delivers_nothing() {
-    let schedule = ScopeSchedule::over(Vec::new());
+fn hand_cascade_places_arrivals_by_the_same_law() {
+    let fitted = MortonKey::new(0x1000_0000, 0x1000_0000);
+    let colocated = fitted;
+    let apart = MortonKey::new(0xC000_0000, 0x2000_0000);
+
+    let arrival_row = |index: u32| ArrivalRow {
+        identity: ArchivedEntityId {
+            web_id: uuid::Uuid::from_u128(0xAB).into(),
+            entity_uuid: uuid::Uuid::from_u128(u128::from(index) + 1).into(),
+        },
+        point: crate::math::Vec2::new(0.25, -0.5),
+        wire: crate::serve::WireRow::pinned(index),
+        display: crate::dataset::postgres::EditionDisplay {
+            label: crate::dataset::auxiliary::OwnedLabel::from("arrival"),
+            first_type: None,
+        },
+    };
+
+    let rows = vec![
+        ScopeRow {
+            vessel: ViewRow::Base(BasePosition::new(0)),
+            key: fitted,
+            rank: ImportanceRank::from_u32(0),
+        },
+        ScopeRow {
+            vessel: ViewRow::Arrival(ArrivalIndex::from_u32(0)),
+            key: colocated,
+            rank: ImportanceRank::from_u32(1),
+        },
+        ScopeRow {
+            vessel: ViewRow::Arrival(ArrivalIndex::from_u32(1)),
+            key: apart,
+            rank: ImportanceRank::from_u32(2),
+        },
+    ];
+    let schedule = ScopeSchedule::over(
+        rows,
+        Box::new_in(
+            [arrival_row(0), arrival_row(1)],
+            MemoryUsageAllocator::global(),
+        ),
+    );
+
     let grid = crate::serve::grid::Grid::new(crate::salt::lod::stage::LodConfig {
         span: crate::math::Log2::new(1).expect("1 lies below the shift width"),
         max_tile_depth: 1,
     })
     .expect("the hand grid is valid");
+    let overlay = ArrivalOverlay::empty();
     let cut = schedule
-        .cut(grid, CutOffset::ZERO)
+        .cut(&overlay, grid, CutOffset::ZERO)
+        .expect("k = 0 lies on the key width");
+    let root = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists");
+
+    // d(0) = 1: the fitted row claims depth 0, the apart arrival claims its own depth-1 cell,
+    // and the co-located arrival never claims a cell, so the root delivers exactly two rows.
+    let delta = cut.delta(0, root);
+    assert_eq!(
+        delta.rows,
+        vec![
+            ViewRow::Base(BasePosition::new(0)),
+            ViewRow::Arrival(ArrivalIndex::from_u32(1)),
+        ],
+        "the apart arrival is a first occupant like any other row"
+    );
+
+    // The terminal total adds the co-located arrival in the catch-all, after its cell-mate.
+    let total = cut.total(1, root);
+    assert_eq!(
+        total.rows,
+        vec![
+            ViewRow::Base(BasePosition::new(0)),
+            ViewRow::Arrival(ArrivalIndex::from_u32(1)),
+            ViewRow::Arrival(ArrivalIndex::from_u32(0)),
+        ],
+        "the co-located arrival takes the catch-all"
+    );
+    assert_eq!(total.runs, vec![1, 1, 1]);
+
+    // The position lookup answers the base domain, and the arrival table answers by index.
+    assert_eq!(cut.bucket_of(BasePosition::new(0)), Some(Depth::MIN));
+    assert_eq!(cut.arrivals().len(), 2);
+    assert_eq!(
+        cut.arrivals()[ArrivalIndex::from_u32(0)].display.label,
+        crate::dataset::auxiliary::OwnedLabel::from("arrival")
+    );
+}
+
+/// An empty view builds an empty schedule: nothing delivers, nothing descends.
+#[test]
+fn empty_view_delivers_nothing() {
+    let schedule = ScopeSchedule::over(Vec::new(), Box::new_in([], MemoryUsageAllocator::global()));
+    let grid = crate::serve::grid::Grid::new(crate::salt::lod::stage::LodConfig {
+        span: crate::math::Log2::new(1).expect("1 lies below the shift width"),
+        max_tile_depth: 1,
+    })
+    .expect("the hand grid is valid");
+    let overlay = ArrivalOverlay::empty();
+    let cut = schedule
+        .cut(&overlay, grid, CutOffset::ZERO)
         .expect("k = 0 lies on the key width");
     let root = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists");
 
     let delta = cut.delta(0, root);
-    assert!(delta.positions.is_empty());
+    assert!(delta.rows.is_empty());
     assert_eq!(delta.runs, vec![0, 0], "empty runs keep their slots");
     assert_eq!(cut.root_delivered(), 0);
     assert_eq!(cut.min_resolution(), 0);
@@ -185,7 +290,7 @@ async fn scope_of_equals_a_rank_sorted_forward_gather_for_every_node_mask() {
     for hidden in &masks {
         let proof = mask_hiding(&atlas, hidden);
 
-        let built = ScopeSchedule::of(&atlas, &proof);
+        let built = ScopeSchedule::of(&atlas, &proof, PlacementCohort::EMPTY);
 
         // Gather forward in position order and sort by the corpus rank column, then re-index the
         // ranks dense by enumeration. The result is the input `of` derives from the reverse
@@ -194,7 +299,7 @@ async fn scope_of_equals_a_rank_sorted_forward_gather_for_every_node_mask() {
             .iter_enumerated()
             .filter(|&(_, &row)| proof.contains(row))
             .map(|(position, _)| ScopeRow {
-                position,
+                vessel: ViewRow::Base(position),
                 key: atlas.morton.code(position),
                 rank: ranks[position],
             })
@@ -203,7 +308,8 @@ async fn scope_of_equals_a_rank_sorted_forward_gather_for_every_node_mask() {
         for (dense, row) in naive_rows.iter_mut().enumerate() {
             row.rank = ImportanceRank::from_usize(dense);
         }
-        let naive = ScopeSchedule::over(naive_rows);
+        let naive =
+            ScopeSchedule::over(naive_rows, Box::new_in([], MemoryUsageAllocator::global()));
 
         assert_eq!(
             format!("{built:?}"),
@@ -220,19 +326,23 @@ async fn scope_of_equals_a_rank_sorted_forward_gather_for_every_node_mask() {
 async fn saturated_memo_equals_a_directly_built_scope_schedule() {
     let (_generation, atlas) = publish("morton-proof-saturated-content").await;
 
-    let shared = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[]));
-    let ViewSchedule::Scope(shared) = &shared else {
+    let shared = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[]), PlacementCohort::EMPTY);
+    let ViewSchedule::Scope(shared, _) = &shared else {
         panic!("a saturated mask is a declared scope");
     };
 
-    let direct = ScopeSchedule::of(&atlas, &mask_hiding(&atlas, &[]));
+    let direct = ScopeSchedule::of(&atlas, &mask_hiding(&atlas, &[]), PlacementCohort::EMPTY);
     assert_eq!(
         format!("{shared:?}"),
         format!("{direct:?}"),
         "the memo serves different bytes than a direct build"
     );
 
-    let full = ScopeSchedule::of(&atlas, &VisibilityProof::full_visibility());
+    let full = ScopeSchedule::of(
+        &atlas,
+        &VisibilityProof::full_visibility(),
+        PlacementCohort::EMPTY,
+    );
     assert_eq!(
         format!("{direct:?}"),
         format!("{full:?}"),
@@ -289,7 +399,7 @@ fn replay_natural_buckets(rows: &[ScopeRow]) -> Vec<u8> {
 /// Hand-built adversarial row sets, each with pairwise-distinct ranks and positions.
 fn replay_row_sets() -> Vec<Vec<ScopeRow>> {
     let row = |position: u32, key: u64, rank: u32| ScopeRow {
-        position: BasePosition::from_u32(position),
+        vessel: ViewRow::Base(BasePosition::from_u32(position)),
         key: MortonKey::from_bits(key),
         rank: ImportanceRank::from_u32(rank),
     };
@@ -377,17 +487,26 @@ fn replay_children_mask(rows: &[ScopeRow], clamped: &[u8], cell: MortonCell, cut
 /// run order, the catch-all tail, `children`, `first_zoom`, `bucket_of`, `root_delivered`,
 /// and `min_resolution`.
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "the replay sweeps every cut query in one place, and splitting it would part the \
+              oracle from the assertions it feeds"
+)]
 fn schedule_cuts_match_the_quadratic_replay_over_adversarial_rows() {
     let grid = Grid::new(FIXTURE_LOD).expect("the fixture lod lies on the key width");
     let span = grid.span_log2();
     let max_tile = grid.max_tile_depth();
 
     for (case, rows) in replay_row_sets().into_iter().enumerate() {
-        let schedule = ScopeSchedule::over(rows.clone());
+        let schedule = ScopeSchedule::over(
+            rows.clone(),
+            Box::new_in([], MemoryUsageAllocator::global()),
+        );
         let natural = replay_natural_buckets(&rows);
 
+        let overlay = ArrivalOverlay::empty();
         for k in 0..=33_u8 {
-            let bound = schedule.cut(grid, CutOffset::new(k));
+            let bound = schedule.cut(&overlay, grid, CutOffset::new(k));
             let admissible =
                 u16::from(max_tile) + u16::from(span) + u16::from(k) <= u16::from(Depth::MAX.get());
             let Ok(cut) = bound else {
@@ -420,9 +539,12 @@ fn schedule_cuts_match_the_quadratic_replay_over_adversarial_rows() {
 
             // Position lookups, including one the view never held.
             for (row, &bucket) in rows.iter().zip(&clamped) {
-                let held = cut.bucket_of(row.position).map(Depth::get);
+                let ViewRow::Base(position) = row.vessel else {
+                    unreachable!("the replay sets hold base rows alone")
+                };
+                let held = cut.bucket_of(position).map(Depth::get);
                 assert_eq!(held, Some(bucket), "case {case} k {k}");
-                let zoom = cut.first_zoom(row.position);
+                let zoom = cut.first_zoom(position);
                 assert_eq!(
                     zoom,
                     Some(bucket.saturating_sub(span + k)),
@@ -464,21 +586,21 @@ fn schedule_cuts_match_the_quadratic_replay_over_adversarial_rows() {
                                 .collect();
                             members.sort_unstable_by_key(|row| (row.key, row.rank));
                             runs.push(u32::try_from(members.len()).expect("fixture rows fit u32"));
-                            positions.extend(members.iter().map(|row| row.position));
+                            positions.extend(members.iter().map(|row| row.vessel));
                         }
                         (positions, runs)
                     };
 
                     let total = cut.total(zoom, cell);
                     let (positions, runs) = expect(0, cut_depth);
-                    assert_eq!(total.positions, positions, "case {case} k {k} z {zoom}");
+                    assert_eq!(total.rows, positions, "case {case} k {k} z {zoom}");
                     assert_eq!(total.runs, runs, "case {case} k {k} z {zoom}");
                     assert_eq!(total.first_bucket, 0);
 
                     let delta = cut.delta(zoom, cell);
                     let first = if zoom == 0 { 0 } else { cut_depth };
                     let (positions, runs) = expect(first, cut_depth);
-                    assert_eq!(delta.positions, positions, "case {case} k {k} z {zoom}");
+                    assert_eq!(delta.rows, positions, "case {case} k {k} z {zoom}");
                     assert_eq!(delta.runs, runs, "case {case} k {k} z {zoom}");
                     assert_eq!(delta.first_bucket, first);
 

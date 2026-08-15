@@ -129,7 +129,10 @@ pub(crate) struct CacheKey {
 /// the budget. A value a caller still holds after eviction lives for that caller's request
 /// and is off the ledger. A refresh builds its replacement unpriced until publication. A
 /// single entry weighing past `u32::MAX` bytes weighs exactly `u32::MAX`. The cache's own
-/// per-entry bookkeeping, `Arc` control blocks and allocator slack go uncounted.
+/// per-entry bookkeeping, `Arc` control blocks and allocator slack go uncounted. An entry's
+/// placement cohort is the delta register's own publication, shared across the entries whose
+/// resolutions read it and priced by the register's resident telemetry, so it too goes
+/// uncounted here.
 ///
 /// [`Self::soft`] is shorter than [`Self::hard`]. Where it is not, the expiry test runs first and
 /// no entry ever refreshes behind its answer, so every request past the hard window waits on a
@@ -146,7 +149,7 @@ pub(crate) struct CacheKey {
 /// ```
 /// use core::time::Duration;
 ///
-/// use hash_graph_atlas::serve::VisibilityLimits;
+/// use hash_graph_atlas::cli::VisibilityLimits;
 ///
 /// let limits = VisibilityLimits {
 ///     hard: Duration::from_secs(60),

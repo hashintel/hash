@@ -1,42 +1,41 @@
 {
-  "appended": null,
+  "golden": "g5-trailer-tile",
+  "layer": "tile",
+  "prefix": {
+    "magic": "SALTILET",
+    "wireVersion": 1,
+    "flags": 0,
+    "slotCount": 5,
+    "reserved": 0
+  },
   "directory": [
-    [56, 114],
-    [120, 152],
-    [152, 168],
+    [56, 112],
+    [112, 144],
+    [144, 160],
     [0, 0],
     [0, 0]
   ],
-  "golden": "g5-trailer-tile",
   "head": {
-    "children": 5,
+    "generation": "5555555555555555555555555555555555555555555555555555555555555555",
+    "variant": 0,
     "coordinate": [1, 1, 0],
+    "mode": 0,
     "delivered": 4,
     "firstBucket": 3,
-    "generation": "5555555555555555555555555555555555555555555555555555555555555555",
-    "global": null,
-    "mode": 0,
     "runs": [4],
-    "trailer": true,
-    "variant": 0,
-    "visible": 8
+    "global": null,
+    "children": 5,
+    "trailer": true
   },
-  "layer": "tile",
-  "mass": null,
   "positions": [
     0, 0, 1040187392, 3196059648, 1048576000, 3204448256, 1052770304, 3208642560
   ],
-  "prefix": {
-    "flags": 0,
-    "magic": "SALTILET",
-    "reserved": 0,
-    "slotCount": 5,
-    "wireVersion": 1
-  },
   "rowIds": [27, 38, 49, 60],
+  "typeMask": null,
+  "mass": null,
+  "appended": null,
   "trailer": {
-    "icons": [null, "水戸", "→", null],
-    "labels": ["Zürich", null, "é", "🦀"]
-  },
-  "typeMask": null
+    "labels": ["Zürich", null, "é", "🦀"],
+    "icons": [null, "水戸", "→", null]
+  }
 }

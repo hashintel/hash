@@ -29,7 +29,11 @@ use crate::{
     identity::{BasePosition, NodeRowId},
     morton::{Depth, MortonCell},
     salt::wire::Mode,
-    serve::{Atlas, ViewError, VisibilityProof, schedule::ViewSchedule},
+    serve::{
+        Atlas, ViewError, VisibilityProof,
+        delta::PlacementCohort,
+        schedule::{ArrivalOverlay, ViewSchedule},
+    },
 };
 
 /// The restricted delivery law, written a second time.
@@ -353,7 +357,7 @@ async fn restricted_delivery_agrees_with_the_scope_cascade_reference() {
                             .iter()
                             .map(|&wire| {
                                 let row = node_codec
-                                    .decode(codec::WireRow::pinned(wire))
+                                    .decode(codec::WireRow::pinned(wire), atlas.universe())
                                     .expect("delivered wire ids decode");
                                 position_of[&row]
                             })
@@ -429,13 +433,15 @@ async fn resolved_cut_past_the_key_width_refuses_the_whole_tile() {
     let (_generation, atlas) = publish("cut-refusal").await;
     let proof = mask_hiding(&atlas, &[0]);
 
-    let schedule = ViewSchedule::of(&atlas, &proof);
+    let schedule = ViewSchedule::of(&atlas, &proof, PlacementCohort::EMPTY);
     let result = View::bind(
         atlas.grid,
         &proof,
         atlas.census(&proof),
         &schedule,
         CutOffset::new(32),
+        PlacementCohort::EMPTY,
+        None,
     );
     assert!(
         matches!(result, Err(ViewError::Schedule(_))),
@@ -453,15 +459,17 @@ async fn resolved_cut_past_the_key_width_refuses_the_whole_tile() {
 async fn mismatched_proof_and_schedule_refuse_the_contract() {
     let (_generation, atlas) = publish("contract-refusal").await;
     let masked = mask_hiding(&atlas, &[0]);
-    let scope = ViewSchedule::of(&atlas, &masked);
+    let scope = ViewSchedule::of(&atlas, &masked, PlacementCohort::EMPTY);
 
-    let corpus = ViewSchedule::Corpus;
+    let corpus = ViewSchedule::Corpus(ArrivalOverlay::empty());
     let corpus_for_masked = View::bind(
         atlas.grid,
         &masked,
         atlas.census(&masked),
         &corpus,
         CutOffset::ZERO,
+        PlacementCohort::EMPTY,
+        None,
     );
     assert_eq!(
         corpus_for_masked.expect_err("a masked proof must not serve the corpus schedule"),
@@ -474,6 +482,8 @@ async fn mismatched_proof_and_schedule_refuse_the_contract() {
         atlas.census(&FULL),
         &scope,
         CutOffset::ZERO,
+        PlacementCohort::EMPTY,
+        None,
     );
     assert_eq!(
         scope_for_full.expect_err("an operator proof must not serve a scope cascade"),
@@ -494,7 +504,7 @@ async fn mismatched_proof_and_schedule_refuse_the_contract() {
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn operator_proof_refuses_a_nonzero_offset() {
     let (_generation, atlas) = publish("operator-offset-refusal").await;
-    let corpus = ViewSchedule::Corpus;
+    let corpus = ViewSchedule::Corpus(ArrivalOverlay::empty());
 
     let refused = View::bind(
         atlas.grid,
@@ -502,6 +512,8 @@ async fn operator_proof_refuses_a_nonzero_offset() {
         atlas.census(&FULL),
         &corpus,
         CutOffset::new(1),
+        PlacementCohort::EMPTY,
+        None,
     );
     assert_eq!(
         refused.expect_err("an operator proof must not carry a nonzero offset"),
@@ -514,6 +526,8 @@ async fn operator_proof_refuses_a_nonzero_offset() {
         atlas.census(&FULL),
         &corpus,
         CutOffset::ZERO,
+        PlacementCohort::EMPTY,
+        None,
     );
     assert!(
         bound.is_ok(),
@@ -756,8 +770,10 @@ async fn an_all_row_scope_serves_the_restricted_contract() {
                     atlas.grid,
                     &FULL,
                     atlas.census(&FULL),
-                    &ViewSchedule::Corpus,
-                    offset
+                    &ViewSchedule::Corpus(ArrivalOverlay::empty()),
+                    offset,
+                    PlacementCohort::EMPTY,
+                    None,
                 )
                 .expect_err("the operator contract admits no offset"),
                 ViewError::Offset(offset),
@@ -778,9 +794,9 @@ async fn an_all_row_scope_serves_the_restricted_contract() {
 async fn saturated_scopes_share_one_cascade() {
     let (_generation, atlas) = publish("saturated-memo").await;
 
-    let first = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[]));
-    let second = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[]));
-    let (ViewSchedule::Scope(first), ViewSchedule::Scope(second)) = (&first, &second) else {
+    let first = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[]), PlacementCohort::EMPTY);
+    let second = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[]), PlacementCohort::EMPTY);
+    let (ViewSchedule::Scope(first, _), ViewSchedule::Scope(second, _)) = (&first, &second) else {
         panic!("a saturated mask is a declared scope and serves the scope contract");
     };
     assert!(
@@ -788,8 +804,12 @@ async fn saturated_scopes_share_one_cascade() {
         "two saturated scopes read one cascade"
     );
 
-    let link_masked = ViewSchedule::of(&atlas, &mask_hiding_rows(&atlas, &[], &[0]));
-    let ViewSchedule::Scope(link_masked) = &link_masked else {
+    let link_masked = ViewSchedule::of(
+        &atlas,
+        &mask_hiding_rows(&atlas, &[], &[0]),
+        PlacementCohort::EMPTY,
+    );
+    let ViewSchedule::Scope(link_masked, _) = &link_masked else {
         panic!("a link-masked proof is a declared scope");
     };
     assert!(
@@ -797,8 +817,8 @@ async fn saturated_scopes_share_one_cascade() {
         "the link mask never enters the cascade, so a saturated node axis shares it"
     );
 
-    let masked = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[0]));
-    let ViewSchedule::Scope(masked) = &masked else {
+    let masked = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[0]), PlacementCohort::EMPTY);
+    let ViewSchedule::Scope(masked, _) = &masked else {
         panic!("a masked proof is a declared scope");
     };
     assert!(
@@ -847,7 +867,7 @@ fn assert_saturated_scope_grid(
                             .iter()
                             .map(|&wire| {
                                 position_of[&node_codec
-                                    .decode(codec::WireRow::pinned(wire))
+                                    .decode(codec::WireRow::pinned(wire), atlas.universe())
                                     .expect("delivered wire ids decode")]
                             })
                             .collect();
@@ -893,8 +913,10 @@ fn assert_saturated_scope_grid(
                     atlas.grid,
                     &FULL,
                     atlas.census(&FULL),
-                    &ViewSchedule::Corpus,
-                    offset
+                    &ViewSchedule::Corpus(ArrivalOverlay::empty()),
+                    offset,
+                    PlacementCohort::EMPTY,
+                    None,
                 )
                 .expect_err("the operator contract admits no offset"),
                 ViewError::Offset(offset),
@@ -1092,7 +1114,10 @@ fn assert_scoped_caps(
         partners.sort_unstable();
         partners.dedup();
         expected_rows.extend(partners);
-        let mut delivered: Vec<u32> = subgraph.rows.iter().map(|row| row.as_u32()).collect();
+        let mut delivered: Vec<u32> = super::delivered_row_ids(atlas, &subgraph)
+            .iter()
+            .map(|row| row.as_u32())
+            .collect();
         delivered.sort_unstable();
         expected_rows.sort_unstable();
         assert_eq!(delivered, expected_rows, "{at} delivers other partners");

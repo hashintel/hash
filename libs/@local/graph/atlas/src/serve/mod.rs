@@ -51,14 +51,20 @@
 use alloc::sync::Arc;
 use std::sync::OnceLock;
 
+use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hashql_core::id::{IdSlice, IdVec};
 
 pub use self::{
-    cache::scope::VisibilityLimits, locate::LocateLimits, tile::TileLimits,
-    translate::TranslateLimits,
+    cache::scope::VisibilityLimits, delta::staging::EmbeddingEnsure, locate::LocateLimits,
+    tile::TileLimits, translate::TranslateLimits,
 };
 pub(crate) use self::{
-    codec::WireRow,
+    codec::{Universe, WireRow},
+    delta::{
+        DeltaCell, DeltaEpoch, DeltaSnapshot, PlacementCohort,
+        consumer::{DeltaConsumer, DeltaPolling},
+        staging::StagingArm,
+    },
     density::{CutOffset, DensityBand, DensityPolicy, ViewOccupancy},
     edges::{EdgesError, EdgesLimits, EdgesRequest},
     error::OpenAtlasError,
@@ -94,6 +100,7 @@ use crate::{
 pub(crate) mod cache;
 mod codec;
 mod colour;
+pub(crate) mod delta;
 mod density;
 mod edges;
 mod error;
@@ -235,6 +242,11 @@ pub(crate) struct Atlas {
     ///
     /// The one wire-id domain, since edges cross the wire as link-entity identities.
     node_codec: codec::RowCodec<NodeRowId>,
+    /// The generation's base row universe, the validated row column's bound.
+    ///
+    /// The bound before any delta, which the slot allocator starts past and a delta snapshot
+    /// widens. A request answering with no snapshot reads this value at every encode and decode.
+    universe: Universe,
     /// The wire row-id column in base order.
     ///
     /// The row column mapped through the node codec once at open, so position-driven gathers
@@ -263,9 +275,39 @@ impl Atlas {
         self.generation.id()
     }
 
+    /// Returns the transaction-time point the generation's dataset observed, or [`None`] for a
+    /// source without temporal axes.
+    ///
+    /// A replay of the entity feed from this point covers every store change the fitted
+    /// artifacts cannot know about.
+    #[must_use]
+    pub(crate) fn fitted_at(&self) -> Option<Timestamp<TransactionTime>> {
+        self.generation
+            .repository()
+            .metadata
+            .snapshot
+            .axes
+            .map(|axes| axes.transaction_time)
+    }
+
     /// Views the server secret this generation opened under.
     pub(crate) const fn wire_secret(&self) -> &WireSecret {
         &self.wire_secret
+    }
+
+    /// Returns the generation's base row universe, the bound before any delta.
+    #[must_use]
+    pub(crate) const fn universe(&self) -> Universe {
+        self.universe
+    }
+
+    /// Opens the generation's publish path for placing arrivals online.
+    ///
+    /// Returns [`None`] when the generation placed rows by landmark baseline or when the reopened
+    /// publish path does not reproduce the generation's own published coordinates. Each refusal
+    /// logs its own line, and serving without a placer stages arrivals until a refit.
+    pub(crate) fn arrival_placer(&self) -> Option<delta::Placer> {
+        delta::Placer::open(&self.generation)
     }
 
     /// Configures the delivery-cut policy over this generation's schedule, aiming for `band`.
@@ -309,11 +351,17 @@ impl Atlas {
     /// Returns the cascade a saturated scope serves, building it on first use.
     ///
     /// Concurrent first callers wait for a single construction rather than duplicating it. The
-    /// build gathers under the full-visibility proof, which admits exactly the rows a saturated
-    /// node mask admits.
+    /// build gathers under the full-visibility proof, which admits exactly the fitted rows a
+    /// saturated node mask admits, and under the empty cohort, because the memo outlives any
+    /// one entry's arrivals.
     fn saturated_scope_schedule(&self) -> &Arc<ScopeSchedule> {
-        self.saturated
-            .get_or_init(|| Arc::new(ScopeSchedule::of(self, &VisibilityProof::full_visibility())))
+        self.saturated.get_or_init(|| {
+            Arc::new(ScopeSchedule::of(
+                self,
+                &VisibilityProof::full_visibility(),
+                delta::PlacementCohort::EMPTY,
+            ))
+        })
     }
 
     /// Returns the saturated cascade only when some resolution already built it.
@@ -325,5 +373,15 @@ impl Atlas {
     /// building accessor.
     fn saturated_scope_schedule_if_built(&self) -> Option<&Arc<ScopeSchedule>> {
         self.saturated.get()
+    }
+}
+
+impl delta::IdentityTables for Atlas {
+    fn node_row_of(&self, id: ArchivedEntityId) -> Option<NodeRowId> {
+        self.node_ids.row_of(id)
+    }
+
+    fn edge_row_of(&self, id: ArchivedEntityId) -> Option<EdgeRowId> {
+        self.edge_ids.row_of(id)
     }
 }

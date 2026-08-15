@@ -12,7 +12,7 @@ use std::process;
 
 pub use self::{
     error::{ConnectionError, WorkflowError, WorkflowResultError},
-    workflow::WorkflowRun,
+    workflow::{WorkflowRun, WorkflowStart},
 };
 
 mod ai;

@@ -16,7 +16,7 @@ use super::{
 };
 use crate::{
     math::{Bounds2, Vec2},
-    serve::visibility::VisibleRow,
+    serve::{delta::PlacementCohort, visibility::ResolvedRow},
 };
 
 /// The generation's extent, and the rows attaining any of its four extremes.
@@ -63,28 +63,27 @@ async fn resolve_collapses_every_failure_to_one_none() {
     let node_codec = test_codec(&atlas);
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
 
+    // The empty cohort holds no slot, so every resolution here answers in the fitted domain.
+    let fitted =
+        |proof: &VisibilityProof, wire| match atlas.resolve(proof, PlacementCohort::EMPTY, wire) {
+            Some(ResolvedRow::Fitted(row)) => Some(row.get()),
+            Some(ResolvedRow::Arrival(identity)) => {
+                panic!("an empty cohort resolved the arrival {identity:?}")
+            }
+            None => None,
+        };
+
     let masked = mask_hiding(&atlas, &[7]);
     for row in 0..universe {
-        let wire = node_codec.encode(NodeRowId::from_u32(row));
+        let wire = node_codec.encode(NodeRowId::from_u32(row), atlas.universe());
+        assert_eq!(fitted(&FULL, wire), Some(NodeRowId::from_u32(row)));
         assert_eq!(
-            atlas.resolve(&FULL, wire).map(VisibleRow::get),
-            Some(NodeRowId::from_u32(row)),
-        );
-        assert_eq!(
-            atlas.resolve(&masked, wire).map(VisibleRow::get),
+            fitted(&masked, wire),
             (row != 7).then(|| NodeRowId::from_u32(row)),
         );
     }
-    assert!(
-        atlas
-            .resolve(&FULL, codec::WireRow::pinned(universe))
-            .is_none()
-    );
-    assert!(
-        atlas
-            .resolve(&masked, codec::WireRow::pinned(universe))
-            .is_none()
-    );
+    assert!(fitted(&FULL, codec::WireRow::pinned(universe)).is_none());
+    assert!(fitted(&masked, codec::WireRow::pinned(universe)).is_none());
 }
 
 /// The masked root serves the scope cascade's rows, in both modes.
@@ -139,7 +138,7 @@ async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
             .iter()
             .map(|&wire| {
                 let row = node_codec
-                    .decode(codec::WireRow::pinned(wire))
+                    .decode(codec::WireRow::pinned(wire), atlas.universe())
                     .expect("delivered wire ids decode");
                 position_of[&row]
             })
@@ -166,8 +165,7 @@ async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
     }
 
     // A fully masked populated cell answers byte-identically to a
-    // cell that never had rows: same empty runs, zero visible count,
-    // zero children bits.
+    // cell that never had rows: same empty runs, zero children bits.
     let Artifacts {
         morton: _,
         quad,
@@ -197,7 +195,6 @@ async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
             variant: 0,
             coordinate,
             mode: Mode::Delta,
-            visible: 0,
             first_bucket: coordinate.z + FIXTURE_LOD.span.get(),
             runs: &[0],
             global: None,
@@ -206,6 +203,7 @@ async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
         delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[]),
         positions: IdSlice::from_raw(points),
         rows: IdSlice::from_raw(&[]),
+        arrivals: IdSlice::from_raw(&[]),
         masks: None,
         trailer: None,
     }
@@ -290,7 +288,13 @@ async fn translate_answers_missing_for_denied() {
         ],
     };
     let masked = atlas
-        .translate(request.clone(), TranslateLimits::default(), &proof)
+        .translate(
+            request.clone(),
+            TranslateLimits::default(),
+            &proof,
+            None,
+            PlacementCohort::EMPTY,
+        )
         .expect("the request is under the cap");
     assert!(!masked.nodes.contains_key(&entity_string_of(5)));
     assert!(masked.nodes.contains_key(&entity_string_of(6)));
@@ -300,7 +304,13 @@ async fn translate_answers_missing_for_denied() {
     // The full proof answers all four, so the absences above come from
     // the mask rather than from the identity tables.
     let full = atlas
-        .translate(request, TranslateLimits::default(), &FULL)
+        .translate(
+            request,
+            TranslateLimits::default(),
+            &FULL,
+            None,
+            PlacementCohort::EMPTY,
+        )
         .expect("the request is under the cap");
     assert_eq!(full.nodes.len(), 2);
     assert_eq!(full.edges.len(), 2);
@@ -326,7 +336,7 @@ async fn locate_filters_partners_under_the_mask() {
         .expect("row 5 resolves");
     let full = atlas.locate_subgraph(source, limits.locate, &full_view);
     assert_eq!(
-        full.rows.as_raw(),
+        super::delivered_row_ids(&atlas, &full),
         [NodeRowId::new(5), NodeRowId::new(40)],
         "the source and its one partner"
     );
@@ -339,7 +349,7 @@ async fn locate_filters_partners_under_the_mask() {
     let masked_view = masked_bound.view(&atlas);
     let masked = atlas.locate_subgraph(source, limits.locate, &masked_view);
     assert_eq!(
-        masked.rows.as_raw(),
+        super::delivered_row_ids(&atlas, &masked),
         [NodeRowId::new(5)],
         "the hidden partner is not delivered"
     );
@@ -371,7 +381,7 @@ async fn locate_filters_partners_under_the_mask() {
     let node_codec = test_codec(&atlas);
     let by_row = crate::serve::LocateRequest {
         entity_id: None,
-        row: Some(node_codec.encode(NodeRowId::new(0))),
+        row: Some(node_codec.encode(NodeRowId::new(0), atlas.universe())),
         colored_type_ids: Vec::new(),
     };
 
@@ -471,7 +481,7 @@ async fn hidden_link_row_leaves_the_locate_partner_delivered() {
         atlas.locate_subgraph(source, limits.locate, view)
     });
     assert_eq!(
-        masked.rows.as_raw(),
+        super::delivered_row_ids(&atlas, &masked),
         [NodeRowId::new(5), NodeRowId::new(40)],
         "the partner stays: its other edge still delivers it"
     );
@@ -511,6 +521,8 @@ async fn hidden_link_row_is_an_absent_key_in_translate() {
                 },
                 TranslateLimits::default(),
                 proof,
+                None,
+                PlacementCohort::EMPTY,
             )
             .expect("the request is under the cap")
     };
@@ -546,7 +558,11 @@ fn visibility_proof_is_fail_closed() {
 
     // Node rows 1 and 2 visible of four; link rows 0 and 2 visible of
     // three.
-    let proof = VisibilityProof::from_masks(domain_mask(4, &[0, 3]), domain_mask(3, &[1]));
+    let proof = VisibilityProof::from_masks(
+        domain_mask(4, &[0, 3]),
+        domain_mask(3, &[1]),
+        hashql_core::collections::fast_hash_set(),
+    );
 
     assert!(!proof.contains(NodeRowId::new(0)));
     assert!(proof.contains(NodeRowId::new(1)));
@@ -600,6 +616,28 @@ fn visibility_proof_is_fail_closed() {
     assert_eq!(proof.visible_below(4), 2);
     assert_eq!(FULL.visible_below(48), 48);
     assert!(FULL.contains(NodeRowId::from_u32(u32::MAX)));
+
+    // The delta-link arm is fail-closed on its identity domain: a masked proof admits exactly
+    // its captured set, and the full proof admits every identity.
+    let admitted = crate::dataset::postgres::id::ArchivedEntityId {
+        web_id: uuid::Uuid::from_bytes([0xC0; 16]).into(),
+        entity_uuid: crate::dataset::postgres::id::ArchivedEntityUuid::from_bytes([0x3F; 16]),
+    };
+    let stranger = crate::dataset::postgres::id::ArchivedEntityId {
+        web_id: uuid::Uuid::from_bytes([0xC1; 16]).into(),
+        entity_uuid: crate::dataset::postgres::id::ArchivedEntityUuid::from_bytes([0x3E; 16]),
+    };
+    let capturing = VisibilityProof::from_masks(
+        domain_mask(4, &[]),
+        domain_mask(3, &[]),
+        core::iter::once(admitted).collect(),
+    );
+    assert!(capturing.admits_delta_link(admitted));
+    assert!(
+        !capturing.admits_delta_link(stranger),
+        "an identity outside the captured set never serves"
+    );
+    assert!(FULL.admits_delta_link(stranger));
 }
 
 /// Masking commutes with delivery on every endpoint.
@@ -639,7 +677,11 @@ fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hid
     let node_codec = test_codec(atlas);
     let hidden_wire: HashSet<u32> = hidden
         .iter()
-        .map(|&row| node_codec.encode(NodeRowId::from_u32(row)).get())
+        .map(|&row| {
+            node_codec
+                .encode(NodeRowId::from_u32(row), atlas.universe())
+                .get()
+        })
         .collect();
     let position_of: HashMap<NodeRowId, u32> = atlas
         .row_ids()
@@ -681,7 +723,7 @@ fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hid
                     .iter()
                     .map(|&wire| {
                         let row = node_codec
-                            .decode(codec::WireRow::pinned(wire))
+                            .decode(codec::WireRow::pinned(wire), atlas.universe())
                             .expect("delivered wire ids decode");
                         position_of[&row]
                     })
@@ -750,6 +792,8 @@ fn assert_translate_masks_by_visibility(atlas: &Atlas, proof: &VisibilityProof, 
             },
             TranslateLimits::default(),
             proof,
+            None,
+            PlacementCohort::EMPTY,
         )
         .expect("the request is under the cap");
     for row in 0..universe {
@@ -788,6 +832,11 @@ fn assert_locate_delivers_the_visible_ego_graph(
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
     let limits = ServeLimits::default();
     let node_codec = test_codec(atlas);
+    let wire_of = |row: u32| {
+        node_codec
+            .encode(NodeRowId::from_u32(row), atlas.universe())
+            .get()
+    };
     let bound = Bound::of(atlas, proof);
     let view = bound.view(atlas);
 
@@ -837,14 +886,13 @@ fn assert_locate_delivers_the_visible_ego_graph(
                 ]
             })
             .filter(|&row| row != source_row)
-            .map(|row| (node_codec.encode(NodeRowId::from_u32(row)).get(), row))
+            .map(|row| (wire_of(row), row))
             .collect();
         partner_keys.sort_unstable();
         partner_keys.dedup();
         let mut expected_rows = vec![source_row];
         expected_rows.extend(partner_keys.iter().map(|&(_, row)| row));
-        let delivered_rows: Vec<u32> = masked
-            .rows
+        let delivered_rows: Vec<u32> = super::delivered_row_ids(atlas, &masked)
             .iter()
             .map(|row| narrow_usize(row.as_usize()))
             .collect();
@@ -913,7 +961,11 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
     // or edge carries, and the first wire value outside the image.
     let ghost_id = entity_string_of(203);
     let ghost_wire = (0..=u32::MAX)
-        .find(|&wire| atlas.resolve(&FULL, codec::WireRow::pinned(wire)).is_none())
+        .find(|&wire| {
+            atlas
+                .resolve(&FULL, PlacementCohort::EMPTY, codec::WireRow::pinned(wire))
+                .is_none()
+        })
         .expect("the image has forty-eight values; almost everything is outside it");
     let by_row = |wire: u32| crate::serve::LocateRequest {
         entity_id: None,
@@ -956,6 +1008,8 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
                 },
                 TranslateLimits::default(),
                 &proof,
+                None,
+                PlacementCohort::EMPTY,
             )
             .expect("the request is under the cap");
 
@@ -977,7 +1031,11 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
             );
             assert_matches!(
                 atlas.locate(
-                    &by_row(node_codec.encode(NodeRowId::from_u32(row)).get()),
+                    &by_row(
+                        node_codec
+                            .encode(NodeRowId::from_u32(row), atlas.universe())
+                            .get(),
+                    ),
                     limits,
                     Bound::new(&atlas, &proof, CutOffset::ZERO).view(&atlas),
                     UntouchedStore,
@@ -993,6 +1051,8 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
                     },
                     TranslateLimits::default(),
                     &proof,
+                    None,
+                    PlacementCohort::EMPTY,
                 )
                 .expect("the request is under the cap");
             assert_eq!(

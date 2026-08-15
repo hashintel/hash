@@ -20,8 +20,13 @@
 //! `F_i` (SipHash-2-4 truncated to 16 bits). The permutation stays fixed as the universe grows, so
 //! appending rows leaves every existing mapping unchanged and wire ids are stable within a
 //! generation under row addition. Encoding applies the network to a row id. Decoding applies the
-//! inverse network and bounds-checks the result against the universe, so exactly the `N` wire
-//! values in the image of `[0, N)` decode and every other value answers [`None`].
+//! inverse network and bounds-checks the result against the accepted [`Universe`], so exactly the
+//! `N` wire values in the image of `[0, N)` decode and every other value answers [`None`].
+//!
+//! The universe arrives per call rather than living in the codec, because the accepted row set
+//! grows while a generation serves: delta slot allocation extends it past the fitted rows. A
+//! caller takes one [`Universe`] value and reads it at every encode and decode in one answer, so
+//! the accepted set cannot shift inside a response.
 //!
 //! # Keys
 //!
@@ -59,6 +64,34 @@ const HALF_MASK: u32 = 0xFFFF;
 
 /// The HKDF expansion label of the node-row universe.
 pub(crate) const NODE_LABEL: &[u8] = b"atlas.wire.node.v1";
+
+/// The accepted row universe, the exclusive bound on the rows a codec maps.
+///
+/// Rows live in `[0, N)` and the value is `N`. The generation's open derives the base bound from
+/// the validated row column, and a delta snapshot carries the wider bound its slot allocation has
+/// reached, so the accepted set is a fact about one snapshot rather than about the generation. A
+/// caller resolves one value and reads it at every encode and decode in one answer.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct Universe(u32);
+
+impl Universe {
+    /// Bounds the universe at `rows`.
+    #[must_use]
+    pub(crate) const fn new(rows: u32) -> Self {
+        Self(rows)
+    }
+
+    /// Returns the exclusive row bound.
+    #[must_use]
+    pub(crate) const fn rows(self) -> u32 {
+        self.0
+    }
+
+    /// Returns whether `row` lies inside the universe.
+    pub(crate) const fn admits(self, row: u32) -> bool {
+        row < self.0
+    }
+}
 
 /// A row id as it crosses the wire.
 ///
@@ -119,16 +152,15 @@ impl<'de, I> serde::Deserialize<'de> for WireRow<I> {
     }
 }
 
-/// The keyed mapping between one dense row universe and its wire ids.
+/// The keyed mapping between one dense row domain and its wire ids.
 ///
-/// One codec serves one universe of one generation. [`Self::derive`] is the constructor. The
-/// underlying permutation bijects the `u32` range for every key; encoding restricts it to the
-/// universe `[0, N)` and decoding inverts exactly the encoded image, answering [`None`] elsewhere.
-/// Both are pure: the mapping never changes while the generation serves.
+/// One codec serves one row domain of one generation. [`Self::derive`] is the constructor. The
+/// underlying permutation bijects the `u32` range for every key. Encoding restricts it to the
+/// caller's [`Universe`] and decoding inverts exactly the image of that universe, answering
+/// [`None`] elsewhere. Both are pure: the mapping never changes while the generation serves, and
+/// only the accepted bound moves as slots allocate.
 #[derive(Debug)]
 pub(crate) struct RowCodec<I> {
-    /// The universe size `N`; rows live in `[0, N)`, wire values in the full `u32` range.
-    universe: u32,
     /// The per-round SipHash-2-4 keys.
     keys: [[u8; 16]; ROUNDS],
     _marker: PhantomData<I>,
@@ -138,16 +170,11 @@ impl<I> RowCodec<I>
 where
     I: Id,
 {
-    /// Derives the codec of one universe from the server secret.
+    /// Derives the codec of one row domain from the server secret.
     ///
-    /// The generation identity salts the extraction and `label` separates universes under one
+    /// The generation identity salts the extraction and `label` separates row domains under one
     /// generation. Equal arguments derive equal codecs.
-    pub(crate) fn derive(
-        secret: &WireSecret,
-        generation: GenerationId,
-        label: &[u8],
-        universe: u32,
-    ) -> Self {
+    pub(crate) fn derive(secret: &WireSecret, generation: GenerationId, label: &[u8]) -> Self {
         let salt = generation.digest().to_bytes();
 
         let mut material = [0_u8; 16 * ROUNDS];
@@ -161,35 +188,34 @@ where
         }
 
         Self {
-            universe,
             keys,
             _marker: PhantomData,
         }
     }
 
-    /// Encodes an internal row id as its wire id.
+    /// Encodes an internal row id of `universe` as its wire id.
     ///
     /// # Panics
     ///
-    /// This panics when `row` lies outside the universe. Encoding is a producer contract, so an
+    /// This panics when `row` lies outside `universe`. Encoding is a producer contract, so an
     /// out-of-universe row upstream is a defect in the caller rather than input to reject.
-    pub(crate) fn encode(&self, row: I) -> WireRow<I> {
+    pub(crate) fn encode(&self, row: I, universe: Universe) -> WireRow<I> {
         let row = row.as_u32();
         assert!(
-            row < self.universe,
-            "the codec encodes rows of its own universe",
+            universe.admits(row),
+            "the codec encodes rows of the caller's universe",
         );
 
         WireRow(self.permute(row), PhantomData)
     }
 
-    /// Decodes a wire value back to its internal row id, [`None`] outside the encoded image.
+    /// Decodes a wire value back to its internal row id, [`None`] outside the image of `universe`.
     ///
     /// [`None`] is the single out-of-image answer; ingress resolution collapses it with every other
     /// lookup failure before a response can observe the cause.
-    pub(crate) fn decode(&self, wire: WireRow<I>) -> Option<I> {
+    pub(crate) fn decode(&self, wire: WireRow<I>, universe: Universe) -> Option<I> {
         let row = self.unpermute(wire.get());
-        (row < self.universe).then_some(I::from_u32(row))
+        universe.admits(row).then_some(I::from_u32(row))
     }
 
     /// Applies the Feistel network once over the `u32` range.

@@ -5898,6 +5898,7 @@ name = "hash-graph-atlas"
 version = "0.0.0"
 dependencies = [
  "aide",
+ "arc-swap",
  "axum",
  "burn",
  "camino",
@@ -5917,6 +5918,7 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-types",
+ "hash-temporal-client",
  "hashql-core",
  "heed",
  "hkdf 0.13.0",
@@ -5945,6 +5947,7 @@ dependencies = [
  "sprs",
  "steppe",
  "tiktoken-rs",
+ "time",
  "tokio",
  "tokio-postgres",
  "tower",

@@ -30,11 +30,14 @@ use super::{
 
 /// The subquery deciding whether an edition is typed by the link entity type.
 ///
-/// The exclusion resolves the type through the store's materialized type closure and anchors on
+/// The test resolves the type through the store's materialized type closure and anchors on
 /// the type's base URL rather than a version-pinned ontology id. It keys on the edition's own
 /// type rather than on the edges it has, so a link with a missing left attachment is still no
 /// point glyph.
-fn link_typed(meta: Aliased<EntityTemporalMetadata>, link_root: Placeholder) -> SelectStatement {
+pub(super) fn link_typed(
+    edition: impl Into<Expression>,
+    link_root: Placeholder,
+) -> SelectStatement {
     const IS_LINK: Aliased<EntityIsOfType> = Aliased::of(Table::EntityIsOfType, "is_link");
     const LINK_TYPE: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "link_type");
 
@@ -59,10 +62,10 @@ fn link_typed(meta: Aliased<EntityTemporalMetadata>, link_root: Placeholder) -> 
             )
         })
         .where_expression({
-            // WHERE is_link.entity_edition_id = meta.entity_edition_id
+            // WHERE is_link.entity_edition_id = <edition>
             WhereExpression::from_iter([IS_LINK
                 .column(&EntityIsOfType::EntityEditionId)
-                .equal(meta.column(&EntityTemporalMetadata::EditionId))])
+                .equal(edition)])
         })
         .build()
 }
@@ -152,7 +155,11 @@ pub(super) fn scope(axes: Axes, link_root: Placeholder) -> SelectStatement {
             // WHERE embedding.property IS NULL AND NOT EXISTS (<link-typed>)
             WhereExpression::from_iter([
                 EMBEDDING.column(&EntityEmbeddings::Property).is_null(),
-                Expression::exists(link_typed(META, link_root)).not(),
+                Expression::exists(link_typed(
+                    META.column(&EntityTemporalMetadata::EditionId),
+                    link_root,
+                ))
+                .not(),
             ])
         })
         .build()

@@ -1,36 +1,36 @@
 {
+  "golden": "g6-edges",
+  "layer": "edges",
+  "prefix": {
+    "magic": "SALTILEE",
+    "wireVersion": 1,
+    "flags": 0,
+    "slotCount": 4,
+    "reserved": 0
+  },
   "directory": [
     [48, 92],
     [96, 108],
     [112, 124],
     [128, 224]
   ],
+  "head": {
+    "generation": "6666666666666666666666666666666666666666666666666666666666666666",
+    "variant": 0,
+    "count": 3,
+    "complete": false,
+    "trailer": true
+  },
+  "sources": [4, 4, 9],
+  "targets": [11, 7, 2],
   "edgeIds": [
     "a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
     "b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
     "c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1"
   ],
-  "golden": "g6-edges",
-  "head": {
-    "complete": false,
-    "count": 3,
-    "generation": "6666666666666666666666666666666666666666666666666666666666666666",
-    "trailer": true,
-    "variant": 0
-  },
-  "layer": "edges",
-  "prefix": {
-    "flags": 0,
-    "magic": "SALTILEE",
-    "reserved": 0,
-    "slotCount": 4,
-    "wireVersion": 1
-  },
-  "sources": [4, 4, 9],
-  "targets": [11, 7, 2],
   "trailer": {
+    "typeTable": ["https://t.test/authored/v/1", "https://t.test/cites/v/2"],
     "linkLabels": ["œuvre", "created by", null],
-    "linkTypeIds": [1, 0, null],
-    "typeTable": ["https://t.test/authored/v/1", "https://t.test/cites/v/2"]
+    "linkTypeIds": [1, 0, null]
   }
 }

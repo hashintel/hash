@@ -355,9 +355,13 @@ mod tile {
     use hashql_core::id::{Id as _, IdSlice};
 
     use super::{
-        BasePosition, Bounds2, DeliveredSet, GlobalHead, Icon, Label, Membership, Mode, NodeRowId,
-        Sha256Digest, TileCoordinate, TileHead, TileResponse, TileTrailer, Vec2, WireRow,
-        dense_set, section,
+        ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId, BasePosition, Bounds2, DeliveredSet,
+        GlobalHead, Icon, Label, Membership, Mode, NodeRowId, Sha256Digest, TileCoordinate,
+        TileHead, TileResponse, TileTrailer, Vec2, WireRow, dense_set, section,
+    };
+    use crate::{
+        dataset::{auxiliary::OwnedLabel, postgres::EditionDisplay},
+        serve::schedule::{ArrivalIndex, ArrivalRow, Splice, ViewRow},
     };
 
     /// Builds a consistent tile of two points from one delta run.
@@ -372,13 +376,13 @@ mod tile {
                 variant: 0,
                 coordinate: TileCoordinate { z: 3, x: 2, y: 5 },
                 mode: Mode::Delta,
-                visible: 41,
                 first_bucket: 9,
                 runs: &[2],
                 global: None,
                 children: 0b0010,
             },
             delivered: DeliveredSet::Ranges(ranges),
+            arrivals: IdSlice::from_raw(&[]),
             positions: IdSlice::from_raw(positions),
             rows: IdSlice::from_raw(rows),
             masks: None,
@@ -394,17 +398,16 @@ mod tile {
             .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
         let bytes = minimal(&positions, &rows, &ranges).encode();
 
-        // map(10): 0 bstr(32) | 1 uint 0 | 2 [3, 2, 5] | 3 uint 0 |
-        // 4 uint 2 | 5 uint 41 | 6 uint 9 | 7 [2] | 9 uint 2 |
-        // 10 false. Key 8 is absent without a global map.
-        let mut expected = vec![0xAA, 0x00, 0x58, 0x20];
+        // map(9): 0 bstr(32) | 1 uint 0 | 2 [3, 2, 5] | 3 uint 0 |
+        // 4 uint 2 | 6 uint 9 | 7 [2] | 9 uint 2 |
+        // 10 false. Key 5 is retired, and key 8 is absent without a global map.
+        let mut expected = vec![0xA9, 0x00, 0x58, 0x20];
         expected.extend_from_slice(&[0xAB; 32]);
         expected.extend_from_slice(&[
             0x01, 0x00, // variant 0
             0x02, 0x83, 0x03, 0x02, 0x05, // coordinate [3, 2, 5]
             0x03, 0x00, // mode delta
             0x04, 0x02, // delivered 2
-            0x05, 0x18, 0x29, // visible 41
             0x06, 0x09, // firstBucket 9
             0x07, 0x81, 0x02, // runs [2]
             0x09, 0x02, // children 0b0010
@@ -428,9 +431,9 @@ mod tile {
         let bytes = response.encode();
 
         let head = section(&bytes, 0).expect("HEAD is present");
-        // The head map now holds eleven entries, and key 8 sits between 7 and 9:
+        // The head map now holds ten entries, and key 8 sits between 7 and 9:
         // map(3): 0 uint 40 | 1 [-0.5, -1.0, 0.25, 1.0] | 2 uint 12.
-        assert_eq!(head[0], 0xAB);
+        assert_eq!(head[0], 0xAA);
         let global = [
             0x08, 0xA3, // key 8, map(3)
             0x00, 0x18, 0x28, // visible 40
@@ -467,7 +470,6 @@ mod tile {
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.head.runs = &[3];
-        response.head.visible = 3;
         let bytes = response.encode();
 
         // POSITIONS: xy pairs of base positions 1, 2, 6.
@@ -513,7 +515,6 @@ mod tile {
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.head.runs = &[5];
-        response.head.visible = 5;
         response.masks = Some(&masks);
         let bytes = response.encode();
 
@@ -565,7 +566,7 @@ mod tile {
         let rows: Vec<WireRow<NodeRowId>> = (0..22).map(WireRow::pinned).collect();
         // The same five points as the range form, gathered: today's masked walk visits
         // ascending corpus buckets, so its list ascends in base position.
-        let delivered = [4_u32, 5, 6, 20, 21].map(BasePosition::from_u32);
+        let delivered = [4_u32, 5, 6, 20, 21].map(|n| ViewRow::Base(BasePosition::from_u32(n)));
 
         let list = [5_u32, 20, 33].map(BasePosition::from_u32);
         let dense = dense_set(22, &[4, 21]);
@@ -580,7 +581,6 @@ mod tile {
         response.delivered = DeliveredSet::Positions(&delivered);
         response.head.first_bucket = 0;
         response.head.runs = &[5];
-        response.head.visible = 5;
         response.masks = Some(&masks);
         let bytes = response.encode();
 
@@ -590,6 +590,96 @@ mod tile {
             section(&bytes, 3).expect("TYPE_MASK is present"),
             [0b010, 0b001, 0b000, 0b001, 0b010]
         );
+    }
+
+    /// A spliced delivery must encode exactly as the gathered list naming the same merged order,
+    /// because the shapes are producer conveniences and the wire carries neither.
+    ///
+    /// The fixture splices one arrival mid-range and one past the last base row, with masks
+    /// whose bits differ per base position. A walk that misplaces a splice cannot reproduce the
+    /// gathered form's bytes, and neither can one that shifts a mask bit or drops the trailing
+    /// arrival.
+    #[test]
+    fn a_spliced_delivery_encodes_as_its_gathered_equivalent() {
+        let positions: Vec<Vec2> = (0..22_u8)
+            .map(|index| Vec2::new(f32::from(index), -f32::from(index)))
+            .collect();
+        let rows: Vec<WireRow<NodeRowId>> =
+            (0..22_u32).map(|row| WireRow::pinned(100 + row)).collect();
+        let arrivals = [
+            arrival_row(0xA0, Vec2::new(0.25, -0.5), 900),
+            arrival_row(0xA1, Vec2::new(-0.75, 0.75), 901),
+        ];
+        let table = IdSlice::from_raw(&arrivals);
+
+        // type 0: base 5 and 20; type 1: dense bits at 4, 20 and 21. An arrival has no postings
+        // row, so its mask stays zero in both shapes.
+        let list = [5_u32, 20].map(BasePosition::from_u32);
+        let dense = dense_set(22, &[4, 20, 21]);
+        let masks = [Membership::List(&list), Membership::Dense(&dense)];
+
+        // Merged order: 4, 5, A0, 6, 20, 21, A1 - arrival 0 at delivery index 2, arrival 1
+        // trailing at index 6. The runs partition the merged order as [4, 5, A0] and
+        // [6, 20, 21, A1].
+        let ranges = [
+            BasePosition::from_u32(4)..BasePosition::from_u32(7),
+            BasePosition::from_u32(20)..BasePosition::from_u32(22),
+        ];
+        let splices = [
+            Splice {
+                at: 2,
+                arrival: ArrivalIndex::from_u32(0),
+            },
+            Splice {
+                at: 6,
+                arrival: ArrivalIndex::from_u32(1),
+            },
+        ];
+        let mut interleaved = minimal(&positions, &rows, &[]);
+        interleaved.delivered = DeliveredSet::Spliced {
+            ranges: &ranges,
+            splices: &splices,
+        };
+        interleaved.arrivals = table;
+        interleaved.head.runs = &[3, 4];
+        interleaved.masks = Some(&masks);
+
+        let gathered_rows = [
+            ViewRow::Base(BasePosition::from_u32(4)),
+            ViewRow::Base(BasePosition::from_u32(5)),
+            ViewRow::Arrival(ArrivalIndex::from_u32(0)),
+            ViewRow::Base(BasePosition::from_u32(6)),
+            ViewRow::Base(BasePosition::from_u32(20)),
+            ViewRow::Base(BasePosition::from_u32(21)),
+            ViewRow::Arrival(ArrivalIndex::from_u32(1)),
+        ];
+        let mut gathered = minimal(&positions, &rows, &[]);
+        gathered.delivered = DeliveredSet::Positions(&gathered_rows);
+        gathered.arrivals = table;
+        gathered.head.runs = &[3, 4];
+        gathered.masks = Some(&masks);
+
+        assert_eq!(
+            interleaved.encode(),
+            gathered.encode(),
+            "the two producer shapes of one merged order encode identical bytes",
+        );
+    }
+
+    /// Builds one arrival row from a seed, a frozen coordinate, and a pinned wire id.
+    fn arrival_row(seed: u8, point: Vec2, wire: u32) -> ArrivalRow {
+        ArrivalRow {
+            identity: ArchivedEntityId {
+                web_id: ArchivedWebId::from_bytes([seed; 16]),
+                entity_uuid: ArchivedEntityUuid::from_bytes([seed ^ 0xFF; 16]),
+            },
+            point,
+            wire: WireRow::pinned(wire),
+            display: EditionDisplay {
+                label: OwnedLabel::from("arrival"),
+                first_type: None,
+            },
+        }
     }
 
     /// Scope-bucket delivery order does not ascend in corpus base position, so this test proves
@@ -623,12 +713,11 @@ mod tile {
         // Masks by base position are 0b010 at 4, 0b001 at 5, 0b100 at 6, 0b011 at 20, and 0b110 at
         // 21.
 
-        let scrambled = [4_u32, 20, 6, 5, 21].map(BasePosition::from_u32);
+        let scrambled = [4_u32, 20, 6, 5, 21].map(|n| ViewRow::Base(BasePosition::from_u32(n)));
         let mut response = minimal(&positions, &rows, &[]);
         response.delivered = DeliveredSet::Positions(&scrambled);
         response.head.first_bucket = 0;
         response.head.runs = &[2, 3];
-        response.head.visible = 5;
         response.masks = Some(&masks);
         let bytes = response.encode();
 
@@ -660,7 +749,7 @@ mod tile {
         );
 
         // The literal inversion sets delivery order fully descending in base position.
-        let inverted = [21_u32, 20, 6, 5, 4].map(BasePosition::from_u32);
+        let inverted = [21_u32, 20, 6, 5, 4].map(|n| ViewRow::Base(BasePosition::from_u32(n)));
         response.delivered = DeliveredSet::Positions(&inverted);
         let bytes = response.encode();
 
@@ -708,7 +797,6 @@ mod tile {
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.head.runs = &[0];
-        response.head.visible = 0;
         response.head.children = 0;
         let bytes = response.encode();
 
@@ -891,7 +979,9 @@ mod locate {
         PropertyValue, Sha256Digest, TileCoordinate, Vec2, WireRow, dense_set, identity_of,
         section,
     };
-    use crate::serve::{TableIndex, hydrate::EdgeSlot, neighbourhood::EdgeColumns};
+    use crate::serve::{
+        TableIndex, hydrate::EdgeSlot, neighbourhood::EdgeColumns, schedule::ViewRow,
+    };
 
     /// The four-point base-order coordinate column behind the tests.
     fn points() -> [Vec2; 4] {
@@ -931,12 +1021,13 @@ mod locate {
             delivered: IdSlice::from_raw(
                 &const {
                     [
-                        BasePosition::from_u32(2),
-                        BasePosition::from_u32(0),
-                        BasePosition::from_u32(3),
+                        ViewRow::Base(BasePosition::from_u32(2)),
+                        ViewRow::Base(BasePosition::from_u32(0)),
+                        ViewRow::Base(BasePosition::from_u32(3)),
                     ]
                 },
             ),
+            arrivals: IdSlice::from_raw(&[]),
             positions: IdSlice::from_raw(positions),
             rows: IdSlice::from_raw(
                 &const {
@@ -1106,7 +1197,8 @@ mod locate {
         let no_edges = dense_set::<EdgeSlot>(0, &[]);
         let empty = EdgeColumns::pinned([]);
         let mut response = minimal(&positions);
-        response.delivered = IdSlice::from_raw(&const { [BasePosition::from_u32(1)] });
+        response.delivered =
+            IdSlice::from_raw(&const { [ViewRow::Base(BasePosition::from_u32(1))] });
         response.edges = &empty;
         response.trailer.labels = IdSlice::from_raw(&const { [Label::empty()] });
         response.trailer.type_ids = IdSlice::from_raw(&[None]);

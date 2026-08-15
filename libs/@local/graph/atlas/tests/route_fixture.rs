@@ -126,14 +126,16 @@ impl Cbor {
     }
 
     fn entry(&self, key: u64) -> &Self {
+        self.get(key)
+            .unwrap_or_else(|| panic!("the head carries no key {key}"))
+    }
+
+    fn get(&self, key: u64) -> Option<&Self> {
         match self {
-            Self::Map(entries) => {
-                &entries
-                    .iter()
-                    .find(|(entry, _)| *entry == key)
-                    .unwrap_or_else(|| panic!("the head carries no key {key}"))
-                    .1
-            }
+            Self::Map(entries) => entries
+                .iter()
+                .find(|(entry, _)| *entry == key)
+                .map(|(_, value)| value),
             other => panic!("expected a map, read {other:?}"),
         }
     }
@@ -331,9 +333,11 @@ async fn route_served_scoped_tile_fixture() {
     .await
     .expect("the store the HASH_GRAPH_PG_* environment names is reachable");
 
-    let invocation = Invocation::parse_from(["route-fixture"]);
+    // The fixture is a claim about the change under test, never about live store state, so the
+    // delta consumer stays off and the served bytes come from the generation alone.
+    let invocation = Invocation::parse_from(["route-fixture", "--no-delta"]);
     let router = ServeCommand::new(invocation.root, invocation.serve)
-        .run(Arc::new(pool), VisibilityLimits::default())
+        .run(Arc::new(pool), VisibilityLimits::default(), None)
         .expect("the root holds an activated generation and a wire secret is configured");
 
     // The generation under serve, from the route that names it.
@@ -428,9 +432,11 @@ async fn route_served_scoped_tile_fixture() {
     assert_eq!(head.entry(3).uint(), 0, "the default mode is delta");
 
     let delivered = head.entry(4).uint();
-    let visible = head.entry(5).uint();
     assert!(delivered > 0, "a fixture of nothing witnesses nothing");
-    assert!(visible >= delivered, "delivery never exceeds visibility");
+    assert!(
+        head.get(5).is_none(),
+        "key 5 is retired and no response emits it"
+    );
     assert_eq!(head.entry(6).uint(), 0, "a delta root starts at bucket 0");
 
     let runs: Vec<u64> = head.entry(7).array().iter().map(Cbor::uint).collect();
@@ -504,7 +510,6 @@ async fn route_served_scoped_tile_fixture() {
             "coordinate": [0, 0, 0],
             "mode": 0,
             "delivered": delivered,
-            "visible": visible,
             "firstBucket": 0,
             "runs": runs,
             "children": children,

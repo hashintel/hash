@@ -38,7 +38,8 @@ use super::{
     problem::{Problem, ProblemType, missing_actor, unauthorized, visibility_unavailable},
 };
 use crate::serve::{
-    Atlas, CutOffset, View, ViewError, VisibilityLimits, VisibilityProof,
+    Atlas, CutOffset, DeltaSnapshot, PlacementCohort, View, ViewError, VisibilityLimits,
+    VisibilityProof,
     cache::{
         CacheEntry, PendingCacheEntry, VisibilityCache,
         scope::{CacheKey, FilterDigest},
@@ -124,6 +125,12 @@ pub(super) struct Visibility {
     /// Sealed at the manifest by the density policy and read back at admission, so the served cut
     /// and the declared cut are the same value by construction.
     k: CutOffset,
+    /// The withdrawal snapshot captured at ingress, before any proof or cache work.
+    ///
+    /// One owned handle pins one publication for the whole request, so every admission in the
+    /// answer reads the same snapshot however many publications land while it runs. [`None`]
+    /// before the consumer's first publication, and for a serve that starts no consumer.
+    delta: Option<Arc<DeltaSnapshot>>,
 }
 
 impl Visibility {
@@ -147,7 +154,27 @@ impl Visibility {
     /// As [`View::of`]. A route converts the refusal into its own error union and answers it
     /// through [`view_problem`].
     pub(super) fn view(&self, atlas: &Atlas) -> Result<View<'_>, ViewError> {
-        View::of(atlas, &self.entry, self.k)
+        View::of(atlas, &self.entry, self.k, self.delta.as_deref())
+    }
+
+    /// Returns the ingress withdrawal snapshot, [`None`] before the first publication.
+    ///
+    /// Translate constructs no [`View`] and takes the same captured value explicitly.
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "`Option::as_deref` needs `Arc: [const] Deref`, which the standard library does \
+                  not provide"
+    )]
+    pub(super) fn delta(&self) -> Option<&DeltaSnapshot> {
+        self.delta.as_deref()
+    }
+
+    /// Returns the entry's placement cohort, the arrivals snapshot its resolution read.
+    ///
+    /// Arrival-sensitive reads take slots, placement payload, and the accepted row universe from
+    /// this value, and the ingress capture above contributes current withdrawals alone.
+    pub(super) fn cohort(&self) -> PlacementCohort<'_> {
+        self.entry.cohort()
     }
 }
 
@@ -158,12 +185,17 @@ impl FromRequestParts<AppState> for Visibility {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
+        // One ingress capture before any proof or cache work, so the request's admissions
+        // cannot straddle a publication.
+        let delta = state.delta.load_full();
+
         let scope = authorization::admit(parts, state)?;
         let resolved = resolve(state, *scope.actor, scope.filter.digest(), None).await?;
 
         Ok(Self {
             entry: resolved.entry,
             k: scope.k,
+            delta,
         })
     }
 }
@@ -227,6 +259,7 @@ pub(super) async fn resolve(
 
     let pool = Arc::clone(&state.authority.pool);
     let atlas = Arc::clone(&state.atlas);
+    let cell = Arc::clone(&state.delta);
     let actor = AuthenticatedActor::Uuid(actor);
 
     let entry = state
@@ -251,16 +284,22 @@ pub(super) async fn resolve(
                 .transpose()
                 .map_err(ProofError::Document)?;
 
+            // One load is the whole resolution's snapshot: the proof resolves against it and the
+            // entry binds it, so the slots the mask admits and the placements requests read come
+            // from one publication.
+            let cohort = cell.load_full();
+
             let (proof, masking) = visibility_proof(
                 actor,
                 filter.as_ref(),
                 &protection.filter_protection,
                 &store,
                 &atlas,
+                PlacementCohort::of(cohort.as_deref()),
             )
             .await?;
 
-            PendingCacheEntry::of(atlas, proof, masking, document).await
+            PendingCacheEntry::of(atlas, proof, masking, document, cohort).await
         })
         .await
         .map_err(|error| proof_problem(&error))?;

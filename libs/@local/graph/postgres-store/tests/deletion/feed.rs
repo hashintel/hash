@@ -96,6 +96,26 @@ async fn set_draft(api: &mut DatabaseApi<'_>, entity: &Entity, draft: bool) -> E
         .expect("could not change draft state")
 }
 
+/// Patches the entity's archived flag to the given value.
+async fn set_archived(api: &mut DatabaseApi<'_>, entity: &Entity, archived: bool) -> Entity {
+    api.store
+        .patch_entity(
+            api.account_id,
+            PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                decision_time: None,
+                entity_type_ids: HashSet::new(),
+                properties: Vec::new(),
+                draft: None,
+                archived: Some(archived),
+                confidence: None,
+                provenance: provenance(),
+            },
+        )
+        .await
+        .expect("could not change archived state")
+}
+
 /// Patches the entity's properties at the given decision time (`None` means the present).
 async fn patch_properties(
     api: &mut DatabaseApi<'_>,
@@ -168,6 +188,7 @@ async fn create_fires_updated() {
         entity.metadata.record_id.entity_id.entity_uuid
     );
     assert_eq!(update.edition, entity.metadata.record_id.edition_id);
+    assert!(!update.archived);
 
     // Re-reading with an unchanged watermark returns the same events.
     let (updated_again, ended_again, deleted_again) = collect_events(&api, cursor).await;
@@ -260,7 +281,8 @@ async fn backdated_patch_into_open_slice_fires_updated() {
 }
 
 /// Flipping the archived flag is an edition change at the present, so it fires
-/// [`EntityEvent::Updated`] and the flag travels on the edition the event carries.
+/// [`EntityEvent::Updated`] in both directions, and each event carries the flag's new value on
+/// its edition.
 #[tokio::test]
 async fn archived_flag_patch_fires_updated() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -269,23 +291,7 @@ async fn archived_flag_patch_fires_updated() {
     let entity = create_person(&mut api, alice(), false).await;
     let cursor = feed_cursor(&api).await;
 
-    let archived = api
-        .store
-        .patch_entity(
-            api.account_id,
-            PatchEntityParams {
-                entity_id: entity.metadata.record_id.entity_id,
-                decision_time: None,
-                entity_type_ids: HashSet::new(),
-                properties: Vec::new(),
-                draft: None,
-                archived: Some(true),
-                confidence: None,
-                provenance: provenance(),
-            },
-        )
-        .await
-        .expect("could not archive entity");
+    let archived = set_archived(&mut api, &entity, true).await;
     assert!(archived.metadata.archived);
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
@@ -293,6 +299,18 @@ async fn archived_flag_patch_fires_updated() {
     assert!(ended.is_empty());
     assert!(deleted.is_empty());
     assert_eq!(updated[0].edition, archived.metadata.record_id.edition_id);
+    assert!(updated[0].archived);
+
+    let cursor = feed_cursor(&api).await;
+    let unarchived = set_archived(&mut api, &archived, false).await;
+    assert!(!unarchived.metadata.archived);
+
+    let (updated, ended, deleted) = collect_events(&api, cursor).await;
+    assert_eq!(updated.len(), 1);
+    assert!(ended.is_empty());
+    assert!(deleted.is_empty());
+    assert_eq!(updated[0].edition, unarchived.metadata.record_id.edition_id);
+    assert!(!updated[0].archived);
 }
 
 /// Purging an entity with `Archive` link behavior ends the incoming link entity's present and

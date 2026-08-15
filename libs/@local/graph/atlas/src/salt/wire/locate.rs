@@ -1,8 +1,10 @@
 //! The locate response: `HEAD`, node and edge columns, and the detail trailer as one envelope.
 //!
-//! A locate document names its delivered set as an explicit base-position list - source first, then
-//! neighbours in wire order - over the generation's base-order columns; unlike a tile's contiguous
-//! ranges the set is arbitrary, so the columns gather point by point. The `SALTILEL` envelope has
+//! A locate document names its delivered set as an explicit row list - source first, then
+//! neighbours in wire order - each row in the domain that publishes it. Fitted rows gather
+//! from the generation's base-order columns, and placed arrivals gather from the view's
+//! arrival table. Unlike a tile's contiguous ranges the set is arbitrary, so the columns gather
+//! point by point. The `SALTILEL` envelope has
 //! seven slots: `HEAD`, the tile response's three node column shapes (`POSITIONS`, `ROW_IDS`,
 //! `TYPE_MASK`), the edges response's endpoint columns (`EDGE_SOURCES`, `EDGE_TARGETS`), and
 //! `EDGE_IDS` - the delivered edges' link-entity identities as raw 32-byte records, the only
@@ -43,6 +45,7 @@ use crate::{
         TableIndex, WireRow,
         hydrate::{EdgeSlot, NodeSlot},
         neighbourhood::EdgeColumns,
+        schedule::{ArrivalIndex, ArrivalRow, ViewRow},
     },
 };
 
@@ -80,8 +83,13 @@ pub(crate) struct LocateResponse<'doc> {
     /// `false` when the scalar-value filter or the property cap dropped anything, and for a source
     /// the store no longer serves.
     pub properties_complete: bool,
-    /// Base positions in delivered order, source first.
-    pub delivered: &'doc IdSlice<NodeSlot, BasePosition>,
+    /// The delivered rows in delivered order, source first, each in the domain that publishes
+    /// it.
+    pub delivered: &'doc IdSlice<NodeSlot, ViewRow>,
+    /// The entry cohort's arrivals, addressed by the delivered arrival rows.
+    ///
+    /// Empty when the view holds no admitted arrival.
+    pub arrivals: &'doc IdSlice<ArrivalIndex, ArrivalRow>,
     /// The generation's wire-coordinate column, base order, in full.
     pub positions: &'doc IdSlice<BasePosition, Vec2>,
     /// The generation's row-id column (row by base position), in full.
@@ -168,8 +176,11 @@ impl LocateResponse<'_> {
     /// Writes the `POSITIONS` column: f32 xy pairs, delivered order.
     fn write_positions(&self, column: &mut Vec<u8>) {
         column.reserve(self.delivered.len() * 8);
-        for &position in self.delivered {
-            let point = self.positions[position];
+        for &vessel in self.delivered {
+            let point = match vessel {
+                ViewRow::Base(position) => self.positions[position],
+                ViewRow::Arrival(index) => self.arrivals[index].point,
+            };
             column.extend_from_slice(&point.x().to_le_bytes());
             column.extend_from_slice(&point.y().to_le_bytes());
         }
@@ -178,8 +189,12 @@ impl LocateResponse<'_> {
     /// Writes the `ROW_IDS` column: u32 row ids, delivered order.
     fn write_rows(&self, column: &mut Vec<u8>) {
         column.reserve(self.delivered.len() * 4);
-        for &position in self.delivered {
-            column.extend_from_slice(&self.rows[position].get().to_le_bytes());
+        for &vessel in self.delivered {
+            let wire = match vessel {
+                ViewRow::Base(position) => self.rows[position],
+                ViewRow::Arrival(index) => self.arrivals[index].wire,
+            };
+            column.extend_from_slice(&wire.get().to_le_bytes());
         }
     }
 
@@ -199,7 +214,12 @@ impl LocateResponse<'_> {
             let byte = bit >> 3;
             let flag = 1_u8 << (bit & 7);
 
-            for (point, &position) in self.delivered.iter().enumerate() {
+            for (point, &vessel) in self.delivered.iter().enumerate() {
+                // An arrival's mask reads zero in every bit, the column's answer for an id the
+                // generation's postings cannot resolve.
+                let ViewRow::Base(position) = vessel else {
+                    continue;
+                };
                 if membership.contains(position) {
                     column[point * stride + byte] |= flag;
                 }

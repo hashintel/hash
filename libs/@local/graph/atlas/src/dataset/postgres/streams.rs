@@ -47,7 +47,7 @@ fn ordinals_or_empty() -> Expression {
 /// The store does the geometry's data preparation: `subvector` truncates the embedding to the
 /// projector's prefix and `l2_normalize` renormalizes it inside the statement, so the connection
 /// carries unit-norm prefixes and nothing wider.
-fn normalized_prefix(embedding: Aliased<EntityEmbeddings>) -> Expression {
+pub(super) fn normalized_prefix(embedding: Aliased<EntityEmbeddings>) -> Expression {
     // l2_normalize(subvector(embedding.embedding, 1, <prefix>))::vector(<prefix>)
     Expression::from(Function::L2Normalize(Box::new(
         Function::Subvector {

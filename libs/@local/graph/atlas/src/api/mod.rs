@@ -36,8 +36,8 @@ use rand::rngs::SysRng;
 
 use self::visibility::Authority;
 use crate::serve::{
-    Atlas, DensityBand, DensityPolicy, GraphDatabaseClient, ServeLimits, VisibilityLimits,
-    authorization::TokenAuthority,
+    Atlas, DeltaCell, DeltaEpoch, DensityBand, DensityPolicy, GraphDatabaseClient, ServeLimits,
+    VisibilityLimits, authorization::TokenAuthority,
 };
 
 mod authorization;
@@ -105,14 +105,21 @@ const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 ///
 /// The pinned generation, the limits the handlers enforce and the manifest publishes, the store
 /// connection detail hydration reads through, the authority every assembly path masks by - read per
-/// request through [`visibility::Visibility`] - and the token authority the manifest mints from,
-/// whose sealed scope is the identity every data route resolves its visibility under.
+/// request through [`visibility::Visibility`] - the delta cell every request captures its
+/// withdrawal snapshot from at ingress, and the token authority the manifest mints from, whose
+/// sealed scope is the identity every data route resolves its visibility under.
 #[derive(Clone)]
 struct AppState {
     atlas: Arc<Atlas>,
     limits: ServeLimits,
     visibility: VisibilityLimits,
     tokens: Arc<TokenAuthority<SysRng>>,
+    /// The published delta snapshot cell, empty until the consumer's first publication.
+    ///
+    /// Each request loads it once at ingress and reads that one snapshot at every admission in
+    /// its answer. A serve without a consumer holds the empty cell for its lifetime, and every
+    /// load answers [`None`] at no cost.
+    delta: Arc<DeltaCell>,
     /// The delivery-cut policy a fresh bootstrap resolves `k` under.
     ///
     /// [`None`] for the schedules no offset deepens, where every scope serves the recorded cut.
@@ -129,8 +136,9 @@ struct AppState {
 /// answers under the scope of the actor it names: `pool` is the store every read goes through and
 /// `visibility` the window the router reuses a resolved scope for. The router serves no request
 /// without an actor, and serves no actor another's rows. The authority token's key derives from the
-/// secret that opened the atlas. The manifest mints one per fetch, and the data routes refuse
-/// without one.
+/// secret that opened the atlas, and every token seals `epoch`, the serving process's delta epoch,
+/// so a restarted delta register refuses the tokens minted beside its predecessor. The manifest
+/// mints one per fetch, and the data routes refuse without one.
 ///
 /// # Panics
 ///
@@ -142,12 +150,15 @@ pub(crate) fn router(
     details: Arc<GraphDatabaseClient>,
     pool: Arc<PostgresStorePool>,
     visibility: VisibilityLimits,
+    epoch: Option<DeltaEpoch>,
+    delta: Arc<DeltaCell>,
 ) -> Router {
     let state = AppState {
         tokens: Arc::new(TokenAuthority::new(
             atlas.generation(),
             atlas.wire_secret().hex_bytes(),
             visibility.hard,
+            epoch,
             SysRng,
         )),
         density: atlas.density_policy(DensityBand::default()),
@@ -156,6 +167,7 @@ pub(crate) fn router(
         visibility,
         authority: Authority::new(pool, visibility),
         remote: details,
+        delta,
     };
 
     // Each operation declares its responses explicitly; the

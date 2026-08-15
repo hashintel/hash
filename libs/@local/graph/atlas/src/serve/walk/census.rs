@@ -70,46 +70,6 @@ impl ViewCensus {
 }
 
 impl Walk<'_> {
-    /// Counts the points of `cell` across every occupied bucket.
-    ///
-    /// The subtree count of a cell without a quad node.
-    pub(crate) fn population(&self, cell: MortonCell) -> u64 {
-        let lengths = self.morton.fenceposts().lengths();
-
-        let mut population = 0;
-        for depth in Depth::all() {
-            if lengths[depth.get() as usize] == 0 {
-                continue;
-            }
-
-            let run = self.run(depth, cell);
-            population += u64::from(run.end.as_u32() - run.start.as_u32());
-        }
-
-        population
-    }
-
-    /// Counts the visible points of `cell` across every occupied bucket.
-    ///
-    /// [`population`](Self::population) over the masked view.
-    pub(crate) fn visible_population(&self, cell: MortonCell) -> u64 {
-        let lengths = self.morton.fenceposts().lengths();
-
-        let mut population = 0;
-        for depth in Depth::all() {
-            if lengths[depth.get() as usize] == 0 {
-                continue;
-            }
-
-            population += self
-                .run(depth, cell)
-                .filter(|&position| self.admits(position))
-                .count() as u64;
-        }
-
-        population
-    }
-
     /// Inserts the rows of one tile's cumulative delivered set.
     ///
     /// A tile's delivered set is mode-independent, because its cumulative delta set equals its

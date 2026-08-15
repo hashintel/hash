@@ -33,7 +33,10 @@ Use it to place entities fetched elsewhere onto the map. A resolved node answers
 
 Row ids are opaque per-generation values, sparse in the full 32-bit range: consistent across every \
      route of one generation, carrying no ordering, adjacency, or count information, and not \
-     stable across generations - re-translate after a generation change.
+     stable across generations - re-translate after a generation change. An id can also name an \
+     entity placed since the generation was fitted. Those ids die with the serving session that \
+     minted them, and the uniform token refusal that follows a restart is the signal to \
+     re-bootstrap and re-translate.
 
 The response is two maps - `nodes` and `edges` - keyed by the requested id strings echoed \
      verbatim, so which map answers carries the kind. An id that resolves to nothing is an absent \
@@ -63,7 +66,17 @@ pub(super) async fn handler(
 
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits.translate;
-    match spawn(move || atlas.translate(request, limits, visibility.proof())).await? {
+    match spawn(move || {
+        atlas.translate(
+            request,
+            limits,
+            visibility.proof(),
+            visibility.delta(),
+            visibility.cohort(),
+        )
+    })
+    .await?
+    {
         Ok(response) => Ok(([(header::CACHE_CONTROL, headers::NO_STORE)], Json(response))),
         Err(error @ TranslateError::Ids { .. }) => Err(Problem::new(
             StatusCode::BAD_REQUEST,

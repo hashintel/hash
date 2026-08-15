@@ -1,18 +1,20 @@
 //! Opening the active generation behind the read-API router.
 
 use alloc::sync::Arc;
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, time::Duration};
 
 use axum::Router;
 use clap::Args;
 use hash_graph_postgres_store::store::PostgresStorePool;
+use rand::rngs::SysRng;
 
 use crate::{
     api,
     file::generation::{CurrentError, GenerationRoot},
     serve::{
-        Atlas, EdgesLimits, GraphDatabaseClient, LocateLimits, OpenAtlasError, OpenOptions,
-        ServeLimits, TileLimits, TranslateLimits, VisibilityLimits, WireSecret,
+        Atlas, DeltaCell, DeltaConsumer, DeltaEpoch, DeltaPolling, EdgesLimits, EmbeddingEnsure,
+        GraphDatabaseClient, LocateLimits, OpenAtlasError, OpenOptions, ServeLimits, StagingArm,
+        TileLimits, TranslateLimits, VisibilityLimits, WireSecret,
     },
 };
 
@@ -111,6 +113,52 @@ impl From<LimitsArgs> for ServeLimits {
     }
 }
 
+/// The delta consumer's polling knobs and its opt-out.
+///
+/// Every default reads off [`DeltaPolling`]'s pinned values, so the defaults live in exactly one
+/// place and `--help` renders them.
+#[derive(Debug, Args)]
+struct DeltaArgs {
+    /// Seconds between entity feed polls.
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_DELTA_POLL_INTERVAL",
+        default_value_t = DeltaPolling::INTERVAL_SECONDS,
+    )]
+    delta_poll_interval: u32,
+
+    /// Seconds a poll reads behind its own watermark, covering the feed's commit-visibility
+    /// window.
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_DELTA_SAFETY_LAG",
+        default_value_t = DeltaPolling::SAFETY_LAG_SECONDS,
+    )]
+    delta_safety_lag: u32,
+
+    /// Staging cycles an arrival's embedding read runs on each side of its ensure.
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_DELTA_RETRY_POLLS",
+        default_value_t = DeltaPolling::RETRY_POLLS,
+    )]
+    delta_retry_polls: u32,
+
+    /// Serve the generation's fit-time bytes alone, starting no delta consumer.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_NO_DELTA")]
+    no_delta: bool,
+}
+
+impl From<&DeltaArgs> for DeltaPolling {
+    fn from(args: &DeltaArgs) -> Self {
+        Self {
+            interval: Duration::from_secs(u64::from(args.delta_poll_interval)),
+            safety_lag: time::Duration::seconds(i64::from(args.delta_safety_lag)),
+            retry_polls: args.delta_retry_polls,
+        }
+    }
+}
+
 /// Root and serving settings of one serve.
 ///
 /// Listener address, lifecycle, and the store connection belong to the hosting binary; these flags
@@ -119,6 +167,9 @@ impl From<LimitsArgs> for ServeLimits {
 pub struct ServeArgs {
     #[command(flatten)]
     limits: LimitsArgs,
+
+    #[command(flatten)]
+    delta: DeltaArgs,
 
     /// The server secret behind the wire row-id codec.
     ///
@@ -145,6 +196,12 @@ pub enum ServeError {
     Secret,
     /// The active generation's artifacts could not open.
     Open(OpenAtlasError),
+    /// Drawing the delta epoch failed.
+    ///
+    /// Entropy failure refuses the serve rather than starting a register lifetime under a
+    /// predictable name. The source is the system generator's own error, type-erased because its
+    /// defining crate is not a public dependency.
+    Epoch(Box<dyn Error + Send + Sync>),
 }
 
 impl fmt::Display for ServeError {
@@ -159,6 +216,7 @@ impl fmt::Display for ServeError {
                  characters (openssl rand -hex 32)",
             ),
             Self::Open(_) => fmt.write_str("the active generation's artifacts could not open"),
+            Self::Epoch(_) => fmt.write_str("the delta epoch could not be drawn"),
         }
     }
 }
@@ -169,6 +227,7 @@ impl Error for ServeError {
             Self::Current(error) => Some(error),
             Self::Missing | Self::Secret => None,
             Self::Open(error) => Some(error),
+            Self::Epoch(error) => Some(error.as_ref()),
         }
     }
 }
@@ -179,6 +238,7 @@ pub struct ServeCommand {
     root: GenerationRoot,
     limits: ServeLimits,
     secret: Option<WireSecret>,
+    delta: DeltaArgs,
 }
 
 impl ServeCommand {
@@ -189,6 +249,7 @@ impl ServeCommand {
             root: root.root,
             limits: args.limits.into(),
             secret: args.secret,
+            delta: args.delta,
         }
     }
 
@@ -201,16 +262,26 @@ impl ServeCommand {
     /// permission resolution alike - and `visibility`, the window over which the router reuses a
     /// resolved scope. The router carries everything the atlas serves.
     ///
+    /// When the generation records temporal axes and the delta opt-out is unset, the invocation
+    /// also spawns the delta consumer and the staging arm onto the caller's runtime. The
+    /// consumer polls the entity feed through the same pool for the process's lifetime, and the
+    /// staging arm walks classified arrivals toward placement, ensuring embeddings when the
+    /// caller supplies `ensure` and staging without ensures otherwise. Consumer initialization
+    /// draws a fresh delta epoch, which every authority token seals, so the tokens minted beside
+    /// an earlier register lifetime refuse uniformly and their sessions bootstrap again.
+    ///
     /// # Errors
     ///
     /// Returns a [`ServeError`] naming the step that failed: [`ServeError::Current`] for reading
     /// the current-generation pointer, [`ServeError::Missing`] for a root with no activated
-    /// generation, [`ServeError::Secret`] for an invocation with no wire secret, and
-    /// [`ServeError::Open`] for artifacts that do not open.
+    /// generation, [`ServeError::Secret`] for an invocation with no wire secret,
+    /// [`ServeError::Open`] for artifacts that do not open, and [`ServeError::Epoch`] when the
+    /// delta epoch's entropy draw fails.
     pub fn run(
         self,
         pool: Arc<PostgresStorePool>,
         visibility: VisibilityLimits,
+        ensure: Option<EmbeddingEnsure>,
     ) -> Result<Router, ServeError> {
         // Embedders reach this entry without passing through the shell's main.
         crate::math::kernel::verify_cpu_baseline();
@@ -237,8 +308,61 @@ impl ServeCommand {
         let details = Arc::new(GraphDatabaseClient::new(Arc::clone(&pool)));
         tracing::info!("detail trailers hydrate from the store");
 
+        // The cell rides the router in every mode. Without a consumer it stays empty for the
+        // process's lifetime, and every ingress capture answers `None` at no cost.
+        let cell = Arc::new(DeltaCell::default());
+
+        let epoch = if self.delta.no_delta {
+            tracing::info!("the delta consumer is disabled by configuration");
+            None
+        } else if let Some(fitted) = atlas.fitted_at() {
+            // The epoch draw is the first act of consumer initialization, so a failed draw
+            // spawns nothing and refuses the serve whole.
+            let epoch = DeltaEpoch::fresh(&mut SysRng)
+                .map_err(|error| ServeError::Epoch(Box::new(error)))?;
+            let polling = DeltaPolling::from(&self.delta);
+            let ensuring = ensure.is_some();
+            let placer = atlas.arrival_placer();
+            let placing = placer.is_some();
+            let (placements_tx, placements_rx) = tokio::sync::mpsc::unbounded_channel();
+            let consumer = DeltaConsumer::new(
+                Arc::clone(&pool),
+                Arc::clone(&atlas),
+                Arc::clone(&cell),
+                fitted,
+                atlas.universe(),
+                polling,
+                placements_rx,
+            );
+            let arm = StagingArm::new(
+                Arc::clone(&pool),
+                Arc::clone(&cell),
+                polling,
+                ensure,
+                placer,
+                placements_tx,
+            );
+            let _consumer_handle = tokio::spawn(consumer.run());
+            let _staging_handle = tokio::spawn(arm.run());
+            if !placing {
+                tracing::info!("no placer opened, arrivals stage until a refit");
+            }
+            if ensuring {
+                tracing::info!("the delta consumer polls the entity feed");
+            } else {
+                tracing::info!(
+                    "the delta consumer polls the entity feed, and arrivals stage without \
+                     embedding ensures because no Temporal client is configured"
+                );
+            }
+            Some(epoch)
+        } else {
+            tracing::info!("the generation records no temporal axes, so no delta consumer runs");
+            None
+        };
+
         Ok(
-            api::router(atlas, self.limits, details, pool, visibility).route(
+            api::router(atlas, self.limits, details, pool, visibility, epoch, cell).route(
                 "/status",
                 axum::routing::get(async || axum::http::StatusCode::OK),
             ),

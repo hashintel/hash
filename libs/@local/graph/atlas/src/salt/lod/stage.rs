@@ -36,7 +36,11 @@ use crate::{
     morton::{Depth, MortonKey},
 };
 
-const WIRE_FRAME: Bounds2 = Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
+/// The fixed frame every wire coordinate lives in.
+///
+/// The world frame normalizes onto it at publish, and the online placement path re-derives the
+/// identical map from the recorded world frame and this constant.
+pub(crate) const WIRE_FRAME: Bounds2 = Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
     .expect("the wire frame corners are finite and ordered");
 
 /// The default [`LodConfig::span`].

@@ -78,6 +78,14 @@ impl Grid {
         Depth::new(z + self.span).expect("construction validated the schedule's deepest cut")
     }
 
+    /// Returns the deepest served bucket: the deepest zoom's cut, the catch-all.
+    ///
+    /// The fit clamps every natural bucket into it, so no corpus row and no delivered arrival
+    /// sits beyond it.
+    pub(super) const fn deepest(self) -> Depth {
+        self.cut(self.max_tile_depth)
+    }
+
     /// Iterates the cumulative schedule of zoom `z`: every bucket at or below its cut.
     ///
     /// # Panics

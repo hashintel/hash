@@ -12,7 +12,7 @@ use hashql_core::id::Id;
 
 use super::{
     Atlas,
-    codec::{NODE_LABEL, RowCodec},
+    codec::{NODE_LABEL, RowCodec, Universe},
     error::{ArrayKind, IdentityDomain, OpenAtlasError},
     grid::Grid,
     secret::WireSecret,
@@ -357,18 +357,20 @@ impl Atlas {
         let closure = ClosureMap::new(&postings, ontology_ids.displayed_rows())?;
 
         // The row column is the node universe's permutation, so its validated length is the
-        // codec's `N`. Edges cross the wire as link-entity identities and need no codec.
-        let universe = u32::try_from(rows.len()).map_err(|_error| OpenAtlasError::Universe {
-            rows: rows.len() as u64,
-        })?;
-        let node_codec = RowCodec::derive(&wire_secret, id, NODE_LABEL, universe);
+        // base bound. Edges cross the wire as link-entity identities and need no codec.
+        let universe = Universe::new(u32::try_from(rows.len()).map_err(|_error| {
+            OpenAtlasError::Universe {
+                rows: rows.len() as u64,
+            }
+        })?);
+        let node_codec = RowCodec::derive(&wire_secret, id, NODE_LABEL);
 
         // The wire column maps the validated row column once, so every position-driven gather
         // reads permuted ids for free.
         let wire_rows = rows
             .view()
             .iter()
-            .map(|&row| node_codec.encode(row))
+            .map(|&row| node_codec.encode(row, universe))
             .collect();
 
         let world = generation.repository().metadata.evidence.lod.world;
@@ -393,6 +395,7 @@ impl Atlas {
             node_ids,
             edge_ids,
             node_codec,
+            universe,
             wire_rows,
             bounds,
             saturated: OnceLock::new(),

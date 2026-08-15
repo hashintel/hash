@@ -114,21 +114,20 @@ Edges carry no wire id of their own: a link entity's id is its identity in every
 
 `HEAD` keys:
 
-| Key | Name          | Type        | Meaning                                                                                                               |
-| --- | ------------- | ----------- | --------------------------------------------------------------------------------------------------------------------- |
-| 0   | `generation`  | `bstr(32)`  | sha256 identity, echoes the route                                                                                     |
-| 1   | `variant`     | `uint`      | the route's variant as its index in the manifest `variants` list                                                      |
-| 2   | `coordinate`  | `[z, x, y]` | uints, echoes the route                                                                                               |
-| 3   | `mode`        | `uint`      | 0 = delta, 1 = total                                                                                                  |
-| 4   | `delivered`   | `uint`      | point count in this response                                                                                          |
-| 5   | `visible`     | `uint`      | visibleSubtreeCount for the extent                                                                                    |
-| 6   | `firstBucket` | `uint`      | b0 of the `runs` array                                                                                                |
-| 7   | `runs`        | `[uint...]` | per-bucket delivered counts, buckets b0.. (note below)                                                                |
-| 8   | `global`      | `map`       | post-intersection set metadata (note below)                                                                           |
-| 9   | `children`    | `uint`      | occupied-child bitmask, bit i = Morton child i holds an undelivered visible point below this zoom's cut; 0 = complete |
-| 10  | `trailer`     | `bool`      | a CBOR trailer tail follows the last column (echoes a `detail: "auxiliary"` request)                                  |
-
-The v1 grammar retires key 11 to a reserved slot: no response emits it, and `sum(runs) = delivered` holds in every response.
+| Key | Name          | Type        | Meaning                                                                                                                   |
+| --- | ------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 0   | `generation`  | `bstr(32)`  | sha256 identity, echoes the route                                                                                         |
+| 1   | `variant`     | `uint`      | the route's variant as its index in the manifest `variants` list                                                          |
+| 2   | `coordinate`  | `[z, x, y]` | uints, echoes the route                                                                                                   |
+| 3   | `mode`        | `uint`      | 0 = delta, 1 = total                                                                                                      |
+| 4   | `delivered`   | `uint`      | point count in this response                                                                                              |
+| 5   | reserved      | -           | -                                                                                                                         |
+| 6   | `firstBucket` | `uint`      | b0 of the `runs` array                                                                                                    |
+| 7   | `runs`        | `[uint...]` | per-bucket delivered counts, buckets b0.. (note below)                                                                    |
+| 8   | `global`      | `map`       | post-intersection set metadata (note below)                                                                               |
+| 9   | `children`    | `uint`      | occupied-child bitmask, bit `i` = Morton child `i` holds an undelivered visible point below this zoom's cut; 0 = complete |
+| 10  | `trailer`     | `bool`      | a CBOR trailer tail follows the last column (echoes a `detail: "auxiliary"` request)                                      |
+| 11  | reserved      | -           | -                                                                                                                         |
 
 In `runs`, a delta response carries one entry with b0 = z+m+k and a total response carries z+m+k+1 entries with b0 = 0. Zero-length entries keep their positional slot, so bucket = b0 + i always holds - the zoom-0 delta root is the one delta case with m+k+1 entries (buckets 0..=m+k, b0 = 0). `runs` is what a progressive renderer paints from (total responses are bucket-major, coarse structure first), with bucket b0+i's rows at column offset `sum(runs[..i])`. A full-visibility caller has `k = 0` and the manifest's `bucketSchedule` as its schedule. A restricted caller reads `k` from the manifest's `scopeSchedule` block, which declares the resolved delivery-cut offset beside the authority token.
 
@@ -143,11 +142,11 @@ Restricted views deliver from their own schedule. The server builds a first-occu
 | 2   | `minResolution` | `uint`      | the deepest bucket the visible set occupies: the coarsest cut delivering all of it |
 
 - One 32-byte identity echo pins everything: the generation id is sha256 of the generation's metadata document, which carries every artifact digest. The echo exists so a decoder rejects a stale or misrouted cache body before its arrays reach a renderer.
-- `complete` does not ride the tile wire: `children == 0` is the completeness signal, in both modes (nothing deeper exists), and a total-mode client can cross-check it against `delivered == visible`.
-- The format reserves `children` bits beyond the low four as zero. A diving client walks exactly the occupied frontier - no empty-tile probes. A cell with no quad node answers `children = 0` (its points, if any, were all delivered by ancestor cuts). Under an active filter the truthful bitmask is post-intersection, like `visible`.
+- `complete` does not ride the tile wire: `children == 0` is the completeness signal, in both modes (nothing deeper exists).
+- The format reserves `children` bits beyond the low four as zero. A diving client walks exactly the occupied frontier - no empty-tile probes. A cell with no quad node answers `children = 0` (its points, if any, were all delivered by ancestor cuts). Under an active filter the truthful bitmask is post-intersection, like every `global` aggregate.
 - No response-level type summary rides `HEAD`: "which requested types are active here" is the bitwise union of the `TYPE_MASK` column, derivable in the same decode pass that colours dots.
 - Truncation is detectable from the directory alone: the response must extend to `align8(end)` of the last present slot, plus a complete CBOR item when `HEAD` declares the trailer - a stream ending early is an error even without Content-Length.
-- `visible` and every `global` aggregate are post-intersection quantities (authorization and filter).
+- Every `global` aggregate is a post-intersection quantity (authorization and filter).
 
 Tile trailer, present iff the request set `detail: "auxiliary"`:
 
@@ -197,7 +196,7 @@ The bulk response delivers type references, never rendered display: the client r
 | 6   | `complete`           | `bool`      | false = the locate edge cap truncated the subgraph (auth-invisible edges are not truncation - missing = denied)                                                                                |
 | 7   | `entityId`           | `bstr(32)`  | the source's upstream entity id: web uuid then entity uuid - the by-row flow's identity answer                                                                                                 |
 | 8   | `typeIdsComplete`    | `bool`      | the request's coloredTypeIds cover every direct type of the source; false on an empty request set and for a source the store no longer serves                                                  |
-| 9   | `propertiesComplete` | `bool`      | the trailer's source property map is the entity's whole **deliverable** set; false when the simple-value filter or the property cap dropped anything, or the store no longer serves the source |
+| 9   | `propertiesComplete` | `bool`      | the trailer's source property map is the entity's whole **deliverable** set; false when the scalar-value filter or the property cap dropped anything, or the store no longer serves the source |
 
 Delivered node order is source first, then the delivered edges' partners ascending by wire row id. A partner whose every edge truncated is not delivered. The source's row id and position are `ROW_IDS[0]` / `POSITIONS[0]`. No `HEAD` key repeats them. `zoom` is the zoom at which the source's dot first becomes visible to this view - the cut rule inverted over the schedule the view delivers under, `z + span` for an operator view and `z + span + k` for a restricted one. A restricted view's answer is a function of its own visible rows, so it carries no evidence of what its mask removed. `cell` is its tile there. Identical requests yield identical prefix, directory, `HEAD`, and column bytes under section 2's identity state. Trailer labels are generation-local payloads admitted by request-time entity resolution. Type and property columns reflect live store state. The trailer as a whole is therefore outside that identity guarantee (section 2). The request's `entityId` is not echoed (POST body + `private, no-store` + the generation echo).
 
@@ -211,14 +210,14 @@ Locate trailer, always present - locate is the detail view. Its labels come from
 | 1   | `propertyTable`          | `[tstr ...]`         | every surviving property base URL once, bytewise-sorted                                                                                                                                                                      |
 | 2   | `labels`                 | `[tstr or null ...]` | delivered order                                                                                                                                                                                                              |
 | 3   | `typeIds`                | `[uint or null ...]` | each node's first direct type as a typeTable index; null = the store no longer serves the node or records no types                                                                                                           |
-| 4   | `properties`             | `map or null`        | the source's property map - propertyTable index -> simple value, keys ascending, capped by limits.locateProperties (null = store-absent source). Neighbour nodes arrive without properties - their detail is one locate away |
+| 4   | `properties`             | `map or null`        | the source's property map - propertyTable index -> scalar value, keys ascending, capped by limits.locateProperties (null = store-absent source). Neighbour nodes arrive without properties - their detail is one locate away |
 | 5   | `linkLabels`             | `[tstr or null ...]` | edge order                                                                                                                                                                                                                   |
 | 6   | `linkTypeIds`            | `[[uint ...] ...]`   | each link's direct types as typeTable indexes, canonical order preserved, capped by limits.locateLinkTypeIds; empty = store-absent link                                                                                      |
 | 7   | `linkTypeIdsComplete`    | `bstr`               | LSB-first bitmask in whole 8-byte words (`ceil(edges/64) * 8` bytes, padding bits zero), bit e set = edge e's type list is the link's whole direct set; unset = the cap truncated it or the store no longer serves it        |
-| 8   | `linkProperties`         | `[map or null ...]`  | edge order - propertyTable index -> simple value, keys ascending, capped by limits.locateLinkProperties; null = store-absent link                                                                                            |
+| 8   | `linkProperties`         | `[map or null ...]`  | edge order - propertyTable index -> scalar value, keys ascending, capped by limits.locateLinkProperties; null = store-absent link                                                                                            |
 | 9   | `linkPropertiesComplete` | `bstr`               | LSB-first bitmask in whole 8-byte words (`ceil(edges/64) * 8` bytes, padding bits zero), bit e set = edge e's property map is the link entity's whole **deliverable** set                                                    |
 
-Property values are simple values only (tstr / int / f64 / bool / null) - nested objects and arrays never cross the wire. A number encodes as an integer when the store renders it integral and it fits i64, as a double otherwise. An over-cap entity drops properties reverse-lexicographically by base URL, keeping the request-time edition's label property until last. The property's survival does not change the already-published label payload. Survivors emit ascending by name, which is ascending index order. The intern tables are the unions of every surviving reference, and an index costs less than the string it replaces every time a URL repeats.
+Property values are scalar values only (tstr / int / f64 / bool / null) - nested objects and arrays never cross the wire. A number encodes as an integer when the store renders it integral and it fits i64, as a double otherwise. An over-cap entity drops properties reverse-lexicographically by base URL, keeping the request-time edition's label property until last. The property's survival does not change the already-published label payload. Survivors emit ascending by name, which is ascending index order. The intern tables are the unions of every surviving reference, and an index costs less than the string it replaces every time a URL repeats.
 
 ## 8a. Problem documents
 

@@ -137,7 +137,6 @@ const defaultHead = (
     [2, cborArray([cborUint(3), cborUint(5), cborUint(1)])],
     [3, cborUint(SaltileMode.Delta)],
     [4, cborUint(3)],
-    [5, cborUint(40)],
     [6, cborUint(9)],
     [7, cborArray([cborUint(3)])],
     [9, cborUint(5)],
@@ -205,7 +204,6 @@ describe("decodeSaltileTile", () => {
     const tile = decodeSaltileTile(buffer, request);
 
     expect(tile.delivered).toBe(3);
-    expect(tile.visible).toBe(40);
     expect(tile.firstBucket).toBe(9);
     expect(tile.runs).toEqual([3]);
     expect(tile.children).toBe(5);
@@ -394,7 +392,6 @@ describe("decodeSaltileTile", () => {
         cborMap(
           defaultHead({
             4: cborUint(0),
-            5: cborUint(0),
             7: cborArray([cborUint(0)]),
             9: cborUint(0),
           }),
