@@ -23,7 +23,11 @@ import {
   type EngineFrameSnapshot,
   type EngineFrameLayout,
 } from "../frames/internal-frame";
-import { computeTransitionCapacityConstraints } from "./capacity";
+import {
+  PLACE_CAPACITY_UNBOUNDED,
+  computeTransitionCapacityConstraints,
+  normalizePlaceCapacity,
+} from "./capacity";
 import {
   flattenComponentInstancesForSimulation,
   getArcPlaceNameOverrideKey,
@@ -658,10 +662,12 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
     // Capacity blocks transitions, so it cannot repair a marking that already
     // violates it. Rejecting here keeps the invariant true for every frame.
+    // Normalized so this check agrees with the runtime: a malformed capacity
+    // (negative, fractional) runs unbounded, so it must not reject a marking.
+    const normalizedCapacity = normalizePlaceCapacity(place.capacity);
     if (
-      place.capacity !== undefined &&
-      place.capacity !== null &&
-      packed.count > place.capacity
+      normalizedCapacity !== PLACE_CAPACITY_UNBOUNDED &&
+      packed.count > normalizedCapacity
     ) {
       throw new SDCPNItemError(
         `The initial marking for place \`${place.name}\` has ${packed.count} tokens but its capacity is ${place.capacity}.`,
