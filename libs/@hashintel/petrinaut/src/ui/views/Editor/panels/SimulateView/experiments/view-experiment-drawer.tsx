@@ -37,7 +37,7 @@ const backendBadgeStyle = css({
     color: "blue.s100",
     backgroundColor: "blue.s10",
   },
-})
+});
 
 const summaryStyle = css({
   marginTop: "-1",

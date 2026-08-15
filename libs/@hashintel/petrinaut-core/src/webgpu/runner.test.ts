@@ -61,7 +61,9 @@ describe("describeBufferOverflow", () => {
     });
 
     // floor(134217728 / 1024) = 131072.
-    expect(reason).toMatch(/that is 131072 runs; this experiment asked for 304000/);
+    expect(reason).toMatch(
+      /that is 131072 runs; this experiment asked for 304000/,
+    );
   });
 
   it("reports the histogram separately, since fewer runs would not help", () => {
@@ -119,7 +121,7 @@ describe("requestGpuDevice", () => {
                     // ask for, regardless of what the adapter supports.
                     maxStorageBufferBindingSize: 128 * 1024 * 1024,
                     maxBufferSize: 256 * 1024 * 1024,
-                    ...(descriptor.requiredLimits ?? {}),
+                    ...descriptor.requiredLimits,
                   },
                 });
               },
@@ -235,10 +237,7 @@ describe("fillSeedChunk", () => {
     fillSeedChunk(staging, { ...LAYOUT, firstRun: 0, runsInChunk: 4 });
     fillSeedChunk(staging, { ...LAYOUT, firstRun: 4, runsInChunk: 1 });
 
-    const written = new Set([
-      ...LAYOUT.placeCountOffsets,
-      LAYOUT.rngOffset,
-    ]);
+    const written = new Set([...LAYOUT.placeCountOffsets, LAYOUT.rngOffset]);
     for (let word = 0; word < LAYOUT.stateWordsPerRun; word++) {
       if (!written.has(word)) {
         expect(staging[word]).toBe(0);
@@ -302,7 +301,9 @@ describe("describeAllocationFailure", () => {
 
     // Measured: 3112 B/run x 1e6 runs = 2.90 GiB, which fails to allocate as a
     // mappable buffer on an adapter reporting maxBufferSize = 4 GiB.
-    expect(reason).toMatch(/^The GPU could not allocate memory for 1000000 runs/);
+    expect(reason).toMatch(
+      /^The GPU could not allocate memory for 1000000 runs/,
+    );
     expect(reason).toContain("3112 bytes per run");
     expect(reason).toContain("2.90 GiB");
     // The two things the author can actually change.

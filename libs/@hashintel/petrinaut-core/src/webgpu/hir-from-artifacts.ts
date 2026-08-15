@@ -1,12 +1,11 @@
 /**
  * Reads the HIR the GPU backend needs out of already-compiled artifacts.
  *
- * The alternative — lowering the net's TypeScript here — is what
- * `lower-net-hir.ts` does, and it cannot be used from the browser: it pulls in
- * the TypeScript frontend, whose Node builtins break the frontend bundle
- * outright (`Module not found: Can't resolve 'module'`). Artifacts are produced
- * in the language worker, which has the compiler, and carry the HIR alongside the
- * emitted JavaScript, so the browser only reads.
+ * The alternative — lowering the net's TypeScript here — cannot be used from
+ * the browser: it pulls in the TypeScript frontend, whose Node builtins break
+ * the frontend bundle outright (`Module not found: Can't resolve 'module'`).
+ * Artifacts are produced in the language worker, which has the compiler, and
+ * carry the HIR alongside the emitted JavaScript, so the browser only reads.
  *
  * Deliberately dependency-free beyond types, for the same reason.
  */

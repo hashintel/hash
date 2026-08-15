@@ -293,9 +293,7 @@ export function analyzeCompilation({
 
   return {
     gpuReady:
-      eligibility.eligible &&
-      shaderFailure === null &&
-      metricFailure === null,
+      eligibility.eligible && shaderFailure === null && metricFailure === null,
     eligibilityReasons: eligibility.eligible ? [] : eligibility.reasons,
     shaderFailure,
     bytesPerRun,
