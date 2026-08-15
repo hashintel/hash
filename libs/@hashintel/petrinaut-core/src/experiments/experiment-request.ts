@@ -1,17 +1,14 @@
 /**
- * What to compute — the portable half of an experiment.
+ * What to compute, as serializable data.
  *
- * Deliberately closed, and deliberately plain data. No worker factory, no GPU
- * options, no abort signal, no callbacks. Anything a backend needs that is not
- * here describes *how* to compute rather than *what*, and belongs either to that
- * backend's construction (see `ExperimentBackend`) or to the per-call options of
- * `instantiate`.
+ * Closed and plain: no worker factory, no GPU options, no abort signal, no
+ * callbacks. Anything describing *how* to compute belongs to the backend's
+ * construction (`ExperimentBackend`) or to the per-call options of `instantiate`.
  *
- * That single rule is what stops this type decaying into
- * `CreateMonteCarloExperimentConfig | CreateGpuMonteCarloExperimentConfig`. It
- * also keeps the request serializable, which is the property a future
- * out-of-process backend needs: for a remote backend this object is the request
- * body, so a function-valued field here would rule that backend out entirely.
+ * That rule keeps this from becoming
+ * `CreateMonteCarloExperimentConfig | CreateGpuMonteCarloExperimentConfig`, and
+ * keeps the request serializable. For an out-of-process backend this object is
+ * the request body, which a function-valued field would prevent.
  */
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";
@@ -31,18 +28,17 @@ export type ExperimentRequest = {
   /**
    * Metrics to record.
    *
-   * Expression metrics carry their compiled artifact, because a backend may need
-   * to run them and cannot compile one itself — that needs the TypeScript
-   * frontend, which is why `hirArtifacts` is here too rather than being derived.
+   * Expression metrics carry their compiled artifact. A backend may need to run
+   * them and cannot compile one itself: that needs the TypeScript frontend,
+   * which is also why `hirArtifacts` is passed rather than derived.
    */
   readonly metricSpecs: readonly MonteCarloMetricSpec[];
   /**
    * Compiled user code for the net.
    *
-   * Optional because a net with no user code needs none. Whether the HIR *trees*
-   * must be included is declared per backend by `ExperimentBackend.needsHirTrees`
-   * rather than inferred from a backend id, so a caller can compile once for
-   * whichever backends it is about to ask.
+   * Optional: a net with no user code needs none. Whether the HIR *trees* are
+   * included is declared per backend by `ExperimentBackend.needsHirTrees`, so a
+   * caller compiles once for whichever backends it is about to ask.
    */
   readonly hirArtifacts?: HirArtifacts;
 };

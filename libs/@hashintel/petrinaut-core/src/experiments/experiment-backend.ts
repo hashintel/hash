@@ -4,11 +4,9 @@
  * @layerRoot core.experiments
  * @role Chooses a compute backend for an experiment, and asks whether it can run a net
  *
- * Small on purpose. The runtime half of swappability already exists and is not
- * restated here: both the worker-pool and WebGPU paths already produce a
- * `MonteCarloExperiment`, and `ExperimentsProvider` consumes one with no
- * branching at all. What was never abstracted is *choosing* a backend and
- * *asking* whether it can take a net — so that, and only that, is what this adds.
+ * Small. Both paths already produce a `MonteCarloExperiment` that
+ * `ExperimentsProvider` consumes without branching. This adds only what was
+ * never abstracted: choosing a backend, and asking whether it can take a net.
  *
  * Backend-specific configuration is bound when the backend object is built, not
  * passed through this interface. The worker-pool backend closes over a worker
@@ -27,8 +25,8 @@ export type ExperimentBackend = {
   /**
    * Stable identifier, recorded against results.
    *
-   * Results from two backends are not numerically interchangeable — they use
-   * different random generators — so which one ran is part of the data, not a
+   * Results from two backends are not numerically interchangeable, they use
+   * different random generators, so which one ran is part of the data, not a
    * detail.
    */
   readonly id: string;
@@ -46,7 +44,7 @@ export type ExperimentBackend = {
   /**
    * Whether this backend could run *anything* in this environment.
    *
-   * Synchronous and cheap — a feature test, not an assessment — so a UI can
+   * Synchronous and cheap, a feature test, not an assessment, so a UI can
    * decide whether to offer the backend at all without compiling a net. A
    * backend that is always usable returns `true`.
    */
@@ -66,7 +64,7 @@ export type ExperimentBackend = {
  * A backend plus how eagerly to load it.
  *
  * `load` is deferred so a caller can register the WebGPU backend without pulling
- * the shader generator into the initial bundle — it is imported the first time a
+ * the shader generator into the initial bundle, it is imported the first time a
  * GPU run is actually attempted. Both backends are registered at once; the choice
  * is per experiment, never global.
  */
@@ -74,11 +72,9 @@ export type ExperimentBackendRegistration = {
   readonly id: string;
   readonly label: string;
   /**
-   * Loads the backend.
-   *
-   * Called at most once per registration by `selectExperimentBackend`, which
-   * caches the promise: acquiring a backend twice would mean two worker pools or
-   * two GPU devices.
+   * Loads the backend. Keep it cheap and side-effect free: the selection walk
+   * calls it once per walk, so anything expensive a backend acquires (a worker
+   * pool, a GPU device) belongs in `instantiate`, not here.
    */
   load(this: void): Promise<ExperimentBackend>;
 };
