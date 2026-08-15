@@ -623,9 +623,30 @@ export async function runGpuExperiment(
       }
     }
 
+    // Frames past the last recorded sample carry no data: every run had
+    // finished (all deadlocked, say) or the experiment was cancelled between
+    // chunks. The CPU path stops emitting frames at that point, so decoding
+    // them here would append a null-valued tail across the rest of the
+    // timeline — cancel a 1M-frame experiment after one chunk and the chart
+    // would carry 999k empty points.
+    let decodedFrameLimit = 0;
+    outer: for (let frame = frameLimit - 1; frame >= 0; frame--) {
+      for (let metricIndex = 0; metricIndex < metricCount; metricIndex++) {
+        const offset =
+          frame * GPU_HISTOGRAM_BINS * metricCount +
+          metricIndex * GPU_HISTOGRAM_BINS;
+        for (let bin = 0; bin < GPU_HISTOGRAM_BINS; bin++) {
+          if ((histogram[offset + bin] ?? 0) > 0) {
+            decodedFrameLimit = frame + 1;
+            break outer;
+          }
+        }
+      }
+    }
+
     const frames: GpuHistogramFrame[] = [];
     let saturatedSamples = 0;
-    for (let frame = 0; frame < frameLimit; frame++) {
+    for (let frame = 0; frame < decodedFrameLimit; frame++) {
       for (const [metricIndex, metricId] of shader.metricIds.entries()) {
         const offset =
           frame * GPU_HISTOGRAM_BINS * metricCount +
