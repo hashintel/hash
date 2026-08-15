@@ -290,8 +290,10 @@ where
 /// Projects the whole corpus at one rung, in bounded row slices.
 ///
 /// `forward_rows` bounds each slice's row count, and with it the peak device memory of a corpus
-/// forward; the frame it returns is identical to a single whole-corpus pass because the model maps
-/// rows independently of each other.
+/// forward; the frame it returns matches a single whole-corpus pass because the model maps rows
+/// independently of each other. The match is value-level, not bit-level: slices of different row
+/// counts are dispatches of different shapes, and a backend that selects kernels per shape may
+/// move the last bit of a coordinate between them.
 ///
 /// # Errors
 ///

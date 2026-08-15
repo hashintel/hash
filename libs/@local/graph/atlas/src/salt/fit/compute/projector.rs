@@ -1440,15 +1440,48 @@ mod tests {
         options
     }
 
-    /// Reads the staged canonical column and asserts each duplicate cluster shares one coordinate.
+    /// The widest duplicate-cluster spread the staged column may show, in units in the last
+    /// place.
+    ///
+    /// Byte-identical representations project to one coordinate mathematically. The column,
+    /// however, computes in `forward_rows`-bounded slices that put rows 5 and 2 into dispatches
+    /// of different shapes, whose kernels the GPU backend's autotune selects independently.
+    /// Under a loaded device the selections can disagree, and two reduction
+    /// orders for one value differ in the last bit (observed at exactly one ulp under the full
+    /// parallel suite). Within one dispatch shape the selection is cached per process, so the
+    /// projection-identity assertions stay bit-exact. The tolerance keeps headroom over the
+    /// observed single-ulp motion while still refusing value-scale divergence: a duplicate
+    /// placed anywhere else in the plane is millions of ulps away.
+    const DUPLICATE_ULPS: i64 = 4;
+
+    /// Maps a finite `f32` onto a line where integer distance is ulp distance, signs included.
+    fn ulp_key(value: f32) -> i64 {
+        if value.is_sign_negative() {
+            -i64::from(value.to_bits() & 0x7FFF_FFFF)
+        } else {
+            i64::from(value.to_bits())
+        }
+    }
+
+    /// Reads the staged canonical column and asserts each duplicate cluster shares one
+    /// coordinate, up to [`DUPLICATE_ULPS`].
     fn staged_column(staging: &StagedGeneration) -> Vec<Vec2> {
         let column = ArrayFile::open(staging.path_of(&Role::Coordinates.file_name()))
             .expect("the column should map");
         let placed = column.points().expect("the column holds 2D points");
         assert_eq!(placed.len(), ROWS);
         for (copy, first) in [(3_usize, 0_usize), (5, 2)] {
-            assert_eq!(placed[copy].x().to_bits(), placed[first].x().to_bits());
-            assert_eq!(placed[copy].y().to_bits(), placed[first].y().to_bits());
+            for (copied, original) in [
+                (placed[copy].x(), placed[first].x()),
+                (placed[copy].y(), placed[first].y()),
+            ] {
+                let distance = (ulp_key(copied) - ulp_key(original)).abs();
+                assert!(
+                    distance <= DUPLICATE_ULPS,
+                    "duplicate row {copy} strayed {distance} ulps from row {first}: {copied} vs \
+                     {original}",
+                );
+            }
         }
         placed.to_vec()
     }
@@ -1811,8 +1844,8 @@ mod tests {
         );
 
         // The staged column is the model's own zero-rung projection, bit
-        // for bit, and byte-identical representations project to one
-        // coordinate.
+        // for bit, and byte-identical representations share one
+        // coordinate up to the last-bit motion `staged_column` prices.
         let placed = staged_column(&staging);
         let projected = refresh::forward(
             &model.valid(),
