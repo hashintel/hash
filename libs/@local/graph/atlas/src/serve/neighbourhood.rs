@@ -712,3 +712,58 @@ impl Ord for Candidate {
         self.key.cmp(&other.key)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use hashql_core::id::Id as _;
+
+    use super::{DeltaEdge, DeltaEndpoint, EndpointRank, RankCap, ServedEdge};
+    use crate::{
+        identity::{ImportanceRank, NodeRowId},
+        postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
+    };
+
+    /// The identity-table key `seed` spells.
+    fn identity(seed: u8) -> ArchivedEntityId {
+        ArchivedEntityId {
+            web_id: ArchivedWebId::from_bytes([seed; 16]),
+            entity_uuid: ArchivedEntityUuid::from_bytes([seed; 16]),
+        }
+    }
+
+    /// A candidate edge whose fate the selection key alone decides.
+    fn edge() -> ServedEdge {
+        ServedEdge::Delta(DeltaEdge {
+            source: DeltaEndpoint::Fitted(NodeRowId::from_u32(0)),
+            target: DeltaEndpoint::Fitted(NodeRowId::from_u32(1)),
+        })
+    }
+
+    /// A full selection never excludes on rank equality, and the identity tie-break the
+    /// strictness protects can then evict the kept worst.
+    #[test]
+    fn a_rank_tie_never_excludes_before_the_identity_prices_it() {
+        let tied = EndpointRank::Fitted(ImportanceRank::from_u32(7));
+        let better = EndpointRank::Fitted(ImportanceRank::from_u32(3));
+        let worse = EndpointRank::Fitted(ImportanceRank::from_u32(8));
+
+        let mut cap = RankCap::new(1);
+        cap.offer((tied, identity(9)), edge());
+
+        assert!(
+            !cap.excludes(tied),
+            "an equal rank prices the identity tie-break",
+        );
+        assert!(!cap.excludes(better));
+        assert!(cap.excludes(worse));
+
+        cap.offer((tied, identity(1)), edge());
+        let set = cap.into_set();
+        assert_eq!(
+            set.edges().iter().map(|&(_, id)| id).collect::<Vec<_>>(),
+            vec![identity(1)],
+            "the equal-ranked better identity evicts the kept worst",
+        );
+        assert!(!set.complete(), "the eviction records the truncation");
+    }
+}

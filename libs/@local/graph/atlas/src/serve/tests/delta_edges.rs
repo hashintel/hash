@@ -8,6 +8,8 @@
 //! Each refusal case runs beside a same-path control whose delta touches nothing the request
 //! names.
 
+use core::num::NonZero;
+
 use hash_graph_postgres_store::store::{EntityEnd, EntityEvent, EntityUpdate};
 use hash_graph_temporal_versioning::Timestamp;
 use hashql_core::id::{Id as _, IdSlice};
@@ -35,6 +37,7 @@ use crate::{
         Classification, EditionDisplay, LinkDisplay,
         id::{ArchivedEntityId, ArchivedEntityUuid},
     },
+    random::{keyed_rng, uniform_below},
     salt::wire::edges::{EdgesResponse, EdgesTrailer},
     serve::{
         EdgesLimits, VisibilityProof,
@@ -56,6 +59,16 @@ const HIGH_LINK: u8 = 0xB0;
 
 /// The arrival's seed, past every node and edge seed the fixture generation fits.
 const ARRIVAL: u8 = 0xA0;
+
+/// Link seeds for the differential's random cohorts, disjoint from node seeds `0..48`, edge
+/// seeds `64..70`, and `ARRIVAL`.
+const LINK_SEEDS: [u8; 8] = [48, 52, 58, 63, 72, 90, 150, 200];
+
+/// An endpoint identity the view cannot deliver.
+const REFUSED: u8 = 0xD0;
+
+/// An oracle candidate pairs the full-sort selection key with the delivered wire triple.
+type OracleCandidate<Rank> = ((Rank, ArchivedEntityId), (u32, u32, ArchivedEntityId));
 
 /// The store-form entity id the seeding rule gives `seed`.
 fn store_id(seed: u8) -> EntityId {
@@ -850,5 +863,311 @@ async fn the_detail_trailer_scatters_delta_displays_into_the_merged_order() {
     assert_eq!(
         bytes, expected,
         "the delta display rides the head slot of the merged trailer"
+    );
+}
+
+/// A candidate's rank in the union order, derived independently of `EndpointRank`.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum OracleRank {
+    /// A generation row's importance rank.
+    Fitted(u32),
+    /// A placed arrival's identity.
+    Arrival(ArchivedEntityId),
+}
+
+/// Differential: the fold's selection equals full-sort-then-truncate, at every cap.
+///
+/// Randomised cohorts over the published fixture, each swept across every cap from zero to one
+/// past the union size, against an oracle built from the artifacts alone: the union sorted by
+/// (worse endpoint rank, identity), truncated, re-sorted by identity, with `complete` read as
+/// `union.len() <= cap`. Withdrawn fitted link identities put non-qualifying candidates in the
+/// walk, so the exactly-cap completeness law is under test at every trial.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the cohort draw, the oracle, and the cap sweep share one trial loop"
+)]
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_fold_matches_the_full_sort_at_every_cap() {
+    let (generation, atlas) = publish("review-fold-differential").await;
+    let (endpoints, row_ranks) = endpoint_ranks(&generation);
+    let fitted = fitted_triples(&atlas, &generation);
+    let (vacant, _) = vacant_cell(&atlas);
+    let slot = NodeRowId::from_u32(atlas.universe().rows());
+
+    let mut rng = keyed_rng(0x243F_6A88_85A3_08D3, 0, 0);
+    let mut next =
+        move |bound: u64| uniform_below(&mut rng, NonZero::new(bound).expect("a positive bound"));
+
+    let mut mismatches: Vec<String> = Vec::new();
+    for trial in 0..16_u32 {
+        let count = if trial < 3 {
+            0
+        } else {
+            1 + usize::try_from(next(LINK_SEEDS.len() as u64)).expect("small")
+        };
+        let mut links: Vec<(u8, u8, u8)> = Vec::new();
+        for &seed in &LINK_SEEDS[..count] {
+            let endpoint = |kind: u64, row: u64| -> u8 {
+                match kind {
+                    0 | 1 => ARRIVAL,
+                    2 => REFUSED,
+                    _ => u8::try_from(row).expect("fixture rows fit u8"),
+                }
+            };
+            let source = endpoint(next(16), next(48));
+            let target = endpoint(next(16), next(48));
+            links.push((seed, source, target));
+        }
+
+        // Withdrawn fitted link identities: candidates the walk reaches and the rule refuses.
+        let withdrawn_edges: Vec<u8> = (0..u8::try_from(fitted.len()).expect("small"))
+            .filter(|_| next(4) == 0)
+            .map(|row| super::EDGE_SEED + row)
+            .collect();
+        let capture = withdrawing(&atlas, &withdrawn_edges);
+        let ingress = (!withdrawn_edges.is_empty()).then_some(&capture);
+
+        let snapshot = publishing(&atlas, &[(ARRIVAL, vacant)], &links);
+        let cohort = PlacementCohort::of(Some(&snapshot));
+        let slot_wire = test_codec(&atlas).encode(slot, snapshot.universe()).get();
+
+        let mut union: Vec<OracleCandidate<OracleRank>> = Vec::new();
+        for (row, (&[source, target], &triple)) in endpoints.iter().zip(&fitted).enumerate() {
+            if withdrawn_edges.contains(&(super::EDGE_SEED + u8::try_from(row).expect("small"))) {
+                continue;
+            }
+            let worse = row_ranks[usize::try_from(source).expect("small")]
+                .max(row_ranks[usize::try_from(target).expect("small")]);
+            union.push(((OracleRank::Fitted(worse), triple.2), triple));
+        }
+        for &(seed, source, target) in &links {
+            let resolve = |endpoint: u8| -> Option<(OracleRank, u32)> {
+                if endpoint == ARRIVAL {
+                    Some((OracleRank::Arrival(archived_id(ARRIVAL)), slot_wire))
+                } else if usize::from(endpoint) < row_ranks.len() {
+                    Some((
+                        OracleRank::Fitted(row_ranks[usize::from(endpoint)]),
+                        node_wire(&atlas, endpoint),
+                    ))
+                } else {
+                    None
+                }
+            };
+            let (Some((source_rank, source_wire)), Some((target_rank, target_wire))) =
+                (resolve(source), resolve(target))
+            else {
+                continue;
+            };
+
+            union.push((
+                (source_rank.max(target_rank), archived_id(seed)),
+                (source_wire, target_wire, archived_id(seed)),
+            ));
+        }
+        union.sort_unstable_by_key(|&(key, _)| key);
+
+        for cap in 0..=(union.len() + 1) {
+            let mut kept: Vec<(u32, u32, ArchivedEntityId)> =
+                union.iter().take(cap).map(|&(_, triple)| triple).collect();
+            kept.sort_unstable_by_key(|&(.., id)| id);
+
+            let served = edges_with(
+                &atlas,
+                &FULL,
+                cohort,
+                ingress,
+                full_grid(),
+                EdgesLimits {
+                    edges: u32::try_from(cap).expect("small"),
+                    ..EdgesLimits::default()
+                },
+            );
+            let expected = expected_edges_bytes(
+                &generation,
+                union.len() <= cap,
+                &EdgeColumns::pinned(kept.clone()),
+            );
+            if served != expected {
+                mismatches.push(format!(
+                    "trial {trial} cap {cap} union {} links {links:?} withdrawn \
+                     {withdrawn_edges:?}",
+                    union.len()
+                ));
+            }
+        }
+    }
+
+    assert!(
+        mismatches.is_empty(),
+        "{} mismatches:\n{}",
+        mismatches.len(),
+        mismatches.join("\n")
+    );
+}
+
+/// The fixture geometry densified with reciprocal edge pairs.
+///
+/// The first half of the stream carries each pair's high-row-first direction and the second half
+/// its low-row-first direction, so the walk (rows ascending) offers the high-identity twin first
+/// and the equal-ranked low-identity twin later - the arrival order the cap's tie-break rule has
+/// to answer.
+fn reciprocal_pairs_dataset() -> crate::dataset::memory::MemoryDataset {
+    use smallvec::smallvec;
+    use zerocopy::{LE, U64};
+
+    use crate::{
+        dataset::{Edge, Ontology, card::Card, memory::MemoryDataset},
+        identity::OntologyRowId,
+    };
+
+    const PAIRS: [(u64, u64); 12] = [
+        (0, 1),
+        (2, 3),
+        (4, 5),
+        (6, 7),
+        (8, 9),
+        (10, 11),
+        (12, 13),
+        (14, 15),
+        (16, 17),
+        (18, 19),
+        (20, 21),
+        (22, 23),
+    ];
+
+    let (nodes, canonical) =
+        super::fixture_nodes(|row| smallvec![OntologyRowId::from_usize(row & 1)]);
+
+    let directed: Vec<(u64, u64)> = PAIRS
+        .iter()
+        .map(|&(low, high)| (high, low))
+        .chain(PAIRS.iter().copied())
+        .collect();
+
+    let edges = directed
+        .iter()
+        .enumerate()
+        .map(|(row, &(source, target))| Edge {
+            id: U64::<LE>::new(100 + row as u64),
+            source: NodeRowId::new(source),
+            target: NodeRowId::new(target),
+            ontology: smallvec![OntologyRowId::new(2)],
+            embedding: None,
+            confidence: None,
+            source_confidence: None,
+            target_confidence: None,
+        })
+        .collect();
+
+    let ontology = vec![
+        Ontology {
+            id: U64::<LE>::new(0),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(1),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(2),
+            parents: smallvec![],
+        },
+    ];
+    let cards = std::collections::HashMap::from([
+        (0, Card::verbatim("Person entity card".to_owned())),
+        (1, Card::verbatim("Company entity card".to_owned())),
+        (2, Card::verbatim("Employment link card".to_owned())),
+    ]);
+
+    MemoryDataset::new(nodes, edges, ontology, canonical, cards)
+}
+
+/// Differential over the reciprocal-pair fixture: rank ties at the cap boundary, every cap.
+///
+/// Edges sharing their less-prominent endpoint share a key rank, so the tie-break law is under
+/// test at every cap that cuts at a tie: a rank equal to the kept worst's must still price the
+/// identity, and the strict form of the rank exclusion is what a `>=` mutation breaks here
+/// while every targeted witness stays green.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_rank_tie_at_the_cap_still_admits_the_better_identity() {
+    let (generation, atlas) =
+        super::publish_dataset("review-dense", &reciprocal_pairs_dataset()).await;
+    let (endpoints, row_ranks) = endpoint_ranks(&generation);
+    let fitted = fitted_triples(&atlas, &generation);
+
+    let ties = {
+        let mut keys: Vec<u32> = endpoints
+            .iter()
+            .map(|&[source, target]| {
+                row_ranks[usize::try_from(source).expect("small")]
+                    .max(row_ranks[usize::try_from(target).expect("small")])
+            })
+            .collect();
+        keys.sort_unstable();
+        keys.len() - {
+            keys.dedup();
+            keys.len()
+        }
+    };
+    assert!(ties > 0, "the dense fixture needs worse-endpoint rank ties");
+
+    let mut mismatches: Vec<String> = Vec::new();
+    let mut rng = keyed_rng(0x0BAD_C0FF_EE0D_DF00, 0, 0);
+    let mut next =
+        move |bound: u64| uniform_below(&mut rng, NonZero::new(bound).expect("a positive bound"));
+
+    for trial in 0..4_u32 {
+        let withdrawn_edges: Vec<u8> = (0..u8::try_from(fitted.len()).expect("small"))
+            .filter(|_| trial > 0 && next(5) == 0)
+            .map(|row| super::EDGE_SEED + row)
+            .collect();
+        let capture = withdrawing(&atlas, &withdrawn_edges);
+        let ingress = (!withdrawn_edges.is_empty()).then_some(&capture);
+
+        let mut union: Vec<OracleCandidate<u32>> = Vec::new();
+        for (row, (&[source, target], &triple)) in endpoints.iter().zip(&fitted).enumerate() {
+            if withdrawn_edges.contains(&(super::EDGE_SEED + u8::try_from(row).expect("small"))) {
+                continue;
+            }
+            let worse = row_ranks[usize::try_from(source).expect("small")]
+                .max(row_ranks[usize::try_from(target).expect("small")]);
+            union.push(((worse, triple.2), triple));
+        }
+        union.sort_unstable_by_key(|&(key, _)| key);
+
+        for cap in 0..=(union.len() + 1) {
+            let mut kept: Vec<(u32, u32, ArchivedEntityId)> =
+                union.iter().take(cap).map(|&(_, triple)| triple).collect();
+            kept.sort_unstable_by_key(|&(.., id)| id);
+
+            let served = edges_with(
+                &atlas,
+                &FULL,
+                PlacementCohort::EMPTY,
+                ingress,
+                full_grid(),
+                EdgesLimits {
+                    edges: u32::try_from(cap).expect("small"),
+                    ..EdgesLimits::default()
+                },
+            );
+            let expected = expected_edges_bytes(
+                &generation,
+                union.len() <= cap,
+                &EdgeColumns::pinned(kept.clone()),
+            );
+            if served != expected {
+                mismatches.push(format!("trial {trial} cap {cap} union {}", union.len()));
+            }
+        }
+    }
+
+    assert!(
+        mismatches.is_empty(),
+        "{} mismatches ({ties} rank ties):\n{}",
+        mismatches.len(),
+        mismatches.join("\n")
     );
 }
