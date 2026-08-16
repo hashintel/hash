@@ -17,7 +17,7 @@ import { error, type Diagnostic } from "./diagnostics";
 import { parseFrontmatter } from "./frontmatter";
 import { layerSchema, parentLayerId } from "./model";
 import { toPosix } from "./paths";
-import { sourceExtensions, sourceRootOf } from "./scope";
+import { sourceExtensionsFor, sourceRootOf } from "./scope";
 import { scanTags } from "./tags";
 
 import type { Layer, ArchitecturePackage } from "./model";
@@ -52,8 +52,6 @@ export interface ExtractOptions {
   /** Regex matched against repo-relative paths to skip files. */
   ignoredFilePattern: RegExp;
 }
-
-const sourceExtensionSet = new Set<string>(sourceExtensions);
 
 const extensionOf = (name: string): string => {
   const dot = name.lastIndexOf(".");
@@ -149,22 +147,10 @@ export const extract = async (
   const declaredBy = new Map<string, string>();
 
   const packageEntries = new Map<string, WalkEntry[]>();
+  const isSourceEntry = (pkg: ArchitecturePackage, entry: WalkEntry): boolean =>
+    sourceExtensionsFor(pkg).includes(extensionOf(entry.name));
 
   for (const pkg of packages) {
-    // A package whose language has no extractor would otherwise contribute no
-    // files, no layers and no diagnostics — appearing in the model as covered
-    // while being entirely undescribed. That is the silent mis-bucketing this
-    // system exists to remove, so it is an error rather than a skip.
-    if (pkg.language !== "typescript") {
-      diagnostics.push(
-        error(
-          `${pkg.path}/package.json`,
-          `package \`${pkg.name}\` is configured as \`${pkg.language}\`, which has no extractor — it would be listed in the model with no layers. Remove it from architecture.config.ts until one exists.`,
-        ),
-      );
-      continue;
-    }
-
     const entries = await walkFiles(
       join(repoRoot, sourceRootOf(pkg)),
       repoRoot,
@@ -181,7 +167,7 @@ export const extract = async (
   for (const pkg of packages) {
     for (const entry of packageEntries.get(pkg.name) ?? []) {
       const isMarkdown = entry.name.toLowerCase().endsWith(".md");
-      const isSource = sourceExtensionSet.has(extensionOf(entry.name));
+      const isSource = isSourceEntry(pkg, entry);
 
       if (!isMarkdown && !isSource) {
         continue;
@@ -250,7 +236,10 @@ export const extract = async (
         continue;
       }
 
-      const { tags, diagnostics: tagDiagnostics } = scanTags(contents);
+      const { tags, diagnostics: tagDiagnostics } = scanTags(
+        contents,
+        pkg.language,
+      );
 
       for (const diagnostic of tagDiagnostics) {
         diagnostics.push(
@@ -290,7 +279,7 @@ export const extract = async (
   for (const pkg of packages) {
     for (const entry of packageEntries.get(pkg.name) ?? []) {
       const isMarkdown = entry.name.toLowerCase().endsWith(".md");
-      const isSource = sourceExtensionSet.has(extensionOf(entry.name));
+      const isSource = isSourceEntry(pkg, entry);
 
       if (!isMarkdown && !isSource) {
         continue;
