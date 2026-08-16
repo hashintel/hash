@@ -22,7 +22,7 @@ import { join } from "node:path";
 import { cruise, type ICruiseResult, type IModule } from "dependency-cruiser";
 import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config";
 
-import { error, type Diagnostic } from "./diagnostics";
+import { error, warning, type Diagnostic } from "./diagnostics";
 import { toPosix } from "./paths";
 import {
   exclusionPattern,
@@ -59,7 +59,7 @@ const deriveAliases = (
 
   const manifest = JSON.parse(
     readFileSync(join(packageRoot, "package.json"), "utf8"),
-  ) as { exports?: Record<string, unknown> };
+  ) as { exports?: Record<string, unknown>; bin?: unknown };
 
   const aliases: Alias[] = [];
 
@@ -104,6 +104,18 @@ const deriveAliases = (
       name: subpath === "." ? pkg.name : `${pkg.name}${subpath.slice(1)}`,
       onlyModule: true,
     });
+  }
+
+  // A library with no module entry points is invisible to import resolution,
+  // so imports of it silently vanish from the graph. Bin-only packages are
+  // exempt: nothing can import them by specifier in the first place.
+  if (aliases.length === 0 && manifest.bin === undefined) {
+    diagnostics.push(
+      warning(
+        manifestPath,
+        `declares no importable \`exports\` (and no \`bin\`), so no entry aliases were derived: imports of ${pkg.name} would be missing from the graph.`,
+      ),
+    );
   }
 
   // Longest specifier first so `@pkg/workers/lsp` is not shadowed by `@pkg`.

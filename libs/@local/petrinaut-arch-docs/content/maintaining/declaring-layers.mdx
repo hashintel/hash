@@ -102,6 +102,19 @@ rather than by path — `[text](layer:core.simulation.engine)` for a generated
 page, `[text](doc:simulation/memory-model)` for another authored one. A target
 that does not resolve fails the check.
 
+## Adding a hand-written diagram
+
+Put a D2 file in `content/diagrams/` and reference it from an authored page as
+an image:
+
+```mdx
+![One request through the CLI](@diagrams/cli-request-flow.svg)
+```
+
+The build renders it to SVG next to the generated diagrams and rewrites the
+path. A name that does not exist, or that collides with a generated diagram,
+fails the check.
+
 ## Declaring a rule
 
 Rules live in `architecture.config.ts` and are checked against the real import

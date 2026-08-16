@@ -70,7 +70,6 @@ COPY --from=cli-builder /repo/libs/@hashintel/petrinaut-core/package.json /libs/
 COPY --from=cli-builder /repo/libs/@hashintel/petrinaut-core/dist /libs/@hashintel/petrinaut-core/dist
 COPY --from=cli-builder /repo/libs/@hashintel/petrinaut-cli/package.json /libs/@hashintel/petrinaut-cli/package.json
 COPY --from=cli-builder /repo/libs/@hashintel/petrinaut-cli/dist /libs/@hashintel/petrinaut-cli/dist
-COPY --from=cli-builder /repo/libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json /libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json
 
 
 FROM node:${NODE_VERSION}-bookworm-slim AS node-runtime

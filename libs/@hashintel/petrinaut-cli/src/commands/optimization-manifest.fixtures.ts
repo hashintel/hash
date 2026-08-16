@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const modelPath = fileURLToPath(
-  new URL("../../examples/sir-model.json", import.meta.url),
+  new URL("../../test-fixtures/sir-model.json", import.meta.url),
 );
 
 /**

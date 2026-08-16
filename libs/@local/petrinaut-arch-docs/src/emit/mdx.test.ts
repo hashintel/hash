@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveAuthoredLinks, layerSlug } from "./mdx";
+import { resolveAuthoredLinks, resolveDiagramImages, layerSlug } from "./mdx";
 
 /**
  * An authored page's final slug depends on its `attachTo`, so it cannot write a
@@ -94,6 +94,25 @@ describe("resolveAuthoredLinks", () => {
     expect(unresolved).toEqual(["doc:missing-page"]);
   });
 
+  it("leaves an example inside a code span or fence as written", () => {
+    const source = [
+      "Write `[text](layer:core.simulation.engine)` for a layer.",
+      "",
+      "```mdx",
+      "[text](doc:two-execution-paths)",
+      "```",
+      "",
+      "A real link: [engine](layer:core.simulation.engine).",
+    ].join("\n");
+    const { contents, unresolved } = resolve(source, "index");
+
+    expect(unresolved).toEqual([]);
+    // The documentation of the scheme has to keep showing the scheme.
+    expect(contents).toContain("`[text](layer:core.simulation.engine)`");
+    expect(contents).toContain("[text](doc:two-execution-paths)");
+    expect(contents).toContain("[engine](architecture/core/simulation/engine)");
+  });
+
   it("leaves ordinary links alone", () => {
     const source =
       "[external](https://example.com) [relative](../sibling) [anchor](#section)";
@@ -121,5 +140,45 @@ describe("resolveAuthoredLinks", () => {
     expect(contents).toBe(
       "[a](architecture/core) then [b](architecture/core/simulation)",
     );
+  });
+});
+
+describe("resolveDiagramImages", () => {
+  const available = new Set(["cli-request-flow"]);
+
+  it("rewrites a known diagram to a page-relative asset path", () => {
+    const { contents, unresolved } = resolveDiagramImages(
+      "![Flow](@diagrams/cli-request-flow.svg)",
+      "architecture/cli/usage-manual",
+      available,
+    );
+
+    expect(unresolved).toEqual([]);
+    // Asset paths resolve against the page *file* under `pages/`, so the
+    // rewrite climbs out of `pages/` into the bundle's `diagrams/`.
+    expect(contents).toBe("![Flow](../../../diagrams/cli-request-flow.svg)");
+  });
+
+  it("drops the image when no renderer will write the SVG", () => {
+    const { contents, unresolved } = resolveDiagramImages(
+      "Before\n\n![Flow](@diagrams/cli-request-flow.svg)\n\nAfter\n",
+      "architecture/cli/usage-manual",
+      available,
+      false,
+    );
+
+    expect(unresolved).toEqual([]);
+    expect(contents).toBe("Before\n\n\nAfter\n");
+  });
+
+  it("reports an unknown diagram instead of emitting it", () => {
+    const { contents, unresolved } = resolveDiagramImages(
+      "![Flow](@diagrams/missing.svg)",
+      "two-execution-paths",
+      available,
+    );
+
+    expect(unresolved).toEqual(["@diagrams/missing.svg"]);
+    expect(contents).toBe("![Flow](@diagrams/missing.svg)");
   });
 });

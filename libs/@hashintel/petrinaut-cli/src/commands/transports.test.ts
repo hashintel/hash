@@ -15,10 +15,10 @@ import { serve } from "./serve";
 import { MAX_STDIN_SOURCE_LINE_BYTES, serveStdio } from "./stdio";
 
 const modelPath = fileURLToPath(
-  new URL("../../examples/sir-model.json", import.meta.url),
+  new URL("../../test-fixtures/sir-model.json", import.meta.url),
 );
 const coloredModelPath = fileURLToPath(
-  new URL("../../examples/satellites-launcher.json", import.meta.url),
+  new URL("../../test-fixtures/satellites-launcher.json", import.meta.url),
 );
 const temporaryDirectories: string[] = [];
 

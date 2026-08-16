@@ -29,6 +29,7 @@ import {
   buildPages,
   resolveAuthoredLinks,
   resolveComponentImports,
+  resolveDiagramImages,
   layerSlug,
   type GeneratedPage,
 } from "./emit/mdx";
@@ -185,6 +186,25 @@ export const buildBundle = async (options: {
     diagnostics.push(error(failure.file, failure.message));
   }
 
+  const includeDiagrams = options.includeDiagrams ?? true;
+
+  // Hand-written diagrams render through the same pipeline as generated ones,
+  // so a name collision would silently overwrite a generated diagram.
+  const authoredDiagramNames = new Set<string>();
+  for (const diagram of authoredResult.diagrams) {
+    if (diagramSources.has(diagram.name)) {
+      diagnostics.push(
+        error(
+          diagram.sourceFile,
+          `diagram name \`${diagram.name}\` collides with a generated diagram`,
+        ),
+      );
+      continue;
+    }
+    diagramSources.set(diagram.name, diagram.source);
+    authoredDiagramNames.add(diagram.name);
+  }
+
   const declaredLayerIds = new Set(model.layers.map((layer) => layer.id));
   const layerSlugsById = new Map(
     model.layers.map((layer) => [layer.id, layerSlug(layer.id)]),
@@ -250,8 +270,18 @@ export const buildBundle = async (options: {
       slug,
       componentNames,
     );
+    const illustrated = resolveDiagramImages(
+      imported.contents,
+      slug,
+      authoredDiagramNames,
+      includeDiagrams,
+    );
 
-    for (const target of [...linked.unresolved, ...imported.unresolved]) {
+    for (const target of [
+      ...linked.unresolved,
+      ...imported.unresolved,
+      ...illustrated.unresolved,
+    ]) {
       diagnostics.push(
         error(page.sourceFile, `link target \`${target}\` does not resolve`),
       );
@@ -261,11 +291,9 @@ export const buildBundle = async (options: {
       ...page,
       slug,
       path: `pages/${slug}.mdx`,
-      contents: imported.contents,
+      contents: illustrated.contents,
     };
   });
-
-  const includeDiagrams = options.includeDiagrams ?? true;
 
   const generated = buildPages(model, {
     sourceUrlPrefix: settings.sourceUrlPrefix,

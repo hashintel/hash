@@ -15,7 +15,6 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "serve": "node ./dist/cli.js serve",
-    "serve:example": "node ./dist/cli.js serve --model ./examples/sir-model.json --socket /tmp/petrinaut.sock",
     "test:unit": "vitest"
   },
   "dependencies": {
