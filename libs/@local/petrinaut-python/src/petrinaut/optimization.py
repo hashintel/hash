@@ -55,10 +55,23 @@ class OptimizationSession(PetrinautSession):
             source_label="optimization manifest",
             **options,
         )
+        self._timeout_configured = False
 
     def describe(self) -> OptimizationDescribeResult:
         """Return the CLI-owned Optuna study and parameter description."""
-        return self._validated("optimization.describe", OptimizationDescribeResult)
+        # The generated model bounds seedsPerTrial to the CLI's 1-100 range,
+        # so an out-of-range value already failed validation in `_validated`.
+        result = self._validated("optimization.describe", OptimizationDescribeResult)
+        seeds_per_trial = (
+            1 if result.study.seedsPerTrial is None else result.study.seedsPerTrial
+        )
+        # One evaluate may run this many seeded simulations, sequentially in
+        # the worst case, so the per-response deadline scales with it.
+        self._request_timeout_seconds = (
+            self._base_request_timeout_seconds * seeds_per_trial
+        )
+        self._timeout_configured = True
+        return result
 
     # The previous name; prefer `describe()`, which maps 1:1 to the protocol's
     # `optimization.describe` and reads without repeating the class name.
@@ -72,6 +85,10 @@ class OptimizationSession(PetrinautSession):
         Carries per-seed ``replicates`` when the manifest asks for more than one
         seed per trial.
         """
+        if not self._timeout_configured:
+            # A seeded trial needs the scaled deadline before its first
+            # evaluation, so an un-described session describes once here.
+            self.describe()
         return self._validated(
             "optimization.evaluate",
             OptimizationEvaluateResult,

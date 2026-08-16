@@ -8,6 +8,7 @@ the bundle or `node` is missing.
 
 from __future__ import annotations
 
+import json
 import math
 import shutil
 from pathlib import Path
@@ -95,3 +96,56 @@ def test_evaluates_an_optimization_manifest_end_to_end() -> None:
             }
         )
         assert math.isfinite(result.objective)
+
+
+def test_runs_a_seeded_optimization_study_end_to_end() -> None:
+    """Evaluates one trial as two sequential seeded runs on the real CLI."""
+    legacy_model = json.loads(SIR_MODEL.read_text())
+    definition = {key: value for key, value in legacy_model.items() if key != "title"}
+    manifest = {
+        "kind": "petrinaut-optimization",
+        "version": 1,
+        "name": "Minimize infected fraction",
+        "model": {
+            "title": legacy_model["title"],
+            "definition": {
+                **definition,
+                "scenarios": [legacy_model["scenarios"][0]],
+                "metrics": [legacy_model["metrics"][0]],
+            },
+        },
+        "scenario": {
+            "id": "scenario__seasonal_flu",
+            "parameterBindings": {
+                "population": {"kind": "fixed", "value": 200},
+                "infected_ratio": {
+                    "kind": "optimize",
+                    "domain": {
+                        "kind": "continuous",
+                        "minimum": 0.01,
+                        "maximum": 0.5,
+                        "scale": "log",
+                    },
+                },
+            },
+        },
+        "objective": {
+            "metricId": "metric__infected_fraction",
+            "direction": "minimize",
+        },
+        "execution": {"seed": 42, "dt": 1, "maxTime": 5e-324, "seedsPerTrial": 2},
+        "study": {"trials": 20, "sampler": "tpe"},
+    }
+    with OptimizationSession(manifest, command=(str(NODE), str(CLI_BUNDLE))) as session:
+        description = session.describe()
+        assert description.study.seedsPerTrial == 2
+        assert session._request_timeout_seconds == 480
+
+        result = session.evaluate({"infected_ratio": 0.1})
+        assert result.objective == pytest.approx(0.1)
+        assert result.replicates is not None
+        assert [replicate.seed for replicate in result.replicates] == [
+            42,
+            1013904268,
+        ]
+        assert session.objective({"infected_ratio": 0.1}) == pytest.approx(0.1)
