@@ -88,7 +88,11 @@
 )]
 
 use alloc::sync::Arc;
-use core::{cmp::Ordering, fmt};
+use core::{
+    cmp::Ordering,
+    fmt,
+    ops::{BitOr, BitOrAssign},
+};
 
 use arc_swap::{ArcSwapOption, Guard};
 use hash_graph_postgres_store::store::EntityEvent;
@@ -611,6 +615,53 @@ impl<'scope> PlacementCohort<'scope> {
     }
 }
 
+/// The register's disposition of one delivered classification verdict or frozen placement.
+///
+/// Publication's resolution input changes on [`Disposition::Resolving`] alone, and
+/// [`Disposition::changes_resolution`] reads exactly that. Dispositions join through `|` into
+/// the strongest one delivered, with [`Disposition::AlreadyHeld`] as the neutral element.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum Disposition {
+    /// Newly held for a live arrival, so publication's resolution input changed.
+    Resolving,
+    /// Newly held for an identity not standing live, so resolution stays unchanged until the
+    /// feed reports the identity live.
+    Dormant,
+    /// A holding for the identity already stood, so the delivery recorded nothing.
+    AlreadyHeld,
+}
+
+impl Disposition {
+    /// Returns whether this disposition changed publication's resolution input.
+    #[must_use]
+    pub(crate) const fn changes_resolution(self) -> bool {
+        matches!(self, Self::Resolving)
+    }
+}
+
+impl BitOr for Disposition {
+    type Output = Self;
+
+    /// Joins two dispositions into the stronger one, by resolution strength.
+    ///
+    /// [`Disposition::Resolving`] absorbs, [`Disposition::AlreadyHeld`] is the neutral element,
+    /// and [`Disposition::Dormant`] sits between, so a fold over a batch answers whether any
+    /// delivery resolved while still recording that a new holding exists.
+    fn bitor(self, rhs: Self) -> Self {
+        match (self, rhs) {
+            (Self::Resolving, _) | (_, Self::Resolving) => Self::Resolving,
+            (Self::Dormant, _) | (_, Self::Dormant) => Self::Dormant,
+            (Self::AlreadyHeld, Self::AlreadyHeld) => Self::AlreadyHeld,
+        }
+    }
+}
+
+impl BitOrAssign for Disposition {
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
+    }
+}
+
 /// The mutable fold of the feed since the generation's fit-time snapshot.
 ///
 /// One [`Register`] per identity, last-writer-wins on the event's transaction time. The map grows
@@ -705,37 +756,47 @@ impl DeltaRegister {
             .map(|(&entity, _)| entity)
     }
 
-    /// Holds one classification verdict, returning whether publication's resolution input changed.
+    /// Holds one classification verdict, returning the register's disposition of it.
     ///
     /// The first verdict per identity holds for the process's lifetime, and a later verdict for
-    /// the same identity changes nothing, so re-delivery of a verdict is idempotent. The return
-    /// value is `true` exactly when the verdict is new and the identity stands live, because only
-    /// a live arrival resolves through its classification at publication.
-    pub(crate) fn classify(&mut self, entity: ArchivedEntityId, verdict: Classification) -> bool {
+    /// the same identity changes nothing, so re-delivery of a verdict is idempotent and comes
+    /// back [`Disposition::AlreadyHeld`]. A newly held verdict is [`Disposition::Resolving`]
+    /// exactly when the identity stands live, because only a live arrival resolves through its
+    /// classification at publication, and [`Disposition::Dormant`] otherwise.
+    pub(crate) fn classify(
+        &mut self,
+        entity: ArchivedEntityId,
+        verdict: Classification,
+    ) -> Disposition {
         match self.classifications.entry(entity) {
             FastHashMapEntry::Vacant(slot) => {
                 slot.insert(verdict);
-                matches!(
+                if matches!(
                     self.registers.get(&entity),
                     Some(Register {
                         standing: Standing::Live { .. },
                         ..
                     })
-                )
+                ) {
+                    Disposition::Resolving
+                } else {
+                    Disposition::Dormant
+                }
             }
-            FastHashMapEntry::Occupied(_) => false,
+            FastHashMapEntry::Occupied(_) => Disposition::AlreadyHeld,
         }
     }
 
-    /// Holds one frozen placement, returning whether publication's resolution input changed.
+    /// Holds one frozen placement, returning the register's disposition of it.
     ///
     /// The first placement per identity takes the next slot past the accepted universe and holds
     /// for the process's lifetime. A later placement for the same identity changes nothing,
     /// because the coordinate froze and the slot never moves, so re-delivery of a placement is
-    /// idempotent. A placement for an identity standing withdrawn records all the same, so an
-    /// unarchive republishes the frozen coordinate on its former slot, and the success value is
-    /// `true` exactly when the placement is new and the identity stands live, because only a
-    /// live arrival resolves through its placement at publication.
+    /// idempotent and comes back [`Disposition::AlreadyHeld`]. A placement for an identity
+    /// standing withdrawn records all the same, so an unarchive republishes the frozen
+    /// coordinate on its former slot. A newly held placement is [`Disposition::Resolving`]
+    /// exactly when the identity stands live, because only a live arrival resolves through its
+    /// placement at publication, and [`Disposition::Dormant`] otherwise.
     ///
     /// # Errors
     ///
@@ -745,7 +806,7 @@ impl DeltaRegister {
         &mut self,
         entity: ArchivedEntityId,
         placement: FrozenPlacement,
-    ) -> Result<bool, UniverseExhausted> {
+    ) -> Result<Disposition, UniverseExhausted> {
         match self.placements.entry(entity) {
             FastHashMapEntry::Vacant(entry) => {
                 let slot = self.universe.rows();
@@ -757,15 +818,21 @@ impl DeltaRegister {
                     frozen: placement,
                 });
 
-                Ok(matches!(
-                    self.registers.get(&entity),
-                    Some(Register {
-                        standing: Standing::Live { .. },
-                        ..
-                    })
-                ))
+                Ok(
+                    if matches!(
+                        self.registers.get(&entity),
+                        Some(Register {
+                            standing: Standing::Live { .. },
+                            ..
+                        })
+                    ) {
+                        Disposition::Resolving
+                    } else {
+                        Disposition::Dormant
+                    },
+                )
             }
-            FastHashMapEntry::Occupied(_) => Ok(false),
+            FastHashMapEntry::Occupied(_) => Ok(Disposition::AlreadyHeld),
         }
     }
 

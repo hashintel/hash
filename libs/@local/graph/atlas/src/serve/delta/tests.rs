@@ -9,7 +9,7 @@ use type_system::knowledge::entity::{
 use uuid::Uuid;
 
 use super::{
-    DeltaCell, DeltaEvent, DeltaLink, DeltaRegister, DeltaRevision, FrozenPlacement,
+    DeltaCell, DeltaEvent, DeltaLink, DeltaRegister, DeltaRevision, Disposition, FrozenPlacement,
     IdentityTables, PlacedArrival, Standing, UniverseExhausted,
     consumer::PollOutcome,
     staging::{MissAction, StagingPipeline},
@@ -213,12 +213,18 @@ fn equal_version_live_editions_converge() {
     let mut ascending = register();
     assert!(ascending.apply(event(1, 1, live(10))));
     assert!(ascending.apply(event(1, 1, live(11))));
-    assert!(ascending.classify(entity(1), Classification::Node));
+    assert_eq!(
+        ascending.classify(entity(1), Classification::Node),
+        Disposition::Resolving
+    );
 
     let mut descending = register();
     assert!(descending.apply(event(1, 1, live(11))));
     assert!(!descending.apply(event(1, 1, live(10))));
-    assert!(descending.classify(entity(1), Classification::Node));
+    assert_eq!(
+        descending.classify(entity(1), Classification::Node),
+        Disposition::Resolving
+    );
 
     assert_eq!(
         snapshot(&ascending, &tables).staged(entity(1)),
@@ -295,7 +301,10 @@ fn arrival_stages_only_after_a_node_verdict() {
     assert_eq!(unclassified.link(entity(1)), None);
     assert!(unclassified.withdraws(entity(2)));
 
-    assert!(register.classify(entity(1), Classification::Node));
+    assert_eq!(
+        register.classify(entity(1), Classification::Node),
+        Disposition::Resolving
+    );
 
     assert_eq!(
         snapshot(&register, &tables).staged(entity(1)),
@@ -316,7 +325,10 @@ fn unclassified_lists_only_live_unfitted_arrivals() {
     assert!(register.apply(event(2, 1, Standing::Withdrawn)));
     assert!(register.apply(event(3, 1, live(30))));
     assert!(register.apply(event(4, 1, live(40))));
-    assert!(register.classify(entity(4), Classification::Node));
+    assert_eq!(
+        register.classify(entity(4), Classification::Node),
+        Disposition::Resolving
+    );
 
     assert_eq!(
         register.unclassified(&tables).collect::<Vec<_>>(),
@@ -330,14 +342,55 @@ fn classification_is_final_for_the_process_lifetime() {
     let mut register = register();
 
     assert!(register.apply(event(1, 1, live(10))));
-    assert!(register.classify(entity(1), Classification::Node));
+    assert_eq!(
+        register.classify(entity(1), Classification::Node),
+        Disposition::Resolving
+    );
 
     // A later conflicting verdict changes nothing: the first verdict holds.
-    assert!(!register.classify(entity(1), link_between(8, 9)));
+    assert_eq!(
+        register.classify(entity(1), link_between(8, 9)),
+        Disposition::AlreadyHeld
+    );
 
     let snapshot = snapshot(&register, &tables);
     assert_eq!(snapshot.staged(entity(1)), Some(edition(10)));
     assert_eq!(snapshot.link(entity(1)), None);
+}
+
+#[test]
+fn only_a_resolving_disposition_changes_resolution() {
+    assert!(Disposition::Resolving.changes_resolution());
+    assert!(!Disposition::Dormant.changes_resolution());
+    assert!(!Disposition::AlreadyHeld.changes_resolution());
+}
+
+#[test]
+fn dispositions_join_by_resolution_strength() {
+    let all = [
+        Disposition::Resolving,
+        Disposition::Dormant,
+        Disposition::AlreadyHeld,
+    ];
+
+    // The nine-case table by exhaustion: AlreadyHeld is the neutral element and Resolving
+    // absorbs, in either operand order.
+    for disposition in all {
+        assert_eq!(disposition | Disposition::AlreadyHeld, disposition);
+        assert_eq!(Disposition::AlreadyHeld | disposition, disposition);
+        assert_eq!(disposition | Disposition::Resolving, Disposition::Resolving);
+        assert_eq!(Disposition::Resolving | disposition, Disposition::Resolving);
+    }
+    assert_eq!(
+        Disposition::Dormant | Disposition::Dormant,
+        Disposition::Dormant
+    );
+
+    let mut folded = Disposition::AlreadyHeld;
+    folded |= Disposition::Dormant;
+    assert_eq!(folded, Disposition::Dormant);
+    folded |= Disposition::Resolving;
+    assert_eq!(folded, Disposition::Resolving);
 }
 
 #[test]
@@ -346,7 +399,10 @@ fn link_verdict_publishes_endpoint_identities() {
     let mut register = register();
 
     assert!(register.apply(event(1, 1, live(10))));
-    assert!(register.classify(entity(1), link_between(8, 9)));
+    assert_eq!(
+        register.classify(entity(1), link_between(8, 9)),
+        Disposition::Resolving
+    );
 
     let snapshot = snapshot(&register, &tables);
     assert_eq!(
@@ -369,13 +425,16 @@ fn incomplete_link_publishes_nowhere() {
     assert!(register.apply(event(1, 1, live(10))));
     // The verdict is new and the identity lives, so publication's input changed even though
     // the incomplete pair resolves to nothing served.
-    assert!(register.classify(
-        entity(1),
-        Classification::Link {
-            source: Some(entity(8)),
-            target: None,
-        }
-    ));
+    assert_eq!(
+        register.classify(
+            entity(1),
+            Classification::Link {
+                source: Some(entity(8)),
+                target: None,
+            }
+        ),
+        Disposition::Resolving
+    );
 
     let snapshot = snapshot(&register, &tables);
     assert_eq!(snapshot.staged(entity(1)), None);
@@ -391,7 +450,10 @@ fn classify_on_a_withdrawn_identity_changes_no_publication_input() {
     let mut register = register();
 
     assert!(register.apply(event(1, 1, Standing::Withdrawn)));
-    assert!(!register.classify(entity(1), Classification::Node));
+    assert_eq!(
+        register.classify(entity(1), Classification::Node),
+        Disposition::Dormant
+    );
 
     let snapshot = snapshot(&register, &tables);
     assert!(snapshot.withdraws(entity(1)));
@@ -404,7 +466,10 @@ fn withdraw_then_unarchive_keeps_the_held_verdict() {
     let mut register = register();
 
     assert!(register.apply(event(1, 1, live(10))));
-    assert!(register.classify(entity(1), Classification::Node));
+    assert_eq!(
+        register.classify(entity(1), Classification::Node),
+        Disposition::Resolving
+    );
     assert!(register.apply(event(1, 2, Standing::Withdrawn)));
 
     let withdrawn = snapshot(&register, &tables);
@@ -750,7 +815,7 @@ fn the_captured_label_prices_into_the_resident_estimate() {
         wire: Vec2::new(0.25, -0.5),
         display: display(label),
     };
-    assert!(place(&mut register, 1, placement));
+    assert_eq!(place(&mut register, 1, placement), Disposition::Resolving);
 
     // The estimate grows by at least the label's text, whatever the map allocation adds.
     assert!(register.resident_estimate() >= bare + label.len());
@@ -761,7 +826,10 @@ fn a_placed_arrival_leaves_the_staged_projection() {
     let mut register = register();
     register.apply(event(1, 1, live(10)));
     register.classify(entity(1), Classification::Node);
-    assert!(place(&mut register, 1, frozen(10, 0.25, -0.5)));
+    assert_eq!(
+        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        Disposition::Resolving
+    );
 
     let snapshot = snapshot(&register, &Tables::default());
     assert_eq!(snapshot.staged(entity(1)), None);
@@ -781,10 +849,16 @@ fn the_first_placement_freezes_while_the_edition_tracks_the_feed() {
     let mut register = register();
     register.apply(event(1, 1, live(10)));
     register.classify(entity(1), Classification::Node);
-    assert!(place(&mut register, 1, frozen(10, 0.25, -0.5)));
+    assert_eq!(
+        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        Disposition::Resolving
+    );
 
     // A re-delivered placement changes nothing, coordinate and slot included.
-    assert!(!place(&mut register, 1, frozen(11, 0.75, 0.75)));
+    assert_eq!(
+        place(&mut register, 1, frozen(11, 0.75, 0.75)),
+        Disposition::AlreadyHeld
+    );
 
     // A later edition moves the published edition and never the coordinate.
     register.apply(event(1, 2, live(11)));
@@ -809,7 +883,10 @@ fn a_placement_after_a_withdrawal_records_without_serving() {
 
     // The completion raced the withdrawal. The coordinate still freezes while the standing
     // keeps the row unserved, so the placement moves no publication input.
-    assert!(!place(&mut register, 1, frozen(10, 0.25, -0.5)));
+    assert_eq!(
+        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        Disposition::Dormant
+    );
 
     let withdrawn = snapshot(&register, &Tables::default());
     assert!(withdrawn.withdraws(entity(1)));
@@ -840,7 +917,10 @@ fn an_unclassified_placement_publishes_nowhere() {
     // An arrival without a verdict serves nothing, so the placement waits for the
     // classification it cannot precede in any live pipeline, and publication stays fail-closed
     // if one ever does.
-    assert!(place(&mut register, 1, frozen(10, 0.25, -0.5)));
+    assert_eq!(
+        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        Disposition::Resolving
+    );
 
     let snapshot = snapshot(&register, &Tables::default());
     assert_eq!(snapshot.staged(entity(1)), None);
@@ -848,7 +928,7 @@ fn an_unclassified_placement_publishes_nowhere() {
 }
 
 /// Places through the fixture universe, panicking where the fixture cannot exhaust it.
-fn place(register: &mut DeltaRegister, entity_n: u128, placement: FrozenPlacement) -> bool {
+fn place(register: &mut DeltaRegister, entity_n: u128, placement: FrozenPlacement) -> Disposition {
     register
         .place(entity(entity_n), placement)
         .expect("the fixture universe has room")
@@ -863,8 +943,14 @@ fn slots_assign_monotonically_in_placement_order() {
     register.classify(entity(2), Classification::Node);
 
     // Placement order assigns the slots, and the base bound is the first one taken.
-    assert!(place(&mut register, 2, frozen(20, 0.5, 0.5)));
-    assert!(place(&mut register, 1, frozen(10, 0.25, -0.5)));
+    assert_eq!(
+        place(&mut register, 2, frozen(20, 0.5, 0.5)),
+        Disposition::Resolving
+    );
+    assert_eq!(
+        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        Disposition::Resolving
+    );
 
     let snapshot = snapshot(&register, &Tables::default());
     assert_eq!(
@@ -883,14 +969,20 @@ fn a_withdrawn_slot_is_never_reused() {
     let mut register = register();
     register.apply(event(1, 1, live(10)));
     register.classify(entity(1), Classification::Node);
-    assert!(place(&mut register, 1, frozen(10, 0.25, -0.5)));
+    assert_eq!(
+        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        Disposition::Resolving
+    );
 
     // The withdrawal leaves the slot allocated, so the next placement takes the one after it
     // and the universe still counts both.
     register.apply(event(1, 2, Standing::Withdrawn));
     register.apply(event(2, 1, live(20)));
     register.classify(entity(2), Classification::Node);
-    assert!(place(&mut register, 2, frozen(20, 0.5, 0.5)));
+    assert_eq!(
+        place(&mut register, 2, frozen(20, 0.5, 0.5)),
+        Disposition::Resolving
+    );
 
     let snapshot = snapshot(&register, &Tables::default());
     assert_eq!(

@@ -49,7 +49,10 @@ use hash_graph_store::{error::QueryError, pool::StorePool as _};
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use tokio::{sync::mpsc::UnboundedReceiver, time::MissedTickBehavior};
 
-use super::{DeltaCell, DeltaEvent, DeltaRegister, DeltaRevision, FrozenPlacement, IdentityTables};
+use super::{
+    DeltaCell, DeltaEvent, DeltaRegister, DeltaRevision, Disposition, FrozenPlacement,
+    IdentityTables,
+};
 use crate::{
     dataset::postgres::{Classification, classify_entities, id::ArchivedEntityId},
     serve::codec::Universe,
@@ -324,7 +327,7 @@ where
             );
         }
 
-        let mut changed = false;
+        let mut disposition = Disposition::AlreadyHeld;
         for (entity, verdict) in verdicts {
             if let Classification::Link { source, target } = verdict
                 && (source.is_none() || target.is_none())
@@ -335,9 +338,9 @@ where
                 );
             }
 
-            changed |= self.register.classify(entity, verdict);
+            disposition |= self.register.classify(entity, verdict);
         }
-        changed
+        disposition.changes_resolution()
     }
 
     /// Drains the staging arm's placement channel, returning whether any placement changed
@@ -350,11 +353,11 @@ where
     /// A refused slot warns and drops the placement: the arrival stays staged, and the refusal
     /// repeats at every later projection until a refit retires the register.
     fn drain_placements(&mut self) -> bool {
-        let mut changed = false;
+        let mut disposition = Disposition::AlreadyHeld;
 
         while let Ok((entity, placement)) = self.placements.try_recv() {
             match self.register.place(entity, placement) {
-                Ok(placed) => changed |= placed,
+                Ok(placed) => disposition |= placed,
                 Err(exhausted) => {
                     tracing::warn!(
                         ?entity,
@@ -365,7 +368,7 @@ where
             }
         }
 
-        changed
+        disposition.changes_resolution()
     }
 
     /// Runs one poll, folding the feed window and publishing when resolution changed.
