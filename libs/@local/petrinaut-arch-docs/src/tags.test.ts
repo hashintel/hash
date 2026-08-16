@@ -108,3 +108,105 @@ line three
     expect(tags.layerRoot?.line).toBe(6);
   });
 });
+
+describe("scanTags for Python", () => {
+  it("reads a layer declaration from a module docstring", () => {
+    const { tags, diagnostics } = scanTags(
+      `"""HTTP API for optimization studies.
+
+@layerRoot optimizer
+@role Runs detached Optuna studies against the CLI.
+"""
+
+import asyncio
+`,
+      "python",
+    );
+
+    expect(diagnostics).toEqual([]);
+    expect(tags.layerRoot?.value).toBe("optimizer");
+    expect(tags.layerRoot?.line).toBe(3);
+    expect(tags.role?.value).toBe(
+      "Runs detached Optuna studies against the CLI.",
+    );
+  });
+
+  it("reads tags from single-quoted docstrings too", () => {
+    const { tags } = scanTags(
+      `'''
+@layerRoot bindings
+@role Sessions owning one CLI process each.
+'''
+`,
+      "python",
+    );
+
+    expect(tags.layerRoot?.value).toBe("bindings");
+  });
+
+  it("ignores triple-quoted strings that are not the module docstring", () => {
+    const { tags } = scanTags(
+      `import textwrap
+
+QUERY = """
+@layerRoot not-a-layer
+"""
+
+
+def helper():
+    """@layerRoot also-not-a-layer"""
+`,
+      "python",
+    );
+
+    expect(tags.layerRoot).toBeNull();
+  });
+
+  it("reads the module docstring after leading comments and blank lines", () => {
+    const { tags } = scanTags(
+      `#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+@layerRoot optimizer
+@role One line.
+"""
+`,
+      "python",
+    );
+
+    expect(tags.layerRoot?.value).toBe("optimizer");
+  });
+
+  it("does not read JSDoc-style comments as Python docstrings", () => {
+    const { tags } = scanTags(
+      `# @layerRoot commented-out
+value = "/** @layerRoot not-a-docstring */"
+`,
+      "python",
+    );
+
+    expect(tags.layerRoot).toBeNull();
+  });
+
+  it("keeps duplicate detection and miscasing hints for Python", () => {
+    const { diagnostics } = scanTags(
+      `"""
+@layerroot optimizer
+@role One role.
+@role Another role.
+"""
+`,
+      "python",
+    );
+
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        message: "unknown tag @layerroot; did you mean @layerRoot?",
+      }),
+      expect.objectContaining({
+        message: expect.stringContaining("duplicate @role"),
+      }),
+    ]);
+  });
+});

@@ -1,0 +1,46 @@
+---
+title: The subprocess boundary
+description: Why the optimizer↔CLI relationship is a process contract, not an import — and what each side owns.
+sidebar_order: 10
+attachTo: optimizer
+---
+
+The optimizer never imports Petrinaut. The [optimizer](layer:optimizer) and
+the [CLI](layer:cli) meet at a **process boundary**: one `petrinaut serve`
+child per optimization run, spoken to over JSON lines on stdio. No generated
+diagram shows this edge, and none ever will — the import graph records static
+module references, and claiming runtime facts it cannot check is exactly what
+the model refuses to do. This page is the missing arrow.
+
+## The contract
+
+- **One run, one child.** The service spawns the CLI with the manifest as the
+  first stdin line and waits for the readiness line on stderr; any other first
+  stderr line fails the start. From then on it sends one request per line and
+  reads one response per line, in order. The full protocol is specified in the
+  CLI's [usage manual](doc:cli/usage-manual).
+- **Ownership split.** The manifest is opaque to Python: scenario
+  compilation, fixed-value injection, simulation, seeding, and metric
+  evaluation are the CLI's. Study orchestration, admission, event streaming,
+  and cancellation are the service's. Optuna sees only flat parameter
+  descriptors and scalar objectives.
+- **Isolation.** The child gets a scrubbed environment, its own process
+  group, and (in the image) Node permission flags restricting filesystem
+  reads. Cancellation and failure paths signal the whole group rather than
+  waiting for a busy CLI to notice stdin closing.
+- **Bounded everything.** Bootstrap and per-response deadlines, 8 MiB line
+  caps on both sides, and a study wall-clock ceiling. The per-response
+  deadline scales with the study's seeds-per-trial, since one evaluate may
+  legally run up to that many simulations.
+
+## Where the boundary lives in code
+
+The Python side of the contract is the [python-bindings](layer:python-bindings) package —
+the optimizer consumes `OptimizationSession` rather than owning a transport.
+The CLI side is the [runtime](layer:cli.runtime), which interprets the same
+frames. Change either side of the frame vocabulary and both packages' tests
+break; that is the seam working as intended.
+
+Nothing else crosses: the optimizer's HTTP surface, Optuna, and telemetry
+never reach the CLI, and the CLI never learns it is being driven by a
+service rather than a script.

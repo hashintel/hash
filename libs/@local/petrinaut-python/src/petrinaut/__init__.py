@@ -2,6 +2,9 @@
 
 Run simulations and drive optimization studies against a compiled Petrinaut
 model from Python, over the CLI's JSON-lines stdio protocol.
+
+@layerRoot python-bindings
+@role Python sessions owning one CLI process each, translating protocol frames into methods and exceptions.
 """
 
 from .errors import (

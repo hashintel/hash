@@ -14,13 +14,23 @@ import { posix } from "node:path";
 import type { ArchitecturePackage } from "./model";
 
 /**
- * Extensions treated as architecture source.
+ * Extensions treated as architecture source in TypeScript packages.
  *
  * `.js` variants are absent on purpose: these packages are TypeScript, and a
  * committed `.js` file under `src` would be build output that no layer should
- * claim.
+ * claim. The graph builder reads this list directly — it only ever receives
+ * TypeScript packages.
  */
 export const sourceExtensions = [".ts", ".tsx", ".mts", ".cts"] as const;
+
+/** Extensions treated as architecture source in Python packages. */
+export const pythonSourceExtensions = [".py"] as const;
+
+/** The source extensions for one package, by its declared language. */
+export const sourceExtensionsFor = (
+  pkg: ArchitecturePackage,
+): readonly string[] =>
+  pkg.language === "python" ? pythonSourceExtensions : sourceExtensions;
 
 /** Repo-relative, posix source root for a package. */
 export const sourceRootOf = (pkg: ArchitecturePackage): string =>
