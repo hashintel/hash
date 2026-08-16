@@ -18,6 +18,10 @@ _ModelT = TypeVar("_ModelT", bound=BaseModel)
 
 _ONE_SOURCE = "provide exactly one of optimization_manifest or manifest_path"
 
+# Mirrors PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL in the CLI's manifest
+# schema; bounds how far a trial may stretch the per-response deadline.
+MAX_SEEDS_PER_TRIAL = 100
+
 
 class OptimizationSession(PetrinautSession):
     """Own one CLI process initialized with an opaque optimization manifest.
@@ -55,10 +59,27 @@ class OptimizationSession(PetrinautSession):
             source_label="optimization manifest",
             **options,
         )
+        self._timeout_configured = False
 
     def describe_optimization(self) -> OptimizationDescribeResult:
         """Return the CLI-owned Optuna study and parameter description."""
-        return self._validated("optimization.describe", OptimizationDescribeResult)
+        result = self._validated("optimization.describe", OptimizationDescribeResult)
+        seeds_per_trial = (
+            1 if result.study.seedsPerTrial is None else result.study.seedsPerTrial
+        )
+        if not 1 <= seeds_per_trial <= MAX_SEEDS_PER_TRIAL:
+            self.close(graceful=False)
+            raise PetrinautProtocolError(
+                "optimization.describe study.seedsPerTrial must be an integer "
+                f"between 1 and {MAX_SEEDS_PER_TRIAL}"
+            )
+        # One evaluate may run this many seeded simulations, sequentially in
+        # the worst case, so the per-response deadline scales with it.
+        self._request_timeout_seconds = (
+            self._base_request_timeout_seconds * seeds_per_trial
+        )
+        self._timeout_configured = True
+        return result
 
     def evaluate(
         self, parameter_values: Mapping[str, Any]
@@ -68,6 +89,10 @@ class OptimizationSession(PetrinautSession):
         Carries per-seed ``replicates`` when the manifest asks for more than one
         seed per trial.
         """
+        if not self._timeout_configured:
+            # A seeded trial needs the scaled deadline before its first
+            # evaluation, so an un-described session describes once here.
+            self.describe_optimization()
         return self._validated(
             "optimization.evaluate",
             OptimizationEvaluateResult,

@@ -128,15 +128,15 @@ Fixed-value injection, scenario compilation, initial-state materialization,
 simulation, and metric evaluation all happen behind that call, and fixed values
 are never echoed back through this service. When the manifest sets
 `execution.seedsPerTrial` above 1, one trial runs that many seeded simulations
-and the objective is their mean.
+with the same derived seed sequence every time, and the objective is their mean.
+The per-seed values come back alongside it, and this service ignores them.
 
 `close()` ends the session. The bindings bound every wait and clean up after
-themselves: a startup deadline, a per-response deadline, a line-size limit, and
-termination of the process they started on timeout, failure, or client
-disconnect. Their README documents the current values.
-
-For an end-to-end local request, export an optimization manifest from the
-Petrinaut editor.
+themselves: a startup deadline, a per-response deadline that scales with the
+`seedsPerTrial` the study reports, since one evaluation may run that many
+simulations, a line-size limit, and termination of the process they started on
+timeout, failure, or client disconnect. Their README documents the current
+values.
 
 ## Observability
 

@@ -119,6 +119,7 @@ def test_optimization_session_requires_exactly_one_source(
 
 def test_evaluate_returns_the_full_result_including_replicates(
     optimization_manifest: dict,
+    optimization_description: dict,
 ) -> None:
     full_result = {
         "objective": 12.5,
@@ -127,7 +128,13 @@ def test_evaluate_returns_the_full_result_including_replicates(
             {"seed": 7, "objective": 13.0},
         ],
     }
-    process = FakeProcess([{"id": 1, "result": full_result}])
+    # The first evaluate describes once to scale the response deadline.
+    process = FakeProcess(
+        [
+            {"id": 1, "result": optimization_description},
+            {"id": 2, "result": full_result},
+        ]
+    )
     invocation = spawn(process)
     session = OptimizationSession(
         optimization_manifest, popen_factory=invocation["popen_factory"]
@@ -324,11 +331,13 @@ while True:
 
 def test_cli_error_during_evaluation_is_recoverable(
     optimization_manifest: dict,
+    optimization_description: dict,
 ) -> None:
     process = FakeProcess(
         [
-            {"id": 1, "error": {"message": "scenario failed"}},
-            {"id": 2, "result": {"objective": 7}},
+            {"id": 1, "result": optimization_description},
+            {"id": 2, "error": {"message": "scenario failed"}},
+            {"id": 3, "result": {"objective": 7}},
         ]
     )
     model = OptimizationSession(
@@ -347,10 +356,16 @@ def test_cli_error_during_evaluation_is_recoverable(
 @pytest.mark.parametrize("objective", [True, None, "12.5"])
 def test_a_non_numeric_objective_is_a_protocol_error(
     optimization_manifest: dict,
+    optimization_description: dict,
     objective: Any,
 ) -> None:
     """A result outside the protocol schema closes the session."""
-    process = FakeProcess([{"id": 1, "result": {"objective": objective}}])
+    process = FakeProcess(
+        [
+            {"id": 1, "result": optimization_description},
+            {"id": 2, "result": {"objective": objective}},
+        ]
+    )
     model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,
@@ -365,9 +380,15 @@ def test_a_non_numeric_objective_is_a_protocol_error(
 
 def test_rejects_a_non_finite_numeric_objective(
     optimization_manifest: dict,
+    optimization_description: dict,
 ) -> None:
     """JSON cannot carry Infinity, but Python's parser admits it; refuse it."""
-    process = FakeProcess([{"id": 1, "result": {"objective": float("inf")}}])
+    process = FakeProcess(
+        [
+            {"id": 1, "result": optimization_description},
+            {"id": 2, "result": {"objective": float("inf")}},
+        ]
+    )
     model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,
@@ -395,3 +416,74 @@ def test_rejects_a_mismatched_protocol_response(
 
     assert process.returncode == 0
     model.close()
+
+
+def test_scales_the_request_timeout_by_the_described_seeds_per_trial(
+    optimization_manifest: dict,
+    optimization_description: dict,
+) -> None:
+    description = {
+        **optimization_description,
+        "study": {**optimization_description["study"], "seedsPerTrial": 5},
+    }
+    process = FakeProcess([{"id": 1, "result": description}])
+    model = OptimizationSession(
+        optimization_manifest,
+        command=("node", "/cli.js"),
+        popen_factory=lambda command, **kwargs: process,
+        request_timeout_seconds=240,
+    )
+    model.start()
+
+    assert model.describe_optimization() == OptimizationDescribeResult.model_validate(
+        description
+    )
+    assert model._request_timeout_seconds == 1200
+    model.close()
+
+
+def test_evaluate_without_describe_scales_the_timeout_first(
+    optimization_manifest: dict,
+    optimization_description: dict,
+) -> None:
+    description = {
+        **optimization_description,
+        "study": {**optimization_description["study"], "seedsPerTrial": 5},
+    }
+    process = FakeProcess(
+        [
+            {"id": 1, "result": description},
+            {"id": 2, "result": {"objective": 1.5}},
+        ]
+    )
+    model = OptimizationSession(
+        optimization_manifest,
+        command=("node", "/cli.js"),
+        popen_factory=lambda command, **kwargs: process,
+        request_timeout_seconds=240,
+    )
+    model.start()
+
+    assert model.evaluate({"rate": 1.0}).objective == 1.5
+    assert model._request_timeout_seconds == 1200
+    model.close()
+
+
+def test_rejects_an_invalid_described_seeds_per_trial(
+    optimization_manifest: dict,
+    optimization_description: dict,
+) -> None:
+    description = {
+        **optimization_description,
+        "study": {**optimization_description["study"], "seedsPerTrial": 0},
+    }
+    process = FakeProcess([{"id": 1, "result": description}])
+    model = OptimizationSession(
+        optimization_manifest,
+        command=("node", "/cli.js"),
+        popen_factory=lambda command, **kwargs: process,
+    )
+    model.start()
+
+    with pytest.raises(PetrinautProtocolError, match="seedsPerTrial"):
+        model.describe_optimization()

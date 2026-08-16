@@ -107,6 +107,7 @@ class PetrinautSession:
         self._source_label = source_label
         self._popen_factory = popen_factory
         self._bootstrap_timeout_seconds = bootstrap_timeout_seconds
+        self._base_request_timeout_seconds = request_timeout_seconds
         self._request_timeout_seconds = request_timeout_seconds
         self._process: subprocess.Popen[bytes] | None = None
         self._next_id = 1
