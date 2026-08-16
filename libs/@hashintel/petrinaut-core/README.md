@@ -3,8 +3,9 @@
 Headless Petrinaut APIs for SDCPN documents, mutations, simulation, playback,
 language services, and supporting domain utilities.
 
-This package intentionally has no React or UI dependencies. The visual editor
-package, `@hashintel/petrinaut`, builds on top of it.
+This package has no React or UI dependencies, which is what lets it run
+unchanged in Node and inside workers. The visual editor package,
+`@hashintel/petrinaut`, builds on top of it.
 
 ## Handle Creation
 
@@ -31,5 +32,6 @@ disabled extension data is sanitized according to handle capabilities.
 
 When another application is the source of truth, implement `PetrinautDocHandle`
 directly so editor edits can emit `source: "local"` and host/store updates can
-emit `source: "remote"`. The visual editor package has a fuller guide in
-`@hashintel/petrinaut/INTEGRATION.md`.
+emit `source: "remote"`. The full guide, including the invariants the editor
+relies on, is in the architecture docs:
+[Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/handle/host-integration.mdx).

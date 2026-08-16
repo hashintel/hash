@@ -23,8 +23,9 @@ export function App() {
 ```
 
 For host applications that own their Petri net data, implement a
-`PetrinautDocHandle` adapter and pass it to `<Petrinaut />`. See
-[INTEGRATION.md](INTEGRATION.md) for the recommended patterns.
+`PetrinautDocHandle` adapter and pass it to `<Petrinaut />`. The integration
+guide lives in the architecture docs:
+[Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/handle/host-integration.mdx).
 
 ## Storybook
 
