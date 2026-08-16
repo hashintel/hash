@@ -1,5 +1,6 @@
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions";
 import { resolveNetParameterValues } from "../../../parameter-values";
+import { createUserKeyedRecord } from "../../../validation/record-keys";
 import { createWorkerTransport } from "../../runtime/transport";
 import {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
@@ -167,7 +168,11 @@ function appendMetricFrames(
   state: MonteCarloExperimentMetrics,
   nextFrames: readonly MonteCarloUserDefinedMetricFrame[],
 ): MonteCarloExperimentMetrics {
-  const latestByMetricId = { ...state.latestByMetricId };
+  // Keyed by metric ids from the net definition: no prototype.
+  const latestByMetricId = Object.assign(
+    createUserKeyedRecord<MonteCarloUserDefinedMetricFrame>(),
+    state.latestByMetricId,
+  );
 
   for (const frame of nextFrames) {
     latestByMetricId[frame.metricId] = frame;

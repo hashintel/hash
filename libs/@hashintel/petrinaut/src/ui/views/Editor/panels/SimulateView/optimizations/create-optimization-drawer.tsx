@@ -18,6 +18,7 @@ import {
   PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
   PETRINAUT_OPTIMIZATION_MAX_TRIALS,
+  createUserKeyedRecord,
   metricSchema,
   petrinautOptimizationInputSchema,
 } from "@hashintel/petrinaut-core";
@@ -401,10 +402,12 @@ export function buildPetrinautOptimizationInput({
   dt: number;
   maxTime: number;
 }): PetrinautOptimizationInput {
+  // Keyed by scenario parameter identifiers from the net definition: no
+  // prototype.
   const parameterBindings: Record<
     string,
     PetrinautOptimizationParameterBinding
-  > = {};
+  > = createUserKeyedRecord();
   for (const parameter of scenario.scenarioParameters) {
     const draft = drafts[parameter.identifier]!;
     if (draft.mode === "fixed") {

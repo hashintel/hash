@@ -9,6 +9,7 @@ import { v4 as generateUuid } from "uuid";
 import {
   createMonteCarloExperiment,
   compileScenario,
+  getOwn,
   type InitialMarking,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
@@ -396,7 +397,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           if (spec.kind !== "expression") {
             return spec;
           }
-          const artifact = artifacts.metrics[spec.id];
+          const artifact = getOwn(artifacts.metrics, spec.id);
           if (!artifact) {
             const diagnostics = failures
               .filter(

@@ -41,7 +41,7 @@ Parameters are named values available in all user-authored code: dynamics, firin
 
 1. Open the **Parameters** tab in the left sidebar.
 2. Click **+** to add a new parameter.
-3. Set a **name** (display label), **variable name** (used in code), and **default value** (can be overridden in the simulation settings).
+3. Set a **name** (display label), **variable name** (used in code), and **default value** (can be overridden in the simulation settings). Variable names must be lower_snake_case (e.g. `infection_rate`) and must not be a reserved JavaScript property name such as `constructor`.
 
 <img width="1697" height="847" alt="parameters-SIR" src="https://github.com/user-attachments/assets/1b1df756-1fac-4201-8262-187473f2aeb6" />
 

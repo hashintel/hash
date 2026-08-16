@@ -1,3 +1,4 @@
+import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
 import { TYPE_POLICIES } from "./type-policies";
 import { formatUuid } from "./uuid";
 
@@ -70,11 +71,14 @@ export function coerceTokenRecord(
   elements: readonly ColorElement[],
   context: string,
 ): TokenRecord {
-  const token: TokenRecord = {};
+  // Element names come from the net definition and `source` from stored
+  // documents or scenario code, so keys are untrusted: build without a
+  // prototype and read own properties only.
+  const token = createUserKeyedRecord<TokenRecord[string]>();
   for (const element of elements) {
     token[element.name] = coerceTokenAttributeValue(
       element,
-      source[element.name],
+      getOwn(source, element.name),
       `${context}.${element.name}`,
     );
   }
@@ -140,7 +144,7 @@ export function decodeTokenRecord(
   elements: readonly ColorElement[],
   encodedValues: ArrayLike<number>,
 ): TokenRecord {
-  const token: TokenRecord = {};
+  const token = createUserKeyedRecord<TokenRecord[string]>();
   for (let index = 0; index < elements.length; index++) {
     const element = elements[index]!;
     token[element.name] = decodeTokenAttributeValue(

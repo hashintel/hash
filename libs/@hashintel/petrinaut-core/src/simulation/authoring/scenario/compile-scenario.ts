@@ -1,4 +1,5 @@
 import { parseParameterValue } from "../../../parameter-values";
+import { createUserKeyedRecord, getOwn } from "../../../validation/record-keys";
 import { coerceTokenRecord } from "../../engine/token-values";
 import { TYPE_POLICIES } from "../../engine/type-policies";
 import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
@@ -122,7 +123,8 @@ function compileTokenRecord(
     elements,
     "Scenario initial state token",
   );
-  const token: MarkingTokenRecord = {};
+  // Element names come from the net definition: no prototype.
+  const token = createUserKeyedRecord<InitialTokenAttributeValue>();
   for (const element of elements) {
     token[element.name] = TYPE_POLICIES[element.type].encodeAtRest(
       coerced[element.name]!,
@@ -136,7 +138,7 @@ function tokenRecordsFromRows(
   elements: Color["elements"],
 ): MarkingTokenRecord[] {
   return rows.map((row) => {
-    const token: Record<string, unknown> = {};
+    const token = createUserKeyedRecord<unknown>();
     for (let i = 0; i < elements.length; i++) {
       token[elements[i]!.name] = row[i];
     }
@@ -190,14 +192,17 @@ export function compileScenario(
 
   // ── Step 1: Build the `scenario` object from scenario parameter defaults ──
 
-  const scenarioObj: NetParameterValues = {};
+  // Scenario parameter identifiers come from the net definition: no prototype.
+  const scenarioObj: NetParameterValues = createUserKeyedRecord();
   for (const sp of scenario.scenarioParameters) {
     if (sp.identifier.trim() === "") {
       continue;
     }
 
     const value =
-      options.scenarioParameterValues?.[sp.identifier] ?? sp.default;
+      (options.scenarioParameterValues
+        ? getOwn(options.scenarioParameterValues, sp.identifier)
+        : undefined) ?? sp.default;
     if (!Number.isFinite(value)) {
       errors.push({
         source: "scenarioParameter",
@@ -217,7 +222,7 @@ export function compileScenario(
   // Start with net-level defaults, then apply each override expression.
   // Expressions have access to the base `parameters` and `scenario`.
 
-  const parametersObj: NetParameterValues = {};
+  const parametersObj: NetParameterValues = createUserKeyedRecord();
   for (const param of netParameters) {
     try {
       parametersObj[param.variableName] = parseParameterValue(
@@ -290,7 +295,9 @@ export function compileScenario(
 
   // ── Step 3: Evaluate initial state ──
 
-  const initialState: InitialMarking = {};
+  // Keyed by place id; in code mode the key set additionally derives from
+  // whatever object the user-authored code block returns: no prototype.
+  const initialState: InitialMarking = createUserKeyedRecord();
   const placeById = new Map(places.map((p) => [p.id, p]));
   const placeByName = new Map(places.map((p) => [p.name, p]));
   const typeById = new Map(types.map((t) => [t.id, t]));
@@ -443,7 +450,7 @@ export function compileScenario(
   }
 
   // Convert parameters to string values (simulation worker input format)
-  const parameterValues: Record<string, string> = {};
+  const parameterValues = createUserKeyedRecord<string>();
   for (const [key, value] of Object.entries(parametersObj)) {
     parameterValues[key] = String(value);
   }

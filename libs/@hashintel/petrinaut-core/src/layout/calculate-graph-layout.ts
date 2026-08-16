@@ -1,6 +1,7 @@
 import ELK from "elkjs";
 
 import { getArcEndpoint, getArcEndpointNodeId } from "../arc-endpoints";
+import { createUserKeyedRecord } from "../validation/record-keys";
 
 import type { SDCPN } from "../types/sdcpn";
 import type { ElkNode } from "elkjs";
@@ -130,7 +131,9 @@ export const calculateGraphLayout = async (
    * ELK returns top-left positions, but the SDCPN store uses center
    * coordinates, so we offset by half the node dimensions.
    */
-  const positionsByNodeId: Record<string, NodePosition> = {};
+  // Keyed by place/transition/component-instance ids: no prototype.
+  const positionsByNodeId: Record<string, NodePosition> =
+    createUserKeyedRecord();
   for (const child of updatedElements.children ?? []) {
     if (child.x !== undefined && child.y !== undefined) {
       const nodeDimensions = placeIds.has(child.id)
