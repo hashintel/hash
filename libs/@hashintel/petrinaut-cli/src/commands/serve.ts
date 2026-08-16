@@ -43,9 +43,31 @@ export async function serve(options: ServeOptions): Promise<void> {
   };
 
   const activeSockets = new Set<Socket>();
-  const server = createServer((socket) => {
+  // Half-open keeps the write side available until the async protocol chain
+  // has flushed every response for requests received before the client's FIN.
+  const server = createServer({ allowHalfOpen: true }, (socket) => {
     activeSockets.add(socket);
     let buffer = "";
+    // Serializes the async protocol handler per connection so responses keep
+    // the one-line-per-request order the transport promises.
+    let pending: Promise<void> = Promise.resolve();
+    // A rejected task must not orphan the chain (and the socket.end it still
+    // owes): drop the connection and leave `pending` resolved.
+    const enqueue = (task: () => void | Promise<void>): void => {
+      pending = pending.then(task).catch(() => {
+        socket.destroy();
+      });
+    };
+    const enqueueLine = (line: string): void => {
+      enqueue(() =>
+        handleProtocolLine(
+          model,
+          line,
+          (value) => writeResponse(socket, value),
+          sdcpn,
+        ),
+      );
+    };
 
     socket.setEncoding("utf8");
     socket.on("data", (chunk) => {
@@ -57,42 +79,39 @@ export async function serve(options: ServeOptions): Promise<void> {
       buffer = bufferedLines.remainder;
 
       for (const line of bufferedLines.lines) {
-        handleProtocolLine(
-          model,
-          line,
-          (value) => writeResponse(socket, value),
-          sdcpn,
-        );
+        enqueueLine(line);
       }
 
       if (bufferedLines.requestTooLarge) {
         buffer = "";
         socket.pause();
-        socket.end(
-          `${JSON.stringify({
-            id: null,
-            error: { message: "Request line is too large" },
-          })}\n`,
-        );
+        enqueue(() => {
+          socket.end(
+            `${JSON.stringify({
+              id: null,
+              error: { message: "Request line is too large" },
+            })}\n`,
+          );
+        });
       }
     });
 
     socket.on("end", () => {
       if (buffer.trim() !== "") {
         if (Buffer.byteLength(buffer, "utf8") > MAX_REQUEST_LINE_BYTES) {
-          writeResponse(socket, {
-            id: null,
-            error: { message: "Request line is too large" },
+          enqueue(() => {
+            writeResponse(socket, {
+              id: null,
+              error: { message: "Request line is too large" },
+            });
           });
-          return;
+        } else {
+          enqueueLine(buffer);
         }
-        handleProtocolLine(
-          model,
-          buffer,
-          (value) => writeResponse(socket, value),
-          sdcpn,
-        );
       }
+      enqueue(() => {
+        socket.end();
+      });
     });
     socket.on("error", () => {
       // Per-connection errors are reported through the socket lifecycle.

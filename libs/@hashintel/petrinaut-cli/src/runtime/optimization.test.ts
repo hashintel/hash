@@ -143,7 +143,7 @@ describe("createOptimizationProtocol", () => {
         },
       ],
     });
-    expect(
+    await expect(
       protocol.evaluate({
         parameterValues: {
           production_rate: 125,
@@ -154,7 +154,7 @@ describe("createOptimizationProtocol", () => {
           marketing_spend: 40,
         },
       }),
-    ).toEqual({ objective: 42 });
+    ).resolves.toEqual({ objective: 42 });
     expect(run).toHaveBeenCalledWith(
       expect.objectContaining({
         parameterValues: {
@@ -217,9 +217,9 @@ describe("createOptimizationProtocol", () => {
         },
       ],
     });
-    expect(
+    await expect(
       protocol.evaluate({ parameterValues: { infected_ratio: 0.1 } }),
-    ).toEqual({ objective: 0.25 });
+    ).resolves.toEqual({ objective: 0.25 });
     expect(run).toHaveBeenCalledWith({
       initialMarking: {
         place__susceptible: 180,
@@ -319,16 +319,18 @@ describe("createOptimizationProtocol", () => {
       },
       { identifier: "enabled", type: "boolean", default: false },
     ]);
-    expect(() =>
+    await expect(
       protocol.evaluate({ parameterValues: { count: 5, enabled: false } }),
-    ).toThrow('Optimization parameter "count" must align with step 2 from 2');
-    expect(() =>
+    ).rejects.toThrow(
+      'Optimization parameter "count" must align with step 2 from 2',
+    );
+    await expect(
       protocol.evaluate({ parameterValues: { count: 6, enabled: 1 } }),
-    ).toThrow('Optimization parameter "enabled" must be boolean');
+    ).rejects.toThrow('Optimization parameter "enabled" must be boolean');
 
-    expect(
+    await expect(
       protocol.evaluate({ parameterValues: { count: 6, enabled: false } }),
-    ).toEqual({ objective: 0.25 });
+    ).resolves.toEqual({ objective: 0.25 });
     expect(run).toHaveBeenCalledWith({
       initialMarking: {
         place__susceptible: 0,
@@ -353,17 +355,17 @@ describe("createOptimizationProtocol", () => {
     };
     const protocol = createOptimizationProtocol({ manifest, model });
 
-    expect(() => protocol.evaluate({ parameterValues: {} })).toThrow(
+    await expect(protocol.evaluate({ parameterValues: {} })).rejects.toThrow(
       'Missing optimized parameter "infected_ratio"',
     );
-    expect(() =>
+    await expect(
       protocol.evaluate({
         parameterValues: { infected_ratio: 0.1, population: 200 },
       }),
-    ).toThrow('Unexpected optimization parameter "population"');
-    expect(() =>
+    ).rejects.toThrow('Unexpected optimization parameter "population"');
+    await expect(
       protocol.evaluate({ parameterValues: { infected_ratio: 0.75 } }),
-    ).toThrow(
+    ).rejects.toThrow(
       'Optimization parameter "infected_ratio" must be between 0.01 and 0.5',
     );
   });
