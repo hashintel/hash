@@ -54,6 +54,20 @@ export const config: ArchitectureConfig = {
         "JSON-lines CLI serving one compiled model per process: run requests and optimization studies over stdio or a Unix socket. No HTTP, no React.",
       language: "typescript",
     },
+    {
+      name: "@local/petrinaut-python",
+      path: "libs/@local/petrinaut-python",
+      description:
+        "Python bindings for the CLI's JSON-lines protocol: sessions, run requests, optimization studies. POSIX-only; pydantic validates protocol responses.",
+      language: "python",
+    },
+    {
+      name: "@apps/petrinaut-opt",
+      path: "apps/petrinaut-opt",
+      description:
+        "Python optimizer service: detached Optuna studies over the CLI, replayable SSE event streams, admission control.",
+      language: "python",
+    },
   ],
 
   /**
@@ -99,6 +113,8 @@ export const config: ArchitectureConfig = {
     "__fixtures__",
     "__snapshots__",
     "docs",
+    "__pycache__",
+    ".venv",
   ],
 
   /**
