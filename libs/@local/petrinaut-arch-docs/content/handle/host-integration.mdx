@@ -66,8 +66,7 @@ type DocChangeEvent = {
 
 ## What the editor does with each member
 
-Knowing the consumer makes the contract concrete. Per member, on the current
-code:
+Per member, on the current code:
 
 | Member         | Consumption                                                                                                                                                                       |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -82,8 +81,9 @@ code:
 
 ## Invariants a custom handle must keep
 
-These are relied on by the editor but not expressed in the type. Violating
-them fails at a distance, so check each one against your implementation.
+These are relied on by the editor but not expressed in the type. A violation
+appears as a failure far from the handle implementation, so check each one
+against yours.
 [Contract gaps](doc:handle/contract-gaps) tracks moving them into the contract
 proper.
 
@@ -99,9 +99,10 @@ proper.
   host model on each `doc()` call is the natural implementation and it is
   wrong; cache the current snapshot.
 - **Emit one `DocChangeEvent` per applied change**, including changes the host
-  applies from outside. Nothing re-reads on `state` transitions, so a handle
-  that loads asynchronously must emit an event when the document first becomes
-  available or the editor stays on the empty net.
+  applies from outside. Nothing notifies the editor on `state` transitions, so
+  a handle that loads asynchronously must emit an event when the document
+  first becomes available; otherwise the editor stays on the empty net until
+  something unrelated forces a re-render.
 - **`id` is unique per document and immutable for the handle's lifetime.**
   Reusing one id across documents leaks simulation and language-server state
   between them; deriving it from mutable state resets that state mid-session.
@@ -155,7 +156,8 @@ Required fields for a plain net:
 | Arc        | `placeId` (or an explicit `endpoint`)             |
 
 Defaults filled by `normalizeSDCPN()`: arc `weight: 1`, input arc
-`type: "standard"`, place `colorId: null` and `dynamicsEnabled: false`,
+`type: "standard"`, place `colorId: null`, `dynamicsEnabled: false`, and
+`differentialEquationId: null`,
 transition `lambdaType: "predicate"` with empty lambda and kernel code, and
 empty top-level `types`, `parameters`, and `differentialEquations` arrays.
 Optional fields (`scenarios`, `metrics`, `subnets`, `componentInstances`,
@@ -228,8 +230,8 @@ injecting an external update. Two consequences:
   per document alive (as the Storybook provider does) preserves each
   document's undo history across switches.
 
-If the host store must stay the source of truth while the editor is open, a
-custom adapter is the right shape.
+If the host store must stay the source of truth while the editor is open,
+write a custom adapter.
 
 ## A custom adapter
 
@@ -368,7 +370,7 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `handle`                                          | The document handle. Required; all other props are optional.                                                                             |
 | `title`, `setTitle`                               | Host-owned title shown in the top bar.                                                                                                   |
 | `readonly`                                        | Disables editing. ORed with `capabilities.readonly` from the handle.                                                                     |
-| `hideNetManagementControls`                       | `"except-title"` hides the New/Open/Import menu items; `"all"` also hides the title.                                                     |
+| `hideNetManagementControls`                       | `"except-title"` hides the net-management menu items (New, Open, Import, Load example); `"all"` also hides the title.                     |
 | `existingNets`, `createNewNet`, `loadPetriNet`    | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                             |
 | `aiAssistant`                                     | Transport and message store for the AI assistant panel. Omitting it hides the panel.                                                     |
 | `viewportActions`                                 | Extra buttons appended to the canvas zoom/fit controls.                                                                                  |
