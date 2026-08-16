@@ -16,7 +16,7 @@ from src.optimization_runs import CANCELLED_FRAME, RunState
 
 
 class RecordingModel:
-    """Track how the CLI adapter is shut down."""
+    """Track how the session is shut down."""
 
     def __init__(self) -> None:
         self.close_calls: list[bool] = []
@@ -98,7 +98,7 @@ def test_initialization_failure_log_omits_the_raw_error_message(
     monkeypatch,
     caplog,
 ) -> None:
-    """The CLI error string can embed user content, so it must not be logged."""
+    """The backend error string can embed user content, so it must not be logged."""
     secret = "Petrinaut failed to load the optimization manifest: user_secret_xyz"
 
     def initialize(_manifest: dict[str, Any], **_kwargs: Any) -> FakeOptimizer:
@@ -199,7 +199,7 @@ def test_admitted_run_cleanup_releases_the_slot_exactly_once() -> None:
     assert optimizer.pn_model.close_calls == [False]  # type: ignore[attr-defined]
 
 
-def test_cancellation_during_initialization_closes_cli_and_releases_slot(
+def test_cancellation_during_initialization_closes_session_and_releases_slot(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -244,11 +244,11 @@ def test_cancellation_during_initialization_closes_cli_and_releases_slot(
     assert test_app.state.active_optimizations == 0
 
 
-def test_second_cancellation_still_closes_an_abandoned_cli(
+def test_second_cancellation_still_closes_an_abandoned_session(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A cancel racing the init-cancel recovery must not orphan the CLI."""
+    """A cancel racing the init-cancel recovery must not orphan the session."""
     test_app = _admitted_test_app(active_optimizations=1)
     optimizer = _optimizer_with_recording_model()
     started = threading.Event()
@@ -275,7 +275,7 @@ def test_second_cancellation_still_closes_an_abandoned_cli(
         finish.set()
         with pytest.raises(asyncio.CancelledError):
             await task
-        # The abandoned CLI is closed by the initializer's done-callback,
+        # The abandoned session is closed by the initializer's done-callback,
         # which hands off to a daemon thread.
         for _ in range(100):
             if optimizer.pn_model.close_calls:  # type: ignore[attr-defined]
@@ -438,7 +438,7 @@ def test_create_detached_run_returns_201_and_holds_the_slot_until_terminal(
             lambda: optimization_api.app.state.active_optimizations == 0
         )
         _wait_until(lambda: run.state is RunState.completed)
-        # The pump closed the CLI gracefully; the idempotent run cleanup adds
+        # The pump closed the session gracefully; the idempotent run cleanup adds
         # its prompt close, which the real adapter treats as a no-op.
         assert optimizer.pn_model.close_calls == [True, False]
 
@@ -622,7 +622,7 @@ def test_delete_cancels_a_detached_run_and_is_idempotent(
         assert run is not None
         assert run.state is RunState.cancelled
         assert run.events[-1] == (2, CANCELLED_FRAME)
-        # The pump closed the CLI promptly and the cleanup added its
+        # The pump closed the session promptly and the cleanup added its
         # idempotent prompt close; neither waited for a graceful EOF.
         assert optimizer.pn_model.close_calls == [False, False]
         assert optimization_api.app.state.active_optimizations == 0
@@ -789,7 +789,7 @@ def test_create_detached_run_reports_initialization_failure_with_the_run_id(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def initialize(_manifest: dict[str, Any], **_kwargs: Any) -> Any:
-        raise RuntimeError("manifest rejected by CLI")
+        raise RuntimeError("manifest rejected by the backend")
 
     monkeypatch.setattr(optimization_api, "initialize_optimizer", initialize)
 
@@ -802,11 +802,11 @@ def test_create_detached_run_reports_initialization_failure_with_the_run_id(
         run_status = client.get(f"/status/{run_id}")
 
     assert response.status_code == 500
-    assert "manifest rejected by CLI" in response.json()["detail"]
+    assert "manifest rejected by the backend" in response.json()["detail"]
     assert statuses.json() == [
         {
             "phase": "error",
-            "detail": "Petrinaut CLI and Optimization Model could NOT be initialized",
+            "detail": "Petrinaut session and Optimization Model could NOT be initialized",
             "updated_at": statuses.json()[0]["updated_at"],
             "run_id": run_id,
         }

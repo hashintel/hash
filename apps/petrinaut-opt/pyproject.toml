@@ -11,9 +11,13 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.65b0",
     "opentelemetry-sdk>=1.44.0",
     "optuna>=3.6",
+    "petrinaut-python",
     "python-dotenv>=1.0.0",
     "uvicorn[standard]>=0.39.0",
 ]
+
+[tool.uv.sources]
+petrinaut-python = { path = "../../libs/@local/petrinaut-python", editable = true }
 
 [dependency-groups]
 dev = [
