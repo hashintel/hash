@@ -10,9 +10,9 @@ from typing import Any
 import optuna
 import pytest
 from fastapi import FastAPI
+from petrinaut import PetrinautClientError, PetrinautRunError
 
 from src import petrinaut_optimizer
-from src.petrinaut_client import PetrinautClientError, PetrinautRunError
 from src.petrinaut_optimizer import PetrinautOptimizer
 from src.utils import Phase, StatusStore
 
@@ -61,7 +61,7 @@ class StubbornModel(FakeModel):
     def objective(self, parameter_values: dict[str, Any]) -> float:
         self.entered.set()
         self.release.wait()
-        raise PetrinautClientError("CLI closed")
+        raise PetrinautClientError("session closed")
 
 
 def test_maps_float_integer_step_and_boolean_descriptors_to_optuna(
@@ -136,7 +136,7 @@ def test_objective_propagates_transport_errors(
         optimizer.objective(trial)
 
 
-def test_uses_the_cli_supplied_seed_for_deterministic_sampling(
+def test_uses_the_session_supplied_seed_for_deterministic_sampling(
     optimization_description: dict,
 ) -> None:
     first = PetrinautOptimizer(  # type: ignore[arg-type]
@@ -155,7 +155,7 @@ def test_uses_the_cli_supplied_seed_for_deterministic_sampling(
         {"direction": "up"},
         {"study": {"trials": 0, "sampler": "random", "seed": 42}},
         # The service-side trial cap bounds every run's event log even when
-        # the CLI's reported study is huge.
+        # the reported study is huge.
         {
             "study": {
                 "trials": petrinaut_optimizer.MAX_STUDY_TRIALS + 1,
@@ -190,7 +190,7 @@ def test_uses_the_cli_supplied_seed_for_deterministic_sampling(
         },
     ],
 )
-def test_rejects_invalid_cli_descriptions(
+def test_rejects_invalid_session_descriptions(
     optimization_description: dict,
     change: dict[str, Any],
 ) -> None:

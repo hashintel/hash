@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """Detached, reconnectable optimization runs.
 
-A detached run owns one admitted optimizer/CLI pair and drives its study from
+A detached run owns one admitted optimizer and session pair, and drives its study from
 a background task, appending every SSE frame body to an in-memory event log
 instead of an HTTP response. Consumers attach — and re-attach — over
 ``GET /optimize/runs/{run_id}/events`` with a cursor; disconnecting a consumer
 does not affect the run. The admission slot's lifetime equals the run's
-lifetime: the idempotent cleanup (prompt CLI close plus slot release) runs
+lifetime: the idempotent cleanup (prompt session close plus slot release) runs
 when the run reaches a terminal state or is cancelled/reaped, never when a
 consumer detaches.
 
 The event log holds one frame per completed trial plus a handful of control
 frames; it is bounded because the optimizer itself rejects study descriptions
 above ``MAX_STUDY_TRIALS`` (1000) trials — mirroring the optimization
-manifest contract — rather than trusting the CLI's reported trial count.
+manifest contract — rather than trusting the reported trial count.
 """
 
 from __future__ import annotations
@@ -301,7 +301,7 @@ class OptimizationRunRegistry:
         state = RunState.failed
         cancellation: asyncio.CancelledError | None = None
         # The pump records its outcome right before returning — ahead of its
-        # cancellable CLI-shutdown finally — so a cancellation landing in
+        # cancellable session-shutdown finally — so a cancellation landing in
         # that teardown window cannot relabel an already-decided study.
         recorded_outcomes: list[str] = []
         try:
@@ -318,7 +318,7 @@ class OptimizationRunRegistry:
             )
         except asyncio.CancelledError as error:
             # Service shutdown cancels the pump task; the pump's own finally
-            # already closed the CLI on its way out. Keep a decided outcome:
+            # already closed the session on its way out. Keep a decided outcome:
             # its terminal frame is already in the log, and appending a
             # cancelled frame after it would corrupt the replay.
             state = (

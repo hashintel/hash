@@ -968,6 +968,7 @@ dependencies = [
     { name = "opentelemetry-instrumentation-fastapi" },
     { name = "opentelemetry-sdk" },
     { name = "optuna" },
+    { name = "petrinaut-python" },
     { name = "python-dotenv" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -986,6 +987,7 @@ requires-dist = [
     { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
     { name = "opentelemetry-sdk", specifier = ">=1.44.0" },
     { name = "optuna", specifier = ">=3.6" },
+    { name = "petrinaut-python", editable = "../../libs/@local/petrinaut-python" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.39.0" },
 ]
@@ -995,6 +997,16 @@ dev = [
     { name = "httpx", specifier = ">=0.28" },
     { name = "pytest", specifier = ">=8.3" },
 ]
+
+[[package]]
+name = "petrinaut-python"
+version = "0.1.0"
+source = { editable = "../../libs/@local/petrinaut-python" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8.3" }]
 
 [[package]]
 name = "pluggy"

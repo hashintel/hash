@@ -2,7 +2,13 @@
   "extends": ["//"],
   "tasks": {
     "codegen": {
-      "inputs": ["pyproject.toml", "scripts/generate_openapi.py", "src/**"],
+      "inputs": [
+        "pyproject.toml",
+        "uv.lock",
+        "scripts/generate_openapi.py",
+        "src/**/*.py",
+        "../../libs/@local/petrinaut-python/src/**/*.py"
+      ],
       "outputs": ["openapi/openapi.json"],
       "passThroughEnv": ["UV_CACHE_DIR"]
     }

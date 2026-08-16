@@ -99,7 +99,7 @@ class CompletedThenBlockedPumpOptimizer:
     """Pump double stuck in its (cancellable) teardown after deciding.
 
     Mirrors the real engine's shape: the done frame is appended and the
-    outcome recorded before the CLI-shutdown ``finally`` — a cancellable
+    outcome recorded before the session-shutdown ``finally`` — a cancellable
     window in which ``registry.shutdown()`` may land its cancellation.
     """
 
@@ -478,7 +478,7 @@ def test_shutdown_during_pump_teardown_keeps_the_decided_outcome() -> None:
 
 
 class SlowCloseStudyModel:
-    """Real-optimizer model whose CLI close blocks until released."""
+    """Real-optimizer model whose session close blocks until released."""
 
     def __init__(self, description: dict[str, Any]) -> None:
         self.description = description
@@ -498,7 +498,7 @@ class SlowCloseStudyModel:
         self.close_calls.append(graceful)
 
 
-def test_cancel_during_the_real_pumps_cli_close_keeps_completed(
+def test_cancel_during_the_real_pumps_session_close_keeps_completed(
     optimization_description: dict,
 ) -> None:
     """The real engine records its outcome before the cancellable close."""
@@ -514,7 +514,7 @@ def test_cancel_during_the_real_pumps_cli_close_keeps_completed(
         )
         try:
             # The study finishes, the done frame lands, then the pump blocks
-            # in its CLI-shutdown finally; cancel it right there.
+            # in its session-shutdown finally; cancel it right there.
             await asyncio.to_thread(model.close_started.wait, 2)
             assert run.task is not None
             run.task.cancel()
