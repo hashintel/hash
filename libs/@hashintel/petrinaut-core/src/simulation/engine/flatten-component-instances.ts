@@ -1,4 +1,5 @@
 import { getArcEndpoint } from "../../arc-endpoints";
+import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
 
 import type {
   ArcEndpoint,
@@ -80,11 +81,12 @@ const deriveInstanceParameterValues = (
   parameters: readonly Parameter[],
   parameterValuesById: Record<ID, string>,
 ): ParameterValues => {
-  const values: ParameterValues = {};
+  // Keyed by parameter variable names from the net definition: no prototype.
+  const values: ParameterValues = createUserKeyedRecord();
   for (const parameter of parameters) {
     values[parameter.variableName] = coerceParameterValue(
       parameter,
-      parameterValuesById[parameter.id],
+      getOwn(parameterValuesById, parameter.id),
     );
   }
   return values;
@@ -484,7 +486,8 @@ export const flattenComponentInstancesForSimulation = ({
 
   const rootPlaceIds = new Set(sdcpn.places.map((place) => place.id));
   const flatPlaceIds = new Set(target.places.map((place) => place.id));
-  const flatInitialMarking: InitialMarking = {};
+  // Keyed by place ids from stored run inputs: no prototype.
+  const flatInitialMarking: InitialMarking = createUserKeyedRecord();
   for (const [placeId, value] of Object.entries(initialMarking)) {
     if (flatPlaceIds.has(placeId) || !rootPlaceIds.has(placeId)) {
       flatInitialMarking[placeId] = value;

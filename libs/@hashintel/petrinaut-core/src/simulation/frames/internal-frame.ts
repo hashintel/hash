@@ -1,4 +1,8 @@
 import {
+  createUserKeyedRecord,
+  isDangerousRecordKey,
+} from "../../validation/record-keys";
+import {
   computeTokenSlotLayout,
   createTokenRegionViews,
   type TokenRegionViews,
@@ -128,8 +132,10 @@ export function createEngineFrameLayout(
 
   for (let index = 0; index < sdcpn.places.length; index++) {
     const place = sdcpn.places[index]!;
-    if (place.id === "__proto__") {
-      throw new Error("Cannot add place with id '__proto__'");
+    if (isDangerousRecordKey(place.id)) {
+      throw new Error(
+        `Cannot add place with id "${place.id}": reserved JavaScript property name`,
+      );
     }
     if (placeIndexById.has(place.id)) {
       throw new Error(`Duplicate place id in SDCPN: ${place.id}`);
@@ -144,8 +150,10 @@ export function createEngineFrameLayout(
   const transitionIndexById = new Map<ID, number>();
   for (let index = 0; index < sdcpn.transitions.length; index++) {
     const transition = sdcpn.transitions[index]!;
-    if (transition.id === "__proto__") {
-      throw new Error("Cannot add transition with id '__proto__'");
+    if (isDangerousRecordKey(transition.id)) {
+      throw new Error(
+        `Cannot add transition with id "${transition.id}": reserved JavaScript property name`,
+      );
     }
     if (transitionIndexById.has(transition.id)) {
       throw new Error(`Duplicate transition id in SDCPN: ${transition.id}`);
@@ -477,12 +485,14 @@ export function readEngineFrame(
     getTransitionState,
     getTransitionEntries,
     toSnapshot() {
-      const places: EngineFrameSnapshot["places"] = {};
+      // Keyed by place/transition id: no prototype.
+      const places: EngineFrameSnapshot["places"] = createUserKeyedRecord();
       for (const [placeId, placeState] of getPlaceEntries()) {
         places[placeId] = placeState;
       }
 
-      const transitions: EngineFrameSnapshot["transitions"] = {};
+      const transitions: EngineFrameSnapshot["transitions"] =
+        createUserKeyedRecord();
       for (const [transitionId, transitionState] of getTransitionEntries()) {
         transitions[transitionId] = transitionState;
       }

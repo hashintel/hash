@@ -4,6 +4,7 @@ import {
   type HirMetricArtifact,
   type HirParameterValues,
 } from "../../hir/instantiate";
+import { createUserKeyedRecord } from "../../validation/record-keys";
 
 import type { Place } from "../../types/sdcpn";
 import type { SimulationFrameReader } from "../api";
@@ -52,7 +53,12 @@ export function createHirMetricEvaluator(args: {
   // Monte-Carlo runs can override parameters per run, so its contents are
   // refreshed from each frame's own resolved values before evaluation; frame
   // sources that carry none keep the evaluator's construction-time defaults.
-  const boundParameters: HirParameterValues = { ...parameterValues };
+  // No prototype: keys are parameter variable names from the net definition,
+  // and `Object.assign` below must create own properties for any of them.
+  const boundParameters: HirParameterValues = Object.assign(
+    createUserKeyedRecord<number | boolean>(),
+    parameterValues,
+  );
   let lastParameterValues: HirParameterValues | null = null;
   const bindParameters = (frameParameters: HirParameterValues): void => {
     if (frameParameters === lastParameterValues) {

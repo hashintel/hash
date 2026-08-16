@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isDangerousRecordKey } from "./record-keys";
+
 /**
  * Lower snake_case identifier: lowercase letters and digits separated by
  * single underscores. Must start with a letter.
@@ -19,6 +21,14 @@ export const variableNameSchema = z
     z.refine((val) => LOWER_SNAKE_CASE_REGEX.test(val), {
       message:
         "Variable name must be in lower_snake_case (e.g., crash_threshold or dt). Only lowercase letters, digits, and single underscores are allowed.",
+    }),
+    // The snake_case rule already blocks most `Object.prototype` member
+    // names; "constructor" is the one all-lowercase exception. Variable
+    // names key parameter-value records and become `__params["<name>"]`
+    // reads in compiled code.
+    z.refine((val) => !isDangerousRecordKey(val), {
+      message:
+        "Variable name must not be a reserved JavaScript property name (e.g., constructor).",
     }),
   )
   .describe("Lower snake_case variable name for parameters");

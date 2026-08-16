@@ -21,6 +21,7 @@ import {
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
 } from "../extensions";
+import { createUserKeyedRecord } from "../validation/record-keys";
 import { fingerprintHirCompilationInput } from "./artifact-fingerprint";
 import {
   emitBufferDynamicsJs,
@@ -105,13 +106,18 @@ export function compileHirArtifacts(
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): HirCompileResult {
   const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
+  // The four sub-records are keyed by item ids from the net definition, so
+  // they have no prototype: an id like "__proto__" becomes an ordinary own
+  // property instead of replacing the record's prototype and losing the
+  // artifact. Readers still guard with `getOwn` because a `structuredClone`
+  // or JSON round-trip revives these as plain objects.
   const artifacts: HirArtifacts = {
     version: 4,
     fingerprint: fingerprintHirCompilationInput(sanitized, extensions),
-    dynamics: {},
-    lambdas: {},
-    kernels: {},
-    metrics: {},
+    dynamics: createUserKeyedRecord(),
+    lambdas: createUserKeyedRecord(),
+    kernels: createUserKeyedRecord(),
+    metrics: createUserKeyedRecord(),
   };
   const failures: HirCompileFailure[] = [];
 

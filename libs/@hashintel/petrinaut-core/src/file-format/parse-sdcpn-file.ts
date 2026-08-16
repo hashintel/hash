@@ -4,6 +4,10 @@
  */
 
 import {
+  describeDangerousSdcpnKeys,
+  findDangerousSdcpnKeys,
+} from "../validation/record-keys";
+import {
   legacySdcpnFileSchema,
   SDCPN_FILE_FORMAT_VERSION,
   sdcpnFileSchema,
@@ -120,16 +124,36 @@ const fillMissingVisualInfo = (sdcpn: {
  * pre-2025-11-28 formats. Pure — no DOM, no I/O. Callers (e.g. the `/ui`
  * file-picker wrapper) are responsible for sourcing the data.
  */
+/**
+ * File-import trust boundary for identity strings. The file schemas accept
+ * any string as an id or element name, but downstream these strings key
+ * records and appear in compiled code, so names colliding with
+ * `Object.prototype` members are rejected here. `buildSimulation` repeats
+ * the check for nets that do not arrive through a file.
+ */
+const checkRecordKeys = (sdcpn: SDCPN): ImportResult | null => {
+  const dangerous = findDangerousSdcpnKeys(sdcpn);
+  return dangerous.length === 0
+    ? null
+    : {
+        ok: false,
+        error: `Invalid SDCPN file: ${describeDangerousSdcpnKeys(dangerous)}`,
+      };
+};
+
 export const parseSDCPNFile = (data: unknown): ImportResult => {
   // Try the versioned format first
   const versioned = sdcpnFileSchema.safeParse(data);
   if (versioned.success) {
     const { version: _version, meta: _meta, ...sdcpnData } = versioned.data;
-    return {
-      ok: true,
-      sdcpn: fillMissingVisualInfo(sdcpnData),
-      hadMissingPositions: hasMissingPositions(sdcpnData),
-    };
+    const sdcpn = fillMissingVisualInfo(sdcpnData);
+    return (
+      checkRecordKeys(sdcpn) ?? {
+        ok: true,
+        sdcpn,
+        hadMissingPositions: hasMissingPositions(sdcpnData),
+      }
+    );
   }
 
   // If the data has a `version` field but failed the versioned schema, reject it
@@ -157,11 +181,14 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
   // Fall back to legacy format (current schema without version/meta)
   const legacy = legacySdcpnFileSchema.safeParse(data);
   if (legacy.success) {
-    return {
-      ok: true,
-      sdcpn: fillMissingVisualInfo(legacy.data),
-      hadMissingPositions: hasMissingPositions(legacy.data),
-    };
+    const sdcpn = fillMissingVisualInfo(legacy.data);
+    return (
+      checkRecordKeys(sdcpn) ?? {
+        ok: true,
+        sdcpn,
+        hadMissingPositions: hasMissingPositions(legacy.data),
+      }
+    );
   }
 
   return {
