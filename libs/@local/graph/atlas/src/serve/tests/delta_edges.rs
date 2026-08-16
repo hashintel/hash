@@ -564,6 +564,191 @@ async fn the_cap_ranks_arrival_endpoints_past_every_fitted_row() {
     );
 }
 
+/// A union candidate's selection key beside its expected wire triple.
+type KeyedTriple = ((u32, ArchivedEntityId), (u32, u32, ArchivedEntityId));
+
+/// The fixture's endpoint row pairs and each node row's importance rank, from the edge artifacts.
+fn endpoint_ranks(generation: &Generation) -> (Vec<[u64; 2]>, Vec<u32>) {
+    let artifacts = open_edge_artifacts(generation);
+    let endpoints = artifacts
+        .endpoints
+        .u64_le_pairs()
+        .expect("the endpoint column is little-endian u64 pairs")
+        .iter()
+        .map(|pair| pair.map(zerocopy::U64::get))
+        .collect();
+    let ranks: Vec<u32> = artifacts
+        .ranks
+        .u32_le_elements()
+        .expect("the rank column is little-endian u32")
+        .iter()
+        .map(|rank| rank.get())
+        .collect();
+    let row_ranks = artifacts
+        .positions
+        .u32_le_elements()
+        .expect("the position permutation is little-endian u32")
+        .iter()
+        .map(|position| ranks[position.get() as usize])
+        .collect();
+
+    (endpoints, row_ranks)
+}
+
+/// A truncating cap admits a winning delta link and drops arrival-endpoint links unpriced.
+///
+/// The cap sits strictly below the fitted count, so the fitted walk itself truncates. The
+/// cohort publishes one link between the two best-ranked rows, whose identity sorts before
+/// every fitted edge, so its key wins a seat in a selection that is already dropping fitted
+/// edges - the fold must keep pricing delta links after truncation begins. The arrival-endpoint
+/// link keys past every fitted candidate and stays out. The expectation is the full-sort law
+/// over the union, the same selection the bounded fold must reproduce.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_truncating_cap_admits_the_winning_delta_link() {
+    let (generation, atlas) = publish("delta-edges-rank-cap").await;
+    let (endpoints, row_ranks) = endpoint_ranks(&generation);
+    let rank_of_row = |row: usize| row_ranks[row];
+
+    // The published link attaches the best-ranked row pair, ties on the row. Its worse-endpoint
+    // rank therefore ties or beats every fitted edge's, and any tie falls to its lower identity.
+    let mut by_rank: Vec<(u32, usize)> = (0..row_ranks.len())
+        .map(|row| (rank_of_row(row), row))
+        .collect();
+    by_rank.sort_unstable();
+    let (best, second) = (by_rank[0].1, by_rank[1].1);
+    let best_seed = u8::try_from(best).expect("fixture rows fit u8");
+    let second_seed = u8::try_from(second).expect("fixture rows fit u8");
+
+    let fitted = fitted_triples(&atlas, &generation);
+    // The union under the selection key: every fitted edge and the published link, keyed by
+    // worse-endpoint rank with ties on identity bytes. The arrival-endpoint link keys past
+    // every fitted candidate, so the fitted-domain key covers the whole competition and the
+    // link's absence is asserted on the delivered ids instead.
+    let mut union: Vec<KeyedTriple> = endpoints
+        .iter()
+        .zip(&fitted)
+        .map(|(&[source, target], &triple)| {
+            let worse = rank_of_row(usize::try_from(source).expect("fixture rows fit usize")).max(
+                rank_of_row(usize::try_from(target).expect("fixture rows fit usize")),
+            );
+            ((worse, triple.2), triple)
+        })
+        .collect();
+    union.push((
+        (
+            rank_of_row(best).max(rank_of_row(second)),
+            archived_id(LOW_LINK),
+        ),
+        (
+            node_wire(&atlas, best_seed),
+            node_wire(&atlas, second_seed),
+            archived_id(LOW_LINK),
+        ),
+    ));
+    union.sort_unstable_by_key(|&(key, _)| key);
+    union.truncate(2);
+    assert!(
+        union
+            .iter()
+            .any(|&(_, (.., id))| id == archived_id(LOW_LINK)),
+        "the charter needs the published link winning a seat"
+    );
+    let mut kept: Vec<(u32, u32, ArchivedEntityId)> =
+        union.into_iter().map(|(_, triple)| triple).collect();
+    kept.sort_unstable_by_key(|&(.., id)| id);
+
+    let (vacant, _) = vacant_cell(&atlas);
+    let snapshot = publishing(
+        &atlas,
+        &[(ARRIVAL, vacant)],
+        &[(LOW_LINK, best_seed, second_seed), (HIGH_LINK, 0, ARRIVAL)],
+    );
+    let cohort = PlacementCohort::of(Some(&snapshot));
+
+    let capped = edges_with(
+        &atlas,
+        &FULL,
+        cohort,
+        None,
+        full_grid(),
+        EdgesLimits {
+            edges: 2,
+            ..EdgesLimits::default()
+        },
+    );
+    assert_eq!(
+        capped,
+        expected_edges_bytes(&generation, false, &EdgeColumns::pinned(kept)),
+        "the truncating cap keeps exactly the full-sort head of the union"
+    );
+    assert!(
+        !edge_ids_of(&capped).contains(&archived_id(HIGH_LINK)),
+        "the arrival-endpoint link stays out of a selection full of fitted keys"
+    );
+
+    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot_wire = test_codec(&atlas).encode(slot, snapshot.universe());
+    let mut whole = vec![(
+        node_wire(&atlas, best_seed),
+        node_wire(&atlas, second_seed),
+        archived_id(LOW_LINK),
+    )];
+    whole.extend(fitted.iter().copied());
+    whole.push((
+        node_wire(&atlas, 0),
+        slot_wire.get(),
+        archived_id(HIGH_LINK),
+    ));
+    assert_eq!(
+        edges_with(
+            &atlas,
+            &FULL,
+            cohort,
+            None,
+            full_grid(),
+            EdgesLimits::default()
+        ),
+        expected_edges_bytes(&generation, true, &EdgeColumns::pinned(whole)),
+        "the uncapped serve delivers the whole union complete"
+    );
+}
+
+/// A full cap stays complete when the delta link refuses, and truncates when it qualifies.
+///
+/// Both serves cap at exactly the fitted count, and the cohort publishes one arrival and one
+/// link onto it. Withdrawing the arrival removes the link's endpoint from the delivered sets,
+/// so the link refuses and the full selection stays complete - a full cap alone is not a
+/// truncation. Retaining the arrival makes the link qualify, so it falls to the same cap and
+/// the head reports the truncation. The delivered columns are the fitted set either way, and
+/// only the completeness bit separates the two.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_full_cap_separates_refused_links_from_truncated_ones() {
+    let (generation, atlas) = publish("delta-edges-full-cap").await;
+    let (vacant, _) = vacant_cell(&atlas);
+    let snapshot = publishing(&atlas, &[(ARRIVAL, vacant)], &[(HIGH_LINK, 0, ARRIVAL)]);
+    let cohort = PlacementCohort::of(Some(&snapshot));
+    let fitted = fitted_triples(&atlas, &generation);
+    let limits = EdgesLimits {
+        edges: u32::try_from(fitted.len()).expect("fixture edge counts fit u32"),
+        ..EdgesLimits::default()
+    };
+
+    let withdrawn = withdrawing(&atlas, &[ARRIVAL]);
+    assert_eq!(
+        edges_with(&atlas, &FULL, cohort, Some(&withdrawn), full_grid(), limits),
+        expected_edges_bytes(&generation, true, &EdgeColumns::pinned(fitted.clone())),
+        "a link refused at the endpoint rule leaves the full cap complete"
+    );
+
+    assert_eq!(
+        edges_with(&atlas, &FULL, cohort, None, full_grid(), limits),
+        expected_edges_bytes(&generation, false, &EdgeColumns::pinned(fitted)),
+        "the qualifying link falls to the same cap and the head reports it"
+    );
+}
+
 /// A store answering one split order, asserting the split and carrying one delta display.
 struct SplitOrderStore {
     /// The fitted identities the order must name, in delivered order.

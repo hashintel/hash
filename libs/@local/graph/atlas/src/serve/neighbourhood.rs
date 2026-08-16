@@ -1,25 +1,36 @@
 //! Edge sets over delivered or resolved rows.
 //!
 //! Serving delivers two edge-set shapes. [`Neighbourhood::incident`] answers a source's ego graph,
-//! which is every edge at the source whose other endpoint is visible. [`Neighbourhood::induced`]
-//! answers a delivered row set's induced subgraph, which is every edge whose endpoints both lie in
-//! the set. Both walk the adjacency's outgoing runs, and both collect each qualifying edge exactly
-//! once, because an edge occupies exactly one outgoing slot and a self-loop's one endpoint is both
-//! its source and its target.
+//! which is every edge at the source whose other endpoint is visible. [`EdgeSet`] answers the
+//! edges response's delivered set, which folds the delivered rows' induced fitted edges and the
+//! entry cohort's admitted post-fit links into one capped, identity-ordered selection. Both walk
+//! the adjacency's outgoing runs for fitted candidates, and both collect each qualifying edge
+//! exactly once, because an edge occupies exactly one outgoing slot and a self-loop's one endpoint
+//! is both its source and its target.
 //!
 //! An edge delivers only when the proof admits the edge's link row and both of its endpoints, and
 //! when the ingress withdrawal snapshot withdraws none of the three. Both shapes reach their
-//! candidates through [`Neighbourhood::edge`], which answers [`None`] for an edge the proof
+//! fitted candidates through [`Neighbourhood::edge`], which answers [`None`] for an edge the proof
 //! withholds or the snapshot withdraws, so every collected edge carries its delivery proof in the
-//! type and neither walk states either rule a second time.
+//! type and neither walk states either rule a second time. A delta link has no generation row, and
+//! it qualifies through the proof's identity set, the capture's retention, and delivery of both
+//! endpoints.
 
-use hashql_core::id::{IdSlice, IdVec, bit_vec::DenseBitSet};
+use alloc::collections::BinaryHeap;
+use core::cmp::Ordering;
+
+use hashql_core::{
+    collections::{FastHashMap, fast_hash_map},
+    id::{IdSlice, IdVec, bit_vec::DenseBitSet},
+};
 
 use super::{
     Atlas, WireRow,
     codec::{RowCodec, Universe},
     delta::DeltaSnapshot,
     hydrate::EdgeSlot,
+    schedule::ArrivalIndex,
+    view::View,
     visibility::{VisibilityProof, VisibleEdge},
 };
 use crate::{
@@ -103,6 +114,32 @@ pub(crate) enum ServedEdge {
     Delta(DeltaEdge),
 }
 
+impl ServedEdge {
+    /// Returns the node row the `EDGE_SOURCES` column encodes.
+    const fn source_row(self) -> NodeRowId {
+        match self {
+            Self::Fitted(edge) => edge.source,
+            Self::Delta(edge) => edge.source.row(),
+        }
+    }
+
+    /// Returns the node row the `EDGE_TARGETS` column encodes.
+    const fn target_row(self) -> NodeRowId {
+        match self {
+            Self::Fitted(edge) => edge.target,
+            Self::Delta(edge) => edge.target.row(),
+        }
+    }
+
+    /// Returns the hydration key behind the edge.
+    const fn origin(self) -> EdgeOrigin {
+        match self {
+            Self::Fitted(edge) => EdgeOrigin::Fitted(edge.row.get()),
+            Self::Delta(_) => EdgeOrigin::Delta,
+        }
+    }
+}
+
 /// One endpoint's truncation rank, over the fitted-plus-delta union.
 ///
 /// The derived order places every fitted rank before every arrival rank, because a placed
@@ -168,22 +205,13 @@ impl EdgeColumns {
         };
 
         for &(edge, id) in edges {
-            match edge {
-                ServedEdge::Fitted(edge) => {
-                    columns.sources.push(codec.encode(edge.source, universe));
-                    columns.targets.push(codec.encode(edge.target, universe));
-                    columns.origins.push(EdgeOrigin::Fitted(edge.row.get()));
-                }
-                ServedEdge::Delta(edge) => {
-                    columns
-                        .sources
-                        .push(codec.encode(edge.source.row(), universe));
-                    columns
-                        .targets
-                        .push(codec.encode(edge.target.row(), universe));
-                    columns.origins.push(EdgeOrigin::Delta);
-                }
-            }
+            columns
+                .sources
+                .push(codec.encode(edge.source_row(), universe));
+            columns
+                .targets
+                .push(codec.encode(edge.target_row(), universe));
+            columns.origins.push(edge.origin());
             columns.ids.push(id);
         }
 
@@ -254,6 +282,7 @@ pub(super) struct Neighbourhood<'atlas> {
     adjacency: &'atlas AdjacencyArchive,
     endpoints: &'atlas IdSlice<EdgeRowId, [NodeRowId; 2]>,
     edge_ids: &'atlas IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
+    node_ids: &'atlas IdentityTableArchive<ArchivedEntityId, NodeRowId>,
     ranks: &'atlas IdSlice<BasePosition, ImportanceRank>,
     positions_of_row: &'atlas IdSlice<NodeRowId, BasePosition>,
     proof: &'atlas VisibilityProof,
@@ -273,6 +302,7 @@ impl<'atlas> Neighbourhood<'atlas> {
             adjacency: &atlas.adjacency,
             endpoints: atlas.endpoints.view(),
             edge_ids: &atlas.edge_ids,
+            node_ids: &atlas.node_ids,
             ranks: atlas.ranks.view(),
             positions_of_row: atlas.positions_of_row.view(),
             proof,
@@ -317,20 +347,25 @@ impl<'atlas> Neighbourhood<'atlas> {
         })
     }
 
-    /// Collects every edge whose endpoints both lie in `delivered`, paired with its link-entity
-    /// identity, in no particular order.
+    /// Offers every induced fitted edge over `delivered` to the cap.
     ///
-    /// Caller requirement: `delivered` is already intersected with the visibility proof. The set
-    /// membership test answers the induced-subgraph question - which rows this response draws edges
-    /// between - and never stands in for the delivery rule, which the proof answers as the walk
-    /// reads each candidate.
-    pub(super) fn induced(
-        &self,
-        delivered: &DenseBitSet<NodeRowId>,
-    ) -> Vec<(DeliveredEdge, ArchivedEntityId)> {
-        let mut edges = Vec::new();
-
+    /// The walk reads each delivered row's outgoing run and offers each edge whose other endpoint
+    /// is delivered and whose delivery [`Neighbourhood::edge`] proves. The set membership test
+    /// answers the induced-subgraph question - which rows this response draws edges between - and
+    /// never stands in for the delivery rule, which the proof answers as the walk reads each
+    /// candidate.
+    ///
+    /// Caller requirement: `delivered` is already intersected with the visibility proof.
+    fn offer_induced(&self, delivered: &DenseBitSet<NodeRowId>, cap: &mut RankCap) {
         for row in delivered {
+            let row_rank = self.rank_of_row(row);
+            // One delivered endpoint suffices for exclusion: every edge at this row keys at or
+            // past the row's own rank. The skip waits for a recorded truncation, per the cap's
+            // caller requirement.
+            if cap.truncated && cap.excludes(EndpointRank::Fitted(row_rank)) {
+                continue;
+            }
+
             let outgoing = self
                 .adjacency
                 .outgoing(row)
@@ -338,16 +373,101 @@ impl<'atlas> Neighbourhood<'atlas> {
 
             for edge in outgoing.iter() {
                 let [_, target] = self.endpoints[edge];
-
-                if delivered.contains(target)
-                    && let Some(delivered_edge) = self.edge(edge)
-                {
-                    edges.push((delivered_edge, self.edge_identity(delivered_edge.row)));
+                if !delivered.contains(target) {
+                    continue;
                 }
+
+                let worse = EndpointRank::Fitted(row_rank.max(self.rank_of_row(target)));
+                if cap.truncated && cap.excludes(worse) {
+                    continue;
+                }
+                let Some(delivered_edge) = self.edge(edge) else {
+                    continue;
+                };
+
+                cap.offer(
+                    (worse, self.edge_identity(delivered_edge.row)),
+                    ServedEdge::Fitted(delivered_edge),
+                );
             }
         }
+    }
 
-        edges
+    /// Offers every admitted cohort link between delivered endpoints to the cap.
+    ///
+    /// A delta link serves when the proof's identity set admits it, the ingress capture does not
+    /// withdraw it, and the response's delivered sets hold both endpoints. Fitted endpoints
+    /// qualify through the delivered rows after subtraction, and arrival endpoints through the
+    /// delivered arrivals whose identities the capture keeps. Endpoint withdrawal therefore kills
+    /// an edge through the same delivered-set rule that kills fitted edges, one domain over. An
+    /// endpoint that is neither a fitted row nor a delivered arrival refuses the edge whole, so a
+    /// link attaching an entity the view cannot deliver serves nothing.
+    fn offer_delta_links(&self, view: &View<'_>, bounds: &DeliveredBounds, cap: &mut RankCap) {
+        let cohort = view.cohort();
+        let ingress = self.delta;
+
+        // The delivered arrivals in the identity domain: the table rows the tiles delivered,
+        // less the identities the ingress capture withdraws. A cap that has already truncated
+        // skips the map whole - its kept keys are all fitted, so an arrival-keyed candidate
+        // cannot enter, and a further exclusion cannot move the recorded bit. A full cap that
+        // has not truncated still builds the map, because a qualifying arrival edge falling to
+        // the cap is what flips the head's completeness.
+        let arrivals: Option<FastHashMap<ArchivedEntityId, NodeRowId>> =
+            (!cap.truncated).then(|| {
+                let table = view.arrivals();
+                let mut map = fast_hash_map();
+                for index in &bounds.arrivals {
+                    let row = &table[index];
+                    if ingress.is_some_and(|delta| delta.withdraws(row.identity)) {
+                        continue;
+                    }
+                    let Some(placed) = cohort.placed(row.identity) else {
+                        continue;
+                    };
+
+                    map.insert(row.identity, placed.slot);
+                }
+
+                map
+            });
+
+        let endpoint = |id: ArchivedEntityId| {
+            self.node_ids.row_of(id).map_or_else(
+                || {
+                    arrivals
+                        .as_ref()
+                        .and_then(|map| map.get(&id))
+                        .map(|&slot| DeltaEndpoint::Arrival { slot, identity: id })
+                },
+                |row| {
+                    bounds
+                        .rows
+                        .contains(row)
+                        .then_some(DeltaEndpoint::Fitted(row))
+                },
+            )
+        };
+
+        for (identity, link) in cohort.links() {
+            if !self.proof.admits_delta_link(identity) {
+                continue;
+            }
+            if ingress.is_some_and(|delta| delta.withdraws(identity)) {
+                continue;
+            }
+            let (Some(source), Some(target)) = (endpoint(link.source), endpoint(link.target))
+            else {
+                continue;
+            };
+
+            cap.offer(
+                (
+                    self.endpoint_rank(source).max(self.endpoint_rank(target)),
+                    identity,
+                ),
+                ServedEdge::Delta(DeltaEdge { source, target }),
+            );
+        }
     }
 
     /// Returns an edge row's link-entity identity.
@@ -362,51 +482,6 @@ impl<'atlas> Neighbourhood<'atlas> {
         self.edge_ids
             .id(row.get())
             .expect("open validated the identity rows against the adjacency's edges")
-    }
-
-    /// Keeps the `cap` edges the rank-ordered cap selects, over the fitted-plus-delta union.
-    ///
-    /// Ascending by worse-endpoint rank, ties by link-entity identity bytes.
-    pub(super) fn truncate_by_rank(
-        &self,
-        edges: &mut Vec<(ServedEdge, ArchivedEntityId)>,
-        cap: usize,
-    ) {
-        if cap == 0 {
-            edges.clear();
-            return;
-        }
-
-        let mut ranked: Vec<(EndpointRank, (ServedEdge, ArchivedEntityId))> = edges
-            .drain(..)
-            .map(|entry| (self.worse_rank(entry.0), entry))
-            .collect();
-
-        // Partitioning at `cap - 1` places the cap smallest keys - a
-        // total order, since link identities are distinct - in the
-        // head.
-        ranked.select_nth_unstable_by_key(cap - 1, |&(rank, (_, id))| (rank, id));
-        ranked.truncate(cap);
-        edges.extend(ranked.into_iter().map(|(_, entry)| entry));
-    }
-
-    /// Returns an edge's truncation rank.
-    ///
-    /// Its worse endpoint's rank, where larger values are less prominent in both domains.
-    #[expect(
-        clippy::missing_const_for_fn,
-        reason = "`Ord::max` needs `EndpointRank: [const] Ord`, which the derive does not emit"
-    )]
-    fn worse_rank(&self, edge: ServedEdge) -> EndpointRank {
-        match edge {
-            ServedEdge::Fitted(edge) => EndpointRank::Fitted(
-                self.rank_of_row(edge.source)
-                    .max(self.rank_of_row(edge.target)),
-            ),
-            ServedEdge::Delta(edge) => self
-                .endpoint_rank(edge.source)
-                .max(self.endpoint_rank(edge.target)),
-        }
     }
 
     /// Returns a delta-edge endpoint's rank in the union order.
@@ -446,5 +521,194 @@ impl<'atlas> Neighbourhood<'atlas> {
             source,
             target,
         })
+    }
+}
+
+/// The listed tiles' delivered sets, one per serving domain.
+///
+/// The rows are the fitted deliveries, as the tile route renders them. The arrivals are the
+/// delivered placed arrivals as view arrival-table indices, the identity-domain half a delta
+/// edge's endpoints resolve against.
+#[derive(Debug)]
+pub(super) struct DeliveredBounds {
+    /// The delivered fitted rows.
+    pub rows: DenseBitSet<NodeRowId>,
+    /// The delivered placed arrivals, as arrival-table indices.
+    pub arrivals: DenseBitSet<ArrivalIndex>,
+}
+
+/// The edges response's delivered edge set: the fitted-plus-delta union, selected and ordered.
+///
+/// One constructor folds both serving domains. The delivered rows' induced fitted edges and the
+/// entry cohort's admitted post-fit links each qualify through their own domain's delivery rule,
+/// compete at one rank-ordered cap, and leave in ascending link-entity identity order, so the
+/// fitted-delta distinction keeps one home and every later consumer takes the folded set whole.
+#[derive(Debug)]
+pub(super) struct EdgeSet {
+    /// Whether every qualifying edge is in the set.
+    complete: bool,
+    /// The selected edges, ascending link-entity identity bytes.
+    edges: Vec<(ServedEdge, ArchivedEntityId)>,
+}
+
+impl EdgeSet {
+    /// Folds both serving domains' qualifying edges into one selected, identity-ordered set.
+    ///
+    /// `bounds` arrives as the tile route read it, and the delivery rules apply here: the
+    /// delivered rows intersect the proof and drop the ingress capture's withdrawn rows, so the
+    /// fitted bounding set is exactly what the tiles rendered. The fitted domain then offers
+    /// every adjacency edge between delivered rows that the proof delivers, and the delta domain
+    /// offers every cohort link the proof's identity set admits, the capture retains, and the
+    /// delivered sets resolve at both endpoints.
+    ///
+    /// Every offer competes under one rank-ordered cap on its worse endpoint's rank, ties on
+    /// identity bytes - an edge is only as prominent as its less-prominent endpoint. The kept
+    /// set equals the full union sorted by that key and truncated to `cap`, and
+    /// [`EdgeSet::complete`] reports whether the cap truncated a qualifying edge.
+    pub(super) fn of(
+        atlas: &Atlas,
+        view: &View<'_>,
+        mut bounds: DeliveredBounds,
+        cap: usize,
+    ) -> Self {
+        let neighbourhood = Neighbourhood::of(atlas, view.proof(), view.delta());
+
+        // Both branches of the union already gather visible rows alone - a scope cascade holds
+        // only what its proof admitted, and the corpus walk answers only an operator view. The
+        // intersection is what discharges the fitted walk's caller requirement rather than a
+        // second derivation of it, and it is the guard if either branch ever widens.
+        neighbourhood.proof.intersect(&mut bounds.rows);
+
+        // The bounding set is what tiles rendered, and tiles subtract at admission, so the
+        // withdrawn rows leave here too. `Neighbourhood::edge` states the edge rule itself.
+        if let Some(delta) = neighbourhood.delta {
+            for row in delta.withdrawn_node_rows() {
+                bounds.rows.remove(row);
+            }
+        }
+
+        let mut cap = RankCap::new(cap);
+        neighbourhood.offer_induced(&bounds.rows, &mut cap);
+        neighbourhood.offer_delta_links(view, &bounds, &mut cap);
+        cap.into_set()
+    }
+
+    /// Whether every qualifying edge is in the set.
+    pub(super) const fn complete(&self) -> bool {
+        self.complete
+    }
+
+    /// Views the selected edges, ascending link-entity identity bytes.
+    pub(super) const fn edges(&self) -> &[(ServedEdge, ArchivedEntityId)] {
+        &self.edges
+    }
+}
+
+/// The rank-ordered cap holding the `cap` best candidates offered so far, with every truncation
+/// recorded.
+///
+/// A candidate falls on arrival when its key loses to the kept worst, and a kept candidate
+/// falls by eviction when a better arrival fills the selection. Either way the truncation is
+/// recorded, because a response that silently skipped a qualifying edge must never report
+/// itself complete.
+#[derive(Debug)]
+struct RankCap {
+    /// The number of candidates the selection keeps.
+    cap: usize,
+    /// The kept candidates in a max-heap on the key, whose root is the eviction candidate.
+    kept: BinaryHeap<Candidate>,
+    /// Whether any qualifying candidate fell, on arrival or by eviction.
+    truncated: bool,
+}
+
+impl RankCap {
+    /// An empty selection admitting `cap` candidates.
+    const fn new(cap: usize) -> Self {
+        Self {
+            cap,
+            kept: BinaryHeap::new(),
+            truncated: false,
+        }
+    }
+
+    /// Offers one qualifying candidate, recording the truncation when the selection is full.
+    ///
+    /// A full selection truncates either way: the offer falls when its key loses to the kept
+    /// worst, and the kept worst falls by eviction when the offer wins. A zero cap truncates
+    /// every offer. Equal keys cannot arrive, because distinct link identities make the key a
+    /// total order.
+    fn offer(&mut self, key: (EndpointRank, ArchivedEntityId), edge: ServedEdge) {
+        if self.kept.len() < self.cap {
+            self.kept.push(Candidate { key, edge });
+            return;
+        }
+
+        self.truncated = true;
+        if let Some(mut worst) = self.kept.peek_mut()
+            && key < worst.key
+        {
+            *worst = Candidate { key, edge };
+        }
+    }
+
+    /// Whether `rank` alone already loses the selection, before the candidate is priced.
+    ///
+    /// True when the selection is full and `rank` strictly loses to the kept worst's rank. A
+    /// rank equal to the worst's never suffices, because the identity tie-break can still admit
+    /// the candidate.
+    ///
+    /// Caller requirement: skip a candidate on this answer only after a truncation is recorded,
+    /// because completeness counts qualifying candidates alone and a skipped candidate is never
+    /// checked for qualification.
+    fn excludes(&self, rank: EndpointRank) -> bool {
+        self.kept.len() == self.cap && self.kept.peek().is_none_or(|worst| rank > worst.key.0)
+    }
+
+    /// Closes the selection into the delivered set, sorted into delivery order.
+    fn into_set(self) -> EdgeSet {
+        let mut edges: Vec<(ServedEdge, ArchivedEntityId)> = self
+            .kept
+            .into_iter()
+            .map(|candidate| (candidate.edge, candidate.key.1))
+            .collect();
+        // Truncation ties and the delivery sort both compare identity bytes, so nothing the
+        // response exposes orders by internal id.
+        edges.sort_unstable_by_key(|&(_, id)| id);
+
+        EdgeSet {
+            complete: !self.truncated,
+            edges,
+        }
+    }
+}
+
+/// One offered candidate, carrying its selection key and the edge it delivers.
+#[derive(Debug)]
+struct Candidate {
+    /// The worse endpoint's rank, with ties on link-entity identity bytes.
+    key: (EndpointRank, ArchivedEntityId),
+    /// The edge the key selects.
+    edge: ServedEdge,
+}
+
+// The comparisons read the key alone, so the heap's order ignores the carried edge, and the
+// distinct link identities inside the key make the order total.
+impl PartialEq for Candidate {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key
+    }
+}
+
+impl Eq for Candidate {}
+
+impl PartialOrd for Candidate {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Candidate {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.key.cmp(&other.key)
     }
 }

@@ -8,28 +8,21 @@
 
 use core::{error::Error, fmt};
 
-use hashql_core::{
-    collections::{FastHashMap, fast_hash_map},
-    id::{IdVec, bit_vec::DenseBitSet},
-};
+use hashql_core::id::{IdVec, bit_vec::DenseBitSet};
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
     Atlas, grid,
     hydrate::{DetailError, EdgeLinkDetails, EdgeSlot, EdgesOrder, EdgesStore},
     intern::{Table, TableIndex},
-    neighbourhood::{DeltaEdge, DeltaEndpoint, EdgeColumns, EdgeOrigin, Neighbourhood, ServedEdge},
-    schedule::{ArrivalIndex, ViewRow},
+    neighbourhood::{DeliveredBounds, EdgeColumns, EdgeOrigin, EdgeSet},
+    schedule::ViewRow,
     view::{View, ViewError},
     walk::Walk,
 };
-use crate::{
-    identity::NodeRowId,
-    postgres::id::ArchivedEntityId,
-    salt::wire::{
-        edges::{EdgesResponse, EdgesTrailer},
-        tile::TileCoordinate,
-    },
+use crate::salt::wire::{
+    edges::{EdgesResponse, EdgesTrailer},
+    tile::TileCoordinate,
 };
 
 /// An edges request the atlas rejects, by name.
@@ -295,117 +288,18 @@ impl Atlas {
             });
         }
 
-        let proof = view.proof();
-        let walk = Walk::of(self, proof);
-        let DeliveredBounds {
-            rows: mut delivered,
-            arrivals: delivered_arrivals,
-        } = self.delivered_bounds(&walk, view, &request.tiles)?;
-
-        // Both branches of the union already gather visible rows alone - a scope cascade holds
-        // only what its proof admitted, and the corpus walk answers only an operator view. The
-        // intersection is what discharges `induced`'s caller requirement rather than a second
-        // derivation of it, and it is the guard if either branch ever widens.
-        proof.intersect(&mut delivered);
-
-        // The bounding set is what tiles rendered, and tiles subtract at admission, so the
-        // withdrawn rows leave here too. `Neighbourhood::edge` states the edge rule itself.
-        if let Some(delta) = view.delta() {
-            for row in delta.withdrawn_node_rows() {
-                delivered.remove(row);
-            }
-        }
-
-        let neighbourhood = Neighbourhood::of(self, proof, view.delta());
-        // Truncation ties and the delivery sort both compare identity bytes, so nothing the
-        // response exposes orders by internal id.
-        let mut edges: Vec<(ServedEdge, ArchivedEntityId)> = neighbourhood
-            .induced(&delivered)
-            .into_iter()
-            .map(|(edge, id)| (ServedEdge::Fitted(edge), id))
-            .collect();
-        self.append_delta_edges(view, &delivered, &delivered_arrivals, &mut edges);
-
-        let complete = edges.len() <= limits.edges as usize;
-        if !complete {
-            neighbourhood.truncate_by_rank(&mut edges, limits.edges as usize);
-        }
-        edges.sort_unstable_by_key(|&(_, id)| id);
+        let walk = Walk::of(self, view.proof());
+        let bounds = self.delivered_bounds(&walk, view, &request.tiles)?;
+        let set = EdgeSet::of(self, view, bounds, limits.edges as usize);
 
         Ok(EdgesDocument {
-            complete,
+            complete: set.complete(),
             edges: EdgeColumns::of(
                 &self.node_codec,
                 view.cohort().universe(self.universe),
-                &edges,
+                set.edges(),
             ),
         })
-    }
-
-    /// Appends the cohort's delta edges the response delivers.
-    ///
-    /// A delta link serves when the proof's identity set admits it, the ingress capture does
-    /// not withdraw it, and the response's delivered sets hold both endpoints. Fitted
-    /// endpoints qualify through the delivered rows after subtraction, and arrival endpoints
-    /// through the delivered arrivals whose identities the capture keeps. Endpoint withdrawal
-    /// therefore kills an edge through the same delivered-set rule that kills fitted edges, one
-    /// domain over. An endpoint that is neither a fitted row nor a delivered arrival refuses
-    /// the edge whole, so a link attaching an entity the view cannot deliver serves nothing.
-    fn append_delta_edges(
-        &self,
-        view: &View<'_>,
-        delivered: &DenseBitSet<NodeRowId>,
-        delivered_arrivals: &DenseBitSet<ArrivalIndex>,
-        edges: &mut Vec<(ServedEdge, ArchivedEntityId)>,
-    ) {
-        let cohort = view.cohort();
-        let ingress = view.delta();
-
-        // The delivered arrivals in the identity domain: the table rows the tiles delivered,
-        // less the identities the ingress capture withdraws.
-        let table = view.arrivals();
-        let mut arrivals: FastHashMap<ArchivedEntityId, NodeRowId> = fast_hash_map();
-        for index in delivered_arrivals {
-            let row = &table[index];
-            if ingress.is_some_and(|delta| delta.withdraws(row.identity)) {
-                continue;
-            }
-            let Some(placed) = cohort.placed(row.identity) else {
-                continue;
-            };
-
-            arrivals.insert(row.identity, placed.slot);
-        }
-
-        let endpoint = |id: ArchivedEntityId| {
-            self.node_ids.row_of(id).map_or_else(
-                || {
-                    arrivals
-                        .get(&id)
-                        .map(|&slot| DeltaEndpoint::Arrival { slot, identity: id })
-                },
-                |row| {
-                    delivered
-                        .contains(row)
-                        .then_some(DeltaEndpoint::Fitted(row))
-                },
-            )
-        };
-
-        for (identity, link) in cohort.links() {
-            if !view.proof().admits_delta_link(identity) {
-                continue;
-            }
-            if ingress.is_some_and(|delta| delta.withdraws(identity)) {
-                continue;
-            }
-            let (Some(source), Some(target)) = (endpoint(link.source), endpoint(link.target))
-            else {
-                continue;
-            };
-
-            edges.push((ServedEdge::Delta(DeltaEdge { source, target }), identity));
-        }
     }
 
     /// Encodes an assembled document.
@@ -509,16 +403,4 @@ impl Atlas {
 
         Ok(DeliveredBounds { rows, arrivals })
     }
-}
-
-/// The listed tiles' delivered sets, one per serving domain.
-///
-/// The rows are the fitted deliveries, as the tile route renders them. The arrivals are the
-/// delivered placed arrivals as view arrival-table indices, the identity-domain half a delta
-/// edge's endpoints resolve against.
-struct DeliveredBounds {
-    /// The delivered fitted rows.
-    rows: DenseBitSet<NodeRowId>,
-    /// The delivered placed arrivals, as arrival-table indices.
-    arrivals: DenseBitSet<ArrivalIndex>,
 }
