@@ -113,13 +113,13 @@ lost it by rebuilding the arc objects from `.shape`, which drops the
 
 What that costs downstream, today:
 
-| Input defect                          | Behaviour                                                                                                                       |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Arc names a missing place             | With component instances present: the arc is silently dropped during flattening and the transition fires unconstrained. Without: the engine throws a raw `Error` at simulation build. |
+| Input defect                              | Behaviour                                                                                                                                                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Arc names a missing place                 | With component instances present: the arc is silently dropped during flattening and the transition fires unconstrained. Without: the engine throws a raw `Error` at simulation build.                   |
 | Coloured output arc names a missing place | Load-time sanitization erases the transition's kernel code when no other coloured output arc resolves, with every extension enabled. The availability check treats "did not resolve" as "not coloured". |
-| Duplicate place ids                   | Detected only on the flattening path; otherwise last-in wins silently via `Map` construction.                                     |
-| `weight: NaN` on an inhibitor arc     | The enablement comparison is always false; the transition is permanently blocked, with no diagnostic.                             |
-| Arc with neither `placeId` nor `endpoint` | Accepted by `normalizeSDCPN`, throws a raw `Error` later, from whichever code first resolves the endpoint.                     |
+| Duplicate place ids                       | Detected only on the flattening path; otherwise last-in wins silently via `Map` construction.                                                                                                           |
+| `weight: NaN` on an inhibitor arc         | The enablement comparison is always false; the transition is permanently blocked, with no diagnostic.                                                                                                   |
+| Arc with neither `placeId` nor `endpoint` | Accepted by `normalizeSDCPN`, throws a raw `Error` later, from whichever code first resolves the endpoint.                                                                                              |
 
 Sanitization compounds this: `createJsonDocHandle` strips
 disabled-extension data from the initial document before any `change()`, with

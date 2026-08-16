@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { isSDCPNEqual } from "../lib/deep-equal";
-
 import { normalizeSDCPN } from "./sdcpn-input";
 
 import type { SDCPN } from "./sdcpn";
@@ -143,7 +142,14 @@ describe("normalizeSDCPN", () => {
         },
       ],
       componentInstances: [
-        { id: "ci1", name: "CI1", subnetId: "s1", parameterValues: {}, x: 0, y: 0 },
+        {
+          id: "ci1",
+          name: "CI1",
+          subnetId: "s1",
+          parameterValues: {},
+          x: 0,
+          y: 0,
+        },
       ],
     });
 

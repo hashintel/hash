@@ -52,13 +52,13 @@ type DocChangeEvent = {
     },
     {
       direction: "right",
-      label: "`DocChangeEvent { source: \"local\" }`",
+      label: '`DocChangeEvent { source: "local" }`',
       note: "The editor re-renders from `next`",
     },
     { phase: "Host-originated update (another tab, a server, a collaborator)" },
     {
       direction: "right",
-      label: "`DocChangeEvent { source: \"remote\" }`",
+      label: '`DocChangeEvent { source: "remote" }`',
       note: "The editor re-renders; the adapter's own persistence listener skips these",
     },
   ]}
@@ -68,16 +68,16 @@ type DocChangeEvent = {
 
 Per member, on the current code:
 
-| Member         | Consumption                                                                                                                                                                       |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `doc()`        | Read by the definition store in `petrinaut-core/src/instance.ts`, sanitized per extensions, cached by object identity. `undefined` falls back to an empty net.                     |
-| `subscribe`    | Two internal subscribers: the definition store (re-render pipeline) and the patch stream (`instance.patches`). Events without `patches` are dropped from the patch stream.         |
-| `change(fn)`   | The single write path. Every mutation and command in the editor funnels through it; commands capture return values inside `fn`.                                                    |
-| `capabilities` | Resolved once at instance creation and merged with the `readonly` prop. Drives extension sanitization and the readonly gate.                                                       |
-| `id`           | Keys per-net worker state: the simulation and language-server providers remount when it changes. Also shown to the UI as the net id.                                               |
-| `history`      | Adapted to the undo/redo UI (buttons, Cmd/Ctrl+Z, version-history menu). When absent, that UI disappears and the shortcuts are inert.                                              |
-| `state`        | Not consumed by the editor today. `useDocumentState()` / `useIsDocumentReady()` are exported for hosts.                                                                            |
-| `whenReady()`  | Never called by the editor today.                                                                                                                                                  |
+| Member         | Consumption                                                                                                                                                                |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `doc()`        | Read by the definition store in `petrinaut-core/src/instance.ts`, sanitized per extensions, cached by object identity. `undefined` falls back to an empty net.             |
+| `subscribe`    | Two internal subscribers: the definition store (re-render pipeline) and the patch stream (`instance.patches`). Events without `patches` are dropped from the patch stream. |
+| `change(fn)`   | The single write path. Every mutation and command in the editor funnels through it; commands capture return values inside `fn`.                                            |
+| `capabilities` | Resolved once at instance creation and merged with the `readonly` prop. Drives extension sanitization and the readonly gate.                                               |
+| `id`           | Keys per-net worker state: the simulation and language-server providers remount when it changes. Also shown to the UI as the net id.                                       |
+| `history`      | Adapted to the undo/redo UI (buttons, Cmd/Ctrl+Z, version-history menu). When absent, that UI disappears and the shortcuts are inert.                                      |
+| `state`        | Not consumed by the editor today. `useDocumentState()` / `useIsDocumentReady()` are exported for hosts.                                                                    |
+| `whenReady()`  | Never called by the editor today.                                                                                                                                          |
 
 ## Invariants a custom handle must keep
 
@@ -244,8 +244,14 @@ is what prevents an echo loop through the host store.
   title="Both write paths converge on one snapshot"
   steps={[
     { label: "`change(fn)`", note: "editor edit, applied via `produce`" },
-    { label: "`current: SDCPN`", note: "one cached snapshot; `doc()` returns it" },
-    { label: "`emit(event)`", note: "`local` from `change`, `remote` from `applyExternal`" },
+    {
+      label: "`current: SDCPN`",
+      note: "one cached snapshot; `doc()` returns it",
+    },
+    {
+      label: "`emit(event)`",
+      note: "`local` from `change`, `remote` from `applyExternal`",
+    },
   ]}
 />
 
@@ -343,7 +349,10 @@ export function WorkflowEditor({
 }) {
   // One handle per document. A new id tears down and rebuilds the editor
   // instance, including simulation and language-server workers.
-  const handle = useMemo(() => createWorkflowHandle(graph, onGraphChange), [graph.id]);
+  const handle = useMemo(
+    () => createWorkflowHandle(graph, onGraphChange),
+    [graph.id],
+  );
 
   // Later host-store updates for the same document. The initial call after
   // mount is a structural no-op thanks to the isSDCPNEqual guard.
@@ -365,16 +374,16 @@ export function WorkflowEditor({
 The document carries no title; `title` and `setTitle` are host state. The
 full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 
-| Prop                                              | Purpose                                                                                                                                 |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `handle`                                          | The document handle. Required; all other props are optional.                                                                             |
-| `title`, `setTitle`                               | Host-owned title shown in the top bar.                                                                                                   |
-| `readonly`                                        | Disables editing. ORed with `capabilities.readonly` from the handle.                                                                     |
-| `hideNetManagementControls`                       | `"except-title"` hides the net-management menu items (New, Open, Import, Load example); `"all"` also hides the title.                     |
-| `existingNets`, `createNewNet`, `loadPetriNet`    | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                             |
-| `aiAssistant`                                     | Transport and message store for the AI assistant panel. Omitting it hides the panel.                                                     |
-| `viewportActions`                                 | Extra buttons appended to the canvas zoom/fit controls.                                                                                  |
-| `slots`                                           | Host components injected into the top bar (`topBarStart`, `topBarEnd`) plus `titleStyle`.                                                |
+| Prop                                                                     | Purpose                                                                                                                                  |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `handle`                                                                 | The document handle. Required; all other props are optional.                                                                             |
+| `title`, `setTitle`                                                      | Host-owned title shown in the top bar.                                                                                                   |
+| `readonly`                                                               | Disables editing. ORed with `capabilities.readonly` from the handle.                                                                     |
+| `hideNetManagementControls`                                              | `"except-title"` hides the net-management menu items (New, Open, Import, Load example); `"all"` also hides the title.                    |
+| `existingNets`, `createNewNet`, `loadPetriNet`                           | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                             |
+| `aiAssistant`                                                            | Transport and message store for the AI assistant panel. Omitting it hides the panel.                                                     |
+| `viewportActions`                                                        | Extra buttons appended to the canvas zoom/fit controls.                                                                                  |
+| `slots`                                                                  | Host components injected into the top bar (`topBarStart`, `topBarEnd`) plus `titleStyle`.                                                |
 | `simulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
 
 ## Capabilities
@@ -387,7 +396,13 @@ import type { PetrinautHandleCapabilities } from "@hashintel/petrinaut-core";
 
 const capabilities: PetrinautHandleCapabilities = {
   readonly: false,
-  disabledExtensions: ["colors", "stochasticity", "dynamics", "parameters", "subnets"],
+  disabledExtensions: [
+    "colors",
+    "stochasticity",
+    "dynamics",
+    "parameters",
+    "subnets",
+  ],
 };
 ```
 
@@ -408,12 +423,12 @@ enabled.
 
 ## Reference implementations in this repo
 
-| Pattern                                        | Where                                                                            |
-| ---------------------------------------------- | -------------------------------------------------------------------------------- |
-| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual` | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx`     |
-| Persist on every change event to localStorage  | `apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.tsx` |
-| Read-only mirror of a streamed definition      | `apps/petrinaut-website/src/main/app/brunch-demo/brunch-petrinaut.tsx`           |
-| One live handle per net, history survives switching | `petrinaut/src/ui/petrinaut-story-provider.tsx`                              |
+| Pattern                                                               | Where                                                                               |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual` | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx`        |
+| Persist on every change event to localStorage                         | `apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.tsx` |
+| Read-only mirror of a streamed definition                             | `apps/petrinaut-website/src/main/app/brunch-demo/brunch-petrinaut.tsx`              |
+| One live handle per net, history survives switching                   | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                     |
 
 All of them wrap `createJsonDocHandle`; no adapter over an external store has
 shipped yet, which is part of why the contract still has the gaps the
