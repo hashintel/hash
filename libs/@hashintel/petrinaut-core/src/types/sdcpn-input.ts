@@ -1,12 +1,17 @@
 import type {
+  ArcEndpoint,
   Color,
+  ComponentInstance,
   DifferentialEquation,
   ID,
+  InputArc,
   InputArcType,
   Metric,
+  OutputArc,
   Parameter,
   Scenario,
   SDCPN,
+  Subnet,
 } from "./sdcpn";
 
 /**
@@ -37,6 +42,8 @@ export type SDCPNInput = {
   differentialEquations?: DifferentialEquation[];
   scenarios?: Scenario[];
   metrics?: Metric[];
+  subnets?: Subnet[];
+  componentInstances?: ComponentInstance[];
 };
 
 export type SDCPNPlaceInput = {
@@ -50,20 +57,29 @@ export type SDCPNPlaceInput = {
   dynamicsEnabled?: boolean;
   /** @default null */
   differentialEquationId?: ID | null;
+  isPort?: boolean;
   visualizerCode?: string;
   showAsInitialState?: boolean;
 };
 
-export type SDCPNInputArcInput = {
-  placeId: string;
+/**
+ * Arc target: either the `placeId` shorthand for a normal place endpoint, or
+ * an explicit {@link ArcEndpoint} (required for component ports). Provide one
+ * of the two.
+ */
+export type SDCPNArcEndpointInput = {
+  placeId?: ID;
+  endpoint?: ArcEndpoint;
+};
+
+export type SDCPNInputArcInput = SDCPNArcEndpointInput & {
   /** @default 1 */
   weight?: number;
   /** @default "standard" */
   type?: InputArcType;
 };
 
-export type SDCPNOutputArcInput = {
-  placeId: string;
+export type SDCPNOutputArcInput = SDCPNArcEndpointInput & {
   /** @default 1 */
   weight?: number;
 };
@@ -84,14 +100,30 @@ export type SDCPNTransitionInput = {
 };
 
 /**
+ * Pick the endpoint fields that are present, so normalized arcs carry exactly
+ * the keys the input had (relevant for structural equality).
+ */
+function arcEndpointFields(arc: SDCPNArcEndpointInput): SDCPNArcEndpointInput {
+  const fields: SDCPNArcEndpointInput = {};
+  if (arc.placeId !== undefined) {
+    fields.placeId = arc.placeId;
+  }
+  if (arc.endpoint !== undefined) {
+    fields.endpoint = arc.endpoint;
+  }
+  return fields;
+}
+
+/**
  * Fill plain-net defaults into an {@link SDCPNInput} to produce a canonical
  * {@link SDCPN}. Idempotent: normalizing an already-complete `SDCPN` returns an
  * equivalent value.
  *
- * Optional output fields (`visualizerCode`, `showAsInitialState`, `scenarios`,
- * `metrics`) are only set when present on the input, so the result matches the
- * shape the editor itself produces (relevant for structural dirty-tracking via
- * `isSDCPNEqual`).
+ * Optional output fields (`isPort`, `visualizerCode`, `showAsInitialState`,
+ * arc `placeId`/`endpoint`, `scenarios`, `metrics`, `subnets`,
+ * `componentInstances`) are only set when present on the input, so the result
+ * matches the shape the editor itself produces (relevant for structural
+ * dirty-tracking via `isSDCPNEqual`).
  */
 export function normalizeSDCPN(input: SDCPNInput): SDCPN {
   const result: SDCPN = {
@@ -105,6 +137,9 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
         x: place.x,
         y: place.y,
       };
+      if (place.isPort !== undefined) {
+        normalized.isPort = place.isPort;
+      }
       if (place.visualizerCode !== undefined) {
         normalized.visualizerCode = place.visualizerCode;
       }
@@ -116,15 +151,19 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
     transitions: input.transitions.map((transition) => ({
       id: transition.id,
       name: transition.name,
-      inputArcs: transition.inputArcs.map((arc) => ({
-        placeId: arc.placeId,
-        weight: arc.weight ?? 1,
-        type: arc.type ?? "standard",
-      })),
-      outputArcs: transition.outputArcs.map((arc) => ({
-        placeId: arc.placeId,
-        weight: arc.weight ?? 1,
-      })),
+      inputArcs: transition.inputArcs.map(
+        (arc): InputArc => ({
+          ...arcEndpointFields(arc),
+          weight: arc.weight ?? 1,
+          type: arc.type ?? "standard",
+        }),
+      ),
+      outputArcs: transition.outputArcs.map(
+        (arc): OutputArc => ({
+          ...arcEndpointFields(arc),
+          weight: arc.weight ?? 1,
+        }),
+      ),
       lambdaType: transition.lambdaType ?? "predicate",
       lambdaCode: transition.lambdaCode ?? "",
       transitionKernelCode: transition.transitionKernelCode ?? "",
@@ -141,6 +180,12 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
   }
   if (input.metrics !== undefined) {
     result.metrics = input.metrics;
+  }
+  if (input.subnets !== undefined) {
+    result.subnets = input.subnets;
+  }
+  if (input.componentInstances !== undefined) {
+    result.componentInstances = input.componentInstances;
   }
 
   return result;

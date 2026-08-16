@@ -5,6 +5,11 @@ import { isSDCPNEqual } from "../lib/deep-equal";
 import { normalizeSDCPN } from "./sdcpn-input";
 
 import type { SDCPN } from "./sdcpn";
+import type { SDCPNInput } from "./sdcpn-input";
+
+// Compile-time invariant: every complete SDCPN is a valid SDCPNInput, so
+// existing createJsonDocHandle callers that pass a full document keep working.
+const _sdcpnIsAssignableToInput: (doc: SDCPN) => SDCPNInput = (doc) => doc;
 
 describe("normalizeSDCPN", () => {
   it("fills plain-net defaults for omitted place and transition fields", () => {
@@ -103,6 +108,84 @@ describe("normalizeSDCPN", () => {
       lambdaCode: "l",
       transitionKernelCode: "k",
     });
+  });
+
+  it("preserves explicit arc endpoints and passes through subnet fields", () => {
+    const result = normalizeSDCPN({
+      places: [{ id: "p1", name: "P1", x: 0, y: 0, isPort: true }],
+      transitions: [
+        {
+          id: "t1",
+          name: "T1",
+          inputArcs: [
+            {
+              endpoint: {
+                kind: "componentPort",
+                componentInstanceId: "ci1",
+                portPlaceId: "p9",
+              },
+            },
+          ],
+          outputArcs: [{ endpoint: { kind: "place", placeId: "p1" } }],
+          x: 0,
+          y: 0,
+        },
+      ],
+      subnets: [
+        {
+          id: "s1",
+          name: "S1",
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+        },
+      ],
+      componentInstances: [
+        { id: "ci1", name: "CI1", subnetId: "s1", parameterValues: {}, x: 0, y: 0 },
+      ],
+    });
+
+    expect(result.places[0]!.isPort).toBe(true);
+    expect(result.transitions[0]!.inputArcs[0]).toEqual({
+      endpoint: {
+        kind: "componentPort",
+        componentInstanceId: "ci1",
+        portPlaceId: "p9",
+      },
+      weight: 1,
+      type: "standard",
+    });
+    expect(result.transitions[0]!.outputArcs[0]).toEqual({
+      endpoint: { kind: "place", placeId: "p1" },
+      weight: 1,
+    });
+    expect(result.subnets).toHaveLength(1);
+    expect(result.componentInstances).toHaveLength(1);
+  });
+
+  it("omits subnet fields and arc endpoints that are absent", () => {
+    const result = normalizeSDCPN({
+      places: [],
+      transitions: [
+        {
+          id: "t1",
+          name: "T1",
+          inputArcs: [{ placeId: "p1" }],
+          outputArcs: [],
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+
+    expect(Object.hasOwn(result, "subnets")).toBe(false);
+    expect(Object.hasOwn(result, "componentInstances")).toBe(false);
+    expect(Object.hasOwn(result.places, "isPort")).toBe(false);
+    expect(
+      Object.hasOwn(result.transitions[0]!.inputArcs[0]!, "endpoint"),
+    ).toBe(false);
   });
 
   it("is idempotent on an already-complete SDCPN", () => {
