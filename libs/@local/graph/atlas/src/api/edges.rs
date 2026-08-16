@@ -18,7 +18,7 @@ use super::{
     visibility::{Visibility, view_problem},
 };
 use crate::{
-    dataset::postgres::id::ArchivedEntityId,
+    postgres::id::ArchivedEntityId,
     serve::{
         EdgesError, EdgesRequest,
         hydrate::{DetailError, EdgesHydration, EdgesOrder, EdgesStore},

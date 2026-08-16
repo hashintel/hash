@@ -45,13 +45,11 @@ use super::{
 };
 use crate::{
     bitset::DenseBitSlice,
-    dataset::{
-        auxiliary::{Icon, Label},
-        postgres::id::ArchivedEntityId,
-    },
+    dataset::auxiliary::{Icon, Label},
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
+    postgres::id::ArchivedEntityId,
     salt::postings::artifact::Membership,
     serve::{
         TableIndex, WireRow, hydrate::EdgeSlot, neighbourhood::EdgeColumns, schedule::ViewRow,

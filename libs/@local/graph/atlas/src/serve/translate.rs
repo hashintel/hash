@@ -40,9 +40,9 @@ use super::{
     visibility::VisibilityProof,
 };
 use crate::{
-    dataset::postgres::id::ArchivedEntityId,
     identity::{BasePosition, EdgeRowId, NodeRowId},
     math::Vec2,
+    postgres::id::ArchivedEntityId,
     salt::fit::prepare::identity::IdentityTableArchive,
 };
 

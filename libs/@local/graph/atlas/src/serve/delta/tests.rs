@@ -15,15 +15,13 @@ use super::{
     staging::{MissAction, StagingPipeline},
 };
 use crate::{
-    dataset::{
-        auxiliary::OwnedLabel,
-        postgres::{
-            Classification, EditionDisplay,
-            id::{ArchivedEntityId, ArchivedEntityUuid},
-        },
-    },
+    dataset::auxiliary::OwnedLabel,
     identity::{EdgeRowId, NodeRowId},
     math::{BoxedVecN, Vec2},
+    postgres::{
+        Classification, EditionDisplay,
+        id::{ArchivedEntityId, ArchivedEntityUuid},
+    },
     serve::codec::Universe,
 };
 

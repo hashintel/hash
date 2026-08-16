@@ -83,7 +83,7 @@ use crate::{
 pub(crate) mod auxiliary;
 pub(crate) mod card;
 pub(crate) mod memory;
-mod ontology;
+pub(crate) mod ontology;
 pub(crate) mod postgres;
 #[cfg(test)]
 mod tests;

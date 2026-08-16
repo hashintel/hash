@@ -27,16 +27,14 @@ use super::{
 };
 use crate::{
     bitset::CompressedBitSet,
-    dataset::{
-        auxiliary::{Label, OwnedLabel},
-        postgres::{
-            Classification, EditionDisplay, LinkDisplay,
-            id::{ArchivedEntityId, ArchivedEntityUuid},
-        },
-    },
+    dataset::auxiliary::{Label, OwnedLabel},
     identity::{BasePosition, EdgeRowId, NodeRowId},
     math::Vec2,
     morton::Depth,
+    postgres::{
+        Classification, EditionDisplay, LinkDisplay,
+        id::{ArchivedEntityId, ArchivedEntityUuid},
+    },
     salt::wire::edges::{EdgesResponse, EdgesTrailer},
     serve::{
         EdgesLimits, VisibilityProof,

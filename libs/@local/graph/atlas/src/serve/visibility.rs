@@ -33,8 +33,8 @@ use hashql_core::{
 use super::{Atlas, WireRow, delta::PlacementCohort};
 use crate::{
     bitset::CompressedBitSet,
-    dataset::postgres::id::ArchivedEntityId,
     identity::{EdgeRowId, NodeRowId},
+    postgres::id::ArchivedEntityId,
 };
 
 /// One domain's visible row set, either everything or exactly the mask.

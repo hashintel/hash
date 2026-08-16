@@ -16,9 +16,9 @@ use super::{
 };
 use crate::{
     allocator::MemoryUsageAllocator,
-    dataset::postgres::id::ArchivedEntityId,
     identity::{BasePosition, ImportanceRank},
     morton::{Depth, MortonCell, MortonKey},
+    postgres::id::ArchivedEntityId,
     serve::{
         VisibilityProof,
         delta::PlacementCohort,
@@ -152,7 +152,7 @@ fn hand_cascade_places_arrivals_by_the_same_law() {
         },
         point: crate::math::Vec2::new(0.25, -0.5),
         wire: crate::serve::WireRow::pinned(index),
-        display: crate::dataset::postgres::EditionDisplay {
+        display: crate::postgres::EditionDisplay {
             label: crate::dataset::auxiliary::OwnedLabel::from("arrival"),
             first_type: None,
         },

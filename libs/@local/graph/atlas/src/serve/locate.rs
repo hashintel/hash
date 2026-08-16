@@ -26,9 +26,10 @@ use super::{
     visibility::{ResolvedRow, VisibleRow},
 };
 use crate::{
-    dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
+    dataset::auxiliary::Label,
     identity::{BasePosition, NodeRowId},
     morton::MortonKey,
+    postgres::id::ArchivedEntityId,
     salt::{
         lod::stage::WIRE_FRAME,
         wire::{

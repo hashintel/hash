@@ -5922,6 +5922,7 @@ dependencies = [
  "hashql-core",
  "heed",
  "hkdf 0.13.0",
+ "insta",
  "kiddo",
  "memchr",
  "memmap2",

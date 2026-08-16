@@ -549,17 +549,11 @@ async fn failed_resolution_holds_no_entry() {
 struct Unfitted;
 
 impl crate::serve::delta::IdentityTables for Unfitted {
-    fn node_row_of(
-        &self,
-        _id: crate::dataset::postgres::id::ArchivedEntityId,
-    ) -> Option<NodeRowId> {
+    fn node_row_of(&self, _id: crate::postgres::id::ArchivedEntityId) -> Option<NodeRowId> {
         None
     }
 
-    fn edge_row_of(
-        &self,
-        _id: crate::dataset::postgres::id::ArchivedEntityId,
-    ) -> Option<EdgeRowId> {
+    fn edge_row_of(&self, _id: crate::postgres::id::ArchivedEntityId) -> Option<EdgeRowId> {
         None
     }
 }

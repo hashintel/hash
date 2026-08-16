@@ -59,8 +59,6 @@ mod columns;
 pub(crate) mod compile;
 mod order;
 pub(crate) mod select;
-#[cfg(test)]
-mod statement_fixtures;
 mod statements;
 
 // The hydration column constructors are test-only inputs for a fixture store's all-unresolved

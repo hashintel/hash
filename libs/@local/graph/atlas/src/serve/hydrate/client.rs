@@ -48,9 +48,8 @@ use super::{
 };
 use crate::{
     bitset::DenseBitSlice,
-    dataset::postgres::{
-        LinkDisplay, PostgresDatasetError, id::ArchivedEntityId, read_link_displays,
-    },
+    dataset::postgres::PostgresDatasetError,
+    postgres::{LinkDisplay, id::ArchivedEntityId, read_link_displays},
 };
 
 /// The resolved actor one hydration masks properties for.

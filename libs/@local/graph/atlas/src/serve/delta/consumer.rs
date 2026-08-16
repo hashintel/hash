@@ -54,7 +54,7 @@ use super::{
     IdentityTables,
 };
 use crate::{
-    dataset::postgres::{Classification, classify_entities, id::ArchivedEntityId},
+    postgres::{Classification, classify_entities, id::ArchivedEntityId},
     serve::codec::Universe,
 };
 

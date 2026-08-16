@@ -1,14 +1,48 @@
-//! The pgvector binary wire format, decoded into fixed-dimension vectors.
+//! The projector-prefix expression and the wire-format decoder for pgvector values.
+//!
+//! Everything that touches pgvector's own types lives here, on both sides of the wire.
+//! [`normalized_prefix`] is the statement-side expression preparing an embedding as projector
+//! input, so every lookup shares one definition and an answer is bit-identical to the
+//! representation row a fit reads. [`PgVector`] decodes the answers: the binary wire format,
+//! read into fixed-dimension vectors.
 
 use core::{error::Error, fmt};
 
+use hash_graph_postgres_store::store::postgres::query::{
+    Aliased, Expression, Function, PostgresType, table::EntityEmbeddings,
+};
 use tokio_postgres::types::{FromSql, Type};
 
-use crate::math::BoxedVecN;
+use crate::{dataset::PROJECTOR_DIMENSIONS, math::BoxedVecN};
+
+/// Builds the unit-norm projector prefix of an embedding column.
+///
+/// The store does the geometry's data preparation: `subvector` truncates the embedding to the
+/// projector's prefix and `l2_normalize` renormalizes it inside the statement, so the connection
+/// carries unit-norm prefixes and nothing wider.
+///
+/// # SQL
+///
+/// ```sql
+/// l2_normalize(subvector(embedding.embedding, 1, <prefix>))::vector(<prefix>)
+/// ```
+pub(crate) fn normalized_prefix(embedding: Aliased<EntityEmbeddings>) -> Expression {
+    Expression::from(Function::L2Normalize(Box::new(
+        Function::Subvector {
+            vector: Box::new(embedding.column(&EntityEmbeddings::Embedding)),
+            start: 1,
+            count: PROJECTOR_DIMENSIONS,
+        }
+        .into(),
+    )))
+    .cast(PostgresType::Vector {
+        dimensions: Some(PROJECTOR_DIMENSIONS),
+    })
+}
 
 /// A pgvector payload that does not decode as the expected vector.
 #[derive(Debug, Copy, Clone)]
-pub(super) enum VectorDecodeError {
+pub(crate) enum VectorDecodeError {
     /// The four-byte header is truncated.
     Header,
     /// The header's dimensions or the payload length disagree with the expected shape.
@@ -42,7 +76,7 @@ impl fmt::Display for VectorDecodeError {
 impl Error for VectorDecodeError {}
 
 /// An `N`-component pgvector value decoded from the binary wire format.
-pub(super) struct PgVector<const N: usize>(pub BoxedVecN<N>);
+pub(crate) struct PgVector<const N: usize>(pub BoxedVecN<N>);
 
 impl<'value, const N: usize> FromSql<'value> for PgVector<N> {
     #[expect(

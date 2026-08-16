@@ -32,10 +32,10 @@ use self::cut::ScheduleCut;
 use super::grid::Grid;
 use crate::{
     allocator::{MemoryUsage, MemoryUsageAllocator},
-    dataset::postgres::{EditionDisplay, id::ArchivedEntityId},
     identity::{BasePosition, ImportanceRank, NodeRowId},
     math::Vec2,
     morton::{Depth, MortonCell, MortonKey},
+    postgres::{EditionDisplay, id::ArchivedEntityId},
     salt::lod::{cascade, stage::WIRE_FRAME},
     serve::{
         Atlas, VisibilityProof, WireRow,

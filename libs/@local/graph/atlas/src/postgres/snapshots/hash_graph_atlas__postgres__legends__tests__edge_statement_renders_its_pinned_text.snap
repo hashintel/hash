@@ -1,0 +1,53 @@
+---
+source: libs/@local/graph/atlas/src/postgres/legends.rs
+expression: "edge_legend_statement(&axes, &types).sql"
+---
+WITH "scope" AS (SELECT "meta"."web_id" AS "web_id", "meta"."entity_uuid" AS "entity_uuid", "meta"."entity_edition_id" AS "entity_edition_id", row_number() OVER (ORDER BY "meta"."web_id" ASC, "meta"."entity_uuid" ASC) - 1 AS "row"
+FROM "entity_embeddings" AS "embedding"
+INNER JOIN "entity_temporal_metadata" AS "meta"
+  ON "meta"."web_id" = "embedding"."web_id"
+ AND "meta"."entity_uuid" = "embedding"."entity_uuid"
+ AND "meta"."draft_id" IS NULL
+ AND "meta"."transaction_time" @> $1::TIMESTAMPTZ
+ AND "meta"."decision_time" @> $2::TIMESTAMPTZ
+INNER JOIN "entity_editions" AS "edition"
+  ON "edition"."entity_edition_id" = "meta"."entity_edition_id"
+ AND NOT("edition"."archived")
+WHERE "embedding"."property" IS NULL AND NOT(EXISTS (SELECT 
+FROM "entity_is_of_type" AS "is_link"
+INNER JOIN "ontology_ids" AS "link_type"
+  ON "link_type"."ontology_id" = "is_link"."entity_type_ontology_id"
+ AND "link_type"."base_url" = $3
+WHERE "is_link"."entity_edition_id" = "meta"."entity_edition_id"))), "links" AS (SELECT "left_edge"."source_web_id" AS "web_id", "left_edge"."source_entity_uuid" AS "entity_uuid", "meta"."entity_edition_id" AS "entity_edition_id", "source"."row" AS "source_row", "target"."row" AS "target_row", "left_edge"."confidence" AS "source_confidence", "right_edge"."confidence" AS "target_confidence"
+FROM "entity_edge" AS "left_edge"
+INNER JOIN "entity_edge" AS "right_edge"
+  ON "right_edge"."source_web_id" = "left_edge"."source_web_id"
+ AND "right_edge"."source_entity_uuid" = "left_edge"."source_entity_uuid"
+ AND "right_edge"."kind" = $5
+ AND "right_edge"."direction" = $6
+INNER JOIN "scope" AS "source"
+  ON "source"."web_id" = "left_edge"."target_web_id"
+ AND "source"."entity_uuid" = "left_edge"."target_entity_uuid"
+INNER JOIN "scope" AS "target"
+  ON "target"."web_id" = "right_edge"."target_web_id"
+ AND "target"."entity_uuid" = "right_edge"."target_entity_uuid"
+INNER JOIN "entity_temporal_metadata" AS "meta"
+  ON "meta"."web_id" = "left_edge"."source_web_id"
+ AND "meta"."entity_uuid" = "left_edge"."source_entity_uuid"
+ AND "meta"."draft_id" IS NULL
+ AND "meta"."transaction_time" @> $1::TIMESTAMPTZ
+ AND "meta"."decision_time" @> $2::TIMESTAMPTZ
+INNER JOIN "entity_editions" AS "edition"
+  ON "edition"."entity_edition_id" = "meta"."entity_edition_id"
+ AND NOT("edition"."archived")
+WHERE "left_edge"."kind" = $4 AND "left_edge"."direction" = $6)
+SELECT ("cache"."labels")[1], "mapping"."ordinality" - 1
+FROM "links"
+LEFT OUTER JOIN "entity_edition_cache" AS "cache"
+  ON "cache"."entity_edition_id" = "links"."entity_edition_id"
+LEFT OUTER JOIN "ontology_ids" AS "first_type"
+  ON "first_type"."base_url" = ("cache"."base_urls")[1]
+ AND "first_type"."version" = ("cache"."versions")[1]
+LEFT OUTER JOIN UNNEST(($7::uuid[])) WITH ORDINALITY AS "mapping"("ontology_id", "ordinality")
+  ON "mapping"."ontology_id" = "first_type"."ontology_id"
+ORDER BY "links"."web_id" ASC, "links"."entity_uuid" ASC, "links"."source_row" ASC, "links"."target_row" ASC

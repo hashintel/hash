@@ -33,16 +33,14 @@ use super::{
 };
 use crate::{
     bitset::{CompressedBitSet, DenseBitSlice},
-    dataset::{
-        auxiliary::{Icon, Label, OwnedLabel},
-        postgres::{
-            Classification, EditionDisplay,
-            id::{ArchivedEntityId, ArchivedEntityUuid},
-        },
-    },
+    dataset::auxiliary::{Icon, Label, OwnedLabel},
     identity::{BasePosition, EdgeRowId, NodeRowId},
     math::Vec2,
     morton::{Depth, MortonKey},
+    postgres::{
+        Classification, EditionDisplay,
+        id::{ArchivedEntityId, ArchivedEntityUuid},
+    },
     salt::{
         lod::stage::WIRE_FRAME,
         wire::{

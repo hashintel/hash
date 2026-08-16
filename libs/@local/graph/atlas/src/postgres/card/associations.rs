@@ -12,12 +12,10 @@ use tokio_postgres::{Row, Transaction, types::ToSql};
 use uuid::Uuid;
 
 use super::{
-    super::{
-        super::TemporalAxes,
-        sql::{MAPPING, Mapping, json_field, json_text, type_mapping},
-    },
+    super::sql::{MAPPING, Mapping, json_field, json_text, type_mapping},
     DESCRIPTION_KEY, ID_KEY, OwnedAssociation, RelationFacts, TITLE_KEY, fact_at,
 };
+use crate::dataset::TemporalAxes;
 
 /// The link-constraints key of a resolved type schema.
 const LINKS_KEY: &str = "links";
@@ -606,6 +604,18 @@ struct AssociationColumns {
 /// Inside the statement, `matched` is each source type's newest `links` constraint keyed under
 /// any version of a scoped type's base id, and the target lateral resolves the constraint's
 /// references to latest-current prose per base id.
+///
+/// # SQL
+///
+/// ```sql
+/// WITH current_types AS (<current_types>),
+///     relations AS (<relations>),
+///     matched AS (<matched>)
+/// SELECT matched.<the source and constraint columns>, targets.<the aggregated targets>
+/// FROM matched
+/// LEFT JOIN LATERAL (<targets>) AS targets ON TRUE
+/// ORDER BY matched.ordinality, matched.base_url
+/// ```
 fn association_statement<'params>(
     types: &'params (impl ToSql + Sync),
     transaction_time: &'params (impl ToSql + Sync),
@@ -671,6 +681,10 @@ fn association_statement<'params>(
         .build();
 
     BoundStatement::new(&statement, binder, columns)
+}
+
+fn cardinality(value: Option<i64>) -> Option<usize> {
+    usize::try_from(value?).ok()
 }
 
 /// Applies one association row to its relation's facts.
@@ -751,10 +765,6 @@ pub(super) async fn association_rows(
     Ok(())
 }
 
-fn cardinality(value: Option<i64>) -> Option<usize> {
-    usize::try_from(value?).ok()
-}
-
 #[cfg(test)]
 mod tests {
     use uuid::Uuid;
@@ -771,31 +781,16 @@ mod tests {
         let statement = association_statement(&types, &axes.transaction_time);
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
-}
 
-#[cfg(test)]
-mod prepare_probe {
-    use tokio_postgres::NoTls;
-    use uuid::Uuid;
-
-    use super::association_statement;
-    use crate::dataset::TemporalAxes;
-
-    #[tokio::test]
-    async fn statement_prepares_against_the_live_store() {
-        let (client, connection) = tokio_postgres::connect(
-            "host=localhost user=postgres password=postgres dbname=graph",
-            NoTls,
-        )
-        .await
-        .expect("the graph store is reachable");
-        tokio::spawn(connection);
-
+    /// The rendered statement, pinned as the text the store receives.
+    ///
+    /// The pin makes any rendering change a visible snapshot diff in review instead of a
+    /// silent swap of what runs against the store.
+    #[test]
+    fn statement_renders_its_pinned_text() {
         let axes = TemporalAxes::now();
-        let types: Vec<Uuid> = Vec::new();
-        let statement = association_statement(&types, &axes.transaction_time);
-        if let Err(error) = client.prepare(&statement.sql).await {
-            panic!("association: {error}");
-        }
+        let types = vec![Uuid::nil()];
+
+        insta::assert_snapshot!(association_statement(&types, &axes.transaction_time).sql);
     }
 }

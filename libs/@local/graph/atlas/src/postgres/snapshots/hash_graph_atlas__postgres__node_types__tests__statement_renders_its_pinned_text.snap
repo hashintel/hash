@@ -1,0 +1,26 @@
+---
+source: libs/@local/graph/atlas/src/postgres/node_types.rs
+expression: statement.sql
+---
+WITH "requests" AS (SELECT "meta"."web_id" AS "web_id", "meta"."entity_uuid" AS "entity_uuid", "meta"."entity_edition_id" AS "entity_edition_id"
+FROM UNNEST(($4::uuid[]), ($5::uuid[])) AS "request"("web_id", "entity_uuid")
+INNER JOIN "entity_temporal_metadata" AS "meta"
+  ON "meta"."web_id" = "request"."web_id"
+ AND "meta"."entity_uuid" = "request"."entity_uuid"
+ AND "meta"."draft_id" IS NULL
+ AND "meta"."transaction_time" @> $1::TIMESTAMPTZ
+ AND "meta"."decision_time" @> $2::TIMESTAMPTZ
+INNER JOIN "entity_editions" AS "edition"
+  ON "edition"."entity_edition_id" = "meta"."entity_edition_id"
+ AND NOT("edition"."archived")), "type_rows" AS (SELECT "is_of_type"."entity_edition_id" AS "entity_edition_id", array_agg("mapping"."ordinal" ORDER BY "mapping"."ordinal" ASC) AS "ordinals"
+FROM "entity_is_of_type" AS "is_of_type"
+INNER JOIN (SELECT "mapping"."ontology_id", "mapping"."ordinality" - 1 AS "ordinal"
+FROM UNNEST(($3::uuid[])) WITH ORDINALITY AS "mapping"("ontology_id", "ordinality")) AS "mapping"
+  ON "mapping"."ontology_id" = "is_of_type"."entity_type_ontology_id"
+WHERE "is_of_type"."inheritance_depth" = 0 AND "is_of_type"."entity_edition_id" = ANY(SELECT "entity_edition_id"
+FROM "requests")
+GROUP BY "is_of_type"."entity_edition_id")
+SELECT "requests"."web_id", "requests"."entity_uuid", COALESCE("type_rows"."ordinals", ARRAY[]::int8[])
+FROM "requests"
+LEFT OUTER JOIN "type_rows"
+  ON "type_rows"."entity_edition_id" = "requests"."entity_edition_id"

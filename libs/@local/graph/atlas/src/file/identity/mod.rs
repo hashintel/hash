@@ -64,9 +64,9 @@ use zerocopy::{LE, U16, U64, Unalign};
 
 use super::region::{header::header, machine::Machine};
 use crate::{
-    dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::region::{ByteStable, PAGE, padded_size},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
 };
 
 pub(crate) mod read;

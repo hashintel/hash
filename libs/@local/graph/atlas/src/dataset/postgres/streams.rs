@@ -11,21 +11,24 @@ use hash_graph_postgres_store::store::postgres::query::{
     table::{EntityEditions, EntityEmbeddings},
 };
 use hash_graph_store::query::Ordering;
-use smallvec::SmallVec;
 use tokio_postgres::{Row, types::ToSql};
 use uuid::Uuid;
 
 use super::{
     super::{Edge, Node, PROJECTOR_DIMENSIONS, TemporalAxes},
-    LINK_ROOT_BASE_URL, PostgresDatasetError, corpus,
-    sql::{AttachmentVocabulary, Axes},
-    vector::PgVector,
-    vocabulary::{CorpusTable, Links, Scope, TypeRows},
+    PostgresDatasetError,
 };
 use crate::{
-    dataset::postgres::id::ArchivedEntityId,
-    identity::{NodeRowId, OntologyRowId},
+    identity::NodeRowId,
     math::UnitFraction,
+    postgres::{
+        LINK_ROOT_BASE_URL, corpus,
+        id::ArchivedEntityId,
+        node_types::ontology_rows,
+        sql::{AttachmentVocabulary, Axes},
+        vector::{PgVector, normalized_prefix},
+        vocabulary::{CorpusTable, Links, Scope, TypeRows},
+    },
 };
 
 /// The edition's direct-type ordinals from `type_rows`, or the empty array.
@@ -42,26 +45,6 @@ fn ordinals_or_empty() -> Expression {
         })
 }
 
-/// The unit-norm projector prefix of an embedding column.
-///
-/// The store does the geometry's data preparation: `subvector` truncates the embedding to the
-/// projector's prefix and `l2_normalize` renormalizes it inside the statement, so the connection
-/// carries unit-norm prefixes and nothing wider.
-pub(super) fn normalized_prefix(embedding: Aliased<EntityEmbeddings>) -> Expression {
-    // l2_normalize(subvector(embedding.embedding, 1, <prefix>))::vector(<prefix>)
-    Expression::from(Function::L2Normalize(Box::new(
-        Function::Subvector {
-            vector: Box::new(embedding.column(&EntityEmbeddings::Embedding)),
-            start: 1,
-            count: PROJECTOR_DIMENSIONS,
-        }
-        .into(),
-    )))
-    .cast(PostgresType::Vector {
-        dimensions: Some(PROJECTOR_DIMENSIONS),
-    })
-}
-
 pub(super) struct NodeColumns {
     /// The web the entity belongs to.
     pub web_id: usize,
@@ -76,6 +59,23 @@ pub(super) struct NodeColumns {
 }
 
 /// Builds the node stream's statement, ordered by node row.
+///
+/// The ordering is the scope row, which is what makes stream position the row id.
+///
+/// # SQL
+///
+/// ```sql
+/// WITH scope AS (<scope>), type_rows AS (<type_rows>)
+/// SELECT scope.web_id, scope.entity_uuid,
+///     l2_normalize(subvector(embedding.embedding, 1, <prefix>))::vector(<prefix>),
+///     edition.confidence, COALESCE(type_rows.ordinals, ARRAY[]::int8[])
+/// FROM scope
+/// INNER JOIN entity_embeddings AS embedding ON <the identity, whole-entity rows only>
+/// INNER JOIN entity_editions AS edition
+///   ON edition.entity_edition_id = scope.entity_edition_id
+/// LEFT JOIN type_rows ON type_rows.entity_edition_id = scope.entity_edition_id
+/// ORDER BY scope.row
+/// ```
 pub(super) fn node_statement<'params>(
     axes: &'params TemporalAxes,
     types: &'params (impl ToSql + Sync),
@@ -216,6 +216,22 @@ pub(super) struct EdgeColumns {
 ///
 /// Link identity is already a total order, since the store admits exactly one attachment pair
 /// per link entity. The endpoint-row keys ride behind it as inert tiebreakers.
+///
+/// # SQL
+///
+/// ```sql
+/// WITH scope AS (<scope>), links AS (<links>), type_rows AS (<type_rows>)
+/// SELECT links.web_id, links.entity_uuid, links.source_row, links.target_row,
+///     COALESCE(type_rows.ordinals, ARRAY[]::int8[]),
+///     l2_normalize(subvector(embedding.embedding, 1, <prefix>))::vector(<prefix>),
+///     edition.confidence, links.source_confidence, links.target_confidence
+/// FROM links
+/// INNER JOIN entity_editions AS edition
+///   ON edition.entity_edition_id = links.entity_edition_id
+/// LEFT JOIN entity_embeddings AS embedding ON <the identity, whole-entity rows only>
+/// LEFT JOIN type_rows ON type_rows.entity_edition_id = links.entity_edition_id
+/// ORDER BY links.web_id, links.entity_uuid, links.source_row, links.target_row
+/// ```
 pub(super) fn edge_statement<'params>(
     axes: &'params TemporalAxes,
     types: &'params (impl ToSql + Sync),
@@ -376,29 +392,18 @@ pub(super) fn decode_edge(
     })
 }
 
-/// Converts a column of SQL ordinals into ontology row references.
-pub(super) fn ontology_rows(
-    ordinals: Vec<i64>,
-) -> Result<SmallVec<OntologyRowId, 2>, PostgresDatasetError> {
-    ordinals
-        .into_iter()
-        .map(|ordinal| {
-            u64::try_from(ordinal)
-                .map(OntologyRowId::new)
-                .map_err(|_error| PostgresDatasetError::Ordinal { value: ordinal })
-        })
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use uuid::Uuid;
 
-    use super::{
-        super::sql::{assert_placeholders_dense, normalize},
-        edge_statement, node_statement,
+    use super::{edge_statement, node_statement};
+    use crate::{
+        dataset::TemporalAxes,
+        postgres::{
+            legends::{edge_legend_statement, node_legend_statement},
+            sql::{assert_placeholders_dense, normalize},
+        },
     };
-    use crate::dataset::TemporalAxes;
 
     /// Every stream statement cites exactly the parameters it binds.
     #[test]
@@ -413,32 +418,59 @@ mod tests {
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The node stream orders by the scope row, which is what makes stream position the row id.
+    /// The rendered node statement, pinned as the text the store receives.
+    ///
+    /// The pin makes any rendering change a visible snapshot diff in review instead of a
+    /// silent swap of what runs against the store. Reviewing a diff, hold it to the
+    /// statement's own contract: the final ordering is the scope row, which is what makes
+    /// stream position the row id.
     #[test]
-    fn node_stream_orders_by_scope_row() {
+    fn node_statement_renders_its_pinned_text() {
         let axes = TemporalAxes::now();
         let types = vec![Uuid::nil()];
 
-        let statement = node_statement(&axes, &types);
-        assert!(
-            normalize(&statement.sql).ends_with("ORDER BY \"scope\".\"row\" ASC"),
-            "the node statement's final ordering is the scope row"
-        );
+        insta::assert_snapshot!(node_statement(&axes, &types).sql);
     }
 
-    /// The edge stream orders by link identity, the total order the payload stream shares.
+    /// The rendered edge statement, pinned as the text the store receives.
+    ///
+    /// The pin makes any rendering change a visible snapshot diff in review instead of a
+    /// silent swap of what runs against the store. Reviewing a diff, hold it to the
+    /// statement's own contract: the final ordering is link identity, the total order the
+    /// payload stream shares.
     #[test]
-    fn edge_stream_orders_by_link_identity() {
+    fn edge_statement_renders_its_pinned_text() {
         let axes = TemporalAxes::now();
         let types = vec![Uuid::nil()];
 
-        let statement = edge_statement(&axes, &types);
-        assert!(
-            normalize(&statement.sql).ends_with(
-                "ORDER BY \"links\".\"web_id\" ASC, \"links\".\"entity_uuid\" ASC, \
-                 \"links\".\"source_row\" ASC, \"links\".\"target_row\" ASC"
-            ),
-            "the edge statement's final ordering is the link identity"
+        insta::assert_snapshot!(edge_statement(&axes, &types).sql);
+    }
+
+    /// The legend streams order exactly as their positional partners, which is the whole
+    /// agreement that lets a payload row annotate the stream row at the same position.
+    #[test]
+    fn legend_streams_share_their_partners_ordering() {
+        #![expect(clippy::string_slice)]
+        let axes = TemporalAxes::now();
+        let types = vec![Uuid::nil()];
+
+        let order_of = |sql: &str| {
+            let normalized = normalize(sql);
+            let position = normalized
+                .rfind("ORDER BY")
+                .expect("a positional statement orders its rows");
+            normalized[position..].to_owned()
+        };
+
+        assert_eq!(
+            order_of(&node_legend_statement(&axes, &types).sql),
+            order_of(&node_statement(&axes, &types).sql),
+            "the node legends align to the node stream by shared ordering"
+        );
+        assert_eq!(
+            order_of(&edge_legend_statement(&axes, &types).sql),
+            order_of(&edge_statement(&axes, &types).sql),
+            "the edge legends align to the edge stream by shared ordering"
         );
     }
 }

@@ -1,0 +1,16 @@
+---
+source: libs/@local/graph/atlas/src/postgres/card/prose.rs
+expression: ancestor_statement(&types).sql
+---
+SELECT "mapping"."ordinality", "ids"."base_url", "types"."schema"->>'$id', "types"."schema"->>'title', "types"."schema"->>'description', "inherits"."target_entity_type_ontology_id"
+FROM UNNEST(($1::uuid[])) WITH ORDINALITY AS "mapping"("ontology_id", "ordinality")
+INNER JOIN "entity_type_inherits_from" AS "inherits"
+  ON "inherits"."source_entity_type_ontology_id" = "mapping"."ontology_id"
+INNER JOIN "entity_types" AS "types"
+  ON "types"."ontology_id" = "inherits"."target_entity_type_ontology_id"
+INNER JOIN "ontology_ids" AS "ids"
+  ON "ids"."ontology_id" = "types"."ontology_id"
+INNER JOIN "ontology_ids" AS "own"
+  ON "own"."ontology_id" = "mapping"."ontology_id"
+WHERE "ids"."base_url" != $2 AND "ids"."base_url" != "own"."base_url"
+ORDER BY "mapping"."ordinality" ASC, "inherits"."depth" ASC, "inherits"."target_entity_type_ontology_id" ASC

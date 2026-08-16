@@ -9,11 +9,9 @@ use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
 use crate::{
     bitset::DenseBitSlice,
-    dataset::{
-        auxiliary::{Icon, Label},
-        postgres::id::ArchivedEntityId,
-    },
+    dataset::auxiliary::{Icon, Label},
     identity::{BasePosition, NodeRowId},
+    postgres::id::ArchivedEntityId,
     serve::schedule::{ArrivalIndex, ArrivalRow, ViewRow},
 };
 

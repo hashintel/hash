@@ -18,7 +18,6 @@ use super::{
     secret::WireSecret,
 };
 use crate::{
-    dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{
         array::ArrayFile,
         generation::{Generation, GenerationId, GenerationRoot, OpenError},
@@ -33,6 +32,7 @@ use crate::{
         BasePosition, Column, EdgeRowId, Element, ImportanceRank, NodeRowId, OntologyRowId,
     },
     math::{Bounds2, Vec2},
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     salt::{
         adjacency::AdjacencyArchive,
         fit::prepare::identity::IdentityTableArchive,

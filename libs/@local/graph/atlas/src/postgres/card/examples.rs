@@ -15,7 +15,6 @@ use uuid::Uuid;
 
 use super::{
     super::{
-        super::TemporalAxes,
         LINK_ROOT_BASE_URL,
         sql::{
             AttachmentVocabulary, Axes, MAPPING, Mapping, current_identity_join,
@@ -24,6 +23,7 @@ use super::{
     },
     CardParameters, OwnedExample, RelationFacts, fact_at,
 };
+use crate::dataset::TemporalAxes;
 
 /// The field separator inside a stable hash's input, keeping the hashed tuple unambiguous.
 ///
@@ -649,6 +649,21 @@ struct ExampleColumns {
 /// `stable_hash` order: `scored_examples` counts endpoint frequencies and ranks duplicate pairs,
 /// `stratified_examples` keeps one row per pair and ranks within each source-direct-type
 /// subgroup, and `ranked_examples` orders each relation's pool deterministically.
+///
+/// # SQL
+///
+/// ```sql
+/// WITH relations AS (<relations>),
+///     links AS (<instances>),
+///     raw_examples AS (<raw_examples>),
+///     scored_examples AS (<scored_examples>),
+///     stratified_examples AS (<stratified_examples>),
+///     ranked_examples AS (<ranked_examples>)
+/// SELECT <the identity, label, closure, and frequency columns of each pooled row>
+/// FROM ranked_examples
+/// WHERE relation_rank <= <pool>
+/// ORDER BY ranked_examples.ordinality, ranked_examples.relation_rank
+/// ```
 fn example_statement<'params>(
     axes: &'params TemporalAxes,
     types: &'params (impl ToSql + Sync),
@@ -730,6 +745,18 @@ fn example_statement<'params>(
     BoundStatement::new(&statement, binder, columns)
 }
 
+// A window count includes the row it annotates, so the value is at least
+// 1 and the fallback never fires.
+fn frequency(value: i64) -> u64 {
+    u64::try_from(value).unwrap_or(1)
+}
+
+// The bound rides to Postgres as a bigint; a configuration large enough
+// to overflow it saturates to "no bound".
+fn pool_bound(count: usize, factor: usize) -> i64 {
+    i64::try_from(count.saturating_mul(factor)).unwrap_or(i64::MAX)
+}
+
 /// Applies one example row to its relation's facts.
 fn apply_row(
     row: &Row,
@@ -801,18 +828,6 @@ pub(super) async fn example_rows(
     Ok(())
 }
 
-// A window count includes the row it annotates, so the value is at least
-// 1 and the fallback never fires.
-fn frequency(value: i64) -> u64 {
-    u64::try_from(value).unwrap_or(1)
-}
-
-// The bound rides to Postgres as a bigint; a configuration large enough
-// to overflow it saturates to "no bound".
-fn pool_bound(count: usize, factor: usize) -> i64 {
-    i64::try_from(count.saturating_mul(factor)).unwrap_or(i64::MAX)
-}
-
 #[cfg(test)]
 mod tests {
     use uuid::Uuid;
@@ -829,31 +844,16 @@ mod tests {
         let statement = example_statement(&axes, &types, &64, &256);
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
-}
 
-#[cfg(test)]
-mod prepare_probe {
-    use tokio_postgres::NoTls;
-    use uuid::Uuid;
-
-    use super::example_statement;
-    use crate::dataset::TemporalAxes;
-
-    #[tokio::test]
-    async fn statement_prepares_against_the_live_store() {
-        let (client, connection) = tokio_postgres::connect(
-            "host=localhost user=postgres password=postgres dbname=graph",
-            NoTls,
-        )
-        .await
-        .expect("the graph store is reachable");
-        tokio::spawn(connection);
-
+    /// The rendered statement, pinned as the text the store receives.
+    ///
+    /// The pin makes any rendering change a visible snapshot diff in review instead of a
+    /// silent swap of what runs against the store.
+    #[test]
+    fn statement_renders_its_pinned_text() {
         let axes = TemporalAxes::now();
-        let types: Vec<Uuid> = Vec::new();
-        let statement = example_statement(&axes, &types, &64, &256);
-        if let Err(error) = client.prepare(&statement.sql).await {
-            panic!("example: {error}");
-        }
+        let types = vec![Uuid::nil()];
+
+        insta::assert_snapshot!(example_statement(&axes, &types, &64, &256).sql);
     }
 }

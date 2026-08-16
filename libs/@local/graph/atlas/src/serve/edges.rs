@@ -24,8 +24,8 @@ use super::{
     walk::Walk,
 };
 use crate::{
-    dataset::postgres::id::ArchivedEntityId,
     identity::NodeRowId,
+    postgres::id::ArchivedEntityId,
     salt::wire::{
         edges::{EdgesResponse, EdgesTrailer},
         tile::TileCoordinate,

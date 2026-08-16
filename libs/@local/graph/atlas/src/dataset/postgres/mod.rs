@@ -8,16 +8,16 @@
 //! contain the axes, so axes in the past read the graph as it stood then, and the axes a fit
 //! records make its input addressable after the fact.
 //!
+//! The statements themselves live in [`crate::postgres`] and run here under its frozen-snapshot
+//! regime: the transaction is what turns the fragment-level numbering agreement documented at
+//! [`corpus::scope`] into stream-level row identity.
+//!
 //! # Row identity
 //!
-//! Node row ids are positions, assigned by the [`corpus::scope`] fragment: `row_number()` over
-//! canonical `(web_id, entity_uuid)` order, zero-based. The ordering key is the entity's
-//! immutable identity rather than its content, and under the frozen snapshot every query sees
-//! the same visible set, so every statement that attaches the fragment re-derives the
-//! identical numbering. An endpoint row id names the node the node stream delivered only because
-//! of that agreement: [`corpus::links`] densifies endpoints through `scope` in a different query
-//! execution than the node stream that delivers those rows, and the two coincide because of the
-//! snapshot rather than by luck.
+//! Node row ids are positions: [`corpus::scope`] numbers the corpus, and under the frozen
+//! snapshot every statement that attaches the fragment re-derives the identical numbering, so
+//! an endpoint row id densified by [`corpus::links`] in one query execution names the node the
+//! node stream delivered in another.
 //!
 //! Delivery order rides the same contract. The node stream orders by the scope row, and the link
 //! stream orders by link identity - already a total order, since the store admits exactly one
@@ -25,210 +25,33 @@
 //! types) carry no `ORDER BY` at all, because the returned identity keys each item. Order is
 //! therefore deterministic exactly where identity is positional and unconstrained where it is
 //! not.
-//!
-//! # The statement discipline
-//!
-//! Every statement is a value of the store's statement AST
-//! ([`SelectStatement`](hash_graph_postgres_store::store::postgres::query::SelectStatement)),
-//! composed from shared fragments and rendered to SQL once when it leaves the builder. The
-//! cross-boundary agreements travel as structure:
-//!
-//! - The shared fragments - [`corpus::scope`], [`corpus::links`], the type-ordinal mapping - are
-//!   themselves statement values, so a statement composes them by attaching them to its WITH clause
-//!   instead of splicing rendered text, and a fragment's shape is one declaration however many
-//!   statements share it.
-//! - Schema tables and columns come from the store's own vocabulary
-//!   ([`Table`](hash_graph_postgres_store::store::postgres::query::Table) and its column enums), so
-//!   a rename upstream fails compilation here instead of failing at query time.
-//! - The corpus's own virtual tables carry the same discipline through [`vocabulary`]: the fragment
-//!   that creates a table aliases its outputs through the enum its consumers cite.
-//! - Parameters exist only as parameter expressions returned by a bind
-//!   ([`Binder`](hash_graph_postgres_store::store::postgres::query::Binder)), so a statement cannot
-//!   cite a parameter its bind list does not carry and the indices cannot drift from the values.
-//! - Output columns exist only as indices returned by the select list
-//!   ([`SelectList`](hash_graph_postgres_store::store::postgres::query::SelectList)), which also
-//!   builds the select clause, so the decoder reads exactly the positions the statement selected.
-//! - The link-attachment discriminants bind as the store's own enums, type-checked on the wire,
-//!   rather than as quoted literals.
-//! - Names whose agreement never leaves one statement - a join alias such as `meta`, a CTE chain's
-//!   stage-local columns - are named constants beside the statement that introduces them
-//!   ([`Aliased`](hash_graph_postgres_store::store::postgres::query::Aliased)), so every mention
-//!   moves in one edit.
-//!
-//! The store's `SelectCompiler` stays out of this module: the compiler translates a
-//! caller-supplied filter into a statement at runtime, as in the serving side's visibility
-//! proofs. Everything here is a fixed statement composed from shared fragments, and the AST
-//! expresses such a statement directly.
-//!
-//! # The corpus
-//!
-//! The corpus has one definition. Every corpus statement attaches [`corpus::scope`] verbatim
-//! (non-draft, non-archived, non-link, holding a whole-entity embedding, current at both axes),
-//! so the universe cannot drift between the type bootstrap, the node stream, and the link
-//! stream. The type table is the ontology universe: every type reachable from the corpus at any
-//! inheritance depth in uuid byte order, each position an ontology row id. The table round-trips
-//! into later statements as a bound array, where `unnest WITH ORDINALITY` re-derives the same
-//! numbering store-side, so both ends share one map by construction.
-//!
-//! The store also does the geometry's data preparation: `subvector` truncates each embedding to
-//! the projector's prefix and `l2_normalize` renormalizes it inside the statement, so the
-//! connection carries dense rows and unit-norm prefixes and nothing wider. The
-//! canonical-embedding stream is the one full-width path - audit-time exactness over fit-time
-//! throughput.
 
-mod card;
-mod corpus;
 mod error;
-pub(crate) mod id;
-mod lookup;
-mod sql;
 mod streams;
-mod vector;
-mod vocabulary;
 
 use std::io;
 
 use futures::{FutureExt as _, Stream, TryStreamExt as _, stream};
-use hash_graph_postgres_store::store::{AsClient, postgres::query::BoundStatement};
+use hash_graph_postgres_store::store::postgres::query::BoundStatement;
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
-use tokio_postgres::{GenericClient as _, IsolationLevel, Transaction};
-use type_system::knowledge::entity::id::EntityEditionId;
+use tokio_postgres::{IsolationLevel, Transaction};
 use uuid::Uuid;
 
-use self::id::{ArchivedEntityId, ArchivedOntologyTypeUuid};
-pub(crate) use self::{
-    card::CardParameters,
-    error::PostgresDatasetError,
-    lookup::{Classification, EditionDisplay, LinkDisplay},
-};
+pub(crate) use self::error::PostgresDatasetError;
 use super::{
-    CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
-    TemporalAxes,
+    CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, TemporalAxes,
     auxiliary::{OwnedIcon, OwnedLegend},
     card::Card,
 };
-use crate::math::BoxedVecN;
-
-/// The type every link entity type descends from.
-const LINK_ROOT_BASE_URL: &str = "https://blockprotocol.org/@blockprotocol/types/entity-type/link/";
-
-/// Classifies the requested identities against the store's current state.
-///
-/// One batched read per call, at axes taken at the call itself, so the verdicts describe the
-/// store as it stands rather than any fit's frozen view. The answers arrive keyed by identity,
-/// and the caller counts them against its requests. An identity the read answers nothing about
-/// resolved to no current edition at the read's axes.
-///
-/// # Errors
-///
-/// Returns [`PostgresDatasetError`] when the store rejects the read or a row does not decode.
-pub(crate) async fn classify_entities(
-    store: &impl AsClient,
-    ids: impl Iterator<Item = ArchivedEntityId>,
-) -> Result<Vec<(ArchivedEntityId, Classification)>, PostgresDatasetError> {
-    let (web_ids, entity_uuids) = lookup::request_arrays(ids);
-    let axes = TemporalAxes::now();
-    let statement = lookup::classification_statement(&axes, &web_ids, &entity_uuids);
-
-    let rows = store
-        .as_client()
-        .query(&statement.sql, &statement.parameters)
-        .await
-        .map_err(PostgresDatasetError::from)?;
-
-    rows.iter()
-        .map(|row| lookup::decode_classification(row, &statement.columns))
-        .collect()
-}
-
-/// Reads each requested identity's stored whole-entity embedding as its projector input.
-///
-/// One batched read per call, bound to identities rather than editions: whichever edition's
-/// embedding the store holds answers the request. Each answer is the embedding's leading
-/// [`PROJECTOR_DIMENSIONS`] components, l2-normalized inside the statement by the node stream's
-/// own expression, so an answer is bit-identical to the representation row a fit reads for the
-/// same stored embedding. The answers arrive keyed by identity, and the caller counts them
-/// against its requests. An identity the read answers nothing about holds no whole-entity
-/// embedding yet.
-///
-/// # Errors
-///
-/// Returns [`PostgresDatasetError`] when the store rejects the read or a row does not decode.
-pub(crate) async fn read_projector_embeddings(
-    store: &impl AsClient,
-    ids: impl Iterator<Item = ArchivedEntityId>,
-) -> Result<Vec<(ArchivedEntityId, BoxedVecN<PROJECTOR_DIMENSIONS>)>, PostgresDatasetError> {
-    let (web_ids, entity_uuids) = lookup::request_arrays(ids);
-    let statement = lookup::projector_embedding_statement(&web_ids, &entity_uuids);
-
-    let rows = store
-        .as_client()
-        .query(&statement.sql, &statement.parameters)
-        .await
-        .map_err(PostgresDatasetError::from)?;
-
-    rows.iter()
-        .map(|row| lookup::decode_projector_embedding(row, &statement.columns))
-        .collect()
-}
-
-/// Reads each requested edition's display payload: its cached label and first cached type.
-///
-/// One batched read per call, keyed by edition rather than identity, because a placement records
-/// the edition whose data it captured and an edition id names one immutable row. Every requested
-/// edition answers exactly once. An edition without a cache row answers the empty label and no
-/// type, the disposition a fitted row's legend shares.
-///
-/// # Errors
-///
-/// Returns [`PostgresDatasetError`] when the store rejects the read or a row does not decode.
-pub(crate) async fn read_edition_displays(
-    store: &impl AsClient,
-    editions: impl Iterator<Item = EntityEditionId>,
-) -> Result<Vec<(EntityEditionId, EditionDisplay)>, PostgresDatasetError> {
-    let edition_ids: Vec<Uuid> = editions.map(|edition| *edition.as_uuid()).collect();
-    let statement = lookup::edition_display_statement(&edition_ids);
-
-    let rows = store
-        .as_client()
-        .query(&statement.sql, &statement.parameters)
-        .await
-        .map_err(PostgresDatasetError::from)?;
-
-    rows.iter()
-        .map(|row| lookup::decode_edition_display(row, &statement.columns))
-        .collect()
-}
-
-/// Reads each requested link identity's display payload: its current edition's cached label and
-/// first cached type as a versioned URL.
-///
-/// One batched read per call, at axes taken at the call itself, so the payloads describe the
-/// store as it stands rather than any fit's frozen view. The answers arrive keyed by identity,
-/// and the caller counts them against its requests. An identity the read answers nothing about
-/// resolved to no current edition at the read's axes.
-///
-/// # Errors
-///
-/// Returns [`PostgresDatasetError`] when the store rejects the read or a row does not decode.
-pub(crate) async fn read_link_displays(
-    store: &impl AsClient,
-    ids: impl Iterator<Item = ArchivedEntityId>,
-) -> Result<Vec<(ArchivedEntityId, LinkDisplay)>, PostgresDatasetError> {
-    let (web_ids, entity_uuids) = lookup::request_arrays(ids);
-    let axes = TemporalAxes::now();
-    let statement = lookup::link_display_statement(&axes, &web_ids, &entity_uuids);
-
-    let rows = store
-        .as_client()
-        .query(&statement.sql, &statement.parameters)
-        .await?;
-
-    rows.iter()
-        .map(|row| lookup::decode_link_display(row, &statement.columns))
-        .collect()
-}
+use crate::{
+    math::BoxedVecN,
+    postgres::{
+        CardParameters, card, corpus, embeddings,
+        id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+        legends, node_types, ontology, requests,
+    },
+};
 
 /// A [`Dataset`] reading one frozen view of the HASH graph store.
 ///
@@ -411,7 +234,7 @@ impl Dataset for PostgresDataset<'_> {
     fn ontology(&self) -> Self::OntologyStream<'_> {
         async move {
             let types = self.type_table().await?;
-            lookup::ontology(&self.transaction, types).await
+            ontology::ontology(&self.transaction, types).await
         }
         .into_stream()
         .try_flatten()
@@ -421,21 +244,21 @@ impl Dataset for PostgresDataset<'_> {
         &self,
         nodes: I,
     ) -> Self::CanonicalNodeEmbeddingsStream<'_, I> {
-        let (web_ids, entity_uuids) = lookup::request_arrays(nodes);
+        let (web_ids, entity_uuids) = requests::request_arrays(nodes);
 
         async move {
             let BoundStatement {
                 sql,
                 parameters,
                 columns,
-            } = lookup::canonical_embedding_statement(&web_ids, &entity_uuids);
+            } = embeddings::canonical_embedding_statement(&web_ids, &entity_uuids);
 
             self.transaction
                 .query_raw(&sql, parameters)
                 .await
                 .map(move |rows| {
                     rows.map_err(From::from).and_then(move |row| {
-                        core::future::ready(lookup::decode_canonical_embedding(&row, &columns))
+                        core::future::ready(embeddings::decode_canonical_embedding(&row, &columns))
                     })
                 })
                 .map_err(PostgresDatasetError::from)
@@ -448,7 +271,7 @@ impl Dataset for PostgresDataset<'_> {
         &self,
         nodes: I,
     ) -> Self::NodeTypesStream<'_, I> {
-        let (web_ids, entity_uuids) = lookup::request_arrays(nodes);
+        let (web_ids, entity_uuids) = requests::request_arrays(nodes);
 
         async move {
             let types = self.type_table().await?;
@@ -456,14 +279,14 @@ impl Dataset for PostgresDataset<'_> {
                 sql,
                 parameters,
                 columns,
-            } = lookup::node_type_statement(&self.axes, &types, &web_ids, &entity_uuids);
+            } = node_types::node_type_statement(&self.axes, &types, &web_ids, &entity_uuids);
 
             self.transaction
                 .query_raw(&sql, parameters)
                 .await
                 .map(move |rows| {
                     rows.map_err(From::from).and_then(move |row| {
-                        core::future::ready(lookup::decode_node_types(&row, &columns))
+                        core::future::ready(node_types::decode_node_types(&row, &columns))
                     })
                 })
                 .map_err(PostgresDatasetError::from)
@@ -518,14 +341,14 @@ impl Dataset for PostgresDataset<'_> {
                 sql,
                 parameters,
                 columns,
-            } = lookup::node_legend_statement(&self.axes, &types);
+            } = legends::node_legend_statement(&self.axes, &types);
 
             self.transaction
                 .query_raw(&sql, parameters)
                 .await
                 .map(move |rows| {
                     rows.map_err(From::from).and_then(move |row| {
-                        core::future::ready(lookup::decode_legend(&row, &columns))
+                        core::future::ready(legends::decode_legend(&row, &columns))
                     })
                 })
                 .map_err(PostgresDatasetError::from)
@@ -548,14 +371,14 @@ impl Dataset for PostgresDataset<'_> {
                 sql,
                 parameters,
                 columns,
-            } = lookup::edge_legend_statement(&self.axes, &types);
+            } = legends::edge_legend_statement(&self.axes, &types);
 
             self.transaction
                 .query_raw(&sql, parameters)
                 .await
                 .map(move |rows| {
                     rows.map_err(From::from).and_then(move |row| {
-                        core::future::ready(lookup::decode_legend(&row, &columns))
+                        core::future::ready(legends::decode_legend(&row, &columns))
                     })
                 })
                 .map_err(PostgresDatasetError::from)
@@ -574,64 +397,9 @@ impl Dataset for PostgresDataset<'_> {
     fn ontology_auxiliary_payload(&self) -> Self::OntologyAuxiliaryPayloadStream<'_> {
         async move {
             let types = self.type_table().await?;
-            lookup::ontology_icons(&self.transaction, types).await
+            ontology::ontology_icons(&self.transaction, types).await
         }
         .into_stream()
         .try_flatten()
-    }
-}
-
-#[cfg(test)]
-mod prepare_probe {
-    use tokio_postgres::NoTls;
-    use uuid::Uuid;
-
-    use super::{corpus, lookup, streams};
-    use crate::dataset::TemporalAxes;
-
-    #[tokio::test]
-    async fn statements_prepare_against_the_live_store() {
-        let (client, connection) = tokio_postgres::connect(
-            "host=localhost user=postgres password=postgres dbname=graph",
-            NoTls,
-        )
-        .await
-        .expect("the graph store is reachable");
-        tokio::spawn(connection);
-
-        let axes = TemporalAxes::now();
-        let types: Vec<Uuid> = Vec::new();
-        let web_ids: Vec<Uuid> = Vec::new();
-        let entity_uuids: Vec<Uuid> = Vec::new();
-
-        for (name, sql) in [
-            ("type table", corpus::type_table_statement(&axes).sql),
-            ("node stream", streams::node_statement(&axes, &types).sql),
-            ("edge stream", streams::edge_statement(&axes, &types).sql),
-            (
-                "canonical embedding",
-                lookup::canonical_embedding_statement(&web_ids, &entity_uuids).sql,
-            ),
-            (
-                "node type",
-                lookup::node_type_statement(&axes, &types, &web_ids, &entity_uuids).sql,
-            ),
-            (
-                "classification",
-                lookup::classification_statement(&axes, &web_ids, &entity_uuids).sql,
-            ),
-            (
-                "node legend",
-                lookup::node_legend_statement(&axes, &types).sql,
-            ),
-            (
-                "edge legend",
-                lookup::edge_legend_statement(&axes, &types).sql,
-            ),
-        ] {
-            if let Err(error) = client.prepare(&sql).await {
-                panic!("{name}: {error}");
-            }
-        }
     }
 }

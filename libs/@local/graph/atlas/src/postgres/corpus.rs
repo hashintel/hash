@@ -19,7 +19,6 @@ use hash_graph_postgres_store::store::postgres::query::{
 use hash_graph_store::query::Ordering;
 
 use super::{
-    super::TemporalAxes,
     LINK_ROOT_BASE_URL,
     sql::{
         AttachmentVocabulary, Axes, MAPPING, Mapping, current_identity_join, edition_conjunction,
@@ -27,6 +26,7 @@ use super::{
     },
     vocabulary::{CorpusTable, EditionSource, Links, Scope, TypeRows},
 };
+use crate::dataset::TemporalAxes;
 
 /// The subquery deciding whether an edition is typed by the link entity type.
 ///
@@ -34,7 +34,18 @@ use super::{
 /// the type's base URL rather than a version-pinned ontology id. It keys on the edition's own
 /// type rather than on the edges it has, so a link with a missing left attachment is still no
 /// point glyph.
-pub(super) fn link_typed(
+///
+/// # SQL
+///
+/// ```sql
+/// SELECT
+/// FROM entity_is_of_type AS is_link
+/// INNER JOIN ontology_ids AS link_type
+///   ON link_type.ontology_id = is_link.entity_type_ontology_id
+///  AND link_type.base_url = <link_root>
+/// WHERE is_link.entity_edition_id = <edition>
+/// ```
+pub(crate) fn link_typed(
     edition: impl Into<Expression>,
     link_root: Placeholder,
 ) -> SelectStatement {
@@ -84,7 +95,18 @@ pub(super) fn link_typed(
 /// `row_number` cannot assign twice. `entity_temporal_metadata.draft_id` alone decides the draft
 /// axis: the embedding table's own draft column never enters, because the unique index already
 /// guarantees one whole-entity row per identity.
-pub(super) fn scope(axes: Axes, link_root: Placeholder) -> SelectStatement {
+///
+/// # SQL
+///
+/// ```sql
+/// SELECT meta.web_id, meta.entity_uuid, meta.entity_edition_id,
+///     row_number() OVER (ORDER BY meta.web_id, meta.entity_uuid) - 1 AS row
+/// FROM entity_embeddings AS embedding
+/// INNER JOIN entity_temporal_metadata AS meta ON <the identity join>
+/// INNER JOIN entity_editions AS edition ON <the edition join>
+/// WHERE embedding.property IS NULL AND NOT EXISTS (<link-typed>)
+/// ```
+pub(crate) fn scope(axes: Axes, link_root: Placeholder) -> SelectStatement {
     const EMBEDDING: Aliased<EntityEmbeddings> = Aliased::of(Table::EntityEmbeddings, "embedding");
     const META: Aliased<EntityTemporalMetadata> =
         Aliased::of(Table::EntityTemporalMetadata, "meta");
@@ -173,7 +195,21 @@ pub(super) fn scope(axes: Axes, link_root: Placeholder) -> SelectStatement {
 /// endpoint falls outside the corpus drops with its endpoint, and the delivered rows are exactly
 /// the node stream's positions. The link entity itself passes the same temporal and archival
 /// conditions as any node.
-pub(super) fn links(axes: Axes, attachments: AttachmentVocabulary) -> SelectStatement {
+///
+/// # SQL
+///
+/// ```sql
+/// SELECT left_edge.source_web_id, left_edge.source_entity_uuid, meta.entity_edition_id,
+///     source.row, target.row, left_edge.confidence, right_edge.confidence
+/// FROM entity_edge AS left_edge
+/// INNER JOIN entity_edge AS right_edge ON <the same source, kind has-right, outgoing>
+/// INNER JOIN scope AS source ON <left_edge's target identity>
+/// INNER JOIN scope AS target ON <right_edge's target identity>
+/// INNER JOIN entity_temporal_metadata AS meta ON <the identity join>
+/// INNER JOIN entity_editions AS edition ON <the edition join>
+/// WHERE left_edge.kind = <has_left> AND left_edge.direction = <outgoing>
+/// ```
+pub(crate) fn links(axes: Axes, attachments: AttachmentVocabulary) -> SelectStatement {
     const LEFT_EDGE: Aliased<EntityEdge> = Aliased::of(Table::EntityEdge, "left_edge");
     const RIGHT_EDGE: Aliased<EntityEdge> = Aliased::of(Table::EntityEdge, "right_edge");
     const SOURCE: Aliased<Scope> = Aliased::renaming(CorpusTable::Scope.as_str(), "source");
@@ -324,7 +360,20 @@ impl DatabaseColumn<'_> for TypeOrdinals {
 /// `types` is the ordinal-ordered type table and `S` names the table whose editions receive
 /// their direct-type ordinals. The aggregation works over sets in one hash join, so its cost
 /// scales with the edition count rather than with rendered output rows.
-pub(super) fn type_rows<S: EditionSource>(types: Placeholder) -> SelectStatement {
+///
+/// # SQL
+///
+/// ```sql
+/// SELECT is_of_type.entity_edition_id,
+///     array_agg(mapping.ordinal ORDER BY mapping.ordinal) AS ordinals
+/// FROM entity_is_of_type AS is_of_type
+/// INNER JOIN (<the 0-based ordinal mapping>) AS mapping
+///   ON mapping.ontology_id = is_of_type.entity_type_ontology_id
+/// WHERE is_of_type.inheritance_depth = 0
+///   AND is_of_type.entity_edition_id IN (SELECT entity_edition_id FROM <S>)
+/// GROUP BY is_of_type.entity_edition_id
+/// ```
+pub(crate) fn type_rows<S: EditionSource>(types: Placeholder) -> SelectStatement {
     const IS_OF_TYPE: Aliased<EntityIsOfType> = Aliased::of(Table::EntityIsOfType, "is_of_type");
     const ORDINALS: Correlation<TypeOrdinals> = Correlation::new("mapping");
 
@@ -411,7 +460,7 @@ pub(super) fn type_rows<S: EditionSource>(types: Placeholder) -> SelectStatement
 }
 
 /// The output column of the type-table bootstrap.
-pub(super) struct TypeTableColumns {
+pub(crate) struct TypeTableColumns {
     /// The reachable type's ontology id.
     pub ontology_id: usize,
 }
@@ -421,7 +470,19 @@ pub(super) struct TypeTableColumns {
 /// The statement lists every type reachable from the corpus - the direct types of every scoped
 /// edition and every corpus link's edition - in uuid byte order, so each result position is the
 /// ontology row id.
-pub(super) fn type_table_statement(axes: &TemporalAxes) -> BoundStatement<'_, TypeTableColumns> {
+///
+/// # SQL
+///
+/// ```sql
+/// WITH scope AS (<scope>), links AS (<links>)
+/// SELECT DISTINCT ON (is_of_type.entity_type_ontology_id) is_of_type.entity_type_ontology_id
+/// FROM (SELECT entity_edition_id FROM scope
+///       UNION ALL SELECT entity_edition_id FROM links) AS editions
+/// INNER JOIN entity_is_of_type AS is_of_type
+///   ON is_of_type.entity_edition_id = editions.entity_edition_id
+/// ORDER BY is_of_type.entity_type_ontology_id
+/// ```
+pub(crate) fn type_table_statement(axes: &TemporalAxes) -> BoundStatement<'_, TypeTableColumns> {
     const EDITIONS: Correlation<Scope> = Correlation::new("editions");
     const IS_OF_TYPE: Aliased<EntityIsOfType> = Aliased::of(Table::EntityIsOfType, "is_of_type");
 
@@ -504,5 +565,16 @@ mod tests {
 
         let statement = type_table_statement(&axes);
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
+    }
+
+    /// The rendered statement, pinned as the text the store receives.
+    ///
+    /// The pin makes any rendering change a visible snapshot diff in review instead of a
+    /// silent swap of what runs against the store.
+    #[test]
+    fn statement_renders_its_pinned_text() {
+        let axes = TemporalAxes::now();
+
+        insta::assert_snapshot!(type_table_statement(&axes).sql);
     }
 }

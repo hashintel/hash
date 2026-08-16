@@ -1,0 +1,11 @@
+---
+source: libs/@local/graph/atlas/src/postgres/edition_display.rs
+expression: edition_display_statement(&edition_ids).sql
+---
+SELECT "request"."entity_edition_id", ("cache"."labels")[1], "first_type"."ontology_id"
+FROM UNNEST(($1::uuid[])) AS "request"("entity_edition_id")
+LEFT OUTER JOIN "entity_edition_cache" AS "cache"
+  ON "cache"."entity_edition_id" = "request"."entity_edition_id"
+LEFT OUTER JOIN "ontology_ids" AS "first_type"
+  ON "first_type"."base_url" = ("cache"."base_urls")[1]
+ AND "first_type"."version" = ("cache"."versions")[1]

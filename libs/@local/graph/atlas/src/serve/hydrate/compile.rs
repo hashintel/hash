@@ -60,8 +60,8 @@ use uuid::Uuid;
 use super::MaskingActor;
 use crate::{
     bitset::CompressedBitSet,
-    dataset::postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
     offload::OffloadError,
+    postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
     serve::{Atlas, VisibilityProof, delta::PlacementCohort},
 };
 

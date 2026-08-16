@@ -25,8 +25,9 @@ use type_system::ontology::id::VersionedUrl;
 
 use super::{Kind, cbor::CborWriter, envelope::EnvelopeWriter, tile::encode_details};
 use crate::{
-    dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
+    dataset::auxiliary::Label,
     integrity::Sha256Digest,
+    postgres::id::ArchivedEntityId,
     serve::{TableIndex, WireRow, hydrate::EdgeSlot, neighbourhood::EdgeColumns},
 };
 

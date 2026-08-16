@@ -23,7 +23,6 @@ use crate::{
         auxiliary::{OwnedIcon, OwnedLegend},
         card::Card,
         memory::{MemoryDataset, MemoryEdgeId, MemoryNodeId, MemoryOntologyId},
-        postgres::id::ArchivedOntologyTypeUuid,
     },
     file::{
         array::ArrayFile,
@@ -49,6 +48,7 @@ use crate::{
         d_non_negative, d_positive, greater_than_one, non_negative, open_unit_fraction, positive,
         unit_fraction,
     },
+    postgres::id::ArchivedOntologyTypeUuid,
     progress::NoProgress,
     salt::{
         adjacency::{AdjacencyArchive, EdgeList},

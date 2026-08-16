@@ -1,0 +1,31 @@
+---
+source: libs/@local/graph/atlas/src/postgres/legends.rs
+expression: "node_legend_statement(&axes, &types).sql"
+---
+WITH "scope" AS (SELECT "meta"."web_id" AS "web_id", "meta"."entity_uuid" AS "entity_uuid", "meta"."entity_edition_id" AS "entity_edition_id", row_number() OVER (ORDER BY "meta"."web_id" ASC, "meta"."entity_uuid" ASC) - 1 AS "row"
+FROM "entity_embeddings" AS "embedding"
+INNER JOIN "entity_temporal_metadata" AS "meta"
+  ON "meta"."web_id" = "embedding"."web_id"
+ AND "meta"."entity_uuid" = "embedding"."entity_uuid"
+ AND "meta"."draft_id" IS NULL
+ AND "meta"."transaction_time" @> $1::TIMESTAMPTZ
+ AND "meta"."decision_time" @> $2::TIMESTAMPTZ
+INNER JOIN "entity_editions" AS "edition"
+  ON "edition"."entity_edition_id" = "meta"."entity_edition_id"
+ AND NOT("edition"."archived")
+WHERE "embedding"."property" IS NULL AND NOT(EXISTS (SELECT 
+FROM "entity_is_of_type" AS "is_link"
+INNER JOIN "ontology_ids" AS "link_type"
+  ON "link_type"."ontology_id" = "is_link"."entity_type_ontology_id"
+ AND "link_type"."base_url" = $3
+WHERE "is_link"."entity_edition_id" = "meta"."entity_edition_id")))
+SELECT ("cache"."labels")[1], "mapping"."ordinality" - 1
+FROM "scope"
+LEFT OUTER JOIN "entity_edition_cache" AS "cache"
+  ON "cache"."entity_edition_id" = "scope"."entity_edition_id"
+LEFT OUTER JOIN "ontology_ids" AS "first_type"
+  ON "first_type"."base_url" = ("cache"."base_urls")[1]
+ AND "first_type"."version" = ("cache"."versions")[1]
+LEFT OUTER JOIN UNNEST(($4::uuid[])) WITH ORDINALITY AS "mapping"("ontology_id", "ordinality")
+  ON "mapping"."ontology_id" = "first_type"."ontology_id"
+ORDER BY "scope"."row" ASC

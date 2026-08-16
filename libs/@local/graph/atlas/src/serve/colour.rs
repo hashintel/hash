@@ -21,8 +21,8 @@ use type_system::ontology::id::VersionedUrl;
 use super::Atlas;
 use crate::{
     bitset::DenseBitSlice,
-    dataset::postgres::id::ArchivedOntologyTypeUuid,
     identity::{BasePosition, OntologyRowId},
+    postgres::id::ArchivedOntologyTypeUuid,
     salt::{
         fit::prepare::identity::IdentityTableArchive,
         postings::{artifact::PostingsArchive, closure::ClosureMap},

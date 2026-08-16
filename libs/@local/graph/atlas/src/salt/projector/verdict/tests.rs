@@ -4,7 +4,7 @@ use hashql_core::id::{Id as _, IdSlice};
 use uuid::Uuid;
 
 use super::{InvalidReviewedVerdicts, PlacementClass, ReviewedVerdicts};
-use crate::dataset::postgres::id::ArchivedOntologyTypeUuid;
+use crate::postgres::id::ArchivedOntologyTypeUuid;
 
 /// Composes a wire document with the canonical exporter's key order.
 fn document(type_verdicts: &str, pair_verdicts: &str) -> String {

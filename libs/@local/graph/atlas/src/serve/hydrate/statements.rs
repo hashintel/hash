@@ -38,7 +38,7 @@ use super::{
     columns::ScalarValue,
     select::{scalar_properties, select_properties},
 };
-use crate::dataset::postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId};
+use crate::postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId};
 
 /// Builds the filter naming exactly the requested identities, excluding archived editions.
 ///
@@ -220,7 +220,7 @@ mod tests {
     };
     use uuid::Uuid;
 
-    use super::{super::statement_fixtures, DetailColumns, TypeColumns, identity_filter};
+    use super::{DetailColumns, TypeColumns, identity_filter};
 
     /// The identity filter over one nil identity, the fixture request.
     fn nil_filter() -> super::Filter<'static, super::Entity> {
@@ -291,13 +291,16 @@ mod tests {
         );
     }
 
-    /// Every statement renders exactly its pinned fixture.
+    /// The rendered type-URL read, pinned as the text the store receives.
     ///
-    /// The fixtures hold the store-received text, so a rendering change - a statement edit
-    /// here, or a change in the compiler or the statement AST upstream - lands as a fixture
-    /// diff in review instead of a silent swap of what runs against the store.
+    /// The pin makes any rendering change - a selection edit here, or a change in the
+    /// compiler upstream - a visible snapshot diff in review instead of a silent swap of what
+    /// runs against the store. Each compiled pin holds the one-identity request, which is the
+    /// shape the masking assertions read. A request naming more identities compiles its
+    /// membership as a row comparison over unnested arrays, so the pinned grammar belongs to
+    /// the one-identity request alone.
     #[test]
-    fn statements_render_their_fixtures() {
+    fn types_statement_renders_its_pinned_text() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
         let filter = nil_filter();
 
@@ -306,12 +309,20 @@ mod tests {
             .add_filter(&filter)
             .expect("the identity filter compiles against the entity query paths");
         TypeColumns::select(&mut types);
-        let (types_sql, _) = types.compile();
-        assert_eq!(
-            types_sql,
-            statement_fixtures::TYPES,
-            "the type-URL read moved off its pinned rendering"
-        );
+
+        insta::assert_snapshot!(types.compile().0);
+    }
+
+    /// The rendered masked detail read, pinned under the deployment's default protection with
+    /// no resolved actor.
+    ///
+    /// The CASE conditions grow per protected property without changing the pinned grammar.
+    /// Reviewing a diff, hold it to the masking contract: both property subqueries read the
+    /// masked object.
+    #[test]
+    fn masked_detail_statement_renders_its_pinned_text() {
+        let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
+        let filter = nil_filter();
 
         let config = PropertyProtectionFilterConfig::hash_default();
         let protection = config.to_property_protection_filter(None);
@@ -320,75 +331,25 @@ mod tests {
             .add_filter(&filter)
             .expect("the identity filter compiles against the entity query paths");
         DetailColumns::select(&mut detail, Some(&protection));
-        let (detail_sql, _) = detail.compile();
-        assert_eq!(
-            detail_sql,
-            statement_fixtures::DETAIL,
-            "the masked detail read moved off its pinned rendering"
-        );
+
+        insta::assert_snapshot!(detail.compile().0);
     }
-}
 
-#[cfg(test)]
-mod prepare_probe {
-    use hash_graph_postgres_store::store::postgres::query::SelectCompiler;
-    use hash_graph_store::{
-        filter::protection::PropertyProtectionFilterConfig,
-        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
-    };
-    use tokio_postgres::NoTls;
-    use type_system::{
-        knowledge::entity::id::{EntityId, EntityUuid},
-        principal::actor_group::WebId,
-    };
-    use uuid::Uuid;
-
-    use super::{DetailColumns, TypeColumns, identity_filter};
-
-    #[tokio::test]
-    async fn statements_prepare_against_the_live_store() {
-        let (client, connection) = tokio_postgres::connect(
-            "host=localhost user=postgres password=postgres dbname=graph",
-            NoTls,
-        )
-        .await
-        .expect("the graph store is reachable");
-        tokio::spawn(connection);
-
+    /// The rendered bare detail read, pinned without any masking configured.
+    ///
+    /// Reviewing a diff, hold it to the masking contract: both property subqueries read the
+    /// bare object, and the text carries no CASE subtraction.
+    #[test]
+    fn bare_detail_statement_renders_its_pinned_text() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
-        let filter = identity_filter([EntityId {
-            web_id: WebId::new(Uuid::nil()),
-            entity_uuid: EntityUuid::new(Uuid::nil()),
-            draft_id: None,
-        }]);
-        let config = PropertyProtectionFilterConfig::hash_default();
-        let protection = config.to_property_protection_filter(None);
+        let filter = nil_filter();
 
-        let mut types = SelectCompiler::new(Some(&temporal_axes), false);
-        types
+        let mut detail = SelectCompiler::new(Some(&temporal_axes), false);
+        detail
             .add_filter(&filter)
             .expect("the identity filter compiles against the entity query paths");
-        TypeColumns::select(&mut types);
+        DetailColumns::select(&mut detail, None);
 
-        let mut masked = SelectCompiler::new(Some(&temporal_axes), false);
-        masked
-            .add_filter(&filter)
-            .expect("the identity filter compiles against the entity query paths");
-        DetailColumns::select(&mut masked, Some(&protection));
-
-        let mut bare = SelectCompiler::new(Some(&temporal_axes), false);
-        bare.add_filter(&filter)
-            .expect("the identity filter compiles against the entity query paths");
-        DetailColumns::select(&mut bare, None);
-
-        for (name, sql) in [
-            ("types", types.compile().0),
-            ("masked detail", masked.compile().0),
-            ("bare detail", bare.compile().0),
-        ] {
-            if let Err(error) = client.prepare(&sql).await {
-                panic!("{name}: {error}");
-            }
-        }
+        insta::assert_snapshot!(detail.compile().0);
     }
 }

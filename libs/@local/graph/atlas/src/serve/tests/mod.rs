@@ -42,9 +42,9 @@ use super::{
 };
 use crate::{
     bitset::{CompressedBitSet, DenseBitSlice},
-    dataset::postgres::LinkDisplay,
     file::generation::GenerationRoot,
     identity::{BasePosition, CardRow, EdgeRowId, NodeRowId, OntologyRowId},
+    postgres::LinkDisplay,
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         landmark::select::SelectionOptions,
@@ -409,8 +409,8 @@ fn store_identities(generation: &Generation) {
     use type_system::ontology::id::VersionedUrl;
 
     use crate::{
-        dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
         file::identity::read::IdentityFile,
+        postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
         salt::fit::prepare::identity::IdentityTable,
     };
 
@@ -1446,7 +1446,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
     // two whose worse endpoint ranks best - ties on identity bytes,
     // which for the fixture ascend with the edge row - emitted in
     // ascending identity order.
-    let mut ranked: Vec<(u32, crate::dataset::postgres::id::ArchivedEntityId, u32)> = endpoints
+    let mut ranked: Vec<(u32, crate::postgres::id::ArchivedEntityId, u32)> = endpoints
         .iter()
         .enumerate()
         .map(|(row, &[source, target])| {
@@ -2064,8 +2064,8 @@ fn colored_masks_resolve_and_expand_descendants() {
 
     use super::colour;
     use crate::{
-        dataset::postgres::id::ArchivedOntologyTypeUuid,
         file::{identity::read::IdentityFile, postings::read::PostingsFile},
+        postgres::id::ArchivedOntologyTypeUuid,
         salt::{
             fit::prepare::identity::{IdentityTable, IdentityTableArchive},
             postings::{artifact::PostingsArchive, build::Postings, closure::ClosureMap},
@@ -2164,8 +2164,8 @@ fn colored_masks_resolve_and_expand_descendants() {
 }
 
 /// One synthetic entity identity per seed byte, plus its upstream string form.
-fn entity_id_of(seed: u8) -> crate::dataset::postgres::id::ArchivedEntityId {
-    crate::dataset::postgres::id::ArchivedEntityId {
+fn entity_id_of(seed: u8) -> crate::postgres::id::ArchivedEntityId {
+    crate::postgres::id::ArchivedEntityId {
         web_id: uuid::Uuid::from_bytes([seed; 16]).into(),
         entity_uuid: uuid::Uuid::from_bytes([seed ^ 0xFF; 16]).into(),
     }
@@ -2194,7 +2194,7 @@ pub(crate) fn test_codec(atlas: &Atlas) -> codec::RowCodec<NodeRowId> {
 /// Identity bytes ascend with the edge row, because `entity_id_of` leads with its seed byte.
 /// Ascending internal row order is therefore the wire's ascending-identity delivery order for the
 /// fixture.
-fn edge_identity_of(row: u32) -> crate::dataset::postgres::id::ArchivedEntityId {
+fn edge_identity_of(row: u32) -> crate::postgres::id::ArchivedEntityId {
     entity_id_of(EDGE_SEED + u8::try_from(row).expect("fixture edge rows fit u8"))
 }
 
@@ -2209,13 +2209,13 @@ fn entity_string_of(seed: u8) -> String {
 /// Writes and reopens one hand-built entity identity table.
 fn entity_identity_table<R: Row>(
     path: &camino::Utf8PathBuf,
-    ids: &[crate::dataset::postgres::id::ArchivedEntityId],
+    ids: &[crate::postgres::id::ArchivedEntityId],
 ) -> crate::salt::fit::prepare::identity::IdentityTableArchive<
-    crate::dataset::postgres::id::ArchivedEntityId,
+    crate::postgres::id::ArchivedEntityId,
     R,
 > {
     use crate::{
-        dataset::postgres::id::ArchivedEntityId, file::identity::read::IdentityFile,
+        file::identity::read::IdentityFile, postgres::id::ArchivedEntityId,
         salt::fit::prepare::identity::IdentityTable,
     };
 

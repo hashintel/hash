@@ -16,11 +16,11 @@ use super::{
     auxiliary::{OwnedIcon, OwnedLegend},
     card::Card,
     memory::{MemoryDataset, MemoryNodeId, MemoryOntologyId},
-    postgres::id::{ArchivedEntityUuid, ArchivedOntologyTypeUuid, ArchivedWebId},
 };
 use crate::{
     identity::{NodeRowId, OntologyRowId},
     math::{BoxedVecN, VecN, unit_fraction},
+    postgres::id::{ArchivedEntityUuid, ArchivedOntologyTypeUuid, ArchivedWebId},
 };
 
 const UUID_BYTES: [u8; 16] = [

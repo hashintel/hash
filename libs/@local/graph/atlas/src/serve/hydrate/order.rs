@@ -18,7 +18,7 @@ use type_system::ontology::id::{BaseUrl, VersionedUrl};
 use super::{DeliveredNodes, EdgeSlot, NodeSlot, ScalarValue, client::DetailError};
 use crate::{
     bitset::DenseBitSlice,
-    dataset::postgres::{LinkDisplay, id::ArchivedEntityId},
+    postgres::{LinkDisplay, id::ArchivedEntityId},
 };
 
 /// One locate response's store order.

@@ -41,13 +41,13 @@ use std::io;
 use tokio_postgres::Transaction;
 use uuid::Uuid;
 
-use super::super::{
+use super::id::ArchivedOntologyTypeUuid;
+use crate::dataset::{
     TemporalAxes,
     card::{
         Card, CardContext, CardsConfig, Cl100kTokenizer, UnicodeSegmenter, build_card,
         hash::{EndpointAssociation, ExampleRow, TypeFacts, TypePhrase, build_contents},
     },
-    postgres::id::ArchivedOntologyTypeUuid,
 };
 
 /// Content-affecting controls for card extraction.
@@ -106,7 +106,7 @@ struct OwnedExample {
 }
 
 /// One type's store facts, owned by the rows the queries returned.
-pub(super) struct RelationFacts {
+pub(crate) struct RelationFacts {
     relation: OwnedType,
     ancestors: Vec<OwnedType>,
     associations: Vec<OwnedAssociation>,
@@ -201,7 +201,7 @@ impl RelationFacts {
 ///
 /// This panics when the store violates its own referential contracts, such as a type in `types`
 /// without a versioned type row (the `entity_is_of_type` foreign key forbids this).
-pub(super) async fn corpus_facts(
+pub(crate) async fn corpus_facts(
     transaction: &Transaction<'_>,
     axes: TemporalAxes,
     parameters: CardParameters,
@@ -232,7 +232,7 @@ fn fact_at(facts: &mut [RelationFacts], ordinality: i64) -> &mut RelationFacts {
 }
 
 /// Renders one type's gathered facts into its finished card.
-pub(super) fn render_card(
+pub(crate) fn render_card(
     id: Uuid,
     facts: &RelationFacts,
     parameters: CardParameters,
@@ -267,30 +267,4 @@ pub(super) fn render_card(
     .map_err(io::Error::other)?;
 
     Ok((id.into(), card))
-}
-
-#[cfg(test)]
-mod prepare_probe {
-    use tokio_postgres::NoTls;
-
-    use super::prose;
-
-    #[tokio::test]
-    async fn prose_statements_deliver_against_the_live_store() {
-        let (mut client, connection) = tokio_postgres::connect(
-            "host=localhost user=postgres password=postgres dbname=graph",
-            NoTls,
-        )
-        .await
-        .expect("the graph store is reachable");
-        tokio::spawn(connection);
-
-        let transaction = client.transaction().await.expect("a transaction opens");
-        let mut facts = prose::prose_rows(&transaction, &[])
-            .await
-            .expect("prose rows deliver on an empty type list");
-        prose::ancestor_rows(&transaction, &[], &mut facts)
-            .await
-            .expect("ancestor rows deliver on an empty type list");
-    }
 }

@@ -86,14 +86,11 @@ use super::{
     placement::{NonFiniteProjection, Placer, Projection},
 };
 use crate::{
-    dataset::{
-        PROJECTOR_DIMENSIONS,
-        postgres::{
-            EditionDisplay, PostgresDatasetError, id::ArchivedEntityId, read_edition_displays,
-            read_projector_embeddings,
-        },
-    },
+    dataset::{PROJECTOR_DIMENSIONS, postgres::PostgresDatasetError},
     math::BoxedVecN,
+    postgres::{
+        EditionDisplay, id::ArchivedEntityId, read_edition_displays, read_projector_embeddings,
+    },
 };
 
 /// The client half of the deduplicated embedding ensure.

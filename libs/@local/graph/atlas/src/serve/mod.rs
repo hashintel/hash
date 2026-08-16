@@ -82,7 +82,6 @@ pub(crate) use self::{
 };
 use self::{grid::Grid, schedule::ScopeSchedule};
 use crate::{
-    dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{
         generation::{Generation, GenerationId},
         morton::read::MortonFile,
@@ -90,6 +89,7 @@ use crate::{
     },
     identity::{BasePosition, Column, EdgeRowId, ImportanceRank, NodeRowId, OntologyRowId},
     math::{Bounds2, Log2, Vec2},
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     salt::{
         adjacency::AdjacencyArchive,
         fit::prepare::identity::IdentityTableArchive,

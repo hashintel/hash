@@ -619,13 +619,13 @@ fn visibility_proof_is_fail_closed() {
 
     // The delta-link arm is fail-closed on its identity domain: a masked proof admits exactly
     // its captured set, and the full proof admits every identity.
-    let admitted = crate::dataset::postgres::id::ArchivedEntityId {
+    let admitted = crate::postgres::id::ArchivedEntityId {
         web_id: uuid::Uuid::from_bytes([0xC0; 16]).into(),
-        entity_uuid: crate::dataset::postgres::id::ArchivedEntityUuid::from_bytes([0x3F; 16]),
+        entity_uuid: crate::postgres::id::ArchivedEntityUuid::from_bytes([0x3F; 16]),
     };
-    let stranger = crate::dataset::postgres::id::ArchivedEntityId {
+    let stranger = crate::postgres::id::ArchivedEntityId {
         web_id: uuid::Uuid::from_bytes([0xC1; 16]).into(),
-        entity_uuid: crate::dataset::postgres::id::ArchivedEntityUuid::from_bytes([0x3E; 16]),
+        entity_uuid: crate::postgres::id::ArchivedEntityUuid::from_bytes([0x3E; 16]),
     };
     let capturing = VisibilityProof::from_masks(
         domain_mask(4, &[]),

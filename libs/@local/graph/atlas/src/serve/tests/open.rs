@@ -18,7 +18,6 @@ use super::{
     recreate_writable, rewrite_identities, store_identities, test_open_options,
 };
 use crate::{
-    dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{
         WriteInto as _,
         array::{ArrayVariant, Dim, SizedArrayWriter},
@@ -27,6 +26,7 @@ use crate::{
         quad::{Node, TypeSets, read::QuadFile},
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     salt::{adjacency::Adjacency, fit::prepare::identity::IdentityTable},
 };
 

@@ -12,11 +12,11 @@ use super::{
     stage::{Lod, LodConfig, LodError},
 };
 use crate::{
-    dataset::postgres::id::ArchivedEntityId,
     file::quad::Node,
     identity::{BasePosition, ImportanceRank, NodeRowId, OntologyRowId},
     math::{Bounds2, Log2, Vec2},
     morton::{Depth, MortonCell, MortonKey},
+    postgres::id::ArchivedEntityId,
 };
 
 fn identity(index: u128) -> ArchivedEntityId {

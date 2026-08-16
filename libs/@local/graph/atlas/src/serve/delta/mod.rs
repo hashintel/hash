@@ -107,9 +107,9 @@ use type_system::knowledge::entity::id::EntityEditionId;
 use super::codec::Universe;
 use crate::{
     bitset::CompressedBitSet,
-    dataset::postgres::{Classification, EditionDisplay, id::ArchivedEntityId},
     identity::{EdgeRowId, NodeRowId},
     math::Vec2,
+    postgres::{Classification, EditionDisplay, id::ArchivedEntityId},
 };
 
 pub(crate) mod consumer;

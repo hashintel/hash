@@ -26,13 +26,11 @@ use super::{
 };
 use crate::{
     bitset::DenseBitSlice,
-    dataset::{
-        auxiliary::{Icon, Label},
-        postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
-    },
+    dataset::auxiliary::{Icon, Label},
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
+    postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
     salt::postings::artifact::Membership,
     serve::WireRow,
 };
@@ -360,7 +358,8 @@ mod tile {
         TileHead, TileResponse, TileTrailer, Vec2, WireRow, dense_set, section,
     };
     use crate::{
-        dataset::{auxiliary::OwnedLabel, postgres::EditionDisplay},
+        dataset::auxiliary::OwnedLabel,
+        postgres::EditionDisplay,
         serve::schedule::{ArrivalIndex, ArrivalRow, Splice, ViewRow},
     };
 

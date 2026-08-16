@@ -332,7 +332,6 @@ mod tests {
         dataset::{
             auxiliary::{Icon, OwnedLegend},
             memory::{MemoryNodeId, MemoryOntologyId},
-            postgres::id::ArchivedOntologyTypeUuid,
         },
         file::{
             identity::{FileHeader, KeyKind, Kind, PaddedFileHeader, read::IdentityFile},
@@ -340,6 +339,7 @@ mod tests {
         },
         identity::{NodeRowId, OntologyRowId},
         integrity::Sha256Digest,
+        postgres::id::ArchivedOntologyTypeUuid,
     };
 
     /// A per-test scratch file path under the system temp directory.

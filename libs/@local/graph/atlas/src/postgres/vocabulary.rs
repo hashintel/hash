@@ -16,7 +16,7 @@ use hash_graph_postgres_store::store::postgres::query::{
 
 /// A virtual table one statement defines and the same or a later fragment consumes.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) enum CorpusTable {
+pub(crate) enum CorpusTable {
     /// The node universe. Columns are [`Scope`].
     Scope,
     /// The link universe. Columns are [`Links`].
@@ -29,7 +29,7 @@ pub(super) enum CorpusTable {
 
 impl CorpusTable {
     /// Returns the table's name as its bare text.
-    pub(super) const fn as_str(self) -> &'static str {
+    pub(crate) const fn as_str(self) -> &'static str {
         match self {
             Self::Scope => "scope",
             Self::Links => "links",
@@ -43,11 +43,11 @@ impl CorpusTable {
         clippy::missing_const_for_fn,
         reason = "the conversion into the store's `TableName` is not const-callable"
     )]
-    pub(super) fn name(self) -> TableName<'static> {
+    pub(crate) fn name(self) -> TableName<'static> {
         self.as_str().into()
     }
 
-    pub(super) fn reference(self) -> TableReference<'static> {
+    pub(crate) fn reference(self) -> TableReference<'static> {
         TableReference {
             schema: None,
             name: self.name(),
@@ -55,7 +55,7 @@ impl CorpusTable {
         }
     }
 
-    pub(super) fn column(self, reference: impl DatabaseColumn<'static> + Copy) -> Expression {
+    pub(crate) fn column(self, reference: impl DatabaseColumn<'static> + Copy) -> Expression {
         Expression::ColumnReference(ColumnReference {
             correlation: Some(self.reference()),
             name: reference.name(),
@@ -87,7 +87,7 @@ impl Transpile for CorpusTable {
 /// table admits, so its source is any corpus table carrying an edition column. Implementations
 /// name the table and the column, which is what lets the fragment cite both without a runtime
 /// check that the chosen table qualifies.
-pub(super) trait EditionSource {
+pub(crate) trait EditionSource {
     /// The table holding the editions.
     const TABLE: CorpusTable;
 
@@ -100,7 +100,7 @@ pub(super) trait EditionSource {
 /// Rows carry the entity identity, its current edition, and the dense zero-based row assigned by
 /// canonical `(web_id, entity_uuid)` order.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) enum Scope {
+pub(crate) enum Scope {
     /// The web the entity belongs to.
     WebId,
     /// The entity's identity within its web.
@@ -142,7 +142,7 @@ impl EditionSource for Scope {
 /// Rows carry the link entity's identity and edition, both endpoints densified to node rows, and
 /// the store's attachment confidences.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) enum Links {
+pub(crate) enum Links {
     /// The web the link entity belongs to.
     WebId,
     /// The link entity's identity within its web.
@@ -191,7 +191,7 @@ impl EditionSource for Links {
 
 /// The columns of the `type_rows` table: one row per edition holding direct types.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) enum TypeRows {
+pub(crate) enum TypeRows {
     /// The edition the ordinals describe.
     EntityEditionId,
     /// The edition's direct-type ordinals over the type table, ascending.
@@ -216,7 +216,7 @@ impl DatabaseColumn<'_> for TypeRows {
 
 /// The columns of the `requests` table: one row per requested identity that resolves.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) enum Requests {
+pub(crate) enum Requests {
     /// The web the requested entity belongs to.
     WebId,
     /// The requested entity's identity within its web.
