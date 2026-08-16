@@ -287,8 +287,8 @@ impl Atlas {
 
     /// Aggregates the Morton occupancy the delivery-cut policy reads for `proof`.
     ///
-    /// Producing it costs one pass over the code column and an allocation for the visible keys, so
-    /// a caller takes it only when it resolves an offset from it.
+    /// Producing it costs one pass over the code column and an allocation for the visible keys,
+    /// so a scoped resolution takes it once rather than paying the pass per request.
     /// [`VisibilityProof::kind`] is the cheap question a caller asks first.
     #[must_use]
     pub(crate) fn visible_occupancy(&self, proof: &VisibilityProof) -> ViewOccupancy {

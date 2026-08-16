@@ -16,11 +16,13 @@ use super::{
 };
 use crate::{
     bitset::CompressedBitSet,
-    identity::{EdgeRowId, NodeRowId},
+    identity::{BasePosition, EdgeRowId, NodeRowId},
+    salt::wire::{Mode, tests::section},
     serve::{
-        VisibilityProof,
+        CutOffset, TileLimits, View, VisibilityProof,
+        delta::PlacementCohort,
         hydrate::MaskingActor,
-        tests::{mask_hiding, publish},
+        tests::{ROW_IDS, mask_hiding, publish, request, test_codec, withdrawing},
     },
 };
 
@@ -276,6 +278,132 @@ async fn weighing_a_small_scope_leaves_the_memo_unbuilt() {
     assert!(
         atlas.saturated_scope_schedule_if_built().is_none(),
         "recognition peeked: pricing a small scope must not construct the full-corpus memo",
+    );
+}
+
+/// The entry censuses the folded view, and aggregates occupancy from the unfolded one.
+///
+/// [`PendingCacheEntry::of`] folds the cohort's withdrawals out of the proof before censusing,
+/// so the aggregates the root publishes describe what the entry can actually serve. The
+/// occupancy aggregate reads the proof before the fold, which keeps the cut offset a mint
+/// resolves the store's answer alone. This pins the census/occupancy pair's ordering at the
+/// constructor: nothing but statement order inside `of` holds it, and reordering either
+/// aggregate against the fold reddens exactly here. The schedule's place in that order has its
+/// own witness in the delivery test below, which takes the entry to bytes.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_entry_censuses_the_folded_view_and_occupies_the_unfolded_one() {
+    let (_generation, atlas) = publish("cache-census-folded").await;
+    let atlas = Arc::new(atlas);
+    let proof = mask_hiding(&atlas, &[]);
+    let masking = MaskingActor {
+        id: None,
+        instance_admin: false,
+    };
+
+    // Withdraw every fixture row but one, which moves any census the fold reaches: the folded
+    // view holds one point where the resolution's holds the corpus.
+    let survivor = 7_u8;
+    let count = u8::try_from(atlas.row_ids().len()).expect("the fixture universe fits u8");
+    let seeds: Vec<u8> = (0..count).filter(|&seed| seed != survivor).collect();
+    let snapshot = Arc::new(withdrawing(&atlas, &seeds));
+
+    let entry = PendingCacheEntry::of(
+        Arc::clone(&atlas),
+        proof.clone(),
+        masking,
+        None,
+        Some(Arc::clone(&snapshot)),
+    )
+    .await
+    .expect("the folded entry builds");
+
+    let mut folded = proof.clone();
+    folded.fold_withdrawn(&snapshot);
+    assert_ne!(
+        atlas.census(&folded),
+        atlas.census(&proof),
+        "the fold moves this view's census, so the equalities below have teeth"
+    );
+
+    assert_eq!(
+        entry.census,
+        atlas.census(&folded),
+        "the entry's census is the folded view's own"
+    );
+    assert_eq!(
+        entry.occupancy,
+        Some(atlas.visible_occupancy(&proof)),
+        "the entry's occupancy is the unfolded proof's own"
+    );
+}
+
+/// The entry's own delivery hides the rows its cohort withdrew.
+///
+/// For a scoped view the cascade is the delivery authority: tile assembly reads the cut and
+/// re-consults no mask per delivered row, so a schedule built before the fold keeps delivering
+/// the withdrawn row while every aggregate-reading witness stays green. The witness therefore
+/// takes the entry to bytes, bound exactly as a request whose ingress capture is the entry's
+/// own publication binds it - with no capture left to subtract, so the entry's delivery is the
+/// whole authority.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_entry_delivers_no_row_its_own_cohort_withdrew() {
+    let (_generation, atlas) = publish("cache-entry-delivery").await;
+    let atlas = Arc::new(atlas);
+    let proof = mask_hiding(&atlas, &[]);
+    let masking = MaskingActor {
+        id: None,
+        instance_admin: false,
+    };
+
+    // A row the root delivers. Fixture node row `r` owns seed `r`.
+    let row = atlas.row_ids()[BasePosition::from_u32(1)].as_u32();
+    let seed = u8::try_from(row).expect("fixture rows fit u8");
+    let snapshot = Arc::new(withdrawing(&atlas, &[seed]));
+
+    let entry = PendingCacheEntry::of(
+        Arc::clone(&atlas),
+        proof,
+        masking,
+        None,
+        Some(Arc::clone(&snapshot)),
+    )
+    .await
+    .expect("the folded entry builds");
+
+    // The nulled capture models the request whose ingress capture is this entry's own bound
+    // publication: the extractor skips its admission walk, so the entry's own delivery is the
+    // whole authority.
+    let view = View::bind(
+        atlas.grid,
+        &entry.proof,
+        entry.census,
+        &entry.schedule,
+        CutOffset::ZERO,
+        PlacementCohort::of(entry.cohort.as_deref()),
+        None,
+    )
+    .expect("the entry pairs its own proof and schedule");
+
+    let bytes = atlas
+        .tile(&request(0, 0, 0, Mode::Delta), TileLimits::default(), view)
+        .expect("the fixture tile serves");
+    let (chunks, remainder) = section(&bytes, ROW_IDS)
+        .expect("ROW_IDS is present")
+        .as_chunks::<4>();
+    assert!(remainder.is_empty(), "row sections are whole u32 columns");
+
+    let wire = test_codec(&atlas)
+        .encode(NodeRowId::from_u32(row), atlas.universe())
+        .get();
+    assert!(
+        !chunks
+            .iter()
+            .copied()
+            .map(u32::from_le_bytes)
+            .any(|delivered| delivered == wire),
+        "the entry delivered a row its own cohort withdrew"
     );
 }
 
@@ -609,5 +737,84 @@ async fn an_entry_exposes_the_cohort_its_resolution_bound() {
         unbound.cohort().universe(Universe::new(7)),
         Universe::new(7),
         "an empty cohort answers the base"
+    );
+}
+
+/// An entry answers `folded` for exactly the publication its resolution bound.
+///
+/// Pointer identity is the release: an equal-content republication proves nothing about what
+/// the masks folded and answers false, which costs the vacuous subtraction rather than a wrong
+/// byte. A corpus entry declines the fold and never answers true, whatever snapshot it bound,
+/// and an entry that bound none folded nothing.
+#[tokio::test]
+async fn folded_answers_for_exactly_the_bound_publication() {
+    use hash_graph_temporal_versioning::Timestamp;
+
+    use crate::serve::{
+        codec::Universe,
+        delta::{DeltaRegister, DeltaRevision},
+    };
+
+    let register = DeltaRegister::new(Universe::new(10));
+    let publish = || {
+        Arc::new(register.snapshot(
+            &Unfitted,
+            DeltaRevision::FIRST,
+            Timestamp::from_unix_timestamp(1),
+        ))
+    };
+    let snapshot = publish();
+    let republished = publish();
+    assert_eq!(
+        *snapshot, *republished,
+        "the two publications carry one content"
+    );
+
+    let cache = VisibilityCache::new(LIMITS);
+    let now = Instant::now();
+
+    let scoped = cache
+        .resolve(key(), now, {
+            let snapshot = Arc::clone(&snapshot);
+            async move || {
+                Ok::<_, ()>(
+                    PendingCacheEntry::with_empty_view(proof_of(&[1])).with_cohort(snapshot),
+                )
+            }
+        })
+        .await
+        .expect("the resolution answers");
+    assert!(scoped.folded(&snapshot), "the bound publication is folded");
+    assert!(
+        !scoped.folded(&republished),
+        "an equal-content republication is not the bound one",
+    );
+
+    let corpus = cache
+        .resolve(key_of(12), now, {
+            let snapshot = Arc::clone(&snapshot);
+            async move || {
+                Ok::<_, ()>(
+                    PendingCacheEntry::with_empty_view(VisibilityProof::full_visibility())
+                        .with_cohort(snapshot),
+                )
+            }
+        })
+        .await
+        .expect("the resolution answers");
+    assert!(
+        !corpus.folded(&snapshot),
+        "a corpus proof declines the fold",
+    );
+
+    let unbound = cache
+        .resolve(key_of(13), now, async || {
+            Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of(&[2])))
+        })
+        .await
+        .expect("the resolution answers");
+    assert!(
+        !unbound.folded(&snapshot),
+        "an entry that bound no publication folded nothing",
     );
 }

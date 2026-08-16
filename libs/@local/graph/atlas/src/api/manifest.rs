@@ -30,10 +30,9 @@ use crate::{
     file::generation::GenerationId,
     integrity::HexBytes,
     serve::{
-        Atlas, CutOffset, DensityPolicy, Manifest, ViewOccupancy, VisibilityProof,
+        CutOffset, DensityPolicy, Manifest, ViewOccupancy,
         authorization::{Scope, ScopeFilter},
         cache::scope::FilterDigest,
-        visibility::ProofKind,
     },
 };
 
@@ -52,22 +51,6 @@ enum Mint {
     Rebind(CutOffset),
 }
 
-/// The occupancy source one mint resolves over, absent under an operator proof.
-///
-/// The corpus schedule an operator view serves has one cut per zoom and takes no offset, leaving
-/// the policy nothing to resolve. For a scoped view the answer is a source rather than an
-/// aggregate: that aggregate costs a pass over the code column, and a mint carrying its offset
-/// forward never needs one.
-fn mint_view<'atlas>(
-    atlas: &'atlas Atlas,
-    proof: &'atlas VisibilityProof,
-) -> Option<impl FnOnce() -> ViewOccupancy + use<'atlas>> {
-    match proof.kind() {
-        ProofKind::Corpus => None,
-        ProofKind::Scope => Some(move || atlas.visible_occupancy(proof)),
-    }
-}
-
 /// The delivery-cut offset one mint seals.
 ///
 /// [`CutOffset::ZERO`] whenever no offset is servable. A deployment without a density policy serves
@@ -77,22 +60,23 @@ fn mint_view<'atlas>(
 ///
 /// With a policy and a scoped view, [`Mint`] states which question this mint asks, and the
 /// arithmetic of every answer lives in [`DensityPolicy`]. Every handler path mints through here, so
-/// no branch can seal an offset by a rule of its own. `Mint::Carry` never calls `view`: a session
-/// keeping its own view keeps the offset it sealed, and the aggregate that resolved it is not read
-/// again.
-fn sealed_offset<V: FnOnce() -> ViewOccupancy>(
+/// no branch can seal an offset by a rule of its own. `view` is the scope's entry-held aggregate,
+/// taken from the store's answer alone, so no mint pays an occupancy pass and no snapshot moves
+/// the offset a mint seals. `Mint::Carry` never reads it: a session keeping its own view keeps
+/// the offset it sealed.
+fn sealed_offset(
     density: Option<DensityPolicy>,
     mint: Mint,
-    view: Option<V>,
+    view: Option<&ViewOccupancy>,
 ) -> CutOffset {
     let (Some(policy), Some(view)) = (density, view) else {
         return CutOffset::ZERO;
     };
 
     match mint {
-        Mint::Bootstrap => policy.resolve(&view()),
+        Mint::Bootstrap => policy.resolve(view),
         Mint::Carry(carried) => carried,
-        Mint::Rebind(carried) => policy.rebind(carried, &view()),
+        Mint::Rebind(carried) => policy.rebind(carried, view),
     }
 }
 
@@ -224,11 +208,7 @@ pub(super) async fn handler(
             Scope {
                 actor: scope.actor,
                 filter: scope.filter,
-                k: sealed_offset(
-                    state.density,
-                    Mint::Carry(scope.k),
-                    mint_view(&state.atlas, visibility.proof()),
-                ),
+                k: sealed_offset(state.density, Mint::Carry(scope.k), visibility.occupancy()),
             }
         }
         // A different wanted view, removal included: the handler resolves it, and the session
@@ -239,11 +219,7 @@ pub(super) async fn handler(
             Scope {
                 actor: scope.actor,
                 filter: ScopeFilter::from(wanted),
-                k: sealed_offset(
-                    state.density,
-                    Mint::Rebind(scope.k),
-                    mint_view(&state.atlas, visibility.proof()),
-                ),
+                k: sealed_offset(state.density, Mint::Rebind(scope.k), visibility.occupancy()),
             }
         }
         // A bootstrap resolves the wanted view and the depth it will serve at.
@@ -253,11 +229,7 @@ pub(super) async fn handler(
             Scope::new(
                 actor,
                 wanted,
-                sealed_offset(
-                    state.density,
-                    Mint::Bootstrap,
-                    mint_view(&state.atlas, visibility.proof()),
-                ),
+                sealed_offset(state.density, Mint::Bootstrap, visibility.occupancy()),
             )
         }
     };
@@ -367,7 +339,7 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
 
 #[cfg(test)]
 mod tests {
-    use core::{cell::Cell, num::NonZero};
+    use core::num::NonZero;
 
     use aide::{openapi::Operation, transform::TransformOperation};
 
@@ -400,8 +372,8 @@ mod tests {
         .expect("the fixture schedule admits an offset")
     }
 
-    /// The absent occupancy source, which is what an operator proof answers.
-    const NO_VIEW: Option<fn() -> ViewOccupancy> = None;
+    /// The absent occupancy aggregate, which is what an operator proof's entry holds.
+    const NO_VIEW: Option<&ViewOccupancy> = None;
 
     /// The fixture view, hand-derived: four points on one row of the depth-3 grid.
     ///
@@ -433,11 +405,11 @@ mod tests {
     #[test]
     fn no_density_policy_seals_zero() {
         assert_eq!(
-            sealed_offset(None, Mint::Bootstrap, Some(view)),
+            sealed_offset(None, Mint::Bootstrap, Some(&view())),
             CutOffset::ZERO
         );
         assert_eq!(
-            sealed_offset(None, Mint::Rebind(CutOffset::new(2)), Some(view)),
+            sealed_offset(None, Mint::Rebind(CutOffset::new(2)), Some(&view())),
             CutOffset::ZERO
         );
     }
@@ -449,7 +421,7 @@ mod tests {
     #[test]
     fn bootstrap_resolves_the_wanted_views_own_offset() {
         assert_eq!(
-            sealed_offset(Some(policy()), Mint::Bootstrap, Some(view)),
+            sealed_offset(Some(policy()), Mint::Bootstrap, Some(&view())),
             CutOffset::new(1)
         );
     }
@@ -458,7 +430,7 @@ mod tests {
     #[test]
     fn rebind_keeps_a_carried_offset_coarser_than_the_views_resolution() {
         assert_eq!(
-            sealed_offset(Some(policy()), Mint::Rebind(CutOffset::ZERO), Some(view)),
+            sealed_offset(Some(policy()), Mint::Rebind(CutOffset::ZERO), Some(&view())),
             CutOffset::ZERO,
             "the wanted view resolves to 1 and a session at 0 must not be deepened into it"
         );
@@ -468,7 +440,11 @@ mod tests {
     #[test]
     fn rebind_clamps_a_carried_offset_deeper_than_the_views_resolution() {
         assert_eq!(
-            sealed_offset(Some(policy()), Mint::Rebind(CutOffset::new(2)), Some(view)),
+            sealed_offset(
+                Some(policy()),
+                Mint::Rebind(CutOffset::new(2)),
+                Some(&view())
+            ),
             CutOffset::new(1),
             "a session at 2 must clamp to the wanted view's resolution of 1"
         );
@@ -503,29 +479,6 @@ mod tests {
         );
     }
 
-    /// A renewal of an unchanged view never reads the occupancy aggregate.
-    ///
-    /// The aggregate costs a pass over the code column and an allocation for the visible keys, and
-    /// a session keeping its own view keeps the offset that aggregate already resolved. The source
-    /// here records its own call, so the case fails if the mint takes it.
-    #[test]
-    fn renewal_takes_no_occupancy_pass() {
-        let taken = Cell::new(false);
-        let source = || {
-            taken.set(true);
-            view()
-        };
-
-        assert_eq!(
-            sealed_offset(Some(policy()), Mint::Carry(CutOffset::new(2)), Some(source)),
-            CutOffset::new(2),
-        );
-        assert!(
-            !taken.get(),
-            "a carried mint must not aggregate the view it is not resolving",
-        );
-    }
-
     /// A renewal of an unchanged view keeps the offset its predecessor sealed.
     ///
     /// The wanted view's own resolution is 1 and the carried value is 2, so a renewal that
@@ -533,7 +486,11 @@ mod tests {
     #[test]
     fn renewed_view_keeps_its_sealed_offset() {
         assert_eq!(
-            sealed_offset(Some(policy()), Mint::Carry(CutOffset::new(2)), Some(view)),
+            sealed_offset(
+                Some(policy()),
+                Mint::Carry(CutOffset::new(2)),
+                Some(&view())
+            ),
             CutOffset::new(2),
         );
     }
@@ -551,7 +508,7 @@ mod tests {
             sealed_offset(
                 Some(policy()),
                 Mint::Rebind(CutOffset::new(2)),
-                Some(|| empty)
+                Some(&empty)
             ),
             CutOffset::ZERO
         );

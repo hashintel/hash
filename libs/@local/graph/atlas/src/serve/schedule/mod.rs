@@ -213,7 +213,12 @@ impl ViewSchedule {
     /// rather than the visible cardinality. A scope whose node mask admits the whole corpus
     /// reads the generation's shared saturated cascade instead of building one. A cascade is a
     /// function of the visible node rows alone, so every saturated scope builds identical
-    /// buckets and the sharing changes which allocation answers, never which contract.
+    /// buckets and the sharing changes which allocation answers, never which contract. The
+    /// sharing test is exact, so a mask even one row short of the corpus - a scope whose cohort
+    /// withdrew a single fitted row included - builds and retains its own full-corpus-sized
+    /// cascade instead. After the first fitted withdrawal every corpus-admitting scope resolves
+    /// onto that arm for the life of the generation, a cost on resolution latency and entry
+    /// weight rather than on served bytes.
     ///
     /// The variants that read a shared fitted schedule - the corpus artifacts and the saturated
     /// memo - take their admitted arrivals as an overlay, whose buckets are exact there because

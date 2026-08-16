@@ -42,8 +42,10 @@ use self::scope::{CacheKey, Publication, Publications, VisibilityLimits};
 use super::{
     Atlas, ViewCensus, VisibilityProof,
     delta::{DeltaSnapshot, PlacementCohort},
+    density::ViewOccupancy,
     hydrate::{MaskingActor, compile::ProofError},
     schedule::ViewSchedule,
+    visibility::ProofKind,
 };
 
 pub(crate) mod scope;
@@ -74,6 +76,11 @@ pub(crate) struct PendingCacheEntry {
     /// The arrivals snapshot the resolution read, the entry's placement cohort, absent when the
     /// resolution read none.
     cohort: Option<Arc<DeltaSnapshot>>,
+    /// The scope's occupancy aggregate, absent for a corpus proof, which takes no cut offset.
+    ///
+    /// Aggregated from the resolution before the withdrawal fold, so the cut offset a mint
+    /// resolves stays a function of the store's answer alone and no snapshot moves it.
+    occupancy: Option<ViewOccupancy>,
     /// The entry's estimated weight, folded into moka's weight domain at resolution.
     weight: u32,
 }
@@ -104,7 +111,11 @@ impl PendingCacheEntry {
     /// of building one.
     ///
     /// `cohort` is the arrivals snapshot the resolution read, bound here for the entry's
-    /// lifetime.
+    /// lifetime. The entry folds that snapshot's withdrawals out of the proof's masks, so the
+    /// masks, the census, and the schedule all describe what the entry can actually serve, and
+    /// a request whose ingress capture is this same publication has nothing left to subtract.
+    /// The occupancy aggregate is taken before the fold, so the cut offset a mint resolves
+    /// stays a function of the store's answer alone.
     ///
     /// Caller requirement: `proof` resolved against that same snapshot, so the slots its node
     /// mask admits are the cohort's own.
@@ -115,31 +126,44 @@ impl PendingCacheEntry {
         filter: Option<Arc<[u8]>>,
         cohort: Option<Arc<DeltaSnapshot>>,
     ) -> Result<Self, ProofError> {
-        let (schedule, census, proof, retained, cohort) = crate::offload::run(move || {
-            let schedule = ViewSchedule::of(&atlas, &proof, PlacementCohort::of(cohort.as_deref()));
-            let census = atlas.census(&proof);
+        let (schedule, census, proof, occupancy, retained, cohort) =
+            crate::offload::run(move || {
+                let occupancy = match proof.kind() {
+                    ProofKind::Scope => Some(atlas.visible_occupancy(&proof)),
+                    ProofKind::Corpus => None,
+                };
 
-            // The saturated cascade is the generation's own memo, alive for the atlas's lifetime,
-            // so an entry sharing it retains none of it. A sharer took its `Arc` from the memo
-            // itself, so an unbuilt memo already proves this schedule is not shared - recognition
-            // peeks and never forces the full-corpus build. The arrival overlay is the entry's own
-            // either way and prices in full.
-            let schedule_bytes = match &schedule {
-                ViewSchedule::Corpus(overlay) => overlay.heap_bytes(),
-                ViewSchedule::Scope(scope, overlay) => {
-                    let cascade = match atlas.saturated_scope_schedule_if_built() {
-                        Some(memo) if Arc::ptr_eq(scope, memo) => 0,
-                        _ => scope.heap_bytes(),
-                    };
-
-                    cascade + overlay.heap_bytes()
+                let mut proof = proof;
+                if let Some(snapshot) = cohort.as_deref() {
+                    proof.fold_withdrawn(snapshot);
                 }
-            };
-            let retained = proof.heap_bytes() + schedule_bytes;
 
-            (schedule, census, proof, retained, cohort)
-        })
-        .await?;
+                let schedule =
+                    ViewSchedule::of(&atlas, &proof, PlacementCohort::of(cohort.as_deref()));
+                let census = atlas.census(&proof);
+
+                // The saturated cascade is the generation's own memo, alive for the atlas's
+                // lifetime, so an entry sharing it retains none of it. A sharer
+                // took its `Arc` from the memo itself, so an unbuilt memo already
+                // proves this schedule is not shared - recognition peeks and never
+                // forces the full-corpus build. The arrival overlay is the entry's own
+                // either way and prices in full.
+                let schedule_bytes = match &schedule {
+                    ViewSchedule::Corpus(overlay) => overlay.heap_bytes(),
+                    ViewSchedule::Scope(scope, overlay) => {
+                        let cascade = match atlas.saturated_scope_schedule_if_built() {
+                            Some(memo) if Arc::ptr_eq(scope, memo) => 0,
+                            _ => scope.heap_bytes(),
+                        };
+
+                        cascade + overlay.heap_bytes()
+                    }
+                };
+                let retained = proof.heap_bytes() + schedule_bytes;
+
+                (schedule, census, proof, occupancy, retained, cohort)
+            })
+            .await?;
 
         Ok(Self {
             proof,
@@ -149,7 +173,16 @@ impl PendingCacheEntry {
             weight: weight_of(retained, filter.as_deref()),
             filter,
             cohort,
+            occupancy,
         })
+    }
+
+    /// Returns the scope's occupancy aggregate, absent for a corpus proof.
+    ///
+    /// The value [`CacheEntry::occupancy`] seals, aggregated from the store's answer alone,
+    /// before the entry folded its snapshot's withdrawals.
+    pub(crate) const fn occupancy(&self) -> Option<&ViewOccupancy> {
+        self.occupancy.as_ref()
     }
 
     /// Pairs `proof` with the empty view's census and schedule.
@@ -172,6 +205,7 @@ impl PendingCacheEntry {
             ),
             filter: None,
             cohort: None,
+            occupancy: None,
             weight: weight_of(0, None),
         }
     }
@@ -215,6 +249,12 @@ pub(crate) struct CacheEntry {
     /// any request still answers from this entry, and a refresh rebinds the then-current
     /// snapshot beside the proof it resolves.
     cohort: Option<Arc<DeltaSnapshot>>,
+    /// The scope's occupancy aggregate, absent for a corpus proof, which takes no cut offset.
+    ///
+    /// Aggregated from the resolution before the withdrawal fold, so the cut offset a mint
+    /// resolves stays a function of the store's answer alone and no snapshot moves it. Holding
+    /// the aggregate here is also what lets a mint answer without a pass over the code column.
+    occupancy: Option<ViewOccupancy>,
     /// The delivery schedule of [`Self::proof`]'s view, resolved with it.
     ///
     /// One scope builds its cascade once, at resolution, and every request under it reads that
@@ -244,6 +284,7 @@ impl CacheEntry {
             schedule,
             filter,
             cohort,
+            occupancy,
             weight,
         }: PendingCacheEntry,
         resolved_at: Instant,
@@ -255,6 +296,7 @@ impl CacheEntry {
             census,
             filter,
             cohort,
+            occupancy,
             schedule,
             resolved_at,
             publication,
@@ -286,6 +328,33 @@ impl CacheEntry {
     /// Returns the filter document the resolution ran over, as presented.
     pub(crate) fn filter_document(&self) -> Option<Arc<[u8]>> {
         self.filter.clone()
+    }
+
+    /// Returns the scope's occupancy aggregate, absent for a corpus proof.
+    ///
+    /// The delivery-cut policy's input, aggregated once at resolution from the store's answer
+    /// alone, before the entry folded its snapshot's withdrawals.
+    pub(crate) const fn occupancy(&self) -> Option<&ViewOccupancy> {
+        self.occupancy.as_ref()
+    }
+
+    /// Returns whether this entry's masks folded `ingress`'s withdrawals.
+    ///
+    /// True exactly when the proof declares a scope and `ingress` is the publication the entry's
+    /// resolution bound, by pointer identity. A capture this answers true for has no residue to
+    /// subtract: every row and identity it withdraws is already out of the masks, so a request
+    /// may skip its admission walks whole. The corpus proof never answers true, since it
+    /// declines the fold and admission subtraction stays its whole withdrawal authority.
+    ///
+    /// Pointer identity is the answer's width. An equal-content republication proves nothing
+    /// about what the masks folded, and the skip it would buy is the vacuous subtraction, so
+    /// false costs a walk that edits nothing and never a wrong byte.
+    pub(crate) fn folded(&self, ingress: &Arc<DeltaSnapshot>) -> bool {
+        matches!(self.proof.kind(), ProofKind::Scope)
+            && self
+                .cohort
+                .as_ref()
+                .is_some_and(|cohort| Arc::ptr_eq(cohort, ingress))
     }
 
     /// Returns the entry's placement cohort, the arrivals snapshot its resolution read.

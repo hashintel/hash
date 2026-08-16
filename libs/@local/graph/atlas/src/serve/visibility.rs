@@ -30,7 +30,10 @@ use hashql_core::{
     id::{Id, bit_vec::DenseBitSet},
 };
 
-use super::{Atlas, WireRow, delta::PlacementCohort};
+use super::{
+    Atlas, WireRow,
+    delta::{DeltaSnapshot, PlacementCohort},
+};
 use crate::{
     bitset::CompressedBitSet,
     identity::{EdgeRowId, NodeRowId},
@@ -188,6 +191,38 @@ impl VisibilityProof {
             nodes: Rows::Mask(nodes),
             edges: Rows::Mask(edges),
             delta_links: DeltaLinks::Admitted(delta_links),
+        }
+    }
+
+    /// Folds `snapshot`'s withdrawals out of the proof's masked domains.
+    ///
+    /// A withdrawn fitted node or edge row leaves its mask, and a withdrawn identity leaves the
+    /// admitted delta-link set, so a folded scoped proof admits nothing `snapshot` withdraws.
+    /// Full domains stay full: admission subtraction remains the corpus proof's whole withdrawal
+    /// authority, and the fold never narrows an authority the resolution declared corpus-wide.
+    ///
+    /// The arrival surfaces need no fold. A snapshot publishes placed arrivals, slots, and links
+    /// only for identities standing live at its publication, so no admitted slot or captured
+    /// link can name an identity the same snapshot withdraws.
+    ///
+    /// Caller requirement: `snapshot` is the one the proof's own resolution read. Folding a
+    /// different publication leaves rows that publication withdraws admitted, and the masks
+    /// carry no record of which snapshot they folded.
+    pub(crate) fn fold_withdrawn(&mut self, snapshot: &DeltaSnapshot) {
+        if let Rows::Mask(nodes) = &mut self.nodes {
+            for row in snapshot.withdrawn_node_rows() {
+                nodes.remove(row);
+            }
+        }
+
+        if let Rows::Mask(edges) = &mut self.edges {
+            for row in snapshot.withdrawn_edge_rows() {
+                edges.remove(row);
+            }
+        }
+
+        if let DeltaLinks::Admitted(links) = &mut self.delta_links {
+            links.retain(|&id| !snapshot.withdraws(id));
         }
     }
 

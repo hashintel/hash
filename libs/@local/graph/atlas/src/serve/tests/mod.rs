@@ -14,6 +14,8 @@ use std::collections::{HashMap, HashSet};
 
 use camino::Utf8PathBuf;
 use futures::future::ready;
+use hash_graph_postgres_store::store::{EntityEnd, EntityEvent};
+use hash_graph_temporal_versioning::Timestamp;
 use hashql_core::{
     collections::fast_hash_set,
     id::{Id, IdSlice, IdVec},
@@ -21,14 +23,19 @@ use hashql_core::{
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::{SmallVec, smallvec};
-use type_system::ontology::id::{BaseUrl, VersionedUrl};
+use type_system::{
+    knowledge::entity::{EntityId, id::EntityUuid},
+    ontology::id::{BaseUrl, VersionedUrl},
+    principal::actor_group::WebId,
+};
+use uuid::Uuid;
 use zerocopy::{LE, U64};
 
 use super::{
     Atlas, CutOffset, EdgesError, EdgesLimits, EdgesRequest, GenerationId, OpenOptions,
     ServeLimits, TileError, TileLimits, TileQuery, TileRequest, View, ViewCensus, VisibilityLimits,
     VisibilityProof, WireRow, WireSecret, codec,
-    delta::{DeltaSnapshot, PlacementCohort},
+    delta::{DeltaEvent, DeltaRegister, DeltaRevision, DeltaSnapshot, PlacementCohort},
     edges::EdgesDetail,
     error::OpenAtlasError,
     hydrate::{
@@ -84,7 +91,7 @@ use crate::{
         quad::read::QuadFile,
     },
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, Log2, VecN},
+    math::{AffinityCurve, AlignedVecN, Bounds2, BoxedVecN, Log2, Vec2, VecN},
     morton::{Depth, MortonCell, MortonKey},
     progress::NoProgress,
     salt::{
@@ -112,7 +119,7 @@ pub(crate) const FIXTURE_LOD: LodConfig = LodConfig {
 /// The tile payload's pinned slot indexes.
 const HEAD: usize = 0;
 const POSITIONS: usize = 1;
-const ROW_IDS: usize = 2;
+pub(crate) const ROW_IDS: usize = 2;
 const TYPE_MASK: usize = 3;
 const MASS: usize = 4;
 
@@ -741,6 +748,39 @@ pub(crate) fn fixture_row_ids(rows: &ArrayFile) -> Vec<u32> {
         .iter()
         .map(|row| u32::try_from(row.get()).expect("fixture rows fit u32"))
         .collect()
+}
+
+/// The generation's extent, and the rows attaining any of its four extremes.
+///
+/// Removing exactly these rows from a view vacates every edge of the extent, which is what lets
+/// an aggregate witness fail on an extent read off the artifacts rather than off the view: with
+/// any edge still attained, the corpus extent and the view's extent agree there and the wrong
+/// answer looks right.
+pub(crate) fn extremes(points: &[Vec2], row_ids: &[u32]) -> (Bounds2, Vec<u32>) {
+    let corpus = Bounds2::from_points(points.iter().copied()).expect("the fixture holds points");
+
+    // Exact equality is the predicate: an extremum IS one of this column's own values, so a row
+    // attains it bit-for-bit or does not attain it.
+    #[expect(
+        clippy::float_cmp,
+        reason = "the comparand is drawn from this very column, so bit equality is the intended \
+                  test"
+    )]
+    let mut attaining: Vec<u32> = points
+        .iter()
+        .enumerate()
+        .filter(|(_, point)| {
+            point.x() == corpus.min().x()
+                || point.x() == corpus.max().x()
+                || point.y() == corpus.min().y()
+                || point.y() == corpus.max().y()
+        })
+        .map(|(position, _)| row_ids[position])
+        .collect();
+    attaining.sort_unstable();
+    attaining.dedup();
+
+    (corpus, attaining)
 }
 
 /// Every operator head accounts for exactly the rows its response delivered.
@@ -2992,6 +3032,32 @@ fn domain_mask<T: Id>(rows: usize, hidden: &[u32]) -> CompressedBitSet<T> {
         (0..rows)
             .filter(|row| !hidden.contains(row))
             .map(T::from_u32),
+    )
+}
+
+/// Folds one `Ended` feed event per seed into a published snapshot over `atlas`.
+///
+/// The events travel the consumer's own conversion, so the snapshot is the one publication
+/// serving would read rather than a hand-assembled equivalent. Fixture node row `r` owns seed
+/// `r`, so withdrawing a row is withdrawing its seed.
+pub(crate) fn withdrawing(atlas: &Atlas, seeds: &[u8]) -> DeltaSnapshot {
+    let mut register = DeltaRegister::new(atlas.universe());
+    for &seed in seeds {
+        let event = EntityEvent::Ended(EntityEnd {
+            entity: EntityId {
+                web_id: WebId::new(Uuid::from_bytes([seed; 16])),
+                entity_uuid: EntityUuid::new(Uuid::from_bytes([seed ^ 0xFF; 16])),
+                draft_id: None,
+            },
+            ended_at: Timestamp::from_unix_timestamp(1),
+        });
+        register.apply(DeltaEvent::from(&event));
+    }
+
+    register.snapshot(
+        atlas,
+        DeltaRevision::FIRST,
+        Timestamp::from_unix_timestamp(1),
     )
 }
 

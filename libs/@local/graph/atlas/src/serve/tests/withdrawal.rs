@@ -6,57 +6,41 @@
 //! because `full_visibility` builds no masks and nothing else subtracts on that path. Each case
 //! carries a same-path negative control, which repeats the request and the walk under a snapshot
 //! whose withdrawals touch nothing the tile delivers.
+//!
+//! The fold cases pin the law's resolution-time form. A folded scoped proof and the admission
+//! walk hide the same withdrawn rows, and a corpus proof declines the fold whole. The occupancy
+//! aggregate a mint reads ignores the folded snapshot, while the root's global aggregates follow
+//! the folded view - a recorded default pending the owner's ruling on that divergence, so its
+//! witnesses pin the built behaviour rather than settled law.
 
-use hash_graph_postgres_store::store::{EntityEnd, EntityEvent};
-use hash_graph_temporal_versioning::Timestamp;
-use hashql_core::id::{Id as _, IdSlice};
-use type_system::knowledge::entity::{EntityId, id::EntityUuid};
-use uuid::Uuid;
+use alloc::sync::Arc;
+
+use hashql_core::{
+    collections::fast_hash_set,
+    id::{Id as _, IdSlice},
+};
 
 use super::{
-    Artifacts, Atlas, Bound, EdgesLimits, FIXTURE_LOD, FULL, HashSet, Mode, ROW_IDS, TileHead,
-    TileLimits, TileResponse, UntouchedStore, coordinate_of, edges_request, expected_edges_bytes,
-    fixture_row_ids, mask_hiding, open_artifacts, open_edge_artifacts, publish, qualifying_columns,
-    request, section, test_codec, walk, wire_columns,
+    Artifacts, Atlas, Bound, EdgesLimits, FIXTURE_LOD, FULL, HEAD, HashSet, Mode, ROW_IDS,
+    TileHead, TileLimits, TileResponse, UntouchedStore, coordinate_of, edges_request,
+    expected_edges_bytes, extremes, fixture_row_ids, head_global, mask_hiding, open_artifacts,
+    open_edge_artifacts, publish, qualifying_columns, request, section, test_codec, walk,
+    wire_columns, withdrawing,
 };
 use crate::{
-    identity::{BasePosition, NodeRowId},
+    bitset::CompressedBitSet,
+    identity::{BasePosition, EdgeRowId, NodeRowId},
     math::{Bounds2, Vec2},
     morton::{Depth, MortonCell},
     salt::wire::tile::{DeliveredSet, GlobalHead, TileCoordinate},
     serve::{
-        delta::{DeltaEvent, DeltaRegister, DeltaRevision, DeltaSnapshot, PlacementCohort},
+        VisibilityProof,
+        cache::PendingCacheEntry,
+        delta::{DeltaSnapshot, PlacementCohort},
+        hydrate::MaskingActor,
         walk::full::occupied_children,
     },
 };
-
-/// Folds one `Ended` feed event per seed into a published snapshot over `atlas`.
-///
-/// The events travel the consumer's own conversion, so the snapshot is the one publication
-/// serving would read rather than a hand-assembled equivalent. Fixture node row `r` owns seed
-/// `r`, so withdrawing a row is withdrawing its seed.
-fn withdrawing(atlas: &Atlas, seeds: &[u8]) -> DeltaSnapshot {
-    let mut register = DeltaRegister::new(atlas.universe());
-    for &seed in seeds {
-        let event = EntityEvent::Ended(EntityEnd {
-            entity: EntityId {
-                web_id: type_system::principal::actor_group::WebId::new(Uuid::from_bytes(
-                    [seed; 16],
-                )),
-                entity_uuid: EntityUuid::new(Uuid::from_bytes([seed ^ 0xFF; 16])),
-                draft_id: None,
-            },
-            ended_at: Timestamp::from_unix_timestamp(1),
-        });
-        register.apply(DeltaEvent::from(&event));
-    }
-
-    register.snapshot(
-        atlas,
-        DeltaRevision::FIRST,
-        Timestamp::from_unix_timestamp(1),
-    )
-}
 
 /// Serves one tile under `proof` with `delta` as the request's ingress capture.
 fn tile_with(
@@ -139,8 +123,8 @@ async fn corpus_root_subtracts_a_withdrawn_row_and_splits_its_range() {
             mode: Mode::Delta,
             first_bucket: 0,
             runs: &runs,
-            // The aggregates stay generation-computed. A withdrawn extreme point keeps
-            // stretching the reported extent until refit, and the census never subtracts.
+            // The corpus aggregates stay generation-computed. A withdrawn extreme point keeps
+            // stretching the reported extent until refit, and the corpus census never subtracts.
             global: Some(GlobalHead {
                 visible: delivered,
                 bounds: Some(
@@ -553,5 +537,407 @@ async fn translate_answers_withdrawn_identities_as_absent_keys() {
         translate(Some(&withdrawing(&atlas, &[9]))),
         baseline,
         "an unrelated withdrawal leaves the response equal",
+    );
+}
+
+/// A folded scoped proof delivers the subtracted rows, and subtracting over it moves no byte.
+///
+/// The claims split by width on purpose. Subtracting the snapshot a proof already folded is
+/// byte-exact vacuous, because no delivered set holds a folded row - the identity the skip gate
+/// stands on. Across the fold boundary itself the withdrawn row is absent either way, and the
+/// folded cascade may deliver more: the schedule re-levels over the visible rows, promoting a
+/// row into the slot the withdrawal freed where the subtracted document keeps the gap - the
+/// same refresh-boundary semantics arrivals already have. The control folds a snapshot whose
+/// one withdrawal the mask already hides, which must move no byte.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_folded_proof_delivers_the_subtracted_rows_with_nothing_to_subtract() {
+    let (_generation, atlas) = publish("withdrawal-fold").await;
+
+    // The withdrawn row sits at base position 1, inside the head the root delivers. Fixture
+    // node row `r` owns seed `r`, so its identity withdraws as its own row id.
+    let hidden = 0_u8;
+    let withdrawn = atlas.rows.view()[BasePosition::from_u32(1)].as_u32();
+    assert_ne!(
+        withdrawn,
+        u32::from(hidden),
+        "the witness row must stay visible"
+    );
+    let seed = u8::try_from(withdrawn).expect("fixture rows fit u8");
+
+    let proof = mask_hiding(&atlas, &[u32::from(hidden)]);
+    let snapshot = withdrawing(&atlas, &[seed]);
+    let tile = request(0, 0, 0, Mode::Delta);
+
+    let mut folded = proof.clone();
+    folded.fold_withdrawn(&snapshot);
+
+    let baseline = tile_with(&atlas, &proof, None, &tile);
+    let served = tile_with(&atlas, &folded, None, &tile);
+    assert_eq!(
+        served,
+        tile_with(&atlas, &folded, Some(&snapshot), &tile),
+        "subtracting the folded snapshot moves no byte",
+    );
+    assert_ne!(served, baseline, "the folded withdrawal bites");
+
+    let rows_of = |bytes: &[u8]| -> Vec<u32> {
+        let (chunks, remainder) = section(bytes, ROW_IDS)
+            .expect("ROW_IDS is present")
+            .as_chunks::<4>();
+        assert!(remainder.is_empty(), "row sections are whole u32 columns");
+        chunks.iter().copied().map(u32::from_le_bytes).collect()
+    };
+    let wire = test_codec(&atlas)
+        .encode(NodeRowId::from_u32(withdrawn), atlas.universe())
+        .get();
+    let folded_rows = rows_of(&served);
+    let subtracted_rows = rows_of(&tile_with(&atlas, &proof, Some(&snapshot), &tile));
+    assert!(
+        !folded_rows.contains(&wire) && !subtracted_rows.contains(&wire),
+        "the withdrawn row leaves both routes' wires",
+    );
+    assert!(
+        subtracted_rows.iter().all(|row| folded_rows.contains(row)),
+        "the folded cascade delivers every subtracted survivor, backfill aside",
+    );
+
+    // Same-path control: folding a withdrawal of the row the mask already hides is the vacuous
+    // fold, because the mask never admitted it.
+    let mut vacuous = proof;
+    vacuous.fold_withdrawn(&withdrawing(&atlas, &[hidden]));
+    assert_eq!(
+        tile_with(&atlas, &vacuous, None, &tile),
+        baseline,
+        "a fold of hidden rows moves no byte",
+    );
+}
+
+/// The scoped root's aggregates follow the fold, and the corpus root's stay generation-computed.
+///
+/// The fold rewrites the proof's masks, so the scoped census and cascade - the root's global
+/// map, extent included - describe the surviving rows rather than the resolution's. A withdrawn
+/// row aggregates exactly as a hidden row does: the scoped cascade is visible-only, and the
+/// aggregates follow the view. The corpus arm serves the same withdrawal as an ingress
+/// subtraction, whose aggregates stay generation-computed because a withdrawn extreme point
+/// keeps stretching the corpus extent until refit. One snapshot therefore pins both regimes,
+/// and this witness records the split between them. The scoped arm is a recorded default
+/// pending the owner's ruling on the divergence, so the witness pins the built behaviour
+/// rather than settled law.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the three aggregate axes and their corpus and unfolded contrasts share one publish"
+)]
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_folded_scoped_root_publishes_the_folded_views_aggregates() {
+    let (generation, atlas) = publish("withdrawal-fold-aggregates").await;
+    let Artifacts {
+        coordinates,
+        rows,
+        morton,
+        ..
+    } = open_artifacts(&generation);
+    let points = coordinates.points().expect("wire coordinates are points");
+    let row_ids = fixture_row_ids(&rows);
+
+    // Withdraw the rows attaining the extent's four extremes and every row of the deepest
+    // occupied bucket, so the extent, the count, and the depth all part from the unfolded
+    // view's: an aggregate that fails to follow the fold is a detectable answer on each axis.
+    let (corpus, mut withdrawn) = extremes(points, &row_ids);
+    let lengths = morton.fenceposts().lengths();
+    let (deepest, _) = lengths
+        .iter()
+        .enumerate()
+        .rfind(|&(_, &length)| length > 0)
+        .expect("the fixture occupies a bucket");
+    let start: u64 = lengths[..deepest].iter().sum();
+    let start = usize::try_from(start).expect("fixture counts fit usize");
+    let end = start + usize::try_from(lengths[deepest]).expect("fixture counts fit usize");
+    withdrawn.extend((start..end).map(|position| row_ids[position]));
+    withdrawn.sort_unstable();
+    withdrawn.dedup();
+    assert!(
+        !withdrawn.is_empty() && withdrawn.len() < points.len(),
+        "the snapshot withdraws the extremes and the deepest bucket and leaves a non-empty view"
+    );
+    let seeds: Vec<u8> = withdrawn
+        .iter()
+        .map(|&row| u8::try_from(row).expect("fixture rows fit u8"))
+        .collect();
+    let snapshot = withdrawing(&atlas, &seeds);
+    assert!(snapshot.withdraws_any_node(), "the fold resolved the rows");
+
+    let proof = mask_hiding(&atlas, &[]);
+    let mut folded = proof.clone();
+    folded.fold_withdrawn(&snapshot);
+
+    // The expectations come from the columns and the schedule reference over the folded view:
+    // the rows of its cascade at or below the root cut, the tight extent of the surviving set,
+    // and the deepest occupied scope bucket.
+    let survives = |position: usize| !withdrawn.contains(&row_ids[position]);
+    let expected_extent = Bounds2::from_points(
+        (0..points.len())
+            .filter(|&position| survives(position))
+            .map(|position| points[position]),
+    )
+    .expect("the folded view holds points");
+    assert!(
+        expected_extent.min().x() > corpus.min().x()
+            && expected_extent.min().y() > corpus.min().y()
+            && expected_extent.max().x() < corpus.max().x()
+            && expected_extent.max().y() < corpus.max().y(),
+        "the withdrawal vacates all four extremes, so the folded extent is strictly inside"
+    );
+    let (expected_visible, expected_deepest) = super::schedule::reference::Schedule::new(
+        super::schedule::reference::rows(&atlas, &folded),
+        FIXTURE_LOD.span.get(),
+        FIXTURE_LOD.max_tile_depth,
+        0,
+    )
+    .global();
+
+    let tile = request(0, 0, 0, Mode::Delta);
+    let (visible, extent, min_resolution) = head_global(
+        section(&tile_with(&atlas, &folded, None, &tile), HEAD).expect("HEAD is present"),
+    )
+    .expect("the root publishes its global map");
+
+    assert_eq!(
+        visible, expected_visible,
+        "the published count is the root schedule of the folded view's own cascade"
+    );
+    assert_eq!(
+        extent,
+        Some([
+            expected_extent.min().x(),
+            expected_extent.min().y(),
+            expected_extent.max().x(),
+            expected_extent.max().y(),
+        ]),
+        "the published extent is the folded view's own"
+    );
+    assert_eq!(
+        min_resolution, expected_deepest,
+        "the published depth is the folded view's deepest occupied scope bucket"
+    );
+
+    // The corpus root under the same snapshot subtracts delivered rows and moves no aggregate:
+    // full domains decline the fold, and the unmasked census reads the artifacts.
+    let full_baseline = head_global(
+        section(&tile_with(&atlas, &FULL, None, &tile), HEAD).expect("HEAD is present"),
+    );
+    assert_eq!(
+        head_global(
+            section(&tile_with(&atlas, &FULL, Some(&snapshot), &tile), HEAD)
+                .expect("HEAD is present"),
+        ),
+        full_baseline,
+        "the corpus aggregates stay generation-computed under the same withdrawal"
+    );
+
+    // And the same view unfolded publishes the resolution's own numbers, so the assertions
+    // above distinguish the folded view from the unfolded one rather than restating it. A
+    // failure here is fixture drift - the withdrawal set no longer moves the aggregate - not a
+    // defect in the fold.
+    let (bare_visible, bare_extent, bare_depth) = head_global(
+        section(&tile_with(&atlas, &proof, None, &tile), HEAD).expect("HEAD is present"),
+    )
+    .expect("the root publishes its global map");
+    assert_ne!(
+        extent, bare_extent,
+        "fixture drift: the withdrawal set no longer moves the root extent, so the folded-extent \
+         equality above has lost its teeth"
+    );
+    assert!(
+        visible < bare_visible,
+        "fixture drift: the withdrawal set no longer removes delivered points, so the \
+         folded-count equality above has lost its teeth"
+    );
+    assert!(
+        min_resolution < bare_depth,
+        "fixture drift: the withdrawal set no longer vacates the deepest occupied bucket, so the \
+         folded-depth equality above has lost its teeth"
+    );
+}
+
+/// The fold leaves a corpus proof admitting everything.
+///
+/// Full domains carry no mask to fold, and narrowing one would turn the operator's declared
+/// authority into a scope. The admission walk stays that proof's whole withdrawal authority,
+/// which the corpus-proof subtraction witnesses above already pin.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_fold_leaves_a_corpus_proof_admitting_everything() {
+    let (_generation, atlas) = publish("withdrawal-fold-corpus").await;
+
+    let mut folded = FULL.clone();
+    folded.fold_withdrawn(&withdrawing(&atlas, &[1]));
+
+    assert_eq!(folded, FULL, "full domains stay full through the fold");
+}
+
+/// The fold removes a link tombstone's row and a withdrawn admitted delta identity.
+///
+/// The tombstone's endpoints keep serving, because a link carries authorization its endpoints do
+/// not imply and a withdrawal runs the same domains in reverse. The admitted delta-link set drops
+/// exactly the withdrawn identity, and its sibling stays.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_fold_removes_link_tombstones_and_withdrawn_delta_identities() {
+    let (_generation, atlas) = publish("withdrawal-fold-links").await;
+
+    // In the edge domain, the tombstone's row leaves the folded mask and its endpoints stay.
+    let edge = EdgeRowId::from_u32(0);
+    let [source, target] = atlas.endpoint_pairs()[edge];
+    let mut folded = mask_hiding(&atlas, &[]);
+    assert!(
+        folded.verify_edge(edge, source, target).is_some(),
+        "the mask admits the link before the fold",
+    );
+
+    folded.fold_withdrawn(&withdrawing(&atlas, &[super::EDGE_SEED]));
+    assert!(
+        folded.verify_edge(edge, source, target).is_none(),
+        "the folded mask refuses the tombstone's row",
+    );
+    assert!(
+        folded.verify(source).is_some() && folded.verify(target).is_some(),
+        "a link tombstone leaves its endpoints serving",
+    );
+
+    // An unfitted withdrawal leaves the admitted delta-link identity set.
+    let withdrawn = super::entity_id_of(0xC8);
+    let retained = super::entity_id_of(0xC9);
+    let mut links = fast_hash_set();
+    links.insert(withdrawn);
+    links.insert(retained);
+
+    let mut proof =
+        VisibilityProof::from_masks(CompressedBitSet::new(), CompressedBitSet::new(), links);
+    proof.fold_withdrawn(&withdrawing(&atlas, &[0xC8]));
+    assert!(
+        !proof.admits_delta_link(withdrawn),
+        "a withdrawn identity leaves the admitted set",
+    );
+    assert!(proof.admits_delta_link(retained), "its sibling stays");
+}
+
+/// The occupancy aggregate a mint reads ignores the entry's folded snapshot.
+///
+/// The entry aggregates occupancy from the store's answer before folding withdrawals, so the cut
+/// offset a mint resolves is a function of the resolution alone and no snapshot moves it. The
+/// witness withdraws every row of one occupied cell, because occupancy counts cells over the
+/// fixture's co-located points and a lesser withdrawal cannot move it - which is exactly what
+/// makes the equal aggregates a statement rather than a tautology, and the folded proof's own
+/// occupancy pins that the harness holds the condition.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_mint_occupancy_ignores_the_folded_snapshot() {
+    let (_generation, atlas) = publish("withdrawal-fold-occupancy").await;
+    let atlas = Arc::new(atlas);
+
+    // Every row of the deepest grid's first occupied cell, by its position's Morton key. Fixture
+    // node row `r` owns seed `r`, so the cell's rows withdraw as their own seeds.
+    let row_ids = atlas.rows.view();
+    let first_key = atlas.morton.code(BasePosition::MIN);
+    let cell_seeds: Vec<u8> = (0..row_ids.len())
+        .map(super::narrow_usize)
+        .map(BasePosition::from_u32)
+        .filter(|&position| atlas.morton.code(position) == first_key)
+        .map(|position| u8::try_from(row_ids[position].as_u32()).expect("fixture rows fit u8"))
+        .collect();
+
+    let proof = mask_hiding(&atlas, &[]);
+    let masking = MaskingActor {
+        id: None,
+        instance_admin: false,
+    };
+    let snapshot = Arc::new(withdrawing(&atlas, &cell_seeds));
+
+    let folded = PendingCacheEntry::of(
+        Arc::clone(&atlas),
+        proof.clone(),
+        masking,
+        None,
+        Some(Arc::clone(&snapshot)),
+    )
+    .await
+    .expect("the folded entry builds");
+    let bare = PendingCacheEntry::of(Arc::clone(&atlas), proof.clone(), masking, None, None)
+        .await
+        .expect("the bare entry builds");
+
+    assert!(
+        folded.occupancy().is_some(),
+        "a scoped entry holds its aggregate",
+    );
+    assert_eq!(
+        folded.occupancy(),
+        bare.occupancy(),
+        "no snapshot moves a mint's input",
+    );
+    assert_eq!(
+        folded.occupancy(),
+        Some(&atlas.visible_occupancy(&proof)),
+        "the aggregate is the unfolded proof's own",
+    );
+
+    let mut hand_folded = proof.clone();
+    hand_folded.fold_withdrawn(&snapshot);
+    assert_ne!(
+        atlas.visible_occupancy(&hand_folded),
+        atlas.visible_occupancy(&proof),
+        "the folded proof's occupancy differs, so the equalities above have teeth",
+    );
+}
+
+/// A withdrawal published after the entry's fold subtracts as the residue.
+///
+/// The folded proof carries the earlier publication's row and the request's capture carries the
+/// later one's, so the served tile hides both. The residue is idempotent over the fold: the
+/// capture re-names the folded row, and subtracting it edits nothing because no delivered set
+/// holds it.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_withdrawal_after_the_fold_subtracts_as_the_residue() {
+    let (_generation, atlas) = publish("withdrawal-fold-residue").await;
+
+    // Rows the root delivers, taken at base positions 1 and 2. Fixture node row `r` owns
+    // seed `r`.
+    let row_ids = atlas.rows.view();
+    let earlier = row_ids[BasePosition::from_u32(1)].as_u32();
+    let later = row_ids[BasePosition::from_u32(2)].as_u32();
+    let seed_of = |row: u32| u8::try_from(row).expect("fixture rows fit u8");
+
+    let mut folded = mask_hiding(&atlas, &[]);
+    folded.fold_withdrawn(&withdrawing(&atlas, &[seed_of(earlier)]));
+
+    let capture = withdrawing(&atlas, &[seed_of(earlier), seed_of(later)]);
+    let tile = request(0, 0, 0, Mode::Delta);
+    let served = tile_with(&atlas, &folded, Some(&capture), &tile);
+
+    let rows_of = |bytes: &[u8]| -> Vec<u32> {
+        let (chunks, remainder) = section(bytes, ROW_IDS)
+            .expect("ROW_IDS is present")
+            .as_chunks::<4>();
+        assert!(remainder.is_empty(), "row sections are whole u32 columns");
+        chunks.iter().copied().map(u32::from_le_bytes).collect()
+    };
+    let codec = test_codec(&atlas);
+    let wire_of = |row: u32| {
+        codec
+            .encode(NodeRowId::from_u32(row), atlas.universe())
+            .get()
+    };
+
+    let delivered = rows_of(&served);
+    assert!(
+        !delivered.contains(&wire_of(earlier)) && !delivered.contains(&wire_of(later)),
+        "the folded row and the residue row both leave the wire",
+    );
+    assert!(
+        rows_of(&tile_with(&atlas, &folded, None, &tile)).contains(&wire_of(later)),
+        "without the capture the later withdrawal still serves, so the residue has teeth",
     );
 }

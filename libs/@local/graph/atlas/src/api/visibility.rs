@@ -38,8 +38,8 @@ use super::{
     problem::{Problem, ProblemType, missing_actor, unauthorized, visibility_unavailable},
 };
 use crate::serve::{
-    Atlas, CutOffset, DeltaSnapshot, PlacementCohort, View, ViewError, VisibilityLimits,
-    VisibilityProof,
+    Atlas, CutOffset, DeltaSnapshot, PlacementCohort, View, ViewError, ViewOccupancy,
+    VisibilityLimits, VisibilityProof,
     cache::{
         CacheEntry, PendingCacheEntry, VisibilityCache,
         scope::{CacheKey, FilterDigest},
@@ -105,6 +105,15 @@ impl Resolved {
     pub(super) fn proof(&self) -> &VisibilityProof {
         self.entry.proof()
     }
+
+    /// Returns the scope's occupancy aggregate, absent for a corpus proof.
+    ///
+    /// The corpus schedule has one cut per zoom and takes no offset, so an operator scope holds
+    /// no aggregate and a mint over it seals zero. A scoped entry aggregates once at resolution,
+    /// from the store's answer alone, and every mint under the entry reads that value.
+    pub(super) fn occupancy(&self) -> Option<&ViewOccupancy> {
+        self.entry.occupancy()
+    }
 }
 
 /// The resolved scope for one request, plus the token-bound delivery-cut offset.
@@ -125,11 +134,13 @@ pub(super) struct Visibility {
     /// Sealed at the manifest by the density policy and read back at admission, so the served cut
     /// and the declared cut are the same value by construction.
     k: CutOffset,
-    /// The withdrawal snapshot captured at ingress, before any proof or cache work.
+    /// The withdrawal residue of the snapshot captured at ingress, before any proof or cache
+    /// work.
     ///
     /// One owned handle pins one publication for the whole request, so every admission in the
     /// answer reads the same snapshot however many publications land while it runs. [`None`]
-    /// before the consumer's first publication, and for a serve that starts no consumer.
+    /// before the consumer's first publication, for a serve that starts no consumer, and for a
+    /// capture the entry's masks already folded, whose subtraction would edit nothing.
     delta: Option<Arc<DeltaSnapshot>>,
 }
 
@@ -157,7 +168,8 @@ impl Visibility {
         View::of(atlas, &self.entry, self.k, self.delta.as_deref())
     }
 
-    /// Returns the ingress withdrawal snapshot, [`None`] before the first publication.
+    /// Returns the ingress capture's withdrawal residue, [`None`] when nothing is left to
+    /// subtract.
     ///
     /// Translate constructs no [`View`] and takes the same captured value explicitly.
     #[expect(
@@ -191,6 +203,10 @@ impl FromRequestParts<AppState> for Visibility {
 
         let scope = authorization::admit(parts, state)?;
         let resolved = resolve(state, *scope.actor, scope.filter.digest(), None).await?;
+
+        // A capture the entry's masks already folded leaves no residue, so the routes skip
+        // their admission walks whole instead of subtracting nothing.
+        let delta = delta.filter(|ingress| !resolved.entry.folded(ingress));
 
         Ok(Self {
             entry: resolved.entry,

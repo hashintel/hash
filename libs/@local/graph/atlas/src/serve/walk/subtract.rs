@@ -1,7 +1,9 @@
 //! Withdrawal subtraction over one tile's delivered set.
 //!
-//! Admission subtraction edits the assembled document rather than the visibility proof, because
-//! the corpus fast paths never consult the proof and a full-visibility view builds no masks. The
+//! Admission subtraction edits the assembled document, because the corpus fast paths never
+//! consult the proof and a full-visibility view builds no masks. A scoped entry also folds its
+//! own snapshot's withdrawals into its masks at resolution, so this walk is the corpus path's
+//! whole withdrawal authority and every path's answer for withdrawals newer than the entry. The
 //! delivered positions partition into the head's `runs` sequentially in delivery order, so one
 //! walk with a run cursor drops each withdrawn position and decrements the run that owns it. A
 //! range that straddles a withdrawal splits around it. That construction preserves

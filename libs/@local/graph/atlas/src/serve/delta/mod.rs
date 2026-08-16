@@ -55,7 +55,8 @@
 //! [`DeltaRegister::snapshot`] publishes the fold as an immutable [`DeltaSnapshot`], resolving each identity against the generation's [`IdentityTables`]:
 //!
 //! - Withdrawn and fitted: the identity enters the withdrawn set, and its node or edge row enters
-//!   the matching row bitset - the subtraction a request applies at admission.
+//!   the matching row bitset - what admission subtraction reads per request and a scoped cache
+//!   entry folds out of its masks at resolution.
 //! - Withdrawn and unfitted: the identity enters the withdrawn set alone. No generation row exists
 //!   to subtract, and a retained cohort can still hold the identity, so membership in the set never
 //!   depends on generation fitness.
@@ -468,6 +469,15 @@ impl DeltaSnapshot {
         self.nodes.iter()
     }
 
+    /// Iterates the withdrawn edge rows, the fitted withdrawals in the edge domain.
+    ///
+    /// An entry fold subtracts these from a scoped proof's edge mask at resolution, exactly as
+    /// [`Self::withdrawn_node_rows`] feeds the node mask, so the folded proof and the admission
+    /// checks answer from one withdrawn set.
+    pub(crate) fn withdrawn_edge_rows(&self) -> impl Iterator<Item = EdgeRowId> + '_ {
+        self.edges.iter()
+    }
+
     /// Returns the staged edition of the arrival `id` names, or [`None`] for an identity with no
     /// staged arrival.
     #[must_use]
@@ -526,8 +536,10 @@ impl DeltaSnapshot {
 /// placed set, and the cache entry binds the snapshot for its lifetime - the entry's placement
 /// cohort. Every arrival-sensitive read takes slots, placement payload, and the accepted row
 /// universe from this value, so a publication landing mid-window moves nothing a held entry
-/// serves. The request's ingress capture stays the withdrawal authority: the current withdrawn
-/// identity set filters what a retained cohort serves, and this value answers everything else.
+/// serves. The request's ingress capture stays the admission-time withdrawal authority: the
+/// current withdrawn identity set filters what a retained cohort serves. The entry's masks
+/// already fold this snapshot's own withdrawals, so the capture's admission work is the
+/// residue that published after the entry resolved.
 ///
 /// An empty cohort is the resolution that read no publication - a serve that starts no consumer,
 /// or a scope resolved before the first poll completes. No arrival serves through it, and the

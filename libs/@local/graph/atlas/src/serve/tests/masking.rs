@@ -9,47 +9,15 @@ use super::{
     FIXTURE_LOD, FULL, Generation, HEAD, HashMap, HashSet, Id as _, IdSlice, Mode, MortonCell,
     NodeRowId, POSITIONS, ROW_IDS, ServeLimits, TileHead, TileLimits, TileQuery, TileRequest,
     TileResponse, UntouchedStore, VisibilityProof, Xoshiro256PlusPlus, codec, coordinate_of,
-    decode_rows, domain_mask, edges_request, entity_string_of, expected_edges_bytes,
+    decode_rows, domain_mask, edges_request, entity_string_of, expected_edges_bytes, extremes,
     fixture_row_ids, full_grid, head_global, locate_request, mask_hiding, mask_hiding_rows,
     narrow_usize, open_artifacts, publish, qualifying_columns, request, section, test_codec,
     viewing, walk, wire_columns,
 };
 use crate::{
-    math::{Bounds2, Vec2},
+    math::Bounds2,
     serve::{delta::PlacementCohort, visibility::ResolvedRow},
 };
-
-/// The generation's extent, and the rows attaining any of its four extremes.
-///
-/// Hiding exactly these rows vacates every edge of the extent, which is what lets a census witness
-/// fail on a census read off the artifacts rather than off the view: with any edge still attained,
-/// the corpus extent and the view's extent agree there and the wrong answer looks right.
-fn extremes(points: &[Vec2], row_ids: &[u32]) -> (Bounds2, Vec<u32>) {
-    let corpus = Bounds2::from_points(points.iter().copied()).expect("the fixture holds points");
-
-    // Exact equality is the predicate: an extremum IS one of this column's own values, so a row
-    // attains it bit-for-bit or does not attain it.
-    #[expect(
-        clippy::float_cmp,
-        reason = "the comparand is drawn from this very column, so bit equality is the intended \
-                  test"
-    )]
-    let mut attaining: Vec<u32> = points
-        .iter()
-        .enumerate()
-        .filter(|(_, point)| {
-            point.x() == corpus.min().x()
-                || point.x() == corpus.max().x()
-                || point.y() == corpus.min().y()
-                || point.y() == corpus.max().y()
-        })
-        .map(|(position, _)| row_ids[position])
-        .collect();
-    attaining.sort_unstable();
-    attaining.dedup();
-
-    (corpus, attaining)
-}
 
 /// The resolve seam collapses every failure to one [`None`].
 ///
