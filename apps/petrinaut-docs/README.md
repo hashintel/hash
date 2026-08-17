@@ -64,3 +64,30 @@ them. Astro's generated prerender entry resolves `cookie` from this app's build
 output, which would otherwise reach the root-hoisted `cookie@0.7.2` that
 `express` pins and fail on a missing `parseCookie` export. Nesting keeps Astro on
 its own `cookie@2.x` without changing hoisting for the rest of the monorepo.
+
+## Deployment
+
+Vercel builds the site from [`vercel.json`](vercel.json), which runs
+[`vercel-install.sh`](vercel-install.sh) and then
+[`vercel-build.sh`](vercel-build.sh). Both scripts `cd ../..` and work from the
+repo root, so the Vercel project needs **Root Directory** set to
+`apps/petrinaut-docs` with **Include files outside of the Root Directory in the
+Build Step** enabled. `site` in [`astro.config.mjs`](astro.config.mjs) sets the
+canonical URL to `https://petrinaut-docs.hash.dev`, so the project needs that
+domain assigned for sitemap and canonical links to match where it is served.
+
+The install script fetches Node, Turborepo and `d2`, and nothing else. The build
+graph is `astro build` <- `sync:bundle` <- `doc:architecture`, which is Node
+throughout, and `.yarnrc.yml` sets `enableScripts: false`, so no dependency
+compiles during install. `d2` renders the architecture diagrams; the generator
+treats it as optional and omits every diagram when it is absent, so a build that
+succeeds is not on its own evidence that the toolchain is complete.
+
+`cleanUrls` and `trailingSlash` in `vercel.json` mirror `build.format: "file"`
+and `trailingSlash: "never"` above. Astro emits `architecture.html` and
+`architecture/core.html`, and the bundle's relative links break under a trailing
+slash, so Vercel redirects `/architecture/` to `/architecture` and serves it from
+`architecture.html`.
+
+`vercel-build.sh` deletes the repo-root `.env` before building, because mise
+reads it. Worth knowing if you run the Vercel CLI locally and keep secrets there.
