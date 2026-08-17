@@ -80,6 +80,7 @@ pub struct SentryConfig {
         id = "sentry-dsn",
         long = "sentry-dsn",
         env = "HASH_GRAPH_SENTRY_DSN",
+        hide_env_values = true,
         value_parser = OptionalSentryDsnParser,
         default_value = ""
     ))]

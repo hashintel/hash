@@ -1,10 +1,12 @@
 //! Ory Kratos implementation of [`AuthenticationProvider`].
 
-use core::time::Duration;
+use core::{ops::ControlFlow, time::Duration};
 
 use cookie::Cookie;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::policies::store::error::DetermineActorError;
+use hash_graph_authorization::policies::{
+    principal::actor::AuthenticatedActor, store::error::DetermineActorError,
+};
 use http::{HeaderMap, header};
 use reqwest::{Client, Url, redirect};
 use serde::Deserialize;
@@ -240,26 +242,28 @@ impl<R> AuthenticationProvider for KratosSessionProvider<R>
 where
     R: ResolveActor,
 {
-    async fn authenticate(&self, headers: &HeaderMap) -> Authentication {
+    async fn authenticate(&self, headers: &HeaderMap) -> ControlFlow<Authentication> {
         match extract_session_credential(headers) {
-            None => Authentication::NotRecognized,
-            Some(Err(report)) => Authentication::Rejected(report),
-            Some(Ok(credential)) => match self.verify_session(credential).await {
-                Ok(actor_id) => Authentication::Verified(actor_id),
-                Err(report) => Authentication::Rejected(report),
-            },
+            None => ControlFlow::Continue(()),
+            Some(Err(report)) => ControlFlow::Break(Authentication::Rejected(report)),
+            Some(Ok(credential)) => {
+                ControlFlow::Break(match self.verify_session(credential).await {
+                    Ok(actor_id) => Authentication::Verified(AuthenticatedActor::Id(actor_id)),
+                    Err(report) => Authentication::Rejected(report),
+                })
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use core::{net::SocketAddr, time::Duration};
+    use core::{net::SocketAddr, ops::ControlFlow, time::Duration};
     use std::collections::HashMap;
 
     use axum::{Json, Router, response::IntoResponse as _, routing::get};
     use error_stack::Report;
-    use hash_graph_authorization::policies::store::error::DetermineActorError;
+    use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
     use http::{HeaderMap, HeaderValue, StatusCode};
     use reqwest::Url;
     use serde_json::{Value as JsonValue, json};
@@ -268,9 +272,10 @@ mod tests {
 
     use super::{KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME};
     use crate::{
-        actor::ResolveActor,
+        actor::tests::FixedActorResolver,
+        delegation::{SERVICE_SECRET_HEADER, ServiceDelegationProvider},
         provider::{Authentication, AuthenticationProvider as _},
-        request::AuthenticationError,
+        request::{ACTOR_ID_HEADER, AuthenticationError},
     };
 
     const SESSION_TOKEN: &str = "test-session-token";
@@ -328,25 +333,6 @@ mod tests {
         }
     }
 
-    /// Actor resolver serving a fixed set of actors.
-    ///
-    /// A `None` entry resolves to the public actor.
-    struct FixedActorResolver {
-        actors: HashMap<ActorEntityUuid, Option<ActorId>>,
-    }
-
-    impl ResolveActor for FixedActorResolver {
-        fn resolve_actor(
-            &self,
-            actor_entity_uuid: ActorEntityUuid,
-        ) -> impl Future<Output = Result<Option<ActorId>, Report<DetermineActorError>>> + Send
-        {
-            core::future::ready(self.actors.get(&actor_entity_uuid).copied().ok_or_else(|| {
-                Report::new(DetermineActorError::ActorNotFound { actor_entity_uuid })
-            }))
-        }
-    }
-
     fn known_user(actor_id: ActorEntityUuid) -> HashMap<ActorEntityUuid, Option<ActorId>> {
         HashMap::from([(actor_id, Some(ActorId::User(UserId::new(actor_id))))])
     }
@@ -381,7 +367,7 @@ mod tests {
                 kratos_public_url: url,
                 http_timeout: Duration::from_secs(5),
             },
-            FixedActorResolver { actors },
+            FixedActorResolver::new(actors),
         )
     }
 
@@ -435,10 +421,12 @@ mod tests {
     }
 
     #[track_caller]
-    fn expect_rejection(authentication: Authentication) -> Report<AuthenticationError> {
+    fn expect_rejection(
+        authentication: ControlFlow<Authentication>,
+    ) -> Report<AuthenticationError> {
         match authentication {
-            Authentication::Rejected(report) => report,
-            Authentication::NotRecognized | Authentication::Verified(_) => {
+            ControlFlow::Break(Authentication::Rejected(report)) => report,
+            ControlFlow::Break(Authentication::Verified(_)) | ControlFlow::Continue(()) => {
                 panic!("the credential should be rejected, got {authentication:?}")
             }
         }
@@ -454,7 +442,9 @@ mod tests {
         assert!(
             matches!(
                 authentication,
-                Authentication::Verified(ActorId::User(user_id)) if ActorEntityUuid::new(user_id) == actor_id
+                ControlFlow::Break(Authentication::Verified(AuthenticatedActor::Id(
+                    ActorId::User(user_id)
+                ))) if ActorEntityUuid::new(user_id) == actor_id
             ),
             "a valid session should verify to the provisioned user actor"
         );
@@ -479,7 +469,12 @@ mod tests {
         let authentication = provider.authenticate(&headers).await;
 
         assert!(
-            matches!(authentication, Authentication::Verified(ActorId::User(_))),
+            matches!(
+                authentication,
+                ControlFlow::Break(Authentication::Verified(AuthenticatedActor::Id(
+                    ActorId::User(_)
+                )))
+            ),
             "a session cookie next to non-ASCII cookies should verify"
         );
     }
@@ -621,7 +616,7 @@ mod tests {
         assert!(
             matches!(
                 provider.authenticate(&headers).await,
-                Authentication::NotRecognized
+                ControlFlow::Continue(())
             ),
             "unrelated cookies should not be recognized as a session credential"
         );
@@ -634,7 +629,7 @@ mod tests {
         assert!(
             matches!(
                 provider.authenticate(&HeaderMap::new()).await,
-                Authentication::NotRecognized
+                ControlFlow::Continue(())
             ),
             "a request without session credentials should not be recognized"
         );
@@ -724,9 +719,7 @@ mod tests {
                 kratos_public_url: url,
                 http_timeout: Duration::from_millis(100),
             },
-            FixedActorResolver {
-                actors: HashMap::new(),
-            },
+            FixedActorResolver::new(HashMap::new()),
         );
 
         let report = expect_rejection(provider.authenticate(&session_token_header()).await);
@@ -755,6 +748,70 @@ mod tests {
         assert!(
             !format!("{report:?}").contains("identity-like"),
             "the report should not carry the whoami response body"
+        );
+    }
+
+    const CHAIN_SERVICE_SECRET: &str = "hash-svc-chain-test-secret";
+
+    fn with_delegation_pair(mut headers: HeaderMap, actor_id: ActorEntityUuid) -> HeaderMap {
+        headers.insert(
+            SERVICE_SECRET_HEADER,
+            CHAIN_SERVICE_SECRET
+                .parse()
+                .expect("the secret should be a valid header value"),
+        );
+        headers.insert(
+            ACTOR_ID_HEADER,
+            actor_id
+                .to_string()
+                .parse()
+                .expect("a UUID should be a valid header value"),
+        );
+        headers
+    }
+
+    #[tokio::test]
+    async fn chain_rejects_invalid_session_despite_delegation_pair() {
+        let chain = (
+            provider_with_static_response(StatusCode::UNAUTHORIZED, "{}").await,
+            ServiceDelegationProvider::new(CHAIN_SERVICE_SECRET.to_owned()),
+        );
+
+        let headers = with_delegation_pair(session_token_header(), random_actor());
+
+        let report = expect_rejection(chain.authenticate(&headers).await);
+        assert!(
+            matches!(
+                report.current_context(),
+                AuthenticationError::InvalidSession
+            ),
+            "an invalid session should reject even when a valid delegation pair is present"
+        );
+    }
+
+    #[tokio::test]
+    async fn chain_resolves_session_actor_over_delegated_actor() {
+        let session_actor = random_actor();
+        let chain = (
+            provider_for(
+                FakeSession::active_for(session_actor),
+                known_user(session_actor),
+            )
+            .await,
+            ServiceDelegationProvider::new(CHAIN_SERVICE_SECRET.to_owned()),
+        );
+
+        let headers = with_delegation_pair(session_token_header(), random_actor());
+
+        let decision = chain.authenticate(&headers).await;
+        assert!(
+            matches!(
+                decision,
+                ControlFlow::Break(Authentication::Verified(AuthenticatedActor::Id(
+                    ActorId::User(user_id)
+                ))) if ActorEntityUuid::new(user_id) == session_actor
+            ),
+            "a valid session should act as the session user, not the delegated actor"
         );
     }
 }

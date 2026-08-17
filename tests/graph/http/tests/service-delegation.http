@@ -1,0 +1,64 @@
+# This file runs with httpYac (https://httpyac.github.io) and depends on the suite-wide hook in
+# `.httpyac.config.js`.
+#
+# Every request here sets `X-HASH-Service-Secret` explicitly to pin the rejection paths: a wrong
+# secret, the valid secret next to a malformed actor, and `<omit>` for a missing secret.
+
+### Wrong service secret is rejected despite an actor-ID header
+GET http://127.0.0.1:4000/actors/machine/identifier/h
+Content-Type: application/json
+X-HASH-Service-Secret: hash-svc-wrong
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("message names the service credential", function() {
+    client.assert(
+      response.body.message === "service credential is invalid",
+      "Response message is not the client-safe text"
+    );
+  });
+%}
+
+### Wrong service secret is rejected on bootstrap routes
+GET http://127.0.0.1:4000/actors/machine/identifier/system/h
+Content-Type: application/json
+X-HASH-Service-Secret: hash-svc-wrong
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+%}
+
+### Malformed actor-ID header is rejected with the valid secret
+GET http://127.0.0.1:4000/actors/machine/identifier/h
+Content-Type: application/json
+X-HASH-Service-Secret: hash-svc-local-dev-secret
+X-Authenticated-User-Actor-Id: not-a-uuid
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 400, "Response status is not 400");
+  });
+%}
+
+### Actor-ID header without the service secret is rejected
+GET http://127.0.0.1:4000/actors/machine/identifier/h
+Content-Type: application/json
+X-HASH-Service-Secret: <omit>
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("message names the missing credential", function() {
+    client.assert(
+      response.body.message === "the actor-ID header requires the service credential",
+      "Response message is not the client-safe text"
+    );
+  });
+%}

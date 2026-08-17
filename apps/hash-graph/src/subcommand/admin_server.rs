@@ -160,7 +160,12 @@ pub struct ExternalServicesConfig {
     /// Mailchimp API key for email subscription management.
     ///
     /// The server prefix is extracted from the key (format: `<key>-<server>`, e.g. `abc123-us15`).
-    #[clap(long, env = "MAILCHIMP_API_KEY", requires = "mailchimp_list_id")]
+    #[clap(
+        long,
+        env = "MAILCHIMP_API_KEY",
+        hide_env_values = true,
+        requires = "mailchimp_list_id"
+    )]
     pub mailchimp_api_key: Option<String>,
 
     /// Mailchimp audience list ID.

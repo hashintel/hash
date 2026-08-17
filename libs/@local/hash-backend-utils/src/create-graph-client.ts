@@ -9,6 +9,8 @@ import {
 } from "@local/hash-graph-client";
 import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 
+import { getRequiredEnv } from "./environment.js";
+
 import type { Logger } from "./logger.js";
 import type { Status } from "@local/status";
 import type { ErrorInfo } from "@local/status/type-defs/status-payloads/error-info";
@@ -97,6 +99,10 @@ export const createGraphClient = (
   const axiosInstance = axios.create({
     httpAgent,
     httpsAgent,
+    headers: {
+      // The Graph only honors `X-Authenticated-User-Actor-Id` next to this secret.
+      "X-HASH-Service-Secret": getRequiredEnv("HASH_GRAPH_SERVICE_SECRET"),
+    },
   });
 
   if (requestInterceptor) {
