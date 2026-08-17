@@ -25,10 +25,9 @@ dependency. The bundle is build output and is not committed.
 each running it — they used to call it themselves, which raced when Turborepo ran
 them concurrently on the same directories.
 
-That separation is deliberate. The bundle has to render in a host that did not
-generate it — hash.dev is the other one — so this site is a test of the bundle's
-portability as much as a way to read it. Anything that only works here is a bug
-in the bundle.
+That separation is what makes this site a test of the bundle's portability as
+much as a way to read it: the bundle has to render in a host that did not
+generate it. Anything that only works here is a bug in the bundle.
 
 To change what the docs say, change the annotations in the Petrinaut source or
 the authored pages in `libs/@local/petrinaut-arch-docs/content/`. Anything run
@@ -77,14 +76,6 @@ The site is served from `architecture.petrinaut.org`. That host is proposed
 rather than settled, so treat `site` in [`astro.config.mjs`](astro.config.mjs) as
 provisional: it sets the canonical URL and every sitemap entry. SRE-955 assigns
 the domain and decides how access to the deployment is restricted.
-
-This host renders every page in the manifest, including the `architecture.md` and
-`architecture.json` that `sync:bundle` copies into `public/`, both of which
-describe the whole model. FE-1157 publishes a subset to `hash.dev/docs/petrinaut`,
-so the two run side by side and a page can appear on one and not the other.
-Nothing in the bundle records which pages belong to that subset: `ManifestPage`
-carries `kind`, which is `generated` or `authored`, a source distinction rather
-than an audience one. FE-1157 chooses the rule.
 
 The install script fetches Node, Turborepo and `d2`, and nothing else. The build
 graph is `astro build` <- `sync:bundle` <- `doc:architecture`, Node throughout,

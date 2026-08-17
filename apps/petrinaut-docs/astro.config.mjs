@@ -10,9 +10,8 @@ import { defineConfig } from "astro/config";
  * Renders the architecture bundle produced by `@local/petrinaut-arch-docs`.
  *
  * This site owns no content. That is the point: the bundle has to render in a
- * host that did not generate it, and this site is the first of two such hosts
- * (hash.dev being the other). Anything that only works here is a bug in the
- * bundle's portability, which is why the sidebar below is built from
+ * host that did not generate it, so anything that only works here is a bug in
+ * the bundle's portability, which is why the sidebar below is built from
  * `manifest.json` rather than from Starlight-specific frontmatter.
  */
 
@@ -204,10 +203,6 @@ const hasAuthoredIndex = manifest.pages.some(
 export default defineConfig({
   // Sets the canonical URL and the sitemap's entries. Proposed rather than
   // settled, and assigned by SRE-955.
-  //
-  // This host serves every page in the manifest; FE-1157 publishes a subset to
-  // `hash.dev/docs/petrinaut`. The two coexist, and nothing in the manifest
-  // says which pages belong to the subset.
   site: "https://architecture.petrinaut.org",
 
   ...(hasAuthoredIndex ? {} : { redirects: { "/": "/architecture" } }),
