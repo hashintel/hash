@@ -533,9 +533,12 @@ where
         )?;
     }
 
+    // HTTP strips surrounding whitespace from header values, so the senders' secret arrives
+    // trimmed. Trimming here keeps both sides comparing the same bytes.
     let service_secret = config
         .service_secret
-        .filter(|secret| !secret.trim().is_empty())
+        .map(|secret| secret.trim().to_owned())
+        .filter(|secret| !secret.is_empty())
         .ok_or_else(|| {
             Report::new(GraphError).attach(
                 "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
