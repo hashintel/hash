@@ -202,7 +202,10 @@ const hasAuthoredIndex = manifest.pages.some(
 );
 
 export default defineConfig({
-  site: "https://petrinaut-docs.hash.dev",
+  // Sets the canonical URL and the sitemap's entries. Proposed rather than
+  // settled: SRE-955 assigns the domain, and FE-1157 may move these docs to
+  // `hash.dev/docs/petrinaut` instead, at which point this changes again.
+  site: "https://architecture.petrinaut.org",
 
   ...(hasAuthoredIndex ? {} : { redirects: { "/": "/architecture" } }),
 

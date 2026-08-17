@@ -72,9 +72,19 @@ Vercel builds the site from [`vercel.json`](vercel.json), which runs
 [`vercel-build.sh`](vercel-build.sh). Both scripts `cd ../..` and work from the
 repo root, so the Vercel project needs **Root Directory** set to
 `apps/petrinaut-docs` with **Include files outside of the Root Directory in the
-Build Step** enabled. `site` in [`astro.config.mjs`](astro.config.mjs) sets the
-canonical URL to `https://petrinaut-docs.hash.dev`, so the project needs that
-domain assigned for sitemap and canonical links to match where it is served.
+Build Step** enabled.
+
+The site is served from `architecture.petrinaut.org`, behind a Cloudflare Access
+gate that requires SSO. That host is proposed rather than settled, so treat `site`
+in [`astro.config.mjs`](astro.config.mjs) as provisional: it sets the canonical
+URL and every sitemap entry, and has to match wherever the site ends up. SRE-955
+assigns the domain and configures the gate; FE-1157 may move these docs under
+`hash.dev/docs/petrinaut` instead.
+
+The gate covers the machine-readable artefacts too. `sync:bundle` copies the
+bundle's `architecture.md` and `architecture.json` into `public/`, so an agent
+reading either over HTTP needs a session, unlike one reading the bundle from a
+checkout.
 
 The install script fetches Node, Turborepo and `d2`, and nothing else. The build
 graph is `astro build` <- `sync:bundle` <- `doc:architecture`, which is Node
