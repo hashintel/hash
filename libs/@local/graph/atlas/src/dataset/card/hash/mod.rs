@@ -103,7 +103,7 @@ pub(crate) struct ExampleRow<'text, A: Allocator = Global> {
     pub source_label: &'text str,
     /// The target endpoint's display label.
     pub target_label: &'text str,
-    /// The source endpoint's first direct type id, empty when the store records no direct type.
+    /// The source endpoint's representative type id, empty when the store records no direct type.
     pub source_direct_type: &'text str,
     /// The source endpoint's type ids, nearest first.
     pub source_type_closure: Vec<&'text str, A>,
@@ -425,7 +425,7 @@ fn nearest_source<A: Allocator>(
 /// Wraps one candidate pool as a selection group.
 ///
 /// Every candidate claims its endpoint identities plus one rendered-pair conflict token, and scores
-/// by endpoint prominence. The candidate's first direct type id forms the diversity subgroup.
+/// by endpoint prominence. The candidate's representative type id forms the diversity subgroup.
 fn example_group<'text, A: Allocator + Clone>(
     title: Option<&'text str>,
     pool: Vec<NormalizedExample<'text, A>, A>,

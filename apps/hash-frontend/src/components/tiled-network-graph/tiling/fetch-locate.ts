@@ -77,7 +77,7 @@ export interface LocateNode {
   /** Human-readable label; `undefined` when the label did not resolve. */
   readonly label?: string;
   /**
-   * The node's first direct type as a versioned URL.
+   * The node's representative type as a versioned URL.
    *
    * `undefined` marks a node the store no longer serves or records no
    * types for. Label and icon rendering for a type is the client's own

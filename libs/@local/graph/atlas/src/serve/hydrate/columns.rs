@@ -332,24 +332,24 @@ impl<'details> LocateLinkDetails<'details> {
 
 /// Hydrated per-link edges details, aligned to the delivered edge order.
 ///
-/// One label and one first-type reference per edge.
+/// One label and one representative-type reference per edge.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct EdgeLinkDetails<'details> {
     /// The link entity's display label per delivered edge.
     labels: IdVec<EdgeSlot, &'details Label>,
-    /// The link's first direct type's versioned URL per delivered edge.
-    first_type_urls: IdVec<EdgeSlot, Option<VersionedUrl>>,
+    /// The link's representative type's versioned URL per delivered edge.
+    representative_type_urls: IdVec<EdgeSlot, Option<VersionedUrl>>,
 }
 
 impl<'details> EdgeLinkDetails<'details> {
     /// Assembles the columns, aligned to one delivered order.
     pub(crate) const fn new(
         labels: IdVec<EdgeSlot, &'details Label>,
-        first_type_urls: IdVec<EdgeSlot, Option<VersionedUrl>>,
+        representative_type_urls: IdVec<EdgeSlot, Option<VersionedUrl>>,
     ) -> Self {
         Self {
             labels,
-            first_type_urls,
+            representative_type_urls,
         }
     }
 

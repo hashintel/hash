@@ -2864,7 +2864,7 @@ async fn locate_rejections_carry_their_names() {
 /// The intern tables are the sorted, deduplicated unions of every reference.
 ///
 /// The property maps lead with the source's and keep each entity's ascending-name order as
-/// ascending indexes; node type references take the first direct type, link references keep
+/// ascending indexes; node type references take the representative type, link references keep
 /// canonical order. `None` marks an unresolved entity, an empty list a resolved one without
 /// surviving entries.
 #[test]

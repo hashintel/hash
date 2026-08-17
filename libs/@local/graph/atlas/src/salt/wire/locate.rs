@@ -14,7 +14,7 @@
 //! type and property URLs profile-natively. Keys 0 and 1 are string tables that list every
 //! referenced URL once in bytewise order, and every type and property reference in the later keys
 //! is a uint index into them. The source and the delivered edges get property maps. Neighbour nodes
-//! carry a label and a first type reference, and their own detail is one locate away. The
+//! carry a label and a representative type reference, and their own detail is one locate away. The
 //! document's consistency laws are producer contracts and panic when violated.
 #![expect(
     clippy::little_endian_bytes,
@@ -245,7 +245,7 @@ pub(crate) struct LocateTrailer<'trailer> {
     pub labels: &'trailer IdSlice<NodeSlot, &'trailer Label>,
     /// Trailer key 3.
     ///
-    /// Each delivered node's first direct type as a type-table index, delivered order. `null`
+    /// Each delivered node's representative type as a type-table index, delivered order. `null`
     /// marks a node the store no longer serves or whose types the store does not record.
     pub type_ids: &'trailer IdSlice<NodeSlot, Option<TableIndex<VersionedUrl>>>,
     /// Trailer key 4.

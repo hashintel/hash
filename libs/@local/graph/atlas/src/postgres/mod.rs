@@ -172,7 +172,7 @@ pub(crate) async fn read_projector_embeddings(
         .collect()
 }
 
-/// Reads each requested edition's display payload: its cached label and first cached type.
+/// Reads each requested edition's display payload: its cached label and representative cached type.
 ///
 /// One batched read per call, keyed by edition rather than identity, because a placement records
 /// the edition whose data it captured and an edition id names one immutable row. Every requested
@@ -201,7 +201,7 @@ pub(crate) async fn read_edition_displays(
 }
 
 /// Reads each requested link identity's display payload: its current edition's cached label and
-/// first cached type as a versioned URL.
+/// representative cached type as a versioned URL.
 ///
 /// One batched read per call, at axes taken at the call itself, so the payloads describe the
 /// store as it stands rather than any fit's frozen view. The answers arrive keyed by identity,

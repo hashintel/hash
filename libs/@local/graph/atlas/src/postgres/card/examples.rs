@@ -64,7 +64,7 @@ enum Example {
     SourceLabel,
     /// The target endpoint's display label.
     TargetLabel,
-    /// The source endpoint's first direct-type base id.
+    /// The source endpoint's representative-type base id.
     SourceDirectType,
     /// The source endpoint's type-closure base ids, nearest first.
     SourceTypeClosure,
@@ -281,7 +281,7 @@ fn raw_example_outputs(
     no_direct_type: Placeholder,
 ) -> Vec<SelectExpression> {
     // The base ids of the source's direct types lead its closure array, `direct_types` many, so
-    // the slice's first element is the first direct type, and NULL when the edition lists none.
+    // the slice's first element is the representative type, and NULL when the edition lists none.
     let direct_type = Expression::ArrayElement {
         expr: Box::new(Expression::ArraySlice {
             expr: Box::new(SOURCE_CACHE.column(&EntityEditionCache::BaseUrls)),

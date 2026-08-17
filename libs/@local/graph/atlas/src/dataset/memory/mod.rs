@@ -17,7 +17,7 @@ use super::{
 };
 use crate::math::BoxedVecN;
 
-/// The construction-time legend of a row: its first direct type under the empty label.
+/// The construction-time legend of a row: its representative type under the empty label.
 ///
 /// A typeless row's legend names ontology row 0.
 fn default_legend(ontology: &[OntologyRowId]) -> OwnedLegend {
@@ -44,7 +44,7 @@ pub(crate) struct MemoryDataset {
     cards: HashMap<u64, Card>,
     /// Display legends by node row, one entry per node.
     ///
-    /// [`new`](Self::new) fills the column with each node's first direct type under the empty
+    /// [`new`](Self::new) fills the column with each node's representative type under the empty
     /// label, and a typeless node's entry names ontology row 0. Assigning a replacement column
     /// gives the fixture display text and representatives of its own choosing. Its length must
     /// stay one entry per node row.

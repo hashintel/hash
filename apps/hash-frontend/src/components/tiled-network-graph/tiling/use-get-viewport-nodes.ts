@@ -241,7 +241,7 @@ export interface ViewportEdge {
    */
   readonly label?: string;
   /**
-   * The link's first direct type as a versioned URL, carried alongside
+   * The link's representative type as a versioned URL, carried alongside
    * {@link label} for detailed edges. Label and icon rendering for the type is
    * the client's own metadata. `undefined` otherwise.
    */

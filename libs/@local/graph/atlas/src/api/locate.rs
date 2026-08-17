@@ -62,7 +62,7 @@ The HEAD also carries the source's first visible zoom and its tile there (the fl
 The response always carries the detail trailer. Labels come from the generation (for an entity \
      placed since the fit, from its placement's captured display) and are admitted only when the \
      request-time store read resolves the corresponding entity. The store also supplies each \
-     node's first direct type, the source's properties capped by `limits.locateProperties`, and \
+     node's representative type, the source's properties capped by `limits.locateProperties`, and \
      each edge's direct types and properties capped by `limits.locateLinkTypeIds` and \
      `limits.locateLinkProperties`. Each edge cap has a completeness flag. Type and property \
      references are integer indexes into the trailer's two sorted URL tables.

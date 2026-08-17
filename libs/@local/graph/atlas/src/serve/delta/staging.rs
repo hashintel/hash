@@ -132,7 +132,7 @@ enum Phase {
         /// The display payload captured for the recorded edition, absent until its read answers.
         ///
         /// Placement waits for the capture, so a placed arrival always carries the label and
-        /// first type its store row stated at the hand-off.
+        /// representative type its store row stated at the hand-off.
         display: Option<EditionDisplay>,
     },
     /// The publisher holds the placement, and the published staged set retires the entry.

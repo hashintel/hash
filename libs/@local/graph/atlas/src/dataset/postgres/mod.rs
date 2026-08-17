@@ -330,7 +330,7 @@ impl Dataset for PostgresDataset<'_> {
     /// Opens the stream of node display legends, in row order.
     ///
     /// Each legend pairs the entity's representative type - its edition cache's canonically
-    /// first direct type, resolved to its type-table row - with the store's derived display
+    /// representative type, resolved to its type-table row - with the store's derived display
     /// label, and a row without a cached label delivers the empty label. The statement
     /// attaches the corpus scope and orders by the scope row, so positions agree with
     /// [`nodes`](Dataset::nodes) under the frozen snapshot.
@@ -359,11 +359,11 @@ impl Dataset for PostgresDataset<'_> {
 
     /// Opens the stream of edge display legends, in row order.
     ///
-    /// Each legend pairs the link entity's representative type - its edition cache's
-    /// canonically first direct type, resolved to its type-table row - with the store's
-    /// derived display label, and a link without a cached label delivers the empty label. The
-    /// statement attaches the corpus scope and links and orders by link identity, the same
-    /// total order as [`edges`](Dataset::edges), so positions agree under the frozen snapshot.
+    /// Each legend pairs the link entity's representative type - read from its edition cache
+    /// and resolved to its type-table row - with the store's derived display label, and a link
+    /// without a cached label delivers the empty label. The statement attaches the corpus scope
+    /// and links and orders by link identity, the same total order as [`edges`](Dataset::edges), so
+    /// positions agree under the frozen snapshot.
     fn edge_auxiliary_payload(&self) -> Self::EdgeAuxiliaryPayloadStream<'_> {
         async move {
             let types = self.type_table().await?;

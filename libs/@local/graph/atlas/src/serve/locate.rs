@@ -815,7 +815,7 @@ impl Atlas {
 /// `None` marks an entity the store no longer serves.
 type PropertyMapView<'doc> = Option<PropertyMap<'doc>>;
 
-/// Node first-type references into one response's type table, delivered order.
+/// Node representative-type references into one response's type table, delivered order.
 type NodeTypeIds = IdVec<NodeSlot, Option<TableIndex<VersionedUrl>>>;
 
 /// Link type lists into one response's type table, edge order.
@@ -838,9 +838,10 @@ pub(crate) fn covers_source_types(
 
 /// Builds the type intern table and every type reference into it.
 ///
-/// The table is the bytewise-sorted, deduplicated rendering of each node's first direct type and
-/// each link's capped type list. Node references are the first-type indexes (`None` for a node
-/// without a recorded type). Link references keep the hydration layer's canonical type order.
+/// The table is the bytewise-sorted, deduplicated rendering of each node's representative type
+/// and each link's capped type list. Node references are the representative-type indexes
+/// (`None` for a node without a recorded type). Link references keep the hydration layer's
+/// canonical type order.
 pub(crate) fn intern_types<'doc>(
     nodes: &'doc IdSlice<NodeSlot, Vec<VersionedUrl>>,
     links: &'doc IdSlice<EdgeSlot, Vec<VersionedUrl>>,

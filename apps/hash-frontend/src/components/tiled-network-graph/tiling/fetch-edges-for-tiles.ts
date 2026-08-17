@@ -55,7 +55,7 @@ export interface TileEdge {
   /** Link-entity label, present with the detail trailer. */
   readonly label?: string;
   /**
-   * The link's first direct type as a versioned URL, present with the
+   * The link's representative type as a versioned URL, present with the
    * detail trailer.
    *
    * Label and icon rendering for a type is the client's own metadata.

@@ -628,8 +628,8 @@ fn g5_trailer_tile() -> Fixture {
 ///
 /// `complete = false` (the cap flag is the point) and `EDGE_IDS` as raw identity records ascending
 /// per the delivery-order pin, so the fixture matches the ratified contract rather than structure
-/// alone. The interned detail trailer holds the type table plus labels with nulls and first-type
-/// references including a store-absent `null`.
+/// alone. The interned detail trailer holds the type table plus labels with nulls and
+/// representative-type references including a store-absent `null`.
 fn g6_edges() -> Fixture {
     let link_labels = [
         Label::new("\u{153}uvre"),
@@ -700,7 +700,7 @@ struct G7Trailer {
     /// Node labels: non-ASCII, an empty label (a wire `null`), an astral plane character, a
     /// combining mark.
     labels: [&'static Label; 4],
-    /// Each node's first direct type as a type-table index, one store-absent `null` among them.
+    /// Each node's representative type as a type-table index, one store-absent `null` among them.
     type_ids: [Option<TableIndex<VersionedUrl>>; 4],
     /// Link labels: non-ASCII, an empty label (a wire `null`), ASCII.
     link_labels: [&'static Label; 3],
@@ -778,11 +778,11 @@ fn g7_trailer() -> G7Trailer {
 /// both source completeness flags exercised in opposite states.
 ///
 /// The full detail trailer holds both intern tables, labels with nulls and non-ASCII, node
-/// first-type references including a `null`, the property maps covering every scalar value shape
-/// between them (text, positive and negative integers, doubles, booleans, explicit null), link type
-/// lists in non-ascending canonical order with an empty entry, link property maps covering map,
-/// `null`, and empty shapes, and both completeness bitmasks. The trailer's own pins live in
-/// [`G7Trailer`].
+/// representative-type references including a `null`, the property maps covering every scalar
+/// value shape between them (text, positive and negative integers, doubles, booleans, explicit
+/// null), link type lists in non-ascending canonical order with an empty entry, link property
+/// maps covering map, `null`, and empty shapes, and both completeness bitmasks. The trailer's
+/// own pins live in [`G7Trailer`].
 fn g7_locate() -> Fixture {
     let positions: Vec<Vec2> = (0_u16..8)
         .map(|index| {

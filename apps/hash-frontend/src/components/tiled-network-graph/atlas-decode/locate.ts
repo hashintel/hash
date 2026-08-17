@@ -75,7 +75,7 @@ export interface SaltileLocateDetail {
   /** Node labels, delivered order. */
   readonly labels: readonly (string | null)[];
   /**
-   * Each node's first direct type as a versioned URL, delivered order.
+   * Each node's representative type as a versioned URL, delivered order.
    *
    * `null` marks a node the store no longer serves or records no types
    * for.

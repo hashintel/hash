@@ -232,7 +232,7 @@ async fn memory_dataset_renders_cards() {
 async fn memory_dataset_streams_display_columns() {
     let mut dataset = fixture();
 
-    // A fresh fixture streams each row's first direct type under the empty label.
+    // A fresh fixture streams each row's representative type under the empty label.
     let legends: Vec<_> = dataset
         .node_auxiliary_payload()
         .try_collect()
