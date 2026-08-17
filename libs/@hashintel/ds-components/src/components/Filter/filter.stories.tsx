@@ -11,93 +11,97 @@ export default {
   title: "Components/Filter",
 } satisfies StoryDefault;
 
-type StringFilterValues = {
+type KitchenSinkValues = {
   equals: string;
   matches: string;
   contains: string;
-};
-
-const StringOperators: Array<ItemOrGroup<FilterOperator<StringFilterValues>>> =
-  [
-    {
-      key: "equals",
-      label: "equals",
-      input: { type: "string" },
-      tooltip: "Aa case sensitive",
-    },
-    {
-      key: "matches",
-      label: "matches",
-      input: { type: "string", placeholder: "Regex", pattern: "/.*/" },
-    },
-    {
-      key: "contains",
-      label: "contains",
-      input: { type: "string", min: 5, max: 10 },
-    },
-  ];
-
-type NumberFilterValues = {
   equalsNum: number;
   gt: number;
   power: number;
-};
-
-const NumberOperators: Array<ItemOrGroup<FilterOperator<NumberFilterValues>>> =
-  [
-    {
-      key: "equalsNum",
-      label: "equals",
-      input: { type: "number" },
-      tooltip: "Any number",
-    },
-    {
-      key: "gt",
-      label: "greater than",
-      input: { type: "float", min: 0, max: 99999, placeholder: "Float" },
-    },
-    {
-      key: "power",
-      label: "is power of 10",
-      input: { type: "int", step: 10 },
-    },
-  ];
-
-type BooleanFilterValues = {
   true: null;
   false: null;
-};
-
-const BooleanOperators: Array<
-  ItemOrGroup<FilterOperator<BooleanFilterValues>>
-> = [
-  { key: "true", label: "is true", input: null },
-  { key: "false", label: "is false", input: null },
-];
-
-type RangeFilterValues = {
   between: [number, number];
   outside: [number, number];
 };
 
-const RangeOperators: Array<ItemOrGroup<FilterOperator<RangeFilterValues>>> = [
+const KitchenSinkOperators: Array<
+  ItemOrGroup<FilterOperator<KitchenSinkValues>>
+> = [
   {
-    key: "between",
-    label: "between",
-    input: [
-      { type: "int", min: 0, max: 100 },
-      "-",
-      { type: "int", min: 0, max: 100 },
+    id: "text",
+    label: "Text",
+    items: [
+      {
+        key: "equals",
+        label: "equals",
+        input: { type: "string" },
+        tooltip: "Aa case sensitive",
+      },
+      {
+        key: "matches",
+        label: "matches",
+        input: { type: "string", placeholder: "Regex", pattern: "/.*/" },
+      },
+      {
+        key: "contains",
+        label: "contains",
+        input: { type: "string", min: 5, max: 10 },
+      },
     ],
-    tooltip: "Inclusive bounds",
   },
   {
-    key: "outside",
-    label: "outside",
-    input: [
-      { type: "int", min: 0, max: 100 },
-      "-",
-      { type: "int", min: 0, max: 100 },
+    id: "number",
+    label: "Number",
+    items: [
+      {
+        key: "equalsNum",
+        label: "equals",
+        input: { type: "number" },
+        tooltip: "Any number",
+      },
+      {
+        key: "gt",
+        label: "greater than",
+        input: { type: "float", min: 0, max: 99999, placeholder: "Float" },
+      },
+      {
+        key: "power",
+        label: "is power of 10",
+        input: { type: "int", step: 10 },
+      },
+    ],
+  },
+  {
+    id: "boolean",
+    label: "Boolean",
+    items: [
+      { key: "true", label: "is true", input: null },
+      { key: "false", label: "is false", input: null },
+    ],
+  },
+  {
+    id: "range",
+    label: "Range",
+    items: [
+      {
+        key: "between",
+        label: "between",
+        input: [
+          { type: "int", min: 0, max: 100 },
+          "-",
+          { type: "int", min: 0, max: 100 },
+        ],
+        tooltip: "Inclusive bounds",
+      },
+      {
+        key: "outside",
+        label: "outside",
+        input: [
+          { type: "int", min: 0, max: 100 },
+          "-",
+          { type: "int", min: 0, max: 100 },
+        ],
+      },
     ],
   },
 ];
@@ -110,6 +114,12 @@ const columnStyle: React.CSSProperties = {
   gap: 12,
   alignItems: "flex-start",
   padding: 16,
+};
+
+const stateLabelStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: "#999",
+  marginTop: 8,
 };
 
 const changeLogStyle: React.CSSProperties = {
@@ -131,7 +141,7 @@ const Demo = <ValueMap extends Record<string, unknown>>({
   );
   const [changes, setChanges] = useState<string[]>([]);
   return (
-    <div style={columnStyle}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <Filter<ValueMap>
         {...filterProps}
         value={value}
@@ -155,83 +165,59 @@ const Demo = <ValueMap extends Record<string, unknown>>({
   );
 };
 
-export const Text: Story = () => (
-  <Demo<StringFilterValues>
-    property="name"
-    propertyLabel="Name"
-    operators={StringOperators}
-  />
+const KitchenSinkState = ({
+  label,
+  ...filterProps
+}: { label: string } & Partial<
+  React.ComponentProps<typeof Filter<KitchenSinkValues>>
+>) => (
+  <>
+    <span style={stateLabelStyle}>{label}</span>
+    <Filter<KitchenSinkValues>
+      property="value"
+      propertyLabel="Value"
+      operators={KitchenSinkOperators}
+      onChange={noop}
+      {...filterProps}
+    />
+  </>
 );
 
-export const Numbers: Story = () => (
-  <Demo<NumberFilterValues>
-    property="age"
-    propertyLabel="Age"
-    operators={NumberOperators}
-  />
-);
-
-export const BooleanFlags: Story = () => (
-  <Demo<BooleanFilterValues>
-    property="archived"
-    propertyLabel="Archived"
-    operators={BooleanOperators}
-  />
-);
-
-export const NumberRange: Story = () => (
-  <Demo<RangeFilterValues>
-    property="rating"
-    propertyLabel="Rating"
-    operators={RangeOperators}
-  />
-);
-
-type MixedFilterValues = StringFilterValues & NumberFilterValues;
-
-const GroupedOperators: Array<ItemOrGroup<FilterOperator<MixedFilterValues>>> =
-  [
-    {
-      id: "text",
-      label: "Text",
-      items: [
-        {
-          key: "equals",
-          label: "equals",
-          input: { type: "string" },
-          tooltip: "Aa case sensitive",
-        },
-        {
-          key: "contains",
-          label: "contains",
-          input: { type: "string", min: 5, max: 10 },
-        },
-      ],
-    },
-    {
-      id: "number",
-      label: "Number",
-      items: [
-        {
-          key: "gt",
-          label: "greater than",
-          input: { type: "float", min: 0, max: 99999, placeholder: "Float" },
-        },
-        {
-          key: "power",
-          label: "is power of 10",
-          input: { type: "int", step: 10 },
-        },
-      ],
-    },
-  ];
-
-export const Grouped: Story = () => (
-  <Demo<MixedFilterValues>
-    property="value"
-    propertyLabel="Value"
-    operators={GroupedOperators}
-  />
+export const Default: Story = () => (
+  <div style={columnStyle}>
+    <span style={stateLabelStyle}>empty</span>
+    <Demo<KitchenSinkValues>
+      property="value"
+      propertyLabel="Value"
+      operators={KitchenSinkOperators}
+    />
+    <KitchenSinkState
+      label="operator selected, no value"
+      value={{ key: "contains", value: null }}
+    />
+    <KitchenSinkState
+      label="operator and value entered"
+      value={{ key: "contains", value: "hello" }}
+    />
+    <KitchenSinkState
+      label="range operator, no values"
+      value={{ key: "between", value: null }}
+    />
+    <KitchenSinkState
+      label="range operator, both values"
+      value={{ key: "between", value: [10, 50] }}
+    />
+    <KitchenSinkState
+      label="disabled"
+      value={{ key: "gt", value: 42 }}
+      disabled
+    />
+    <KitchenSinkState
+      label="with error"
+      value={{ key: "gt", value: 420 }}
+      errors={["Value must be less than 100"]}
+    />
+  </div>
 );
 
 export const Sizes: Story = () => (
@@ -239,53 +225,15 @@ export const Sizes: Story = () => (
     {formInputSizes.map((size) => (
       <div key={size} style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <span style={{ width: 32, fontSize: 12, color: "#999" }}>{size}</span>
-        <Filter<NumberFilterValues>
-          property="age"
-          propertyLabel="Age"
-          operators={NumberOperators}
-          value={{ key: "gt", value: 42 }}
+        <Filter<KitchenSinkValues>
+          property="value"
+          propertyLabel="Value"
+          operators={KitchenSinkOperators}
+          value={{ key: "between", value: [10, 50] }}
           onChange={noop}
           size={size}
         />
       </div>
     ))}
-  </div>
-);
-
-export const States: Story = () => (
-  <div style={columnStyle}>
-    <span style={{ fontSize: 12, color: "#999" }}>empty</span>
-    <Filter<NumberFilterValues>
-      property="age"
-      propertyLabel="Age"
-      operators={NumberOperators}
-      onChange={noop}
-    />
-    <span style={{ fontSize: 12, color: "#999" }}>with value</span>
-    <Filter<NumberFilterValues>
-      property="age"
-      propertyLabel="Age"
-      operators={NumberOperators}
-      value={{ key: "gt", value: 42 }}
-      onChange={noop}
-    />
-    <span style={{ fontSize: 12, color: "#999" }}>disabled</span>
-    <Filter<NumberFilterValues>
-      property="age"
-      propertyLabel="Age"
-      operators={NumberOperators}
-      value={{ key: "gt", value: 42 }}
-      onChange={noop}
-      disabled
-    />
-    <span style={{ fontSize: 12, color: "#999" }}>with errors</span>
-    <Filter<NumberFilterValues>
-      property="age"
-      propertyLabel="Age"
-      operators={NumberOperators}
-      value={{ key: "gt", value: 420 }}
-      onChange={noop}
-      errors={["Value must be less than 100"]}
-    />
   </div>
 );
