@@ -1209,7 +1209,7 @@ impl LocateStore for UnresolvedStore {
 impl EdgesStore for UnresolvedStore {
     fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError> {
         Ok(EdgesHydration {
-            fitted: vec![None; order.fitted.len()],
+            fitted: IdVec::from_elem(None, order.fitted.len()),
             delta: order.delta.iter().map(|_| LinkDisplay::empty()).collect(),
         })
     }
@@ -1666,6 +1666,189 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     }
     .encode();
     assert_eq!(bytes, expected, "the trailer rides the pinned envelope");
+}
+
+/// Derives the type-resolution expectations from the published artifacts alone.
+///
+/// Each delivered edge's legend payload names its representative ontology row, the rewritten
+/// ontology table pins that row's uuid to a fixture URL, and the returned resolution map answers
+/// a synthetic URL per uuid. Returns that map, the per-edge expected URLs, and the distinct
+/// uuids in first-occurrence order over the delivered edges.
+fn type_expectations(
+    generation: &Generation,
+    internal_edges: &[u32],
+) -> (
+    hashql_core::collections::FastHashMap<
+        crate::postgres::id::ArchivedOntologyTypeUuid,
+        VersionedUrl,
+    >,
+    Vec<Option<VersionedUrl>>,
+    Vec<crate::postgres::id::ArchivedOntologyTypeUuid>,
+) {
+    use crate::postgres::id::ArchivedOntologyTypeUuid;
+
+    let files = &generation.repository().files;
+    let ontology_rows = payloads_of(&generation.path_of(&files.ontology_identities.name)).len();
+    let uuid_of = |row: usize| {
+        let url: VersionedUrl = fixture_type_url(row as u64)
+            .parse()
+            .expect("the fixture URL parses");
+        ArchivedOntologyTypeUuid::from_url(&url)
+    };
+    let resolved_of = |row: usize| -> VersionedUrl {
+        format!("https://example.com/types/resolved-{row}/v/1")
+            .parse()
+            .expect("the synthetic URL parses")
+    };
+    let urls = (0..ontology_rows)
+        .map(|row| (uuid_of(row), resolved_of(row)))
+        .collect();
+
+    let edge_payloads = payloads_of(&generation.path_of(&files.edge_identities.name));
+    let representative_of = |edge: u32| {
+        let payload = &edge_payloads[usize::try_from(edge).expect("fixture rows fit usize")];
+        let representative = u64::from_le_bytes(
+            payload[..8]
+                .try_into()
+                .expect("a legend leads with its representative"),
+        );
+        usize::try_from(representative).expect("fixture rows fit usize")
+    };
+    let expected_urls = internal_edges
+        .iter()
+        .map(|&edge| {
+            let representative = representative_of(edge);
+            (representative < ontology_rows).then(|| resolved_of(representative))
+        })
+        .collect();
+    let expected_asked = {
+        let mut seen: Vec<ArchivedOntologyTypeUuid> = Vec::new();
+        for &edge in internal_edges {
+            let uuid = uuid_of(representative_of(edge));
+            if !seen.contains(&uuid) {
+                seen.push(uuid);
+            }
+        }
+        seen
+    };
+
+    (urls, expected_urls, expected_asked)
+}
+
+/// The trailer's type column resolves each edge's legend representative through the store.
+///
+/// Expected values derive from the published artifacts alone, through [`type_expectations`].
+/// The store receives the distinct uuids in first-occurrence order over the delivered edges,
+/// which is the deduplication this path exists to buy.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn detailed_edges_types() {
+    use alloc::rc::Rc;
+    use core::cell::RefCell;
+
+    use hashql_core::collections::FastHashMap;
+
+    use crate::{postgres::id::ArchivedOntologyTypeUuid, salt::wire::edges::EdgesTrailer};
+
+    /// Answers `urls` per known uuid and records every uuid set that reaches it.
+    struct RecordingTypeStore {
+        urls: FastHashMap<ArchivedOntologyTypeUuid, VersionedUrl>,
+        asked: Rc<RefCell<Vec<ArchivedOntologyTypeUuid>>>,
+    }
+
+    impl EdgesStore for RecordingTypeStore {
+        #[expect(
+            clippy::panic_in_result_fn,
+            reason = "a fitted-only order is the contract under test, and the assertion is its \
+                      witness"
+        )]
+        fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError> {
+            assert!(
+                order.delta.is_empty(),
+                "a fitted-only fixture places no delta identities"
+            );
+            self.asked.borrow_mut().extend(order.fitted.iter().copied());
+
+            Ok(EdgesHydration {
+                fitted: order
+                    .fitted
+                    .iter()
+                    .map(|uuid| self.urls.get(uuid).cloned())
+                    .collect(),
+                delta: Vec::new(),
+            })
+        }
+    }
+
+    let (generation, atlas) = publish("edge-type-resolution").await;
+    let artifacts = open_artifacts(&generation);
+    let row_ids = fixture_row_ids(&artifacts.rows);
+    let edge_artifacts = open_edge_artifacts(&generation);
+    let endpoints = edge_artifacts
+        .endpoints
+        .u64_le_pairs()
+        .expect("the endpoint column is little-endian u64 pairs");
+    let endpoints: Vec<[u64; 2]> = endpoints
+        .iter()
+        .map(|pair| pair.map(zerocopy::U64::get))
+        .collect();
+
+    // The delivered edge set, exactly as the pinned-envelope test derives it.
+    let head: u64 = artifacts.morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
+        .iter()
+        .sum();
+    let head = usize::try_from(head).expect("fixture counts fit usize");
+    let delivered: HashSet<u32> = row_ids[..head].iter().copied().collect();
+    let (sources, targets, internal_edges) = qualifying_columns(&endpoints, &delivered);
+    let columns = wire_columns(&atlas, &sources, &targets, &internal_edges);
+
+    let (urls, expected_urls, expected_asked) = type_expectations(&generation, &internal_edges);
+
+    let root = TileCoordinate { z: 0, x: 0, y: 0 };
+    let mut request = edges_request(vec![root]);
+    request.detail = EdgesDetail::Auxiliary;
+
+    let asked = Rc::new(RefCell::new(Vec::new()));
+    let bytes = atlas
+        .edges(
+            &request,
+            EdgesLimits::default(),
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
+            RecordingTypeStore {
+                urls,
+                asked: Rc::clone(&asked),
+            },
+        )
+        .expect("the detail request should serve");
+
+    assert_eq!(
+        *asked.borrow(),
+        expected_asked,
+        "the order carries the distinct uuids in first-occurrence order"
+    );
+
+    let table = super::intern::Table::new(expected_urls.iter().flatten());
+    let link_type_ids: Vec<Option<super::TableIndex<VersionedUrl>>> = expected_urls
+        .iter()
+        .map(|url| url.as_ref().map(|url| table.index_of(url)))
+        .collect();
+    let no_labels: Vec<&Label> = vec![Label::empty(); columns.count()];
+    let expected = EdgesResponse {
+        generation: generation.id().digest(),
+        variant: 0,
+        complete: true,
+        edges: &columns,
+        trailer: Some(EdgesTrailer {
+            type_table: table.entries(),
+            link_labels: IdSlice::from_raw(&no_labels),
+            link_type_ids: IdSlice::from_raw(&link_type_ids),
+        }),
+    }
+    .encode();
+    assert_eq!(
+        bytes, expected,
+        "each edge's type id points at its representative's resolved URL"
+    );
 }
 
 /// Source resolution answers the delivery contract rather than a formula alone.

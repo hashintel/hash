@@ -25,7 +25,7 @@ use hash_graph_postgres_store::store::{
     AsClient, PostgresStorePool, error::StoreError, postgres::query::SelectCompiler,
 };
 use hash_graph_store::{
-    filter::protection::PropertyProtectionFilter,
+    filter::{Filter, protection::PropertyProtectionFilter},
     pool::StorePool as _,
     subgraph::temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
 };
@@ -37,14 +37,18 @@ use tokio::try_join;
 use tokio_postgres::GenericClient;
 use type_system::{
     knowledge::entity::id::EntityId,
-    ontology::id::{BaseUrl, VersionedUrl},
+    ontology::{
+        entity_type::EntityTypeUuid,
+        id::{BaseUrl, OntologyTypeUuid, VersionedUrl},
+    },
     principal::actor::ActorId,
 };
 
 use super::{
     columns::{EdgeSlot, NodeSlot, ScalarValue},
     order::{LocateLinkHydration, LocateNodeHydration},
-    statements::{DetailColumns, TypeColumns, identity_filter},
+    statements::{DetailColumns, TypeColumns, TypeUrlColumns, identity_filter},
+    type_urls::ResolveTypeUrls,
 };
 use crate::{
     bitset::DenseBitSlice,
@@ -372,64 +376,6 @@ impl GraphDatabaseClient {
         })
     }
 
-    /// Answers the link half of one edges order.
-    ///
-    /// Each delivered link reads its first direct-type versioned URL. Links the store no longer
-    /// serves or records no types for read `None`. The read touches no property value, so it
-    /// takes no masking actor.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`DetailError`] when the store rejects the query.
-    ///
-    /// # Panics
-    ///
-    /// This panics when the store answers rows outside the request domain, when a column does
-    /// not decode at its assigned position, or when a stored URL does not parse as its domain
-    /// type.
-    #[tracing::instrument(skip_all, fields(edges = ids.len()))]
-    pub(crate) async fn edges_link_hydration(
-        &self,
-        ids: &[ArchivedEntityId],
-    ) -> Result<Vec<Option<VersionedUrl>>, DetailError> {
-        if ids.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let connection = self.connection().await?;
-        let client = connection.as_client();
-
-        let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
-
-        let filter = identity_filter(ids.iter().copied().map(EntityId::from));
-        let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
-        compiler
-            .add_filter(&filter)
-            .expect("the identity filter compiles against the entity query paths");
-
-        let columns = TypeColumns::select(&mut compiler);
-        let (statement, parameters) = compiler.compile();
-
-        let rows = client.query_raw(&statement, parameters).await?;
-
-        let lookup: FastHashMap<_, _> = ids
-            .iter()
-            .enumerate()
-            .map(|(slot, &id)| (id, slot))
-            .collect();
-        let mut first_type_urls: Vec<Option<VersionedUrl>> = vec![None; ids.len()];
-
-        let mut rows = pin!(rows);
-        while let Some(row) = rows.next().await {
-            let row = row?;
-            let slot = lookup[&columns.entity_id(&row)];
-
-            first_type_urls[slot] = columns.direct_type_urls(&row).into_iter().next();
-        }
-
-        Ok(first_type_urls)
-    }
-
     /// Answers each delta link's display payload: its current edition's cached label and first
     /// cached type as a versioned URL.
     ///
@@ -456,5 +402,56 @@ impl GraphDatabaseClient {
             .iter()
             .map(|id| lookup.remove(id).unwrap_or_else(LinkDisplay::empty))
             .collect())
+    }
+}
+
+impl ResolveTypeUrls for GraphDatabaseClient {
+    /// Reads each requested type's versioned URL from the store's ontology records.
+    ///
+    /// The read carries no temporal condition. A type uuid derives from the URL it names, so any
+    /// row that exists answers correctly whatever its archival state. A type deleted from the
+    /// store is absent from the answer.
+    ///
+    /// # Panics
+    ///
+    /// This panics when a column does not decode at its assigned position or when a stored URL
+    /// does not parse as its domain type.
+    #[tracing::instrument(skip_all, fields(types))]
+    async fn resolve(
+        &self,
+        types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
+    ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, DetailError> {
+        let types = types.into_iter();
+        tracing::Span::current().record("types", types.len());
+
+        if types.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let connection = self.connection().await?;
+        let client = connection.as_client();
+
+        let uuids: Vec<_> = types.map(EntityTypeUuid::from).collect();
+        let filter = Filter::for_entity_type_uuids(&uuids);
+
+        let mut compiler = SelectCompiler::new(None, false);
+        compiler
+            .add_filter(&filter)
+            .expect("the type-uuid filter compiles against the entity-type query paths");
+
+        let columns = TypeUrlColumns::select(&mut compiler);
+        let (statement, parameters) = compiler.compile();
+
+        let rows = client.query_raw(&statement, parameters).await?;
+
+        let mut pairs = Vec::with_capacity(uuids.len());
+        let mut rows = pin!(rows);
+        while let Some(row) = rows.next().await {
+            let row = row?;
+
+            pairs.push(columns.pair(&row));
+        }
+
+        Ok(pairs)
     }
 }

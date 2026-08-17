@@ -12,7 +12,10 @@ use core::num::NonZero;
 
 use hash_graph_postgres_store::store::{EntityEnd, EntityEvent, EntityUpdate};
 use hash_graph_temporal_versioning::Timestamp;
-use hashql_core::id::{Id as _, IdSlice};
+use hashql_core::{
+    collections::FastHashMap,
+    id::{Id as _, IdSlice, IdVec},
+};
 use type_system::{
     knowledge::entity::{
         EntityId,
@@ -25,7 +28,7 @@ use uuid::Uuid;
 use super::{
     Atlas, Bound, CutOffset, EDGE_IDS, FIXTURE_LOD, FULL, Generation, UntouchedStore,
     arrival::vacant_cell, coordinate_of, edge_identity_of, edges_request, expected_edges_bytes,
-    full_grid, open_edge_artifacts, publish, section, test_codec,
+    full_grid, open_edge_artifacts, publish, section, test_codec, type_expectations,
 };
 use crate::{
     bitset::CompressedBitSet,
@@ -35,7 +38,7 @@ use crate::{
     morton::Depth,
     postgres::{
         Classification, EditionDisplay, LinkDisplay,
-        id::{ArchivedEntityId, ArchivedEntityUuid},
+        id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedOntologyTypeUuid},
     },
     random::{keyed_rng, uniform_below},
     salt::wire::edges::{EdgesResponse, EdgesTrailer},
@@ -115,7 +118,7 @@ fn publishing(atlas: &Atlas, arrivals: &[(u8, Vec2)], links: &[(u8, u8, u8)]) ->
                     wire,
                     display: EditionDisplay {
                         label: OwnedLabel::from("arrival"),
-                        first_type: None,
+                        representative_type: None,
                     },
                 },
             )
@@ -764,8 +767,9 @@ async fn a_full_cap_separates_refused_links_from_truncated_ones() {
 
 /// A store answering one split order, asserting the split and carrying one delta display.
 struct SplitOrderStore {
-    /// The fitted identities the order must name, in delivered order.
-    fitted: Vec<ArchivedEntityId>,
+    /// The distinct representative type uuids the fitted order must name, in first-occurrence
+    /// order over the delivered fitted links.
+    fitted: Vec<ArchivedOntologyTypeUuid>,
     /// The delta identities the order must name, in delivered order.
     delta: Vec<ArchivedEntityId>,
     /// The display every delta identity answers.
@@ -779,8 +783,9 @@ impl EdgesStore for SplitOrderStore {
     )]
     fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError> {
         assert_eq!(
-            order.fitted, self.fitted,
-            "the fitted order names the fitted links"
+            order.fitted.iter().copied().collect::<Vec<_>>(),
+            self.fitted,
+            "the fitted order names the fitted links' distinct representative uuids"
         );
         assert_eq!(
             order.delta, self.delta,
@@ -788,7 +793,7 @@ impl EdgesStore for SplitOrderStore {
         );
 
         Ok(EdgesHydration {
-            fitted: vec![None; order.fitted.len()],
+            fitted: IdVec::from_elem(None, order.fitted.len()),
             delta: order.delta.iter().map(|_| self.display.clone()).collect(),
         })
     }
@@ -824,11 +829,16 @@ async fn the_detail_trailer_scatters_delta_displays_into_the_merged_order() {
             EdgesLimits::default(),
             bound.view(&atlas),
             SplitOrderStore {
-                fitted: fitted.iter().map(|&(_, _, id)| id).collect(),
+                fitted: {
+                    let rows: Vec<u32> = (0..u32::try_from(fitted.len())
+                        .expect("fixture edge rows fit u32"))
+                        .collect();
+                    type_expectations(&generation, &rows).2
+                },
                 delta: vec![archived_id(LOW_LINK)],
                 display: LinkDisplay {
                     label: wired.clone(),
-                    first_type: Some(url.clone()),
+                    representative_type: Some(url.clone()),
                 },
             },
         )
@@ -863,6 +873,191 @@ async fn the_detail_trailer_scatters_delta_displays_into_the_merged_order() {
     assert_eq!(
         bytes, expected,
         "the delta display rides the head slot of the merged trailer"
+    );
+}
+
+/// Answers real fitted URLs per known uuid beside one delta display, asserting the split.
+struct ResolvingSplitStore {
+    /// The resolved URL per representative uuid.
+    urls: FastHashMap<ArchivedOntologyTypeUuid, VersionedUrl>,
+    /// The distinct representative uuids the fitted order must name, in first-occurrence
+    /// order over the delivered fitted links.
+    fitted: Vec<ArchivedOntologyTypeUuid>,
+    /// The delta identities the order must name, in delivered order.
+    delta: Vec<ArchivedEntityId>,
+    /// The display every delta identity answers.
+    display: LinkDisplay,
+}
+
+impl EdgesStore for ResolvingSplitStore {
+    #[expect(
+        clippy::panic_in_result_fn,
+        reason = "the split order is the contract under test, and the assertion is its witness"
+    )]
+    fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError> {
+        assert_eq!(
+            order.fitted.iter().copied().collect::<Vec<_>>(),
+            self.fitted,
+            "the fitted order names the distinct representative uuids in first-occurrence order"
+        );
+        assert_eq!(
+            order.delta, self.delta,
+            "the delta order names the delta links"
+        );
+
+        Ok(EdgesHydration {
+            fitted: order
+                .fitted
+                .iter()
+                .map(|uuid| self.urls.get(uuid).cloned())
+                .collect(),
+            delta: order.delta.iter().map(|_| self.display.clone()).collect(),
+        })
+    }
+}
+
+/// The fixture geometry with each edge's type cycling over the three ontology rows.
+///
+/// The shared fixture gives every edge one ontology row, so a single uuid satisfies any
+/// scatter of the fitted order. Cycling the rows delivers repeated representatives in an
+/// interleaved order, which makes the trailer's dedup and its first-occurrence order both
+/// observable.
+fn cycling_types_dataset() -> crate::dataset::memory::MemoryDataset {
+    use smallvec::smallvec;
+    use zerocopy::{LE, U64};
+
+    use crate::{
+        dataset::{Edge, Ontology, card::Card, memory::MemoryDataset},
+        identity::OntologyRowId,
+    };
+
+    let (nodes, canonical) =
+        super::fixture_nodes(|row| smallvec![OntologyRowId::from_usize(row & 1)]);
+
+    let edges = super::FIXTURE_EDGES
+        .into_iter()
+        .zip([0_usize, 1, 2].into_iter().cycle())
+        .map(|((id, source, target), ontology_row)| Edge {
+            id: U64::<LE>::new(id),
+            source: NodeRowId::new(source),
+            target: NodeRowId::new(target),
+            ontology: smallvec![OntologyRowId::from_usize(ontology_row)],
+            embedding: None,
+            confidence: None,
+            source_confidence: None,
+            target_confidence: None,
+        })
+        .collect();
+
+    let ontology = vec![
+        Ontology {
+            id: U64::<LE>::new(0),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(1),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(2),
+            parents: smallvec![],
+        },
+    ];
+    let cards = std::collections::HashMap::from([
+        (0, Card::verbatim("Person entity card".to_owned())),
+        (1, Card::verbatim("Company entity card".to_owned())),
+        (2, Card::verbatim("Employment link card".to_owned())),
+    ]);
+
+    MemoryDataset::new(nodes, edges, ontology, canonical, cards)
+}
+
+/// The trailer resolves several fitted representatives beside a delta display in one response.
+///
+/// The cycling dataset delivers three distinct representative uuids, so the fitted order's
+/// dedup and first-occurrence contract are exercised beyond one uuid while the delta link's
+/// display occupies the head slot of the same merged trailer. Expected values derive from the
+/// published artifacts alone, through [`type_expectations`].
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn compose_trailer_types() {
+    let (generation, atlas) =
+        super::publish_dataset("delta-edges-composed-trailer", &cycling_types_dataset()).await;
+    let snapshot = publishing(&atlas, &[], &[(LOW_LINK, 0, 1)]);
+    let fitted = fitted_triples(&atlas, &generation);
+
+    let rows: Vec<u32> =
+        (0..u32::try_from(fitted.len()).expect("fixture edge rows fit u32")).collect();
+    let (urls, fitted_urls, expected_asked) = type_expectations(&generation, &rows);
+    assert!(
+        expected_asked.len() > 1,
+        "the cycling dataset delivers more than one distinct representative"
+    );
+
+    let delta_url: VersionedUrl = "https://example.com/wired/v/1"
+        .parse()
+        .expect("the fixture URL parses");
+    let wired = OwnedLabel::from("wired");
+
+    let mut request = edges_request(full_grid());
+    request.detail = EdgesDetail::Auxiliary;
+    let bound = Bound::resolved(
+        &atlas,
+        &FULL,
+        PlacementCohort::of(Some(&snapshot)),
+        CutOffset::ZERO,
+    );
+    let bytes = atlas
+        .edges(
+            &request,
+            EdgesLimits::default(),
+            bound.view(&atlas),
+            ResolvingSplitStore {
+                urls,
+                fitted: expected_asked,
+                delta: vec![archived_id(LOW_LINK)],
+                display: LinkDisplay {
+                    label: wired.clone(),
+                    representative_type: Some(delta_url.clone()),
+                },
+            },
+        )
+        .expect("the detail request serves");
+
+    let mut merged = vec![(
+        node_wire(&atlas, 0),
+        node_wire(&atlas, 1),
+        archived_id(LOW_LINK),
+    )];
+    merged.extend(fitted.iter().copied());
+    let columns = EdgeColumns::pinned(merged);
+
+    let merged_urls: Vec<Option<VersionedUrl>> = core::iter::once(Some(delta_url))
+        .chain(fitted_urls)
+        .collect();
+    let table = crate::serve::intern::Table::new(merged_urls.iter().flatten());
+    let type_ids: Vec<Option<crate::serve::intern::TableIndex<VersionedUrl>>> = merged_urls
+        .iter()
+        .map(|url| url.as_ref().map(|url| table.index_of(url)))
+        .collect();
+    let mut labels: Vec<&Label> = vec![&wired];
+    labels.extend(core::iter::repeat_n(Label::empty(), fitted.len()));
+
+    let expected = EdgesResponse {
+        generation: generation.id().digest(),
+        variant: 0,
+        complete: true,
+        edges: &columns,
+        trailer: Some(EdgesTrailer {
+            type_table: table.entries(),
+            link_labels: IdSlice::from_raw(&labels),
+            link_type_ids: IdSlice::from_raw(&type_ids),
+        }),
+    }
+    .encode();
+    assert_eq!(
+        bytes, expected,
+        "the merged trailer carries each fitted representative's URL beside the delta display"
     );
 }
 

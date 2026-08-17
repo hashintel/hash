@@ -154,7 +154,7 @@ fn hand_cascade_places_arrivals_by_the_same_law() {
         wire: crate::serve::WireRow::pinned(index),
         display: crate::postgres::EditionDisplay {
             label: crate::dataset::auxiliary::OwnedLabel::from("arrival"),
-            first_type: None,
+            representative_type: None,
         },
     };
 

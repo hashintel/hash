@@ -8,21 +8,27 @@
 
 use core::{error::Error, fmt};
 
-use hashql_core::id::{IdVec, bit_vec::DenseBitSet};
+use hashql_core::{
+    collections::FastHashMap,
+    id::{IdVec, bit_vec::DenseBitSet},
+};
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
     Atlas, grid,
-    hydrate::{DetailError, EdgeLinkDetails, EdgeSlot, EdgesOrder, EdgesStore},
+    hydrate::{DetailError, EdgeLinkDetails, EdgeSlot, EdgesOrder, EdgesStore, TypeSlot},
     intern::{Table, TableIndex},
     neighbourhood::{DeliveredBounds, EdgeColumns, EdgeOrigin, EdgeSet},
     schedule::ViewRow,
     view::{View, ViewError},
     walk::Walk,
 };
-use crate::salt::wire::{
-    edges::{EdgesResponse, EdgesTrailer},
-    tile::TileCoordinate,
+use crate::{
+    postgres::id::ArchivedOntologyTypeUuid,
+    salt::wire::{
+        edges::{EdgesResponse, EdgesTrailer},
+        tile::TileCoordinate,
+    },
 };
 
 /// An edges request the atlas rejects, by name.
@@ -165,9 +171,10 @@ impl Atlas {
     /// `SALTILEE` envelope bytes carrying the edges whose endpoints both lie in the listed tiles'
     /// delivered rows, ready to send under `application/vnd.hash.saltile-v1`.
     ///
-    /// A request asking for the detail trailer resolves labels in process from the generation's
-    /// own payloads, and `store` answers the one hydration order such a request places. A minimal
-    /// request drops the capability unused.
+    /// A request asking for the detail trailer resolves fitted labels and representative types
+    /// in process from the generation's own payloads, and `store` answers the one hydration
+    /// order such a request places: the required type uuids' versioned URLs and the delta links'
+    /// displays. A minimal request drops the capability unused.
     ///
     /// # Errors
     ///
@@ -188,26 +195,43 @@ impl Atlas {
         let details = match request.detail {
             EdgesDetail::Minimal => None,
             EdgesDetail::Auxiliary => {
-                let mut fitted = Vec::new();
+                // A fitted link's type reference is the generation's own representative, so
+                // only the distinct type uuids reach the store, in first-occurrence order. A
+                // delta link's whole display is a store read keyed by identity.
                 let mut delta = Vec::new();
+                let mut required: IdVec<TypeSlot, ArchivedOntologyTypeUuid> = IdVec::new();
+                let mut slots: FastHashMap<ArchivedOntologyTypeUuid, TypeSlot> =
+                    FastHashMap::default();
+                let mut fitted_slots: Vec<Option<TypeSlot>> = Vec::new();
                 for (slot, &origin) in document.edges.origins().iter_enumerated() {
                     match origin {
-                        EdgeOrigin::Fitted(_) => fitted.push(document.edges.ids()[slot]),
+                        EdgeOrigin::Fitted(edge) => {
+                            let legend = self.edge_ids.payload_of(edge).expect(
+                                "open validated the identity rows against the adjacency's edges",
+                            );
+                            fitted_slots.push(
+                                self.ontology_ids.id(legend.representative_ontology()).map(
+                                    |uuid| {
+                                        *slots.entry(uuid).or_insert_with(|| required.push(uuid))
+                                    },
+                                ),
+                            );
+                        }
                         EdgeOrigin::Delta => delta.push(document.edges.ids()[slot]),
                     }
                 }
 
                 hydration = store
                     .hydrate(EdgesOrder {
-                        fitted: &fitted,
+                        fitted: &required,
                         delta: &delta,
                     })
                     .map_err(EdgesError::Details)?;
 
-                let mut fitted_types = hydration.fitted.iter();
+                let mut fitted_types = fitted_slots.iter().copied();
                 let mut displays = hydration.delta.iter();
                 let mut labels = IdVec::with_capacity(document.edges.count());
-                let mut first_type_urls = IdVec::with_capacity(document.edges.count());
+                let mut representative_type_urls = IdVec::with_capacity(document.edges.count());
                 for &origin in document.edges.origins() {
                     match origin {
                         EdgeOrigin::Fitted(edge) => {
@@ -220,11 +244,11 @@ impl Atlas {
                                     )
                                     .label(),
                             );
-                            first_type_urls.push(
+                            representative_type_urls.push(
                                 fitted_types
                                     .next()
-                                    .expect("the hydration covers the fitted order")
-                                    .clone(),
+                                    .expect("the fitted slots cover the fitted order")
+                                    .and_then(|slot| hydration.fitted[slot].clone()),
                             );
                         }
                         EdgeOrigin::Delta => {
@@ -232,12 +256,12 @@ impl Atlas {
                                 .next()
                                 .expect("the hydration covers the delta order");
                             labels.push(&*display.label);
-                            first_type_urls.push(display.first_type.clone());
+                            representative_type_urls.push(display.representative_type.clone());
                         }
                     }
                 }
 
-                Some(EdgeLinkDetails::new(labels, first_type_urls))
+                Some(EdgeLinkDetails::new(labels, representative_type_urls))
             }
         };
 
@@ -308,7 +332,7 @@ impl Atlas {
     /// response carries the detail trailer iff the caller supplies `details`.
     ///
     /// The trailer interns type URLs at encode time. The table is the bytewise-sorted union of
-    /// every edge's first direct type, and each reference keys by index into it.
+    /// every edge's representative type, and each reference keys by index into it.
     ///
     /// # Panics
     ///
@@ -321,9 +345,9 @@ impl Atlas {
         details: Option<&EdgeLinkDetails<'_>>,
     ) -> Vec<u8> {
         let columns = details.map(|details| {
-            let table = Table::new(details.first_type_urls().iter().flatten());
+            let table = Table::new(details.representative_type_urls().iter().flatten());
             let link_type_ids: IdVec<EdgeSlot, Option<TableIndex<VersionedUrl>>> = details
-                .first_type_urls()
+                .representative_type_urls()
                 .iter()
                 .map(|url| url.as_ref().map(|url| table.index_of(url)))
                 .collect();

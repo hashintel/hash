@@ -55,10 +55,11 @@ export interface SaltileEdgesDetail {
   /** Link-entity labels, edge order. */
   readonly linkLabels: readonly (string | null)[];
   /**
-   * Each link's first direct type as a versioned URL, edge order.
+   * Each link's representative type as a versioned URL, edge order.
    *
-   * `null` marks a link the store no longer serves or records no types
-   * for.
+   * Each entry reads the link's current edition's representative type,
+   * which may lag the newest edition by up to 65 seconds. `null` marks
+   * a representative the store no longer resolves.
    */
   readonly linkTypeIds: readonly (VersionedUrl | null)[];
 }

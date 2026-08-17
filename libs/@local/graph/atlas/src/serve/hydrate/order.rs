@@ -15,10 +15,13 @@
 use hashql_core::id::{IdSlice, IdVec, bit_vec::DenseBitSet};
 use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
-use super::{DeliveredNodes, EdgeSlot, NodeSlot, ScalarValue, client::DetailError};
+use super::{DeliveredNodes, EdgeSlot, NodeSlot, ScalarValue, TypeSlot, client::DetailError};
 use crate::{
     bitset::DenseBitSlice,
-    postgres::{LinkDisplay, id::ArchivedEntityId},
+    postgres::{
+        LinkDisplay,
+        id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+    },
 };
 
 /// One locate response's store order.
@@ -128,15 +131,18 @@ pub(crate) trait LocateStore {
     fn hydrate(self, order: LocateOrder<'_>) -> Result<LocateHydration, DetailError>;
 }
 
-/// The store order of one edges response, holding an identity list per serving domain.
+/// The store order of one edges response, holding one list per serving domain.
 ///
-/// A fitted link resolves its first direct-type versioned URL from the live store, and a delta
-/// link resolves its whole display, so the order splits by provenance. Each list keeps its
-/// delivered slot subsequence's order, and the answer aligns to it by position.
+/// A fitted link's type reference comes from the generation, so the fitted list carries the
+/// distinct representative type uuids the delivered fitted links require, and the store resolves
+/// each uuid to its versioned URL. A delta link resolves its whole display from the live store,
+/// so the delta list carries the link identities in their delivered slot subsequence's order.
+/// The answer aligns to each list by position.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct EdgesOrder<'doc> {
-    /// The fitted links' identities, in delivered order.
-    pub fitted: &'doc [ArchivedEntityId],
+    /// The fitted links' required representative type uuids, distinct, in first-occurrence
+    /// order over the delivered fitted links.
+    pub fitted: &'doc IdSlice<TypeSlot, ArchivedOntologyTypeUuid>,
     /// The delta links' identities, in delivered order.
     pub delta: &'doc [ArchivedEntityId],
 }
@@ -144,10 +150,10 @@ pub(crate) struct EdgesOrder<'doc> {
 /// The store's answer to one [`EdgesOrder`], each list aligned to its order by position.
 #[derive(Debug)]
 pub(crate) struct EdgesHydration {
-    /// Each fitted link's first direct-type versioned URL.
+    /// Each required type uuid's versioned URL, in requirement order.
     ///
-    /// `None` marks a link the store no longer serves or records no types for.
-    pub fitted: Vec<Option<VersionedUrl>>,
+    /// `None` marks a type the store no longer serves.
+    pub fitted: IdVec<TypeSlot, Option<VersionedUrl>>,
     /// Each delta link's display payload.
     ///
     /// An identity the store no longer resolves answers the empty label and no type.

@@ -7,8 +7,8 @@ use core::panic::AssertUnwindSafe;
 
 use aide::transform::TransformOperation;
 use axum::{extract::State, http::StatusCode};
+use hashql_core::{collections::FastHashMap, id::IdVec};
 use tokio::sync::oneshot;
-use tracing::Instrument as _;
 
 use super::{
     AppState, clause,
@@ -18,10 +18,12 @@ use super::{
     visibility::{Visibility, view_problem},
 };
 use crate::{
-    postgres::id::ArchivedEntityId,
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     serve::{
         EdgesError, EdgesRequest,
-        hydrate::{DetailError, EdgesHydration, EdgesOrder, EdgesStore},
+        hydrate::{
+            DetailError, EdgesHydration, EdgesOrder, EdgesStore, ResolveTypeUrls as _, TypeSlot,
+        },
     },
 };
 
@@ -47,15 +49,14 @@ When the server's edge cap truncates the set, the response keeps the edges whose
      ranks best, and the HEAD's `complete` key reads `false`.
 
 `detail: \"auxiliary\"` adds the detail trailer (`\"minimal\"`, the default, sends the columns \
-     alone). Each fitted edge's label comes from the generation. A request-time store read \
-     supplies each edge's first direct type, represented as an integer index into the trailer's \
-     sorted type-URL table, and each delta edge's label beside it.
+     alone). Every trailer value reads from its entity's currently served edition, which may \
+     trail the newest edition by up to 65 seconds.
 
 Entities and links that arrive after the serving generation's fit can also appear. A post-fit link \
      is an ordinary edge row wherever both of its endpoints deliver, merged into the same \
-     identity order, and its label and first type come from the request-time store read rather \
-     than the generation. An endpoint placed since the fit takes a session-scoped row id, and \
-     such ids die with the serving session that minted them, exactly as locate and translate \
+     identity order, and its label and representative type come from the request-time store read \
+     rather than the generation. An endpoint placed since the fit takes a session-scoped row id, \
+     and such ids die with the serving session that minted them, exactly as locate and translate \
      describe.
 
 Filtering binds at the manifest. This body has no `filter` field, and an unknown member is \
@@ -97,20 +98,26 @@ pub(super) async fn handler(
         })),
         async {
             // An order never arrives when the request skips the trailer, rejects, or panics first.
-            let Ok((fitted, delta)) = order_receiver.await else {
+            let Ok((types, delta)) = order_receiver.await else {
                 return;
             };
 
-            let answer = async {
-                let (fitted, delta) = tokio::try_join!(
-                    state.remote.edges_link_hydration(&fitted),
-                    state.remote.link_display_hydration(&delta),
-                )?;
+            let types = ArchivedOntologyTypeUuid::into_slice(types.as_raw());
 
-                Ok(EdgesHydration { fitted, delta })
-            }
-            .in_current_span()
-            .await;
+            let answer = tokio::try_join!(
+                async {
+                    let pairs = state.type_urls.resolve(types.iter().copied()).await?;
+                    let resolved: FastHashMap<_, _> = pairs.into_iter().collect();
+                    let urls: IdVec<_, _> = types
+                        .iter()
+                        .map(|uuid| resolved.get(uuid).cloned())
+                        .collect();
+
+                    Ok(urls)
+                },
+                state.remote.link_display_hydration(&delta)
+            )
+            .map(|(fitted, delta)| EdgesHydration { fitted, delta });
 
             let _: Result<(), _> = answer_sender.send(answer);
         },
@@ -152,7 +159,10 @@ pub(super) async fn handler(
 
 /// The transport's edges store, carrying one order out to the handler and one answer back in.
 struct ChannelEdgesStore {
-    order: oneshot::Sender<(Vec<ArchivedEntityId>, Vec<ArchivedEntityId>)>,
+    order: oneshot::Sender<(
+        IdVec<TypeSlot, ArchivedOntologyTypeUuid>,
+        Vec<ArchivedEntityId>,
+    )>,
     answer: oneshot::Receiver<Result<EdgesHydration, DetailError>>,
 }
 
@@ -161,7 +171,7 @@ impl EdgesStore for ChannelEdgesStore {
         // The channel is the one boundary that owns the identities, so the lists materialize
         // here and nowhere earlier.
         self.order
-            .send((order.fitted.to_vec(), order.delta.to_vec()))
+            .send((order.fitted.iter().copied().collect(), order.delta.to_vec()))
             .map_err(|_order| DetailError::Disconnected)?;
 
         self.answer

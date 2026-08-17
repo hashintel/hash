@@ -115,7 +115,7 @@ fn arriving_all(atlas: &Atlas, arrivals: &[(u8, Vec2)]) -> DeltaSnapshot {
                     wire,
                     display: EditionDisplay {
                         label: OwnedLabel::from("arrival"),
-                        first_type: None,
+                        representative_type: None,
                     },
                 },
             )
@@ -271,7 +271,7 @@ async fn a_scoped_tile_serves_a_placed_arrival_with_its_captured_display() {
         wire: test_codec(&atlas).encode(slot, snapshot.universe()),
         display: EditionDisplay {
             label: OwnedLabel::from("arrival"),
-            first_type: None,
+            representative_type: None,
         },
     };
     let expected = TileResponse {
@@ -568,7 +568,7 @@ async fn a_corpus_tile_serves_a_placed_arrival_with_its_captured_display() {
         wire: test_codec(&atlas).encode(slot, snapshot.universe()),
         display: EditionDisplay {
             label: OwnedLabel::from("arrival"),
-            first_type: None,
+            representative_type: None,
         },
     };
     let expected = TileResponse {
@@ -928,7 +928,7 @@ async fn locate_serves_a_placed_arrival_from_both_ingress_domains() {
         wire: slot_wire,
         display: EditionDisplay {
             label: OwnedLabel::from("arrival"),
-            first_type: None,
+            representative_type: None,
         },
     };
     let empty_map = PropertyMap::new_unchecked(Vec::new());

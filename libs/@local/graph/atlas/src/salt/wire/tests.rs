@@ -676,7 +676,7 @@ mod tile {
             wire: WireRow::pinned(wire),
             display: EditionDisplay {
                 label: OwnedLabel::from("arrival"),
-                first_type: None,
+                representative_type: None,
             },
         }
     }

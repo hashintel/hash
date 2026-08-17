@@ -82,11 +82,11 @@ fn live(n: u128) -> Standing {
     }
 }
 
-/// A captured display payload carrying `text` and no first type.
+/// A captured display payload carrying `text` and no representative type.
 fn display(text: &str) -> EditionDisplay {
     EditionDisplay {
         label: OwnedLabel::from(text),
-        first_type: None,
+        representative_type: None,
     }
 }
 

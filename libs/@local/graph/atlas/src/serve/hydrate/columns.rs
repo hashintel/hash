@@ -33,6 +33,16 @@ hashql_core::id::newtype! {
     pub(crate) struct EdgeSlot(u32)
 }
 
+hashql_core::id::newtype! {
+    /// A reference to a required ontology type by its slot in one response's requirement order.
+    ///
+    /// Slots are dense and zero-based over the distinct type uuids one response's trailer
+    /// requires, in first-occurrence order over the delivered edges. The hydrated URL column
+    /// aligns to this domain. A slot is valid only against the response that required it,
+    /// because two responses share no slot vocabulary.
+    pub(crate) struct TypeSlot(u32)
+}
+
 /// The node identities behind one delivered set, viewed in slot order.
 ///
 /// The hydration request's node subject. The view joins the delivered rows to their identities
@@ -358,7 +368,7 @@ impl<'details> EdgeLinkDetails<'details> {
     pub(crate) fn empty(count: usize) -> Self {
         Self {
             labels: IdVec::from_elem(Label::empty(), count),
-            first_type_urls: IdVec::from_elem(None, count),
+            representative_type_urls: IdVec::from_elem(None, count),
         }
     }
 
@@ -368,9 +378,11 @@ impl<'details> EdgeLinkDetails<'details> {
         &self.labels
     }
 
-    /// Views the first direct-type URL column, slot order.
+    /// Views the representative-type URL column, slot order.
     #[inline]
-    pub(crate) const fn first_type_urls(&self) -> &IdSlice<EdgeSlot, Option<VersionedUrl>> {
-        &self.first_type_urls
+    pub(crate) const fn representative_type_urls(
+        &self,
+    ) -> &IdSlice<EdgeSlot, Option<VersionedUrl>> {
+        &self.representative_type_urls
     }
 }

@@ -37,7 +37,7 @@ use rand::rngs::SysRng;
 use self::visibility::Authority;
 use crate::serve::{
     Atlas, DeltaCell, DeltaEpoch, DensityBand, DensityPolicy, GraphDatabaseClient, ServeLimits,
-    VisibilityLimits, authorization::TokenAuthority,
+    VisibilityLimits, authorization::TokenAuthority, hydrate::CachedHydrate,
 };
 
 mod authorization;
@@ -126,6 +126,8 @@ struct AppState {
     density: Option<DensityPolicy>,
     authority: Authority,
     remote: Arc<GraphDatabaseClient>,
+    /// The type-URL resolution the edges trailer reads through, cached for the process's life.
+    type_urls: Arc<CachedHydrate<Arc<GraphDatabaseClient>>>,
 }
 
 /// Builds the read API router over one opened generation.
@@ -166,6 +168,7 @@ pub(crate) fn router(
         limits,
         visibility,
         authority: Authority::new(pool, visibility),
+        type_urls: Arc::new(CachedHydrate::new(Arc::clone(&details))),
         remote: details,
         delta,
     };

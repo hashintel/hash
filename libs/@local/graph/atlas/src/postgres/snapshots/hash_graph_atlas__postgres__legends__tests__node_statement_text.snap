@@ -23,9 +23,9 @@ SELECT ("cache"."labels")[1], "mapping"."ordinality" - 1
 FROM "scope"
 LEFT OUTER JOIN "entity_edition_cache" AS "cache"
   ON "cache"."entity_edition_id" = "scope"."entity_edition_id"
-LEFT OUTER JOIN "ontology_ids" AS "first_type"
-  ON "first_type"."base_url" = ("cache"."base_urls")[1]
- AND "first_type"."version" = ("cache"."versions")[1]
+LEFT OUTER JOIN "ontology_ids" AS "representative_type"
+  ON "representative_type"."base_url" = ("cache"."base_urls")[1]
+ AND "representative_type"."version" = ("cache"."versions")[1]
 LEFT OUTER JOIN UNNEST(($4::uuid[])) WITH ORDINALITY AS "mapping"("ontology_id", "ordinality")
-  ON "mapping"."ontology_id" = "first_type"."ontology_id"
+  ON "mapping"."ontology_id" = "representative_type"."ontology_id"
 ORDER BY "scope"."row" ASC

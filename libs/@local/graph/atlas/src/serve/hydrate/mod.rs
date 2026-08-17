@@ -60,6 +60,7 @@ pub(crate) mod compile;
 mod order;
 pub(crate) mod select;
 mod statements;
+mod type_urls;
 
 // The hydration column constructors are test-only inputs for a fixture store's all-unresolved
 // answer. No production caller constructs a hydration by hand.
@@ -69,7 +70,8 @@ pub(crate) use self::{
     client::{DetailError, GraphDatabaseClient, MaskingActor},
     columns::{
         DeliveredNodes, EdgeLinkDetails, EdgeSlot, LocateLinkDetails, LocateNodeDetails,
-        NodeDetails, NodeSlot, ScalarValue,
+        NodeDetails, NodeSlot, ScalarValue, TypeSlot,
     },
     order::{EdgesHydration, EdgesOrder, EdgesStore, LocateHydration, LocateOrder, LocateStore},
+    type_urls::{CachedHydrate, ResolveTypeUrls},
 };

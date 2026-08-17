@@ -3,7 +3,7 @@
 //! The statement executes on its caller's own connection and binds no temporal axes. An
 //! edition id addresses one immutable row, so the answer is the same at any read. Every
 //! requested edition answers exactly once, because both joins are outer and the unnested
-//! requests survive them. The first cached type answers as a store uuid rather than a
+//! requests survive them. The representative cached type answers as a store uuid rather than a
 //! generation ordinal, because an edition written after a fit can carry a type no generation
 //! tabulated.
 
@@ -24,17 +24,18 @@ use crate::dataset::{auxiliary::OwnedLabel, postgres::PostgresDatasetError};
 
 /// The display payload of one entity edition, as the store states it.
 ///
-/// The label is the edition's cached display text, empty when the cache holds none. The first
-/// type is the edition's first cached type as a store uuid rather than a generation ordinal,
-/// because an edition written after a fit can carry a type no generation tabulated. Resolving
+/// The label is the edition's cached display text, empty when the cache holds none. The
+/// representative type is the edition's representative cached type as a store uuid rather than
+/// a generation ordinal, because an edition written after a fit can carry a type no generation
+/// tabulated. Resolving
 /// the uuid against a generation's type table is the holder's step, and a miss there means the
 /// edition displays no icon under that generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct EditionDisplay {
     /// The cached display text, empty when the edition carries none.
     pub label: OwnedLabel,
-    /// The first cached type's ontology uuid, [`None`] when the cache resolves none.
-    pub first_type: Option<ArchivedOntologyTypeUuid>,
+    /// The representative cached type's ontology uuid, [`None`] when the cache resolves none.
+    pub representative_type: Option<ArchivedOntologyTypeUuid>,
 }
 
 impl EditionDisplay {
@@ -86,8 +87,8 @@ pub(crate) struct EditionDisplayColumns {
     pub edition: usize,
     /// The display label, SQL NULL when the edition carries none.
     pub label: usize,
-    /// The first cached type's ontology uuid, SQL NULL when the cache resolves none.
-    pub first_type: usize,
+    /// The representative cached type's ontology uuid, SQL NULL when the cache resolves none.
+    pub representative_type: usize,
 }
 
 /// Builds the display lookup over the requested editions.
@@ -99,29 +100,30 @@ pub(crate) struct EditionDisplayColumns {
 /// # SQL
 ///
 /// ```sql
-/// SELECT request.entity_edition_id, (cache.labels)[1], first_type.ontology_id
+/// SELECT request.entity_edition_id, (cache.labels)[1], representative_type.ontology_id
 /// FROM unnest(<edition_ids>::uuid[]) AS request(entity_edition_id)
 /// LEFT JOIN entity_edition_cache AS cache
 ///   ON cache.entity_edition_id = request.entity_edition_id
-/// LEFT JOIN ontology_ids AS first_type
-///   ON first_type.base_url = (cache.base_urls)[1]
-///  AND first_type.version = (cache.versions)[1]
+/// LEFT JOIN ontology_ids AS representative_type
+///   ON representative_type.base_url = (cache.base_urls)[1]
+///  AND representative_type.version = (cache.versions)[1]
 /// ```
 pub(crate) fn edition_display_statement(
     edition_ids: &(impl ToSql + Sync),
 ) -> BoundStatement<'_, EditionDisplayColumns> {
     const CACHE: Aliased<EntityEditionCache> = Aliased::of(Table::EntityEditionCache, "cache");
-    const FIRST_TYPE: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "first_type");
+    const REPRESENTATIVE_TYPE: Aliased<OntologyIds> =
+        Aliased::of(Table::OntologyIds, "representative_type");
 
     let mut binder = Binder::default();
     let edition_ids = binder.bind(edition_ids);
 
-    // SELECT request.entity_edition_id, (cache.labels)[1], first_type.ontology_id
+    // SELECT request.entity_edition_id, (cache.labels)[1], representative_type.ontology_id
     let mut select = SelectList::default();
     let columns = EditionDisplayColumns {
         edition: select.output(EDITION_REQUEST.column(&EditionRequest::EntityEditionId)),
         label: select.output(first_label(CACHE)),
-        first_type: select.output(FIRST_TYPE.column(&OntologyIds::OntologyId)),
+        representative_type: select.output(REPRESENTATIVE_TYPE.column(&OntologyIds::OntologyId)),
     };
 
     let statement = SelectStatement::builder()
@@ -130,9 +132,9 @@ pub(crate) fn edition_display_statement(
             // FROM unnest(<edition_ids>) AS request(entity_edition_id)
             // LEFT JOIN entity_edition_cache AS cache
             //   ON cache.entity_edition_id = request.entity_edition_id
-            // LEFT JOIN ontology_ids AS first_type
-            //   ON first_type.base_url = (cache.base_urls)[1]
-            //  AND first_type.version = (cache.versions)[1]
+            // LEFT JOIN ontology_ids AS representative_type
+            //   ON representative_type.base_url = (cache.base_urls)[1]
+            //  AND representative_type.version = (cache.versions)[1]
             edition_requests(edition_ids)
                 .left_join_on(
                     CACHE.from_item(),
@@ -143,12 +145,12 @@ pub(crate) fn edition_display_statement(
                     ],
                 )
                 .left_join_on(
-                    FIRST_TYPE.from_item(),
+                    REPRESENTATIVE_TYPE.from_item(),
                     vec![
-                        FIRST_TYPE
+                        REPRESENTATIVE_TYPE
                             .column(&OntologyIds::BaseUrl)
                             .equal(CACHE.column(&EntityEditionCache::BaseUrls).array_element(1)),
-                        FIRST_TYPE
+                        REPRESENTATIVE_TYPE
                             .column(&OntologyIds::Version)
                             .equal(CACHE.column(&EntityEditionCache::Versions).array_element(1)),
                     ],
@@ -169,13 +171,13 @@ pub(crate) fn decode_edition_display(
 ) -> Result<(EntityEditionId, EditionDisplay), PostgresDatasetError> {
     let edition: Uuid = row.try_get(columns.edition)?;
     let label: Option<String> = row.try_get(columns.label)?;
-    let first_type: Option<Uuid> = row.try_get(columns.first_type)?;
+    let representative_type: Option<Uuid> = row.try_get(columns.representative_type)?;
 
     Ok((
         EntityEditionId::new(edition),
         EditionDisplay {
             label: OwnedLabel::from(label.unwrap_or_default()),
-            first_type: first_type.map(ArchivedOntologyTypeUuid::from),
+            representative_type: representative_type.map(ArchivedOntologyTypeUuid::from),
         },
     ))
 }
@@ -202,7 +204,7 @@ mod tests {
     /// statement's own contract: both joins are outer, so every requested edition answers
     /// exactly once.
     #[test]
-    fn statement_renders_its_pinned_text() {
+    fn statement_text() {
         let edition_ids = vec![Uuid::nil()];
 
         insta::assert_snapshot!(edition_display_statement(&edition_ids).sql);

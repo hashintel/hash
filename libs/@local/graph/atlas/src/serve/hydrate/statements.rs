@@ -30,7 +30,10 @@ use type_system::{
         Entity,
         entity::id::{EntityId, EntityUuid},
     },
-    ontology::id::{BaseUrl, VersionedUrl},
+    ontology::{
+        entity_type::EntityTypeWithMetadata,
+        id::{BaseUrl, OntologyTypeUuid, VersionedUrl},
+    },
     principal::actor_group::WebId,
 };
 
@@ -119,6 +122,37 @@ impl TypeColumns {
             web_id: ArchivedWebId::from(web_id),
             entity_uuid: ArchivedEntityUuid::from(entity_uuid),
         }
+    }
+}
+
+/// The output columns of one type-URL resolution read.
+pub(super) struct TypeUrlColumns {
+    /// The type's URL-derived ontology uuid.
+    ontology_id: usize,
+    /// The type's versioned URL, the schema's own `$id`.
+    versioned_url: usize,
+}
+
+impl TypeUrlColumns {
+    /// Adds the uuid and versioned-URL selections to `compiler`.
+    pub(super) fn select(compiler: &mut SelectCompiler<'_, '_, EntityTypeWithMetadata>) -> Self {
+        Self {
+            ontology_id: compiler.add_selection_path(&EntityTypeQueryPath::OntologyId),
+            versioned_url: compiler.add_selection_path(&EntityTypeQueryPath::VersionedUrl),
+        }
+    }
+
+    /// Reads one row's uuid-URL pair.
+    ///
+    /// # Panics
+    ///
+    /// This panics when a column does not decode at its assigned position or when a stored URL
+    /// does not parse as its domain type.
+    pub(super) fn pair(&self, row: &tokio_postgres::Row) -> (OntologyTypeUuid, VersionedUrl) {
+        let uuid: OntologyTypeUuid = row.get(self.ontology_id);
+        let url: VersionedUrl = row.get(self.versioned_url);
+
+        (uuid, url)
     }
 }
 
@@ -216,11 +250,12 @@ mod tests {
     };
     use type_system::{
         knowledge::entity::id::{EntityId, EntityUuid},
+        ontology::entity_type::EntityTypeUuid,
         principal::actor_group::WebId,
     };
     use uuid::Uuid;
 
-    use super::{DetailColumns, TypeColumns, identity_filter};
+    use super::{DetailColumns, Filter, TypeColumns, TypeUrlColumns, identity_filter};
 
     /// The identity filter over one nil identity, the fixture request.
     fn nil_filter() -> super::Filter<'static, super::Entity> {
@@ -351,5 +386,30 @@ mod tests {
         DetailColumns::select(&mut detail, None);
 
         insta::assert_snapshot!(detail.compile().0);
+    }
+
+    /// The rendered type-URL resolution read, pinned as the text the store receives.
+    ///
+    /// The membership array binds as one parameter, so this text is the rendering at every
+    /// batch width. The read carries no temporal condition on purpose. A type uuid derives
+    /// from the URL it names, so any row that exists answers correctly whatever its archival
+    /// state, and the pin makes an upstream compiler change that reintroduced a temporal
+    /// predicate a visible snapshot diff.
+    #[test]
+    fn type_urls_statement_text() {
+        let uuids = [EntityTypeUuid::from_url(
+            &"https://example.com/types/entity-type/fixture/v/1"
+                .parse()
+                .expect("the fixture URL parses"),
+        )];
+        let filter = Filter::for_entity_type_uuids(&uuids);
+
+        let mut type_urls = SelectCompiler::new(None, false);
+        type_urls
+            .add_filter(&filter)
+            .expect("the type-uuid filter compiles against the entity-type query paths");
+        TypeUrlColumns::select(&mut type_urls);
+
+        insta::assert_snapshot!(type_urls.compile().0);
     }
 }

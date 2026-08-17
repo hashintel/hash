@@ -1,8 +1,9 @@
 //! The display lookup over requested link identities, under the serving-time regime.
 //!
 //! The statement executes on its caller's own connection at axes taken at the call, resolving
-//! each identity to its current edition and answering that edition's cached label and first
-//! cached type as a versioned URL, read from the cache's own canonical projection, so no
+//! each identity to its current edition and answering that edition's cached label and
+//! representative cached type as a versioned URL, read from the cache's own canonical
+//! projection, so no
 //! generation's type table mediates the value. Result identity keys each answer, and the
 //! caller counts the answers against its requests.
 
@@ -25,15 +26,16 @@ use crate::dataset::{TemporalAxes, auxiliary::OwnedLabel, postgres::PostgresData
 /// The display payload of one live link identity, as the store states it.
 ///
 /// The label is the current edition's cached display text, empty when the cache holds none. The
-/// first type is the same edition's first cached type as its versioned URL, read from the
-/// cache's own canonical projection, so no generation's type table mediates the value. Both
+/// representative type is the same edition's representative cached type as its versioned URL,
+/// read from the cache's own canonical projection, so no generation's type table mediates the
+/// value. Both
 /// follow the identity's current edition at the read's axes rather than any fit-time capture.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LinkDisplay {
     /// The cached display text, empty when the edition carries none.
     pub label: OwnedLabel,
-    /// The first cached type's versioned URL, [`None`] when the cache resolves none.
-    pub first_type: Option<VersionedUrl>,
+    /// The representative cached type's versioned URL, [`None`] when the cache resolves none.
+    pub representative_type: Option<VersionedUrl>,
 }
 
 impl LinkDisplay {
@@ -42,7 +44,7 @@ impl LinkDisplay {
     pub(crate) fn empty() -> Self {
         Self {
             label: OwnedLabel::from(String::new()),
-            first_type: None,
+            representative_type: None,
         }
     }
 }
@@ -55,14 +57,14 @@ pub(crate) struct LinkDisplayColumns {
     pub entity_uuid: usize,
     /// The display label, SQL NULL when the edition carries none.
     pub label: usize,
-    /// The first cached type's versioned URL, SQL NULL when the cache resolves none.
-    pub first_type: usize,
+    /// The representative cached type's versioned URL, SQL NULL when the cache resolves none.
+    pub representative_type: usize,
 }
 
 /// Builds the display lookup over the requested link identities.
 ///
 /// The statement resolves each identity to its current edition at the bound axes and answers
-/// that edition's cached label and first cached type as a versioned URL. The cache join is
+/// that edition's cached label and representative cached type as a versioned URL. The cache join is
 /// outer, so a resolved identity without a cache row still answers, with both display columns
 /// SQL NULL. The caller counts the answers against its requests. A missing row is an identity
 /// that is draft-only, archived, or absent at the axes.
@@ -99,7 +101,7 @@ pub(crate) fn link_display_statement<'params>(
         web_id: select.output(CorpusTable::Requests.column(Requests::WebId)),
         entity_uuid: select.output(CorpusTable::Requests.column(Requests::EntityUuid)),
         label: select.output(first_label(CACHE)),
-        first_type: select.output(
+        representative_type: select.output(
             CACHE
                 .column(&EntityEditionCache::VersionedUrls)
                 .array_element(1),
@@ -144,7 +146,7 @@ pub(crate) fn decode_link_display(
     let web_id: Uuid = row.try_get(columns.web_id)?;
     let entity_uuid: Uuid = row.try_get(columns.entity_uuid)?;
     let label: Option<String> = row.try_get(columns.label)?;
-    let first_type: Option<VersionedUrl> = row.try_get(columns.first_type)?;
+    let representative_type: Option<VersionedUrl> = row.try_get(columns.representative_type)?;
 
     Ok((
         ArchivedEntityId {
@@ -153,7 +155,7 @@ pub(crate) fn decode_link_display(
         },
         LinkDisplay {
             label: OwnedLabel::from(label.unwrap_or_default()),
-            first_type,
+            representative_type,
         },
     ))
 }

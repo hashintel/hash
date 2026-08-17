@@ -246,12 +246,13 @@ impl Atlas {
                             let arrival = &arrivals[index];
                             labels.push(&arrival.display.label);
 
-                            // The capture holds the arrival's first type as a store uuid. A
-                            // type the generation never tabulated resolves no row and the
-                            // icon stays empty, the trailer's answer for every unresolved id.
+                            // The capture holds the arrival's representative type as a store
+                            // uuid. A type the generation never tabulated resolves no row and
+                            // the icon stays empty, the trailer's answer for every unresolved
+                            // id.
                             let icon = arrival
                                 .display
-                                .first_type
+                                .representative_type
                                 .and_then(|uuid| self.ontology_ids.row_of(uuid))
                                 .and_then(|row| self.closure.icon_source(row))
                                 .and_then(|IconSource { source, .. }| {

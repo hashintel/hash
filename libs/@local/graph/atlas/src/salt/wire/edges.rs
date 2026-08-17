@@ -108,9 +108,9 @@ impl EdgesResponse<'_> {
 /// The edges detail trailer.
 ///
 /// The type intern table comes first, then per-edge detail arrays in edge order. A label `null`
-/// marks a link the generation records no label text for, and a first-type `null` marks one the
-/// store did not resolve. The bulk surface stays lean, with one label and one first-type
-/// reference per edge, and locate is the detail view.
+/// marks a link the generation records no label text for, and a representative-type `null`
+/// marks one the store did not resolve. The bulk surface stays lean, with one label and one
+/// representative-type reference per edge, and locate is the detail view.
 #[derive(Debug)]
 pub(crate) struct EdgesTrailer<'trailer> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
@@ -123,8 +123,9 @@ pub(crate) struct EdgesTrailer<'trailer> {
     pub link_labels: &'trailer IdSlice<EdgeSlot, &'trailer Label>,
     /// Trailer key 2.
     ///
-    /// Each edge's first direct type as a type-table index, edge order. `null` marks a link the
-    /// store no longer serves or whose types the store does not record.
+    /// Each edge's representative type as a type-table index, edge order.
+    /// `null` marks a reference whose type no longer exists in the store, and an empty-shaped
+    /// trailer after a failed hydration reads null throughout.
     pub link_type_ids: &'trailer IdSlice<EdgeSlot, Option<TableIndex<VersionedUrl>>>,
 }
 

@@ -32,7 +32,7 @@ pub(crate) struct LegendColumns {
     pub representative: usize,
 }
 
-/// The type-table position joined for the edition cache's first type.
+/// The type-table position joined for the edition cache's representative type.
 fn representative_ordinal() -> Expression {
     // mapping.ordinality - 1
     MAPPING
@@ -40,38 +40,38 @@ fn representative_ordinal() -> Expression {
         .subtract(Constant::U32(1))
 }
 
-/// Builds the joins resolving the edition cache's first type to its type-table ordinal.
+/// Builds the joins resolving the edition cache's representative type to its type-table ordinal.
 ///
-/// Both joins are outer, so a missing cache entry or a first type outside the type table
+/// Both joins are outer, so a missing cache entry or a representative type outside the type table
 /// leaves the ordinal SQL NULL for the decoder to refuse.
 ///
 /// # SQL
 ///
 /// ```sql
-/// LEFT JOIN ontology_ids AS first_type
-///   ON first_type.base_url = (cache.base_urls)[1]
-///  AND first_type.version = (cache.versions)[1]
+/// LEFT JOIN ontology_ids AS representative_type
+///   ON representative_type.base_url = (cache.base_urls)[1]
+///  AND representative_type.version = (cache.versions)[1]
 /// LEFT JOIN unnest(<types>::uuid[]) WITH ORDINALITY AS mapping(ontology_id, ordinality)
-///   ON mapping.ontology_id = first_type.ontology_id
+///   ON mapping.ontology_id = representative_type.ontology_id
 /// ```
 fn representative_joins(
     from: FromItem<'static>,
     cache: Aliased<EntityEditionCache>,
-    first_type: Aliased<OntologyIds>,
+    representative_type: Aliased<OntologyIds>,
     types: Placeholder,
 ) -> FromItem<'static> {
-    // LEFT JOIN ontology_ids AS first_type
-    //   ON first_type.base_url = (cache.base_urls)[1]
-    //  AND first_type.version = (cache.versions)[1]
+    // LEFT JOIN ontology_ids AS representative_type
+    //   ON representative_type.base_url = (cache.base_urls)[1]
+    //  AND representative_type.version = (cache.versions)[1]
     // LEFT JOIN unnest(<types>) WITH ORDINALITY AS mapping(ontology_id, ordinality)
-    //   ON mapping.ontology_id = first_type.ontology_id
+    //   ON mapping.ontology_id = representative_type.ontology_id
     from.left_join_on(
-        first_type.from_item(),
+        representative_type.from_item(),
         vec![
-            first_type
+            representative_type
                 .column(&OntologyIds::BaseUrl)
                 .equal(cache.column(&EntityEditionCache::BaseUrls).array_element(1)),
-            first_type
+            representative_type
                 .column(&OntologyIds::Version)
                 .equal(cache.column(&EntityEditionCache::Versions).array_element(1)),
         ],
@@ -81,16 +81,16 @@ fn representative_joins(
         vec![
             MAPPING
                 .column(&Mapping::OntologyId)
-                .equal(first_type.column(&OntologyIds::OntologyId)),
+                .equal(representative_type.column(&OntologyIds::OntologyId)),
         ],
     )
 }
 
 /// Builds the node legend statement, ordered by node row.
 ///
-/// Each row pairs the scoped entity's cached display label with its first cached type resolved
-/// to a type-table ordinal. The statement attaches the corpus scope and shares its ordering, so
-/// positions agree with the node stream under the frozen snapshot.
+/// Each row pairs the scoped entity's cached display label with its representative cached type
+/// resolved to a type-table ordinal. The statement attaches the corpus scope and shares its
+/// ordering, so positions agree with the node stream under the frozen snapshot.
 ///
 /// # SQL
 ///
@@ -108,7 +108,8 @@ pub(crate) fn node_legend_statement<'params>(
     types: &'params (impl ToSql + Sync),
 ) -> BoundStatement<'params, LegendColumns> {
     const CACHE: Aliased<EntityEditionCache> = Aliased::of(Table::EntityEditionCache, "cache");
-    const FIRST_TYPE: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "first_type");
+    const REPRESENTATIVE_TYPE: Aliased<OntologyIds> =
+        Aliased::of(Table::OntologyIds, "representative_type");
 
     let mut binder = Binder::default();
     let axes_points = Axes::bind(&mut binder, axes);
@@ -143,7 +144,7 @@ pub(crate) fn node_legend_statement<'params>(
                     ],
                 ),
                 CACHE,
-                FIRST_TYPE,
+                REPRESENTATIVE_TYPE,
                 types_placeholder,
             )
         })
@@ -162,9 +163,9 @@ pub(crate) fn node_legend_statement<'params>(
 
 /// Builds the edge legend statement, ordered by link identity.
 ///
-/// Each row pairs the corpus link's cached display label with its first cached type resolved to
-/// a type-table ordinal. The statement attaches the corpus scope and links and shares the edge
-/// stream's total order, so positions agree under the frozen snapshot.
+/// Each row pairs the corpus link's cached display label with its representative cached type
+/// resolved to a type-table ordinal. The statement attaches the corpus scope and links and
+/// shares the edge stream's total order, so positions agree under the frozen snapshot.
 ///
 /// # SQL
 ///
@@ -182,7 +183,8 @@ pub(crate) fn edge_legend_statement<'params>(
     types: &'params (impl ToSql + Sync),
 ) -> BoundStatement<'params, LegendColumns> {
     const CACHE: Aliased<EntityEditionCache> = Aliased::of(Table::EntityEditionCache, "cache");
-    const FIRST_TYPE: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "first_type");
+    const REPRESENTATIVE_TYPE: Aliased<OntologyIds> =
+        Aliased::of(Table::OntologyIds, "representative_type");
 
     let mut binder = Binder::default();
     let axes_points = Axes::bind(&mut binder, axes);
@@ -219,7 +221,7 @@ pub(crate) fn edge_legend_statement<'params>(
                     ],
                 ),
                 CACHE,
-                FIRST_TYPE,
+                REPRESENTATIVE_TYPE,
                 types_placeholder,
             )
         })
@@ -254,7 +256,7 @@ pub(crate) fn edge_legend_statement<'params>(
 
 /// Decodes one display-legend row into its owned legend.
 ///
-/// An edition without a cached label decodes as the empty label. A row whose first type
+/// An edition without a cached label decodes as the empty label. A row whose representative type
 /// resolves to no type-table ordinal fails the decode.
 pub(crate) fn decode_legend(
     row: &Row,
@@ -302,7 +304,7 @@ mod tests {
     /// statement's own contract: the ordering is the node stream's, so positions agree under
     /// the frozen snapshot.
     #[test]
-    fn node_statement_renders_its_pinned_text() {
+    fn node_statement_text() {
         let axes = TemporalAxes::now();
         let types = vec![Uuid::nil()];
 
@@ -316,7 +318,7 @@ mod tests {
     /// statement's own contract: the ordering is the edge stream's link identity, so
     /// positions agree under the frozen snapshot.
     #[test]
-    fn edge_statement_renders_its_pinned_text() {
+    fn edge_statement_text() {
         let axes = TemporalAxes::now();
         let types = vec![Uuid::nil()];
 

@@ -107,7 +107,9 @@
     variant_count,
     clone_from_ref,
     clone_to_uninit,
-    integer_casts
+    integer_casts,
+    nonpoison_rwlock,
+    exact_size_is_empty
 )]
 // The dashboard's interrupt path leaves through an exit code, and it is
 // the only consumer of the feature.
