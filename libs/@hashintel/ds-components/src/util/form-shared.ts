@@ -1,6 +1,5 @@
 export const formInputSizes = ["xxs", "xs", "sm", "md", "lg"] as const;
 export type FormInputSize = (typeof formInputSizes)[number];
-
 export type Tone = "neutral" | "brand" | "error" | "warning" | "success";
 
 export type FormInputWidth =
@@ -64,3 +63,16 @@ export const resolveAutoFocusProps = (
   autoFocus: autoFocus === true ? true : undefined,
   "data-no-autofocus": autoFocus === "never" ? "" : undefined,
 });
+
+/**
+ * There is no standard for turning off autocomplete, so this includes the
+ * properties that turn it off for the most popular browsers + password
+ * managers. Spread onto an `<input>`.
+ */
+export const preventAutocompleteProps = {
+  autoComplete: "off",
+  "data-1p-ignore": true,
+  "data-lpignore": "true",
+  "data-protonpass-ignore": "true",
+  "data-bwignore": "1",
+} as const;

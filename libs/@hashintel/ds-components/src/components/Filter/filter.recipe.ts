@@ -7,7 +7,7 @@ import { sva } from "@hashintel/ds-helpers/css";
  * `:has(:focus-visible) { overflow: visible }` (a clip would swallow it).
  */
 export const filterRecipe = sva({
-  slots: ["root", "property", "trigger", "inputSlot", "separator"],
+  slots: ["root", "property", "trigger", "inputSlot", "input", "separator"],
   base: {
     root: {
       display: "inline-flex",
@@ -78,10 +78,38 @@ export const filterRecipe = sva({
       display: "inline-flex",
       alignItems: "center",
       paddingInline: "var(--filter-padding-x)",
+      paddingBlock: "var(--filter-padding-y)",
       // The divider is skipped when a static separator segment (which
       // visually splits its neighbours itself) directly precedes this input.
       "&[data-divided]": {
         boxShadow: "[inset 1px 0 0 0 var(--filter-divider)]",
+      },
+    },
+    input: {
+      appearance: "none",
+      border: "none",
+      background: "[transparent]",
+      outline: "none",
+      padding: "0",
+      font: "inherit",
+      color: "colorPalette.fg.body",
+      // Grow/shrink with the typed value (or placeholder when empty),
+      // clamped below/above. Browsers without field-sizing fall back to the
+      // width implied by the `size` attribute set on text inputs.
+      fieldSizing: "content",
+      minWidth: "[4ch]",
+      maxWidth: "[32ch]",
+      "&::placeholder": {
+        color: "[currentColor]",
+        opacity: "[0.4]",
+      },
+      "&:disabled": {
+        cursor: "not-allowed",
+      },
+      // Hide number spinners (wheel-stepping is disabled separately while
+      // focused); `appearance: none` handles Firefox.
+      "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
+        display: "none",
       },
     },
     separator: {

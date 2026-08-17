@@ -3,7 +3,10 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { resolveAutoFocusProps } from "../../util/form-shared";
+import {
+  preventAutocompleteProps,
+  resolveAutoFocusProps,
+} from "../../util/form-shared";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
@@ -275,13 +278,7 @@ export const BaseInput = ({
       minLength={minLength}
       pattern={pattern}
       spellCheck={spellcheck}
-      // there is no standard for turning off autocomplete, so we need to include all the
-      // following properties to turn off autocomplete for most popular browsers + password managers
-      autoComplete={noAutocomplete ? "off" : undefined}
-      data-1p-ignore={noAutocomplete ? true : undefined}
-      data-lpignore={noAutocomplete ? "true" : undefined}
-      data-protonpass-ignore={noAutocomplete ? "true" : undefined}
-      data-bwignore={noAutocomplete ? "1" : undefined}
+      {...(noAutocomplete ? preventAutocompleteProps : {})}
       data-testid={testId}
       className={cx(
         classes.input,

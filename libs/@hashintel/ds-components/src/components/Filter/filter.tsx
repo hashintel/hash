@@ -3,8 +3,9 @@ import { Portal } from "@ark-ui/react/portal";
 import { Select as ArkSelect } from "@ark-ui/react/select";
 import { useMemo, useRef, useState } from "react";
 
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { cx } from "@hashintel/ds-helpers/css";
 
+import { preventAutocompleteProps } from "../../util/form-shared";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { Icon } from "../Icon/icon";
 import {
@@ -13,8 +14,6 @@ import {
   type ItemOrGroup,
 } from "../Menu/SelectableList/selectable-list";
 import { getItemId } from "../Menu/SelectableList/selectable-list-util";
-import { NumberInput } from "../NumberInput/number-input";
-import { TextInput } from "../TextInput/text-input";
 import { filterRecipe } from "./filter.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
@@ -148,28 +147,29 @@ const caretSizeMap: Record<FormInputSize, FormInputSize> = {
   lg: "sm",
 };
 
-// The embedded input whose text style matches the chip's font scale (the
-// chip renders xxs/xxs/xxs/xs/sm text, while inputs render their size's
-// textStyle directly — an unmapped `md` input would paint 16px text inside a
-// 12px chip).
-const inputSizeMap: Record<FormInputSize, FormInputSize> = {
-  xxs: "xxs",
-  xs: "xxs",
-  sm: "xxs",
-  md: "xs",
-  lg: "sm",
+// Stable reference so the focus/blur listener pair always removes the same
+// handler. Blocks wheel-stepping a focused number input (mirrors NumberInput).
+const preventWheel = (event: WheelEvent) => {
+  event.preventDefault();
 };
 
-// Chip-scale widths for the embedded subtle inputs: the base recipe's
-// `--form-min-width: 6rem` is far too wide for an inline segment.
-const textInputWidthStyle = css({
-  "--form-min-width": "[6ch !important]",
-  "--form-width": "[14ch]",
-});
+const integerBlockedKeys = new Set([".", "e", "E", "+"]);
 
-const numberInputWidthStyle = css({
-  "--form-width": "[8ch]",
-});
+const numberStepOf = (config: LooseInputConfig): number | "any" =>
+  config.type === "int" ? (config.step ?? 1) : (config.step ?? "any");
+
+const isIntegerConfig = (config: LooseInputConfig): boolean => {
+  const step = numberStepOf(config);
+  return step !== "any" && Number.isInteger(step);
+};
+
+/**
+ * Fallback width for browsers without `field-sizing: content` support, via
+ * the HTML `size` attribute (text inputs only — number inputs ignore it and
+ * fall back to their natural width there).
+ */
+const textFallbackSizeCh = (config: LooseInputConfig): number =>
+  config.max !== undefined ? Math.min(config.max + 2, 24) : 14;
 
 /**
  * An inline, chip-like filter control: a property label, an operator
@@ -452,63 +452,76 @@ export const Filter = <
         const assignInputRef = (element: HTMLInputElement | null) => {
           inputRefs.current[inputIndex] = element;
         };
+        const isText = config.type === "string";
+        const integer = !isText && isIntegerConfig(config);
+
         return (
           <span
             className={classes.inputSlot}
             data-divided={divided ? "" : undefined}
             key={segmentKey}
           >
-            {config.type === "string" ? (
-              <TextInput
-                variant="subtle"
-                size={inputSizeMap[size]}
-                width="fitContent"
-                className={textInputWidthStyle}
-                style={
-                  config.max !== undefined
-                    ? ({
-                        "--form-width": `${Math.min(config.max + 2, 24)}ch`,
-                      } as React.CSSProperties)
-                    : undefined
+            <input
+              ref={assignInputRef}
+              className={classes.input}
+              size={isText ? textFallbackSizeCh(config) : undefined}
+              type={isText ? "text" : "number"}
+              inputMode={isText ? undefined : integer ? "numeric" : "decimal"}
+              value={String(slots[inputIndex] ?? "")}
+              onChange={(event) => {
+                const raw = event.target.value;
+                if (isText) {
+                  setSlot(inputIndex, raw);
+                  return;
                 }
-                value={(slots[inputIndex] as string | null | undefined) ?? ""}
-                onChange={(nextValue) => setSlot(inputIndex, nextValue)}
-                placeholder={config.placeholder}
-                minLength={config.min}
-                maxLength={config.max}
-                pattern={config.pattern}
-                onKeyDown={handleInputKeyDown}
-                inputRef={assignInputRef}
-                disabled={disabled}
-                invalid={invalid}
-                aria-label={ariaLabel}
-              />
-            ) : (
-              <NumberInput
-                variant="subtle"
-                size={inputSizeMap[size]}
-                width={config.max !== undefined ? "maxNumber" : "fitContent"}
-                className={
-                  config.max === undefined ? numberInputWidthStyle : undefined
+                const parsed = integer
+                  ? Math.trunc(parseInt(raw, 10))
+                  : parseFloat(raw);
+                setSlot(inputIndex, Number.isNaN(parsed) ? null : parsed);
+              }}
+              placeholder={config.placeholder}
+              minLength={isText ? config.min : undefined}
+              maxLength={isText ? config.max : undefined}
+              pattern={isText ? config.pattern : undefined}
+              min={isText ? undefined : config.min}
+              max={isText ? undefined : config.max}
+              step={isText ? undefined : numberStepOf(config)}
+              onKeyDown={(event) => {
+                handleInputKeyDown(event);
+                if (
+                  integer &&
+                  !event.defaultPrevented &&
+                  integerBlockedKeys.has(event.key)
+                ) {
+                  event.preventDefault();
                 }
-                hideStepper
-                value={(slots[inputIndex] as number | null | undefined) ?? null}
-                onChange={(nextValue) => setSlot(inputIndex, nextValue)}
-                placeholder={config.placeholder}
-                min={config.min}
-                max={config.max}
-                step={
-                  config.type === "int"
-                    ? (config.step ?? 1)
-                    : (config.step ?? "any")
-                }
-                onKeyDown={handleInputKeyDown}
-                inputRef={assignInputRef}
-                disabled={disabled}
-                invalid={invalid}
-                aria-label={ariaLabel}
-              />
-            )}
+              }}
+              onFocus={
+                isText
+                  ? undefined
+                  : (event) => {
+                      event.currentTarget.addEventListener(
+                        "wheel",
+                        preventWheel,
+                        { passive: false },
+                      );
+                    }
+              }
+              onBlur={
+                isText
+                  ? undefined
+                  : (event) => {
+                      event.currentTarget.removeEventListener(
+                        "wheel",
+                        preventWheel,
+                      );
+                    }
+              }
+              disabled={disabled}
+              aria-invalid={invalid || undefined}
+              aria-label={ariaLabel}
+              {...preventAutocompleteProps}
+            />
           </span>
         );
       })}
