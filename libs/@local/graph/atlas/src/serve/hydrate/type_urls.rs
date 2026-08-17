@@ -122,7 +122,8 @@ where
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
-    use std::sync::Mutex;
+    use core::future;
+    use std::sync::nonpoison::Mutex;
 
     use hashql_core::collections::FastHashMap;
     use type_system::ontology::{VersionedUrl, id::OntologyTypeUuid};
@@ -137,20 +138,18 @@ mod tests {
     }
 
     impl ResolveTypeUrls for Ledger {
-        async fn resolve(
+        fn resolve(
             &self,
             types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
-        ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, DetailError> {
+        ) -> impl Future<Output = Result<Vec<(OntologyTypeUuid, VersionedUrl)>, DetailError>>
+        {
             let types = types.into_iter().collect::<Vec<_>>();
-            self.asked
-                .lock()
-                .expect("no resolution panics while holding the ledger lock")
-                .push(types.clone());
+            self.asked.lock().push(types.clone());
 
-            Ok(types
+            future::ready(Ok(types
                 .into_iter()
                 .filter_map(|uuid| self.urls.get(&uuid).map(|url| (uuid, url.clone())))
-                .collect())
+                .collect()))
         }
     }
 
@@ -195,7 +194,7 @@ mod tests {
 
         assert_eq!(first, second);
         assert_eq!(
-            *cached.inner.asked.lock().expect("the ledger lock is clean"),
+            *cached.inner.asked.lock(),
             vec![uuids],
             "the second resolution answers from the cache alone"
         );
@@ -219,12 +218,7 @@ mod tests {
         assert!(first.is_empty());
         assert!(second.is_empty());
         assert_eq!(
-            cached
-                .inner
-                .asked
-                .lock()
-                .expect("the ledger lock is clean")
-                .len(),
+            cached.inner.asked.lock().len(),
             2,
             "absence is never cached, so both calls reach the source"
         );
@@ -244,7 +238,7 @@ mod tests {
             .expect("the source is total");
 
         assert_eq!(answer.len(), 2);
-        let asked = cached.inner.asked.lock().expect("the ledger lock is clean");
+        let asked = cached.inner.asked.lock();
         assert_eq!(
             asked[1],
             known[1..].to_vec(),
