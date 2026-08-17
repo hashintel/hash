@@ -17,6 +17,7 @@ export const filterRecipe = sva({
     "root",
     "property",
     "trigger",
+    "triggerLabel",
     "inputSlot",
     "input",
     "separator",
@@ -27,6 +28,10 @@ export const filterRecipe = sva({
       display: "inline-flex",
       alignItems: "stretch",
       width: "[fit-content]",
+      // Shrink to fit a constrained container: the property, trigger and
+      // input segments give way (ellipsifying), separators and the remove
+      // button never do.
+      maxWidth: "[100%]",
       whiteSpace: "nowrap",
       background: "white",
       fontWeight: "medium",
@@ -68,8 +73,12 @@ export const filterRecipe = sva({
       },
     },
     property: {
-      display: "inline-flex",
-      alignItems: "center",
+      // Block (not flex) so its text can text-overflow: ellipsis; vertical
+      // centering falls out of the padding + single line box.
+      display: "block",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      minWidth: "[4ch]",
       fontSize: "[var(--filter-font-size)]",
       paddingInline: "var(--filter-property-padding-x)",
       paddingBlock: "var(--form-padding-y)",
@@ -93,10 +102,14 @@ export const filterRecipe = sva({
       alignItems: "center",
       gap: "1",
       position: "relative",
+      minWidth: "[5ch]",
       paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--form-padding-y)",
       cursor: "pointer",
       outline: "none",
+      "& svg": {
+        flexShrink: "0",
+      },
       borderBlock: "var(--form-border-width) solid var(--filter-outer-border)",
       borderInlineStart: "var(--form-border-width) solid var(--filter-divider)",
       transition: "[background 0.15s ease, border-color 0.15s ease]",
@@ -162,8 +175,14 @@ export const filterRecipe = sva({
         borderEndEndRadius: "[var(--filter-radius)]",
       },
     },
+    triggerLabel: {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      minWidth: "0",
+    },
     inputSlot: {
       display: "inline-flex",
+      minWidth: "0",
       // The input carries the segment's padding itself and stretches to its
       // full height, so e.g. the invalid-character flash paints edge to edge.
       alignItems: "stretch",
@@ -207,9 +226,13 @@ export const filterRecipe = sva({
       fieldSizing: "content",
       minWidth: "[calc(2 * var(--filter-input-padding-x))]",
       textAlign: "center",
-      maxWidth: "[calc(32ch + 2 * var(--filter-input-padding-x))]",
+      maxWidth: "[min(calc(32ch + 2 * var(--filter-input-padding-x)), 100%)]",
+      // Overflowing values ellipsify at rest; a focused input scrolls
+      // normally instead.
+      textOverflow: "ellipsis",
       _focus: {
         textAlign: "left",
+        textOverflow: "clip",
       },
       "&::placeholder": {
         color: "[currentColor]",
@@ -227,6 +250,7 @@ export const filterRecipe = sva({
     separator: {
       display: "inline-flex",
       alignItems: "center",
+      flexShrink: "0",
       fontSize: "[var(--filter-font-size)]",
       fontWeight: "normal",
       paddingInline: "var(--filter-padding-x)",
@@ -244,6 +268,7 @@ export const filterRecipe = sva({
       color: "neutral.s115",
       display: "inline-flex",
       alignItems: "center",
+      flexShrink: "0",
       position: "relative",
       paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--form-padding-y)",

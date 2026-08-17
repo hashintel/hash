@@ -466,7 +466,9 @@ export const Filter = <
         data-placeholder={selectedOperator ? undefined : ""}
         aria-label={`${propertyLabel} operator`}
       >
-        {selectedOperator?.label ?? "is…"}
+        <span className={classes.triggerLabel}>
+          {selectedOperator?.label ?? "is…"}
+        </span>
         {!selectedOperator && (
           <Icon name="chevronDown" size={caretSizeMap[size]} />
         )}
