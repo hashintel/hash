@@ -30,9 +30,13 @@
 //!   Changing the per-type factor re-derives both surfaces together, so they move in lockstep by
 //!   contract.
 //! - Support terms scale by their pool size over the drawn count.
+//! - The target objective divides each drawn unit by its full first-order inclusion probability
+//!   under the same draw law and reads against the fixed split-time denominator `W`, the estimator
+//!   contract's own convention rather than the group factor - the intentional divergence its
+//!   derivation registers against the released curriculum.
 
 pub(crate) mod batch;
-mod fit;
+pub(crate) mod fit;
 pub(crate) mod metrics;
 pub(crate) mod refresh;
 pub(crate) mod step;
@@ -44,8 +48,9 @@ use core::{error::Error, fmt, num::NonZero};
 pub(crate) use self::{
     batch::{NodeColumns, SupportAnchor},
     fit::{
-        BoundaryEvidence, BoundaryState, Fitted, FrozenRadius, RefreshFraction, RelationLens,
-        TrainError, TrainOptions, TrainerInputs, TrainerOptimizerRecord, TrainingSchedule, fit,
+        BoundaryEvidence, BoundaryState, FitOutcome, Fitted, FrozenRadius, RefreshFraction,
+        RelationLens, TrainError, TrainOptions, TrainerInputs, TrainerOptimizerRecord,
+        TrainingSchedule, fit,
     },
 };
 #[expect(

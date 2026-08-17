@@ -17,6 +17,7 @@ use self::{
     ladder::{LadderArgs, LadderVerdict},
     probe::ProbeArgs,
     quality::{QualityArgs, QualityVerdict},
+    realization::{RealizationArgs, RealizationError},
 };
 use crate::{
     identity::NodeRowId,
@@ -38,8 +39,9 @@ mod knn;
 mod ladder;
 mod probe;
 mod quality;
+mod realization;
 
-/// One report invocation's readings, in the instrument's own vocabulary.
+/// One report invocation's readings, in its own vocabulary.
 #[derive(Debug)]
 pub(crate) enum ReportVerdict {
     /// The certified classifier refit.
@@ -84,6 +86,8 @@ pub(crate) enum ReportError {
     KnnBackend(backend::SweepError),
     /// The NN-Descent audit failed.
     KnnDescent(AuditError<NodeRowId, NnDescentError>),
+    /// The realization report refused.
+    Realization(RealizationError),
 }
 
 impl Display for ReportError {
@@ -97,6 +101,7 @@ impl Display for ReportError {
             Self::Clumps(error) => Display::fmt(error, fmt),
             Self::KnnBackend(error) => Display::fmt(error, fmt),
             Self::KnnDescent(error) => Display::fmt(error, fmt),
+            Self::Realization(error) => Display::fmt(error, fmt),
         }
     }
 }
@@ -110,6 +115,7 @@ impl Error for ReportError {
             Self::Clumps(error) => error.source(),
             Self::KnnBackend(error) => error.source(),
             Self::KnnDescent(error) => error.source(),
+            Self::Realization(error) => error.source(),
         }
     }
 }
@@ -142,6 +148,12 @@ pub(crate) enum ReportCommand {
 
     /// Assesses the active generation's map fidelity over the live store and writes the report.
     Quality(QualityArgs),
+
+    /// Certifies a generation's recorded target readings against the padded pass's realization.
+    ///
+    /// No published generation records target evidence, so every invocation resolves its
+    /// generation and refuses.
+    Realization(RealizationArgs),
 }
 
 impl ReportCommand {
@@ -177,6 +189,7 @@ impl ReportCommand {
                 Ok(None)
             }
             Self::Quality(args) => args.run().await.map(ReportVerdict::Quality).map(Some),
+            Self::Realization(args) => Err(args.run()),
         }
     }
 }

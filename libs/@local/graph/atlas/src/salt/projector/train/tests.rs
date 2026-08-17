@@ -25,7 +25,9 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
     BatchPlan, Coefficients, ObjectiveOptions, StepError,
-    batch::{Batch, BatchSampler, NodeColumns, Populations, ROW_ALIGNMENT, SupportAnchor},
+    batch::{
+        Batch, BatchSampler, DrawContext, NodeColumns, Populations, ROW_ALIGNMENT, SupportAnchor,
+    },
     metrics::{
         BudgetBreakdown, DegreeDeciles, DisplacementHistogram, DisplacementSummary,
         TypeParticipants,
@@ -226,6 +228,7 @@ fn empty_populations<'index>(eta: NonNegative) -> Populations<'index, NodeRowId,
         landmark_scale: 0.0,
         anchors: Vec::new(),
         anchor_scale: 0.0,
+        target: Vec::new(),
         eta,
     }
 }
@@ -319,7 +322,18 @@ fn draws_are_deterministic_at_a_fixed_seed() {
     )
     .expect("the fixture graph has weight");
 
-    let draw = |seed: u64| sampler.draw(non_negative!(1.0), None, &[], &[], &mut rng(seed));
+    let draw = |seed: u64| {
+        sampler.draw(
+            DrawContext {
+                eta: non_negative!(1.0),
+                mined: None,
+                landmarks: &[],
+                anchors: &[],
+                target: false,
+            },
+            &mut rng(seed),
+        )
+    };
     let (first, second) = (draw(17), draw(17));
 
     assert_eq!(first.semantic, second.semantic);
@@ -389,21 +403,15 @@ fn allocator_seam_draws_and_assembles_identically() {
         },
     ];
 
-    let global = sampler.draw(
-        non_negative!(1.0),
-        None,
-        &support,
-        &support[..1],
-        &mut rng(17),
-    );
-    let system = sampler.draw_in(
-        non_negative!(1.0),
-        None,
-        &support,
-        &support[..1],
-        &mut rng(17),
-        std::alloc::System,
-    );
+    let context = DrawContext {
+        eta: non_negative!(1.0),
+        mined: None,
+        landmarks: &support,
+        anchors: &support[..1],
+        target: false,
+    };
+    let global = sampler.draw(context, &mut rng(17));
+    let system = sampler.draw_in(context, &mut rng(17), std::alloc::System);
 
     assert_eq!(global.semantic, system.semantic);
     assert_eq!(global.ordinary, system.ordinary);
@@ -478,11 +486,24 @@ fn draw_skips_the_relation_family_at_a_zero_rung() {
     )
     .expect("the fixture graph has weight");
 
-    let at_zero = sampler.draw(non_negative!(0.0), None, &[], &[], &mut rng(3));
+    let quiet = DrawContext {
+        eta: non_negative!(0.0),
+        mined: None,
+        landmarks: &[],
+        anchors: &[],
+        target: false,
+    };
+    let at_zero = sampler.draw(quiet, &mut rng(3));
     assert!(at_zero.relation.is_empty());
     assert_eq!(at_zero.relation_scale, 0.0);
 
-    let at_one = sampler.draw(non_negative!(1.0), None, &[], &[], &mut rng(3));
+    let at_one = sampler.draw(
+        DrawContext {
+            eta: non_negative!(1.0),
+            ..quiet
+        },
+        &mut rng(3),
+    );
     assert_eq!(at_one.relation.len(), 1);
 }
 
@@ -534,7 +555,16 @@ fn draw_computes_the_estimator_scales() {
             weight: 1.0,
         },
     ];
-    let populations = sampler.draw(non_negative!(1.0), None, &landmarks, &[], &mut rng(5));
+    let populations = sampler.draw(
+        DrawContext {
+            eta: non_negative!(1.0),
+            mined: None,
+            landmarks: &landmarks,
+            anchors: &[],
+            target: false,
+        },
+        &mut rng(5),
+    );
 
     // W / m = 3.5 / 8 exactly.
     assert_eq!(populations.semantic.len(), 8);
@@ -607,7 +637,16 @@ fn draw_collects_pooled_mined_pairs() {
     )
     .expect("the fixture graph has weight");
 
-    let populations = sampler.draw(non_negative!(0.0), Some(&frame), &[], &[], &mut rng(11));
+    let populations = sampler.draw(
+        DrawContext {
+            eta: non_negative!(0.0),
+            mined: Some(&frame),
+            landmarks: &[],
+            anchors: &[],
+            target: false,
+        },
+        &mut rng(11),
+    );
 
     let mut expected: Vec<(u64, u64, u32)> = (0..frame.rows())
         .flat_map(|row| frame.row(NodeRowId::from_usize(row)))

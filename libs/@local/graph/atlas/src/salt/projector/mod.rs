@@ -24,11 +24,14 @@
 //! reopens the published checkpoint and the resume state.
 
 pub(crate) mod artifact;
+pub(crate) mod band;
 // Fully public: the root `bench` facade re-exports it; the private
 // module chain above keeps it unreachable except through the facade.
 #[cfg(feature = "bench")]
 pub mod bench;
 pub(crate) mod budget;
+pub(crate) mod evidence;
+pub(crate) mod gauge;
 pub(crate) mod loss;
 pub(crate) mod miner;
 pub(crate) mod model;

@@ -41,7 +41,9 @@ use crate::{
             scale::LocalScales,
             train::{
                 BatchPlan, ObjectiveOptions, RUNGS,
-                batch::{Batch, BatchSampler, NodeColumns, Populations, SupportAnchor},
+                batch::{
+                    Batch, BatchSampler, DrawContext, NodeColumns, Populations, SupportAnchor,
+                },
                 metrics::{BudgetBreakdown, DegreeDeciles},
                 step::Evaluation,
             },
@@ -202,10 +204,13 @@ impl Sampler<'_> {
     pub fn draw(&self, seed: u64) -> Drawn<'_> {
         let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
         Drawn(self.sampler.draw(
-            RUNGS[RUNGS.len() - 1],
-            Some(&self.fixture.mined),
-            &self.fixture.landmarks,
-            &[],
+            DrawContext {
+                eta: RUNGS[RUNGS.len() - 1],
+                mined: Some(&self.fixture.mined),
+                landmarks: &self.fixture.landmarks,
+                anchors: &[],
+                target: false,
+            },
             &mut rng,
         ))
     }

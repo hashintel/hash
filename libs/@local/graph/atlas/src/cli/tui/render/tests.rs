@@ -100,6 +100,7 @@ fn training(steps: usize, total: usize) -> RunState {
                 relation: 2.0 * decay,
                 anchor: 0.0,
                 landmark: 0.5 * decay,
+                target: 0.0,
             },
         );
     }

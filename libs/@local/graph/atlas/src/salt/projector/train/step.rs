@@ -60,6 +60,11 @@ pub struct LossBreakdown {
     pub anchor: f32,
     /// Landmark support.
     pub landmark: f32,
+    /// The target objective's contribution, activation included.
+    ///
+    /// Zero before the boundary, on runs without a target configuration, and at zero activation.
+    /// The unscaled estimand reading lives in the target evidence.
+    pub target: f32,
 }
 
 impl LossBreakdown {
@@ -73,9 +78,10 @@ impl LossBreakdown {
             relation,
             anchor,
             landmark,
+            target,
         } = *self;
 
-        semantic + ordinary + hard + relation + anchor + landmark
+        semantic + ordinary + hard + relation + anchor + landmark + target
     }
 }
 
@@ -258,6 +264,10 @@ where
             relation,
             anchor,
             landmark,
+            // The target objective evaluates outside this function - it reads whole-corpus
+            // frozen references the batch never carries - and the loop composes its
+            // contribution in.
+            target: 0.0,
         },
     })
 }
@@ -322,7 +332,7 @@ where
             }
 
             relation_field.add(row, gradient);
-            contributions.push((row, sampled.relation, narrow(gradient)));
+            contributions.push((row, sampled.relation, gradient.narrow_lossy()));
         }
     }
 
@@ -334,8 +344,8 @@ where
         .iter_enumerated()
         .zip(relation_field.as_slice())
     {
-        let semantic = narrow(semantic);
-        let relation = narrow(relation);
+        let semantic = semantic.narrow_lossy();
+        let relation = relation.narrow_lossy();
 
         let applied = if relation == Vec2::splat(0.0) {
             semantic
@@ -376,15 +386,17 @@ where
 /// Reads the detached coordinate frame back to the host and checks that every point is finite.
 ///
 /// Padding rows replicate the last participating row, so a non-finite padded point reports that
-/// row.
+/// row. `rows` maps the frame's local positions - any local row domain - back to the corpus rows
+/// a divergence names.
 ///
 /// Returns the raw row-major components; view them through [`Vec2::from_slice`] rather than
 /// copying.
-fn read_frame<N, B: Backend<FloatElem = f32>>(
+pub(super) fn read_frame<R, N, B: Backend<FloatElem = f32>>(
     coordinates: Tensor<B, 2>,
-    rows: &IdSlice<BatchRowId, N>,
+    rows: &IdSlice<R, N>,
 ) -> Result<Vec<f32>, StepError<N>>
 where
+    R: Id,
     N: Id,
 {
     let values = coordinates
@@ -397,10 +409,8 @@ where
         if !point.is_finite() {
             // Alignment padding trails the batch rows; a padded point diverging names the
             // last real row.
-            let batch_row = BatchRowId::from_usize(index.min(rows.len() - 1));
-            return Err(StepError::Diverged {
-                row: rows[batch_row],
-            });
+            let local = R::from_usize(index.min(rows.len() - 1));
+            return Err(StepError::Diverged { row: rows[local] });
         }
     }
 
@@ -408,26 +418,16 @@ where
 }
 
 /// Flattens per-node gradients into the tensor's row-major layout.
-fn flatten<N>(gradients: &IdSlice<N, DVec2>) -> Vec<f32>
+pub(super) fn flatten<N>(gradients: &IdSlice<N, DVec2>) -> Vec<f32>
 where
     N: Id,
 {
     let mut flat = Vec::with_capacity(gradients.len() * 2);
 
     for gradient in gradients {
-        let narrowed = narrow(*gradient);
+        let narrowed = gradient.narrow_lossy();
         flat.extend([narrowed.x(), narrowed.y()]);
     }
 
     flat
-}
-
-/// Narrows an accumulated gradient to the working precision.
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "the narrowing is the seam's contract; a non-finite result propagates to the next \
-              frame's finite check"
-)]
-const fn narrow(gradient: DVec2) -> Vec2 {
-    Vec2::new(gradient.x() as f32, gradient.y() as f32)
 }

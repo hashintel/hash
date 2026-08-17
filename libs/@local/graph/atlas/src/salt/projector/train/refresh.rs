@@ -360,7 +360,9 @@ where
 fn field_error<N>(error: SpatialFieldError<N>, eta: NonNegative) -> RefreshError<N> {
     match error {
         // Unreachable in practice: `forward` checked every coordinate.
-        SpatialFieldError::NonFinite(NonFinitePoint { row }) => RefreshError::Diverged { row, eta },
+        SpatialFieldError::NonFinite(NonFinitePoint { id }) => {
+            RefreshError::Diverged { row: id, eta }
+        }
     }
 }
 

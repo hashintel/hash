@@ -22,14 +22,24 @@
 //! 1)` under the curve's `b ≥ 1/2` construction bound, so the zero is the continuous limit and any
 //! separation restores the outward push.
 
+mod contrast;
 mod energy;
+mod objective;
+mod penalty;
 #[cfg(test)]
 mod tests;
 
 use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
 use hashql_core::id::{Id, IdSlice, IdVec};
 
-pub(crate) use self::energy::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy};
+pub(crate) use self::{
+    contrast::ContrastEnergy,
+    energy::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy},
+    objective::{
+        CappedDrawLaw, TargetEstimator, TargetUnit, UnitLaw, fan_scale_pull, released_weight,
+    },
+    penalty::Penalty,
+};
 use crate::{
     identity::OntologyRowId,
     math::{DVec2, NonNegative, Positive, PositiveUnitFraction, UnitFraction, Vec2},
@@ -419,8 +429,8 @@ pub(crate) fn support_term<B: Backend>(
     options: SupportOptions,
     scale: f32,
 ) -> Tensor<B, 1> {
-    let epsilon = f64::from(options.epsilon.get());
-    let threshold = f64::from(options.threshold.get());
+    let epsilon = f64::from(options.epsilon);
+    let threshold = f64::from(options.threshold);
     let selected = coordinates.clone().select(0, targets.rows.clone());
     let squared = (selected - targets.targets.clone())
         .powi_scalar(2)

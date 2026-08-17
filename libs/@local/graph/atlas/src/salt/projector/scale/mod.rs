@@ -13,6 +13,8 @@
 #[cfg(test)]
 mod tests;
 
+pub(crate) mod frozen;
+
 use core::{error::Error, fmt};
 
 use hashql_core::id::{Id, IdSlice};

@@ -1,7 +1,7 @@
 //! The schedule, phase boundary, refresh ticks, and optimization loop of a training run.
 //!
 //! One run trains the conditioned projector end to end. It opens with a semantic-only segment at
-//! the zero rung; at the configured boundary step it freezes the Proximal radius from data - the
+//! the zero rung. At the configured boundary step it freezes the Proximal radius from data - the
 //! force-mass-weighted 25th percentile of the locally normalized distance `z` over the
 //! reviewed-Proximal attraction pairs, measured against the boundary's own coordinates - composes
 //! the relation energy, and opens the rung ladder, round-robining the steps across the lens rungs
@@ -20,13 +20,24 @@
 //! fraction of reviewed mass inside the frozen radius, the drift series beside the freeze.
 //! A corpus whose attraction index carries no force at all trains vacuously: the relation term
 //! stays absent and the run records why.
+//!
+//! A target-configured run additionally trains the declared estimand from the boundary on: the
+//! boundary freezes the target references against the same zero-condition frame the radius
+//! measures on, every ladder step enforces the band constraint and folds the batch estimator at
+//! the estimand's two rungs, and every post-boundary tick reads the per-evaluation evidence.
+//! [`mod@target`] owns that machinery, and its whole configuration is optional: a released run
+//! passes none of it and trains exactly as before.
 
 mod error;
+mod evidence;
+#[cfg(test)]
+mod fixture;
+mod inputs;
+mod objective;
+mod options;
 mod session;
 #[cfg(test)]
 mod tests;
-
-use core::num::NonZero;
 
 use burn::{
     lr_scheduler::LrScheduler as _, optim::Optimizer as _, tensor::backend::AutodiffBackend,
@@ -34,291 +45,44 @@ use burn::{
 use hashql_core::id::Id;
 use rand::Rng;
 
-use self::session::{Session, Training};
-pub(crate) use self::{error::TrainError, session::TrainerOptimizerRecord};
-use super::{
-    BatchPlan, Coefficients,
-    batch::{NodeColumns, SupportAnchor},
-    metrics::{BudgetBreakdown, DisplacementSummary},
-    step::LossBreakdown,
+use self::session::{RunOutcome, Session, Training};
+pub(crate) use self::{
+    error::{TargetRefusal, TargetRefusalCause, TrainError},
+    evidence::{BoundaryEvidence, FrozenRadius, RefreshFraction, TickTelemetry, TrainingEvidence},
+    inputs::TrainerInputs,
+    options::{RelationLens, TrainOptions, TrainingSchedule},
+    session::TrainerOptimizerRecord,
 };
-use crate::{
-    math::{DNonNegative, NonNegative, Positive, UnitFraction},
-    progress::Progress,
-    salt::{
-        knn::table::KnnView,
-        projector::{
-            budget::Budget,
-            loss::{AffinityEnergy, CoincidentEnergy, SupportOptions},
-            miner::MinerOptions,
-            model::Projector,
-            verdict::{ResolvedVerdict, calibrate::ProximalCalibration},
-        },
-        relation::{
-            attraction::AttractionIndex,
-            protection::{ProtectionConfig, ProtectionView},
-        },
-        semantic::SemanticGraphView,
-    },
-};
-
-/// A validated step schedule.
-///
-/// Run length, phase boundary, refresh cadence, and the learning-rate envelope.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct TrainingSchedule {
-    steps: NonZero<usize>,
-    boundary: usize,
-    refresh_interval: NonZero<usize>,
-    initial_learning_rate: UnitFraction,
-    minimum_learning_rate: UnitFraction,
-}
-
-impl TrainingSchedule {
-    /// Validates a schedule.
-    ///
-    /// The boundary is the step index at which the Proximal radius freezes and the rung ladder
-    /// opens. Steps below it train at the zero rung only. A boundary equal to the step count never
-    /// opens the ladder: the run is semantic-only and records no boundary evidence. Refresh ticks
-    /// run at step zero and every `refresh_interval` steps after it.
-    ///
-    /// Returns [`None`] unless the boundary lies within the run and the rates satisfy the cosine
-    /// schedule's domain: both are unit fractions by type, the initial rate is strictly positive,
-    /// and the minimum does not exceed it.
-    #[must_use]
-    pub(crate) const fn new(
-        steps: NonZero<usize>,
-        boundary: usize,
-        refresh_interval: NonZero<usize>,
-        initial_learning_rate: UnitFraction,
-        minimum_learning_rate: UnitFraction,
-    ) -> Option<Self> {
-        let rates = initial_learning_rate.get() > 0.0
-            && minimum_learning_rate.get() <= initial_learning_rate.get();
-
-        if !(boundary <= steps.get() && rates) {
-            return None;
-        }
-        Some(Self {
-            steps,
-            boundary,
-            refresh_interval,
-            initial_learning_rate,
-            minimum_learning_rate,
-        })
-    }
-
-    /// Returns the run length in steps.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn steps(self) -> NonZero<usize> {
-        self.steps
-    }
-
-    /// Returns the phase-boundary step index.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn boundary(self) -> usize {
-        self.boundary
-    }
-
-    /// Returns the refresh cadence in steps.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn refresh_interval(self) -> NonZero<usize> {
-        self.refresh_interval
-    }
-
-    /// Returns the cosine schedule's opening learning rate.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn initial_learning_rate(self) -> f64 {
-        self.initial_learning_rate.get()
-    }
-
-    /// Returns the cosine schedule's floor learning rate.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn minimum_learning_rate(self) -> f64 {
-        self.minimum_learning_rate.get()
-    }
-}
-
-/// The validated relation-lens constants the boundary composes with.
-///
-/// The Coincident energy arrives fully configured - its radius is a configuration value until a
-/// reviewed-Coincident calibration exists. The boundary measures only the Proximal radius, while
-/// `temperature` and the scale guard `epsilon` complete the composed energy.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct RelationLens {
-    coincident: CoincidentEnergy,
-    temperature: Positive,
-    epsilon: Positive,
-}
-
-impl RelationLens {
-    /// Composes the lens constants.
-    ///
-    /// Every field arrives valid by type, so the composition is plain wiring.
-    #[must_use]
-    pub(crate) const fn new(
-        coincident: CoincidentEnergy,
-        temperature: Positive,
-        epsilon: Positive,
-    ) -> Self {
-        Self {
-            coincident,
-            temperature,
-            epsilon,
-        }
-    }
-
-    /// Returns the configured Coincident energy.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn coincident(self) -> CoincidentEnergy {
-        self.coincident
-    }
-
-    /// Returns the Proximal transition temperature.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn temperature(self) -> Positive {
-        self.temperature
-    }
-
-    /// Returns the local-scale guard.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn epsilon(self) -> Positive {
-        self.epsilon
-    }
-}
-
-/// The training run's numerical contract.
-///
-/// Every field is a validated value, and the struct is plain wiring. `forward_rows` bounds each
-/// corpus-forward slice at refresh ticks and the boundary, and with it the peak device memory of a
-/// whole-corpus pass.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct TrainOptions {
-    /// The step schedule.
-    pub schedule: TrainingSchedule,
-    /// The per-step sampling plan.
-    pub plan: BatchPlan,
-    /// The semantic affinity energy.
-    pub affinity: AffinityEnergy,
-    /// The support-term constants.
-    pub support: SupportOptions,
-    /// The per-node relation-gradient diagnostics' baseline convention.
-    pub budget: Budget,
-    /// The objective coefficients.
-    pub coefficients: Coefficients,
-    /// The hard-negative mining schedule.
-    pub miner: MinerOptions,
-    /// The relation-lens constants.
-    pub lens: RelationLens,
-    /// Rows per corpus-forward slice.
-    pub forward_rows: NonZero<usize>,
-}
-
-/// One generation's borrowed training inputs.
-///
-/// Every view describes the same corpus rows; the run asserts the row domains agree and treats a
-/// mismatch as a wiring defect.
-#[derive(Debug, Clone)]
-pub(crate) struct TrainerInputs<'run, N, E> {
-    /// The semantic graph.
-    pub semantic: SemanticGraphView<'run, N>,
-    /// The protection evidence.
-    pub protection: ProtectionView<'run, N>,
-    /// The protection channel thresholds.
-    pub protection_config: ProtectionConfig,
-    /// The relation attraction evidence.
-    pub attraction: &'run AttractionIndex<N, E>,
-    /// The 512-dimensional neighbour table local scales measure over.
-    pub knn: KnnView<'run, N>,
-    /// The per-row model input columns.
-    pub columns: NodeColumns<'run, N>,
-    /// The landmark skeleton's support anchors, corpus rows.
-    pub landmarks: &'run [SupportAnchor<N>],
-    /// The temporal support anchors as corpus rows, empty for a first generation.
-    pub anchors: &'run [SupportAnchor<N>],
-    /// The resolved reviewed verdicts.
-    pub verdicts: &'run [ResolvedVerdict],
-}
-
-/// How the boundary froze the Proximal radius.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum FrozenRadius {
-    /// Measured from the reviewed-Proximal pairs.
-    Measured { radius: NonNegative },
-    /// Nothing to freeze: the attraction index carries no force.
-    Vacuous,
-}
-
-/// The step the phase boundary ran at, what it froze, and the measurement it froze from.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct BoundaryEvidence {
-    /// The step index the boundary ran at.
-    pub step: usize,
-    /// The frozen radius and its provenance.
-    pub radius: FrozenRadius,
-    /// The full measurement.
-    ///
-    /// Pooled radius, per-type quantiles, mass shares, and leave-one-type-out radii. Empty on a
-    /// vacuous run.
-    pub calibration: ProximalCalibration,
-}
-
-/// One refresh tick's boundary-drift reading.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct RefreshFraction {
-    /// The step index the tick ran at.
-    pub step: usize,
-    /// The weighted fraction of reviewed-Proximal mass at or below the frozen radius.
-    ///
-    /// Measured over the tick's low-rung frame and its low-rung scale table, the same
-    /// rung/frame-scale pair the freeze measured on, so the series reads calibration drift and
-    /// never answers a movement question. The boundary tick contributes the first entry, and
-    /// later entries drift against it.
-    pub fraction: DNonNegative,
-}
-
-/// One refresh tick's displacement telemetry.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct TickTelemetry {
-    /// The step index the tick ran at.
-    pub step: usize,
-    /// The displacement field between the lens extremes.
-    pub displacement: DisplacementSummary,
-}
-
-/// Everything a training run measured about itself.
-#[derive(Debug)]
-pub(crate) struct TrainingEvidence {
-    /// The phase boundary's record, or [`None`] when the boundary never ran.
-    pub boundary: Option<BoundaryEvidence>,
-    /// The run-wide budget outcomes per reporting bucket.
-    pub budget: BudgetBreakdown,
-    /// Per-step loss values, in step order.
-    pub losses: Vec<LossBreakdown>,
-    /// Per-tick displacement telemetry, in step order.
-    pub telemetry: Vec<TickTelemetry>,
-    /// Per-tick boundary-drift readings, in step order.
-    ///
-    /// Empty until the boundary froze a measured radius: the fraction is defined against the
-    /// frozen radius, so pre-boundary and vacuous ticks have nothing to read.
-    pub fractions: Vec<RefreshFraction>,
-}
+use super::metrics::BudgetBreakdown;
+use crate::{progress::Progress, salt::projector::model::Projector};
 
 /// A trained projector and the evidence of its training.
 #[derive(Debug)]
-pub(crate) struct Fitted<B: AutodiffBackend> {
+pub(crate) struct Fitted<N, B: AutodiffBackend> {
     /// The trained model.
     pub model: Projector<B>,
     /// The run's evidence.
-    pub evidence: TrainingEvidence,
+    pub evidence: TrainingEvidence<N>,
+}
+
+/// One training run's terminal state.
+///
+/// A run that does not error ends as a trained projector with its sealed evidence, or as
+/// the target objective's refusal carrying everything measured before it. The refusal is an
+/// outcome rather than an error because a refused run terminates lawfully with a record - it
+/// publishes no activation candidate and the prior active generation stays. A diverged
+/// forward or a failed step stays an error, and no record survives it.
+#[derive(Debug)]
+#[expect(
+    clippy::large_enum_variant,
+    reason = "the outcome is constructed and consumed once per run, so the size difference never \
+              rides a hot path"
+)]
+pub(crate) enum FitOutcome<N, B: AutodiffBackend> {
+    /// A completed run's trained model beside its evidence.
+    Trained(Fitted<N, B>),
+    /// The target objective refused, with the run record preserved through the refusing step.
+    TargetRefused(TargetRefusal<N>),
 }
 
 /// The training state at entry of the boundary step.
@@ -333,12 +97,12 @@ pub(crate) struct Fitted<B: AutodiffBackend> {
 /// work happens at entry of [`fit_from_boundary`] and derives from the model alone, so every ladder
 /// resumed from one boundary state freezes the bit-equal radius on a deterministic backend.
 // No Debug: the optimizer adaptor does not implement it.
-pub(crate) struct BoundaryState<B: AutodiffBackend<FloatElem = f32>> {
-    training: Training<B>,
+pub(crate) struct BoundaryState<N, B: AutodiffBackend<FloatElem = f32>> {
+    training: Training<N, B>,
     schedule: TrainingSchedule,
 }
 
-impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
+impl<N, B: AutodiffBackend<FloatElem = f32>> BoundaryState<N, B> {
     /// Returns the model at the boundary.
     #[inline]
     #[must_use]
@@ -382,10 +146,10 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
     ) -> Option<Self> {
         // The scheduler advances once per step and reads its position
         // before use, so after the opening segment's `boundary` steps
-        // it sits at `boundary - 1`; a boundary of zero leaves the
+        // it sits at `boundary - 1`. A boundary of zero leaves the
         // pre-first-step sentinel, which is what the wrapping
         // subtraction produces.
-        if scheduler_position != schedule.boundary.wrapping_sub(1) {
+        if scheduler_position != schedule.boundary().wrapping_sub(1) {
             return None;
         }
 
@@ -400,6 +164,7 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
                     losses: Vec::new(),
                     telemetry: Vec::new(),
                     fractions: Vec::new(),
+                    target: None,
                 },
             },
             schedule,
@@ -410,7 +175,7 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 /// Trains the projector over one generation's artifacts.
 ///
 /// The caller owns model initialization and seeds it before the call, and batch draws consume
-/// `rng`. Equal models, inputs, options, and seeds draw equal batches; coordinate-level
+/// `rng`. Equal models, inputs, options, and seeds draw equal batches. Coordinate-level
 /// reproducibility additionally depends on the backend's own determinism.
 ///
 /// Every step reports its loss to `progress` on evaluation. The run behaves identically under any
@@ -418,6 +183,9 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 ///
 /// The run is the composition of [`fit_to_boundary`] and [`fit_from_boundary`]; call the phases
 /// directly to checkpoint or fork at the boundary.
+///
+/// A target objective's refusal is not an error: it returns as [`FitOutcome::TargetRefused`]
+/// with the run record preserved through the refusing step.
 ///
 /// # Errors
 ///
@@ -444,14 +212,14 @@ pub(crate) fn fit<
     rng: &mut R,
     device: &B::Device,
     progress: &P,
-) -> Result<Fitted<B>, TrainError<N>> {
+) -> Result<FitOutcome<N, B>, TrainError<N>> {
     let state = fit_to_boundary(model, inputs, options, rng, device, progress)?;
     fit_from_boundary(state, inputs, options, rng, device, progress)
 }
 
 /// Trains the opening segment: steps zero to the phase boundary, all at the zero rung.
 ///
-/// The returned state is the run's fork point; hand it to [`fit_from_boundary`] to continue, or
+/// The returned state is the run's fork point. Hand it to [`fit_from_boundary`] to continue, or
 /// serialize it through the checkpoint artifact first. A boundary equal to the run length makes
 /// this the whole run.
 ///
@@ -477,10 +245,10 @@ pub(crate) fn fit_to_boundary<
     rng: &mut R,
     device: &B::Device,
     progress: &P,
-) -> Result<BoundaryState<B>, TrainError<N>> {
+) -> Result<BoundaryState<N, B>, TrainError<N>> {
     let schedule = options.schedule;
     let mut session = Session::new(inputs, options)?;
-    let training = session.run(
+    let outcome = session.run(
         Training {
             model,
             optimizer: session::optimizer(),
@@ -488,16 +256,23 @@ pub(crate) fn fit_to_boundary<
             evidence: TrainingEvidence {
                 boundary: None,
                 budget: BudgetBreakdown::new(),
-                losses: Vec::with_capacity(schedule.steps.get()),
+                losses: Vec::with_capacity(schedule.steps().get()),
                 telemetry: Vec::new(),
                 fractions: Vec::new(),
+                target: None,
             },
         },
-        0..schedule.boundary,
+        0..schedule.boundary(),
         rng,
         device,
         progress,
     )?;
+    let training = match outcome {
+        RunOutcome::Completed(training) => training,
+        RunOutcome::Refused(refusal) => {
+            unreachable!("the opening segment runs no target phase, yet it refused: {refusal}")
+        }
+    };
 
     Ok(BoundaryState { training, schedule })
 }
@@ -507,8 +282,11 @@ pub(crate) fn fit_to_boundary<
 /// Freezes the Proximal radius against the state's own coordinates, then round-robins the remaining
 /// steps across the lens rungs.
 ///
-/// The options must carry the schedule the opening segment ran under; everything else may differ,
+/// The options must carry the schedule the opening segment ran under. Everything else may differ,
 /// which is what a boundary fork varies.
+///
+/// A target objective's refusal is not an error: it returns as [`FitOutcome::TargetRefused`]
+/// with the run record preserved through the refusing step.
 ///
 /// # Errors
 ///
@@ -527,13 +305,13 @@ pub(crate) fn fit_from_boundary<
     R: Rng + ?Sized,
     P: Progress,
 >(
-    state: BoundaryState<B>,
+    state: BoundaryState<N, B>,
     inputs: &TrainerInputs<'_, N, E>,
     options: &TrainOptions,
     rng: &mut R,
     device: &B::Device,
     progress: &P,
-) -> Result<Fitted<B>, TrainError<N>> {
+) -> Result<FitOutcome<N, B>, TrainError<N>> {
     if options.schedule != state.schedule {
         return Err(TrainError::ScheduleChanged {
             opening: state.schedule,
@@ -543,16 +321,19 @@ pub(crate) fn fit_from_boundary<
 
     let schedule = state.schedule;
     let mut session = Session::new(inputs, options)?;
-    let training = session.run(
+    let outcome = session.run(
         state.training,
-        schedule.boundary..schedule.steps.get(),
+        schedule.boundary()..schedule.steps().get(),
         rng,
         device,
         progress,
     )?;
 
-    Ok(Fitted {
-        model: training.model,
-        evidence: training.evidence,
+    Ok(match outcome {
+        RunOutcome::Completed(training) => FitOutcome::Trained(Fitted {
+            model: training.model,
+            evidence: training.evidence,
+        }),
+        RunOutcome::Refused(refusal) => FitOutcome::TargetRefused(refusal),
     })
 }

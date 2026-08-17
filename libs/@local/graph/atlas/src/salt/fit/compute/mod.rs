@@ -13,7 +13,7 @@ pub(crate) use self::projector::{TrainerInner as PlacementInner, device as place
 use self::{
     lod::LodOutputs,
     policy::{ClassifierArtifacts, PolicyArtifacts},
-    projector::{DistinctInputs, PlacementArtifacts, PlacementInputs},
+    projector::inputs::{DistinctInputs, PlacementArtifacts, PlacementInputs},
     quotient::DistinctRowId,
     relation::RelationArtifacts,
 };

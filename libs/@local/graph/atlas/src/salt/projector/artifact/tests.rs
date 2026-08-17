@@ -18,7 +18,10 @@ use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{CheckpointError, ResumeRecord, open_model, open_resume, write_model};
-use crate::salt::projector::model::{Architecture, Dimension, Layer, Projector, ProjectorInput};
+use crate::{
+    identity::NodeRowId,
+    salt::projector::model::{Architecture, Dimension, Layer, Projector, ProjectorInput},
+};
 
 type TestBackend = Autodiff<NdArray>;
 
@@ -169,7 +172,7 @@ fn open_model_rejects_truncated_bytes() {
 fn resume_checkpoint_round_trips_the_generator_and_schedule() {
     let bytes = record_bytes(resume_record());
     let (state, generator) =
-        open_resume::<TestBackend>(bytes.as_slice(), architecture(), &device())
+        open_resume::<NodeRowId, TestBackend>(bytes.as_slice(), architecture(), &device())
             .expect("the resume checkpoint opens");
 
     assert_eq!(
@@ -188,7 +191,9 @@ fn open_resume_rejects_an_invalid_schedule() {
     record.minimum_learning_rate = 0.9;
     let bytes = record_bytes(record);
 
-    let Err(error) = open_resume::<TestBackend>(bytes.as_slice(), architecture(), &device()) else {
+    let Err(error) =
+        open_resume::<NodeRowId, TestBackend>(bytes.as_slice(), architecture(), &device())
+    else {
         panic!("a minimum above the initial rate should be rejected");
     };
     assert!(
@@ -203,7 +208,9 @@ fn open_resume_rejects_a_scheduler_away_from_the_boundary() {
     record.scheduler = 3;
     let bytes = record_bytes(record);
 
-    let Err(error) = open_resume::<TestBackend>(bytes.as_slice(), architecture(), &device()) else {
+    let Err(error) =
+        open_resume::<NodeRowId, TestBackend>(bytes.as_slice(), architecture(), &device())
+    else {
         panic!("a scheduler position off the boundary should be rejected");
     };
     let CheckpointError::SchedulerPosition { position, boundary } = error else {

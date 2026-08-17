@@ -199,8 +199,8 @@ pub(crate) fn open_model<B: Backend>(
 /// # Errors
 ///
 /// Returns an error when encoding or writing fails.
-pub(crate) fn write_resume<B: AutodiffBackend<FloatElem = f32>>(
-    state: &BoundaryState<B>,
+pub(crate) fn write_resume<N, B: AutodiffBackend<FloatElem = f32>>(
+    state: &BoundaryState<N, B>,
     generator: &Xoshiro256PlusPlus,
     writer: &mut impl io::Write,
 ) -> Result<(), CheckpointError> {
@@ -236,11 +236,11 @@ pub(crate) fn write_resume<B: AutodiffBackend<FloatElem = f32>>(
 ///
 /// Returns an error when reading or decoding fails or any decoded value fails its verification.
 #[tracing::instrument(skip_all)]
-pub(crate) fn open_resume<B: AutodiffBackend<FloatElem = f32>>(
+pub(crate) fn open_resume<N, B: AutodiffBackend<FloatElem = f32>>(
     mut reader: impl io::Read,
     architecture: Architecture,
     device: &B::Device,
-) -> Result<(BoundaryState<B>, Xoshiro256PlusPlus), CheckpointError> {
+) -> Result<(BoundaryState<N, B>, Xoshiro256PlusPlus), CheckpointError> {
     let mut bytes = Vec::new();
     reader.read_to_end(&mut bytes)?;
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();

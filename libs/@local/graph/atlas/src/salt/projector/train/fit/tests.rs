@@ -4,15 +4,15 @@
 //! telemetry.
 //!
 //! The corpus is two four-node semantic clusters whose representations share a cluster pattern, so
-//! the model can learn the separation the semantic edges describe; landmarks on one row per cluster
-//! keep the frame from collapsing or drifting.
+//! the model can learn the separation the semantic edges describe. Landmarks on one row per
+//! cluster keep the frame from collapsing or drifting.
 
 #![expect(
     clippy::float_cmp,
     reason = "structurally-zero displacements and frozen radii are bit-exact contracts"
 )]
 
-use core::num::NonZero;
+use core::assert_matches;
 use std::sync::Mutex;
 
 use burn::{
@@ -20,174 +20,62 @@ use burn::{
     module::AutodiffModule as _,
 };
 use hashql_core::id::{Id, IdSlice, IdVec};
-use rand::SeedableRng as _;
-use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
-    FrozenRadius, LossBreakdown, RelationLens, TrainError, TrainOptions, TrainerInputs,
-    TrainingSchedule, fit, fit_from_boundary, fit_to_boundary, session,
+    FitOutcome, Fitted, FrozenRadius, TargetRefusalCause, TrainError, TrainOptions, TrainerInputs,
+    TrainingSchedule, fit, fit_from_boundary, fit_to_boundary,
+    fixture::{
+        Corpus, HALF, RELATION, ROWS, TargetDraws, corpus_with, instance, nonzero, options,
+        proximal_policy, proximal_verdict, rng, schedule, split_digest, target_corpus,
+        target_draws, target_inputs, target_options,
+    },
+    objective::{SplitPopulation, TargetOptions},
+    session,
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
-        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, d_non_negative,
-        d_positive, non_negative, open_unit_fraction, positive, unit_fraction,
+        FinitePointCloud, NonNegative, Positive, Vec2, d_non_negative, d_positive, non_negative,
+        open_unit_fraction, positive, unit_fraction,
     },
     progress::{NoProgress, Progress},
     salt::{
-        knn::table::{Knn, KnnMatrix},
         policy::ClassProbabilities,
         projector::{
             artifact,
-            budget::Budget,
-            loss::{AffinityEnergy, CoincidentEnergy, SupportOptions},
-            miner::MinerOptions,
-            model::{Architecture, NodeRole, Projector},
-            train::{
-                BatchPlan, Coefficients,
-                batch::{NodeColumns, SupportAnchor},
-                refresh,
-            },
+            gauge::{DuplicateClassId, GaugeOrdinal, GaugeRefusal},
+            loss::{Penalty, UnitLaw},
+            model::{Architecture, Projector},
+            scale::frozen::{FrozenRuler, RulerParameters},
+            train::{Coefficients, refresh, step::LossBreakdown},
             verdict::{
-                PlacementClass, ResolvedVerdict,
+                ResolvedVerdict,
                 calibrate::{
                     ProximalCalibration, TypeCalibration,
                     stability::{StabilityBound, StabilityCertificate},
                 },
             },
         },
-        relation::{
-            Policies, RelationConfidence, RelationIndexes, RelationInstance, RelationPolicy,
-            attraction::AttractionOptions, protection::ProtectionConfig,
-        },
-        semantic::{SemanticGraph, SemanticMatrix},
+        relation::{RelationPolicy, attraction::AttractionOptions},
     },
 };
 
 type TestBackend = Autodiff<NdArray>;
 
-/// Rows per semantic cluster.
-const HALF: usize = 4;
-const ROWS: usize = 2 * HALF;
-const CAPACITY: usize = ROWS * PROJECTOR_DIMENSIONS;
-
-/// The reviewed relation type of the boundary fixtures.
-const RELATION: u64 = 11;
-
-fn rng(seed: u64) -> Xoshiro256PlusPlus {
-    Xoshiro256PlusPlus::seed_from_u64(seed)
-}
-
-fn nonzero(value: usize) -> NonZero<usize> {
-    NonZero::new(value).expect("fixture values are non-zero")
+impl<N: Id> FitOutcome<N, TestBackend> {
+    /// Unwraps a completed run. The refusal fixtures assert on the refusal arm directly.
+    #[track_caller]
+    fn trained(self) -> Fitted<N, TestBackend> {
+        match self {
+            Self::Trained(fitted) => fitted,
+            Self::TargetRefused(refusal) => panic!("the run refused: {refusal:?}"),
+        }
+    }
 }
 
 fn device() -> NdArrayDevice {
     NdArrayDevice::default()
-}
-
-/// Whether a row belongs to the first semantic cluster.
-const fn first_cluster(row: usize) -> bool {
-    row < HALF
-}
-
-/// One training corpus's owned artifacts.
-struct Corpus {
-    graph: SemanticGraph<NodeRowId>,
-    indexes: RelationIndexes<NodeRowId, EdgeRowId>,
-    knn: Knn<NodeRowId>,
-    storage: BoxedVecN<CAPACITY>,
-    roles: Vec<NodeRole>,
-    landmarks: Vec<SupportAnchor<NodeRowId>>,
-    verdicts: Vec<ResolvedVerdict>,
-}
-
-impl Corpus {
-    fn inputs(&self) -> TrainerInputs<'_, NodeRowId, EdgeRowId> {
-        TrainerInputs {
-            semantic: self.graph.view(),
-            protection: self.indexes.protection.view(),
-            protection_config: ProtectionConfig::default(),
-            attraction: &self.indexes.attraction,
-            knn: self.knn.view(),
-            columns: NodeColumns {
-                representations: IdSlice::from_raw(
-                    AlignedVecN::from_slice(&self.storage.as_array()[..CAPACITY])
-                        .expect("boxed storage is aligned"),
-                ),
-                roles: IdSlice::from_raw(&self.roles),
-            },
-            landmarks: &self.landmarks,
-            anchors: &[],
-            verdicts: &self.verdicts,
-        }
-    }
-}
-
-/// Builds the two-cluster corpus with the given relation evidence.
-fn corpus_with(
-    policies: &[RelationPolicy],
-    instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
-    verdicts: Vec<ResolvedVerdict>,
-    options: AttractionOptions,
-) -> Corpus {
-    // Within-cluster cliques: {0..4} and {4..8}, unit weight.
-    let mut edges = Vec::new();
-    for base in [0, HALF] {
-        for one in 0..HALF {
-            for other in (one + 1)..HALF {
-                edges.push((base + one, base + other, 1.0));
-            }
-        }
-    }
-    let graph = semantic_graph(ROWS, &edges);
-
-    let mut instances = instances;
-    let indexes = RelationIndexes::build(
-        ROWS,
-        Policies::new(policies).expect("the fixture policies are certified"),
-        &mut instances,
-        options,
-    )
-    .expect("the fixture instances satisfy the input contract");
-
-    // Cluster-patterned representations: a shared sign block plus one
-    // row-distinct component, so cluster members map to similar inputs
-    // while every row stays distinguishable.
-    let mut storage = BoxedVecN::zero();
-    let array = storage.as_array_mut();
-    for row in 0..ROWS {
-        let base = row * PROJECTOR_DIMENSIONS;
-        let sign = if first_cluster(row) { 0.5 } else { -0.5 };
-        for component in 0..8 {
-            array[base + component] = sign;
-        }
-        array[base + 8 + row] = 0.25;
-    }
-
-    Corpus {
-        graph,
-        indexes,
-        knn: knn_table(),
-        storage,
-        roles: vec![NodeRole::KnowledgeEntity; ROWS],
-        landmarks: vec![
-            SupportAnchor {
-                row: NodeRowId::new(0),
-                target: Vec2::new(-1.0, 0.0),
-                radius: non_negative!(1.0),
-                weight: 1.0,
-            },
-            SupportAnchor {
-                row: NodeRowId::from_usize(HALF),
-                target: Vec2::new(1.0, 0.0),
-                radius: non_negative!(1.0),
-                weight: 1.0,
-            },
-        ],
-        verdicts,
-    }
 }
 
 /// A vacuous two-cluster corpus with no relation evidence at all.
@@ -207,144 +95,6 @@ fn proximal_corpus(verdicts: Vec<ResolvedVerdict>) -> Corpus {
         verdicts,
         AttractionOptions::default(),
     )
-}
-
-fn proximal_verdict() -> ResolvedVerdict {
-    ResolvedVerdict {
-        relation: OntologyRowId::new(RELATION),
-        placement: PlacementClass::Proximal,
-    }
-}
-
-/// Builds a symmetric semantic graph from undirected weighted edges.
-fn semantic_graph(rows: usize, edges: &[(usize, usize, f32)]) -> SemanticGraph<NodeRowId> {
-    let mut adjacency = vec![Vec::new(); rows];
-    for &(one, other, weight) in edges {
-        adjacency[one].push((other, weight));
-        adjacency[other].push((one, weight));
-    }
-    let mut indptr = vec![0_u64];
-    let mut columns = Vec::new();
-    let mut weights = Vec::new();
-    for row in &mut adjacency {
-        row.sort_unstable_by_key(|&(column, _)| column);
-        for &(column, weight) in row.iter() {
-            columns.push(u32::try_from(column).expect("fixture columns fit u32"));
-            weights.push(weight);
-        }
-        indptr.push(u64::try_from(columns.len()).expect("fixture entries fit u64"));
-    }
-    let matrix = SemanticMatrix::try_new((rows, rows), indptr, columns, weights)
-        .map_err(|(_, _, _, error)| error)
-        .expect("the fixture matrix is structurally valid");
-    SemanticGraph::new(matrix).expect("the fixture graph is a valid semantic graph")
-}
-
-/// A complete-graph neighbour table that places cluster mates near and everything else far.
-fn knn_table() -> Knn<NodeRowId> {
-    let mut indptr = vec![0_u64];
-    let mut columns = Vec::new();
-    let mut values = Vec::new();
-    for row in 0..ROWS {
-        for column in (0..ROWS).filter(|&column| column != row) {
-            columns.push(u32::try_from(column).expect("fixture columns fit u32"));
-            values.push(if first_cluster(row) == first_cluster(column) {
-                non_negative!(0.25)
-            } else {
-                non_negative!(1.75)
-            });
-        }
-        indptr.push(u64::try_from(columns.len()).expect("fixture entries fit u64"));
-    }
-    let matrix = KnnMatrix::try_new((ROWS, ROWS), indptr, columns, values)
-        .map_err(|(_, _, _, error)| error)
-        .expect("the fixture matrix is structurally valid");
-    Knn::new(matrix).expect("the fixture table is a valid neighbour table")
-}
-
-/// A full-Proximal, full-applicability, unit-strength policy.
-fn proximal_policy(relation: u64) -> RelationPolicy {
-    RelationPolicy {
-        relation: OntologyRowId::new(relation),
-        attraction: ClassProbabilities {
-            coincident: unit_fraction!(0.0),
-            proximal: unit_fraction!(1.0),
-        },
-        selected: ClassProbabilities {
-            coincident: unit_fraction!(0.0),
-            proximal: unit_fraction!(1.0),
-        },
-        applicability: unit_fraction!(1.0),
-        strength: NonNegative::ONE,
-        _pad: [0; 4],
-    }
-}
-
-/// An unscored instance of `relation` between `source` and `target`.
-fn instance(
-    edge: u64,
-    relation: u64,
-    source: u64,
-    target: u64,
-) -> RelationInstance<NodeRowId, EdgeRowId> {
-    RelationInstance {
-        edge: EdgeRowId::new(edge),
-        relation: OntologyRowId::new(relation),
-        source: NodeRowId::new(source),
-        target: NodeRowId::new(target),
-        confidence: RelationConfidence::default(),
-        multiplicity: 1,
-    }
-}
-
-fn schedule(steps: usize, boundary: usize, refresh_interval: usize) -> TrainingSchedule {
-    TrainingSchedule::new(
-        nonzero(steps),
-        boundary,
-        nonzero(refresh_interval),
-        unit_fraction!(0.05),
-        unit_fraction!(0.001),
-    )
-    .expect("the fixture schedule is valid")
-}
-
-fn options(schedule: TrainingSchedule) -> TrainOptions {
-    TrainOptions {
-        schedule,
-        plan: BatchPlan {
-            semantic_pairs: nonzero(8),
-            ordinary_pairs: 4,
-            relation_types: 1,
-            relation_cap: nonzero(4),
-            hard_queries: 2,
-            landmark_anchors: 2,
-            temporal_anchors: 0,
-        },
-        affinity: AffinityEnergy::new(
-            AffinityCurve::new(1.0, 1.0).expect("the fixture curve is valid"),
-            positive!(0.5),
-        )
-        .expect("the fixture exponent satisfies the objective bound"),
-        support: SupportOptions::new(positive!(1.0), positive!(0.5)),
-        budget: Budget {
-            floor: positive!(0.25),
-        },
-        coefficients: Coefficients::new(
-            Positive::ONE,
-            non_negative!(0.5),
-            non_negative!(0.5),
-            NonNegative::ONE,
-            NonNegative::ZERO,
-            NonNegative::ONE,
-        ),
-        miner: MinerOptions::new(nonzero(2), nonzero(2), positive!(1.0), positive!(1.0)),
-        lens: RelationLens::new(
-            CoincidentEnergy::new(non_negative!(0.0), positive!(1.0)),
-            positive!(0.25),
-            positive!(0.5),
-        ),
-        forward_rows: nonzero(3),
-    }
 }
 
 fn architecture() -> Architecture {
@@ -410,7 +160,8 @@ fn training_separates_the_semantic_clusters() {
         &device(),
         &NoProgress,
     )
-    .expect("the semantic fixture trains");
+    .expect("the semantic fixture trains")
+    .trained();
 
     assert_eq!(fitted.evidence.losses.len(), 25);
     assert!(fitted.evidence.boundary.is_none());
@@ -453,7 +204,8 @@ fn landmark_support_keeps_the_frame() {
         &device(),
         &NoProgress,
     )
-    .expect("the semantic fixture trains");
+    .expect("the semantic fixture trains")
+    .trained();
 
     let layout = project(&fitted.model, &corpus, non_negative!(0.0));
     for anchor in &corpus.landmarks {
@@ -498,7 +250,8 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
         &device(),
         &NoProgress,
     )
-    .expect("the semantic fixture trains");
+    .expect("the semantic fixture trains")
+    .trained();
     let after = project(&fitted.model, &corpus, non_negative!(0.0));
 
     let within_pairs = || {
@@ -547,7 +300,8 @@ fn few_steps_landmark_force_points_anchors_at_their_targets() {
         &device(),
         &NoProgress,
     )
-    .expect("the semantic fixture trains");
+    .expect("the semantic fixture trains")
+    .trained();
     let after = project(&fitted.model, &corpus, non_negative!(0.0));
 
     for anchor in &corpus.landmarks {
@@ -581,7 +335,8 @@ fn equal_seeds_train_equal_frames() {
         &device(),
         &NoProgress,
     )
-    .expect("the semantic fixture trains");
+    .expect("the semantic fixture trains")
+    .trained();
     let two = fit(
         model(),
         &corpus.inputs(),
@@ -590,7 +345,8 @@ fn equal_seeds_train_equal_frames() {
         &device(),
         &NoProgress,
     )
-    .expect("the semantic fixture trains");
+    .expect("the semantic fixture trains")
+    .trained();
 
     assert_eq!(one.evidence.losses, two.evidence.losses);
     assert_eq!(
@@ -612,7 +368,8 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
         &device(),
         &NoProgress,
     )
-    .expect("the boundary fixture trains");
+    .expect("the boundary fixture trains")
+    .trained();
 
     let boundary = fitted
         .evidence
@@ -719,7 +476,8 @@ fn forceless_corpus_trains_vacuously() {
         &device(),
         &NoProgress,
     )
-    .expect("a forceless corpus trains vacuously");
+    .expect("a forceless corpus trains vacuously")
+    .trained();
 
     let boundary = fitted
         .evidence
@@ -759,7 +517,8 @@ fn vacuous_run_trains_a_flat_ladder() {
         &device(),
         &NoProgress,
     )
-    .expect("a forceless corpus trains vacuously");
+    .expect("a forceless corpus trains vacuously")
+    .trained();
 
     let low = project(&fitted.model, &corpus, non_negative!(0.0));
     assert_eq!(
@@ -849,7 +608,8 @@ fn phase_a_ticks_measure_a_frozen_lens() {
         &device(),
         &NoProgress,
     )
-    .expect("the semantic fixture trains");
+    .expect("the semantic fixture trains")
+    .trained();
 
     assert_eq!(fitted.evidence.telemetry.len(), 2);
     for tick in &fitted.evidence.telemetry {
@@ -971,7 +731,8 @@ fn checkpointed_resume_matches_the_straight_run() {
         &device(),
         &NoProgress,
     )
-    .expect("the boundary fixture trains");
+    .expect("the boundary fixture trains")
+    .trained();
 
     let mut stream = rng(17);
     let state = fit_to_boundary(
@@ -987,9 +748,12 @@ fn checkpointed_resume_matches_the_straight_run() {
     artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
     drop((state, stream));
 
-    let (reopened, mut stream) =
-        artifact::open_resume::<TestBackend>(bytes.as_slice(), architecture(), &device())
-            .expect("the resume checkpoint opens");
+    let (reopened, mut stream) = artifact::open_resume::<NodeRowId, TestBackend>(
+        bytes.as_slice(),
+        architecture(),
+        &device(),
+    )
+    .expect("the resume checkpoint opens");
     let resumed = fit_from_boundary(
         reopened,
         &corpus.inputs(),
@@ -998,7 +762,8 @@ fn checkpointed_resume_matches_the_straight_run() {
         &device(),
         &NoProgress,
     )
-    .expect("the resumed ladder trains");
+    .expect("the resumed ladder trains")
+    .trained();
 
     assert_eq!(
         resumed.evidence.losses.as_slice(),
@@ -1039,9 +804,12 @@ fn forked_ladders_share_the_frozen_radius() {
     artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
 
     let fork = |relation: NonNegative| {
-        let (state, mut stream) =
-            artifact::open_resume::<TestBackend>(bytes.as_slice(), architecture(), &device())
-                .expect("the resume checkpoint opens");
+        let (state, mut stream) = artifact::open_resume::<NodeRowId, TestBackend>(
+            bytes.as_slice(),
+            architecture(),
+            &device(),
+        )
+        .expect("the resume checkpoint opens");
         let mut cell = opening;
         cell.coefficients = Coefficients::new(
             Positive::ONE,
@@ -1060,6 +828,7 @@ fn forked_ladders_share_the_frozen_radius() {
             &NoProgress,
         )
         .expect("the forked ladder trains")
+        .trained()
     };
 
     let one = fork(non_negative!(1.0));
@@ -1182,7 +951,8 @@ fn every_training_step_reports_the_loss_it_records() {
         &device(),
         &progress,
     )
-    .expect("the boundary fixture trains");
+    .expect("the boundary fixture trains")
+    .trained();
 
     let reported = progress.steps();
     // The observation stream is the evidence, live: same values, same
@@ -1226,7 +996,8 @@ fn phases_report_against_the_whole_schedule() {
         &device(),
         &forked,
     )
-    .expect("the resumed ladder trains");
+    .expect("the resumed ladder trains")
+    .trained();
 
     // A phase reports against the whole schedule, not against its own
     // range: the two segments concatenate into one 0..12 stream rather
@@ -1255,7 +1026,8 @@ fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
         &device(),
         &observer,
     )
-    .expect("the boundary fixture trains");
+    .expect("the boundary fixture trains")
+    .trained();
     let unwatched = fit(
         model(),
         &corpus.inputs(),
@@ -1264,7 +1036,8 @@ fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
         &device(),
         &NoProgress,
     )
-    .expect("the boundary fixture trains");
+    .expect("the boundary fixture trains")
+    .trained();
 
     // Each snapshot comes from the refresh's own frame, so exactly one exists per tick and the
     // telemetry counts the same ticks. Each snapshot reports the sample the observer requested,
@@ -1370,34 +1143,37 @@ fn spread_calibration(spread: f32, pass: bool) -> ProximalCalibration {
 }
 
 #[test]
-fn a_failing_certificate_warns_with_its_finding_id() {
+fn a_failing_certificate_warns_with_its_check_name() {
     let calibration = spread_calibration(0.25, false);
     let output =
         captured_warnings(|| session::warn_boundary_findings(&calibration, positive!(0.5)));
 
-    assert!(output.contains("RFC-0006 entry 7"), "{output}");
+    assert!(output.contains("reviewed_mass_stability_bound"), "{output}");
     assert!(
         output.contains("fails its evaluated stability bound"),
         "{output}"
     );
     // The leave-one-type-out spread rides beside the warning.
     assert!(output.contains("leave_one_out_spread"), "{output}");
-    // The tight spread crossed no successor trigger.
-    assert!(!output.contains("RFC-0006 entry 1"), "{output}");
+    // The tight spread crossed no spread warning.
+    assert!(!output.contains("leave_one_out_radius_spread"), "{output}");
 }
 
 #[test]
-fn a_spread_beyond_one_temperature_warns_with_its_finding_id() {
+fn a_spread_beyond_one_temperature_warns_with_its_check_name() {
     let calibration = spread_calibration(4.0, true);
     let output =
         captured_warnings(|| session::warn_boundary_findings(&calibration, positive!(0.5)));
 
-    assert!(output.contains("RFC-0006 entry 1"), "{output}");
+    assert!(output.contains("leave_one_out_radius_spread"), "{output}");
     assert!(
         output.contains("more than one transition width"),
         "{output}"
     );
-    assert!(!output.contains("RFC-0006 entry 7"), "{output}");
+    assert!(
+        !output.contains("reviewed_mass_stability_bound"),
+        "{output}"
+    );
 }
 
 #[test]
@@ -1407,4 +1183,645 @@ fn a_passing_certificate_with_a_tight_spread_warns_nothing() {
         captured_warnings(|| session::warn_boundary_findings(&calibration, positive!(0.5)));
 
     assert_eq!(output, "");
+}
+
+/// The field-derived constants the identity declares re-derive from the recorded boundary
+/// field, and the enforcement record covers exactly the ladder's interval. The
+/// neighbour-dependent constants ride the ruler tables, whose re-freeze carries its own
+/// certificate below.
+#[test]
+fn the_identity_constants_re_derive_from_the_recorded_boundary_field() {
+    let corpus = target_corpus();
+    let draws = target_draws();
+    let options = options(schedule(12, 6, 4));
+
+    let fitted = fit(
+        model(),
+        &target_inputs(&corpus, &draws, target_options(1.0)),
+        &options,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the target fixture trains")
+    .trained();
+
+    let target = fitted
+        .evidence
+        .target
+        .as_ref()
+        .expect("a target-configured ladder records its evidence");
+    let identity = target.identity;
+    assert_eq!(identity.boundary_step, 6);
+    assert_eq!(target.unit_law, UnitLaw::PerLinkInstance);
+    assert_eq!(target.split_digest, split_digest());
+
+    let field: &IdSlice<NodeRowId, Vec2> = &target.boundary_field;
+    assert_eq!(field.len(), ROWS);
+
+    // Every field-derived constant re-derives from the recorded field, bit for bit. The
+    // recorded field is finite by construction, so the reading needs no scan.
+    let spread = target.boundary_field.rms_spread();
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the re-derivation repeats the freeze's own narrowing"
+    )]
+    let narrowed = spread as f32;
+    assert_eq!(identity.reference_spread.get(), narrowed);
+
+    let anchors: IdVec<GaugeOrdinal, Vec2> =
+        draws.gauge_rows.iter().map(|&row| field[row]).collect();
+    // Finite with no scan: a gather from the proven-finite recorded field stays finite.
+    let gauge_spread = FinitePointCloud::new_unchecked(&anchors).rms_spread();
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the re-derivation repeats the freeze's own narrowing"
+    )]
+    let gauge_narrowed = gauge_spread as f32;
+    assert_eq!(identity.gauge_spread.get(), gauge_narrowed);
+
+    assert_eq!(
+        identity.radius.get(),
+        identity.dimensionless_radius.get() * identity.reference_spread.get()
+    );
+    assert_eq!(
+        identity.epsilon_abs.get(),
+        identity.epsilon_rel.get() * identity.reference_spread.get()
+    );
+
+    // The estimand read at every ladder step, and the evidence at every post-boundary tick.
+    assert_eq!(target.estimands.len(), 6);
+    let evaluation_steps: Vec<usize> = target
+        .evaluations
+        .iter()
+        .map(|evaluation| evaluation.step)
+        .collect();
+    assert_eq!(evaluation_steps, [6, 8]);
+
+    // The record covers the ladder interval and its closing reading: the enforcement point
+    // one past the last step index reads the returned model's field after the final update.
+    assert_eq!(target.enforcement.opened_at, 6);
+    assert_eq!(target.enforcement.last_application, Some(12));
+    assert_eq!(target.row_maxima.len(), ROWS);
+
+    // At the boundary step the zero field is the snapshot itself, so the common-mode fit
+    // reads the exact identity scale and neither displacement nor saturation reads anything.
+    let boundary = &target.evaluations[0];
+    assert_eq!(boundary.zero_similarity.scale().get(), 1.0);
+    let mut anchor_rows = 0;
+    for stratum in &boundary.displacement {
+        anchor_rows += stratum.anchors;
+        assert_eq!(stratum.displacement.q95.get(), 0.0);
+        assert_eq!(stratum.displacement.mean.get(), 0.0);
+    }
+    assert_eq!(anchor_rows, 4);
+    let mut rows = 0;
+    for stratum in &boundary.saturation {
+        rows += stratum.rows;
+        assert_eq!(stratum.saturated, 0);
+    }
+    assert_eq!(rows, ROWS as u64);
+    assert!(boundary.scale.get() > 0.0);
+    assert!(boundary.residual.is_finite());
+
+    // The composite loss carries the activation-scaled contribution from the boundary on and
+    // nothing before it.
+    assert!(
+        fitted.evidence.losses[..6]
+            .iter()
+            .all(|loss| loss.target == 0.0)
+    );
+    assert_eq!(fitted.evidence.losses[6].target, target.estimands[0]);
+}
+
+/// A live gauge fit refusal ends the run as the refused outcome: no activation candidate, no
+/// target claim, and the whole run record - boundary and target records sealed in - rides the
+/// refusal, cut at the last completed reading before the failed one.
+#[test]
+fn gauge_fit_refusal_keeps_the_recorded_evidence() {
+    let corpus = target_corpus();
+    let draws = target_draws();
+    let options = options(schedule(12, 6, 4));
+    let mut declared = target_options(1.0);
+    // At the boundary step no relation gradient has flowed, the rungs read bit-identical
+    // coordinates, and the residual is exactly zero, so a bar below any real deformation
+    // refuses the first fit after a post-boundary update.
+    declared.residual_bar = Some(positive!(1e-12));
+
+    let outcome = fit(
+        model(),
+        &target_inputs(&corpus, &draws, declared),
+        &options,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect("a refusal is an outcome, and only a diverged run errors");
+    let FitOutcome::TargetRefused(refusal) = outcome else {
+        panic!("expected the target refusal, got a trained run");
+    };
+
+    assert_eq!(refusal.step, 7);
+    assert_matches!(
+        refusal.cause,
+        TargetRefusalCause::Gauge(GaugeRefusal::ResidualAboveBar { .. })
+    );
+
+    // The run record rides the refusal whole. The boundary record entered it when the radius
+    // freeze completed at step 6, the run's standing self-measurement is cut at the last
+    // completed reading (losses through step 6, ticks at steps 0, 4, and 6 - the refusing
+    // step ran none), and the refusing step's loss never computed.
+    let record = refusal.evidence;
+    let boundary = record
+        .boundary
+        .as_ref()
+        .expect("the radius freeze completed at the boundary step");
+    assert_eq!(boundary.step, 6);
+    assert_matches!(boundary.radius, FrozenRadius::Measured { .. });
+    assert_eq!(record.losses.len(), 7);
+    assert_eq!(record.telemetry.len(), 3);
+
+    // The phase sealed its accumulated record into the run record: the identity frozen at
+    // the boundary and the boundary step's own measured readings survive, and the
+    // enforcement interval reads through the refusing step's own application - every
+    // completed optimizer update is covered with no closing application owed.
+    let evidence = record
+        .target
+        .as_ref()
+        .expect("the phase sealed its record into the refusal");
+    assert_eq!(evidence.identity.boundary_step, 6);
+    assert_eq!(evidence.split_digest, split_digest());
+    assert_eq!(evidence.boundary_field.len(), ROWS);
+    assert_eq!(evidence.tables.scales().len(), ROWS);
+    assert!(evidence.tables.neighbours().rows() > 0);
+    assert_eq!(evidence.enforcement.opened_at, 6);
+    assert_eq!(evidence.enforcement.last_application, Some(7));
+    assert_eq!(evidence.estimands.len(), 1);
+    assert_eq!(evidence.evaluations.len(), 1);
+    assert_eq!(evidence.evaluations[0].step, 6);
+}
+
+/// A refusal at a post-boundary tick step cuts between the tick's two readings.
+///
+/// The refresh telemetry precedes the target pass, so the refusing step's tick enters the
+/// record, while the per-evaluation evidence follows the refusing fit and never records. The
+/// schedule places the first fit after an optimizer update on a tick step - boundary 7,
+/// interval 4, step 8 - and that one step therefore witnesses both sides of the cut.
+#[test]
+fn tick_step_refusal_records_telemetry_and_no_evaluation() {
+    let corpus = target_corpus();
+    let draws = target_draws();
+    let options = options(schedule(12, 7, 4));
+    let mut declared = target_options(1.0);
+    // The same bar as the plain gauge fit refusal: exactly zero at the boundary step's fit,
+    // above any real deformation at the first fit after an update.
+    declared.residual_bar = Some(positive!(1e-12));
+
+    let outcome = fit(
+        model(),
+        &target_inputs(&corpus, &draws, declared),
+        &options,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect("a refusal is an outcome, and only a diverged run errors");
+    let FitOutcome::TargetRefused(refusal) = outcome else {
+        panic!("expected the target refusal, got a trained run");
+    };
+
+    assert_eq!(refusal.step, 8);
+    assert_matches!(
+        refusal.cause,
+        TargetRefusalCause::Gauge(GaugeRefusal::ResidualAboveBar { .. })
+    );
+
+    // The refusing step is a tick step (8 % 4 == 0), and its telemetry entered the record
+    // before the target pass refused. The loop records a step's loss after the pass, so the
+    // refusing step's loss never pushed.
+    let record = refusal.evidence;
+    let ticks: Vec<usize> = record.telemetry.iter().map(|tick| tick.step).collect();
+    assert_eq!(ticks, [0, 4, 7, 8]);
+    assert_eq!(record.losses.len(), 8);
+
+    // The enforcement interval reads through the refusing step's own application, while the
+    // readings past the refusing fit never happened: no estimand and no evaluation at step 8.
+    let evidence = record
+        .target
+        .as_ref()
+        .expect("the phase sealed its record into the refusal");
+    assert_eq!(evidence.enforcement.opened_at, 7);
+    assert_eq!(evidence.enforcement.last_application, Some(8));
+    assert_eq!(evidence.estimands.len(), 1);
+    assert_eq!(evidence.evaluations.len(), 1);
+    assert_eq!(evidence.evaluations[0].step, 7);
+}
+
+/// A boundary freeze refusal ends the run as the refused outcome before any target step runs.
+/// The boundary record enters the run record the moment the radius freeze completes, before
+/// the target freeze is attempted. The refusal therefore carries it beside the opening
+/// segment's accumulated readings, and no target record exists because the phase never froze.
+#[test]
+fn boundary_freeze_refusal_carries_the_boundary_evidence() {
+    let corpus = target_corpus();
+    let draws = target_draws();
+    let options = options(schedule(12, 6, 4));
+    let mut declared = target_options(1.0);
+    // A spread floor no healthy constellation reaches, so the gauge freeze refuses at the
+    // boundary - a data-dependent refusal admission cannot see.
+    declared.gauge_spread_factor = Some(positive!(1e6));
+
+    let outcome = fit(
+        model(),
+        &target_inputs(&corpus, &draws, declared),
+        &options,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect("a refusal is an outcome, and only a diverged run errors");
+    let FitOutcome::TargetRefused(refusal) = outcome else {
+        panic!("expected the target refusal, got a trained run");
+    };
+
+    assert_eq!(refusal.step, 6);
+    assert_matches!(
+        refusal.cause,
+        TargetRefusalCause::Gauge(GaugeRefusal::SpreadBelowFloor { .. })
+    );
+
+    let record = refusal.evidence;
+    let boundary = record
+        .boundary
+        .as_ref()
+        .expect("the radius freeze completed before the refusal");
+    assert_eq!(boundary.step, 6);
+    assert_matches!(boundary.radius, FrozenRadius::Measured { .. });
+    // The phase never froze, so no target record exists - absent structurally, never
+    // dropped.
+    assert!(record.target.is_none());
+    // The opening segment's record as accumulated. Losses reach through step 5 and ticks
+    // ran at steps 0 and 4 (the boundary step's own tick follows the boundary and never
+    // ran); no drift reading exists, because the first belongs to that unrun tick.
+    assert_eq!(record.losses.len(), 6);
+    assert_eq!(record.telemetry.len(), 2);
+    assert!(record.fractions.is_empty());
+}
+
+/// The frozen ruler re-freezes bit-identically from the recorded boundary field, and the
+/// recorded tables equal the re-freeze's own - the reading no field alone determines, since
+/// one `Z_K` admits many neighbour tables. The freeze is bit-deterministic from its inputs,
+/// so the recorded trio suffices to reconstruct the exact ruler every reading divided by.
+#[test]
+fn the_ruler_re_freezes_from_the_recorded_boundary_field() {
+    let corpus = target_corpus();
+    let draws = target_draws();
+    let options = options(schedule(12, 6, 4));
+    let declared = target_options(1.0);
+
+    let fitted = fit(
+        model(),
+        &target_inputs(&corpus, &draws, declared),
+        &options,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the target fixture trains")
+    .trained();
+
+    let target = fitted
+        .evidence
+        .target
+        .as_ref()
+        .expect("a target-configured ladder records its evidence");
+    let identity = target.identity;
+
+    let ruler = FrozenRuler::freeze(
+        &target.boundary_field,
+        &corpus.knn.view(),
+        RulerParameters {
+            epsilon_rel: identity.epsilon_rel,
+            scale_quantile: declared.scale_quantile,
+            floor: None,
+        },
+    )
+    .expect("the recorded boundary field re-freezes");
+
+    assert_eq!(ruler.len(), ROWS);
+    assert_eq!(ruler.reference_spread(), identity.reference_spread);
+    assert_eq!(ruler.epsilon().get(), identity.epsilon_abs.get());
+    assert_eq!(
+        ruler.scales().as_raw(),
+        target.tables.scales().as_raw(),
+        "the recorded scale table should equal the re-freeze's own"
+    );
+
+    for row in 0..ruler.len() {
+        let row = NodeRowId::from_usize(row);
+        assert_eq!(
+            target.tables.neighbours().row(row).as_raw(),
+            ruler.frozen_set(row).as_raw(),
+            "the recorded neighbour sets should equal the re-freeze's own"
+        );
+    }
+    assert_eq!(
+        target.tables.width(),
+        ruler.frozen_set(NodeRowId::from_usize(0)).len()
+    );
+}
+
+/// The activation is a value, not structure. A zero-activation run reads the identical first
+/// estimand the live run reads while contributing nothing to the composite loss, and its
+/// trained model is bit-independent of the penalty - the whole target path ran and added
+/// exactly zero force.
+///
+/// The bit-equality claims presume per-process test isolation. burn-autodiff draws node ids
+/// from a process-global counter, so an autodiff test running concurrently in the same
+/// process can reorder the gradient map's accumulation and move these bits. The repository's
+/// nextest profile isolates every test in its own process, and single-threaded `cargo test`
+/// also holds.
+#[test]
+fn zero_activation_reads_the_estimand_and_adds_no_force() {
+    let corpus = target_corpus();
+    let draws = target_draws();
+
+    let run = |activation: f32, penalty: Penalty| {
+        let options = options(schedule(12, 6, 4));
+        let mut declared = target_options(activation);
+        declared.penalty = penalty;
+        fit(
+            model(),
+            &target_inputs(&corpus, &draws, declared),
+            &options,
+            &mut rng(17),
+            &device(),
+            &NoProgress,
+        )
+        .expect("the target fixture trains")
+        .trained()
+    };
+
+    let inert = run(0.0, Penalty::QuadraticHinge);
+    let live = run(2.0, Penalty::QuadraticHinge);
+
+    // Identical streams and an identical boundary model: the first reading agrees bit for
+    // bit, and only the live run descends it.
+    let inert_target = inert.evidence.target.as_ref().expect("evidence exists");
+    let live_target = live.evidence.target.as_ref().expect("evidence exists");
+    assert_eq!(inert_target.estimands[0], live_target.estimands[0]);
+    assert!(inert_target.estimands.iter().any(|&reading| reading != 0.0));
+    assert!(inert.evidence.losses.iter().all(|loss| loss.target == 0.0));
+    assert_eq!(
+        live.evidence.losses[6].target,
+        2.0 * live_target.estimands[0]
+    );
+
+    // Absent against inert, made concrete: at zero activation the penalty's value cannot
+    // reach the model, so swapping it changes the readings and not one trained bit.
+    let swapped = run(0.0, Penalty::Identity);
+    assert_ne!(
+        inert
+            .evidence
+            .target
+            .as_ref()
+            .expect("evidence exists")
+            .estimands,
+        swapped
+            .evidence
+            .target
+            .as_ref()
+            .expect("evidence exists")
+            .estimands,
+        "the two penalties should read different estimands"
+    );
+    assert_eq!(
+        project(&inert.model, &corpus, non_negative!(0.0)),
+        project(&swapped.model, &corpus, non_negative!(0.0)),
+        "zero activation should train the identical model under either penalty"
+    );
+    assert_eq!(
+        project(&inert.model, &corpus, non_negative!(1.0)),
+        project(&swapped.model, &corpus, non_negative!(1.0)),
+    );
+}
+
+/// Every target misconfiguration refuses at admission, before the opening segment trains a step.
+#[test]
+fn every_target_misconfiguration_refuses_at_admission() {
+    let draws = target_draws();
+
+    let refusal = |inputs: &TrainerInputs<'_, NodeRowId, EdgeRowId>, options: &TrainOptions| {
+        fit(
+            model(),
+            inputs,
+            options,
+            &mut rng(17),
+            &device(),
+            &NoProgress,
+        )
+        .expect_err("the configuration should refuse")
+    };
+
+    // A forceless corpus declares no unit population.
+    let vacuous = semantic_corpus();
+    let options = options(schedule(12, 6, 4));
+    assert_eq!(
+        refusal(
+            &target_inputs(&vacuous, &draws, target_options(1.0)),
+            &options
+        ),
+        TrainError::EmptyTargetPopulation,
+    );
+
+    let corpus = target_corpus();
+    let inputs = target_inputs(&corpus, &draws, target_options(1.0));
+
+    // A plan without relation-type draws can never draw a unit.
+    let mut no_draws = options;
+    no_draws.plan.relation_types = 0;
+    assert_eq!(
+        refusal(&inputs, &no_draws),
+        TrainError::TargetWithoutUnitDraws,
+    );
+
+    // A schedule whose boundary equals the run length never freezes a reference.
+    let mut unopened = options;
+    unopened.schedule = schedule(12, 12, 4);
+    assert_matches!(refusal(&inputs, &unopened), TrainError::Ruler(_));
+
+    // A canonical rung outside the curriculum names itself.
+    let off_schedule = TargetOptions {
+        canonical_rung: nonzero(3),
+        ..target_options(1.0)
+    };
+    assert_eq!(
+        refusal(&target_inputs(&corpus, &draws, off_schedule), &options),
+        TrainError::CanonicalRungOutOfSchedule { rung: 3 },
+    );
+
+    // A hinge-dead penalty with a zero margin would leave distance equality forceless.
+    let forceless = TargetOptions {
+        margin: non_negative!(0.0),
+        ..target_options(1.0)
+    };
+    assert_eq!(
+        refusal(&target_inputs(&corpus, &draws, forceless), &options),
+        TrainError::PenaltyWithoutForceAtEquality,
+    );
+
+    // A gauge too small to carry every evaluation's affine reading refuses up front.
+    let undersized = TargetDraws {
+        gauge_rows: [3, 7].map(NodeRowId::new).to_vec(),
+        gauge_classes: [0, 1].map(DuplicateClassId::new).to_vec(),
+        ..target_draws()
+    };
+    assert_matches!(
+        refusal(
+            &target_inputs(&corpus, &undersized, target_options(1.0)),
+            &options
+        ),
+        TrainError::Gauge(_)
+    );
+}
+
+/// Every split-population overlap refuses at admission, naming the pair and the shared row.
+#[test]
+fn every_split_population_overlap_refuses_at_admission() {
+    let corpus = target_corpus();
+    let options = options(schedule(12, 6, 4));
+
+    let refusal = |inputs: &TrainerInputs<'_, NodeRowId, EdgeRowId>| {
+        fit(
+            model(),
+            inputs,
+            &options,
+            &mut rng(17),
+            &device(),
+            &NoProgress,
+        )
+        .expect_err("the configuration should refuse")
+    };
+
+    // A gauge anchor on a force-bearing endpoint would let the optimizer own its own ruler.
+    let bearing = TargetDraws {
+        gauge_rows: [0, 3, 6, 7].map(NodeRowId::new).to_vec(),
+        ..target_draws()
+    };
+    assert_eq!(
+        refusal(&target_inputs(&corpus, &bearing, target_options(1.0))),
+        TrainError::SplitPopulationsOverlap {
+            first: SplitPopulation::MovementParticipants,
+            second: SplitPopulation::GaugeAnchors,
+            row: NodeRowId::new(0)
+        },
+    );
+
+    // A held-out endpoint inside the gauge would fit the frame on the measured population.
+    let measured = TargetDraws {
+        held_out: vec![NodeRowId::new(3)],
+        ..target_draws()
+    };
+    assert_eq!(
+        refusal(&target_inputs(&corpus, &measured, target_options(1.0))),
+        TrainError::SplitPopulationsOverlap {
+            first: SplitPopulation::GaugeAnchors,
+            second: SplitPopulation::HeldOutEndpoints,
+            row: NodeRowId::new(3)
+        },
+    );
+
+    // A matched control bearing force would certify collateral with a moving reference.
+    let moving = TargetDraws {
+        matched_controls: vec![NodeRowId::new(4)],
+        ..target_draws()
+    };
+    assert_eq!(
+        refusal(&target_inputs(&corpus, &moving, target_options(1.0))),
+        TrainError::SplitPopulationsOverlap {
+            first: SplitPopulation::MovementParticipants,
+            second: SplitPopulation::MatchedControls,
+            row: NodeRowId::new(4)
+        },
+    );
+}
+
+/// A resumed target ladder freezes the bit-equal references and replays the straight run's
+/// readings exactly, because the whole target machinery derives from the boundary model alone.
+///
+/// The bit-equality claims presume per-process test isolation. burn-autodiff draws node ids
+/// from a process-global counter, so an autodiff test running concurrently in the same
+/// process can reorder the gradient map's accumulation and move these bits. The repository's
+/// nextest profile isolates every test in its own process, and single-threaded `cargo test`
+/// also holds.
+#[test]
+fn resumed_target_ladder_freezes_the_bit_equal_references() {
+    let corpus = target_corpus();
+    let draws = target_draws();
+    let inputs = target_inputs(&corpus, &draws, target_options(1.0));
+    let options = options(schedule(12, 6, 4));
+
+    let straight = fit(
+        model(),
+        &inputs,
+        &options,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the target fixture trains")
+    .trained();
+
+    let mut stream = rng(17);
+    let state = fit_to_boundary(
+        model(),
+        &inputs,
+        &options,
+        &mut stream,
+        &device(),
+        &NoProgress,
+    )
+    .expect("the opening segment trains");
+    assert!(
+        state.training.evidence.target.is_none(),
+        "the opening segment never freezes a target phase"
+    );
+    let mut bytes = Vec::new();
+    artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
+    drop((state, stream));
+
+    let (reopened, mut stream) = artifact::open_resume::<NodeRowId, TestBackend>(
+        bytes.as_slice(),
+        architecture(),
+        &device(),
+    )
+    .expect("the resume checkpoint opens");
+    let resumed = fit_from_boundary(
+        reopened,
+        &inputs,
+        &options,
+        &mut stream,
+        &device(),
+        &NoProgress,
+    )
+    .expect("the resumed ladder trains")
+    .trained();
+
+    let straight_target = straight.evidence.target.as_ref().expect("evidence exists");
+    let resumed_target = resumed.evidence.target.as_ref().expect("evidence exists");
+    assert_eq!(straight_target.identity, resumed_target.identity);
+    assert_eq!(straight_target.unit_law, resumed_target.unit_law);
+    assert_eq!(straight_target.split_digest, resumed_target.split_digest);
+    assert_eq!(
+        straight_target.boundary_field,
+        resumed_target.boundary_field
+    );
+    assert_eq!(straight_target.tables, resumed_target.tables);
+    assert_eq!(straight_target.estimands, resumed_target.estimands);
+    assert_eq!(straight_target.evaluations, resumed_target.evaluations);
+    assert_eq!(
+        project(&resumed.model, &corpus, non_negative!(1.0)),
+        project(&straight.model, &corpus, non_negative!(1.0)),
+        "the straight and resumed target runs should train bit-equal frames"
+    );
 }

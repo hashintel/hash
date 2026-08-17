@@ -2,11 +2,87 @@
 
 use core::{error::Error, fmt};
 
-use super::TrainingSchedule;
+use super::{TrainingEvidence, TrainingSchedule, objective::SplitPopulation};
 use crate::{
     math::NonNegative,
-    salt::projector::train::{StepError, refresh::RefreshError},
+    salt::projector::{
+        band::BandRefusal,
+        evidence::EvidenceRefusal,
+        gauge::GaugeRefusal,
+        scale::frozen::InvalidRuler,
+        train::{StepError, refresh::RefreshError},
+    },
 };
+
+/// What refused inside the target objective.
+///
+/// Every variant is a data-dependent reading that could not be made. Nothing branches on the
+/// variants: each carries its failed check's own fields, and the enclosing
+/// [`TargetRefusal`] states the one consequence they share.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum TargetRefusalCause<N> {
+    /// The ruler could not freeze over the boundary frame, so the estimand's denominator does
+    /// not exist.
+    Ruler(InvalidRuler<N>),
+    /// The band constraint refused to freeze: the declared radius does not exist over the
+    /// stored coordinates.
+    Band(BandRefusal),
+    /// The gauge refused, at the boundary freeze or inside a step's live fit.
+    Gauge(GaugeRefusal),
+    /// A per-evaluation evidence reading refused, and an evaluation that cannot state its
+    /// declared evidence publishes nothing.
+    Evidence(EvidenceRefusal),
+}
+
+impl<N> fmt::Display for TargetRefusalCause<N>
+where
+    N: fmt::Display,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ruler(error) => error.fmt(fmt),
+            Self::Band(error) => error.fmt(fmt),
+            Self::Gauge(error) => error.fmt(fmt),
+            Self::Evidence(error) => error.fmt(fmt),
+        }
+    }
+}
+
+/// The failed reading beside everything a refused run measured before it.
+///
+/// The consequence is decision 9's ruled arm: the run publishes no activation candidate, makes
+/// no target claim, and the prior active generation stays the serving one. The refusal is an
+/// outcome rather than an error, so the run record cannot die with an unwinding call. What the
+/// record holds at each refusal stage is fixed. The boundary record is present exactly when
+/// the radius freeze completed, and the target record exactly when the phase froze. The
+/// preserved interval ends at the last completed reading before the failed one.
+#[derive(Debug)]
+pub(crate) struct TargetRefusal<N> {
+    /// The training step the refusal fired at.
+    pub step: usize,
+    /// The failed reading.
+    pub cause: TargetRefusalCause<N>,
+    /// Everything the run measured before the refusal.
+    ///
+    /// The run record as accumulated at the refusal, with the boundary record and the target
+    /// record sealed into it. Rows in the record name the trainer's own row domain: the record
+    /// is a reading of the run that refused, so no later boundary re-labels it.
+    pub evidence: Box<TrainingEvidence<N>>,
+}
+
+impl<N> fmt::Display for TargetRefusal<N>
+where
+    N: fmt::Display,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self { step, cause, .. } = self;
+        write!(
+            fmt,
+            "the target objective refused at step {step} ({cause}); the run publishes no \
+             activation candidate and the prior active generation stays",
+        )
+    }
+}
 
 /// A training run failed.
 #[derive(Debug, Clone, PartialEq)]
@@ -42,6 +118,41 @@ pub(crate) enum TrainError<N> {
         opening: TrainingSchedule,
         resumed: TrainingSchedule,
     },
+    /// The target configuration's ruler refused at admission: the schedule leaves the ruler no
+    /// reference to freeze.
+    Ruler(InvalidRuler<N>),
+    /// The target configuration's gauge refused at admission: the declared draw cannot support
+    /// the run's evidence obligation.
+    Gauge(GaugeRefusal),
+    /// The declared canonical rung lies outside the training curriculum's rung set.
+    CanonicalRungOutOfSchedule { rung: usize },
+    /// The target estimand's declared unit population carries no mass.
+    ///
+    /// A forceless attraction index and an index whose every instance weighs zero resolve the
+    /// same way: the run belongs to the vacuous-record taxonomy, decided at split time, before
+    /// any fit exists to evaluate.
+    EmptyTargetPopulation,
+    /// The target objective needs relation-type draws, and the plan draws none.
+    TargetWithoutUnitDraws,
+    /// The declared penalty's slope dies at a zero violation while the margin is zero.
+    ///
+    /// Distance equality would then carry no corrective force, which the ruled subgradient
+    /// constraint forbids: such a penalty pairs only with a positive margin.
+    PenaltyWithoutForceAtEquality,
+    /// A row belongs to more than one declared split population.
+    ///
+    /// The movement participants, gauge anchors, held-out endpoints, and matched controls are
+    /// pairwise-disjoint under one split rule. A shared row hands the optimizer a channel into
+    /// a reference population, or lets a reference absorb the movement it exists to certify.
+    /// A row listed twice inside one population names that population on both sides.
+    SplitPopulationsOverlap {
+        /// The population that claimed the row first.
+        first: SplitPopulation,
+        /// The population whose membership collided.
+        second: SplitPopulation,
+        /// The shared node row.
+        row: N,
+    },
 }
 
 impl<N> TrainError<N> {
@@ -60,6 +171,23 @@ impl<N> TrainError<N> {
             Self::ScheduleChanged { opening, resumed } => {
                 TrainError::ScheduleChanged { opening, resumed }
             }
+            Self::Ruler(error) => TrainError::Ruler(error.map_rows(row)),
+            Self::Gauge(error) => TrainError::Gauge(error),
+            Self::CanonicalRungOutOfSchedule { rung } => {
+                TrainError::CanonicalRungOutOfSchedule { rung }
+            }
+            Self::EmptyTargetPopulation => TrainError::EmptyTargetPopulation,
+            Self::TargetWithoutUnitDraws => TrainError::TargetWithoutUnitDraws,
+            Self::PenaltyWithoutForceAtEquality => TrainError::PenaltyWithoutForceAtEquality,
+            Self::SplitPopulationsOverlap {
+                first,
+                second,
+                row: shared,
+            } => TrainError::SplitPopulationsOverlap {
+                first,
+                second,
+                row: row(shared),
+            },
         }
     }
 }
@@ -97,6 +225,30 @@ where
                 "the resumed schedule differs from the one the opening segment ran under; resume \
                  with the schedule the checkpoint was trained under",
             ),
+            Self::Ruler(error) => error.fmt(fmt),
+            Self::Gauge(error) => error.fmt(fmt),
+            Self::CanonicalRungOutOfSchedule { rung } => write!(
+                fmt,
+                "the declared canonical rung index {rung} lies outside the training curriculum",
+            ),
+            Self::EmptyTargetPopulation => fmt.write_str(
+                "the target estimand's declared unit population carries no mass; the run belongs \
+                 to the vacuous-record taxonomy",
+            ),
+            Self::TargetWithoutUnitDraws => fmt.write_str(
+                "the target objective needs relation-type draws and the plan draws none; give the \
+                 plan a positive relation-type count",
+            ),
+            Self::PenaltyWithoutForceAtEquality => fmt.write_str(
+                "the declared penalty's slope dies at a zero violation and the margin is zero, so \
+                 distance equality would carry no corrective force; declare a positive margin or \
+                 a penalty with force at equality",
+            ),
+            Self::SplitPopulationsOverlap { first, second, row } => write!(
+                fmt,
+                "{first} and {second} share node row {row}; the declared split populations must \
+                 be pairwise-disjoint under the split rule",
+            ),
         }
     }
 }
@@ -109,12 +261,19 @@ where
         match self {
             Self::Refresh(error) => Some(error),
             Self::Step(error) => Some(error),
+            Self::Ruler(error) => Some(error),
+            Self::Gauge(error) => Some(error),
             Self::NoSemanticEvidence
             | Self::UnbaselinedRadius
             | Self::MissingProximalReviews
             | Self::CoincidentWithoutProximal
             | Self::DegenerateRadius { .. }
-            | Self::ScheduleChanged { .. } => None,
+            | Self::ScheduleChanged { .. }
+            | Self::CanonicalRungOutOfSchedule { .. }
+            | Self::EmptyTargetPopulation
+            | Self::TargetWithoutUnitDraws
+            | Self::PenaltyWithoutForceAtEquality
+            | Self::SplitPopulationsOverlap { .. } => None,
         }
     }
 }

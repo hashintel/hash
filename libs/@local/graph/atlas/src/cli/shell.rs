@@ -6,7 +6,7 @@ use super::{FitArgs, PostgresArgs, ReportCommand, RootArgs};
 
 /// The standalone atlas binary's command line.
 ///
-/// The operator commands over the generation root and the live store; serving stays exclusive to
+/// The operator commands over the generation root and the live store. Serving stays exclusive to
 /// the `hash-graph` binary.
 #[derive(Debug, Parser)]
 #[command(name = "hash-graph-atlas")]
@@ -162,15 +162,16 @@ async fn fit_on_dashboard(
     Ok(verdict)
 }
 
-/// Runs the standalone atlas binary: parses the command line, installs the log renderer, and
-/// dispatches the command.
+/// Runs the standalone atlas binary.
 ///
-/// The returned exit code is the command's verdict: success, or failure with the error chain
-/// rendered to stderr.
+/// Parses the command line and installs the log renderer before dispatching the command. The
+/// returned exit code is the command's verdict: success, or failure with the error chain rendered
+/// to stderr.
 ///
 /// # Panics
 ///
-/// This panics when the tokio runtime cannot start or a global log subscriber is already installed.
+/// This panics when the tokio runtime cannot start or a global log subscriber is already
+/// installed.
 #[cfg(feature = "cli")]
 #[must_use]
 #[tokio::main]
