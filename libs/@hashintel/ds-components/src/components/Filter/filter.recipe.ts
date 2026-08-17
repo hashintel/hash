@@ -103,7 +103,8 @@ export const filterRecipe = sva({
       // Browsers without field-sizing fall back to the width implied by the
       // `size` attribute set on text inputs.
       fieldSizing: "content",
-      minWidth: "[calc(4ch + 2 * var(--filter-padding-x))]",
+      minWidth: "[calc(2ch + 2 * var(--filter-padding-x))]",
+      textAlign: "center",
       maxWidth: "[calc(32ch + 2 * var(--filter-padding-x))]",
       "&::placeholder": {
         color: "[currentColor]",
