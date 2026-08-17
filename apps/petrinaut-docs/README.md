@@ -77,12 +77,9 @@ rather than settled, so treat `site` in [`astro.config.mjs`](astro.config.mjs) a
 provisional: it sets the canonical URL and every sitemap entry. SRE-955 assigns
 the domain and decides how access to the deployment is restricted.
 
-The install script fetches Node, Turborepo and `d2`, and nothing else. The build
-graph is `astro build` <- `sync:bundle` <- `doc:architecture`, Node throughout,
-and `.yarnrc.yml` sets `enableScripts: false`, so nothing compiles during
-install. `d2` renders the diagrams, and the generator treats it as optional and
-omits every diagram when it is absent, so a build that succeeds is not on its own
-evidence that the toolchain is complete.
+The tools the build needs are listed in
+[`vercel-install.sh`](vercel-install.sh), with a comment on why that list is
+shorter than the other Vercel apps' in this repo.
 
 `cleanUrls` and `trailingSlash` in `vercel.json` follow `build.format: "file"`
 and `trailingSlash: "never"` above: Vercel serves `/architecture` from
