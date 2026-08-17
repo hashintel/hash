@@ -20,8 +20,7 @@ type KitchenSinkValues = {
   power: number;
   true: null;
   false: null;
-  between: [number, number];
-  outside: [number, number];
+  between: [number, number, number];
   near: [number, number];
 };
 
@@ -91,17 +90,10 @@ const KitchenSinkOperators: Array<
           { type: "int", min: 0, max: 100 },
           "-",
           { type: "int", min: 0, max: 100 },
-        ],
-        tooltip: "Inclusive bounds",
-      },
-      {
-        key: "outside",
-        label: "outside",
-        input: [
-          { type: "int", min: 0, max: 100 },
           { iconName: "arrowRight" },
           { type: "int", min: 0, max: 100 },
         ],
+        tooltip: "Inclusive bounds",
       },
       {
         key: "near",
@@ -222,12 +214,8 @@ export const Default: Story = () => (
       value={{ key: "between", value: null }}
     />
     <KitchenSinkState
-      label="range operator, both values"
-      value={{ key: "between", value: [10, 50] }}
-    />
-    <KitchenSinkState
-      label="range operator, icon separator"
-      value={{ key: "outside", value: [10, 90] }}
+      label="range operator, all values"
+      value={{ key: "between", value: [10, 50, 90] }}
     />
     <KitchenSinkState
       label="two inputs, no separator"
@@ -260,7 +248,7 @@ export const Sizes: Story = () => (
           property="value"
           propertyLabel="Value"
           operators={KitchenSinkOperators}
-          value={{ key: "between", value: [10, 50] }}
+          value={{ key: "between", value: [10, 50, 90] }}
           onChange={noop}
           size={size}
           removeable={{ removeable: true, onRemove: noop }}

@@ -159,6 +159,14 @@ const caretSizeMap: Record<FormInputSize, FormInputSize> = {
   lg: "sm",
 };
 
+const dropdownSizeMap: Record<FormInputSize, FormInputSize> = {
+  xxs: "xs",
+  xs: "sm",
+  sm: "sm",
+  md: "sm",
+  lg: "md",
+};
+
 // Stable reference so the focus/blur listener pair always removes the same
 // handler. Blocks wheel-stepping a focused number input (mirrors NumberInput).
 const preventWheel = (event: WheelEvent) => {
@@ -225,7 +233,7 @@ export const Filter = <
     errors,
     disabled,
     testId,
-    size = "md",
+    size = "sm",
     removeable,
   } = props;
 
@@ -584,7 +592,7 @@ export const Filter = <
             as="Select"
             items={menuItems}
             selected={draftKey === null ? [] : [draftKey]}
-            size="sm"
+            size={dropdownSizeMap[size]}
             emptyState="No operators available"
           />
         </ArkSelect.Positioner>

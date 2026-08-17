@@ -1,5 +1,7 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
+import { formSizes } from "../../util/form-size.recipe";
+
 /**
  * Chip-like segmented shell: [property | operator ▾ | input…]. Each segment
  * draws its own real borders: top/bottom (plus the first segment's left and
@@ -44,6 +46,10 @@ export const filterRecipe = sva({
       "--filter-pressed-border": "var(--colors-neutral-s70)",
       "--filter-input-hover-bg": "var(--colors-neutral-s10)",
       "--filter-ring": "var(--colors-neutral-a80)",
+      // Per-slot horizontal padding, defaulting to the shared segment
+      // padding; the smallest sizes bump these individually below.
+      "--filter-property-padding-x": "var(--filter-padding-x)",
+      "--filter-input-padding-x": "var(--filter-padding-x)",
       _hover: {
         "--filter-outer-border": "var(--colors-neutral-s60)",
         "--filter-divider": "var(--colors-neutral-s50)",
@@ -64,11 +70,13 @@ export const filterRecipe = sva({
     property: {
       display: "inline-flex",
       alignItems: "center",
-      paddingInline: "var(--filter-padding-x)",
-      paddingBlock: "var(--filter-padding-y)",
+      fontSize: "[var(--filter-font-size)]",
+      paddingInline: "var(--filter-property-padding-x)",
+      paddingBlock: "var(--form-padding-y)",
       color: "neutral.s115",
-      borderBlock: "1px solid var(--filter-outer-border)",
-      borderInlineStart: "1px solid var(--filter-outer-border)",
+      borderBlock: "var(--form-border-width) solid var(--filter-outer-border)",
+      borderInlineStart:
+        "var(--form-border-width) solid var(--filter-outer-border)",
       borderStartStartRadius: "[var(--filter-radius)]",
       borderEndStartRadius: "[var(--filter-radius)]",
       transition: "[border-color 0.15s ease]",
@@ -79,16 +87,18 @@ export const filterRecipe = sva({
       background: "[transparent]",
       font: "inherit",
       color: "neutral.s110",
+      fontSize: "[var(--filter-font-size)]",
+      fontWeight: "normal",
       display: "inline-flex",
       alignItems: "center",
       gap: "1",
       position: "relative",
       paddingInline: "var(--filter-padding-x)",
-      paddingBlock: "var(--filter-padding-y)",
+      paddingBlock: "var(--form-padding-y)",
       cursor: "pointer",
       outline: "none",
-      borderBlock: "1px solid var(--filter-outer-border)",
-      borderInlineStart: "1px solid var(--filter-divider)",
+      borderBlock: "var(--form-border-width) solid var(--filter-outer-border)",
+      borderInlineStart: "var(--form-border-width) solid var(--filter-divider)",
       transition: "[background 0.15s ease, border-color 0.15s ease]",
       _hover: {
         background: "neutral.s25",
@@ -146,7 +156,8 @@ export const filterRecipe = sva({
         color: "neutral.s90",
       },
       "&:last-child": {
-        borderInlineEnd: "1px solid var(--filter-outer-border)",
+        borderInlineEnd:
+          "var(--form-border-width) solid var(--filter-outer-border)",
         borderStartEndRadius: "[var(--filter-radius)]",
         borderEndEndRadius: "[var(--filter-radius)]",
       },
@@ -156,8 +167,8 @@ export const filterRecipe = sva({
       // The input carries the segment's padding itself and stretches to its
       // full height, so e.g. the invalid-character flash paints edge to edge.
       alignItems: "stretch",
-      borderBlock: "1px solid var(--filter-outer-border)",
-      borderInlineStart: "1px solid var(--filter-divider)",
+      borderBlock: "var(--form-border-width) solid var(--filter-outer-border)",
+      borderInlineStart: "var(--form-border-width) solid var(--filter-divider)",
       transition: "[border-color 0.15s ease, background 0.15s ease]",
       // Hovering an (enabled) input section darkens all four of its edges to
       // BaseInput's hover border color — its own left/top/bottom here, and
@@ -173,7 +184,8 @@ export const filterRecipe = sva({
         "--filter-remove-divider": "var(--filter-hover-border)",
       },
       "&:last-child": {
-        borderInlineEnd: "1px solid var(--filter-outer-border)",
+        borderInlineEnd:
+          "var(--form-border-width) solid var(--filter-outer-border)",
         borderStartEndRadius: "[var(--filter-radius)]",
         borderEndEndRadius: "[var(--filter-radius)]",
       },
@@ -183,18 +195,19 @@ export const filterRecipe = sva({
       border: "none",
       background: "[transparent]",
       outline: "none",
-      paddingInline: "var(--filter-padding-x)",
-      paddingBlock: "var(--filter-padding-y)",
+      paddingInline: "var(--filter-input-padding-x)",
+      paddingBlock: "var(--form-padding-y)",
       font: "inherit",
+      fontSize: "[var(--filter-font-size)]",
       color: "neutral.s115",
       // Grow/shrink with the typed value (or placeholder when empty),
       // clamped below/above (the clamps account for the border-box padding).
       // Browsers without field-sizing fall back to the width implied by the
       // `size` attribute set on text inputs.
       fieldSizing: "content",
-      minWidth: "[calc(2 * var(--filter-padding-x))]",
+      minWidth: "[calc(2 * var(--filter-input-padding-x))]",
       textAlign: "center",
-      maxWidth: "[calc(32ch + 2 * var(--filter-padding-x))]",
+      maxWidth: "[calc(32ch + 2 * var(--filter-input-padding-x))]",
       _focus: {
         textAlign: "left",
       },
@@ -214,11 +227,13 @@ export const filterRecipe = sva({
     separator: {
       display: "inline-flex",
       alignItems: "center",
+      fontSize: "[var(--filter-font-size)]",
+      fontWeight: "normal",
       paddingInline: "var(--filter-padding-x)",
-      paddingBlock: "var(--filter-padding-y)",
+      paddingBlock: "var(--form-padding-y)",
       color: "neutral.s100",
-      borderBlock: "1px solid var(--filter-outer-border)",
-      borderInlineStart: "1px solid var(--filter-divider)",
+      borderBlock: "var(--form-border-width) solid var(--filter-outer-border)",
+      borderInlineStart: "var(--form-border-width) solid var(--filter-divider)",
       transition: "[border-color 0.15s ease]",
     },
     remove: {
@@ -231,11 +246,12 @@ export const filterRecipe = sva({
       alignItems: "center",
       position: "relative",
       paddingInline: "var(--filter-padding-x)",
-      paddingBlock: "var(--filter-padding-y)",
+      paddingBlock: "var(--form-padding-y)",
       cursor: "pointer",
       outline: "none",
-      borderBlock: "1px solid var(--filter-outer-border)",
-      borderInlineStart: "1px solid var(--filter-remove-divider)",
+      borderBlock: "var(--form-border-width) solid var(--filter-outer-border)",
+      borderInlineStart:
+        "var(--form-border-width) solid var(--filter-remove-divider)",
       transition: "[background 0.15s ease, border-color 0.15s ease]",
       _hover: {
         background: "neutral.s25",
@@ -260,56 +276,66 @@ export const filterRecipe = sva({
         pointerEvents: "none",
       },
       "&:last-child": {
-        borderInlineEnd: "1px solid var(--filter-outer-border)",
+        borderInlineEnd:
+          "var(--form-border-width) solid var(--filter-outer-border)",
         borderStartEndRadius: "[var(--filter-radius)]",
         borderEndEndRadius: "[var(--filter-radius)]",
       },
     },
   },
   variants: {
+    // Sizing (text style, vertical padding, border width) comes from the
+    // shared `formSizes` config so each size renders exactly as tall as a
+    // BaseInput of the same size; only the horizontal density and corner
+    // radius are chip-specific.
+    // `--filter-font-size` sets the segments' text size WITHOUT affecting
+    // height: the root's textStyle line-height computes to px there and is
+    // inherited as that fixed value, so smaller segment text keeps the same
+    // line box (and therefore the BaseInput-matched heights).
     size: {
       xxs: {
         root: {
-          fontSize: "xxs",
-          lineHeight: "[1.2]",
-          "--filter-padding-x": "var(--spacing-1)",
-          "--filter-padding-y": "[1px]",
+          ...formSizes.variants.sizes.xxs,
+          "--filter-font-size": "var(--font-sizes-xxs)",
+          "--filter-padding-x": "[5px]",
+          "--filter-property-padding-x": "[5px]",
           "--filter-radius": "var(--radii-sm)",
         },
       },
       xs: {
         root: {
-          fontSize: "xxs",
-          lineHeight: "[1.4]",
-          "--filter-padding-x": "var(--spacing-1)",
-          "--filter-padding-y": "[1.5px]",
+          ...formSizes.variants.sizes.xs,
+          "--filter-font-size": "[11px]",
+          "--filter-padding-x": "[5px]",
+          "--filter-property-padding-x": "var(--spacing-1\\.5)",
+          "--filter-input-padding-x": "[7px]",
           "--filter-radius": "[5px]",
         },
       },
       sm: {
         root: {
-          fontSize: "xxs",
-          lineHeight: "[1.5]",
-          "--filter-padding-x": "var(--spacing-1)",
-          "--filter-padding-y": "[2px]",
+          ...formSizes.variants.sizes.sm,
+          "--filter-font-size": "[12px]",
+          "--filter-padding-x": "[7px]",
+          "--filter-property-padding-x": "[7px]",
           "--filter-radius": "[5px]",
         },
       },
       md: {
         root: {
-          fontSize: "xs",
-          lineHeight: "[1.5]",
-          "--filter-padding-x": "var(--spacing-1\\.5)",
-          "--filter-padding-y": "[3px]",
+          ...formSizes.variants.sizes.md,
+          "--filter-font-size": "[14px]",
+          "--filter-padding-x": "[11px]",
+          "--filter-property-padding-x": "[9px]",
           "--filter-radius": "var(--radii-md)",
         },
       },
       lg: {
         root: {
-          fontSize: "sm",
-          lineHeight: "[1.5]",
-          "--filter-padding-x": "var(--spacing-2)",
-          "--filter-padding-y": "[4px]",
+          ...formSizes.variants.sizes.lg,
+          "--filter-font-size": "var(--font-sizes-base)",
+          "--filter-padding-x": "[11px]",
+          "--filter-property-padding-x": "[11px]",
           "--filter-radius": "var(--radii-md)",
         },
       },
