@@ -22,6 +22,7 @@ type KitchenSinkValues = {
   false: null;
   between: [number, number];
   outside: [number, number];
+  near: [number, number];
 };
 
 const KitchenSinkOperators: Array<
@@ -102,6 +103,15 @@ const KitchenSinkOperators: Array<
           { type: "int", min: 0, max: 100 },
         ],
       },
+      {
+        key: "near",
+        label: "is near",
+        input: [
+          { type: "float", min: -90, max: 90, placeholder: "Lat" },
+          { type: "float", min: -180, max: 180, placeholder: "Lng" },
+        ],
+        tooltip: "Latitude, longitude",
+      },
     ],
   },
 ];
@@ -143,6 +153,13 @@ const Demo = <ValueMap extends Record<string, unknown>>({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <Filter<ValueMap>
+        removeable={{
+          removeable: true,
+          onRemove: () => {
+            setValue(null);
+            setChanges((previous) => [...previous.slice(-4), "onRemove()"]);
+          },
+        }}
         {...filterProps}
         value={value}
         onChange={(...change: FilterChange<ValueMap>) => {
@@ -178,6 +195,7 @@ const KitchenSinkState = ({
       propertyLabel="Value"
       operators={KitchenSinkOperators}
       onChange={noop}
+      removeable={{ removeable: true, onRemove: noop }}
       {...filterProps}
     />
   </>
@@ -208,6 +226,15 @@ export const Default: Story = () => (
       value={{ key: "between", value: [10, 50] }}
     />
     <KitchenSinkState
+      label="two inputs, no separator"
+      value={{ key: "near", value: [51.5074, -0.1278] }}
+    />
+    <KitchenSinkState
+      label="not removeable"
+      value={{ key: "equals", value: "fixed filter" }}
+      removeable={{ removeable: false, onRemove: noop }}
+    />
+    <KitchenSinkState
       label="disabled"
       value={{ key: "gt", value: 42 }}
       disabled
@@ -232,6 +259,7 @@ export const Sizes: Story = () => (
           value={{ key: "between", value: [10, 50] }}
           onChange={noop}
           size={size}
+          removeable={{ removeable: true, onRemove: noop }}
         />
       </div>
     ))}

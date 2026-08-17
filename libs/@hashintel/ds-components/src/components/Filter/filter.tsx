@@ -200,6 +200,10 @@ export const Filter = <
   testId?: string;
   /** The size (height) of the element */
   size?: FormInputSize;
+  removeable?: {
+    removeable: boolean;
+    onRemove: () => void;
+  };
 }) => {
   const {
     className,
@@ -212,6 +216,7 @@ export const Filter = <
     disabled,
     testId,
     size = "md",
+    removeable,
   } = props;
 
   const looseOperators = operators as unknown as Array<
@@ -443,10 +448,6 @@ export const Filter = <
           );
         }
         const { config, inputIndex } = segment;
-        // A separator visually splits its neighbours, so only draw the
-        // hairline divider when this input directly follows the trigger or
-        // another input.
-        const divided = inputSegments[position - 1]?.kind !== "separator";
         const valueLabel = inputCount > 1 ? `value ${inputIndex + 1}` : "value";
         const ariaLabel = `${propertyLabel} ${selectedOperator?.label ?? ""} ${valueLabel}`;
         const assignInputRef = (element: HTMLInputElement | null) => {
@@ -456,11 +457,7 @@ export const Filter = <
         const integer = !isText && isIntegerConfig(config);
 
         return (
-          <span
-            className={classes.inputSlot}
-            data-divided={divided ? "" : undefined}
-            key={segmentKey}
-          >
+          <span className={classes.inputSlot} key={segmentKey}>
             <input
               ref={assignInputRef}
               className={classes.input}
@@ -525,6 +522,17 @@ export const Filter = <
           </span>
         );
       })}
+      {removeable?.removeable && (
+        <button
+          type="button"
+          className={classes.remove}
+          onClick={removeable.onRemove}
+          disabled={disabled}
+          aria-label={`Remove ${propertyLabel} filter`}
+        >
+          <Icon name="close" size={caretSizeMap[size]} />
+        </button>
+      )}
       <Portal container={portalContainerRef}>
         <ArkSelect.Positioner>
           <SelectableList

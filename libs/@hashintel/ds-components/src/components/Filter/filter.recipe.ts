@@ -7,7 +7,15 @@ import { sva } from "@hashintel/ds-helpers/css";
  * `:has(:focus-visible) { overflow: visible }` (a clip would swallow it).
  */
 export const filterRecipe = sva({
-  slots: ["root", "property", "trigger", "inputSlot", "input", "separator"],
+  slots: [
+    "root",
+    "property",
+    "trigger",
+    "inputSlot",
+    "input",
+    "separator",
+    "remove",
+  ],
   base: {
     root: {
       display: "inline-flex",
@@ -79,11 +87,7 @@ export const filterRecipe = sva({
       alignItems: "center",
       paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--filter-padding-y)",
-      // The divider is skipped when a static separator segment (which
-      // visually splits its neighbours itself) directly precedes this input.
-      "&[data-divided]": {
-        boxShadow: "[inset 1px 0 0 0 var(--filter-divider)]",
-      },
+      boxShadow: "[inset 1px 0 0 0 var(--filter-divider)]",
     },
     input: {
       appearance: "none",
@@ -115,9 +119,41 @@ export const filterRecipe = sva({
     separator: {
       display: "inline-flex",
       alignItems: "center",
+      paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--filter-padding-y)",
+      // Fade via color-mix, not opacity — element opacity would also fade
+      // the divider box-shadow below.
+      color:
+        "[color-mix(in oklab, var(--colors-color-palette-fg-body) 65%, transparent)]",
+      boxShadow: "[inset 1px 0 0 0 var(--filter-divider)]",
+    },
+    remove: {
+      appearance: "none",
+      border: "none",
+      background: "[transparent]",
+      font: "inherit",
       color: "colorPalette.fg.body",
-      opacity: "[0.65]",
+      display: "inline-flex",
+      alignItems: "center",
+      paddingInline: "var(--filter-padding-x)",
+      paddingBlock: "var(--filter-padding-y)",
+      cursor: "pointer",
+      outline: "none",
+      boxShadow: "[inset 1px 0 0 0 var(--filter-divider)]",
+      transition: "[background 0.15s ease]",
+      _hover: {
+        background: "[color-mix(in oklab, currentColor 8%, transparent)]",
+      },
+      "&:focus-visible": {
+        boxShadow:
+          "[inset 1px 0 0 0 var(--filter-divider), 0 0 0 2px var(--filter-ring)]",
+        borderRadius: "[3px]",
+        zIndex: "[1]",
+      },
+      "&:disabled": {
+        cursor: "not-allowed",
+        _hover: { background: "[transparent]" },
+      },
     },
   },
   variants: {
