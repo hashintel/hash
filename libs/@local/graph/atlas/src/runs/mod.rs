@@ -166,7 +166,7 @@ where
     /// Iterates the runs in key order.
     pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = (I, &[T])> + '_ {
         self.posts
-            .array_windows_enumerated()
+            .windows_enumerated()
             .map(|(index, &[start, end])| (index, &self.items[start..end]))
     }
 

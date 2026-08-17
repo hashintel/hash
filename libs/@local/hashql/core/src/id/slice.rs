@@ -391,7 +391,7 @@ where
     /// Each window carries the ID of its first element, so a window at `(id, [a, b])` spans
     /// `id` and `id.plus(1)`. See [`slice::array_windows`] for the window semantics.
     #[inline]
-    pub fn array_windows_enumerated<const N: usize>(
+    pub fn windows_enumerated<const N: usize>(
         &self,
     ) -> impl DoubleEndedIterator<Item = (I, &[T; N])> + ExactSizeIterator + Clone {
         // Elide bound checks from subsequent calls to `I::from_usize`
@@ -403,26 +403,80 @@ where
             .map(|(index, window)| (I::from_usize(index), window))
     }
 
-    /// Sorts the slice in place using the given key function, in unstable order.
+    /// Returns an iterator over chunks of size `size`.
     ///
-    /// See [`slice::sort_unstable_by_key`](prim@slice#method.sort_unstable_by_key) for details.
+    /// Each chunk is a slice of `size` elements, except the last chunk may be smaller.
+    ///
+    /// See [`slice::chunks`](prim@slice#method.chunks) for details.
     #[inline]
-    pub fn sort_unstable_by_key<K, F>(&mut self, func: F)
+    pub fn chunks(
+        &self,
+        size: usize,
+    ) -> impl DoubleEndedIterator<Item = &[T]> + ExactSizeIterator + Clone {
+        self.raw.chunks(size)
+    }
+
+    /// Returns a parallel iterator over chunks of size `size`.
+    ///
+    /// The parallel counterpart of [`Self::chunks`].
+    #[cfg(feature = "rayon")]
+    #[inline]
+    pub fn par_chunks(&self, size: usize) -> impl IndexedParallelIterator<Item = &[T]> + Clone
     where
-        F: FnMut(&T) -> K,
-        K: Ord,
+        T: Sync,
     {
-        self.raw.sort_unstable_by_key(func);
+        use rayon::slice::ParallelSlice as _;
+
+        self.raw.par_chunks(size)
+    }
+
+    /// Returns an iterator over chunks of size `size`, each with the ID of its first element.
+    ///
+    /// Each chunk is a slice of `size` elements, except the last chunk may be smaller. A chunk
+    /// at `(id, chunk)` spans `id` through `id.plus(chunk.len() - 1)`, mirroring
+    /// [`Self::windows_enumerated`].
+    #[inline]
+    pub fn chunks_enumerated(
+        &self,
+        size: usize,
+    ) -> impl DoubleEndedIterator<Item = (I, &[T])> + ExactSizeIterator + Clone {
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(self.len());
+
+        self.raw
+            .chunks(size)
+            .enumerate()
+            .map(move |(index, chunk)| (I::from_usize(index * size), chunk))
+    }
+
+    /// Returns a parallel iterator over chunks of size `size`, each with the ID of its first
+    /// element.
+    ///
+    /// The parallel counterpart of [`Self::chunks_enumerated`].
+    #[cfg(feature = "rayon")]
+    #[inline]
+    pub fn par_chunks_enumerated(
+        &self,
+        size: usize,
+    ) -> impl IndexedParallelIterator<Item = (I, &[T])> + Clone
+    where
+        T: Sync,
+    {
+        use rayon::slice::ParallelSlice as _;
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(self.len());
+
+        self.raw
+            .par_chunks(size)
+            .enumerate()
+            .map(move |(index, chunk)| (I::from_usize(index * size), chunk))
     }
 
     /// Sorts the slice in place with the given comparator, in unstable order.
     ///
     /// See [`slice::sort_unstable_by`](prim@slice#method.sort_unstable_by) for details.
     #[inline]
-    pub fn sort_unstable_by<F>(&mut self, compare: F)
-    where
-        F: Fn(&T, &T) -> cmp::Ordering,
-    {
+    pub fn sort_unstable_by(&mut self, compare: impl Fn(&T, &T) -> cmp::Ordering) {
         self.raw.sort_unstable_by(compare);
     }
 
@@ -431,12 +485,22 @@ where
     /// The parallel counterpart of [`slice::sort_unstable_by`](prim@slice#method.sort_unstable_by).
     #[cfg(feature = "rayon")]
     #[inline]
-    pub fn par_sort_unstable_by<F>(&mut self, compare: F)
+    pub fn par_sort_unstable_by(&mut self, compare: impl Fn(&T, &T) -> cmp::Ordering + Sync)
     where
         T: Send,
-        F: Fn(&T, &T) -> cmp::Ordering + Sync,
     {
         self.raw.par_sort_unstable_by(compare);
+    }
+
+    /// Sorts the slice in place using the given key function, in unstable order.
+    ///
+    /// See [`slice::sort_unstable_by_key`](prim@slice#method.sort_unstable_by_key) for details.
+    #[inline]
+    pub fn sort_unstable_by_key<K>(&mut self, func: impl FnMut(&T) -> K)
+    where
+        K: Ord,
+    {
+        self.raw.sort_unstable_by_key(func);
     }
 
     /// Sorts the slice in place using the given key function, in parallel and unstable order.
@@ -444,10 +508,9 @@ where
     /// The parallel counterpart of [`Self::sort_unstable_by_key`].
     #[cfg(feature = "rayon")]
     #[inline]
-    pub fn par_sort_unstable_by_key<K, F>(&mut self, func: F)
+    pub fn par_sort_unstable_by_key<K>(&mut self, func: impl Fn(&T) -> K + Sync)
     where
         T: Send,
-        F: Fn(&T) -> K + Sync,
         K: Ord + Send,
     {
         self.raw.par_sort_unstable_by_key(func);
@@ -468,10 +531,7 @@ where
     ///
     /// See [`slice::is_sorted_by`](prim@slice#method.is_sorted_by) for details.
     #[inline]
-    pub fn is_sorted_by<F>(&self, compare: F) -> bool
-    where
-        F: Fn(&T, &T) -> bool,
-    {
+    pub fn is_sorted_by(&self, compare: impl Fn(&T, &T) -> bool) -> bool {
         self.raw.is_sorted_by(compare)
     }
 
@@ -798,7 +858,7 @@ mod tests {
         let data = [10, 20, 30, 40];
         let slice = IdSlice::<TestId, _>::from_raw(&data);
 
-        let windows: alloc::vec::Vec<_> = slice.array_windows_enumerated::<2>().collect();
+        let windows: alloc::vec::Vec<_> = slice.windows_enumerated::<2>().collect();
         assert_eq!(
             windows,
             [
@@ -808,7 +868,7 @@ mod tests {
             ]
         );
 
-        let mut reversed = slice.array_windows_enumerated::<2>().rev();
+        let mut reversed = slice.windows_enumerated::<2>().rev();
         assert_eq!(reversed.next(), Some((TestId::from_usize(2), &[30, 40])));
     }
 
@@ -817,8 +877,8 @@ mod tests {
         let data = [10];
         let slice = IdSlice::<TestId, _>::from_raw(&data);
 
-        assert_eq!(slice.array_windows_enumerated::<2>().len(), 0);
-        assert_eq!(slice.array_windows_enumerated::<2>().next(), None);
+        assert_eq!(slice.windows_enumerated::<2>().len(), 0);
+        assert_eq!(slice.windows_enumerated::<2>().next(), None);
     }
 
     #[test]
