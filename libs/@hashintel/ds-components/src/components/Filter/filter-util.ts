@@ -1,3 +1,11 @@
+import type { IconName } from "../Icon/icon";
+
+/**
+ * A static (non-value-bearing) segment between two inputs of a multi-input
+ * operator: either literal text (e.g. "-") or an icon.
+ */
+export type InputSeparator = string | { iconName: IconName };
+
 type TextInput = {
   type: "string";
   placeholder?: string;
@@ -30,7 +38,7 @@ export type InputFor<Value> = [Value] extends [null]
       ? NumberInput
       : [Value] extends [infer Tuple extends ReadonlyArray<unknown>]
         ? InputArrayFor<Tuple>
-        : Input | ReadonlyArray<Input | string> | null;
+        : Input | ReadonlyArray<Input | InputSeparator> | null;
 
 /**
  * Tuple of inputs matching a value tuple element-wise, optionally with a
@@ -45,7 +53,11 @@ type InputArrayFor<Value extends ReadonlyArray<unknown>> =
   ]
     ? Rest extends readonly []
       ? readonly [InputFor<Head>]
-      : readonly [InputFor<Head>, ...([] | [string]), ...InputArrayFor<Rest>]
+      : readonly [
+          InputFor<Head>,
+          ...([] | [InputSeparator]),
+          ...InputArrayFor<Rest>,
+        ]
     : readonly [];
 
 export type FilterValue<ValueMap extends Record<string, unknown>> = {

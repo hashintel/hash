@@ -99,7 +99,7 @@ const KitchenSinkOperators: Array<
         label: "outside",
         input: [
           { type: "int", min: 0, max: 100 },
-          "-",
+          { iconName: "arrowRight" },
           { type: "int", min: 0, max: 100 },
         ],
       },
@@ -224,6 +224,10 @@ export const Default: Story = () => (
     <KitchenSinkState
       label="range operator, both values"
       value={{ key: "between", value: [10, 50] }}
+    />
+    <KitchenSinkState
+      label="range operator, icon separator"
+      value={{ key: "outside", value: [10, 90] }}
     />
     <KitchenSinkState
       label="two inputs, no separator"

@@ -21,7 +21,12 @@ import { getItemId } from "../Menu/SelectableList/selectable-list-util";
 import { filterRecipe } from "./filter.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
-import type { FilterChange, FilterValue, InputFor } from "./filter-util";
+import type {
+  FilterChange,
+  FilterValue,
+  InputFor,
+  InputSeparator,
+} from "./filter-util";
 
 export type FilterOperator<ValueMap extends Record<string, unknown>> = {
   [Key in keyof ValueMap & string]: {
@@ -49,7 +54,10 @@ type LooseInputConfig = {
 type LooseOperator = {
   key: string;
   label: string;
-  input: LooseInputConfig | ReadonlyArray<LooseInputConfig | string> | null;
+  input:
+    | LooseInputConfig
+    | ReadonlyArray<LooseInputConfig | InputSeparator>
+    | null;
   onChange?: (value: unknown) => void;
   tooltip?: string | React.ReactNode;
 };
@@ -58,14 +66,14 @@ type SlotValue = string | number | null;
 type CommittedValue = { key: string; value: unknown } | null;
 
 /**
- * One rendered segment of an operator's input area. String entries in an
- * input array are static separator text (e.g. "-" in a range); they carry no
- * value, so slots/values are indexed by `inputIndex`, which counts only the
- * actual inputs.
+ * One rendered segment of an operator's input area. Separator entries in an
+ * input array (static text such as "-", or an icon) carry no value, so
+ * slots/values are indexed by `inputIndex`, which counts only the actual
+ * inputs.
  */
 type InputSegment =
   | { kind: "input"; config: LooseInputConfig; inputIndex: number }
-  | { kind: "separator"; text: string };
+  | { kind: "separator"; separator: InputSeparator };
 
 const inputSegmentsOf = (operator: LooseOperator): InputSegment[] => {
   const { input } = operator;
@@ -77,8 +85,8 @@ const inputSegmentsOf = (operator: LooseOperator): InputSegment[] => {
   const segments: InputSegment[] = [];
   let inputIndex = 0;
   for (const entry of entries) {
-    if (typeof entry === "string") {
-      segments.push({ kind: "separator", text: entry });
+    if (typeof entry === "string" || "iconName" in entry) {
+      segments.push({ kind: "separator", separator: entry });
     } else {
       segments.push({ kind: "input", config: entry, inputIndex });
       inputIndex += 1;
@@ -337,9 +345,19 @@ export const Filter = <
     setSlots(slotsForValue(operatorByKey(reference?.key), reference?.value));
   };
 
-  const handleInputKeyDown = (event: React.KeyboardEvent<Element>) => {
+  const handleInputKeyDown = (
+    event: React.KeyboardEvent<Element>,
+    inputIndex: number,
+  ) => {
     if (event.key === "Enter") {
       event.preventDefault();
+      // In a multi-input operator, Enter advances to the next input; only
+      // Enter on the last input submits the draft.
+      const nextInput = inputRefs.current[inputIndex + 1];
+      if (nextInput) {
+        nextInput.focus();
+        return;
+      }
       commitDraft(draftKey, slots);
     } else if (event.key === "Escape") {
       revertDraft();
@@ -456,7 +474,14 @@ export const Filter = <
               aria-hidden="true"
               key={segmentKey}
             >
-              {segment.text}
+              {typeof segment.separator === "string" ? (
+                segment.separator
+              ) : (
+                <Icon
+                  name={segment.separator.iconName}
+                  size={caretSizeMap[size]}
+                />
+              )}
             </span>
           );
         }
@@ -501,7 +526,7 @@ export const Filter = <
               max={isText ? undefined : config.max}
               step={isText ? undefined : numberStepOf(config)}
               onKeyDown={(event) => {
-                handleInputKeyDown(event);
+                handleInputKeyDown(event, inputIndex);
                 if (
                   !isText &&
                   !event.defaultPrevented &&
