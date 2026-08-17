@@ -1,9 +1,13 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
 /**
- * Chip-like segmented shell: [property | operator ▾ | input…]. Segments are
- * divided by inset box-shadow hairlines (no layout cost) reading
- * `--filter-divider`; the focus ring escapes the root's clip via
+ * Chip-like segmented shell: [property | operator ▾ | input…]. Each segment
+ * draws its own real borders: top/bottom (plus the first segment's left and
+ * the last segment's right, with the corner radii) read
+ * `--filter-outer-border` and together form the chip's outline, while every
+ * other segment's left border reads `--filter-divider` and draws the
+ * internal hairline. The root only rounds/clips; hover and state changes
+ * re-point the levers. The focus ring escapes the root's clip via
  * `:has(:focus-visible) { overflow: visible }` (a clip would swallow it).
  */
 export const filterRecipe = sva({
@@ -22,25 +26,32 @@ export const filterRecipe = sva({
       alignItems: "stretch",
       width: "[fit-content]",
       whiteSpace: "nowrap",
-      colorPalette: "neutral",
       background: "white",
       fontWeight: "medium",
-      borderWidth: "1px",
-      borderStyle: "solid",
-      borderColor: "colorPalette.bd.subtle.hover",
       borderRadius: "[var(--filter-radius)]",
       overflow: "clip",
       isolation: "isolate",
-      "--filter-divider": "var(--colors-color-palette-bd-subtle)",
-      "--filter-ring":
-        "[color-mix(in oklab, var(--colors-color-palette-fg-link) 65%, transparent)]",
-      transition: "[border-color 0.15s ease]",
+      // Solid greys throughout; only the focus ring uses the alpha scale so
+      // it composites over whatever sits behind the (escaping) ring.
+      "--filter-outer-border": "var(--colors-neutral-s50)",
+      "--filter-divider": "var(--colors-neutral-s40)",
+      // The remove button's divider: follows the same rest/hover shades but
+      // is a separate lever so the `complete` variant never hides it.
+      "--filter-remove-divider": "var(--colors-neutral-s40)",
+      "--filter-input-hover-bg": "var(--colors-neutral-s10)",
+      "--filter-ring": "var(--colors-neutral-a80)",
       _hover: {
-        borderColor: "colorPalette.bd.solid",
-        "--filter-divider": "var(--colors-color-palette-bd-subtle-hover)",
+        "--filter-outer-border": "var(--colors-neutral-s60)",
+        "--filter-divider": "var(--colors-neutral-s50)",
+        "--filter-remove-divider": "var(--colors-neutral-s50)",
       },
       "&:focus-within": {
-        borderColor: "colorPalette.bd.solid",
+        "--filter-outer-border": "var(--colors-neutral-s60)",
+      },
+      // Hovering the remove button darkens the whole chip outline to the
+      // same shade its own edges take (removal affects the entire filter).
+      "&:has([data-part=remove]:hover:not(:disabled))": {
+        "--filter-outer-border": "var(--colors-neutral-s80)",
       },
       "&:has(:focus-visible)": {
         overflow: "visible",
@@ -51,35 +62,89 @@ export const filterRecipe = sva({
       alignItems: "center",
       paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--filter-padding-y)",
-      color: "colorPalette.fg.body",
+      color: "neutral.s115",
+      borderBlock: "1px solid var(--filter-outer-border)",
+      borderInlineStart: "1px solid var(--filter-outer-border)",
+      borderStartStartRadius: "[var(--filter-radius)]",
+      borderEndStartRadius: "[var(--filter-radius)]",
+      transition: "[border-color 0.15s ease]",
     },
     trigger: {
       appearance: "none",
       border: "none",
       background: "[transparent]",
       font: "inherit",
-      color: "colorPalette.fg.link",
+      color: "neutral.s110",
       display: "inline-flex",
       alignItems: "center",
       gap: "1",
+      position: "relative",
       paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--filter-padding-y)",
       cursor: "pointer",
       outline: "none",
-      boxShadow: "[inset 1px 0 0 0 var(--filter-divider)]",
-      transition: "[background 0.15s ease]",
+      borderBlock: "1px solid var(--filter-outer-border)",
+      borderInlineStart: "1px solid var(--filter-divider)",
+      transition: "[background 0.15s ease, border-color 0.15s ease]",
       _hover: {
-        background: "[color-mix(in oklab, currentColor 8%, transparent)]",
+        background: "neutral.s25",
       },
+      // Pressed style while the dropdown is open (mirrors Button's subtle
+      // neutral pressed treatment); hovering a pressed trigger shows the
+      // hover background (the explicit :hover form makes that deterministic
+      // against the equal-specificity plain hover rule).
+      "&[data-state=open], &[data-state=open]:hover": {
+        boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
+      },
+      "&[data-state=open]": {
+        background: "neutral.s20",
+      },
+      "&[data-state=open]:hover": {
+        background: "neutral.s25",
+      },
+      // A pressed-but-unhovered trigger keeps its section edges darkened,
+      // one step lighter than the hover shade.
+      "&[data-state=open]:not(:hover)": {
+        "--filter-divider": "var(--colors-neutral-s70)",
+        "--filter-outer-border": "var(--colors-neutral-s70)",
+      },
+      "&[data-state=open]:not(:hover) + *": {
+        "--filter-divider": "var(--colors-neutral-s70)",
+        "--filter-remove-divider": "var(--colors-neutral-s70)",
+      },
+      // Hovering darkens the section's edges like an input section: its own
+      // left/top/bottom (plus right when last) here, the next segment's left
+      // border below.
+      "&:hover:not(:disabled)": {
+        "--filter-divider": "var(--colors-neutral-s80)",
+        "--filter-outer-border": "var(--colors-neutral-s80)",
+      },
+      "&:hover:not(:disabled) + *": {
+        "--filter-divider": "var(--colors-neutral-s80)",
+        "--filter-remove-divider": "var(--colors-neutral-s80)",
+      },
+      // The ring lives on an ::after with its own small radius so square
+      // segment corners still get a softly rounded ring.
       "&:focus-visible": {
-        boxShadow:
-          "[inset 1px 0 0 0 var(--filter-divider), 0 0 0 2px var(--filter-ring)]",
-        borderRadius: "[3px]",
         zIndex: "[1]",
       },
+      "&:focus-visible::after": {
+        content: '""',
+        position: "absolute",
+        inset: "0",
+        borderRadius: "[3px]",
+        boxShadow: "[0 0 0 2px var(--filter-ring)]",
+        pointerEvents: "none",
+      },
+      // Fade the placeholder via color, not element opacity — opacity would
+      // also fade the borders and the focus ring ::after.
       "&[data-placeholder]": {
-        color: "colorPalette.fg.body",
-        opacity: "[0.6]",
+        color: "neutral.s90",
+      },
+      "&:last-child": {
+        borderInlineEnd: "1px solid var(--filter-outer-border)",
+        borderStartEndRadius: "[var(--filter-radius)]",
+        borderEndEndRadius: "[var(--filter-radius)]",
       },
     },
     inputSlot: {
@@ -87,7 +152,27 @@ export const filterRecipe = sva({
       // The input carries the segment's padding itself and stretches to its
       // full height, so e.g. the invalid-character flash paints edge to edge.
       alignItems: "stretch",
-      boxShadow: "[inset 1px 0 0 0 var(--filter-divider)]",
+      borderBlock: "1px solid var(--filter-outer-border)",
+      borderInlineStart: "1px solid var(--filter-divider)",
+      transition: "[border-color 0.15s ease, background 0.15s ease]",
+      // Hovering an (enabled) input section darkens all four of its edges to
+      // BaseInput's hover border color — its own left/top/bottom here, and
+      // the next segment's left border (which draws this section's right
+      // edge) below — and tints the section with a subtle grey.
+      "&:hover:not([data-disabled])": {
+        "--filter-divider": "var(--colors-neutral-s80)",
+        "--filter-outer-border": "var(--colors-neutral-s80)",
+        background: "[var(--filter-input-hover-bg)]",
+      },
+      "&:hover:not([data-disabled]) + *": {
+        "--filter-divider": "var(--colors-neutral-s80)",
+        "--filter-remove-divider": "var(--colors-neutral-s80)",
+      },
+      "&:last-child": {
+        borderInlineEnd: "1px solid var(--filter-outer-border)",
+        borderStartEndRadius: "[var(--filter-radius)]",
+        borderEndEndRadius: "[var(--filter-radius)]",
+      },
     },
     input: {
       appearance: "none",
@@ -97,21 +182,24 @@ export const filterRecipe = sva({
       paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--filter-padding-y)",
       font: "inherit",
-      color: "colorPalette.fg.body",
+      color: "neutral.s115",
       // Grow/shrink with the typed value (or placeholder when empty),
       // clamped below/above (the clamps account for the border-box padding).
       // Browsers without field-sizing fall back to the width implied by the
       // `size` attribute set on text inputs.
       fieldSizing: "content",
-      minWidth: "[calc(2ch + 2 * var(--filter-padding-x))]",
+      minWidth: "[calc(2 * var(--filter-padding-x))]",
       textAlign: "center",
       maxWidth: "[calc(32ch + 2 * var(--filter-padding-x))]",
+      _focus: {
+        textAlign: "left",
+      },
       "&::placeholder": {
         color: "[currentColor]",
         opacity: "[0.4]",
       },
       "&:disabled": {
-        cursor: "not-allowed",
+        cursor: "auto",
       },
       // Hide number spinners (wheel-stepping is disabled separately while
       // focused); `appearance: none` handles Firefox.
@@ -124,38 +212,53 @@ export const filterRecipe = sva({
       alignItems: "center",
       paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--filter-padding-y)",
-      // Fade via color-mix, not opacity — element opacity would also fade
-      // the divider box-shadow below.
-      color:
-        "[color-mix(in oklab, var(--colors-color-palette-fg-body) 65%, transparent)]",
-      boxShadow: "[inset 1px 0 0 0 var(--filter-divider)]",
+      color: "neutral.s100",
+      borderBlock: "1px solid var(--filter-outer-border)",
+      borderInlineStart: "1px solid var(--filter-divider)",
+      transition: "[border-color 0.15s ease]",
     },
     remove: {
       appearance: "none",
       border: "none",
       background: "[transparent]",
       font: "inherit",
-      color: "colorPalette.fg.body",
+      color: "neutral.s115",
       display: "inline-flex",
       alignItems: "center",
+      position: "relative",
       paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--filter-padding-y)",
       cursor: "pointer",
       outline: "none",
-      boxShadow: "[inset 1px 0 0 0 var(--filter-divider)]",
-      transition: "[background 0.15s ease]",
+      borderBlock: "1px solid var(--filter-outer-border)",
+      borderInlineStart: "1px solid var(--filter-remove-divider)",
+      transition: "[background 0.15s ease, border-color 0.15s ease]",
       _hover: {
-        background: "[color-mix(in oklab, currentColor 8%, transparent)]",
+        background: "neutral.s25",
       },
+      // Hovering darkens the section's edges (own left/top/bottom, plus
+      // right via the last-child border reading the same lever).
+      "&:hover:not(:disabled)": {
+        "--filter-remove-divider": "var(--colors-neutral-s80)",
+        "--filter-outer-border": "var(--colors-neutral-s80)",
+      },
+      // The ring lives on an ::after with its own small radius so square
+      // segment corners still get a softly rounded ring.
       "&:focus-visible": {
-        boxShadow:
-          "[inset 1px 0 0 0 var(--filter-divider), 0 0 0 2px var(--filter-ring)]",
-        borderRadius: "[3px]",
         zIndex: "[1]",
       },
-      "&:disabled": {
-        cursor: "not-allowed",
-        _hover: { background: "[transparent]" },
+      "&:focus-visible::after": {
+        content: '""',
+        position: "absolute",
+        inset: "0",
+        borderRadius: "[3px]",
+        boxShadow: "[0 0 0 2px var(--filter-ring)]",
+        pointerEvents: "none",
+      },
+      "&:last-child": {
+        borderInlineEnd: "1px solid var(--filter-outer-border)",
+        borderStartEndRadius: "[var(--filter-radius)]",
+        borderEndEndRadius: "[var(--filter-radius)]",
       },
     },
   },
@@ -210,30 +313,96 @@ export const filterRecipe = sva({
     invalid: {
       true: {
         root: {
-          colorPalette: "red",
-          borderColor: "colorPalette.bd.solid",
+          "--filter-outer-border": "var(--colors-red-s60)",
+          "--filter-divider": "var(--colors-red-s40)",
+          "--filter-remove-divider": "var(--colors-red-s40)",
+          "--filter-input-hover-bg": "var(--colors-red-s20)",
+          "--filter-ring": "var(--colors-red-a80)",
+          _hover: {
+            "--filter-divider": "var(--colors-red-s50)",
+            "--filter-remove-divider": "var(--colors-red-s50)",
+          },
+        },
+        property: { color: "red.s115" },
+        trigger: {
+          color: "red.s110",
+          _hover: { background: "red.s30" },
+          "&[data-placeholder]": { color: "red.s80" },
+          "&[data-state=open], &[data-state=open]:hover": {
+            color: "red.s115",
+          },
+          "&[data-state=open]": {
+            background: "red.s20",
+          },
+          "&[data-state=open]:hover": {
+            background: "red.s30",
+          },
+        },
+        input: { color: "red.s115" },
+        separator: { color: "red.s100" },
+        remove: {
+          color: "red.s115",
+          _hover: { background: "red.s30" },
+        },
+      },
+    },
+    // A fully filled-in filter reads as one unit: its internal segment
+    // dividers lighten at rest and return to full strength on
+    // hover/focus-within. (The remove button's divider is unaffected.)
+    complete: {
+      true: {
+        root: {
+          "&:not(:hover):not(:focus-within)": {
+            "--filter-divider": "var(--colors-neutral-s30)",
+          },
         },
       },
     },
     disabled: {
       true: {
         root: {
-          background: "colorPalette.bgSolid.surface.active",
+          background: "neutral.s20",
           _hover: {
-            borderColor: "colorPalette.bd.subtle.hover",
-            "--filter-divider": "var(--colors-color-palette-bd-subtle)",
+            "--filter-outer-border": "var(--colors-neutral-s50)",
+            "--filter-divider": "var(--colors-neutral-s40)",
+            "--filter-remove-divider": "var(--colors-neutral-s40)",
           },
         },
+        property: { color: "neutral.s90" },
         trigger: {
-          cursor: "not-allowed",
+          cursor: "auto",
+          color: "neutral.s90",
           _hover: { background: "[transparent]" },
+          "&[data-placeholder]": { color: "neutral.s80" },
         },
+        input: { color: "neutral.s90" },
+        separator: { color: "neutral.s80" },
+        // The remove button stays active on a disabled filter, so it keeps
+        // the normal background instead of the chip's disabled grey (its
+        // higher-specificity hover background still applies).
+        remove: { background: "white" },
       },
     },
   },
+  compoundVariants: [
+    // Keep the complete-state lightened divider red-tinted on an invalid
+    // filter (the neutral lightened shade would read as unrelated grey).
+    {
+      invalid: true,
+      complete: true,
+      css: {
+        root: {
+          "&:not(:hover):not(:focus-within)": {
+            "--filter-divider": "var(--colors-red-s30)",
+          },
+        },
+      },
+    },
+  ],
   defaultVariants: {
     size: "md",
     invalid: false,
     disabled: false,
+    complete: false,
   },
 });

@@ -399,7 +399,16 @@ export const Filter = <
     (segment) => segment.kind === "input",
   ).length;
   const invalid = !!errors && errors.length > 0;
-  const classes = filterRecipe({ size, invalid, disabled: !!disabled });
+  // Complete = an operator is selected and every input slot holds a value
+  // (regardless of that value's validity); the recipe merges the segments
+  // into one unit at rest by hiding the internal dividers.
+  const complete = selectedOperator !== undefined && isDraftComplete(slots);
+  const classes = filterRecipe({
+    size,
+    invalid,
+    disabled: !!disabled,
+    complete,
+  });
 
   return (
     <ArkSelect.Root
@@ -432,7 +441,9 @@ export const Filter = <
         aria-label={`${propertyLabel} operator`}
       >
         {selectedOperator?.label ?? "is…"}
-        <Icon name="chevronDown" size={caretSizeMap[size]} />
+        {!selectedOperator && (
+          <Icon name="chevronDown" size={caretSizeMap[size]} />
+        )}
       </ArkSelect.Trigger>
       {inputSegments.map((segment, position) => {
         // Positional keys are correct here: segments have no identity beyond
@@ -459,7 +470,11 @@ export const Filter = <
         const integer = !isText && isIntegerConfig(config);
 
         return (
-          <span className={classes.inputSlot} key={segmentKey}>
+          <span
+            className={classes.inputSlot}
+            data-disabled={disabled ? "" : undefined}
+            key={segmentKey}
+          >
             <input
               ref={assignInputRef}
               className={classes.input}
@@ -525,12 +540,14 @@ export const Filter = <
           </span>
         );
       })}
+      {/* Deliberately never disabled: `disabled` freezes the operator and
+          inputs, but the filter can still be removed. */}
       {removeable?.removeable && (
         <button
           type="button"
+          data-part="remove"
           className={classes.remove}
           onClick={removeable.onRemove}
-          disabled={disabled}
           aria-label={`Remove ${propertyLabel} filter`}
         >
           <Icon name="close" size={caretSizeMap[size]} />
