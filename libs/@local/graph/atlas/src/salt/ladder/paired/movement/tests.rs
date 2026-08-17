@@ -257,14 +257,14 @@ fn mismatched_or_non_finite_frames_are_refused() {
     assert_eq!(
         Movement::new(frame(&poisoned), frame(&zero), k).expect_err("the zero frame is poisoned"),
         MovementError::Zero(NonFinitePoint {
-            row: NodeRowId::new(1),
+            id: NodeRowId::new(1),
         }),
     );
     assert_eq!(
         Movement::new(frame(&zero), frame(&poisoned), k)
             .expect_err("the canonical frame is poisoned"),
         MovementError::Canonical(NonFinitePoint {
-            row: NodeRowId::new(1),
+            id: NodeRowId::new(1),
         }),
     );
 }

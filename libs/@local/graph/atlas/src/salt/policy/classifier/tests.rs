@@ -6,7 +6,7 @@
 use super::{Applicability, Classifier, PredictError, standardized_distance};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{BoxedDVecN, BoxedVecN},
+    math::{BoxedDVecN, BoxedVecN, DNonNegative},
     salt::policy::{GeometryClass, Posterior},
 };
 
@@ -29,7 +29,7 @@ fn classifier(
     rows: [BoxedDVecN<CANONICAL_DIMENSIONS>; 3],
     intercepts: [f64; 3],
     temperature: f64,
-    distances: Box<[f64]>,
+    distances: &[f64],
 ) -> Classifier {
     let mut inverse_scales = BoxedDVecN::zero();
     inverse_scales.as_array_mut().fill(1.0);
@@ -40,7 +40,10 @@ fn classifier(
         applicability: Applicability {
             mean: BoxedDVecN::zero(),
             inverse_scales,
-            distances,
+            distances: distances
+                .iter()
+                .map(|&value| DNonNegative::new(value).expect("test distances are non-negative"))
+                .collect(),
         },
     }
 }
@@ -95,7 +98,10 @@ fn standardized_distance_matches_the_definition() {
     let distance = standardized_distance(&embedding, &BoxedDVecN::zero(), &inverse_scales);
 
     // 9 / 3072 is exactly representable, so both paths round identically.
-    assert_eq!(distance, (9.0_f64 / 3072.0).sqrt());
+    assert_eq!(
+        distance.expect("the fixture distance is finite"),
+        (9.0_f64 / 3072.0).sqrt()
+    );
 }
 
 #[test]
@@ -111,12 +117,11 @@ fn predict_computes_logits_posteriors_and_applicability() {
         rows,
         [0.25, 0.0, 0.0],
         2.0,
-        [
+        &[
             expected_distance / 2.0,
             expected_distance,
             expected_distance * 2.0,
-        ]
-        .into(),
+        ],
     );
 
     let prediction = model.predict(&input).expect("finite inputs should predict");
@@ -143,7 +148,7 @@ fn predict_ranks_an_outlier_inapplicable() {
         [coefficients(&[]), coefficients(&[]), coefficients(&[])],
         [0.0; 3],
         1.0,
-        [0.001, 0.002].into(),
+        &[0.001, 0.002],
     );
     let far = embedding(&[100.0]);
 
@@ -162,7 +167,7 @@ fn predict_rejects_overflow() {
         ],
         [0.0; 3],
         1.0,
-        [1.0].into(),
+        &[1.0],
     );
     let large = embedding(&[f32::MAX]);
 

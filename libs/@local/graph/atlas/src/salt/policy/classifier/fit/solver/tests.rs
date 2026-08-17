@@ -28,7 +28,6 @@ use super::{
     solve::{
         AcceptedPoint, SolverControl, SolverRun, certify, derive_certificate, rejected, solve,
     },
-    stable::{checked_dot, checked_norm_squared, stable_l2},
     target::{ClosedTarget, ClosedTargetError},
     terminal::{NewtonStage, SolverFailure},
     work::WorkCounters,
@@ -38,7 +37,7 @@ use crate::{
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{
         AlignedVecN, BoxedDVecN, BoxedVecN, DNonNegative, DPositive, DVecN, OpenUnitFraction,
-        d_non_negative, d_positive, greater_than_one, open_unit_fraction,
+        d_finite, d_non_negative, d_positive, greater_than_one, open_unit_fraction,
     },
     salt::policy::GeometryClass,
 };
@@ -163,7 +162,11 @@ fn axpy(base: &ContrastVector, direction: &ContrastVector, step: f64) -> Contras
 
 /// Checked flat dot of two contrast vectors.
 fn flat_dot(left: &ContrastVector, right: &ContrastVector) -> f64 {
-    checked_dot(&left.to_flat(), &right.to_flat()).expect("fixture dots stay finite")
+    f64::from(
+        left.to_flat()
+            .checked_dot(&right.to_flat())
+            .expect("fixture dots stay finite"),
+    )
 }
 
 /// Builds a coefficient axis, an intercept axis, and a mixed vector as the deterministic test
@@ -262,17 +265,17 @@ fn expanded_logits_stay_shift_free() {
     }
 }
 
-/// [`checked_dot`] passes an exactly representable dot through the gate.
+/// [`AlignedDVecN::checked_dot`] passes an exactly representable dot through the gate.
 #[test]
 fn checked_dot_passes_finite_values() {
     // Both terms are exact, so 2·4 + (−3)·5 = −7 under any fold shape.
     let left = flat(&[(0, 2.0), (9, -3.0)]);
     let right = flat(&[(0, 4.0), (9, 5.0)]);
 
-    assert_eq!(checked_dot(&left, &right), Some(-7.0));
+    assert_eq!(left.checked_dot(&right), Some(d_finite!(-7.0)));
 }
 
-/// [`checked_dot`] reports a non-finite reduction as [`None`] instead of a value.
+/// [`AlignedDVecN::checked_dot`] reports a non-finite reduction as [`None`] instead of a value.
 #[test]
 fn checked_dot_rejects_non_finite_results() {
     let mut huge = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
@@ -281,36 +284,37 @@ fn checked_dot_rejects_non_finite_results() {
     let mut two = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     two.as_array_mut()[0] = 2.0;
     two.as_array_mut()[1] = 2.0;
-    assert_eq!(checked_dot(&huge, &two), None);
+    assert_eq!(huge.checked_dot(&two), None);
 
     let mut poisoned = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     poisoned.as_array_mut()[7] = f64::NAN;
     let mut ones = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     ones.as_array_mut()[7] = 1.0;
-    assert_eq!(checked_dot(&poisoned, &ones), None);
+    assert_eq!(poisoned.checked_dot(&ones), None);
 }
 
-/// [`stable_l2`] passes exact norms through and reports non-finite components as [`None`].
+/// [`AlignedDVecN::checked_stable_l2`] passes exact norms through and reports non-finite
+/// components as [`None`].
 #[test]
-fn stable_l2_gates_the_house_norm() {
+fn checked_stable_l2_gates_the_house_norm() {
     // 3-4-5 triangle: every ratio and square of the house kernel is exact.
     let mut triangle = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     triangle.as_array_mut()[10] = 3.0;
     triangle.as_array_mut()[4000] = -4.0;
-    assert_eq!(stable_l2(&triangle), Some(5.0));
+    assert_eq!(triangle.checked_stable_l2(), Some(d_non_negative!(5.0)));
 
     assert_eq!(
-        stable_l2(&BoxedDVecN::<SOLVER_DIMENSIONS>::zero()),
-        Some(0.0)
+        BoxedDVecN::<SOLVER_DIMENSIONS>::zero().checked_stable_l2(),
+        Some(DNonNegative::ZERO)
     );
 
     let mut poisoned = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     poisoned.as_array_mut()[123] = f64::INFINITY;
-    assert_eq!(stable_l2(&poisoned), None);
+    assert_eq!(poisoned.checked_stable_l2(), None);
 
     let mut hidden = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     hidden.as_array_mut()[6000] = f64::NAN;
-    assert_eq!(stable_l2(&hidden), None);
+    assert_eq!(hidden.checked_stable_l2(), None);
 }
 
 /// An exact triple closes without adjustment and keeps the exact unit sum.
@@ -973,40 +977,46 @@ fn objective_resolution_pins_the_ulp_exceptional_cases() {
     // Zero and subnormal magnitudes resolve at the smallest positive subnormal spacing.
     assert_eq!(
         objective_resolution(0.0, one_ulp()),
-        Some(f64::from_bits(1))
+        Some(d_positive!(f64::from_bits(1)))
     );
     assert_eq!(
         objective_resolution(-0.0, one_ulp()),
-        Some(f64::from_bits(1))
+        Some(d_positive!(f64::from_bits(1)))
     );
     assert_eq!(
         objective_resolution(f64::MIN_POSITIVE / 2.0, one_ulp()),
-        Some(f64::from_bits(1)),
+        Some(d_positive!(f64::from_bits(1))),
     );
     assert_eq!(
         objective_resolution(0.0, four),
-        Some(4.0 * f64::from_bits(1)),
+        Some(d_positive!(4.0 * f64::from_bits(1))),
     );
 
     // Normal magnitudes resolve at the next-up spacing, and negatives contribute magnitude only.
-    assert_eq!(objective_resolution(1.0, one_ulp()), Some(f64::EPSILON));
-    assert_eq!(objective_resolution(-1.0, one_ulp()), Some(f64::EPSILON));
+    assert_eq!(
+        objective_resolution(1.0, one_ulp()),
+        Some(d_positive!(f64::EPSILON))
+    );
+    assert_eq!(
+        objective_resolution(-1.0, one_ulp()),
+        Some(d_positive!(f64::EPSILON))
+    );
     assert_eq!(
         objective_resolution(2.0, one_ulp()),
-        Some(2.0 * f64::EPSILON),
+        Some(d_positive!(2.0 * f64::EPSILON)),
         "at an exact power of two the next-up spacing is the wider interval's",
     );
-    assert_eq!(objective_resolution(-1.0, four), Some(4.0 * f64::EPSILON),);
+    assert_eq!(
+        objective_resolution(-1.0, four),
+        Some(d_positive!(4.0 * f64::EPSILON)),
+    );
 
-    // The top of the grid uses the predecessor spacing and stays finite.
+    // The top of the grid uses the predecessor spacing and stays finite: the returned domain
+    // proves finiteness, so the expectation is the whole assertion.
     let top = objective_resolution(f64::MAX, one_ulp()).expect("finite at the maximum");
     assert_eq!(top, f64::MAX - f64::MAX.next_down());
     let widest = NonZeroU32::new(u32::MAX).expect("u32::MAX is nonzero");
-    assert!(
-        objective_resolution(f64::MAX, widest)
-            .expect("the widest resolution stays finite")
-            .is_finite(),
-    );
+    objective_resolution(f64::MAX, widest).expect("the widest resolution stays finite");
 
     // Non-finite objectives carry no resolution.
     assert_eq!(objective_resolution(f64::NAN, one_ulp()), None);
@@ -1098,27 +1108,25 @@ fn gradient_threshold_follows_the_ruled_domain() {
     };
 
     // With the absolute floor at zero the threshold is the pure relative term.
-    assert_eq!(config.gradient_threshold(8.0), Some(1.0e-6 * 8.0));
+    assert_eq!(
+        config.gradient_threshold(d_non_negative!(8.0)),
+        d_non_negative!(1.0e-6 * 8.0)
+    );
 
     // With the absolute floor at zero and an exactly-zero initial norm the threshold is zero, and
     // only the exactly-zero gradient satisfies the sole certificate predicate.
-    let zero_threshold = config
-        .gradient_threshold(0.0)
-        .expect("a zero threshold is valid");
+    let zero_threshold = config.gradient_threshold(DNonNegative::ZERO);
     assert_eq!(zero_threshold, 0.0);
-    assert!(0.0 <= zero_threshold);
 
     // A positive absolute floor dominates small initial norms.
     let floored = SolverConfig {
         absolute_scaled_gradient_tolerance: d_non_negative!(1.0e-4),
         ..config
     };
-    assert_eq!(floored.gradient_threshold(1.0), Some(1.0e-4));
-
-    // Only a non-finite initial norm maps to the overflow outcome; the threshold itself is
-    // finite by construction.
-    assert_eq!(config.gradient_threshold(f64::NAN), None);
-    assert_eq!(config.gradient_threshold(f64::INFINITY), None);
+    assert_eq!(
+        floored.gradient_threshold(d_non_negative!(1.0)),
+        d_non_negative!(1.0e-4)
+    );
 }
 
 /// From the origin the crossing is `τ = Δ/‖d‖`, and every output is exactly representable.
@@ -1134,7 +1142,7 @@ fn boundary_step_crosses_exactly_from_the_origin() {
         &direction,
         &hessian_interior,
         &hessian_direction,
-        4.0,
+        d_positive!(4.0),
     )
     .expect("the origin crossing is exact");
 
@@ -1152,7 +1160,7 @@ fn boundary_step_picks_the_far_crossing_for_a_backward_direction() {
     let direction = flat(&[(0, -1.0)]);
     let zero = flat(&[]);
 
-    let crossed = boundary_step(&interior, &direction, &zero, &zero, 2.0)
+    let crossed = boundary_step(&interior, &direction, &zero, &zero, d_positive!(2.0))
         .expect("the backward crossing is exact");
 
     // From p = e₀ along −e₀ the boundary sits at −Δ·e₀, a crossing of τ = 3.
@@ -1173,7 +1181,7 @@ fn boundary_step_advances_the_hessian_product_along_the_crossing() {
         &direction,
         &hessian_interior,
         &hessian_direction,
-        2.0,
+        d_positive!(2.0),
     )
     .expect("the forward crossing is exact");
 
@@ -1196,7 +1204,7 @@ fn boundary_step_survives_an_irrational_crossing() {
         &direction,
         &hessian_interior,
         &hessian_direction,
-        3.0,
+        d_positive!(3.0),
     )
     .expect("the crossing passes both norm gates");
 
@@ -1216,12 +1224,15 @@ fn boundary_step_rejects_a_non_interior_iterate() {
 
     let on_boundary = flat(&[(0, 4.0)]);
     assert_eq!(
-        boundary_step(&on_boundary, &direction, &zero, &zero, 4.0),
+        boundary_step(&on_boundary, &direction, &zero, &zero, d_positive!(4.0)),
         None,
     );
 
     let beyond = flat(&[(0, 8.0)]);
-    assert_eq!(boundary_step(&beyond, &direction, &zero, &zero, 4.0), None,);
+    assert_eq!(
+        boundary_step(&beyond, &direction, &zero, &zero, d_positive!(4.0)),
+        None,
+    );
 }
 
 /// A zero direction violates `a > 0` and constructs nothing.
@@ -1230,7 +1241,10 @@ fn boundary_step_rejects_a_zero_direction() {
     let interior = flat(&[(0, 1.0)]);
     let zero = flat(&[]);
 
-    assert_eq!(boundary_step(&interior, &zero, &zero, &zero, 4.0), None,);
+    assert_eq!(
+        boundary_step(&interior, &zero, &zero, &zero, d_positive!(4.0)),
+        None,
+    );
 }
 
 /// The boundary construction rejects an overflowing radius normalization before any coefficient
@@ -1242,7 +1256,7 @@ fn boundary_step_rejects_a_non_finite_normalization() {
     let zero = flat(&[]);
 
     assert_eq!(
-        boundary_step(&interior, &direction, &zero, &zero, 0.5),
+        boundary_step(&interior, &direction, &zero, &zero, d_positive!(0.5)),
         None,
     );
 }
@@ -1261,7 +1275,7 @@ fn boundary_step_rejects_an_overflowing_hessian_extension() {
             &direction,
             &hessian_interior,
             &hessian_direction,
-            4.0,
+            d_positive!(4.0),
         ),
         None,
     );
@@ -1273,15 +1287,15 @@ fn boundary_revalidation_rejects_a_subnormal_rescaling() {
     let zero = flat(&[]);
     // 2⁻¹⁰⁴⁰: a subnormal radius whose rescaled step components quantize on the 2⁻¹⁰⁷⁴ grid,
     // mangling the returned geometry by ~2⁻²⁸ relative - far outside the gross-defect guard.
-    let radius = f64::from_bits(1_u64 << 34);
+    let radius = DPositive::new(f64::from_bits(1_u64 << 34)).expect("the subnormal is positive");
     let mut direction = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
-    direction.as_array_mut().fill(radius);
+    direction.as_array_mut().fill(f64::from(radius));
 
     // The same geometry at radius one passes both gates: the normalized crossing itself is
     // sound, so a rejection below can only come from the rescaling revalidation.
     let mut unit_direction = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     unit_direction.as_array_mut().fill(1.0);
-    boundary_step(&zero, &unit_direction, &zero, &zero, 1.0)
+    boundary_step(&zero, &unit_direction, &zero, &zero, d_positive!(1.0))
         .expect("the crossing is sound at a unit radius");
 
     assert_eq!(boundary_step(&zero, &direction, &zero, &zero, radius), None,);
@@ -1318,7 +1332,11 @@ fn spiked_dense(norm: f64, phase: f64) -> BoxedDVecN<SOLVER_DIMENSIONS> {
         let scale = if index < 2 { 1.0 } else { 1.0e-3 };
         *component = dense_component(index, phase) * scale;
     }
-    let current = stable_l2(&vector).expect("the dense fill is finite");
+    let current = vector
+        .checked_stable_l2()
+        .expect("the dense fill is finite")
+        .positive()
+        .expect("the dense fill has a positive norm");
     *vector *= norm / current;
     vector
 }
@@ -1362,10 +1380,10 @@ fn boundary_construction_replica(
     let normalized_interior = normalize(interior)?;
     let normalized_direction = normalize(direction)?;
 
-    let quadratic = checked_norm_squared(&normalized_direction)?;
-    let linear = 2.0 * checked_dot(&normalized_interior, &normalized_direction)?;
-    let constant = checked_norm_squared(&normalized_interior)? - 1.0;
-    if !linear.is_finite() || quadratic <= 0.0 || constant >= 0.0 {
+    let quadratic = normalized_direction.checked_norm_squared()?.positive()?;
+    let linear = 2.0 * normalized_interior.checked_dot(&normalized_direction)?;
+    let constant = normalized_interior.checked_norm_squared()? - 1.0;
+    if !linear.is_finite() || constant >= 0.0 {
         return None;
     }
     let discriminant = linear.mul_add(linear, -4.0 * quadratic * constant);
@@ -1381,13 +1399,13 @@ fn boundary_construction_replica(
         .find(|tau| tau.is_finite() && *tau > 0.0)?;
 
     let boundary = flat_vectors::advance(&normalized_interior, crossing, &normalized_direction);
-    let norm = stable_l2(&boundary)?;
+    let norm = boundary.checked_stable_l2()?;
     let built = (norm - 1.0).abs() / f64::EPSILON;
 
     let mut step = boundary;
     *step *= radius;
     let returned = normalize(&step)?;
-    let returned_norm = stable_l2(&returned)?;
+    let returned_norm = returned.checked_stable_l2()?;
     let returned_ulps = (returned_norm - 1.0).abs() / f64::EPSILON;
     Some((step, built, returned_ulps))
 }
@@ -1400,7 +1418,7 @@ fn boundary_construction_replica(
 /// residuals describe exactly the arithmetic that produced the admitted step.
 #[test]
 fn boundary_step_admits_the_dense_crossing_and_ties_its_replica() {
-    let radius = 0.7;
+    let radius = d_positive!(0.7);
     let interior = spiked_dense(0.9392 * radius, 0.6);
     let direction = spiked_dense(3.404 * radius, 0.275);
     let hessian_interior = spiked_dense(0.5, 0.7);
@@ -1408,7 +1426,7 @@ fn boundary_step_admits_the_dense_crossing_and_ties_its_replica() {
 
     let guard_ulps = GROSS_DEFECT_GUARD / f64::EPSILON;
     let (replica_step, built, returned) =
-        boundary_construction_replica(&interior, &direction, radius)
+        boundary_construction_replica(&interior, &direction, f64::from(radius))
             .expect("the dense crossing constructs");
     assert!(built < guard_ulps, "built residual {built} ulp");
     assert!(returned < guard_ulps, "returned residual {returned} ulp");
@@ -1430,7 +1448,7 @@ fn boundary_step_admits_the_dense_crossing_and_ties_its_replica() {
     // The independent reference agrees on the regime: the deviation is geometric, not an
     // artifact of the measuring fold.
     let mut normalized = admitted.step;
-    *normalized /= radius;
+    *normalized /= f64::from(radius);
     let reference = (compensated_l2(normalized.as_array()) - 1.0).abs() / f64::EPSILON;
     assert!(
         reference < guard_ulps,
@@ -1470,11 +1488,13 @@ fn the_gross_defect_guard_rejects_a_collapsed_discriminant() {
 
     let collapsed = -1.2 / (2.0 * 2.0);
     let step = flat_vectors::advance(&interior, collapsed, &direction);
-    let norm = stable_l2(&step).expect("the defective step is finite");
+    let norm = step
+        .checked_stable_l2()
+        .expect("the defective step is finite");
     assert!((norm - 1.0).abs() > GROSS_DEFECT_GUARD);
 
     // The honest construction of the same crossing passes both guard checks.
-    boundary_step(&interior, &direction, &zero, &zero, 1.0)
+    boundary_step(&interior, &direction, &zero, &zero, d_positive!(1.0))
         .expect("the honest crossing constructs");
 }
 
@@ -1497,7 +1517,9 @@ fn the_gross_defect_guard_rejects_a_coefficient_defect() {
     );
 
     let step = flat_vectors::advance(&interior, tau, &direction);
-    let norm = stable_l2(&step).expect("the defective step is finite");
+    let norm = step
+        .checked_stable_l2()
+        .expect("the defective step is finite");
     assert!((norm - 1.0).abs() > GROSS_DEFECT_GUARD);
 }
 
@@ -1615,11 +1637,14 @@ fn solve_converges_on_the_fixture_corpus() {
     // gradient satisfies it.
     let evidence = run.certificate.expect("the threshold was derived");
     assert_eq!(
-        Some(evidence.gradient_threshold),
+        evidence.gradient_threshold,
         config.gradient_threshold(evidence.initial_gradient_norm),
     );
-    let final_norm =
-        stable_l2(&converged.point.scaled_gradient).expect("the certified gradient is finite");
+    let final_norm = converged
+        .point
+        .scaled_gradient
+        .checked_stable_l2()
+        .expect("the certified gradient is finite");
     assert!(final_norm <= evidence.gradient_threshold);
 
     // One receipt per started outer iteration, and the first one snapshots the origin.
@@ -1713,8 +1738,7 @@ fn solve_certificate_tie_returns_at_equality() {
     let tie = run_solver(
         &corpus,
         SolverConfig {
-            absolute_scaled_gradient_tolerance: DNonNegative::new(initial_norm)
-                .expect("the fixture norm is finite and non-negative"),
+            absolute_scaled_gradient_tolerance: initial_norm,
             relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
             ..solver_config()
         },
@@ -1953,25 +1977,17 @@ fn receipt_domain_tag_and_dimension_are_the_exact_digest_prefix() {
     assert_eq!(hasher.finalize(), vector_digest(&vector));
 }
 
-/// A `None` threshold maps onto the typed `GradientThresholdOverflow` failure.
+/// The certificate pins the initial norm and its derived threshold; the norm's domain makes the
+/// derivation total.
 #[test]
-fn derive_certificate_maps_none_onto_threshold_overflow() {
+fn derive_certificate_pins_the_threshold_formula() {
     let config = solver_config();
 
-    assert_eq!(
-        derive_certificate(&config, f64::NAN),
-        Err(SolverFailure::GradientThresholdOverflow),
-    );
-    assert_eq!(
-        derive_certificate(&config, f64::INFINITY),
-        Err(SolverFailure::GradientThresholdOverflow),
-    );
-
-    let evidence = derive_certificate(&config, 8.0).expect("a finite norm derives");
+    let evidence = derive_certificate(&config, d_non_negative!(8.0));
     assert_eq!(evidence.initial_gradient_norm, 8.0);
     assert_eq!(
-        Some(evidence.gradient_threshold),
-        config.gradient_threshold(8.0),
+        evidence.gradient_threshold,
+        config.gradient_threshold(d_non_negative!(8.0)),
     );
 }
 
@@ -2000,7 +2016,9 @@ fn certify_reproves_the_certificate_freshly() {
     let (objective, scaled_gradient) = problem
         .joint(&point, &mut counters)
         .expect("the origin request is finite");
-    let norm = stable_l2(&scaled_gradient).expect("the origin gradient is finite");
+    let norm = scaled_gradient
+        .checked_stable_l2()
+        .expect("the origin gradient is finite");
     let accepted = AcceptedPoint {
         zeta: origin,
         objective,
@@ -2009,19 +2027,24 @@ fn certify_reproves_the_certificate_freshly() {
 
     // A threshold below the true norm fails the fresh certificate by name.
     let mut control = SolverControl {
-        radius: 1.0,
+        radius: d_positive!(1.0),
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
     };
     assert_matches!(
-        certify(&problem, &accepted, &mut control, norm / 2.0),
+        certify(
+            &problem,
+            &accepted,
+            &mut control,
+            open_unit_fraction!(0.5) * norm
+        ),
         Err(SolverFailure::FinalCertificateMismatch),
     );
 
     // A threshold at the true norm certifies, and the fresh evaluation reproduces the bytes.
     let mut passing = SolverControl {
-        radius: 1.0,
+        radius: d_positive!(1.0),
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
@@ -2038,7 +2061,7 @@ fn certify_reproves_the_certificate_freshly() {
         scaled_gradient: BoxedDVecN::zero(),
     };
     let mut non_finite = SolverControl {
-        radius: 1.0,
+        radius: d_positive!(1.0),
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
@@ -2058,7 +2081,7 @@ fn rejected_clips_to_the_minimum_then_underflows_with_one_clipped_attempt() {
         ..solver_config()
     };
     let mut control = SolverControl {
-        radius: 1.0,
+        radius: d_positive!(1.0),
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters: WorkCounters::default(),
@@ -2201,7 +2224,7 @@ fn newton_at_origin(
     )
     .expect("the witness corpus prepares");
     let gram = Gram::assemble(corpus.embeddings(), &mut counters);
-    let radius = config.radius_initial.get();
+    let radius = config.radius_initial;
     let problem = ScaledProblem {
         prepared,
         gram: GramView::full(&gram),
@@ -2300,8 +2323,11 @@ fn newton_step_crosses_the_steepest_boundary_on_a_small_radius() {
     );
 
     // The returned payload satisfies the gross-defect guard the construction applied.
-    let step_norm = stable_l2(outcome.step()).expect("the boundary step is finite");
-    assert!((step_norm / radius - 1.0).abs() <= GROSS_DEFECT_GUARD);
+    let step_norm = outcome
+        .step()
+        .checked_stable_l2()
+        .expect("the boundary step is finite");
+    assert!((step_norm.get() / radius - 1.0).abs() <= GROSS_DEFECT_GUARD);
     assert!(outcome.hessian_step().is_finite());
 }
 
@@ -2320,12 +2346,11 @@ fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
     };
 
     let (outcome, _, _) = newton_at_origin(&corpus, wide);
-    let newton_norm = stable_l2(
-        outcome
-            .expect("the wide radius keeps the Newton point interior")
-            .step(),
-    )
-    .expect("the Newton step is finite");
+    let newton_norm = outcome
+        .expect("the wide radius keeps the Newton point interior")
+        .step()
+        .checked_stable_l2()
+        .expect("the Newton step is finite");
 
     // The Cauchy length `(g·g / g·Hg)·‖g‖` from the oracle at the origin.
     let mut counters = WorkCounters::default();
@@ -2349,9 +2374,17 @@ fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
     let hessian_gradient = problem
         .hessian_vector(&point, &gradient, &mut counters)
         .expect("the origin product is finite");
-    let gradient_square = checked_norm_squared(&gradient).expect("the gradient is finite");
-    let curvature = checked_dot(&gradient, &hessian_gradient).expect("the curvature is finite");
-    let gradient_norm = stable_l2(&gradient).expect("the gradient is finite");
+    let gradient_square = gradient
+        .checked_norm_squared()
+        .expect("the gradient is finite");
+    let curvature = gradient
+        .checked_dot(&hessian_gradient)
+        .expect("the curvature is finite")
+        .positive()
+        .expect("the fixture curvature is positive");
+    let gradient_norm = gradient
+        .checked_stable_l2()
+        .expect("the gradient is finite");
     let cauchy_norm = gradient_square / curvature * gradient_norm;
 
     // The dogleg premise of the witness: the fixture's Cauchy point sits strictly inside the
@@ -2361,7 +2394,7 @@ fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
         "the fixture separates the dogleg legs (cauchy {cauchy_norm:e}, newton {newton_norm:e})",
     );
 
-    let radius = f64::midpoint(cauchy_norm, newton_norm);
+    let radius = f64::midpoint(cauchy_norm.get(), newton_norm.get());
     let between = SolverConfig {
         radius_initial: DPositive::new(radius).expect("the measured radius is positive"),
         radius_maximum: d_positive!(1.0e4),
@@ -2378,8 +2411,11 @@ fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
     assert_eq!(counters.hvp_requests, baseline.hvp_requests + 2);
 
     // The returned payload satisfies the gross-defect guard the construction applied.
-    let step_norm = stable_l2(outcome.step()).expect("the boundary step is finite");
-    assert!((step_norm / radius - 1.0).abs() <= GROSS_DEFECT_GUARD);
+    let step_norm = outcome
+        .step()
+        .checked_stable_l2()
+        .expect("the boundary step is finite");
+    assert!((step_norm.get() / radius - 1.0).abs() <= GROSS_DEFECT_GUARD);
     assert!(outcome.hessian_step().is_finite());
 }
 
@@ -2425,7 +2461,7 @@ fn newton_step_survives_saturated_rows() {
         .expect("the saturated point evaluates finitely");
 
     let mut control = SolverControl {
-        radius: config.radius_initial.get(),
+        radius: config.radius_initial,
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,

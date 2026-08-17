@@ -8,7 +8,10 @@
 //!
 //! Everything here is deterministic bounded work. Arithmetic visits rows in ascending original
 //! index and classes in discriminant order, no step uses randomness, and explicit counters charge
-//! every row traversal.
+//! every row traversal. Every reduction whose value steers a branch goes through the checked
+//! vector reductions ([`AlignedDVecN::checked_dot`], [`AlignedDVecN::checked_norm_squared`], and
+//! [`AlignedDVecN::checked_stable_l2`]), so an overflow or NaN never steers a control decision,
+//! and each call site maps [`None`] onto its own typed failure.
 //!
 //! # Coordinates and vector layout
 //!
@@ -39,7 +42,6 @@ pub(crate) mod report;
 mod resolution;
 mod scale;
 mod solve;
-mod stable;
 mod target;
 mod terminal;
 mod work;

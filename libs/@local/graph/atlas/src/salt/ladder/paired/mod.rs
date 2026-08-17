@@ -30,6 +30,12 @@ mod movement;
 // The lib consumes the sibling modules inside this module only, so these re-exports are the
 // module's whole production API. The test-gated names are the inputs of the two external
 // acceptance suites: the fit writer's replay assertions and the salt document's wire pins.
+// The projector's evidence reading shares the aggregate family, so its gauge displacement
+// quantiles keep the control evidence's exact shape by construction.
 #[cfg(test)]
 pub(crate) use self::{census::Draw, evidence::MovementOutcome, identity::RuleIdentity};
-pub(crate) use self::{evidence::PairedMovementEvidence, identity::EncodeError, measure::measure};
+pub(crate) use self::{
+    evidence::{MovementAggregate, PairedMovementEvidence},
+    identity::EncodeError,
+    measure::measure,
+};

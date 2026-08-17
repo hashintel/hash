@@ -18,7 +18,7 @@ use zerocopy::IntoBytes as _;
 use super::{SOLVER_DIMENSIONS, newton::NewtonTag, work::WorkCounters};
 use crate::{
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::AlignedDVecN,
+    math::{AlignedDVecN, DFinite, DNonNegative, DPositive},
 };
 
 /// Whether a solve stores diagnostic receipts.
@@ -49,11 +49,13 @@ pub(crate) struct OuterReceipt {
     /// One-based index of the started outer iteration.
     pub outer_iteration: u64,
     /// Trust radius entering the iteration.
-    pub radius: f64,
+    pub radius: DPositive,
     /// Accepted objective entering the iteration.
+    // Raw on purpose: the first outer iteration after an admitted non-finite origin objective
+    // records the admission honestly.
     pub objective: f64,
     /// Accepted scaled-gradient norm entering the iteration.
-    pub gradient_norm: f64,
+    pub gradient_norm: DNonNegative,
     /// SHA-256 digests of the accepted start state.
     pub digests: StartDigests,
     /// Counter snapshot at emission.
@@ -81,9 +83,9 @@ pub(crate) enum CurvatureDiagnostic {
     /// The accepted-step curvature, given as the dot `p·y` and its normalization `(p·y) / (p·p)`.
     Value {
         /// The dot `p·y` with `y = g_trial − g`.
-        along: f64,
+        along: DFinite,
         /// The normalized curvature `(p·y) / (p·p)`.
-        normalized: f64,
+        normalized: DFinite,
     },
     /// The gradient difference `y` had a non-finite component.
     NonFiniteDifference,
@@ -106,21 +108,21 @@ pub(crate) struct OuterOutcome {
     pub tag: Option<NewtonTag>,
     /// The relative Newton residual `‖Hζ·p_N + gζ‖/‖gζ‖` of the priced Newton point: the per-outer
     /// certificate of the factorization against the oracle.
-    pub newton_residual: Option<f64>,
+    pub newton_residual: Option<DNonNegative>,
     /// Norm of the returned step `‖p‖`.
-    pub step_norm: Option<f64>,
+    pub step_norm: Option<DNonNegative>,
     /// Norm of the returned product `‖Hp‖`.
-    pub hessian_step_norm: Option<f64>,
+    pub hessian_step_norm: Option<DNonNegative>,
     /// The dot `g·p` of the accepted gradient with the step.
-    pub gradient_step: Option<f64>,
+    pub gradient_step: Option<DFinite>,
     /// The dot `p·Hp` of the step with its product.
-    pub step_curvature: Option<f64>,
+    pub step_curvature: Option<DFinite>,
     /// The predicted model reduction `−g·p − ½·p·Hp`.
-    pub predicted_reduction: Option<f64>,
+    pub predicted_reduction: Option<DFinite>,
     /// The actual reduction `F̄ − F̄_trial`.
-    pub actual_reduction: Option<f64>,
+    pub actual_reduction: Option<DFinite>,
     /// The acceptance ratio `ρ`.
-    pub ratio: Option<f64>,
+    pub ratio: Option<DFinite>,
     /// The candidate classification.
     pub candidate: Option<CandidateOutcome>,
     /// The accepted-step curvature diagnostic.

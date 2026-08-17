@@ -27,6 +27,8 @@ mod tests;
 use alloc::collections::BinaryHeap;
 use core::{error::Error, fmt};
 
+use hashql_core::id::Id;
+
 use super::identity::{DrawRule, DrawSalt};
 use crate::{
     bitset::DenseBitSlice,
@@ -46,7 +48,7 @@ pub(super) const SAMPLE_CAP: usize = 72_555;
 
 /// The index contradiction the census refused.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum CensusError {
+pub(crate) enum CensusError<I> {
     /// A group's edge range contradicts the edge region.
     GroupRange {
         /// The group's position in the group region.
@@ -64,13 +66,16 @@ pub(crate) enum CensusError {
         /// The edge's position in the edge region.
         edge: u64,
         /// The named row.
-        row: u64,
+        row: I,
         /// The corpus row count.
         rows: u64,
     },
 }
 
-impl fmt::Display for CensusError {
+impl<I> fmt::Display for CensusError<I>
+where
+    I: Id,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::GroupRange {
@@ -90,7 +95,7 @@ impl fmt::Display for CensusError {
     }
 }
 
-impl Error for CensusError {}
+impl<I> Error for CensusError<I> where I: Id {}
 
 /// One oriented candidate pair, the source row and then the target row.
 ///
@@ -141,7 +146,7 @@ impl Draw {
         rows: u64,
         groups: &[GroupRecord],
         edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
-    ) -> Result<Self, CensusError> {
+    ) -> Result<Self, CensusError<NodeRowId>> {
         let ranges = edge_ranges(groups, edges)?;
 
         for (index, record) in edges.iter().enumerate() {
@@ -149,7 +154,7 @@ impl Draw {
                 if u64::from(row) >= rows {
                     return Err(CensusError::Endpoint {
                         edge: index as u64,
-                        row: u64::from(row),
+                        row,
                         rows,
                     });
                 }
@@ -291,7 +296,7 @@ pub(super) fn participants(
 fn edge_ranges(
     groups: &[GroupRecord],
     edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
-) -> Result<Vec<(usize, usize)>, CensusError> {
+) -> Result<Vec<(usize, usize)>, CensusError<NodeRowId>> {
     let edge_count = edges.len() as u64;
     let mut ranges = Vec::with_capacity(groups.len());
     for (group, record) in groups.iter().enumerate() {

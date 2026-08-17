@@ -338,7 +338,7 @@ impl Placer {
             max_error = max_error.max(error);
         }
 
-        if max_error < CERTIFICATE_TOLERANCE {
+        if max_error < f64::from(CERTIFICATE_TOLERANCE) {
             tracing::info!(
                 samples = width,
                 rows,
@@ -351,7 +351,7 @@ impl Placer {
                 samples = width,
                 rows,
                 max_error,
-                tolerance = CERTIFICATE_TOLERANCE,
+                tolerance = %CERTIFICATE_TOLERANCE,
                 "the online projection does not reproduce the published coordinates"
             );
             false

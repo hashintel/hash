@@ -9,11 +9,41 @@
 //! guards [`Finite`] and [`DFinite`] for signed quantities, all validated once at construction and
 //! carried by configuration knobs and measured shares alike. Vector reductions such as softmax and
 //! log-sum-exp live on [`DVecN`](super::DVecN).
+//!
+//! # Precision ownership
+//!
+//! The family carries every domain in two widths, and which width a value takes is decided by the
+//! stage that owns it rather than field by field.
+//!
+//! The tensor stage computes in `f32`, so every reading born there is `f32` at birth: frozen
+//! model state, band radii, activations, coefficients. No value derived from such a reading can
+//! claim more accuracy than its birth allows. Derivation owns `f64`: a computation over readings
+//! widens exactly at its first touch of an `f32`-born value and accumulates in double width for
+//! headroom. It never narrows mid-expression.
+//!
+//! Storage width follows the value's real accuracy. A summary a derivation computes once, such as
+//! a receipt, a certificate or a report statistic, keeps double width in the `D`-prefixed types,
+//! because narrowing a singleton loses bits with no volume to pay for them. A bulk per-item
+//! reading, such as an estimand vector or a step contribution, travels as `f32`, because its
+//! accuracy is already `f32`-bounded at birth and the item count pays for the width. A mean over n
+//! readings gains accuracy like √n, so a per-item average earns double width where a per-item
+//! reading does not.
+//!
+//! Fractions always store double width. The unit interval needs no range headroom, so the extra
+//! width spends entirely on precision, and fraction meaning concentrates at the endpoints, where
+//! the nearest `f32` below `1.0` sits `6e-8` away and a fraction such as `1 - 1e-9` rounds to
+//! exactly `1.0`. A ratio of exact counts carries full double-width accuracy besides. The family
+//! therefore has no `f32` fraction type.
+//!
+//! Narrowing is lawful at the tensor entry and at the writing of a bulk record, and nowhere else.
+//! `narrow_lossy` names those sites in code. A narrow followed by a widen loses bits that no
+//! destination asked for, and is a defect wherever it appears.
 mod d_non_negative;
 mod d_positive;
 mod finite;
 mod greater_than_one;
 mod log2;
+mod negative;
 mod non_negative;
 mod open_unit_fraction;
 mod positive;
@@ -33,6 +63,7 @@ pub(crate) use greater_than_one::GreaterThanOne;
 #[cfg(test)]
 pub(crate) use greater_than_one::greater_than_one;
 pub(crate) use log2::Log2;
+pub(crate) use negative::Negative;
 pub(crate) use non_negative::{NonNegative, non_negative};
 pub(crate) use open_unit_fraction::{OpenUnitFraction, open_unit_fraction};
 pub(crate) use positive::{Positive, positive};

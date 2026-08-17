@@ -11,9 +11,9 @@
 //! `instructions`, `cycles`, `branch-mispredictions`, `l1d-cache-misses`, `backend-stalls` (cycles
 //! the scheduler issued nothing because execution was waiting, the direct view of dependency-chain
 //! latency), and `simd-instructions` (retired vector ALU operations, loop scaffolding filtered
-//! out); `wall-time` selects criterion's default wall-clock measurement instead, which needs no
+//! out). `wall-time` selects criterion's default wall-clock measurement instead, and it needs no
 //! elevated privileges. A list containing any other event runs under sudo. Instruction counts are
-//! stable across runs but blind to instruction-level parallelism; confirm a winner in `cycles`
+//! stable across runs but blind to instruction-level parallelism, so confirm a winner in `cycles`
 //! before acting on close calls, and weigh instruction counts higher for kernels that run fused
 //! inside larger loops, where issue slots are the shared resource.
 //!
@@ -105,7 +105,7 @@ fn bench_affinity<M: Measurement + 'static>(criterion: &mut Criterion<M>, event:
 
 /// Scalar-libm baselines for the gradient kernels' `pow` composition.
 ///
-/// The affinity gradients need `d^(2b)` for four lanes with a shared exponent; gradients tolerate a
+/// The affinity gradients need `d^(2b)` for four lanes with a shared exponent, and they tolerate a
 /// few ulps. The production choice is the vendored `exp2(p * log2(d))` composition (measured as
 /// `kernel/pow_f32x4`); these entries keep its scalar-libm alternative measured in the same
 /// isolated and fused-in-coefficient forms.
@@ -163,7 +163,7 @@ fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>, event: &st
 
 /// The production wrappers over the vendored SLEEF kernels.
 ///
-/// Each entry measures a wrapper exactly as production calls it; the saved per-event baselines make
+/// Each entry measures a wrapper exactly as production calls it. The saved per-event baselines make
 /// a rewrite of the vendored kernels visible as an instruction-count or cycle change run over run.
 fn bench_kernels<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     use core::simd::{Simd, f32x4, f32x8, f64x4};
@@ -299,6 +299,32 @@ fn hardware_counter(event: &str) -> Criterion<darwin_kperf_criterion::HardwareCo
         .sample_size(20)
 }
 
+/// The finiteness scan's serial ordering against both parallel forms.
+///
+/// The production serial scan runs beside rayon's per-point search for the first non-finite
+/// point and beside a chunked distribution of the serial scan's own batch predicate, over
+/// representative row counts. The parallel entries under-report every hardware counter
+/// (workers' counts are invisible to the calling thread), so `wall-time` is the honest event
+/// for this comparison.
+fn bench_finite_scan<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
+    let mut group = criterion.benchmark_group(format!("finite_scan@{event}"));
+    for exponent in [12_u32, 14, 16, 18, 20] {
+        let rows = 1_usize << exponent;
+        let field = math::finite_field(rows);
+        group.throughput(Throughput::Elements(rows as u64));
+        group.bench_function(format!("serial/{rows}"), |bencher| {
+            bencher.iter(|| math::finite_scan_serial(black_box(&field)));
+        });
+        group.bench_function(format!("per_point/{rows}"), |bencher| {
+            bencher.iter(|| math::finite_scan_per_point(black_box(&field)));
+        });
+        group.bench_function(format!("chunked/{rows}"), |bencher| {
+            bencher.iter(|| math::finite_scan_chunked(black_box(&field)));
+        });
+    }
+    group.finish();
+}
+
 /// Runs every group under `criterion`, with `event` suffixed into each benchmark id.
 ///
 /// The suffix keeps every measurement's statistics in its own lineage: benchmark ids are
@@ -313,6 +339,7 @@ fn run_benches<M: Measurement + 'static>(criterion: &mut Criterion<M>, event: &s
     bench_bounds(criterion, event);
     bench_similarity_fit(criterion, event);
     bench_dvecn(criterion, event);
+    bench_finite_scan(criterion, event);
 }
 
 /// Runs the suite once under a single measurement.

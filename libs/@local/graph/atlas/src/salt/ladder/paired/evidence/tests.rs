@@ -277,7 +277,7 @@ fn control_deciles_share_tied_boundaries_and_vanish_without_candidates() {
 #[test]
 fn failure_reasons_mirror_their_producers() {
     assert_eq!(
-        FailureReason::from(CensusError::GroupRange {
+        FailureReason::from(CensusError::<NodeRowId>::GroupRange {
             group: 3,
             start: 9,
             end: 7,
@@ -314,20 +314,20 @@ fn failure_reasons_mirror_their_producers() {
     );
     assert_eq!(
         FailureReason::from(MovementError::Zero(NonFinitePoint {
-            row: NodeRowId::new(7),
+            id: NodeRowId::new(7),
         })),
         FailureReason::NonFinitePoint {
             rung: Rung::Zero,
-            row: 7,
+            row: NodeRowId::new(7),
         },
     );
     assert_eq!(
         FailureReason::from(MovementError::Canonical(NonFinitePoint {
-            row: NodeRowId::new(9),
+            id: NodeRowId::new(9),
         })),
         FailureReason::NonFinitePoint {
             rung: Rung::Canonical,
-            row: 9,
+            row: NodeRowId::new(9),
         },
     );
 }
@@ -361,7 +361,8 @@ fn vacuous_bodies_serialize_the_persisted_shape() {
         }),
     );
     assert_eq!(
-        serde_json::from_value::<PairedMovementEvidence>(value).expect("the body reads back"),
+        serde_json::from_value::<PairedMovementEvidence<NodeRowId>>(value)
+            .expect("the body reads back"),
         vacuous,
     );
 }
@@ -455,7 +456,8 @@ fn measured_bodies_serialize_the_persisted_shape() {
         "an absent family reads null, never a numeric zero",
     );
     assert_eq!(
-        serde_json::from_value::<PairedMovementEvidence>(value).expect("the body reads back"),
+        serde_json::from_value::<PairedMovementEvidence<NodeRowId>>(value)
+            .expect("the body reads back"),
         measured,
     );
 }
@@ -475,7 +477,7 @@ fn failed_bodies_serialize_the_persisted_shape() {
         outcome: MovementOutcome::Failed {
             reason: FailureReason::NonFinitePoint {
                 rung: Rung::Zero,
-                row: 7,
+                row: NodeRowId::new(7),
             },
         },
     };
@@ -499,7 +501,8 @@ fn failed_bodies_serialize_the_persisted_shape() {
         }),
     );
     assert_eq!(
-        serde_json::from_value::<PairedMovementEvidence>(value).expect("the body reads back"),
+        serde_json::from_value::<PairedMovementEvidence<NodeRowId>>(value)
+            .expect("the body reads back"),
         failed,
     );
 }

@@ -18,7 +18,7 @@ use crate::{
     file::generation::GenerationRoot,
     identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN, positive},
     progress::{NoProgress, Progress},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
@@ -220,7 +220,8 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
                 maximum_count: NonZero::new(8).expect("the fixture capacity is nonzero"),
                 ..
             },
-            curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
+            curve: AffinityCurve::fit(positive!(1.0), positive!(0.1))
+                .expect("the reference falloff is well-conditioned"),
             neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
             // The runner fixtures probe the run protocol, not the
             // placement: they opt out of the default's training run.

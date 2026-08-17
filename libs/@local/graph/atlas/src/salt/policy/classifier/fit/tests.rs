@@ -424,8 +424,8 @@ fn applicability_matches_hand_computed_values() {
     // agree: √(scale^2 / dimensions).
     let expected_distance = (expected_scales.0 * expected_scales.0 / 3072.0).sqrt();
     assert_eq!(fitted.distances.len(), 2);
-    for distance in &fitted.distances {
-        assert!((distance - expected_distance).abs() <= 1.0e-9 * expected_distance);
+    for &distance in &fitted.distances {
+        assert!((f64::from(distance) - expected_distance).abs() <= 1.0e-9 * expected_distance);
     }
 }
 

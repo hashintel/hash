@@ -15,7 +15,7 @@ use super::{
     AffinityFitConfig,
     fit::{SampleGrid, fit_curve},
 };
-use crate::math::{AffinityCurve, Vec2, Vec2x4T, tests::POINTS};
+use crate::math::{AffinityCurve, Positive, Vec2, Vec2x4T, d_positive, positive, tests::POINTS};
 
 /// The reference parameters for spread 1.0, minimum distance 0.1.
 // Provenance: umap-learn's `find_ab_params(spread=1.0, min_dist=0.1)`
@@ -111,7 +111,8 @@ const ANCHORS: [Vec2; 4] = [
 
 #[test]
 fn fit_reproduces_the_reference_parameters() {
-    let fitted = AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned");
+    let fitted = AffinityCurve::fit(positive!(1.0), positive!(0.1))
+        .expect("the reference inputs are well-conditioned");
 
     assert!(
         (fitted.a() - CURVE_A).abs() < 0.01,
@@ -130,7 +131,8 @@ fn fit_result_is_a_local_minimum_of_the_sampled_objective() {
     // Local-optimality certificate: the fitted parameters score at least
     // as well as every small perturbation on a grid around them, against
     // the same sampled objective recomputed independently in f64.
-    let fitted = AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned");
+    let fitted = AffinityCurve::fit(positive!(1.0), positive!(0.1))
+        .expect("the reference inputs are well-conditioned");
     let (curve_a, curve_b) = (f64::from(fitted.a()), f64::from(fitted.b()));
     let centre = reference_rss(1.0, 0.1, curve_a, curve_b);
 
@@ -159,7 +161,7 @@ fn fit_recovers_the_parameters_of_an_exact_affinity_target() {
     // the public API only exposes the exponential-falloff target, which
     // no affinity curve reproduces exactly.
     let (known_a, known_b) = (1.5_f64, 0.9_f64);
-    let grid = SampleGrid::new(300, 3.0 / 299.0);
+    let grid = SampleGrid::new(300, d_positive!(3.0 / 299.0));
 
     let (fitted_a, fitted_b) = fit_curve(grid, |distance| {
         1.0 / (1.0 + known_a * distance.powf(2.0 * known_b))
@@ -167,11 +169,11 @@ fn fit_recovers_the_parameters_of_an_exact_affinity_target() {
     .expect("an exact affinity target is well-conditioned");
 
     assert!(
-        (fitted_a - known_a).abs() < 1e-6 * known_a,
+        (f64::from(fitted_a) - known_a).abs() < 1e-6 * known_a,
         "expected a to recover {known_a}, got {fitted_a}",
     );
     assert!(
-        (fitted_b - known_b).abs() < 1e-6 * known_b,
+        (f64::from(fitted_b) - known_b).abs() < 1e-6 * known_b,
         "expected b to recover {known_b}, got {fitted_b}",
     );
 }
@@ -182,10 +184,15 @@ fn fit_scales_equivariantly_with_distance() {
     // solution `(a, b)` to `(a · s^(-2b), b)` exactly, and
     // `fit(s · spread, s · minimum_distance)` samples the same target at
     // distances scaled by `s`.
-    let base = AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned");
+    let base = AffinityCurve::fit(positive!(1.0), positive!(0.1))
+        .expect("the reference inputs are well-conditioned");
 
     for scale in [0.5_f32, 2.0] {
-        let scaled = AffinityCurve::fit(scale, 0.1 * scale).expect("scaling preserves validity");
+        let scaled = AffinityCurve::fit(
+            Positive::new(scale).expect("the scale is positive"),
+            Positive::new(0.1 * scale).expect("the scaled distance is positive"),
+        )
+        .expect("scaling preserves validity");
 
         assert!(
             (scaled.b() - base.b()).abs() < 1e-4 * base.b(),
@@ -207,8 +214,11 @@ fn fit_scales_equivariantly_with_distance() {
 fn fitted_curve_tracks_its_target_falloff() {
     let spread = 2.0_f32;
     let minimum_distance = 0.5_f32;
-    let fitted =
-        AffinityCurve::fit(spread, minimum_distance).expect("the inputs are well-conditioned");
+    let fitted = AffinityCurve::fit(
+        Positive::new(spread).expect("the spread is positive"),
+        Positive::new(minimum_distance).expect("the distance is positive"),
+    )
+    .expect("the inputs are well-conditioned");
 
     // Inside the minimum distance the target membership is 1.
     assert_eq!(fitted.affinity(0.0), 1.0);
@@ -228,55 +238,58 @@ fn fitted_curve_tracks_its_target_falloff() {
 }
 
 #[test]
-fn fit_rejects_degenerate_inputs() {
-    // Degenerate spread values.
-    assert!(AffinityCurve::fit(0.0, 0.1).is_none());
-    assert!(AffinityCurve::fit(-1.0, 0.1).is_none());
-    assert!(AffinityCurve::fit(f32::NAN, 0.1).is_none());
-    assert!(AffinityCurve::fit(f32::INFINITY, 0.1).is_none());
-
-    // Degenerate minimum distances, including one beyond the spread.
-    assert!(AffinityCurve::fit(1.0, 0.0).is_none());
-    assert!(AffinityCurve::fit(1.0, -0.1).is_none());
-    assert!(AffinityCurve::fit(1.0, f32::NAN).is_none());
-    assert!(AffinityCurve::fit(1.0, f32::INFINITY).is_none());
-    assert!(AffinityCurve::fit(1.0, 2.0).is_none());
+fn fit_rejects_a_minimum_distance_beyond_the_spread() {
+    // The signature's `Positive` domain refuses non-finite and non-positive inputs before the
+    // fit sees them. The ordering between the two is the one refusal left to the fit itself.
+    assert!(AffinityCurve::fit(positive!(1.0), positive!(2.0)).is_none());
 }
 
 #[test]
 fn fit_with_rejects_degenerate_configs() {
-    // Too few samples for the two-parameter fit.
-    assert!(AffinityCurve::fit_with(1.0, 0.1, AffinityFitConfig { samples: 7, .. }).is_none());
-    assert!(AffinityCurve::fit_with(1.0, 0.1, AffinityFitConfig { samples: 0, .. }).is_none());
+    // Too few samples for the two-parameter fit. The range's `Positive` domain refuses a
+    // degenerate range at construction, so the sample floor is the config refusal left to the
+    // fit itself.
+    assert!(
+        AffinityCurve::fit_with(
+            positive!(1.0),
+            positive!(0.1),
+            AffinityFitConfig { samples: 7, .. }
+        )
+        .is_none()
+    );
+    assert!(
+        AffinityCurve::fit_with(
+            positive!(1.0),
+            positive!(0.1),
+            AffinityFitConfig { samples: 0, .. }
+        )
+        .is_none()
+    );
     // The fit accepts the documented lower bound itself.
-    assert!(AffinityCurve::fit_with(1.0, 0.1, AffinityFitConfig { samples: 8, .. }).is_some());
-
-    // Degenerate ranges.
-    for range_in_spreads in [0.0, -3.0, f32::NAN, f32::INFINITY] {
-        assert!(
-            AffinityCurve::fit_with(
-                1.0,
-                0.1,
-                AffinityFitConfig {
-                    range_in_spreads,
-                    ..
-                }
-            )
-            .is_none(),
-            "range {range_in_spreads} must be rejected",
-        );
-    }
+    assert!(
+        AffinityCurve::fit_with(
+            positive!(1.0),
+            positive!(0.1),
+            AffinityFitConfig { samples: 8, .. }
+        )
+        .is_some()
+    );
 }
 
 #[test]
 fn fit_is_stable_under_sample_refinement() {
     // Refining the discretization must not move the minimizer: the
     // sampled objective converges to its continuous limit.
-    let base = AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned");
+    let base = AffinityCurve::fit(positive!(1.0), positive!(0.1))
+        .expect("the reference inputs are well-conditioned");
 
     for samples in [600_u16, 1200] {
-        let refined = AffinityCurve::fit_with(1.0, 0.1, AffinityFitConfig { samples, .. })
-            .expect("refining the grid preserves conditioning");
+        let refined = AffinityCurve::fit_with(
+            positive!(1.0),
+            positive!(0.1),
+            AffinityFitConfig { samples, .. },
+        )
+        .expect("refining the grid preserves conditioning");
 
         assert!(
             (refined.a() - base.a()).abs() < 1e-2,
@@ -297,7 +310,7 @@ fn fit_is_stable_under_sample_refinement() {
 fn fit_accepts_a_minimum_distance_equal_to_the_spread() {
     // The documented domain excludes only `minimum_distance > spread`;
     // equality is the boundary case that stays inside.
-    assert!(AffinityCurve::fit(1.0, 1.0).is_some());
+    assert!(AffinityCurve::fit(positive!(1.0), positive!(1.0)).is_some());
 }
 
 #[test]
@@ -308,26 +321,31 @@ fn fit_with_divides_the_range_into_samples_minus_one_steps() {
     // the identical solver on identical inputs, so the results agree to
     // narrowing precision. A coarse eight-sample grid makes any spacing
     // drift orders of magnitude wider than the tolerance.
-    let fitted = AffinityCurve::fit_with(1.0, 0.1, AffinityFitConfig { samples: 8, .. })
-        .expect("eight samples meet the documented minimum");
+    let fitted = AffinityCurve::fit_with(
+        positive!(1.0),
+        positive!(0.1),
+        AffinityFitConfig { samples: 8, .. },
+    )
+    .expect("eight samples meet the documented minimum");
 
     let minimum_distance = f64::from(0.1_f32);
-    let (expected_a, expected_b) = fit_curve(SampleGrid::new(8, 3.0 / 7.0), |distance| {
-        if distance < minimum_distance {
-            1.0
-        } else {
-            (-(distance - minimum_distance)).exp()
-        }
-    })
-    .expect("the explicit reference grid is well-conditioned");
+    let (expected_a, expected_b) =
+        fit_curve(SampleGrid::new(8, d_positive!(3.0 / 7.0)), |distance| {
+            if distance < minimum_distance {
+                1.0
+            } else {
+                (-(distance - minimum_distance)).exp()
+            }
+        })
+        .expect("the explicit reference grid is well-conditioned");
 
     assert!(
-        (f64::from(fitted.a()) - expected_a).abs() < 1e-4 * expected_a,
+        (f64::from(fitted.a()) - f64::from(expected_a)).abs() < 1e-4 * f64::from(expected_a),
         "expected a near {expected_a}, got {}",
         fitted.a(),
     );
     assert!(
-        (f64::from(fitted.b()) - expected_b).abs() < 1e-4 * expected_b,
+        (f64::from(fitted.b()) - f64::from(expected_b)).abs() < 1e-4 * f64::from(expected_b),
         "expected b near {expected_b}, got {}",
         fitted.b(),
     );
@@ -341,7 +359,7 @@ fn solver_refuses_a_target_that_poisons_only_the_objective() {
     // finiteness gate is the only check standing between that poisoned
     // objective and a solver that converges happily on the remaining
     // samples.
-    let result = fit_curve(SampleGrid::new(300, 3.0 / 299.0), |distance| {
+    let result = fit_curve(SampleGrid::new(300, d_positive!(3.0 / 299.0)), |distance| {
         if distance == 0.0 {
             f64::NAN
         } else {
@@ -356,27 +374,13 @@ fn solver_refuses_a_target_that_poisons_only_the_objective() {
 }
 
 #[test]
-fn solver_keeps_parameters_strictly_positive() {
-    // A constant target above one rewards a negative `a`: the curve only
-    // exceeds one where `a · d^(2b)` is below zero. Each step out of the
-    // positive quadrant is a failed step, so whatever the solver returns
-    // (here it fails to converge) stays inside the domain `new` accepts.
-    let result = fit_curve(SampleGrid::new(300, 1.0 / 299.0), |_| 1.4);
-
-    assert!(
-        result.is_none_or(|(a, b)| a > 0.0 && b > 0.0),
-        "parameters left the positive domain: {result:?}",
-    );
-}
-
-#[test]
 fn solver_refuses_a_grid_that_cannot_move_the_exponent() {
     // With distance one as the only positive sample, `ln 1 = 0` zeroes
     // every `b`-partial: the normal matrix's `b` diagonal is exactly zero,
     // and multiplicative damping keeps it zero. The damped solve must
     // refuse the singular system at every retry rather than invent a step
     // from an additively repaired diagonal.
-    let result = fit_curve(SampleGrid::new(2, 1.0), |distance| {
+    let result = fit_curve(SampleGrid::new(2, d_positive!(1.0)), |distance| {
         if distance == 0.0 { 1.0 } else { 0.3 }
     });
 
@@ -393,17 +397,17 @@ fn solver_solves_a_well_conditioned_system_of_tiny_magnitudes() {
     // cancellation floor scales with the product of BOTH damped diagonals;
     // a floor divided by either diagonal inflates astronomically here and
     // refuses every step.
-    let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(4, 1e-5), |distance| {
+    let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(4, d_positive!(1e-5)), |distance| {
         1.0 / (1.0 + 2.0 * distance.powf(2.0))
     })
     .expect("a tiny well-conditioned grid still fits");
 
     assert!(
-        (fitted_a - 2.0).abs() < 2e-3,
+        (f64::from(fitted_a) - 2.0).abs() < 2e-3,
         "expected a to recover 2.0, got {fitted_a}",
     );
     assert!(
-        (fitted_b - 1.0).abs() < 1e-3,
+        (f64::from(fitted_b) - 1.0).abs() < 1e-3,
         "expected b to recover 1.0, got {fitted_b}",
     );
 }
@@ -417,17 +421,18 @@ fn fit_recovers_parameters_orders_of_magnitude_from_the_start() {
     // its own parameter. Flipping or rescaling any of those strands the
     // walk short of recovery.
     for known_a in [100.0, 1e8] {
-        let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(300, 3.0 / 299.0), |distance| {
-            1.0 / (1.0 + known_a * distance.powf(2.0))
-        })
-        .expect("an exact affinity target is well-conditioned");
+        let (fitted_a, fitted_b) =
+            fit_curve(SampleGrid::new(300, d_positive!(3.0 / 299.0)), |distance| {
+                1.0 / (1.0 + known_a * distance.powf(2.0))
+            })
+            .expect("an exact affinity target is well-conditioned");
 
         assert!(
-            (fitted_a - known_a).abs() < 1e-6 * known_a,
+            (f64::from(fitted_a) - known_a).abs() < 1e-6 * known_a,
             "expected a to recover {known_a}, got {fitted_a}",
         );
         assert!(
-            (fitted_b - 1.0).abs() < 1e-6,
+            (f64::from(fitted_b) - 1.0).abs() < 1e-6,
             "expected b to recover 1.0, got {fitted_b}",
         );
     }
@@ -441,12 +446,13 @@ fn solver_terminates_a_creep_along_the_domain_boundary() {
     // walk ends through the improvement difference falling under its
     // relative tolerance. Additive damping growth on domain rejections
     // and both broken improvement readings leave the creep unfinished.
-    let result = fit_curve(SampleGrid::new(300, 3.0 / 299.0), |distance| {
+    let result = fit_curve(SampleGrid::new(300, d_positive!(3.0 / 299.0)), |distance| {
         30.0 / (1.0 + 1.5 * distance.powf(1.8))
     });
 
+    // The returned parameters are positive by type. Convergence is the claim left to assert.
     assert!(
-        result.is_some_and(|(a, b)| a > 0.0 && b > 0.0),
+        result.is_some(),
         "the boundary creep must converge: {result:?}",
     );
 }
@@ -461,17 +467,17 @@ fn tiny_step_convergence_requires_both_parameters() {
     // recovers the target exactly.
     const TUNED_A: f64 = 0.931_322_701_934_099;
 
-    let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(12, 0.25), |distance| {
+    let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(12, d_positive!(0.25)), |distance| {
         1.0 / (1.0 + TUNED_A * distance.powf(6.0))
     })
     .expect("an exact affinity target is well-conditioned");
 
     assert!(
-        (fitted_a - TUNED_A).abs() < 1e-6 * TUNED_A,
+        (f64::from(fitted_a) - TUNED_A).abs() < 1e-6 * TUNED_A,
         "expected a to recover {TUNED_A}, got {fitted_a}",
     );
     assert!(
-        (fitted_b - 3.0).abs() < 3e-6,
+        (f64::from(fitted_b) - 3.0).abs() < 3e-6,
         "expected b to recover 3.0, got {fitted_b}",
     );
 }
@@ -483,17 +489,18 @@ fn solver_rescues_a_walk_whose_steps_worsen_the_objective() {
     // The rescue lives in the rejection damping growing multiplicatively:
     // sixteen additive bumps cap the damping near fifty, and the walk
     // never re-enters the acceptable region.
-    let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(50, 30.0 / 49.0), |distance| {
-        1.0 / (1.0 + 30.0 * distance.powf(60.0))
-    })
-    .expect("a steep exact target still fits");
+    let (fitted_a, fitted_b) =
+        fit_curve(SampleGrid::new(50, d_positive!(30.0 / 49.0)), |distance| {
+            1.0 / (1.0 + 30.0 * distance.powf(60.0))
+        })
+        .expect("a steep exact target still fits");
 
     assert!(
-        (fitted_a - 30.0).abs() < 1e-3 * 30.0,
+        (f64::from(fitted_a) - 30.0).abs() < 1e-3 * 30.0,
         "expected a to recover 30.0, got {fitted_a}",
     );
     assert!(
-        (fitted_b - 30.0).abs() < 1e-3 * 30.0,
+        (f64::from(fitted_b) - 30.0).abs() < 1e-3 * 30.0,
         "expected b to recover 30.0, got {fitted_b}",
     );
 }

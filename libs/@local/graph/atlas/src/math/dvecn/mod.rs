@@ -21,6 +21,7 @@ use core::{
 
 use super::{
     kernel::{exp_f64x4, mul_add_f64x8},
+    scalar::{DFinite, DNonNegative},
     vecn::{AlignedVecN, VecN},
 };
 
@@ -653,12 +654,9 @@ impl<const N: usize> AlignedDVecN<N> {
     // match the `DVecN` kernels exactly: the aligned allocation splits at the same 8-lane
     // boundary, so both types reduce identical inputs to identical bits.
 
-    /// Returns the dot product of the two vectors.
-    ///
-    /// The fold shape matches [`DVecN::dot`].
     #[inline]
     #[must_use]
-    pub fn dot(&self, other: &Self) -> f64 {
+    fn dot_impl(&self, other: &Self) -> f64 {
         let (lanes, remainder) = self.lanes();
         let (lanes_right, remainder_right) = other.lanes();
 
@@ -677,11 +675,52 @@ impl<const N: usize> AlignedDVecN<N> {
         sum
     }
 
+    /// Returns the dot product of the two vectors.
+    ///
+    /// The fold shape matches [`DVecN::dot`].
+    #[inline]
+    #[must_use]
+    pub(crate) fn dot(&self, other: &Self) -> DFinite {
+        DFinite::new_unchecked(self.dot_impl(other))
+    }
+
+    /// Returns the dot product gated on a finite result.
+    ///
+    /// Returns [`None`] when the reduced value is not finite. A non-finite value entering the
+    /// fold can only produce a non-finite accumulator, so checking the result covers every
+    /// component and intermediate.
+    #[inline]
+    pub(crate) fn checked_dot(&self, other: &Self) -> Option<DFinite> {
+        DFinite::new(self.dot_impl(other))
+    }
+
     /// Returns the squared Euclidean length.
     #[inline]
     #[must_use]
-    pub fn norm_squared(&self) -> f64 {
-        self.dot(self)
+    pub(crate) fn norm_squared(&self) -> DNonNegative {
+        DNonNegative::new_unchecked(self.dot_impl(self))
+    }
+
+    /// Returns the Euclidean length.
+    #[inline]
+    #[must_use]
+    pub(crate) fn norm(&self) -> DNonNegative {
+        self.norm_squared().sqrt()
+    }
+
+    /// Returns the squared Euclidean length gated on a finite result.
+    ///
+    /// The self-dot with the fold shape and gate of [`checked_dot`](Self::checked_dot). A sum of
+    /// squares is non-negative, so the reading carries that domain.
+    #[inline]
+    pub(crate) fn checked_norm_squared(&self) -> Option<DNonNegative> {
+        DNonNegative::new(self.dot_impl(self))
+    }
+
+    /// Returns the Euclidean length gated on a finite result.
+    #[inline]
+    pub(crate) fn checked_norm(&self) -> Option<DNonNegative> {
+        self.checked_norm_squared().map(DNonNegative::sqrt)
     }
 
     /// Returns the l1 norm.
@@ -730,11 +769,7 @@ impl<const N: usize> AlignedDVecN<N> {
         scale
     }
 
-    /// Returns the Euclidean norm through the scaled two-pass sum of squares of
-    /// [`DVecN::stable_l2`], over the lane view.
-    #[inline]
-    #[must_use]
-    pub fn stable_l2(&self) -> f64 {
+    fn stable_l2_impl(&self) -> f64 {
         let scale = self.max_abs();
         if scale == 0.0 {
             // maxNum ignores NaN, so a zero scale still needs the finiteness gate.
@@ -759,6 +794,25 @@ impl<const N: usize> AlignedDVecN<N> {
         }
 
         scale * sum_squares.sqrt()
+    }
+
+    /// Returns the Euclidean norm through the scaled two-pass sum of squares of
+    /// [`DVecN::stable_l2`], over the lane view.
+    #[inline]
+    #[must_use]
+    pub(crate) fn stable_l2(&self) -> DNonNegative {
+        DNonNegative::new_unchecked(self.stable_l2_impl())
+    }
+
+    /// Returns the Euclidean norm of [`stable_l2`](Self::stable_l2) gated on a finite result.
+    ///
+    /// Subnormal-only vectors keep their norm and magnitudes near [`f64::MAX`] stay finite where
+    /// naive squared accumulation would not. The norm of the empty and the all-zero vector is
+    /// `0.0`. Returns [`None`] when a component or the result is not finite. A norm is
+    /// non-negative, so the reading carries that domain.
+    #[inline]
+    pub(crate) fn checked_stable_l2(&self) -> Option<DNonNegative> {
+        DNonNegative::new(self.stable_l2_impl())
     }
 
     /// Returns whether every component is finite.
@@ -911,25 +965,36 @@ const impl<const N: usize> PartialEq for AlignedDVecN<N> {
     }
 }
 
-impl<const N: usize> MulAssign<f64> for AlignedDVecN<N> {
+impl<T, const N: usize> MulAssign<T> for AlignedDVecN<N>
+where
+    T: Into<f64>,
+{
     #[inline]
-    fn mul_assign(&mut self, rhs: f64) {
+    fn mul_assign(&mut self, rhs: T) {
+        let rhs = rhs.into();
         let rhs_simd = Simd::splat(rhs);
+
         let (lanes, remainder) = self.lanes_mut();
 
         for lane in lanes {
             *lane *= rhs_simd;
         }
+
         for component in remainder {
             *component *= rhs;
         }
     }
 }
 
-impl<const N: usize> DivAssign<f64> for AlignedDVecN<N> {
+impl<T, const N: usize> DivAssign<T> for AlignedDVecN<N>
+where
+    T: Into<f64>,
+{
     #[inline]
-    fn div_assign(&mut self, rhs: f64) {
+    fn div_assign(&mut self, rhs: T) {
+        let rhs = rhs.into();
         let rhs_simd = Simd::splat(rhs);
+
         let (lanes, remainder) = self.lanes_mut();
         for lane in lanes {
             *lane /= rhs_simd;

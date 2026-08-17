@@ -8,8 +8,8 @@ use core::{
 use super::{
     dvecn::DVecN,
     kernel::mul_add_f64x4,
-    scalar::narrow_f32,
-    vec2::{Vec2, Vec2x4T},
+    scalar::{DNonNegative, narrow_f32},
+    vec2::{Vec2, Vec2x4, Vec2x4T},
 };
 
 #[cfg(test)]
@@ -139,6 +139,22 @@ impl DVec2 {
 
         Some(Vec2::new(x, y))
     }
+
+    /// Narrows both components to the working precision, with round-to-nearest and no
+    /// finiteness check.
+    ///
+    /// A component beyond the finite `f32` range overflows to `±∞` rather than refusing. A
+    /// caller that must reject an out-of-range component calls [`narrow`](Self::narrow) instead,
+    /// which returns [`None`] on exactly that case.
+    #[inline]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the rounding cast is the operation itself"
+    )]
+    #[must_use]
+    pub const fn narrow_lossy(self) -> Vec2 {
+        Vec2::new(self.x() as f32, self.y() as f32)
+    }
 }
 
 /// Widens both components.
@@ -182,6 +198,15 @@ const impl Mul<f64> for DVec2 {
     #[inline]
     fn mul(self, rhs: f64) -> Self {
         Self::new(self.x() * rhs, self.y() * rhs)
+    }
+}
+
+const impl Mul<DNonNegative> for DVec2 {
+    type Output = Self;
+
+    #[inline]
+    fn mul(self, rhs: DNonNegative) -> Self {
+        self * rhs.get()
     }
 }
 
@@ -418,7 +443,7 @@ impl DVec2x4T {
     /// Sums the four vectors into one [`DVec2`]: the terminal reduction of an accumulation.
     #[inline]
     #[must_use]
-    pub fn reduce(self) -> DVec2 {
+    pub fn reduce_sum(self) -> DVec2 {
         DVec2::new(self.xs().reduce_sum(), self.ys().reduce_sum())
     }
 }
@@ -430,6 +455,14 @@ impl From<Vec2x4T> for DVec2x4T {
     #[inline]
     fn from(batch: Vec2x4T) -> Self {
         Self::from_lanes(batch.xs().cast(), batch.ys().cast())
+    }
+}
+
+/// Widens four whole vectors: one interleave shuffle, then the exact per-component widening.
+impl From<[Vec2; 4]> for DVec2x4T {
+    #[inline]
+    fn from(vecs: [Vec2; 4]) -> Self {
+        Self::from(Vec2x4T::from(Vec2x4::from(vecs)))
     }
 }
 
@@ -447,6 +480,16 @@ impl AddAssign for DVec2x4T {
     #[inline]
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
+    }
+}
+
+/// Subtracts the batches vector by vector: the deviation-from-centre step.
+impl Sub for DVec2x4T {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self {
+        Self::from(self.to_simd() - rhs.to_simd())
     }
 }
 

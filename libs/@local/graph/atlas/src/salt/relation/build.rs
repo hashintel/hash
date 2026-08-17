@@ -338,13 +338,10 @@ where
 {
     let relation = instances[0].relation;
     let weights = AttractionWeights {
-        coincident: NonNegative::new(
-            narrow_f32(
-                f64::from(attraction.coincident_coefficient().get()) * policy.attraction.coincident,
-            )
-            .expect("a fraction of a finite coefficient narrows finitely"),
-        )
-        .expect("a fraction of a positive coefficient is non-negative"),
+        // A fraction of a widened f32 stays at or below that f32, so the narrowing cannot
+        // overflow.
+        coincident: (policy.attraction.coincident * attraction.coincident_coefficient().widen())
+            .narrow_lossy(),
         proximal: NonNegative::new(
             narrow_f32(policy.attraction.proximal.get()).expect("a fraction narrows finitely"),
         )
@@ -476,7 +473,7 @@ where
 
         let share = f64::from(instance.multiplicity.max(1)).recip();
         let mass = confidence_value * f64::from(factors.scale) * share;
-        if mass < f64::from(attraction.pruning_threshold().get()) {
+        if mass < attraction.pruning_threshold().widen() {
             measurements.pruned += 1;
             measurements.pruned_mass += DNonNegative::new(mass)
                 .expect("a product of non-negative finite factors is finite and non-negative");

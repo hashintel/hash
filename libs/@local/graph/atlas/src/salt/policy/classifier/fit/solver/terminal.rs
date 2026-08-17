@@ -56,11 +56,6 @@ pub(crate) enum SolverFailure {
     FinalCertificationNonFinite,
     /// The final certificate evaluation no longer satisfies the gradient certificate.
     FinalCertificateMismatch,
-    /// No valid gradient-certificate threshold derives from the initial norm, which happens for a
-    /// non-finite norm alone. A solve gates its accepted norm as finite first and reports
-    /// [`NonFiniteAcceptedGradientNorm`](Self::NonFiniteAcceptedGradientNorm), so only a
-    /// certificate derived directly from an ungated norm reaches this terminal.
-    GradientThresholdOverflow,
     /// The predicted reduction is non-finite or not positive.
     InvalidPredictedReduction,
     /// The actual reduction or acceptance ratio is not finite.

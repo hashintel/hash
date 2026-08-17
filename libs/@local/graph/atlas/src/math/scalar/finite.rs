@@ -15,7 +15,9 @@
 //! Arithmetic whose result provably stays finite stays in the type - negation, integer
 //! conversion - with no run-time re-check. An operation that can leave the domain returns a
 //! raw float instead, with the sum of two arbitrary finite values the plain case. The caller
-//! re-enters through a constructor at whichever boundary proves the bound. Serialization writes
+//! re-enters through a constructor at whichever boundary proves the bound. The one exception is
+//! the fused accumulator [`mul_add`](DFinite::mul_add), which stays in the type as the family's
+//! other folds do: overflow escapes to `±∞` and asserts in debug builds. Serialization writes
 //! plain numbers and deserialization re-validates, so a persisted value is as trustworthy as a
 //! constructed one.
 
@@ -25,7 +27,9 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use super::{DNonNegative, DPositive, NonNegative, Positive, unsafe_impl_try_from_bytes};
+use super::{
+    DNonNegative, DPositive, NonNegative, Positive, raw_interop, unsafe_impl_try_from_bytes,
+};
 
 /// Validates a finite literal at compile time.
 ///
@@ -174,6 +178,15 @@ const impl From<NonNegative> for Finite {
     #[inline]
     fn from(value: NonNegative) -> Self {
         Self(value.get())
+    }
+}
+
+const impl From<Finite> for f64 {
+    /// Widens into double precision, exactly.
+    #[inline]
+    fn from(value: Finite) -> Self {
+        // `f64::from` is not const-callable. The widening cast is lossless.
+        value.0 as f64
     }
 }
 
@@ -326,6 +339,55 @@ impl DFinite {
         self.0
     }
 
+    /// Returns the absolute value.
+    ///
+    /// The magnitude of a finite value is finite and non-negative, with no re-validation, and
+    /// the magnitude of either zero is the canonical `+0.0`.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn abs(self) -> DNonNegative {
+        DNonNegative::new_unchecked(self.0.abs())
+    }
+
+    /// Narrows to the strictly positive domain.
+    ///
+    /// Returns [`None`] at zero and below, so an `if let` on the result is the sign guard and
+    /// the positivity witness in one move.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn positive(self) -> Option<DPositive> {
+        DPositive::new(self.0)
+    }
+
+    /// Fuses a multiply-add `self · factor + addend` with one rounding.
+    ///
+    /// The fused form computes the exact product and sum before rounding once, so no
+    /// intermediate value exists to overflow and the result is never NaN. A final overflow
+    /// escapes to `±∞` - a wrong reading rather than a soundness break, since no unsafe code
+    /// trusts the domain - and asserts in debug builds.
+    #[inline]
+    #[must_use]
+    pub(crate) fn mul_add(self, factor: Self, addend: Self) -> Self {
+        let fused = self.0.mul_add(factor.0, addend.0);
+        debug_assert!(fused.is_finite(), "the fused multiply-add overflowed");
+
+        Self(fused)
+    }
+
+    /// Narrows to working precision with round-to-nearest.
+    ///
+    /// A value beyond the `f32` range overflows to `±∞` and asserts in debug builds through the
+    /// constructor.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the rounding cast is the operation itself"
+    )]
+    #[inline]
+    #[must_use]
+    pub(crate) const fn narrow_lossy(self) -> Finite {
+        Finite::new_unchecked(self.0 as f32)
+    }
+
     /// Returns the total-order key: a bit pattern monotone in the value.
     ///
     /// Flipping a negative value's bits and setting a non-negative value's sign bit maps the
@@ -425,6 +487,22 @@ impl Hash for DFinite {
     }
 }
 
+const impl core::ops::Add for DFinite {
+    type Output = DFinite;
+
+    #[inline]
+    fn add(self, rhs: DFinite) -> DFinite {
+        DFinite::new_unchecked(self.0 + rhs.0)
+    }
+}
+
+const impl core::ops::AddAssign for DFinite {
+    #[inline]
+    fn add_assign(&mut self, rhs: DFinite) {
+        *self = *self + rhs;
+    }
+}
+
 #[cfg(test)]
 impl proptest::arbitrary::Arbitrary for DFinite {
     type Parameters = ();
@@ -457,4 +535,5 @@ impl<'de> serde::Deserialize<'de> for DFinite {
     }
 }
 
+raw_interop!(Finite[f32], DFinite[f64]);
 unsafe_impl_try_from_bytes!(Finite[f32], DFinite[f64]);

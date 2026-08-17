@@ -21,11 +21,10 @@ use super::{
         ReceiptDetail, StartDigests, vector_digest,
     },
     resolution::objective_resolution,
-    stable::{checked_dot, stable_l2},
     terminal::SolverFailure,
     work::WorkCounters,
 };
-use crate::math::{AlignedDVecN, BoxedDVecN};
+use crate::math::{AlignedDVecN, BoxedDVecN, DFinite, DNonNegative, DPositive};
 
 /// The accepted iterate in scaled coordinates, with its objective and gradient.
 #[derive(Debug, Clone, PartialEq)]
@@ -33,6 +32,9 @@ pub(crate) struct AcceptedPoint {
     /// The accepted point `ζ` in scaled coordinates.
     pub zeta: BoxedDVecN<SOLVER_DIMENSIONS>,
     /// The normalized objective at the point.
+    // Raw on purpose: initialization admits a non-finite origin objective - the certificate
+    // tests only the gradient - and the resolution and final-certification gates refuse it by
+    //name where the design says so.
     pub objective: f64,
     /// The scaled gradient at the point.
     pub scaled_gradient: BoxedDVecN<SOLVER_DIMENSIONS>,
@@ -45,7 +47,7 @@ pub(crate) struct AcceptedPoint {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SolverControl {
     /// The current trust radius.
-    pub radius: f64,
+    pub radius: DPositive,
     /// Consecutively rejected candidates since the last acceptance.
     pub consecutive_rejections: u64,
     /// Outer iterations started.
@@ -56,7 +58,7 @@ pub(crate) struct SolverControl {
 
 impl SolverControl {
     /// Fresh control state carrying the preparation-charged counters.
-    const fn new(radius: f64, counters: WorkCounters) -> Self {
+    const fn new(radius: DPositive, counters: WorkCounters) -> Self {
         Self {
             radius,
             consecutive_rejections: 0,
@@ -69,10 +71,10 @@ impl SolverControl {
 /// The initial gradient norm and its derived threshold, persisted as certificate evidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CertificateEvidence {
-    /// The initial scaled-gradient norm `‖gζ,0‖₂`.
-    pub initial_gradient_norm: f64,
-    /// The derived threshold `max(absolute, relative·‖gζ,0‖₂)`.
-    pub gradient_threshold: f64,
+    /// The initial scaled-gradient norm `‖gζ,₀‖₂`.
+    pub initial_gradient_norm: DNonNegative,
+    /// The derived threshold `max(absolute, relative·‖gζ,₀‖₂)`.
+    pub gradient_threshold: DNonNegative,
 }
 
 /// A certified solution, with its accepted point re-proven by the final joint evaluation.
@@ -118,7 +120,7 @@ pub(crate) fn solve(
         "the solver configuration is validated",
     );
 
-    let mut control = SolverControl::new(problem.config.radius_initial.get(), counters);
+    let mut control = SolverControl::new(problem.config.radius_initial, counters);
     let mut receipts = Vec::new();
     let mut certificate = None;
 
@@ -165,10 +167,12 @@ fn run(
     let config = &problem.config;
 
     loop {
-        let gradient_norm = stable_l2(&accepted.scaled_gradient)
+        let gradient_norm = accepted
+            .scaled_gradient
+            .checked_stable_l2()
             .ok_or(SolverFailure::NonFiniteAcceptedGradientNorm)?;
 
-        let threshold = gradient_threshold(config, certificate, gradient_norm)?;
+        let threshold = gradient_threshold(config, certificate, gradient_norm);
 
         // A passing accepted gradient always returns before the inner solve runs.
         if gradient_norm <= threshold {
@@ -212,8 +216,8 @@ fn run(
         let actual = accepted.objective - trial_objective;
         let ratio = actual / predicted;
         if let Some(recorded) = recorded.as_deref_mut() {
-            recorded.actual_reduction = actual.is_finite().then_some(actual);
-            recorded.ratio = ratio.is_finite().then_some(ratio);
+            recorded.actual_reduction = DFinite::new(actual);
+            recorded.ratio = DFinite::new(ratio);
         }
         if !actual.is_finite() || !ratio.is_finite() {
             return Err(SolverFailure::InvalidAcceptanceRatio);
@@ -263,8 +267,7 @@ fn run(
 
         // Only a validated boundary step at or above the expansion ratio grows the radius.
         if inner.is_boundary() && ratio >= config.eta_expand.get() {
-            control.radius =
-                (config.expansion_factor.get() * control.radius).min(config.radius_maximum.get());
+            control.radius = (config.expansion_factor * control.radius).min(config.radius_maximum);
         }
     }
 }
@@ -273,23 +276,18 @@ fn run(
 ///
 /// The threshold derives once, from the initial scaled-gradient norm, and every later pass reads
 /// the stored evidence.
-///
-/// # Errors
-///
-/// Returns [`SolverFailure::GradientThresholdOverflow`] when the norm is not finite. The outer loop
-/// certifies its accepted norm finite before calling, so a solve never reaches this error.
-fn gradient_threshold(
+const fn gradient_threshold(
     config: &SolverConfig,
     certificate: &mut Option<CertificateEvidence>,
-    gradient_norm: f64,
-) -> Result<f64, SolverFailure> {
+    gradient_norm: DNonNegative,
+) -> DNonNegative {
     if let Some(evidence) = certificate {
-        return Ok(evidence.gradient_threshold);
+        return evidence.gradient_threshold;
     }
 
-    let evidence = derive_certificate(config, gradient_norm)?;
+    let evidence = derive_certificate(config, gradient_norm);
     *certificate = Some(evidence);
-    Ok(evidence.gradient_threshold)
+    evidence.gradient_threshold
 }
 
 /// Stores the started outer iteration's receipt and returns the outcome it records into.
@@ -302,7 +300,7 @@ fn start_receipt<'receipts>(
     detail: ReceiptDetail,
     accepted: &AcceptedPoint,
     control: &SolverControl,
-    gradient_norm: f64,
+    gradient_norm: DNonNegative,
 ) -> Option<&'receipts mut OuterOutcome> {
     if detail != ReceiptDetail::Digests {
         return None;
@@ -324,22 +322,14 @@ fn start_receipt<'receipts>(
 }
 
 /// Derives the certificate evidence from the initial scaled-gradient norm.
-///
-/// # Errors
-///
-/// Returns [`SolverFailure::GradientThresholdOverflow`] when the norm is not finite, the one case
-/// where no valid threshold derives.
-pub(super) fn derive_certificate(
+pub(super) const fn derive_certificate(
     config: &SolverConfig,
-    initial_norm: f64,
-) -> Result<CertificateEvidence, SolverFailure> {
-    let threshold = config
-        .gradient_threshold(initial_norm)
-        .ok_or(SolverFailure::GradientThresholdOverflow)?;
-    Ok(CertificateEvidence {
+    initial_norm: DNonNegative,
+) -> CertificateEvidence {
+    CertificateEvidence {
         initial_gradient_norm: initial_norm,
-        gradient_threshold: threshold,
-    })
+        gradient_threshold: config.gradient_threshold(initial_norm),
+    }
 }
 
 /// Returns the predicted model reduction `−g·p − ½·p·Hp` from the returned step and product alone,
@@ -353,12 +343,12 @@ fn record_inner_step(
     gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
     inner: &NewtonOutcome,
 ) -> f64 {
-    let along_gradient = checked_dot(gradient, inner.step());
-    let along_curvature = checked_dot(inner.step(), inner.hessian_step());
+    let along_gradient = gradient.checked_dot(inner.step());
+    let along_curvature = inner.step().checked_dot(inner.hessian_step());
 
     let predicted = match (along_gradient, along_curvature) {
         (Some(gradient_term), Some(curvature_term)) => {
-            (-0.5_f64).mul_add(curvature_term, -gradient_term)
+            (-0.5_f64).mul_add(f64::from(curvature_term), -f64::from(gradient_term))
         }
         _ => f64::NAN,
     };
@@ -366,11 +356,11 @@ fn record_inner_step(
     if let Some(recorded) = recorded {
         recorded.tag = Some(inner.tag());
         recorded.newton_residual = inner.residual();
-        recorded.step_norm = stable_l2(inner.step());
-        recorded.hessian_step_norm = stable_l2(inner.hessian_step());
+        recorded.step_norm = inner.step().checked_stable_l2();
+        recorded.hessian_step_norm = inner.hessian_step().checked_stable_l2();
         recorded.gradient_step = along_gradient;
         recorded.step_curvature = along_curvature;
-        recorded.predicted_reduction = predicted.is_finite().then_some(predicted);
+        recorded.predicted_reduction = DFinite::new(predicted);
     }
     predicted
 }
@@ -385,22 +375,19 @@ fn record_inner_step(
 ///
 /// Returns [`SolverFailure::RadiusUnderflow`] when the rejected attempt already used the minimum
 /// radius. A rejection that first clips to the minimum permits one later attempt there.
-pub(super) fn rejected(
+pub(super) const fn rejected(
     control: &mut SolverControl,
     config: &SolverConfig,
 ) -> Result<(), SolverFailure> {
     control.consecutive_rejections += 1;
 
-    #[expect(
-        clippy::float_cmp,
-        reason = "the minimum radius is reached only through an exact clip to its bytes"
-    )]
-    if control.radius == config.radius_minimum.get() {
+    // The typed equality is exact: the minimum radius is reached only through an exact clip to
+    // its bytes.
+    if control.radius == config.radius_minimum {
         return Err(SolverFailure::RadiusUnderflow);
     }
 
-    // Both factors are finite and positive, so the shrink and its clip stay in domain.
-    control.radius = (config.shrink_factor.get() * control.radius).max(config.radius_minimum.get());
+    control.radius = (config.shrink_factor * control.radius).max(config.radius_minimum);
     Ok(())
 }
 
@@ -409,7 +396,7 @@ pub(super) fn certify(
     problem: &ScaledProblem<'_>,
     accepted: &AcceptedPoint,
     control: &mut SolverControl,
-    threshold: f64,
+    threshold: DNonNegative,
 ) -> Result<Converged, SolverFailure> {
     let point = problem.point(&accepted.zeta);
     let Some((objective, gradient)) = problem.joint(&point, &mut control.counters) else {
@@ -419,7 +406,9 @@ pub(super) fn certify(
     if !objective.is_finite() {
         return Err(SolverFailure::FinalCertificationNonFinite);
     }
-    let norm = stable_l2(&gradient).ok_or(SolverFailure::FinalCertificationNonFinite)?;
+    let norm = gradient
+        .checked_stable_l2()
+        .ok_or(SolverFailure::FinalCertificationNonFinite)?;
     if norm > threshold {
         return Err(SolverFailure::FinalCertificateMismatch);
     }
@@ -444,17 +433,15 @@ fn curvature_diagnostic(
         return CurvatureDiagnostic::NonFiniteDifference;
     }
 
-    let Some(along) = checked_dot(step, &difference) else {
+    let Some(along) = step.checked_dot(&difference) else {
         return CurvatureDiagnostic::NonFiniteDot;
     };
-    let Some(square) = checked_dot(step, step) else {
+    let Some(square) = step.checked_dot(step) else {
         return CurvatureDiagnostic::NonFiniteDot;
     };
 
-    let normalized = along / square;
-    if normalized.is_finite() {
-        CurvatureDiagnostic::Value { along, normalized }
-    } else {
-        CurvatureDiagnostic::NonFiniteNormalization
-    }
+    let Some(normalized) = DFinite::new(f64::from(along) / f64::from(square)) else {
+        return CurvatureDiagnostic::NonFiniteNormalization;
+    };
+    CurvatureDiagnostic::Value { along, normalized }
 }

@@ -196,14 +196,10 @@ impl Support {
 
     /// The empirical interval width `G(ε) = Q̂(q+ε) − Q̂(q−ε)`.
     fn gap(&self, level: f64, epsilon: f64) -> DNonNegative {
-        // In domain with no check: the first-crossing quantile is nondecreasing in its level,
-        // since the threshold is monotone in the level, `partition_point` is monotone in the
-        // threshold, and the values ascend. The width is therefore at least zero, and two
-        // finite `f32` readings widened to `f64` keep their difference far inside the range.
-        DNonNegative::new_unchecked(
-            f64::from(self.quantile(level + epsilon).get())
-                - f64::from(self.quantile(level - epsilon).get()),
-        )
+        // The first-crossing quantile is nondecreasing in its level - the threshold is monotone
+        // in the level, `partition_point` is monotone in the threshold, and the values ascend,
+        // therefore the width is non-negative and the absolute value is exact on it.
+        (self.quantile(level + epsilon).widen() - self.quantile(level - epsilon).widen()).abs()
     }
 
     /// The effective support `(Σw)² / Σw²`, computed on normalized weights.
@@ -255,9 +251,7 @@ pub(crate) fn evaluate(
     );
 
     let quantile = super::RADIUS_FRACTION;
-    // In domain with no check: the multiplier is a unit-scale constant and the temperature a
-    // validated positive, so their product stays positive and far inside the `f64` range.
-    let tau = DPositive::new_unchecked(MATERIALITY_MULTIPLIER.get() * temperature.get());
+    let tau = MATERIALITY_MULTIPLIER * temperature;
     let confidence = (2.0 / FALSE_PASS_BUDGET.get()).ln();
 
     let effective_support = support.effective();
@@ -267,7 +261,7 @@ pub(crate) fn evaluate(
     let epsilon_zero =
         DPositive::new_unchecked((confidence / (2.0 * effective_support.get())).sqrt());
     let gap = support.gap(quantile.get(), epsilon_zero.get());
-    let pass = epsilon_zero.get() <= quantile.get() && gap.get() <= tau.get();
+    let pass = epsilon_zero <= quantile && gap <= tau;
 
     let bound = match safe_supremum(&support, quantile.get(), tau.get()) {
         Some((epsilon, attained)) => StabilityBound::Finite {

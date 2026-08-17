@@ -43,7 +43,9 @@ use core::{
 use super::{GeometryClass, Posterior};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, UnitFraction, kernel::mul_add_f64x8},
+    math::{
+        AlignedDVecN, AlignedVecN, BoxedDVecN, DNonNegative, UnitFraction, kernel::mul_add_f64x8,
+    },
 };
 
 pub(crate) mod artifact;
@@ -79,13 +81,13 @@ impl Error for PredictError {}
 
 /// Applicability evidence fitted from the training distribution.
 ///
-/// `inverse_scales` components are positive, and `distances` is non-empty, nonnegative, and
-/// ascending. [`fit()`] and validated artifact reads are the construction sites.
+/// `inverse_scales` components are positive, and `distances` is non-empty and ascending.
+/// [`fit()`] and validated artifact reads are the construction sites.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Applicability {
     mean: BoxedDVecN<CANONICAL_DIMENSIONS>,
     inverse_scales: BoxedDVecN<CANONICAL_DIMENSIONS>,
-    distances: Box<[f64]>,
+    distances: Box<[DNonNegative]>,
 }
 
 /// The fitted policy classifier.
@@ -111,7 +113,7 @@ pub(crate) struct Prediction {
     /// The deployment distribution `softmax(logits / T)`.
     pub calibrated: Posterior,
     /// Standardized distance from the training distribution.
-    pub distance: f64,
+    pub distance: DNonNegative,
     /// Upper-tail rank of `distance` among the training distances, in `[0, 1]`.
     pub applicability: UnitFraction,
 }
@@ -145,8 +147,9 @@ impl Classifier {
             embedding,
             &self.applicability.mean,
             &self.applicability.inverse_scales,
-        );
-        if !distance.is_finite() || logits.iter().any(|value| !value.is_finite()) {
+        )
+        .ok_or(PredictError)?;
+        if logits.iter().any(|value| !value.is_finite()) {
             return Err(PredictError);
         }
 
@@ -175,12 +178,12 @@ impl Classifier {
 /// Standardized diagonal-Mahalanobis distance of an embedding from a fitted training distribution.
 ///
 /// Computes `√(mean(((e - mean) · inverse_scale)^2))`, accumulated in double precision over two
-/// independent chains.
+/// independent chains. Returns [`None`] when the reduction is not finite.
 fn standardized_distance(
     embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,
     mean: &AlignedDVecN<CANONICAL_DIMENSIONS>,
     inverse_scales: &AlignedDVecN<CANONICAL_DIMENSIONS>,
-) -> f64 {
+) -> Option<DNonNegative> {
     let (embedding, embedding_rest) = embedding.lanes();
     let (mean, mean_rest) = mean.lanes();
     let (inverse_scales, scales_rest) = inverse_scales.lanes();
@@ -200,5 +203,5 @@ fn standardized_distance(
         reason = "the dimension count is far below f64 integer precision"
     )]
     let dimensions = CANONICAL_DIMENSIONS as f64;
-    ((sums[0] + sums[1]).reduce_sum() / dimensions).sqrt()
+    DNonNegative::new(((sums[0] + sums[1]).reduce_sum() / dimensions).sqrt())
 }

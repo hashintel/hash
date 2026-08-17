@@ -30,7 +30,7 @@ use crate::{
         postgres::{PostgresDataset, PostgresDatasetError},
     },
     file::generation::GenerationRoot,
-    math::{AffinityCurve, UnitFraction},
+    math::{AffinityCurve, UnitFraction, positive},
     progress::Progress,
     salt::{
         embedding::external::{ExternalEmbeddingError, ExternalEmbeddingProvider},
@@ -359,7 +359,8 @@ pub(crate) async fn live<P: Progress + Sync>(
                 maximum_count: options.landmarks,
                 ..
             },
-            curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
+            curve: AffinityCurve::fit(positive!(1.0), positive!(0.1))
+                .expect("the reference falloff is well-conditioned"),
             ..
         },
         prior: if options.fresh {

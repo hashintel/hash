@@ -4,8 +4,10 @@
 //! system solved in closed form. The loop needs no matrix library and allocates nothing on any
 //! path.
 
+use core::num::NonZero;
+
 use super::AffinityCurve;
-use crate::math::scalar::narrow_f32;
+use crate::math::{DNonNegative, DPositive, Positive, positive, scalar::narrow_f32};
 
 /// The sample grid a fit runs over.
 ///
@@ -17,7 +19,8 @@ use crate::math::scalar::narrow_f32;
 /// # Examples
 ///
 /// ```ignore
-/// let default = AffinityCurve::fit(1.0, 0.1).expect("reference inputs are well-conditioned");
+/// let default = AffinityCurve::fit(positive!(1.0), positive!(0.1))
+///     .expect("reference inputs are well-conditioned");
 /// let fine = AffinityCurve::fit_with(
 ///     1.0,
 ///     0.1,
@@ -45,7 +48,7 @@ pub(crate) struct AffinityFitConfig {
     /// A wider range weights the tail of the falloff more: far samples gain votes in the
     /// least-squares balance, sharpening the fitted tail exponent `b` at the cost of fidelity near
     /// the breakpoint. Finite and strictly positive.
-    pub range_in_spreads: f32 = 3.0,
+    pub range_in_spreads: Positive = positive!(3.0),
 }
 
 impl AffinityFitConfig {
@@ -67,22 +70,21 @@ impl AffinityCurve {
     /// samples by Levenberg-Marquardt least squares. The fit runs once at initialization in double
     /// precision and narrows the result to the working `f32` parameters.
     ///
-    /// Returns [`None`] when `spread` is not finite and strictly positive, or when
-    /// `minimum_distance` is not finite and strictly positive or exceeds `spread`. It also returns
-    /// [`None`] when the least-squares fit fails to converge to parameters that [`new`](Self::new)
-    /// accepts.
+    /// Returns [`None`] when `minimum_distance` exceeds `spread`, or when the least-squares fit
+    /// fails to converge to parameters that [`new`](Self::new) accepts.
     ///
     /// # Examples
     ///
     /// ```ignore
     /// // The reference inputs: spread 1.0, minimum distance 0.1.
-    /// let curve = AffinityCurve::fit(1.0, 0.1).expect("reference inputs are well-conditioned");
+    /// let curve = AffinityCurve::fit(positive!(1.0), positive!(0.1))
+    ///     .expect("reference inputs are well-conditioned");
     ///
     /// assert!((curve.a() - 1.577).abs() < 0.01);
     /// assert!((curve.b() - 0.895).abs() < 0.01);
     /// ```
     #[must_use]
-    pub(crate) fn fit(spread: f32, minimum_distance: f32) -> Option<Self> {
+    pub(crate) fn fit(spread: Positive, minimum_distance: Positive) -> Option<Self> {
         Self::fit_with(spread, minimum_distance, AffinityFitConfig::default())
     }
 
@@ -95,22 +97,16 @@ impl AffinityCurve {
     /// precision, narrowing the result to the working `f32` parameters. [`fit`](Self::fit)
     /// delegates here with the default grid.
     ///
-    /// Returns [`None`] when `spread` is not finite and strictly positive, when `minimum_distance`
-    /// is not finite and strictly positive or exceeds `spread`, when `config` holds fewer than
-    /// [`MIN_SAMPLES`](AffinityFitConfig::MIN_SAMPLES) samples or a range that is not finite and
-    /// strictly positive, or when the least-squares fit fails to converge to parameters that
-    /// [`new`](Self::new) accepts.
+    /// Returns [`None`] when `minimum_distance` exceeds `spread`, when `config` holds fewer than
+    /// [`MIN_SAMPLES`](AffinityFitConfig::MIN_SAMPLES) samples, or when the least-squares fit
+    /// fails to converge to parameters that [`new`](Self::new) accepts.
     #[must_use]
     pub(crate) fn fit_with(
-        spread: f32,
-        minimum_distance: f32,
+        spread: Positive,
+        minimum_distance: Positive,
         config: AffinityFitConfig,
     ) -> Option<Self> {
-        if !spread.is_finite() || spread <= 0.0 {
-            return None;
-        }
-
-        if !minimum_distance.is_finite() || minimum_distance <= 0.0 || minimum_distance > spread {
+        if minimum_distance > spread {
             return None;
         }
 
@@ -118,15 +114,12 @@ impl AffinityCurve {
             return None;
         }
 
-        if !config.range_in_spreads.is_finite() || config.range_in_spreads <= 0.0 {
-            return None;
-        }
-
-        let spread = f64::from(spread);
-        let minimum_distance = f64::from(minimum_distance);
+        let spread = spread.widen();
+        let minimum_distance = minimum_distance.widen();
         let grid = SampleGrid::new(
             config.samples,
-            f64::from(config.range_in_spreads) * spread / f64::from(config.samples - 1),
+            config.range_in_spreads.widen() * spread
+                / DPositive::from_u16(NonZero::new(config.samples - 1)?),
         );
 
         let (a, b) = fit_curve(grid, |distance| {
@@ -137,7 +130,7 @@ impl AffinityCurve {
             }
         })?;
 
-        Self::new(narrow_f32(a)?, narrow_f32(b)?)
+        Self::new(narrow_f32(a.get())?, narrow_f32(b.get())?)
     }
 }
 
@@ -158,20 +151,20 @@ pub(super) struct SampleGrid {
     /// Number of sample distances.
     samples: u16,
     /// Spacing between consecutive sample distances.
-    step: f64,
+    step: DPositive,
 }
 
 impl SampleGrid {
     /// Creates a grid of `samples` distances spaced `step` apart from zero.
     #[inline]
     #[must_use]
-    pub(super) const fn new(samples: u16, step: f64) -> Self {
+    pub(super) const fn new(samples: u16, step: DPositive) -> Self {
         Self { samples, step }
     }
 
     /// Returns the sample distance at an index.
-    fn distance(self, index: u16) -> f64 {
-        f64::from(index) * self.step
+    const fn distance(self, index: u16) -> DNonNegative {
+        DNonNegative::from_u16(index) * self.step
     }
 }
 
@@ -226,10 +219,14 @@ impl NormalEquations {
 /// lowers the residual sum of squares. Rejected steps raise the damping and retry. Returns the
 /// fitted `(a, b)`, or [`None`] when the initial evaluation is non-finite, when every damping retry
 /// of an iteration fails, or when the iteration cap passes without convergence.
-pub(super) fn fit_curve(grid: SampleGrid, target: impl Fn(f64) -> f64) -> Option<(f64, f64)> {
+pub(super) fn fit_curve(
+    grid: SampleGrid,
+    target: impl Fn(DNonNegative) -> f64,
+) -> Option<(DPositive, DPositive)> {
     // Both parameters start at 1, the neutral point of the curve's
     // O(1) parametrization. The damping retries absorb a rough start.
-    let (mut a, mut b) = (1.0_f64, 1.0_f64);
+    let (mut a, mut b) = (DPositive::ONE, DPositive::ONE);
+
     let mut equations = evaluate(grid, &target, a, b)?;
     let mut damping = INITIAL_DAMPING;
 
@@ -251,14 +248,15 @@ pub(super) fn fit_curve(grid: SampleGrid, target: impl Fn(f64) -> f64) -> Option
                 return Some((a, b));
             }
 
-            let (next_a, next_b) = (a + step_a, b + step_b);
             // `AffinityCurve::new` accepts strictly positive parameters
             // only; a step that leaves the domain is a failed step, not
             // an error.
-            if !next_a.is_finite() || !next_b.is_finite() || next_a <= 0.0 || next_b <= 0.0 {
+            let (Some(next_a), Some(next_b)) =
+                (DPositive::new(a + step_a), DPositive::new(b + step_b))
+            else {
                 damping *= DAMPING_SCALE;
                 continue;
-            }
+            };
 
             let Some(next) = evaluate(grid, &target, next_a, next_b) else {
                 damping *= DAMPING_SCALE;
@@ -304,22 +302,24 @@ pub(super) fn fit_curve(grid: SampleGrid, target: impl Fn(f64) -> f64) -> Option
 /// Returns [`None`] when any accumulated sum turns non-finite.
 fn evaluate(
     grid: SampleGrid,
-    target: &impl Fn(f64) -> f64,
-    a: f64,
-    b: f64,
+    target: &impl Fn(DNonNegative) -> f64,
+    a: DPositive,
+    b: DPositive,
 ) -> Option<NormalEquations> {
     let mut sums = NormalEquations::ZERO;
 
     for index in 0..grid.samples {
         let distance = grid.distance(index);
         let power = distance.powf(2.0 * b);
-        let denominator = a.mul_add(power, 1.0);
-        let residual = denominator.recip() - target(distance);
+        let denominator = a.mul_add(power, DPositive::ONE);
+        let residual = 1.0 / denominator - target(distance);
         sums.residual_sum_of_squares = residual.mul_add(residual, sums.residual_sum_of_squares);
 
-        if distance <= 0.0 {
+        // The zero-distance sample contributes value alone; its partials vanish, and the
+        // narrowing keeps `ln` off distance zero.
+        let Some(distance) = distance.positive() else {
             continue;
-        }
+        };
 
         let denominator_squared = denominator * denominator;
         let partial_a = -power / denominator_squared;

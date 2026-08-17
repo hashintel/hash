@@ -7,7 +7,7 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use super::{UnitFraction, raw_interop, unsafe_impl_try_from_bytes};
+use super::{DPositive, UnitFraction, raw_interop, unsafe_impl_try_from_bytes};
 
 /// Validates an open-unit-fraction literal at compile time.
 ///
@@ -229,6 +229,22 @@ const impl TryFrom<f64> for OpenUnitFraction {
     #[inline]
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         Self::new(value).ok_or(NotInOpenUnitInterval(value))
+    }
+}
+
+const impl PartialEq<DPositive> for OpenUnitFraction {
+    /// Compares across the scalar family, in one precision with no widening.
+    #[inline]
+    fn eq(&self, other: &DPositive) -> bool {
+        self.0 == other.get()
+    }
+}
+
+const impl PartialOrd<DPositive> for OpenUnitFraction {
+    /// Orders across the scalar family, in one precision with no widening.
+    #[inline]
+    fn partial_cmp(&self, other: &DPositive) -> Option<Ordering> {
+        self.0.partial_cmp(&other.get())
     }
 }
 

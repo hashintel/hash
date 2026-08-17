@@ -249,8 +249,8 @@ impl FitSums {
         let mut sums = Self {
             valid: valid.all(),
             weight: weight_sum.reduce_sum(),
-            source: source_sum.reduce(),
-            target: target_sum.reduce(),
+            source: source_sum.reduce_sum(),
+            target: target_sum.reduce_sum(),
             dot: dot_sum.reduce_sum(),
             perp_dot: perp_sum.reduce_sum(),
             source_norm: norm_sum.reduce_sum(),
@@ -315,8 +315,8 @@ impl FitSums {
         let mut sums = Self {
             valid: valid.all(),
             weight: source.len() as f64,
-            source: source_sum.reduce(),
-            target: target_sum.reduce(),
+            source: source_sum.reduce_sum(),
+            target: target_sum.reduce_sum(),
             dot: dot_sum.reduce_sum(),
             perp_dot: perp_sum.reduce_sum(),
             source_norm: norm_sum.reduce_sum(),

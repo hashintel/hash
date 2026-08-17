@@ -69,13 +69,11 @@ pub(super) fn fit_applicability(training: TrainingSet<'_>) -> Result<Applicabili
 
     let mut distances = Vec::with_capacity(training.len());
     for embedding in training.embeddings {
-        let distance = standardized_distance(embedding, &mean, &inverse_scales);
-        if !distance.is_finite() {
-            return Err(FitError::NonFinite);
-        }
+        let distance =
+            standardized_distance(embedding, &mean, &inverse_scales).ok_or(FitError::NonFinite)?;
         distances.push(distance);
     }
-    distances.sort_unstable_by(f64::total_cmp);
+    distances.sort_unstable();
 
     Ok(Applicability {
         mean,

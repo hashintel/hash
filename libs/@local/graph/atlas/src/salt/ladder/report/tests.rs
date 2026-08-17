@@ -7,7 +7,10 @@
 use hashql_core::id::{Id as _, IdSlice};
 
 use super::{EdgeTerm, argmax, certify, contract, displace};
-use crate::{identity::NodeRowId, math::Vec2};
+use crate::{
+    identity::NodeRowId,
+    math::{Vec2, d_finite},
+};
 
 /// The engaged pair of mass 3 contracts by 2 and the pair of mass 1 expands by 3.
 ///
@@ -45,18 +48,18 @@ fn contraction_weighs_the_trainer_mass() {
     );
 
     assert_eq!(reading.edge_count, 2);
-    assert!((reading.total_mass - 4.0).abs() < 1e-12);
+    assert!((f64::from(reading.total_mass) - 4.0).abs() < 1e-12);
     assert!(
-        (reading.mass_weighted_mean - 0.75).abs() < 1e-12,
+        (f64::from(reading.mass_weighted_mean) - 0.75).abs() < 1e-12,
         "3/4 expected, read {}",
         reading.mass_weighted_mean,
     );
     assert!(
-        (reading.unweighted_mean - (-0.5)).abs() < 1e-12,
+        (f64::from(reading.unweighted_mean) - (-0.5)).abs() < 1e-12,
         "-1/2 expected, read {}",
         reading.unweighted_mean,
     );
-    assert!((reading.contracted_fraction - 0.5).abs() < 1e-12);
+    assert!((f64::from(reading.contracted_fraction) - 0.5).abs() < 1e-12);
 }
 
 /// An unchanged distance is not a contraction: ties stay out of the contracted count.
@@ -77,9 +80,9 @@ fn contraction_ties_do_not_count() {
     );
 
     assert_eq!(reading.edge_count, 1);
-    assert!(reading.contracted_fraction.abs() < 1e-12);
-    assert!(reading.mass_weighted_mean.abs() < 1e-12);
-    assert!(reading.unweighted_mean.abs() < 1e-12);
+    assert!(f64::from(reading.contracted_fraction).abs() < 1e-12);
+    assert!(f64::from(reading.mass_weighted_mean).abs() < 1e-12);
+    assert!(f64::from(reading.unweighted_mean).abs() < 1e-12);
 }
 
 /// An empty population reads as zeros, never as a division artifact.
@@ -95,10 +98,10 @@ fn contraction_of_nothing_is_zero() {
     );
 
     assert_eq!(reading.edge_count, 0);
-    assert!(reading.total_mass.abs() < 1e-12);
-    assert!(reading.mass_weighted_mean.abs() < 1e-12);
-    assert!(reading.unweighted_mean.abs() < 1e-12);
-    assert!(reading.contracted_fraction.abs() < 1e-12);
+    assert!(f64::from(reading.total_mass).abs() < 1e-12);
+    assert!(f64::from(reading.mass_weighted_mean).abs() < 1e-12);
+    assert!(f64::from(reading.unweighted_mean).abs() < 1e-12);
+    assert!(f64::from(reading.contracted_fraction).abs() < 1e-12);
 }
 
 /// The participant mask splits the displacement populations exactly.
@@ -126,9 +129,9 @@ fn displacement_splits_on_the_participant_mask() {
         true,
     );
     assert_eq!(engaged.rows, 2);
-    assert!((engaged.mean - 2.5).abs() < 1e-12);
-    assert!((engaged.rms - 12.5_f64.sqrt()).abs() < 1e-12);
-    assert!((engaged.max - 5.0).abs() < 1e-12);
+    assert!((f64::from(engaged.mean) - 2.5).abs() < 1e-12);
+    assert!((f64::from(engaged.rms) - 12.5_f64.sqrt()).abs() < 1e-12);
+    assert!((f64::from(engaged.max) - 5.0).abs() < 1e-12);
 
     let bystanders = displace(
         IdSlice::from_raw(&baseline),
@@ -137,18 +140,26 @@ fn displacement_splits_on_the_participant_mask() {
         false,
     );
     assert_eq!(bystanders.rows, 1);
-    assert!((bystanders.mean - 1.0).abs() < 1e-12);
-    assert!((bystanders.rms - 1.0).abs() < 1e-12);
-    assert!((bystanders.max - 1.0).abs() < 1e-12);
+    assert!((f64::from(bystanders.mean) - 1.0).abs() < 1e-12);
+    assert!((f64::from(bystanders.rms) - 1.0).abs() < 1e-12);
+    assert!((f64::from(bystanders.max) - 1.0).abs() < 1e-12);
 }
 
 /// Ties keep the first index, an empty series reads the baseline, and an all-negative series
 /// names the baseline as well: index zero states that no rung beats doing nothing.
 #[test]
 fn argmax_keeps_the_first_and_defaults_to_the_baseline() {
-    assert_eq!(argmax([1.0, 3.0, 3.0, 2.0]), 1);
+    assert_eq!(
+        argmax([
+            d_finite!(1.0),
+            d_finite!(3.0),
+            d_finite!(3.0),
+            d_finite!(2.0)
+        ]),
+        1
+    );
     assert_eq!(argmax([]), 0);
-    assert_eq!(argmax([-1.0, -5.0]), 0);
+    assert_eq!(argmax([d_finite!(-1.0), d_finite!(-5.0)]), 0);
 }
 
 /// A residual under the bound certifies and reports its measured values.
@@ -164,9 +175,9 @@ fn certificate_reports_the_measured_residual() {
 
     let certificate = certify(&rebuilt, &published);
 
-    assert!((certificate.max_absolute_error - expected).abs() < 1e-15);
-    assert!((certificate.mean_absolute_error - expected / 4.0).abs() < 1e-15);
-    assert!((certificate.max_point_distance - expected).abs() < 1e-12);
+    assert!((f64::from(certificate.max_absolute_error) - expected).abs() < 1e-15);
+    assert!((f64::from(certificate.mean_absolute_error) - expected / 4.0).abs() < 1e-15);
+    assert!((f64::from(certificate.max_point_distance) - expected).abs() < 1e-12);
 }
 
 /// A residual at the bound refuses: the frames would describe a lookalike.

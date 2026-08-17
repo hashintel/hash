@@ -44,7 +44,7 @@ const DECILES: u32 = 10;
 /// the omission limits the payload rather than claiming secrecy. The outcome
 /// flattens beside these fields under its `outcome` tag.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub(crate) struct PairedMovementEvidence {
+pub(crate) struct PairedMovementEvidence<I> {
     /// The draw rule that produced the sample.
     pub rule: RuleIdentity,
     /// The salt the rule derived from the generation's declared inputs.
@@ -62,7 +62,7 @@ pub(crate) struct PairedMovementEvidence {
     pub controls_selected: u64,
     /// What the readout resolved to.
     #[serde(flatten)]
-    pub outcome: MovementOutcome,
+    pub outcome: MovementOutcome<I>,
 }
 
 /// What one paired-movement readout resolved to.
@@ -72,7 +72,7 @@ pub(crate) struct PairedMovementEvidence {
 /// shape.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "outcome")]
-pub(crate) enum MovementOutcome {
+pub(crate) enum MovementOutcome<I> {
     /// A completed nonempty pair measurement.
     Measured {
         /// The aggregate families over the drawn pairs.
@@ -96,7 +96,7 @@ pub(crate) enum MovementOutcome {
     /// readout passes.
     Failed {
         /// What refused.
-        reason: FailureReason,
+        reason: FailureReason<I>,
     },
 }
 
@@ -207,7 +207,7 @@ impl MovementAggregate {
     ///
     /// This panics when `readings` is empty. An aggregate family exists only for a positive
     /// population.
-    pub(super) fn over(readings: &[DFinite]) -> Self {
+    pub(crate) fn over(readings: &[DFinite]) -> Self {
         assert!(
             !readings.is_empty(),
             "an aggregate family exists only for a positive population"
@@ -335,7 +335,7 @@ impl ControlDecile {
 /// frame refusals.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "cause")]
-pub(crate) enum FailureReason {
+pub(crate) enum FailureReason<I> {
     /// A group's edge range contradicts the index's edge region.
     GroupRange {
         /// The group's position in the group region.
@@ -352,7 +352,7 @@ pub(crate) enum FailureReason {
         /// The edge's position in the edge region.
         edge: u64,
         /// The named row.
-        row: u64,
+        row: I,
         /// The corpus row count.
         rows: u64,
     },
@@ -368,22 +368,22 @@ pub(crate) enum FailureReason {
         /// The refusing frame's rung.
         rung: Rung,
         /// The first row whose point is non-finite.
-        row: u64,
+        row: I,
     },
 }
 
-impl FailureReason {
+impl<I> FailureReason<I> {
     /// Translates one rung frame's index refusal.
-    fn frame(rung: Rung, error: NonFinitePoint<NodeRowId>) -> Self {
+    fn frame(rung: Rung, error: NonFinitePoint<I>) -> Self {
         Self::NonFinitePoint {
             rung,
-            row: u64::from(error.row),
+            row: error.id,
         }
     }
 }
 
-impl From<CensusError> for FailureReason {
-    fn from(error: CensusError) -> Self {
+impl<I> From<CensusError<I>> for FailureReason<I> {
+    fn from(error: CensusError<I>) -> Self {
         match error {
             CensusError::GroupRange {
                 group,
@@ -401,7 +401,7 @@ impl From<CensusError> for FailureReason {
     }
 }
 
-impl From<MovementError> for FailureReason {
+impl From<MovementError> for FailureReason<NodeRowId> {
     fn from(error: MovementError) -> Self {
         match error {
             MovementError::Rows { zero, canonical } => Self::FrameRows {

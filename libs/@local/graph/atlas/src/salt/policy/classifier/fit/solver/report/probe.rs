@@ -26,7 +26,6 @@ use super::super::{
     problem::ScaledProblem,
     receipt::{OuterReceipt, ReceiptDetail, vector_digest},
     solve::{AcceptedPoint, SolverControl, rejected, solve},
-    stable::checked_dot,
     work::WorkCounters,
 };
 use crate::{
@@ -257,10 +256,10 @@ fn replay_to_outer(
     counters: WorkCounters,
     receipts: &[OuterReceipt],
     target: u64,
-) -> (AcceptedPoint, f64) {
+) -> (AcceptedPoint, DPositive) {
     let config = &problem.config;
     let mut control = SolverControl {
-        radius: config.radius_initial.get(),
+        radius: config.radius_initial,
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
@@ -283,7 +282,7 @@ fn replay_to_outer(
             .expect("every replayed outer has a production receipt");
         assert!(
             receipt.outer_iteration == outer
-                && receipt.radius.to_bits() == control.radius.to_bits()
+                && receipt.radius == control.radius
                 && receipt.objective.to_bits() == accepted.objective.to_bits()
                 && receipt.counters == control.counters
                 && receipt.digests.zeta == vector_digest(&accepted.zeta)
@@ -312,11 +311,15 @@ fn replay_to_outer(
             continue;
         }
 
-        let along_gradient = checked_dot(&accepted.scaled_gradient, inner.step())
+        let along_gradient = accepted
+            .scaled_gradient
+            .checked_dot(inner.step())
             .expect("the production solve priced this step");
-        let along_curvature = checked_dot(inner.step(), inner.hessian_step())
+        let along_curvature = inner
+            .step()
+            .checked_dot(inner.hessian_step())
             .expect("the production solve priced this step");
-        let predicted = (-0.5_f64).mul_add(along_curvature, -along_gradient);
+        let predicted = (-0.5_f64).mul_add(f64::from(along_curvature), -f64::from(along_gradient));
         let actual = accepted.objective - trial_objective;
         let ratio = actual / predicted;
 
@@ -340,8 +343,7 @@ fn replay_to_outer(
         control.consecutive_rejections = 0;
 
         if inner.is_boundary() && ratio >= config.eta_expand.get() {
-            control.radius =
-                (config.expansion_factor.get() * control.radius).min(config.radius_maximum.get());
+            control.radius = (config.expansion_factor * control.radius).min(config.radius_maximum);
         }
     }
 

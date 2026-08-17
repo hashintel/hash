@@ -40,7 +40,7 @@
 //!   consume; the lab instruments the standalone binary runs are not gated behind it and build with
 //!   the crate regardless.
 //! - `gpu` switches the projector's training and inference backend from the CPU `NdArray` backend
-//!   to `burn`'s Metal-backed `wgpu` `CubeBackend`. It compiles on any target; the GPU-flavored
+//!   to `burn`'s Metal-backed `wgpu` `CubeBackend`. It compiles on any target. The GPU-flavored
 //!   tests carry `#[ignore]` because running them needs an Apple GPU.
 //! - `cli` gates the standalone `hash-graph-atlas` binary's shell and its exclusive dependencies,
 //!   `ratatui`'s dashboard and `tracing-subscriber`'s log formatting; the operator commands and the

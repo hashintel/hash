@@ -26,7 +26,11 @@ use super::{
     CONTRAST_ROWS, ContrastVector, LEADING_CLASSES, basis, prepare::Prepared, target::ClosedTarget,
     work::WorkCounters,
 };
-use crate::{dataset::CANONICAL_DIMENSIONS, math::AlignedVecN, salt::policy::GeometryClass};
+use crate::{
+    dataset::CANONICAL_DIMENSIONS,
+    math::{AlignedVecN, DNonNegative},
+    salt::policy::GeometryClass,
+};
 
 /// Objective value and gradient from one joint traversal.
 #[derive(Debug)]
@@ -395,12 +399,12 @@ impl Prepared<'_> {
     /// Adds the regularizer to the accumulated data loss and normalizes by the total weight.
     fn finish_objective(&self, data_loss: f64, parameters: &ContrastVector) -> f64 {
         // ‖A‖² through the house striped kernel, one row at a time in contrast order.
-        let mut coefficient_norm = 0.0_f64;
+        let mut coefficient_norm = DNonNegative::ZERO;
         for row in &parameters.coefficients {
             coefficient_norm += row.norm_squared();
         }
 
-        (0.5 * self.regularization).mul_add(coefficient_norm, data_loss) / self.total_weight
+        (0.5 * self.regularization).mul_add(coefficient_norm.get(), data_loss) / self.total_weight
     }
 
     /// Normalizes the accumulated residual sum and adds `(λ/S)·[A|0]`.

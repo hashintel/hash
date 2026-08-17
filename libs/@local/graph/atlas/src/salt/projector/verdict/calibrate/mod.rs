@@ -136,15 +136,11 @@ impl ProximalCalibration {
     /// without a pooled radius or when no other type carries mass. A tight spread means the
     /// radius does not hinge on any single review, a wide one names the review that owns it.
     pub(crate) fn leave_one_out_spread(&self) -> Option<DNonNegative> {
-        let radius = f64::from(self.radius?.get());
+        let radius = self.radius?.widen();
         self.types
             .iter()
             .filter_map(|entry| entry.radius_without)
-            .map(|without| {
-                // In domain with no check: two finite `f32` readings widened to `f64` keep the
-                // magnitude of their difference finite.
-                DNonNegative::new_unchecked((f64::from(without.get()) - radius).abs())
-            })
+            .map(|without| (without.widen() - radius).abs())
             .max()
     }
 }

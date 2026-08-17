@@ -198,8 +198,8 @@ fn dvec2x4t_reduce_sums_each_axis() {
         Vec2::new(8.0, 128.0),
     ]));
 
-    assert_eq!(batch.reduce(), DVec2::new(15.0, 240.0));
-    assert_eq!(DVec2x4T::ZERO.reduce(), DVec2::ZERO);
+    assert_eq!(batch.reduce_sum(), DVec2::new(15.0, 240.0));
+    assert_eq!(DVec2x4T::ZERO.reduce_sum(), DVec2::ZERO);
 }
 
 /// Widening is exact for every finite f32 pair.

@@ -45,7 +45,7 @@ struct Certification {
 #[derive(Debug, serde::Serialize)]
 struct ModelSummary {
     /// Euclidean norm of each coefficient row, in class order.
-    coefficient_norms: [f64; GeometryClass::COUNT],
+    coefficient_norms: [DNonNegative; GeometryClass::COUNT],
     /// The intercepts, in class order.
     intercepts: [f64; GeometryClass::COUNT],
     /// The fitted calibration temperature.
@@ -69,7 +69,7 @@ struct ModelSummary {
     /// Weighted-mean Brier score at the deployment temperature.
     calibrated_brier: DNonNegative,
     /// The applicability evidence's training distances, sorted ascending.
-    training_distances: Box<[f64]>,
+    training_distances: Box<[DNonNegative]>,
 }
 
 /// One training row's identity, supervision, and out-of-fold behaviour.
@@ -92,7 +92,7 @@ struct RowReport {
     /// The deployment out-of-fold distribution `softmax(logits / T)`.
     calibrated_posterior: [f64; GeometryClass::COUNT],
     /// Standardized distance from the training distribution.
-    distance: f64,
+    distance: DNonNegative,
     /// Upper-tail rank of `distance` among the training distances, in `[0, 1]`.
     applicability: UnitFraction,
 }
@@ -167,9 +167,8 @@ impl ClassifierReport {
             })
             .collect();
 
-        let coefficient_norms = core::array::from_fn(|class| {
-            refit.classifier.coefficients[class].norm_squared().sqrt()
-        });
+        let coefficient_norms =
+            core::array::from_fn(|class| refit.classifier.coefficients[class].norm());
 
         Self {
             generation,

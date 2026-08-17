@@ -13,7 +13,7 @@ use crate::{
         classifier::{FileHeader, read::ClassifierFile, write::write_regions},
         region::PAGE_BYTES,
     },
-    math::{BoxedDVecN, BoxedVecN},
+    math::{BoxedDVecN, BoxedVecN, d_non_negative},
     salt::policy::{
         GeometryClass,
         classifier::{Applicability, Classifier},
@@ -73,7 +73,13 @@ fn fixture() -> Classifier {
         applicability: Applicability {
             mean: filled(3),
             inverse_scales,
-            distances: Box::new([0.0, 0.5, 0.5, 1.25, 2.5]),
+            distances: Box::new([
+                d_non_negative!(0.0),
+                d_non_negative!(0.5),
+                d_non_negative!(0.5),
+                d_non_negative!(1.25),
+                d_non_negative!(2.5),
+            ]),
         },
     }
 }

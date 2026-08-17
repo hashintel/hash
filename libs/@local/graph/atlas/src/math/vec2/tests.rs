@@ -8,7 +8,7 @@ use core::simd::Simd;
 
 use proptest::{prop_assert, prop_assert_eq, property_test, strategy::Strategy};
 
-use crate::math::{Vec2, Vec2x4, Vec2x4T, tests::POINTS};
+use crate::math::{Vec2, Vec2x4T, tests::POINTS, vec2::Vec2x4};
 
 #[test]
 fn arithmetic_operators_are_component_wise() {
@@ -222,6 +222,20 @@ fn from_slice_reinterprets_in_place() {
     );
     assert!(
         Vec2::from_slice(&components[..5]).is_none(),
+        "a dangling component is not a vector"
+    );
+}
+
+#[test]
+fn from_slice_mut_writes_through_to_the_components() {
+    // The mutable form aliases the same storage, so a write through a vector rewrites its
+    // components where they stand.
+    let mut components = [1.0, 2.0, 3.0, 4.0];
+    let points = Vec2::from_slice_mut(&mut components).expect("two whole vectors");
+    points[1] = Vec2::new(-3.0, -4.0);
+    assert_eq!(components, [1.0, 2.0, -3.0, -4.0]);
+    assert!(
+        Vec2::from_slice_mut(&mut components[..3]).is_none(),
         "a dangling component is not a vector"
     );
 }

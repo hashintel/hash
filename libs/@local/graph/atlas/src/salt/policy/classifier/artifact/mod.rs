@@ -16,7 +16,7 @@ use crate::{
         classifier::{CLASSES, read::ClassifierFile, write::write_regions},
     },
     integrity::{Sha256, Sha256Digest, Writer},
-    math::BoxedDVecN,
+    math::{BoxedDVecN, DNonNegative},
     salt::policy::GeometryClass,
 };
 
@@ -123,7 +123,7 @@ impl WriteInto for Classifier {
             coefficients,
             self.applicability.mean.as_array(),
             self.applicability.inverse_scales.as_array(),
-            &self.applicability.distances,
+            DNonNegative::slice_as_raw(&self.applicability.distances),
             &mut writer,
         )?;
 
@@ -186,11 +186,13 @@ impl Classifier {
         if distances.is_empty() {
             return Err(InvalidClassifierFile::EmptyDistances);
         }
-        for (index, &value) in distances.iter().enumerate() {
-            if !value.is_finite() || value < 0.0 {
-                return Err(InvalidClassifierFile::Distance { index, value });
-            }
-        }
+        let distances: Box<[DNonNegative]> = distances
+            .iter()
+            .enumerate()
+            .map(|(index, &value)| {
+                DNonNegative::new(value).ok_or(InvalidClassifierFile::Distance { index, value })
+            })
+            .collect::<Result<_, _>>()?;
 
         if let Some(position) = distances
             .array_windows::<2>()
@@ -214,7 +216,7 @@ impl Classifier {
             applicability: Applicability {
                 mean: owned(mean),
                 inverse_scales: owned(inverse_scales),
-                distances: Box::from(distances),
+                distances,
             },
         })
     }

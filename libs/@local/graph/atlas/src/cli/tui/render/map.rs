@@ -19,7 +19,7 @@ use ratatui::{
 use super::{ACCENT, DOTS_ACROSS, DOTS_DOWN};
 use crate::{
     cli::tui::state::PlacementMap,
-    math::{Bounds2, Positive, Vec2},
+    math::{Bounds2, DVec2, Positive, Vec2},
 };
 
 /// The color of the landmark skeleton, against the accent the map draws the interior sample in.
@@ -87,8 +87,10 @@ pub(super) fn render_map(frame: &mut Frame, area: Rect, placement: &PlacementMap
 fn drawable(positions: &[Vec2]) -> impl IntoIterator<Item = (f64, f64)> {
     positions
         .iter()
-        .map(|position| (f64::from(position.x()), f64::from(position.y())))
-        .filter(|&(x, y)| x.is_finite() && y.is_finite())
+        .copied()
+        .filter(|position| position.is_finite())
+        .map(DVec2::from)
+        .map(|position| (position.x(), position.y()))
 }
 
 /// The map's viewport, which is the placement's own extent squared against the pane's dot grid.

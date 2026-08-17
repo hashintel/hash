@@ -64,7 +64,7 @@
 )]
 
 use alloc::alloc::Global;
-use core::{alloc::Allocator, cmp::Ordering, error::Error, fmt, num::NonZero};
+use core::{alloc::Allocator, cmp::Ordering, fmt, num::NonZero};
 
 use hashql_core::id::{Id, IdSlice};
 use kiddo::{
@@ -73,6 +73,7 @@ use kiddo::{
 };
 
 use super::{
+    NonFinitePoint,
     scalar::DNonNegative,
     vec2::{Vec2, Vec2x4},
 };
@@ -163,28 +164,6 @@ where
     }
 }
 
-/// The point [`KdTree::build`] refused, a NaN or infinite component at the named row.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct NonFinitePoint<I> {
-    /// The first row whose point is non-finite.
-    pub row: I,
-}
-
-impl<I> fmt::Display for NonFinitePoint<I>
-where
-    I: Id,
-{
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Self { row } = self;
-        write!(
-            fmt,
-            "the point at row {row} has a NaN or infinite component"
-        )
-    }
-}
-
-impl<I> Error for NonFinitePoint<I> where I: Id {}
-
 /// The engine's leaf bucket capacity, in rows.
 const BUCKET_ROWS: usize = 32;
 
@@ -237,7 +216,7 @@ where
             };
 
             return Err(NonFinitePoint {
-                row: I::from_usize(position),
+                id: I::from_usize(position),
             });
         }
 

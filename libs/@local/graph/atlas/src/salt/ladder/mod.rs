@@ -307,7 +307,6 @@ fn aligned_movement(source: &[Vec2], target: &[Vec2]) -> Option<(Similarity, DNo
     let alignment = Similarity::fit_uniform_par(source, target)?;
     let movement = alignment
         .rms_residual_par(source, target)
-        .and_then(DNonNegative::new)
         .expect("an RMS residual of a fitted alignment over finite fields is finite");
 
     Some((alignment, movement))

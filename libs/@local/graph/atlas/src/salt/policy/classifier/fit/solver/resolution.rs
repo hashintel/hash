@@ -9,29 +9,13 @@
 //! subnormal, the grid's smallest step. A finite negative objective remains valid evidence and
 //! contributes only its magnitude to the spacing.
 
-use core::num::NonZeroU32;
+use core::num::NonZero;
 
-/// The resolution `R(F̄) = ulps · ulp(|F̄|)` of a finite objective value.
-///
-/// This checks the multiplication and accepts only a finite, positive result. Returns [`None`] for
-/// a non-finite objective or an invalid resolution, and the caller maps [`None`] onto its typed
-/// resolution-failure outcome.
-pub(super) fn objective_resolution(objective: f64, ulps: NonZeroU32) -> Option<f64> {
-    if !objective.is_finite() {
-        return None;
-    }
-
-    let resolution = f64::from(ulps.get()) * ulp(objective.abs());
-    (resolution.is_finite() && resolution > 0.0).then_some(resolution)
-}
+use crate::math::{DFinite, DNonNegative, DPositive};
 
 /// The f64 grid spacing at a finite non-negative magnitude.
-#[expect(
-    clippy::float_cmp,
-    reason = "the exceptional spacing case sits at exactly the maximum finite value"
-)]
-fn ulp(magnitude: f64) -> f64 {
-    if magnitude == 0.0 || magnitude.is_subnormal() {
+fn ulp(magnitude: DNonNegative) -> f64 {
+    if magnitude.is_zero() || magnitude.is_subnormal() {
         // The smallest positive subnormal is the spacing of the grid around zero.
         return f64::from_bits(1);
     }
@@ -42,5 +26,17 @@ fn ulp(magnitude: f64) -> f64 {
         return f64::MAX - f64::MAX.next_down();
     }
 
-    magnitude.next_up() - magnitude
+    magnitude.get().next_up() - magnitude.get()
+}
+
+/// The resolution `R(F̄) = ulps · ulp(|F̄|)` of a finite objective value.
+///
+/// This checks the multiplication and accepts only a finite, positive result. Returns [`None`] for
+/// a non-finite objective or an invalid resolution, and the caller maps [`None`] onto its typed
+/// resolution-failure outcome.
+pub(super) fn objective_resolution(objective: f64, ulps: NonZero<u32>) -> Option<DPositive> {
+    let objective = DFinite::new(objective)?;
+
+    let resolution = DPositive::from_u32(ulps) * ulp(objective.abs());
+    DPositive::new(resolution)
 }

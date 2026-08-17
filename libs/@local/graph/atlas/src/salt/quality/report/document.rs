@@ -380,7 +380,7 @@ impl QualityReport {
             Control {
                 metric: QualityMetric::DensitySpread,
                 reading: spread,
-                bound: Bound::Ceiling(f64::from(self.maximum_density_spread.get())),
+                bound: Bound::Ceiling(f64::from(self.maximum_density_spread)),
             },
             Control {
                 metric: QualityMetric::TripletAgreement,

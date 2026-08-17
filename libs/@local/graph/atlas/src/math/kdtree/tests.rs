@@ -227,7 +227,7 @@ fn build_rejects_the_first_non_finite_point() {
 
     assert_eq!(
         KdTree::build(frame(&points)).expect_err("a NaN component is non-finite"),
-        NonFinitePoint { row: RowId::new(3) }
+        NonFinitePoint { id: RowId::new(3) }
     );
 }
 

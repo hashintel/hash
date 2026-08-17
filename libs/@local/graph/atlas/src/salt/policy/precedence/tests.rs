@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{
     identity::OntologyRowId,
-    math::{UnitFraction, unit_fraction},
+    math::{DNonNegative, UnitFraction, unit_fraction},
     salt::{
         policy::{ClassProbabilities, Posterior, classifier::Prediction},
         relation::Policies,
@@ -21,7 +21,7 @@ fn prediction(calibrated: [f64; 3], applicability: f64) -> Prediction {
         logits: [0.0; 3],
         raw: posterior,
         calibrated: posterior,
-        distance: 0.0,
+        distance: DNonNegative::ZERO,
         applicability: UnitFraction::new(applicability).expect("test applicabilities are valid"),
     }
 }

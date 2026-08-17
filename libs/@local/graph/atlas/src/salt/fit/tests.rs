@@ -108,6 +108,7 @@ fn representation(rng: &mut Xoshiro256PlusPlus) -> BoxedVecN<PROJECTOR_DIMENSION
         .map(|&component| f64::from(component) * f64::from(component))
         .sum::<f64>()
         .sqrt();
+
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the normalization factor of a 512-component vector is far inside f32 range"
@@ -407,7 +408,8 @@ fn config() -> FitConfig {
             maximum_count: NonZero::new(LANDMARKS).expect("the fixture capacity is nonzero"),
             ..
         },
-        curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
+        curve: AffinityCurve::fit(positive!(1.0), positive!(0.1))
+            .expect("the reference falloff is well-conditioned"),
         neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
         // The fixtures whose subject is not the placement opt out of
         // the default's training run; the projector tests configure
@@ -1508,7 +1510,8 @@ fn default_placement_is_the_trained_projector() {
             maximum_count: NonZero::new(LANDMARKS).expect("the fixture capacity is nonzero"),
             ..
         },
-        curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
+        curve: AffinityCurve::fit(positive!(1.0), positive!(0.1))
+            .expect("the reference falloff is well-conditioned"),
         ..
     };
 

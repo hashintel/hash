@@ -9,6 +9,7 @@ use super::{
     vec2::{Vec2, Vec2x4T},
 };
 
+mod fit;
 #[cfg(test)]
 mod tests;
 

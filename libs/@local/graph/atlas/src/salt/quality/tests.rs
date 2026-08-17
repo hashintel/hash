@@ -42,6 +42,7 @@ use crate::{
     integrity::{Sha256, Update as _},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, UnitFraction, Vec2, VecN, non_negative,
+        positive,
     },
     progress::NoProgress,
     salt::{
@@ -1620,7 +1621,8 @@ async fn runner_reports_a_published_generation() {
             maximum_count: NonZero::new(8).expect("the fixture capacity is nonzero"),
             ..
         },
-        curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
+        curve: AffinityCurve::fit(positive!(1.0), positive!(0.1))
+            .expect("the reference falloff is well-conditioned"),
         neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
         // The quality fixture probes the metric suite, not the
         // placement: it opts out of the default's training run.

@@ -32,7 +32,7 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{WriteInto as _, landmark::read::LandmarkFile},
     identity::NodeRowId,
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2, positive},
     salt::{
         knn::{Embedding, NearestNeighboursIndex, Neighbour},
         semantic::{SemanticGraph, SemanticMatrix},
@@ -726,7 +726,8 @@ fn quotient_is_invariant_across_thread_counts() {
 }
 
 fn curve() -> AffinityCurve {
-    AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned")
+    AffinityCurve::fit(positive!(1.0), positive!(0.1))
+        .expect("the reference inputs are well-conditioned")
 }
 
 fn layout_options(epochs: u32) -> LayoutOptions {

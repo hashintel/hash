@@ -14,7 +14,7 @@ use hashql_core::id::Id as _;
 use crate::{
     dataset::TemporalAxes,
     file::{generation::GenerationId, morton::SEGMENTS},
-    identity::OntologyRowId,
+    identity::{NodeRowId, OntologyRowId},
     integrity::Sha256Digest,
     math::{Bounds2, DNonNegative, DPositive, NonNegative, OpenUnitFraction, Similarity},
     morton::Depth,
@@ -403,7 +403,7 @@ pub(crate) struct LadderEvidence {
     /// `None` records a ladder written before the readout existed. A ladder writer that
     /// carries the readout always emits a present body, so a vacuous or failed measurement
     /// stays distinguishable from this absence.
-    pub paired_movement: Option<PairedMovementEvidence>,
+    pub paired_movement: Option<PairedMovementEvidence<NodeRowId>>,
 }
 
 /// One relation type's share of a rung's relation loss.

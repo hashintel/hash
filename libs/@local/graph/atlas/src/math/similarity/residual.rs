@@ -14,6 +14,7 @@ use rayon::{
 
 use super::Similarity;
 use crate::math::{
+    DNonNegative,
     dvec2::{DVec2, DVec2x4T},
     vec2::{Vec2, Vec2x4, Vec2x4T},
 };
@@ -45,7 +46,7 @@ impl Similarity {
     /// assert!((residual - 3.0).abs() < 1e-12);
     /// ```
     #[must_use]
-    pub(crate) fn rms_residual(self, source: &[Vec2], target: &[Vec2]) -> Option<f64> {
+    pub(crate) fn rms_residual(self, source: &[Vec2], target: &[Vec2]) -> Option<DNonNegative> {
         if source.len() != target.len() || source.is_empty() {
             return None;
         }
@@ -60,7 +61,7 @@ impl Similarity {
     /// near a hundred thousand pairs. Work splits into chunks of
     /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
     #[must_use]
-    pub(crate) fn rms_residual_par(self, source: &[Vec2], target: &[Vec2]) -> Option<f64> {
+    pub(crate) fn rms_residual_par(self, source: &[Vec2], target: &[Vec2]) -> Option<DNonNegative> {
         if source.len() != target.len() || source.is_empty() {
             return None;
         }
@@ -127,8 +128,6 @@ impl Similarity {
     clippy::cast_precision_loss,
     reason = "pair counts remain exactly representable in f64 far beyond any corpus"
 )]
-fn finish_rms(squared: f64, pairs: usize) -> Option<f64> {
-    let rms = (squared / pairs as f64).sqrt();
-
-    rms.is_finite().then_some(rms)
+fn finish_rms(squared: f64, pairs: usize) -> Option<DNonNegative> {
+    DNonNegative::new((squared / pairs as f64).sqrt())
 }

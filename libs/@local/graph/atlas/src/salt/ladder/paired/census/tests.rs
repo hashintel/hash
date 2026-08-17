@@ -351,7 +351,7 @@ fn an_out_of_domain_endpoint_is_refused() {
         Draw::over(rule(), salt(), 7, &groups, &edges),
         Err(CensusError::Endpoint {
             edge: 1,
-            row: 7,
+            row: NodeRowId::new(7),
             rows: 7,
         }),
     );

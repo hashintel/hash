@@ -1,16 +1,25 @@
-//! Measurement seam for the vector and geometry kernels.
+//! Benchmark entry points for the vector and geometry kernels.
 //!
 //! The `math_kernels` benchmark target times each kernel exactly as production calls it. Inputs
 //! are built once ahead of the timed region, because production holds its vectors and transforms
 //! across the fit loop's hot calls. Each timed function is a transparently inlined forwarder whose
 //! operands stay pinned behind [`black_box`] at the same per-operand points the target used when
-//! it named these types itself. Results that are plain numbers return to the caller; results in
+//! it named these types itself. Results that are plain numbers return to the caller. Results in
 //! crate types are pinned here and dropped, so no internal type escapes. Nothing here is API for
 //! consumers of the crate.
 
 use core::hint::black_box;
 
-use super::{AffinityCurve, Bounds2, DVecN, Similarity, Vec2, Vec2x4T, VecN, transform::Transform};
+use hashql_core::id::IdSlice;
+use rayon::{
+    iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _},
+    slice::ParallelSlice as _,
+};
+
+use super::{
+    AffinityCurve, Bounds2, DVecN, FinitePointCloud, Positive, Similarity, Vec2, Vec2x4T, VecN,
+    cloud::POINT_CHUNK, transform::Transform, vec2::Vec2x4,
+};
 
 /// A dot-product operand pair, built once ahead of the timed region.
 pub struct VecNPair<const N: usize> {
@@ -30,8 +39,8 @@ pub fn vecn_pair<const N: usize>(left: [f32; N], right: [f32; N]) -> VecNPair<N>
 /// Dot product, as production calls it.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the kernel as production calls it: transparently inlined, \
-              with only the kernel's call remaining"
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
 )]
 #[inline(always)]
 #[must_use]
@@ -42,7 +51,7 @@ pub fn vecn_dot<const N: usize>(pair: &VecNPair<N>) -> f32 {
 /// The dot product's scalar reference accumulates lanewise `f64` products over the raw components.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the reference as the target formulated it: transparently \
+    reason = "the benchmark must measure the reference as the target formulated it: transparently \
               inlined, with only the scalar loop remaining"
 )]
 #[inline(always)]
@@ -59,8 +68,8 @@ pub fn vecn_dot_scalar_reference<const N: usize>(pair: &VecNPair<N>) -> f64 {
 /// Cosine distance, as production calls it.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the kernel as production calls it: transparently inlined, \
-              with only the kernel's call remaining"
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
 )]
 #[inline(always)]
 #[must_use]
@@ -112,8 +121,8 @@ pub fn affinity_state(
 /// Four-lane attraction, as production calls it.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the kernel as production calls it: transparently inlined, \
-              with only the kernel's call remaining"
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
 )]
 #[inline(always)]
 pub fn affinity_attraction_x4(state: &AffinityState) {
@@ -123,7 +132,7 @@ pub fn affinity_attraction_x4(state: &AffinityState) {
 /// The four-lane attraction's scalar reference runs one lane at a time through the scalar kernel.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the reference as the target formulated it: transparently \
+    reason = "the benchmark must measure the reference as the target formulated it: transparently \
               inlined, with only the lanewise calls remaining"
 )]
 #[inline(always)]
@@ -139,8 +148,8 @@ pub fn affinity_attraction_scalar_reference(state: &AffinityState) {
 /// Four-lane repulsion, as production calls it.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the kernel as production calls it: transparently inlined, \
-              with only the kernel's call remaining"
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
 )]
 #[inline(always)]
 pub fn affinity_repulsion_x4(state: &AffinityState, repulsion_strength: f32) {
@@ -152,16 +161,23 @@ pub fn affinity_repulsion_x4(state: &AffinityState, repulsion_strength: f32) {
 }
 
 /// The curve fit at one reference point, as production calls it.
+///
+/// # Panics
+///
+/// This panics when either input is not finite and strictly positive, because the benchmark
+/// synthesizes its own inputs and a degenerate one is a harness defect.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the kernel as production calls it: transparently inlined, \
-              with only the kernel's call remaining"
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
 )]
 #[inline(always)]
 pub fn affinity_fit(spread: f32, minimum_distance: f32) {
     black_box(AffinityCurve::fit(
-        black_box(spread),
-        black_box(minimum_distance),
+        black_box(Positive::new(spread).expect("the benchmark passes a positive spread")),
+        black_box(
+            Positive::new(minimum_distance).expect("the benchmark passes a positive distance"),
+        ),
     ));
 }
 
@@ -189,8 +205,8 @@ pub fn transform_batch(
 /// Four-lane transform application, as production calls it.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the kernel as production calls it: transparently inlined, \
-              with only the kernel's call remaining"
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
 )]
 #[inline(always)]
 pub fn transform_apply_x4(state: &TransformBatch) {
@@ -200,7 +216,7 @@ pub fn transform_apply_x4(state: &TransformBatch) {
 /// The four-lane application's scalar reference runs one lane at a time through the scalar kernel.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the reference as the target formulated it: transparently \
+    reason = "the benchmark must measure the reference as the target formulated it: transparently \
               inlined, with only the lanewise calls remaining"
 )]
 #[inline(always)]
@@ -253,8 +269,8 @@ pub fn scattered_points(count: usize) -> Points {
 /// SIMD bounds over a slice, as production calls it.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the kernel as production calls it: transparently inlined, \
-              with only the kernel's call remaining"
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
 )]
 #[inline(always)]
 pub fn bounds_from_slice(points: &Points) {
@@ -264,7 +280,7 @@ pub fn bounds_from_slice(points: &Points) {
 /// The bounds kernel's scalar reference is the point-iterator fold.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the reference as the target formulated it: transparently \
+    reason = "the benchmark must measure the reference as the target formulated it: transparently \
               inlined, with only the fold remaining"
 )]
 #[inline(always)]
@@ -275,8 +291,8 @@ pub fn bounds_from_points_scalar_reference(points: &Points) {
 /// Parallel SIMD bounds over a slice, as production calls it.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the kernel as production calls it: transparently inlined, \
-              with only the kernel's call remaining"
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
 )]
 #[inline(always)]
 pub fn bounds_from_slice_par(points: &Points) {
@@ -328,8 +344,8 @@ impl SimilarityFixture {
 /// The weighted similarity fit, as production calls it.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the kernel as production calls it: transparently inlined, \
-              with only the kernel's call remaining"
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
 )]
 #[inline(always)]
 pub fn similarity_fit(fixture: &SimilarityFixture) {
@@ -343,8 +359,8 @@ pub fn similarity_fit(fixture: &SimilarityFixture) {
 /// The parallel weighted similarity fit, as production calls it.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the kernel as production calls it: transparently inlined, \
-              with only the kernel's call remaining"
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
 )]
 #[inline(always)]
 pub fn similarity_fit_par(fixture: &SimilarityFixture) {
@@ -367,10 +383,89 @@ pub fn logits<const N: usize>(components: [f64; N]) -> Logits<N> {
 /// Softmax, as production calls it.
 #[expect(
     clippy::inline_always,
-    reason = "the seam must measure the kernel as production calls it: transparently inlined, \
-              with only the kernel's call remaining"
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
 )]
 #[inline(always)]
 pub fn dvecn_softmax<const N: usize>(logits: &Logits<N>) {
     black_box(black_box(logits.0).softmax());
+}
+
+hashql_core::id::newtype! {
+    /// The bench fields' row domain.
+    #[id(const)]
+    pub struct BenchRowId(u32)
+}
+
+/// A finite point field at one row count, built once ahead of the timed region.
+pub struct FiniteField {
+    points: Vec<Vec2>,
+}
+
+/// Builds `rows` deterministic, sign-varying finite points.
+#[must_use]
+pub fn finite_field(rows: usize) -> FiniteField {
+    let mut counter = 0_u8;
+    let points = core::iter::repeat_with(|| {
+        let value = f32::from(counter);
+        counter = counter.wrapping_add(1);
+        let x = (value - 128.0) * 0.125;
+
+        Vec2::new(x, 1.0 - x)
+    })
+    .take(rows)
+    .collect();
+
+    FiniteField { points }
+}
+
+/// The finiteness scan, as the cloud's constructor runs it: serial, four points per batch.
+#[expect(
+    clippy::inline_always,
+    reason = "the benchmark must measure the kernel as production calls it: transparently \
+              inlined, with only the kernel's call remaining"
+)]
+#[inline(always)]
+#[must_use]
+pub fn finite_scan_serial(field: &FiniteField) -> bool {
+    FinitePointCloud::new(IdSlice::<BenchRowId, _>::from_raw(black_box(&field.points))).is_ok()
+}
+
+/// Rayon's per-point search for the first non-finite point.
+///
+/// True exactly when the search comes back empty, so every point is finite.
+#[expect(
+    clippy::inline_always,
+    reason = "the benchmark must measure the reference transparently inlined, with only the \
+              parallel search remaining"
+)]
+#[inline(always)]
+#[must_use]
+pub fn finite_scan_per_point(field: &FiniteField) -> bool {
+    black_box(&field.points)
+        .par_iter()
+        .position_first(|point| !point.is_finite())
+        .is_none()
+}
+
+/// The serial scan's batch predicate distributed over rayon chunks of [`POINT_CHUNK`] points.
+///
+/// True exactly when every chunk passes the batch predicate, so every point is finite.
+#[expect(
+    clippy::inline_always,
+    reason = "the benchmark must measure the reference formulation whole: transparently inlined, \
+              with only the parallel fold remaining"
+)]
+#[inline(always)]
+#[must_use]
+pub fn finite_scan_chunked(field: &FiniteField) -> bool {
+    black_box(&field.points)
+        .par_chunks(POINT_CHUNK)
+        .all(|chunk| {
+            let (prefix, batches, suffix) = Vec2x4::from_slice(chunk);
+
+            prefix.iter().all(|point| point.is_finite())
+                && batches.iter().all(|batch| batch.is_finite())
+                && suffix.iter().all(|point| point.is_finite())
+        })
 }

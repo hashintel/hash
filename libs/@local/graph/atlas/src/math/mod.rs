@@ -24,16 +24,17 @@
 //!
 //! # The types, by role
 //!
-//! 2D geometry: [`Vec2`] is the scalar point/vector; [`Vec2x4`](vec2::Vec2x4) (natural order) and
+//! 2D geometry: [`Vec2`] is the scalar point/vector. [`Vec2x4`](vec2::Vec2x4) (natural order)
+//! and
 //! [`Vec2x4T`] (transposed order) batch four of them for SIMD, staging and computing respectively.
 //! [`Bounds2`] is the validated bounding box, with serial, SIMD, and parallel construction.
 //!
 //! Transforms, most constrained first: [`Rotation`] (angle only, exact inverse),
 //! [`Translation`](translation::Translation) (offset only, exact inverse), [`Similarity`]
 //! (uniform scale + rotation + translation, total inverse, fitted from weighted point
-//! correspondences), [`Transform`](transform::Transform) (general affine, fallible inverse).
+//! correspondences), [`Transform`] (general affine, fallible inverse).
 //! Prefer the most constrained type that models the job; each widens into
-//! [`Transform`](transform::Transform) via [`From`], and composition is always `a.then(b)`,
+//! [`Transform`] via [`From`], and composition is always `a.then(b)`,
 //! reading in application order.
 //!
 //! Embeddings: [`VecN`] is the `N`-dimensional `f32` vector with the distance kernels;
@@ -79,6 +80,7 @@ mod affinity;
 #[cfg(feature = "bench")]
 pub mod bench;
 mod bounds;
+mod cloud;
 mod dsquare;
 mod dvec2;
 mod dvecn;
@@ -93,6 +95,7 @@ mod translation;
 mod vec2;
 mod vecn;
 
+mod error;
 #[cfg(test)]
 mod test_alloc;
 #[cfg(test)]
@@ -100,25 +103,28 @@ mod tests;
 
 #[cfg(test)]
 pub(crate) use self::scalar::{
-    Finite, d_finite, d_non_negative, finite, greater_than_one, positive_unit_fraction,
+    d_finite, d_non_negative, finite, greater_than_one, positive_unit_fraction,
 };
+#[cfg(test)]
+pub(crate) use self::translation::Translation;
 pub(crate) use self::{
     affinity::AffinityCurve,
     bounds::Bounds2,
+    cloud::FinitePointCloud,
     dsquare::{DCholeskyError, DSquareMatrix},
-    dvec2::DVec2,
+    dvec2::{DVec2, DVec2x4T},
     dvecn::{AlignedDVecN, BoxedDVecN, DVecN},
-    kdtree::{KdTree, NonFinitePoint},
+    error::NonFinitePoint,
+    kdtree::KdTree,
     matrixn::MatrixN,
     rotation::Rotation,
     scalar::{
-        DFinite, DNonNegative, DPositive, GreaterThanOne, Log2, NonNegative, OpenUnitFraction,
-        Positive, PositiveUnitFraction, UnitFraction, d_positive, narrow_f32, non_negative, nz,
-        open_unit_fraction, positive, softplus, unit_fraction,
+        DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, Negative, NonNegative,
+        OpenUnitFraction, Positive, PositiveUnitFraction, UnitFraction, d_positive, narrow_f32,
+        non_negative, nz, open_unit_fraction, positive, softplus, unit_fraction,
     },
     similarity::Similarity,
-    vec2::{Vec2, Vec2x4T},
+    transform::Transform,
+    vec2::{Vec2, Vec2SliceExt, Vec2x4T},
     vecn::{AlignedVecN, BoxedVecN, VecN},
 };
-#[cfg(test)]
-pub(crate) use self::{dvec2::DVec2x4T, translation::Translation, vec2::Vec2x4};

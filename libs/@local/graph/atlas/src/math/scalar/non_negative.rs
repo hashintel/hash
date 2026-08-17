@@ -6,7 +6,7 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use super::{Finite, Positive, raw_interop, unsafe_impl_try_from_bytes};
+use super::{DNonNegative, Finite, Positive, raw_interop, unsafe_impl_try_from_bytes};
 
 /// Validates a non-negative literal at compile time.
 ///
@@ -96,6 +96,22 @@ impl NonNegative {
         debug_assert!(squared.is_finite(), "the square left the domain");
 
         Self(squared)
+    }
+
+    #[inline]
+    #[must_use]
+    pub(crate) const fn widen(self) -> DNonNegative {
+        DNonNegative::from(self)
+    }
+
+    /// Narrows to the strictly positive domain.
+    ///
+    /// Returns [`None`] exactly at zero, so an `if let` on the result is the zero guard and the
+    /// positivity witness in one move.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn positive(self) -> Option<Positive> {
+        Positive::new(self.0)
     }
 
     /// Returns the value.
@@ -488,6 +504,19 @@ const impl From<NonNegative> for f64 {
     fn from(value: NonNegative) -> Self {
         // `f64::from` is not const-callable. The widening cast is lossless.
         value.0 as f64
+    }
+}
+
+const impl core::ops::Add<NonNegative> for f32 {
+    type Output = f32;
+
+    /// Adds a non-negative offset to a raw `f32`.
+    ///
+    /// The raw operand is arbitrary, so the sum can leave any bounded domain and returns a raw
+    /// float.
+    #[inline]
+    fn add(self, rhs: NonNegative) -> f32 {
+        self + rhs.0
     }
 }
 

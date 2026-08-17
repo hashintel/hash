@@ -509,8 +509,8 @@ fn stable_l2_propagates_non_finite_components() {
 fn stable_l2_agrees_between_types_across_chunk_sizes() {
     fn check<const N: usize>(components: [f64; N]) {
         assert_eq!(
-            DVecN::new(components).stable_l2().to_bits(),
-            aligned(&components).stable_l2().to_bits(),
+            DVecN::new(components).stable_l2(),
+            aligned(&components).stable_l2(),
             "over {N} components",
         );
     }
@@ -680,13 +680,13 @@ fn aligned_reductions_agree_with_unaligned_bits_across_chunk_sizes() {
         let boxed_other = aligned(&other);
 
         assert_eq!(
-            unaligned.dot(&unaligned_other).to_bits(),
-            boxed.dot(&boxed_other).to_bits(),
+            unaligned.dot(&unaligned_other),
+            boxed.dot(&boxed_other),
             "dot over {N}",
         );
         assert_eq!(
-            unaligned.norm_squared().to_bits(),
-            boxed.norm_squared().to_bits(),
+            unaligned.norm_squared(),
+            boxed.norm_squared(),
             "norm over {N}",
         );
         assert_eq!(

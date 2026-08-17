@@ -66,7 +66,9 @@ use crate::{
         salt::{SaltRepository, metadata::LadderEvidence},
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{AlignedVecN, DNonNegative, NonNegative, Vec2},
+    math::{
+        AlignedVecN, DFinite, DNonNegative, DPositive, NonNegative, UnitFraction, Vec2, d_positive,
+    },
     salt::{
         fit::{PlacementInner, PlacementOptions, ProjectorOptions, placement_device},
         projector::{
@@ -83,7 +85,7 @@ use crate::{
 /// One order above the measured reproduction floor: independent full-corpus rebuilds of two prior
 /// generations reached maximum component errors of `7.6e-5` and `1.03e-4` against their published
 /// coordinate columns.
-pub(crate) const CERTIFICATE_TOLERANCE: f64 = 1e-3;
+pub(crate) const CERTIFICATE_TOLERANCE: DPositive = d_positive!(1e-3);
 
 /// The relation-effect report of one published generation's condition ladder.
 ///
@@ -103,7 +105,7 @@ pub(crate) struct LadderReport {
     /// The published rung's schedule index.
     pub canonical_index: usize,
     /// The published rung's condition.
-    pub canonical_condition: f32,
+    pub canonical_condition: NonNegative,
     /// The schedule index with the largest mass-weighted mean contraction.
     ///
     /// Ties keep the first. Index `0` states that no rung contracts the engaged pairs against the
@@ -121,13 +123,13 @@ pub(crate) struct LadderReport {
 #[derive(Debug, serde::Serialize)]
 pub(crate) struct Certificate {
     /// The acceptance bound, world units per component.
-    pub tolerance: f64,
+    pub tolerance: DPositive,
     /// Largest absolute component error.
-    pub max_absolute_error: f64,
+    pub max_absolute_error: DNonNegative,
     /// Mean absolute component error.
-    pub mean_absolute_error: f64,
+    pub mean_absolute_error: DNonNegative,
     /// Largest Euclidean point error.
-    pub max_point_distance: f64,
+    pub max_point_distance: DNonNegative,
 }
 
 /// One rung's manifest evidence beside its measured relation effect.
@@ -160,15 +162,15 @@ pub(crate) struct ContractionReading {
     /// Instances entering the aggregate.
     pub edge_count: usize,
     /// Total engagement mass of those instances.
-    pub total_mass: f64,
+    pub total_mass: DNonNegative,
     /// Mass-weighted mean of `baseline distance - rung distance`, world units.
     ///
     /// Zero when no mass entered.
-    pub mass_weighted_mean: f64,
+    pub mass_weighted_mean: DFinite,
     /// Unweighted mean of the same difference, world units. Zero when no instance entered.
-    pub unweighted_mean: f64,
+    pub unweighted_mean: DFinite,
     /// The fraction of instances whose distance strictly shrank. Zero when no instance entered.
-    pub contracted_fraction: f64,
+    pub contracted_fraction: UnitFraction,
 }
 
 /// One relation group's contraction beside its shared weights.
@@ -192,11 +194,11 @@ pub(crate) struct DisplacementReading {
     /// Rows in the population.
     pub rows: usize,
     /// Mean Euclidean displacement, world units. Zero for an empty population.
-    pub mean: f64,
+    pub mean: DNonNegative,
     /// Root-mean-square Euclidean displacement, world units. Zero for an empty population.
-    pub rms: f64,
+    pub rms: DNonNegative,
     /// Largest Euclidean displacement, world units. Zero for an empty population.
-    pub max: f64,
+    pub max: DNonNegative,
 }
 
 /// One instance's endpoints and engagement mass, the unit of the contraction aggregates.
@@ -307,7 +309,7 @@ impl LadderReport {
             groups: attraction.group_count(),
             participants,
             canonical_index: evidence.canonical_index,
-            canonical_condition: evidence.canonical.get(),
+            canonical_condition: evidence.canonical,
             contraction_argmax_index,
             canonical_is_argmax: contraction_argmax_index == evidence.canonical_index,
             certificate,
@@ -480,9 +482,9 @@ fn read_rungs(
 ///
 /// # Panics
 ///
-/// This panics when the largest absolute component error reaches [`CERTIFICATE_TOLERANCE`]: the
-/// rebuilt frames would describe a lookalike of the published generation, and no reading over them
-/// is evidence about it.
+/// This panics when the largest absolute component error reaches [`CERTIFICATE_TOLERANCE`] and
+/// when any rebuilt component is non-finite: the rebuilt frames would describe a lookalike of the
+/// published generation, and no reading over them is evidence about it.
 #[expect(
     clippy::cast_precision_loss,
     reason = "corpus row counts sit orders of magnitude below the f64 mantissa"
@@ -507,15 +509,19 @@ fn certify(rebuilt: &[Vec2], published: &[Vec2]) -> Certificate {
     }
     let components = (rebuilt.len() * 2) as f64;
 
+    // `f64::max` skips NaN, so the max fold alone cannot certify finiteness. Any NaN component
+    // poisons the component sum, and the mean's constructor is the refusal.
+    let non_finite =
+        "the rebuilt canonical frame carries a non-finite coordinate and reproduces nothing";
     let certificate = Certificate {
         tolerance: CERTIFICATE_TOLERANCE,
-        max_absolute_error: max_absolute,
+        max_absolute_error: DNonNegative::new(max_absolute).expect(non_finite),
         mean_absolute_error: if rebuilt.is_empty() {
-            0.0
+            DNonNegative::ZERO
         } else {
-            sum_absolute / components
+            DNonNegative::new(sum_absolute / components).expect(non_finite)
         },
-        max_point_distance: max_distance,
+        max_point_distance: DNonNegative::new(max_distance).expect(non_finite),
     };
     assert!(
         certificate.max_absolute_error < CERTIFICATE_TOLERANCE,
@@ -558,21 +564,25 @@ fn contract(
 
     ContractionReading {
         edge_count,
-        total_mass,
+        total_mass: DNonNegative::new(total_mass)
+            .expect("a sum of non-negative engagement masses is non-negative and finite"),
         mass_weighted_mean: if total_mass > 0.0 {
-            weighted_sum / total_mass
+            DFinite::new(weighted_sum / total_mass)
+                .expect("a mass-weighted mean of finite distance differences is finite")
         } else {
-            0.0
+            DFinite::ZERO
         },
         unweighted_mean: if edge_count > 0 {
-            unweighted_sum / edge_count as f64
+            DFinite::new(unweighted_sum / edge_count as f64)
+                .expect("a mean of finite distance differences is finite")
         } else {
-            0.0
+            DFinite::ZERO
         },
         contracted_fraction: if edge_count > 0 {
-            contracted as f64 / edge_count as f64
+            UnitFraction::new(contracted as f64 / edge_count as f64)
+                .expect("a count never exceeds the population it counts")
         } else {
-            0.0
+            UnitFraction::ZERO
         },
     }
 }
@@ -609,26 +619,32 @@ fn displace(
 
     DisplacementReading {
         rows,
-        mean: if rows > 0 { sum / rows as f64 } else { 0.0 },
-        rms: if rows > 0 {
-            (sum_squared / rows as f64).sqrt()
+        mean: if rows > 0 {
+            DNonNegative::new(sum / rows as f64)
+                .expect("a mean of finite non-negative distances is non-negative and finite")
         } else {
-            0.0
+            DNonNegative::ZERO
         },
-        max,
+        rms: if rows > 0 {
+            DNonNegative::new((sum_squared / rows as f64).sqrt())
+                .expect("a root of a non-negative mean is non-negative")
+        } else {
+            DNonNegative::ZERO
+        },
+        max: DNonNegative::new(max).expect("a maximum of non-negative distances is non-negative"),
     }
 }
 
 /// Returns the index of the largest value.
 ///
 /// Ties keep the first. Empty input returns `0`.
-fn argmax(values: impl IntoIterator<Item = f64>) -> usize {
+fn argmax(values: impl IntoIterator<Item = DFinite>) -> usize {
     let mut best = 0_usize;
-    let mut best_value = f64::NEG_INFINITY;
+    let mut best_value = None;
     for (index, value) in values.into_iter().enumerate() {
-        if value > best_value {
+        if best_value.is_none_or(|current| value > current) {
             best = index;
-            best_value = value;
+            best_value = Some(value);
         }
     }
     best

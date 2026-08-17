@@ -831,7 +831,7 @@ fn defects_serialize_rows_as_plain_integers() {
 ///
 /// The bodies decode from the ruled serialized shapes, so the fixture cannot drift from the
 /// wire form the pins in `salt::ladder::paired` hold.
-fn paired_bodies(repository: &SaltRepository) -> [PairedMovementEvidence; 3] {
+fn paired_bodies(repository: &SaltRepository) -> [PairedMovementEvidence<NodeRowId>; 3] {
     let salt = RuleIdentity::INITIAL
         .recognize()
         .expect("the initial identity recognizes")
@@ -862,7 +862,7 @@ fn paired_bodies(repository: &SaltRepository) -> [PairedMovementEvidence; 3] {
                     .expect("the extension is an object")
                     .clone(),
             );
-        serde_json::from_value::<PairedMovementEvidence>(body)
+        serde_json::from_value::<PairedMovementEvidence<NodeRowId>>(body)
             .expect("the ruled shape decodes through the production reader")
     };
 

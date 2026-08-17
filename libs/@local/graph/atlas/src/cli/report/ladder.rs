@@ -67,7 +67,7 @@ impl Display for LadderVerdict {
                 rung.relation_loss,
                 rung.contraction.mass_weighted_mean,
                 rung.contraction.unweighted_mean,
-                rung.contraction.contracted_fraction * 100.0,
+                f64::from(rung.contraction.contracted_fraction) * 100.0,
                 rung.non_participant_displacement.mean,
             )?;
         }
@@ -101,11 +101,7 @@ impl Display for LadderVerdict {
              contraction-mean  contracted",
         )?;
         let mut groups: Vec<_> = canonical.group_contractions.iter().collect();
-        groups.sort_by(|left, right| {
-            left.contraction
-                .mass_weighted_mean
-                .total_cmp(&right.contraction.mass_weighted_mean)
-        });
+        groups.sort_by_key(|group| group.contraction.mass_weighted_mean);
         for group in groups {
             writeln!(
                 fmt,
@@ -117,7 +113,7 @@ impl Display for LadderVerdict {
                 group.coincident,
                 group.contraction.mass_weighted_mean,
                 group.contraction.unweighted_mean,
-                group.contraction.contracted_fraction * 100.0,
+                f64::from(group.contraction.contracted_fraction) * 100.0,
             )?;
         }
 

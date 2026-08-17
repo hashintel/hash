@@ -91,7 +91,7 @@ use crate::{
         quad::read::QuadFile,
     },
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, Bounds2, BoxedVecN, Log2, Vec2, VecN},
+    math::{AffinityCurve, AlignedVecN, Bounds2, BoxedVecN, Log2, Vec2, VecN, positive},
     morton::{Depth, MortonCell, MortonKey},
     progress::NoProgress,
     salt::{
@@ -344,7 +344,8 @@ fn fixture_config() -> FitConfig {
             maximum_count: NonZero::new(8).expect("the fixture capacity is nonzero"),
             ..
         },
-        curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
+        curve: AffinityCurve::fit(positive!(1.0), positive!(0.1))
+            .expect("the reference falloff is well-conditioned"),
         neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
         // The serving fixture reads artifacts, not placement quality:
         // it opts out of the default's training run.

@@ -56,23 +56,24 @@ pub(crate) fn measure(
     edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
     zero: &IdSlice<NodeRowId, Vec2>,
     canonical: &IdSlice<NodeRowId, Vec2>,
-) -> Result<PairedMovementEvidence, EncodeError> {
+) -> Result<PairedMovementEvidence<NodeRowId>, EncodeError> {
     let rule = RuleIdentity::INITIAL
         .recognize()
         .expect("this crate carries the initial rule identity");
     let salt = rule.derive_salt(snapshot, reproducibility)?;
     let rows = zero.len() as u64;
 
-    let evidence = |draw: Option<&Draw>, outcome: MovementOutcome| PairedMovementEvidence {
-        rule: rule.identity(),
-        salt,
-        rank_window: RANK_WINDOW.get() as u64,
-        pair_candidates: draw.map_or(0, Draw::pair_candidates),
-        pairs_selected: draw.map_or(0, |draw| draw.pairs().len() as u64),
-        control_candidates: draw.map_or(0, Draw::control_candidates),
-        controls_selected: draw.map_or(0, |draw| draw.controls().len() as u64),
-        outcome,
-    };
+    let evidence =
+        |draw: Option<&Draw>, outcome: MovementOutcome<NodeRowId>| PairedMovementEvidence {
+            rule: rule.identity(),
+            salt,
+            rank_window: RANK_WINDOW.get() as u64,
+            pair_candidates: draw.map_or(0, Draw::pair_candidates),
+            pairs_selected: draw.map_or(0, |draw| draw.pairs().len() as u64),
+            control_candidates: draw.map_or(0, Draw::control_candidates),
+            controls_selected: draw.map_or(0, |draw| draw.controls().len() as u64),
+            outcome,
+        };
 
     let draw = match Draw::over(rule, salt, rows, groups, edges) {
         Ok(draw) => draw,

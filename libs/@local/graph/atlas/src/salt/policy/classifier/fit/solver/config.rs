@@ -126,18 +126,11 @@ impl SolverConfig {
     /// initial scaled gradient norm.
     ///
     /// A zero threshold is valid. With the absolute floor at zero and an exactly-zero initial norm,
-    /// only an exactly-zero gradient certifies. Returns [`None`] for a non-finite initial norm. A
-    /// finite norm keeps the threshold finite, since the relative tolerance lies below one and the
-    /// absolute floor is finite by construction.
-    pub(super) fn gradient_threshold(&self, initial_norm: f64) -> Option<f64> {
-        if !initial_norm.is_finite() {
-            return None;
-        }
-
-        Some(
-            self.absolute_scaled_gradient_tolerance
-                .get()
-                .max(self.relative_scaled_gradient_tolerance.get() * initial_norm),
-        )
+    /// only an exactly-zero gradient certifies. The derivation is total: the relative tolerance
+    /// lies below one, so the scaled term never exceeds the norm. The maximum of two in-domain
+    /// values therefore stays in domain.
+    pub(super) const fn gradient_threshold(&self, initial_norm: DNonNegative) -> DNonNegative {
+        self.absolute_scaled_gradient_tolerance
+            .max(self.relative_scaled_gradient_tolerance * initial_norm)
     }
 }

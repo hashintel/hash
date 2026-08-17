@@ -6,7 +6,7 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use super::{raw_interop, unsafe_impl_try_from_bytes};
+use super::{DPositive, Negative, NonNegative, raw_interop, unsafe_impl_try_from_bytes};
 
 /// Validates a positive literal at compile time.
 ///
@@ -40,6 +40,16 @@ pub(crate) use positive;
 pub(crate) struct Positive(f32);
 
 impl Positive {
+    /// The domain's largest value, the largest finite `f32`.
+    ///
+    /// The exact ceiling a representation check compares against: past it, a working-precision
+    /// value overflows to `+∞` and leaves the domain.
+    pub(crate) const MAX: Self = Self(f32::MAX);
+    /// The domain's smallest value, the smallest positive subnormal `2⁻¹⁴⁹`.
+    ///
+    /// The domain admits subnormals, so this is the exact floor a representation check
+    /// compares against.
+    pub(crate) const MIN: Self = Self(f32::from_bits(1));
     /// The value one.
     pub(crate) const ONE: Self = Self(1.0);
 
@@ -88,6 +98,29 @@ impl Positive {
         }
     }
 
+    #[inline]
+    #[must_use]
+    pub(crate) const fn widen(self) -> DPositive {
+        DPositive::from(self)
+    }
+
+    /// Multiplies, refusing an escape from the domain.
+    ///
+    /// A product of positives is never NaN and never negative, so [`None`] is exactly an
+    /// overflow to `+∞` or an underflow to zero, and the caller owns the refusal that escape
+    /// deserves.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn checked_mul(self, other: Self) -> Option<Self> {
+        let result = self.0 * other.0;
+
+        if result.is_finite() && result > 0.0 {
+            Some(Self(result))
+        } else {
+            None
+        }
+    }
+
     /// Returns the value.
     #[inline]
     #[must_use]
@@ -105,6 +138,38 @@ impl Positive {
         // for a positive operand, and never zero - the root halves the exponent, so the
         // smallest input roots far above the underflow threshold.
         Self::new_unchecked(self.0.sqrt())
+    }
+
+    /// Returns the reciprocal.
+    ///
+    /// The reciprocal of a positive value is positive and never rounds to zero, since even the
+    /// largest finite input's reciprocal stays above the smallest subnormal. An operand below
+    /// `1/MAX` overflows to `+∞` - a wrong reading rather than a soundness break, since no
+    /// unsafe code trusts the domain - and asserts in debug builds.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn recip(self) -> Self {
+        let reciprocal = 1.0 / self.0;
+        debug_assert!(
+            reciprocal.is_finite() && reciprocal > 0.0,
+            "the reciprocal left the domain",
+        );
+
+        Self(reciprocal)
+    }
+
+    /// Returns whether the value stayed in domain.
+    ///
+    /// Construction admits only finite values and arithmetic escapes to `+∞` on overflow, so a
+    /// non-finite reading is exactly an escaped one.
+    ///
+    /// The one caller shape is a validation point that rejects escaped readings before acting on
+    /// a computed value. Anywhere else the query re-checks what construction already proved, and
+    /// the check itself is the defect.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn is_finite(self) -> bool {
+        self.0.is_finite()
     }
 }
 
@@ -172,6 +237,46 @@ const impl core::ops::Mul for Positive {
         );
 
         Self(product)
+    }
+}
+
+const impl core::ops::Mul<NonNegative> for Positive {
+    type Output = NonNegative;
+
+    #[inline]
+    fn mul(self, rhs: NonNegative) -> NonNegative {
+        NonNegative::from(self) * rhs
+    }
+}
+
+const impl core::ops::Div for Positive {
+    type Output = Self;
+
+    /// Divides.
+    ///
+    /// A quotient of positives is never NaN and never `-0.0`. Overflow escapes to `+∞` and
+    /// underflow to `+0.0` - wrong readings rather than soundness breaks, since no unsafe code
+    /// trusts the domain and a persisted value re-validates at construction - and both assert
+    /// in debug builds, mirroring integer `/`.
+    #[inline]
+    fn div(self, rhs: Self) -> Self {
+        let quotient = self.0 / rhs.0;
+        debug_assert!(
+            quotient.is_finite() && quotient > 0.0,
+            "positive division left the domain",
+        );
+
+        Self(quotient)
+    }
+}
+
+const impl core::ops::Neg for Positive {
+    type Output = Negative;
+
+    /// Negates into the strictly negative domain, exactly.
+    #[inline]
+    fn neg(self) -> Negative {
+        Negative::new_unchecked(-self.0)
     }
 }
 

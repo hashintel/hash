@@ -1,8 +1,14 @@
+#![expect(
+    clippy::float_cmp,
+    reason = "the exact fit fixtures produce exactly representable readings, so the asserted \
+              constants are exact contracts"
+)]
+
 use proptest::{property_test, strategy::Strategy};
 
 use super::Transform;
 use crate::math::{
-    Rotation, Translation, Vec2, Vec2x4T,
+    Rotation, Similarity, Translation, Vec2, Vec2x4T,
     tests::{POINTS, assert_vec2_close},
 };
 
@@ -225,4 +231,134 @@ fn then_matches_sequential_application_on_arbitrary_transforms(
     // factor of 10 plus 1e3.
     let magnitude = point.length().get().mul_add(100.0, 1.1e4);
     assert_close_at_magnitude(composed, sequential, magnitude);
+}
+
+/// The dyadic anisotropic fixture lands every fitted coefficient on an exactly representable
+/// value, so the recovery asserts an exact contract.
+#[test]
+fn fit_recovers_an_exact_anisotropic_map() {
+    let expected = Transform::from_cols(
+        Vec2::new(2.0, 0.0),
+        Vec2::new(0.0, 0.5),
+        Vec2::new(1.0, -2.0),
+    );
+    let source = [
+        Vec2::new(1.0, 0.0),
+        Vec2::new(-1.0, 0.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(0.0, -1.0),
+    ];
+    let target = source.map(|point| expected.apply(point));
+
+    let fitted = Transform::fit_uniform(&source, &target).expect("the exact fixture fits");
+
+    assert_eq!(fitted, expected);
+    assert_eq!(
+        fitted
+            .rms_residual(&source, &target)
+            .expect("the fixture is finite"),
+        0.0
+    );
+}
+
+/// The affine fit subsumes the similarity family: on exactly similar data it recovers the
+/// similarity's own transform, coefficient for coefficient.
+#[test]
+fn fit_recovers_an_exact_similarity() {
+    let source = [
+        Vec2::new(1.0, 0.0),
+        Vec2::new(-1.0, 0.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(0.0, -1.0),
+    ];
+    // Scale 2 under a quarter turn, translated by (1, -2), hand-applied.
+    let target = [
+        Vec2::new(1.0, 0.0),
+        Vec2::new(1.0, -4.0),
+        Vec2::new(-1.0, -2.0),
+        Vec2::new(3.0, -2.0),
+    ];
+
+    let fitted = Transform::fit_uniform(&source, &target).expect("the exact fixture fits");
+    let similarity =
+        Similarity::fit_uniform(&source, &target).expect("the similar fixture fits exactly");
+
+    assert_eq!(fitted, Transform::from(similarity));
+    assert_eq!(
+        fitted
+            .rms_residual(&source, &target)
+            .expect("the fixture is finite"),
+        0.0
+    );
+}
+
+/// A trace-free deformation - one axis contracted, the other expanded - leaves the similarity
+/// fit a residual while the affine fit absorbs it whole. The readings are exact: the
+/// similarity's best scale on this square is `1.25` and every point misses it by `0.75`.
+#[test]
+fn fit_absorbs_the_deformation_a_similarity_cannot() {
+    let source = [
+        Vec2::new(1.0, 0.0),
+        Vec2::new(-1.0, 0.0),
+        Vec2::new(0.0, 1.0),
+        Vec2::new(0.0, -1.0),
+    ];
+    let target = [
+        Vec2::new(2.0, 0.0),
+        Vec2::new(-2.0, 0.0),
+        Vec2::new(0.0, 0.5),
+        Vec2::new(0.0, -0.5),
+    ];
+
+    let affine = Transform::fit_uniform(&source, &target).expect("the exact fixture fits");
+    assert_eq!(
+        affine
+            .rms_residual(&source, &target)
+            .expect("the fixture is finite"),
+        0.0
+    );
+
+    let similarity =
+        Similarity::fit_uniform(&source, &target).expect("the square has positive variance");
+    assert_eq!(similarity.scale().get(), 1.25);
+    assert_eq!(
+        similarity
+            .rms_residual(&source, &target)
+            .expect("the fixture is finite"),
+        0.75
+    );
+}
+
+/// Collinear source points collapse an axis of the scatter, and the fit refuses them the way
+/// the inverse refuses a collapsed transform. The diagonal fixture's determinant cancels
+/// exactly in dyadic arithmetic.
+#[test]
+fn fit_refuses_degenerate_sources() {
+    let collinear = [
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(2.0, 2.0),
+        Vec2::new(3.0, 3.0),
+    ];
+    assert_eq!(Transform::fit_uniform(&collinear, &collinear), None);
+
+    let square = [
+        Vec2::new(1.0, 0.0),
+        Vec2::new(-1.0, 0.0),
+        Vec2::new(0.0, 1.0),
+    ];
+    assert_eq!(Transform::fit_uniform(&square[..2], &square[..2]), None);
+    assert_eq!(Transform::fit_uniform(&square, &square[..2]), None);
+
+    let poisoned = [
+        Vec2::new(1.0, 0.0),
+        Vec2::new(-1.0, 0.0),
+        Vec2::new(0.0, f32::NAN),
+    ];
+    assert_eq!(Transform::fit_uniform(&square, &poisoned), None);
+    assert_eq!(
+        Transform::IDENTITY.rms_residual(&square, &poisoned),
+        None,
+        "a non-finite residual sum is refused at the finish"
+    );
 }

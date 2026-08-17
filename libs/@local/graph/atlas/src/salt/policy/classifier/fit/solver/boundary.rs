@@ -12,11 +12,8 @@
 //! product - returns [`None`]; the caller maps [`None`] onto its typed no-finite-boundary-step
 //! failure.
 
-use super::{
-    SOLVER_DIMENSIONS, flat,
-    stable::{checked_dot, checked_norm_squared, stable_l2},
-};
-use crate::math::{AlignedDVecN, BoxedDVecN, DVecN};
+use super::{SOLVER_DIMENSIONS, flat};
+use crate::math::{AlignedDVecN, BoxedDVecN, DPositive, DVecN};
 
 /// Unit-norm residual guard of the boundary construction: `2⁻⁴⁰` of unit norm.
 ///
@@ -59,16 +56,16 @@ pub(super) fn boundary_step(
     direction: &AlignedDVecN<SOLVER_DIMENSIONS>,
     hessian_interior: &AlignedDVecN<SOLVER_DIMENSIONS>,
     hessian_direction: &AlignedDVecN<SOLVER_DIMENSIONS>,
-    radius: f64,
+    radius: DPositive,
 ) -> Option<BoundaryStep> {
     // u = p/Δ and v = d/Δ, rejected on any non-finite quotient.
     let normalized_interior = normalize(interior, radius)?;
     let normalized_direction = normalize(direction, radius)?;
 
-    let quadratic = checked_norm_squared(&normalized_direction)?;
-    let linear = 2.0 * checked_dot(&normalized_interior, &normalized_direction)?;
-    let constant = checked_norm_squared(&normalized_interior)? - 1.0;
-    if !linear.is_finite() || quadratic <= 0.0 || constant >= 0.0 {
+    let quadratic = normalized_direction.checked_norm_squared()?.positive()?;
+    let linear = 2.0 * normalized_interior.checked_dot(&normalized_direction)?;
+    let constant = normalized_interior.checked_norm_squared()? - 1.0;
+    if !linear.is_finite() || constant >= 0.0 {
         return None;
     }
 
@@ -89,7 +86,7 @@ pub(super) fn boundary_step(
         .find(|tau| tau.is_finite() && *tau > 0.0)?;
 
     let boundary = flat::advance(&normalized_interior, crossing, &normalized_direction);
-    let norm = stable_l2(&boundary)?;
+    let norm = boundary.checked_stable_l2()?;
     if (norm - 1.0).abs() > GROSS_DEFECT_GUARD {
         return None;
     }
@@ -100,7 +97,7 @@ pub(super) fn boundary_step(
     // Revalidate the step exactly as a consumer would read it back: divided by the radius, the
     // rounding of the rescaling roundtrip must still sit inside the gross-defect guard.
     let returned = normalize(&step, radius)?;
-    let returned_norm = stable_l2(&returned)?;
+    let returned_norm = returned.checked_stable_l2()?;
     if (returned_norm - 1.0).abs() > GROSS_DEFECT_GUARD {
         return None;
     }
@@ -114,7 +111,7 @@ pub(super) fn boundary_step(
 /// Divides every component by the radius, rejecting a non-finite quotient.
 fn normalize(
     vector: &AlignedDVecN<SOLVER_DIMENSIONS>,
-    radius: f64,
+    radius: DPositive,
 ) -> Option<BoxedDVecN<SOLVER_DIMENSIONS>> {
     let mut normalized = BoxedDVecN::new(DVecN::from_ref(vector.as_array()));
 
