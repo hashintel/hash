@@ -772,6 +772,39 @@ fn aligned_from_mut_checks_alignment() {
     assert!(AlignedDVecN::from_mut(tail).is_none());
 }
 
+/// The checking wrapper admits aligned storage and refuses an offset view of it, through a
+/// shared reference.
+#[test]
+fn aligned_from_ref_checks_alignment() {
+    let boxed = BoxedDVecN::from([7.0_f64; 9]);
+    let array: &[f64; 9] = boxed.as_array();
+
+    let (head, _) = array.split_at(8);
+    let head: &[f64; 8] = head.try_into().expect("eight components split off");
+    assert!(AlignedDVecN::from_ref(head).is_some());
+
+    // One component in, the view sits eight bytes past the 64-byte boundary.
+    let tail: &[f64; 8] = (&array[1..]).try_into().expect("eight components remain");
+    assert!(AlignedDVecN::from_ref(tail).is_none());
+}
+
+/// `clone_from` reuses the target's existing allocation instead of reallocating.
+#[test]
+fn boxed_dvecn_clone_from_reuses_the_allocation() {
+    let source = BoxedDVecN::from([9.0_f64; 8]);
+    let mut target = BoxedDVecN::from([0.0_f64; 8]);
+    let address = target.as_array().as_ptr().addr();
+
+    target.clone_from(&source);
+
+    assert_eq!(target, source);
+    assert_eq!(
+        target.as_array().as_ptr().addr(),
+        address,
+        "clone_from must reuse the existing buffer",
+    );
+}
+
 /// Hashes one value with the std default hasher.
 fn hash_of(value: impl Hash) -> u64 {
     let mut hasher = DefaultHasher::new();

@@ -283,6 +283,27 @@ fn vecn_wraps_in_place() {
     assert_eq!(VecN::from_ref(&source), VecN::from_ref(&[1.0; 8]));
 }
 
+/// The slice wrapper reinterprets a borrowed slice of arrays in place, in both directions.
+#[test]
+fn vecn_wrap_slice_wraps_in_place() {
+    let mut source = [[1.0_f32; 8], [2.0_f32; 8], [3.0_f32; 8]];
+
+    let wrapped = VecN::wrap_slice(&source);
+    assert_eq!(
+        core::ptr::from_ref(wrapped).cast::<u8>(),
+        core::ptr::from_ref(&source).cast::<u8>(),
+        "wrap_slice must reuse the source storage",
+    );
+    assert_eq!(wrapped[1], VecN::from_ref(&[2.0; 8]).to_owned());
+
+    let wrapped_mut = VecN::wrap_slice_mut(&mut source);
+    wrapped_mut[1] = *VecN::from_ref(&[9.0; 8]);
+    assert_eq!(
+        source[1], [9.0; 8],
+        "a write through the mut wrapper must land in the source"
+    );
+}
+
 #[test]
 fn lanes_iterate_lane_groups_in_order() {
     let source: [f32; 16] = core::array::from_fn(|index| {

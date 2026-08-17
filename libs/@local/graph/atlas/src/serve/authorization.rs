@@ -631,3 +631,25 @@ where
         Ok(scope)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+    use zerocopy::FromBytes as _;
+
+    use super::ArchivedActorEntityUuid;
+
+    const ACTOR_UUID_BYTES: [u8; 16] = [
+        0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC,
+        0xFE,
+    ];
+
+    /// The archived actor identity derefs to the plain identity the same bytes denote.
+    #[test]
+    fn archived_actor_entity_uuid_derefs_to_the_same_identity() {
+        let archived = ArchivedActorEntityUuid::read_from_bytes(&ACTOR_UUID_BYTES)
+            .expect("should read an archived actor uuid from any 16 bytes");
+
+        assert_eq!(Uuid::from(*archived), Uuid::from_bytes(ACTOR_UUID_BYTES),);
+    }
+}

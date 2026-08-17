@@ -83,6 +83,37 @@ fn fenceposts_carry_the_structural_rules() {
     assert_eq!(Fenceposts::<BasePosition>::from_lengths(&lengths), None);
 }
 
+/// The borrowed door wraps a valid fencepost array in place and refuses the same structural
+/// breaks the owning constructor refuses.
+#[test]
+fn try_from_ref_wraps_in_place_and_refuses_structural_breaks() {
+    let posts = posts_of(&[2, 0, 3]);
+    let raw = *posts.as_raw();
+
+    let wrapped =
+        Fenceposts::<BasePosition>::try_from_ref(&raw).expect("anchored, non-decreasing posts");
+    assert_eq!(
+        core::ptr::from_ref(wrapped).cast::<u8>(),
+        core::ptr::from_ref(&raw).cast::<u8>(),
+        "try_from_ref must reuse the source storage",
+    );
+    assert_eq!(*wrapped, posts);
+
+    let mut anchor_broken = raw;
+    anchor_broken[0] = U64::new(1);
+    assert_eq!(
+        Fenceposts::<BasePosition>::try_from_ref(&anchor_broken),
+        Err(FencepostError::Anchor),
+    );
+
+    let mut descending = raw;
+    descending[2] = U64::new(1);
+    assert_eq!(
+        Fenceposts::<BasePosition>::try_from_ref(&descending),
+        Err(FencepostError::Order { index: 2 }),
+    );
+}
+
 #[test]
 fn header_wire_layout() {
     let header = PaddedFileHeader::new(FileHeader::new(512, posts_of(&[600, 400])));

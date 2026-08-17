@@ -429,6 +429,58 @@ const fn readback(reported: &Reported) -> Option<Batch> {
     }
 }
 
+/// The smallest lists `Knn::from_lists` accepts: one neighbour per row over three rows, each
+/// column distinct from its own row.
+fn tiny_neighbour_lists() -> NeighbourLists<NodeRowId> {
+    let entries: Box<[Neighbour<NodeRowId>]> = Box::new([
+        Neighbour {
+            id: NodeRowId::from_usize(1),
+            distance: non_negative!(0.0),
+        },
+        Neighbour {
+            id: NodeRowId::from_usize(2),
+            distance: non_negative!(0.0),
+        },
+        Neighbour {
+            id: NodeRowId::from_usize(0),
+            distance: non_negative!(0.0),
+        },
+    ]);
+    NeighbourLists::new(entries, 1)
+}
+
+/// `Knn::from_lists` iterates rows through rayon's `par_chunks_mut`, and rayon's thread pool runs
+/// under miri at real cost. This measures the smallest fixture's miri wall time so the review
+/// letter can cite it, rather than assume it.
+///
+/// Measured: under miri this fails rather than merely running slowly. Rayon's crossbeam-epoch
+/// registry trips the same known Stacked Borrows false positive already worked around on
+/// `build_matches_hand_computed_neighbours` above, about 1m46s wall clock in, at the failing
+/// retag. The site is downgraded to out-with-reason on this measurement; the ignore below is the
+/// existing crate pattern for the same false positive, not a new one.
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
+fn from_lists_over_the_smallest_fixture_measures_the_miri_cost() {
+    let lists = tiny_neighbour_lists();
+
+    let start = std::time::Instant::now();
+    let knn = Knn::from_lists::<!>(&lists, NonZero::new(1).expect("one is nonzero"))
+        .expect("the fixture is well-formed");
+    let elapsed = start.elapsed();
+
+    assert_eq!(knn.rows(), 3);
+    assert_eq!(knn.neighbours(), 1);
+
+    // Not a correctness assertion: printed so the harness's transcript carries the measurement
+    // whether or not `--nocapture` is passed by the caller measuring it under miri.
+    if std::env::var_os("MIRI_KNN_TIMING").is_some() {
+        eprintln!("from_lists_over_the_smallest_fixture_measures_the_miri_cost: {elapsed:?}");
+    }
+}
+
 /// Constructs lists over `embeddings` through an initially empty backend.
 fn lists_via<I>(
     index: I,

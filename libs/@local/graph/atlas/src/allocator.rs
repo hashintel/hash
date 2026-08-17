@@ -152,3 +152,167 @@ unsafe impl<A: Allocator> Allocator for MemoryUsageAllocator<A> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use core::alloc::{Allocator as _, Layout};
+
+    use super::MemoryUsageAllocator;
+
+    #[test]
+    fn allocate_rises_the_counter_by_layout_size() {
+        let allocator = MemoryUsageAllocator::global();
+        let usage = allocator.memory_usage();
+        assert_eq!(usage.get(), 0);
+
+        let layout = Layout::array::<u8>(16).expect("layout for 16 bytes should be valid");
+        let ptr = allocator
+            .allocate(layout)
+            .expect("allocation should succeed");
+        assert_eq!(usage.get(), layout.size());
+
+        // SAFETY: `ptr` came from `allocate` above with `layout`, and is deallocated exactly once.
+        unsafe {
+            allocator.deallocate(ptr.cast(), layout);
+        }
+        assert_eq!(usage.get(), 0);
+    }
+
+    #[test]
+    fn allocate_zeroed_rises_and_reads_zero() {
+        let allocator = MemoryUsageAllocator::global();
+        let usage = allocator.memory_usage();
+
+        let layout = Layout::array::<u8>(32).expect("layout for 32 bytes should be valid");
+        let ptr = allocator
+            .allocate_zeroed(layout)
+            .expect("allocation should succeed");
+        assert_eq!(usage.get(), layout.size());
+
+        // SAFETY: `ptr` came from `allocate_zeroed` above, which initializes every returned byte.
+        let block = unsafe { ptr.as_ref() };
+        assert!(block.iter().all(|&byte| byte == 0));
+
+        // SAFETY: `ptr` came from `allocate_zeroed` above with `layout`, deallocated exactly once.
+        unsafe {
+            allocator.deallocate(ptr.cast(), layout);
+        }
+        assert_eq!(usage.get(), 0);
+    }
+
+    #[test]
+    fn grow_tracks_the_size_delta() {
+        let allocator = MemoryUsageAllocator::global();
+        let usage = allocator.memory_usage();
+
+        let old_layout = Layout::array::<u8>(8).expect("layout for 8 bytes should be valid");
+        let new_layout = Layout::array::<u8>(64).expect("layout for 64 bytes should be valid");
+        let ptr = allocator
+            .allocate(old_layout)
+            .expect("allocation should succeed")
+            .cast::<u8>();
+        assert_eq!(usage.get(), old_layout.size());
+
+        // SAFETY: `ptr` denotes the current allocation of `old_layout` from `allocate` above, and
+        // `new_layout`'s size is at least `old_layout`'s.
+        let grown = unsafe {
+            allocator
+                .grow(ptr, old_layout, new_layout)
+                .expect("grow should succeed")
+        };
+        assert_eq!(usage.get(), new_layout.size());
+
+        // SAFETY: `grown` denotes the current allocation of `new_layout`, deallocated exactly once.
+        unsafe {
+            allocator.deallocate(grown.cast(), new_layout);
+        }
+        assert_eq!(usage.get(), 0);
+    }
+
+    #[test]
+    fn grow_zeroed_tracks_the_delta_and_zeroes_the_tail() {
+        let allocator = MemoryUsageAllocator::global();
+        let usage = allocator.memory_usage();
+
+        let old_layout = Layout::array::<u8>(8).expect("layout for 8 bytes should be valid");
+        let new_layout = Layout::array::<u8>(64).expect("layout for 64 bytes should be valid");
+        let ptr = allocator
+            .allocate(old_layout)
+            .expect("allocation should succeed")
+            .cast::<u8>();
+        // SAFETY: `ptr` denotes `old_layout.size()` writable bytes from `allocate` above.
+        unsafe {
+            ptr.as_ptr().write_bytes(0xAA, old_layout.size());
+        }
+
+        // SAFETY: `ptr` denotes the current allocation of `old_layout` from `allocate` above, and
+        // `new_layout`'s size is at least `old_layout`'s.
+        let grown = unsafe {
+            allocator
+                .grow_zeroed(ptr, old_layout, new_layout)
+                .expect("grow_zeroed should succeed")
+        };
+        assert_eq!(usage.get(), new_layout.size());
+
+        // SAFETY: `grown` was just returned by `grow_zeroed`, which initializes every returned
+        // byte.
+        let block = unsafe { grown.as_ref() };
+        assert!(
+            block[old_layout.size()..new_layout.size()]
+                .iter()
+                .all(|&byte| byte == 0)
+        );
+
+        // SAFETY: `grown` denotes the current allocation of `new_layout`, deallocated exactly once.
+        unsafe {
+            allocator.deallocate(grown.cast(), new_layout);
+        }
+        assert_eq!(usage.get(), 0);
+    }
+
+    #[test]
+    fn shrink_tracks_the_size_delta() {
+        let allocator = MemoryUsageAllocator::global();
+        let usage = allocator.memory_usage();
+
+        let old_layout = Layout::array::<u8>(64).expect("layout for 64 bytes should be valid");
+        let new_layout = Layout::array::<u8>(8).expect("layout for 8 bytes should be valid");
+        let ptr = allocator
+            .allocate(old_layout)
+            .expect("allocation should succeed")
+            .cast::<u8>();
+        assert_eq!(usage.get(), old_layout.size());
+
+        // SAFETY: `ptr` denotes the current allocation of `old_layout` from `allocate` above, and
+        // `new_layout`'s size does not exceed `old_layout`'s.
+        let shrunk = unsafe {
+            allocator
+                .shrink(ptr, old_layout, new_layout)
+                .expect("shrink should succeed")
+        };
+        assert_eq!(usage.get(), new_layout.size());
+
+        // SAFETY: `shrunk` denotes the current allocation of `new_layout`, deallocated exactly
+        // once.
+        unsafe {
+            allocator.deallocate(shrunk.cast(), new_layout);
+        }
+        assert_eq!(usage.get(), 0);
+    }
+
+    #[test]
+    fn vec_growth_through_the_allocator_tracks_pushes_and_returns_to_zero() {
+        let allocator = MemoryUsageAllocator::global();
+        let usage = allocator.memory_usage();
+        assert_eq!(usage.get(), 0);
+
+        let mut vec: ::alloc::vec::Vec<u8, _> = ::alloc::vec::Vec::new_in(allocator);
+        for byte in 0..u8::MAX {
+            vec.push(byte);
+        }
+        assert!(usage.get() >= usize::from(u8::MAX));
+
+        drop(vec);
+        assert_eq!(usage.get(), 0);
+    }
+}
