@@ -65,6 +65,43 @@ export const resolveAutoFocusProps = (
 });
 
 /**
+ * A single printable key that a number input will reject: letters and other
+ * symbols are silently dropped by the browser, and integer inputs
+ * additionally reject decimal/exponent characters. Modifier chords and
+ * non-printable keys are never rejected.
+ */
+export const isRejectedNumberInputKey = (
+  event: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey">,
+  integer: boolean,
+): boolean => {
+  if (
+    event.metaKey ||
+    event.ctrlKey ||
+    event.altKey ||
+    event.key.length !== 1
+  ) {
+    return false;
+  }
+  return integer ? !/[\d-]/.test(event.key) : !/[\d.eE+-]/.test(event.key);
+};
+
+/**
+ * Briefly flashes an input's background light grey to signal a rejected
+ * character. The single from-keyframe animates back to the element's own
+ * background (whatever that is), restarts cleanly on rapid repeats, and
+ * no-ops where the Web Animations API is unavailable (e.g. jsdom).
+ */
+export const flashInvalidInput = (input: Element) => {
+  if (typeof input.animate !== "function") {
+    return;
+  }
+  input.animate(
+    [{ backgroundColor: "var(--colors-neutral-s25, #f4f4f4)", offset: 0 }],
+    { duration: 300, easing: "ease-out" },
+  );
+};
+
+/**
  * There is no standard for turning off autocomplete, so this includes the
  * properties that turn it off for the most popular browsers + password
  * managers. Spread onto an `<input>`.

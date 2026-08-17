@@ -5,7 +5,11 @@ import { useMemo, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { preventAutocompleteProps } from "../../util/form-shared";
+import {
+  flashInvalidInput,
+  isRejectedNumberInputKey,
+  preventAutocompleteProps,
+} from "../../util/form-shared";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { Icon } from "../Icon/icon";
 import {
@@ -152,8 +156,6 @@ const caretSizeMap: Record<FormInputSize, FormInputSize> = {
 const preventWheel = (event: WheelEvent) => {
   event.preventDefault();
 };
-
-const integerBlockedKeys = new Set([".", "e", "E", "+"]);
 
 const numberStepOf = (config: LooseInputConfig): number | "any" =>
   config.type === "int" ? (config.step ?? 1) : (config.step ?? "any");
@@ -486,11 +488,12 @@ export const Filter = <
               onKeyDown={(event) => {
                 handleInputKeyDown(event);
                 if (
-                  integer &&
+                  !isText &&
                   !event.defaultPrevented &&
-                  integerBlockedKeys.has(event.key)
+                  isRejectedNumberInputKey(event, integer)
                 ) {
                   event.preventDefault();
+                  flashInvalidInput(event.currentTarget);
                 }
               }}
               onFocus={

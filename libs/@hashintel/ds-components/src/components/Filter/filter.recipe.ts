@@ -84,9 +84,9 @@ export const filterRecipe = sva({
     },
     inputSlot: {
       display: "inline-flex",
-      alignItems: "center",
-      paddingInline: "var(--filter-padding-x)",
-      paddingBlock: "var(--filter-padding-y)",
+      // The input carries the segment's padding itself and stretches to its
+      // full height, so e.g. the invalid-character flash paints edge to edge.
+      alignItems: "stretch",
       boxShadow: "[inset 1px 0 0 0 var(--filter-divider)]",
     },
     input: {
@@ -94,15 +94,17 @@ export const filterRecipe = sva({
       border: "none",
       background: "[transparent]",
       outline: "none",
-      padding: "0",
+      paddingInline: "var(--filter-padding-x)",
+      paddingBlock: "var(--filter-padding-y)",
       font: "inherit",
       color: "colorPalette.fg.body",
       // Grow/shrink with the typed value (or placeholder when empty),
-      // clamped below/above. Browsers without field-sizing fall back to the
-      // width implied by the `size` attribute set on text inputs.
+      // clamped below/above (the clamps account for the border-box padding).
+      // Browsers without field-sizing fall back to the width implied by the
+      // `size` attribute set on text inputs.
       fieldSizing: "content",
-      minWidth: "[4ch]",
-      maxWidth: "[32ch]",
+      minWidth: "[calc(4ch + 2 * var(--filter-padding-x))]",
+      maxWidth: "[calc(32ch + 2 * var(--filter-padding-x))]",
       "&::placeholder": {
         color: "[currentColor]",
         opacity: "[0.4]",

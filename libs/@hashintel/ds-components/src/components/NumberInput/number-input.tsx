@@ -1,5 +1,9 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import {
+  flashInvalidInput,
+  isRejectedNumberInputKey,
+} from "../../util/form-shared";
 import { BaseInput, type BaseInputProps } from "../TextInput/base-input";
 
 import type { FormInputWidth } from "../../util/form-shared";
@@ -10,8 +14,6 @@ import type { FormInputWidth } from "../../util/form-shared";
 const preventWheel = (event: WheelEvent) => {
   event.preventDefault();
 };
-
-const integerBlockedKeys = new Set([".", "e", "E", "+"]);
 
 const getStepPrecision = (step: number): number => {
   const stepStr = String(step);
@@ -140,11 +142,11 @@ export const NumberInput = ({
       onKeyDown={(event) => {
         onKeyDown?.(event);
         if (
-          isInteger &&
           !event.defaultPrevented &&
-          integerBlockedKeys.has(event.key)
+          isRejectedNumberInputKey(event, isInteger)
         ) {
           event.preventDefault();
+          flashInvalidInput(event.currentTarget);
         }
       }}
       onChange={(newValue, event) => {
