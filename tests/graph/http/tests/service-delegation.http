@@ -1,8 +1,8 @@
 # This file runs with httpYac (https://httpyac.github.io) and depends on the suite-wide hook in
 # `.httpyac.config.js`.
 #
-# Every request here sets `X-HASH-Service-Secret` explicitly to pin the rejection paths: a wrong
-# secret, the valid secret next to a malformed actor, and `<omit>` for a missing secret.
+# The rejection paths pin themselves against the hook: a wrong secret and `<omit>` override the
+# injected header, the malformed-actor request relies on the hook's configured valid secret.
 
 ### Wrong service secret is rejected despite an actor-ID header
 GET http://127.0.0.1:4000/actors/machine/identifier/h
@@ -36,7 +36,6 @@ X-HASH-Service-Secret: hash-svc-wrong
 ### Malformed actor-ID header is rejected with the valid secret
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
-X-HASH-Service-Secret: hash-svc-local-dev-secret
 X-Authenticated-User-Actor-Id: not-a-uuid
 
 > {%

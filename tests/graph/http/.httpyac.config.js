@@ -4,6 +4,9 @@
 module.exports = {
   configureHooks: (api) => {
     api.hooks.onRequest.addHook("serviceSecret", (request) => {
+      if (!String(request.url).includes("127.0.0.1:4000")) {
+        return;
+      }
       request.headers = {
         "X-HASH-Service-Secret":
           process.env.HASH_GRAPH_SERVICE_SECRET ?? "hash-svc-local-dev-secret",
