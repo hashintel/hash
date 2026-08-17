@@ -118,6 +118,9 @@ const slotsForValue = (
 const isDraftComplete = (slots: SlotValue[]) =>
   slots.every((slot) => slot !== null && slot !== "");
 
+const isDraftCleared = (slots: SlotValue[]) =>
+  slots.every((slot) => slot === null || slot === "");
+
 const draftValue = (operator: LooseOperator, slots: SlotValue[]): unknown => {
   if (operator.input === null) {
     return null;
@@ -178,8 +181,10 @@ const numberInputWidthStyle = css({
  *
  * `onChange` (and the selected operator's own `onChange`) fires only once
  * every input is filled in and the user either presses Enter or moves focus
- * outside the control. Operators with `input: null` commit immediately on
- * selection. Escape reverts the draft to the last committed value.
+ * outside the control. Clearing every input and submitting the same way
+ * fires `(key, null)`; a partially filled multi-input draft never fires.
+ * Operators with `input: null` commit immediately on selection. Escape
+ * reverts the draft to the last committed value.
  */
 export const Filter = <
   ValueMap extends Record<string, unknown> = Record<string, unknown>,
@@ -251,10 +256,17 @@ export const Filter = <
       return;
     }
     const operator = operatorByKey(key);
-    if (!operator || !isDraftComplete(draftSlots)) {
+    if (!operator) {
       return;
     }
-    const nextValue = draftValue(operator, draftSlots);
+    // A fully filled draft commits its value and a fully cleared one commits
+    // null (clearing this filter's value); a partially filled draft of a
+    // multi-input operator never fires.
+    const complete = isDraftComplete(draftSlots);
+    if (!complete && !isDraftCleared(draftSlots)) {
+      return;
+    }
+    const nextValue = complete ? draftValue(operator, draftSlots) : null;
     const reference = isControlled ? committed : lastEmittedRef.current;
     if (committedEqual(reference, { key, value: nextValue })) {
       return;
