@@ -424,7 +424,7 @@ export const Filter = <
         data-placeholder={selectedOperator ? undefined : ""}
         aria-label={`${propertyLabel} operator`}
       >
-        {selectedOperator?.label ?? "…"}
+        {selectedOperator?.label ?? "is…"}
         <Icon name="chevronDown" size={caretSizeMap[size]} />
       </ArkSelect.Trigger>
       {inputSegments.map((segment, position) => {
