@@ -108,7 +108,29 @@ const KitchenSinkOperators: Array<
   },
 ];
 
+type LongContentValues = {
+  alphabeticallyBetween: [string, string];
+};
+
+const LongContentOperators: Array<
+  ItemOrGroup<FilterOperator<LongContentValues>>
+> = [
+  {
+    key: "alphabeticallyBetween",
+    label: "is somewhere alphabetically between",
+    input: [{ type: "string" }, "and", { type: "string" }],
+    tooltip: "Long-content stress test",
+  },
+];
+
 const noop = () => {};
+
+const maxWidthContainerStyle: React.CSSProperties = {
+  maxWidth: 320,
+  padding: 8,
+  border: "1px dashed #ccc",
+  borderRadius: 6,
+};
 
 const columnStyle: React.CSSProperties = {
   display: "flex",
@@ -221,6 +243,25 @@ export const Default: Story = () => (
       label="two inputs, no separator"
       value={{ key: "near", value: [51.5074, -0.1278] }}
     />
+    <span style={stateLabelStyle}>
+      responsive, long content in a max-width container
+    </span>
+    <div style={maxWidthContainerStyle}>
+      <Filter<LongContentValues>
+        property="contactEmail"
+        propertyLabel="Organization primary contact email address"
+        operators={LongContentOperators}
+        value={{
+          key: "alphabeticallyBetween",
+          value: [
+            "aaron.alderman@extremely-long-organization-domain.example.com",
+            "zachariah.zimmermann@extremely-long-organization-domain.example.com",
+          ],
+        }}
+        onChange={noop}
+        removeable={{ removeable: true, onRemove: noop }}
+      />
+    </div>
     <KitchenSinkState
       label="not removeable"
       value={{ key: "equals", value: "fixed filter" }}
