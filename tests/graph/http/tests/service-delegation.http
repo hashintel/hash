@@ -56,7 +56,7 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
   });
   client.test("message names the missing credential", function() {
     client.assert(
-      response.body.message === "the actor-ID header requires the service credential",
+      response.body.message === "the request requires the service credential",
       "Response message is not the client-safe text"
     );
   });

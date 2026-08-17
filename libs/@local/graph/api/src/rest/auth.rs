@@ -59,21 +59,6 @@ fn rejection(error: &AuthenticationError) -> BoxedResponse {
     ))
 }
 
-/// Returns whether the request may pass without an actor.
-///
-/// Bootstrap routes run before any actor exists, so they cannot demand actor credentials. They
-/// still require the service secret, and a rejected credential stays rejected: only a request
-/// carrying no credential at all passes the gate.
-fn passes_bootstrap_gate(
-    error: &AuthenticationError,
-    request: &Request,
-    service_secret: &str,
-) -> bool {
-    matches!(error, AuthenticationError::MissingCredentials)
-        && is_bootstrap_route(request.uri().path())
-        && presents_service_secret(request.headers(), service_secret)
-}
-
 /// Returns whether the path is a bootstrap route.
 fn is_bootstrap_route(path: &str) -> bool {
     if path == "/policies/seed" {
@@ -98,8 +83,9 @@ fn store_outcome(request: &mut Request, outcome: AuthenticationOutcome) {
 /// Rejects requests without valid credentials and stores the resolved
 /// [`AuthenticationOutcome`] as a request extension.
 ///
-/// Bootstrap routes pass through without an actor when the request carries the service secret
-/// and no rejected credential. Every other route never reaches its handler unauthenticated.
+/// Bootstrap routes are service operations: they require the service secret regardless of any
+/// actor credential, and pass without an actor. Every other route never reaches its handler
+/// unauthenticated.
 pub async fn authentication_middleware<P>(
     provider: Arc<P>,
     service_secret: Arc<str>,
@@ -109,12 +95,17 @@ pub async fn authentication_middleware<P>(
 where
     P: AuthenticationProvider,
 {
+    let bootstrap = is_bootstrap_route(request.uri().path());
+    if bootstrap && !presents_service_secret(request.headers(), &service_secret) {
+        return rejection(&AuthenticationError::MissingServiceSecret).into_response();
+    }
+
     let outcome = resolve_request_actor(&*provider, request.headers()).await;
 
-    if let AuthenticationOutcome::Failed(error) = &outcome
-        && !passes_bootstrap_gate(error, &request, &service_secret)
-    {
-        return rejection(error).into_response();
+    match &outcome {
+        AuthenticationOutcome::Failed(AuthenticationError::MissingCredentials) if bootstrap => {}
+        AuthenticationOutcome::Failed(error) => return rejection(error).into_response(),
+        AuthenticationOutcome::Authenticated(_) => {}
     }
 
     store_outcome(&mut request, outcome);
@@ -319,6 +310,32 @@ mod tests {
             .expect("the router should respond");
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn middleware_rejects_authenticated_bootstrap_requests_without_secret() {
+        let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+        let response = router(StaticAuthenticationProvider::Verified(
+            AuthenticatedActor::Id(ActorId::User(UserId::new(actor_id))),
+        ))
+        .oneshot(request("/policies/seed"))
+        .await
+        .expect("the router should respond");
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn middleware_admits_authenticated_bootstrap_requests_with_secret() {
+        let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+        let response = router(StaticAuthenticationProvider::Verified(
+            AuthenticatedActor::Id(ActorId::User(UserId::new(actor_id))),
+        ))
+        .oneshot(request_with_secret("/policies/seed", SERVICE_SECRET))
+        .await
+        .expect("the router should respond");
+
+        assert_eq!(response.status(), StatusCode::OK);
     }
 
     #[tokio::test]

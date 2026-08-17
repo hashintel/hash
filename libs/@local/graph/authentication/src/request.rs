@@ -24,8 +24,8 @@ pub enum AuthenticationError {
     /// The actor-ID header is present but not a valid UUID.
     #[display("`X-Authenticated-User-Actor-Id` header is not a valid UUID")]
     InvalidActorIdHeader,
-    /// The actor-ID header is present without the service secret.
-    #[display("the actor-ID header requires the service credential")]
+    /// The request requires the service secret but does not carry it.
+    #[display("the request requires the service credential")]
     MissingServiceSecret,
     /// The service secret does not match.
     #[display("service credential is invalid")]
@@ -101,7 +101,7 @@ impl AuthenticationError {
             Self::InvalidActorIdHeader => {
                 "`X-Authenticated-User-Actor-Id` header is not a valid UUID"
             }
-            Self::MissingServiceSecret => "the actor-ID header requires the service credential",
+            Self::MissingServiceSecret => "the request requires the service credential",
             Self::InvalidServiceSecret => "service credential is invalid",
             Self::ProviderUnreachable => "failed to verify the credential against the provider",
             Self::ProviderRejection => "the credential provider rejected the verification request",
