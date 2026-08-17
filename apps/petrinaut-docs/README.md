@@ -68,49 +68,36 @@ its own `cookie@2.x` without changing hoisting for the rest of the monorepo.
 ## Deployment
 
 Vercel builds the site from [`vercel.json`](vercel.json), which runs
-[`vercel-install.sh`](vercel-install.sh) and then
-[`vercel-build.sh`](vercel-build.sh). Both scripts `cd ../..` and work from the
-repo root, so the Vercel project needs **Root Directory** set to
-`apps/petrinaut-docs` with **Include files outside of the Root Directory in the
-Build Step** enabled.
+[`vercel-install.sh`](vercel-install.sh) then
+[`vercel-build.sh`](vercel-build.sh). Both `cd ../..` and build from the repo
+root, so the project needs **Root Directory** set to `apps/petrinaut-docs` with
+**Include files outside of the Root Directory in the Build Step** enabled.
 
-The site is served from `architecture.petrinaut.org`, behind a Cloudflare Access
-gate that requires SSO. That host is proposed rather than settled, so treat `site`
-in [`astro.config.mjs`](astro.config.mjs) as provisional: it sets the canonical
-URL and every sitemap entry, and has to match wherever the site ends up. SRE-955
-assigns the domain and configures the gate.
+The site is served from `architecture.petrinaut.org` behind a Cloudflare Access
+gate requiring SSO. That host is proposed rather than settled, so treat `site` in
+[`astro.config.mjs`](astro.config.mjs) as provisional: it sets the canonical URL
+and every sitemap entry. SRE-955 assigns the domain and configures the gate.
 
-### This host is not the only one
+This host renders every page in the manifest. FE-1157 publishes a subset to
+`hash.dev/docs/petrinaut`, so the two run side by side and a page can appear on
+one and not the other. Nothing in the bundle records which pages belong to that
+subset: `ManifestPage` carries `kind`, which is `generated` or `authored`, a
+source distinction rather than an audience one. FE-1157 chooses the rule.
 
-This site renders every page in the manifest, all 48 of them. FE-1157 publishes a
-subset to `hash.dev/docs/petrinaut`, so the two hosts run side by side and a page
-can appear on one and not the other. That is the reason the app owns no content
-and builds its sidebar from `manifest.json`: a host that shows fewer pages is
-reading the same bundle, filtered.
-
-Nothing in the bundle records which pages belong in that subset. `ManifestPage`
-carries `kind`, which is `generated` or `authored`, and that is a source
-distinction rather than an audience one. FE-1157 has to decide how pages are
-selected, and until it does, the split lives in whatever consumes the manifest
-rather than in the manifest.
-
-The SSO gate covers the machine-readable artefacts too. `sync:bundle` copies the
-bundle's `architecture.md` and `architecture.json` into `public/`, so an agent
-reading either over HTTP needs a session, unlike one reading the bundle from a
-checkout. Both describe the whole model, not the public subset.
+The gate also covers `architecture.md` and `architecture.json`, which
+`sync:bundle` copies into `public/`, so an agent reading either over HTTP needs a
+session. Both describe the whole model rather than the subset.
 
 The install script fetches Node, Turborepo and `d2`, and nothing else. The build
-graph is `astro build` <- `sync:bundle` <- `doc:architecture`, which is Node
-throughout, and `.yarnrc.yml` sets `enableScripts: false`, so no dependency
-compiles during install. `d2` renders the architecture diagrams; the generator
-treats it as optional and omits every diagram when it is absent, so a build that
-succeeds is not on its own evidence that the toolchain is complete.
+graph is `astro build` <- `sync:bundle` <- `doc:architecture`, Node throughout,
+and `.yarnrc.yml` sets `enableScripts: false`, so nothing compiles during
+install. `d2` renders the diagrams, and the generator treats it as optional and
+omits every diagram when it is absent, so a build that succeeds is not on its own
+evidence that the toolchain is complete.
 
-`cleanUrls` and `trailingSlash` in `vercel.json` mirror `build.format: "file"`
-and `trailingSlash: "never"` above. Astro emits `architecture.html` and
-`architecture/core.html`, and the bundle's relative links break under a trailing
-slash, so Vercel redirects `/architecture/` to `/architecture` and serves it from
-`architecture.html`.
+`cleanUrls` and `trailingSlash` in `vercel.json` follow `build.format: "file"`
+and `trailingSlash: "never"` above: Vercel serves `/architecture` from
+`architecture.html` and redirects `/architecture/` rather than 404ing.
 
 `vercel-build.sh` deletes the repo-root `.env` before building, because mise
 reads it. Worth knowing if you run the Vercel CLI locally and keep secrets there.

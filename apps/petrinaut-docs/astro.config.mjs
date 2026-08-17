@@ -205,9 +205,9 @@ export default defineConfig({
   // Sets the canonical URL and the sitemap's entries. Proposed rather than
   // settled, and assigned by SRE-955.
   //
-  // This host serves every page in the manifest. FE-1157 publishes a subset to
-  // `hash.dev/docs/petrinaut`, so the two coexist and a page can appear on one
-  // and not the other. Nothing in the manifest says which pages those are.
+  // This host serves every page in the manifest; FE-1157 publishes a subset to
+  // `hash.dev/docs/petrinaut`. The two coexist, and nothing in the manifest
+  // says which pages belong to the subset.
   site: "https://architecture.petrinaut.org",
 
   ...(hasAuthoredIndex ? {} : { redirects: { "/": "/architecture" } }),
