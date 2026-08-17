@@ -73,20 +73,18 @@ Vercel builds the site from [`vercel.json`](vercel.json), which runs
 root, so the project needs **Root Directory** set to `apps/petrinaut-docs` with
 **Include files outside of the Root Directory in the Build Step** enabled.
 
-The site is served from `architecture.petrinaut.org` behind a Cloudflare Access
-gate requiring SSO. That host is proposed rather than settled, so treat `site` in
-[`astro.config.mjs`](astro.config.mjs) as provisional: it sets the canonical URL
-and every sitemap entry. SRE-955 assigns the domain and configures the gate.
+The site is served from `architecture.petrinaut.org`. That host is proposed
+rather than settled, so treat `site` in [`astro.config.mjs`](astro.config.mjs) as
+provisional: it sets the canonical URL and every sitemap entry. SRE-955 assigns
+the domain and decides how access to the deployment is restricted.
 
-This host renders every page in the manifest. FE-1157 publishes a subset to
-`hash.dev/docs/petrinaut`, so the two run side by side and a page can appear on
-one and not the other. Nothing in the bundle records which pages belong to that
-subset: `ManifestPage` carries `kind`, which is `generated` or `authored`, a
-source distinction rather than an audience one. FE-1157 chooses the rule.
-
-The gate also covers `architecture.md` and `architecture.json`, which
-`sync:bundle` copies into `public/`, so an agent reading either over HTTP needs a
-session. Both describe the whole model rather than the subset.
+This host renders every page in the manifest, including the `architecture.md` and
+`architecture.json` that `sync:bundle` copies into `public/`, both of which
+describe the whole model. FE-1157 publishes a subset to `hash.dev/docs/petrinaut`,
+so the two run side by side and a page can appear on one and not the other.
+Nothing in the bundle records which pages belong to that subset: `ManifestPage`
+carries `kind`, which is `generated` or `authored`, a source distinction rather
+than an audience one. FE-1157 chooses the rule.
 
 The install script fetches Node, Turborepo and `d2`, and nothing else. The build
 graph is `astro build` <- `sync:bundle` <- `doc:architecture`, Node throughout,
