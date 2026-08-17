@@ -203,8 +203,11 @@ const hasAuthoredIndex = manifest.pages.some(
 
 export default defineConfig({
   // Sets the canonical URL and the sitemap's entries. Proposed rather than
-  // settled: SRE-955 assigns the domain, and FE-1157 may move these docs to
-  // `hash.dev/docs/petrinaut` instead, at which point this changes again.
+  // settled, and assigned by SRE-955.
+  //
+  // This host serves every page in the manifest. FE-1157 publishes a subset to
+  // `hash.dev/docs/petrinaut`, so the two coexist and a page can appear on one
+  // and not the other. Nothing in the manifest says which pages those are.
   site: "https://architecture.petrinaut.org",
 
   ...(hasAuthoredIndex ? {} : { redirects: { "/": "/architecture" } }),

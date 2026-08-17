@@ -78,13 +78,26 @@ The site is served from `architecture.petrinaut.org`, behind a Cloudflare Access
 gate that requires SSO. That host is proposed rather than settled, so treat `site`
 in [`astro.config.mjs`](astro.config.mjs) as provisional: it sets the canonical
 URL and every sitemap entry, and has to match wherever the site ends up. SRE-955
-assigns the domain and configures the gate; FE-1157 may move these docs under
-`hash.dev/docs/petrinaut` instead.
+assigns the domain and configures the gate.
 
-The gate covers the machine-readable artefacts too. `sync:bundle` copies the
+### This host is not the only one
+
+This site renders every page in the manifest, all 48 of them. FE-1157 publishes a
+subset to `hash.dev/docs/petrinaut`, so the two hosts run side by side and a page
+can appear on one and not the other. That is the reason the app owns no content
+and builds its sidebar from `manifest.json`: a host that shows fewer pages is
+reading the same bundle, filtered.
+
+Nothing in the bundle records which pages belong in that subset. `ManifestPage`
+carries `kind`, which is `generated` or `authored`, and that is a source
+distinction rather than an audience one. FE-1157 has to decide how pages are
+selected, and until it does, the split lives in whatever consumes the manifest
+rather than in the manifest.
+
+The SSO gate covers the machine-readable artefacts too. `sync:bundle` copies the
 bundle's `architecture.md` and `architecture.json` into `public/`, so an agent
 reading either over HTTP needs a session, unlike one reading the bundle from a
-checkout.
+checkout. Both describe the whole model, not the public subset.
 
 The install script fetches Node, Turborepo and `d2`, and nothing else. The build
 graph is `astro build` <- `sync:bundle` <- `doc:architecture`, which is Node
