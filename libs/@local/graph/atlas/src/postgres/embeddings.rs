@@ -185,7 +185,7 @@ mod tests {
     /// The pin makes any rendering change a visible snapshot diff in review instead of a
     /// silent swap of what runs against the store.
     #[test]
-    fn canonical_statement_renders_its_pinned_text() {
+    fn canonical_statement_text() {
         let web_ids = vec![Uuid::nil()];
         let entity_uuids = vec![Uuid::nil()];
 
@@ -199,7 +199,7 @@ mod tests {
     /// statement's own contract: the projection is the node stream's own normalized-prefix
     /// expression, so an answer stays bit-identical to the representation row a fit reads.
     #[test]
-    fn projector_statement_renders_its_pinned_text() {
+    fn projector_statement_text() {
         let web_ids = vec![Uuid::nil()];
         let entity_uuids = vec![Uuid::nil()];
 

@@ -425,7 +425,7 @@ mod tests {
     /// statement's own contract: the final ordering is the scope row, which is what makes
     /// stream position the row id.
     #[test]
-    fn node_statement_renders_its_pinned_text() {
+    fn node_statement_text() {
         let axes = TemporalAxes::now();
         let types = vec![Uuid::nil()];
 
@@ -439,7 +439,7 @@ mod tests {
     /// statement's own contract: the final ordering is link identity, the total order the
     /// payload stream shares.
     #[test]
-    fn edge_statement_renders_its_pinned_text() {
+    fn edge_statement_text() {
         let axes = TemporalAxes::now();
         let types = vec![Uuid::nil()];
 

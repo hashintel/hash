@@ -317,7 +317,7 @@ mod tests {
     /// The pin makes any rendering change a visible snapshot diff in review instead of a
     /// silent swap of what runs against the store.
     #[test]
-    fn prose_statement_renders_its_pinned_text() {
+    fn prose_statement_text() {
         let types = vec![Uuid::nil()];
 
         insta::assert_snapshot!(prose_statement(&types).sql);
@@ -337,7 +337,7 @@ mod tests {
     /// The pin makes any rendering change a visible snapshot diff in review instead of a
     /// silent swap of what runs against the store.
     #[test]
-    fn ancestor_statement_renders_its_pinned_text() {
+    fn ancestor_statement_text() {
         let types = vec![Uuid::nil()];
 
         insta::assert_snapshot!(ancestor_statement(&types).sql);

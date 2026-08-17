@@ -183,7 +183,7 @@ mod tests {
     /// statement's own contract: the edition cache joins outer, so a resolved identity
     /// without a cache row still answers with the display the caller defaults.
     #[test]
-    fn statement_renders_its_pinned_text() {
+    fn statement_text() {
         let axes = TemporalAxes::now();
         let web_ids = vec![Uuid::nil()];
         let entity_uuids = vec![Uuid::nil()];

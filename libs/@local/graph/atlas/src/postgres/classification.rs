@@ -224,7 +224,7 @@ mod tests {
     /// statement's own contract: both attachment edges join outer, so a link with an absent
     /// or incomplete attachment pair still answers.
     #[test]
-    fn statement_renders_its_pinned_text() {
+    fn statement_text() {
         let axes = TemporalAxes::now();
         let web_ids = vec![Uuid::nil()];
         let entity_uuids = vec![Uuid::nil()];

@@ -169,7 +169,7 @@ mod tests {
     /// The pin makes any rendering change a visible snapshot diff in review instead of a
     /// silent swap of what runs against the store.
     #[test]
-    fn statement_renders_its_pinned_text() {
+    fn statement_text() {
         let axes = TemporalAxes::now();
         let types = vec![Uuid::nil()];
         let web_ids = vec![Uuid::nil()];

@@ -300,7 +300,7 @@ mod tests {
     /// membership as a row comparison over unnested arrays, so the pinned grammar belongs to
     /// the one-identity request alone.
     #[test]
-    fn types_statement_renders_its_pinned_text() {
+    fn types_statement_text() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
         let filter = nil_filter();
 
@@ -320,7 +320,7 @@ mod tests {
     /// Reviewing a diff, hold it to the masking contract: both property subqueries read the
     /// masked object.
     #[test]
-    fn masked_detail_statement_renders_its_pinned_text() {
+    fn masked_detail_statement_text() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
         let filter = nil_filter();
 
@@ -340,7 +340,7 @@ mod tests {
     /// Reviewing a diff, hold it to the masking contract: both property subqueries read the
     /// bare object, and the text carries no CASE subtraction.
     #[test]
-    fn bare_detail_statement_renders_its_pinned_text() {
+    fn bare_detail_statement_text() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
         let filter = nil_filter();
 
