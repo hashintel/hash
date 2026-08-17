@@ -50,7 +50,8 @@ use super::{Id, index::IntoSliceIndex, vec::IdVec};
         zerocopy::FromBytes,
         zerocopy::IntoBytes,
         zerocopy::Immutable,
-        zerocopy::Unaligned
+        zerocopy::Unaligned,
+        zerocopy::KnownLayout
     )
 )]
 #[repr(transparent)]
