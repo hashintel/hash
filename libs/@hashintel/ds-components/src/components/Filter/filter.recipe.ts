@@ -38,6 +38,10 @@ export const filterRecipe = sva({
       // The remove button's divider: follows the same rest/hover shades but
       // is a separate lever so the `complete` variant never hides it.
       "--filter-remove-divider": "var(--colors-neutral-s40)",
+      // Edge shades for a hovered/pressed interactive segment (trigger,
+      // input, remove).
+      "--filter-hover-border": "var(--colors-neutral-s80)",
+      "--filter-pressed-border": "var(--colors-neutral-s70)",
       "--filter-input-hover-bg": "var(--colors-neutral-s10)",
       "--filter-ring": "var(--colors-neutral-a80)",
       _hover: {
@@ -51,7 +55,7 @@ export const filterRecipe = sva({
       // Hovering the remove button darkens the whole chip outline to the
       // same shade its own edges take (removal affects the entire filter).
       "&:has([data-part=remove]:hover:not(:disabled))": {
-        "--filter-outer-border": "var(--colors-neutral-s80)",
+        "--filter-outer-border": "var(--filter-hover-border)",
       },
       "&:has(:focus-visible)": {
         overflow: "visible",
@@ -105,23 +109,23 @@ export const filterRecipe = sva({
       // A pressed-but-unhovered trigger keeps its section edges darkened,
       // one step lighter than the hover shade.
       "&[data-state=open]:not(:hover)": {
-        "--filter-divider": "var(--colors-neutral-s70)",
-        "--filter-outer-border": "var(--colors-neutral-s70)",
+        "--filter-divider": "var(--filter-pressed-border)",
+        "--filter-outer-border": "var(--filter-pressed-border)",
       },
       "&[data-state=open]:not(:hover) + *": {
-        "--filter-divider": "var(--colors-neutral-s70)",
-        "--filter-remove-divider": "var(--colors-neutral-s70)",
+        "--filter-divider": "var(--filter-pressed-border)",
+        "--filter-remove-divider": "var(--filter-pressed-border)",
       },
       // Hovering darkens the section's edges like an input section: its own
       // left/top/bottom (plus right when last) here, the next segment's left
       // border below.
       "&:hover:not(:disabled)": {
-        "--filter-divider": "var(--colors-neutral-s80)",
-        "--filter-outer-border": "var(--colors-neutral-s80)",
+        "--filter-divider": "var(--filter-hover-border)",
+        "--filter-outer-border": "var(--filter-hover-border)",
       },
       "&:hover:not(:disabled) + *": {
-        "--filter-divider": "var(--colors-neutral-s80)",
-        "--filter-remove-divider": "var(--colors-neutral-s80)",
+        "--filter-divider": "var(--filter-hover-border)",
+        "--filter-remove-divider": "var(--filter-hover-border)",
       },
       // The ring lives on an ::after with its own small radius so square
       // segment corners still get a softly rounded ring.
@@ -160,13 +164,13 @@ export const filterRecipe = sva({
       // the next segment's left border (which draws this section's right
       // edge) below — and tints the section with a subtle grey.
       "&:hover:not([data-disabled])": {
-        "--filter-divider": "var(--colors-neutral-s80)",
-        "--filter-outer-border": "var(--colors-neutral-s80)",
+        "--filter-divider": "var(--filter-hover-border)",
+        "--filter-outer-border": "var(--filter-hover-border)",
         background: "[var(--filter-input-hover-bg)]",
       },
       "&:hover:not([data-disabled]) + *": {
-        "--filter-divider": "var(--colors-neutral-s80)",
-        "--filter-remove-divider": "var(--colors-neutral-s80)",
+        "--filter-divider": "var(--filter-hover-border)",
+        "--filter-remove-divider": "var(--filter-hover-border)",
       },
       "&:last-child": {
         borderInlineEnd: "1px solid var(--filter-outer-border)",
@@ -239,8 +243,8 @@ export const filterRecipe = sva({
       // Hovering darkens the section's edges (own left/top/bottom, plus
       // right via the last-child border reading the same lever).
       "&:hover:not(:disabled)": {
-        "--filter-remove-divider": "var(--colors-neutral-s80)",
-        "--filter-outer-border": "var(--colors-neutral-s80)",
+        "--filter-remove-divider": "var(--filter-hover-border)",
+        "--filter-outer-border": "var(--filter-hover-border)",
       },
       // The ring lives on an ::after with its own small radius so square
       // segment corners still get a softly rounded ring.
@@ -310,40 +314,38 @@ export const filterRecipe = sva({
         },
       },
     },
+    // The error state only re-colors borders and the focus ring — text and
+    // background treatments stay neutral. Chip-level hover/focus-within are
+    // pinned to the rest shades so borders only darken (to a deeper red)
+    // when an interactive segment (trigger, input, remove) is hovered.
     invalid: {
       true: {
         root: {
           "--filter-outer-border": "var(--colors-red-s60)",
           "--filter-divider": "var(--colors-red-s40)",
           "--filter-remove-divider": "var(--colors-red-s40)",
-          "--filter-input-hover-bg": "var(--colors-red-s20)",
+          "--filter-hover-border": "var(--colors-red-s80)",
+          "--filter-pressed-border": "var(--colors-red-s70)",
           "--filter-ring": "var(--colors-red-a80)",
           _hover: {
-            "--filter-divider": "var(--colors-red-s50)",
-            "--filter-remove-divider": "var(--colors-red-s50)",
+            "--filter-outer-border": "var(--colors-red-s60)",
+            "--filter-divider": "var(--colors-red-s40)",
+            "--filter-remove-divider": "var(--colors-red-s40)",
+          },
+          "&:focus-within": {
+            "--filter-outer-border": "var(--colors-red-s60)",
           },
         },
+        // Dark red text everywhere except the remove button, which keeps its
+        // neutral color (it acts on the filter, not the erroneous value).
         property: { color: "red.s115" },
         trigger: {
-          color: "red.s110",
-          _hover: { background: "red.s30" },
+          color: "red.s115",
           "&[data-placeholder]": { color: "red.s80" },
-          "&[data-state=open], &[data-state=open]:hover": {
-            color: "red.s115",
-          },
-          "&[data-state=open]": {
-            background: "red.s20",
-          },
-          "&[data-state=open]:hover": {
-            background: "red.s30",
-          },
         },
         input: { color: "red.s115" },
-        separator: { color: "red.s100" },
-        remove: {
-          color: "red.s115",
-          _hover: { background: "red.s30" },
-        },
+        separator: { color: "red.s115" },
+        remove: { color: "neutral.s120" },
       },
     },
     // A fully filled-in filter reads as one unit: its internal segment
