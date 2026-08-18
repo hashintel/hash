@@ -220,7 +220,7 @@ export const filterRecipe = sva({
       color: "neutral.s115",
       fieldSizing: "content",
       minWidth: "[calc(2 * var(--filter-input-padding-x))]",
-      maxWidth: "[min(calc(32ch + 2 * var(--filter-input-padding-x)), 100%)]",
+      maxWidth: "[calc(32ch + 2 * var(--filter-input-padding-x))]",
       textAlign: "center",
       textOverflow: "ellipsis",
       _focus: {
