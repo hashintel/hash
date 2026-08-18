@@ -183,6 +183,15 @@ export const Filter = <
     setSlots(
       slotsForValue(operatorByKey(value?.key ?? defaultKey), value?.value),
     );
+  } else if (
+    value === null &&
+    defaultKey !== null &&
+    !operatorByKey(draftKey)
+  ) {
+    // `operators` changed while `value` stayed null: re-apply the
+    // lone-operator default when the draft no longer names an operator.
+    setDraftKey(defaultKey);
+    setSlots(slotsForValue(operatorByKey(defaultKey), null));
   }
 
   const commitDraft = (key: string | null, draftSlots: SlotValue[]) => {

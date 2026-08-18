@@ -20,7 +20,7 @@ type NumberInput = {
   step?: number;
 };
 
-type Input = TextInput | NumberInput;
+export type Input = TextInput | NumberInput;
 
 /**
  * The input config an operator must declare for its value type in the

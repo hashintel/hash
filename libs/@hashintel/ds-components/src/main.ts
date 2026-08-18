@@ -15,6 +15,7 @@ export { Filter, type FilterOperator } from "./components/Filter/filter";
 export { FilterGroup } from "./components/Filter/filter-group";
 export type {
   FilterChange,
+  Input as FilterInput,
   FilterValue,
 } from "./components/Filter/filter-util";
 export { Form } from "./components/Form/form";
