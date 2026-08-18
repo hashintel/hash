@@ -67,8 +67,11 @@ export const resolveAutoFocusProps = (
 /**
  * A single printable key that a number input will reject: letters and other
  * symbols are silently dropped by the browser, and integer inputs
- * additionally reject decimal/exponent characters. Modifier chords and
- * non-printable keys are never rejected.
+ * additionally reject decimal/exponent characters. Non-integer inputs allow
+ * every locale's decimal separator (period, comma, Arabic decimal separator
+ * U+066B) — which one the browser honours depends on its locale, and any it
+ * doesn't honour it drops silently itself. Modifier chords and non-printable
+ * keys are never rejected.
  */
 export const isRejectedNumberInputKey = (
   event: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey">,
@@ -82,7 +85,7 @@ export const isRejectedNumberInputKey = (
   ) {
     return false;
   }
-  return integer ? !/[\d-]/.test(event.key) : !/[\d.eE+-]/.test(event.key);
+  return integer ? !/[\d-]/.test(event.key) : !/[\d.,٫eE+-]/.test(event.key);
 };
 
 /**
