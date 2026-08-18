@@ -53,16 +53,11 @@ jobs:
           git push
           git checkout "$(git rev-parse HEAD~1)"
 
-          cat << EOF > "$HOME/.npmrc"
-            //registry.npmjs.org/:_authToken=$NPM_TOKEN
-          EOF
-
           yarn changeset:resolve-workspace-ranges
           YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn
           yarn changeset publish --tag canary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           TURBO_UI: "false"
           TURBO_LOG_ORDER: stream
           TURBO_LOG_VERBOSITY: 1

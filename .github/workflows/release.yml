@@ -94,7 +94,6 @@ jobs:
           commitMode: github-api
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.value }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_LOGLEVEL: verbose
           TURBO_LOG_LEVEL: debug
           TURBO_TELEMETRY_DISABLED: 1
