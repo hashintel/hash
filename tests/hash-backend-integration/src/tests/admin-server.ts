@@ -21,9 +21,16 @@ const assertRunningInSnapshotGroup = (operation: string) => {
 // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 const port = process.env.HASH_GRAPH_ADMIN_PORT || "4001";
 
+const serviceDelegationHeaders = {
+  "X-HASH-Service-Secret":
+    process.env.HASH_GRAPH_SERVICE_SECRET ?? "hash-svc-local-dev-secret",
+  "X-Authenticated-User-Actor-Id": "00000000-0000-0000-0000-000000000000",
+};
+
 const deleteRecords = async (endpoint: string) => {
   await fetch(`http://127.0.0.1:${port}/${endpoint}`, {
     method: "DELETE",
+    headers: serviceDelegationHeaders,
   }).then(async (response) => {
     const status = (await response.json()) as GraphStatus;
     if (status.code !== StatusCode.Ok) {
@@ -78,7 +85,7 @@ export const deleteEntities = async () => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Authenticated-User-Actor-Id": "00000000-0000-0000-0000-000000000000",
+      ...serviceDelegationHeaders,
     },
     body: JSON.stringify({
       filter: { all: [] },
@@ -116,6 +123,7 @@ export const restoreSnapshot = async (snapshotPath: string) => {
 
   await fetch(`http://127.0.0.1:${port}/snapshot`, {
     method: "POST",
+    headers: serviceDelegationHeaders,
     body: createReadStream(snapshotPath),
   }).then(async (response) => {
     const status = (await response.json()) as GraphStatus;
@@ -137,7 +145,7 @@ export const deleteUser = async (
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Authenticated-User-Actor-Id": "00000000-0000-0000-0000-000000000000",
+      ...serviceDelegationHeaders,
     },
     body: JSON.stringify(params),
   });

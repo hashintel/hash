@@ -16,8 +16,11 @@ use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
     rest::{
-        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, auth::KratosSessionConfig,
-        entity::ClusteringContext, hashql::CompilerContext, rest_api_router,
+        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies,
+        auth::{CloudflareAccessConfig, KratosSessionConfig},
+        entity::ClusteringContext,
+        hashql::CompilerContext,
+        rest_api_router,
     },
     rpc::Dependencies,
 };
@@ -41,7 +44,7 @@ use crate::{
     error::{GraphError, HealthcheckError},
     subcommand::{
         HealthcheckArgs, ServerLifecycle,
-        admin_server::{AdminConfig, start_admin_server},
+        admin_server::{AdminConfig, cloudflare_access_config, start_admin_server},
         type_fetcher::{
             REACHABILITY_WINDOW, TypeFetcherConfig, start_type_fetcher, wait_for_type_fetcher,
         },
@@ -192,7 +195,7 @@ pub struct KratosSessionAuthConfig {
 
 impl KratosSessionAuthConfig {
     /// Converts the CLI configuration into the session provider configuration.
-    fn into_provider_config(self) -> Result<KratosSessionConfig, Report<GraphError>> {
+    pub(crate) fn into_provider_config(self) -> Result<KratosSessionConfig, Report<GraphError>> {
         let kratos_public_url = self.kratos_public_url.ok_or_else(|| {
             Report::new(GraphError).attach(
                 "--kratos-public-url (HASH_KRATOS_PUBLIC_URL) is required when running the server",
@@ -500,12 +503,19 @@ where
 }
 
 /// Starts the main graph API server (REST + optional RPC).
+/// Resolved authentication configuration for the REST and admin routers.
+pub(crate) struct AuthenticationSetup {
+    pub session_auth: KratosSessionConfig,
+    pub cloudflare_access: Option<CloudflareAccessConfig>,
+    pub service_secret: String,
+}
+
 async fn start_server<S>(
     pool: S,
     postgres: PostgresStorePool,
     compiler: Arc<CompilerContext>,
     config: ServerConfig,
-    session_auth: KratosSessionConfig,
+    authentication: AuthenticationSetup,
     query_logger: Option<QueryLogger>,
     lifecycle: &ServerLifecycle,
 ) -> Result<(), Report<GraphError>>
@@ -533,19 +543,6 @@ where
         )?;
     }
 
-    // HTTP strips surrounding whitespace from header values, so the senders' secret arrives
-    // trimmed. Trimming here keeps both sides comparing the same bytes.
-    let service_secret = config
-        .service_secret
-        .map(|secret| secret.trim().to_owned())
-        .filter(|secret| !secret.is_empty())
-        .ok_or_else(|| {
-            Report::new(GraphError).attach(
-                "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
-                 running the server",
-            )
-        })?;
-
     let router = rest_api_router(RestRouterDependencies {
         store,
         postgres,
@@ -554,8 +551,9 @@ where
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
-        session_auth,
-        service_secret,
+        session_auth: authentication.session_auth,
+        cloudflare_access: authentication.cloudflare_access,
+        service_secret: authentication.service_secret,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
         serve_api_reference: config.serve_api_reference,
@@ -590,6 +588,21 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
     // Validate the configuration before connecting anywhere, so a misconfigured server fails
     // without tearing down established connections.
     let session_auth = args.config.session_auth.clone().into_provider_config()?;
+    let cloudflare_access = cloudflare_access_config(&args.admin)?;
+    // HTTP strips surrounding whitespace from header values, so the senders' secret arrives
+    // trimmed. Trimming here keeps both sides comparing the same bytes.
+    let service_secret = args
+        .config
+        .service_secret
+        .clone()
+        .map(|secret| secret.trim().to_owned())
+        .filter(|secret| !secret.is_empty())
+        .ok_or_else(|| {
+            Report::new(GraphError).attach(
+                "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
+                 running the server",
+            )
+        })?;
 
     let pool = PostgresStorePool::new(
         &args.db_info,
@@ -624,7 +637,13 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
     let postgres = pool.clone();
 
     if args.embed_admin {
-        start_admin_server(pool.clone(), args.admin, &lifecycle);
+        start_admin_server(
+            pool.clone(),
+            args.admin,
+            session_auth.clone(),
+            service_secret.clone(),
+            &lifecycle,
+        );
     }
 
     if args.embed_type_fetcher {
@@ -683,7 +702,11 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
         postgres,
         compiler,
         args.config,
-        session_auth,
+        AuthenticationSetup {
+            session_auth,
+            cloudflare_access,
+            service_secret,
+        },
         query_logger,
         &lifecycle,
     )

@@ -45,5 +45,8 @@ tokio-postgres = { workspace = true }
 tokio-util     = { workspace = true, features = ["codec"] }
 tracing        = { workspace = true }
 
+[features]
+unsafe-dev-endpoints = ["hash-graph-api/unsafe-dev-endpoints"]
+
 [lints]
 workspace = true

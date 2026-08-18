@@ -1,55 +1,29 @@
-//! JWT authentication for the Graph API.
+//! JWT validation against a JWKS endpoint.
 //!
-//! Validates JSON Web Tokens against a JWKS (JSON Web Key Set) endpoint, primarily designed for
-//! Cloudflare Access but compatible with any OIDC-compliant JWT issuer.
-//!
-//! # Token extraction
-//!
-//! Tokens are extracted from request headers in the following order:
-//! 1. `Cf-Access-Jwt-Assertion` -- Cloudflare Access header
-//! 2. `Authorization: Bearer <token>` -- Standard bearer token
+//! Primarily designed for Cloudflare Access but compatible with any OIDC-compliant JWT issuer.
 
-use alloc::{borrow::Cow, sync::Arc};
 use core::time::Duration;
 use std::{
     sync::{PoisonError, RwLock},
     time::Instant,
 };
 
-use axum::{extract::FromRequestParts, http::request::Parts};
 use error_stack::{Report, ResultExt as _};
-use hash_status::StatusCode;
-use http::{HeaderMap, header};
 use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header, jwk::JwkSet};
 use reqwest::{Client, Url};
 use serde::Deserialize;
-use time::OffsetDateTime;
 use tokio::sync::Mutex;
-
-use crate::rest::status::{BoxedResponse, report_to_response};
-
-/// Raw JWT claims for deserialization from the token payload.
-///
-/// Field names and types match the JWT/OIDC specification. This is an internal type -- consumers
-/// should use [`JwtClaims`] instead.
-#[derive(Deserialize)]
-struct RawJwtClaims {
-    sub: String,
-    email: Option<String>,
-    exp: u64,
-    iat: u64,
-}
 
 /// Validated claims from an authenticated JWT.
 ///
 /// All validation (signature, expiration, audience, issuer) has already been performed by the
-/// [`JwtValidator`]. Consumers can rely on these claims being trustworthy.
-#[derive(Debug, Clone)]
+/// [`JwtValidator`].
+#[derive(Debug, Clone, Deserialize)]
 pub struct JwtClaims {
+    /// Subject identifier of the authenticated principal.
     pub sub: String,
+    /// Email address of the authenticated principal.
     pub email: Option<String>,
-    pub issued_at: OffsetDateTime,
-    pub expires_at: OffsetDateTime,
 }
 
 /// Errors that can occur during JWT validation.
@@ -70,21 +44,10 @@ pub enum JwtError {
         /// The key ID that was not found.
         kid: String,
     },
-    /// No JWT token found in request headers.
-    #[display(
-        "no JWT token provided -- expected `Cf-Access-Jwt-Assertion` or `Authorization: Bearer` \
-         header"
-    )]
-    MissingToken,
-    /// Token header value contains non-ASCII characters.
-    #[display("JWT token contains invalid encoding")]
-    InvalidTokenEncoding,
-    /// JWT validator was not configured on this route.
-    #[display("JWT validator not configured")]
-    NotConfigured,
 }
 
 /// Configuration for [`JwtValidator`].
+#[derive(Debug, Clone)]
 pub struct JwtValidatorConfig {
     /// JWKS endpoint URL.
     pub jwks_url: Url,
@@ -139,7 +102,7 @@ impl JwtValidator {
                 Client::builder()
                     .timeout(config.http_timeout)
                     .build()
-                    .expect("failed to build HTTP client"),
+                    .expect("the HTTP client should build with default TLS configuration"),
             ),
             cache: RwLock::new(None),
             jwks_cache_ttl: config.jwks_cache_ttl,
@@ -180,26 +143,9 @@ impl JwtValidator {
         validation.set_audience(&[&self.audience]);
         validation.set_issuer(&[&self.issuer]);
 
-        let raw = decode::<RawJwtClaims>(token, &decoding_key, &validation)
+        Ok(decode::<JwtClaims>(token, &decoding_key, &validation)
             .change_context(JwtError::Validation)?
-            .claims;
-
-        let issued_at = OffsetDateTime::from_unix_timestamp(
-            i64::try_from(raw.iat).change_context(JwtError::Validation)?,
-        )
-        .change_context(JwtError::Validation)?;
-
-        let expires_at = OffsetDateTime::from_unix_timestamp(
-            i64::try_from(raw.exp).change_context(JwtError::Validation)?,
-        )
-        .change_context(JwtError::Validation)?;
-
-        Ok(JwtClaims {
-            sub: raw.sub,
-            email: raw.email,
-            issued_at,
-            expires_at,
-        })
+            .claims)
     }
 
     /// Resolves a [`DecodingKey`] for the given key ID from the cached JWKS.
@@ -282,112 +228,142 @@ impl JwtValidator {
     }
 }
 
-/// Extracts a JWT token from request headers.
-///
-/// Checks headers in order:
-/// 1. `Cf-Access-Jwt-Assertion` (Cloudflare Access)
-/// 2. `Authorization: Bearer <token>`
-fn extract_token_from_headers(headers: &HeaderMap) -> Result<Cow<'_, str>, Report<JwtError>> {
-    // Cloudflare Access header
-    if let Some(value) = headers.get("Cf-Access-Jwt-Assertion") {
-        return value
-            .to_str()
-            .map(Cow::Borrowed)
-            .change_context(JwtError::InvalidTokenEncoding);
+#[cfg(test)]
+mod tests {
+    use alloc::sync::Arc;
+    use core::{
+        net::SocketAddr,
+        sync::atomic::{AtomicUsize, Ordering},
+        time::Duration,
+    };
+
+    use axum::{Json, Router, routing::get};
+    use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
+    use reqwest::Url;
+    use serde_json::json;
+
+    use super::{JwtValidator, JwtValidatorConfig};
+
+    /// A JWKS endpoint that counts how often it is fetched.
+    struct CountingJwks {
+        url: Url,
+        fetches: Arc<AtomicUsize>,
     }
 
-    // Standard Authorization: Bearer header
-    if let Some(value) = headers.get(header::AUTHORIZATION) {
-        let value = value
-            .to_str()
-            .change_context(JwtError::InvalidTokenEncoding)?;
+    /// Serves an empty key set, so every `kid` is unknown and forces a refresh.
+    async fn spawn_counting_jwks() -> CountingJwks {
+        let fetches = Arc::new(AtomicUsize::new(0));
+        let router = Router::new().route(
+            "/jwks",
+            get({
+                let fetches = Arc::clone(&fetches);
+                move || {
+                    fetches.fetch_add(1, Ordering::Relaxed);
+                    async { Json(json!({ "keys": [] })) }
+                }
+            }),
+        );
 
-        // RFC 7235: authentication schemes are case-insensitive
-        return value
-            .get(..7)
-            .filter(|prefix| prefix.eq_ignore_ascii_case("bearer "))
-            .and_then(|_| value.get(7..))
-            .map(Cow::Borrowed)
-            .ok_or_else(|| {
-                Report::new(JwtError::MissingToken)
-                    .attach("Authorization header present but scheme is not Bearer")
-            });
-    }
-
-    Err(Report::new(JwtError::MissingToken))
-}
-
-/// Axum extractor that validates a JWT and provides the decoded claims.
-///
-/// Requires an `Extension<Arc<JwtValidator>>` to be present in the router. If no validator is
-/// configured, extraction fails with `500 Internal Server Error`.
-///
-/// # Example
-///
-/// ```ignore
-/// async fn protected_handler(
-///     JwtAuthentication(claims): JwtAuthentication,
-/// ) -> impl IntoResponse {
-///     format!("Hello, {}", claims.email.as_deref().unwrap_or_default())
-/// }
-/// ```
-pub struct JwtAuthentication(pub JwtClaims);
-
-impl<S: Sync> FromRequestParts<S> for JwtAuthentication {
-    type Rejection = BoxedResponse;
-
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let validator = parts
-            .extensions
-            .get::<Arc<JwtValidator>>()
-            .cloned()
-            .ok_or_else(|| Report::new(JwtError::NotConfigured))
-            .attach_opaque(StatusCode::Internal)
-            .map_err(report_to_response)?;
-
-        let token = extract_token_from_headers(&parts.headers)
-            .attach_opaque(StatusCode::Unauthenticated)
-            .map_err(report_to_response)?;
-
-        let claims = validator
-            .validate(&token)
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
             .await
-            .attach_opaque(StatusCode::Unauthenticated)
-            .map_err(report_to_response)?;
-
-        Ok(Self(claims))
-    }
-}
-
-/// Optional JWT authentication extractor.
-///
-/// Returns `Some(claims)` when a [`JwtValidator`] is configured and the request contains a valid
-/// token. Returns `None` when no validator is present (dev mode).
-///
-/// When a validator **is** present but the token is missing or invalid, extraction fails with `401
-/// Unauthorized` -- this is intentional to prevent unauthenticated access when JWT enforcement is
-/// enabled.
-pub struct OptionalJwtAuthentication(pub Option<JwtClaims>);
-
-impl<S: Sync> FromRequestParts<S> for OptionalJwtAuthentication {
-    type Rejection = BoxedResponse;
-
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let Some(validator) = parts.extensions.get::<Arc<JwtValidator>>().cloned() else {
-            // No validator configured -- JWT auth is disabled (dev mode)
-            return Ok(Self(None));
-        };
-
-        let token = extract_token_from_headers(&parts.headers)
-            .attach_opaque(StatusCode::Unauthenticated)
-            .map_err(report_to_response)?;
-
-        let claims = validator
-            .validate(&token)
+            .expect("the test server should bind to an ephemeral port");
+        let address = listener
+            .local_addr()
+            .expect("the test listener should report its local address");
+        tokio::spawn(async move {
+            axum::serve(
+                listener,
+                router.into_make_service_with_connect_info::<SocketAddr>(),
+            )
             .await
-            .attach_opaque(StatusCode::Unauthenticated)
-            .map_err(report_to_response)?;
+            .expect("the test server should serve requests");
+        });
 
-        Ok(Self(Some(claims)))
+        CountingJwks {
+            url: Url::parse(&format!("http://{address}/jwks"))
+                .expect("the test server address should parse as a URL"),
+            fetches,
+        }
+    }
+
+    fn validator_at(
+        jwks_url: Url,
+        jwks_cache_ttl: Duration,
+        jwks_refresh_cooldown: Duration,
+    ) -> JwtValidator {
+        JwtValidator::new(JwtValidatorConfig {
+            jwks_url,
+            audience: "test-audience".to_owned(),
+            issuer: "https://test-team.cloudflareaccess.com".to_owned(),
+            jwks_cache_ttl,
+            jwks_refresh_cooldown,
+            http_timeout: Duration::from_secs(5),
+            // The signature is never reached: an empty key set fails `kid` resolution first, so
+            // these tests need no real signing key.
+            allowed_algorithms: vec![Algorithm::HS256],
+        })
+    }
+
+    fn token_with_key_id(kid: &str) -> String {
+        let mut header = Header::new(Algorithm::HS256);
+        header.kid = Some(kid.to_owned());
+        encode(
+            &header,
+            &json!({ "sub": "test-subject" }),
+            &EncodingKey::from_secret(b"irrelevant-for-key-resolution"),
+        )
+        .expect("the token should encode")
+    }
+
+    /// A crafted `kid` must not buy an attacker one JWKS fetch per request.
+    ///
+    /// Ten unknown key IDs arrive; the cooldown outlives the test, so the endpoint may be asked
+    /// only for the initial population of the cache.
+    #[tokio::test]
+    async fn unknown_key_ids_cannot_drive_repeated_jwks_fetches() {
+        let jwks = spawn_counting_jwks().await;
+        let validator = validator_at(
+            jwks.url.clone(),
+            Duration::from_secs(600),
+            Duration::from_secs(600),
+        );
+
+        for attempt in 0..10 {
+            drop(
+                validator
+                    .validate(&token_with_key_id(&format!("crafted-{attempt}")))
+                    .await
+                    .expect_err("an unknown key ID should not validate"),
+            );
+        }
+
+        assert_eq!(
+            jwks.fetches.load(Ordering::Relaxed),
+            1,
+            "the cooldown should collapse ten crafted key IDs into a single JWKS fetch"
+        );
+    }
+
+    /// Without a cooldown the same traffic is free to hit the endpoint repeatedly, which is what
+    /// makes the assertion above a statement about the cooldown rather than about caching.
+    #[tokio::test]
+    async fn unknown_key_ids_refetch_once_the_cooldown_lapses() {
+        let jwks = spawn_counting_jwks().await;
+        let validator = validator_at(jwks.url.clone(), Duration::from_secs(600), Duration::ZERO);
+
+        for attempt in 0..10 {
+            drop(
+                validator
+                    .validate(&token_with_key_id(&format!("crafted-{attempt}")))
+                    .await
+                    .expect_err("an unknown key ID should not validate"),
+            );
+        }
+
+        assert!(
+            jwks.fetches.load(Ordering::Relaxed) > 1,
+            "without a cooldown the endpoint should be re-fetched, got {} fetch(es)",
+            jwks.fetches.load(Ordering::Relaxed)
+        );
     }
 }

@@ -23,6 +23,22 @@ pub trait AuthenticationProvider: Send + Sync {
     ) -> impl Future<Output = ControlFlow<Result<AuthenticatedActor, Report<AuthenticationError>>>> + Send;
 }
 
+/// An absent provider recognizes no credential, so the chain moves on.
+impl<P> AuthenticationProvider for Option<P>
+where
+    P: AuthenticationProvider,
+{
+    async fn authenticate(
+        &self,
+        headers: &HeaderMap,
+    ) -> ControlFlow<Result<AuthenticatedActor, Report<AuthenticationError>>> {
+        match self {
+            Some(provider) => provider.authenticate(headers).await,
+            None => ControlFlow::Continue(()),
+        }
+    }
+}
+
 /// Chains two providers: the second is consulted only when the first recognizes no credential.
 impl<A, B> AuthenticationProvider for (A, B)
 where

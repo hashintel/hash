@@ -42,6 +42,12 @@ pub enum AuthenticationError {
     /// The session is invalid, expired, or revoked.
     #[display("session is invalid or expired")]
     InvalidSession,
+    /// The access token is invalid, expired, or not issued for this API.
+    #[display("access token is invalid or expired")]
+    InvalidAccessToken,
+    /// The verified identity has no matching user actor.
+    #[display("the authenticated identity has no matching user actor")]
+    IdentityWithoutActor,
     /// The identity has no Graph actor provisioned.
     #[display("identity `{identity_id}` has no Graph actor provisioned")]
     NotProvisioned {
@@ -81,6 +87,8 @@ impl AuthenticationError {
             | Self::MissingServiceSecret
             | Self::InvalidServiceSecret
             | Self::InvalidSession
+            | Self::InvalidAccessToken
+            | Self::IdentityWithoutActor
             | Self::NotProvisioned { .. }
             | Self::ActorNotFound { .. }
             | Self::NotAUser { .. } => StatusCode::Unauthenticated,
@@ -107,6 +115,8 @@ impl AuthenticationError {
             Self::ProviderRejection => "the credential provider rejected the verification request",
             Self::InvalidProviderResponse => "the credential provider returned an invalid response",
             Self::InvalidSession => "session is invalid or expired",
+            Self::InvalidAccessToken => "access token is invalid or expired",
+            Self::IdentityWithoutActor => "the authenticated identity has no matching user actor",
             Self::NotProvisioned { .. } => "identity has no Graph actor provisioned",
             Self::ActorNotFound { .. } => "actor does not exist",
             Self::NotAUser { .. } => "actor is not a user actor",
@@ -149,6 +159,7 @@ where
             } else if matches!(
                 error,
                 AuthenticationError::NotProvisioned { .. }
+                    | AuthenticationError::IdentityWithoutActor
                     | AuthenticationError::ActorNotFound { .. }
                     | AuthenticationError::NotAUser { .. }
             ) {
@@ -303,6 +314,8 @@ mod tests {
             AuthenticationError::ProviderRejection,
             AuthenticationError::InvalidProviderResponse,
             AuthenticationError::InvalidSession,
+            AuthenticationError::InvalidAccessToken,
+            AuthenticationError::IdentityWithoutActor,
             AuthenticationError::NotProvisioned {
                 identity_id: identity_id.to_owned(),
             },
@@ -322,6 +335,8 @@ mod tests {
                 | AuthenticationError::ProviderRejection
                 | AuthenticationError::InvalidProviderResponse
                 | AuthenticationError::InvalidSession
+                | AuthenticationError::InvalidAccessToken
+                | AuthenticationError::IdentityWithoutActor
                 | AuthenticationError::NotProvisioned { .. }
                 | AuthenticationError::ActorNotFound { .. }
                 | AuthenticationError::NotAUser { .. }
