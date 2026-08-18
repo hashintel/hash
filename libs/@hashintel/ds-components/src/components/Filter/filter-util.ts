@@ -195,3 +195,25 @@ export const isIntegerConfig = (config: LooseInputConfig): boolean => {
   const step = numberStepOf(config);
   return step !== "any" && Number.isInteger(step);
 };
+
+/**
+ * Number slots hold the raw input string while the user edits, so
+ * intermediate states like "-" and "1." survive the controlled round-trip.
+ * This resolves those strings to numbers for completeness checks and
+ * committing; unparseable remnants (e.g. a lone "-") become null, i.e. an
+ * empty slot.
+ */
+export const normalizeSlots = (
+  operator: LooseOperator,
+  slots: SlotValue[],
+): SlotValue[] =>
+  inputConfigsOf(operator).map((config, index) => {
+    const slot = slots[index] ?? null;
+    if (config.type === "string" || typeof slot !== "string") {
+      return slot;
+    }
+    const parsed = isIntegerConfig(config)
+      ? Math.trunc(parseInt(slot, 10))
+      : parseFloat(slot);
+    return Number.isNaN(parsed) ? null : parsed;
+  });

@@ -28,6 +28,7 @@ import {
   draftValue,
   isDraftCleared,
   isDraftComplete,
+  normalizeSlots,
   slotsForValue,
   flattenOperators,
   inputConfigsOf,
@@ -204,12 +205,16 @@ export const Filter = <
     }
     // A fully filled draft commits its value and a fully cleared one commits
     // null (clearing this filter's value); a partially filled draft of a
-    // multi-input operator never fires.
-    const complete = isDraftComplete(draftSlots);
-    if (!complete && !isDraftCleared(draftSlots)) {
+    // multi-input operator never fires. Number slots are judged on their
+    // parsed value, so an unparseable remnant like a lone "-" counts as empty.
+    const normalized = normalizeSlots(operator, draftSlots);
+    const complete = isDraftComplete(normalized);
+    if (!complete && !isDraftCleared(normalized)) {
       return;
     }
-    const nextValue = complete ? draftValue(operator, draftSlots) : null;
+    // Tidy the visible draft (e.g. "5." → 5) even when the commit is a no-op.
+    setSlots(normalized);
+    const nextValue = complete ? draftValue(operator, normalized) : null;
     if (committedEqual(value, { key, value: nextValue })) {
       return;
     }
@@ -344,9 +349,11 @@ export const Filter = <
   ).length;
   const invalid = !!errors && errors.length > 0;
   // Complete = an operator is selected and every input slot holds a value
-  // (regardless of that value's validity); the recipe merges the segments
-  // into one unit at rest by hiding the internal dividers.
-  const complete = selectedOperator !== undefined && isDraftComplete(slots);
+  // (number slots one that parses); the recipe merges the segments into one
+  // unit at rest by hiding the internal dividers.
+  const complete =
+    selectedOperator !== undefined &&
+    isDraftComplete(normalizeSlots(selectedOperator, slots));
   const classes = filterRecipe({
     size,
     invalid,
@@ -452,15 +459,10 @@ export const Filter = <
               inputMode={isText ? undefined : integer ? "numeric" : "decimal"}
               value={String(slots[inputIndex] ?? "")}
               onChange={(event) => {
-                const raw = event.target.value;
-                if (isText) {
-                  setSlot(inputIndex, raw);
-                  return;
-                }
-                const parsed = integer
-                  ? Math.trunc(parseInt(raw, 10))
-                  : parseFloat(raw);
-                setSlot(inputIndex, Number.isNaN(parsed) ? null : parsed);
+                // Store the raw string so intermediate states like "-" and
+                // "1." survive the controlled round-trip; commitDraft
+                // resolves number slots via normalizeSlots.
+                setSlot(inputIndex, event.target.value);
               }}
               placeholder={config.placeholder}
               minLength={isText ? config.min : undefined}
