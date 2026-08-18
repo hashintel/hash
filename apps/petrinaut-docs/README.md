@@ -75,14 +75,3 @@ enables **Include files outside of the Root Directory in the Build Step**.
 The site is served from `docs.petrinaut.org` and is internal, so reaching it
 needs access. `site` in [`astro.config.mjs`](astro.config.mjs) has to match it:
 that is what sets the canonical URL and every sitemap entry.
-
-The tools the build needs are listed in
-[`vercel-install.sh`](vercel-install.sh), with a comment on why that list is
-shorter than the other Vercel apps' in this repo.
-
-`cleanUrls` and `trailingSlash` in `vercel.json` follow `build.format: "file"`
-and `trailingSlash: "never"` above: Vercel serves `/architecture` from
-`architecture.html` and redirects `/architecture/` rather than 404ing.
-
-`vercel-build.sh` deletes the repo-root `.env` before building, because mise
-reads it. Worth knowing if you run the Vercel CLI locally and keep secrets there.
