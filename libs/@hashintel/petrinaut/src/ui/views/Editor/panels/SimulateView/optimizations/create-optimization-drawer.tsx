@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import {
   Button,
   Drawer,
+  Form,
   Icon,
   LoadingSpinner,
   NumberInput,
@@ -62,10 +63,9 @@ const fieldStyle = css({
   minWidth: "0",
 });
 
-const labelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
+// fieldsets default to min-content width; allow shrinking inside the grid
+const gridFieldStyle = css({
+  minWidth: "0",
 });
 
 const hintStyle = css({
@@ -143,16 +143,6 @@ const gridStyle = css({
   gap: "3",
 });
 
-const optimizationGridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "3",
-});
-
-const fullWidthGridItemStyle = css({
-  gridColumn: "[1 / -1]",
-});
-
 const segmentControlStyle = css({
   "& [data-part='item']": {
     height: "6",
@@ -165,10 +155,7 @@ const parameterListStyle = css({
   gap: "2.5",
 });
 
-const errorStyle = css({
-  fontSize: "sm",
-  color: "red.s100",
-  marginRight: "auto",
+const errorsStyle = css({
   whiteSpace: "pre-wrap",
 });
 
@@ -819,13 +806,11 @@ export const CreateOptimizationDrawer = ({
           {selectedScenario ? (
             <>
               <Section title="Optimization" collapsible defaultOpen>
-                <div className={optimizationGridStyle}>
-                  <div className={`${fieldStyle} ${fullWidthGridItemStyle}`}>
-                    <span className={labelStyle}>Name</span>
-                    <TextInput size="sm" value={name} onChange={setName} />
-                  </div>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Optimization steps</span>
+                <Form.Field label="Name" size="sm">
+                  <TextInput size="sm" value={name} onChange={setName} />
+                </Form.Field>
+                <Form.Row>
+                  <Form.Field label="Optimization steps" size="sm">
                     <NumberInput
                       size="sm"
                       min={1}
@@ -834,9 +819,8 @@ export const CreateOptimizationDrawer = ({
                       value={optimizationSteps}
                       onChange={setOptimizationSteps}
                     />
-                  </div>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Time step</span>
+                  </Form.Field>
+                  <Form.Field label="Time step" size="sm">
                     <NumberInput
                       size="sm"
                       min={0}
@@ -844,9 +828,8 @@ export const CreateOptimizationDrawer = ({
                       value={dt}
                       onChange={setDt}
                     />
-                  </div>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Max time</span>
+                  </Form.Field>
+                  <Form.Field label="Max time" size="sm">
                     <NumberInput
                       size="sm"
                       min={0}
@@ -854,8 +837,8 @@ export const CreateOptimizationDrawer = ({
                       value={maxTime}
                       onChange={setMaxTime}
                     />
-                  </div>
-                </div>
+                  </Form.Field>
+                </Form.Row>
               </Section>
 
               <Section
@@ -894,8 +877,11 @@ export const CreateOptimizationDrawer = ({
                   Its final simulation value will be maximized or minimized.
                 </span>
                 <div className={gridStyle}>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Metric</span>
+                  <Form.Field
+                    label="Metric"
+                    size="sm"
+                    className={gridFieldStyle}
+                  >
                     <Select
                       required
                       size="sm"
@@ -906,9 +892,13 @@ export const CreateOptimizationDrawer = ({
                       renderSelectedItem={renderMetricOption}
                       onChange={handleMetricChange}
                     />
-                  </div>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Direction</span>
+                  </Form.Field>
+                  <Form.Field
+                    as="legend"
+                    label="Direction"
+                    size="sm"
+                    className={gridFieldStyle}
+                  >
                     <div className={segmentControlStyle}>
                       <SegmentGroup
                         size="sm"
@@ -917,7 +907,7 @@ export const CreateOptimizationDrawer = ({
                         onChange={(value) => setDirection(value as Direction)}
                       />
                     </div>
-                  </div>
+                  </Form.Field>
                 </div>
                 {metricSource === "custom" ? (
                   <InlineObjectiveMetricForm form={customMetricForm} />
@@ -932,11 +922,15 @@ export const CreateOptimizationDrawer = ({
           error ||
           (selectedScenario ? configurationError : null) ||
           visibleCustomMetricError ? (
-            <span className={errorStyle}>
-              {error ??
-                (selectedScenario ? configurationError : null) ??
-                visibleCustomMetricError}
-            </span>
+            <Form.Field.Errors
+              className={errorsStyle}
+              errors={[
+                error ??
+                  (selectedScenario ? configurationError : null) ??
+                  visibleCustomMetricError,
+              ]}
+              size="sm"
+            />
           ) : undefined
         }
         actions={

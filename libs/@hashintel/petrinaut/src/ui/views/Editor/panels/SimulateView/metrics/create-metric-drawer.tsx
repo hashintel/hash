@@ -138,11 +138,7 @@ const CreateMetricContent = ({ onClose }: { onClose: () => void }) => {
         description="A function over the simulation state that returns a number to plot on the timeline."
       />
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
-        <MetricFormBody
-          form={form}
-          idPrefix="create-"
-          metricSessionId={metricSessionId}
-        />
+        <MetricFormBody form={form} metricSessionId={metricSessionId} />
       </Drawer.Body>
       <CreateMetricFooter
         form={form}

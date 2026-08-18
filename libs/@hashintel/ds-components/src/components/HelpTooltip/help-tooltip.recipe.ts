@@ -5,14 +5,11 @@ export const styles = sva({
   base: {
     button: {
       position: "relative",
-      marginLeft: "[0.33em]",
       whiteSpace: "nowrap",
       flexShrink: "0",
-      top: "[-0.06em]",
       width: "[1em]",
       height: "[1em]",
       color: "fg.subtle",
-      verticalAlign: "text-top",
       display: "inline-block",
     },
     helpIcon: {
@@ -22,5 +19,26 @@ export const styles = sva({
       minWidth: "[100% !important]",
       height: "[100% !important]",
     },
+  },
+  variants: {
+    align: {
+      top: {
+        button: {
+          top: "[-0.06em]",
+          marginLeft: "[0.33em]",
+          verticalAlign: "text-top",
+        },
+      },
+      center: {
+        button: {
+          top: "[-0.055em]",
+          marginLeft: "[0.34em]",
+          verticalAlign: "middle",
+        },
+      },
+    },
+  },
+  defaultVariants: {
+    align: "top",
   },
 });
