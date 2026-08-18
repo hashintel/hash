@@ -3,6 +3,7 @@
     "silent": true,
     "autoJobCancelation": true
   },
+  "framework": "astro",
   "buildCommand": "./vercel-build.sh",
   "installCommand": "./vercel-install.sh",
   "outputDirectory": "./dist",
