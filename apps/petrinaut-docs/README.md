@@ -25,10 +25,9 @@ dependency. The bundle is build output and is not committed.
 each running it — they used to call it themselves, which raced when Turborepo ran
 them concurrently on the same directories.
 
-That separation is deliberate. The bundle has to render in a host that did not
-generate it — hash.dev is the other one — so this site is a test of the bundle's
-portability as much as a way to read it. Anything that only works here is a bug
-in the bundle.
+That separation is what makes this site a test of the bundle's portability as
+much as a way to read it: the bundle has to render in a host that did not
+generate it. Anything that only works here is a bug in the bundle.
 
 To change what the docs say, change the annotations in the Petrinaut source or
 the authored pages in `libs/@local/petrinaut-arch-docs/content/`. Anything run
@@ -64,3 +63,15 @@ them. Astro's generated prerender entry resolves `cookie` from this app's build
 output, which would otherwise reach the root-hoisted `cookie@0.7.2` that
 `express` pins and fail on a missing `parseCookie` export. Nesting keeps Astro on
 its own `cookie@2.x` without changing hoisting for the rest of the monorepo.
+
+## Deployment
+
+Vercel builds the site from [`vercel.json`](vercel.json), which runs
+[`vercel-install.sh`](vercel-install.sh) then
+[`vercel-build.sh`](vercel-build.sh). Both `cd ../..` and build from the repo
+root, so the Vercel project sets **Root Directory** to `apps/petrinaut-docs` and
+enables **Include files outside of the Root Directory in the Build Step**.
+
+The site is served from `docs.petrinaut.org` and is internal, so reaching it
+needs access. `site` in [`astro.config.mjs`](astro.config.mjs) has to match it:
+that is what sets the canonical URL and every sitemap entry.
