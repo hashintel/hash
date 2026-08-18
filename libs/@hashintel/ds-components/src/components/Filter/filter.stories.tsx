@@ -277,6 +277,14 @@ export const Default: Story = () => (
       value={{ key: "gt", value: 420 }}
       errors={["Value must be less than 100"]}
     />
+    <KitchenSinkState
+      label="with multiple errors"
+      value={{ key: "near", value: [200.1234, -300.5678] }}
+      errors={[
+        "Latitude must be between -90 and 90",
+        "Longitude must be between -180 and 180",
+      ]}
+    />
   </div>
 );
 

@@ -18,6 +18,7 @@ import {
   type ItemOrGroup,
 } from "../Menu/SelectableList/selectable-list";
 import { getItemId } from "../Menu/SelectableList/selectable-list-util";
+import { BaseTooltip } from "../Tooltip/base-tooltip";
 import {
   type FilterChange,
   type FilterValue,
@@ -134,6 +135,7 @@ export const Filter = <
   operators: ItemOrGroup<FilterOperator<ValueMap>>[];
   value?: FilterValue<ValueMap> | null;
   onChange: (...change: FilterChange<ValueMap>) => void;
+  /** Validation errors, shown in a tooltip below the filter on hover/focus */
   errors?: string[];
   disabled?: boolean;
   testId?: string;
@@ -334,7 +336,7 @@ export const Filter = <
     complete,
   });
 
-  return (
+  const chip = (
     <ArkSelect.Root
       collection={collection}
       value={draftKey === null ? [] : [draftKey]}
@@ -355,7 +357,6 @@ export const Filter = <
       aria-label={`${propertyLabel} filter`}
       data-testid={testId}
       data-property={property}
-      title={errors && errors.length > 0 ? errors.join("\n") : undefined}
     >
       <ArkSelect.HiddenSelect />
       <span className={classes.property} onMouseEnter={syncTruncationTitle}>
@@ -501,5 +502,28 @@ export const Filter = <
         </ArkSelect.Positioner>
       </Portal>
     </ArkSelect.Root>
+  );
+
+  return (
+    <BaseTooltip
+      disableTooltip={!invalid}
+      position="bottom-start"
+      openDelay="fast"
+      closeDelay="fast"
+      gapY={4}
+      content={
+        <div className={classes.errorTooltip}>
+          {errors?.map((error, index) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <span className={classes.errorRow} key={index}>
+              <Icon name="error" className={classes.errorIcon} />
+              {error}
+            </span>
+          ))}
+        </div>
+      }
+    >
+      {chip}
+    </BaseTooltip>
   );
 };

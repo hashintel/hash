@@ -22,6 +22,9 @@ export const filterRecipe = sva({
     "input",
     "separator",
     "remove",
+    "errorTooltip",
+    "errorRow",
+    "errorIcon",
   ],
   base: {
     root: {
@@ -269,6 +272,39 @@ export const filterRecipe = sva({
         borderEndEndRadius: "[var(--filter-radius)]",
       },
     },
+    // The error tooltip is portaled, so it inherits nothing from the root
+    // (no `--filter-*` levers) and styles itself with direct tokens.
+    errorTooltip: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.5",
+      background: "white",
+      color: "red.s100",
+      fontFamily: "body",
+      fontWeight: "normal",
+      textStyle: "xs",
+      maxWidth: "[300px]",
+      paddingInline: "2",
+      paddingBlock: "1",
+      borderRadius: "md",
+      border: "1px solid var(--colors-red-s50)",
+      boxShadow: "[0 2px 6px rgba(0, 0, 0, 0.08)]",
+      wordWrap: "break-word",
+    },
+    errorRow: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "1",
+      minWidth: "0",
+    },
+    errorIcon: {
+      flexShrink: "0",
+      width: "[1em !important]",
+      minWidth: "[1em !important]",
+      height: "[1em !important]",
+      // Optically centers the icon on the first line of a wrapped message
+      marginTop: "[0.2em]",
+    },
   },
   variants: {
     size: {
@@ -280,6 +316,7 @@ export const filterRecipe = sva({
           "--filter-property-padding-x": "[5px]",
           "--filter-radius": "var(--radii-sm)",
         },
+        errorTooltip: { textStyle: "xxs" },
       },
       xs: {
         root: {
@@ -290,6 +327,7 @@ export const filterRecipe = sva({
           "--filter-input-padding-x": "[7px]",
           "--filter-radius": "[5px]",
         },
+        errorTooltip: { textStyle: "xxs" },
       },
       sm: {
         root: {
@@ -317,6 +355,7 @@ export const filterRecipe = sva({
           "--filter-property-padding-x": "[11px]",
           "--filter-radius": "var(--radii-md)",
         },
+        errorTooltip: { textStyle: "sm" },
       },
     },
     invalid: {
