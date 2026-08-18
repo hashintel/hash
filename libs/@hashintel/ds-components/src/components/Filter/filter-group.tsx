@@ -1,6 +1,6 @@
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { Button, type ButtonProps } from "../Button/button";
+import { Button, type ButtonElementProps } from "../Button/button";
 import {
   actionClassName,
   actionLabel,
@@ -17,7 +17,7 @@ import type { DistributedOmit } from "type-fest";
  * flavours stay usable.
  */
 type GroupButtonProps = DistributedOmit<
-  ButtonProps,
+  ButtonElementProps,
   "children" | "iconName" | "iconPosition" | "prefix" | "suffix"
 >;
 

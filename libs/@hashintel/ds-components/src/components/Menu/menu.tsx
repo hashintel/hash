@@ -48,11 +48,19 @@ export const Menu = ({
   trigger,
   position = "bottom-start",
   className,
+  onOpen,
+  onKeyDown,
 }: {
   items: Array<ItemOrGroup<MenuItem>>;
   trigger: React.ReactElement;
   position?: Position;
   className?: string;
+  onOpen?: (open: boolean) => void;
+  /** Key events from the open menu, with the currently highlighted item id */
+  onKeyDown?: (
+    event: React.KeyboardEvent,
+    highlightedValue: string | null,
+  ) => void;
 }) => {
   const portalContainerRef = usePortalContainerRef();
   const handleLoopKeyDown = useLoopSelection(items);
@@ -68,6 +76,7 @@ export const Menu = ({
       loopFocus={false}
       lazyMount
       unmountOnExit
+      onOpenChange={({ open }) => onOpen?.(open)}
     >
       <ArkMenu.Context>
         {(menu) => (
@@ -80,7 +89,12 @@ export const Menu = ({
             </ArkMenu.Trigger>
             <Portal container={portalContainerRef}>
               <ArkMenu.Positioner
-                onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
+                // Capture phase: the menu machine handles (and swallows) some
+                // keys itself, e.g. left/right for submenu navigation.
+                onKeyDownCapture={(event) => {
+                  handleLoopKeyDown(event, menu);
+                  onKeyDown?.(event, menu.highlightedValue);
+                }}
               >
                 <SelectableList
                   items={items}
