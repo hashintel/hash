@@ -111,17 +111,18 @@ fn the_writer_reads_an_empty_pair_domain_as_a_present_vacuous_body() {
     );
 }
 
-/// An injected typed post-census search failure through the production writer.
+/// An injected typed post-census movement refusal through the production writer.
 ///
-/// The canonical frame carries one non-finite point, so the census completes both domains and
-/// the movement readout refuses to index. The serialized equality pins the whole body: the
-/// completed draw counts persist, the reason names the poisoned frame and row, and no partial
-/// aggregate key exists beside them.
+/// The canonical frame arrives one row short, so the census completes both domains and the
+/// movement readout refuses the frame pair. A non-finite frame cannot enter here at all: the
+/// frames arrive as proven-finite fields. The serialized equality pins the whole body: the
+/// completed draw counts persist, the reason names both row counts, and no partial aggregate
+/// key exists beside them.
 #[test]
-fn an_injected_search_failure_keeps_its_counts_and_no_partial_aggregates() {
+fn an_injected_movement_refusal_keeps_its_counts_and_no_partial_aggregates() {
     let (groups, edges) = readout_index();
     let (zero, mut canonical) = readout_frames();
-    canonical[5] = Vec2::new(f32::NAN, 9.0);
+    canonical.pop();
 
     let evidence = measure(
         &snapshot(),
@@ -145,9 +146,9 @@ fn an_injected_search_failure_keeps_its_counts_and_no_partial_aggregates() {
             "controls_selected": 2,
             "outcome": "failed",
             "reason": {
-                "cause": "non-finite-point",
-                "rung": "canonical",
-                "row": 5,
+                "cause": "frame-rows",
+                "zero": 10,
+                "canonical": 9,
             },
         }),
     );

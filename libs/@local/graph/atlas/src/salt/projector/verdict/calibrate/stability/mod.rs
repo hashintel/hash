@@ -54,7 +54,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::math::{DNonNegative, DPositive, NonNegative, OpenUnitFraction};
+use crate::math::{DNonNegative, DPositive, Derivation, NonNegative, OpenUnitFraction};
 
 /// The false-pass budget `δ`.
 ///
@@ -155,12 +155,12 @@ impl Support {
     fn new(sorted: impl IntoIterator<Item = (NonNegative, DNonNegative)>) -> Self {
         let mut values = Vec::new();
         let mut cumulative = Vec::new();
-        let mut mass = 0.0_f64;
+        let mut mass = Derivation::<DNonNegative>::ZERO;
         for (z, weight) in sorted {
-            if weight.get() > 0.0 {
-                mass += weight.get();
+            if weight > 0.0 {
+                mass += weight;
                 values.push(z);
-                cumulative.push(mass);
+                cumulative.push(mass.into_raw());
             }
         }
 
@@ -252,14 +252,13 @@ pub(crate) fn evaluate(
 
     let quantile = super::RADIUS_FRACTION;
     let tau = MATERIALITY_MULTIPLIER * temperature;
-    let confidence = (2.0 / FALSE_PASS_BUDGET.get()).ln();
+    let confidence = (2.0 / FALSE_PASS_BUDGET).ln();
 
     let effective_support = support.effective();
     // In domain with no check: the confidence is a positive constant and the effective support
     // a validated positive, so the quotient stays positive - a reciprocal of a finite value
     // never rounds to zero - and the square root of a positive value is positive.
-    let epsilon_zero =
-        DPositive::new_unchecked((confidence / (2.0 * effective_support.get())).sqrt());
+    let epsilon_zero = DPositive::new_unchecked((confidence / (2.0 * effective_support)).sqrt());
     let gap = support.gap(quantile.get(), epsilon_zero.get());
     let pass = epsilon_zero <= quantile && gap <= tau;
 
@@ -275,15 +274,16 @@ pub(crate) fn evaluate(
     };
 
     let type_effective_support = {
-        let mut total = 0.0_f64;
-        let mut squares = 0.0_f64;
+        let mut total = Derivation::<DNonNegative>::ZERO;
+        let mut squares = Derivation::<DNonNegative>::ZERO;
         for mass in type_masses {
-            if mass.get() > 0.0 {
-                total += mass.get();
-                squares = mass.get().mul_add(mass.get(), squares);
+            if mass > 0.0 {
+                total += mass;
+                squares += Derivation::from(mass) * mass;
             }
         }
-        DPositive::new(total * total / squares)
+        let total = total.into_raw();
+        DPositive::new(total * total / squares.into_raw())
             .expect("a measured boundary carries at least one positive type mass")
     };
 
@@ -339,13 +339,13 @@ fn safe_supremum(support: &Support, level: f64, tau: f64) -> Option<(f64, bool)>
     let mut supremum = None;
     for &candidate in &candidates {
         let midpoint = f64::midpoint(previous, candidate);
-        if midpoint > previous && midpoint < candidate && support.gap(level, midpoint).get() > tau {
+        if midpoint > previous && midpoint < candidate && support.gap(level, midpoint) > tau {
             // The interior already exceeds τ: the safe set ends at the previous candidate,
             // which passed its endpoint evaluation to get here.
             return supremum;
         }
 
-        if support.gap(level, candidate).get() > tau {
+        if support.gap(level, candidate) > tau {
             // The interior passes and the endpoint fails: the safe set is the open interval,
             // its sup is this candidate, and the sup is not attained.
             return Some((candidate, false));

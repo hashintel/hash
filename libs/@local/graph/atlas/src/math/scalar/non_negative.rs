@@ -481,6 +481,20 @@ const impl core::ops::Mul for NonNegative {
     }
 }
 
+const impl core::ops::Mul<Finite> for NonNegative {
+    type Output = f32;
+
+    /// Multiplies by a finite signed value, leaving the domain.
+    ///
+    /// The product follows the finite operand's sign and can overflow, so the result is a raw
+    /// float and the caller re-enters a domain at whichever boundary proves the bound. A NaN
+    /// cannot arise: both operands are finite.
+    #[inline]
+    fn mul(self, rhs: Finite) -> f32 {
+        self.0 * rhs.get()
+    }
+}
+
 const impl core::ops::Div<Positive> for NonNegative {
     type Output = Self;
 

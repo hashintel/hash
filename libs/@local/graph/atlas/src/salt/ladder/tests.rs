@@ -1,10 +1,24 @@
+use hashql_core::id::IdSlice;
+
 use super::{
     CanonicalError, Conditions, ConditionsError, Field, LadderError, LadderOptions,
     RungMeasurement, measure_ladder, select_canonical,
 };
-use crate::math::{Rotation, Similarity, Vec2, d_non_negative, non_negative};
+use crate::math::{FinitePointField, Rotation, Similarity, Vec2, d_non_negative, non_negative};
 
-/// A sixteen-point deterministic cloud.
+hashql_core::id::newtype! {
+    /// The ladder tests' row domain.
+    #[id(const)]
+    struct RungRow(u32)
+}
+
+/// Proves a fixture's points finite over the tests' row domain.
+#[track_caller]
+fn field(points: &[Vec2]) -> &FinitePointField<RungRow> {
+    FinitePointField::new(IdSlice::from_raw(points)).expect("the fixture points are finite")
+}
+
+/// A sixteen-point deterministic field.
 ///
 /// Spread radii and no symmetry a similarity could exploit.
 fn base_field() -> Vec<Vec2> {
@@ -125,11 +139,11 @@ fn measure_rejects_invalid_input() {
     let base = base_field();
     let fields = [
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(1.0),
         },
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(1.0),
         },
     ];
@@ -146,7 +160,7 @@ fn measure_rejects_invalid_input() {
     let mismatched = [
         fields[0],
         Field {
-            coordinates: short,
+            coordinates: field(short),
             relation_loss: d_non_negative!(1.0),
         },
     ];
@@ -168,11 +182,11 @@ fn measure_rejects_a_degenerate_field() {
     let coincident = vec![Vec2::new(3.0, -2.0); base.len()];
     let fields = [
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(1.0),
         },
         Field {
-            coordinates: &coincident,
+            coordinates: field(&coincident),
             relation_loss: d_non_negative!(1.0),
         },
     ];
@@ -214,11 +228,11 @@ fn pure_similarity_rung_measures_negligible_movement() {
 
     let fields = [
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(1.0),
         },
         Field {
-            coordinates: &moved,
+            coordinates: field(&moved),
             relation_loss: d_non_negative!(1.0),
         },
     ];
@@ -250,11 +264,11 @@ fn deformed_rung_measures_a_large_movement() {
     let deformed = deformed_field(&base);
     let fields = [
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(1.0),
         },
         Field {
-            coordinates: &deformed,
+            coordinates: field(&deformed),
             relation_loss: d_non_negative!(1.0),
         },
     ];
@@ -263,7 +277,7 @@ fn deformed_rung_measures_a_large_movement() {
 
     assert!(
         measurements[1].adjacent_movement > d_non_negative!(0.5),
-        "an axis swap over half the cloud is a large residual, got {}",
+        "an axis swap over half the field is a large residual, got {}",
         measurements[1].adjacent_movement.get()
     );
 }
@@ -282,15 +296,15 @@ fn adjacent_and_baseline_movements_use_their_own_comparands() {
     // its predecessor, real movement against the baseline.
     let fields = [
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(1.0),
         },
         Field {
-            coordinates: &deformed,
+            coordinates: field(&deformed),
             relation_loss: d_non_negative!(1.0),
         },
         Field {
-            coordinates: &deformed,
+            coordinates: field(&deformed),
             relation_loss: d_non_negative!(1.0),
         },
     ];
@@ -324,19 +338,19 @@ fn measurements_echo_the_loss_series() {
     // whatever its direction.
     let fields = [
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(1.0),
         },
         Field {
-            coordinates: &deformed,
+            coordinates: field(&deformed),
             relation_loss: d_non_negative!(0.9),
         },
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(0.94),
         },
         Field {
-            coordinates: &deformed,
+            coordinates: field(&deformed),
             relation_loss: d_non_negative!(1.1),
         },
     ];
@@ -409,18 +423,18 @@ fn canonical_selection_requires_an_exact_member() {
         .collect();
     let fields = [
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(1.0),
         },
         // Genuine deformation, improving loss.
         Field {
-            coordinates: &deformed,
+            coordinates: field(&deformed),
             relation_loss: d_non_negative!(0.9),
         },
         // A pure similarity image of its predecessor whose loss rises:
         // the measurements record both, and the rung still publishes.
         Field {
-            coordinates: &moved,
+            coordinates: field(&moved),
             relation_loss: d_non_negative!(2.0),
         },
     ];
@@ -441,7 +455,7 @@ fn canonical_selection_requires_an_exact_member() {
 
     // The rung whose loss rose and whose movement collapsed onto its
     // predecessor publishes like any other member: the measurements
-    // are diagnostics, not gates.
+    // are diagnostics, and they block nothing.
     let risen =
         select_canonical(&measurements, non_negative!(1.0)).expect("the last rung is a member");
     assert_eq!(risen.index, 2);
@@ -465,11 +479,11 @@ fn canonical_selection_publishes_a_rung_that_repeats_the_baseline() {
     // and it publishes regardless.
     let fields = [
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(1.0),
         },
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(0.9),
         },
     ];
@@ -490,11 +504,11 @@ fn baseline_rung_measures_as_the_identity() {
     let deformed = deformed_field(&base);
     let fields = [
         Field {
-            coordinates: &base,
+            coordinates: field(&base),
             relation_loss: d_non_negative!(2.5),
         },
         Field {
-            coordinates: &deformed,
+            coordinates: field(&deformed),
             relation_loss: d_non_negative!(2.5),
         },
     ];

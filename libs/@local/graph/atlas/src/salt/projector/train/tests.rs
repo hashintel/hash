@@ -39,8 +39,8 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
-        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, d_non_negative,
-        non_negative, positive, unit_fraction,
+        AffinityCurve, AlignedVecN, BoxedVecN, FinitePointField, NonNegative, Positive, Vec2,
+        d_non_negative, non_negative, positive, unit_fraction,
     },
     progress::{NoProgress, Progress},
     salt::{
@@ -604,8 +604,9 @@ fn draw_collects_pooled_mined_pairs() {
         Vec2::new(2.0, 0.0),
         Vec2::new(3.0, 0.0),
     ];
-    let field =
-        SpatialField::new(IdSlice::from_raw(&coordinates)).expect("the fixture frame is finite");
+    let field = SpatialField::new(FinitePointField::new_unchecked(IdSlice::from_raw(
+        &coordinates,
+    )));
     let miner = HardNegativeMiner::new(
         graph.view(),
         indexes.protection.view(),
@@ -1051,8 +1052,8 @@ fn displacement_summary_reports_every_axis() {
     let low = [Vec2::splat(0.0), Vec2::splat(0.0), Vec2::splat(0.0)];
     let high = [Vec2::new(1.0, 0.0), Vec2::splat(0.0), Vec2::new(3.0, 4.0)];
     let summary = DisplacementSummary::measure(
-        IdSlice::from_raw(&low),
-        IdSlice::from_raw(&high),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&low)),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&high)),
         &participants,
         &deciles,
     );

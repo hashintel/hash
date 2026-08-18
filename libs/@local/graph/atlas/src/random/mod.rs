@@ -8,8 +8,8 @@
 //! - [`uniform_below`] draws one unbiased integer below a bound.
 //! - [`sample_indices_vec`] draws distinct indices without replacement, in memory proportional to
 //!   the sample rather than the population.
-//! - [`keyed_rng`] builds an independent generator per `(seed, key, stream)`, the seam for
-//!   deterministic parallel draws.
+//! - [`keyed_rng`] builds an independent generator per `(seed, key, stream)`, which is what keeps
+//!   parallel draws deterministic.
 //! - [`acceptance_sample_size`] reports how many uniformly sampled items must all pass to certify a
 //!   defect-rate bound at a confidence level.
 //! - [`mean_sample_size`] reports how many uniformly sampled items estimate a mean within a margin
@@ -213,7 +213,7 @@ pub(crate) fn mean_sample_size(
     confidence: OpenUnitFraction,
 ) -> usize {
     let z = normal_quantile(confidence);
-    let samples = (z * deviation.get() / margin.get()).powi(2).ceil();
+    let samples = (z * deviation / margin).powi(2).ceil();
 
     #[expect(
         clippy::cast_possible_truncation,

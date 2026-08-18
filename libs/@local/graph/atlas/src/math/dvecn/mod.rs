@@ -20,6 +20,7 @@ use core::{
 };
 
 use super::{
+    derivation::Derivation,
     kernel::{exp_f64x4, mul_add_f64x8},
     scalar::{DFinite, DNonNegative},
     vecn::{AlignedVecN, VecN},
@@ -276,7 +277,7 @@ impl<const N: usize> DVecN<N> {
     ///
     /// Folds `simd_max` over the absolute lanes and finishes with the scalar remainder. The
     /// maximum follows IEEE-754 `maxNum`: the fold ignores NaN components in favor of any finite
-    /// magnitude, so callers that must reject NaN gate with [`is_finite`](Self::is_finite).
+    /// magnitude, so callers that must reject NaN check [`is_finite`](Self::is_finite) first.
     #[inline]
     #[must_use]
     pub fn max_abs(&self) -> f64 {
@@ -313,7 +314,7 @@ impl<const N: usize> DVecN<N> {
     pub fn stable_l2(&self) -> f64 {
         let scale = self.max_abs();
         if scale == 0.0 {
-            // maxNum ignores NaN, so a zero scale still needs the finiteness gate.
+            // maxNum ignores NaN, so a zero scale still needs the finiteness check.
             return if self.is_finite() { 0.0 } else { f64::NAN };
         }
 
@@ -679,12 +680,11 @@ impl<const N: usize> AlignedDVecN<N> {
     ///
     /// The fold shape matches [`DVecN::dot`].
     #[inline]
-    #[must_use]
-    pub(crate) fn dot(&self, other: &Self) -> DFinite {
-        DFinite::new_unchecked(self.dot_impl(other))
+    pub(crate) fn dot(&self, other: &Self) -> Derivation<DFinite> {
+        Derivation::raw(self.dot_impl(other))
     }
 
-    /// Returns the dot product gated on a finite result.
+    /// Returns the dot product when the result is finite.
     ///
     /// Returns [`None`] when the reduced value is not finite. A non-finite value entering the
     /// fold can only produce a non-finite accumulator, so checking the result covers every
@@ -696,28 +696,27 @@ impl<const N: usize> AlignedDVecN<N> {
 
     /// Returns the squared Euclidean length.
     #[inline]
-    #[must_use]
-    pub(crate) fn norm_squared(&self) -> DNonNegative {
-        DNonNegative::new_unchecked(self.dot_impl(self))
+    pub(crate) fn norm_squared(&self) -> Derivation<DNonNegative> {
+        Derivation::raw(self.dot_impl(self))
     }
 
     /// Returns the Euclidean length.
     #[inline]
-    #[must_use]
-    pub(crate) fn norm(&self) -> DNonNegative {
+    pub(crate) fn norm(&self) -> Derivation<DNonNegative> {
         self.norm_squared().sqrt()
     }
 
-    /// Returns the squared Euclidean length gated on a finite result.
+    /// Returns the squared Euclidean length when the result is finite.
     ///
-    /// The self-dot with the fold shape and gate of [`checked_dot`](Self::checked_dot). A sum of
-    /// squares is non-negative, so the reading carries that domain.
+    /// The self-dot, with the fold shape and finiteness refusal of
+    /// [`checked_dot`](Self::checked_dot). A sum of squares is non-negative, so the reading
+    /// carries that domain.
     #[inline]
     pub(crate) fn checked_norm_squared(&self) -> Option<DNonNegative> {
         DNonNegative::new(self.dot_impl(self))
     }
 
-    /// Returns the Euclidean length gated on a finite result.
+    /// Returns the Euclidean length when the result is finite.
     #[inline]
     pub(crate) fn checked_norm(&self) -> Option<DNonNegative> {
         self.checked_norm_squared().map(DNonNegative::sqrt)
@@ -749,8 +748,8 @@ impl<const N: usize> AlignedDVecN<N> {
     /// Returns the largest component magnitude, or `0.0` for the empty vector.
     ///
     /// The maximum follows IEEE-754 `maxNum` exactly as [`DVecN::max_abs`]: the fold ignores NaN
-    /// components in favor of any finite magnitude, so callers that must reject NaN gate with
-    /// [`is_finite`](Self::is_finite).
+    /// components in favor of any finite magnitude, so callers that must reject NaN check
+    /// [`is_finite`](Self::is_finite) first.
     #[inline]
     #[must_use]
     pub fn max_abs(&self) -> f64 {
@@ -772,7 +771,7 @@ impl<const N: usize> AlignedDVecN<N> {
     fn stable_l2_impl(&self) -> f64 {
         let scale = self.max_abs();
         if scale == 0.0 {
-            // maxNum ignores NaN, so a zero scale still needs the finiteness gate.
+            // maxNum ignores NaN, so a zero scale still needs the finiteness check.
             return if self.is_finite() { 0.0 } else { f64::NAN };
         }
 
@@ -804,7 +803,7 @@ impl<const N: usize> AlignedDVecN<N> {
         DNonNegative::new_unchecked(self.stable_l2_impl())
     }
 
-    /// Returns the Euclidean norm of [`stable_l2`](Self::stable_l2) gated on a finite result.
+    /// Returns the Euclidean norm of [`stable_l2`](Self::stable_l2) when the result is finite.
     ///
     /// Subnormal-only vectors keep their norm and magnitudes near [`f64::MAX`] stay finite where
     /// naive squared accumulation would not. The norm of the empty and the all-zero vector is

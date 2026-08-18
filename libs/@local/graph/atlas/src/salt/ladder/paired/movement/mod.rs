@@ -12,10 +12,9 @@
 //! The union is the candidate domain at both rungs. A row that leaves the neighbourhood at one
 //! rung is still rank-relevant at the other, and a rank read over a single rung's `k`-set alone
 //! would miscount it.
-//! Every distance is [`Vec2::distance_squared_wide`], the one metric, whether the row came from
-//! a tree
-//! readout or enters the comparison directly, so tie sets never depend on the path that
-//! produced a reading.
+//! Every distance is [`Vec2::distance_squared_wide`](crate::math::Vec2::distance_squared_wide),
+//! the one metric, whether the row came from a tree readout or enters the comparison directly,
+//! so tie sets never depend on the path that produced a reading.
 //!
 //! Readings are exact and deterministic: the trees only accelerate neighbour selection, and the
 //! module's tests hold every reading to a full-scan restatement of the same definitions.
@@ -29,11 +28,11 @@ mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
-use hashql_core::{heap::Scratch, id::IdSlice};
+use hashql_core::heap::Scratch;
 
 use crate::{
     identity::NodeRowId,
-    math::{DNonNegative, KdTree, NonFinitePoint, Vec2, Vec2x4T},
+    math::{DNonNegative, FinitePointField, KdTree, Vec2x4T},
 };
 
 /// The rank-readout window `k`, the size of one row's local neighbourhood.
@@ -83,7 +82,7 @@ hashql_core::id::newtype! {
     pub(super) struct AnchorRowId(u32)
 }
 
-/// The frames [`Movement::new`] refused.
+/// The frame pair [`Movement::new`] refused.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) enum MovementError {
     /// The rung frames disagree on the corpus row count.
@@ -93,10 +92,6 @@ pub(super) enum MovementError {
         /// The canonical frame's row count.
         canonical: usize,
     },
-    /// The zero-condition frame did not index.
-    Zero(NonFinitePoint<NodeRowId>),
-    /// The canonical frame did not index.
-    Canonical(NonFinitePoint<NodeRowId>),
 }
 
 impl fmt::Display for MovementError {
@@ -106,28 +101,19 @@ impl fmt::Display for MovementError {
                 fmt,
                 "the zero frame holds {zero} rows where the canonical frame holds {canonical}",
             ),
-            Self::Zero(_) => write!(fmt, "the zero frame did not index"),
-            Self::Canonical(_) => write!(fmt, "the canonical frame did not index"),
         }
     }
 }
 
-impl Error for MovementError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Rows { .. } => None,
-            Self::Zero(error) | Self::Canonical(error) => Some(error),
-        }
-    }
-}
+impl Error for MovementError {}
 
 /// The movement readout over one generation's aligned rung frames.
 #[derive(Debug)]
 pub(super) struct Movement<'frame> {
     /// The zero-condition frame, row-indexed.
-    zero: &'frame IdSlice<NodeRowId, Vec2>,
+    zero: &'frame FinitePointField<NodeRowId>,
     /// The canonical frame, row-indexed and aligned onto the zero frame's basis.
-    canonical: &'frame IdSlice<NodeRowId, Vec2>,
+    canonical: &'frame FinitePointField<NodeRowId>,
     /// The zero frame's neighbour index.
     zero_tree: KdTree<'frame, NodeRowId>,
     /// The canonical frame's neighbour index.
@@ -144,12 +130,10 @@ impl<'frame> Movement<'frame> {
     ///
     /// # Errors
     ///
-    /// - [`MovementError::Rows`] when the frames disagree on the row count.
-    /// - [`MovementError::Zero`] and [`MovementError::Canonical`] when a frame has a point with a
-    ///   NaN or infinite component.
+    /// [`MovementError::Rows`] when the frames disagree on the row count.
     pub(super) fn new(
-        zero: &'frame IdSlice<NodeRowId, Vec2>,
-        canonical: &'frame IdSlice<NodeRowId, Vec2>,
+        zero: &'frame FinitePointField<NodeRowId>,
+        canonical: &'frame FinitePointField<NodeRowId>,
         k: NonZero<usize>,
     ) -> Result<Self, MovementError> {
         if zero.len() != canonical.len() {
@@ -162,8 +146,8 @@ impl<'frame> Movement<'frame> {
         Ok(Self {
             zero,
             canonical,
-            zero_tree: KdTree::build(zero).map_err(MovementError::Zero)?,
-            canonical_tree: KdTree::build(canonical).map_err(MovementError::Canonical)?,
+            zero_tree: KdTree::build(zero),
+            canonical_tree: KdTree::build(canonical),
             k,
         })
     }

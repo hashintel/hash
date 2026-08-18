@@ -17,7 +17,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{AnchorRowId, ControlMovement, Movement, MovementError, PairMovement};
 use crate::{
     identity::NodeRowId,
-    math::{DNonNegative, KdTree, NonFinitePoint, Vec2, d_non_negative},
+    math::{DNonNegative, FinitePointField, KdTree, Vec2, d_non_negative},
     salt::ladder::paired::fixtures::frame,
 };
 
@@ -227,8 +227,9 @@ fn control_readings_are_displacement_and_anchor_proximity() {
     .expect("the frames are finite and equal");
 
     let anchor_frame = [Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)];
-    let anchors = KdTree::build(IdSlice::<AnchorRowId, _>::from_raw(&anchor_frame))
-        .expect("the anchor frame is finite");
+    let anchors = KdTree::build(FinitePointField::new_unchecked(
+        IdSlice::<AnchorRowId, _>::from_raw(&anchor_frame),
+    ));
 
     let scratch = Scratch::new();
     assert_eq!(
@@ -241,10 +242,9 @@ fn control_readings_are_displacement_and_anchor_proximity() {
 }
 
 #[test]
-fn mismatched_or_non_finite_frames_are_refused() {
+fn mismatched_rows() {
     let zero = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
     let short = [Vec2::new(0.0, 0.0)];
-    let poisoned = [Vec2::new(0.0, 0.0), Vec2::new(f32::NAN, 0.0)];
     let k = NonZero::new(1).expect("one is nonzero");
 
     assert_eq!(
@@ -253,18 +253,5 @@ fn mismatched_or_non_finite_frames_are_refused() {
             zero: 2,
             canonical: 1,
         },
-    );
-    assert_eq!(
-        Movement::new(frame(&poisoned), frame(&zero), k).expect_err("the zero frame is poisoned"),
-        MovementError::Zero(NonFinitePoint {
-            id: NodeRowId::new(1),
-        }),
-    );
-    assert_eq!(
-        Movement::new(frame(&zero), frame(&poisoned), k)
-            .expect_err("the canonical frame is poisoned"),
-        MovementError::Canonical(NonFinitePoint {
-            id: NodeRowId::new(1),
-        }),
     );
 }

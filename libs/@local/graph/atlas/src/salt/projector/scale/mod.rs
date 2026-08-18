@@ -21,7 +21,7 @@ use hashql_core::id::{Id, IdSlice};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use crate::{
-    math::{NonNegative, Positive, Vec2},
+    math::{FinitePointField, NonNegative, Positive, Vec2},
     salt::knn::table::KnnView,
 };
 
@@ -92,7 +92,7 @@ where
                   is reserved for diverged coordinates, a runtime condition"
     )]
     pub(crate) fn compute(
-        coordinates: &IdSlice<N, Vec2>,
+        coordinates: &FinitePointField<N>,
         knn: &KnnView<'_, N>,
     ) -> Result<Self, NonFiniteScale<N>> {
         assert_eq!(

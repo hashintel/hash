@@ -41,8 +41,8 @@ use crate::{
     identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{
-        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, UnitFraction, Vec2, VecN, non_negative,
-        positive,
+        AffinityCurve, AlignedVecN, BoxedVecN, FinitePointField, NonNegative, UnitFraction, Vec2,
+        VecN, non_negative, positive,
     },
     progress::NoProgress,
     salt::{
@@ -471,7 +471,7 @@ impl ProbeFixture {
         ProbeCorpus::new(
             IdSlice::from_raw(&self.node_ids),
             IdSlice::from_raw(self.representations()),
-            IdSlice::from_raw(&self.coordinates),
+            FinitePointField::new_unchecked(IdSlice::from_raw(&self.coordinates)),
         )
     }
 }

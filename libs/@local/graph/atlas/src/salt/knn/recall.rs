@@ -189,9 +189,9 @@ impl RecallSpotCheck {
     pub fn admission(&self) -> RecallAdmission {
         let recall = self.recall();
 
-        if recall - self.resolution.get() >= self.minimum_recall.get() {
+        if recall - self.resolution >= self.minimum_recall {
             RecallAdmission::Admitted
-        } else if recall + self.resolution.get() < self.minimum_recall.get() {
+        } else if recall + self.resolution < self.minimum_recall {
             RecallAdmission::Refused
         } else {
             RecallAdmission::Unresolved
@@ -535,7 +535,7 @@ fn sizing_rows(
     minimum_recall: UnitFraction,
     confidence: OpenUnitFraction,
 ) -> usize {
-    let clearance = (piloted.recall() - minimum_recall.get()).abs();
+    let clearance = (piloted.recall() - minimum_recall).abs();
 
     DPositive::new(clearance).map_or(usize::MAX, |clearance| {
         mean_sample_size(piloted.deviation, clearance, confidence)
@@ -592,7 +592,7 @@ fn resolution(quantile: f64, scored: &Scoring, rows: usize) -> DNonNegative {
 
     // The caller refused a confidence at or below one half, so the quantile is non-negative;
     // the deviation, the root, and the clamped correction are non-negative by construction.
-    DNonNegative::new_unchecked(quantile * scored.deviation.get() / sampled.sqrt() * correction)
+    DNonNegative::new_unchecked(quantile * scored.deviation / sampled.sqrt() * correction)
 }
 
 /// Sizes and reads one staged recall check, scoring sampled rows through `score`.

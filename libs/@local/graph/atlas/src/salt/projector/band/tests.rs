@@ -15,17 +15,17 @@ use hashql_core::id::{Id as _, IdSlice};
 use super::{BandProjection, BandRefusal};
 use crate::{
     identity::NodeRowId,
-    math::{DNonNegative, DPositive, DVec2, FinitePointCloud, NonFinitePoint, Positive, Vec2},
+    math::{DNonNegative, DPositive, DVec2, FinitePointField, NonFinitePoint, Positive, Vec2},
 };
 
 /// Boxes a finite point set as the freeze's proven-finite centre.
-fn cloud(points: Box<[Vec2]>) -> Box<FinitePointCloud<NodeRowId>> {
-    FinitePointCloud::new_boxed_unchecked(IdSlice::from_boxed_slice(points))
+fn boxed_field(points: Box<[Vec2]>) -> Box<FinitePointField<NodeRowId>> {
+    FinitePointField::new_boxed_unchecked(IdSlice::from_boxed_slice(points))
 }
 
 /// Views a finite live array as the enforcement field.
-fn field(points: &mut [Vec2]) -> &mut FinitePointCloud<NodeRowId> {
-    FinitePointCloud::new_unchecked_mut(IdSlice::from_raw_mut(points))
+fn field(points: &mut [Vec2]) -> &mut FinitePointField<NodeRowId> {
+    FinitePointField::new_unchecked_mut(IdSlice::from_raw_mut(points))
 }
 
 fn positive(value: f32) -> Positive {
@@ -57,8 +57,12 @@ const LIVE: [Vec2; 6] = [
 ];
 
 fn fixture() -> BandProjection<NodeRowId> {
-    BandProjection::freeze(cloud(Box::new(CENTRES)), positive(0.25), positive(2.0))
-        .expect("the fixture is a valid constraint")
+    BandProjection::freeze(
+        boxed_field(Box::new(CENTRES)),
+        positive(0.25),
+        positive(2.0),
+    )
+    .expect("the fixture is a valid constraint")
 }
 
 fn displacement(row: Vec2, centre: Vec2) -> f64 {
@@ -177,7 +181,7 @@ fn a_projected_field_re_reads_as_inside() {
 #[test]
 fn running_maxima_keep_the_transient_excursion() {
     let projection = BandProjection::freeze(
-        cloud(Box::new([Vec2::new(0.0, 0.0)])),
+        boxed_field(Box::new([Vec2::new(0.0, 0.0)])),
         positive(0.25),
         positive(2.0),
     )
@@ -206,7 +210,7 @@ fn running_maxima_keep_the_transient_excursion() {
     assert_eq!(record.last_application(), Some(6));
 }
 
-/// A non-finite row refuses at the cloud's construction, naming the smallest offender, so a
+/// A non-finite row refuses at the field's construction, naming the smallest offender, so a
 /// diverged field never reaches enforcement and the record stays untouched.
 #[test]
 fn non_finite_row_refuses_at_construction() {
@@ -216,7 +220,7 @@ fn non_finite_row_refuses_at_construction() {
     live[2] = Vec2::new(f32::NAN, 0.0);
 
     assert_eq!(
-        FinitePointCloud::new(IdSlice::<NodeRowId, _>::from_raw(&live)),
+        FinitePointField::new(IdSlice::<NodeRowId, _>::from_raw(&live)),
         Err(NonFinitePoint {
             id: NodeRowId::new(2)
         })
@@ -282,7 +286,7 @@ fn the_per_row_projection_matches_the_application_row_for_row() {
 #[test]
 fn the_clip_jacobian_kills_radial_force_exactly() {
     let projection = BandProjection::<NodeRowId>::freeze(
-        cloud(Box::new([Vec2::new(0.0, 0.0)])),
+        boxed_field(Box::new([Vec2::new(0.0, 0.0)])),
         positive(0.25),
         positive(2.0),
     )
@@ -368,7 +372,7 @@ fn a_radius_outside_the_value_domain_refuses() {
     let centre: Box<[Vec2]> = Box::new([Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)]);
 
     let overflowed = BandProjection::<NodeRowId>::freeze(
-        cloud(centre.clone()),
+        boxed_field(centre.clone()),
         positive(f32::MAX),
         positive(f32::MAX),
     );
@@ -380,7 +384,7 @@ fn a_radius_outside_the_value_domain_refuses() {
     );
 
     let underflowed = BandProjection::<NodeRowId>::freeze(
-        cloud(centre),
+        boxed_field(centre),
         positive(2.0_f32.powi(-126)),
         positive(2.0_f32.powi(-126)),
     );
@@ -399,7 +403,7 @@ fn a_radius_outside_the_value_domain_refuses() {
 #[test]
 fn an_extent_past_the_finite_range_refuses() {
     let refused = BandProjection::<NodeRowId>::freeze(
-        cloud(Box::new([Vec2::new(f32::MAX, 0.0), Vec2::new(0.0, 0.0)])),
+        boxed_field(Box::new([Vec2::new(f32::MAX, 0.0), Vec2::new(0.0, 0.0)])),
         positive(1.0),
         positive(2.0_f32.powi(127)),
     );
@@ -418,7 +422,7 @@ fn an_extent_past_the_finite_range_refuses() {
 #[test]
 fn a_radius_below_the_margin_headroom_refuses() {
     let refused = BandProjection::<NodeRowId>::freeze(
-        cloud(Box::new([
+        boxed_field(Box::new([
             Vec2::new(2.0_f32.powi(20), 0.0),
             Vec2::new(0.0, 0.0),
         ])),
@@ -441,7 +445,7 @@ fn a_radius_below_the_margin_headroom_refuses() {
 #[test]
 fn the_margin_floor_binds_for_subnormal_radii() {
     let refused = BandProjection::<NodeRowId>::freeze(
-        cloud(Box::new([
+        boxed_field(Box::new([
             Vec2::new(2.0_f32.powi(-120), 0.0),
             Vec2::new(0.0, 0.0),
         ])),

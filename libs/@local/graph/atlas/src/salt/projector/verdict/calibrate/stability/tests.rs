@@ -38,7 +38,7 @@ fn quantile_matches_the_production_walk() {
 
     for numerator in 1..32_u32 {
         let level = f64::from(numerator) / 32.0;
-        let walked = weighted_quantile(population, 1.0, level);
+        let walked = weighted_quantile(population, d_non_negative!(1.0), level);
         assert_eq!(
             support.quantile(level).get().to_bits(),
             walked.get().to_bits(),
@@ -62,7 +62,7 @@ fn quantile_ignores_zero_weight_rows_exactly_as_the_production_walk_does() {
 
     for numerator in 1..32_u32 {
         let level = f64::from(numerator) / 32.0;
-        let walked = weighted_quantile(raw, 1.0, level);
+        let walked = weighted_quantile(raw, d_non_negative!(1.0), level);
         assert_eq!(
             support.quantile(level).get().to_bits(),
             walked.get().to_bits(),
@@ -137,7 +137,7 @@ fn thin_reviews_fail_the_legibility_floor() {
 #[test]
 fn healthy_balanced_pairs_pass_and_the_suite_can_show_it() {
     // Sixty-four balanced pairs at one point: ε₀ = √(ln40/128) ≈ 0.1698 clears the floor and
-    // the gap is zero everywhere, so the certificate passes - the instrument provably can.
+    // the gap is zero everywhere, so the certificate passes - the check provably can.
     let certificate = evaluate(
         balanced(&[1.0; 64]),
         [d_non_negative!(64.0)],

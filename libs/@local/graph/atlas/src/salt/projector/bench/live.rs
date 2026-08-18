@@ -31,7 +31,10 @@ use super::{ARCHITECTURE, BackendKind};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{AffinityCurve, MatrixN, NonNegative, Positive, UnitFraction, Vec2, non_negative},
+    math::{
+        AffinityCurve, FinitePointField, MatrixN, NonNegative, Positive, UnitFraction, Vec2,
+        non_negative,
+    },
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -135,8 +138,10 @@ impl Fixture {
         })
         .take(rows)
         .collect();
-        let field = SpatialField::new(IdSlice::from_raw(&coordinates))
-            .expect("the synthetic frame is finite");
+        let field = SpatialField::new(
+            FinitePointField::new(IdSlice::from_raw(&coordinates))
+                .expect("the synthetic frame is finite"),
+        );
         let mined = HardNegativeMiner::new(
             graph.view(),
             indexes.protection.view(),

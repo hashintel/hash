@@ -16,8 +16,9 @@
 //!
 //! ```ignore
 //! let points = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0), Vec2::new(0.0, 2.0)];
-//! let frame = IdSlice::<RowId, _>::from_raw(&points);
-//! let tree = KdTree::build(frame).expect("the frame is finite");
+//! let frame = FinitePointField::new(IdSlice::<RowId, _>::from_raw(&points))
+//!     .expect("the example points are finite");
+//! let tree = KdTree::build(frame);
 //!
 //! let neighbours = tree.nearest(RowId::new(0), NonZero::new(2).expect("two is nonzero"));
 //! assert_eq!(neighbours[0].row, RowId::new(1));
@@ -72,11 +73,7 @@ use kiddo::{
     stem_strategies::eytzinger::Eytzinger,
 };
 
-use super::{
-    NonFinitePoint,
-    scalar::DNonNegative,
-    vec2::{Vec2, Vec2x4},
-};
+use super::{FinitePointField, scalar::DNonNegative, vec2::Vec2};
 
 #[cfg(test)]
 mod tests;
@@ -184,7 +181,7 @@ type Engine<I> = kiddo::kd_tree::KdTree<
 /// exactness, determinism, and complexity guarantees.
 pub(crate) struct KdTree<'frame, I> {
     /// The borrowed frame, indexed by row.
-    points: &'frame IdSlice<I, Vec2>,
+    points: &'frame FinitePointField<I>,
     /// The engine over the frame's widened coordinates.
     engine: Engine<I>,
 }
@@ -195,31 +192,14 @@ where
 {
     /// Builds the index over `points`.
     ///
-    /// The slice becomes the frame, so row `r` is `points[r]` and readouts name these rows.
-    ///
-    /// # Errors
-    ///
-    /// [`NonFinitePoint`] naming the first row whose point has a NaN or infinite component.
+    /// The field becomes the frame, so row `r` is `points[r]` and readouts name these rows.
+    /// Finiteness arrives proven with the field, so construction cannot refuse.
     ///
     /// # Panics
     ///
     /// This panics when the frame holds more rows than `I` addresses, which the frame's
     /// constructor is contracted to prevent.
-    pub(crate) fn build(points: &'frame IdSlice<I, Vec2>) -> Result<Self, NonFinitePoint<I>> {
-        let (prefix, aligned, suffix) = Vec2x4::from_slice(points.as_raw());
-        if !prefix.iter().all(|point| point.is_finite())
-            || !suffix.iter().all(|point| point.is_finite())
-            || !aligned.iter().all(|points| points.is_finite())
-        {
-            let Some(position) = points.iter().position(|point| !point.is_finite()) else {
-                unreachable!();
-            };
-
-            return Err(NonFinitePoint {
-                id: I::from_usize(position),
-            });
-        }
-
+    pub(crate) fn build(points: &'frame FinitePointField<I>) -> Self {
         let engine = Engine::new_from_source_parallel(
             points.as_raw(),
             |point, axis| point[axis],
@@ -230,7 +210,7 @@ where
              construction error is reachable",
         );
 
-        Ok(Self { points, engine })
+        Self { points, engine }
     }
 
     /// Returns the `k` nearest other rows of `row`, allocating the readout in `alloc`.

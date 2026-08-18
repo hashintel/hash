@@ -66,7 +66,7 @@ pub(crate) use self::{
     record::{ClipJacobian, EnforcementRecord},
     refusal::BandRefusal,
 };
-use crate::math::{DNonNegative, DPositive, DVec2, FinitePointCloud, Positive, Vec2, d_positive};
+use crate::math::{DNonNegative, DPositive, DVec2, FinitePointField, Positive, Vec2, d_positive};
 
 /// Rows per parallel chunk in the enforcement pass.
 ///
@@ -105,7 +105,7 @@ const MARGIN_HEADROOM: DPositive = d_positive!(1024.0);
 #[derive(Debug, PartialEq)]
 pub(crate) struct BandProjection<N> {
     /// The boundary snapshot's zero field, each row's projection centre.
-    centre: Box<FinitePointCloud<N>>,
+    centre: Box<FinitePointField<N>>,
     /// `β`: the stage's declared dimensionless radius.
     dimensionless_radius: Positive,
     /// `s_ref(Z_K)`: the boundary field's RMS spread, the frame's unit carrier and the
@@ -138,7 +138,7 @@ where
     /// radius outside the positive f32 domain, an extent past the finite f32 range, or a radius
     /// below the landing margin's headroom.
     pub(crate) fn freeze(
-        centre: Box<FinitePointCloud<N>>,
+        centre: Box<FinitePointField<N>>,
         dimensionless_radius: Positive,
         reference_spread: Positive,
     ) -> Result<Self, BandRefusal> {
@@ -213,10 +213,10 @@ where
     /// The landing sits one narrowing allowance inside the radius, so a clipped row re-reads
     /// strictly inside and the projection is idempotent in the stored precision.
     #[inline]
-    fn landing_radius(&self) -> DPositive {
+    const fn landing_radius(&self) -> DPositive {
         // Positive with no check: the freeze's headroom keeps the margin at or below a
         // 1024th of the radius, so the landing keeps at least 1023/1024 of it.
-        DPositive::new_unchecked(self.radius_wide().get() - self.margin.get())
+        DPositive::new_unchecked(self.radius_wide() - self.margin)
     }
 
     /// Opens the run's enforcement record at the boundary step.
@@ -243,7 +243,7 @@ where
     /// run.
     pub(crate) fn apply(
         &self,
-        field: &mut FinitePointCloud<N>,
+        field: &mut FinitePointField<N>,
         step: usize,
         record: &mut EnforcementRecord<N>,
     ) {
@@ -267,7 +267,7 @@ where
         );
 
         // The typed field is the pass's construction precondition: its unchecked squares
-        // consume the cloud's finiteness proof.
+        // consume the field's finiteness proof.
         let pass = EnforcementPass::new(self);
         let partials: Vec<_> = field
             .as_raw_mut_unchecked()
@@ -290,14 +290,14 @@ where
     /// Borrows the projection centre, the boundary snapshot's zero field.
     #[inline]
     #[must_use]
-    pub(crate) fn centre(&self) -> &FinitePointCloud<N> {
+    pub(crate) fn centre(&self) -> &FinitePointField<N> {
         &self.centre
     }
 
     /// Consumes the projection into its centre, without a copy, for the evidence record that
     /// outlives the constraint.
     #[must_use]
-    pub(crate) fn into_centre(self) -> Box<FinitePointCloud<N>> {
+    pub(crate) fn into_centre(self) -> Box<FinitePointField<N>> {
         self.centre
     }
 
@@ -356,6 +356,7 @@ where
 
         let centre = self.centre[row];
         let square = DVec2::from(value).distance_squared(DVec2::from(centre));
+
         // Non-negative with no check: the caller certified the value finite, and a squared
         // distance of finite points cannot go negative.
         let square = DNonNegative::new_unchecked(square);
@@ -383,7 +384,7 @@ where
     #[inline]
     #[must_use]
     pub(crate) fn saturation_floor_squared(&self) -> f64 {
-        let floor = self.landing_radius().get() - self.margin.get();
+        let floor = (self.landing_radius() - self.margin).get();
 
         floor * floor
     }

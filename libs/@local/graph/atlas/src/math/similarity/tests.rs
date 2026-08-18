@@ -5,14 +5,27 @@
 
 use core::num::NonZero;
 
+use hashql_core::id::IdSlice;
 use proptest::{prop_assert, prop_assume, property_test, strategy::Strategy};
 
 use super::Similarity;
 use crate::math::{
-    NonNegative, Rotation, Vec2, Vec2x4T, non_negative,
+    DNonNegative, FinitePointField, NonNegative, Rotation, Vec2, Vec2x4T, non_negative,
     tests::{POINTS, assert_vec2_close},
     transform::Transform,
 };
+
+hashql_core::id::newtype! {
+    /// The fit tests' row domain.
+    #[id(const)]
+    struct PairId(u32)
+}
+
+/// Proves a fixture's points finite over the tests' row domain.
+#[track_caller]
+fn field(points: &[Vec2]) -> &FinitePointField<PairId> {
+    FinitePointField::new(IdSlice::from_raw(points)).expect("the fixture points are finite")
+}
 
 /// A similarity mixing all three components with inexact rotation angles.
 fn mixed_similarity() -> Similarity {
@@ -501,7 +514,7 @@ fn fit_uniform_matches_fit_with_unit_weights() {
 
     let weighted = Similarity::fit(&CERT_POINTS, &target, &[1.0; 12])
         .expect("twelve spread pairs determine the transform");
-    let uniform = Similarity::fit_uniform(&CERT_POINTS, &target)
+    let uniform = Similarity::fit_uniform(field(&CERT_POINTS), field(&target))
         .expect("the uniform fit shares the weighted contract");
 
     // The uniform pass accumulates the same moments without the weight
@@ -544,9 +557,9 @@ fn fit_uniform_par_matches_fit_uniform_on_large_input() {
         target.push(known.apply(point) + noise);
     }
 
-    let serial = Similarity::fit_uniform(&source, &target)
+    let serial = Similarity::fit_uniform(field(&source), field(&target))
         .expect("ten thousand spread pairs determine the transform");
-    let parallel = Similarity::fit_uniform_par(&source, &target)
+    let parallel = Similarity::fit_uniform_par(field(&source), field(&target))
         .expect("the parallel fit shares the serial contract");
 
     for (actual, reference) in parallel.to_array().into_iter().zip(serial.to_array()) {
@@ -561,11 +574,9 @@ fn rms_residual_reduces_hand_computed_distances() {
     let source = [Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)];
     let target = [Vec2::new(0.0, 3.0), Vec2::new(14.0, 0.0)];
 
-    let residual = Similarity::IDENTITY
-        .rms_residual(&source, &target)
-        .expect("the pairs are finite");
+    let residual = Similarity::IDENTITY.rms_residual(field(&source), field(&target));
 
-    assert!((residual - 12.5_f64.sqrt()).abs() < 1e-12);
+    assert!((residual.get() - 12.5_f64.sqrt()).abs() < 1e-12);
 }
 
 #[test]
@@ -578,13 +589,11 @@ fn rms_residual_vanishes_on_an_exact_image() {
     .expect("scale 2.0 is normal and positive");
     let target = FIT_POINTS.map(|point| similarity.apply(point));
 
-    let residual = similarity
-        .rms_residual(&FIT_POINTS, &target)
-        .expect("the pairs are finite");
+    let residual = similarity.rms_residual(field(&FIT_POINTS), field(&target));
 
     // The `f32` application produced the targets while the residual applies widened `f64`
     // coefficients, so the mismatch is the `f32` rounding of the application, not zero.
-    assert!(residual < 1e-5, "exact image residual was {residual}");
+    assert!(residual.get() < 1e-5, "exact image residual was {residual}");
 }
 
 #[test]
@@ -595,17 +604,13 @@ fn rms_residual_is_the_fit_objective_at_the_minimizer() {
 
     // The unweighted residual of a nearby similarity must not fall below the unweighted optimum's,
     // so this certifies against the uniform fit.
-    let uniform = Similarity::fit_uniform(&CERT_POINTS, &target)
+    let uniform = Similarity::fit_uniform(field(&CERT_POINTS), field(&target))
         .expect("twelve spread pairs determine the transform");
-    let best = uniform
-        .rms_residual(&CERT_POINTS, &target)
-        .expect("the pairs are finite");
-    let off = fitted
-        .rms_residual(&CERT_POINTS, &target)
-        .expect("the pairs are finite");
+    let best = uniform.rms_residual(field(&CERT_POINTS), field(&target));
+    let off = fitted.rms_residual(field(&CERT_POINTS), field(&target));
 
     assert!(
-        best <= off + 1e-9,
+        best.get() <= off.get() + 1e-9,
         "uniform optimum {best} must not exceed the weighted fit's residual {off}"
     );
 }
@@ -637,33 +642,40 @@ fn rms_residual_par_matches_rms_residual() {
         target.push(Vec2::new(pseudo(), pseudo()));
     }
 
-    let serial = similarity
-        .rms_residual(&source, &target)
-        .expect("the pairs are finite");
-    let parallel = similarity
-        .rms_residual_par(&source, &target)
-        .expect("the parallel residual shares the serial contract");
+    let serial = similarity.rms_residual(field(&source), field(&target));
+    let parallel = similarity.rms_residual_par(field(&source), field(&target));
 
     // Chunked summation rounds differently from the serial fold.
-    assert!((serial - parallel).abs() <= serial * 1e-12);
+    assert!((serial.get() - parallel.get()).abs() <= serial.get() * 1e-12);
 }
 
 #[test]
-fn rms_residual_rejects_invalid_pairings() {
+#[should_panic(expected = "paired fields must cover the same rows")]
+fn rms_residual_panics_on_mismatched_lengths() {
     let points = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
-    let similarity = Similarity::IDENTITY;
 
-    // Mismatched lengths and empty input.
-    assert!(similarity.rms_residual(&points, &points[..1]).is_none());
-    assert!(similarity.rms_residual(&[], &[]).is_none());
-    assert!(similarity.rms_residual_par(&points, &points[..1]).is_none());
-    assert!(similarity.rms_residual_par(&[], &[]).is_none());
+    let _: DNonNegative = Similarity::IDENTITY.rms_residual(field(&points), field(&points[..1]));
+}
 
-    // A non-finite coordinate propagates into the sum, and the finishing step refuses it.
-    let nan = [Vec2::new(f32::NAN, 0.0), Vec2::new(1.0, 0.0)];
-    assert!(similarity.rms_residual(&nan, &points).is_none());
-    assert!(similarity.rms_residual(&points, &nan).is_none());
-    assert!(similarity.rms_residual_par(&nan, &points).is_none());
+#[test]
+#[should_panic(expected = "an RMS residual needs at least one pair")]
+fn rms_residual_panics_on_empty_fields() {
+    let _: DNonNegative = Similarity::IDENTITY.rms_residual(field(&[]), field(&[]));
+}
+
+#[test]
+#[should_panic(expected = "paired fields must cover the same rows")]
+fn rms_residual_par_panics_on_mismatched_lengths() {
+    let points = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
+
+    let _: DNonNegative =
+        Similarity::IDENTITY.rms_residual_par(field(&points), field(&points[..1]));
+}
+
+#[test]
+#[should_panic(expected = "an RMS residual needs at least one pair")]
+fn rms_residual_par_panics_on_empty_fields() {
+    let _: DNonNegative = Similarity::IDENTITY.rms_residual_par(field(&[]), field(&[]));
 }
 
 /// Asserts both fit entry points reject the pairing.
@@ -700,8 +712,10 @@ fn fit_rejects_degenerate_inputs() {
 
     // Coincident source points carry no scale.
     assert_fit_rejects(&[Vec2::new(1.0, 1.0); 3], &target, &weights);
-    assert!(Similarity::fit_uniform(&[Vec2::new(1.0, 1.0); 3], &target).is_none());
-    assert!(Similarity::fit_uniform_par(&[Vec2::new(1.0, 1.0); 3], &target).is_none());
+    assert!(Similarity::fit_uniform(field(&[Vec2::new(1.0, 1.0); 3]), field(&target)).is_none());
+    assert!(
+        Similarity::fit_uniform_par(field(&[Vec2::new(1.0, 1.0); 3]), field(&target)).is_none()
+    );
 
     // Non-finite coordinates on either side.
     let mut nan_source = source;
@@ -739,8 +753,8 @@ fn fit_recovers_exact_images_at_every_accepted_length() {
         for fitted in [
             Similarity::fit(source, target, weights),
             Similarity::fit_par(source, target, weights),
-            Similarity::fit_uniform(source, target),
-            Similarity::fit_uniform_par(source, target),
+            Similarity::fit_uniform(field(source), field(target)),
+            Similarity::fit_uniform_par(field(source), field(target)),
         ] {
             let fitted = fitted.expect("distinct exact pairs determine the similarity");
             for (&actual, &expected) in fitted.to_array().iter().zip(&known.to_array()) {
@@ -757,10 +771,10 @@ fn fit_uniform_rejects_mismatched_lengths() {
 
     // Both truncation directions: a rejection that degrades into a zip would silently fit the
     // shorter prefix of these exact images and return `Some`.
-    assert!(Similarity::fit_uniform(&FIT_POINTS[..5], &target).is_none());
-    assert!(Similarity::fit_uniform(&FIT_POINTS, &target[..5]).is_none());
-    assert!(Similarity::fit_uniform_par(&FIT_POINTS[..5], &target).is_none());
-    assert!(Similarity::fit_uniform_par(&FIT_POINTS, &target[..5]).is_none());
+    assert!(Similarity::fit_uniform(field(&FIT_POINTS[..5]), field(&target)).is_none());
+    assert!(Similarity::fit_uniform(field(&FIT_POINTS), field(&target[..5])).is_none());
+    assert!(Similarity::fit_uniform_par(field(&FIT_POINTS[..5]), field(&target)).is_none());
+    assert!(Similarity::fit_uniform_par(field(&FIT_POINTS), field(&target[..5])).is_none());
 }
 
 #[test]

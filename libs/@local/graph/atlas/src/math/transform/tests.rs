@@ -4,13 +4,26 @@
               constants are exact contracts"
 )]
 
+use hashql_core::id::IdSlice;
 use proptest::{property_test, strategy::Strategy};
 
 use super::Transform;
 use crate::math::{
-    Rotation, Similarity, Translation, Vec2, Vec2x4T,
+    FinitePointField, Rotation, Similarity, Translation, Vec2, Vec2x4T,
     tests::{POINTS, assert_vec2_close},
 };
+
+hashql_core::id::newtype! {
+    /// The fit-comparison tests' row domain.
+    #[id(const)]
+    struct PairId(u32)
+}
+
+/// Proves a fixture's points finite over the tests' row domain.
+#[track_caller]
+fn field(points: &[Vec2]) -> &FinitePointField<PairId> {
+    FinitePointField::new(IdSlice::from_raw(points)).expect("the fixture points are finite")
+}
 
 #[test]
 fn identity_maps_vectors_to_themselves() {
@@ -250,13 +263,12 @@ fn fit_recovers_an_exact_anisotropic_map() {
     ];
     let target = source.map(|point| expected.apply(point));
 
-    let fitted = Transform::fit_uniform(&source, &target).expect("the exact fixture fits");
+    let fitted =
+        Transform::fit_uniform(field(&source), field(&target)).expect("the exact fixture fits");
 
     assert_eq!(fitted, expected);
     assert_eq!(
-        fitted
-            .rms_residual(&source, &target)
-            .expect("the fixture is finite"),
+        fitted.rms_residual(field(&source), field(&target)).get(),
         0.0
     );
 }
@@ -279,15 +291,14 @@ fn fit_recovers_an_exact_similarity() {
         Vec2::new(3.0, -2.0),
     ];
 
-    let fitted = Transform::fit_uniform(&source, &target).expect("the exact fixture fits");
-    let similarity =
-        Similarity::fit_uniform(&source, &target).expect("the similar fixture fits exactly");
+    let fitted =
+        Transform::fit_uniform(field(&source), field(&target)).expect("the exact fixture fits");
+    let similarity = Similarity::fit_uniform(field(&source), field(&target))
+        .expect("the similar fixture fits exactly");
 
     assert_eq!(fitted, Transform::from(similarity));
     assert_eq!(
-        fitted
-            .rms_residual(&source, &target)
-            .expect("the fixture is finite"),
+        fitted.rms_residual(field(&source), field(&target)).get(),
         0.0
     );
 }
@@ -310,21 +321,20 @@ fn fit_absorbs_the_deformation_a_similarity_cannot() {
         Vec2::new(0.0, -0.5),
     ];
 
-    let affine = Transform::fit_uniform(&source, &target).expect("the exact fixture fits");
+    let affine =
+        Transform::fit_uniform(field(&source), field(&target)).expect("the exact fixture fits");
     assert_eq!(
-        affine
-            .rms_residual(&source, &target)
-            .expect("the fixture is finite"),
+        affine.rms_residual(field(&source), field(&target)).get(),
         0.0
     );
 
-    let similarity =
-        Similarity::fit_uniform(&source, &target).expect("the square has positive variance");
+    let similarity = Similarity::fit_uniform(field(&source), field(&target))
+        .expect("the square has positive variance");
     assert_eq!(similarity.scale().get(), 1.25);
     assert_eq!(
         similarity
-            .rms_residual(&source, &target)
-            .expect("the fixture is finite"),
+            .rms_residual(field(&source), field(&target))
+            .get(),
         0.75
     );
 }
@@ -340,25 +350,22 @@ fn fit_refuses_degenerate_sources() {
         Vec2::new(2.0, 2.0),
         Vec2::new(3.0, 3.0),
     ];
-    assert_eq!(Transform::fit_uniform(&collinear, &collinear), None);
+    assert_eq!(
+        Transform::fit_uniform(field(&collinear), field(&collinear)),
+        None
+    );
 
     let square = [
         Vec2::new(1.0, 0.0),
         Vec2::new(-1.0, 0.0),
         Vec2::new(0.0, 1.0),
     ];
-    assert_eq!(Transform::fit_uniform(&square[..2], &square[..2]), None);
-    assert_eq!(Transform::fit_uniform(&square, &square[..2]), None);
-
-    let poisoned = [
-        Vec2::new(1.0, 0.0),
-        Vec2::new(-1.0, 0.0),
-        Vec2::new(0.0, f32::NAN),
-    ];
-    assert_eq!(Transform::fit_uniform(&square, &poisoned), None);
     assert_eq!(
-        Transform::IDENTITY.rms_residual(&square, &poisoned),
-        None,
-        "a non-finite residual sum is refused at the finish"
+        Transform::fit_uniform(field(&square[..2]), field(&square[..2])),
+        None
+    );
+    assert_eq!(
+        Transform::fit_uniform(field(&square), field(&square[..2])),
+        None
     );
 }

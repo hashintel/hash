@@ -168,8 +168,12 @@ pub(crate) async fn probe_fold(corpus: ProbeCorpus<'_>, settings: ProbeSettings)
     println!(
         "accepted objective {:.15e} zeta norm {:e} scaled gradient norm {:e}",
         run.accepted.objective,
-        run.accepted.zeta.norm_squared().sqrt(),
-        run.accepted.scaled_gradient.norm_squared().sqrt(),
+        run.accepted.zeta.norm_squared().sqrt().into_raw(),
+        run.accepted
+            .scaled_gradient
+            .norm_squared()
+            .sqrt()
+            .into_raw(),
     );
     println!(
         "control: radius {:e} rejections {} outers {}",
@@ -323,7 +327,7 @@ fn replay_to_outer(
         let actual = accepted.objective - trial_objective;
         let ratio = actual / predicted;
 
-        if ratio < config.eta_accept.get() {
+        if ratio < config.eta_accept {
             control.counters.reject_finite_candidate();
             rejected(&mut control, config)
                 .expect("the production solve continued past this rejection");
@@ -342,7 +346,7 @@ fn replay_to_outer(
         control.counters.accept_candidate();
         control.consecutive_rejections = 0;
 
-        if inner.is_boundary() && ratio >= config.eta_expand.get() {
+        if inner.is_boundary() && ratio >= config.eta_expand {
             control.radius = (config.expansion_factor * control.radius).min(config.radius_maximum);
         }
     }

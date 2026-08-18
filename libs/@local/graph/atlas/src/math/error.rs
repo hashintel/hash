@@ -1,11 +1,10 @@
 //! The refusal a finiteness scan hands back, shared by every consumer that proves a point set.
 //!
-//! [`FinitePointCloud::new`] and [`KdTree::build`] both scan a point slice and refuse the first
-//! offender, and one error type keeps their refusals interchangeable at every boundary that
-//! propagates either.
+//! [`FinitePointField::new`] owns the scan and refuses the first offender; every boundary that
+//! propagates a refusal names the same error type, so refusals stay interchangeable wherever a
+//! point set is proven.
 //!
-//! [`FinitePointCloud::new`]: super::FinitePointCloud::new
-//! [`KdTree::build`]: super::KdTree::build
+//! [`FinitePointField::new`]: super::FinitePointField::new
 
 use core::{error::Error, fmt};
 

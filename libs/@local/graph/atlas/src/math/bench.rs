@@ -17,8 +17,8 @@ use rayon::{
 };
 
 use super::{
-    AffinityCurve, Bounds2, DVecN, FinitePointCloud, Positive, Similarity, Vec2, Vec2x4T, VecN,
-    cloud::POINT_CHUNK, transform::Transform, vec2::Vec2x4,
+    AffinityCurve, Bounds2, DVecN, FinitePointField, Positive, Similarity, Vec2, Vec2x4T, VecN,
+    field::POINT_CHUNK, transform::Transform, vec2::Vec2x4,
 };
 
 /// A dot-product operand pair, built once ahead of the timed region.
@@ -419,7 +419,7 @@ pub fn finite_field(rows: usize) -> FiniteField {
     FiniteField { points }
 }
 
-/// The finiteness scan, as the cloud's constructor runs it: serial, four points per batch.
+/// The finiteness scan, as the field's constructor runs it: serial, four points per batch.
 #[expect(
     clippy::inline_always,
     reason = "the benchmark must measure the kernel as production calls it: transparently \
@@ -428,7 +428,7 @@ pub fn finite_field(rows: usize) -> FiniteField {
 #[inline(always)]
 #[must_use]
 pub fn finite_scan_serial(field: &FiniteField) -> bool {
-    FinitePointCloud::new(IdSlice::<BenchRowId, _>::from_raw(black_box(&field.points))).is_ok()
+    FinitePointField::new(IdSlice::<BenchRowId, _>::from_raw(black_box(&field.points))).is_ok()
 }
 
 /// Rayon's per-point search for the first non-finite point.

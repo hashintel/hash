@@ -5,7 +5,7 @@ use core::{
     error::Error,
     fmt,
     hash::{Hash, Hasher},
-    ops::{Mul, MulAssign},
+    ops::{Mul, MulAssign, Sub},
 };
 
 use super::{OpenUnitFraction, PositiveUnitFraction, raw_interop, unsafe_impl_try_from_bytes};
@@ -456,6 +456,19 @@ const impl From<PositiveUnitFraction> for UnitFraction {
         // No normalization: the half-open domain contains no -0.0, so the value is already
         // canonical.
         Self(value.get())
+    }
+}
+
+const impl Sub<UnitFraction> for f64 {
+    type Output = f64;
+
+    /// Subtracts a fraction from a raw `f64`.
+    ///
+    /// The raw operand is arbitrary, so the difference can leave any bounded domain and returns
+    /// a raw float.
+    #[inline]
+    fn sub(self, rhs: UnitFraction) -> f64 {
+        self - rhs.0
     }
 }
 

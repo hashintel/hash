@@ -48,7 +48,7 @@ use super::{
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS},
     identity::NodeRowId,
-    math::{AlignedVecN, BoxedVecN, NonNegative, Vec2},
+    math::{AlignedVecN, BoxedVecN, FinitePointField, NonNegative},
 };
 
 /// One ranked row under the probe's total order.
@@ -150,7 +150,7 @@ pub(super) struct CorpusPass<'pass, N> {
     /// The representation matrix, in row order.
     pub representations: &'pass IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     /// The coordinate frame, in row order.
-    pub coordinates: &'pass IdSlice<N, Vec2>,
+    pub coordinates: &'pass FinitePointField<N>,
     /// The anchor rows every scan excludes.
     pub anchor_mask: &'pass DenseBitSet<N>,
     /// Nearest rows kept per space: the largest neighbourhood size.
@@ -353,7 +353,7 @@ pub(super) struct SampledPass<'pass> {
     /// The representation matrix, in row order.
     pub representations: &'pass IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     /// The coordinate frame, in row order.
-    pub coordinates: &'pass IdSlice<NodeRowId, Vec2>,
+    pub coordinates: &'pass FinitePointField<NodeRowId>,
     /// The anchors' canonical embeddings, in anchor order.
     pub anchor_canonical: &'pass [BoxedVecN<CANONICAL_DIMENSIONS>],
     /// The comparison rows' canonical embeddings, in comparison order.

@@ -308,7 +308,7 @@ where
         device: &B::Device,
         alignment: NonZero<usize>,
     ) -> ProjectorInput<B> {
-        materialize_input(self.rows.as_raw(), self.eta, columns, device, alignment)
+        materialize_input(&self.rows, self.eta, columns, device, alignment)
     }
 }
 
@@ -323,14 +323,15 @@ where
 /// This panics when the representation and role columns disagree in length or a row lies outside
 /// them. The columns and the draws come from one generation, so a mismatch is a wiring defect.
 #[must_use]
-pub(crate) fn materialize_input<N, B: Backend>(
-    rows: &[N],
+pub(crate) fn materialize_input<R, N, B: Backend>(
+    rows: &IdSlice<R, N>,
     eta: NonNegative,
     columns: NodeColumns<'_, N>,
     device: &B::Device,
     alignment: NonZero<usize>,
 ) -> ProjectorInput<B>
 where
+    R: Id,
     N: Id,
 {
     assert_eq!(

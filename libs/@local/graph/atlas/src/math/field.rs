@@ -1,6 +1,6 @@
 //! A point slice proven finite at construction, and the statistics defined over it.
 //!
-//! A consumer that needs a finite field takes the cloud instead of scanning the slice itself,
+//! A consumer that needs a finite field takes the field instead of scanning the slice itself,
 //! so the finiteness proof lives in one constructor and the consuming arithmetic restates
 //! nothing. The statistics accumulate in double precision over fixed chunk boundaries with
 //! ordered folds, so every reading is bit-deterministic under any thread schedule and a caller
@@ -12,7 +12,7 @@ use core::{
     simd::{Simd, num::SimdFloat as _},
 };
 
-use hashql_core::id::{Id, IdSlice};
+use hashql_core::id::{Id, IdSlice, IdVec};
 use rayon::iter::ParallelIterator as _;
 
 use super::{
@@ -95,14 +95,15 @@ fn chunk_squared_deviations(points: &[Vec2], centre: DVec2) -> f64 {
 /// A view of a point slice whose every coordinate is finite, proven at construction.
 ///
 /// The constructor owns the finiteness scan, four points at a time on SIMD lanes, and a
-/// consumer holding a cloud divides, squares, and folds without re-checking. Reads flow
-/// through the slice's own API, and the one write path is
-/// [`as_raw_mut_unchecked`](Self::as_raw_mut_unchecked), where the caller keeps the proof.
+/// consumer holding a field divides, squares, and folds without re-checking. Reads flow
+/// through the slice's own API, and every write path carries the `_unchecked` suffix -
+/// [`as_raw_mut_unchecked`](Self::as_raw_mut_unchecked) and its siblings - where the caller
+/// keeps the proof.
 #[derive(Debug, PartialEq, zerocopy::IntoBytes, zerocopy::Immutable, zerocopy::KnownLayout)]
 #[repr(transparent)]
-pub(crate) struct FinitePointCloud<I>(IdSlice<I, Vec2>);
+pub(crate) struct FinitePointField<I>(IdSlice<I, Vec2>);
 
-impl<I> FinitePointCloud<I>
+impl<I> FinitePointField<I>
 where
     I: Id,
 {
@@ -138,6 +139,26 @@ where
         // SAFETY: `Self` is `repr(transparent)` over `IdSlice<I, Vec2>`, so the reference
         // reinterprets in place at the same layout, and the borrow keeps the input's lifetime.
         let this = unsafe { &*((&raw const *points) as *const Self) };
+        Ok(this)
+    }
+
+    /// Validates every point finite and wraps the owned slice, without a copy.
+    ///
+    /// The boxed form of [`new`](Self::new).
+    ///
+    /// # Errors
+    ///
+    /// Returns the smallest index whose point has a NaN or infinite component.
+    pub(crate) fn new_boxed<A: Allocator>(
+        points: Box<IdSlice<I, Vec2>, A>,
+    ) -> Result<Box<Self, A>, NonFinitePoint<I>> {
+        let _this = Self::new(&points)?;
+
+        let (ptr, alloc) = Box::into_raw_with_allocator(points);
+
+        // SAFETY: `Self` is `repr(transparent)` over `IdSlice<I, Vec2>`, so the box pointer
+        // reinterprets in place at the same layout, in the same allocator.
+        let this = unsafe { Box::from_raw_in(ptr as *mut Self, alloc) };
         Ok(this)
     }
 
@@ -206,6 +227,32 @@ where
         &self.0
     }
 
+    /// Returns the underlying point slice mutably; every write must land a finite value.
+    ///
+    /// The mutable form of [`as_slice`](Self::as_slice): the caller keeps the proof, exactly
+    /// as through [`as_raw_mut_unchecked`](Self::as_raw_mut_unchecked).
+    #[inline]
+    #[must_use]
+    pub(crate) const fn as_slice_mut_unchecked(&mut self) -> &mut IdSlice<I, Vec2> {
+        &mut self.0
+    }
+
+    /// Gathers the named rows into an owned field over the gather's own row domain.
+    ///
+    /// Each entry of `rows` names a row of this field, and the returned field reads the
+    /// gathered points in `rows` order. A gather from a proven-finite field stays finite, so
+    /// the proof carries over with no scan.
+    ///
+    /// # Panics
+    ///
+    /// This panics when a row id lies outside this field's row domain.
+    #[must_use]
+    pub(crate) fn gather<A: Id>(&self, rows: &IdSlice<A, I>) -> Box<FinitePointField<A>> {
+        let gathered: IdVec<A, Vec2> = rows.iter().map(|&row| self.0[row]).collect();
+
+        FinitePointField::new_boxed_unchecked(gathered.into_boxed_slice())
+    }
+
     /// Returns the raw mutable rows, and the caller keeps every write finite.
     ///
     /// The write path for a kernel whose own vocabulary is raw rows. The caller holds the
@@ -256,7 +303,7 @@ where
     ///
     /// # Panics
     ///
-    /// This panics when the cloud is empty, because an empty set has no centroid.
+    /// This panics when the field is empty, because an empty set has no centroid.
     #[must_use]
     #[expect(
         clippy::cast_precision_loss,
@@ -293,7 +340,7 @@ where
     ///
     /// # Panics
     ///
-    /// This panics when the cloud is empty, because an empty set has no centroid to spread
+    /// This panics when the field is empty, because an empty set has no centroid to spread
     /// about.
     #[expect(
         clippy::cast_precision_loss,
@@ -305,9 +352,27 @@ where
 
         (self.squared_deviation_sum(self.centroid()) / count).sqrt()
     }
+
+    /// Views the rows below `bound` as a field.
+    ///
+    /// A prefix of a proven-finite field stays finite, so the proof carries over with no scan.
+    #[inline]
+    #[must_use]
+    pub(crate) fn prefix(&self, bound: I) -> &Self {
+        Self::new_unchecked(self.0.prefix(bound))
+    }
+
+    /// Views the rows below `bound` as a mutable field.
+    ///
+    /// The mutable form of [`prefix`](Self::prefix): writes through the view carry the same
+    /// keep-it-finite contract as [`as_raw_mut_unchecked`](Self::as_raw_mut_unchecked).
+    #[inline]
+    pub(crate) fn prefix_mut(&mut self, bound: I) -> &mut Self {
+        Self::new_unchecked_mut(self.0.prefix_mut(bound))
+    }
 }
 
-const impl<I> Deref for FinitePointCloud<I> {
+const impl<I> Deref for FinitePointField<I> {
     type Target = IdSlice<I, Vec2>;
 
     fn deref(&self) -> &Self::Target {
@@ -315,7 +380,7 @@ const impl<I> Deref for FinitePointCloud<I> {
     }
 }
 
-const impl<I> Index<I> for FinitePointCloud<I>
+const impl<I> Index<I> for FinitePointField<I>
 where
     IdSlice<I, Vec2>: [const] Index<I>,
 {
@@ -335,12 +400,18 @@ mod tests {
 
     use hashql_core::id::{Id as _, IdSlice};
 
-    use super::{DVec2, FinitePointCloud, NonFinitePoint, Vec2};
+    use super::{DVec2, FinitePointField, NonFinitePoint, Vec2};
 
     hashql_core::id::newtype! {
-        /// The test clouds' row domain.
+        /// The test fields' row domain.
         #[id(const)]
         struct RowId(u32)
+    }
+
+    hashql_core::id::newtype! {
+        /// The gather tests' target domain.
+        #[id(const)]
+        struct DrawId(u32)
     }
 
     /// Enough points to cover the prefix, batch, and suffix regions of the SIMD split.
@@ -353,16 +424,16 @@ mod tests {
     #[test]
     fn the_scan_admits_a_finite_set_and_names_the_smallest_offender() {
         let finite = points();
-        let cloud = FinitePointCloud::new(IdSlice::<RowId, _>::from_raw(&finite))
+        let field = FinitePointField::new(IdSlice::<RowId, _>::from_raw(&finite))
             .expect("every point is finite");
-        assert_eq!(cloud.len(), finite.len());
-        assert_eq!(cloud.as_slice().as_raw().as_ptr(), finite.as_ptr());
+        assert_eq!(field.len(), finite.len());
+        assert_eq!(field.as_slice().as_raw().as_ptr(), finite.as_ptr());
 
         for offender in 0..finite.len() {
             let mut poisoned = finite.clone();
             poisoned[offender] = Vec2::new(f32::NAN, 0.0);
             assert_eq!(
-                FinitePointCloud::new(IdSlice::<RowId, _>::from_raw(&poisoned)),
+                FinitePointField::new(IdSlice::<RowId, _>::from_raw(&poisoned)),
                 Err(NonFinitePoint {
                     id: RowId::from_usize(offender)
                 }),
@@ -371,12 +442,43 @@ mod tests {
 
             poisoned[offender] = Vec2::new(0.0, f32::INFINITY);
             assert_eq!(
-                FinitePointCloud::new(IdSlice::<RowId, _>::from_raw(&poisoned)),
+                FinitePointField::new(IdSlice::<RowId, _>::from_raw(&poisoned)),
                 Err(NonFinitePoint {
                     id: RowId::from_usize(offender)
                 }),
             );
         }
+    }
+
+    #[test]
+    fn gather_carries_the_points_in_draw_order() {
+        let points = points();
+        let field = FinitePointField::new(IdSlice::<RowId, _>::from_raw(&points))
+            .expect("every point is finite");
+
+        let rows = [
+            RowId::from_usize(4),
+            RowId::from_usize(0),
+            RowId::from_usize(10),
+        ];
+        let gathered = field.gather(IdSlice::<DrawId, _>::from_raw(&rows));
+
+        assert_eq!(gathered.len(), rows.len());
+        assert_eq!(
+            gathered.as_slice().as_raw(),
+            [points[4], points[0], points[10]]
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "index out of bounds")]
+    fn gather_panics_outside_the_row_domain() {
+        let points = points();
+        let field = FinitePointField::new(IdSlice::<RowId, _>::from_raw(&points))
+            .expect("every point is finite");
+
+        let rows = [RowId::from_usize(11)];
+        let _: Box<FinitePointField<DrawId>> = field.gather(IdSlice::<DrawId, _>::from_raw(&rows));
     }
 
     #[test]
@@ -388,11 +490,11 @@ mod tests {
             Vec2::new(0.0, -2.0),
             Vec2::new(4.0, 0.0),
         ];
-        let cloud = FinitePointCloud::new(IdSlice::<RowId, _>::from_raw(&square))
+        let field = FinitePointField::new(IdSlice::<RowId, _>::from_raw(&square))
             .expect("the square is finite");
 
-        assert_eq!(cloud.centroid(), DVec2::new(2.0, -1.0));
-        assert_eq!(cloud.squared_deviation_sum(DVec2::new(2.0, -1.0)), 20.0);
-        assert_eq!(cloud.rms_spread(), 5.0_f64.sqrt());
+        assert_eq!(field.centroid(), DVec2::new(2.0, -1.0));
+        assert_eq!(field.squared_deviation_sum(DVec2::new(2.0, -1.0)), 20.0);
+        assert_eq!(field.rms_spread(), 5.0_f64.sqrt());
     }
 }

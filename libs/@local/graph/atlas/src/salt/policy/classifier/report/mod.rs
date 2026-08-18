@@ -167,8 +167,15 @@ impl ClassifierReport {
             })
             .collect();
 
-        let coefficient_norms =
-            core::array::from_fn(|class| refit.classifier.coefficients[class].norm());
+        // Finite by the refit's own certification: `certify` evaluated the objective over these
+        // exact unscaled rows and refuses a non-finite value by name. The objective carries
+        // 0.5·λ·‖A‖² with λ positive by type, squares cannot cancel, so a non-finite row norm
+        // cannot reach a converged refit.
+        let coefficient_norms = core::array::from_fn(|class| {
+            refit.classifier.coefficients[class]
+                .norm()
+                .finish_unchecked()
+        });
 
         Self {
             generation,

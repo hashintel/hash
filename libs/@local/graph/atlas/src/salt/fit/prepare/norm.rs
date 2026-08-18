@@ -171,7 +171,7 @@ pub(crate) fn spot_check(
         }
 
         let squared_norm = embeddings[row].norm_squared();
-        if (f64::from(squared_norm) - 1.0).abs() > options.tolerance.get() {
+        if (f64::from(squared_norm) - 1.0).abs() > options.tolerance {
             defects.push(RepresentationDefect::Norm {
                 row: id,
                 squared_norm,

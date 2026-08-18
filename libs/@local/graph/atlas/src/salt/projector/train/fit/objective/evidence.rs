@@ -8,7 +8,7 @@ use hashql_core::id::{Id, IdMatrix, IdSlice};
 
 use crate::{
     integrity::Sha256Digest,
-    math::{DNonNegative, Finite, FinitePointCloud, NonNegative},
+    math::{DNonNegative, Finite, FinitePointField, NonNegative},
     salt::{
         knn::construction::NeighbourSlot,
         projector::{
@@ -93,7 +93,7 @@ pub(crate) struct TargetEvidence<N> {
     /// The boundary field `Z_K`, in node-row order, finite by construction.
     ///
     /// The zero-condition coordinates every frozen reference was measured on.
-    pub boundary_field: Box<FinitePointCloud<N>>,
+    pub boundary_field: Box<FinitePointField<N>>,
     /// The frozen ruler's two tables.
     pub tables: RulerTables<N>,
     /// The unscaled estimand reading `L̂` of every post-boundary step, in step order.

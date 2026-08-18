@@ -20,13 +20,13 @@
 #[cfg(test)]
 mod tests;
 
-use core::{error::Error, fmt, num::NonZero};
+use core::{fmt, num::NonZero};
 
-use hashql_core::id::{Id, IdSlice};
+use hashql_core::id::Id;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use crate::{
-    math::{KdTree, NonFinitePoint, Positive, Vec2, kdtree::KdNeighbour},
+    math::{FinitePointField, KdTree, Positive, kdtree::KdNeighbour},
     runs::{Runs, RunsBuilder},
     salt::{
         relation::protection::{NodePair, ProtectionConfig, ProtectionView},
@@ -107,47 +107,12 @@ impl MinerOptions {
         )]
         let relative = rank as f32 / self.neighbours.get() as f32;
 
-        self.maximum_weight.get() * (1.0 - relative).powf(self.rank_exponent.get())
+        self.maximum_weight * (1.0 - relative).powf(self.rank_exponent.get())
     }
 
     /// Returns the per-row search size: quota times margin.
     const fn search_size(self) -> NonZero<usize> {
         self.neighbours.saturating_mul(self.search_margin)
-    }
-}
-
-/// Building a spatial field over a coordinate frame failed.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum SpatialFieldError<N> {
-    /// A coordinate is NaN or infinite: the projection diverged.
-    NonFinite(NonFinitePoint<N>),
-}
-
-impl<N> From<NonFinitePoint<N>> for SpatialFieldError<N> {
-    fn from(value: NonFinitePoint<N>) -> Self {
-        Self::NonFinite(value)
-    }
-}
-
-impl<N> fmt::Display for SpatialFieldError<N>
-where
-    N: Id,
-{
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NonFinite(error) => fmt::Display::fmt(error, fmt),
-        }
-    }
-}
-
-impl<N> Error for SpatialFieldError<N>
-where
-    N: Id,
-{
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::NonFinite(error) => Some(error),
-        }
     }
 }
 
@@ -172,14 +137,13 @@ where
 {
     /// Indexes one frame of projected coordinates, in row order.
     ///
-    /// # Errors
-    ///
-    /// Returns an error when a coordinate is not finite (a diverged projection must fail the tick,
-    /// not seed an index) or the row count exceeds the index's `u32` item encoding.
-    pub(crate) fn new(coordinates: &'frame IdSlice<N, Vec2>) -> Result<Self, SpatialFieldError<N>> {
-        let tree = KdTree::build(coordinates)?;
-
-        Ok(Self { tree })
+    /// A diverged projection never reaches the index: the frame arrives as a proven-finite
+    /// field from its readback boundary.
+    #[must_use]
+    pub(crate) fn new(coordinates: &'frame FinitePointField<N>) -> Self {
+        Self {
+            tree: KdTree::build(coordinates),
+        }
     }
 
     /// Returns the frame's row count.

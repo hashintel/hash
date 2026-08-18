@@ -57,6 +57,11 @@
 //! live on [`NonNegative`] as
 //! [`huber`](NonNegative::huber) and [`sigmoid`](NonNegative::sigmoid).
 //!
+//! Unclaimed folds: [`Derivation`] is a data-dependent fold's raw value bound for its
+//! validated [`Domain`](derivation::Domain), claiming nothing until
+//! [`finish`](Derivation::finish). [`Diverged`](derivation::Diverged) returns the raw evidence
+//! of a refused claim.
+//!
 //! # Precision policy
 //!
 //! `f32` is the working precision: coordinates, transforms, gradients, and distances take and
@@ -80,10 +85,11 @@ mod affinity;
 #[cfg(feature = "bench")]
 pub mod bench;
 mod bounds;
-mod cloud;
+mod derivation;
 mod dsquare;
 mod dvec2;
 mod dvecn;
+mod field;
 pub(crate) mod kdtree;
 pub(crate) mod kernel;
 mod matrixn;
@@ -110,11 +116,12 @@ pub(crate) use self::translation::Translation;
 pub(crate) use self::{
     affinity::AffinityCurve,
     bounds::Bounds2,
-    cloud::FinitePointCloud,
+    derivation::Derivation,
     dsquare::{DCholeskyError, DSquareMatrix},
     dvec2::{DVec2, DVec2x4T},
     dvecn::{AlignedDVecN, BoxedDVecN, DVecN},
     error::NonFinitePoint,
+    field::FinitePointField,
     kdtree::KdTree,
     matrixn::MatrixN,
     rotation::Rotation,

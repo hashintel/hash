@@ -219,6 +219,15 @@ const impl Div<f64> for DVec2 {
     }
 }
 
+const impl Div<DNonNegative> for DVec2 {
+    type Output = Self;
+
+    #[inline]
+    fn div(self, rhs: DNonNegative) -> Self {
+        self / rhs.get()
+    }
+}
+
 const impl Neg for DVec2 {
     type Output = Self;
 

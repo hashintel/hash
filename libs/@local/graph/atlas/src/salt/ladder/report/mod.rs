@@ -55,7 +55,7 @@ use core::num::NonZero;
 use std::fs::File;
 
 use burn::tensor::backend::Backend;
-use hashql_core::id::{Id as _, IdSlice};
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
@@ -67,7 +67,8 @@ use crate::{
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
-        AlignedVecN, DFinite, DNonNegative, DPositive, NonNegative, UnitFraction, Vec2, d_positive,
+        AlignedVecN, DFinite, DNonNegative, DPositive, FinitePointField, NonNegative, UnitFraction,
+        d_positive,
     },
     salt::{
         fit::{PlacementInner, PlacementOptions, ProjectorOptions, placement_device},
@@ -209,7 +210,7 @@ struct EdgeTerm {
     /// The target endpoint's corpus row.
     target: NodeRowId,
     /// The trainer's loss factor for this instance.
-    mass: f64,
+    mass: DNonNegative,
 }
 
 impl LadderReport {
@@ -252,6 +253,8 @@ impl LadderReport {
         let coordinates = coordinates
             .points()
             .expect("the coordinate column was sealed as f32 pairs");
+        let coordinates = FinitePointField::new(IdSlice::from_raw(coordinates))
+            .expect("the coordinate column is finite");
         assert_eq!(
             rows,
             coordinates.len(),
@@ -386,7 +389,7 @@ fn rebuild_frames<B: Backend<FloatElem = f32>>(
     evidence: &LadderEvidence,
     forward_rows: NonZero<usize>,
     device: &B::Device,
-) -> Vec<Vec<Vec2>> {
+) -> Vec<Box<FinitePointField<NodeRowId>>> {
     evidence
         .rungs
         .iter()
@@ -394,16 +397,21 @@ fn rebuild_frames<B: Backend<FloatElem = f32>>(
         .map(|(index, rung)| {
             let frame = refresh::forward(model, columns, rung.condition, forward_rows, device)
                 .unwrap_or_else(|error| panic!("rung {index} projects a finite frame: {error:?}"));
+
             tracing::info!(
                 index,
                 condition = %rung.condition,
                 "projected the rung"
             );
-            frame
+
+            let points: IdVec<_, _> = frame
                 .as_raw()
                 .iter()
                 .map(|&point| rung.alignment.apply(point))
-                .collect()
+                .collect();
+
+            FinitePointField::new_boxed(points.into_boxed_slice())
+                .unwrap_or_else(|error| panic!("rung {index} aligns to a finite frame: {error:?}"))
         })
         .collect()
 }
@@ -424,7 +432,7 @@ fn materialize_terms(attraction: &AttractionArchive<NodeRowId, EdgeRowId>) -> Ve
                         target: edge.target,
                         // The trainer's loss factor, computed identically (`relation_loss`).
                         mass: (edge.confidence.value() * edge.normalization)
-                            * f64::from(weights.strength),
+                            * weights.strength.widen(),
                     })
                     .collect(),
             }
@@ -436,18 +444,18 @@ fn materialize_terms(attraction: &AttractionArchive<NodeRowId, EdgeRowId>) -> Ve
 /// displacement of both row populations.
 fn read_rungs(
     evidence: &LadderEvidence,
-    aligned: &[Vec<Vec2>],
+    aligned: &[Box<FinitePointField<NodeRowId>>],
     group_terms: &[GroupTerms],
     participant: &[bool],
 ) -> Vec<RungReading> {
-    let baseline: &IdSlice<NodeRowId, Vec2> = IdSlice::from_raw(&aligned[0]);
+    let baseline = &*aligned[0];
 
     evidence
         .rungs
         .iter()
         .enumerate()
         .map(|(index, rung)| {
-            let frame: &IdSlice<NodeRowId, Vec2> = IdSlice::from_raw(&aligned[index]);
+            let frame = &*aligned[index];
 
             let group_contractions = group_terms
                 .iter()
@@ -489,7 +497,10 @@ fn read_rungs(
     clippy::cast_precision_loss,
     reason = "corpus row counts sit orders of magnitude below the f64 mantissa"
 )]
-fn certify(rebuilt: &[Vec2], published: &[Vec2]) -> Certificate {
+fn certify(
+    rebuilt: &FinitePointField<NodeRowId>,
+    published: &FinitePointField<NodeRowId>,
+) -> Certificate {
     assert_eq!(
         rebuilt.len(),
         published.len(),
@@ -499,7 +510,7 @@ fn certify(rebuilt: &[Vec2], published: &[Vec2]) -> Certificate {
     let mut max_absolute = 0.0_f64;
     let mut sum_absolute = 0.0_f64;
     let mut max_distance = 0.0_f64;
-    for (&ours, &theirs) in rebuilt.iter().zip(published) {
+    for (&ours, &theirs) in rebuilt.iter().zip(published.iter()) {
         let delta = ours - theirs;
         let dx = f64::from(delta.x()).abs();
         let dy = f64::from(delta.y()).abs();
@@ -539,41 +550,41 @@ fn certify(rebuilt: &[Vec2], published: &[Vec2]) -> Certificate {
     reason = "instance counts sit orders of magnitude below the f64 mantissa"
 )]
 fn contract(
-    baseline: &IdSlice<NodeRowId, Vec2>,
-    frame: &IdSlice<NodeRowId, Vec2>,
+    baseline: &FinitePointField<NodeRowId>,
+    frame: &FinitePointField<NodeRowId>,
     terms: impl IntoIterator<Item = impl core::borrow::Borrow<EdgeTerm>>,
 ) -> ContractionReading {
     let mut edge_count = 0_usize;
     let mut contracted = 0_usize;
-    let mut total_mass = 0.0_f64;
-    let mut weighted_sum = 0.0_f64;
-    let mut unweighted_sum = 0.0_f64;
+    let mut total_mass = DNonNegative::ZERO;
+    let mut weighted_sum = DFinite::ZERO;
+    let mut unweighted_sum = DFinite::ZERO;
 
     for term in terms {
         let term = *term.borrow();
         let before = (baseline[term.source] - baseline[term.target]).length();
         let after = (frame[term.source] - frame[term.target]).length();
-        let difference = f64::from(before) - f64::from(after);
+
+        let difference = before.widen() - after.widen();
 
         edge_count += 1;
         contracted += usize::from(after < before);
         total_mass += term.mass;
-        weighted_sum = term.mass.mul_add(difference, weighted_sum);
+        weighted_sum = DFinite::from(term.mass).mul_add(difference, weighted_sum);
         unweighted_sum += difference;
     }
 
     ContractionReading {
         edge_count,
-        total_mass: DNonNegative::new(total_mass)
-            .expect("a sum of non-negative engagement masses is non-negative and finite"),
+        total_mass,
         mass_weighted_mean: if total_mass > 0.0 {
-            DFinite::new(weighted_sum / total_mass)
+            DFinite::new(weighted_sum.get() / total_mass.get())
                 .expect("a mass-weighted mean of finite distance differences is finite")
         } else {
             DFinite::ZERO
         },
         unweighted_mean: if edge_count > 0 {
-            DFinite::new(unweighted_sum / edge_count as f64)
+            DFinite::new(unweighted_sum.get() / edge_count as f64)
                 .expect("a mean of finite distance differences is finite")
         } else {
             DFinite::ZERO
@@ -595,8 +606,8 @@ fn contract(
     reason = "row counts sit orders of magnitude below the f64 mantissa"
 )]
 fn displace(
-    baseline: &IdSlice<NodeRowId, Vec2>,
-    frame: &IdSlice<NodeRowId, Vec2>,
+    baseline: &FinitePointField<NodeRowId>,
+    frame: &FinitePointField<NodeRowId>,
     participant: &[bool],
     engaged: bool,
 ) -> DisplacementReading {

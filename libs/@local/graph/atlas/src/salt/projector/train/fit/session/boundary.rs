@@ -1,13 +1,13 @@
 //! The phase boundary's radius freeze and its report-only findings.
 
-use hashql_core::id::{Id, IdSlice, IdVec};
+use hashql_core::id::Id;
 
 use super::super::{
     super::{RUNGS, refresh},
     BoundaryEvidence, FrozenRadius, TrainError, TrainOptions, TrainerInputs,
 };
 use crate::{
-    math::{DNonNegative, Positive, Vec2},
+    math::{DNonNegative, FinitePointField, Positive},
     salt::projector::{
         loss::{ProximalEnergy, RelationEnergy},
         verdict::calibrate::{CalibrationOptions, ProximalCalibration, calibrate},
@@ -20,7 +20,7 @@ use crate::{
 pub(super) type BoundaryOutcome<N> = (
     Option<RelationEnergy>,
     BoundaryEvidence,
-    Option<IdVec<N, Vec2>>,
+    Option<Box<FinitePointField<N>>>,
 );
 
 /// Freezes the Proximal radius against the boundary's zero-condition frame.
@@ -30,7 +30,7 @@ pub(super) type BoundaryOutcome<N> = (
 /// this freeze and the target objective's - and its vacuous early-out, so this path always has
 /// force to measure.
 pub(super) fn freeze_radius<N, E>(
-    frame: &IdSlice<N, Vec2>,
+    frame: &FinitePointField<N>,
     inputs: &TrainerInputs<'_, N, E>,
     options: &TrainOptions,
     step: usize,

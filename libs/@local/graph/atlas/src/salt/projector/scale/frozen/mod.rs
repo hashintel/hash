@@ -51,7 +51,7 @@ pub(crate) use self::refusal::InvalidRuler;
 use super::{LOCAL_SCALE_NEIGHBOURS, NonFiniteScale, insert_nearest, sorted_median};
 use crate::{
     math::{
-        DNonNegative, DPositive, FinitePointCloud, NonNegative, Positive, PositiveUnitFraction,
+        DNonNegative, DPositive, FinitePointField, NonNegative, Positive, PositiveUnitFraction,
         Vec2,
     },
     salt::knn::{construction::NeighbourSlot, table::KnnView},
@@ -136,7 +136,7 @@ where
                   reads the narrowed value"
     )]
     pub(crate) fn freeze(
-        zero_field: &FinitePointCloud<N>,
+        zero_field: &FinitePointField<N>,
         knn: &KnnView<'_, N>,
         parameters: RulerParameters,
     ) -> Result<Self, InvalidRuler<N>> {
@@ -166,7 +166,7 @@ where
             });
         }
 
-        // The spread reduction is bit-deterministic under any thread schedule (the cloud's
+        // The spread reduction is bit-deterministic under any thread schedule (the field's
         // contract): the narrowed value becomes a declared constant persisted with the
         // generation, so a replay must reproduce it exactly. Finite with no scan: the boundary
         // forward refuses a diverged frame before any freeze sees it.
@@ -289,7 +289,7 @@ where
     /// since the field and the ruler come from one run.
     pub(crate) fn live_scales(
         &self,
-        coordinates: &IdSlice<N, Vec2>,
+        coordinates: &FinitePointField<N>,
     ) -> Result<Box<IdSlice<N, NonNegative>>, NonFiniteScale<N>> {
         debug_assert_eq!(
             coordinates.len(),
@@ -308,6 +308,7 @@ where
                     *distance = coordinates[row].distance(coordinates[neighbour]);
                 }
                 distances[..set_len].sort_unstable();
+
                 sorted_median(&distances[..set_len])
             })
             .collect();
@@ -433,7 +434,7 @@ fn positive_quantile(
     scales: impl Iterator<Item = NonNegative>,
     parameters: RulerParameters,
 ) -> Option<NonNegative> {
-    let mut positive: Vec<_> = scales.filter(|scale| scale.get() > 0.0).collect();
+    let mut positive: Vec<_> = scales.filter(|scale| *scale > 0.0).collect();
     if positive.is_empty() {
         return None;
     }
@@ -443,7 +444,7 @@ fn positive_quantile(
         clippy::cast_precision_loss,
         reason = "row counts sit far below 2^53, so the count converts exactly"
     )]
-    let mass = parameters.scale_quantile.get() * positive.len() as f64;
+    let mass = parameters.scale_quantile * positive.len() as f64;
     #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,

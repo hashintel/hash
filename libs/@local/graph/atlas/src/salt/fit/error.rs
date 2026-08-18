@@ -25,6 +25,7 @@ use crate::{
         sprs::{read::OpenSprsError, write::WriteSprsError},
     },
     identity::{NodeRowId, OntologyRowId},
+    math::NonFinitePoint,
     salt::{
         adjacency::InvalidAdjacencyFile,
         embedding::CardEmbeddingError,
@@ -264,6 +265,25 @@ pub(crate) enum StageError {
     MapCoordinates(OpenArrayError),
     /// The staged coordinate column is not an f32 pair array.
     CoordinateShape,
+    /// A mapped rung frame carries a non-finite coordinate.
+    ///
+    /// The refusal names the rung and its first offending row, ahead of the alignment fits
+    /// that consume the frame as a proven-finite field.
+    NonFiniteRung {
+        /// The rung's position in the condition schedule.
+        rung: usize,
+        /// The first offending row.
+        source: NonFinitePoint<NodeRowId>,
+    },
+    /// The canonical rung's aligned frame has a non-finite point.
+    ///
+    /// The alignment onto the baseline basis runs in `f32` and can overflow, so the aligned
+    /// frame is proven at its creation before it publishes, and the persisted coordinate
+    /// column re-proves the same frame at its own readback.
+    NonFiniteAligned {
+        /// The first offending row.
+        source: NonFinitePoint<NodeRowId>,
+    },
     /// The staged attraction index failed to map back.
     MapAttraction(OpenAttractionError),
     /// The paired-movement salt preimage failed to serialize.
@@ -595,6 +615,12 @@ impl fmt::Display for StageError {
             Self::MapCards(error) => map_back(fmt, "card-embedding matrix", error),
             Self::MapCoordinates(error) => map_back(fmt, "coordinate column", error),
             Self::CoordinateShape => fmt.write_str("the staged coordinates are not f32 pairs"),
+            Self::NonFiniteRung { rung, source } => {
+                write!(fmt, "rung {rung}'s mapped frame is not finite: {source}")
+            }
+            Self::NonFiniteAligned { source } => {
+                write!(fmt, "the aligned canonical frame is not finite: {source}")
+            }
             Self::MapAttraction(error) => map_back(fmt, "attraction index", error),
             Self::SaltPreimage(error) => write!(
                 fmt,
@@ -693,6 +719,7 @@ impl Error for StageError {
             Self::Placement(error) => Some(error),
             Self::Prior(error) => Some(error),
             Self::Seal(error) => Some(error),
+            Self::NonFiniteRung { source, .. } | Self::NonFiniteAligned { source } => Some(source),
             Self::RepresentationDefects(_)
             | Self::RecallBelowMinimum(_)
             | Self::CoordinateShape

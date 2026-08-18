@@ -47,7 +47,7 @@ mod tests;
 /// assert_eq!(bounds.size(), Vec2::new(4.0, 4.0));
 /// assert_eq!(bounds.centre(), Vec2::new(4.0, 1.0));
 /// ```
-// No `FromBytes`: it would mint boxes with NaN or inverted corners in
+// No `FromBytes`: it would construct boxes with NaN or inverted corners in
 // safe code, bypassing the validating constructors. `FromZeros` is fine
 // (the zeroed box is the valid degenerate box at the origin).
 #[derive(
@@ -280,15 +280,15 @@ impl Bounds2 {
     /// ```
     #[inline]
     #[must_use]
-    pub(crate) fn with_aspect_ratio(self, ratio: Positive) -> Self {
+    pub(crate) const fn with_aspect_ratio(self, ratio: Positive) -> Self {
         let size = self.size();
         let centre = self.centre();
 
         // Both components read the original size, so exactly one axis
         // grows: whichever is short for the ratio.
         let half = Vec2::new(
-            size.x().max(size.y() * ratio.get()),
-            size.y().max(size.x() / ratio.get()),
+            size.x().max(size.y() * ratio),
+            size.y().max(size.x() / ratio),
         ) * 0.5;
 
         Self {
@@ -316,9 +316,9 @@ impl Bounds2 {
     /// ```
     #[inline]
     #[must_use]
-    pub(crate) fn scaled_about_centre(self, factor: Positive) -> Self {
+    pub(crate) const fn scaled_about_centre(self, factor: Positive) -> Self {
         let centre = self.centre();
-        let half = self.size() * (factor.get() * 0.5);
+        let half = self.size() * (factor * 0.5);
 
         Self {
             min: centre - half,

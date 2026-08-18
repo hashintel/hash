@@ -21,7 +21,7 @@ use super::{
 use crate::{
     identity::NodeRowId,
     math::{
-        DNonNegative, DPositive, DVec2, FinitePointCloud, NonNegative, Positive,
+        DNonNegative, DPositive, DVec2, FinitePointField, NonNegative, Positive,
         PositiveUnitFraction, UnitFraction, Vec2, nz,
     },
     salt::projector::gauge::{DuplicateClassId, GaugeAnchors},
@@ -92,8 +92,8 @@ fn the_reading_and_the_fields_are_exact_on_a_dyadic_batch() {
     let (mut canonical_field, mut zero_field) = fields(4);
 
     let reading = estimator(2.0, 0.25, 4.0, 1.0, Penalty::Identity).evaluate(
-        IdSlice::from_raw(&canonical),
-        IdSlice::from_raw(&zero),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
         &units,
         &mut canonical_field,
         &mut zero_field,
@@ -121,8 +121,8 @@ fn the_reading_and_the_fields_are_exact_on_a_dyadic_batch() {
 #[test]
 fn the_activation_scales_every_force_and_never_the_reading() {
     let (canonical, zero, units) = dyadic_fixture();
-    let canonical = IdSlice::from_raw(&canonical);
-    let zero = IdSlice::from_raw(&zero);
+    let canonical = FinitePointField::new_unchecked(IdSlice::from_raw(&canonical));
+    let zero = FinitePointField::new_unchecked(IdSlice::from_raw(&zero));
 
     let mut readings = Vec::new();
     let mut gradients = Vec::new();
@@ -196,8 +196,8 @@ fn the_full_inclusion_divisor_is_unbiased_where_the_group_factor_is_not() {
         unit(0, 2, 1.0, 1.0, inside_b.get()),
     ];
     let estimator = estimator(1.0, 0.0, 2.0, 1.0, Penalty::Identity);
-    let canonical = IdSlice::from_raw(&canonical);
-    let zero = IdSlice::from_raw(&zero);
+    let canonical = FinitePointField::new_unchecked(IdSlice::from_raw(&canonical));
+    let zero = FinitePointField::new_unchecked(IdSlice::from_raw(&zero));
     let (mut canonical_field, mut zero_field) = fields(4);
 
     // The declared mean, read through the same fold with every inclusion at one.
@@ -254,8 +254,8 @@ fn a_coincident_side_counts_its_value_and_folds_no_pull() {
     let zero = [Vec2::new(0.0, 0.0), Vec2::new(0.0, 2.0)];
     let (mut canonical_field, mut zero_field) = fields(2);
     let reading = estimator(2.0, 0.25, 1.0, 1.0, Penalty::Identity).evaluate(
-        IdSlice::from_raw(&canonical),
-        IdSlice::from_raw(&zero),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
         &[unit(0, 1, 1.0, 1.0, 1.0)],
         &mut canonical_field,
         &mut zero_field,
@@ -278,8 +278,8 @@ fn a_coincident_side_counts_its_value_and_folds_no_pull() {
     let zero = [Vec2::new(5.0, 5.0), Vec2::new(5.0, 5.0)];
     let (mut canonical_field, mut zero_field) = fields(2);
     let reading = estimator(2.0, 0.25, 1.0, 1.0, Penalty::Identity).evaluate(
-        IdSlice::from_raw(&canonical),
-        IdSlice::from_raw(&zero),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
         &[unit(0, 1, 1.0, 1.0, 1.0)],
         &mut canonical_field,
         &mut zero_field,
@@ -410,8 +410,8 @@ fn field_partials_match_finite_differences_at_a_fixed_scale() {
 
     let (mut canonical_field, mut zero_field) = fields(4);
     estimator(1.25, 0.1, 2.0, 1.0, Penalty::QuadraticHinge).evaluate(
-        IdSlice::from_raw(&canonical),
-        IdSlice::from_raw(&zero),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
         &units,
         &mut canonical_field,
         &mut zero_field,
@@ -531,23 +531,23 @@ fn the_scale_channel_completes_the_derivative_through_a_live_refit() {
     let gauge = GaugeAnchors::freeze(
         Box::new([0, 1, 2, 3].map(NodeRowId::new)),
         Box::new([0, 1, 2, 3].map(DuplicateClassId::new)),
-        FinitePointCloud::new_unchecked(IdSlice::from_raw(&zero)),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
         None,
         None,
     )
     .expect("the generic fixture is a valid gauge");
     let fit = gauge
         .fit(
-            FinitePointCloud::new_unchecked(IdSlice::from_raw(&canonical)),
-            FinitePointCloud::new_unchecked(IdSlice::from_raw(&zero)),
+            FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+            FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
             None,
         )
         .expect("the generic fixture fits");
 
     let (mut canonical_field, mut zero_field) = fields(6);
     let reading = estimator(fit.scale().get(), 0.1, 2.0, 1.0, Penalty::Identity).evaluate(
-        IdSlice::from_raw(&canonical),
-        IdSlice::from_raw(&zero),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+        FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
         &units,
         &mut canonical_field,
         &mut zero_field,

@@ -142,7 +142,7 @@ impl ProximalEnergy {
         let argument = (normalized - self.radius) / self.temperature;
 
         (
-            NonNegative::new_unchecked((self.temperature.get() * softplus(argument)).min(f32::MAX)),
+            NonNegative::new_unchecked((self.temperature * softplus(argument)).min(f32::MAX)),
             NonNegative::sigmoid(argument),
         )
     }

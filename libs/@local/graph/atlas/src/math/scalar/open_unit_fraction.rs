@@ -248,6 +248,20 @@ const impl PartialOrd<DPositive> for OpenUnitFraction {
     }
 }
 
+const impl core::ops::Div<OpenUnitFraction> for f64 {
+    type Output = f64;
+
+    /// Divides a raw `f64` by the fraction, staying in `f64`.
+    ///
+    /// The divisor lies strictly inside the unit interval, so it is never zero and never NaN: a
+    /// NaN quotient arrives only through the numerator. The quotient's magnitude exceeds the
+    /// numerator's and escapes to `±∞` on overflow against a small divisor.
+    #[inline]
+    fn div(self, rhs: OpenUnitFraction) -> f64 {
+        self / rhs.0
+    }
+}
+
 #[cfg(test)]
 #[expect(
     exported_private_dependencies,

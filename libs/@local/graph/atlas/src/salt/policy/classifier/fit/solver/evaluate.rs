@@ -28,7 +28,7 @@ use super::{
 };
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{AlignedVecN, DNonNegative},
+    math::{AlignedVecN, DNonNegative, Derivation},
     salt::policy::GeometryClass,
 };
 
@@ -398,13 +398,17 @@ impl Prepared<'_> {
 
     /// Adds the regularizer to the accumulated data loss and normalizes by the total weight.
     fn finish_objective(&self, data_loss: f64, parameters: &ContrastVector) -> f64 {
-        // ‖A‖² through the house striped kernel, one row at a time in contrast order.
-        let mut coefficient_norm = DNonNegative::ZERO;
+        // ‖A‖² through the house striped kernel, one row at a time in contrast order. The sum
+        // rides raw because the parameters are unbounded solver state: initialization
+        // deliberately admits a non-finite origin objective, and resolution and final
+        // certification refuse it by name where the design says so.
+        let mut coefficient_norm = Derivation::<DNonNegative>::ZERO;
         for row in &parameters.coefficients {
             coefficient_norm += row.norm_squared();
         }
 
-        (0.5 * self.regularization).mul_add(coefficient_norm.get(), data_loss) / self.total_weight
+        (0.5 * self.regularization).mul_add(coefficient_norm.into_raw(), data_loss)
+            / self.total_weight
     }
 
     /// Normalizes the accumulated residual sum and adds `(λ/S)·[A|0]`.

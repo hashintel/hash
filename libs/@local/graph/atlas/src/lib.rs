@@ -77,6 +77,7 @@
     exhaustive_patterns,
     f128,
     never_type,
+    impl_restriction,
     macro_metavar_expr_concat,
 
     // Library Features
@@ -109,7 +110,7 @@
     clone_to_uninit,
     integer_casts,
     nonpoison_rwlock,
-    exact_size_is_empty
+    exact_size_is_empty,
 )]
 // The dashboard's interrupt path leaves through an exit code, and it is
 // the only consumer of the feature.

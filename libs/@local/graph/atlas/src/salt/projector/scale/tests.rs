@@ -13,9 +13,14 @@ use hashql_core::id::IdSlice;
 use super::LocalScales;
 use crate::{
     identity::NodeRowId,
-    math::{NonNegative, Vec2, non_negative},
+    math::{FinitePointField, NonNegative, Vec2, non_negative},
     salt::knn::table::{Knn, KnnMatrix},
 };
+
+/// Wraps fixture points every test states as finite literals.
+fn frame(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
+    FinitePointField::new_unchecked(IdSlice::from_raw(points))
+}
 
 /// A complete-graph neighbour table.
 ///
@@ -68,8 +73,8 @@ fn selects_neighbours_by_stored_distance_not_storage_order() {
     )]
     let coordinates: Vec<Vec2> = (0..rows).map(|row| Vec2::new(row as f32, 0.0)).collect();
 
-    let scales = LocalScales::compute(IdSlice::from_raw(&coordinates), &table.view())
-        .expect("the fixture is finite");
+    let scales =
+        LocalScales::compute(frame(&coordinates), &table.view()).expect("the fixture is finite");
 
     assert_eq!(scales.as_slice()[NodeRowId::new(0)].get(), 9.0);
     assert_eq!(scales.len(), rows);
@@ -85,8 +90,8 @@ fn even_neighbour_counts_use_the_midpoint() {
         Vec2::new(0.0, 4.0),
     ];
 
-    let scales = LocalScales::compute(IdSlice::from_raw(&coordinates), &table.view())
-        .expect("the fixture is finite");
+    let scales =
+        LocalScales::compute(frame(&coordinates), &table.view()).expect("the fixture is finite");
 
     // Row 0's 2D distances are {3, 4}: median 3.5.
     assert_eq!(scales.as_slice()[NodeRowId::new(0)].get(), 3.5);

@@ -230,6 +230,17 @@ impl DNonNegative {
         self.0.is_finite()
     }
 
+    /// Divides by a positive value, refusing the escape.
+    ///
+    /// The quotient of a non-negative by a positive is never NaN and never negative, and
+    /// underflow rounds to zero, inside the domain. Returns [`None`] exactly when the quotient
+    /// overflows, where the plain division would escape to `+∞`.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn checked_div(self, rhs: DPositive) -> Option<Self> {
+        Self::new(self.0 / rhs.get())
+    }
+
     /// Raises to a raw power, staying non-negative.
     ///
     /// A non-negative base admits no NaN from `powf`. Zero raised to a positive exponent is
@@ -351,6 +362,32 @@ const impl core::ops::Sub<f64> for DNonNegative {
     #[inline]
     fn sub(self, rhs: f64) -> f64 {
         self.0 - rhs
+    }
+}
+
+const impl core::ops::Add<DNonNegative> for f64 {
+    type Output = f64;
+
+    /// Adds a non-negative offset to a raw `f64`.
+    ///
+    /// The raw operand is arbitrary, so the sum can leave any bounded domain and returns a raw
+    /// float.
+    #[inline]
+    fn add(self, rhs: DNonNegative) -> f64 {
+        self + rhs.0
+    }
+}
+
+const impl core::ops::Sub<DNonNegative> for f64 {
+    type Output = f64;
+
+    /// Subtracts a non-negative offset from a raw `f64`.
+    ///
+    /// The raw operand is arbitrary, so the difference can leave any bounded domain and returns
+    /// a raw float.
+    #[inline]
+    fn sub(self, rhs: DNonNegative) -> f64 {
+        self - rhs.0
     }
 }
 

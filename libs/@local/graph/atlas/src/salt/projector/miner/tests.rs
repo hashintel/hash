@@ -16,7 +16,7 @@ use hashql_core::id::{Id as _, IdSlice};
 use super::{HardNegativeMiner, MinedFrame, MinerOptions, SpatialField};
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{NonNegative, Positive, UnitFraction, Vec2, unit_fraction},
+    math::{FinitePointField, NonNegative, Positive, UnitFraction, Vec2, unit_fraction},
     runs::Runs,
     salt::{
         policy::ClassProbabilities,
@@ -223,8 +223,9 @@ fn mined_rows_match_a_brute_force_reference() {
     let config = hard_config(0.5);
     let options = options(3, 2, 1.0, 1.0);
 
-    let field =
-        SpatialField::new(IdSlice::from_raw(&coordinates)).expect("the fixture frame is finite");
+    let field = SpatialField::new(FinitePointField::new_unchecked(IdSlice::from_raw(
+        &coordinates,
+    )));
     let miner = HardNegativeMiner::new(semantic.view(), indexes.protection.view(), config, options);
     let negatives = miner.mine(&field);
 
@@ -302,8 +303,9 @@ fn rank_weights_are_dyadic_at_unit_exponent() {
     let indexes = relation_indexes(5, Vec::new());
     let options = options(4, 2, 1.0, 1.0);
 
-    let field =
-        SpatialField::new(IdSlice::from_raw(&coordinates)).expect("the fixture frame is finite");
+    let field = SpatialField::new(FinitePointField::new_unchecked(IdSlice::from_raw(
+        &coordinates,
+    )));
     let miner = HardNegativeMiner::new(
         semantic.view(),
         indexes.protection.view(),
@@ -327,8 +329,9 @@ fn fully_explained_neighbourhoods_yield_honest_short_sets() {
     let semantic = semantic_graph(4, &[(0, 1, 0.5), (0, 2, 0.5), (0, 3, 0.5)]);
     let indexes = relation_indexes(4, Vec::new());
 
-    let field =
-        SpatialField::new(IdSlice::from_raw(&coordinates)).expect("the fixture frame is finite");
+    let field = SpatialField::new(FinitePointField::new_unchecked(IdSlice::from_raw(
+        &coordinates,
+    )));
     let miner = HardNegativeMiner::new(
         semantic.view(),
         indexes.protection.view(),
@@ -349,8 +352,9 @@ fn mining_is_deterministic() {
     let indexes = relation_indexes(8, vec![instance(0, 0, 4, 5, None)]);
     let options = options(3, 2, 1.0, 1.0);
 
-    let field =
-        SpatialField::new(IdSlice::from_raw(&coordinates)).expect("the fixture frame is finite");
+    let field = SpatialField::new(FinitePointField::new_unchecked(IdSlice::from_raw(
+        &coordinates,
+    )));
     let miner = HardNegativeMiner::new(
         semantic.view(),
         indexes.protection.view(),

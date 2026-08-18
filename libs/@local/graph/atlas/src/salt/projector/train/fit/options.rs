@@ -47,8 +47,7 @@ impl TrainingSchedule {
         initial_learning_rate: UnitFraction,
         minimum_learning_rate: UnitFraction,
     ) -> Option<Self> {
-        let rates = initial_learning_rate.get() > 0.0
-            && minimum_learning_rate.get() <= initial_learning_rate.get();
+        let rates = initial_learning_rate > 0.0 && minimum_learning_rate <= initial_learning_rate;
 
         if !(boundary <= steps.get() && rates) {
             return None;

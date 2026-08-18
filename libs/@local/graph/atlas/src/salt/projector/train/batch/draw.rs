@@ -220,8 +220,7 @@ where
 
         let (hard, hard_scale) = self.draw_hard_in(context.mined, &mut rng, alloc.clone());
 
-        let (relation, relation_scale) = if context.eta.get() > 0.0 && self.plan.relation_types != 0
-        {
+        let (relation, relation_scale) = if context.eta > 0.0 && self.plan.relation_types != 0 {
             let drawn = self.relation.sample_in(
                 self.plan.relation_types,
                 self.plan.relation_cap,

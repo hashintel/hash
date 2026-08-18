@@ -14,12 +14,11 @@
 //!
 //! Arithmetic whose result provably stays finite stays in the type - negation, integer
 //! conversion - with no run-time re-check. An operation that can leave the domain returns a
-//! raw float instead, with the sum of two arbitrary finite values the plain case. The caller
-//! re-enters through a constructor at whichever boundary proves the bound. The one exception is
-//! the fused accumulator [`mul_add`](DFinite::mul_add), which stays in the type as the family's
-//! other folds do: overflow escapes to `±∞` and asserts in debug builds. Serialization writes
-//! plain numbers and deserialization re-validates, so a persisted value is as trustworthy as a
-//! constructed one.
+//! raw float instead, and the caller re-enters through a constructor at whichever boundary
+//! proves the bound. The exceptions are the fused accumulator [`mul_add`](DFinite::mul_add)
+//! and the in-family sum, which stay in the type as the family's folds do: overflow escapes to
+//! `±∞` and asserts in debug builds. Serialization writes plain numbers and deserialization
+//! re-validates, so a persisted value is as trustworthy as a constructed one.
 
 use core::{
     cmp::Ordering,
@@ -28,7 +27,8 @@ use core::{
 };
 
 use super::{
-    DNonNegative, DPositive, NonNegative, Positive, raw_interop, unsafe_impl_try_from_bytes,
+    DNonNegative, DPositive, NonNegative, OpenUnitFraction, Positive, raw_interop,
+    unsafe_impl_try_from_bytes,
 };
 
 /// Validates a finite literal at compile time.
@@ -490,6 +490,10 @@ impl Hash for DFinite {
 const impl core::ops::Add for DFinite {
     type Output = DFinite;
 
+    /// Adds.
+    ///
+    /// Overflow escapes to `±∞` - a wrong reading rather than a soundness break, since no
+    /// unsafe code trusts the domain - and asserts in debug builds through the constructor.
     #[inline]
     fn add(self, rhs: DFinite) -> DFinite {
         DFinite::new_unchecked(self.0 + rhs.0)
@@ -500,6 +504,22 @@ const impl core::ops::AddAssign for DFinite {
     #[inline]
     fn add_assign(&mut self, rhs: DFinite) {
         *self = *self + rhs;
+    }
+}
+
+const impl PartialEq<OpenUnitFraction> for DFinite {
+    /// Compares across the scalar family, in one precision with no widening.
+    #[inline]
+    fn eq(&self, other: &OpenUnitFraction) -> bool {
+        self.0 == other.get()
+    }
+}
+
+const impl PartialOrd<OpenUnitFraction> for DFinite {
+    /// Orders across the scalar family, in one precision with no widening.
+    #[inline]
+    fn partial_cmp(&self, other: &OpenUnitFraction) -> Option<Ordering> {
+        self.0.partial_cmp(&other.get())
     }
 }
 

@@ -1,6 +1,6 @@
 //! The freeze refuses a constraint the stored precision cannot carry.
 //!
-//! The live field arrives as a proven-finite cloud, so divergence refuses at the field's own
+//! The live field arrives as a proven-finite point field, so divergence refuses at the field's own
 //! construction, and what remains here is the constraint that does not exist over the stored
 //! coordinates: a radius outside the working precision, or an extent past the finite range. A
 //! radius below the landing margin's headroom refuses the same way.

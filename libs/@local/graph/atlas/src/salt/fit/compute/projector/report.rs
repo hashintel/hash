@@ -3,7 +3,7 @@
 
 use core::num::NonZero;
 
-use hashql_core::id::{Id, IdSlice};
+use hashql_core::id::{Id, IdSlice, IdVec};
 
 use super::{
     super::super::{ProjectorOptions, error::StageError, role::Role},
@@ -22,7 +22,7 @@ use crate::{
     },
     identity::{NodeRowId, OntologyRowId},
     integrity::Sha256Digest,
-    math::{DNonNegative, DPositive, NonNegative, Vec2},
+    math::{DNonNegative, DPositive, FinitePointField, NonNegative},
     salt::{
         ladder::{
             Field, measure_ladder,
@@ -113,22 +113,30 @@ impl<'fit> LadderPass<'fit> {
 
         // The frames map back together for the alignment fits; each is
         // one scratch array file, so the resident set is the mapped
-        // pages the fits touch, not the owned frames.
+        // pages the fits touch, not the owned frames. Each frame proves
+        // its finiteness once here, and the fits consume the proof.
         let files = (0..conditions.len())
             .map(|index| {
                 ArrayFile::open(rung_path(&ladder, index)).map_err(StageError::MapCoordinates)
             })
             .collect::<Result<Vec<_>, _>>()?;
-        let fields: Vec<Field<'_>> = files
+        let fields: Vec<Field<'_, NodeRowId>> = files
             .iter()
             .zip(&readouts)
-            .map(|(file, readout)| Field {
-                coordinates: file
+            .enumerate()
+            .map(|(rung, (file, readout))| {
+                let points = file
                     .points()
-                    .expect("the rung frame was written as f32 pairs"),
-                relation_loss: readout.uncapped_total,
+                    .expect("the rung frame was written as f32 pairs");
+                let coordinates = FinitePointField::new(IdSlice::<NodeRowId, _>::from_raw(points))
+                    .map_err(|source| StageError::NonFiniteRung { rung, source })?;
+
+                Ok(Field {
+                    coordinates,
+                    relation_loss: readout.uncapped_total,
+                })
             })
-            .collect();
+            .collect::<Result<_, StageError>>()?;
 
         let measurements = measure_ladder(&options.ladder.conditions, &fields)?;
         let selection = select_canonical(&measurements, options.ladder.canonical)?;
@@ -144,6 +152,10 @@ impl<'fit> LadderPass<'fit> {
             .iter()
             .map(|&point| alignment.apply(point))
             .collect();
+        // The alignment's f32 arithmetic can overflow, so the published frame is proven here,
+        // at its creation, and every consumer below takes the field.
+        let aligned = FinitePointField::new_boxed(IdVec::from_raw(aligned).into_boxed_slice())
+            .map_err(|source| StageError::NonFiniteAligned { source })?;
         let digest =
             stage_coordinate_column(self.staging, aligned.len() as u64, aligned.iter().copied())?;
 
@@ -199,7 +211,9 @@ impl<'fit> LadderPass<'fit> {
         let frame = file
             .points()
             .expect("the coordinate column was sealed as f32 pairs");
-        let distinct_frame = gather_distinct(IdSlice::from_raw(frame), inputs.quotient);
+        let frame = FinitePointField::new(IdSlice::from_raw(frame))
+            .map_err(|source| StageError::NonFiniteAligned { source })?;
+        let distinct_frame = gather_distinct(frame, inputs.quotient);
         let scales = refresh::scales(&distinct_frame, &inputs.knn, condition)
             .map_err(|error| error.map_rows(|row| inputs.quotient.first_row(row)))?;
         Ok(relation_loss(&distinct_frame, &scales, inputs.attraction, energy, cap).uncapped_total)
@@ -232,8 +246,8 @@ impl<'fit> LadderPass<'fit> {
         &self,
         snapshot: &Snapshot,
         reproducibility: &Reproducibility,
-        zero: &[Vec2],
-        canonical: &[Vec2],
+        zero: &FinitePointField<NodeRowId>,
+        canonical: &FinitePointField<NodeRowId>,
     ) -> Result<PairedMovementEvidence<NodeRowId>, StageError> {
         let index = AttractionFile::open(self.staging.path_of(&Role::Attraction.file_name()))?;
         assert_eq!(
@@ -247,8 +261,8 @@ impl<'fit> LadderPass<'fit> {
             reproducibility,
             index.groups(),
             index.edges(),
-            IdSlice::from_raw(zero),
-            IdSlice::from_raw(canonical),
+            zero,
+            canonical,
         )
         .map_err(From::from)
     }
@@ -289,9 +303,9 @@ pub(super) fn loss_regressions<'series>(
                     condition,
                     previous_condition,
                     delta,
-                    relative: (previous > DNonNegative::ZERO)
-                        .then(|| DPositive::new(delta.get() / previous.get()))
-                        .flatten(),
+                    relative: previous
+                        .positive()
+                        .and_then(|previous| delta.checked_div(previous)),
                 })
             },
         )
@@ -341,9 +355,9 @@ pub(super) fn warn_persisted_regression(
     // In domain with no check: the guard proves the difference non-negative, and the
     // difference of two finite values is finite.
     let delta = DNonNegative::new_unchecked((persisted - baseline).get());
-    let relative = (baseline > DNonNegative::ZERO)
-        .then(|| DNonNegative::new(delta.get() / baseline.get()))
-        .flatten();
+    let relative = baseline
+        .positive()
+        .and_then(|baseline| delta.checked_div(baseline));
     if let Some(relative) = relative {
         tracing::warn!(
             canonical = %canonical,
@@ -395,7 +409,7 @@ pub(super) struct RelationLossReadout {
 /// The per-instance formula is the batch relation term's with the estimator scale at one, and the
 /// twin lives at [`relation_term`](crate::salt::projector::loss::relation_term).
 pub(super) fn relation_loss<N, E>(
-    frame: &IdSlice<N, Vec2>,
+    frame: &FinitePointField<N>,
     scales: &LocalScales<N>,
     index: &AttractionIndex<N, E>,
     energy: RelationEnergy,

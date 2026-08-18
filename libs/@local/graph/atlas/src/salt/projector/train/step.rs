@@ -31,7 +31,7 @@ use super::{
 };
 use crate::{
     identity::OntologyRowId,
-    math::{DVec2, Vec2},
+    math::{DVec2, FinitePointField, NonFinitePoint, Vec2},
     salt::projector::{
         budget::{self, BudgetOutcome},
         loss::{
@@ -180,13 +180,15 @@ where
         "the coordinate frame should cover the batch rows, at most alignment-padded"
     );
 
-    let values = read_frame(coordinates.clone().inner(), &batch.rows)?;
-
-    // Zero-copy view over the readback: `Vec2` is a transparent `[f32; 2]`, so the row-major frame
-    // reinterprets in place. The hand-gradient paths speak the true batch domain: alignment
-    // padding stays behind the slice.
-    let frame = Vec2::from_slice(&values).expect("a [rows, 2] tensor reads back an even length");
-    let frame = IdSlice::from_raw(&frame[..batch.rows.len()]);
+    // Alignment padding trails the batch rows. A padded point diverging names the last real row.
+    let diverged = |offender: NonFinitePoint<BatchRowId>| {
+        let local = BatchRowId::from_usize(offender.id.as_usize().min(batch.rows.len() - 1));
+        StepError::Diverged {
+            row: batch.rows[local],
+        }
+    };
+    let values = read_frame_finite(coordinates.clone().inner()).map_err(diverged)?;
+    let frame = values.prefix(batch.rows.bound());
 
     let rows = frame.len();
     let coefficients = options.coefficients;
@@ -196,21 +198,21 @@ where
         frame,
         batch.semantic.iter().map(|&pair| (pair, 1.0)),
         options.affinity,
-        coefficients.semantic.get() * batch.semantic_scale,
+        coefficients.semantic * batch.semantic_scale,
         &mut semantic_field,
     );
     let ordinary = repulsion_term(
         frame,
         batch.ordinary.iter().map(|&pair| (pair, 1.0)),
         options.affinity,
-        coefficients.ordinary.get() * batch.ordinary_scale,
+        coefficients.ordinary * batch.ordinary_scale,
         &mut semantic_field,
     );
     let hard = repulsion_term(
         frame,
         batch.hard.iter().copied(),
         options.affinity,
-        coefficients.hard.get() * batch.hard_scale,
+        coefficients.hard * batch.hard_scale,
         &mut semantic_field,
     );
 
@@ -226,7 +228,7 @@ where
             &coordinates,
             &targets,
             options.support,
-            coefficients.landmark.get() * batch.landmark_scale,
+            coefficients.landmark * batch.landmark_scale,
         )
     });
     let anchor_term = SupportTargets::new(&batch.anchors, &device).map(|targets| {
@@ -234,7 +236,7 @@ where
             &coordinates,
             &targets,
             options.support,
-            coefficients.anchor.get() * batch.anchor_scale,
+            coefficients.anchor * batch.anchor_scale,
         )
     });
 
@@ -276,7 +278,7 @@ where
 ///
 /// Returns the relation loss value and the flattened combined field.
 fn relation_pass<N, A: Allocator>(
-    frame: &IdSlice<BatchRowId, Vec2>,
+    frame: &FinitePointField<BatchRowId>,
     batch: &Batch<N, A>,
     options: &ObjectiveOptions,
     semantic_field: &GradientField<BatchRowId>,
@@ -293,7 +295,7 @@ where
         .scales
         .as_ref()
         .expect("a batch with relation edges was assembled with its scale table");
-    let scale = batch.eta.get() * options.coefficients.relation.get() * batch.relation_scale;
+    let scale = batch.eta * options.coefficients.relation * batch.relation_scale;
     let rows = frame.len();
 
     // One scratch field serves every type. The pass reads and re-zeroes only the rows a type
@@ -383,38 +385,32 @@ where
     (value, combined)
 }
 
-/// Reads the detached coordinate frame back to the host and checks that every point is finite.
+/// Reads the detached coordinate frame back to the host as a proven-finite field.
 ///
-/// Padding rows replicate the last participating row, so a non-finite padded point reports that
-/// row. `rows` maps the frame's local positions - any local row domain - back to the corpus rows
-/// a divergence names.
+/// The finiteness scan covers the whole readback, alignment padding included, so the returned
+/// [`FinitePointField`] carries every row of the tensor in row order and downstream views need
+/// no rescan.
 ///
-/// Returns the raw row-major components; view them through [`Vec2::from_slice`] rather than
-/// copying.
-pub(super) fn read_frame<R, N, B: Backend<FloatElem = f32>>(
+/// # Errors
+///
+/// Returns the smallest row whose point has a NaN or infinite component.
+pub(super) fn read_frame_finite<N, B: Backend<FloatElem = f32>>(
     coordinates: Tensor<B, 2>,
-    rows: &IdSlice<R, N>,
-) -> Result<Vec<f32>, StepError<N>>
+) -> Result<Box<FinitePointField<N>>, NonFinitePoint<N>>
 where
-    R: Id,
     N: Id,
 {
-    let values = coordinates
-        .into_data()
-        .to_vec::<f32>()
+    let data = coordinates.into_data();
+    let values = data
+        .as_slice::<f32>()
         .expect("the projector's coordinates are an f32 tensor");
 
-    let frame = Vec2::from_slice(&values).expect("a [rows, 2] tensor reads back an even length");
-    for (index, point) in frame.iter().enumerate() {
-        if !point.is_finite() {
-            // Alignment padding trails the batch rows; a padded point diverging names the
-            // last real row.
-            let local = R::from_usize(index.min(rows.len() - 1));
-            return Err(StepError::Diverged { row: rows[local] });
-        }
-    }
+    let frame = Vec2::from_slice(values)
+        .expect("a [rows, 2] tensor reads back an even length")
+        .to_vec();
+    let frame = IdVec::from_raw(frame).into_boxed_slice();
 
-    Ok(values)
+    FinitePointField::new_boxed(frame)
 }
 
 /// Flattens per-node gradients into the tensor's row-major layout.

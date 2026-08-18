@@ -36,7 +36,7 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
-        FinitePointCloud, NonNegative, Positive, Vec2, d_non_negative, d_positive, non_negative,
+        FinitePointField, NonNegative, Positive, Vec2, d_non_negative, d_positive, non_negative,
         open_unit_fraction, positive, unit_fraction,
     },
     progress::{NoProgress, Progress},
@@ -116,7 +116,7 @@ fn project(
     trained: &Projector<TestBackend>,
     corpus: &Corpus,
     eta: NonNegative,
-) -> IdVec<NodeRowId, Vec2> {
+) -> Box<FinitePointField<NodeRowId>> {
     refresh::forward(
         &trained.valid(),
         corpus.inputs().columns,
@@ -128,10 +128,14 @@ fn project(
 }
 
 /// Mean pairwise distance over the given row pairs.
-fn mean_distance<N>(layout: &IdSlice<N, Vec2>, pairs: impl Iterator<Item = (usize, usize)>) -> f32
+fn mean_distance<N>(
+    layout: &FinitePointField<N>,
+    pairs: impl Iterator<Item = (usize, usize)>,
+) -> f32
 where
     N: Id,
 {
+    let layout = layout.as_slice();
     let mut total = 0.0;
     let mut count = 0.0;
     for (one, other) in pairs {
@@ -209,7 +213,7 @@ fn landmark_support_keeps_the_frame() {
 
     let layout = project(&fitted.model, &corpus, non_negative!(0.0));
     for anchor in &corpus.landmarks {
-        let distance = layout[anchor.row].distance(anchor.target);
+        let distance = layout.as_slice()[anchor.row].distance(anchor.target);
         assert!(
             distance < anchor.radius,
             "row {} should hold near its landmark: distance {distance}",
@@ -304,6 +308,8 @@ fn few_steps_landmark_force_points_anchors_at_their_targets() {
     .trained();
     let after = project(&fitted.model, &corpus, non_negative!(0.0));
 
+    let before = before.as_slice();
+    let after = after.as_slice();
     for anchor in &corpus.landmarks {
         let row = anchor.row;
         // The step's direction, not its magnitude: an Adam step can overshoot
@@ -425,7 +431,7 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
             && certificate.gap.get() <= certificate.tau.get()
     );
 
-    // The drift instrument reads at every scale-bearing tick: the boundary tick and the ones
+    // The drift report reads at every scale-bearing tick: the boundary tick and the ones
     // after it. The first entry is the freeze-time reading of the freeze frame itself, so it
     // sits at or above the radius fraction, and every reading is a mass share.
     let fraction_steps: Vec<usize> = fitted
@@ -1232,7 +1238,7 @@ fn the_identity_constants_re_derive_from_the_recorded_boundary_field() {
     let anchors: IdVec<GaugeOrdinal, Vec2> =
         draws.gauge_rows.iter().map(|&row| field[row]).collect();
     // Finite with no scan: a gather from the proven-finite recorded field stays finite.
-    let gauge_spread = FinitePointCloud::new_unchecked(&anchors).rms_spread();
+    let gauge_spread = FinitePointField::new_unchecked(&anchors).rms_spread();
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the re-derivation repeats the freeze's own narrowing"

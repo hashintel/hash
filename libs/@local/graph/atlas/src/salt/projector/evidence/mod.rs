@@ -28,10 +28,10 @@ use hashql_core::id::{Id, IdSlice};
 
 use super::{
     band::{BandProjection, EnforcementRecord},
-    gauge::{GaugeAnchors, GaugeFit},
+    gauge::{GaugeAnchors, GaugeFit, GaugeOrdinal},
 };
 use crate::{
-    math::{DFinite, DNonNegative, DVec2, Positive, Similarity, Transform, Vec2},
+    math::{DFinite, DNonNegative, DVec2, FinitePointField, Positive, Similarity, Transform},
     salt::ladder::paired::MovementAggregate,
 };
 
@@ -54,52 +54,36 @@ hashql_core::id::newtype! {
 /// partial record.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum EvidenceRefusal {
-    /// The whole-corpus alignment fit refused, over a non-finite coordinate in either field,
-    /// coincident canonical rows, or an exactly cancelling covariance.
-    CorpusFitRefused,
+    /// The whole-corpus alignment fit refused, over coincident canonical rows or an exactly
+    /// cancelling covariance. Non-finite coordinates never reach the reading: the readback
+    /// boundary refuses them naming the row.
+    CorpusAlignment,
     /// The zero-field common-mode fit onto the boundary snapshot refused.
-    ZeroFitRefused,
+    ZeroCommonMode,
     /// The gauge similarity fit over the whole-field anchor constellations refused.
-    GaugeFitRefused,
-    /// The gauge similarity fit's residual reduction left the finite range.
-    GaugeResidualNonFinite,
+    Gauge,
     /// The reference-configuration fit of the canonical gauge rows onto the frozen `Z_K`
     /// anchors refused.
-    ReferenceFitRefused,
-    /// The reference-configuration fit's residual reduction left the finite range.
-    ReferenceResidualNonFinite,
+    ReferenceConfiguration,
     /// The affine fit over the gauge population refused: the anchors' canonical scatter is
     /// degenerate beyond what the similarity fit tolerates, since an affine solve needs both
     /// axes of its source.
-    AffineFitRefused,
-    /// The affine fit's residual reduction left the finite range.
-    AffineResidualNonFinite,
+    Affine,
 }
 
 impl fmt::Display for EvidenceRefusal {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            Self::CorpusFitRefused => fmt.write_str("the whole-corpus alignment fit refused"),
-            Self::ZeroFitRefused => {
+            Self::CorpusAlignment => fmt.write_str("the whole-corpus alignment fit refused"),
+            Self::ZeroCommonMode => {
                 fmt.write_str("the zero-field common-mode fit onto the boundary snapshot refused")
             }
-            Self::GaugeFitRefused => {
+            Self::Gauge => {
                 fmt.write_str("the gauge fit over the whole-field anchor constellations refused")
             }
-            Self::GaugeResidualNonFinite => {
-                fmt.write_str("the gauge fit's residual left the finite range")
-            }
-            Self::ReferenceFitRefused => fmt
+            Self::ReferenceConfiguration => fmt
                 .write_str("the reference-configuration gauge fit onto the frozen anchors refused"),
-            Self::ReferenceResidualNonFinite => {
-                fmt.write_str("the reference-configuration residual left the finite range")
-            }
-            Self::AffineFitRefused => {
-                fmt.write_str("the affine fit over the gauge population refused")
-            }
-            Self::AffineResidualNonFinite => {
-                fmt.write_str("the affine residual left the finite range")
-            }
+            Self::Affine => fmt.write_str("the affine fit over the gauge population refused"),
         }
     }
 }
@@ -269,14 +253,14 @@ pub(crate) struct EvidenceReferences<'run, N> {
 impl EvaluationEvidence {
     /// Assembles one evaluation's evidence reading.
     ///
-    /// The whole-field fits run first, and their own validity scans certify every row of
-    /// both live fields finite before any per-row reading derives from them. The gauge,
-    /// reference-configuration, and affine fits then read the anchor constellations gathered
-    /// from those same fields, so every end of the recorded frame bridge derives from one
-    /// field realization and the composition is exact on it. The objective-shape fit arrives
-    /// as its own recorded reading and enters no bridge. The displacement and saturation
-    /// families fold per row in one serial pass each - the reading runs per evaluation, far
-    /// off the per-step enforcement path.
+    /// The live fields arrive proven from their readback boundaries, so every reading -
+    /// the whole-field fits and each per-row family - derives from proven-finite
+    /// coordinates. The gauge, reference-configuration, and affine fits read the anchor
+    /// constellations gathered from those same fields, so every end of the recorded frame
+    /// bridge derives from one field realization and the composition is exact on it. The
+    /// objective-shape fit arrives as its own recorded reading and enters no bridge. The
+    /// displacement and saturation families fold per row in one serial pass each - the reading
+    /// runs per evaluation, far off the per-step enforcement path.
     ///
     /// The fields, the projection centre, and the strata share one row domain - a wiring
     /// contract checked in debug builds, since all of them come from one generation.
@@ -288,8 +272,8 @@ impl EvaluationEvidence {
         step: usize,
         references: &EvidenceReferences<'_, N>,
         fit: &GaugeFit,
-        canonical: &IdSlice<N, Vec2>,
-        zero: &IdSlice<N, Vec2>,
+        canonical: &FinitePointField<N>,
+        zero: &FinitePointField<N>,
     ) -> Result<Self, EvidenceRefusal>
     where
         N: Id,
@@ -310,54 +294,41 @@ impl EvaluationEvidence {
             "the strata and the fields should cover the same rows"
         );
 
-        let corpus_similarity = Similarity::fit_uniform_par(canonical.as_raw(), zero.as_raw())
-            .ok_or(EvidenceRefusal::CorpusFitRefused)?;
-        let zero_similarity =
-            Similarity::fit_uniform_par(zero.as_raw(), references.projection.centre().as_raw())
-                .ok_or(EvidenceRefusal::ZeroFitRefused)?;
+        let corpus_similarity =
+            Similarity::fit_uniform_par(canonical, zero).ok_or(EvidenceRefusal::CorpusAlignment)?;
+        let zero_similarity = Similarity::fit_uniform_par(zero, references.projection.centre())
+            .ok_or(EvidenceRefusal::ZeroCommonMode)?;
 
         let anchors = references.anchors;
-        let canonical_anchors: Vec<Vec2> =
-            anchors.rows().iter().map(|&row| canonical[row]).collect();
-        let zero_anchors: Vec<Vec2> = anchors.rows().iter().map(|&row| zero[row]).collect();
-        let frozen_anchors: Vec<Vec2> = anchors
-            .rows()
-            .iter()
-            .map(|&row| references.projection.centre()[row])
-            .collect();
+        let canonical_anchors: Box<FinitePointField<GaugeOrdinal>> =
+            canonical.gather(anchors.rows());
+        let zero_anchors = zero.gather(anchors.rows());
+        let frozen_anchors = references.projection.centre().gather(anchors.rows());
         let gauge_spread = anchors.frozen_spread().widen();
 
         let gauge = Similarity::fit_uniform_par(&canonical_anchors, &zero_anchors)
-            .ok_or(EvidenceRefusal::GaugeFitRefused)?;
+            .ok_or(EvidenceRefusal::Gauge)?;
         // The similarity's scale domain is strictly positive normal by its own constructors.
         let scale = Positive::new_unchecked(gauge.scale().get());
-        let residual = gauge
-            .rms_residual_par(&canonical_anchors, &zero_anchors)
-            .ok_or(EvidenceRefusal::GaugeResidualNonFinite)?
-            / gauge_spread;
+        let residual = gauge.rms_residual_par(&canonical_anchors, &zero_anchors) / gauge_spread;
 
         let reference = Similarity::fit_uniform_par(&canonical_anchors, &frozen_anchors)
-            .ok_or(EvidenceRefusal::ReferenceFitRefused)?;
+            .ok_or(EvidenceRefusal::ReferenceConfiguration)?;
         // The similarity's scale domain is strictly positive normal by its own constructors.
         let reference_scale = Positive::new_unchecked(reference.scale().get());
-        let reference_residual = reference
-            .rms_residual_par(&canonical_anchors, &frozen_anchors)
-            .ok_or(EvidenceRefusal::ReferenceResidualNonFinite)?
-            / gauge_spread;
+        let reference_residual =
+            reference.rms_residual_par(&canonical_anchors, &frozen_anchors) / gauge_spread;
 
         let affine = Transform::fit_uniform(&canonical_anchors, &zero_anchors)
-            .ok_or(EvidenceRefusal::AffineFitRefused)?;
-        let affine_residual = affine
-            .rms_residual(&canonical_anchors, &zero_anchors)
-            .ok_or(EvidenceRefusal::AffineResidualNonFinite)?
-            / gauge_spread;
+            .ok_or(EvidenceRefusal::Affine)?;
+        let affine_residual = affine.rms_residual(&canonical_anchors, &zero_anchors) / gauge_spread;
 
         let mut families: BTreeMap<StratumId, Vec<DFinite>> = BTreeMap::new();
         for &row in anchors.rows() {
             let displacement = (DVec2::from(zero[row])
                 - DVec2::from(references.projection.centre()[row]))
             .norm_squared();
-            // Finite with no check. The whole-field fits above certified every coordinate
+            // Finite with no check. The field proofs above certified every coordinate
             // finite, and a widened f32 difference squares within the f64 range, so the root
             // is finite too.
             families
@@ -413,7 +384,7 @@ impl EvaluationEvidence {
 /// A row counts as saturated when its squared zero-field displacement from its projection
 /// centre reaches the floor. One entry per populated stratum, in ascending stratum order.
 fn saturation_tallies<N>(
-    zero: &IdSlice<N, Vec2>,
+    zero: &FinitePointField<N>,
     projection: &BandProjection<N>,
     strata: &IdSlice<N, StratumId>,
 ) -> Vec<SaturationStratum>

@@ -59,7 +59,7 @@ use super::{
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, Dataset, PROJECTOR_DIMENSIONS},
     identity::NodeRowId,
-    math::{AlignedVecN, BoxedVecN, Vec2},
+    math::{AlignedVecN, BoxedVecN, FinitePointField},
     random::{sample_indices_vec, uniform_below},
 };
 
@@ -78,7 +78,7 @@ mod readings;
 pub(crate) struct ProbeCorpus<'corpus, N> {
     node_ids: &'corpus IdSlice<NodeRowId, N>,
     representations: &'corpus IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
-    coordinates: &'corpus IdSlice<NodeRowId, Vec2>,
+    coordinates: &'corpus FinitePointField<NodeRowId>,
     clumps: Option<&'corpus Clumps<NodeRowId>>,
 }
 
@@ -93,7 +93,7 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
     pub(crate) fn new(
         node_ids: &'corpus IdSlice<NodeRowId, N>,
         representations: &'corpus IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
-        coordinates: &'corpus IdSlice<NodeRowId, Vec2>,
+        coordinates: &'corpus FinitePointField<NodeRowId>,
     ) -> Self {
         assert_eq!(
             node_ids.len(),

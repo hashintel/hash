@@ -13,8 +13,8 @@ use hashql_core::{
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{BUCKET_ROWS, KdNeighbour, KdTree, NonFinitePoint};
-use crate::math::{DNonNegative, Vec2};
+use super::{BUCKET_ROWS, KdNeighbour, KdTree};
+use crate::math::{DNonNegative, FinitePointField, Vec2};
 
 hashql_core::id::newtype! {
     /// The test frames' row domain.
@@ -22,9 +22,9 @@ hashql_core::id::newtype! {
     struct RowId(u32)
 }
 
-/// Views a point slice as a frame over the test row domain.
-fn frame(points: &[Vec2]) -> &IdSlice<RowId, Vec2> {
-    IdSlice::from_raw(points)
+/// Views a finite point slice as a proven frame over the test row domain.
+fn frame(points: &[Vec2]) -> &FinitePointField<RowId> {
+    FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }
 
 /// Selects the `k` nearest rows by sorting every other row's reading, the reference a readout
@@ -47,7 +47,7 @@ fn full_scan(frame: &IdSlice<RowId, Vec2>, row: RowId, k: usize) -> Vec<KdNeighb
 /// Asserts every row's readout equals the full scan, for each of the given `k`.
 fn assert_matches_full_scan(points: &[Vec2], ks: &[usize]) {
     let frame = frame(points);
-    let tree = KdTree::build(frame).expect("the frame is finite");
+    let tree = KdTree::build(frame);
     for &k in ks {
         let k = NonZero::new(k).expect("test k values are nonzero");
         for row in frame.ids() {
@@ -127,7 +127,7 @@ fn duplicated_positions_resolve_ties_by_row() {
 fn a_fully_co_located_frame_orders_by_row_alone() {
     // Forty rows exceed one leaf bucket, so construction takes the over-full soft-bucket path.
     let points = vec![Vec2::new(2.5, -3.5); BUCKET_ROWS + 8];
-    let tree = KdTree::build(frame(&points)).expect("the frame is finite");
+    let tree = KdTree::build(frame(&points));
 
     let neighbours = tree.nearest(RowId::new(11), NonZero::new(7).expect("seven is nonzero"));
 
@@ -164,7 +164,7 @@ fn collinear_frames_stay_exact() {
 #[test]
 fn k_at_least_the_frame_returns_every_other_row() {
     let points = scattered(11, 33);
-    let tree = KdTree::build(frame(&points)).expect("the frame is finite");
+    let tree = KdTree::build(frame(&points));
 
     let neighbours = tree.nearest(
         RowId::new(0),
@@ -182,7 +182,7 @@ fn the_query_row_is_never_a_readout_while_its_co_located_rows_are() {
     let mut points = scattered(13, 20);
     // Rows 3 and 17 sit exactly on the query row 3's position.
     points[17] = points[3];
-    let tree = KdTree::build(frame(&points)).expect("the frame is finite");
+    let tree = KdTree::build(frame(&points));
 
     let neighbours = tree.nearest(
         RowId::new(3),
@@ -206,7 +206,7 @@ fn the_query_row_is_never_a_readout_while_its_co_located_rows_are() {
 #[test]
 fn a_scratch_arena_serves_readouts_across_resets() {
     let points = scattered(17, 120);
-    let tree = KdTree::build(frame(&points)).expect("the frame is finite");
+    let tree = KdTree::build(frame(&points));
     let k = NonZero::new(9).expect("nine is nonzero");
 
     let mut scratch = Scratch::new();
@@ -220,22 +220,10 @@ fn a_scratch_arena_serves_readouts_across_resets() {
 }
 
 #[test]
-fn build_rejects_the_first_non_finite_point() {
-    let mut points = scattered(19, 8);
-    points[3] = Vec2::new(f32::NAN, 0.0);
-    points[5] = Vec2::new(0.0, f32::INFINITY);
-
-    assert_eq!(
-        KdTree::build(frame(&points)).expect_err("a NaN component is non-finite"),
-        NonFinitePoint { id: RowId::new(3) }
-    );
-}
-
-#[test]
 #[should_panic = "row 5 is not a frame row"]
 fn a_query_for_a_row_outside_the_frame_panics() {
     let points = scattered(23, 5);
-    let tree = KdTree::build(frame(&points)).expect("the frame is finite");
+    let tree = KdTree::build(frame(&points));
 
     let _readout = tree.nearest(RowId::new(5), NonZero::new(1).expect("one is nonzero"));
 }
@@ -251,7 +239,7 @@ fn point_readouts_equal_the_full_scan() {
                 .chain(points.iter().copied())
                 .collect();
             let frame = frame(&points);
-            let tree = KdTree::build(frame).expect("the frame is finite");
+            let tree = KdTree::build(frame);
             for k in [1, 2, 7, 50, rows, rows + 7] {
                 let bound = NonZero::new(k).expect("test k values are nonzero");
                 for &point in &queries {
@@ -274,7 +262,7 @@ fn a_point_query_excludes_no_row() {
         Vec2::new(0.0, 2.0),
     ];
     let frame = frame(&points);
-    let tree = KdTree::build(frame).expect("the frame is finite");
+    let tree = KdTree::build(frame);
     let k = NonZero::new(2).expect("two is nonzero");
 
     // A row query from row 1 excludes row 1 itself.
@@ -298,7 +286,7 @@ fn a_point_query_excludes_no_row() {
 
 #[test]
 fn an_empty_frame_builds_and_a_point_readout_returns_nothing() {
-    let tree = KdTree::build(frame(&[])).expect("an empty frame is finite");
+    let tree = KdTree::build(frame(&[]));
 
     let readout = tree.nearest_point(
         Vec2::new(0.0, 0.0),
@@ -311,7 +299,7 @@ fn an_empty_frame_builds_and_a_point_readout_returns_nothing() {
 #[should_panic = "the query point is finite"]
 fn a_non_finite_query_point_panics() {
     let points = scattered(37, 8);
-    let tree = KdTree::build(frame(&points)).expect("the frame is finite");
+    let tree = KdTree::build(frame(&points));
 
     let _readout = tree.nearest_point(
         Vec2::new(f32::NAN, 0.0),

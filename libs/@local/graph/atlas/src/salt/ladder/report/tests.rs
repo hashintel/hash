@@ -9,8 +9,13 @@ use hashql_core::id::{Id as _, IdSlice};
 use super::{EdgeTerm, argmax, certify, contract, displace};
 use crate::{
     identity::NodeRowId,
-    math::{Vec2, d_finite},
+    math::{FinitePointField, Vec2, d_finite, d_non_negative},
 };
+
+/// Wraps fixture points every test states as finite literals.
+fn field(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
+    FinitePointField::new_unchecked(IdSlice::from_raw(points))
+}
 
 /// The engaged pair of mass 3 contracts by 2 and the pair of mass 1 expands by 3.
 ///
@@ -32,20 +37,16 @@ fn contraction_weighs_the_trainer_mass() {
         EdgeTerm {
             source: NodeRowId::from_usize(0),
             target: NodeRowId::from_usize(1),
-            mass: 3.0,
+            mass: d_non_negative!(3.0),
         },
         EdgeTerm {
             source: NodeRowId::from_usize(0),
             target: NodeRowId::from_usize(2),
-            mass: 1.0,
+            mass: d_non_negative!(1.0),
         },
     ];
 
-    let reading = contract(
-        IdSlice::from_raw(&baseline),
-        IdSlice::from_raw(&frame),
-        terms,
-    );
+    let reading = contract(field(&baseline), field(&frame), terms);
 
     assert_eq!(reading.edge_count, 2);
     assert!((f64::from(reading.total_mass) - 4.0).abs() < 1e-12);
@@ -70,14 +71,10 @@ fn contraction_ties_do_not_count() {
     let terms = [EdgeTerm {
         source: NodeRowId::from_usize(0),
         target: NodeRowId::from_usize(1),
-        mass: 7.0,
+        mass: d_non_negative!(7.0),
     }];
 
-    let reading = contract(
-        IdSlice::from_raw(&baseline),
-        IdSlice::from_raw(&frame),
-        terms,
-    );
+    let reading = contract(field(&baseline), field(&frame), terms);
 
     assert_eq!(reading.edge_count, 1);
     assert!(f64::from(reading.contracted_fraction).abs() < 1e-12);
@@ -92,8 +89,8 @@ fn contraction_of_nothing_is_zero() {
     let frame = [Vec2::new(1.0, 1.0)];
 
     let reading = contract(
-        IdSlice::<NodeRowId, Vec2>::from_raw(&baseline),
-        IdSlice::from_raw(&frame),
+        field(&baseline),
+        field(&frame),
         core::iter::empty::<EdgeTerm>(),
     );
 
@@ -122,23 +119,13 @@ fn displacement_splits_on_the_participant_mask() {
     ];
     let participant = [true, false, true];
 
-    let engaged = displace(
-        IdSlice::from_raw(&baseline),
-        IdSlice::from_raw(&frame),
-        &participant,
-        true,
-    );
+    let engaged = displace(field(&baseline), field(&frame), &participant, true);
     assert_eq!(engaged.rows, 2);
     assert!((f64::from(engaged.mean) - 2.5).abs() < 1e-12);
     assert!((f64::from(engaged.rms) - 12.5_f64.sqrt()).abs() < 1e-12);
     assert!((f64::from(engaged.max) - 5.0).abs() < 1e-12);
 
-    let bystanders = displace(
-        IdSlice::from_raw(&baseline),
-        IdSlice::from_raw(&frame),
-        &participant,
-        false,
-    );
+    let bystanders = displace(field(&baseline), field(&frame), &participant, false);
     assert_eq!(bystanders.rows, 1);
     assert!((f64::from(bystanders.mean) - 1.0).abs() < 1e-12);
     assert!((f64::from(bystanders.rms) - 1.0).abs() < 1e-12);
@@ -173,7 +160,7 @@ fn certificate_reports_the_measured_residual() {
     let published = [Vec2::new(0.0, 0.0), Vec2::new(1.0, shifted)];
     let expected = f64::from(shifted - 1.0_f32);
 
-    let certificate = certify(&rebuilt, &published);
+    let certificate = certify(field(&rebuilt), field(&published));
 
     assert!((f64::from(certificate.max_absolute_error) - expected).abs() < 1e-15);
     assert!((f64::from(certificate.mean_absolute_error) - expected / 4.0).abs() < 1e-15);
@@ -187,5 +174,5 @@ fn certificate_refuses_at_the_bound() {
     let rebuilt = [Vec2::new(0.0, 0.0)];
     let published = [Vec2::new(2.0e-3, 0.0)];
 
-    let _certificate = certify(&rebuilt, &published);
+    let _certificate = certify(field(&rebuilt), field(&published));
 }

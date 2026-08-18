@@ -129,7 +129,12 @@ impl DPositive {
     // rather than UB. Revisit if the value ever feeds an unchecked index.
     #[inline]
     #[must_use]
-    pub(crate) const fn new_unchecked(value: f64) -> Self {
+    pub(crate) const fn new_unchecked<T>(value: T) -> Self
+    where
+        T: [const] Into<f64>,
+    {
+        let value = value.into();
+
         debug_assert!(
             value.is_finite() && value > 0.0,
             "the caller promised a finite positive value",
@@ -167,6 +172,17 @@ impl DPositive {
     #[must_use]
     pub(crate) const fn mul_add(self, factor: DNonNegative, addend: Self) -> Self {
         Self::new_unchecked(self.0.mul_add(factor.get(), addend.0))
+    }
+
+    /// Divides, refusing the escape.
+    ///
+    /// The quotient of positives is never NaN and never negative. Returns [`None`] exactly when
+    /// the quotient leaves the domain, overflowing to `+∞` or underflowing to zero, where the
+    /// plain division would escape and assert.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn checked_div(self, rhs: Self) -> Option<Self> {
+        Self::new(self.0 / rhs.0)
     }
 }
 
@@ -241,8 +257,9 @@ const impl core::ops::Div<DPositive> for f64 {
 
     /// Divides a double-precision measurement by the positive value, staying in `f64`.
     ///
-    /// The divisor is never zero and never NaN, so a NaN or infinite quotient arrives only
-    /// through the numerator.
+    /// The divisor is never zero and never NaN, so a NaN quotient arrives only through the
+    /// numerator. An infinite quotient arrives through the numerator or through overflow
+    /// against a small divisor.
     #[inline]
     fn div(self, rhs: DPositive) -> f64 {
         self / rhs.0
@@ -260,6 +277,34 @@ const impl core::ops::Div for DPositive {
     #[inline]
     fn div(self, rhs: DPositive) -> DPositive {
         DPositive::new_unchecked(self.0 / rhs.0)
+    }
+}
+
+const impl core::ops::Sub for DPositive {
+    type Output = DFinite;
+
+    /// Subtracts, into the finite domain.
+    ///
+    /// The difference of two positive finite values is finite, with no re-validation: its
+    /// magnitude never exceeds the larger operand, so the subtraction cannot overflow. Equal
+    /// operands give `+0.0`.
+    #[inline]
+    fn sub(self, rhs: Self) -> DFinite {
+        DFinite::new_unchecked(self.0 - rhs.0)
+    }
+}
+
+const impl core::ops::Div<DNonNegative> for DPositive {
+    type Output = f64;
+
+    /// Divides by a non-negative value, leaving the domain.
+    ///
+    /// A zero divisor sends the quotient to `+∞`, so the result is a raw float. The caller
+    /// re-enters a domain at whichever boundary proves the bound, and a NaN cannot arise: the
+    /// dividend is positive.
+    #[inline]
+    fn div(self, rhs: DNonNegative) -> f64 {
+        self.0 / rhs.get()
     }
 }
 

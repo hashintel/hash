@@ -1,6 +1,6 @@
 //! Derivations from the bound artifacts: energies, anchors, gathers, and coefficients.
 
-use hashql_core::id::{Id, IdSlice, IdVec};
+use hashql_core::id::{Id, IdSlice};
 
 use super::super::{
     super::ProjectorOptions,
@@ -8,7 +8,7 @@ use super::super::{
 };
 use crate::{
     identity::NodeRowId,
-    math::{DNonNegative, DPositive, NonNegative, Positive, Vec2},
+    math::{DNonNegative, DPositive, FinitePointField, NonNegative, Positive, Vec2},
     salt::{
         landmark::artifact::LandmarkSkeletonArchive,
         projector::{
@@ -72,14 +72,10 @@ pub(super) fn landmark_anchors(
 
 /// Gathers a corpus frame's rows at the quotient's first rows: the training domain's own frame.
 pub(super) fn gather_distinct(
-    frame: &IdSlice<NodeRowId, Vec2>,
+    frame: &FinitePointField<NodeRowId>,
     quotient: &RowQuotient,
-) -> IdVec<DistinctRowId, Vec2> {
-    quotient
-        .first_rows()
-        .iter()
-        .map(|&row| frame[row])
-        .collect()
+) -> Box<FinitePointField<DistinctRowId>> {
+    frame.gather(quotient.first_rows())
 }
 
 /// Computes one landmark's median layout distance to its nearest skeleton neighbours.

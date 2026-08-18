@@ -18,15 +18,15 @@ use super::{FrozenRuler, InvalidRuler, RulerFloor, RulerParameters};
 use crate::{
     identity::NodeRowId,
     math::{
-        DNonNegative, DPositive, FinitePointCloud, NonNegative, Positive, PositiveUnitFraction,
+        DNonNegative, DPositive, FinitePointField, NonNegative, Positive, PositiveUnitFraction,
         Vec2,
     },
     salt::knn::table::{Knn, KnnMatrix},
 };
 
 /// Views a finite coordinate array as the freeze's proven-finite boundary field.
-fn frame(points: &[Vec2]) -> &FinitePointCloud<NodeRowId> {
-    FinitePointCloud::new_unchecked(IdSlice::from_raw(points))
+fn frame(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
+    FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }
 
 /// A neighbour table from per-row `(column, stored distance)` lists in ascending column
@@ -150,7 +150,7 @@ fn live_scales_read_the_frozen_sets_not_a_reselection() {
     let mut live = boundary;
     live[5] = Vec2::new(100.0, 0.0);
     let scales = ruler
-        .live_scales(IdSlice::from_raw(&live))
+        .live_scales(frame(&live))
         .expect("the live fixture is finite");
     assert_eq!(scales[NodeRowId::new(0)].get(), 10.0);
 }
@@ -185,7 +185,7 @@ fn staleness_stays_within_twice_the_band() {
         })
         .collect();
     let scales = ruler
-        .live_scales(IdSlice::from_raw(&live))
+        .live_scales(frame(&live))
         .expect("the live fixture is finite");
 
     for row in 0..rows {

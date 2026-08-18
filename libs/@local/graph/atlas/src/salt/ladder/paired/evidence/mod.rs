@@ -31,7 +31,7 @@ use super::{
 };
 use crate::{
     identity::NodeRowId,
-    math::{DFinite, DNonNegative, NonFinitePoint, UnitFraction},
+    math::{DFinite, DNonNegative, Derivation, UnitFraction},
 };
 
 /// The collateral stratum count.
@@ -215,9 +215,9 @@ impl MovementAggregate {
 
         // One fixed serial fold in draw order. `Iterator::sum` happens to fold in order too,
         // but the loop states the contract rather than inheriting it.
-        let mut sum = 0.0_f64;
+        let mut sum = Derivation::<DFinite>::ZERO;
         for &reading in readings {
-            sum += reading.get();
+            sum += reading;
         }
         #[expect(
             clippy::cast_precision_loss,
@@ -226,7 +226,7 @@ impl MovementAggregate {
         // Finite with no check. Every reading is a frame distance difference or a rank
         // difference, bounded below 2¹³¹. The population is bounded by the corpus rows, below
         // 2³². The serial fold therefore stays below 2¹⁶³, far inside the `f64` exponent range.
-        let mean = DFinite::new_unchecked(sum / readings.len() as f64);
+        let mean = DFinite::new_unchecked(sum.into_raw() / readings.len() as f64);
 
         let mut sorted = readings.to_vec();
         sorted.sort_unstable();
@@ -332,7 +332,8 @@ impl ControlDecile {
 ///
 /// Each variant mirrors its producer field for field, so the persisted reason names exactly
 /// what refused. [`CensusError`] supplies the index contradictions and [`MovementError`] the
-/// frame refusals.
+/// row-count contradiction; a non-finite frame never reaches the readout, because the frames
+/// arrive as proven-finite fields.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "cause")]
 pub(crate) enum FailureReason<I> {
@@ -363,23 +364,6 @@ pub(crate) enum FailureReason<I> {
         /// The canonical frame's row count.
         canonical: u64,
     },
-    /// A rung frame has a point with a NaN or infinite component.
-    NonFinitePoint {
-        /// The refusing frame's rung.
-        rung: Rung,
-        /// The first row whose point is non-finite.
-        row: I,
-    },
-}
-
-impl<I> FailureReason<I> {
-    /// Translates one rung frame's index refusal.
-    fn frame(rung: Rung, error: NonFinitePoint<I>) -> Self {
-        Self::NonFinitePoint {
-            rung,
-            row: error.id,
-        }
-    }
 }
 
 impl<I> From<CensusError<I>> for FailureReason<I> {
@@ -408,20 +392,8 @@ impl From<MovementError> for FailureReason<NodeRowId> {
                 zero: zero as u64,
                 canonical: canonical as u64,
             },
-            MovementError::Zero(error) => Self::frame(Rung::Zero, error),
-            MovementError::Canonical(error) => Self::frame(Rung::Canonical, error),
         }
     }
-}
-
-/// The rung frame a failure names.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub(crate) enum Rung {
-    /// The zero-condition frame.
-    Zero,
-    /// The canonical frame.
-    Canonical,
 }
 
 /// Reads the nearest-rank quantile at `fraction` over ascending readings.

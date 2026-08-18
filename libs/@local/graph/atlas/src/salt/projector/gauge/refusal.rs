@@ -55,12 +55,6 @@ pub(crate) enum GaugeRefusal {
         /// The affected anchor.
         ordinal: GaugeOrdinal,
     },
-    /// One anchor's coordinate arrived non-finite, naming the anchor: the constellation
-    /// cannot be measured.
-    NonFiniteAnchor {
-        /// The affected anchor.
-        ordinal: GaugeOrdinal,
-    },
 }
 
 impl fmt::Display for GaugeRefusal {
@@ -92,10 +86,6 @@ impl fmt::Display for GaugeRefusal {
             Self::NonFiniteAdjoint { ordinal } => write!(
                 fmt,
                 "the scale adjoint of gauge anchor {ordinal} left the finite range",
-            ),
-            Self::NonFiniteAnchor { ordinal } => write!(
-                fmt,
-                "gauge anchor {ordinal} arrived with a NaN or infinite coordinate",
             ),
         }
     }

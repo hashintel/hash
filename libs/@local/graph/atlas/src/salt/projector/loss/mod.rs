@@ -42,7 +42,9 @@ pub(crate) use self::{
 };
 use crate::{
     identity::OntologyRowId,
-    math::{DVec2, NonNegative, Positive, PositiveUnitFraction, UnitFraction, Vec2},
+    math::{
+        DVec2, FinitePointField, NonNegative, Positive, PositiveUnitFraction, UnitFraction, Vec2,
+    },
     salt::{
         projector::scale::LocalScales,
         relation::{attraction::AttractionWeights, protection::NodePair},
@@ -157,7 +159,7 @@ where
 /// This panics when a pair references a row outside `coordinates` or `field`. Pairs and coordinates
 /// come from one batch assembly, so a mismatch is a wiring defect.
 pub(crate) fn attraction_term<N>(
-    coordinates: &IdSlice<N, Vec2>,
+    coordinates: &FinitePointField<N>,
     pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
     energy: AffinityEnergy,
     scale: f32,
@@ -182,7 +184,7 @@ where
 /// This panics when a pair references a row outside `coordinates` or `field`. Pairs and coordinates
 /// come from one batch assembly, so a mismatch is a wiring defect.
 pub(crate) fn repulsion_term<N>(
-    coordinates: &IdSlice<N, Vec2>,
+    coordinates: &FinitePointField<N>,
     pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
     energy: AffinityEnergy,
     scale: f32,
@@ -198,7 +200,7 @@ where
 
 /// Evaluates the shared affinity-term loop: value plus chain rule through the squared distance.
 fn affinity_term<N>(
-    coordinates: &IdSlice<N, Vec2>,
+    coordinates: &FinitePointField<N>,
     pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
     scale: f32,
     field: &mut GradientField<N>,
@@ -247,7 +249,7 @@ where
 /// This panics when the scales do not cover the coordinate rows, or when an edge references a row
 /// outside them. All three come from one batch assembly, so a mismatch is a wiring defect.
 pub(crate) fn relation_term<N>(
-    coordinates: &IdSlice<N, Vec2>,
+    coordinates: &FinitePointField<N>,
     scales: &LocalScales<N>,
     batch: &[RelationEdges<N>],
     energy: RelationEnergy,

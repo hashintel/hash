@@ -8,6 +8,7 @@ use core::{
     simd::{Mask, Simd, cmp::SimdPartialOrd as _, num::SimdFloat as _},
 };
 
+use hashql_core::id::Id;
 use rayon::{
     iter::{IndexedParallelIterator as _, IntoParallelIterator as _, ParallelIterator as _},
     slice::ParallelSlice as _,
@@ -15,7 +16,7 @@ use rayon::{
 
 use super::Similarity;
 use crate::math::{
-    NonNegative,
+    FinitePointField, NonNegative,
     dvec2::{DVec2, DVec2x4T},
     rotation::Rotation,
     scalar::narrow_f32,
@@ -118,15 +119,16 @@ impl Similarity {
             .solve()
     }
 
-    /// Fits the unweighted Procrustes alignment of paired points.
+    /// Fits the unweighted Procrustes alignment of paired fields.
     ///
     /// Equivalent to [`fit`](Self::fit) with every weight `1.0`, without materializing a weight
-    /// slice. The uniform moments accumulate directly, so aligning corpus-scale fields costs no
-    /// allocation.
+    /// slice. The fields carry the finiteness proof, so the uniform moments accumulate with no
+    /// validity scan, and aligning corpus-scale fields costs no allocation.
     ///
-    /// Returns [`None`] under [`fit`](Self::fit)'s data-dependent cases that remain reachable with
-    /// uniform weights. These are differing slice lengths, fewer than two pairs, a non-finite
-    /// coordinate, coincident source points, and an exactly cancelling covariance.
+    /// Returns [`None`] when the field lengths differ, the caller passes fewer than two pairs,
+    /// the source points are coincident, the pairs do not determine an orientation (the
+    /// covariance cancels exactly), or the resulting coefficients leave the `f32` range that
+    /// [`new`](Self::new) accepts.
     ///
     /// # Examples
     ///
@@ -140,19 +142,26 @@ impl Similarity {
     /// ];
     /// let target = source.map(|point| expected.apply(point));
     ///
-    /// let fitted = Similarity::fit_uniform(&source, &target).expect("the pairs are exact");
+    /// let source = FinitePointField::new(IdSlice::<RowId, _>::from_raw(&source))
+    ///     .expect("the sources are finite");
+    /// let target = FinitePointField::new(IdSlice::from_raw(&target))
+    ///     .expect("exact images of finite points are finite");
+    /// let fitted = Similarity::fit_uniform(source, target).expect("the pairs are exact");
     /// assert!((fitted.scale() - expected.scale()).abs() < 1e-5);
     /// ```
     #[must_use]
-    pub(crate) fn fit_uniform(source: &[Vec2], target: &[Vec2]) -> Option<Self> {
+    pub(crate) fn fit_uniform<I: Id>(
+        source: &FinitePointField<I>,
+        target: &FinitePointField<I>,
+    ) -> Option<Self> {
         if source.len() != target.len() || source.len() < 2 {
             return None;
         }
 
-        FitSums::from_slices_uniform(source, target).solve()
+        FitSums::from_slices_uniform(source.as_raw(), target.as_raw()).solve()
     }
 
-    /// Fits the unweighted Procrustes alignment of large inputs in parallel.
+    /// Fits the unweighted Procrustes alignment of large fields in parallel.
     ///
     /// The contract is identical to [`fit_uniform`](Self::fit_uniform). The chunked reduction
     /// carries [`fit_par`](Self::fit_par)'s units-in-the-last-place caveat and the same break-even
@@ -160,14 +169,18 @@ impl Similarity {
     /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
     #[inline]
     #[must_use]
-    pub(crate) fn fit_uniform_par(source: &[Vec2], target: &[Vec2]) -> Option<Self> {
+    pub(crate) fn fit_uniform_par<I: Id>(
+        source: &FinitePointField<I>,
+        target: &FinitePointField<I>,
+    ) -> Option<Self> {
         if source.len() != target.len() || source.len() < 2 {
             return None;
         }
 
         source
+            .as_raw()
             .par_chunks(Self::PARALLEL_CHUNK.get())
-            .zip(target.par_chunks(Self::PARALLEL_CHUNK.get()))
+            .zip(target.as_raw().par_chunks(Self::PARALLEL_CHUNK.get()))
             .map(|(source, target)| FitSums::from_slices_uniform(source, target))
             .reduce_with(FitSums::combine)?
             .solve()
@@ -183,6 +196,9 @@ impl Similarity {
 #[derive(Debug, Copy, Clone)]
 struct FitSums {
     /// Whether every coordinate is finite and every weight finite and non-negative.
+    ///
+    /// The weighted pass scans for it; the uniform pass holds it by construction over its
+    /// proven-finite fields.
     valid: bool,
     /// The total weight `sum(w)`.
     weight: f64,
@@ -278,32 +294,33 @@ impl FitSums {
     /// Accumulates the raw moments of the paired slices under uniform unit weights.
     ///
     /// The slices carry equal lengths; the `fit_uniform` entry points check this once before
-    /// accumulating. The total weight is the exact pair count, and every weighted moment
-    /// degenerates to its plain sum, so the pass reads two slices instead of three.
+    /// accumulating. They also arrive from proven-finite fields, so the pass runs no validity
+    /// scan and `valid` holds by construction. The total weight is the exact pair count, and
+    /// every weighted moment degenerates to its plain sum, so the pass reads two slices instead
+    /// of three.
     #[expect(
         clippy::cast_precision_loss,
         reason = "pair counts remain exactly representable in f64 far beyond any corpus"
     )]
     fn from_slices_uniform(source: &[Vec2], target: &[Vec2]) -> Self {
+        debug_assert!(
+            source.iter().chain(target).all(|point| point.is_finite()),
+            "the callers promised proven-finite fields",
+        );
+
         let (source_batches, source_rest) = source.as_chunks::<4>();
         let (target_batches, target_rest) = target.as_chunks::<4>();
 
-        let mut valid = Mask::<i32, 8>::splat(true);
         let mut source_sum = DVec2x4T::ZERO;
         let mut target_sum = DVec2x4T::ZERO;
         let mut dot_sum = Simd::splat(0.0_f64);
         let mut perp_sum = Simd::splat(0.0_f64);
         let mut norm_sum = Simd::splat(0.0_f64);
         for (source, target) in source_batches.iter().zip(target_batches) {
-            let source = Vec2x4::from(*source);
-            let target = Vec2x4::from(*target);
-
-            valid &= source.to_simd().is_finite() & target.to_simd().is_finite();
-
             // Widening is exact and each product of two widened values fits in `f64`'s 53-bit
             // significand, exactly as in the weighted pass. Only the running additions round.
-            let source = DVec2x4T::from(Vec2x4T::from(source));
-            let target = DVec2x4T::from(Vec2x4T::from(target));
+            let source = DVec2x4T::from(Vec2x4T::from(Vec2x4::from(*source)));
+            let target = DVec2x4T::from(Vec2x4T::from(Vec2x4::from(*target)));
 
             source_sum += source;
             target_sum += target;
@@ -313,7 +330,7 @@ impl FitSums {
         }
 
         let mut sums = Self {
-            valid: valid.all(),
+            valid: true,
             weight: source.len() as f64,
             source: source_sum.reduce_sum(),
             target: target_sum.reduce_sum(),
@@ -323,8 +340,6 @@ impl FitSums {
         };
 
         for (&source, &target) in source_rest.iter().zip(target_rest) {
-            sums.valid &= source.is_finite() && target.is_finite();
-
             let source = DVec2::from(source);
             let target = DVec2::from(target);
 

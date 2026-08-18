@@ -18,7 +18,9 @@ use crate::{
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AffinityCurve, NonNegative, PositiveUnitFraction, UnitFraction, Vec2},
+    math::{
+        AffinityCurve, FinitePointField, NonNegative, PositiveUnitFraction, UnitFraction, Vec2,
+    },
     salt::{embedding::EmbedderFingerprint, fit::FitConfig, landmark::select::SelectionOptions},
 };
 
@@ -105,7 +107,7 @@ pub(super) fn edge(source: u64, target: u64) -> EdgeRecord<NodeRowId, EdgeRowId>
     )
 }
 
-/// Views a point slice as a corpus-row frame.
-pub(super) fn frame(points: &[Vec2]) -> &IdSlice<NodeRowId, Vec2> {
-    IdSlice::from_raw(points)
+/// Views a finite point slice as a proven corpus-row frame.
+pub(super) fn frame(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
+    FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }

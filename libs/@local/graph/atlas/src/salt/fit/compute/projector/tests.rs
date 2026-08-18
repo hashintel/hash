@@ -39,8 +39,9 @@ use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{
-        AffinityCurve, AlignedVecN, BoxedVecN, DNonNegative, NonNegative, Positive, Similarity,
-        UnitFraction, Vec2, d_non_negative, d_positive, non_negative, open_unit_fraction, positive,
+        AffinityCurve, AlignedVecN, BoxedVecN, DNonNegative, FinitePointField, NonNegative,
+        Positive, Similarity, UnitFraction, Vec2, d_non_negative, d_positive, non_negative,
+        open_unit_fraction, positive,
     },
     salt::{
         embedding::EmbedderFingerprint,
@@ -487,7 +488,8 @@ fn the_capped_estimand_scales_each_share_by_its_draw_probability() {
         Vec2::new(0.0, 4.0),
         Vec2::new(4.0, 4.0),
     ];
-    let frame = IdSlice::<DistinctRowId, Vec2>::from_raw(&points);
+    let frame = FinitePointField::new(IdSlice::<DistinctRowId, Vec2>::from_raw(&points))
+        .expect("the fixture frame is finite");
     let knn = distinct_knn();
     let scales = LocalScales::compute(frame, &knn.view()).expect("the fixture frame is finite");
     let energy = compose_energy(

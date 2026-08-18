@@ -27,6 +27,7 @@ use crate::{
         sprs::read::SprsFile,
     },
     identity::NodeRowId,
+    math::FinitePointField,
     salt::{fit::prepare::identity::IdentityTableArchive, knn::artifact::KnnArchive},
 };
 
@@ -87,6 +88,8 @@ pub(crate) async fn run<D: Dataset>(
     let coordinates = coordinates_file
         .points()
         .ok_or(QualityRunError::InvalidCoordinates)?;
+    let coordinates = FinitePointField::new(IdSlice::from_raw(coordinates))
+        .map_err(QualityRunError::NonFiniteCoordinate)?;
 
     let identities = IdentityTableArchive::<D::NodeId, NodeRowId>::new(
         IdentityFile::open(generation.path_of(&files.node_identities.name))
@@ -120,12 +123,8 @@ pub(crate) async fn run<D: Dataset>(
 
     let readings = probe(
         dataset,
-        ProbeCorpus::new(
-            node_ids,
-            IdSlice::from_raw(representations),
-            IdSlice::from_raw(coordinates),
-        )
-        .with_clumps(&clumps),
+        ProbeCorpus::new(node_ids, IdSlice::from_raw(representations), coordinates)
+            .with_clumps(&clumps),
         &options.probe,
         rng,
     )

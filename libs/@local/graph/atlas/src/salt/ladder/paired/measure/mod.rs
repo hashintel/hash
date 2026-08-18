@@ -30,7 +30,7 @@ use crate::{
         salt::metadata::{Reproducibility, Snapshot},
     },
     identity::{EdgeRowId, NodeRowId},
-    math::{KdTree, Vec2},
+    math::{FinitePointField, KdTree},
 };
 
 /// Measures the paired-movement readout of one generation.
@@ -54,8 +54,8 @@ pub(crate) fn measure(
     reproducibility: &Reproducibility,
     groups: &[GroupRecord],
     edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
-    zero: &IdSlice<NodeRowId, Vec2>,
-    canonical: &IdSlice<NodeRowId, Vec2>,
+    zero: &FinitePointField<NodeRowId>,
+    canonical: &FinitePointField<NodeRowId>,
 ) -> Result<PairedMovementEvidence<NodeRowId>, EncodeError> {
     let rule = RuleIdentity::INITIAL
         .recognize()
@@ -118,10 +118,11 @@ pub(crate) fn measure(
         })
         .collect();
 
-    // The anchor index holds the drawn pairs' endpoints at their zero-rung positions.
-    let anchor_frame: Vec<_> = draw.anchors().into_iter().map(|row| zero[row]).collect();
-    let anchor_tree = KdTree::build(IdSlice::<AnchorRowId, _>::from_raw(&anchor_frame))
-        .expect("the zero frame indexed, so its anchor subset indexes");
+    // The anchor index holds the drawn pairs' endpoints at their zero-rung positions. A gather
+    // from the proven zero field stays proven.
+    let anchor_rows = draw.anchors();
+    let anchor_frame = zero.gather(IdSlice::<AnchorRowId, _>::from_raw(&anchor_rows));
+    let anchor_tree = KdTree::build(&anchor_frame);
 
     let controls: Vec<_> = draw
         .controls()

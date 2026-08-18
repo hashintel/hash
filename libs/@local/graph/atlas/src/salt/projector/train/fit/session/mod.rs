@@ -22,7 +22,7 @@ use burn::{
     optim::{GradientsParams, Optimizer as _},
     tensor::backend::AutodiffBackend,
 };
-use hashql_core::id::{Id, IdVec};
+use hashql_core::id::Id;
 use rand::Rng;
 
 use super::{
@@ -38,7 +38,7 @@ use super::{
     objective::{ForwardContext, TargetContext, TargetEvidence, TargetPhase, TargetStep},
 };
 use crate::{
-    math::{DNonNegative, Vec2},
+    math::{DNonNegative, FinitePointField},
     progress::Progress,
     salt::projector::{
         miner::{HardNegativeMiner, MinedFrame},
@@ -350,7 +350,7 @@ where
     /// consequence and seals the run record into the refusal.
     fn freeze_phase(
         &self,
-        frame: Option<IdVec<N, Vec2>>,
+        frame: Option<Box<FinitePointField<N>>>,
         step: usize,
     ) -> Result<Option<TargetPhase<N>>, TargetRefusalCause<N>> {
         match (self.target.as_ref(), frame) {
@@ -368,7 +368,7 @@ where
     /// at or inside the frozen radius.
     fn drift_fraction(
         &self,
-        frame: &IdVec<N, Vec2>,
+        frame: &FinitePointField<N>,
         scales: Option<&[LocalScales<N>; RUNGS.len()]>,
     ) -> Option<DNonNegative> {
         let energy = self.evaluation.options.relation?;
@@ -433,6 +433,7 @@ where
                 self.options.forward_rows,
                 device,
             )?;
+
             if let Err(refusal) = frozen.evaluate(
                 context,
                 &outcome.fit,

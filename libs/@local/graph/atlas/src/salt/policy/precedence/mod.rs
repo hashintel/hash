@@ -12,7 +12,7 @@
 //! ```
 //!
 //! The classifier is the default operational source. Resolution needs no exhaustive policy table,
-//! and a relation type minted after release receives a policy as soon as its card has an embedding
+//! and a relation type created after release receives a policy as soon as its card has an embedding
 //! and a classification. The caller supplies overrides as [`PolicyOverride`] records from any
 //! source.
 //!
@@ -227,8 +227,8 @@ const fn attraction(
     let mixed_proximal = applicability * selected.proximal;
 
     let admitted = !admission.enforced
-        || (mixed_coincident >= admission.class_probability_threshold.get()
-            && applicability >= admission.applicability_threshold.get());
+        || (mixed_coincident >= admission.class_probability_threshold
+            && applicability >= admission.applicability_threshold);
 
     ClassProbabilities {
         coincident: if admitted {

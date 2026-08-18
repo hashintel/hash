@@ -6,6 +6,8 @@ use super::probe::{DeliveryError, ProbeError};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{array::OpenArrayError, identity::read::OpenIdentityError, sprs::read::OpenSprsError},
+    identity::NodeRowId,
+    math::NonFinitePoint,
     salt::{fit::prepare::identity::InvalidIdentityFile, knn::artifact::InvalidKnnFile},
 };
 
@@ -24,6 +26,8 @@ pub(crate) enum QualityRunError<E> {
     OpenCoordinates(OpenArrayError),
     /// The coordinate artifact is not a coordinate frame.
     InvalidCoordinates,
+    /// The coordinate artifact holds a non-finite point.
+    NonFiniteCoordinate(NonFinitePoint<NodeRowId>),
     /// Opening the node-identity artifact failed.
     OpenIdentities(OpenIdentityError),
     /// The node-identity artifact does not hold a valid table over the dataset's id type.
@@ -61,6 +65,9 @@ impl<E> fmt::Display for QualityRunError<E> {
             Self::InvalidCoordinates => {
                 fmt.write_str("the coordinate artifact is not an f32 matrix of width 2")
             }
+            Self::NonFiniteCoordinate(_) => {
+                fmt.write_str("the coordinate artifact holds a non-finite point")
+            }
             Self::OpenIdentities(_) => {
                 fmt.write_str("the node-identity artifact could not be opened")
             }
@@ -91,6 +98,7 @@ impl<E: Error + 'static> Error for QualityRunError<E> {
             Self::OpenRepresentations(error) | Self::OpenCoordinates(error) => Some(error),
             Self::OpenIdentities(error) => Some(error),
             Self::InvalidIdentities(error) => Some(error),
+            Self::NonFiniteCoordinate(error) => Some(error),
             Self::Probe(error) => Some(error),
             Self::Types(error) => Some(error),
             Self::InvalidRepresentations | Self::InvalidCoordinates | Self::Rows { .. } => None,

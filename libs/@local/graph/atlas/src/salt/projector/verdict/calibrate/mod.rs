@@ -36,7 +36,7 @@ mod tests;
 
 use core::num::NonZero;
 
-use hashql_core::id::{Id, IdSlice};
+use hashql_core::id::Id;
 
 use super::{PlacementClass, ResolvedVerdict};
 
@@ -55,7 +55,10 @@ const RADIUS_FRACTION: OpenUnitFraction =
 use self::stability::StabilityCertificate;
 use crate::{
     identity::OntologyRowId,
-    math::{DNonNegative, DPositive, NonNegative, OpenUnitFraction, Positive, Vec2},
+    math::{
+        DNonNegative, DPositive, Derivation, FinitePointField, NonNegative, OpenUnitFraction,
+        Positive,
+    },
     salt::{
         projector::scale::LocalScales,
         relation::attraction::{AttractionGroup, AttractionIndex},
@@ -106,7 +109,7 @@ pub(crate) struct TypeCalibration {
     /// The pooled radius re-measured with this type left out.
     ///
     /// [`None`] when nothing else carries mass. The spread of these values across types is the
-    /// review-sufficiency instrument: a tight cluster means the radius does not hinge on any
+    /// review-sufficiency reading: a tight cluster means the radius does not hinge on any
     /// single review, a wide one names the review that owns it.
     pub radius_without: Option<NonNegative>,
 }
@@ -157,11 +160,11 @@ struct PairReading {
 /// Measures one group's pairs: each edge's `z` and the force weight training will apply to it.
 ///
 /// This is the single home of the calibration weight formula. The pooled percentile, the
-/// per-type quantiles, the stability certificate, and the per-refresh fraction instrument all
-/// read their populations through it, so the surfaces cannot drift apart.
+/// per-type quantiles, the stability certificate, and the per-refresh fraction report all
+/// read their populations through it, so the readings cannot drift apart.
 fn group_readings<'group, N, E>(
     group: &'group AttractionGroup<N, E>,
-    coordinates: &'group IdSlice<N, Vec2>,
+    coordinates: &'group FinitePointField<N>,
     scales: &'group LocalScales<N>,
     options: CalibrationOptions,
 ) -> impl Iterator<Item = PairReading> + 'group
@@ -198,6 +201,44 @@ where
     })
 }
 
+/// Measures each type's leave-one-out radius over the pooled population.
+///
+/// Each entry re-reads the radius quantile with its own rows excluded, over the shared pooled
+/// population in walk order. The surviving mass is summed over the surviving entries rather
+/// than subtracted from the total, so the threshold cannot drift from the walked mass by
+/// cancellation.
+///
+/// # Panics
+///
+/// This panics when a surviving weight sum overflows, which is a defect of the weights.
+fn assign_radius_without(
+    types: &mut [TypeCalibration],
+    population: &[(NonNegative, DNonNegative, u32)],
+) {
+    for (index, entry) in types.iter_mut().enumerate() {
+        let tag = u32::try_from(index).expect("the verdict list is far shorter than u32");
+        let mut remaining = Derivation::<DNonNegative>::ZERO;
+        for &(_, weight, owner) in population {
+            if owner != tag {
+                remaining += weight;
+            }
+        }
+        let remaining = remaining
+            .finish()
+            .expect("a pooled mass whose weight sum overflows is a defect of the weights");
+        entry.radius_without = (remaining > 0.0).then(|| {
+            weighted_quantile(
+                population
+                    .iter()
+                    .filter(|&&(_, _, owner)| owner != tag)
+                    .map(|&(z, weight, _)| (z, weight)),
+                remaining,
+                RADIUS_FRACTION.get(),
+            )
+        });
+    }
+}
+
 /// Measures the reviewed-Proximal `z` population and its percentiles.
 ///
 /// This skips verdicts with a class other than Proximal, because Overlay carries no geometry and
@@ -214,7 +255,7 @@ where
 pub(crate) fn calibrate<N, E>(
     verdicts: &[ResolvedVerdict],
     index: &AttractionIndex<N, E>,
-    coordinates: &IdSlice<N, Vec2>,
+    coordinates: &FinitePointField<N>,
     scales: &LocalScales<N>,
     options: CalibrationOptions,
 ) -> ProximalCalibration
@@ -258,11 +299,14 @@ where
         let tag = u32::try_from(types.len()).expect("the verdict list is far shorter than u32");
         let start = population.len();
         // Accumulated in double precision, in the group's edge order.
-        let mut mass = 0.0_f64;
+        let mut mass = Derivation::<DNonNegative>::ZERO;
         for reading in group_readings(group, coordinates, scales, options) {
-            mass += reading.weight.get();
+            mass += reading.weight;
             population.push((reading.z, reading.weight, tag));
         }
+        let mass = mass
+            .finish()
+            .expect("a type mass whose weight sum overflows is a defect of the weights");
 
         let slice = &mut population[start..];
         slice.sort_unstable_by(|left, right| left.0.get().total_cmp(&right.0.get()));
@@ -279,14 +323,19 @@ where
         types.push(TypeCalibration {
             relation: verdict.relation,
             pairs: edges.len(),
-            mass: DNonNegative::new(mass)
-                .expect("a type mass whose weight sum overflows is a defect of the weights"),
+            mass,
             quantiles,
             radius_without: None,
         });
     }
 
-    let total: f64 = types.iter().map(|entry| entry.mass.get()).sum();
+    let mut total = Derivation::<DNonNegative>::ZERO;
+    for entry in &types {
+        total += entry.mass;
+    }
+    let total = total
+        .finish()
+        .expect("a pooled mass whose weight sum overflows is a defect of the weights");
     population.sort_unstable_by(|left, right| left.0.get().total_cmp(&right.0.get()));
     let radius = (total > 0.0).then(|| {
         weighted_quantile(
@@ -304,27 +353,7 @@ where
         )
     });
 
-    for (index, entry) in types.iter_mut().enumerate() {
-        let tag = u32::try_from(index).expect("the verdict list is far shorter than u32");
-        // Summed over the surviving entries rather than subtracted from
-        // the total, so the threshold cannot drift from the walked mass
-        // by cancellation.
-        let remaining: f64 = population
-            .iter()
-            .filter(|&&(_, _, owner)| owner != tag)
-            .map(|&(_, weight, _)| weight.get())
-            .sum();
-        entry.radius_without = (remaining > 0.0).then(|| {
-            weighted_quantile(
-                population
-                    .iter()
-                    .filter(|&&(_, _, owner)| owner != tag)
-                    .map(|&(z, weight, _)| (z, weight)),
-                remaining,
-                RADIUS_FRACTION.get(),
-            )
-        });
-    }
+    assign_radius_without(&mut types, &population);
 
     ProximalCalibration {
         radius,
@@ -337,7 +366,7 @@ where
 ///
 /// The population, weights, and normalization convention are the calibration's own
 /// ([`calibrate`]), re-measured over the given frame and scales: the per-refresh drift
-/// instrument re-asks the freeze-time question of a later frame, on the same rung the freeze
+/// report re-asks the freeze-time question of a later frame, on the same rung the freeze
 /// measured. At the freeze frame itself the reading is the smallest mass share the atom
 /// structure realizes at or above the radius fraction, so later readings drift against that
 /// first entry rather than against the fraction constant.
@@ -348,11 +377,12 @@ where
 ///
 /// This panics when the scales do not cover the coordinate rows, or when an edge references a
 /// row outside them - the same one-corpus wiring contract as [`calibrate`], and the same
-/// validated-domain contract on every pair's reading and force weight.
+/// validated-domain contract on every pair's reading and force weight. It also panics when a
+/// weight sum overflows, which is a defect of the weights.
 pub(crate) fn reviewed_fraction_within<N, E>(
     verdicts: &[ResolvedVerdict],
     index: &AttractionIndex<N, E>,
-    coordinates: &IdSlice<N, Vec2>,
+    coordinates: &FinitePointField<N>,
     scales: &LocalScales<N>,
     options: CalibrationOptions,
     radius: NonNegative,
@@ -367,8 +397,8 @@ where
     );
 
     let groups = index.groups();
-    let mut total = 0.0_f64;
-    let mut within = 0.0_f64;
+    let mut total = Derivation::<DNonNegative>::ZERO;
+    let mut within = Derivation::<DNonNegative>::ZERO;
     for verdict in verdicts {
         if verdict.placement != PlacementClass::Proximal {
             continue;
@@ -381,18 +411,22 @@ where
         };
 
         for reading in group_readings(&groups[position], coordinates, scales, options) {
-            total += reading.weight.get();
-            if reading.z.get() <= radius.get() {
-                within += reading.weight.get();
+            total += reading.weight;
+            if reading.z <= radius {
+                within += reading.weight;
             }
         }
     }
 
-    // The within mass sums a subsequence of the total's own non-negative addends, so the share
-    // lies within accumulation rounding of [0, 1]; the constructor is what refuses a population
-    // whose sums overflowed.
-    (total > 0.0).then(|| {
-        DNonNegative::new(within / total)
+    // The total's finish is what refuses a population whose weight sums overflowed. The within
+    // mass sums a subsequence of the total's own non-negative addends, so the share lies within
+    // accumulation rounding of [0, 1].
+    let total = total
+        .finish()
+        .expect("a reviewed mass whose weight sum overflows is a defect of the weights");
+    total.positive().map(|total| {
+        (within / total)
+            .finish()
             .expect("a share of finite reviewed mass is finite and non-negative")
     })
 }
@@ -402,16 +436,16 @@ where
 /// Over entries yielded ascending by `z`.
 fn weighted_quantile(
     sorted: impl IntoIterator<Item = (NonNegative, DNonNegative)>,
-    total: f64,
+    total: DNonNegative,
     fraction: f64,
 ) -> NonNegative {
     let threshold = fraction * total;
-    let mut cumulative = 0.0_f64;
+    let mut cumulative = Derivation::<DNonNegative>::ZERO;
     let mut last = None;
     for (z, weight) in sorted {
-        cumulative += weight.get();
+        cumulative += weight;
         last = Some(z);
-        if cumulative >= threshold {
+        if cumulative.into_raw() >= threshold {
             return z;
         }
     }

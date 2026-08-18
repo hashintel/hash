@@ -6,11 +6,13 @@
 //! similarity leaves in its residual, which is what makes the pair of fits a decomposition for
 //! evidence.
 
+use hashql_core::id::Id;
+
 use super::Transform;
-use crate::math::{DNonNegative, dvec2::DVec2, vec2::Vec2};
+use crate::math::{DNonNegative, FinitePointField, dvec2::DVec2};
 
 impl Transform {
-    /// Fits the unweighted least-squares affine map of paired points.
+    /// Fits the unweighted least-squares affine map of paired fields.
     ///
     /// The result is the transform minimizing `sum(|apply(source[i]) - target[i]|^2)` over all
     /// affine maps, in closed form: the centred normal equations give the linear part as the
@@ -20,14 +22,13 @@ impl Transform {
     /// sits far below the parallel Procrustes fold's break-even, so no parallel form exists
     /// until a corpus-scale consumer does.
     ///
-    /// Returns [`None`] when the slice lengths differ, the caller passes fewer than three pairs
-    /// (six coefficients need three correspondences, and two points are always collinear), any
-    /// coordinate is not finite, the source scatter's determinant is not a normal positive
-    /// number (coincident or collinear source points collapse an axis, the same degeneracy
-    /// [`inverse`](Self::inverse) refuses), or a fitted coefficient leaves the finite `f32`
-    /// range. A nearly collinear source constellation conditions the solve poorly and the
-    /// coefficients grow accordingly, exactly as they do under a near-singular
-    /// [`inverse`](Self::inverse).
+    /// Returns [`None`] when the field lengths differ, the caller passes fewer than three pairs
+    /// (six coefficients need three correspondences, and two points are always collinear), the
+    /// source scatter's determinant is not a normal positive number (coincident or collinear
+    /// source points collapse an axis, the same degeneracy [`inverse`](Self::inverse) refuses),
+    /// or a fitted coefficient leaves the finite `f32` range. A nearly collinear source
+    /// constellation conditions the solve poorly and the coefficients grow accordingly, exactly
+    /// as they do under a near-singular [`inverse`](Self::inverse).
     ///
     /// # Examples
     ///
@@ -49,7 +50,11 @@ impl Transform {
     /// ];
     /// let target = source.map(|point| expected.apply(point));
     ///
-    /// let fitted = Transform::fit_uniform(&source, &target).expect("the pairs are exact");
+    /// let source = FinitePointField::new(IdSlice::<RowId, _>::from_raw(&source))
+    ///     .expect("the sources are finite");
+    /// let target = FinitePointField::new(IdSlice::from_raw(&target))
+    ///     .expect("exact images of finite points are finite");
+    /// let fitted = Transform::fit_uniform(source, target).expect("the pairs are exact");
     /// assert_eq!(fitted.apply(Vec2::new(1.0, 1.0)), expected.apply(Vec2::new(1.0, 1.0)));
     /// ```
     #[must_use]
@@ -61,12 +66,14 @@ impl Transform {
         clippy::similar_names,
         reason = "the raw moments carry their axis-pair names, which the closed form is written in"
     )]
-    pub(crate) fn fit_uniform(source: &[Vec2], target: &[Vec2]) -> Option<Self> {
+    pub(crate) fn fit_uniform<I: Id>(
+        source: &FinitePointField<I>,
+        target: &FinitePointField<I>,
+    ) -> Option<Self> {
         if source.len() != target.len() || source.len() < 3 {
             return None;
         }
 
-        let mut valid = true;
         let mut source_sum = DVec2::new(0.0, 0.0);
         let mut target_sum = DVec2::new(0.0, 0.0);
         let mut source_xx = 0.0_f64;
@@ -77,9 +84,7 @@ impl Transform {
         let mut cross_yx = 0.0_f64;
         let mut cross_yy = 0.0_f64;
 
-        for (&source, &target) in source.iter().zip(target) {
-            valid &= source.is_finite() && target.is_finite();
-
+        for (&source, &target) in source.iter().zip(target.iter()) {
             // `f32` values widen exactly and each product of two widened values fits in `f64`'s
             // 53-bit significand, so only the running additions round - the same exactness the
             // Procrustes accumulation relies on for its centred-moment cancellation.
@@ -95,10 +100,6 @@ impl Transform {
             cross_xy = target.x().mul_add(source.y(), cross_xy);
             cross_yx = target.y().mul_add(source.x(), cross_yx);
             cross_yy = target.y().mul_add(source.y(), cross_yy);
-        }
-
-        if !valid {
-            return None;
         }
 
         let count = source.len() as f64;
@@ -149,25 +150,41 @@ impl Transform {
     /// affine map explains. This applies the transform with coefficients widened to `f64`, and
     /// the squared distances accumulate serially in double precision.
     ///
-    /// Returns [`None`] when the slice lengths differ, the caller passes no pairs, or any
-    /// coordinate is not finite (a non-finite input surfaces as a non-finite sum, which the
-    /// finishing step refuses).
+    /// The reading is total over the proven-finite fields: the accumulation is bounded far
+    /// inside `f64`'s range, so no rejection arm exists. The transform's six coefficients must
+    /// be finite, which the fit produces and
+    /// [`new_unchecked`](DNonNegative::new_unchecked)'s debug assertion guards.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the field lengths differ or the fields are empty, because the residual
+    /// is defined over matched pairs and an empty set has no mean.
     #[must_use]
     #[expect(
         clippy::cast_precision_loss,
         reason = "pair counts remain exactly representable in f64 far beyond any corpus"
     )]
-    pub(crate) fn rms_residual(self, source: &[Vec2], target: &[Vec2]) -> Option<DNonNegative> {
-        if source.len() != target.len() || source.is_empty() {
-            return None;
-        }
+    pub(crate) fn rms_residual<I: Id>(
+        self,
+        source: &FinitePointField<I>,
+        target: &FinitePointField<I>,
+    ) -> DNonNegative {
+        assert_eq!(
+            source.len(),
+            target.len(),
+            "paired fields must cover the same rows"
+        );
+        assert!(
+            !source.is_empty(),
+            "an RMS residual needs at least one pair"
+        );
 
         let x_axis = DVec2::from(self.x_axis);
         let y_axis = DVec2::from(self.y_axis);
         let translation = DVec2::from(self.translation);
 
         let mut squared = 0.0_f64;
-        for (&source, &target) in source.iter().zip(target) {
+        for (&source, &target) in source.iter().zip(target.iter()) {
             let source = DVec2::from(source);
             let target = DVec2::from(target);
 
@@ -184,6 +201,14 @@ impl Transform {
             squared += residual.norm_squared();
         }
 
-        DNonNegative::new((squared / source.len() as f64).sqrt())
+        // In domain with no check: every coordinate is field-proven finite and every
+        // coefficient is a finite f32, each below 2^128 in magnitude. A residual component is
+        // two coefficient-coordinate products (each below 2^128 squared = 2^256) plus a
+        // translation and a target coordinate, so it stays below 2^258, its square below
+        // 2^516, a pair's squared distance below 2^517, and a sum of fewer than 2^60 pairs (a
+        // slice of 8-byte points cannot hold more) below 2^577 - finite in `f64` with room to
+        // spare, and non-negative as a sum of squares. The quotient by a positive pair count
+        // and the square root keep both properties.
+        DNonNegative::new_unchecked((squared / source.len() as f64).sqrt())
     }
 }

@@ -41,7 +41,7 @@ impl ClipJacobian {
     /// freeze-time extent check keeps every finite projection inside the f32 range. The panic
     /// marks a non-finite input the caller was obliged to refuse earlier, or readings that
     /// break the invariant, whose landing can leave the representable range.
-    pub(super) fn clip(
+    pub(super) const fn clip(
         value: Vec2,
         centre: Vec2,
         square: DNonNegative,
@@ -49,14 +49,14 @@ impl ClipJacobian {
         radius_squared: DPositive,
         landing_radius: DPositive,
     ) -> Option<(Vec2, Self)> {
-        if square.get() <= radius_squared.get() {
+        if square <= radius_squared {
             return None;
         }
 
         let displacement = DVec2::from(value) - DVec2::from(centre);
-        let factor = landing_radius.get() / distance.get();
+        let factor = landing_radius / distance;
         let jacobian = Self {
-            direction: displacement / distance.get(),
+            direction: displacement / distance,
             factor,
         };
         let landed = displacement

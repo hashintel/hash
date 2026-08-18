@@ -326,7 +326,7 @@ fn boxed_dvecn_zero_is_all_zeros() {
     let zero = crate::math::BoxedDVecN::<19>::zero();
 
     assert_eq!(zero.as_array(), &[0.0; 19]);
-    assert_eq!(zero.norm_squared(), 0.0);
+    assert_eq!(zero.norm_squared().into_raw(), 0.0);
 }
 
 // The fixed dimension 11 crosses the reductions' 4-lane chunk boundary
@@ -681,12 +681,12 @@ fn aligned_reductions_agree_with_unaligned_bits_across_chunk_sizes() {
 
         assert_eq!(
             unaligned.dot(&unaligned_other),
-            boxed.dot(&boxed_other),
+            boxed.dot(&boxed_other).into_raw(),
             "dot over {N}",
         );
         assert_eq!(
             unaligned.norm_squared(),
-            boxed.norm_squared(),
+            boxed.norm_squared().into_raw(),
             "norm over {N}",
         );
         assert_eq!(

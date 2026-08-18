@@ -21,11 +21,11 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
     ControlDecile, FailureReason, MovementAggregate, MovementOutcome, PairAggregates,
-    PairedMovementEvidence, Rung,
+    PairedMovementEvidence,
 };
 use crate::{
     identity::NodeRowId,
-    math::{DFinite, DNonNegative, NonFinitePoint, d_finite, d_non_negative, unit_fraction},
+    math::{DFinite, DNonNegative, d_finite, d_non_negative, unit_fraction},
     salt::ladder::paired::{
         census::CensusError,
         fixtures::salt,
@@ -312,24 +312,6 @@ fn failure_reasons_mirror_their_producers() {
             canonical: 6,
         },
     );
-    assert_eq!(
-        FailureReason::from(MovementError::Zero(NonFinitePoint {
-            id: NodeRowId::new(7),
-        })),
-        FailureReason::NonFinitePoint {
-            rung: Rung::Zero,
-            row: NodeRowId::new(7),
-        },
-    );
-    assert_eq!(
-        FailureReason::from(MovementError::Canonical(NonFinitePoint {
-            id: NodeRowId::new(9),
-        })),
-        FailureReason::NonFinitePoint {
-            rung: Rung::Canonical,
-            row: NodeRowId::new(9),
-        },
-    );
 }
 
 #[test]
@@ -475,9 +457,9 @@ fn failed_bodies_serialize_the_persisted_shape() {
         control_candidates: 3,
         controls_selected: 2,
         outcome: MovementOutcome::Failed {
-            reason: FailureReason::NonFinitePoint {
-                rung: Rung::Zero,
-                row: NodeRowId::new(7),
+            reason: FailureReason::FrameRows {
+                zero: 7,
+                canonical: 6,
             },
         },
     };
@@ -494,9 +476,9 @@ fn failed_bodies_serialize_the_persisted_shape() {
             "controls_selected": 2,
             "outcome": "failed",
             "reason": {
-                "cause": "non-finite-point",
-                "rung": "zero",
-                "row": 7,
+                "cause": "frame-rows",
+                "zero": 7,
+                "canonical": 6,
             },
         }),
     );

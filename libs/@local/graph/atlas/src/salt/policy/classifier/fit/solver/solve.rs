@@ -24,7 +24,7 @@ use super::{
     terminal::SolverFailure,
     work::WorkCounters,
 };
-use crate::math::{AlignedDVecN, BoxedDVecN, DFinite, DNonNegative, DPositive};
+use crate::math::{AlignedDVecN, BoxedDVecN, DFinite, DNonNegative, DPositive, Derivation};
 
 /// The accepted iterate in scaled coordinates, with its objective and gradient.
 #[derive(Debug, Clone, PartialEq)]
@@ -33,8 +33,8 @@ pub(crate) struct AcceptedPoint {
     pub zeta: BoxedDVecN<SOLVER_DIMENSIONS>,
     /// The normalized objective at the point.
     // Raw on purpose: initialization admits a non-finite origin objective - the certificate
-    // tests only the gradient - and the resolution and final-certification gates refuse it by
-    //name where the design says so.
+    // tests only the gradient - and resolution and final certification refuse it by name where
+    // the design says so.
     pub objective: f64,
     /// The scaled gradient at the point.
     pub scaled_gradient: BoxedDVecN<SOLVER_DIMENSIONS>,
@@ -191,9 +191,9 @@ fn run(
 
         let predicted =
             record_inner_step(recorded.as_deref_mut(), &accepted.scaled_gradient, &inner);
-        if !predicted.is_finite() || predicted <= 0.0 {
+        let Some(predicted) = predicted.finish().ok().and_then(DFinite::positive) else {
             return Err(SolverFailure::InvalidPredictedReduction);
-        }
+        };
 
         let resolution = objective_resolution(accepted.objective, config.objective_resolution_ulps)
             .ok_or(SolverFailure::ResolutionScaleOverflow)?;
@@ -213,17 +213,17 @@ fn run(
             continue;
         }
 
-        let actual = accepted.objective - trial_objective;
+        let actual = Derivation::<DFinite>::raw(accepted.objective - trial_objective);
         let ratio = actual / predicted;
         if let Some(recorded) = recorded.as_deref_mut() {
-            recorded.actual_reduction = DFinite::new(actual);
-            recorded.ratio = DFinite::new(ratio);
+            recorded.actual_reduction = actual.finish().ok();
+            recorded.ratio = ratio.finish().ok();
         }
-        if !actual.is_finite() || !ratio.is_finite() {
+        let (Ok(_), Ok(ratio)) = (actual.finish(), ratio.finish()) else {
             return Err(SolverFailure::InvalidAcceptanceRatio);
-        }
+        };
 
-        if ratio < config.eta_accept.get() {
+        if ratio < config.eta_accept {
             if let Some(recorded) = recorded.as_deref_mut() {
                 recorded.candidate = Some(CandidateOutcome::RejectedByRatio);
             }
@@ -266,7 +266,7 @@ fn run(
         control.consecutive_rejections = 0;
 
         // Only a validated boundary step at or above the expansion ratio grows the radius.
-        if inner.is_boundary() && ratio >= config.eta_expand.get() {
+        if inner.is_boundary() && ratio >= config.eta_expand {
             control.radius = (config.expansion_factor * control.radius).min(config.radius_maximum);
         }
     }
@@ -335,32 +335,27 @@ pub(super) const fn derive_certificate(
 /// Returns the predicted model reduction `−g·p − ½·p·Hp` from the returned step and product alone,
 /// recording the inner-step summaries when the solve stores a receipt.
 ///
-/// The dots are algorithm inputs and always compute; the norms are diagnostic-only and compute
-/// solely for a stored receipt. A failed dot yields NaN, which the caller classifies as an invalid
-/// predicted reduction.
+/// The dots are algorithm inputs and always compute. The norms are diagnostic-only and compute
+/// solely for a stored receipt. The reduction rides as an unclaimed derivation, and the caller's
+/// finish refuses a non-finite value.
 fn record_inner_step(
     recorded: Option<&mut OuterOutcome>,
     gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
     inner: &NewtonOutcome,
-) -> f64 {
-    let along_gradient = gradient.checked_dot(inner.step());
-    let along_curvature = inner.step().checked_dot(inner.hessian_step());
+) -> Derivation<DFinite> {
+    let along_gradient = gradient.dot(inner.step());
+    let along_curvature = inner.step().dot(inner.hessian_step());
 
-    let predicted = match (along_gradient, along_curvature) {
-        (Some(gradient_term), Some(curvature_term)) => {
-            (-0.5_f64).mul_add(f64::from(curvature_term), -f64::from(gradient_term))
-        }
-        _ => f64::NAN,
-    };
+    let predicted = along_curvature.mul_add(-0.5, -along_gradient);
 
     if let Some(recorded) = recorded {
         recorded.tag = Some(inner.tag());
         recorded.newton_residual = inner.residual();
         recorded.step_norm = inner.step().checked_stable_l2();
         recorded.hessian_step_norm = inner.hessian_step().checked_stable_l2();
-        recorded.gradient_step = along_gradient;
-        recorded.step_curvature = along_curvature;
-        recorded.predicted_reduction = DFinite::new(predicted);
+        recorded.gradient_step = along_gradient.finish().ok();
+        recorded.step_curvature = along_curvature.finish().ok();
+        recorded.predicted_reduction = predicted.finish().ok();
     }
     predicted
 }

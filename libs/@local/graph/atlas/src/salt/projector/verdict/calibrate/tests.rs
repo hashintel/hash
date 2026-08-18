@@ -5,7 +5,10 @@ use hashql_core::id::{Id as _, IdSlice};
 use super::{CalibrationOptions, ProximalCalibration, calibrate, reviewed_fraction_within};
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{NonNegative, Vec2, d_non_negative, d_positive, non_negative, positive, unit_fraction},
+    math::{
+        FinitePointField, NonNegative, Vec2, d_non_negative, d_positive, non_negative, positive,
+        unit_fraction,
+    },
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -18,6 +21,11 @@ use crate::{
         },
     },
 };
+
+/// Wraps fixture points every test states as finite literals.
+fn frame(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
+    FinitePointField::new_unchecked(IdSlice::from_raw(points))
+}
 
 /// A full-Proximal, full-applicability, unit-strength policy.
 fn proximal_policy(relation: u64) -> RelationPolicy {
@@ -113,7 +121,7 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
     let outcome = calibrate(
         &[proximal_verdict(5)],
         &index,
-        IdSlice::from_raw(&coordinates),
+        frame(&coordinates),
         &scales,
         options(4),
     );
@@ -155,7 +163,7 @@ fn radius_is_the_weighted_p25() {
     let outcome = calibrate(
         &[proximal_verdict(5)],
         &index,
-        IdSlice::from_raw(&coordinates),
+        frame(&coordinates),
         &scales,
         options(4),
     );
@@ -200,13 +208,7 @@ fn cap_bounds_a_high_volume_type() {
 
     // Cap 2: type 5's pairs sample at 2/8, so both types weigh 1.0 and
     // type 9's first pair crosses the p25 threshold (0.5).
-    let capped = calibrate(
-        &verdicts,
-        &index,
-        IdSlice::from_raw(&coordinates),
-        &scales,
-        options(2),
-    );
+    let capped = calibrate(&verdicts, &index, frame(&coordinates), &scales, options(2));
     assert_eq!(capped.radius, Some(non_negative!(1.0)));
     assert_eq!(capped.types[0].mass, d_non_negative!(1.0));
     assert_eq!(capped.types[1].mass, d_non_negative!(1.0));
@@ -220,13 +222,7 @@ fn cap_bounds_a_high_volume_type() {
 
     // Cap 8: type 5 weighs 4.0 against type 9's 1.0 and buys the
     // radius with volume - the behaviour the sampler factor forbids.
-    let uncapped = calibrate(
-        &verdicts,
-        &index,
-        IdSlice::from_raw(&coordinates),
-        &scales,
-        options(8),
-    );
+    let uncapped = calibrate(&verdicts, &index, frame(&coordinates), &scales, options(8));
     assert_eq!(uncapped.radius, Some(non_negative!(5.0)));
 }
 
@@ -263,7 +259,7 @@ fn hubs_are_discounted_by_degree() {
     let outcome = calibrate(
         &[proximal_verdict(5), proximal_verdict(9)],
         &index,
-        IdSlice::from_raw(&coordinates),
+        frame(&coordinates),
         &scales,
         options(4),
     );
@@ -312,13 +308,7 @@ fn missing_groups_and_foreign_classes_contribute_nothing() {
         },
     ];
 
-    let outcome = calibrate(
-        &verdicts,
-        &index,
-        IdSlice::from_raw(&coordinates),
-        &scales,
-        options(4),
-    );
+    let outcome = calibrate(&verdicts, &index, frame(&coordinates), &scales, options(4));
 
     assert_eq!(outcome.radius, None);
     assert_eq!(outcome.types.len(), 1);
@@ -335,13 +325,7 @@ fn no_verdicts_yield_no_radius() {
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
     let scales = unit_scales(2);
 
-    let outcome = calibrate(
-        &[],
-        &index,
-        IdSlice::from_raw(&coordinates),
-        &scales,
-        options(4),
-    );
+    let outcome = calibrate(&[], &index, frame(&coordinates), &scales, options(4));
 
     assert_eq!(
         outcome,
@@ -372,7 +356,7 @@ fn the_fraction_instrument_re_measures_the_freeze_population() {
     ];
     let scales = unit_scales(8);
     let verdicts = [proximal_verdict(5)];
-    let frame = IdSlice::from_raw(&coordinates);
+    let frame = frame(&coordinates);
 
     // The radius lies on the z = 1 atom. The boundary is inclusive: the pair at the radius
     // itself counts, and the freeze-time reading is the quarter the percentile crossed.
@@ -436,7 +420,7 @@ fn the_calibration_carries_its_stability_certificate() {
     let outcome = calibrate(
         &[proximal_verdict(5)],
         &index,
-        IdSlice::from_raw(&coordinates),
+        frame(&coordinates),
         &scales,
         options(4),
     );
@@ -464,13 +448,7 @@ fn the_calibration_carries_its_stability_certificate() {
     assert_eq!(certificate.type_effective_support, d_positive!(1.0));
 
     // A vacuous measurement carries no certificate.
-    let vacuous = calibrate(
-        &[],
-        &index,
-        IdSlice::from_raw(&coordinates),
-        &scales,
-        options(4),
-    );
+    let vacuous = calibrate(&[], &index, frame(&coordinates), &scales, options(4));
     assert_eq!(vacuous.stability, None);
 }
 
@@ -500,7 +478,7 @@ fn the_leave_one_out_spread_reads_the_owning_review() {
     let outcome = calibrate(
         &[proximal_verdict(5), proximal_verdict(9)],
         &index,
-        IdSlice::from_raw(&coordinates),
+        frame(&coordinates),
         &scales,
         options(4),
     );

@@ -166,6 +166,20 @@ impl SamplingWeight {
     }
 }
 
+const impl core::ops::Div<SamplingWeight> for f64 {
+    type Output = f64;
+
+    /// Divides a raw `f64` by the weight, staying in `f64`.
+    ///
+    /// The divisor is finite, never zero and never NaN, so a NaN quotient arrives only through
+    /// the numerator. An infinite quotient arrives through the numerator or through overflow
+    /// against a small divisor.
+    #[inline]
+    fn div(self, rhs: SamplingWeight) -> f64 {
+        self / rhs.0
+    }
+}
+
 /// Selection metadata for one candidate node row.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct LandmarkCandidate<N> {
@@ -411,7 +425,7 @@ where
 
             for (priority, candidate) in priorities.iter_mut().zip(candidates) {
                 // 1 - U maps the generator's [0, 1) onto (0, 1], keeping the logarithm finite.
-                *priority = -(1.0 - rng.random::<f64>()).ln() / candidate.sampling_weight.get();
+                *priority = -(1.0 - rng.random::<f64>()).ln() / candidate.sampling_weight;
             }
         });
 
@@ -460,8 +474,8 @@ where
               non-negative integer count"
 )]
 #[inline]
-fn retained_target(capacity: usize, retained_fraction: UnitFraction) -> usize {
-    (capacity as f64 * retained_fraction.get()).ceil() as usize
+const fn retained_target(capacity: usize, retained_fraction: UnitFraction) -> usize {
+    (capacity as f64 * retained_fraction).ceil() as usize
 }
 
 /// Returns the indices of the `count` smallest-priority unselected candidates.

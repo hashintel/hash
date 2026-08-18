@@ -25,7 +25,8 @@ use super::{
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
-        AffinityCurve, DVec2, NonNegative, Positive, Vec2, non_negative, positive, unit_fraction,
+        AffinityCurve, DVec2, FinitePointField, NonNegative, Positive, Vec2, non_negative,
+        positive, unit_fraction,
     },
     salt::{
         policy::ClassProbabilities,
@@ -39,6 +40,11 @@ use crate::{
 };
 
 type TestBackend = Autodiff<NdArray>;
+
+/// Wraps fixture points every test states as finite literals.
+fn proven(points: &[Vec2]) -> &FinitePointField<BatchRowId> {
+    FinitePointField::new_unchecked(IdSlice::from_raw(points))
+}
 
 fn device() -> NdArrayDevice {
     NdArrayDevice::default()
@@ -385,7 +391,7 @@ fn attraction_term_matches_hand_computed_gradient() {
     let mut field = GradientField::new(2);
 
     let value = attraction_term(
-        IdSlice::from_raw(&coordinates),
+        proven(&coordinates),
         [(pair(0, 1), 1.0)],
         energy,
         1.0,
@@ -405,7 +411,7 @@ fn attraction_pulls_and_repulsion_pushes() {
 
     let mut field = GradientField::new(2);
     attraction_term(
-        IdSlice::from_raw(&coordinates),
+        proven(&coordinates),
         [(pair(0, 1), 1.0)],
         energy,
         1.0,
@@ -417,7 +423,7 @@ fn attraction_pulls_and_repulsion_pushes() {
 
     let mut field = GradientField::new(2);
     repulsion_term(
-        IdSlice::from_raw(&coordinates),
+        proven(&coordinates),
         [(pair(0, 1), 1.0)],
         energy,
         1.0,
@@ -433,7 +439,7 @@ fn coincident_pair_contributes_value_but_no_gradient() {
     let mut field = GradientField::new(2);
 
     let value = repulsion_term(
-        IdSlice::from_raw(&coordinates),
+        proven(&coordinates),
         [(pair(0, 1), 1.0)],
         energy,
         1.0,
@@ -472,26 +478,14 @@ fn attraction_term_gradient_matches_finite_differences() {
 
     let coordinates = frame();
     let mut field = GradientField::new(4);
-    attraction_term(
-        IdSlice::from_raw(&coordinates),
-        pairs,
-        energy,
-        scale,
-        &mut field,
-    );
+    attraction_term(proven(&coordinates), pairs, energy, scale, &mut field);
 
     for row in 0..4 {
         for axis in 0..2 {
             let difference = coordinate_difference(
                 |perturbed| {
                     let mut scratch = GradientField::new(4);
-                    attraction_term(
-                        IdSlice::from_raw(perturbed),
-                        pairs,
-                        energy,
-                        scale,
-                        &mut scratch,
-                    )
+                    attraction_term(proven(perturbed), pairs, energy, scale, &mut scratch)
                 },
                 &coordinates,
                 row,
@@ -515,26 +509,14 @@ fn repulsion_term_gradient_matches_finite_differences() {
 
     let coordinates = frame();
     let mut field = GradientField::new(4);
-    repulsion_term(
-        IdSlice::from_raw(&coordinates),
-        pairs,
-        energy,
-        scale,
-        &mut field,
-    );
+    repulsion_term(proven(&coordinates), pairs, energy, scale, &mut field);
 
     for row in 0..4 {
         for axis in 0..2 {
             let difference = coordinate_difference(
                 |perturbed| {
                     let mut scratch = GradientField::new(4);
-                    repulsion_term(
-                        IdSlice::from_raw(perturbed),
-                        pairs,
-                        energy,
-                        scale,
-                        &mut scratch,
-                    )
+                    repulsion_term(proven(perturbed), pairs, energy, scale, &mut scratch)
                 },
                 &coordinates,
                 row,
@@ -673,7 +655,7 @@ fn relation_term_matches_hand_computed_values() {
     let mut field = GradientField::new(4);
 
     let value = relation_term(
-        IdSlice::from_raw(&coordinates),
+        proven(&coordinates),
         &rho,
         proximal_only,
         relation_energy(0.25),
@@ -700,7 +682,7 @@ fn relation_term_gradient_matches_finite_differences() {
     let coordinates = frame();
     let mut field = GradientField::new(4);
     relation_term(
-        IdSlice::from_raw(&coordinates),
+        proven(&coordinates),
         &rho,
         &batch,
         energy,
@@ -713,14 +695,7 @@ fn relation_term_gradient_matches_finite_differences() {
             let difference = coordinate_difference(
                 |perturbed| {
                     let mut scratch = GradientField::new(4);
-                    relation_term(
-                        IdSlice::from_raw(perturbed),
-                        &rho,
-                        &batch,
-                        energy,
-                        scale,
-                        &mut scratch,
-                    )
+                    relation_term(proven(perturbed), &rho, &batch, energy, scale, &mut scratch)
                 },
                 &coordinates,
                 row,
@@ -745,7 +720,7 @@ fn relation_term_skips_gradient_at_coincident_points() {
     let mut field = GradientField::new(4);
 
     let value = relation_term(
-        IdSlice::from_raw(&coordinates),
+        proven(&coordinates),
         &rho,
         &batch,
         relation_energy(0.25),

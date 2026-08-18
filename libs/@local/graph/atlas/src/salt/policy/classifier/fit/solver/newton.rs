@@ -43,7 +43,7 @@ use crate::{
     dataset::CANONICAL_DIMENSIONS,
     math::{
         AlignedDVecN, BoxedDVecN, DCholeskyError, DFinite, DNonNegative, DPositive, DSquareMatrix,
-        d_positive,
+        Derivation, d_positive,
     },
 };
 
@@ -329,27 +329,26 @@ pub(super) fn newton_step(
     // Intercept Schur complement: S[j][k] = A₂₂[j][k] − ⟨A₁₂e_j, Z_k⟩, solved as the strict 2×2
     // Cholesky. A non-positive pivot means no row offers the intercepts curvature.
     let couplings = [&coupling_first, &coupling_second];
-    let mut schur = [0.0_f64; 3];
+    let mut schur = [Derivation::<DFinite>::ZERO; 3];
     let schur_entries = [(0_usize, 0_usize), (1, 0), (1, 1)];
     for (slot, (j, k)) in schur_entries.into_iter().enumerate() {
         let curvature = evaluation.intercept_columns[k].intercepts[j];
-        let correction =
-            pair_dot(&evaluation.intercept_columns[j].coefficients, couplings[k]).get();
+        let correction = pair_dot(&evaluation.intercept_columns[j].coefficients, couplings[k]);
 
-        schur[slot] = curvature - correction;
+        schur[slot] = Derivation::raw(curvature) - correction;
     }
-    if !schur.iter().all(|entry| entry.is_finite()) {
+    let [Ok(s11), Ok(s21), Ok(s22)] = schur.map(Derivation::finish) else {
         return Err(non_finite(NewtonStage::InterceptSchur));
-    }
+    };
 
     let intercept_rhs = [
-        pair_dot(&evaluation.intercept_columns[0].coefficients, &descent).get()
+        pair_dot(&evaluation.intercept_columns[0].coefficients, &descent)
             - physical_gradient.intercepts[0],
-        pair_dot(&evaluation.intercept_columns[1].coefficients, &descent).get()
+        pair_dot(&evaluation.intercept_columns[1].coefficients, &descent)
             - physical_gradient.intercepts[1],
     ];
-    let intercepts =
-        solve_intercepts(schur, intercept_rhs).ok_or(SolverFailure::SingularInterceptCurvature)?;
+    let intercepts = solve_intercepts([s11, s21, s22], intercept_rhs)
+        .ok_or(SolverFailure::SingularInterceptCurvature)?;
     if !intercepts.iter().all(|value| value.is_finite()) {
         return Err(non_finite(NewtonStage::InterceptSchur));
     }
@@ -463,8 +462,11 @@ pub(super) fn newton_step(
 }
 
 /// The structured coefficient dot `Σ_slot left[slot]·right[slot]`, folded in contrast order.
-fn pair_dot(left: &CoefficientRows, right: &CoefficientRows) -> DFinite {
-    let mut sum = DFinite::ZERO;
+///
+/// The fold is data-dependent with no finiteness theorem, so the sum rides as an unclaimed
+/// derivation to each consumer's own finish.
+fn pair_dot(left: &CoefficientRows, right: &CoefficientRows) -> Derivation<DFinite> {
+    let mut sum = Derivation::ZERO;
 
     for (left_row, right_row) in left.iter().zip(right) {
         sum += left_row.dot(right_row);
@@ -475,13 +477,20 @@ fn pair_dot(left: &CoefficientRows, right: &CoefficientRows) -> DFinite {
 
 /// Solves the `2×2` SPD intercept system through its strict Cholesky factor.
 ///
-/// The caller passes finite entries; a pivot that is not strictly positive returns [`None`], the
-/// system offering the intercepts no curvature, and overflowing back-substitution passes through as
-/// non-finite solutions for the caller's finiteness gate.
-fn solve_intercepts([s11, s21, s22]: [f64; 3], rhs: [f64; 2]) -> Option<[f64; 2]> {
+/// The Schur entries arrive finite by type. The right-hand sides arrive unclaimed, and an
+/// overflowing side passes through back-substitution as non-finite solutions for the caller's
+/// finiteness check. A pivot that is not strictly positive returns [`None`], the system offering
+/// the intercepts no curvature.
+fn solve_intercepts(
+    [s11, s21, s22]: [DFinite; 3],
+    rhs: [Derivation<DFinite>; 2],
+) -> Option<[f64; 2]> {
     if s11 <= 0.0 {
         return None;
     }
+
+    let [s11, s21, s22] = [s11.get(), s21.get(), s22.get()];
+    let rhs = rhs.map(Derivation::into_raw);
 
     let l11 = s11.sqrt();
     // With finite entries the second pivot is finite or -∞, so the ordering test is total.

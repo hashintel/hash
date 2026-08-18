@@ -16,12 +16,12 @@ use hashql_core::id::{Id as _, IdSlice};
 use super::{DuplicateClassId, GaugeAnchors, GaugeOrdinal, GaugeRefusal, SpreadFloor};
 use crate::{
     identity::NodeRowId,
-    math::{DNonNegative, DPositive, FinitePointCloud, Positive, Vec2},
+    math::{DNonNegative, DPositive, FinitePointField, Positive, Vec2},
 };
 
 /// Views a finite coordinate array as a proven-finite whole-corpus field.
-fn frame(points: &[Vec2]) -> &FinitePointCloud<NodeRowId> {
-    FinitePointCloud::new_unchecked(IdSlice::from_raw(points))
+fn frame(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
+    FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }
 
 fn class(id: u32) -> DuplicateClassId {

@@ -40,8 +40,8 @@ use hashql_core::id::{Id, IdSlice};
 use super::{GradientField, contrast::ContrastEnergy, penalty::Penalty};
 use crate::{
     math::{
-        DFinite, DNonNegative, DPositive, DVec2, Finite, NonNegative, Positive,
-        PositiveUnitFraction, UnitFraction, Vec2,
+        DFinite, DNonNegative, DPositive, DVec2, Finite, FinitePointField, NonNegative, Positive,
+        PositiveUnitFraction, UnitFraction,
     },
     salt::projector::gauge::{GaugeFit, GaugeOrdinal},
 };
@@ -223,8 +223,8 @@ impl TargetEstimator {
     /// over one forward pass, so a mismatch is a wiring defect.
     pub(crate) fn evaluate<N>(
         &self,
-        canonical: &IdSlice<N, Vec2>,
-        zero: &IdSlice<N, Vec2>,
+        canonical: &FinitePointField<N>,
+        zero: &FinitePointField<N>,
         units: &[TargetUnit<N>],
         canonical_field: &mut GradientField<N>,
         zero_field: &mut GradientField<N>,

@@ -6,7 +6,7 @@ use std::{
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
-use hashql_core::id::{Id, IdSlice};
+use hashql_core::id::Id;
 use zerocopy::IntoBytes as _;
 
 use super::{
@@ -23,7 +23,7 @@ use crate::{
         },
     },
     integrity::Sha256Digest,
-    math::Vec2,
+    math::{FinitePointField, Vec2},
     salt::{
         ladder::RungMeasurement,
         projector::train::{BoundaryEvidence, FrozenRadius, RefreshFraction},
@@ -38,14 +38,14 @@ pub(super) fn rung_path(ladder: &Utf8Path, index: usize) -> Utf8PathBuf {
 /// Writes one rung's frame as a scratch array file.
 pub(super) fn write_frame<N>(
     path: impl AsRef<Utf8Path>,
-    frame: &IdSlice<N, Vec2>,
+    frame: &FinitePointField<N>,
 ) -> Result<(), StageError>
 where
     N: Id,
 {
     let mut writer = BufWriter::new(File::create(path.as_ref().as_std_path())?);
     let mut array = ArrayWriter::new(&mut writer, ArrayVariant::F32, &[Dim::new(2)])?;
-    for point in frame {
+    for point in frame.as_slice() {
         array.write_row(point.as_bytes())?;
     }
     array.finish()?;

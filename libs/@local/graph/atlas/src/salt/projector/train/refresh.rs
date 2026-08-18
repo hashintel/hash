@@ -25,12 +25,12 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    math::{NonFinitePoint, NonNegative, Vec2},
+    math::{FinitePointField, NonFinitePoint, NonNegative, Vec2},
     progress::Progress,
     salt::{
         knn::table::KnnView,
         projector::{
-            miner::{HardNegativeMiner, MinedFrame, SpatialField, SpatialFieldError},
+            miner::{HardNegativeMiner, MinedFrame, SpatialField},
             model::{Projector, ProjectorInput},
             scale::LocalScales,
         },
@@ -87,10 +87,10 @@ impl<N> Error for RefreshError<N> where N: fmt::Debug + fmt::Display {}
 pub(crate) struct RefreshOutcome<N> {
     /// The low rung's forwarded frame.
     ///
-    /// The tick's own artifacts consume it in place; it rides out for the boundary-drift
-    /// instrument, which re-measures the reviewed mass fraction over the same rung the radius
+    /// The tick's own artifacts consume it in place. It rides out for the boundary-drift
+    /// report, which re-measures the reviewed mass fraction over the same rung the radius
     /// froze on.
-    pub frame: IdVec<N, Vec2>,
+    pub frame: Box<FinitePointField<N>>,
     /// Hard negatives mined at both lens extremes, pooled by maximum weight.
     pub mined: MinedFrame<N>,
     /// One local-scale table per rung, in [`RUNGS`] order.
@@ -105,7 +105,7 @@ pub(crate) struct RefreshOutcome<N> {
 ///
 /// An observer's appetite ([`Progress::projector_sample_size`]) buys a fixed set of rows, chosen
 /// before the loop and reported at every tick, so a watcher sees the same points moving rather than
-/// a fresh cloud each time. Landmark rows come first, because they are the skeleton the placement
+/// a fresh sample each time. Landmark rows come first, because they are the skeleton the placement
 /// hangs on and a renderer draws them apart. They take at most half the budget, so a landmark-rich
 /// corpus still shows its interior. The rest is an even stride over the corpus rows no landmark
 /// holds, so the two shares partition the sample by role: every reported point past the landmark
@@ -270,9 +270,9 @@ where
         };
 
         let mined = {
-            let field = SpatialField::new(&low).map_err(|error| field_error(error, low_eta))?;
+            let field = SpatialField::new(&low);
             let mined_low = self.miner.mine(&field);
-            let field = SpatialField::new(&high).map_err(|error| field_error(error, high_eta))?;
+            let field = SpatialField::new(&high);
             mined_low.pool(&self.miner.mine(&field))
         };
 
@@ -304,7 +304,7 @@ pub(crate) fn forward<N, B: Backend<FloatElem = f32>>(
     eta: NonNegative,
     forward_rows: NonZero<usize>,
     device: &B::Device,
-) -> Result<IdVec<N, Vec2>, RefreshError<N>>
+) -> Result<Box<FinitePointField<N>>, RefreshError<N>>
 where
     N: Id,
 {
@@ -321,19 +321,21 @@ where
             .expect("the projector's coordinates are an f32 tensor");
         let points =
             Vec2::from_slice(&values).expect("a [rows, 2] tensor reads back an even length");
-        for (offset, point) in points.iter().enumerate() {
-            if !point.is_finite() {
-                return Err(RefreshError::Diverged {
-                    row: N::from_usize(start + offset),
-                    eta,
-                });
-            }
-        }
 
-        frame.extend_from_slice(IdSlice::from_raw(points));
+        let finite = FinitePointField::new(IdSlice::from_raw(points)).map_err(
+            |error: NonFinitePoint<N>| RefreshError::Diverged {
+                row: error.id.plus(start),
+                eta,
+            },
+        )?;
+
+        frame.extend_from_slice(finite);
         start = end;
     }
-    Ok(frame)
+
+    Ok(FinitePointField::new_boxed_unchecked(
+        frame.into_boxed_slice(),
+    ))
 }
 
 /// Measures one rung's local scales over its forwarded frame.
@@ -343,7 +345,7 @@ where
 /// Returns an error when a scale comes out non-finite: the frame holds pre-divergence coordinates
 /// whose distances overflow.
 pub(crate) fn scales<N>(
-    frame: &IdSlice<N, Vec2>,
+    frame: &FinitePointField<N>,
     knn: &KnnView<'_, N>,
     eta: NonNegative,
 ) -> Result<LocalScales<N>, RefreshError<N>>
@@ -354,16 +356,6 @@ where
         row: error.row,
         eta,
     })
-}
-
-/// Maps a spatial-index failure onto the tick's error.
-fn field_error<N>(error: SpatialFieldError<N>, eta: NonNegative) -> RefreshError<N> {
-    match error {
-        // Unreachable in practice: `forward` checked every coordinate.
-        SpatialFieldError::NonFinite(NonFinitePoint { id }) => {
-            RefreshError::Diverged { row: id, eta }
-        }
-    }
 }
 
 /// Materializes one row slice's model input at a rung on `device`.

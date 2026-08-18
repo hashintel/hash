@@ -13,7 +13,7 @@ use crate::salt::projector::{
 /// One step's re-indexed pass domain.
 pub(super) struct LocalPass<N> {
     /// The participating corpus rows, ascending and distinct: the local-to-corpus row map.
-    pub rows: Vec<N>,
+    pub rows: IdVec<TargetRowId, N>,
     /// The units with local endpoints.
     pub units: Vec<TargetUnit<TargetRowId>>,
     /// Each gauge anchor's local position, in draw order.
@@ -56,7 +56,7 @@ where
         let anchors = gauge.iter().map(|&row| local(row)).collect();
 
         Self {
-            rows,
+            rows: IdVec::from_raw(rows),
             units,
             anchors,
         }

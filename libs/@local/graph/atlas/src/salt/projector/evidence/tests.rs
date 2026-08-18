@@ -17,7 +17,7 @@ use super::{EvaluationEvidence, EvidenceReferences, EvidenceRefusal, StratumId};
 use crate::{
     identity::NodeRowId,
     math::{
-        DNonNegative, FinitePointCloud, NonNegative, Positive, Rotation, Similarity, Transform,
+        DNonNegative, FinitePointField, NonNegative, Positive, Rotation, Similarity, Transform,
         Vec2,
     },
     salt::projector::{
@@ -54,8 +54,8 @@ const STRATA: [StratumId; 6] = [
 ];
 
 /// Views a finite coordinate array as a proven-finite whole-corpus field.
-fn frame(points: &[Vec2]) -> &FinitePointCloud<NodeRowId> {
-    FinitePointCloud::new_unchecked(IdSlice::from_raw(points))
+fn frame(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
+    FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }
 
 fn gauge() -> GaugeAnchors<NodeRowId> {
@@ -72,7 +72,7 @@ fn gauge() -> GaugeAnchors<NodeRowId> {
 /// A projection over the snapshot at the given dimensionless radius, with `s_ref = 2`.
 fn projection(dimensionless_radius: f32) -> BandProjection<NodeRowId> {
     BandProjection::freeze(
-        FinitePointCloud::new_boxed_unchecked(IdSlice::from_boxed_slice(Box::new(SNAPSHOT))),
+        FinitePointField::new_boxed_unchecked(IdSlice::from_boxed_slice(Box::new(SNAPSHOT))),
         positive(dimensionless_radius),
         positive(2.0),
     )
@@ -116,8 +116,8 @@ fn a_common_shrink_separates_every_reading() {
             record: &record,
         },
         &fit,
-        IdSlice::from_raw(&canonical),
-        IdSlice::from_raw(&zero),
+        frame(&canonical),
+        frame(&zero),
     )
     .expect("the exact fixture reads");
 
@@ -208,8 +208,8 @@ fn the_affine_component_absorbs_what_the_similarity_prices() {
             record: &record,
         },
         &fit,
-        IdSlice::from_raw(&canonical),
-        IdSlice::from_raw(&zero),
+        frame(&canonical),
+        frame(&zero),
     )
     .expect("the exact fixture reads");
 
@@ -239,25 +239,15 @@ fn refusals_name_the_fit_that_could_not_be_made() {
     let record = projection.open_record(0);
     let zero = SNAPSHOT;
 
+    // A non-finite coordinate never reaches the reading: the readback boundary's proof
+    // refuses it naming the row, so the reading's own refusals cover fit degeneracy alone.
     let mut poisoned = scaled(&SNAPSHOT, 2.0);
-    let fit = live_fit(&anchors, &poisoned, &zero);
-    // The non-finite row is a filler, so the gauge gather never sees it and the live fit
-    // stands. The whole-field scan still refuses before any evidence derives.
     poisoned[0] = Vec2::new(f32::NAN, 16.0);
     assert_eq!(
-        EvaluationEvidence::read(
-            0,
-            &EvidenceReferences {
-                anchors: &anchors,
-                projection: &projection,
-                strata: IdSlice::from_raw(&STRATA),
-                record: &record,
-            },
-            &fit,
-            IdSlice::from_raw(&poisoned),
-            IdSlice::from_raw(&zero),
-        ),
-        Err(EvidenceRefusal::CorpusFitRefused)
+        FinitePointField::new(IdSlice::<NodeRowId, _>::from_raw(&poisoned))
+            .expect_err("a poisoned field refuses its proof")
+            .id,
+        NodeRowId::new(0)
     );
 
     // Anchors collinear on the x axis: positive variance fits the similarity, while the
@@ -278,10 +268,10 @@ fn refusals_name_the_fit_that_could_not_be_made() {
                 record: &record,
             },
             &fit,
-            IdSlice::from_raw(&collinear),
-            IdSlice::from_raw(&zero),
+            frame(&collinear),
+            frame(&zero),
         ),
-        Err(EvidenceRefusal::AffineFitRefused)
+        Err(EvidenceRefusal::Affine)
     );
 }
 
@@ -300,7 +290,7 @@ fn a_clipped_row_reads_saturated_with_its_record() {
     // still and re-reads bit-identical.
     zero[0] = Vec2::new(9.25, 8.0);
     let mut field =
-        FinitePointCloud::new_boxed_unchecked(IdSlice::from_boxed_slice(Box::new(zero)));
+        FinitePointField::new_boxed_unchecked(IdSlice::from_boxed_slice(Box::new(zero)));
     projection.apply(&mut field, 9, &mut record);
 
     let fit = live_fit(
@@ -317,7 +307,7 @@ fn a_clipped_row_reads_saturated_with_its_record() {
             record: &record,
         },
         &fit,
-        IdSlice::from_raw(&canonical),
+        frame(&canonical),
         &field,
     )
     .expect("the clipped fixture reads");
@@ -364,8 +354,8 @@ fn the_objective_reading_enters_no_bridge_end() {
             record: &record,
         },
         &fit,
-        IdSlice::from_raw(&canonical),
-        IdSlice::from_raw(&zero),
+        frame(&canonical),
+        frame(&zero),
     )
     .expect("the exact fixture reads");
 
@@ -400,8 +390,8 @@ fn the_bridge_composes_the_two_recorded_ends() {
             record: &record,
         },
         &fit,
-        IdSlice::from_raw(&SNAPSHOT),
-        IdSlice::from_raw(&SNAPSHOT),
+        frame(&SNAPSHOT),
+        frame(&SNAPSHOT),
     )
     .expect("the identity fixture reads");
 

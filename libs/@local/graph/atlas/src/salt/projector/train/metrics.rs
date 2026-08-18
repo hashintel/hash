@@ -22,7 +22,7 @@ use hashql_core::id::{Id, IdSlice, IdVec};
 
 use crate::{
     identity::OntologyRowId,
-    math::{DNonNegative, NonNegative, Vec2},
+    math::{DNonNegative, FinitePointField, NonNegative},
     salt::{
         projector::budget::{BudgetOutcome, BudgetSummary},
         relation::attraction::AttractionIndex,
@@ -375,8 +375,8 @@ impl DisplacementSummary {
     /// defect.
     #[must_use]
     pub(crate) fn measure<N>(
-        low: &IdSlice<N, Vec2>,
-        high: &IdSlice<N, Vec2>,
+        low: &FinitePointField<N>,
+        high: &FinitePointField<N>,
         participants: &TypeParticipants<N>,
         deciles: &DegreeDeciles<N>,
     ) -> Self
@@ -391,7 +391,7 @@ impl DisplacementSummary {
 
         let displacements: IdVec<N, _> = low
             .iter()
-            .zip(high)
+            .zip(high.iter())
             .map(|(&low, &high)| low.distance(high))
             .collect();
 

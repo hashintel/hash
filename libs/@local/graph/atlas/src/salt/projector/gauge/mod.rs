@@ -41,7 +41,7 @@ use hashql_core::id::{Id, IdSlice, IdVec};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 pub(crate) use self::refusal::GaugeRefusal;
-use crate::math::{DNonNegative, DPositive, DVec2, FinitePointCloud, Positive, Similarity, Vec2};
+use crate::math::{DNonNegative, DPositive, DVec2, FinitePointField, Positive, Similarity};
 
 hashql_core::id::newtype! {
     /// One anchor's position in the gauge population, in draw order.
@@ -115,7 +115,7 @@ where
     pub(crate) fn freeze(
         rows: Box<[N]>,
         classes: Box<[DuplicateClassId]>,
-        zero_snapshot: &FinitePointCloud<N>,
+        zero_snapshot: &FinitePointField<N>,
         spread_floor: Option<SpreadFloor>,
         minimum_effective: Option<Positive>,
     ) -> Result<Self, GaugeRefusal> {
@@ -129,12 +129,9 @@ where
             return Err(GaugeRefusal::InsufficientAnchors { count: rows.len() });
         }
 
-        // Finite with no scan: a gather from the proven-finite snapshot stays finite. The
-        // spread is the anchor constellation's, never the whole field's, so the gather is the
-        // measurement.
-        let constellation: IdVec<GaugeOrdinal, Vec2> =
-            rows.iter().map(|&row| zero_snapshot[row]).collect();
-        let spread = FinitePointCloud::new_unchecked(&constellation).rms_spread();
+        let constellation = zero_snapshot.gather(IdSlice::<GaugeOrdinal, _>::from_raw(&rows));
+        let spread = constellation.rms_spread();
+
         #[expect(
             clippy::cast_possible_truncation,
             reason = "the frozen constant lives in the working f32 precision; the domain check \
@@ -181,8 +178,7 @@ where
     /// # Errors
     ///
     /// Returns [`GaugeRefusal`] carrying the first failed reading, from the closed form's own
-    /// refusals through a non-finite or above-bar residual to an adjoint outside the finite f32
-    /// range.
+    /// refusals through an above-bar residual to an adjoint outside the finite f32 range.
     ///
     /// The fields cover one row domain holding every anchor row - a wiring contract whose
     /// length half is checked in debug builds and whose domain half panics at the gather's
@@ -193,8 +189,8 @@ where
     /// This panics at the gather when an anchor row lies outside the fields' row domain.
     pub(crate) fn fit(
         &self,
-        canonical: &FinitePointCloud<N>,
-        zero: &FinitePointCloud<N>,
+        canonical: &FinitePointField<N>,
+        zero: &FinitePointField<N>,
         residual_bar: Option<Positive>,
     ) -> Result<GaugeFit, GaugeRefusal> {
         debug_assert_eq!(
@@ -203,14 +199,10 @@ where
             "the canonical and zero fields should cover the same rows"
         );
 
-        let source: IdVec<_, _> = self.rows.iter().map(|&row| canonical[row]).collect();
-        let target: IdVec<_, _> = self.rows.iter().map(|&row| zero[row]).collect();
+        let source = canonical.gather(&self.rows);
+        let target = zero.gather(&self.rows);
 
-        // Finite with no scan: gathers from the proven-finite fields stay finite.
-        let source = FinitePointCloud::new_unchecked(&source);
-        let target = FinitePointCloud::new_unchecked(&target);
-
-        self.fit_gathered(source, target, residual_bar)
+        self.fit_gathered(&source, &target, residual_bar)
     }
 
     /// Fits the alignment over pre-gathered anchor constellations in draw order.
@@ -229,8 +221,8 @@ where
     /// Returns [`GaugeRefusal`] carrying the first failed reading, as in [`fit`](Self::fit).
     pub(crate) fn fit_gathered(
         &self,
-        source: &FinitePointCloud<GaugeOrdinal>,
-        target: &FinitePointCloud<GaugeOrdinal>,
+        source: &FinitePointField<GaugeOrdinal>,
+        target: &FinitePointField<GaugeOrdinal>,
         residual_bar: Option<Positive>,
     ) -> Result<GaugeFit, GaugeRefusal> {
         debug_assert_eq!(
@@ -244,14 +236,12 @@ where
             "the zero constellation should cover the anchor draw"
         );
 
-        let similarity = Similarity::fit_uniform_par(source.as_raw(), target.as_raw())
-            .ok_or(GaugeRefusal::FitRefused)?;
+        let similarity =
+            Similarity::fit_uniform_par(source, target).ok_or(GaugeRefusal::FitRefused)?;
         // The similarity's scale domain is strictly positive normal by its own constructors.
         let scale = Positive::new_unchecked(similarity.scale().get());
 
-        let rms = similarity
-            .rms_residual_par(source.as_raw(), target.as_raw())
-            .unwrap_or_else(|| unreachable!("the residual is guaranteed to be finite"));
+        let rms = similarity.rms_residual_par(source, target);
 
         let residual = rms / DPositive::from(self.frozen_spread);
         if let Some(bar) = residual_bar
@@ -266,8 +256,8 @@ where
             similarity,
             scale,
             residual,
-            canonical_adjoints: canonical_adjoints.into_boxed_slice(),
-            zero_adjoints: zero_adjoints.into_boxed_slice(),
+            canonical_adjoints,
+            zero_adjoints,
         })
     }
 
@@ -320,10 +310,10 @@ pub(crate) struct GaugeFit {
     residual: DNonNegative,
     /// `∂s/∂x_c(g)` per anchor: the adjoint that fans the objective's pull on `s` into the
     /// canonical anchor coordinates.
-    canonical_adjoints: Box<IdSlice<GaugeOrdinal, Vec2>>,
+    canonical_adjoints: Box<FinitePointField<GaugeOrdinal>>,
     /// `∂s/∂x₀(g)` per anchor: the zero-field twin, present for the same reason the contrast's
     /// zero slope is - hiding a real path would misstate the derivative.
-    zero_adjoints: Box<IdSlice<GaugeOrdinal, Vec2>>,
+    zero_adjoints: Box<FinitePointField<GaugeOrdinal>>,
 }
 
 impl GaugeFit {
@@ -351,20 +341,23 @@ impl GaugeFit {
     /// Borrows `∂s/∂x_c(g)` in draw order.
     #[inline]
     #[must_use]
-    pub(crate) fn canonical_adjoints(&self) -> &IdSlice<GaugeOrdinal, Vec2> {
+    pub(crate) fn canonical_adjoints(&self) -> &FinitePointField<GaugeOrdinal> {
         &self.canonical_adjoints
     }
 
     /// Borrows `∂s/∂x₀(g)` in draw order.
     #[inline]
     #[must_use]
-    pub(crate) fn zero_adjoints(&self) -> &IdSlice<GaugeOrdinal, Vec2> {
+    pub(crate) fn zero_adjoints(&self) -> &FinitePointField<GaugeOrdinal> {
         &self.zero_adjoints
     }
 }
 
 /// The per-anchor adjoint fields, canonical beside zero, in draw order.
-type AdjointFields = (IdVec<GaugeOrdinal, Vec2>, IdVec<GaugeOrdinal, Vec2>);
+type AdjointFields = (
+    Box<FinitePointField<GaugeOrdinal>>,
+    Box<FinitePointField<GaugeOrdinal>>,
+);
 
 /// Evaluates both adjoint fields at the fitted optimum, per anchor in parallel.
 ///
@@ -372,12 +365,12 @@ type AdjointFields = (IdVec<GaugeOrdinal, Vec2>, IdVec<GaugeOrdinal, Vec2>);
 /// differentiate the alignment the forward pass actually uses. `D` re-accumulates in f64 through
 /// the deterministic chunked reduction.
 fn adjoints(
-    source: &FinitePointCloud<GaugeOrdinal>,
-    target: &FinitePointCloud<GaugeOrdinal>,
+    source: &FinitePointField<GaugeOrdinal>,
+    target: &FinitePointField<GaugeOrdinal>,
     similarity: Similarity,
     scale: Positive,
 ) -> Result<AdjointFields, GaugeRefusal> {
-    // The clouds carry the finiteness proof, so the statistics evaluate with no scan.
+    // The fields carry the finiteness proof, so the statistics evaluate with no scan.
     let source_centre = source.centroid();
     let target_centre = target.centroid();
 
@@ -389,7 +382,7 @@ fn adjoints(
 
     // A parallel collect into `Result` short-circuits on the first refusal, and the tuple
     // target unzips the accepted pairs in one pass.
-    let (canonical_adjoints, zero_adjoints): (Vec<_>, Vec<_>) = (0..source.len())
+    let (canonical_adjoints, zero_adjoints): (IdVec<_, _>, IdVec<_, _>) = (0..source.len())
         .into_par_iter()
         .map(|index| {
             let ordinal = GaugeOrdinal::from_usize(index);
@@ -421,8 +414,8 @@ fn adjoints(
         .collect::<Result<_, _>>()?;
 
     Ok((
-        IdVec::from_raw(canonical_adjoints),
-        IdVec::from_raw(zero_adjoints),
+        FinitePointField::new_boxed_unchecked(canonical_adjoints.into_boxed_slice()),
+        FinitePointField::new_boxed_unchecked(zero_adjoints.into_boxed_slice()),
     ))
 }
 

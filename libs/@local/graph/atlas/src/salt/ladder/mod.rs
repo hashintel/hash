@@ -18,19 +18,21 @@
 //! movement the alignment cannot explain is the rung's real geometric change, invariant under the
 //! scale, rotation, and translation freedom the projector never promises to pin down. The
 //! measurements are diagnostics: they persist as evidence and surface as structured log events, and
-//! they never gate publication.
+//! they never block publication.
 //!
 //! [`select_canonical`] names the rung that publishes as the canonical field. The configured
 //! condition names an exact member of the measured schedule, so configuration picks a rung rather
 //! than an interpolation point.
 //!
 //! Projection itself is the conditioned projector's inference (`salt/projector`), and the per-rung
-//! relation loss is its frozen objective; both enter here as constructed domain values, so the
-//! seam between the stages stays artifact-level.
+//! relation loss is its frozen objective. Both enter here as constructed domain values, so the
+//! boundary between the stages stays artifact-level.
 
 use alloc::borrow::Cow;
 
-use crate::math::{DNonNegative, NonNegative, Similarity, Vec2};
+use hashql_core::id::Id;
+
+use crate::math::{DNonNegative, FinitePointField, NonNegative, Similarity};
 
 mod error;
 pub(crate) mod paired;
@@ -128,10 +130,13 @@ const impl Default for Conditions {
 }
 
 /// One rung's projected field with its frozen relation loss.
+///
+/// `I` is the rung frames' shared row domain. The coordinates arrive proven finite, so the
+/// alignment fits consume them with no rescan and a non-finite frame is unrepresentable here.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct Field<'coordinates> {
+pub(crate) struct Field<'coordinates, I> {
     /// The rung's projected coordinates, row-aligned with every other rung's.
-    pub coordinates: &'coordinates [Vec2],
+    pub coordinates: &'coordinates FinitePointField<I>,
     /// The field's frozen attraction-energy loss.
     ///
     /// Computed by the projector objective at projection time.
@@ -212,9 +217,9 @@ pub(crate) struct RungMeasurement {
 /// Returns an error when the field count does not match the schedule, a field's rows differ from
 /// the baseline's, or a field admits no similarity alignment (coincident points or an exactly
 /// cancelling covariance).
-pub(crate) fn measure_ladder(
+pub(crate) fn measure_ladder<I: Id>(
     conditions: &Conditions,
-    fields: &[Field<'_>],
+    fields: &[Field<'_, I>],
 ) -> Result<Vec<RungMeasurement>, LadderError> {
     if fields.len() != conditions.len() {
         return Err(LadderError::FieldCount {
@@ -301,13 +306,15 @@ pub(crate) fn select_canonical(
 
 /// Fits the alignment of `source` onto `target` and measures the RMS movement it cannot explain.
 ///
-/// Returns [`None`] when the fit rejects the pair (coincident points or an exactly cancelling
-/// covariance). The residual of a successful fit over validated fields is always finite.
-fn aligned_movement(source: &[Vec2], target: &[Vec2]) -> Option<(Similarity, DNonNegative)> {
+/// Returns [`None`] exactly when the fit rejects the pair as degenerate: fewer than two rows,
+/// coincident points, or an exactly cancelling covariance. The residual of a successful fit
+/// over the proven-finite fields is total.
+fn aligned_movement<I: Id>(
+    source: &FinitePointField<I>,
+    target: &FinitePointField<I>,
+) -> Option<(Similarity, DNonNegative)> {
     let alignment = Similarity::fit_uniform_par(source, target)?;
-    let movement = alignment
-        .rms_residual_par(source, target)
-        .expect("an RMS residual of a fitted alignment over finite fields is finite");
+    let movement = alignment.rms_residual_par(source, target);
 
     Some((alignment, movement))
 }

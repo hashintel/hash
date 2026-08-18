@@ -32,7 +32,7 @@ impl EnforcementPass {
     ///
     /// The caller has already certified every field row finite: the pass's unchecked squares
     /// are valid only under that scan.
-    pub(super) fn new<N>(projection: &BandProjection<N>) -> Self
+    pub(super) const fn new<N>(projection: &BandProjection<N>) -> Self
     where
         N: Id,
     {
@@ -113,7 +113,7 @@ impl EnforcementPass {
         // Proven finite: the entry scan and the freeze admit only finite rows and centres, and
         // the widest f32 displacement quotient by the smallest positive spread stays far inside
         // the f64 range.
-        let normalized = DNonNegative::new_unchecked(distance.get() / self.spread_wide.get());
+        let normalized = distance / self.spread_wide;
         *maximum = (*maximum).max(normalized);
 
         // The clip law returns the applied derivative, and this whole-field path discards it:
@@ -129,9 +129,8 @@ impl EnforcementPass {
         ) {
             outcome.clipped += 1;
             // Positive on this branch: the distance exceeds the radius.
-            let overshoot = DNonNegative::new_unchecked(
-                (distance.get() - self.radius_wide.get()) / self.spread_wide.get(),
-            );
+            let overshoot =
+                DNonNegative::new_unchecked((distance - self.radius_wide) / self.spread_wide);
             outcome.overshoot = outcome.overshoot.max(overshoot);
 
             *row = landed;

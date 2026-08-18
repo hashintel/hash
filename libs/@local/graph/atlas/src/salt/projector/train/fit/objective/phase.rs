@@ -18,10 +18,10 @@ use hashql_core::id::{Id, IdSlice, IdVec};
 use super::{
     super::{
         super::{
-            RUNGS,
+            RUNGS, StepError,
             batch::{NodeColumns, ROW_ALIGNMENT, materialize_input},
             refresh,
-            step::read_frame,
+            step::read_frame_finite,
         },
         TargetRefusalCause, TrainError,
     },
@@ -30,7 +30,7 @@ use super::{
 };
 use crate::{
     integrity::Sha256Digest,
-    math::{Finite, FinitePointCloud, Vec2},
+    math::{Finite, FinitePointField, NonFinitePoint},
     salt::{
         knn::table::KnnView,
         projector::{
@@ -39,7 +39,7 @@ use crate::{
                 EnforcementSummary, EvaluationEvidence, EvidenceReferences, EvidenceRefusal,
                 RulerIdentity,
             },
-            gauge::{GaugeAnchors, GaugeFit, GaugeOrdinal, GaugeRefusal, SpreadFloor},
+            gauge::{GaugeAnchors, GaugeFit, SpreadFloor},
             loss::{ContrastEnergy, GradientField, TargetEstimator, UnitLaw, fan_scale_pull},
             model::Projector,
             sample::SampledRelationEdges,
@@ -76,7 +76,7 @@ pub(crate) struct TargetStep<N, B: AutodiffBackend> {
     /// The step's live gauge fit.
     pub fit: GaugeFit,
     /// The whole-corpus zero field after enforcement, the constitutive coordinates.
-    pub zero_field: IdVec<N, Vec2>,
+    pub zero_field: Box<FinitePointField<N>>,
 }
 
 /// The frozen references and the accumulating run state, from the boundary on.
@@ -91,20 +91,6 @@ pub(crate) struct TargetPhase<N> {
     split_digest: Sha256Digest,
     estimands: Vec<Finite>,
     evaluations: Vec<EvaluationEvidence>,
-}
-
-/// Proves a gathered anchor constellation finite, naming the offending anchor on refusal.
-///
-/// The pass readbacks carry no finiteness certificate, so the scan is the proof the gauge's
-/// typed entry consumes.
-fn prove_constellation<N>(
-    points: &IdVec<GaugeOrdinal, Vec2>,
-) -> Result<&FinitePointCloud<GaugeOrdinal>, TrainError<N>> {
-    FinitePointCloud::new(points).map_err(|offender| {
-        TrainError::Gauge(GaugeRefusal::NonFiniteAnchor {
-            ordinal: offender.id,
-        })
-    })
 }
 
 impl<N> TargetPhase<N>
@@ -128,7 +114,7 @@ where
     /// the session wraps the cause into the typed target refusal with the boundary evidence.
     pub(crate) fn freeze(
         context: &TargetContext<'_, N>,
-        frame: IdVec<N, Vec2>,
+        frame: Box<FinitePointField<N>>,
         knn: &KnnView<'_, N>,
         boundary_step: usize,
     ) -> Result<Self, TargetRefusalCause<N>> {
@@ -141,8 +127,7 @@ where
                 projection_band: options.dimensionless_radius,
             }),
         };
-        // Finite with no scan: the frame arrives certified from the boundary forward.
-        let frame = FinitePointCloud::new_boxed_unchecked(frame.into_boxed_slice());
+
         let ruler =
             FrozenRuler::freeze(&frame, knn, parameters).map_err(TargetRefusalCause::Ruler)?;
 
@@ -200,10 +185,11 @@ where
     fn project_pass_rows(
         &self,
         row_map: &IdSlice<TargetRowId, N>,
-        zero_local: &mut IdSlice<TargetRowId, Vec2>,
+        zero_local: &mut FinitePointField<TargetRowId>,
     ) -> IdVec<TargetRowId, Option<ClipJacobian>> {
         let mut clips = IdVec::with_capacity(zero_local.len());
-        for (local, value) in zero_local.iter_enumerated_mut() {
+
+        for (local, value) in zero_local.as_slice_mut_unchecked().iter_enumerated_mut() {
             let (projected, clip) = self.band.project(row_map[local], *value);
             *value = projected;
             clips.push(clip);
@@ -250,15 +236,20 @@ where
             forward.forward_rows,
             forward.device,
         )?;
-        self.band.apply(
-            FinitePointCloud::new_unchecked_mut(&mut zero_field),
-            step,
-            &mut self.record,
-        );
+        self.band.apply(&mut zero_field, step, &mut self.record);
 
         let units = context.units(&self.ruler, draws);
         let pass = LocalPass::new(&units, self.gauge.rows());
-        let row_map = IdSlice::<TargetRowId, N>::from_raw(&pass.rows);
+
+        // The padded forwards prove their whole readback finite, so the pass fields arrive as
+        // proven prefixes. Alignment padding trails the pass rows, so a padded point diverging
+        // names the last participating row.
+        let diverged = |offender: NonFinitePoint<TargetRowId>| {
+            let local = TargetRowId::from_usize(offender.id.as_usize().min(pass.rows.len() - 1));
+            TrainError::Step(StepError::Diverged {
+                row: pass.rows[local],
+            })
+        };
 
         // The two-rung forwards. Each rung's values read back from its own tensor, so every
         // reading the estimator takes shares a graph with the tensor its gradient deposits
@@ -270,8 +261,10 @@ where
             forward.device,
             ROW_ALIGNMENT,
         ));
-        let canonical_values =
-            read_frame(canonical_tensor.clone().inner(), row_map).map_err(TrainError::Step)?;
+        let canonical_complete_field =
+            read_frame_finite(canonical_tensor.clone().inner()).map_err(diverged)?;
+        let canonical_point_field = canonical_complete_field.prefix(pass.rows.bound());
+
         let zero_tensor = forward.model.forward(materialize_input(
             &pass.rows,
             RUNGS[0],
@@ -279,39 +272,18 @@ where
             forward.device,
             ROW_ALIGNMENT,
         ));
-        let mut zero_values =
-            read_frame(zero_tensor.clone().inner(), row_map).map_err(TrainError::Step)?;
+        let mut zero_complete_field =
+            read_frame_finite(zero_tensor.clone().inner()).map_err(diverged)?;
+        let zero_point_field = zero_complete_field.prefix_mut(pass.rows.bound());
 
-        let canonical_frame = Vec2::from_slice(&canonical_values)
-            .expect("a [rows, 2] tensor reads back an even length");
-        let canonical_local =
-            IdSlice::<TargetRowId, Vec2>::from_raw(&canonical_frame[..pass.rows.len()]);
-        let zero_frame = Vec2::from_slice_mut(&mut zero_values)
-            .expect("a [rows, 2] tensor reads back an even length");
+        let clips = self.project_pass_rows(&pass.rows, zero_point_field);
 
-        let zero_local =
-            IdSlice::<TargetRowId, Vec2>::from_raw_mut(&mut zero_frame[..pass.rows.len()]);
-        let clips = self.project_pass_rows(row_map, zero_local);
+        let source = canonical_point_field.gather(&pass.anchors);
+        let target = zero_point_field.gather(&pass.anchors);
 
-        // The live fit on the step's own coordinates: canonical onto projected zero, whole
-        // gauge, exact adjoints.
-        let source: IdVec<GaugeOrdinal, Vec2> = pass
-            .anchors
-            .iter()
-            .map(|&position| canonical_local[position])
-            .collect();
-        let target: IdVec<GaugeOrdinal, Vec2> = pass
-            .anchors
-            .iter()
-            .map(|&position| zero_local[position])
-            .collect();
         let fit = self
             .gauge
-            .fit_gathered(
-                prove_constellation(&source)?,
-                prove_constellation(&target)?,
-                context.options().residual_bar,
-            )
+            .fit_gathered(&source, &target, context.options().residual_bar)
             .map_err(TrainError::Gauge)?;
 
         let estimator = TargetEstimator::new(
@@ -324,8 +296,8 @@ where
         let mut canonical_field = GradientField::new(pass.rows.len());
         let mut zero_gradient_field = GradientField::new(pass.rows.len());
         let reading = estimator.evaluate(
-            canonical_local,
-            zero_local,
+            canonical_point_field,
+            zero_point_field,
             &pass.units,
             &mut canonical_field,
             &mut zero_gradient_field,
@@ -358,7 +330,7 @@ where
 
         Ok(TargetStep {
             surrogate,
-            contribution: context.options().activation.get() * reading.estimand,
+            contribution: context.options().activation * reading.estimand,
             fit,
             zero_field,
         })
@@ -378,8 +350,8 @@ where
         &mut self,
         context: &TargetContext<'_, N>,
         fit: &GaugeFit,
-        canonical: &IdSlice<N, Vec2>,
-        zero: &IdSlice<N, Vec2>,
+        canonical: &FinitePointField<N>,
+        zero: &FinitePointField<N>,
         step: usize,
     ) -> Result<(), EvidenceRefusal> {
         let reading = EvaluationEvidence::read(
@@ -425,11 +397,7 @@ where
         )?;
 
         // Finite with no scan: the closing forward certified every coordinate.
-        self.band.apply(
-            FinitePointCloud::new_unchecked_mut(&mut field),
-            steps,
-            &mut self.record,
-        );
+        self.band.apply(&mut field, steps, &mut self.record);
 
         Ok(())
     }
