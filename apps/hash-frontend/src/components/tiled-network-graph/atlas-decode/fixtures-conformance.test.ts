@@ -262,11 +262,7 @@ describe("wire fixtures", () => {
     expect(high.sidecar.appended).not.toBeNull();
   });
 
-  // Skipped until the fixture is re-captured through the route: the checked-in
-  // bytes predate the tile head's key-5 retirement (wire.md), and a re-capture
-  // is blocked on a refit because the active generation's identity tables
-  // predate the ontology-legend format and no current build can open them.
-  it.skip("decodes r1-scoped-route-tile under its served manifest declaration", () => {
+  it("decodes r1-scoped-route-tile under its served manifest declaration", () => {
     // The one fixture whose bytes came through the served route rather than
     // from the encoder (RFC-0002): a live manifest resolution declared the
     // nonzero scope offset beside the authority token, the tile request
