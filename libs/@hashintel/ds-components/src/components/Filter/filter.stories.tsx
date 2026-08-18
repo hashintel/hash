@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import { formInputSizes } from "../../util/form-shared";
-import { Button } from "../Button/button";
 import { Filter, type FilterOperator } from "./filter";
 import { FilterGroup } from "./filter-group";
 
@@ -365,21 +364,11 @@ const GroupDemo = () => {
             }}
           />
         ))}
-        <Button
-          variant="ghost"
-          size="sm"
-          iconName="plus"
-          aria-label="Add filter"
-          onClick={addFilter}
-        />
-        <Button
-          variant="ghost"
-          size="sm"
+        <FilterGroup.AddFilter onClick={addFilter} />
+        <FilterGroup.ClearFilters
           disabled={filters.length === 0}
           onClick={() => setFilters([])}
-        >
-          Clear filters
-        </Button>
+        />
       </FilterGroup>
     </div>
   );
@@ -388,6 +377,12 @@ const GroupDemo = () => {
 export const Group: Story = () => (
   <div style={columnStyle}>
     <GroupDemo />
+    <span style={stateLabelStyle}>add button contents</span>
+    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <FilterGroup.AddFilter onClick={noop} />
+      <FilterGroup.AddFilter content="plusLabel" onClick={noop} />
+      <FilterGroup.AddFilter content="filterIcon" onClick={noop} />
+    </div>
   </div>
 );
 

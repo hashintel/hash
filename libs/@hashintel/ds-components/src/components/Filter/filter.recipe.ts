@@ -1,6 +1,28 @@
-import { sva } from "@hashintel/ds-helpers/css";
+import { cva, sva } from "@hashintel/ds-helpers/css";
 
 import { formSizes } from "../../util/form-size.recipe";
+
+/**
+ * Per-size `--filter-font-size` declarations shared by the Filter chip and
+ * the FilterGroup action buttons. Recipes spread
+ * `filterFontSizes.variants.sizes.<size>` into their own size variants —
+ * the same pattern as `formSizes` in `../../util/form-size.recipe.ts`.
+ */
+export const filterFontSizes = {
+  variants: {
+    sizes: {
+      xxs: { "--filter-font-size": "var(--font-sizes-xxs)" },
+      xs: { "--filter-font-size": "[11px]" },
+      sm: { "--filter-font-size": "[12px]" },
+      md: { "--filter-font-size": "[14px]" },
+      lg: { "--filter-font-size": "var(--font-sizes-base)" },
+    },
+  },
+} as const;
+
+// Do not use this export! We only need to export this as a recipe for panda
+// to be able to properly analyze and share styles
+export const filterFontSizesRecipe = cva(filterFontSizes);
 
 /**
  * Chip-like segmented shell: [property | operator ▾ | input…]. Each segment
@@ -164,6 +186,8 @@ export const filterRecipe = sva({
       borderBlock: "var(--form-border-width) solid var(--filter-outer-border)",
       borderInlineStart: "var(--form-border-width) solid var(--filter-divider)",
       transition: "[border-color 0.15s ease, background 0.15s ease]",
+      fontSize: "[var(--filter-font-size)]",
+      maxWidth: "[min(calc(32ch + 2 * var(--filter-input-padding-x)), 100%)]",
       "&:hover:not([data-disabled])": {
         "--filter-divider": "var(--filter-hover-border)",
         "--filter-outer-border": "var(--filter-hover-border)",
@@ -181,8 +205,6 @@ export const filterRecipe = sva({
       },
       "&:focus-within": {
         flexShrink: "0.01",
-        fontSize: "[var(--filter-font-size)]",
-        maxWidth: "[min(calc(32ch + 2 * var(--filter-input-padding-x)), 100%)]",
         background: "white",
       },
     },
@@ -311,7 +333,7 @@ export const filterRecipe = sva({
       xxs: {
         root: {
           ...formSizes.variants.sizes.xxs,
-          "--filter-font-size": "var(--font-sizes-xxs)",
+          ...filterFontSizes.variants.sizes.xxs,
           "--filter-padding-x": "[5px]",
           "--filter-property-padding-x": "[5px]",
           "--filter-radius": "var(--radii-sm)",
@@ -321,7 +343,7 @@ export const filterRecipe = sva({
       xs: {
         root: {
           ...formSizes.variants.sizes.xs,
-          "--filter-font-size": "[11px]",
+          ...filterFontSizes.variants.sizes.xs,
           "--filter-padding-x": "[5px]",
           "--filter-property-padding-x": "var(--spacing-1\\.5)",
           "--filter-input-padding-x": "[7px]",
@@ -332,7 +354,7 @@ export const filterRecipe = sva({
       sm: {
         root: {
           ...formSizes.variants.sizes.sm,
-          "--filter-font-size": "[12px]",
+          ...filterFontSizes.variants.sizes.sm,
           "--filter-padding-x": "[7px]",
           "--filter-property-padding-x": "[7px]",
           "--filter-radius": "[5px]",
@@ -341,7 +363,7 @@ export const filterRecipe = sva({
       md: {
         root: {
           ...formSizes.variants.sizes.md,
-          "--filter-font-size": "[14px]",
+          ...filterFontSizes.variants.sizes.md,
           "--filter-padding-x": "[11px]",
           "--filter-property-padding-x": "[9px]",
           "--filter-radius": "var(--radii-md)",
@@ -350,7 +372,7 @@ export const filterRecipe = sva({
       lg: {
         root: {
           ...formSizes.variants.sizes.lg,
-          "--filter-font-size": "var(--font-sizes-base)",
+          ...filterFontSizes.variants.sizes.lg,
           "--filter-padding-x": "[11px]",
           "--filter-property-padding-x": "[11px]",
           "--filter-radius": "var(--radii-md)",
