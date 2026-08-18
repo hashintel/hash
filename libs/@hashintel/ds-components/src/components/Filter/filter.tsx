@@ -18,15 +18,27 @@ import {
   type ItemOrGroup,
 } from "../Menu/SelectableList/selectable-list";
 import { getItemId } from "../Menu/SelectableList/selectable-list-util";
+import {
+  type FilterChange,
+  type FilterValue,
+  type InputFor,
+  isIntegerConfig,
+  committedEqual,
+  draftValue,
+  isDraftCleared,
+  isDraftComplete,
+  slotsForValue,
+  flattenOperators,
+  inputConfigsOf,
+  inputSegmentsOf,
+  numberStepOf,
+  type LooseOperator,
+  type CommittedValue,
+  type SlotValue,
+} from "./filter-util";
 import { filterRecipe } from "./filter.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
-import type {
-  FilterChange,
-  FilterValue,
-  InputFor,
-  InputSeparator,
-} from "./filter-util";
 
 export type FilterOperator<ValueMap extends Record<string, unknown>> = {
   [Key in keyof ValueMap & string]: {
@@ -37,119 +49,6 @@ export type FilterOperator<ValueMap extends Record<string, unknown>> = {
     tooltip?: string | React.ReactNode;
   };
 }[keyof ValueMap & string];
-
-/**
- * The ValueMap machinery above types the consumer surface; internally the
- * component works against this untyped shape and casts at the boundary.
- */
-type LooseInputConfig = {
-  type: "string" | "number" | "int" | "float";
-  placeholder?: string;
-  min?: number;
-  max?: number;
-  step?: number;
-  pattern?: string;
-};
-
-type LooseOperator = {
-  key: string;
-  label: string;
-  input:
-    | LooseInputConfig
-    | ReadonlyArray<LooseInputConfig | InputSeparator>
-    | null;
-  onChange?: (value: unknown) => void;
-  tooltip?: string | React.ReactNode;
-};
-
-type SlotValue = string | number | null;
-type CommittedValue = { key: string; value: unknown } | null;
-
-/**
- * One rendered segment of an operator's input area. Separator entries in an
- * input array (static text such as "-", or an icon) carry no value, so
- * slots/values are indexed by `inputIndex`, which counts only the actual
- * inputs.
- */
-type InputSegment =
-  | { kind: "input"; config: LooseInputConfig; inputIndex: number }
-  | { kind: "separator"; separator: InputSeparator };
-
-const inputSegmentsOf = (operator: LooseOperator): InputSegment[] => {
-  const { input } = operator;
-  if (input === null) {
-    return [];
-  }
-  // `in` narrowing sidesteps Array.isArray's `any[]` narrowing of ReadonlyArray
-  const entries = "type" in input ? [input] : input;
-  const segments: InputSegment[] = [];
-  let inputIndex = 0;
-  for (const entry of entries) {
-    if (typeof entry === "string" || "iconName" in entry) {
-      segments.push({ kind: "separator", separator: entry });
-    } else {
-      segments.push({ kind: "input", config: entry, inputIndex });
-      inputIndex += 1;
-    }
-  }
-  return segments;
-};
-
-const inputConfigsOf = (
-  operator: LooseOperator,
-): ReadonlyArray<LooseInputConfig> =>
-  inputSegmentsOf(operator)
-    .filter((segment) => segment.kind === "input")
-    .map((segment) => segment.config);
-
-const flattenOperators = (
-  operators: ReadonlyArray<ItemOrGroup<LooseOperator>>,
-): LooseOperator[] =>
-  operators.flatMap((entry) => ("items" in entry ? entry.items : [entry]));
-
-const slotsForValue = (
-  operator: LooseOperator | undefined,
-  committed: unknown,
-): SlotValue[] => {
-  if (!operator) {
-    return [];
-  }
-  const configs = inputConfigsOf(operator);
-  if (committed == null) {
-    return configs.map(() => null);
-  }
-  if (Array.isArray(committed)) {
-    return configs.map((_, index) => (committed[index] as SlotValue) ?? null);
-  }
-  return configs.map((_, index) =>
-    index === 0 ? (committed as SlotValue) : null,
-  );
-};
-
-const isDraftComplete = (slots: SlotValue[]) =>
-  slots.every((slot) => slot !== null && slot !== "");
-
-const isDraftCleared = (slots: SlotValue[]) =>
-  slots.every((slot) => slot === null || slot === "");
-
-const draftValue = (operator: LooseOperator, slots: SlotValue[]): unknown => {
-  if (operator.input === null) {
-    return null;
-  }
-  return Array.isArray(operator.input) ? [...slots] : (slots[0] ?? null);
-};
-
-const scalarOrTupleEqual = (a: unknown, b: unknown): boolean =>
-  Array.isArray(a) && Array.isArray(b)
-    ? a.length === b.length && a.every((entry, index) => entry === b[index])
-    : a === b;
-
-const committedEqual = (a: CommittedValue, b: CommittedValue): boolean =>
-  a === b ||
-  (a !== null &&
-    b !== null &&
-    a.key === b.key &&
-    scalarOrTupleEqual(a.value, b.value));
 
 const caretSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xxs",
@@ -172,22 +71,6 @@ const dropdownSizeMap: Record<FormInputSize, FormInputSize> = {
 const preventWheel = (event: WheelEvent) => {
   event.preventDefault();
 };
-
-const numberStepOf = (config: LooseInputConfig): number | "any" =>
-  config.type === "int" ? (config.step ?? 1) : (config.step ?? "any");
-
-const isIntegerConfig = (config: LooseInputConfig): boolean => {
-  const step = numberStepOf(config);
-  return step !== "any" && Number.isInteger(step);
-};
-
-/**
- * Fallback width for browsers without `field-sizing: content` support, via
- * the HTML `size` attribute (text inputs only — number inputs ignore it and
- * fall back to their natural width there).
- */
-const textFallbackSizeCh = (config: LooseInputConfig): number =>
-  config.max !== undefined ? Math.min(config.max + 2, 24) : 14;
 
 /**
  * Exposes a segment's full content as a `title` tooltip only while it is
@@ -232,7 +115,19 @@ const syncTruncationTitle = (event: React.MouseEvent<HTMLElement>) => {
  */
 export const Filter = <
   ValueMap extends Record<string, unknown> = Record<string, unknown>,
->(props: {
+>({
+  className,
+  property,
+  propertyLabel,
+  operators,
+  value = null,
+  onChange,
+  errors,
+  disabled,
+  testId,
+  size = "sm",
+  removeable,
+}: {
   className?: string;
   property: string;
   propertyLabel: string;
@@ -249,31 +144,13 @@ export const Filter = <
     onRemove: () => void;
   };
 }) => {
-  const {
-    className,
-    property,
-    propertyLabel,
-    operators,
-    value,
-    onChange,
-    errors,
-    disabled,
-    testId,
-    size = "sm",
-    removeable,
-  } = props;
-
   const looseOperators = operators as unknown as Array<
     ItemOrGroup<LooseOperator>
   >;
-  const committed = (value ?? null) as CommittedValue;
-  const isControlled = value !== undefined;
-
   const portalContainerRef = usePortalContainerRef();
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const dropdownOpenRef = useRef(false);
-  const lastEmittedRef = useRef<CommittedValue>(committed);
 
   const flatOperators = useMemo(
     () => flattenOperators(looseOperators),
@@ -284,20 +161,18 @@ export const Filter = <
       ? undefined
       : flatOperators.find((operator) => operator.key === key);
 
-  const [draftKey, setDraftKey] = useState<string | null>(
-    committed?.key ?? null,
-  );
+  const [draftKey, setDraftKey] = useState<string | null>(value?.key ?? null);
   const [slots, setSlots] = useState<SlotValue[]>(() =>
-    slotsForValue(operatorByKey(committed?.key), committed?.value),
+    slotsForValue(operatorByKey(value?.key), value?.value),
   );
 
   // Adopt external `value` changes (the "adjust state when props change"
   // pattern) without clobbering the draft while the user is editing.
-  const [syncedValue, setSyncedValue] = useState<CommittedValue>(committed);
-  if (isControlled && !committedEqual(syncedValue, committed)) {
-    setSyncedValue(committed);
-    setDraftKey(committed?.key ?? null);
-    setSlots(slotsForValue(operatorByKey(committed?.key), committed?.value));
+  const [syncedValue, setSyncedValue] = useState<CommittedValue>(value);
+  if (!committedEqual(syncedValue, value)) {
+    setSyncedValue(value);
+    setDraftKey(value?.key ?? null);
+    setSlots(slotsForValue(operatorByKey(value?.key), value?.value));
   }
 
   const commitDraft = (key: string | null, draftSlots: SlotValue[]) => {
@@ -316,11 +191,9 @@ export const Filter = <
       return;
     }
     const nextValue = complete ? draftValue(operator, draftSlots) : null;
-    const reference = isControlled ? committed : lastEmittedRef.current;
-    if (committedEqual(reference, { key, value: nextValue })) {
+    if (committedEqual(value, { key, value: nextValue })) {
       return;
     }
-    lastEmittedRef.current = { key, value: nextValue };
     operator.onChange?.(nextValue);
     (onChange as unknown as (key: string, value: unknown) => void)(
       key,
@@ -347,8 +220,8 @@ export const Filter = <
       return;
     }
     const nextSlots =
-      committed && committed.key === nextKey
-        ? slotsForValue(operator, committed.value)
+      value && value.key === nextKey
+        ? slotsForValue(operator, value.value)
         : slotsForValue(operator, null);
     setDraftKey(nextKey);
     setSlots(nextSlots);
@@ -374,9 +247,8 @@ export const Filter = <
   };
 
   const revertDraft = () => {
-    const reference = isControlled ? committed : lastEmittedRef.current;
-    setDraftKey(reference?.key ?? null);
-    setSlots(slotsForValue(operatorByKey(reference?.key), reference?.value));
+    setDraftKey(value?.key ?? null);
+    setSlots(slotsForValue(operatorByKey(value?.key), value?.value));
   };
 
   const handleInputKeyDown = (
@@ -543,7 +415,6 @@ export const Filter = <
               ref={assignInputRef}
               className={classes.input}
               onMouseEnter={syncTruncationTitle}
-              size={isText ? textFallbackSizeCh(config) : undefined}
               type={isText ? "text" : "number"}
               inputMode={isText ? undefined : integer ? "numeric" : "decimal"}
               value={String(slots[inputIndex] ?? "")}

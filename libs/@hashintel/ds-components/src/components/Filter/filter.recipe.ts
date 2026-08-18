@@ -28,9 +28,6 @@ export const filterRecipe = sva({
       display: "inline-flex",
       alignItems: "stretch",
       width: "[fit-content]",
-      // Shrink to fit a constrained container: the property, trigger and
-      // input segments give way (ellipsifying), separators and the remove
-      // button never do.
       maxWidth: "[100%]",
       whiteSpace: "nowrap",
       background: "white",
@@ -38,21 +35,13 @@ export const filterRecipe = sva({
       borderRadius: "[var(--filter-radius)]",
       overflow: "clip",
       isolation: "isolate",
-      // Solid greys throughout; only the focus ring uses the alpha scale so
-      // it composites over whatever sits behind the (escaping) ring.
       "--filter-outer-border": "var(--colors-neutral-s50)",
       "--filter-divider": "var(--colors-neutral-s40)",
-      // The remove button's divider: follows the same rest/hover shades but
-      // is a separate lever so the `complete` variant never hides it.
       "--filter-remove-divider": "var(--colors-neutral-s40)",
-      // Edge shades for a hovered/pressed interactive segment (trigger,
-      // input, remove).
       "--filter-hover-border": "var(--colors-neutral-s80)",
       "--filter-pressed-border": "var(--colors-neutral-s70)",
       "--filter-input-hover-bg": "var(--colors-neutral-s10)",
       "--filter-ring": "var(--colors-neutral-a80)",
-      // Per-slot horizontal padding, defaulting to the shared segment
-      // padding; the smallest sizes bump these individually below.
       "--filter-property-padding-x": "var(--filter-padding-x)",
       "--filter-input-padding-x": "var(--filter-padding-x)",
       _hover: {
@@ -63,8 +52,6 @@ export const filterRecipe = sva({
       "&:focus-within": {
         "--filter-outer-border": "var(--colors-neutral-s60)",
       },
-      // Hovering the remove button darkens the whole chip outline to the
-      // same shade its own edges take (removal affects the entire filter).
       "&:has([data-part=remove]:hover:not(:disabled))": {
         "--filter-outer-border": "var(--filter-hover-border)",
       },
@@ -73,11 +60,10 @@ export const filterRecipe = sva({
       },
     },
     property: {
-      // Block (not flex) so its text can text-overflow: ellipsis; vertical
-      // centering falls out of the padding + single line box.
       display: "block",
       overflow: "hidden",
       textOverflow: "ellipsis",
+      flexShrink: "2",
       minWidth: "[4ch]",
       fontSize: "[var(--filter-font-size)]",
       paddingInline: "var(--filter-property-padding-x)",
@@ -102,6 +88,7 @@ export const filterRecipe = sva({
       alignItems: "center",
       gap: "1",
       position: "relative",
+      flexShrink: "2",
       minWidth: "[5ch]",
       paddingInline: "var(--filter-padding-x)",
       paddingBlock: "var(--form-padding-y)",
@@ -116,10 +103,6 @@ export const filterRecipe = sva({
       _hover: {
         background: "neutral.s25",
       },
-      // Pressed style while the dropdown is open (mirrors Button's subtle
-      // neutral pressed treatment); hovering a pressed trigger shows the
-      // hover background (the explicit :hover form makes that deterministic
-      // against the equal-specificity plain hover rule).
       "&[data-state=open], &[data-state=open]:hover": {
         boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
       },
@@ -129,8 +112,6 @@ export const filterRecipe = sva({
       "&[data-state=open]:hover": {
         background: "neutral.s25",
       },
-      // A pressed-but-unhovered trigger keeps its section edges darkened,
-      // one step lighter than the hover shade.
       "&[data-state=open]:not(:hover)": {
         "--filter-divider": "var(--filter-pressed-border)",
         "--filter-outer-border": "var(--filter-pressed-border)",
@@ -139,9 +120,6 @@ export const filterRecipe = sva({
         "--filter-divider": "var(--filter-pressed-border)",
         "--filter-remove-divider": "var(--filter-pressed-border)",
       },
-      // Hovering darkens the section's edges like an input section: its own
-      // left/top/bottom (plus right when last) here, the next segment's left
-      // border below.
       "&:hover:not(:disabled)": {
         "--filter-divider": "var(--filter-hover-border)",
         "--filter-outer-border": "var(--filter-hover-border)",
@@ -150,8 +128,6 @@ export const filterRecipe = sva({
         "--filter-divider": "var(--filter-hover-border)",
         "--filter-remove-divider": "var(--filter-hover-border)",
       },
-      // The ring lives on an ::after with its own small radius so square
-      // segment corners still get a softly rounded ring.
       "&:focus-visible": {
         zIndex: "[1]",
       },
@@ -163,8 +139,6 @@ export const filterRecipe = sva({
         boxShadow: "[0 0 0 2px var(--filter-ring)]",
         pointerEvents: "none",
       },
-      // Fade the placeholder via color, not element opacity — opacity would
-      // also fade the borders and the focus ring ::after.
       "&[data-placeholder]": {
         color: "neutral.s90",
       },
@@ -183,16 +157,10 @@ export const filterRecipe = sva({
     inputSlot: {
       display: "inline-flex",
       minWidth: "0",
-      // The input carries the segment's padding itself and stretches to its
-      // full height, so e.g. the invalid-character flash paints edge to edge.
       alignItems: "stretch",
       borderBlock: "var(--form-border-width) solid var(--filter-outer-border)",
       borderInlineStart: "var(--form-border-width) solid var(--filter-divider)",
       transition: "[border-color 0.15s ease, background 0.15s ease]",
-      // Hovering an (enabled) input section darkens all four of its edges to
-      // BaseInput's hover border color — its own left/top/bottom here, and
-      // the next segment's left border (which draws this section's right
-      // edge) below — and tints the section with a subtle grey.
       "&:hover:not([data-disabled])": {
         "--filter-divider": "var(--filter-hover-border)",
         "--filter-outer-border": "var(--filter-hover-border)",
@@ -208,6 +176,12 @@ export const filterRecipe = sva({
         borderStartEndRadius: "[var(--filter-radius)]",
         borderEndEndRadius: "[var(--filter-radius)]",
       },
+      "&:focus-within": {
+        flexShrink: "0.01",
+        fontSize: "[var(--filter-font-size)]",
+        maxWidth: "[min(calc(32ch + 2 * var(--filter-input-padding-x)), 100%)]",
+        background: "white",
+      },
     },
     input: {
       appearance: "none",
@@ -219,16 +193,10 @@ export const filterRecipe = sva({
       font: "inherit",
       fontSize: "[var(--filter-font-size)]",
       color: "neutral.s115",
-      // Grow/shrink with the typed value (or placeholder when empty),
-      // clamped below/above (the clamps account for the border-box padding).
-      // Browsers without field-sizing fall back to the width implied by the
-      // `size` attribute set on text inputs.
       fieldSizing: "content",
       minWidth: "[calc(2 * var(--filter-input-padding-x))]",
-      textAlign: "center",
       maxWidth: "[min(calc(32ch + 2 * var(--filter-input-padding-x)), 100%)]",
-      // Overflowing values ellipsify at rest; a focused input scrolls
-      // normally instead.
+      textAlign: "center",
       textOverflow: "ellipsis",
       _focus: {
         textAlign: "left",
@@ -241,8 +209,6 @@ export const filterRecipe = sva({
       "&:disabled": {
         cursor: "auto",
       },
-      // Hide number spinners (wheel-stepping is disabled separately while
-      // focused); `appearance: none` handles Firefox.
       "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
         display: "none",
       },
@@ -281,14 +247,10 @@ export const filterRecipe = sva({
       _hover: {
         background: "neutral.s25",
       },
-      // Hovering darkens the section's edges (own left/top/bottom, plus
-      // right via the last-child border reading the same lever).
       "&:hover:not(:disabled)": {
         "--filter-remove-divider": "var(--filter-hover-border)",
         "--filter-outer-border": "var(--filter-hover-border)",
       },
-      // The ring lives on an ::after with its own small radius so square
-      // segment corners still get a softly rounded ring.
       "&:focus-visible": {
         zIndex: "[1]",
       },
@@ -309,14 +271,6 @@ export const filterRecipe = sva({
     },
   },
   variants: {
-    // Sizing (text style, vertical padding, border width) comes from the
-    // shared `formSizes` config so each size renders exactly as tall as a
-    // BaseInput of the same size; only the horizontal density and corner
-    // radius are chip-specific.
-    // `--filter-font-size` sets the segments' text size WITHOUT affecting
-    // height: the root's textStyle line-height computes to px there and is
-    // inherited as that fixed value, so smaller segment text keeps the same
-    // line box (and therefore the BaseInput-matched heights).
     size: {
       xxs: {
         root: {
@@ -365,10 +319,6 @@ export const filterRecipe = sva({
         },
       },
     },
-    // The error state only re-colors borders and the focus ring — text and
-    // background treatments stay neutral. Chip-level hover/focus-within are
-    // pinned to the rest shades so borders only darken (to a deeper red)
-    // when an interactive segment (trigger, input, remove) is hovered.
     invalid: {
       true: {
         root: {
@@ -387,8 +337,6 @@ export const filterRecipe = sva({
             "--filter-outer-border": "var(--colors-red-s60)",
           },
         },
-        // Dark red text everywhere except the remove button, which keeps its
-        // neutral color (it acts on the filter, not the erroneous value).
         property: { color: "red.s115" },
         trigger: {
           color: "red.s115",
@@ -399,9 +347,6 @@ export const filterRecipe = sva({
         remove: { color: "neutral.s120" },
       },
     },
-    // A fully filled-in filter reads as one unit: its internal segment
-    // dividers lighten at rest and return to full strength on
-    // hover/focus-within. (The remove button's divider is unaffected.)
     complete: {
       true: {
         root: {
@@ -430,16 +375,11 @@ export const filterRecipe = sva({
         },
         input: { color: "neutral.s90" },
         separator: { color: "neutral.s80" },
-        // The remove button stays active on a disabled filter, so it keeps
-        // the normal background instead of the chip's disabled grey (its
-        // higher-specificity hover background still applies).
         remove: { background: "white" },
       },
     },
   },
   compoundVariants: [
-    // Keep the complete-state lightened divider red-tinted on an invalid
-    // filter (the neutral lightened shade would read as unrelated grey).
     {
       invalid: true,
       complete: true,
