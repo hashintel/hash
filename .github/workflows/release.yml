@@ -60,6 +60,7 @@ jobs:
     environment: main
     permissions:
       contents: read
+      id-token: write # npm trusted publishing
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -94,7 +95,6 @@ jobs:
           commitMode: github-api
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.value }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_LOGLEVEL: verbose
           TURBO_LOG_LEVEL: debug
           TURBO_TELEMETRY_DISABLED: 1
