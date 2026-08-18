@@ -72,6 +72,12 @@ where
                 JwtError::JwksFetch => {
                     report.change_context(AuthenticationError::ProviderUnreachable)
                 }
+                // The provider named a key it cannot supply a usable entry for, so every token
+                // signed with it fails. Reporting that as a bad token would answer 401 at debug
+                // level and hide an outage behind "your token is invalid".
+                JwtError::UnusableKey { .. } => {
+                    report.change_context(AuthenticationError::InvalidProviderResponse)
+                }
                 JwtError::Validation | JwtError::MissingKeyId | JwtError::UnknownKeyId { .. } => {
                     report.change_context(AuthenticationError::InvalidAccessToken)
                 }
@@ -360,11 +366,16 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
     }
 
     /// Each case rewrites one claim of an otherwise valid token.
+    ///
+    /// `not_yet_valid` needs `validate_nbf`, which is off in `jsonwebtoken`'s defaults.
     #[rstest]
     #[case::expired("exp", json!(1))]
-    #[case::not_yet_valid("exp", json!(0))]
+    #[case::not_yet_valid("nbf", json!(u64::MAX >> 8))]
     #[case::wrong_audience("aud", json!("other-audience"))]
     #[case::wrong_issuer("iss", json!("https://other-team.cloudflareaccess.com"))]
+    // A claim of the wrong type is neither compared nor rejected on its own: it parses as absent.
+    #[case::audience_not_a_string("aud", json!(42))]
+    #[case::issuer_not_a_string("iss", json!(42))]
     #[case::email_not_a_string("email", json!(42))]
     #[tokio::test]
     async fn token_with_invalid_claim_fails_authentication(
@@ -440,6 +451,65 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 AuthenticationError::InvalidAccessToken
             ),
             "a token with a signature from another token should fail authentication"
+        );
+    }
+
+    /// A claim that is absent must fail, not just one that is wrong.
+    ///
+    /// `set_audience` and `set_issuer` compare only a claim that is present, so an omitted `aud`
+    /// would verify unless it is also required — and `aud` is what scopes a token to this
+    /// application among all applications signed by the same Cloudflare Access team.
+    #[rstest]
+    #[case::without_audience("aud")]
+    #[case::without_issuer("iss")]
+    #[case::without_expiry("exp")]
+    #[tokio::test]
+    async fn token_without_required_claim_fails_authentication(#[case] claim: &str) {
+        let (actors, _) = known_user(EMAIL);
+        let provider = provider_for(actors).await;
+
+        let mut claims = valid_claims(EMAIL);
+        claims
+            .as_object_mut()
+            .expect("the claims should be a JSON object")
+            .remove(claim);
+
+        let report = expect_rejection(
+            provider
+                .authenticate(&access_token_header(&mint_token(&claims)))
+                .await,
+        );
+        assert!(
+            matches!(
+                report.current_context(),
+                AuthenticationError::InvalidAccessToken
+            ),
+            "a token without `{claim}` should fail authentication, got {:?}",
+            report.current_context()
+        );
+    }
+
+    /// Cloudflare also sets an unsigned `Cf-Access-Authenticated-User-Email`. Honouring it would
+    /// let a client name any address, so the provider must not recognize it at all.
+    #[tokio::test]
+    async fn unsigned_email_header_is_not_recognized() {
+        let (actors, _) = known_user(EMAIL);
+        let provider = provider_for(actors).await;
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Cf-Access-Authenticated-User-Email",
+            EMAIL
+                .parse()
+                .expect("the email should be a valid header value"),
+        );
+
+        assert!(
+            matches!(
+                provider.authenticate(&headers).await,
+                ControlFlow::Continue(())
+            ),
+            "the unsigned email header should not be recognized as a credential"
         );
     }
 

@@ -4,8 +4,7 @@ use core::{fmt, net::SocketAddr, str::FromStr as _, time::Duration};
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::auth::{
-    CloudflareAccessConfig, JwtValidatorConfig, KratosAdminConfig, KratosSessionConfig,
-    build_authentication_provider,
+    CloudflareAccessConfig, JwtValidatorConfig, KratosAdminConfig, build_operator_provider,
 };
 use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
@@ -17,7 +16,6 @@ use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 
-use super::server::KratosSessionAuthConfig;
 use crate::{
     error::{GraphError, HealthcheckError},
     subcommand::{HealthcheckArgs, ServerLifecycle, wait_healthcheck},
@@ -106,7 +104,8 @@ pub struct JwtConfig {
     #[clap(
         long = "jwt-jwks-cache-ttl",
         env = "HASH_GRAPH_JWT_JWKS_CACHE_TTL",
-        default_value_t = 600
+        default_value_t = 600,
+        value_parser = clap::value_parser!(u64).range(1..)
     )]
     pub jwks_cache_ttl_secs: u64,
 
@@ -116,7 +115,9 @@ pub struct JwtConfig {
     #[clap(
         long = "jwt-jwks-refresh-cooldown",
         env = "HASH_GRAPH_JWT_JWKS_REFRESH_COOLDOWN",
-        default_value_t = 30
+        default_value_t = 30,
+        // A zero cooldown removes the bound on outbound fetches that this flag exists to impose.
+        value_parser = clap::value_parser!(u64).range(1..)
     )]
     pub jwks_refresh_cooldown_secs: u64,
 
@@ -124,7 +125,8 @@ pub struct JwtConfig {
     #[clap(
         long = "jwt-http-timeout",
         env = "HASH_GRAPH_JWT_HTTP_TIMEOUT",
-        default_value_t = 10
+        default_value_t = 10,
+        value_parser = clap::value_parser!(u64).range(1..)
     )]
     pub http_timeout_secs: u64,
 
@@ -259,9 +261,6 @@ pub struct AdminServerArgs {
     #[clap(flatten)]
     pub config: AdminConfig,
 
-    #[clap(flatten)]
-    pub session_auth: KratosSessionAuthConfig,
-
     /// Shared secret internal services present to act on behalf of an actor.
     ///
     /// Sent as the `X-HASH-Service-Secret` header, either next to
@@ -281,7 +280,6 @@ pub struct AdminServerArgs {
 pub(crate) async fn run_admin_server(
     pool: PostgresStorePool,
     config: AdminConfig,
-    session_auth: KratosSessionConfig,
     service_secret: String,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
@@ -302,8 +300,7 @@ pub(crate) async fn run_admin_server(
     })?;
 
     let pool = Arc::new(pool);
-    let authentication_provider = Arc::new(build_authentication_provider(
-        session_auth,
+    let authentication_provider = Arc::new(build_operator_provider(
         cloudflare_access,
         service_secret.clone(),
         &pool,
@@ -341,7 +338,6 @@ pub(crate) async fn run_admin_server(
 pub(crate) fn start_admin_server(
     pool: PostgresStorePool,
     config: AdminConfig,
-    session_auth: KratosSessionConfig,
     service_secret: String,
     lifecycle: &ServerLifecycle,
 ) {
@@ -349,7 +345,7 @@ pub(crate) fn start_admin_server(
 
     let shutdown = lifecycle.shutdown.clone();
     lifecycle.spawn("Admin server", async move {
-        run_admin_server(pool, config, session_auth, service_secret, shutdown).await
+        run_admin_server(pool, config, service_secret, shutdown).await
     });
 }
 
@@ -399,13 +395,7 @@ pub async fn admin_server(args: AdminServerArgs) -> Result<(), Report<GraphError
         })?;
 
     let lifecycle = ServerLifecycle::new();
-    start_admin_server(
-        pool,
-        args.config,
-        args.session_auth.into_provider_config()?,
-        service_secret,
-        &lifecycle,
-    );
+    start_admin_server(pool, args.config, service_secret, &lifecycle);
 
     // Wait for shutdown signal or unexpected server exit
     let aborted = tokio::select! {
