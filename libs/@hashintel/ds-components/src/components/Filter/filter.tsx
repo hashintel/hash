@@ -190,6 +190,32 @@ const textFallbackSizeCh = (config: LooseInputConfig): number =>
   config.max !== undefined ? Math.min(config.max + 2, 24) : 14;
 
 /**
+ * Exposes a segment's full content as a `title` tooltip only while it is
+ * actually truncated. Measured on every hover (native tooltips appear well
+ * after mouseenter, so setting the attribute here is early enough), which
+ * keeps it self-healing across resizes and edits. Measures the
+ * `[data-truncates]` descendant when present (the trigger's label span),
+ * otherwise the hovered element itself; a focused input scrolls rather than
+ * truncates, so it never gets a title.
+ */
+const syncTruncationTitle = (event: React.MouseEvent<HTMLElement>) => {
+  const host = event.currentTarget;
+  const measured = host.querySelector("[data-truncates]") ?? host;
+  const truncated =
+    measured !== document.activeElement &&
+    measured.scrollWidth > measured.clientWidth;
+  const text =
+    measured instanceof HTMLInputElement
+      ? measured.value
+      : measured.textContent;
+  if (truncated && text) {
+    host.title = text;
+  } else {
+    host.removeAttribute("title");
+  }
+};
+
+/**
  * An inline, chip-like filter control: a property label, an operator
  * dropdown, and — once an operator is chosen — that operator's input(s).
  *
@@ -460,13 +486,16 @@ export const Filter = <
       title={errors && errors.length > 0 ? errors.join("\n") : undefined}
     >
       <ArkSelect.HiddenSelect />
-      <span className={classes.property}>{propertyLabel}</span>
+      <span className={classes.property} onMouseEnter={syncTruncationTitle}>
+        {propertyLabel}
+      </span>
       <ArkSelect.Trigger
         className={classes.trigger}
         data-placeholder={selectedOperator ? undefined : ""}
         aria-label={`${propertyLabel} operator`}
+        onMouseEnter={syncTruncationTitle}
       >
-        <span className={classes.triggerLabel}>
+        <span className={classes.triggerLabel} data-truncates="">
           {selectedOperator?.label ?? "is…"}
         </span>
         {!selectedOperator && (
@@ -513,6 +542,7 @@ export const Filter = <
             <input
               ref={assignInputRef}
               className={classes.input}
+              onMouseEnter={syncTruncationTitle}
               size={isText ? textFallbackSizeCh(config) : undefined}
               type={isText ? "text" : "number"}
               inputMode={isText ? undefined : integer ? "numeric" : "decimal"}
