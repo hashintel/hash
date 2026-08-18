@@ -219,6 +219,14 @@ pub(crate) fn cloudflare_access_config(
                          Access authentication",
                     )
                 })?;
+            // The resolver extends this URL with a path, which a cannot-be-a-base URL such as
+            // `mailto:` does not support. Rejecting it here turns a process abort into a startup
+            // error.
+            if !matches!(kratos_admin_url.scheme(), "http" | "https") {
+                return Err(Report::new(GraphError).attach(
+                    "--kratos-admin-url (HASH_KRATOS_ADMIN_URL) must be an http or https URL",
+                ));
+            }
             Ok(Some(CloudflareAccessConfig {
                 jwt: JwtValidatorConfig {
                     jwks_url,

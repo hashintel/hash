@@ -61,3 +61,57 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
     );
   });
 %}
+
+### Admin API: the actor-ID header alone is rejected
+POST http://127.0.0.1:4001/users/delete
+Content-Type: application/json
+X-HASH-Service-Secret: <omit>
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+
+{
+  "email": "must-not-be-reached@example.com"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("message names the missing credential", function() {
+    client.assert(
+      response.body.message === "the request requires the service credential",
+      `Unexpected message: ${response.body.message}`
+    );
+  });
+%}
+
+### Admin API: a wrong service secret is rejected
+POST http://127.0.0.1:4001/users/delete
+Content-Type: application/json
+X-HASH-Service-Secret: hash-svc-wrong
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+
+{
+  "email": "must-not-be-reached@example.com"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("message names the invalid credential", function() {
+    client.assert(
+      response.body.message === "service credential is invalid",
+      `Unexpected message: ${response.body.message}`
+    );
+  });
+%}
+
+### Admin API: the health route stays open
+GET http://127.0.0.1:4001/health
+X-HASH-Service-Secret: <omit>
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
