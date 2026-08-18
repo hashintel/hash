@@ -182,11 +182,7 @@ const Demo = <ValueMap extends Record<string, unknown>>({
         value={value}
         onChange={(...change: FilterChange<ValueMap>) => {
           const [key, nextValue] = change;
-          setValue(
-            key === null
-              ? null
-              : ({ key, value: nextValue } as FilterValue<ValueMap>),
-          );
+          setValue({ key, value: nextValue } as FilterValue<ValueMap>);
           setChanges((previous) => [
             ...previous.slice(-4),
             `onChange(${JSON.stringify(key)}, ${JSON.stringify(nextValue)})`,
@@ -376,13 +372,10 @@ const GroupDemo = () => {
             value={filter.value}
             onChange={(...change: FilterChange<KitchenSinkValues>) => {
               const [key, nextValue] = change;
-              const value =
-                key === null
-                  ? null
-                  : ({
-                      key,
-                      value: nextValue,
-                    } as FilterValue<KitchenSinkValues>);
+              const value = {
+                key,
+                value: nextValue,
+              } as FilterValue<KitchenSinkValues>;
               setFilters((previous) =>
                 previous.map((entry) =>
                   entry.id === filter.id ? { ...entry, value } : entry,

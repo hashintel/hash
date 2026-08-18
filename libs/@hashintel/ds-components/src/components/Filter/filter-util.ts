@@ -66,12 +66,12 @@ export type FilterValue<ValueMap extends Record<string, unknown>> = {
 /**
  * Discriminated (key, value) argument pairs for the Filter-level `onChange`
  * — checking `key` in the handler narrows `value` to that operator's type.
+ * The key is always a concrete operator key: clearing the inputs fires
+ * `(key, null)`, and removal is signalled via `removeable.onRemove` instead.
  */
-export type FilterChange<ValueMap extends Record<string, unknown>> =
-  | {
-      [Key in keyof ValueMap & string]: [key: Key, value: ValueMap[Key] | null];
-    }[keyof ValueMap & string]
-  | [key: null, value: null];
+export type FilterChange<ValueMap extends Record<string, unknown>> = {
+  [Key in keyof ValueMap & string]: [key: Key, value: ValueMap[Key] | null];
+}[keyof ValueMap & string];
 
 /**
  * The ValueMap machinery above types the consumer surface; internally the
