@@ -7,7 +7,7 @@ use http::HeaderMap;
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
-use crate::provider::{Authentication, AuthenticationProvider};
+use crate::provider::AuthenticationProvider;
 
 /// Name of the header carrying an unverified actor ID.
 pub const ACTOR_ID_HEADER: &str = "X-Authenticated-User-Actor-Id";
@@ -138,10 +138,8 @@ where
     // TODO(BE-755): cache verified credentials so repeated requests do not re-verify against the
     //               provider and the principal store each time
     match provider.authenticate(headers).await {
-        ControlFlow::Break(Authentication::Verified(actor)) => {
-            AuthenticationOutcome::Authenticated(actor.into())
-        }
-        ControlFlow::Break(Authentication::Rejected(report)) => {
+        ControlFlow::Break(Ok(actor)) => AuthenticationOutcome::Authenticated(actor.into()),
+        ControlFlow::Break(Err(report)) => {
             let error = report.current_context().clone();
             if matches!(
                 error.status_code(),
@@ -288,5 +286,105 @@ mod tests {
             ),
             "a request without credentials should fail authentication"
         );
+    }
+
+    /// One instance of every error variant.
+    ///
+    /// A variant added to the enum stops compiling here until it is listed, so the tests below
+    /// cannot silently skip it.
+    fn every_error(identity_id: &str, actor_id: ActorEntityUuid) -> Vec<AuthenticationError> {
+        let errors = vec![
+            AuthenticationError::MissingCredentials,
+            AuthenticationError::MalformedCredential,
+            AuthenticationError::InvalidActorIdHeader,
+            AuthenticationError::MissingServiceSecret,
+            AuthenticationError::InvalidServiceSecret,
+            AuthenticationError::ProviderUnreachable,
+            AuthenticationError::ProviderRejection,
+            AuthenticationError::InvalidProviderResponse,
+            AuthenticationError::InvalidSession,
+            AuthenticationError::NotProvisioned {
+                identity_id: identity_id.to_owned(),
+            },
+            AuthenticationError::ActorNotFound { actor_id },
+            AuthenticationError::NotAUser { actor_id },
+            AuthenticationError::StoreError,
+        ];
+
+        for error in &errors {
+            match error {
+                AuthenticationError::MissingCredentials
+                | AuthenticationError::MalformedCredential
+                | AuthenticationError::InvalidActorIdHeader
+                | AuthenticationError::MissingServiceSecret
+                | AuthenticationError::InvalidServiceSecret
+                | AuthenticationError::ProviderUnreachable
+                | AuthenticationError::ProviderRejection
+                | AuthenticationError::InvalidProviderResponse
+                | AuthenticationError::InvalidSession
+                | AuthenticationError::NotProvisioned { .. }
+                | AuthenticationError::ActorNotFound { .. }
+                | AuthenticationError::NotAUser { .. }
+                | AuthenticationError::StoreError => {}
+            }
+        }
+
+        errors
+    }
+
+    /// Every error the client can reach reports something.
+    #[test]
+    fn client_messages_are_never_empty() {
+        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
+            assert!(
+                !error.client_message().is_empty(),
+                "`{error}` should report a client message"
+            );
+        }
+    }
+
+    /// No client message may carry an identifier, whichever variant it comes from.
+    #[test]
+    fn no_client_message_carries_an_identifier() {
+        let identity_id = "d290f1ee-6c54-4b01-90e6-d701748f0851";
+        let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+
+        for error in every_error(identity_id, actor_id) {
+            let message = error.client_message();
+            assert!(
+                !message.contains(identity_id) && !message.contains(&actor_id.to_string()),
+                "the client message for `{error}` should not carry an identifier"
+            );
+        }
+    }
+
+    /// The identifiers the client never sees must still reach the logs.
+    #[test]
+    fn log_representations_carry_their_identifiers() {
+        let identity_id = "d290f1ee-6c54-4b01-90e6-d701748f0851";
+        let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+        let errors = [
+            (
+                AuthenticationError::NotProvisioned {
+                    identity_id: identity_id.to_owned(),
+                },
+                identity_id.to_owned(),
+            ),
+            (
+                AuthenticationError::ActorNotFound { actor_id },
+                actor_id.to_string(),
+            ),
+            (
+                AuthenticationError::NotAUser { actor_id },
+                actor_id.to_string(),
+            ),
+        ];
+
+        for (error, identifier) in errors {
+            assert!(
+                error.to_string().contains(&identifier),
+                "the log representation of `{error}` should carry the identifier"
+            );
+        }
     }
 }

@@ -31,9 +31,13 @@ tracing        = { workspace = true }
 uuid           = { workspace = true }
 
 [dev-dependencies]
-axum  = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
-uuid  = { workspace = true, features = ["v4"] }
+axum   = { workspace = true }
+rstest = { workspace = true }
+tokio  = { workspace = true, features = ["macros", "rt-multi-thread"] }
+uuid   = { workspace = true, features = ["v4"] }
+
+[features]
+test-utils = []
 
 [lints]
 workspace = true

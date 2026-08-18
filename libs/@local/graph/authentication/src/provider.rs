@@ -8,27 +8,19 @@ use http::HeaderMap;
 
 use crate::request::AuthenticationError;
 
-/// The decision a provider reaches about a request's credentials.
-#[derive(Debug)]
-pub enum Authentication {
-    /// The credential verified to this actor.
-    Verified(AuthenticatedActor),
-    /// A credential is present but does not verify.
-    Rejected(Report<AuthenticationError>),
-}
-
 /// Authenticates requests against a credential verifier.
 ///
 /// A provider owns both the recognition of its credentials in the request headers and their
 /// verification. `Continue(())` means the request carries no credential this provider handles
-/// and the chain moves on. Both [`Authentication`] decisions break the chain, so a rejected
-/// credential never falls through to another provider.
+/// and the chain moves on. Breaking with `Ok` carries the actor the credential verified to, with
+/// `Err` the reason it did not — either way the chain stops, so a rejected credential never falls
+/// through to another provider.
 pub trait AuthenticationProvider: Send + Sync {
     /// Resolves the credential of a request.
     fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> impl Future<Output = ControlFlow<Authentication>> + Send;
+    ) -> impl Future<Output = ControlFlow<Result<AuthenticatedActor, Report<AuthenticationError>>>> + Send;
 }
 
 /// Chains two providers: the second is consulted only when the first recognizes no credential.
@@ -37,13 +29,17 @@ where
     A: AuthenticationProvider,
     B: AuthenticationProvider,
 {
-    async fn authenticate(&self, headers: &HeaderMap) -> ControlFlow<Authentication> {
+    async fn authenticate(
+        &self,
+        headers: &HeaderMap,
+    ) -> ControlFlow<Result<AuthenticatedActor, Report<AuthenticationError>>> {
         self.0.authenticate(headers).await?;
         self.1.authenticate(headers).await
     }
 }
 
 /// Authentication provider serving a fixed result.
+#[cfg(any(test, feature = "test-utils"))]
 pub enum StaticAuthenticationProvider {
     /// Recognizes no credentials.
     NotRecognized,
@@ -53,31 +49,48 @@ pub enum StaticAuthenticationProvider {
     Rejected,
 }
 
+#[cfg(any(test, feature = "test-utils"))]
 impl AuthenticationProvider for StaticAuthenticationProvider {
     fn authenticate(
         &self,
         _headers: &HeaderMap,
-    ) -> impl Future<Output = ControlFlow<Authentication>> + Send {
+    ) -> impl Future<Output = ControlFlow<Result<AuthenticatedActor, Report<AuthenticationError>>>> + Send
+    {
         core::future::ready(match self {
             Self::NotRecognized => ControlFlow::Continue(()),
-            Self::Verified(actor) => ControlFlow::Break(Authentication::Verified(*actor)),
-            Self::Rejected => ControlFlow::Break(Authentication::Rejected(Report::new(
-                AuthenticationError::InvalidSession,
-            ))),
+            Self::Verified(actor) => ControlFlow::Break(Ok(*actor)),
+            Self::Rejected => {
+                ControlFlow::Break(Err(Report::new(AuthenticationError::InvalidSession)))
+            }
         })
     }
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use core::ops::ControlFlow;
 
+    use error_stack::Report;
     use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
     use http::HeaderMap;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
-    use super::{Authentication, AuthenticationProvider as _, StaticAuthenticationProvider};
+    use super::{AuthenticationProvider as _, StaticAuthenticationProvider};
+    use crate::request::AuthenticationError;
+
+    /// Returns the report of a rejected decision, panicking on any other outcome.
+    #[track_caller]
+    pub(crate) fn expect_rejection(
+        authentication: ControlFlow<Result<AuthenticatedActor, Report<AuthenticationError>>>,
+    ) -> Report<AuthenticationError> {
+        match authentication {
+            ControlFlow::Break(Err(report)) => report,
+            ControlFlow::Break(Ok(_)) | ControlFlow::Continue(()) => {
+                panic!("the credential should be rejected, got {authentication:?}")
+            }
+        }
+    }
 
     fn random_user() -> AuthenticatedActor {
         AuthenticatedActor::Id(ActorId::User(UserId::new(ActorEntityUuid::new(
@@ -96,7 +109,7 @@ mod tests {
         assert!(
             matches!(
                 chain.authenticate(&HeaderMap::new()).await,
-                ControlFlow::Break(Authentication::Verified(resolved)) if resolved == actor
+                ControlFlow::Break(Ok(resolved)) if resolved == actor
             ),
             "the chain should fall through to the second provider"
         );
@@ -113,7 +126,7 @@ mod tests {
         assert!(
             matches!(
                 chain.authenticate(&HeaderMap::new()).await,
-                ControlFlow::Break(Authentication::Verified(resolved)) if resolved == actor
+                ControlFlow::Break(Ok(resolved)) if resolved == actor
             ),
             "the chain should stop at the first verified credential"
         );
@@ -129,7 +142,7 @@ mod tests {
         assert!(
             matches!(
                 chain.authenticate(&HeaderMap::new()).await,
-                ControlFlow::Break(Authentication::Rejected(_))
+                ControlFlow::Break(Err(_))
             ),
             "a rejection by the first provider should never fall through to the second"
         );

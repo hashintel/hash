@@ -3627,6 +3627,7 @@ dependencies = [
  "hash-status",
  "http 1.4.2",
  "reqwest",
+ "rstest",
  "serde",
  "serde_json",
  "simple-mermaid",
