@@ -11,7 +11,7 @@ use uuid::Uuid;
 use super::{
     DeltaCell, DeltaEdge, DeltaEvent, DeltaNode, DeltaRegister, DeltaRevision, Disposition,
     IdentityTables, ProjectedArrival, Standing,
-    consumer::PollOutcome,
+    consumer::{DeltaPolling, PollOutcome},
     register::UniverseExhausted,
     staging::{MissAction, StagingPipeline},
 };
@@ -795,6 +795,17 @@ fn poll_outcome_redelivery_no_change() {
     assert!(!redelivery.changed());
     assert_eq!(redelivery.events(), 1);
     assert_eq!(redelivery.watermark(), Some(at(5)));
+}
+
+#[test]
+fn polling_defaults() {
+    // The defaults give each side of the ensure twelve staging cycles at the five-second cadence:
+    // a minute per side and about two minutes end to end, over the sixty-second safety lag. The
+    // backlog capacity is a channel bound outside this arithmetic and stays unpinned.
+    let polling = DeltaPolling::default();
+    assert_eq!(polling.interval, core::time::Duration::from_secs(5));
+    assert_eq!(polling.retry_polls, 12);
+    assert_eq!(polling.safety_lag, core::time::Duration::from_secs(60));
 }
 
 #[test]

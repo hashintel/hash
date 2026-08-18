@@ -81,7 +81,7 @@ pub(crate) struct DeltaPolling {
     /// One budget governs both sides, so the reading budget's
     /// exhaustion submits the ensure and the post-ensure budget's exhaustion parks the arrival
     /// until reconciliation or refit.
-    pub retry_polls: u32 = 10,
+    pub retry_polls: u32 = 12,
     /// How many pending arrivals the consumer will backlog before parking.
     pub placement_backlog: usize = 1024,
 }
