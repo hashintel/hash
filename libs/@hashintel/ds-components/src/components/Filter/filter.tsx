@@ -47,7 +47,6 @@ export type FilterOperator<ValueMap extends Record<string, unknown>> = {
     label: string;
     input: InputFor<ValueMap[Key]>;
     onChange?: (value: ValueMap[Key] | null) => void;
-    tooltip?: string | React.ReactNode;
   };
 }[keyof ValueMap & string];
 
@@ -284,9 +283,7 @@ export const Filter = <
     const toItem = (operator: LooseOperator): Item => ({
       id: operator.key,
       text: operator.label,
-      description: operator.tooltip,
       selectedStyle: "tick",
-      subItems: undefined,
       onClick: () => {},
     });
     return looseOperators.map((entry) =>

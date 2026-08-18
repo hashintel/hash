@@ -35,7 +35,6 @@ const KitchenSinkOperators: Array<
         key: "equals",
         label: "equals",
         input: { type: "string" },
-        tooltip: "Aa case sensitive",
       },
       {
         key: "matches",
@@ -57,7 +56,6 @@ const KitchenSinkOperators: Array<
         key: "equalsNum",
         label: "equals",
         input: { type: "number" },
-        tooltip: "Any number",
       },
       {
         key: "gt",
@@ -93,7 +91,6 @@ const KitchenSinkOperators: Array<
           { iconName: "arrowRight" },
           { type: "int", min: 0, max: 100 },
         ],
-        tooltip: "Inclusive bounds",
       },
       {
         key: "near",
@@ -102,7 +99,6 @@ const KitchenSinkOperators: Array<
           { type: "float", min: -90, max: 90, placeholder: "Lat" },
           { type: "float", min: -180, max: 180, placeholder: "Lng" },
         ],
-        tooltip: "Latitude, longitude",
       },
     ],
   },
@@ -119,7 +115,6 @@ const LongContentOperators: Array<
     key: "alphabeticallyBetween",
     label: "is somewhere alphabetically between",
     input: [{ type: "string" }, "and", { type: "string" }],
-    tooltip: "Long-content stress test",
   },
 ];
 

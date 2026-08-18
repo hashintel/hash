@@ -94,7 +94,6 @@ export type LooseOperator = {
     | ReadonlyArray<LooseInputConfig | InputSeparator>
     | null;
   onChange?: (value: unknown) => void;
-  tooltip?: string | React.ReactNode;
 };
 
 export type SlotValue = string | number | null;
