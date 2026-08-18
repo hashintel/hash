@@ -162,9 +162,16 @@ export const Filter = <
       ? undefined
       : flatOperators.find((operator) => operator.key === key);
 
-  const [draftKey, setDraftKey] = useState<string | null>(value?.key ?? null);
+  // A lone operator is not a choice: it is always selected (and displayed),
+  // even while the value is null.
+  const defaultKey =
+    flatOperators.length === 1 ? (flatOperators[0]?.key ?? null) : null;
+
+  const [draftKey, setDraftKey] = useState<string | null>(
+    value?.key ?? defaultKey,
+  );
   const [slots, setSlots] = useState<SlotValue[]>(() =>
-    slotsForValue(operatorByKey(value?.key), value?.value),
+    slotsForValue(operatorByKey(value?.key ?? defaultKey), value?.value),
   );
 
   // Adopt external `value` changes (the "adjust state when props change"
@@ -172,8 +179,10 @@ export const Filter = <
   const [syncedValue, setSyncedValue] = useState<CommittedValue>(value);
   if (!committedEqual(syncedValue, value)) {
     setSyncedValue(value);
-    setDraftKey(value?.key ?? null);
-    setSlots(slotsForValue(operatorByKey(value?.key), value?.value));
+    setDraftKey(value?.key ?? defaultKey);
+    setSlots(
+      slotsForValue(operatorByKey(value?.key ?? defaultKey), value?.value),
+    );
   }
 
   const commitDraft = (key: string | null, draftSlots: SlotValue[]) => {
@@ -248,8 +257,10 @@ export const Filter = <
   };
 
   const revertDraft = () => {
-    setDraftKey(value?.key ?? null);
-    setSlots(slotsForValue(operatorByKey(value?.key), value?.value));
+    setDraftKey(value?.key ?? defaultKey);
+    setSlots(
+      slotsForValue(operatorByKey(value?.key ?? defaultKey), value?.value),
+    );
   };
 
   const handleInputKeyDown = (
@@ -314,6 +325,7 @@ export const Filter = <
     });
   }, [menuItems, flatOperators]);
 
+  const selectableOperators = flatOperators.length > 1;
   const selectedOperator = operatorByKey(draftKey);
   const inputSegments = selectedOperator
     ? inputSegmentsOf(selectedOperator)
@@ -355,23 +367,37 @@ export const Filter = <
       data-testid={testId}
       data-property={property}
     >
-      <ArkSelect.HiddenSelect />
+      {selectableOperators && <ArkSelect.HiddenSelect />}
       <span className={classes.property} onMouseEnter={syncTruncationTitle}>
         {propertyLabel}
       </span>
-      <ArkSelect.Trigger
-        className={classes.trigger}
-        data-placeholder={selectedOperator ? undefined : ""}
-        aria-label={`${propertyLabel} operator`}
-        onMouseEnter={syncTruncationTitle}
-      >
-        <span className={classes.triggerLabel} data-truncates="">
-          {selectedOperator?.label ?? "is…"}
+      {/* A single operator is fixed rather than selectable, so its segment is
+          a plain non-interactive span; with no operators there is no segment */}
+      {selectableOperators ? (
+        <ArkSelect.Trigger
+          className={classes.trigger}
+          data-placeholder={selectedOperator ? undefined : ""}
+          aria-label={`${propertyLabel} operator`}
+          onMouseEnter={syncTruncationTitle}
+        >
+          <span className={classes.triggerLabel} data-truncates="">
+            {selectedOperator?.label ?? "is…"}
+          </span>
+          {!selectedOperator && (
+            <Icon name="chevronDown" size={caretSizeMap[size]} />
+          )}
+        </ArkSelect.Trigger>
+      ) : selectedOperator ? (
+        <span
+          className={classes.trigger}
+          data-static=""
+          onMouseEnter={syncTruncationTitle}
+        >
+          <span className={classes.triggerLabel} data-truncates="">
+            {selectedOperator.label}
+          </span>
         </span>
-        {!selectedOperator && (
-          <Icon name="chevronDown" size={caretSizeMap[size]} />
-        )}
-      </ArkSelect.Trigger>
+      ) : null}
       {inputSegments.map((segment, position) => {
         // Positional keys are correct here: segments have no identity beyond
         // their position, and draftKey remounts them per operator.
@@ -487,17 +513,19 @@ export const Filter = <
           <Icon name="close" size={caretSizeMap[size]} />
         </button>
       )}
-      <Portal container={portalContainerRef}>
-        <ArkSelect.Positioner>
-          <SelectableList
-            as="Select"
-            items={menuItems}
-            selected={draftKey === null ? [] : [draftKey]}
-            size={dropdownSizeMap[size]}
-            emptyState="No operators available"
-          />
-        </ArkSelect.Positioner>
-      </Portal>
+      {selectableOperators && (
+        <Portal container={portalContainerRef}>
+          <ArkSelect.Positioner>
+            <SelectableList
+              as="Select"
+              items={menuItems}
+              selected={draftKey === null ? [] : [draftKey]}
+              size={dropdownSizeMap[size]}
+              emptyState="No operators available"
+            />
+          </ArkSelect.Positioner>
+        </Portal>
+      )}
     </ArkSelect.Root>
   );
 

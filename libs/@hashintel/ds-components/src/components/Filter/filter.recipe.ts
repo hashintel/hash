@@ -100,6 +100,13 @@ export const filterRecipe = sva({
       borderStartStartRadius: "[var(--filter-radius)]",
       borderEndStartRadius: "[var(--filter-radius)]",
       transition: "[border-color 0.15s ease]",
+      // With no operators and no remove button the property is the whole chip
+      "&:last-child": {
+        borderInlineEnd:
+          "var(--form-border-width) solid var(--filter-outer-border)",
+        borderStartEndRadius: "[var(--filter-radius)]",
+        borderEndEndRadius: "[var(--filter-radius)]",
+      },
     },
     trigger: {
       appearance: "none",
@@ -125,7 +132,11 @@ export const filterRecipe = sva({
       borderBlock: "var(--form-border-width) solid var(--filter-outer-border)",
       borderInlineStart: "var(--form-border-width) solid var(--filter-divider)",
       transition: "[background 0.15s ease, border-color 0.15s ease]",
-      _hover: {
+      // A lone operator renders as a static span: same look, no interactivity
+      "&[data-static]": {
+        cursor: "auto",
+      },
+      "&:hover:not([data-static])": {
         background: "neutral.s25",
       },
       "&[data-state=open], &[data-state=open]:hover": {
@@ -145,11 +156,11 @@ export const filterRecipe = sva({
         "--filter-divider": "var(--filter-pressed-border)",
         "--filter-remove-divider": "var(--filter-pressed-border)",
       },
-      "&:hover:not(:disabled)": {
+      "&:hover:not(:disabled):not([data-static])": {
         "--filter-divider": "var(--filter-hover-border)",
         "--filter-outer-border": "var(--filter-hover-border)",
       },
-      "&:hover:not(:disabled) + *": {
+      "&:hover:not(:disabled):not([data-static]) + *": {
         "--filter-divider": "var(--filter-hover-border)",
         "--filter-remove-divider": "var(--filter-hover-border)",
       },

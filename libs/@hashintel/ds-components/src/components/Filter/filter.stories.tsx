@@ -119,6 +119,14 @@ const LongContentOperators: Array<
   },
 ];
 
+type SingleOperatorValues = {
+  contains: string;
+};
+
+const SingleOperatorOperators: Array<
+  ItemOrGroup<FilterOperator<SingleOperatorValues>>
+> = [{ key: "contains", label: "contains", input: { type: "string" } }];
+
 const noop = () => {};
 
 const maxWidthContainerStyle: React.CSSProperties = {
@@ -238,6 +246,32 @@ export const Default: Story = () => (
     <KitchenSinkState
       label="two inputs, no separator"
       value={{ key: "near", value: [51.5074, -0.1278] }}
+    />
+    <span style={stateLabelStyle}>single operator, no value</span>
+    <Filter<SingleOperatorValues>
+      property="name"
+      propertyLabel="Name"
+      operators={SingleOperatorOperators}
+      value={null}
+      onChange={noop}
+      removeable={{ removeable: true, onRemove: noop }}
+    />
+    <span style={stateLabelStyle}>single operator, with value</span>
+    <Filter<SingleOperatorValues>
+      property="name"
+      propertyLabel="Name"
+      operators={SingleOperatorOperators}
+      value={{ key: "contains", value: "hello" }}
+      onChange={noop}
+      removeable={{ removeable: true, onRemove: noop }}
+    />
+    <span style={stateLabelStyle}>no operators</span>
+    <Filter<Record<string, never>>
+      property="archived"
+      propertyLabel="Archived"
+      operators={[]}
+      onChange={noop}
+      removeable={{ removeable: true, onRemove: noop }}
     />
     <span style={stateLabelStyle}>
       responsive, long content in a max-width container
