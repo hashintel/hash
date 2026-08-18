@@ -5,7 +5,7 @@
   },
   "buildCommand": "./vercel-build.sh",
   "installCommand": "./vercel-install.sh",
-  "outputDirectory": "./.next",
+  "outputDirectory": "./dist",
   "cleanUrls": true,
   "trailingSlash": false
 }
