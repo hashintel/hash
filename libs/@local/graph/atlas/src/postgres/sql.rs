@@ -14,16 +14,21 @@
 //!   through the store's own quoting and carries a name at the site that uses it.
 //! - [`first_label`] reads the edition cache's first display label, the one spelling every legend
 //!   and display statement shares.
+//! - [`nearest_declared_icon`] picks a type's nearest declared icon out of its closed schema, the
+//!   one selection rule the fit-time icon stream and the serving-time display read share.
 
 use alloc::borrow::Cow;
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, ColumnName, Correlation, Expression, FromItem, Function, Placeholder,
-    PostgresType,
-    table::{DatabaseColumn, EntityEditionCache, EntityEditions, EntityTemporalMetadata},
+    Aliased, Binder, ColumnName, Correlation, Expression, FromItem, Function, OrderByExpression,
+    Placeholder, PostgresType, SelectExpression, SelectStatement, WhereExpression,
+    table::{
+        DatabaseColumn, EntityEditionCache, EntityEditions, EntityTemporalMetadata, EntityTypes,
+    },
 };
 use hash_graph_store::{
     filter::PathToken,
+    query::Ordering,
     subgraph::edges::{EdgeDirection, EntityTraversalEdgeKind},
 };
 
@@ -245,6 +250,121 @@ pub(crate) fn type_mapping(types: Placeholder) -> FromItem<'static> {
     .alias(MAPPING)
     .column_aliases(vec![Mapping::OntologyId.name(), Mapping::Ordinality.name()])
     .build()
+}
+
+/// The columns of the unnested `allOf` entries the nearest-icon lateral resolves through.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Display {
+    /// The `allOf` entry itself.
+    Value,
+    /// The entry's 1-based position in the `allOf` array.
+    Position,
+}
+
+impl DatabaseColumn<'_> for Display {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::Value => "value".into(),
+            Self::Position => "position".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::Value => PostgresType::JsonB,
+            Self::Position => PostgresType::Int8,
+        }
+    }
+}
+
+/// The one column the nearest-icon lateral delivers.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum NearestIcon {
+    /// The selected icon text.
+    Value,
+}
+
+impl DatabaseColumn<'_> for NearestIcon {
+    fn name(&self) -> ColumnName<'static> {
+        "value".into()
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        PostgresType::Text
+    }
+}
+
+/// Builds the nearest-declared-icon subquery over `types`' closed schema.
+///
+/// The subquery picks the nearest declared icon in the joined type's closed schema: ascending
+/// inheritance depth, position in the `allOf` array breaking ties, one row at most. A chain
+/// without a declared icon answers no row, which a LEFT LATERAL join turns into SQL NULL for
+/// the decoder to default. The selection rule mirrors the serving side's type-icon resolution
+/// in `serve::hydrate`'s tile hydration query, and a change to either belongs in both.
+///
+/// # SQL
+///
+/// ```sql
+/// SELECT display.value ->> 'icon' AS value
+/// FROM jsonb_array_elements(types.closed_schema -> 'allOf')
+///     WITH ORDINALITY AS display(value, position)
+/// WHERE display.value ->> 'icon' IS NOT NULL
+/// ORDER BY (display.value ->> 'depth')::int, display.position
+/// LIMIT 1
+/// ```
+pub(crate) fn nearest_declared_icon(types: Aliased<EntityTypes>) -> SelectStatement {
+    const DISPLAY: Correlation<Display> = Correlation::new("display");
+    /// The closed schema's inheritance list, one entry per `allOf` ancestor.
+    const ALL_OF_KEY: &str = "allOf";
+    /// An entry's icon, when the ancestor declares one.
+    const ICON_KEY: &str = "icon";
+    /// An entry's inheritance depth from the type itself.
+    const DEPTH_KEY: &str = "depth";
+
+    let display_icon = || json_text(DISPLAY.column(&Display::Value), ICON_KEY);
+
+    SelectStatement::builder()
+        .selects(vec![
+            // SELECT display.value ->> 'icon' AS value
+            SelectExpression::aliased(display_icon(), NearestIcon::Value.name().into_identifier()),
+        ])
+        .from(
+            // FROM jsonb_array_elements(types.closed_schema -> 'allOf')
+            //     WITH ORDINALITY AS display(value, position)
+            FromItem::function(Function::JsonArrayElements(Box::new(json_field(
+                types.column(&EntityTypes::ClosedSchema),
+                ALL_OF_KEY,
+            ))))
+            .with_ordinality(true)
+            .alias(DISPLAY)
+            .column_aliases(vec![Display::Value.name(), Display::Position.name()])
+            .build(),
+        )
+        .where_expression({
+            // WHERE display.value ->> 'icon' IS NOT NULL
+            WhereExpression::from_iter([display_icon().is_not_null()])
+        })
+        .order_by_expression({
+            // ORDER BY (display.value ->> 'depth')::int, display.position
+            OrderByExpression::default()
+                .with(
+                    json_text(DISPLAY.column(&Display::Value), DEPTH_KEY)
+                        .grouped()
+                        .cast(PostgresType::Int4),
+                    Ordering::Ascending,
+                    None,
+                )
+                .with(
+                    DISPLAY.column(&Display::Position),
+                    Ordering::Ascending,
+                    None,
+                )
+        })
+        .limit({
+            // LIMIT 1
+            1
+        })
+        .build()
 }
 
 /// Asserts that a statement cites exactly the parameters its bind list carries.

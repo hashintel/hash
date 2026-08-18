@@ -43,7 +43,7 @@ async fn resolve_collapses_every_failure_to_one_none() {
 
     let masked = mask_hiding(&atlas, &[7]);
     for row in 0..universe {
-        let wire = node_codec.encode(NodeRowId::from_u32(row), atlas.universe());
+        let wire = node_codec.encode(NodeRowId::from_u32(row), atlas.node_universe());
         assert_eq!(fitted(&FULL, wire), Some(NodeRowId::from_u32(row)));
         assert_eq!(
             fitted(&masked, wire),
@@ -106,7 +106,7 @@ async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
             .iter()
             .map(|&wire| {
                 let row = node_codec
-                    .decode(codec::WireRow::pinned(wire), atlas.universe())
+                    .decode(codec::WireRow::pinned(wire), atlas.node_universe())
                     .expect("delivered wire ids decode");
                 position_of[&row]
             })
@@ -349,7 +349,7 @@ async fn locate_filters_partners_under_the_mask() {
     let node_codec = test_codec(&atlas);
     let by_row = crate::serve::LocateRequest {
         entity_id: None,
-        row: Some(node_codec.encode(NodeRowId::new(0), atlas.universe())),
+        row: Some(node_codec.encode(NodeRowId::new(0), atlas.node_universe())),
         colored_type_ids: Vec::new(),
     };
 
@@ -647,7 +647,7 @@ fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hid
         .iter()
         .map(|&row| {
             node_codec
-                .encode(NodeRowId::from_u32(row), atlas.universe())
+                .encode(NodeRowId::from_u32(row), atlas.node_universe())
                 .get()
         })
         .collect();
@@ -691,7 +691,7 @@ fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hid
                     .iter()
                     .map(|&wire| {
                         let row = node_codec
-                            .decode(codec::WireRow::pinned(wire), atlas.universe())
+                            .decode(codec::WireRow::pinned(wire), atlas.node_universe())
                             .expect("delivered wire ids decode");
                         position_of[&row]
                     })
@@ -802,7 +802,7 @@ fn assert_locate_delivers_the_visible_ego_graph(
     let node_codec = test_codec(atlas);
     let wire_of = |row: u32| {
         node_codec
-            .encode(NodeRowId::from_u32(row), atlas.universe())
+            .encode(NodeRowId::from_u32(row), atlas.node_universe())
             .get()
     };
     let bound = Bound::of(atlas, proof);
@@ -1001,7 +1001,7 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
                 atlas.locate(
                     &by_row(
                         node_codec
-                            .encode(NodeRowId::from_u32(row), atlas.universe())
+                            .encode(NodeRowId::from_u32(row), atlas.node_universe())
                             .get(),
                     ),
                     limits,

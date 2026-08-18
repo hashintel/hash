@@ -233,7 +233,8 @@ const impl Neg for DVec2 {
 /// The `f64` twin of [`Vec2x4T`]: all four `x` values followed by all four `y` values, aligned for
 /// [`Simd<f64, 8>`](Simd). The surface is fold-shaped - widen a [`Vec2x4T`] batch through [`From`]
 /// (exact for every component), form lane-wise products, accumulate with
-/// [`mul_add`](Self::mul_add), and terminally [`reduce`](Self::reduce) to a [`DVec2`] - because the
+/// [`mul_add`](Self::mul_add), and terminally [`reduce_sum`](Self::reduce_sum) to a [`DVec2`] -
+/// because the
 /// type exists for double-precision moment accumulation over batches of working-precision points.
 ///
 /// # Examples

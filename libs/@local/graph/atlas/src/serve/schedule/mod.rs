@@ -86,7 +86,7 @@ pub(crate) enum ViewRow {
 /// One cohort arrival of a schedule, resolved whole at construction.
 ///
 /// Everything an arrival-bearing response reads. The identity keys the ingress withdrawal
-/// filter, and the frozen coordinate feeds the `POSITIONS` column. Its wire id feeds the
+/// filter, and the projected coordinate feeds the `POSITIONS` column. Its wire id feeds the
 /// `ROW_IDS` column, pre-encoded under the entry universe, which admits every cohort slot by
 /// construction, and the legend feeds the detail trailer.
 #[derive(Debug, Clone)]
@@ -245,8 +245,8 @@ impl ViewSchedule {
 /// One visible row of the cascade's input.
 ///
 /// The vessel addresses the row in its own domain, and the key and rank are the row's pinned
-/// layout values: quantized coordinate and corpus rank for a fitted row, quantized frozen
-/// placement and a rank past every fitted rank for an arrival. These three are the whole
+/// layout values: quantized coordinate and corpus rank for a fitted row, quantized placement
+/// and a rank past every fitted rank for an arrival. These three are the whole
 /// vocabulary the schedule reads.
 #[derive(Debug, Copy, Clone)]
 struct ScopeRow {
@@ -386,7 +386,7 @@ impl ScopeSchedule {
     /// dense and pairwise distinct by construction. [`Self::over`] assigns the buckets.
     ///
     /// The cohort's placed arrivals the proof admits join the same pass. Each takes the key its
-    /// frozen coordinate quantizes to on the wire frame - every published placement lies inside
+    /// projected coordinate quantizes to on the wire frame - every published placement lies inside
     /// it, because an out-of-frame projection never places - and a rank past every fitted row's,
     /// ascending in identity order, so every generation row outranks every arrival and arrival
     /// order is stable whatever order the cohort's map iterates. The wire id pre-encodes under
@@ -409,7 +409,7 @@ impl ScopeSchedule {
             }
         }
 
-        let universe = cohort.universe(atlas.universe());
+        let universe = cohort.universe(atlas.node_universe());
         let mut arrivals = Vec::new_in(alloc);
         for (identity, arrival) in admitted_arrivals(proof, cohort) {
             let (key, row) = ArrivalRow::of(atlas, universe, identity, arrival);
@@ -579,7 +579,7 @@ impl ScopeSchedule {
 struct OverlaySlot {
     /// The arrival's natural bucket against the corpus and its earlier cohort peers.
     bucket: Depth,
-    /// The arrival's Morton key, quantized from the frozen coordinate.
+    /// The arrival's Morton key, quantized from the projected coordinate.
     key: MortonKey,
     /// The arrival addressed, ascending in identity order across the overlay.
     arrival: ArrivalIndex,
@@ -639,7 +639,7 @@ impl ArrivalOverlay {
     /// a scope with a saturated node mask. A narrower scope's arrival buckets depend on its own
     /// visible keys, and its cascade build folds the arrivals instead.
     pub(crate) fn of(atlas: &Atlas, proof: &VisibilityProof, cohort: PlacementCohort<'_>) -> Self {
-        let universe = cohort.universe(atlas.universe());
+        let universe = cohort.universe(atlas.node_universe());
         let admitted = admitted_arrivals(proof, cohort);
 
         let alloc = MemoryUsageAllocator::global();

@@ -20,12 +20,14 @@
 //! indistinguishable from an id belonging to neither domain.
 //!
 //! A live post-fit arrival resolves through the entry's placement cohort. A placed identity
-//! answers the slot its first placement took and its frozen wire coordinate, under the same
+//! answers the slot and wire coordinate its first placement took, under the same
 //! absent-key law. Identity resolution is cohort-bound, so an identity placed after the scope
 //! resolved stays an absent key until the scope refreshes, and a withdrawn identity in the
-//! ingress capture answers an absent key in every domain. Translation reads the published
-//! identity artifacts, the fitted coordinate column, and the entry's retained cohort, never the
-//! store.
+//! ingress capture answers an absent key in every domain. A fitted edge dies with its
+//! endpoints, answering an absent key while the capture withdraws either endpoint's node row.
+//! The neighbourhood read applies the same next-request death. Translation reads
+//! the published identity artifacts, the fitted coordinate column, and the entry's retained
+//! cohort, never the store.
 
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};
@@ -153,10 +155,11 @@ impl Atlas {
     ///
     /// A node id resolves when the proof holds its row. Link ids resolve when the proof holds the
     /// link row and both of its endpoints, and answer an absent key otherwise, the same answer an
-    /// id of neither domain receives. `delta` is the request's ingress withdrawal capture, and a
-    /// withdrawn identity answers an absent key in either domain, indistinguishable from every
-    /// other absence. `cohort` is the entry's own, and a placed arrival it holds answers as a
-    /// node on its slot when the proof admits it.
+    /// id of neither domain receives. `delta` is the request's ingress withdrawal capture. A
+    /// withdrawn identity answers an absent key in either domain, and a fitted edge answers the
+    /// same while the capture withdraws either endpoint's node row - both indistinguishable
+    /// from every other absence. `cohort` is the entry's own, and a placed arrival it holds
+    /// answers as a node on its slot when the proof admits it.
     ///
     /// # Errors
     ///
@@ -183,7 +186,7 @@ impl Atlas {
                 position_of_row: self.positions_of_row(),
                 endpoints: self.endpoint_pairs(),
                 node_codec: &self.node_codec,
-                universe: cohort.universe(self.universe),
+                universe: cohort.universe(self.node_universe),
             },
         )
     }
@@ -274,6 +277,16 @@ pub(super) fn translate(
             if proof.verify_edge(edge, source, target).is_none() {
                 // A hidden link row or endpoint hides the edge: an
                 // absent key.
+                continue;
+            }
+
+            // A withdrawn endpoint kills every edge at it on the next request, the
+            // neighbourhood read's own rule. The edge's own withdrawal is the identity check
+            // above; the endpoints are other identities, and this row projection is the one
+            // boundary that sees them.
+            if delta
+                .is_some_and(|delta| delta.withdraws_node(source) || delta.withdraws_node(target))
+            {
                 continue;
             }
 

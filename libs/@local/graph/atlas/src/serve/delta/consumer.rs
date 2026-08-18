@@ -14,7 +14,7 @@
 //! scope's law. Retries need no budget: the read is one indexed batch per poll with no spend to
 //! bound.
 //!
-//! Each poll also drains the placement channel the staging arm feeds, folding every frozen
+//! Each poll also drains the placement channel the staging arm feeds, folding every projected
 //! placement into the register before the publication decision. The consumer stays the register's
 //! one writer, and a drained placement publishes at the same poll that received it, so an
 //! arrival's coordinate reaches serving within one poll interval of its projection.
@@ -48,60 +48,42 @@ use hash_graph_postgres_store::store::{
 use hash_graph_store::{error::QueryError, pool::StorePool as _};
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hashql_core::collections::FastHashMap;
-use tokio::{sync::mpsc::UnboundedReceiver, time::MissedTickBehavior};
+use tokio::{sync::mpsc::Receiver, time::MissedTickBehavior};
 
 use super::{
     DeltaCell, DeltaEvent, DeltaRegister, DeltaRevision, Disposition, IdentityTables,
     ProjectedArrival,
 };
 use crate::postgres::{
-    Classification, classify_entities, id::ArchivedEntityId, read_edition_displays,
+    Classification, classify_entities, edition_display::DisplayParts, id::ArchivedEntityId,
+    read_edition_displays,
 };
 
 /// The consumer's polling knobs.
 ///
 /// The serve flags read their defaults from here, so the values live in exactly one place and
 /// `--help` renders them.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub(crate) struct DeltaPolling {
     /// How long the consumer waits between polls.
-    ///
-    /// [`Self::INTERVAL_SECONDS`] by default.
-    pub interval: Duration,
+    pub interval: Duration = Duration::from_secs(5),
     /// How far behind its own watermark a poll starts reading.
     ///
-    /// [`Self::SAFETY_LAG_SECONDS`] by default. The feed's contract requires the lag to exceed the
+    /// The feed's contract requires the lag to exceed the
     /// longest write request plus the largest cross-writer clock skew. Nobody has measured either
     /// bound, so the default stands wide until a measurement revises it downward. Query
     /// affordability cannot establish event completeness, so a tighter lag is an accepted-risk
     /// decision rather than a performance tuning.
-    pub safety_lag: time::Duration,
+    pub safety_lag: Duration = Duration::from_secs(60),
     /// How many consecutive staging cycles read for a pending arrival's embedding on each side
     /// of its ensure.
     ///
-    /// [`Self::RETRY_POLLS`] by default. One budget governs both sides, so the reading budget's
+    /// One budget governs both sides, so the reading budget's
     /// exhaustion submits the ensure and the post-ensure budget's exhaustion parks the arrival
     /// until reconciliation or refit.
-    pub retry_polls: u32,
-}
-
-impl DeltaPolling {
-    /// The pinned polling cadence, in seconds.
-    pub(crate) const INTERVAL_SECONDS: u32 = 5;
-    /// The pinned per-side retry budget, in staging cycles.
-    pub(crate) const RETRY_POLLS: u32 = 12;
-    /// The pinned safety lag, in seconds.
-    pub(crate) const SAFETY_LAG_SECONDS: u32 = 60;
-}
-
-impl Default for DeltaPolling {
-    fn default() -> Self {
-        Self {
-            interval: Duration::from_secs(u64::from(Self::INTERVAL_SECONDS)),
-            safety_lag: time::Duration::seconds(i64::from(Self::SAFETY_LAG_SECONDS)),
-            retry_polls: Self::RETRY_POLLS,
-        }
-    }
+    pub retry_polls: u32 = 10,
+    /// How many pending arrivals the consumer will backlog before parking.
+    pub placement_backlog: usize = 1024,
 }
 
 /// One poll failed against the store.
@@ -197,8 +179,9 @@ pub(crate) struct DeltaConsumer<T> {
     cell: Arc<DeltaCell>,
     /// The polling knobs.
     polling: DeltaPolling,
-    /// The channel carrying the staging arm's projected arrivals.
-    placements: UnboundedReceiver<(ArchivedEntityId, ProjectedArrival)>,
+    /// The channel carrying the staging arm's projected arrivals, bounded at
+    /// [`DeltaPolling::placement_backlog`].
+    placements: Receiver<(ArchivedEntityId, ProjectedArrival)>,
     /// The fold of every event applied so far.
     register: DeltaRegister,
     /// The newest event time folded through, the next poll's base.
@@ -226,7 +209,7 @@ where
         fitted: Timestamp<TransactionTime>,
         register: DeltaRegister,
         polling: DeltaPolling,
-        placements: UnboundedReceiver<(ArchivedEntityId, ProjectedArrival)>,
+        placements: Receiver<(ArchivedEntityId, ProjectedArrival)>,
     ) -> Self {
         Self {
             pool,
@@ -338,7 +321,14 @@ where
                 );
             }
 
-            disposition |= self.register.classify(entity, verdict);
+            match self.register.classify(entity, verdict) {
+                Ok(held) => disposition |= held,
+                Err(exhausted) => tracing::warn!(
+                    ?entity,
+                    %exhausted,
+                    "the edge row allocator refused a verdict, the identity stays unclassified"
+                ),
+            }
         }
         disposition.changes_resolution()
     }
@@ -395,11 +385,17 @@ where
         let displays: FastHashMap<_, _> = answers.into_iter().collect();
         let mut captured = false;
         for (entity, edition) in required {
-            if let Some(Some((label, representative))) = displays.get(&edition) {
+            if let Some(Some(DisplayParts {
+                label,
+                icon,
+                representative,
+            })) = displays.get(&edition)
+            {
                 match self.register.capture_display(
                     entity,
                     edition,
                     label,
+                    icon,
                     *representative,
                     self.tables.as_ref(),
                 ) {
@@ -455,6 +451,10 @@ where
     /// Returns [`PollError::Connect`] when no connection was available for the poll, and
     /// [`PollError::Feed`] when the feed statement failed or one of its rows did not decode.
     async fn poll(&mut self) -> Result<PollReading, PollError> {
+        let safety_lag = time::Duration::try_from(self.polling.safety_lag).expect(
+            "the safety lag should be in the range of minutes, which should be able to be \
+             converted to its time equivalent",
+        );
         let store = self
             .pool
             .acquire(None)
@@ -466,8 +466,7 @@ where
             // The feed executes as a fresh prepare on every call: a reused prepared statement
             // flips to a generic plan around its sixth execution, and this cadence crosses that
             // count within half a minute of startup.
-            let mut events =
-                pin!(store.entity_events_since(self.watermark - self.polling.safety_lag));
+            let mut events = pin!(store.entity_events_since(self.watermark - safety_lag));
             while let Some(event) = events.try_next().await.map_err(PollError::Feed)? {
                 outcome.fold(&mut self.register, &event);
             }

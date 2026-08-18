@@ -307,7 +307,7 @@ async fn detailed_tiles_hydrate_labels_and_icons_from_the_generation() {
             let node_codec = test_codec(&atlas);
             row_ids
                 .iter()
-                .map(|&row| node_codec.encode(NodeRowId::from_u32(row), atlas.universe()))
+                .map(|&row| node_codec.encode(NodeRowId::from_u32(row), atlas.node_universe()))
                 .collect::<Vec<_>>()
         }),
         arrivals: IdSlice::from_raw(&[]),
@@ -340,7 +340,7 @@ async fn deepest_grid_tiles_align_every_icon_precedence_case() {
         .map(|row| {
             (
                 node_codec
-                    .encode(NodeRowId::from_u32(row), atlas.universe())
+                    .encode(NodeRowId::from_u32(row), atlas.node_universe())
                     .get(),
                 row,
             )

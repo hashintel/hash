@@ -20,7 +20,7 @@ use alloc::collections::BinaryHeap;
 use core::cmp::Ordering;
 
 use hashql_core::{
-    collections::{FastHashMap, fast_hash_map},
+    collections::fast_hash_map,
     id::{IdSlice, IdVec, bit_vec::DenseBitSet},
 };
 
@@ -286,6 +286,7 @@ pub(super) struct Neighbourhood<'atlas> {
     node_ids: &'atlas IdentityTableArchive<ArchivedEntityId, NodeRowId>,
     ranks: &'atlas IdSlice<BasePosition, ImportanceRank>,
     positions_of_row: &'atlas IdSlice<NodeRowId, BasePosition>,
+    node_universe: Universe<NodeRowId>,
     proof: &'atlas VisibilityProof,
     /// The request's ingress withdrawal snapshot, absent before the first publication.
     delta: Option<&'atlas DeltaSnapshot>,
@@ -306,6 +307,7 @@ impl<'atlas> Neighbourhood<'atlas> {
             node_ids: &atlas.node_ids,
             ranks: atlas.ranks.view(),
             positions_of_row: atlas.positions_of_row.view(),
+            node_universe: atlas.node_universe,
             proof,
             delta,
         }
@@ -397,56 +399,50 @@ impl<'atlas> Neighbourhood<'atlas> {
     /// Offers every admitted cohort link between delivered endpoints to the cap.
     ///
     /// A delta link serves when the proof's identity set admits it, the ingress capture does not
-    /// withdraw it, and the response's delivered sets hold both endpoints. Fitted endpoints
-    /// qualify through the delivered rows after subtraction, and arrival endpoints through the
-    /// delivered arrivals whose identities the capture keeps. Endpoint withdrawal therefore kills
-    /// an edge through the same delivered-set rule that kills fitted edges, one domain over. An
-    /// endpoint that is neither a fitted row nor a delivered arrival refuses the edge whole, so a
-    /// link attaching an entity the view cannot deliver serves nothing.
+    /// withdraw it, and the response's delivered sets hold both endpoints. Publication hands the
+    /// endpoints as rows. A row inside the fitted universe qualifies through the delivered rows
+    /// after subtraction, and an allocated row qualifies through the delivered arrivals whose
+    /// identities the capture keeps. Endpoint withdrawal therefore kills an edge through
+    /// the same delivered-set rule that kills fitted edges, one domain over. An endpoint the
+    /// view cannot deliver refuses the edge whole, so a link attaching an undelivered entity
+    /// serves nothing.
     fn offer_delta_links(&self, view: &View<'_>, bounds: &DeliveredBounds, cap: &mut RankCap) {
         let cohort = view.cohort();
         let ingress = self.delta;
 
-        // The delivered arrivals in the identity domain: the table rows the tiles delivered,
-        // less the identities the ingress capture withdraws. A cap that has already truncated
-        // skips the map whole - its kept keys are all fitted, so an arrival-keyed candidate
-        // cannot enter, and a further exclusion cannot move the recorded bit. A full cap that
-        // has not truncated still builds the map, because a qualifying arrival edge falling to
-        // the cap is what flips the head's completeness.
-        let arrivals: Option<FastHashMap<ArchivedEntityId, NodeRowId>> =
-            (!cap.truncated).then(|| {
-                let table = view.arrivals();
-                let mut map = fast_hash_map();
-                for index in &bounds.arrivals {
-                    let row = &table[index];
-                    if ingress.is_some_and(|delta| delta.withdraws(row.identity)) {
-                        continue;
-                    }
-                    let Some(node) = cohort.node(row.identity) else {
-                        continue;
-                    };
-
-                    map.insert(row.identity, node.id);
+        let arrivals = (!cap.truncated).then(|| {
+            let table = view.arrivals();
+            let mut map = fast_hash_map();
+            for index in &bounds.arrivals {
+                let row = &table[index];
+                if ingress.is_some_and(|delta| delta.withdraws(row.identity)) {
+                    continue;
                 }
+                let Some(node) = cohort.node(row.identity) else {
+                    continue;
+                };
 
-                map
-            });
+                map.insert(node.id, row.identity);
+            }
 
-        let endpoint = |id: ArchivedEntityId| {
-            self.node_ids.row_of(id).map_or_else(
-                || {
-                    arrivals
-                        .as_ref()
-                        .and_then(|map| map.get(&id))
-                        .map(|&slot| DeltaEndpoint::Arrival { slot, identity: id })
-                },
-                |row| {
-                    bounds
-                        .rows
-                        .contains(row)
-                        .then_some(DeltaEndpoint::Fitted(row))
-                },
-            )
+            map
+        });
+
+        let endpoint = |row: NodeRowId| {
+            if self.node_universe.contains(row) {
+                bounds
+                    .rows
+                    .contains(row)
+                    .then_some(DeltaEndpoint::Fitted(row))
+            } else {
+                arrivals
+                    .as_ref()
+                    .and_then(|map| map.get(&row))
+                    .map(|&identity| DeltaEndpoint::Arrival {
+                        slot: row,
+                        identity,
+                    })
+            }
         };
 
         for (identity, link) in cohort.edges() {
@@ -473,7 +469,7 @@ impl<'atlas> Neighbourhood<'atlas> {
 
     /// Returns an edge row's link-entity identity.
     ///
-    /// Generation-frozen. The `EDGE_IDS` columns deliver exactly these identity bytes.
+    /// Generation-baked. The `EDGE_IDS` columns deliver exactly these identity bytes.
     ///
     /// # Panics
     ///

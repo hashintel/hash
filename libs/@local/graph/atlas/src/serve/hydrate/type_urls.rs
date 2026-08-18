@@ -6,8 +6,8 @@
 //! never-invalidated cache correct here, and why the cache is generation-independent - a
 //! generation swap changes which uuids a response requires, never what a uuid resolves to.
 //!
-//! [`ResolveTypeUrls`] is the resolution capability and [`CachedHydrate`] the cache that
-//! composes over any source of it. The source stays cache-oblivious. It answers every uuid it
+//! [`TypeUrlResolver`] is the resolution capability and [`CachedTypeUrlResolver`] the cache
+//! that composes over any source of it. The source stays cache-oblivious. It answers every uuid it
 //! receives, and the wrapper decides which uuids reach it.
 
 use alloc::sync::Arc;

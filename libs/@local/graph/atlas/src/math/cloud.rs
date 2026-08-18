@@ -96,8 +96,8 @@ fn chunk_squared_deviations(points: &[Vec2], centre: DVec2) -> f64 {
 ///
 /// The constructor owns the finiteness scan, four points at a time on SIMD lanes, and a
 /// consumer holding a cloud divides, squares, and folds without re-checking. Reads flow
-/// through the slice's own API, and the one write path is [`as_raw_mut`](Self::as_raw_mut),
-/// where the caller keeps the proof.
+/// through the slice's own API, and the one write path is
+/// [`as_raw_mut_unchecked`](Self::as_raw_mut_unchecked), where the caller keeps the proof.
 #[derive(Debug, PartialEq, zerocopy::IntoBytes, zerocopy::Immutable, zerocopy::KnownLayout)]
 #[repr(transparent)]
 pub(crate) struct FinitePointCloud<I>(IdSlice<I, Vec2>);
@@ -162,7 +162,7 @@ where
     /// Wraps a mutable slice the caller proves finite, and keeps finite.
     ///
     /// The mutable form of [`new_unchecked`](Self::new_unchecked): every write through
-    /// [`as_raw_mut`](Self::as_raw_mut) must land a finite value.
+    /// [`as_raw_mut_unchecked`](Self::as_raw_mut_unchecked) must land a finite value.
     // Correctness, never memory safety: a broken promise yields wrong statistics downstream.
     #[inline]
     #[must_use]

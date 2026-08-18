@@ -10,7 +10,7 @@
 //! Growth is the register's alone. [`IdentityTableOverlay::resolve`] hands an identity its row,
 //! allocating the next row past the current universe on first sight, so the extension is dense,
 //! insert-only, and reproducible from its allocation order. Publication clones the overlay into
-//! the snapshot, which freezes the extension for every read taken against that publication.
+//! the snapshot, which pins the extension for every read taken against that publication.
 
 use hashql_core::{
     collections::{FastHashMap, fast_hash_map},

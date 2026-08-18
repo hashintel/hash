@@ -396,7 +396,7 @@ async fn entry_withholds_cohort_withdrawn() {
     assert!(remainder.is_empty(), "row sections are whole u32 columns");
 
     let wire = test_codec(&atlas)
-        .encode(NodeRowId::from_u32(row), atlas.universe())
+        .encode(NodeRowId::from_u32(row), atlas.node_universe())
         .get();
     assert!(
         !chunks
@@ -760,6 +760,7 @@ async fn entry_exposes_bound_cohort() {
 
     let register = DeltaRegister::new(
         Universe::new(NodeRowId::new(10)),
+        Universe::new(crate::identity::EdgeRowId::new(6)),
         Universe::new(crate::identity::OntologyRowId::new(4)),
     );
     let snapshot = Arc::new(register.snapshot(
@@ -818,6 +819,7 @@ async fn folded_matches_bound_publication() {
 
     let register = DeltaRegister::new(
         Universe::new(NodeRowId::new(10)),
+        Universe::new(crate::identity::EdgeRowId::new(6)),
         Universe::new(crate::identity::OntologyRowId::new(4)),
     );
     let publish = || {

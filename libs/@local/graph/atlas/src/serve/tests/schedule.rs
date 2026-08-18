@@ -4,7 +4,7 @@
 //! documented contract rather than from `serve::schedule`. It gathers the visible rows with their
 //! pinned keys and ranks, then assigns first-occupant buckets to the complete key depth. It clamps
 //! those buckets into the resolved catch-all and delivers contiguous bucket intervals in `(bucket,
-//! key, rank)` order. Agreement across the battery freezes the delivered rows, their order, the
+//! key, rank)` order. Agreement across the battery pins the delivered rows, their order, the
 //! per-bucket runs, the child bitmask, and the root's global metadata at once, and because the
 //! reference reads nothing but the visible rows, every agreement is a witness that production
 //! delivery reads nothing but the visible rows either.
@@ -357,7 +357,7 @@ async fn restricted_delivery_agrees_with_the_scope_cascade_reference() {
                             .iter()
                             .map(|&wire| {
                                 let row = node_codec
-                                    .decode(codec::WireRow::pinned(wire), atlas.universe())
+                                    .decode(codec::WireRow::pinned(wire), atlas.node_universe())
                                     .expect("delivered wire ids decode");
                                 position_of[&row]
                             })
@@ -867,7 +867,7 @@ fn assert_saturated_scope_grid(
                             .iter()
                             .map(|&wire| {
                                 position_of[&node_codec
-                                    .decode(codec::WireRow::pinned(wire), atlas.universe())
+                                    .decode(codec::WireRow::pinned(wire), atlas.node_universe())
                                     .expect("delivered wire ids decode")]
                             })
                             .collect();

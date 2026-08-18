@@ -199,7 +199,7 @@ fn codec_derivation_is_deterministic() {
 ///
 /// From the documented construction and pinned parameter picks rather than from `serve::codec`.
 ///
-/// Agreement between the two freezes the wire mapping itself. A refactor that changes any derived
+/// Agreement between the two pins the wire mapping itself. A refactor that changes any derived
 /// bit fails these tests.
 mod codec_reference {
     use core::hash::Hasher as _;

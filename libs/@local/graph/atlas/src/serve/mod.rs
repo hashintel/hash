@@ -246,7 +246,7 @@ pub(crate) struct Atlas {
     ///
     /// The bound before any delta, which the slot allocator starts past and a delta snapshot
     /// widens. A request answering with no snapshot reads this value at every encode and decode.
-    universe: Universe<NodeRowId>,
+    node_universe: Universe<NodeRowId>,
     /// The wire row-id column in base order.
     ///
     /// The row column mapped through the node codec once at open, so position-driven gathers
@@ -297,14 +297,20 @@ impl Atlas {
 
     /// Returns the generation's base row universe, the bound before any delta.
     #[must_use]
-    pub(crate) const fn universe(&self) -> Universe<NodeRowId> {
-        self.universe
+    pub(crate) const fn node_universe(&self) -> Universe<NodeRowId> {
+        self.node_universe
     }
 
     /// Returns the generation's ontology row universe, the tabulated types' bound.
     #[must_use]
     pub(crate) fn ontology_universe(&self) -> Universe<OntologyRowId> {
         Universe::new(OntologyRowId::from_u64(self.ontology_ids.len()))
+    }
+
+    /// Returns the generation's edge row universe, the fitted edges' bound before any delta.
+    #[must_use]
+    pub(crate) fn edge_universe(&self) -> Universe<EdgeRowId> {
+        Universe::new(EdgeRowId::from_u64(self.edge_ids.len()))
     }
 
     /// Opens the generation's publish path for placing arrivals online.

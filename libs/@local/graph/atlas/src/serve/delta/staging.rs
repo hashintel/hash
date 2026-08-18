@@ -25,9 +25,9 @@
 //!   v
 //! Ready, display captured
 //!   |
-//!   +---- an in-frame projection the publisher accepts ----> Placed
+//!   +---- an in-frame projection the publisher accepts ----> HandedOff
 //!   |
-//!   +---- an out-of-frame or non-finite projection --------> Held (until refit)
+//!   +---- an out-of-frame or non-finite projection --------> OutOfFrame (until refit)
 //!
 //! leave - an identity the staged set stops naming drops from any phase
 //! ```
@@ -52,8 +52,8 @@
 //! until the refit repairs it.
 //!
 //! The pipeline mirrors the published staged set. An identity that leaves it - a withdrawal -
-//! drops its pipeline state, and an identity that returns - an unarchive without a frozen
-//! placement - re-enters pending with a fresh budget. A pending arrival's edition tracks the
+//! drops its pipeline state, and an identity that returns - an unarchive the register never
+//! placed - re-enters pending with a fresh budget. A pending arrival's edition tracks the
 //! newest feed edition, so an ensure always names the current one.
 //!
 //! A completed arrival places in the same cycle. The arm projects every ready embedding through
@@ -73,7 +73,10 @@ use hash_graph_postgres_store::store::{AsClient, PostgresStorePool, error::Store
 use hash_graph_store::pool::StorePool as _;
 use hash_temporal_client::TemporalClient;
 use hashql_core::collections::{FastHashMap, FastHashMapEntry, fast_hash_map, fast_hash_set};
-use tokio::{sync::mpsc::UnboundedSender, time::MissedTickBehavior};
+use tokio::{
+    sync::mpsc::{Sender, error::TrySendError},
+    time::MissedTickBehavior,
+};
 use type_system::{
     knowledge::entity::id::{EntityEditionId, EntityId},
     ontology::id::BaseUrl,
@@ -86,11 +89,11 @@ use super::{
     placement::{NonFiniteProjection, Placer, Projection},
 };
 use crate::{
-    dataset::{PROJECTOR_DIMENSIONS, auxiliary::OwnedLabel, postgres::PostgresDatasetError},
+    dataset::{PROJECTOR_DIMENSIONS, postgres::PostgresDatasetError},
     math::BoxedVecN,
     postgres::{
-        id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
-        read_edition_displays, read_projector_embeddings,
+        edition_display::DisplayParts, id::ArchivedEntityId, read_edition_displays,
+        read_projector_embeddings,
     },
 };
 
@@ -132,15 +135,15 @@ enum Phase {
         embedding: BoxedVecN<PROJECTOR_DIMENSIONS>,
         /// The display parts read for the recorded edition, absent until its read answers.
         ///
-        /// Placement waits for the read, so a placed arrival always carries the label and
-        /// representative type its store row stated at the hand-off.
-        display: Option<(OwnedLabel, ArchivedOntologyTypeUuid)>,
+        /// Placement waits for the read, so a placed arrival always carries the label, icon,
+        /// and representative type its store row stated at the hand-off.
+        display: Option<DisplayParts>,
     },
     /// The publisher holds the placement, and the published staged set retires the entry.
-    Placed,
-    /// The embedding projects outside the frozen world frame, and the arrival stays unplaced
-    /// until a refit recalibrates the frame.
-    Held,
+    HandedOff,
+    /// The embedding projects outside the fitted world frame or to a non-finite point, and the
+    /// arrival stays unplaced until a refit recalibrates the frame.
+    OutOfFrame,
     /// Both budgets ran out, and the arrival stays unplaced until reconciliation or refit.
     Exhausted,
 }
@@ -254,11 +257,7 @@ impl StagingPipeline {
     ///
     /// An answer for an identity not awaiting one changes nothing, so an answer racing a
     /// withdrawal drops rather than resurrects.
-    pub(super) fn captured(
-        &mut self,
-        identity: ArchivedEntityId,
-        payload: (OwnedLabel, ArchivedOntologyTypeUuid),
-    ) {
+    pub(super) fn captured(&mut self, identity: ArchivedEntityId, payload: DisplayParts) {
         if let Some(entry) = self.entries.get_mut(&identity)
             && let Phase::Ready { display, .. } = &mut entry.phase
             && display.is_none()
@@ -296,7 +295,7 @@ impl StagingPipeline {
                     MissAction::Wait
                 }
             }
-            Phase::Ready { .. } | Phase::Placed | Phase::Held | Phase::Exhausted => {
+            Phase::Ready { .. } | Phase::HandedOff | Phase::OutOfFrame | Phase::Exhausted => {
                 MissAction::Wait
             }
         }
@@ -321,7 +320,7 @@ impl StagingPipeline {
             ArchivedEntityId,
             EntityEditionId,
             &BoxedVecN<PROJECTOR_DIMENSIONS>,
-            &(OwnedLabel, ArchivedOntologyTypeUuid),
+            &DisplayParts,
         ),
     > {
         self.entries
@@ -334,8 +333,8 @@ impl StagingPipeline {
                 Phase::Ready { display: None, .. }
                 | Phase::Reading { .. }
                 | Phase::Ensured { .. }
-                | Phase::Placed
-                | Phase::Held
+                | Phase::HandedOff
+                | Phase::OutOfFrame
                 | Phase::Exhausted => None,
             })
     }
@@ -344,19 +343,20 @@ impl StagingPipeline {
     ///
     /// The entry stays until the published staged set stops naming the identity, so a cycle
     /// running between the hand-off and the next publication neither re-reads nor re-places it.
-    pub(super) fn placed(&mut self, identity: ArchivedEntityId) {
+    pub(super) fn handed_off(&mut self, identity: ArchivedEntityId) {
         if let Some(entry) = self.entries.get_mut(&identity) {
-            entry.phase = Phase::Placed;
+            entry.phase = Phase::HandedOff;
         }
     }
 
-    /// Parks one arrival whose embedding projects outside the frozen world frame.
+    /// Parks one arrival whose embedding projects outside the fitted world frame or to a
+    /// non-finite point.
     ///
     /// Only a refit moves the frame, so the same embedding projects outside it at every retry
     /// and the arrival stays unplaced until one runs.
-    pub(super) fn held(&mut self, identity: ArchivedEntityId) {
+    pub(super) fn out_of_frame(&mut self, identity: ArchivedEntityId) {
         if let Some(entry) = self.entries.get_mut(&identity) {
-            entry.phase = Phase::Held;
+            entry.phase = Phase::OutOfFrame;
         }
     }
 }
@@ -387,11 +387,7 @@ impl fmt::Display for StagingError {
 impl core::error::Error for StagingError {}
 
 /// One ready arrival's owned hand-off key: its identity, edition and display parts.
-type PlacementKey = (
-    ArchivedEntityId,
-    EntityEditionId,
-    (OwnedLabel, ArchivedOntologyTypeUuid),
-);
+type PlacementKey = (ArchivedEntityId, EntityEditionId, DisplayParts);
 
 /// Every row's placement from one projected batch, or the batch's first non-finite row.
 type ProjectionOutcome = Result<Vec<Projection>, NonFiniteProjection>;
@@ -414,8 +410,9 @@ pub(crate) struct StagingArm {
     /// The generation's publish path, or [`None`] for a baseline-placed generation, which
     /// stages without placing.
     placer: Option<Placer>,
-    /// The channel carrying projected arrivals to the poll arm's publisher.
-    placements: UnboundedSender<(ArchivedEntityId, ProjectedArrival)>,
+    /// The channel carrying projected arrivals to the poll arm's publisher, bounded at
+    /// [`DeltaPolling::placement_backlog`].
+    placements: Sender<(ArchivedEntityId, ProjectedArrival)>,
     /// The retry state per staged arrival.
     pipeline: StagingPipeline,
     /// The resolved ensure actor, cached at first use.
@@ -434,7 +431,7 @@ impl StagingArm {
         polling: DeltaPolling,
         ensure: Option<EmbeddingEnsure>,
         placer: Option<Placer>,
-        placements: UnboundedSender<(ArchivedEntityId, ProjectedArrival)>,
+        placements: Sender<(ArchivedEntityId, ProjectedArrival)>,
     ) -> Self {
         let pipeline = StagingPipeline::new(polling.retry_polls);
         Self {
@@ -577,11 +574,10 @@ impl StagingArm {
 
         // An answer without a resolved representative type stays uncaptured, so the next cycle
         // reads it again: a legend cannot exist until the representative resolves.
-        let by_edition: FastHashMap<EntityEditionId, (OwnedLabel, ArchivedOntologyTypeUuid)> =
-            answers
-                .into_iter()
-                .filter_map(|(edition, display)| display.map(|display| (edition, display)))
-                .collect();
+        let by_edition: FastHashMap<EntityEditionId, DisplayParts> = answers
+            .into_iter()
+            .filter_map(|(edition, display)| display.map(|display| (edition, display)))
+            .collect();
         for (identity, edition) in uncaptured {
             if let Some(display) = by_edition.get(&edition) {
                 self.pipeline.captured(identity, display.clone());
@@ -594,8 +590,10 @@ impl StagingArm {
     /// Placement is one batched projection through the publish path. An in-frame coordinate
     /// travels the placement channel and retires its pipeline entry, an out-of-frame coordinate
     /// parks the arrival until refit, and a non-finite projection parks its own row while the
-    /// rows behind it retry at the next cycle. A closed channel leaves every entry ready, so the
-    /// next cycle retries the hand-off.
+    /// rows behind it retry at the next cycle. A full channel and a closed one both leave every
+    /// remaining entry ready, so the next cycle retries the hand-off. The entry retires on the
+    /// send that landed, never on the projection, and the bounded channel therefore loses no
+    /// placement.
     fn place_ready(&mut self) {
         let Some((keyed, outcome)) = self.project_ready() else {
             return;
@@ -603,39 +601,56 @@ impl StagingArm {
 
         match outcome {
             Ok(projections) => {
-                for ((identity, edition, (label, representative)), projection) in
-                    keyed.into_iter().zip(projections)
+                for (
+                    (
+                        identity,
+                        edition,
+                        DisplayParts {
+                            label,
+                            icon,
+                            representative,
+                        },
+                    ),
+                    projection,
+                ) in keyed.into_iter().zip(projections)
                 {
                     match projection {
                         Projection::Placed { wire } => {
-                            if self
-                                .placements
-                                .send((
-                                    identity,
-                                    ProjectedArrival {
-                                        edition,
-                                        position: wire,
-                                        label,
-                                        representative,
-                                    },
-                                ))
-                                .is_err()
-                            {
-                                tracing::warn!(
-                                    "the placement channel closed, placements retry next cycle"
-                                );
-                                return;
+                            match self.placements.try_send((
+                                identity,
+                                ProjectedArrival {
+                                    edition,
+                                    position: wire,
+                                    label,
+                                    icon,
+                                    representative,
+                                },
+                            )) {
+                                Ok(()) => {}
+                                Err(TrySendError::Full(_)) => {
+                                    tracing::warn!(
+                                        "the placement channel is full, the remaining placements \
+                                         retry next cycle"
+                                    );
+                                    return;
+                                }
+                                Err(TrySendError::Closed(_)) => {
+                                    tracing::warn!(
+                                        "the placement channel closed, placements retry next cycle"
+                                    );
+                                    return;
+                                }
                             }
-                            self.pipeline.placed(identity);
+                            self.pipeline.handed_off(identity);
                         }
                         Projection::OutOfFrame { world } => {
                             tracing::warn!(
                                 ?identity,
                                 ?world,
-                                "an arrival projects outside the frozen world frame, it stays \
+                                "an arrival projects outside the fitted world frame, it stays \
                                  unplaced until a refit recalibrates the frame"
                             );
-                            self.pipeline.held(identity);
+                            self.pipeline.out_of_frame(identity);
                         }
                     }
                 }
@@ -646,7 +661,7 @@ impl StagingArm {
                     ?identity,
                     "an arrival's projection is non-finite, it stays unplaced until a refit"
                 );
-                self.pipeline.held(identity);
+                self.pipeline.out_of_frame(identity);
             }
         }
     }

@@ -124,26 +124,34 @@ struct DeltaArgs {
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_DELTA_POLL_INTERVAL",
-        default_value_t = DeltaPolling::INTERVAL_SECONDS,
+        default_value_t = DeltaPolling::default().interval.as_secs(),
     )]
-    delta_poll_interval: u32,
+    delta_poll_interval: u64,
 
     /// Seconds a poll reads behind its own watermark, covering the feed's commit-visibility
     /// window.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_DELTA_SAFETY_LAG",
-        default_value_t = DeltaPolling::SAFETY_LAG_SECONDS,
+        default_value_t = DeltaPolling::default().safety_lag.as_secs(),
     )]
-    delta_safety_lag: u32,
+    delta_safety_lag: u64,
 
     /// Staging cycles an arrival's embedding read runs on each side of its ensure.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_DELTA_RETRY_POLLS",
-        default_value_t = DeltaPolling::RETRY_POLLS,
+        default_value_t = DeltaPolling::default().retry_polls,
     )]
     delta_retry_polls: u32,
+
+    /// Number of items that may be queued behind the watermark before backpressure is applied.
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_DELTA_PLACEMENT_BACKLOG",
+        default_value_t = DeltaPolling::default().placement_backlog,
+    )]
+    delta_placement_backlog: usize,
 
     /// Serve the generation's fit-time bytes alone, starting no delta consumer.
     #[arg(long, env = "HASH_GRAPH_ATLAS_NO_DELTA")]
@@ -153,9 +161,10 @@ struct DeltaArgs {
 impl From<&DeltaArgs> for DeltaPolling {
     fn from(args: &DeltaArgs) -> Self {
         Self {
-            interval: Duration::from_secs(u64::from(args.delta_poll_interval)),
-            safety_lag: time::Duration::seconds(i64::from(args.delta_safety_lag)),
+            interval: Duration::from_secs(args.delta_poll_interval),
+            safety_lag: Duration::from_secs(args.delta_safety_lag),
             retry_polls: args.delta_retry_polls,
+            placement_backlog: args.delta_placement_backlog,
         }
     }
 }
@@ -329,15 +338,17 @@ impl ServeCommand {
             let epoch = DeltaEpoch::fresh(&mut SysRng)
                 .map_err(|error| ServeError::Epoch(Box::new(error)))?;
             let polling = DeltaPolling::from(&self.delta);
-            let ensuring = ensure.is_some();
+
             let placer = atlas.arrival_placer().map_err(ServeError::Placement)?;
-            let (placements_tx, placements_rx) = tokio::sync::mpsc::unbounded_channel();
+            let (placements_tx, placements_rx) =
+                tokio::sync::mpsc::channel(polling.placement_backlog);
+
             let consumer = DeltaConsumer::new(
                 Arc::clone(&pool),
                 Arc::clone(&atlas),
                 Arc::clone(&cell),
                 fitted,
-                DeltaRegister::new(atlas.universe(), atlas.ontology_universe()),
+                DeltaRegister::from_atlas(&atlas),
                 polling,
                 placements_rx,
             );
@@ -349,16 +360,10 @@ impl ServeCommand {
                 placer,
                 placements_tx,
             );
+
             let _consumer_handle = tokio::spawn(consumer.run());
             let _staging_handle = tokio::spawn(arm.run());
-            if ensuring {
-                tracing::info!("the delta consumer polls the entity feed");
-            } else {
-                tracing::info!(
-                    "the delta consumer polls the entity feed, and arrivals stage without \
-                     embedding ensures because the configuration names no Temporal client"
-                );
-            }
+
             Some(epoch)
         } else {
             tracing::info!("the generation records no temporal axes, so no delta consumer runs");

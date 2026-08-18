@@ -33,7 +33,7 @@ use super::{
 };
 use crate::{
     bitset::{CompressedBitSet, DenseBitSlice},
-    dataset::auxiliary::{Icon, Label, OwnedLabel, OwnedLegend},
+    dataset::auxiliary::{Icon, Label, OwnedIcon, OwnedLabel, OwnedLegend},
     identity::{BasePosition, EdgeRowId, NodeRowId, OntologyRowId},
     math::Vec2,
     morton::{Depth, MortonKey},
@@ -111,7 +111,11 @@ fn arrival_legend(atlas: &Atlas) -> OwnedLegend {
 }
 
 fn arriving_all(atlas: &Atlas, arrivals: &[(u8, Vec2)]) -> DeltaSnapshot {
-    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
+    let mut register = DeltaRegister::new(
+        atlas.node_universe(),
+        atlas.edge_universe(),
+        atlas.ontology_universe(),
+    );
     for &(seed, wire) in arrivals {
         let event = EntityEvent::Updated(EntityUpdate {
             entity: store_id(seed),
@@ -120,7 +124,9 @@ fn arriving_all(atlas: &Atlas, arrivals: &[(u8, Vec2)]) -> DeltaSnapshot {
             changed_at: Timestamp::from_unix_timestamp(1),
         });
         register.apply(DeltaEvent::from(&event));
-        register.classify(archived_id(seed), Classification::Node);
+        register
+            .classify(archived_id(seed), Classification::Node)
+            .expect("the fixture stays inside the edge universe");
         register
             .place(
                 archived_id(seed),
@@ -128,6 +134,7 @@ fn arriving_all(atlas: &Atlas, arrivals: &[(u8, Vec2)]) -> DeltaSnapshot {
                     edition: EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
                     position: wire,
                     label: OwnedLabel::from("arrival"),
+                    icon: OwnedIcon::from("arrival-icon"),
                     representative: arrival_type(),
                 },
                 atlas,
@@ -149,7 +156,11 @@ fn arriving(atlas: &Atlas, wire: Vec2) -> DeltaSnapshot {
 
 /// Folds one `Ended` event per seed into an ingress snapshot withdrawing those identities.
 fn withdrawing(atlas: &Atlas, seeds: &[u8]) -> DeltaSnapshot {
-    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
+    let mut register = DeltaRegister::new(
+        atlas.node_universe(),
+        atlas.edge_universe(),
+        atlas.ontology_universe(),
+    );
     for &seed in seeds {
         let event = EntityEvent::Ended(EntityEnd {
             entity: store_id(seed),
@@ -243,8 +254,8 @@ fn expected_bucket(atlas: &Atlas, proof: &VisibilityProof, wire: Vec2, deepest: 
     deepest_shared.map_or(0, |shared| (shared + 1).min(deepest))
 }
 
-/// A scoped tile serves a placed arrival's wire id, frozen coordinate, and captured display,
-/// byte-exact against the directly built wire document.
+/// A scoped tile serves a placed arrival byte-exact against the directly built wire document:
+/// the wire id and projected coordinate in the columns, the captured display in the trailer.
 ///
 /// The arrival's cell holds no fitted row, so every column of the response is the arrival's
 /// alone and the expected envelope derives whole from the placement's own values. A second
@@ -252,11 +263,11 @@ fn expected_bucket(atlas: &Atlas, proof: &VisibilityProof, wire: Vec2, deepest: 
 /// iteration order.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_scoped_tile_serves_a_placed_arrival_with_its_captured_display() {
+async fn scoped_tile_serves_placed_arrival_with_captured_display() {
     let (_generation, atlas) = publish("arrival-tile").await;
     let (wire, coordinate) = vacant_cell(&atlas);
     let snapshot = arriving(&atlas, wire);
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
     let proof = widened(&atlas, &[0], &[slot]);
 
@@ -302,7 +313,7 @@ async fn a_scoped_tile_serves_a_placed_arrival_with_its_captured_display() {
         masks: None,
         trailer: Some(TileTrailer {
             labels: &[Label::new("arrival")],
-            icons: &[Icon::empty()],
+            icons: &[Icon::new("arrival-icon")],
         }),
     }
     .encode();
@@ -316,11 +327,11 @@ async fn a_scoped_tile_serves_a_placed_arrival_with_its_captured_display() {
 /// untouched.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn an_ingress_withdrawal_subtracts_a_retained_arrival_from_tiles() {
+async fn ingress_withdrawal_subtracts_retained_arrival_from_tiles() {
     let (_generation, atlas) = publish("arrival-tile-withdrawn").await;
     let (wire, coordinate) = vacant_cell(&atlas);
     let snapshot = arriving(&atlas, wire);
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
     let proof = widened(&atlas, &[0], &[slot]);
     let request = request(coordinate.z, coordinate.x, coordinate.y, Mode::Total);
@@ -367,10 +378,10 @@ async fn an_ingress_withdrawal_subtracts_a_retained_arrival_from_tiles() {
 /// resolves from them cannot move when arrivals join a scope.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn occupancy_and_census_never_read_the_cohort() {
+async fn occupancy_and_census_never_read_cohort() {
     let (_generation, atlas) = publish("arrival-occupancy").await;
     let snapshot = arriving(&atlas, Vec2::new(0.25, -0.5));
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
 
     let with_slot = widened(&atlas, &[0], &[slot]);
     let without = mask_hiding(&atlas, &[0]);
@@ -405,10 +416,10 @@ fn ask() -> TranslateRequest {
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 #[expect(
     clippy::float_cmp,
-    reason = "the frozen coordinate is copied verbatim into the response, so bit equality is the \
-              intended test"
+    reason = "the projected coordinate is copied verbatim into the response, so bit equality is \
+              the intended test"
 )]
-async fn translate_answers_a_placed_arrival_from_the_entry_cohort() {
+async fn translate_answers_placed_arrival_from_entry_cohort() {
     let (_generation, atlas) = publish("arrival-translate").await;
     let wire = Vec2::new(0.25, -0.5);
     let snapshot = arriving(&atlas, wire);
@@ -428,14 +439,14 @@ async fn translate_answers_a_placed_arrival_from_the_entry_cohort() {
         .nodes
         .get(&key)
         .expect("the cohort resolves the arrival");
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
     assert_eq!(
         node.id,
         test_codec(&atlas).encode(slot, snapshot.universe()),
         "the arrival encodes its slot under the cohort's universe"
     );
-    assert_eq!(node.x, wire.x(), "the frozen coordinate answers");
-    assert_eq!(node.y, wire.y(), "the frozen coordinate answers");
+    assert_eq!(node.x, wire.x(), "the projected coordinate answers");
+    assert_eq!(node.y, wire.y(), "the projected coordinate answers");
     assert!(
         response.edges.is_empty(),
         "a node-classified arrival answers in the nodes map alone"
@@ -467,7 +478,7 @@ async fn translate_answers_a_placed_arrival_from_the_entry_cohort() {
 /// baseline.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_withdrawn_arrival_answers_an_absent_key_while_the_cohort_retains_it() {
+async fn withdrawn_arrival_answers_absent_key_while_cohort_retains_it() {
     let (_generation, atlas) = publish("arrival-withdrawn").await;
     let snapshot = arriving(&atlas, Vec2::new(0.25, -0.5));
     let cohort = PlacementCohort::of(Some(&snapshot));
@@ -501,12 +512,12 @@ async fn a_withdrawn_arrival_answers_an_absent_key_while_the_cohort_retains_it()
 /// which admits every fitted row and no slot, answers an absent key for the same cohort.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_scoped_proof_admits_an_arrival_only_through_its_widened_mask() {
+async fn scoped_proof_admits_arrival_only_through_widened_mask() {
     let (_generation, atlas) = publish("arrival-scoped").await;
     let snapshot = arriving(&atlas, Vec2::new(0.25, -0.5));
     let cohort = PlacementCohort::of(Some(&snapshot));
     let key = entity_string_of(ARRIVAL_SEED);
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
 
     let translate = |proof: &VisibilityProof| {
         atlas
@@ -535,8 +546,8 @@ async fn a_scoped_proof_admits_an_arrival_only_through_its_widened_mask() {
     );
 }
 
-/// A corpus tile serves a placed arrival's wire id, frozen coordinate, and captured display,
-/// byte-exact against the directly built wire document.
+/// A corpus tile serves a placed arrival byte-exact against the directly built wire document:
+/// the wire id and projected coordinate in the columns, the captured display in the trailer.
 ///
 /// The operator proof admits every slot, so the corpus delivery splices the whole cohort. The
 /// arrival's cell holds no fitted row, so every column of the response is the arrival's alone
@@ -546,11 +557,11 @@ async fn a_scoped_proof_admits_an_arrival_only_through_its_widened_mask() {
 /// against the cohort map's iteration order.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_corpus_tile_serves_a_placed_arrival_with_its_captured_display() {
+async fn corpus_tile_serves_placed_arrival_with_captured_display() {
     let (_generation, atlas) = publish("arrival-corpus-tile").await;
     let (wire, coordinate) = vacant_cell(&atlas);
     let snapshot = arriving(&atlas, wire);
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
 
     let mut request = request(coordinate.z, coordinate.x, coordinate.y, Mode::Total);
@@ -602,7 +613,7 @@ async fn a_corpus_tile_serves_a_placed_arrival_with_its_captured_display() {
         masks: None,
         trailer: Some(TileTrailer {
             labels: &[Label::new("arrival")],
-            icons: &[Icon::empty()],
+            icons: &[Icon::new("arrival-icon")],
         }),
     }
     .encode();
@@ -633,7 +644,7 @@ async fn corpus_saturated_and_folded_arrival_deliveries_agree() {
         &[(ARRIVAL_SEED, vacant), (ARRIVAL_SEED + 1, co_located)],
     );
     let cohort = PlacementCohort::of(Some(&snapshot));
-    let base = atlas.universe().size();
+    let base = atlas.node_universe().size();
     let slots = [base, base + 1].map(NodeRowId::from_usize);
     let saturated = widened(&atlas, &[], &slots);
 
@@ -737,7 +748,7 @@ async fn corpus_saturated_and_folded_arrival_deliveries_agree() {
 /// untouched.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn an_ingress_withdrawal_subtracts_a_spliced_arrival_from_corpus_tiles() {
+async fn ingress_withdrawal_subtracts_spliced_arrival_from_corpus_tiles() {
     let (_generation, atlas) = publish("arrival-corpus-withdrawn").await;
     let (vacant, coordinate) = vacant_cell(&atlas);
     let co_located = atlas.positions()[BasePosition::MIN];
@@ -787,7 +798,7 @@ async fn an_ingress_withdrawal_subtracts_a_spliced_arrival_from_corpus_tiles() {
     let shared_cell = coordinate_of(atlas.morton.code(BasePosition::MIN).cell(depth));
     let shared_tile = request(shared_cell.z, shared_cell.x, shared_cell.y, Mode::Total);
 
-    let base = atlas.universe().size();
+    let base = atlas.node_universe().size();
     let saturated = widened(&atlas, &[], &[base, base + 1].map(NodeRowId::from_usize));
     let gathered = {
         let bound = Bound::resolved(&atlas, &saturated, cohort, CutOffset::ZERO)
@@ -837,7 +848,7 @@ fn locate_by_row(wire: crate::serve::WireRow<NodeRowId>) -> LocateRequest {
 /// built wire document.
 ///
 /// The entity-keyed and the wire-keyed resolutions must agree on one `SourcePoint`, whose zoom is
-/// the scope's own cut rule inverted over the arrival's bucket and whose cell is the frozen
+/// the scope's own cut rule inverted over the arrival's bucket and whose cell is the projected
 /// coordinate's tile there. The ego-graph is the source alone and complete, because the
 /// generation's adjacency never names a cohort slot. The saturated shape must agree on the zoom
 /// through its overlay, which pins both scoped bucket sources against one law. A second assembly
@@ -848,11 +859,11 @@ fn locate_by_row(wire: crate::serve::WireRow<NodeRowId>) -> LocateRequest {
 )]
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_serves_a_placed_arrival_from_both_ingress_domains() {
+async fn locate_serves_placed_arrival_from_both_ingress_domains() {
     let (generation, atlas) = publish("arrival-locate").await;
     let (wire, _) = vacant_cell(&atlas);
     let snapshot = arriving(&atlas, wire);
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
     let proof = widened(&atlas, &[0], &[slot]);
 
@@ -878,7 +889,10 @@ async fn locate_serves_a_placed_arrival_from_both_ingress_domains() {
         "the arrival addresses the view's table"
     );
     assert_eq!(source.zoom, zoom, "the zoom inverts the cut rule");
-    assert_eq!(source.cell, cell, "the fly-to cell is the frozen tile");
+    assert_eq!(
+        source.cell, cell,
+        "the fly-to cell is the projected coordinate's tile"
+    );
 
     let slot_wire = test_codec(&atlas).encode(slot, snapshot.universe());
     assert_eq!(
@@ -903,7 +917,7 @@ async fn locate_serves_a_placed_arrival_from_both_ingress_domains() {
         "the overlay inverts identically"
     );
 
-    // The full envelope delivers the arrival alone. The columns carry its frozen coordinate
+    // The full envelope delivers the arrival alone. The columns carry its projected coordinate
     // and slot wire id, and the trailer carries the captured display under the
     // store-resolution gate. The edge columns stay empty.
     let assemble = |request: &LocateRequest| {
@@ -978,7 +992,7 @@ async fn locate_serves_a_placed_arrival_from_both_ingress_domains() {
 /// fitted locate path against arrival ingress.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_corpus_locate_clamps_the_arrival_zoom_into_the_catch_all() {
+async fn corpus_locate_clamps_arrival_zoom_into_catch_all() {
     let (_generation, atlas) = publish("arrival-locate-corpus").await;
     let (vacant, _) = vacant_cell(&atlas);
     let co_located = atlas.positions()[BasePosition::MIN];
@@ -1038,11 +1052,11 @@ async fn a_corpus_locate_clamps_the_arrival_zoom_into_the_catch_all() {
 /// standing.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_withdrawn_or_unadmitted_arrival_locates_nowhere() {
+async fn withdrawn_or_unadmitted_arrival_locates_nowhere() {
     let (_generation, atlas) = publish("arrival-locate-withdrawn").await;
     let (wire, _) = vacant_cell(&atlas);
     let snapshot = arriving(&atlas, wire);
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
     let proof = widened(&atlas, &[0], &[slot]);
     let id = entity_string_of(ARRIVAL_SEED);
@@ -1102,7 +1116,7 @@ async fn a_withdrawn_or_unadmitted_arrival_locates_nowhere() {
 /// exact bytes their arrival-free counterparts answer over the whole served grid.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn an_arrival_bounds_no_edge_in_the_edges_response() {
+async fn arrival_bounds_no_edge_in_edges_response() {
     let (_generation, atlas) = publish("arrival-edges").await;
     let (vacant, _) = vacant_cell(&atlas);
     let co_located = atlas.positions()[BasePosition::MIN];
@@ -1111,7 +1125,7 @@ async fn an_arrival_bounds_no_edge_in_the_edges_response() {
         &[(ARRIVAL_SEED, vacant), (ARRIVAL_SEED + 1, co_located)],
     );
     let cohort = PlacementCohort::of(Some(&snapshot));
-    let base = atlas.universe().size();
+    let base = atlas.node_universe().size();
     let slots = [base, base + 1].map(NodeRowId::from_usize);
 
     let edges = |proof: &VisibilityProof, cohort: PlacementCohort<'_>| {

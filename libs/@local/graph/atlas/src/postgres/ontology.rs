@@ -8,10 +8,9 @@
 
 use futures::{Stream, stream};
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, ColumnName, Constant, Correlation, Expression, FromItem, Function,
-    OrderByExpression, PostgresType, ReferenceTable, SelectExpression, SelectList, SelectStatement,
-    Table, Transpile as _, WhereExpression,
-    table::{DatabaseColumn, EntityTypeInheritsFrom, EntityTypes},
+    Aliased, Binder, Constant, Correlation, Expression, FromItem, OrderByExpression,
+    ReferenceTable, SelectList, SelectStatement, Table, Transpile as _, WhereExpression,
+    table::{EntityTypeInheritsFrom, EntityTypes},
 };
 use hash_graph_store::query::Ordering;
 use smallvec::SmallVec;
@@ -20,7 +19,7 @@ use uuid::Uuid;
 
 use super::{
     id::ArchivedOntologyTypeUuid,
-    sql::{MAPPING, Mapping, json_field, json_text, type_mapping, uuid_array},
+    sql::{MAPPING, Mapping, NearestIcon, nearest_declared_icon, type_mapping, uuid_array},
 };
 use crate::{
     dataset::{Ontology, auxiliary::OwnedIcon, postgres::PostgresDatasetError},
@@ -126,48 +125,6 @@ pub(crate) async fn ontology<'t>(
     )))
 }
 
-/// The columns of the unnested `allOf` entries an icon resolves through.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum Display {
-    /// The `allOf` entry itself.
-    Value,
-    /// The entry's 1-based position in the `allOf` array.
-    Position,
-}
-
-impl DatabaseColumn<'_> for Display {
-    fn name(&self) -> ColumnName<'static> {
-        match self {
-            Self::Value => "value".into(),
-            Self::Position => "position".into(),
-        }
-    }
-
-    fn postgres_type(&self) -> PostgresType {
-        match self {
-            Self::Value => PostgresType::JsonB,
-            Self::Position => PostgresType::Int8,
-        }
-    }
-}
-
-/// The one column the icon lateral delivers.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum Icon {
-    /// The selected icon text.
-    Value,
-}
-
-impl DatabaseColumn<'_> for Icon {
-    fn name(&self) -> ColumnName<'static> {
-        "value".into()
-    }
-
-    fn postgres_type(&self) -> PostgresType {
-        PostgresType::Text
-    }
-}
-
 /// Opens the icon payload stream, in ontology row order.
 ///
 /// Each type answers exactly one row, because every join is outer and the unnested type table
@@ -191,69 +148,14 @@ pub(crate) async fn ontology_icons<'t>(
     PostgresDatasetError,
 > {
     const TYPES: Aliased<EntityTypes> = Aliased::of(Table::EntityTypes, "types");
-    const DISPLAY: Correlation<Display> = Correlation::new("display");
-    const ICON: Correlation<Icon> = Correlation::new("icon");
-    /// The closed schema's inheritance list, one entry per `allOf` ancestor.
-    const ALL_OF_KEY: &str = "allOf";
-    /// An entry's icon, when the ancestor declares one.
-    const ICON_KEY: &str = "icon";
-    /// An entry's inheritance depth from the type itself.
-    const DEPTH_KEY: &str = "depth";
+    const ICON: Correlation<NearestIcon> = Correlation::new("icon");
 
     let mut binder = Binder::default();
     let types_placeholder = binder.bind(&types);
 
-    let display_icon = || json_text(DISPLAY.column(&Display::Value), ICON_KEY);
-
-    let nearest_icon = SelectStatement::builder()
-        .selects(vec![
-            // SELECT display.value ->> 'icon' AS value
-            SelectExpression::aliased(display_icon(), Icon::Value.name().into_identifier()),
-        ])
-        .from(
-            // FROM jsonb_array_elements(types.closed_schema -> 'allOf')
-            //     WITH ORDINALITY AS display(value, position)
-            FromItem::function(Function::JsonArrayElements(Box::new(json_field(
-                TYPES.column(&EntityTypes::ClosedSchema),
-                ALL_OF_KEY,
-            ))))
-            .with_ordinality(true)
-            .alias(DISPLAY)
-            .column_aliases(vec![Display::Value.name(), Display::Position.name()])
-            .build(),
-        )
-        .where_expression({
-            // WHERE display.value ->> 'icon' IS NOT NULL
-            WhereExpression::from_iter([display_icon().is_not_null()])
-        })
-        .order_by_expression({
-            // ORDER BY (display.value ->> 'depth')::int, display.position
-            //
-            // The selection rule mirrors the serving side's type-icon resolution in
-            // `serve::hydrate`'s tile hydration query, and a change to either belongs in both.
-            OrderByExpression::default()
-                .with(
-                    json_text(DISPLAY.column(&Display::Value), DEPTH_KEY)
-                        .grouped()
-                        .cast(PostgresType::Int4),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    DISPLAY.column(&Display::Position),
-                    Ordering::Ascending,
-                    None,
-                )
-        })
-        .limit({
-            // LIMIT 1
-            1
-        })
-        .build();
-
     // SELECT icon.value
     let mut select = SelectList::default();
-    let icon_index = select.output(ICON.column(&Icon::Value));
+    let icon_index = select.output(ICON.column(&NearestIcon::Value));
 
     let statement = SelectStatement::builder()
         .selects(select.into_selects())
@@ -274,7 +176,9 @@ pub(crate) async fn ontology_icons<'t>(
                     ],
                 )
                 .left_join_on(
-                    FromItem::subquery(nearest_icon).alias(ICON).lateral(true),
+                    FromItem::subquery(nearest_declared_icon(TYPES))
+                        .alias(ICON)
+                        .lateral(true),
                     Vec::<Expression>::new(),
                 )
         })

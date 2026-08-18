@@ -25,7 +25,7 @@
 //! boundary freezes the target references against the same zero-condition frame the radius
 //! measures on, every ladder step enforces the band constraint and folds the batch estimator at
 //! the estimand's two rungs, and every post-boundary tick reads the per-evaluation evidence.
-//! [`mod@target`] owns that machinery, and its whole configuration is optional: a released run
+//! [`mod@objective`] owns that machinery, and its whole configuration is optional: a released run
 //! passes none of it and trains exactly as before.
 
 mod error;

@@ -113,7 +113,7 @@ async fn corpus_subtract_splits_range() {
     let node_codec = test_codec(&atlas);
     let wire_rows: Vec<_> = row_ids
         .iter()
-        .map(|&row| node_codec.encode(NodeRowId::from_u32(row), atlas.universe()))
+        .map(|&row| node_codec.encode(NodeRowId::from_u32(row), atlas.node_universe()))
         .collect();
     let expected = TileResponse {
         head: TileHead {
@@ -213,7 +213,7 @@ async fn scoped_drops_withdrawn_only() {
 
     let node_codec = test_codec(&atlas);
     let wire = node_codec
-        .encode(NodeRowId::from_u32(withdrawn), atlas.universe())
+        .encode(NodeRowId::from_u32(withdrawn), atlas.node_universe())
         .get();
     let before = decode(&baseline);
     let after = decode(&subtracted);
@@ -454,7 +454,7 @@ async fn locate_withdrawn_refusal() {
     );
     let wire = test_codec(&atlas).encode(
         NodeRowId::from_u32(u32::from(source_seed)),
-        atlas.universe(),
+        atlas.node_universe(),
     );
     assert!(
         atlas.resolve_wire_source(&view, wire).is_none(),
@@ -489,12 +489,15 @@ async fn locate_withdrawn_refusal() {
     );
 }
 
-/// Translate answers a withdrawn identity as an absent key in either domain.
+/// Translate answers a withdrawn identity as an absent key in either domain, and a fitted
+/// edge dies with its withdrawn endpoints.
 ///
 /// The identity-domain check runs right after parse, before any row resolution, and the witness
 /// runs under full visibility, the path with no mask width to refuse a row, so cohort and
-/// snapshot discipline are its only boundary. The control withdraws an identity the request
-/// never names and must leave the response equal.
+/// snapshot discipline are its only boundary. The fixture edge is edge row 0, endpoints node
+/// rows 0 and 1, so withdrawing seed 0 kills it at its source and seed 1 at its target - the
+/// next-request death law the neighbourhood read applies. The control withdraws an identity
+/// the request never names, no endpoint among them, and must leave the response equal.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn translate_answers_withdrawn_identities_as_absent_keys() {
@@ -522,10 +525,22 @@ async fn translate_answers_withdrawn_identities_as_absent_keys() {
     assert!(baseline.nodes.contains_key(&node_id), "the node resolves");
     assert!(baseline.edges.contains_key(&edge_id), "the edge resolves");
 
-    // A withdrawn node identity leaves the nodes map, the edge untouched.
+    // A withdrawn node identity leaves the nodes map and kills the fitted edge at its
+    // source endpoint in the same request.
     let node_gone = translate(Some(&withdrawing(&atlas, &[0])));
     assert!(!node_gone.nodes.contains_key(&node_id), "an absent key");
-    assert_eq!(node_gone.edges, baseline.edges, "the edge still resolves");
+    assert!(
+        !node_gone.edges.contains_key(&edge_id),
+        "the edge dies with its withdrawn source endpoint"
+    );
+
+    // The target endpoint kills it the same way, while the un-withdrawn node keeps resolving.
+    let target_gone = translate(Some(&withdrawing(&atlas, &[1])));
+    assert!(
+        !target_gone.edges.contains_key(&edge_id),
+        "the edge dies with its withdrawn target endpoint"
+    );
+    assert_eq!(target_gone.nodes, baseline.nodes, "the node still resolves");
 
     // A withdrawn link identity leaves the edges map, the node untouched.
     let edge_gone = translate(Some(&withdrawing(&atlas, &[super::EDGE_SEED])));
@@ -589,7 +604,7 @@ async fn a_folded_proof_delivers_the_subtracted_rows_with_nothing_to_subtract() 
         chunks.iter().copied().map(u32::from_le_bytes).collect()
     };
     let wire = test_codec(&atlas)
-        .encode(NodeRowId::from_u32(withdrawn), atlas.universe())
+        .encode(NodeRowId::from_u32(withdrawn), atlas.node_universe())
         .get();
     let folded_rows = rows_of(&served);
     let subtracted_rows = rows_of(&tile_with(&atlas, &proof, Some(&snapshot), &tile));
@@ -926,7 +941,7 @@ async fn a_withdrawal_after_the_fold_subtracts_as_the_residue() {
     let codec = test_codec(&atlas);
     let wire_of = |row: u32| {
         codec
-            .encode(NodeRowId::from_u32(row), atlas.universe())
+            .encode(NodeRowId::from_u32(row), atlas.node_universe())
             .get()
     };
 

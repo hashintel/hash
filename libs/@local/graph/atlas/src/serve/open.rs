@@ -358,7 +358,7 @@ impl Atlas {
 
         // The row column is the node universe's permutation, so its validated length is the
         // base bound. Edges cross the wire as link-entity identities and need no codec.
-        let universe = Universe::new(NodeRowId::from_u32(u32::try_from(rows.len()).map_err(
+        let node_universe = Universe::new(NodeRowId::from_u32(u32::try_from(rows.len()).map_err(
             |_error| OpenAtlasError::Universe {
                 rows: rows.len() as u64,
             },
@@ -370,7 +370,7 @@ impl Atlas {
         let wire_rows = rows
             .view()
             .iter()
-            .map(|&row| node_codec.encode(row, universe))
+            .map(|&row| node_codec.encode(row, node_universe))
             .collect();
 
         let world = generation.repository().metadata.evidence.lod.world;
@@ -395,7 +395,7 @@ impl Atlas {
             node_ids,
             edge_ids,
             node_codec,
-            universe,
+            node_universe,
             wire_rows,
             bounds,
             saturated: OnceLock::new(),

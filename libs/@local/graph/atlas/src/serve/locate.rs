@@ -292,7 +292,7 @@ impl Atlas {
             .iter()
             .flat_map(|&(edge, _)| [edge.source, edge.target])
             .filter(|&row| row != source_row.get())
-            .map(|row| (self.node_codec.encode(row, self.universe), row))
+            .map(|row| (self.node_codec.encode(row, self.node_universe), row))
             .collect();
         partners.sort_unstable();
         partners.dedup();
@@ -700,7 +700,7 @@ impl Atlas {
             source,
             delivered,
             arrivals: view.arrivals(),
-            edges: EdgeColumns::of(&self.node_codec, self.universe, &edges),
+            edges: EdgeColumns::of(&self.node_codec, self.node_universe, &edges),
             complete,
             mask_set,
             palette,
@@ -755,7 +755,7 @@ impl Atlas {
 
         // The source's identity always travels in HEAD, and the
         // per-edge link identities are first-class columns. Both read
-        // in process: a fitted source from the generation-frozen
+        // in process: a fitted source from the generation-baked
         // tables, an arrival from the view's own table.
         let entity_id = match document.source.subject {
             SourceSubject::Base { row, .. } => self

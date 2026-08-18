@@ -33,12 +33,13 @@ use super::{
 };
 use crate::{
     bitset::CompressedBitSet,
-    dataset::auxiliary::{Label, OwnedLabel},
+    dataset::auxiliary::{Icon, Label, OwnedIcon, OwnedLabel},
     identity::{BasePosition, EdgeRowId, NodeRowId},
     math::Vec2,
     morton::Depth,
     postgres::{
         Classification,
+        edition_display::DisplayParts,
         id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedOntologyTypeUuid},
     },
     random::{keyed_rng, uniform_below},
@@ -105,7 +106,11 @@ fn publishing(atlas: &Atlas, arrivals: &[(u8, Vec2)], links: &[(u8, u8, u8)]) ->
         atlas,
         arrivals,
         links,
-        &(OwnedLabel::from("link"), fixture_type()),
+        &DisplayParts {
+            label: OwnedLabel::from("link"),
+            icon: OwnedIcon::from("link-icon"),
+            representative: fixture_type(),
+        },
     )
 }
 
@@ -120,9 +125,13 @@ fn publishing_displayed(
     atlas: &Atlas,
     arrivals: &[(u8, Vec2)],
     links: &[(u8, u8, u8)],
-    link_display: &(OwnedLabel, ArchivedOntologyTypeUuid),
+    link_display: &DisplayParts,
 ) -> DeltaSnapshot {
-    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
+    let mut register = DeltaRegister::new(
+        atlas.node_universe(),
+        atlas.edge_universe(),
+        atlas.ontology_universe(),
+    );
     for &(seed, wire) in arrivals {
         let event = EntityEvent::Updated(EntityUpdate {
             entity: store_id(seed),
@@ -131,7 +140,9 @@ fn publishing_displayed(
             changed_at: Timestamp::from_unix_timestamp(1),
         });
         register.apply(DeltaEvent::from(&event));
-        register.classify(archived_id(seed), Classification::Node);
+        register
+            .classify(archived_id(seed), Classification::Node)
+            .expect("the fixture stays inside the edge universe");
         register
             .place(
                 archived_id(seed),
@@ -139,6 +150,7 @@ fn publishing_displayed(
                     edition: EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
                     position: wire,
                     label: OwnedLabel::from("arrival"),
+                    icon: OwnedIcon::from("arrival-icon"),
                     representative: fixture_type(),
                 },
                 atlas,
@@ -153,21 +165,28 @@ fn publishing_displayed(
             changed_at: Timestamp::from_unix_timestamp(1),
         });
         register.apply(DeltaEvent::from(&event));
-        register.classify(
-            archived_id(seed),
-            Classification::Edge {
-                source: Some(archived_id(source)),
-                target: Some(archived_id(target)),
-            },
-        );
+        register
+            .classify(
+                archived_id(seed),
+                Classification::Edge {
+                    source: Some(archived_id(source)),
+                    target: Some(archived_id(target)),
+                },
+            )
+            .expect("the fixture stays inside the edge universe");
         // Publication withholds an uncaptured link, so the fixture captures exactly as the
         // poll's own display read does.
-        let (label, representative) = link_display.clone();
+        let DisplayParts {
+            label,
+            icon,
+            representative,
+        } = link_display.clone();
         register
             .capture_display(
                 archived_id(seed),
                 EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
                 &label,
+                &icon,
                 representative,
                 atlas,
             )
@@ -183,7 +202,11 @@ fn publishing_displayed(
 
 /// Folds one `Ended` event per seed into an ingress snapshot withdrawing those identities.
 fn withdrawing(atlas: &Atlas, seeds: &[u8]) -> DeltaSnapshot {
-    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
+    let mut register = DeltaRegister::new(
+        atlas.node_universe(),
+        atlas.edge_universe(),
+        atlas.ontology_universe(),
+    );
     for &seed in seeds {
         let event = EntityEvent::Ended(EntityEnd {
             entity: store_id(seed),
@@ -214,7 +237,7 @@ fn fitted_triples(atlas: &Atlas, generation: &Generation) -> Vec<(u32, u32, Arch
         codec
             .encode(
                 NodeRowId::from_u32(u32::try_from(row).expect("fixture rows fit u32")),
-                atlas.universe(),
+                atlas.node_universe(),
             )
             .get()
     };
@@ -236,7 +259,7 @@ fn fitted_triples(atlas: &Atlas, generation: &Generation) -> Vec<(u32, u32, Arch
 /// The wire id of the fitted node owning `seed`, whose row is the seed by the seeding rule.
 fn node_wire(atlas: &Atlas, seed: u8) -> u32 {
     test_codec(atlas)
-        .encode(NodeRowId::from_u32(u32::from(seed)), atlas.universe())
+        .encode(NodeRowId::from_u32(u32::from(seed)), atlas.node_universe())
         .get()
 }
 
@@ -433,7 +456,7 @@ async fn arrival_endpoint_qualification() {
         ],
     );
     let cohort = PlacementCohort::of(Some(&snapshot));
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
 
     let ids = |proof: &VisibilityProof, tiles: Vec<_>| {
         edge_ids_of(&edges_with(
@@ -492,7 +515,7 @@ async fn withdrawal_kills_retained_link() {
         &[(LOW_LINK, 0, 1), (HIGH_LINK, 0, ARRIVAL)],
     );
     let cohort = PlacementCohort::of(Some(&snapshot));
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
     let slot_wire = test_codec(&atlas).encode(slot, snapshot.universe());
     let fitted = fitted_triples(&atlas, &generation);
 
@@ -575,7 +598,7 @@ async fn cap_ranks_arrivals_last() {
     let (vacant, _) = vacant_cell(&atlas);
     let snapshot = publishing(&atlas, &[(ARRIVAL, vacant)], &[(HIGH_LINK, 0, ARRIVAL)]);
     let cohort = PlacementCohort::of(Some(&snapshot));
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
     let slot_wire = test_codec(&atlas).encode(slot, snapshot.universe());
     let fitted = fitted_triples(&atlas, &generation);
     let fitted_count = u32::try_from(fitted.len()).expect("fixture edge counts fit u32");
@@ -736,7 +759,7 @@ async fn truncating_cap_admits_winner() {
         "the arrival-endpoint link stays out of a selection full of fitted keys"
     );
 
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
     let slot_wire = test_codec(&atlas).encode(slot, snapshot.universe());
     let mut whole = vec![(
         node_wire(&atlas, best_seed),
@@ -853,7 +876,11 @@ async fn delta_display_head_slot() {
         &atlas,
         &[],
         &[(LOW_LINK, 0, 1)],
-        &(wired.clone(), delta_uuid),
+        &DisplayParts {
+            label: wired.clone(),
+            icon: OwnedIcon::from("wired-icon"),
+            representative: delta_uuid,
+        },
     );
     let fitted = fitted_triples(&atlas, &generation);
 
@@ -992,7 +1019,11 @@ async fn compose_trailer_types() {
         &atlas,
         &[],
         &[(LOW_LINK, 0, 1)],
-        &(wired.clone(), delta_uuid),
+        &DisplayParts {
+            label: wired.clone(),
+            icon: OwnedIcon::from("wired-icon"),
+            representative: delta_uuid,
+        },
     );
     let fitted = fitted_triples(&atlas, &generation);
 
@@ -1088,7 +1119,11 @@ async fn revised_fitted_trailer_overlay() {
     let captured_uuid = ArchivedOntologyTypeUuid::from_url(&captured);
     let revised_label = OwnedLabel::from("revised");
 
-    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
+    let mut register = DeltaRegister::new(
+        atlas.node_universe(),
+        atlas.edge_universe(),
+        atlas.ontology_universe(),
+    );
     let event = EntityEvent::Updated(EntityUpdate {
         entity: store_id(revised_seed),
         edition: EntityEditionId::new(Uuid::from_u128(u128::from(revised_seed))),
@@ -1101,6 +1136,7 @@ async fn revised_fitted_trailer_overlay() {
             archived_id(revised_seed),
             EntityEditionId::new(Uuid::from_u128(u128::from(revised_seed))),
             &revised_label,
+            Icon::new("revised-icon"),
             captured_uuid,
             &atlas,
         )
@@ -1200,7 +1236,7 @@ async fn fold_matches_full_sort() {
     let (endpoints, row_ranks) = endpoint_ranks(&generation);
     let fitted = fitted_triples(&atlas, &generation);
     let (vacant, _) = vacant_cell(&atlas);
-    let slot = NodeRowId::from_usize(atlas.universe().size());
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
 
     let mut rng = keyed_rng(0x243F_6A88_85A3_08D3, 0, 0);
     let mut next =

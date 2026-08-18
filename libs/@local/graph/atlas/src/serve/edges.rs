@@ -339,7 +339,7 @@ impl Atlas {
             complete: set.complete(),
             edges: EdgeColumns::of(
                 &self.node_codec,
-                view.cohort().universe(self.universe),
+                view.cohort().universe(self.node_universe),
                 set.edges(),
             ),
         })

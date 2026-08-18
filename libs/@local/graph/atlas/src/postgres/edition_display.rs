@@ -2,15 +2,17 @@
 //!
 //! The statement executes on its caller's own connection and binds no temporal axes. An
 //! edition id addresses one immutable row, so the answer is the same at any read. Every
-//! requested edition answers exactly once, because both joins are outer and the unnested
+//! requested edition answers exactly once, because every join is outer and the unnested
 //! requests survive them. The representative cached type answers as a store uuid rather than a
 //! generation ordinal, because an edition written after a fit can carry a type no generation
-//! tabulated.
+//! tabulated. Its nearest declared icon rides the same row, resolved through the
+//! representative's current closed schema, so a register allocating a row for such a type has
+//! the icon in hand at the allocation.
 
 use hash_graph_postgres_store::store::postgres::query::{
     Aliased, Binder, BoundStatement, ColumnName, Correlation, Expression, FromItem, Function,
     Placeholder, PostgresType, SelectList, SelectStatement, Table,
-    table::{DatabaseColumn, EntityEditionCache, OntologyIds},
+    table::{DatabaseColumn, EntityEditionCache, EntityTypes, OntologyIds},
 };
 use tokio_postgres::{Row, types::ToSql};
 use type_system::knowledge::entity::id::EntityEditionId;
@@ -18,9 +20,12 @@ use uuid::Uuid;
 
 use super::{
     id::ArchivedOntologyTypeUuid,
-    sql::{first_label, uuid_array},
+    sql::{NearestIcon, first_label, nearest_declared_icon, uuid_array},
 };
-use crate::dataset::{auxiliary::OwnedLabel, postgres::PostgresDatasetError};
+use crate::dataset::{
+    auxiliary::{OwnedIcon, OwnedLabel},
+    postgres::PostgresDatasetError,
+};
 
 /// The column of the unnested edition requests, introduced by [`edition_requests`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -66,24 +71,33 @@ pub(crate) struct EditionDisplayColumns {
     pub label: usize,
     /// The representative cached type's ontology uuid, SQL NULL when the cache resolves none.
     pub representative_type: usize,
+    /// The representative type's nearest declared icon, SQL NULL when its chain declares none.
+    pub icon: usize,
 }
 
 /// Builds the display lookup over the requested editions.
 ///
-/// The statement answers every requested edition exactly once, because both joins are outer and
-/// the unnested requests survive them. The statement binds no temporal axes. An edition id
-/// addresses one immutable row, so the answer is the same at any read.
+/// The statement answers every requested edition exactly once, because every join is outer,
+/// each joins at most one row - the edition cache through its primary key, the representative
+/// type through the unique `(base_url, version)` pair, its type row through the ontology id,
+/// and the icon lateral through its own `LIMIT 1` - and the unnested requests survive them all.
+/// The statement binds no temporal axes. An edition id addresses one immutable row, so the
+/// answer is the same at any read.
 ///
 /// # SQL
 ///
 /// ```sql
-/// SELECT request.entity_edition_id, (cache.labels)[1], representative_type.ontology_id
+/// SELECT request.entity_edition_id, (cache.labels)[1], representative_type.ontology_id,
+///        icon.value
 /// FROM unnest(<edition_ids>::uuid[]) AS request(entity_edition_id)
 /// LEFT JOIN entity_edition_cache AS cache
 ///   ON cache.entity_edition_id = request.entity_edition_id
 /// LEFT JOIN ontology_ids AS representative_type
 ///   ON representative_type.base_url = (cache.base_urls)[1]
 ///  AND representative_type.version = (cache.versions)[1]
+/// LEFT JOIN entity_types AS types
+///   ON types.ontology_id = representative_type.ontology_id
+/// LEFT JOIN LATERAL (<the nearest declared icon>) AS icon ON TRUE
 /// ```
 pub(crate) fn edition_display_statement(
     edition_ids: &(impl ToSql + Sync),
@@ -91,16 +105,20 @@ pub(crate) fn edition_display_statement(
     const CACHE: Aliased<EntityEditionCache> = Aliased::of(Table::EntityEditionCache, "cache");
     const REPRESENTATIVE_TYPE: Aliased<OntologyIds> =
         Aliased::of(Table::OntologyIds, "representative_type");
+    const TYPES: Aliased<EntityTypes> = Aliased::of(Table::EntityTypes, "types");
+    const ICON: Correlation<NearestIcon> = Correlation::new("icon");
 
     let mut binder = Binder::default();
     let edition_ids = binder.bind(edition_ids);
 
-    // SELECT request.entity_edition_id, (cache.labels)[1], representative_type.ontology_id
+    // SELECT request.entity_edition_id, (cache.labels)[1], representative_type.ontology_id,
+    //        icon.value
     let mut select = SelectList::default();
     let columns = EditionDisplayColumns {
         edition: select.output(EDITION_REQUEST.column(&EditionRequest::EntityEditionId)),
         label: select.output(first_label(CACHE)),
         representative_type: select.output(REPRESENTATIVE_TYPE.column(&OntologyIds::OntologyId)),
+        icon: select.output(ICON.column(&NearestIcon::Value)),
     };
 
     let statement = SelectStatement::builder()
@@ -112,6 +130,9 @@ pub(crate) fn edition_display_statement(
             // LEFT JOIN ontology_ids AS representative_type
             //   ON representative_type.base_url = (cache.base_urls)[1]
             //  AND representative_type.version = (cache.versions)[1]
+            // LEFT JOIN entity_types AS types
+            //   ON types.ontology_id = representative_type.ontology_id
+            // LEFT JOIN LATERAL (<the nearest declared icon>) AS icon ON TRUE
             edition_requests(edition_ids)
                 .left_join_on(
                     CACHE.from_item(),
@@ -132,10 +153,39 @@ pub(crate) fn edition_display_statement(
                             .equal(CACHE.column(&EntityEditionCache::Versions).array_element(1)),
                     ],
                 )
+                .left_join_on(
+                    TYPES.from_item(),
+                    vec![
+                        TYPES
+                            .column(&EntityTypes::OntologyId)
+                            .equal(REPRESENTATIVE_TYPE.column(&OntologyIds::OntologyId)),
+                    ],
+                )
+                .left_join_on(
+                    FromItem::subquery(nearest_declared_icon(TYPES))
+                        .alias(ICON)
+                        .lateral(true),
+                    Vec::<Expression>::new(),
+                )
         })
         .build();
 
     BoundStatement::new(&statement, binder, columns)
+}
+
+/// The display parts one edition's read resolves for a capture.
+///
+/// The label and icon feed the captured legend, and the representative type resolves into an
+/// ontology row at the capture. An empty label is the value a label-less fitted legend
+/// carries, and an empty icon is the display of a row that has none.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct DisplayParts {
+    /// The edition's cached label, empty when the cache holds none.
+    pub label: OwnedLabel,
+    /// The representative type's nearest declared icon, empty when its chain declares none.
+    pub icon: OwnedIcon,
+    /// The resolved representative cached type.
+    pub representative: ArchivedOntologyTypeUuid,
 }
 
 /// Decodes one edition-display row.
@@ -143,26 +193,24 @@ pub(crate) fn edition_display_statement(
 /// A row without a resolved representative type decodes as [`None`], so the caller's next read
 /// cycle retries it: the register turns the representative into its ontology row, and an absent
 /// representative leaves nothing to resolve. A row whose cache holds no label carries the empty
-/// label, the value a label-less fitted legend carries.
+/// label, and a representative whose chain declares no icon carries the empty icon.
 pub(crate) fn decode_edition_display(
     row: &Row,
     columns: &EditionDisplayColumns,
-) -> Result<
-    (
-        EntityEditionId,
-        Option<(OwnedLabel, ArchivedOntologyTypeUuid)>,
-    ),
-    PostgresDatasetError,
-> {
+) -> Result<(EntityEditionId, Option<DisplayParts>), PostgresDatasetError> {
     let edition: EntityEditionId = row.try_get(columns.edition)?;
     let label: Option<String> = row.try_get(columns.label)?;
     let representative: Option<Uuid> = row.try_get(columns.representative_type)?;
     let representative = representative.map(ArchivedOntologyTypeUuid::from);
+    let icon: Option<String> = row.try_get(columns.icon)?;
 
     Ok((
         edition,
-        representative
-            .map(|representative| (OwnedLabel::from(label.unwrap_or_default()), representative)),
+        representative.map(|representative| DisplayParts {
+            label: OwnedLabel::from(label.unwrap_or_default()),
+            icon: OwnedIcon::from(icon.unwrap_or_default()),
+            representative,
+        }),
     ))
 }
 
@@ -185,8 +233,8 @@ mod tests {
     ///
     /// The pin makes any rendering change a visible snapshot diff in review instead of a
     /// silent swap of what runs against the store. Reviewing a diff, hold it to the
-    /// statement's own contract: both joins are outer, so every requested edition answers
-    /// exactly once.
+    /// statement's own contract: every join is outer and joins at most one row, so every
+    /// requested edition answers exactly once.
     #[test]
     fn statement_text() {
         let edition_ids = vec![Uuid::nil()];

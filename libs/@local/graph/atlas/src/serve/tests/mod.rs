@@ -869,7 +869,7 @@ async fn serves_published_tiles() {
         .iter()
         .flat_map(|&row| {
             node_codec
-                .encode(NodeRowId::from_u32(row), atlas.universe())
+                .encode(NodeRowId::from_u32(row), atlas.node_universe())
                 .get()
                 .to_le_bytes()
         })
@@ -932,7 +932,7 @@ async fn serves_published_tiles() {
         .iter()
         .map(|&row| {
             node_codec
-                .encode(NodeRowId::from_u32(row), atlas.universe())
+                .encode(NodeRowId::from_u32(row), atlas.node_universe())
                 .get()
         })
         .collect();
@@ -1277,10 +1277,10 @@ fn wire_columns(atlas: &Atlas, sources: &[u32], targets: &[u32], rows: &[u32]) -
             .map(|((&source, &target), &row)| {
                 (
                     node_codec
-                        .encode(NodeRowId::from_u32(source), atlas.universe())
+                        .encode(NodeRowId::from_u32(source), atlas.node_universe())
                         .get(),
                     node_codec
-                        .encode(NodeRowId::from_u32(target), atlas.universe())
+                        .encode(NodeRowId::from_u32(target), atlas.node_universe())
                         .get(),
                     edge_identity_of(row),
                 )
@@ -1874,7 +1874,7 @@ async fn locate_first_visible_tile() {
     let node_codec = test_codec(&atlas);
     let wire_of = |row: u32| {
         node_codec
-            .encode(NodeRowId::from_u32(row), atlas.universe())
+            .encode(NodeRowId::from_u32(row), atlas.node_universe())
             .get()
     };
     let bound = Bound::of(&atlas, &FULL);
@@ -2019,7 +2019,7 @@ async fn locate_ego_graph() {
         let mut expected_rows: Vec<u32> = partners.to_vec();
         expected_rows.sort_unstable_by_key(|&row| {
             node_codec
-                .encode(NodeRowId::from_u32(row), atlas.universe())
+                .encode(NodeRowId::from_u32(row), atlas.node_universe())
                 .get()
         });
         expected_rows.insert(0, u32::from(source_row));
@@ -2077,7 +2077,7 @@ async fn locate_cap_nearest_partners() {
 
     let (_generation, atlas) = publish("locate-truncation").await;
     let node_codec = test_codec(&atlas);
-    let accepted = atlas.universe();
+    let accepted = atlas.node_universe();
     let bound = Bound::of(&atlas, &FULL);
     let view = bound.view(&atlas);
     let distance_of = |from: u32, to: u32| {
@@ -2648,7 +2648,7 @@ async fn translate_store_identities() {
         vec![(
             entity_string_of(0),
             TranslatedNode {
-                id: node_codec.encode(NodeRowId::new(0), atlas.universe()),
+                id: node_codec.encode(NodeRowId::new(0), atlas.node_universe()),
                 x: point.x(),
                 y: point.y(),
             },
@@ -2660,8 +2660,8 @@ async fn translate_store_identities() {
         vec![(
             entity_string_of(EDGE_SEED),
             TranslatedEdge {
-                source: node_codec.encode(NodeRowId::new(0), atlas.universe()),
-                target: node_codec.encode(NodeRowId::new(1), atlas.universe()),
+                source: node_codec.encode(NodeRowId::new(0), atlas.node_universe()),
+                target: node_codec.encode(NodeRowId::new(1), atlas.node_universe()),
             },
         )],
     );
@@ -2829,7 +2829,7 @@ async fn locate_by_wire_row_matches_by_entity() {
     // bijection); the equivalence under test is the two request
     // paths, whose agreement is the whole contract in one assertion.
     let node_codec = test_codec(&atlas);
-    let wire = node_codec.encode(NodeRowId::new(7), atlas.universe());
+    let wire = node_codec.encode(NodeRowId::new(7), atlas.node_universe());
     let by_entity = locate_request(entity_string_of(7));
     let mut by_row: super::LocateRequest =
         serde_json::from_value(serde_json::json!({ "row": wire.get() }))
@@ -2864,7 +2864,7 @@ async fn locate_by_wire_row_matches_by_entity() {
     let image: HashSet<u32> = (0..48)
         .map(|row| {
             node_codec
-                .encode(NodeRowId::from_u32(row), atlas.universe())
+                .encode(NodeRowId::from_u32(row), atlas.node_universe())
                 .get()
         })
         .collect();
@@ -2947,7 +2947,7 @@ async fn locate_pinned_envelope() {
         .expect("row 0 is a node");
     let subgraph = atlas.locate_subgraph(source, limits.locate, &view);
     let node_codec = test_codec(&atlas);
-    let wire_of = |row: NodeRowId| node_codec.encode(row, atlas.universe());
+    let wire_of = |row: NodeRowId| node_codec.encode(row, atlas.node_universe());
     let columns = EdgeColumns::pinned(
         subgraph
             .edges
@@ -3238,7 +3238,11 @@ fn domain_mask<T: Id>(rows: usize, hidden: &[u32]) -> CompressedBitSet<T> {
 /// serving would read rather than a hand-assembled equivalent. Fixture node row `r` owns seed
 /// `r`, so withdrawing a row is withdrawing its seed.
 pub(crate) fn withdrawing(atlas: &Atlas, seeds: &[u8]) -> DeltaSnapshot {
-    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
+    let mut register = DeltaRegister::new(
+        atlas.node_universe(),
+        atlas.edge_universe(),
+        atlas.ontology_universe(),
+    );
     for &seed in seeds {
         let event = EntityEvent::Ended(EntityEnd {
             entity: EntityId {

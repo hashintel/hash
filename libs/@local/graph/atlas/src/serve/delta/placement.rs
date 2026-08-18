@@ -28,7 +28,7 @@
 //! serving without a placer stages arrivals forever, the same disposition as a deployment
 //! without a Temporal client. A generation that stages a projector checkpoint must reopen it:
 //! every reopening failure is a [`PlacementError`], and the serve refuses to start rather than
-//! silently staging every arrival. At runtime, an arrival projecting outside the frozen world
+//! silently staging every arrival. At runtime, an arrival projecting outside the fitted world
 //! frame stays unplaced under a warning, because a clamped coordinate would serve a lie about
 //! position. The frame comes from fit-time data, and the next refit recalibrates it.
 
@@ -76,12 +76,12 @@ const CERTIFICATE_ROWS: usize = 1024;
 /// One arrival's projection outcome.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(super) enum Projection {
-    /// The world coordinate lies inside the frozen frame, normalized onto the wire.
+    /// The world coordinate lies inside the fitted frame, normalized onto the wire.
     Placed {
         /// The projected coordinate in the wire frame.
         wire: Vec2,
     },
-    /// The world coordinate lies outside the frozen frame, so the arrival stays unplaced until a
+    /// The world coordinate lies outside the fitted frame, so the arrival stays unplaced until a
     /// refit recalibrates the frame.
     OutOfFrame {
         /// The aligned coordinate in world units, for the caller's log line.
@@ -575,7 +575,7 @@ mod tests {
         let embeddings: Vec<_> = (0..CHUNKED_ROWS).map(embedding).collect();
 
         // The probe learns where the fixture model puts the batch, and the placer under test
-        // freezes a frame that contains every point.
+        // pins a frame that contains every point.
         let probe = placer(Some(alignment()), WIRE_FRAME);
         let (world, _) = publish_path(&probe, &embeddings);
         let placer = placer(Some(alignment()), covering(&world));

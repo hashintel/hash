@@ -5,7 +5,7 @@
 
 use core::{error::Error, fmt};
 
-use hashql_core::id::IdSlice;
+use hashql_core::id::{Id as _, IdSlice};
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
@@ -247,17 +247,25 @@ impl Atlas {
                             let legend: &Legend = arrival.legend.as_ref();
                             labels.push(legend.label());
 
-                            // The legend names its representative as an ontology row. A type
-                            // the generation never tabulated takes an allocated row past the
-                            // closure's domain, resolves no icon source, and the icon stays
-                            // empty, the trailer's answer for every unresolved id.
-                            let icon = self
-                                .closure
-                                .icon_source(legend.representative_ontology())
-                                .and_then(|IconSource { source, .. }| {
-                                    self.ontology_ids.payload_of(source)
-                                });
-                            icons.push(icon.unwrap_or(Icon::empty()));
+                            // The legend names its representative as an ontology row. The
+                            // baked closure artifact resolves the generation's own types, and
+                            // a row past its domain is an allocated one, whose icon the
+                            // cohort's snapshot recorded at allocation.
+                            let representative = legend.representative_ontology();
+                            let icon = if representative.as_usize() < self.closure.types() {
+                                self.closure
+                                    .icon_source(representative)
+                                    .and_then(|IconSource { source, .. }| {
+                                        self.ontology_ids.payload_of(source)
+                                    })
+                                    .unwrap_or(Icon::empty())
+                            } else {
+                                view.cohort().allocated_icon_of(representative).expect(
+                                    "the arrival table and the cohort derive from one snapshot, \
+                                     which recorded an icon at every row it allocated",
+                                )
+                            };
+                            icons.push(icon);
                         }
                     }
                 }
@@ -663,7 +671,7 @@ mod tests {
                 let node_codec = test_codec(&atlas);
                 row_ids
                     .iter()
-                    .map(|&row| node_codec.encode(NodeRowId::from_u32(row), atlas.universe()))
+                    .map(|&row| node_codec.encode(NodeRowId::from_u32(row), atlas.node_universe()))
                     .collect::<Vec<_>>()
             }),
             masks: None,

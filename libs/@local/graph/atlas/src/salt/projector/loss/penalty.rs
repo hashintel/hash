@@ -32,7 +32,8 @@ impl Penalty {
     /// Evaluates `(φ(v), φ′(v))` at the violation.
     ///
     /// The violation arrives in double precision, and a caller holding a working-precision
-    /// reading widens it visibly at the call. The value is signed - under [`Identity`] a
+    /// reading widens it visibly at the call. The value is signed - under
+    /// [`Identity`](Self::Identity) a
     /// satisfied pair's negative violation subtracts value - and the slope is non-negative at
     /// every violation, because both declared shapes are nondecreasing.
     #[must_use]

@@ -96,12 +96,10 @@ use tokio_postgres::GenericClient as _;
 use type_system::knowledge::entity::id::EntityEditionId;
 use uuid::Uuid;
 
-use self::id::{ArchivedEntityId, ArchivedOntologyTypeUuid};
 pub(crate) use self::{card::CardParameters, classification::Classification};
+use self::{edition_display::DisplayParts, id::ArchivedEntityId};
 use crate::{
-    dataset::{
-        PROJECTOR_DIMENSIONS, TemporalAxes, auxiliary::OwnedLabel, postgres::PostgresDatasetError,
-    },
+    dataset::{PROJECTOR_DIMENSIONS, TemporalAxes, postgres::PostgresDatasetError},
     math::BoxedVecN,
 };
 
@@ -169,13 +167,17 @@ pub(crate) async fn read_projector_embeddings(
         .collect()
 }
 
-/// Reads each requested edition's display payload: its cached label and representative cached type.
+/// Reads each requested edition's display payload.
+///
+/// The payload is the edition's cached label and its representative cached type, beside that
+/// type's nearest declared icon.
 ///
 /// One batched read per call, keyed by edition rather than identity, because a placement records
 /// the edition whose data it captured and an edition id names one immutable row. Every requested
 /// edition answers exactly once. An edition without a resolved representative type answers
-/// [`None`], and one whose cache holds no label answers the empty label beside its
-/// representative, the value a label-less fitted legend carries.
+/// [`None`]. One whose cache holds no label answers the empty label beside its representative,
+/// the value a label-less fitted legend carries, and a representative whose chain declares no
+/// icon answers the empty icon.
 ///
 /// # Errors
 ///
@@ -183,13 +185,7 @@ pub(crate) async fn read_projector_embeddings(
 pub(crate) async fn read_edition_displays(
     store: &impl AsClient,
     editions: impl Iterator<Item = EntityEditionId>,
-) -> Result<
-    Vec<(
-        EntityEditionId,
-        Option<(OwnedLabel, ArchivedOntologyTypeUuid)>,
-    )>,
-    PostgresDatasetError,
-> {
+) -> Result<Vec<(EntityEditionId, Option<DisplayParts>)>, PostgresDatasetError> {
     let edition_ids: Vec<Uuid> = editions.map(|edition| *edition.as_uuid()).collect();
     let statement = edition_display::edition_display_statement(&edition_ids);
 

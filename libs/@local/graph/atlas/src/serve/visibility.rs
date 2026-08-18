@@ -8,8 +8,9 @@
 //! Generation, scope, and permission-epoch binding are its caller's contract rather than fields of
 //! the type. The proof covers two row domains, node rows and link rows, because a link entity
 //! carries authorization of its own that its endpoints do not imply. A third, identity-keyed
-//! domain covers delta links, the post-fit links a placement cohort publishes, which occupy no
-//! row in either universe and therefore admit by entity identity. Reading two entities never
+//! domain covers delta links, the post-fit links a placement cohort publishes: their edge rows
+//! are register-allocated past the baked bound, where no mask built over the generation's
+//! universe can name them. Admission therefore keys by entity identity. Reading two entities never
 //! implies reading the relation between them, so an edge delivers only when the proof admits its
 //! link row and both of its endpoints. A node mask and a link mask are separate types, so nothing
 //! reads one where the other belongs. Every assembly path takes a proof by construction. No
@@ -99,7 +100,8 @@ pub(crate) enum ProofKind {
 
 /// The delta-link identities a proof admits, either every one or exactly the captured set.
 ///
-/// Delta links occupy no row domain, so their admission keys by entity identity where node and
+/// A delta link's edge row is register-allocated past the baked bound, outside any mask built
+/// over the generation's universe, so admission keys by entity identity where node and
 /// link rows mask by row id. The full arm admits every live delta link of the caller's snapshot,
 /// the same all-admitted semantics the row domains carry. The admitted arm holds exactly the
 /// identities the scope's own resolution returned.
@@ -175,7 +177,8 @@ impl VisibilityProof {
     /// An admitted row is visible: `nodes` masks the node rows, `edges` the link rows, and
     /// `delta_links` admits the delta-link identities beside them. The proof needs all of them,
     /// because none implies another - the link rows a caller may read are not a function of the
-    /// node rows it may read, and a delta link occupies no row either mask could name.
+    /// node rows it may read, and a delta link's register-allocated row is one neither mask
+    /// could name.
     ///
     /// Caller requirement: the masks are server-held state (a fresh visibility evaluation or a
     /// verified sealed blob), never client-supplied values - the constructor accepts any masks and
@@ -395,8 +398,8 @@ impl Atlas {
     ) -> Option<ResolvedRow> {
         let row = self
             .node_codec
-            .decode(wire, cohort.universe(self.universe))?;
-        if self.universe.contains(row) {
+            .decode(wire, cohort.universe(self.node_universe))?;
+        if self.node_universe.contains(row) {
             proof.verify(row).map(ResolvedRow::Fitted)
         } else {
             let (identity, _) = cohort.node_at(row)?;

@@ -2,10 +2,18 @@
 source: libs/@local/graph/atlas/src/postgres/edition_display.rs
 expression: edition_display_statement(&edition_ids).sql
 ---
-SELECT "request"."entity_edition_id", ("cache"."labels")[1], "representative_type"."ontology_id"
+SELECT "request"."entity_edition_id", ("cache"."labels")[1], "representative_type"."ontology_id", "icon"."value"
 FROM UNNEST(($1::uuid[])) AS "request"("entity_edition_id")
 LEFT OUTER JOIN "entity_edition_cache" AS "cache"
   ON "cache"."entity_edition_id" = "request"."entity_edition_id"
 LEFT OUTER JOIN "ontology_ids" AS "representative_type"
   ON "representative_type"."base_url" = ("cache"."base_urls")[1]
  AND "representative_type"."version" = ("cache"."versions")[1]
+LEFT OUTER JOIN "entity_types" AS "types"
+  ON "types"."ontology_id" = "representative_type"."ontology_id"
+LEFT OUTER JOIN LATERAL (SELECT "display"."value"->>'icon' AS "value"
+FROM jsonb_array_elements("types"."closed_schema"->'allOf') WITH ORDINALITY AS "display"("value", "position")
+WHERE "display"."value"->>'icon' IS NOT NULL
+ORDER BY (("display"."value"->>'depth')::int4) ASC, "display"."position" ASC
+LIMIT 1) AS "icon"
+  ON TRUE
