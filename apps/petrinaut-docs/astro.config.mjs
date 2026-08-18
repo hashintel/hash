@@ -201,9 +201,7 @@ const hasAuthoredIndex = manifest.pages.some(
 );
 
 export default defineConfig({
-  // Sets the canonical URL and the sitemap's entries. Proposed rather than
-  // settled, and assigned by SRE-955.
-  site: "https://architecture.petrinaut.org",
+  site: "https://docs.petrinaut.org",
 
   ...(hasAuthoredIndex ? {} : { redirects: { "/": "/architecture" } }),
 

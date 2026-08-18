@@ -13,7 +13,7 @@ cd ../..
 # See: https://linear.app/hash/issue/H-3213/use-consistent-naming-schema-for-environment-variables
 # See: https://linear.app/hash/issue/H-4202/sort-out-which-environment-variables-are-defined-where
 # See: https://linear.app/hash/issue/H-3212/clean-up-env-files
-rm .env
+rm -f .env
 
 # Run through Turborepo rather than `yarn workspace ... build`: the package
 # script alone skips `sync:bundle`, and would build whatever content happened to

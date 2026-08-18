@@ -69,13 +69,12 @@ its own `cookie@2.x` without changing hoisting for the rest of the monorepo.
 Vercel builds the site from [`vercel.json`](vercel.json), which runs
 [`vercel-install.sh`](vercel-install.sh) then
 [`vercel-build.sh`](vercel-build.sh). Both `cd ../..` and build from the repo
-root, so the project needs **Root Directory** set to `apps/petrinaut-docs` with
-**Include files outside of the Root Directory in the Build Step** enabled.
+root, so the Vercel project sets **Root Directory** to `apps/petrinaut-docs` and
+enables **Include files outside of the Root Directory in the Build Step**.
 
-The site is served from `architecture.petrinaut.org`. That host is proposed
-rather than settled, so treat `site` in [`astro.config.mjs`](astro.config.mjs) as
-provisional: it sets the canonical URL and every sitemap entry. SRE-955 assigns
-the domain and decides how access to the deployment is restricted.
+The site is served from `docs.petrinaut.org` and is internal, so reaching it
+needs access. `site` in [`astro.config.mjs`](astro.config.mjs) has to match it:
+that is what sets the canonical URL and every sitemap entry.
 
 The tools the build needs are listed in
 [`vercel-install.sh`](vercel-install.sh), with a comment on why that list is
