@@ -1,7 +1,9 @@
 import { useState } from "react";
 
 import { formInputSizes } from "../../util/form-shared";
+import { Button } from "../Button/button";
 import { Filter, type FilterOperator } from "./filter";
+import { FilterGroup } from "./filter-group";
 
 import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
 import type { FilterChange, FilterValue } from "./filter-util";
@@ -280,6 +282,112 @@ export const Default: Story = () => (
         "Longitude must be between -180 and 180",
       ]}
     />
+  </div>
+);
+
+type GroupEntry = {
+  id: number;
+  propertyLabel: string;
+  value: FilterValue<KitchenSinkValues> | null;
+};
+
+const groupProperties = ["Name", "Age", "Active", "Score", "Rating"];
+
+const groupContainerStyle: React.CSSProperties = {
+  maxWidth: 560,
+  padding: 8,
+  border: "1px dashed #ccc",
+  borderRadius: 6,
+};
+
+/** Stateful harness: filters can be added, edited, removed and cleared. */
+const GroupDemo = () => {
+  const [filters, setFilters] = useState<GroupEntry[]>([
+    {
+      id: 1,
+      propertyLabel: "Name",
+      value: { key: "contains", value: "alexander" },
+    },
+    {
+      id: 2,
+      propertyLabel: "Age",
+      value: { key: "between", value: [18, 45, 65] },
+    },
+    { id: 3, propertyLabel: "Active", value: { key: "true", value: null } },
+  ]);
+
+  const addFilter = () => {
+    setFilters((previous) => {
+      const id = Math.max(0, ...previous.map((entry) => entry.id)) + 1;
+      return [
+        ...previous,
+        {
+          id,
+          propertyLabel:
+            groupProperties[(id - 1) % groupProperties.length] ?? "Value",
+          value: null,
+        },
+      ];
+    });
+  };
+
+  return (
+    <div style={groupContainerStyle}>
+      <FilterGroup>
+        {filters.map((filter) => (
+          <Filter<KitchenSinkValues>
+            key={filter.id}
+            property={`property-${filter.id}`}
+            propertyLabel={filter.propertyLabel}
+            operators={KitchenSinkOperators}
+            value={filter.value}
+            onChange={(...change: FilterChange<KitchenSinkValues>) => {
+              const [key, nextValue] = change;
+              const value =
+                key === null
+                  ? null
+                  : ({
+                      key,
+                      value: nextValue,
+                    } as FilterValue<KitchenSinkValues>);
+              setFilters((previous) =>
+                previous.map((entry) =>
+                  entry.id === filter.id ? { ...entry, value } : entry,
+                ),
+              );
+            }}
+            removeable={{
+              removeable: true,
+              onRemove: () =>
+                setFilters((previous) =>
+                  previous.filter((entry) => entry.id !== filter.id),
+                ),
+            }}
+          />
+        ))}
+        <Button
+          variant="ghost"
+          size="sm"
+          iconName="plus"
+          aria-label="Add filter"
+          onClick={addFilter}
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={filters.length === 0}
+          onClick={() => setFilters([])}
+        >
+          Clear filters
+        </Button>
+      </FilterGroup>
+    </div>
+  );
+};
+
+export const Group: Story = () => (
+  <div style={columnStyle}>
+    <GroupDemo />
   </div>
 );
 

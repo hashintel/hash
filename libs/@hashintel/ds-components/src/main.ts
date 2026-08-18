@@ -12,6 +12,7 @@ export { Chip, type ChipColor } from "./components/Chip/chip";
 export { Dialog } from "./components/Dialog/dialog";
 export { Drawer } from "./components/Drawer/drawer";
 export { Filter, type FilterOperator } from "./components/Filter/filter";
+export { FilterGroup } from "./components/Filter/filter-group";
 export type {
   FilterChange,
   FilterValue,
