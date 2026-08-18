@@ -600,7 +600,6 @@ const ScenarioFormSections = ({
         title="Scenario Parameters"
         collapsible
         defaultOpen
-        indented
         renderHeaderAction={() => (
           <Button
             size="xs"
@@ -737,7 +736,7 @@ const ScenarioFormSections = ({
       </Section>
 
       {/* -- Parameters (net-level overrides) ------------------------- */}
-      <Section title="Parameter Bindings" collapsible defaultOpen indented>
+      <Section title="Parameter Bindings" collapsible defaultOpen>
         <span className={hintStyle}>
           Override the default values of net-level parameters for this scenario.
         </span>
@@ -788,7 +787,6 @@ const ScenarioFormSections = ({
         title="Initial State"
         collapsible
         defaultOpen
-        indented
         renderHeaderAction={() => (
           <div className={switchLabelStyle}>
             {!state.initialStateAsCode && (

@@ -805,7 +805,7 @@ export const CreateOptimizationDrawer = ({
 
           {selectedScenario ? (
             <>
-              <Section title="Optimization" collapsible defaultOpen indented>
+              <Section title="Optimization" collapsible defaultOpen>
                 <Form.Field label="Name" size="sm">
                   <TextInput size="sm" value={name} onChange={setName} />
                 </Form.Field>
@@ -846,7 +846,6 @@ export const CreateOptimizationDrawer = ({
                 tooltip="Only scenario parameters can be optimized. The optimizer receives a flat list of identifiers."
                 collapsible
                 defaultOpen
-                indented
               >
                 <span className={hintStyle}>
                   Parameters are fixed by default.
@@ -871,7 +870,7 @@ export const CreateOptimizationDrawer = ({
                 </div>
               </Section>
 
-              <Section title="Objective" collapsible defaultOpen indented>
+              <Section title="Objective" collapsible defaultOpen>
                 <span className={hintStyle}>
                   Choose a saved metric or write custom code for this run.
                   <br />

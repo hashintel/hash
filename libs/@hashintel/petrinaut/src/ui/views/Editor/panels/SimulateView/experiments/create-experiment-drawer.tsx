@@ -986,7 +986,7 @@ export const CreateExperimentDrawer = ({
       />
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
-          <Section title="Experiment" collapsible defaultOpen indented>
+          <Section title="Experiment" collapsible defaultOpen>
             <Form.Field label="Name" size="sm">
               <TextInput size="sm" value={name} onChange={setName} />
             </Form.Field>
@@ -1028,7 +1028,7 @@ export const CreateExperimentDrawer = ({
             </Form.Row>
           </Section>
 
-          <Section title="Scenario" collapsible defaultOpen indented>
+          <Section title="Scenario" collapsible defaultOpen>
             <div className={fieldStyle}>
               <Select
                 required

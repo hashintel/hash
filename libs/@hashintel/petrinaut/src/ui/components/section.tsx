@@ -118,6 +118,7 @@ const collapsibleContentStyle = css({
   overflow: "hidden",
   animationDuration: "[200ms]",
   animationTimingFunction: "ease-in-out",
+  paddingLeft: "2",
 
   "&[data-state=open]": {
     animationName: "[petrinautExpand]",
@@ -145,10 +146,6 @@ const fillHeightContentStyle = css({
   minHeight: "[0]",
 });
 
-const indentedContentStyle = css({
-  paddingLeft: "2",
-});
-
 interface SectionProps {
   title: string;
   tooltip?: string;
@@ -159,8 +156,6 @@ interface SectionProps {
   renderHeaderAction?: () => ReactNode;
   children: ReactNode;
   className?: string;
-  /** Slightly indent the content against the section header */
-  indented?: boolean;
 }
 
 export const Section = ({
@@ -173,7 +168,6 @@ export const Section = ({
   renderHeaderAction,
   children,
   className,
-  indented = false,
 }: SectionProps) => {
   const headerLeft = (
     <div className={headerLeftStyle}>
@@ -210,14 +204,7 @@ export const Section = ({
             contentPaddingStyle,
           )}
         >
-          <div
-            className={cx(
-              collapsibleContentInnerStyle,
-              indented && indentedContentStyle,
-            )}
-          >
-            {children}
-          </div>
+          <div className={cx(collapsibleContentInnerStyle)}>{children}</div>
         </Collapsible.Content>
       </Collapsible.Root>
     );
@@ -241,7 +228,6 @@ export const Section = ({
           contentStyle,
           contentPaddingStyle,
           fillHeight && fillHeightContentStyle,
-          indented && indentedContentStyle,
         )}
       >
         {children}

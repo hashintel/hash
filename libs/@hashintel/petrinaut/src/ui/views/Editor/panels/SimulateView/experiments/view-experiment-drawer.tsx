@@ -258,7 +258,7 @@ export const ViewExperimentDrawer = ({
       />
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
-          <Section title="Summary" collapsible defaultOpen indented>
+          <Section title="Summary" collapsible defaultOpen>
             <ExperimentSummary experiment={experiment} />
           </Section>
           {experiment.metricFrames.length > 0 ? (

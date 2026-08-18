@@ -314,11 +314,11 @@ export const ViewOptimizationDrawer = ({
       />
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
-          <Section title="Summary" collapsible defaultOpen indented>
+          <Section title="Summary" collapsible defaultOpen>
             <OptimizationSummary optimization={optimization} />
           </Section>
           {optimization.best ? (
-            <Section title="Best parameters" collapsible defaultOpen indented>
+            <Section title="Best parameters" collapsible defaultOpen>
               <div className={bestParametersStyle}>
                 {Object.entries(optimization.best.parameters).map(
                   ([identifier, value]) => (
