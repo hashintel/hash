@@ -18,8 +18,11 @@
 //!
 //! # Authentication
 //!
-//! All routes except `/health` run behind [`auth::authentication_middleware`] with the same
-//! provider chain as the main API: Kratos session, Cloudflare Access JWT, and service delegation.
+//! All routes except `/health` run behind [`auth::authentication_middleware`], with the operator
+//! chain: Cloudflare Access JWT, then service delegation. A Kratos session does **not**
+//! authenticate here — these endpoints erase entities and delete users, and the handlers do not
+//! authorize beyond requiring some actor, so operators arrive through Access and internal services
+//! through the shared secret.
 //!
 //! # Operational runbook
 //!

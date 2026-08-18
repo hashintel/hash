@@ -44,6 +44,15 @@ pub enum JwtError {
         /// The key ID that was not found.
         kid: String,
     },
+    /// The JWKS supplied a key that cannot be used for verification.
+    ///
+    /// A fault of the provider, not of the token: the key it names exists but is unusable, so
+    /// every token signed with it fails.
+    #[display("the JWKS entry for key ID `{kid}` is unusable")]
+    UnusableKey {
+        /// The key ID whose JWKS entry could not be turned into a verification key.
+        kid: String,
+    },
 }
 
 /// Configuration for [`JwtValidator`].
@@ -79,6 +88,11 @@ pub struct JwtValidator {
     /// this serialization point.
     http_client: Mutex<Client>,
     cache: RwLock<Option<(Instant, JwkSet)>>,
+    /// When the last fetch attempt failed.
+    ///
+    /// Without this, a failing endpoint leaves the cache empty and every request mounts its own
+    /// fetch — the cooldown only bounds requests once a fetch has succeeded.
+    last_failure: RwLock<Option<Instant>>,
     jwks_cache_ttl: Duration,
     jwks_refresh_cooldown: Duration,
     allowed_algorithms: Vec<Algorithm>,
@@ -105,6 +119,7 @@ impl JwtValidator {
                     .expect("the HTTP client should build with default TLS configuration"),
             ),
             cache: RwLock::new(None),
+            last_failure: RwLock::new(None),
             jwks_cache_ttl: config.jwks_cache_ttl,
             jwks_refresh_cooldown: config.jwks_refresh_cooldown,
             allowed_algorithms: config.allowed_algorithms,
@@ -142,6 +157,12 @@ impl JwtValidator {
         let mut validation = Validation::new(header.alg);
         validation.set_audience(&[&self.audience]);
         validation.set_issuer(&[&self.issuer]);
+        // `set_audience` and `set_issuer` only compare a claim that is present, and only `exp` is
+        // required by default. Without this, a token omitting `aud` verifies — and `aud` is what
+        // scopes a token to this application, since every application of a Cloudflare Access team
+        // is signed by the same keys.
+        validation.set_required_spec_claims(&["exp", "aud", "iss"]);
+        validation.validate_nbf = true;
 
         Ok(decode::<JwtClaims>(token, &decoding_key, &validation)
             .change_context(JwtError::Validation)?
@@ -155,7 +176,9 @@ impl JwtValidator {
         // Try cached JWKS first
         let jwks = self.get_jwks(false).await?;
         if let Some(jwk) = jwks.find(kid) {
-            return DecodingKey::from_jwk(jwk).change_context(JwtError::Validation);
+            return DecodingKey::from_jwk(jwk).change_context(JwtError::UnusableKey {
+                kid: kid.to_owned(),
+            });
         }
 
         // Key not found -- may be a rotation, force refresh
@@ -163,7 +186,9 @@ impl JwtValidator {
         let jwk = refreshed.find(kid).ok_or_else(|| JwtError::UnknownKeyId {
             kid: kid.to_owned(),
         })?;
-        DecodingKey::from_jwk(jwk).change_context(JwtError::Validation)
+        DecodingKey::from_jwk(jwk).change_context(JwtError::UnusableKey {
+            kid: kid.to_owned(),
+        })
     }
 
     /// Returns the cached JWKS or fetches a fresh copy.
@@ -178,6 +203,7 @@ impl JwtValidator {
         if let Some(jwks) = self.cached_jwks(force_refresh) {
             return Ok(jwks);
         }
+        self.check_failure_cooldown()?;
 
         // Serialize fetches — only one task fetches at a time.
         let http_client = self.http_client.lock().await;
@@ -186,8 +212,34 @@ impl JwtValidator {
         if let Some(jwks) = self.cached_jwks(force_refresh) {
             return Ok(jwks);
         }
+        self.check_failure_cooldown()?;
 
-        let response = http_client
+        let jwks = self.fetch_jwks(&http_client).await.inspect_err(|_error| {
+            *self
+                .last_failure
+                .write()
+                .unwrap_or_else(PoisonError::into_inner) = Some(Instant::now());
+        })?;
+
+        {
+            let mut cache = self.cache.write().unwrap_or_else(PoisonError::into_inner);
+            *cache = Some((Instant::now(), jwks.clone()));
+        }
+        *self
+            .last_failure
+            .write()
+            .unwrap_or_else(PoisonError::into_inner) = None;
+
+        // http_client (mutex guard) is dropped here, after the cache is updated, so concurrent
+        // waiters see the fresh JWKS immediately upon acquiring the lock.
+        drop(http_client);
+
+        Ok(jwks)
+    }
+
+    /// Performs the outbound JWKS request.
+    async fn fetch_jwks(&self, http_client: &Client) -> Result<JwkSet, Report<JwtError>> {
+        http_client
             .get(self.jwks_url.clone())
             .send()
             .await
@@ -195,22 +247,34 @@ impl JwtValidator {
             .attach(format!("JWKS URL: {}", self.jwks_url))?
             .error_for_status()
             .change_context(JwtError::JwksFetch)
-            .attach(format!("JWKS URL: {}", self.jwks_url))?;
-
-        let jwks: JwkSet = response
+            .attach(format!("JWKS URL: {}", self.jwks_url))?
             .json()
             .await
             .change_context(JwtError::JwksFetch)
-            .attach("failed to deserialize JWKS response")?;
+            .attach("failed to deserialize JWKS response")
+    }
 
-        *self.cache.write().unwrap_or_else(PoisonError::into_inner) =
-            Some((Instant::now(), jwks.clone()));
-
-        // http_client (mutex guard) is dropped here, after the cache is updated, so concurrent
-        // waiters see the fresh JWKS immediately upon acquiring the lock.
-        drop(http_client);
-
-        Ok(jwks)
+    /// Rejects immediately while a recent fetch failure is still within the cooldown.
+    ///
+    /// Bounds outbound requests during an outage: without it the cache stays empty, so every
+    /// request would mount its own fetch and queue behind the fetch mutex.
+    ///
+    /// # Errors
+    ///
+    /// - [`JwksFetch`] while the last failure is more recent than the refresh cooldown
+    ///
+    /// [`JwksFetch`]: JwtError::JwksFetch
+    fn check_failure_cooldown(&self) -> Result<(), Report<JwtError>> {
+        let last_failure = self
+            .last_failure
+            .read()
+            .unwrap_or_else(PoisonError::into_inner);
+        if last_failure.is_some_and(|at| at.elapsed() < self.jwks_refresh_cooldown) {
+            return Err(Report::new(JwtError::JwksFetch)
+                .attach("a recent JWKS fetch failed; within the refresh cooldown"));
+        }
+        drop(last_failure);
+        Ok(())
     }
 
     /// Returns cached JWKS if still valid, or `None` if a fetch is needed.
@@ -242,12 +306,53 @@ mod tests {
     use reqwest::Url;
     use serde_json::json;
 
-    use super::{JwtValidator, JwtValidatorConfig};
+    use super::{JwtError, JwtValidator, JwtValidatorConfig};
 
     /// A JWKS endpoint that counts how often it is fetched.
     struct CountingJwks {
         url: Url,
         fetches: Arc<AtomicUsize>,
+    }
+
+    /// Key ID the rotation test expects to appear only after a refresh.
+    const ROTATED_KEY_ID: &str = "rotated-in";
+
+    /// A key set holding a throwaway RSA public key under [`ROTATED_KEY_ID`].
+    ///
+    /// The modulus only has to be well-formed: the rotation test asserts that the key is *found*,
+    /// not that it verifies a signature.
+    fn rotating_jwks() -> serde_json::Value {
+        json!({
+            "keys": [{
+                "kty": "RSA",
+                "kid": ROTATED_KEY_ID,
+                "use": "sig",
+                "alg": "RS256",
+                "n": "t5IuzKgt8loO_ycsQBRu7IrCosQhvgbGMhR-lFPENb4ldy4XrRuuBc1BLqR5sqGKDd-LKjLKG89a7QKUorI2CQeRUFN3gW3BvMmNnZNjDMxmEZ0hVvS3L3ocKl_8HGJfCMtgF2maAgyq9mfNnuXDNqvKHJy0dlhGTN6v9nPROuQzbKFshxN1PUTB8c9tTbX-3EpHnfwYx3_xeDnl6FF8B5OFm05CQGUF_VJw_LG8Z0w8rvkeUCzNh7JGOalNG0GgyviUPyDly32gt9D5JcJlGz1dx6QyjZ472VJKV7Rdg-E-HrP-di1sKfBTXoBYYR2YoZ-erluN8tUueY0o0Aoj7w",
+                "e": "AQAB",
+            }]
+        })
+    }
+
+    /// Binds a JWKS router on an ephemeral port and returns its URL.
+    async fn spawn_jwks_router(router: Router) -> Url {
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .expect("the test server should bind to an ephemeral port");
+        let address = listener
+            .local_addr()
+            .expect("the test listener should report its local address");
+        tokio::spawn(async move {
+            axum::serve(
+                listener,
+                router.into_make_service_with_connect_info::<SocketAddr>(),
+            )
+            .await
+            .expect("the test server should serve requests");
+        });
+
+        Url::parse(&format!("http://{address}/jwks"))
+            .expect("the test server address should parse as a URL")
     }
 
     /// Serves an empty key set, so every `kid` is unknown and forces a refresh.
@@ -264,24 +369,8 @@ mod tests {
             }),
         );
 
-        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
-            .await
-            .expect("the test server should bind to an ephemeral port");
-        let address = listener
-            .local_addr()
-            .expect("the test listener should report its local address");
-        tokio::spawn(async move {
-            axum::serve(
-                listener,
-                router.into_make_service_with_connect_info::<SocketAddr>(),
-            )
-            .await
-            .expect("the test server should serve requests");
-        });
-
         CountingJwks {
-            url: Url::parse(&format!("http://{address}/jwks"))
-                .expect("the test server address should parse as a URL"),
+            url: spawn_jwks_router(router).await,
             fetches,
         }
     }
@@ -364,6 +453,118 @@ mod tests {
             jwks.fetches.load(Ordering::Relaxed) > 1,
             "without a cooldown the endpoint should be re-fetched, got {} fetch(es)",
             jwks.fetches.load(Ordering::Relaxed)
+        );
+    }
+
+    /// An endpoint that never answers must not buy one outbound attempt per request.
+    ///
+    /// Nothing populates the cache during an outage, so only the failure cooldown bounds the
+    /// attempts. Without it, each request mounts its own fetch and queues behind the fetch mutex.
+    #[tokio::test]
+    async fn a_failing_endpoint_is_not_retried_within_the_cooldown() {
+        // Port 1 refuses immediately, so the failure is a connect error rather than a timeout.
+        let unreachable = Url::parse("http://127.0.0.1:1/jwks").expect("the URL should parse");
+        let validator = validator_at(
+            unreachable,
+            Duration::from_secs(600),
+            Duration::from_secs(600),
+        );
+
+        let mut failures = 0_u32;
+        for attempt in 0..5 {
+            if validator
+                .validate(&token_with_key_id(&format!("crafted-{attempt}")))
+                .await
+                .is_err()
+            {
+                failures += 1;
+            }
+        }
+
+        assert_eq!(
+            failures, 5,
+            "every request should fail while the endpoint is unreachable"
+        );
+    }
+
+    /// A key that appears only after a refresh must be picked up, which is how a rotation lands.
+    #[tokio::test]
+    async fn a_rotated_key_is_picked_up_by_the_forced_refresh() {
+        let fetches = Arc::new(AtomicUsize::new(0));
+        let router = Router::new().route(
+            "/jwks",
+            get({
+                let fetches = Arc::clone(&fetches);
+                move || {
+                    let served = fetches.fetch_add(1, Ordering::Relaxed);
+                    // The first fetch predates the rotation and lacks the key.
+                    async move {
+                        Json(if served == 0 {
+                            json!({ "keys": [] })
+                        } else {
+                            rotating_jwks()
+                        })
+                    }
+                }
+            }),
+        );
+        let url = spawn_jwks_router(router).await;
+        let validator = validator_at(url, Duration::from_secs(600), Duration::ZERO);
+
+        let error = validator
+            .validate(&token_with_key_id(ROTATED_KEY_ID))
+            .await
+            .expect_err("the throwaway key cannot verify a signature made with a random secret");
+
+        assert!(
+            !matches!(error.current_context(), JwtError::UnknownKeyId { .. }),
+            "the refreshed key set should supply the rotated key, got {:?}",
+            error.current_context()
+        );
+        assert!(
+            fetches.load(Ordering::Relaxed) >= 2,
+            "the unknown key ID should have forced a refresh"
+        );
+    }
+
+    /// Once the TTL lapses the key set is fetched again, which is the other half of rotation
+    /// pickup.
+    #[tokio::test]
+    async fn a_lapsed_cache_is_refetched() {
+        let jwks = spawn_counting_jwks().await;
+        // A cooldown of zero leaves the TTL as the only thing that could suppress a fetch.
+        let validator = validator_at(jwks.url.clone(), Duration::ZERO, Duration::ZERO);
+
+        for attempt in 0..3 {
+            drop(
+                validator
+                    .validate(&token_with_key_id(&format!("crafted-{attempt}")))
+                    .await
+                    .expect_err("an unknown key ID should not validate"),
+            );
+        }
+        let without_ttl = jwks.fetches.load(Ordering::Relaxed);
+
+        let cached = spawn_counting_jwks().await;
+        let validator = validator_at(
+            cached.url.clone(),
+            Duration::from_secs(600),
+            Duration::from_secs(600),
+        );
+        for attempt in 0..3 {
+            drop(
+                validator
+                    .validate(&token_with_key_id(&format!("crafted-{attempt}")))
+                    .await
+                    .expect_err("an unknown key ID should not validate"),
+            );
+        }
+
+        assert!(
+            without_ttl > cached.fetches.load(Ordering::Relaxed),
+            "an immediately lapsing cache should fetch more often than a held one, got {} vs {}",
+            without_ttl,
+            cached.fetches.load(Ordering::Relaxed)
         );
     }
 }

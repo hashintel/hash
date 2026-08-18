@@ -637,13 +637,7 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
     let postgres = pool.clone();
 
     if args.embed_admin {
-        start_admin_server(
-            pool.clone(),
-            args.admin,
-            session_auth.clone(),
-            service_secret.clone(),
-            &lifecycle,
-        );
+        start_admin_server(pool.clone(), args.admin, service_secret.clone(), &lifecycle);
     }
 
     if args.embed_type_fetcher {

@@ -47,17 +47,50 @@ pub struct CloudflareAccessConfig {
     pub kratos_admin: KratosAdminConfig,
 }
 
-/// The provider chain shared by the REST and admin routers.
-pub type ProviderChain<S> = (
-    KratosSessionProvider<StorePoolActorResolver<S>>,
-    (
-        Option<CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>>,
-        ServiceDelegationProvider,
-    ),
+/// The operator-facing half of a provider chain: Cloudflare Access JWT (when configured), then
+/// service delegation.
+pub type OperatorChain<S> = (
+    Option<CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>>,
+    ServiceDelegationProvider,
 );
 
-/// Builds the authentication provider chain: Kratos session, Cloudflare Access JWT (when
-/// configured), and service delegation, in that order.
+/// The provider chain of the REST router.
+pub type ProviderChain<S> = (
+    KratosSessionProvider<StorePoolActorResolver<S>>,
+    OperatorChain<S>,
+);
+
+/// Builds the chain the admin API authenticates with: Cloudflare Access JWT (when configured),
+/// then service delegation.
+///
+/// Deliberately without the Kratos session provider. The admin API deletes users and erases
+/// entities, and its handlers do not authorize beyond "some actor", so an end-user session must
+/// not reach it — operators arrive through Access, internal services through the shared secret.
+pub fn build_operator_provider<S>(
+    cloudflare_access: Option<CloudflareAccessConfig>,
+    service_secret: String,
+    store: &Arc<S>,
+) -> OperatorChain<S>
+where
+    S: StorePool + Send + Sync,
+    for<'p> S::Store<'p>: PrincipalStore,
+{
+    (
+        cloudflare_access.map(|config| {
+            CloudflareAccessProvider::new(
+                JwtValidator::new(config.jwt),
+                KratosEmailActorResolver::new(
+                    config.kratos_admin,
+                    StorePoolActorResolver::new(Arc::clone(store)),
+                ),
+            )
+        }),
+        ServiceDelegationProvider::new(service_secret),
+    )
+}
+
+/// Builds the chain the REST router authenticates with: Kratos session, then the operator
+/// credentials.
 pub fn build_authentication_provider<S>(
     session: KratosSessionConfig,
     cloudflare_access: Option<CloudflareAccessConfig>,
@@ -70,18 +103,7 @@ where
 {
     (
         KratosSessionProvider::new(session, StorePoolActorResolver::new(Arc::clone(store))),
-        (
-            cloudflare_access.map(|config| {
-                CloudflareAccessProvider::new(
-                    JwtValidator::new(config.jwt),
-                    KratosEmailActorResolver::new(
-                        config.kratos_admin,
-                        StorePoolActorResolver::new(Arc::clone(store)),
-                    ),
-                )
-            }),
-            ServiceDelegationProvider::new(service_secret),
-        ),
+        build_operator_provider(cloudflare_access, service_secret, store),
     )
 }
 

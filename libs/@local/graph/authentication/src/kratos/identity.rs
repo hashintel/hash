@@ -89,10 +89,14 @@ async fn verified_identity(
     url.query_pairs_mut()
         .append_pair("credentials_identifier", email);
 
+    // The looked-up address travels in the query string, and a `reqwest::Error` renders the URL it
+    // failed on. Dropping the URL keeps the address out of the report, and therefore out of the
+    // logs and Sentry. The span already carries the base URL.
     let response = http_client
         .get(url)
         .send()
         .await
+        .map_err(reqwest::Error::without_url)
         .change_context(AuthenticationError::ProviderUnreachable)?;
 
     let body = read_response_body(response).await?;
