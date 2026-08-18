@@ -208,6 +208,18 @@ where
         Self::from_raw(&self.raw[..bound.as_usize()])
     }
 
+    /// Returns the mutable prefix of the slice below `bound`, keeping the index domain.
+    ///
+    /// The mutable form of [`prefix`](Self::prefix).
+    ///
+    /// # Panics
+    ///
+    /// When `bound` exceeds the slice length.
+    #[inline]
+    pub fn prefix_mut(&mut self, bound: I) -> &mut Self {
+        Self::from_raw_mut(&mut self.raw[..bound.as_usize()])
+    }
+
     /// Returns the number of elements in the slice.
     ///
     /// See [`slice::len`] for details.
