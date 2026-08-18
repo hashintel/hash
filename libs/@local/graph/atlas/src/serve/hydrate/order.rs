@@ -4,9 +4,9 @@
 //! the one stage of that pipeline living on the other side of an executor. An assembled document
 //! places one order naming the delivered identities and the caps, and one answer carries every
 //! store-derived column back, so the boundary crosses as data rather than as control flow. Labels
-//! stay out of every order on purpose. A label is a generation payload resolved in process, so an
-//! answer carries at most the resolution flags a label lookup keys on rather than the labels
-//! themselves.
+//! stay out of every order on purpose. A label is a generation payload or a captured display,
+//! either resolved in process, so an answer carries at most the resolution flags a label lookup
+//! keys on rather than the labels themselves.
 //!
 //! [`LocateStore`] and [`EdgesStore`] are the capability shapes. A single call consumes each
 //! shape, so a response hydrates at most once, and a rejection that never reaches hydration drops
@@ -18,10 +18,7 @@ use type_system::ontology::id::{BaseUrl, VersionedUrl};
 use super::{DeliveredNodes, EdgeSlot, NodeSlot, ScalarValue, TypeSlot, client::DetailError};
 use crate::{
     bitset::DenseBitSlice,
-    postgres::{
-        LinkDisplay,
-        id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
-    },
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
 };
 
 /// One locate response's store order.
@@ -131,46 +128,26 @@ pub(crate) trait LocateStore {
     fn hydrate(self, order: LocateOrder<'_>) -> Result<LocateHydration, DetailError>;
 }
 
-/// The store order of one edges response, holding one list per serving domain.
-///
-/// A fitted link's type reference comes from the generation, so the fitted list carries the
-/// distinct representative type uuids the delivered fitted links require, and the store resolves
-/// each uuid to its versioned URL. A delta link resolves its whole display from the live store,
-/// so the delta list carries the link identities in their delivered slot subsequence's order.
-/// The answer aligns to each list by position.
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct EdgesOrder<'doc> {
-    /// The fitted links' required representative type uuids, distinct, in first-occurrence
-    /// order over the delivered fitted links.
-    pub fitted: &'doc IdSlice<TypeSlot, ArchivedOntologyTypeUuid>,
-    /// The delta links' identities, in delivered order.
-    pub delta: &'doc [ArchivedEntityId],
-}
-
-/// The store's answer to one [`EdgesOrder`], each list aligned to its order by position.
-#[derive(Debug)]
-pub(crate) struct EdgesHydration {
-    /// Each required type uuid's versioned URL, in requirement order.
-    ///
-    /// `None` marks a type the store no longer serves.
-    pub fitted: IdVec<TypeSlot, Option<VersionedUrl>>,
-    /// Each delta link's display payload.
-    ///
-    /// An identity the store no longer resolves answers the empty label and no type.
-    pub delta: Vec<LinkDisplay>,
-}
-
 /// The store half of one edges response's detail trailer.
+///
+/// The one order an edges response places is the distinct representative type uuids its
+/// delivered links require, in first-occurrence order over the delivered slots, fitted and
+/// delta alike - a delivered link's label and type uuid both resolve in process, from the
+/// generation's payloads or the register's captured displays, so the store's whole share is
+/// resolving each uuid to its versioned URL. `None` marks a type the store no longer serves.
 ///
 /// One call consumes the capability, so a response hydrates at most once and the type carries
 /// that contract instead of a runtime check. An implementation answers from wherever its
 /// store lives, and a test answers from a fixture table with no store at all.
 pub(crate) trait EdgesStore {
-    /// Answers one edges order with every store-derived column.
+    /// Answers one edges order: each required type uuid's versioned URL, in requirement order.
     ///
     /// # Errors
     ///
     /// Returns [`DetailError`] when the store rejects a query or the answer can no longer reach
     /// the caller.
-    fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError>;
+    fn hydrate(
+        self,
+        types: &IdSlice<TypeSlot, ArchivedOntologyTypeUuid>,
+    ) -> Result<IdVec<TypeSlot, Option<VersionedUrl>>, DetailError>;
 }

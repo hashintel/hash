@@ -16,7 +16,7 @@ const manifestBody = {
   wireVersion: 1,
   variants: ["plain"],
   bucketSchedule: { span: 64, cut: "z+6", maxZoom: 16 },
-  scopeSchedule: { k: 0, cut: "z+6" },
+  scopeSchedule: { k: 0, cut: "z+6", maxZoom: 14 },
   limits: {
     coloredTypeIds: 8,
     edgesTiles: 32,
@@ -70,15 +70,17 @@ describe("parseManifest", () => {
     expect(manifest.limits.locateLinkProperties).toBe(10);
     expect(manifest.scopeSchedule.k).toBe(0);
     expect(manifest.scopeSchedule.cut).toBe("z+6");
+    expect(manifest.scopeSchedule.maxZoom).toBe(14);
     expect(manifest.createdAt).toBe("2026-07-19T16:00:00Z");
   });
 
   it("carries a restricted caller's own delivery offset", () => {
     const manifest = parseManifest(
-      { ...manifestBody, scopeSchedule: { k: 2, cut: "z+8" } },
+      { ...manifestBody, scopeSchedule: { k: 2, cut: "z+8", maxZoom: 12 } },
       generationHex,
     );
     expect(manifest.scopeSchedule.k).toBe(2);
+    expect(manifest.scopeSchedule.maxZoom).toBe(12);
   });
 
   it("requires the scopeSchedule block, because a missing k reads as zero", () => {
@@ -88,10 +90,16 @@ describe("parseManifest", () => {
     );
     expect(() =>
       parseManifest(
-        { ...manifestBody, scopeSchedule: { k: -1, cut: "z+6" } },
+        { ...manifestBody, scopeSchedule: { k: -1, cut: "z+6", maxZoom: 14 } },
         generationHex,
       ),
-    ).toThrow(/scopeSchedule k\/cut/u);
+    ).toThrow(/scopeSchedule k\/cut\/maxZoom/u);
+    expect(() =>
+      parseManifest(
+        { ...manifestBody, scopeSchedule: { k: 0, cut: "z+6" } },
+        generationHex,
+      ),
+    ).toThrow(/scopeSchedule k\/cut\/maxZoom/u);
   });
 
   it("accepts an absent createdAt, which a fixture-fitted generation omits", () => {

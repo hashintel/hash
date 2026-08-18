@@ -283,7 +283,7 @@ describe("wire fixtures", () => {
           generation: string;
           wireVersion: number;
           bucketSchedule: { span: number; cut: string; maxZoom: number };
-          scopeSchedule: { k: number; cut: string };
+          scopeSchedule: { k: number; cut: string; maxZoom: number };
         };
       };
     };
@@ -296,6 +296,17 @@ describe("wire fixtures", () => {
     expect(declaration.scopeSchedule.k).toBeGreaterThanOrEqual(1);
     const cutAddend = spanLog2 + declaration.scopeSchedule.k;
     expect(declaration.scopeSchedule.cut).toBe(`z+${cutAddend}`);
+    // The served maxZoom is the deepest occupied bucket carried through the
+    // cut rule and clamped to the grid. This capture ran with no delta
+    // overlay, so the recorded minResolution is that same deepest bucket
+    // under the schedule's own clamp, and the identity holds on both sides
+    // of it: min(27 - 9, 18) = 18 here.
+    expect(declaration.scopeSchedule.maxZoom).toBe(
+      Math.min(
+        head.global!.minResolution - cutAddend,
+        declaration.bucketSchedule.maxZoom,
+      ),
+    );
     expect(head.generation).toBe(declaration.generation);
 
     const decoded = decodeSaltileTile(buffer, {

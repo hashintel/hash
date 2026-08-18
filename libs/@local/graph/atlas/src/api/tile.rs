@@ -33,10 +33,10 @@ The JSON body is optional; an absent body reads as the all-defaults query. `mode
      manifest's `limits.coloredTypeIds` caps the list.
 
 `detail: \"auxiliary\"` adds the detail trailer - per-point labels and icons read from the \
-     generation. `\"minimal\"`, the default, sends geometry alone. The tile geometry and \
-     auxiliary trailer are generation-local, but a client must not retain a detailed response as \
-     an immutable generation tile. Cache geometry. Section 2 of the Atlas wire format defines the \
-     detail that clients refetch where request-time state matters.
+     generation, with a placed arrival's label from its placement's captured display. \
+     `\"minimal\"`, the default, sends geometry alone. A client must not retain a detailed \
+     response as an immutable generation tile. Cache geometry. Section 2 of the Atlas wire format \
+     defines the detail that clients refetch where request-time state matters.
 
 Filtering binds at the manifest. This body has no `filter` field, and an unknown member is \
      rejected as `invalid-body`.";

@@ -22,7 +22,7 @@ use super::{
     },
 };
 use crate::{
-    dataset::auxiliary::{Icon, Label},
+    dataset::auxiliary::{Icon, Label, Legend},
     file::quad::Node,
     morton::MortonCell,
     salt::{
@@ -219,7 +219,7 @@ impl Atlas {
                             let label = self
                                 .node_ids
                                 .payload_of(id)
-                                .map_or(Label::empty(), |legend| legend.label());
+                                .map_or(Label::EMPTY, |legend| legend.label());
 
                             labels.push(label);
 
@@ -244,17 +244,16 @@ impl Atlas {
                         }
                         ViewRow::Arrival(index) => {
                             let arrival = &arrivals[index];
-                            labels.push(&arrival.display.label);
+                            let legend: &Legend = arrival.legend.as_ref();
+                            labels.push(legend.label());
 
-                            // The capture holds the arrival's representative type as a store
-                            // uuid. A type the generation never tabulated resolves no row and
-                            // the icon stays empty, the trailer's answer for every unresolved
-                            // id.
-                            let icon = arrival
-                                .display
-                                .representative_type
-                                .and_then(|uuid| self.ontology_ids.row_of(uuid))
-                                .and_then(|row| self.closure.icon_source(row))
+                            // The legend names its representative as an ontology row. A type
+                            // the generation never tabulated takes an allocated row past the
+                            // closure's domain, resolves no icon source, and the icon stays
+                            // empty, the trailer's answer for every unresolved id.
+                            let icon = self
+                                .closure
+                                .icon_source(legend.representative_ontology())
                                 .and_then(|IconSource { source, .. }| {
                                     self.ontology_ids.payload_of(source)
                                 });
@@ -290,7 +289,9 @@ impl Atlas {
     ///
     /// Producing it costs one pass over the code column and an allocation for the visible keys,
     /// so a scoped resolution takes it once rather than paying the pass per request.
-    /// [`VisibilityProof::kind`] is the cheap question a caller asks first.
+    /// [`VisibilityProof::kind`] is the cheap question a caller asks first. A deployment
+    /// without a density policy still pays this pass per scoped resolution and then reads
+    /// nothing from it, a cost accepted for one resolution path rather than two.
     #[must_use]
     pub(crate) fn visible_occupancy(&self, proof: &VisibilityProof) -> ViewOccupancy {
         Walk::of(self, proof).visible_occupancy()
@@ -619,7 +620,7 @@ mod tests {
         let details = NodeDetails::empty(document.delivered.count());
         let bytes = atlas.encode_tile(&document, IdSlice::from_raw(&[]), Some(&details));
 
-        let no_labels: Vec<&Label> = vec![Label::empty(); delivered];
+        let no_labels: Vec<&Label> = vec![Label::EMPTY; delivered];
         let no_icons: Vec<&Icon> = vec![Icon::empty(); delivered];
         let end = u32::try_from(delivered).expect("fixture counts fit u32");
         let expected = TileResponse {

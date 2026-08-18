@@ -115,7 +115,8 @@ impl PendingCacheEntry {
     /// masks, the census, and the schedule all describe what the entry can actually serve, and
     /// a request whose ingress capture is this same publication has nothing left to subtract.
     /// The occupancy aggregate is taken before the fold, so the cut offset a mint resolves
-    /// stays a function of the store's answer alone.
+    /// stays a function of the store's answer alone. The owner ruled that split as it stands:
+    /// the root's aggregates follow the folded view while the mint's input does not.
     ///
     /// Caller requirement: `proof` resolved against that same snapshot, so the slots its node
     /// mask admits are the cohort's own.

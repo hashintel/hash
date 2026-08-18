@@ -15,7 +15,7 @@ use super::{
 };
 use crate::{
     dataset::{
-        auxiliary::{Icon, OwnedLegend},
+        auxiliary::{Icon, Label, OwnedLegend},
         memory::{MemoryNodeId, MemoryOntologyId},
     },
     file::region::{header::HeaderError, machine::Machine},
@@ -105,7 +105,7 @@ const PAYLOADS: [&str; 3] = ["beta", "alpha", "beta"];
 
 /// Owns `text` as a legend representing ontology row 0.
 fn legend(text: &str) -> OwnedLegend {
-    OwnedLegend::new(OntologyRowId::new(0), text)
+    OwnedLegend::new(OntologyRowId::new(0), Label::new(text))
 }
 
 fn fixture_bytes() -> Vec<u8> {

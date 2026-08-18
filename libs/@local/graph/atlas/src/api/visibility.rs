@@ -48,6 +48,7 @@ use crate::serve::{
         MaskingActor,
         compile::{ProofError, visibility_proof},
     },
+    schedule::ViewSchedule,
 };
 
 /// The header naming the authenticated actor.
@@ -113,6 +114,20 @@ impl Resolved {
     /// from the store's answer alone, and every mint under the entry reads that value.
     pub(super) fn occupancy(&self) -> Option<&ViewOccupancy> {
         self.entry.occupancy()
+    }
+
+    /// Returns the resolved view's deepest occupied bucket, zero for an empty view.
+    ///
+    /// A restricted scope reads its own cascade's fenceposts and an operator scope the corpus
+    /// census, each the source its root tile's `minResolution` reads, so the manifest's
+    /// `scopeSchedule.maxZoom` derives from the same quantity the wire reports.
+    pub(super) fn deepest_occupied(&self) -> u64 {
+        match self.entry.view_schedule() {
+            ViewSchedule::Corpus(_) => self.entry.census().min_resolution(),
+            ViewSchedule::Scope(schedule, _) => schedule
+                .deepest_occupied()
+                .map_or(0, |bucket| u64::from(bucket.get())),
+        }
     }
 }
 

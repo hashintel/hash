@@ -39,8 +39,8 @@ use super::{
     edges::EdgesDetail,
     error::OpenAtlasError,
     hydrate::{
-        DetailError, EdgeSlot, EdgesHydration, EdgesOrder, EdgesStore, LocateHydration,
-        LocateLinkHydration, LocateNodeHydration, LocateOrder, LocateStore,
+        DetailError, EdgeSlot, EdgesStore, LocateHydration, LocateLinkHydration,
+        LocateNodeHydration, LocateOrder, LocateStore, TypeSlot,
     },
     locate::{LocateSubgraph, SourceSubject},
     neighbourhood::EdgeColumns,
@@ -51,7 +51,7 @@ use crate::{
     bitset::{CompressedBitSet, DenseBitSlice},
     file::generation::GenerationRoot,
     identity::{BasePosition, CardRow, EdgeRowId, NodeRowId, OntologyRowId},
-    postgres::LinkDisplay,
+    postgres::id::ArchivedOntologyTypeUuid,
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         landmark::select::SelectionOptions,
@@ -794,7 +794,7 @@ pub(crate) fn extremes(points: &[Vec2], row_ids: &[u32]) -> (Bounds2, Vec<u32>) 
 /// The scoped side of the sweep lives in `schedule.rs`, and both reach it through [`head_counts`].
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn every_operator_head_accounts_for_its_delivery() {
+async fn operator_head_accounting() {
     let (generation, atlas) = publish("operator-head").await;
     let Artifacts { quad, .. } = open_artifacts(&generation);
 
@@ -822,7 +822,7 @@ async fn every_operator_head_accounts_for_its_delivery() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn serves_tiles_from_a_published_generation() {
+async fn serves_published_tiles() {
     let (generation, atlas) = publish("serves").await;
     assert_eq!(atlas.generation(), generation.id());
 
@@ -1028,7 +1028,7 @@ async fn serves_empty_and_deepest_cells() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn rejects_and_reports_the_contract() {
+async fn tile_contract_rejections() {
     let (_generation, atlas) = publish("rejects").await;
 
     assert_eq!(
@@ -1067,9 +1067,11 @@ async fn rejects_and_reports_the_contract() {
         }),
     );
 
+    // Bucket 3 first enters at zoom 3 - span(1) - k(0) = 2, inside the grid's bound of 3.
     let manifest = serde_json::to_value(atlas.manifest(
         ServeLimits::default().manifest_limits(VisibilityLimits::default()),
         CutOffset::ZERO,
+        3,
     ))
     .expect("the manifest serializes");
     assert_eq!(
@@ -1079,15 +1081,31 @@ async fn rejects_and_reports_the_contract() {
             "wireVersion": 1,
             "variants": ["plain"],
             "bucketSchedule": { "span": 2, "cut": "z+1", "maxZoom": 3 },
-            "scopeSchedule": { "k": 0, "cut": "z+1" },
+            "scopeSchedule": { "k": 0, "cut": "z+1", "maxZoom": 2 },
             "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateEdges": 512, "locateProperties": 10, "locateLinkProperties": 10, "locateLinkTypeIds": 5, "translateEntityIds": 1024, "authoritySoftSeconds": 480, "authorityHardSeconds": 600 },
             // No createdAt: the fixture dataset has no temporal axes.
         }),
     );
+
+    // The cut rule's three edges, each one field read: an offset deepens the subtrahend, the
+    // grid clamps a catch-all-deep bucket, and an empty view saturates at the root.
+    let limits = ServeLimits::default().manifest_limits(VisibilityLimits::default());
+    let offset = serde_json::to_value(atlas.manifest(limits, CutOffset::new(1), 3))
+        .expect("the manifest serializes");
+    assert_eq!(offset["scopeSchedule"]["maxZoom"], 1, "3 - 1 - 1");
+    let clamped = serde_json::to_value(atlas.manifest(limits, CutOffset::ZERO, 9))
+        .expect("the manifest serializes");
+    assert_eq!(clamped["scopeSchedule"]["maxZoom"], 3, "min(9 - 1, 3)");
+    let empty = serde_json::to_value(atlas.manifest(limits, CutOffset::ZERO, 0))
+        .expect("the manifest serializes");
+    assert_eq!(
+        empty["scopeSchedule"]["maxZoom"], 0,
+        "an empty view saturates"
+    );
 }
 
 #[test]
-fn tile_query_defaults_to_the_delta_contract() {
+fn tile_query_delta_default() {
     let query: TileQuery = serde_json::from_str("{}").expect("the empty body parses");
     assert_eq!(query.mode, Mode::Delta);
     assert!(query.colored_type_ids.is_empty());
@@ -1107,13 +1125,13 @@ fn tile_query_defaults_to_the_delta_contract() {
 }
 
 #[test]
-fn atlas_is_shared_across_requests() {
+fn atlas_shared_across_requests() {
     const fn shared<T: Send + Sync>() {}
     shared::<Atlas>();
 }
 
 #[test]
-fn open_rejects_an_unpublished_generation() {
+fn open_rejects_unpublished() {
     let root = GenerationRoot::new(scratch("unpublished")).expect("the root should open");
     let id: GenerationId = "0000000000000000000000000000000000000000000000000000000000000000"
         .parse()
@@ -1187,7 +1205,10 @@ impl EdgesStore for UntouchedStore {
         clippy::panic_in_result_fn,
         reason = "consuming the capability is the failure under test, and the panic is its witness"
     )]
-    fn hydrate(self, _: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError> {
+    fn hydrate(
+        self,
+        _: &IdSlice<TypeSlot, ArchivedOntologyTypeUuid>,
+    ) -> Result<IdVec<TypeSlot, Option<VersionedUrl>>, DetailError> {
         panic!("the request under test must not hydrate")
     }
 }
@@ -1208,11 +1229,11 @@ impl LocateStore for UnresolvedStore {
 }
 
 impl EdgesStore for UnresolvedStore {
-    fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError> {
-        Ok(EdgesHydration {
-            fitted: IdVec::from_elem(None, order.fitted.len()),
-            delta: order.delta.iter().map(|_| LinkDisplay::empty()).collect(),
-        })
+    fn hydrate(
+        self,
+        types: &IdSlice<TypeSlot, ArchivedOntologyTypeUuid>,
+    ) -> Result<IdVec<TypeSlot, Option<VersionedUrl>>, DetailError> {
+        Ok(IdVec::from_elem(None, types.len()))
     }
 }
 
@@ -1280,7 +1301,7 @@ fn expected_edges_bytes(generation: &Generation, complete: bool, edges: &EdgeCol
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn edges_deliver_the_whole_graph_under_full_coverage() {
+async fn edges_full_coverage() {
     let (generation, atlas) = publish("edges-full").await;
     let artifacts = open_edge_artifacts(&generation);
     let endpoints = artifacts
@@ -1338,7 +1359,7 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn edges_serve_the_root_visible_subgraph() {
+async fn edges_root_visible_subgraph() {
     let (generation, atlas) = publish("edges-root").await;
     let artifacts = open_artifacts(&generation);
     let row_ids = fixture_row_ids(&artifacts.rows);
@@ -1547,7 +1568,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn edges_reject_and_report_the_contract() {
+async fn edges_contract_rejections() {
     let (generation, atlas) = publish("edges-rejects").await;
     let root = TileCoordinate { z: 0, x: 0, y: 0 };
 
@@ -1614,7 +1635,7 @@ async fn edges_reject_and_report_the_contract() {
 /// here (G6 pins the non-null trailer bytes).
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn detailed_edges_encode_the_hydrated_trailer() {
+async fn detailed_edges_trailer() {
     use crate::salt::wire::edges::EdgesTrailer;
 
     let (generation, atlas) = publish("detailed-edges").await;
@@ -1652,7 +1673,7 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     let (sources, targets, internal_edges) = qualifying_columns(endpoints, &delivered);
     let columns = wire_columns(&atlas, &sources, &targets, &internal_edges);
 
-    let no_labels: Vec<&Label> = vec![Label::empty(); columns.count()];
+    let no_labels: Vec<&Label> = vec![Label::EMPTY; columns.count()];
     let no_types: Vec<Option<super::TableIndex<VersionedUrl>>> = vec![None; columns.count()];
     let expected = EdgesResponse {
         generation: generation.id().digest(),
@@ -1758,26 +1779,16 @@ async fn detailed_edges_types() {
     }
 
     impl EdgesStore for RecordingTypeStore {
-        #[expect(
-            clippy::panic_in_result_fn,
-            reason = "a fitted-only order is the contract under test, and the assertion is its \
-                      witness"
-        )]
-        fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError> {
-            assert!(
-                order.delta.is_empty(),
-                "a fitted-only fixture places no delta identities"
-            );
-            self.asked.borrow_mut().extend(order.fitted.iter().copied());
+        fn hydrate(
+            self,
+            types: &IdSlice<TypeSlot, ArchivedOntologyTypeUuid>,
+        ) -> Result<IdVec<TypeSlot, Option<VersionedUrl>>, DetailError> {
+            self.asked.borrow_mut().extend(types.iter().copied());
 
-            Ok(EdgesHydration {
-                fitted: order
-                    .fitted
-                    .iter()
-                    .map(|uuid| self.urls.get(uuid).cloned())
-                    .collect(),
-                delta: Vec::new(),
-            })
+            Ok(types
+                .iter()
+                .map(|uuid| self.urls.get(uuid).cloned())
+                .collect())
         }
     }
 
@@ -1833,7 +1844,7 @@ async fn detailed_edges_types() {
         .iter()
         .map(|url| url.as_ref().map(|url| table.index_of(url)))
         .collect();
-    let no_labels: Vec<&Label> = vec![Label::empty(); columns.count()];
+    let no_labels: Vec<&Label> = vec![Label::EMPTY; columns.count()];
     let expected = EdgesResponse {
         generation: generation.id().digest(),
         variant: 0,
@@ -1858,7 +1869,7 @@ async fn detailed_edges_types() {
 /// the parent tile's schedule does not. `zoom` is therefore the first visible zoom.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_sources_resolve_to_their_first_visible_tile() {
+async fn locate_first_visible_tile() {
     let (_generation, atlas) = publish("locate-resolve").await;
     let node_codec = test_codec(&atlas);
     let wire_of = |row: u32| {
@@ -1968,7 +1979,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
 /// bytes (for the fixture, ascending edge row).
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_subgraph_delivers_the_ego_graph() {
+async fn locate_ego_graph() {
     use super::locate::LocateLimits;
 
     let (_generation, atlas) = publish("locate-ego").await;
@@ -2061,7 +2072,7 @@ async fn locate_subgraph_delivers_the_ego_graph() {
 )]
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_edge_cap_keeps_the_nearest_partners() {
+async fn locate_cap_nearest_partners() {
     use super::locate::LocateLimits;
 
     let (_generation, atlas) = publish("locate-truncation").await;
@@ -2194,7 +2205,7 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
 }
 
 #[test]
-fn edges_request_parses_the_body_contract() {
+fn edges_body_contract() {
     let request: EdgesRequest =
         serde_json::from_str(r#"{ "tiles": [{ "z": 1, "x": 0, "y": 1 }] }"#)
             .expect("the minimal body parses");
@@ -2218,7 +2229,7 @@ fn edges_request_parses_the_body_contract() {
 /// fixture type URL resolves to real bits.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn colored_requests_resolve_fixture_types_and_zero_unknowns() {
+async fn colored_types_zero_unknowns() {
     let (_generation, atlas) = publish("colored-masks-e2e").await;
 
     let mut colored = request(0, 0, 0, Mode::Delta);
@@ -2259,7 +2270,7 @@ async fn colored_requests_resolve_fixture_types_and_zero_unknowns() {
 /// The open fails on the key kind.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn foreign_key_kinds_fail_the_open() {
+async fn foreign_key_kinds_fail_open() {
     use super::error::{IdentityDomain, OpenAtlasError};
     use crate::salt::fit::prepare::identity::InvalidIdentityFile;
 
@@ -2283,7 +2294,7 @@ async fn foreign_key_kinds_fail_the_open() {
 /// Eight points, four types (`1 <- 0`, `2 <- 0`, `3 <- {1, 2}`), the postings fixture's dense/list
 /// split.
 #[test]
-fn colored_masks_resolve_and_expand_descendants() {
+fn colored_masks_expand_descendants() {
     use type_system::ontology::id::VersionedUrl;
 
     use super::colour;
@@ -2448,8 +2459,10 @@ fn entity_identity_table<R: Row>(
         table.push(id);
     }
     let mut file = std::fs::File::create(path).expect("the identity file creates");
-    let empty =
-        crate::dataset::auxiliary::OwnedLegend::new(crate::identity::OntologyRowId::new(0), "");
+    let empty = crate::dataset::auxiliary::OwnedLegend::new(
+        crate::identity::OntologyRowId::new(0),
+        Label::EMPTY,
+    );
     let _digest = table
         .write_into(core::iter::repeat_n(empty.as_ref(), ids.len()), &mut file)
         .expect("the identities should write");
@@ -2465,7 +2478,7 @@ fn entity_identity_table<R: Row>(
 /// Nodes answer row and wire position, edges answer their endpoints' node rows, and every
 /// non-resolving shape - draft-suffixed, unparsable, unknown - reads as an absent key.
 #[test]
-fn translate_resolves_nodes_and_edges_by_identity() {
+fn translate_by_identity() {
     use super::translate::{
         TranslateColumns, TranslateLimits, TranslateRequest, TranslatedEdge, TranslatedNode,
         translate,
@@ -2503,7 +2516,7 @@ fn translate_resolves_nodes_and_edges_by_identity() {
     };
     // The table's universe is three node rows, and the expectations
     // below encode through the same derivation.
-    let universe = codec::Universe::new(3);
+    let universe = codec::Universe::new(NodeRowId::new(3));
     let node_codec = codec::RowCodec::derive(
         &WireSecret::new(TEST_WIRE_SECRET),
         codec_generation(),
@@ -2590,7 +2603,7 @@ fn translate_rejects_over_cap() {
                 position_of_row: IdSlice::from_raw(&[]),
                 endpoints: IdSlice::from_raw(&[]),
                 node_codec: &node_codec,
-                universe: codec::Universe::new(1),
+                universe: codec::Universe::new(NodeRowId::new(1)),
             },
         ),
         Err(TranslateError::Ids {
@@ -2606,7 +2619,7 @@ fn translate_rejects_over_cap() {
 /// the serving columns. An edge id answers its row, and an unknown id reads absent.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn translate_resolves_store_identities_end_to_end() {
+async fn translate_store_identities() {
     use super::translate::{TranslateLimits, TranslateRequest, TranslatedEdge, TranslatedNode};
 
     let (_generation, atlas) = publish("translate-e2e").await;
@@ -2663,7 +2676,7 @@ fn property(name: &str) -> (BaseUrl, super::hydrate::ScalarValue) {
 }
 
 #[test]
-fn scalar_properties_parse_every_scalar_shape() {
+fn scalar_shapes_parse() {
     use super::hydrate::ScalarValue;
 
     // The store renders 2.5 and 1.0 with their points, so both read
@@ -2764,7 +2777,7 @@ fn select_properties_drop_reverse_lexicographically() {
 }
 
 #[test]
-fn select_properties_protect_the_label_to_the_end() {
+fn select_properties_protect_label() {
     let entries = vec![
         property("https://x.test/a/"),
         property("https://x.test/b/"),
@@ -2905,7 +2918,7 @@ async fn locate_by_wire_row_matches_by_entity() {
 /// completeness flags read `false` - an unresolved source can attest nothing.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_end_to_end_encodes_the_pinned_envelope() {
+async fn locate_pinned_envelope() {
     use crate::salt::{
         postings::artifact::Membership,
         wire::locate::{LocateResponse, LocateTrailer},
@@ -2945,9 +2958,9 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
         atlas.row_ids().iter().map(|&row| wire_of(row)).collect();
     let nodes = subgraph.delivered.len();
     let edges = subgraph.edges.len();
-    let no_labels: Vec<&Label> = vec![Label::empty(); nodes];
+    let no_labels: Vec<&Label> = vec![Label::EMPTY; nodes];
     let no_types: Vec<Option<super::TableIndex<VersionedUrl>>> = vec![None; nodes];
-    let no_link_labels: Vec<&Label> = vec![Label::empty(); edges];
+    let no_link_labels: Vec<&Label> = vec![Label::EMPTY; edges];
     let no_lists: Vec<Vec<super::TableIndex<VersionedUrl>>> = vec![Vec::new(); edges];
     let no_flags: Box<DenseBitSlice<EdgeSlot>> = DenseBitSlice::new_empty(edges);
     let no_maps: Vec<Option<&crate::salt::wire::locate::PropertyMap<'_>>> = vec![None; edges];
@@ -3006,7 +3019,7 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
 /// The unknown-entity doctrine treats unparsable, unknown, and wrong-domain ids identically.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_rejections_carry_their_names() {
+async fn locate_rejection_names() {
     let (_generation, atlas) = publish("locate-rejects").await;
     let limits = ServeLimits::default();
 
@@ -3052,7 +3065,7 @@ async fn locate_rejections_carry_their_names() {
 /// canonical order. `None` marks an unresolved entity, an empty list a resolved one without
 /// surviving entries.
 #[test]
-fn intern_tables_build_the_references() {
+fn intern_table_references() {
     use super::{
         TableIndex,
         hydrate::ScalarValue,
@@ -3158,7 +3171,7 @@ fn intern_tables_build_the_references() {
 /// `directTypes \u{2286} coloredTypeIds`, with `false` for a store-absent source, an unrecorded
 /// type list, and an empty palette.
 #[test]
-fn source_type_coverage_follows_the_subset_rule() {
+fn source_type_subset_rule() {
     use super::{colour::Palette, locate::covers_source_types};
 
     let url = |name: &str| -> VersionedUrl {
@@ -3225,7 +3238,7 @@ fn domain_mask<T: Id>(rows: usize, hidden: &[u32]) -> CompressedBitSet<T> {
 /// serving would read rather than a hand-assembled equivalent. Fixture node row `r` owns seed
 /// `r`, so withdrawing a row is withdrawing its seed.
 pub(crate) fn withdrawing(atlas: &Atlas, seeds: &[u8]) -> DeltaSnapshot {
-    let mut register = DeltaRegister::new(atlas.universe());
+    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
     for &seed in seeds {
         let event = EntityEvent::Ended(EntityEnd {
             entity: EntityId {

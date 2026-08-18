@@ -7,8 +7,12 @@ use core::panic::AssertUnwindSafe;
 
 use aide::transform::TransformOperation;
 use axum::{extract::State, http::StatusCode};
-use hashql_core::{collections::FastHashMap, id::IdVec};
+use hashql_core::{
+    collections::FastHashMap,
+    id::{IdSlice, IdVec},
+};
 use tokio::sync::oneshot;
+use type_system::ontology::id::VersionedUrl;
 
 use super::{
     AppState, clause,
@@ -18,12 +22,10 @@ use super::{
     visibility::{Visibility, view_problem},
 };
 use crate::{
-    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+    postgres::id::ArchivedOntologyTypeUuid,
     serve::{
         EdgesError, EdgesRequest,
-        hydrate::{
-            DetailError, EdgesHydration, EdgesOrder, EdgesStore, ResolveTypeUrls as _, TypeSlot,
-        },
+        hydrate::{DetailError, EdgesStore, TypeSlot, TypeUrlResolver as _},
     },
 };
 
@@ -54,10 +56,10 @@ When the server's edge cap truncates the set, the response keeps the edges whose
 
 Entities and links that arrive after the serving generation's fit can also appear. A post-fit link \
      is an ordinary edge row wherever both of its endpoints deliver, merged into the same \
-     identity order, and its label and representative type come from the request-time store read \
-     rather than the generation. An endpoint placed since the fit takes a session-scoped row id, \
-     and such ids die with the serving session that minted them, exactly as locate and translate \
-     describe.
+     identity order, and its label and representative type come from the display the server \
+     captured at the link's currently served edition rather than the generation. An endpoint \
+     placed since the fit takes a session-scoped row id, and such ids die with the serving \
+     session that minted them, exactly as locate and translate describe.
 
 Filtering binds at the manifest. This body has no `filter` field, and an unknown member is \
      rejected as `invalid-body`.
@@ -98,26 +100,24 @@ pub(super) async fn handler(
         })),
         async {
             // An order never arrives when the request skips the trailer, rejects, or panics first.
-            let Ok((types, delta)) = order_receiver.await else {
+            let Ok(types) = order_receiver.await else {
                 return;
             };
 
             let types = ArchivedOntologyTypeUuid::into_slice(types.as_raw());
 
-            let answer = tokio::try_join!(
-                async {
-                    let pairs = state.type_urls.resolve(types.iter().copied()).await?;
+            let answer = state
+                .type_urls
+                .resolve(types.iter().copied())
+                .await
+                .map(|pairs| {
                     let resolved: FastHashMap<_, _> = pairs.into_iter().collect();
-                    let urls: IdVec<_, _> = types
+
+                    types
                         .iter()
                         .map(|uuid| resolved.get(uuid).cloned())
-                        .collect();
-
-                    Ok(urls)
-                },
-                state.remote.link_display_hydration(&delta)
-            )
-            .map(|(fitted, delta)| EdgesHydration { fitted, delta });
+                        .collect()
+                });
 
             let _: Result<(), _> = answer_sender.send(answer);
         },
@@ -159,19 +159,19 @@ pub(super) async fn handler(
 
 /// The transport's edges store, carrying one order out to the handler and one answer back in.
 struct ChannelEdgesStore {
-    order: oneshot::Sender<(
-        IdVec<TypeSlot, ArchivedOntologyTypeUuid>,
-        Vec<ArchivedEntityId>,
-    )>,
-    answer: oneshot::Receiver<Result<EdgesHydration, DetailError>>,
+    order: oneshot::Sender<IdVec<TypeSlot, ArchivedOntologyTypeUuid>>,
+    answer: oneshot::Receiver<Result<IdVec<TypeSlot, Option<VersionedUrl>>, DetailError>>,
 }
 
 impl EdgesStore for ChannelEdgesStore {
-    fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError> {
-        // The channel is the one boundary that owns the identities, so the lists materialize
+    fn hydrate(
+        self,
+        types: &IdSlice<TypeSlot, ArchivedOntologyTypeUuid>,
+    ) -> Result<IdVec<TypeSlot, Option<VersionedUrl>>, DetailError> {
+        // The channel is the one boundary that owns the identities, so the list materializes
         // here and nowhere earlier.
         self.order
-            .send((order.fitted.iter().copied().collect(), order.delta.to_vec()))
+            .send(types.iter().copied().collect())
             .map_err(|_order| DetailError::Disconnected)?;
 
         self.answer

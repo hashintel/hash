@@ -15,8 +15,10 @@ use hashql_core::{
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
-    Atlas, grid,
-    hydrate::{DetailError, EdgeLinkDetails, EdgeSlot, EdgesOrder, EdgesStore, TypeSlot},
+    Atlas,
+    delta::PlacementCohort,
+    grid,
+    hydrate::{DetailError, EdgeLinkDetails, EdgeSlot, EdgesStore, TypeSlot},
     intern::{Table, TableIndex},
     neighbourhood::{DeliveredBounds, EdgeColumns, EdgeOrigin, EdgeSet},
     schedule::ViewRow,
@@ -24,7 +26,8 @@ use super::{
     walk::Walk,
 };
 use crate::{
-    postgres::id::ArchivedOntologyTypeUuid,
+    dataset::auxiliary::{Label, Legend},
+    postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     salt::wire::{
         edges::{EdgesResponse, EdgesTrailer},
         tile::TileCoordinate,
@@ -165,16 +168,73 @@ pub(crate) struct EdgesDocument {
     edges: EdgeColumns,
 }
 
+/// The in-process display lookup one detail request binds.
+///
+/// Cohort first, artifact second - the register's own precedence. The captured displays answer
+/// every published link and every fitted identity whose revision has captured, and a fitted
+/// link with no captured legend answers from the generation's baked legend. Either way a legend
+/// names its representative type as an ontology row, so the store's whole share of the trailer is
+/// resolving the distinct rows' uuids to their versioned URLs in one read.
+#[derive(Debug, Copy, Clone)]
+struct EdgeDisplays<'atlas> {
+    /// The opened generation, whose legends and identity tables answer the fitted arm.
+    atlas: &'atlas Atlas,
+    /// The entry's placement cohort, whose snapshot holds the captured legends.
+    cohort: PlacementCohort<'atlas>,
+}
+
+impl<'atlas> EdgeDisplays<'atlas> {
+    /// Returns the label and representative type uuid of the delivered link `id`.
+    ///
+    /// A link's uuid reads [`None`] when neither the generation's table nor the cohort's
+    /// extension names its representative row, and the trailer serves no reference for it.
+    ///
+    /// # Panics
+    ///
+    /// This panics on a delta link the cohort holds no captured legend for. Publication
+    /// withholds a link until its legend captures, and the delivered set admits links from the
+    /// cohort's own snapshot, so every delivered delta link resolves.
+    fn display(
+        &self,
+        id: ArchivedEntityId,
+        origin: EdgeOrigin,
+    ) -> (&'atlas Label, Option<ArchivedOntologyTypeUuid>) {
+        let legend = self.cohort.legend_of(id).unwrap_or_else(|| match origin {
+            EdgeOrigin::Fitted(edge) => self
+                .atlas
+                .edge_ids
+                .payload_of(edge)
+                .expect("open validated the identity rows against the adjacency's edges"),
+            EdgeOrigin::Delta => unreachable!(
+                "publication withholds a link until its legend captures, and the delivered set \
+                 admits links from the cohort's own snapshot"
+            ),
+        });
+
+        (legend.label(), self.representative_uuid(legend))
+    }
+
+    /// Returns the uuid of `legend`'s representative row, from the generation's table or the
+    /// cohort's extension.
+    fn representative_uuid(&self, legend: &Legend) -> Option<ArchivedOntologyTypeUuid> {
+        let row = legend.representative_ontology();
+        self.atlas
+            .ontology_ids
+            .id(row)
+            .or_else(|| self.cohort.ontology_id_of(row))
+    }
+}
+
 impl Atlas {
     /// Answers one edges request over its bound delivery view.
     ///
     /// `SALTILEE` envelope bytes carrying the edges whose endpoints both lie in the listed tiles'
     /// delivered rows, ready to send under `application/vnd.hash.saltile-v1`.
     ///
-    /// A request asking for the detail trailer resolves fitted labels and representative types
-    /// in process from the generation's own payloads, and `store` answers the one hydration
-    /// order such a request places: the required type uuids' versioned URLs and the delta links'
-    /// displays. A minimal request drops the capability unused.
+    /// A request asking for the detail trailer resolves every label and type uuid in process,
+    /// from the generation's own payloads and the cohort's captured displays, and `store`
+    /// answers the one hydration order such a request places: the distinct required type uuids'
+    /// versioned URLs. A minimal request drops the capability unused.
     ///
     /// # Errors
     ///
@@ -188,77 +248,36 @@ impl Atlas {
         store: impl EdgesStore,
     ) -> Result<Vec<u8>, EdgesError> {
         let document = self.assemble_edges(request, limits, &view)?;
-
-        // The hydration owns the delta displays the details borrow, so it lives beside the
-        // document until the encode consumes both.
-        let hydration;
         let details = match request.detail {
             EdgesDetail::Minimal => None,
             EdgesDetail::Auxiliary => {
-                // A fitted link's type reference is the generation's own representative, so
-                // only the distinct type uuids reach the store, in first-occurrence order. A
-                // delta link's whole display is a store read keyed by identity.
-                let mut delta = Vec::new();
+                let displays = EdgeDisplays {
+                    atlas: self,
+                    cohort: view.cohort(),
+                };
+
+                // Every delivered link's display resolves in process, so only the distinct
+                // representative type uuids reach the store, in first-occurrence order over
+                // the delivered slots.
+                let mut labels = IdVec::with_capacity(document.edges.count());
                 let mut required: IdVec<TypeSlot, ArchivedOntologyTypeUuid> = IdVec::new();
                 let mut slots: FastHashMap<ArchivedOntologyTypeUuid, TypeSlot> =
                     FastHashMap::default();
-                let mut fitted_slots: Vec<Option<TypeSlot>> = Vec::new();
+                let mut type_slots: IdVec<EdgeSlot, Option<TypeSlot>> =
+                    IdVec::with_capacity(document.edges.count());
                 for (slot, &origin) in document.edges.origins().iter_enumerated() {
-                    match origin {
-                        EdgeOrigin::Fitted(edge) => {
-                            let legend = self.edge_ids.payload_of(edge).expect(
-                                "open validated the identity rows against the adjacency's edges",
-                            );
-                            fitted_slots.push(
-                                self.ontology_ids.id(legend.representative_ontology()).map(
-                                    |uuid| {
-                                        *slots.entry(uuid).or_insert_with(|| required.push(uuid))
-                                    },
-                                ),
-                            );
-                        }
-                        EdgeOrigin::Delta => delta.push(document.edges.ids()[slot]),
-                    }
+                    let (label, uuid) = displays.display(document.edges.ids()[slot], origin);
+                    labels.push(label);
+                    type_slots.push(
+                        uuid.map(|uuid| *slots.entry(uuid).or_insert_with(|| required.push(uuid))),
+                    );
                 }
 
-                hydration = store
-                    .hydrate(EdgesOrder {
-                        fitted: &required,
-                        delta: &delta,
-                    })
-                    .map_err(EdgesError::Details)?;
+                let urls = store.hydrate(&required).map_err(EdgesError::Details)?;
 
-                let mut fitted_types = fitted_slots.iter().copied();
-                let mut displays = hydration.delta.iter();
-                let mut labels = IdVec::with_capacity(document.edges.count());
                 let mut representative_type_urls = IdVec::with_capacity(document.edges.count());
-                for &origin in document.edges.origins() {
-                    match origin {
-                        EdgeOrigin::Fitted(edge) => {
-                            labels.push(
-                                self.edge_ids
-                                    .payload_of(edge)
-                                    .expect(
-                                        "open validated the identity rows against the adjacency's \
-                                         edges",
-                                    )
-                                    .label(),
-                            );
-                            representative_type_urls.push(
-                                fitted_types
-                                    .next()
-                                    .expect("the fitted slots cover the fitted order")
-                                    .and_then(|slot| hydration.fitted[slot].clone()),
-                            );
-                        }
-                        EdgeOrigin::Delta => {
-                            let display = displays
-                                .next()
-                                .expect("the hydration covers the delta order");
-                            labels.push(&*display.label);
-                            representative_type_urls.push(display.representative_type.clone());
-                        }
-                    }
+                for &slot in &type_slots {
+                    representative_type_urls.push(slot.and_then(|slot| urls[slot].clone()));
                 }
 
                 Some(EdgeLinkDetails::new(labels, representative_type_urls))

@@ -28,13 +28,13 @@
 //! degrades arrival freshness and nothing else while publication proceeds and the watermark
 //! advances.
 //!
-//! An arrival's *placement* ([`FrozenPlacement`]) is the wire coordinate the staging arm projects
-//! for it through the generation's own publish path. The register keeps the first placement per
-//! identity and never replaces it. The coordinate freezes at first successful placement, and a
-//! later edition moves it nowhere. The refit recalibrates placements exactly as it recalibrates
-//! fitted rows, whose coordinates are also fit-time content and often editions old. A placement
-//! recorded while the identity stands withdrawn serves nothing, and an unarchive republishes the
-//! frozen coordinate at its next publication.
+//! An arrival's *placement* ([`ProjectedArrival`]) is the wire coordinate the staging arm
+//! projects for it through the generation's own publish path. The register keeps the first
+//! placement per identity and never replaces it: a later edition moves the coordinate nowhere.
+//! The refit recalibrates placements exactly as it recalibrates fitted rows, whose coordinates
+//! are also fit-time content and often editions old. A placement recorded while the identity
+//! stands withdrawn serves nothing, and an unarchive republishes the recorded coordinate at its
+//! next publication.
 //!
 //! An arrival's *slot* is the row id its first placement takes: the next id past the accepted
 //! [`Universe`], assigned in placement order. The register never reassigns or reuses a slot,
@@ -63,9 +63,9 @@
 //! - Live and fitted: nothing resolves. The generation already publishes the entity, and the
 //!   register entry exists to outrank older events and to clear a former tombstone.
 //! - Live and unfitted: an arrival, resolved through its held classification. A node without a
-//!   placement stages with its edition, a placed node publishes its frozen wire coordinate under
-//!   its newest edition, and a complete link publishes with its endpoint identities. An arrival
-//!   holding no verdict, and a link missing an endpoint, publish nowhere.
+//!   placement stages with its edition, a node with one publishes its recorded wire coordinate
+//!   under its newest edition, and a complete link publishes with its endpoint identities. An
+//!   arrival holding no verdict, and a link missing an endpoint, publish nowhere.
 //!
 //! # Determinism
 //!
@@ -98,22 +98,27 @@ use core::{
 use arc_swap::{ArcSwapOption, Guard};
 use hash_graph_postgres_store::store::EntityEvent;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-use hashql_core::{
-    collections::{FastHashMap, FastHashMapEntry, FastHashSet, fast_hash_map, fast_hash_set},
-    id::Id as _,
+use hashql_core::collections::{
+    FastHashMap, FastHashMapEntry, FastHashSet, fast_hash_map, fast_hash_set,
 };
 use rand::TryCryptoRng;
 use type_system::knowledge::entity::id::EntityEditionId;
 
+use self::overlay::IdentityTableOverlay;
 use super::codec::Universe;
 use crate::{
     bitset::CompressedBitSet,
-    identity::{EdgeRowId, NodeRowId},
+    dataset::auxiliary::{Label, Legend, OwnedLabel, OwnedLegend},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::Vec2,
-    postgres::{Classification, EditionDisplay, id::ArchivedEntityId},
+    postgres::{
+        Classification,
+        id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+    },
 };
 
 pub(crate) mod consumer;
+pub(crate) mod overlay;
 mod placement;
 pub(crate) mod staging;
 
@@ -195,32 +200,32 @@ impl From<&EntityEvent> for DeltaEvent {
 
 /// The newest applied event's version and standing, for one identity.
 #[derive(Debug, Copy, Clone)]
-struct Register {
+struct AppliedEvent {
     /// The applied event's transaction time.
     version: Timestamp<TransactionTime>,
     /// The applied event's standing.
     standing: Standing,
 }
 
-impl Register {
-    /// Returns whether this register replaces `held` under the fold.
+impl AppliedEvent {
+    /// Returns whether this event replaces `incumbent` under the fold.
     ///
     /// The comparison is the fold's total order: version, then standing rank, then edition between
-    /// two live standings. A register never supersedes an equal one, which is what makes
+    /// two live standings. An event never supersedes an equal one, which is what makes
     /// re-delivery idempotent.
-    fn supersedes(&self, held: &Self) -> bool {
-        match self.version.cmp(&held.version) {
+    fn supersedes(&self, incumbent: &Self) -> bool {
+        match self.version.cmp(&incumbent.version) {
             Ordering::Greater => true,
             Ordering::Less => false,
-            Ordering::Equal => match (self.standing, held.standing) {
+            Ordering::Equal => match (self.standing, incumbent.standing) {
                 (Standing::Withdrawn, Standing::Live { .. }) => true,
                 (Standing::Withdrawn | Standing::Live { .. }, Standing::Withdrawn) => false,
                 (
                     Standing::Live { edition },
                     Standing::Live {
-                        edition: held_edition,
+                        edition: incumbent_edition,
                     },
-                ) => edition > held_edition,
+                ) => edition > incumbent_edition,
             },
         }
     }
@@ -290,63 +295,81 @@ pub(crate) trait IdentityTables {
 
     /// Returns the edge row carrying `id`, or [`None`] when the generation fitted none.
     fn edge_row_of(&self, id: ArchivedEntityId) -> Option<EdgeRowId>;
+
+    /// Returns the ontology row carrying `id`, or [`None`] when the generation tabulated none.
+    fn ontology_row_of(&self, id: ArchivedOntologyTypeUuid) -> Option<OntologyRowId>;
 }
 
-/// One arrival's frozen placement, recorded at its first successful projection.
+/// One arrival's projection, recorded at its first success and awaiting its row.
 ///
 /// The coordinate is in the wire frame, the domain every served response speaks. The edition is
 /// the one whose stored embedding produced the coordinate, which a later edition never moves, so
-/// the pair records exactly what the projection read. The display payload travels beside the
-/// coordinate, captured from the same edition's cached row, and shares the coordinate's
-/// staleness class: a later edition moves neither, and the refit repairs both.
+/// the pair records exactly what the projection read. The display parts travel beside the
+/// coordinate, read from the same edition's cached row, and share the coordinate's staleness
+/// class: a later edition moves neither, and the refit repairs both. The representative type
+/// stays a store uuid here, because the register resolves it into its ontology row at placement,
+/// where the row fact is established.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct FrozenPlacement {
+pub(crate) struct ProjectedArrival {
     /// The edition whose embedding the projection read.
     pub edition: EntityEditionId,
     /// The projected coordinate, normalized into the wire frame.
-    pub wire: Vec2,
-    /// The display payload captured beside the coordinate.
-    pub display: EditionDisplay,
+    pub position: Vec2,
+    /// The display label read beside the coordinate.
+    pub label: OwnedLabel,
+    /// The representative type read beside the coordinate.
+    pub representative: ArchivedOntologyTypeUuid,
 }
 
-/// A placed arrival, published for serving.
+/// A placed arrival as publication serves it, carrying its row, coordinate, and legend.
 ///
-/// The coordinate is the identity's frozen placement. The edition is the newest the feed
-/// observed, the key detail reads resolve through, exactly as the staged projection carries it.
-/// The slot is the row id the identity's first placement took, fixed for the register's
-/// lifetime. The display payload is the placement's capture, frozen with the coordinate.
+/// The coordinate is the identity's first successful projection, which a later edition never
+/// moves. The edition is the newest the feed observed, the key detail reads resolve through.
+/// The row is the one the identity's first placement allocated, fixed for the register's
+/// lifetime. The legend is the placement's capture, sharing the coordinate's staleness class.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct PlacedArrival {
+pub(crate) struct DeltaNode {
+    /// The arrival's row id in the extended universe.
+    pub id: NodeRowId,
     /// The arrival's newest feed edition.
     pub edition: EntityEditionId,
     /// The frozen coordinate, normalized into the wire frame.
-    pub wire: Vec2,
-    /// The arrival's row id in the extended universe.
-    pub slot: NodeRowId,
+    pub position: Vec2,
     /// The display payload captured at placement.
-    pub display: EditionDisplay,
+    pub legend: OwnedLegend,
 }
 
-/// One identity's frozen placement and the slot its first placement took.
-#[derive(Debug, Clone)]
-struct HeldPlacement {
-    /// The row id the first placement allocated, never reassigned.
-    slot: NodeRowId,
-    /// The frozen projection.
-    frozen: FrozenPlacement,
+impl DeltaNode {
+    fn with_edition(self, edition: EntityEditionId) -> Self {
+        Self { edition, ..self }
+    }
 }
 
-/// A refusal to allocate the slot that would grow the accepted universe past the wire's `u32`
-/// row domain.
+/// One identity's captured legend, keyed to the edition the capture read.
 ///
-/// The refusal fails closed. The placement records nothing, the arrival stays staged, and every
-/// later first placement refuses the same way until a refit retires the register.
+/// The edition decides staleness. A register edition past the captured one lists the identity
+/// for a fresh capture at the next poll, and the newest capture serves meanwhile, exactly as a
+/// placement's coordinate serves until refit.
+#[derive(Debug, Clone)]
+struct EditionLegend {
+    /// The edition the capture read.
+    edition: EntityEditionId,
+    /// The legend the read answered.
+    legend: OwnedLegend,
+}
+
+/// A refusal to allocate a row past the domain its holder can carry.
+///
+/// For node rows the bound is the wire codec's `u32` row domain, enforced at the register's
+/// allocation site. For every row domain the id type's own end bounds allocation last. The
+/// refusal fails closed. The allocation records nothing and the arrival stays staged. Every
+/// later first allocation refuses the same way until a refit retires the register.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct UniverseExhausted;
 
 impl fmt::Display for UniverseExhausted {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("the accepted universe is at the wire's u32 row domain")
+        fmt.write_str("the accepted universe is at its row domain's bound")
     }
 }
 
@@ -358,7 +381,7 @@ impl core::error::Error for UniverseExhausted {}
 /// entities the generation never fitted. The edition is the link's newest feed edition, the key
 /// its detail reads resolve through.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct DeltaLink {
+pub(crate) struct DeltaEdge {
     /// The link's newest feed edition.
     pub edition: EntityEditionId,
     /// The left attachment's endpoint.
@@ -376,30 +399,35 @@ pub(crate) struct DeltaLink {
 /// rather than consulting a map per candidate. The staged identities are the node-classified
 /// arrivals, keyed to the edition the feed last observed, and the links are the link-classified
 /// arrivals with complete attachment pairs. An unclassified arrival joins neither, so it serves
-/// nothing until a verdict arrives. The placed identities carry their frozen wire coordinates and
-/// slots, ready to serve wherever the caller's cohort admits them.
+/// nothing until a verdict arrives. The published nodes carry their recorded wire coordinates
+/// and rows, ready to serve wherever the caller's cohort admits them.
 #[derive(Debug, PartialEq)]
 pub(crate) struct DeltaSnapshot {
     /// This publication's position in publication order.
     revision: DeltaRevision,
     /// The feed position the register had folded through at publication.
     watermark: Timestamp<TransactionTime>,
-    /// The accepted row universe at publication: fitted rows and every allocated slot.
-    universe: Universe,
     /// Every withdrawn identity, fitted or not.
     withdrawn: FastHashSet<ArchivedEntityId>,
     /// The withdrawn identities' node rows in the serving generation.
-    nodes: CompressedBitSet<NodeRowId>,
+    withdrawn_nodes: CompressedBitSet<NodeRowId>,
     /// The withdrawn identities' edge rows in the serving generation.
-    edges: CompressedBitSet<EdgeRowId>,
+    withdrawn_edges: CompressedBitSet<EdgeRowId>,
     /// The node-classified arrivals awaiting placement, keyed to their newest feed edition.
     staged: FastHashMap<ArchivedEntityId, EntityEditionId>,
-    /// The placed arrivals, carrying their frozen wire coordinates.
-    placed: FastHashMap<ArchivedEntityId, PlacedArrival>,
-    /// The placed arrivals' identities by slot: the wire-ingress reverse index.
-    slots: FastHashMap<NodeRowId, ArchivedEntityId>,
+    /// The published nodes, carrying their recorded wire coordinates.
+    nodes: FastHashMap<ArchivedEntityId, DeltaNode>,
     /// The link-classified arrivals with complete attachment pairs.
-    links: FastHashMap<ArchivedEntityId, DeltaLink>,
+    edges: FastHashMap<ArchivedEntityId, DeltaEdge>,
+    /// One captured legend per published link and per live fitted identity whose capture read
+    /// has answered. A revised fitted identity with no capture stays absent here and answers
+    /// from the fit-time payload.
+    legends: FastHashMap<ArchivedEntityId, OwnedLegend>,
+    /// Every allocated node row beside the accepted universe, as this publication froze them.
+    node_rows: IdentityTableOverlay<ArchivedEntityId, NodeRowId>,
+    /// The ontology rows allocated for types the generation never tabulated, as this
+    /// publication froze them.
+    ontology_rows: IdentityTableOverlay<ArchivedOntologyTypeUuid, OntologyRowId>,
 }
 
 impl DeltaSnapshot {
@@ -417,18 +445,30 @@ impl DeltaSnapshot {
 
     /// Returns the accepted row universe at publication.
     ///
-    /// The bound covers every allocated slot whatever its holder's standing, so a wire id a
+    /// The bound covers every allocated row whatever its holder's standing, so a wire id a
     /// retained proof admitted keeps decoding to the same row. A request takes this one value at
     /// every encode and decode in its answer.
     #[must_use]
-    pub(crate) const fn universe(&self) -> Universe {
-        self.universe
+    pub(crate) const fn universe(&self) -> Universe<NodeRowId> {
+        self.node_rows.universe()
     }
 
     /// Returns whether the snapshot withdraws the entity `id` names, fitted or not.
     #[must_use]
     pub(crate) fn withdraws(&self, id: ArchivedEntityId) -> bool {
         self.withdrawn.contains(&id)
+    }
+
+    /// Returns the captured current legend of the entity `id` names.
+    ///
+    /// Map first, artifact second: a holder consults this before the generation's baked legend,
+    /// so a revised fitted identity answers with its most recently captured legend - the current
+    /// edition's once its capture read answers - and a fitted identity with no capture answers
+    /// from the fit-time payload. Every published link answers here, because publication
+    /// withholds a link until its legend captures.
+    #[must_use]
+    pub(crate) fn legend_of(&self, id: ArchivedEntityId) -> Option<&Legend> {
+        self.legends.get(&id).map(AsRef::as_ref)
     }
 
     /// Returns whether the snapshot withdraws any identity at all, fitted or not.
@@ -446,19 +486,19 @@ impl DeltaSnapshot {
     /// node rows costs a tile request nothing beyond this question.
     #[must_use]
     pub(crate) fn withdraws_any_node(&self) -> bool {
-        !self.nodes.is_empty()
+        !self.withdrawn_nodes.is_empty()
     }
 
     /// Returns whether the snapshot withdraws the node in `row`.
     #[must_use]
     pub(crate) fn withdraws_node(&self, row: NodeRowId) -> bool {
-        self.nodes.contains(row)
+        self.withdrawn_nodes.contains(row)
     }
 
     /// Returns whether the snapshot withdraws the edge in `row`.
     #[must_use]
     pub(crate) fn withdraws_edge(&self, row: EdgeRowId) -> bool {
-        self.edges.contains(row)
+        self.withdrawn_edges.contains(row)
     }
 
     /// Iterates the withdrawn node rows, the fitted withdrawals in the node domain.
@@ -466,7 +506,7 @@ impl DeltaSnapshot {
     /// The edges route subtracts these from its bounding set, which is what tiles rendered, so
     /// the two routes keep answering from one delivered world.
     pub(crate) fn withdrawn_node_rows(&self) -> impl Iterator<Item = NodeRowId> + '_ {
-        self.nodes.iter()
+        self.withdrawn_nodes.iter()
     }
 
     /// Iterates the withdrawn edge rows, the fitted withdrawals in the edge domain.
@@ -475,7 +515,7 @@ impl DeltaSnapshot {
     /// [`Self::withdrawn_node_rows`] feeds the node mask, so the folded proof and the admission
     /// checks answer from one withdrawn set.
     pub(crate) fn withdrawn_edge_rows(&self) -> impl Iterator<Item = EdgeRowId> + '_ {
-        self.edges.iter()
+        self.withdrawn_edges.iter()
     }
 
     /// Returns the staged edition of the arrival `id` names, or [`None`] for an identity with no
@@ -491,42 +531,49 @@ impl DeltaSnapshot {
         &self.staged
     }
 
-    /// Returns the published link `id` names, or [`None`] for an identity with no published link.
+    /// Returns the published edge `id` names, or [`None`] for an identity with no published edge.
     #[must_use]
-    pub(crate) fn link(&self, id: ArchivedEntityId) -> Option<DeltaLink> {
-        self.links.get(&id).copied()
+    pub(crate) fn edge(&self, id: ArchivedEntityId) -> Option<DeltaEdge> {
+        self.edges.get(&id).copied()
     }
 
-    /// Returns the placed arrival `id` names, or [`None`] for an identity with no placed arrival.
+    /// Returns the published node `id` names, or [`None`] for an identity with no published node.
     #[must_use]
-    pub(crate) fn placed(&self, id: ArchivedEntityId) -> Option<PlacedArrival> {
-        self.placed.get(&id).cloned()
+    pub(crate) fn node(&self, id: ArchivedEntityId) -> Option<&DeltaNode> {
+        self.nodes.get(&id)
     }
 
-    /// Returns the placed arrival holding `slot`, or [`None`] for a slot this publication does
-    /// not serve.
+    /// Returns the published node holding `row`, or [`None`] for a row this publication does not
+    /// serve.
     ///
-    /// [`Self::placed`] reversed: wire-domain ingress decodes to a slot and resolves the identity
-    /// serving it here. Publication writes the slot index and the placed map together, so a held
-    /// slot always resolves its arrival.
+    /// [`Self::node`] reversed: wire-domain ingress decodes to an allocated row and resolves the
+    /// identity serving it here. The extension answers every allocated row, and the node map
+    /// filters it to the published holders, so a dormant holder's row resolves to [`None`].
     #[must_use]
-    pub(crate) fn placed_at(&self, slot: NodeRowId) -> Option<(ArchivedEntityId, &PlacedArrival)> {
-        let &identity = self.slots.get(&slot)?;
-        let arrival = self.placed.get(&identity)?;
+    pub(crate) fn node_at(&self, row: NodeRowId) -> Option<(ArchivedEntityId, &DeltaNode)> {
+        let identity = self.node_rows.id_of(row)?;
+        let node = self.nodes.get(&identity)?;
 
-        Some((identity, arrival))
+        Some((identity, node))
     }
 
-    /// Returns every placed arrival, carrying its frozen wire coordinate.
+    /// Returns every published node, carrying its recorded wire coordinate.
     #[must_use]
-    pub(crate) const fn placed_arrivals(&self) -> &FastHashMap<ArchivedEntityId, PlacedArrival> {
-        &self.placed
+    pub(crate) const fn nodes(&self) -> &FastHashMap<ArchivedEntityId, DeltaNode> {
+        &self.nodes
     }
 
-    /// Returns every published link, carrying its endpoint identities.
+    /// Returns every published edge, carrying its endpoint identities.
     #[must_use]
-    pub(crate) const fn links(&self) -> &FastHashMap<ArchivedEntityId, DeltaLink> {
-        &self.links
+    pub(crate) const fn edges(&self) -> &FastHashMap<ArchivedEntityId, DeltaEdge> {
+        &self.edges
+    }
+
+    /// Returns the identity of the allocated ontology row `row`, or [`None`] below the baked
+    /// bound, whose rows the generation's own table answers.
+    #[must_use]
+    pub(crate) fn ontology_id_of(&self, row: OntologyRowId) -> Option<ArchivedOntologyTypeUuid> {
+        self.ontology_rows.id_of(row)
     }
 }
 
@@ -559,59 +606,72 @@ impl<'scope> PlacementCohort<'scope> {
         Self { snapshot }
     }
 
-    /// Returns the placed arrival `id` names in this cohort, [`None`] for every other identity.
+    /// Returns the captured current legend of the entity `id` names, [`None`] for a cohort
+    /// that read no publication.
+    ///
+    /// The read is [`DeltaSnapshot::legend_of`]'s, out of the one snapshot the entry's whole
+    /// resolution bound. A published link answers here, and a fitted identity answers with its
+    /// captured legend once its capture read has answered. A fitted identity holding no capture
+    /// answers [`None`], and the holder serves the generation's baked legend.
+    pub(crate) fn legend_of(self, id: ArchivedEntityId) -> Option<&'scope Legend> {
+        self.snapshot?.legend_of(id)
+    }
+
+    /// Returns the published node `id` names in this cohort, [`None`] for every other identity.
     ///
     /// An identity placed after the cohort's snapshot published answers [`None`], so a caller
     /// meets it at its next resolution rather than mid-window.
     #[must_use]
-    pub(crate) fn placed(self, id: ArchivedEntityId) -> Option<PlacedArrival> {
-        self.snapshot?.placed(id)
+    pub(crate) fn node(self, id: ArchivedEntityId) -> Option<&'scope DeltaNode> {
+        self.snapshot?.node(id)
     }
 
-    /// Returns the placed arrival holding `slot` in this cohort, [`None`] for every other slot.
+    /// Returns the published node holding `row` in this cohort, [`None`] for every other row.
     ///
-    /// The wire-ingress counterpart of [`Self::placed`]: a decoded row at or past the
-    /// generation's fitted bound names a cohort slot, and this answers the identity serving it.
+    /// The wire-ingress counterpart of [`Self::node`]: a decoded row at or past the generation's
+    /// fitted bound names an allocated row, and this answers the identity serving it.
     #[must_use]
-    pub(crate) fn placed_at(
-        self,
-        slot: NodeRowId,
-    ) -> Option<(ArchivedEntityId, &'scope PlacedArrival)> {
-        self.snapshot?.placed_at(slot)
+    pub(crate) fn node_at(self, row: NodeRowId) -> Option<(ArchivedEntityId, &'scope DeltaNode)> {
+        self.snapshot?.node_at(row)
     }
 
-    /// Iterates the cohort's placed arrivals, empty for the empty cohort.
+    /// Iterates the cohort's published nodes, empty for the empty cohort.
     ///
     /// Iteration order is the map's own. A consumer whose output must be deterministic orders
-    /// the arrivals itself, by identity.
-    pub(crate) fn placed_arrivals(
-        self,
-    ) -> impl Iterator<Item = (ArchivedEntityId, &'scope PlacedArrival)> {
-        self.snapshot.into_iter().flat_map(|snapshot| {
-            snapshot
-                .placed_arrivals()
-                .iter()
-                .map(|(&id, arrival)| (id, arrival))
-        })
-    }
-
-    /// Returns the published link `id` names in this cohort, [`None`] for every other identity.
-    ///
-    /// A link published after the cohort's snapshot answers [`None`], so a caller meets it at
-    /// its next resolution rather than mid-window.
-    #[must_use]
-    pub(crate) fn link(self, id: ArchivedEntityId) -> Option<DeltaLink> {
-        self.snapshot?.link(id)
-    }
-
-    /// Iterates the cohort's published links, empty for the empty cohort.
-    ///
-    /// Iteration order is the map's own. A consumer whose output must be deterministic orders
-    /// the links itself, by identity.
-    pub(crate) fn links(self) -> impl Iterator<Item = (ArchivedEntityId, DeltaLink)> {
+    /// the nodes itself, by identity.
+    pub(crate) fn nodes(self) -> impl Iterator<Item = (ArchivedEntityId, &'scope DeltaNode)> {
         self.snapshot
             .into_iter()
-            .flat_map(|snapshot| snapshot.links().iter().map(|(&id, &link)| (id, link)))
+            .flat_map(|snapshot| snapshot.nodes().iter().map(|(&id, node)| (id, node)))
+    }
+
+    /// Returns the published edge `id` names in this cohort, [`None`] for every other identity.
+    ///
+    /// An edge published after the cohort's snapshot answers [`None`], so a caller meets it at
+    /// its next resolution rather than mid-window.
+    #[must_use]
+    pub(crate) fn edge(self, id: ArchivedEntityId) -> Option<DeltaEdge> {
+        self.snapshot?.edge(id)
+    }
+
+    /// Iterates the cohort's published edges, empty for the empty cohort.
+    ///
+    /// Iteration order is the map's own. A consumer whose output must be deterministic orders
+    /// the edges itself, by identity.
+    pub(crate) fn edges(self) -> impl Iterator<Item = (ArchivedEntityId, DeltaEdge)> {
+        self.snapshot
+            .into_iter()
+            .flat_map(|snapshot| snapshot.edges().iter().map(|(&id, &edge)| (id, edge)))
+    }
+
+    /// Returns the identity of the allocated ontology row `row`, [`None`] below the baked bound
+    /// or for a cohort that read no publication.
+    ///
+    /// Rows below the bound answer from the generation's own table, so a caller resolving a
+    /// representative row consults the table first and this second.
+    #[must_use]
+    pub(crate) fn ontology_id_of(self, row: OntologyRowId) -> Option<ArchivedOntologyTypeUuid> {
+        self.snapshot?.ontology_id_of(row)
     }
 
     /// Returns the accepted row universe reads under this cohort take, `base` for an empty one.
@@ -619,7 +679,7 @@ impl<'scope> PlacementCohort<'scope> {
     /// The bound is the snapshot's own. Every slot the cohort can name lies inside it, and a
     /// slot allocated after the snapshot published refuses at decode.
     #[must_use]
-    pub(crate) const fn universe(self, base: Universe) -> Universe {
+    pub(crate) const fn universe(self, base: Universe<NodeRowId>) -> Universe<NodeRowId> {
         match self.snapshot {
             Some(snapshot) => snapshot.universe(),
             None => base,
@@ -658,7 +718,9 @@ impl BitOr for Disposition {
     ///
     /// [`Disposition::Resolving`] absorbs, [`Disposition::AlreadyHeld`] is the neutral element,
     /// and [`Disposition::Dormant`] sits between, so a fold over a batch answers whether any
-    /// delivery resolved while still recording that a new holding exists.
+    /// delivery resolved while still recording that a new holding exists. The joined value's
+    /// consumed meaning is [`Disposition::changes_resolution`] alone; the Dormant-over-held
+    /// preference keeps the new-holding fact in the value, which no consumer reads yet.
     fn bitor(self, rhs: Self) -> Self {
         match (self, rhs) {
             (Self::Resolving, _) | (_, Self::Resolving) => Self::Resolving,
@@ -676,35 +738,39 @@ impl BitOrAssign for Disposition {
 
 /// The mutable fold of the feed since the generation's fit-time snapshot.
 ///
-/// One [`Register`] per identity, last-writer-wins on the event's transaction time. The map grows
-/// with the distinct identities the feed has reported, and a refit retires it along with the
-/// generation whose delta it states.
+/// One [`AppliedEvent`] per identity, last-writer-wins on the event's transaction time. The map
+/// grows with the distinct identities the feed has reported, and a refit retires it along with
+/// the generation whose delta it states.
 #[derive(Debug)]
 pub(crate) struct DeltaRegister {
     /// The newest applied event per identity.
-    registers: FastHashMap<ArchivedEntityId, Register>,
+    applied: FastHashMap<ArchivedEntityId, AppliedEvent>,
     /// The held classification verdict per identity, insert-only.
     classifications: FastHashMap<ArchivedEntityId, Classification>,
-    /// The frozen placement and its slot per identity, insert-only.
-    placements: FastHashMap<ArchivedEntityId, HeldPlacement>,
-    /// The accepted row universe, covering the generation's fitted rows and every allocated slot.
-    ///
-    /// The next slot is the current bound, so an allocation grows the bound by one and the value
-    /// stays exact without a second counter.
-    universe: Universe,
+    /// The published node payload per placed identity, insert-only.
+    placements: FastHashMap<ArchivedEntityId, DeltaNode>,
+    /// The captured legend per identity, replaced when a newer edition's capture lands.
+    legends: FastHashMap<ArchivedEntityId, EditionLegend>,
+    /// Every allocated node row beside the accepted universe the allocations grew.
+    node_rows: IdentityTableOverlay<ArchivedEntityId, NodeRowId>,
+    /// The ontology rows allocated for types the generation never tabulated.
+    ontology_rows: IdentityTableOverlay<ArchivedOntologyTypeUuid, OntologyRowId>,
 }
 
 impl DeltaRegister {
-    /// Builds an empty register over a generation whose accepted universe is `universe`.
+    /// Builds an empty register over a generation whose row universes are `nodes` and `ontology`.
     ///
-    /// Slot allocation starts at the bound, so the first placement takes the first row id past
-    /// the generation's fitted rows.
-    pub(crate) fn new(universe: Universe) -> Self {
+    /// Row allocation starts at each bound, so the first placement takes the first node row past
+    /// the generation's fitted rows, and the first unknown type takes the first ontology row past
+    /// the generation's tabulated types.
+    pub(crate) fn new(nodes: Universe<NodeRowId>, ontology: Universe<OntologyRowId>) -> Self {
         Self {
-            registers: fast_hash_map(),
+            applied: fast_hash_map(),
             classifications: fast_hash_map(),
             placements: fast_hash_map(),
-            universe,
+            legends: fast_hash_map(),
+            node_rows: IdentityTableOverlay::new(nodes),
+            ontology_rows: IdentityTableOverlay::new(ontology),
         }
     }
 
@@ -728,21 +794,21 @@ impl DeltaRegister {
             standing,
         }: DeltaEvent,
     ) -> bool {
-        let challenger = Register { version, standing };
+        let challenger = AppliedEvent { version, standing };
 
-        match self.registers.entry(entity) {
+        match self.applied.entry(entity) {
             FastHashMapEntry::Vacant(slot) => {
                 slot.insert(challenger);
                 true
             }
             FastHashMapEntry::Occupied(mut slot) => {
-                let held = *slot.get();
-                if !challenger.supersedes(&held) {
+                let incumbent = *slot.get();
+                if !challenger.supersedes(&incumbent) {
                     return false;
                 }
 
                 slot.insert(challenger);
-                held.standing != standing
+                incumbent.standing != standing
             }
         }
     }
@@ -757,10 +823,10 @@ impl DeltaRegister {
         &self,
         tables: &impl IdentityTables,
     ) -> impl Iterator<Item = ArchivedEntityId> {
-        self.registers
+        self.applied
             .iter()
-            .filter(|&(entity, register)| {
-                matches!(register.standing, Standing::Live { .. })
+            .filter(|&(entity, applied)| {
+                matches!(applied.standing, Standing::Live { .. })
                     && !self.classifications.contains_key(entity)
                     && tables.node_row_of(*entity).is_none()
                     && tables.edge_row_of(*entity).is_none()
@@ -784,8 +850,8 @@ impl DeltaRegister {
             FastHashMapEntry::Vacant(slot) => {
                 slot.insert(verdict);
                 if matches!(
-                    self.registers.get(&entity),
-                    Some(Register {
+                    self.applied.get(&entity),
+                    Some(AppliedEvent {
                         standing: Standing::Live { .. },
                         ..
                     })
@@ -799,72 +865,182 @@ impl DeltaRegister {
         }
     }
 
-    /// Holds one frozen placement, returning the register's disposition of it.
+    /// Lists the identities whose current edition no captured legend matches, each with the
+    /// edition to read.
     ///
-    /// The first placement per identity takes the next slot past the accepted universe and holds
-    /// for the process's lifetime. A later placement for the same identity changes nothing,
-    /// because the coordinate froze and the slot never moves, so re-delivery of a placement is
-    /// idempotent and comes back [`Disposition::AlreadyHeld`]. A placement for an identity
-    /// standing withdrawn records all the same, so an unarchive republishes the frozen
-    /// coordinate on its former slot. A newly held placement is [`Disposition::Resolving`]
-    /// exactly when the identity stands live, because only a live arrival resolves through its
-    /// placement at publication, and [`Disposition::Dormant`] otherwise.
+    /// An identity lists when its legend capture is stale or absent and serving consults it or
+    /// will. Fitted identities list, since a post-fit edition revises the baked legend, and so
+    /// does a link-classified arrival with a complete attachment pair, since publication
+    /// withholds an uncaptured link. A fitted node's capture has no serving reader yet - the
+    /// edges trailer asks only for links - and exists for the tile and locate label overlay that
+    /// will read request-time legends through the register, so narrowing the listing to links
+    /// would leave that overlay nothing to read. Node-classified arrivals never list, because
+    /// staging reads their displays before placement, and neither does a withdrawn identity,
+    /// which serves nothing.
+    pub(crate) fn pending_captures(
+        &self,
+        tables: &impl IdentityTables,
+    ) -> impl Iterator<Item = (ArchivedEntityId, EntityEditionId)> {
+        self.applied.iter().filter_map(move |(&entity, applied)| {
+            let Standing::Live { edition } = applied.standing else {
+                return None;
+            };
+            if let Some(captured) = self.legends.get(&entity)
+                && captured.edition == edition
+            {
+                return None;
+            }
+
+            let fitted =
+                tables.node_row_of(entity).is_some() || tables.edge_row_of(entity).is_some();
+            let serving_link = matches!(
+                self.classifications.get(&entity),
+                Some(Classification::Edge {
+                    source: Some(_),
+                    target: Some(_),
+                })
+            );
+
+            (fitted || serving_link).then_some((entity, edition))
+        })
+    }
+
+    /// Holds one captured legend, keyed to the edition its read answered.
+    ///
+    /// The newest capture replaces the held one, because a capture for an edition the register
+    /// has moved past lists the identity again at the next poll, and the held legend serves
+    /// meanwhile. The representative type resolves into its ontology row here: the generation's
+    /// table answers a tabulated type, and the register's own extension answers or allocates for
+    /// one the generation never saw.
     ///
     /// # Errors
     ///
-    /// Returns [`UniverseExhausted`] when one more slot would grow the accepted universe past the
-    /// wire's `u32` row domain. The placement records nothing and the arrival stays staged.
+    /// Returns [`UniverseExhausted`] when the ontology row domain has no next row to allocate.
+    /// The capture records nothing and the identity lists again at the next poll.
+    pub(crate) fn capture_display(
+        &mut self,
+        entity: ArchivedEntityId,
+        edition: EntityEditionId,
+        label: &Label,
+        representative: ArchivedOntologyTypeUuid,
+        tables: &impl IdentityTables,
+    ) -> Result<(), UniverseExhausted> {
+        let representative = tables
+            .ontology_row_of(representative)
+            .or_else(|| self.ontology_rows.resolve(representative))
+            .ok_or(UniverseExhausted)?;
+
+        self.legends.insert(
+            entity,
+            EditionLegend {
+                edition,
+                legend: OwnedLegend::new(representative, label),
+            },
+        );
+        Ok(())
+    }
+
+    /// Holds one placement, returning the register's disposition of it.
+    ///
+    /// The first placement per identity takes the next row past the accepted universe and holds
+    /// for the process's lifetime. A later placement for the same identity changes nothing,
+    /// because the coordinate and the row never move, so re-delivery of a placement is
+    /// idempotent and comes back [`Disposition::AlreadyHeld`]. A placement for an identity
+    /// standing withdrawn records all the same, so an unarchive republishes the recorded
+    /// coordinate on its former row. A newly held placement is [`Disposition::Resolving`]
+    /// exactly when the identity stands live, because only a live arrival resolves through its
+    /// placement at publication, and [`Disposition::Dormant`] otherwise.
+    ///
+    /// The arrival's representative type resolves into its ontology row here, exactly as
+    /// [`Self::capture_display`] resolves one, so the published node's legend speaks the row
+    /// domain every fitted legend speaks.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`UniverseExhausted`] when one more node row would grow the accepted universe past
+    /// the wire codec's `u32` row domain, or when the ontology row domain has no next row to
+    /// allocate. The placement records nothing and the arrival stays staged.
     pub(crate) fn place(
         &mut self,
         entity: ArchivedEntityId,
-        placement: FrozenPlacement,
+        &ProjectedArrival {
+            edition,
+            position,
+            ref label,
+            representative: representative_type_uuid,
+        }: &ProjectedArrival,
+        tables: &impl IdentityTables,
     ) -> Result<Disposition, UniverseExhausted> {
-        match self.placements.entry(entity) {
-            FastHashMapEntry::Vacant(entry) => {
-                let slot = self.universe.rows();
-                let grown = slot.checked_add(1).ok_or(UniverseExhausted)?;
-
-                self.universe = Universe::new(grown);
-                entry.insert(HeldPlacement {
-                    slot: NodeRowId::from_u32(slot),
-                    frozen: placement,
-                });
-
-                Ok(
-                    if matches!(
-                        self.registers.get(&entity),
-                        Some(Register {
-                            standing: Standing::Live { .. },
-                            ..
-                        })
-                    ) {
-                        Disposition::Resolving
-                    } else {
-                        Disposition::Dormant
-                    },
-                )
-            }
-            FastHashMapEntry::Occupied(_) => Ok(Disposition::AlreadyHeld),
+        if self.placements.contains_key(&entity) {
+            return Ok(Disposition::AlreadyHeld);
         }
+
+        // The codec permutes node rows over u32, so a row past that domain could never encode.
+        // The refusal sits before any allocation, which keeps a refused placement free of side
+        // effects in the node domain.
+        if self.node_rows.universe().size() > u32::MAX as usize {
+            return Err(UniverseExhausted);
+        }
+
+        let representative = tables
+            .ontology_row_of(representative_type_uuid)
+            .or_else(|| self.ontology_rows.resolve(representative_type_uuid))
+            .ok_or(UniverseExhausted)?;
+        let id = self.node_rows.resolve(entity).ok_or(UniverseExhausted)?;
+
+        self.placements.insert(
+            entity,
+            DeltaNode {
+                id,
+                edition,
+                position,
+                legend: OwnedLegend::new(representative, label),
+            },
+        );
+
+        Ok(
+            if matches!(
+                self.applied.get(&entity),
+                Some(AppliedEvent {
+                    standing: Standing::Live { .. },
+                    ..
+                })
+            ) {
+                Disposition::Resolving
+            } else {
+                Disposition::Dormant
+            },
+        )
     }
 
     /// Estimates the fold's resident bytes.
     ///
     /// A weighted estimate for replay telemetry rather than an allocator-faithful ceiling: the
-    /// register, classification, and placement maps' heap allocations, plus the captured display
-    /// labels' text.
+    /// event, classification, placement, and legend maps' heap allocations, the captured legends'
+    /// bytes on both holders, and the row-domain extensions.
     #[must_use]
     pub(crate) fn resident_estimate(&self) -> usize {
-        let displays: usize = self
+        let placement_legends: usize = self
             .placements
             .values()
-            .map(|held| held.frozen.display.heap_bytes())
-            .sum();
+            .map(|node| node.legend.heap_bytes())
+            .sum::<u64>()
+            .saturating_cast();
+        let captured_legends: usize = self
+            .legends
+            .values()
+            .map(|captured| captured.legend.heap_bytes())
+            .sum::<u64>()
+            .saturating_cast();
 
-        self.registers.allocation_size()
+        self.applied.allocation_size()
             + self.classifications.allocation_size()
             + self.placements.allocation_size()
-            + displays
+            + self.legends.allocation_size()
+            + self.node_rows.resident_estimate()
+            + self.ontology_rows.resident_estimate()
+            + placement_legends
+            + captured_legends
     }
 
     /// Publishes the fold as an immutable snapshot resolved against `tables`.
@@ -885,61 +1061,73 @@ impl DeltaRegister {
         watermark: Timestamp<TransactionTime>,
     ) -> DeltaSnapshot {
         let mut withdrawn = fast_hash_set();
-        let mut nodes = CompressedBitSet::new();
-        let mut edges = CompressedBitSet::new();
+        let mut withdrawn_nodes = CompressedBitSet::new();
+        let mut withdrawn_edges = CompressedBitSet::new();
         let mut staged = fast_hash_map();
-        let mut placed = fast_hash_map();
-        let mut slots = fast_hash_map();
-        let mut links = fast_hash_map();
+        let mut nodes = fast_hash_map();
+        let mut edges = fast_hash_map();
+        let mut legends = fast_hash_map();
 
-        for (&entity, register) in &self.registers {
-            match register.standing {
+        for (&entity, applied) in &self.applied {
+            match applied.standing {
                 Standing::Withdrawn => {
                     withdrawn.insert(entity);
 
                     if let Some(row) = tables.node_row_of(entity) {
-                        nodes.insert(row);
+                        withdrawn_nodes.insert(row);
                     } else if let Some(row) = tables.edge_row_of(entity) {
-                        edges.insert(row);
+                        withdrawn_edges.insert(row);
                     } else {
                         // An unfitted withdrawal has no generation row to subtract, and the
                         // identity set above already carries it.
                     }
                 }
                 Standing::Live { edition } => {
-                    if tables.node_row_of(entity).is_none() && tables.edge_row_of(entity).is_none()
+                    if tables.node_row_of(entity).is_some() || tables.edge_row_of(entity).is_some()
                     {
+                        // A fitted identity with a post-fit edition revises its baked legend:
+                        // the captured legend publishes, and holders read it map-first. A
+                        // revision the read has not yet answered keeps answering from what
+                        // the holder already reads - the previous capture, or the fit-time
+                        // payload when the register never captured one - until its capture
+                        // read lands.
+                        if let Some(captured) = self.legends.get(&entity) {
+                            legends.insert(entity, captured.legend.clone());
+                        }
+                    } else {
                         match self.classifications.get(&entity) {
                             Some(Classification::Node) => {
-                                if let Some(held) = self.placements.get(&entity) {
-                                    placed.insert(
-                                        entity,
-                                        PlacedArrival {
-                                            edition,
-                                            wire: held.frozen.wire,
-                                            slot: held.slot,
-                                            display: held.frozen.display.clone(),
-                                        },
-                                    );
-                                    slots.insert(held.slot, entity);
+                                if let Some(node) = self.placements.get(&entity) {
+                                    nodes.insert(entity, node.clone().with_edition(edition));
                                 } else {
                                     staged.insert(entity, edition);
                                 }
                             }
-                            Some(&Classification::Link {
+                            Some(&Classification::Edge {
                                 source: Some(source),
                                 target: Some(target),
                             }) => {
-                                links.insert(
-                                    entity,
-                                    DeltaLink {
-                                        edition,
-                                        source,
-                                        target,
-                                    },
-                                );
+                                // Publication withholds an uncaptured link, so every published
+                                // link's detail answers from the snapshot rather than a
+                                // request-time read. A link normally publishes in its first
+                                // poll: `poll` classifies and then captures in one call, and
+                                // the capture reads the classification recorded a step
+                                // earlier. A one-poll wait happens only when the capture's
+                                // edition-display read fails, and the link publishes on the
+                                // poll after the read recovers.
+                                if let Some(captured) = self.legends.get(&entity) {
+                                    edges.insert(
+                                        entity,
+                                        DeltaEdge {
+                                            edition,
+                                            source,
+                                            target,
+                                        },
+                                    );
+                                    legends.insert(entity, captured.legend.clone());
+                                }
                             }
-                            Some(Classification::Link { .. }) | None => {
+                            Some(Classification::Edge { .. }) | None => {
                                 // An unclassified arrival and a link with an incomplete
                                 // attachment pair publish nowhere: nothing serves until a
                                 // verdict supplies the data to serve it.
@@ -953,14 +1141,15 @@ impl DeltaRegister {
         DeltaSnapshot {
             revision,
             watermark,
-            universe: self.universe,
             withdrawn,
+            withdrawn_nodes,
+            withdrawn_edges,
+            staged,
             nodes,
             edges,
-            staged,
-            placed,
-            slots,
-            links,
+            legends,
+            node_rows: self.node_rows.clone(),
+            ontology_rows: self.ontology_rows.clone(),
         }
     }
 }

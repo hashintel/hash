@@ -33,13 +33,13 @@ use super::{
 };
 use crate::{
     bitset::{CompressedBitSet, DenseBitSlice},
-    dataset::auxiliary::{Icon, Label, OwnedLabel},
-    identity::{BasePosition, EdgeRowId, NodeRowId},
+    dataset::auxiliary::{Icon, Label, OwnedLabel, OwnedLegend},
+    identity::{BasePosition, EdgeRowId, NodeRowId, OntologyRowId},
     math::Vec2,
     morton::{Depth, MortonKey},
     postgres::{
-        Classification, EditionDisplay,
-        id::{ArchivedEntityId, ArchivedEntityUuid},
+        Classification,
+        id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedOntologyTypeUuid},
     },
     salt::{
         lod::stage::WIRE_FRAME,
@@ -52,8 +52,8 @@ use crate::{
     serve::{
         EdgesLimits, LocateRequest, VisibilityProof,
         delta::{
-            DeltaEvent, DeltaRegister, DeltaRevision, DeltaSnapshot, FrozenPlacement,
-            PlacementCohort,
+            DeltaEvent, DeltaRegister, DeltaRevision, DeltaSnapshot, PlacementCohort,
+            ProjectedArrival,
         },
         hydrate::{
             DetailError, LocateHydration, LocateLinkHydration, LocateNodeHydration, LocateOrder,
@@ -96,8 +96,22 @@ fn archived_id(seed: u8) -> ArchivedEntityId {
 /// The events travel the consumer's own conversion, and each placement takes the register's own
 /// slot allocation with slots ascending in the given order, so the snapshot is the publication a
 /// scope resolution would bind rather than a hand-assembled equivalent.
+/// The fixture arrival's representative type, unknown to the generation, so the register's own
+/// extension allocates its ontology row at the baked bound.
+fn arrival_type() -> ArchivedOntologyTypeUuid {
+    ArchivedOntologyTypeUuid::from(Uuid::from_u128(0xA771))
+}
+
+/// The legend the fixture arrival publishes: the extension's first ontology row.
+fn arrival_legend(atlas: &Atlas) -> OwnedLegend {
+    OwnedLegend::new(
+        OntologyRowId::from_usize(atlas.ontology_universe().size()),
+        Label::new("arrival"),
+    )
+}
+
 fn arriving_all(atlas: &Atlas, arrivals: &[(u8, Vec2)]) -> DeltaSnapshot {
-    let mut register = DeltaRegister::new(atlas.universe());
+    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
     for &(seed, wire) in arrivals {
         let event = EntityEvent::Updated(EntityUpdate {
             entity: store_id(seed),
@@ -110,14 +124,13 @@ fn arriving_all(atlas: &Atlas, arrivals: &[(u8, Vec2)]) -> DeltaSnapshot {
         register
             .place(
                 archived_id(seed),
-                FrozenPlacement {
+                &ProjectedArrival {
                     edition: EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
-                    wire,
-                    display: EditionDisplay {
-                        label: OwnedLabel::from("arrival"),
-                        representative_type: None,
-                    },
+                    position: wire,
+                    label: OwnedLabel::from("arrival"),
+                    representative: arrival_type(),
                 },
+                atlas,
             )
             .expect("the fixture universe is far from the wire's row domain");
     }
@@ -136,7 +149,7 @@ fn arriving(atlas: &Atlas, wire: Vec2) -> DeltaSnapshot {
 
 /// Folds one `Ended` event per seed into an ingress snapshot withdrawing those identities.
 fn withdrawing(atlas: &Atlas, seeds: &[u8]) -> DeltaSnapshot {
-    let mut register = DeltaRegister::new(atlas.universe());
+    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
     for &seed in seeds {
         let event = EntityEvent::Ended(EntityEnd {
             entity: store_id(seed),
@@ -243,7 +256,7 @@ async fn a_scoped_tile_serves_a_placed_arrival_with_its_captured_display() {
     let (_generation, atlas) = publish("arrival-tile").await;
     let (wire, coordinate) = vacant_cell(&atlas);
     let snapshot = arriving(&atlas, wire);
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
     let proof = widened(&atlas, &[0], &[slot]);
 
@@ -267,12 +280,9 @@ async fn a_scoped_tile_serves_a_placed_arrival_with_its_captured_display() {
 
     let arrival_row = ArrivalRow {
         identity: archived_id(ARRIVAL_SEED),
-        point: wire,
+        position: wire,
         wire: test_codec(&atlas).encode(slot, snapshot.universe()),
-        display: EditionDisplay {
-            label: OwnedLabel::from("arrival"),
-            representative_type: None,
-        },
+        legend: arrival_legend(&atlas),
     };
     let expected = TileResponse {
         head: TileHead {
@@ -310,7 +320,7 @@ async fn an_ingress_withdrawal_subtracts_a_retained_arrival_from_tiles() {
     let (_generation, atlas) = publish("arrival-tile-withdrawn").await;
     let (wire, coordinate) = vacant_cell(&atlas);
     let snapshot = arriving(&atlas, wire);
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
     let proof = widened(&atlas, &[0], &[slot]);
     let request = request(coordinate.z, coordinate.x, coordinate.y, Mode::Total);
@@ -360,7 +370,7 @@ async fn an_ingress_withdrawal_subtracts_a_retained_arrival_from_tiles() {
 async fn occupancy_and_census_never_read_the_cohort() {
     let (_generation, atlas) = publish("arrival-occupancy").await;
     let snapshot = arriving(&atlas, Vec2::new(0.25, -0.5));
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
 
     let with_slot = widened(&atlas, &[0], &[slot]);
     let without = mask_hiding(&atlas, &[0]);
@@ -418,7 +428,7 @@ async fn translate_answers_a_placed_arrival_from_the_entry_cohort() {
         .nodes
         .get(&key)
         .expect("the cohort resolves the arrival");
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
     assert_eq!(
         node.id,
         test_codec(&atlas).encode(slot, snapshot.universe()),
@@ -496,7 +506,7 @@ async fn a_scoped_proof_admits_an_arrival_only_through_its_widened_mask() {
     let snapshot = arriving(&atlas, Vec2::new(0.25, -0.5));
     let cohort = PlacementCohort::of(Some(&snapshot));
     let key = entity_string_of(ARRIVAL_SEED);
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
 
     let translate = |proof: &VisibilityProof| {
         atlas
@@ -540,7 +550,7 @@ async fn a_corpus_tile_serves_a_placed_arrival_with_its_captured_display() {
     let (_generation, atlas) = publish("arrival-corpus-tile").await;
     let (wire, coordinate) = vacant_cell(&atlas);
     let snapshot = arriving(&atlas, wire);
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
 
     let mut request = request(coordinate.z, coordinate.x, coordinate.y, Mode::Total);
@@ -564,12 +574,9 @@ async fn a_corpus_tile_serves_a_placed_arrival_with_its_captured_display() {
 
     let arrival_row = ArrivalRow {
         identity: archived_id(ARRIVAL_SEED),
-        point: wire,
+        position: wire,
         wire: test_codec(&atlas).encode(slot, snapshot.universe()),
-        display: EditionDisplay {
-            label: OwnedLabel::from("arrival"),
-            representative_type: None,
-        },
+        legend: arrival_legend(&atlas),
     };
     let expected = TileResponse {
         head: TileHead {
@@ -626,8 +633,8 @@ async fn corpus_saturated_and_folded_arrival_deliveries_agree() {
         &[(ARRIVAL_SEED, vacant), (ARRIVAL_SEED + 1, co_located)],
     );
     let cohort = PlacementCohort::of(Some(&snapshot));
-    let base = atlas.universe().rows();
-    let slots = [base, base + 1].map(NodeRowId::from_u32);
+    let base = atlas.universe().size();
+    let slots = [base, base + 1].map(NodeRowId::from_usize);
     let saturated = widened(&atlas, &[], &slots);
 
     for k in 0..=1_u8 {
@@ -780,8 +787,8 @@ async fn an_ingress_withdrawal_subtracts_a_spliced_arrival_from_corpus_tiles() {
     let shared_cell = coordinate_of(atlas.morton.code(BasePosition::MIN).cell(depth));
     let shared_tile = request(shared_cell.z, shared_cell.x, shared_cell.y, Mode::Total);
 
-    let base = atlas.universe().rows();
-    let saturated = widened(&atlas, &[], &[base, base + 1].map(NodeRowId::from_u32));
+    let base = atlas.universe().size();
+    let saturated = widened(&atlas, &[], &[base, base + 1].map(NodeRowId::from_usize));
     let gathered = {
         let bound = Bound::resolved(&atlas, &saturated, cohort, CutOffset::ZERO)
             .withdrawing(&withdrawing_fitted);
@@ -845,7 +852,7 @@ async fn locate_serves_a_placed_arrival_from_both_ingress_domains() {
     let (generation, atlas) = publish("arrival-locate").await;
     let (wire, _) = vacant_cell(&atlas);
     let snapshot = arriving(&atlas, wire);
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
     let proof = widened(&atlas, &[0], &[slot]);
 
@@ -924,12 +931,9 @@ async fn locate_serves_a_placed_arrival_from_both_ingress_domains() {
 
     let arrival_row = ArrivalRow {
         identity: archived_id(ARRIVAL_SEED),
-        point: wire,
+        position: wire,
         wire: slot_wire,
-        display: EditionDisplay {
-            label: OwnedLabel::from("arrival"),
-            representative_type: None,
-        },
+        legend: arrival_legend(&atlas),
     };
     let empty_map = PropertyMap::new_unchecked(Vec::new());
     let no_edges = EdgeColumns::pinned([]);
@@ -1038,7 +1042,7 @@ async fn a_withdrawn_or_unadmitted_arrival_locates_nowhere() {
     let (_generation, atlas) = publish("arrival-locate-withdrawn").await;
     let (wire, _) = vacant_cell(&atlas);
     let snapshot = arriving(&atlas, wire);
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
     let cohort = PlacementCohort::of(Some(&snapshot));
     let proof = widened(&atlas, &[0], &[slot]);
     let id = entity_string_of(ARRIVAL_SEED);
@@ -1107,8 +1111,8 @@ async fn an_arrival_bounds_no_edge_in_the_edges_response() {
         &[(ARRIVAL_SEED, vacant), (ARRIVAL_SEED + 1, co_located)],
     );
     let cohort = PlacementCohort::of(Some(&snapshot));
-    let base = atlas.universe().rows();
-    let slots = [base, base + 1].map(NodeRowId::from_u32);
+    let base = atlas.universe().size();
+    let slots = [base, base + 1].map(NodeRowId::from_usize);
 
     let edges = |proof: &VisibilityProof, cohort: PlacementCohort<'_>| {
         let bound = Bound::resolved(&atlas, proof, cohort, CutOffset::ZERO);

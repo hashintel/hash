@@ -180,7 +180,7 @@ impl LocateResponse<'_> {
         for &vessel in self.delivered {
             let point = match vessel {
                 ViewRow::Base(position) => self.positions[position],
-                ViewRow::Arrival(index) => self.arrivals[index].point,
+                ViewRow::Arrival(index) => self.arrivals[index].position,
             };
             column.extend_from_slice(&point.x().to_le_bytes());
             column.extend_from_slice(&point.y().to_le_bytes());

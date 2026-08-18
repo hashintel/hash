@@ -358,11 +358,11 @@ impl Atlas {
 
         // The row column is the node universe's permutation, so its validated length is the
         // base bound. Edges cross the wire as link-entity identities and need no codec.
-        let universe = Universe::new(u32::try_from(rows.len()).map_err(|_error| {
-            OpenAtlasError::Universe {
+        let universe = Universe::new(NodeRowId::from_u32(u32::try_from(rows.len()).map_err(
+            |_error| OpenAtlasError::Universe {
                 rows: rows.len() as u64,
-            }
-        })?);
+            },
+        )?));
         let node_codec = RowCodec::derive(&wire_secret, id, NODE_LABEL);
 
         // The wire column maps the validated row column once, so every position-driven gather

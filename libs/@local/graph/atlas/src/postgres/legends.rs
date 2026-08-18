@@ -20,7 +20,11 @@ use super::{
     vocabulary::{CorpusTable, Links, Scope},
 };
 use crate::{
-    dataset::{TemporalAxes, auxiliary::OwnedLegend, postgres::PostgresDatasetError},
+    dataset::{
+        TemporalAxes,
+        auxiliary::{Label, OwnedLegend},
+        postgres::PostgresDatasetError,
+    },
     identity::OntologyRowId,
 };
 
@@ -272,7 +276,10 @@ pub(crate) fn decode_legend(
             value: representative,
         })?;
 
-    Ok(OwnedLegend::new(representative, &label.unwrap_or_default()))
+    Ok(OwnedLegend::new(
+        representative,
+        Label::new(&label.unwrap_or_default()),
+    ))
 }
 
 #[cfg(test)]

@@ -11,7 +11,8 @@
     },
     "scopeSchedule": {
       "k": 3,
-      "cut": "z+9"
+      "cut": "z+9",
+      "maxZoom": 18
     }
   },
   "request": {

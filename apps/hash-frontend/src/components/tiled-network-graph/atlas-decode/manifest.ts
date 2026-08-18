@@ -49,10 +49,17 @@ export interface AtlasManifest {
    * this caller is served at is `z + log2(bucketSchedule.span) + k`. A
    * full-visibility caller reads `k = 0`; a restricted one reads its own
    * offset, and the server publishes the resulting rule in `cut`.
+   *
+   * `maxZoom` is the deepest zoom at which this view still delivers new
+   * points: the resolved view's deepest occupied bucket carried through
+   * the cut rule and clamped to the grid. Past it every tile repeats
+   * accumulated content. Post-fit arrivals can deepen the live answer,
+   * and the root tile's `minResolution` stays the mid-session authority.
    */
   readonly scopeSchedule: {
     readonly k: number;
     readonly cut: string;
+    readonly maxZoom: number;
   };
   readonly limits: AtlasLimits;
   /**
@@ -160,8 +167,13 @@ export const parseManifest = (
   }
   const scopeOffset = field(scopeSchedule, "k");
   const scopeCut = field(scopeSchedule, "cut");
-  if (!isUintValue(scopeOffset) || typeof scopeCut !== "string") {
-    return contractFail("scopeSchedule k/cut are malformed");
+  const scopeMaxZoom = field(scopeSchedule, "maxZoom");
+  if (
+    !isUintValue(scopeOffset) ||
+    typeof scopeCut !== "string" ||
+    !isUintValue(scopeMaxZoom)
+  ) {
+    return contractFail("scopeSchedule k/cut/maxZoom are malformed");
   }
   const limits = field(manifest, "limits") as Record<string, unknown> | null;
   if (typeof limits !== "object" || limits === null) {
@@ -192,7 +204,7 @@ export const parseManifest = (
     wireVersion,
     variants,
     bucketSchedule: { span, cut, maxZoom },
-    scopeSchedule: { k: scopeOffset, cut: scopeCut },
+    scopeSchedule: { k: scopeOffset, cut: scopeCut, maxZoom: scopeMaxZoom },
     limits: {
       coloredTypeIds,
       edgesTiles,

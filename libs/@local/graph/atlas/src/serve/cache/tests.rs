@@ -87,7 +87,7 @@ macro_rules! answering {
 
 /// An entry inside the soft window answers without resolving again.
 #[tokio::test]
-async fn held_entry_answers_without_resolving_again() {
+async fn held_entry_hit() {
     let cache = VisibilityCache::new(LIMITS);
     let calls = Arc::new(AtomicUsize::new(0));
     let now = Instant::now();
@@ -134,7 +134,7 @@ async fn concurrent_misses_resolve_once() {
 /// refresh runs as a task, so the loop below drives the runtime until the refresh publishes
 /// rather than waiting on a clock.
 #[tokio::test]
-async fn stale_entry_answers_while_it_refreshes() {
+async fn stale_serves_while_refreshing() {
     let cache = VisibilityCache::new(LIMITS);
     let calls = Arc::new(AtomicUsize::new(0));
     let now = Instant::now();
@@ -182,7 +182,7 @@ async fn stale_entry_answers_while_it_refreshes() {
 
 /// A filter's identity separates entries for one actor.
 #[tokio::test]
-async fn filter_identity_separates_entries_for_one_actor() {
+async fn filter_identity_separates_entries() {
     let cache = VisibilityCache::new(LIMITS);
     let calls = Arc::new(AtomicUsize::new(0));
     let now = Instant::now();
@@ -256,7 +256,7 @@ async fn capacity_bound_prices_retained_bytes() {
 /// resolution for the whole corpus's cascade construction.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn weighing_a_small_scope_leaves_the_memo_unbuilt() {
+async fn small_scope_memo_unbuilt() {
     let (_generation, atlas) = publish("cache-weigher-memo-unbuilt").await;
     let atlas = Arc::new(atlas);
     let proof = mask_hiding(&atlas, &[0]);
@@ -287,12 +287,13 @@ async fn weighing_a_small_scope_leaves_the_memo_unbuilt() {
 /// so the aggregates the root publishes describe what the entry can actually serve. The
 /// occupancy aggregate reads the proof before the fold, which keeps the cut offset a mint
 /// resolves the store's answer alone. This pins the census/occupancy pair's ordering at the
-/// constructor: nothing but statement order inside `of` holds it, and reordering either
-/// aggregate against the fold reddens exactly here. The schedule's place in that order has its
-/// own witness in the delivery test below, which takes the entry to bytes.
+/// constructor: nothing but statement order inside `of` holds it. Reordering the census
+/// against the fold reddens exactly here, and reordering the occupancy reddens this witness
+/// and the mint witness beside it. The schedule's place in that order has its own witness in
+/// the delivery test below, which takes the entry to bytes.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn the_entry_censuses_the_folded_view_and_occupies_the_unfolded_one() {
+async fn entry_census_folded_occupancy_unfolded() {
     let (_generation, atlas) = publish("cache-census-folded").await;
     let atlas = Arc::new(atlas);
     let proof = mask_hiding(&atlas, &[]);
@@ -348,7 +349,7 @@ async fn the_entry_censuses_the_folded_view_and_occupies_the_unfolded_one() {
 /// whole authority.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn the_entry_delivers_no_row_its_own_cohort_withdrew() {
+async fn entry_withholds_cohort_withdrawn() {
     let (_generation, atlas) = publish("cache-entry-delivery").await;
     let atlas = Arc::new(atlas);
     let proof = mask_hiding(&atlas, &[]);
@@ -405,11 +406,61 @@ async fn the_entry_delivers_no_row_its_own_cohort_withdrew() {
             .any(|delivered| delivered == wire),
         "the entry delivered a row its own cohort withdrew"
     );
+
+    // Positive control: the same binding without a cohort delivers the row, so the absence
+    // above is the fold's doing rather than the probe's. The count matches on both sides,
+    // because the cascade substitutes the next survivor instead of shrinking the delivery.
+    let unfolded = PendingCacheEntry::of(
+        Arc::clone(&atlas),
+        mask_hiding(&atlas, &[]),
+        masking,
+        None,
+        None,
+    )
+    .await
+    .expect("the unfolded entry builds");
+    let control_view = View::bind(
+        atlas.grid,
+        &unfolded.proof,
+        unfolded.census,
+        &unfolded.schedule,
+        CutOffset::ZERO,
+        PlacementCohort::of(unfolded.cohort.as_deref()),
+        None,
+    )
+    .expect("the entry pairs its own proof and schedule");
+    let control = atlas
+        .tile(
+            &request(0, 0, 0, Mode::Delta),
+            TileLimits::default(),
+            control_view,
+        )
+        .expect("the fixture tile serves");
+    let (control_chunks, control_remainder) = section(&control, ROW_IDS)
+        .expect("ROW_IDS is present")
+        .as_chunks::<4>();
+    assert!(
+        control_remainder.is_empty(),
+        "row sections are whole u32 columns"
+    );
+    assert!(
+        control_chunks
+            .iter()
+            .copied()
+            .map(u32::from_le_bytes)
+            .any(|delivered| delivered == wire),
+        "the control must deliver the row the folded entry hides"
+    );
+    assert_eq!(
+        control_chunks.len(),
+        chunks.len(),
+        "the fold substitutes the next survivor rather than shrinking the delivery"
+    );
 }
 
 /// The weight fold saturates at the weight domain's top instead of failing or wrapping.
 #[test]
-fn weight_of_saturates_at_the_moka_domain() {
+fn weight_of_saturates() {
     assert_eq!(
         weight_of(u64::MAX, None),
         u32::MAX,
@@ -463,7 +514,7 @@ async fn expired_entry_resolves_again() {
 /// order. A paused resolver holds the refresh in flight until a newer inline resolution has
 /// published, and only then does the refresh complete.
 #[tokio::test]
-async fn refresh_landing_after_a_newer_resolution_publishes_nothing() {
+async fn stale_refresh_publishes_nothing() {
     let cache = VisibilityCache::new(LIMITS);
     let calls = Arc::new(AtomicUsize::new(0));
     let now = Instant::now();
@@ -540,7 +591,7 @@ async fn refresh_landing_after_a_newer_resolution_publishes_nothing() {
 /// The fixture holds a refresh in flight while it empties the slot and refills it with a
 /// stranger stamped below the refresh trigger. Only then does the refresh complete.
 #[tokio::test]
-async fn refresh_publishes_only_over_its_own_entry() {
+async fn refresh_scoped_to_own_entry() {
     let cache = VisibilityCache::new(LIMITS);
     let calls = Arc::new(AtomicUsize::new(0));
     let now = Instant::now();
@@ -609,7 +660,7 @@ async fn refresh_publishes_only_over_its_own_entry() {
 /// would give a proof resolved before that removal a fresh window to live in, with no request
 /// having asked for it. A refresh replaces the entry it refreshed and creates none.
 #[tokio::test]
-async fn refresh_of_a_removed_entry_publishes_nothing() {
+async fn removed_entry_refresh_noop() {
     let cache = VisibilityCache::new(LIMITS);
     let calls = Arc::new(AtomicUsize::new(0));
     let now = Instant::now();
@@ -684,6 +735,13 @@ impl crate::serve::delta::IdentityTables for Unfitted {
     fn edge_row_of(&self, _id: crate::postgres::id::ArchivedEntityId) -> Option<EdgeRowId> {
         None
     }
+
+    fn ontology_row_of(
+        &self,
+        _id: crate::postgres::id::ArchivedOntologyTypeUuid,
+    ) -> Option<crate::identity::OntologyRowId> {
+        None
+    }
 }
 
 /// An entry hands requests the cohort its resolution bound.
@@ -692,7 +750,7 @@ impl crate::serve::delta::IdentityTables for Unfitted {
 /// offers, so the entry's arrival-sensitive reads follow the resolution's publication. An entry
 /// resolved with no publication answers the base, which is the empty cohort's contract.
 #[tokio::test]
-async fn an_entry_exposes_the_cohort_its_resolution_bound() {
+async fn entry_exposes_bound_cohort() {
     use hash_graph_temporal_versioning::Timestamp;
 
     use crate::serve::{
@@ -700,7 +758,10 @@ async fn an_entry_exposes_the_cohort_its_resolution_bound() {
         delta::{DeltaRegister, DeltaRevision},
     };
 
-    let register = DeltaRegister::new(Universe::new(10));
+    let register = DeltaRegister::new(
+        Universe::new(NodeRowId::new(10)),
+        Universe::new(crate::identity::OntologyRowId::new(4)),
+    );
     let snapshot = Arc::new(register.snapshot(
         &Unfitted,
         DeltaRevision::FIRST,
@@ -722,8 +783,8 @@ async fn an_entry_exposes_the_cohort_its_resolution_bound() {
         .await
         .expect("the resolution answers");
     assert_eq!(
-        bound.cohort().universe(Universe::new(7)),
-        Universe::new(10),
+        bound.cohort().universe(Universe::new(NodeRowId::new(7))),
+        Universe::new(NodeRowId::new(10)),
         "the bound snapshot's universe answers"
     );
 
@@ -734,8 +795,8 @@ async fn an_entry_exposes_the_cohort_its_resolution_bound() {
         .await
         .expect("the resolution answers");
     assert_eq!(
-        unbound.cohort().universe(Universe::new(7)),
-        Universe::new(7),
+        unbound.cohort().universe(Universe::new(NodeRowId::new(7))),
+        Universe::new(NodeRowId::new(7)),
         "an empty cohort answers the base"
     );
 }
@@ -747,7 +808,7 @@ async fn an_entry_exposes_the_cohort_its_resolution_bound() {
 /// byte. A corpus entry declines the fold and never answers true, whatever snapshot it bound,
 /// and an entry that bound none folded nothing.
 #[tokio::test]
-async fn folded_answers_for_exactly_the_bound_publication() {
+async fn folded_matches_bound_publication() {
     use hash_graph_temporal_versioning::Timestamp;
 
     use crate::serve::{
@@ -755,7 +816,10 @@ async fn folded_answers_for_exactly_the_bound_publication() {
         delta::{DeltaRegister, DeltaRevision},
     };
 
-    let register = DeltaRegister::new(Universe::new(10));
+    let register = DeltaRegister::new(
+        Universe::new(NodeRowId::new(10)),
+        Universe::new(crate::identity::OntologyRowId::new(4)),
+    );
     let publish = || {
         Arc::new(register.snapshot(
             &Unfitted,

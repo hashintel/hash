@@ -37,7 +37,7 @@ use rand::rngs::SysRng;
 use self::visibility::Authority;
 use crate::serve::{
     Atlas, DeltaCell, DeltaEpoch, DensityBand, DensityPolicy, GraphDatabaseClient, ServeLimits,
-    VisibilityLimits, authorization::TokenAuthority, hydrate::CachedHydrate,
+    VisibilityLimits, authorization::TokenAuthority, hydrate::CachedTypeUrlResolver,
 };
 
 mod authorization;
@@ -78,10 +78,12 @@ const API_DESCRIPTION: &str =
 - Query-bearing endpoints are `POST` with a JSON body; the body is part of the client's cache key.
 - Binary responses ship `Cache-Control: private, no-store`: the client's application-layer cache \
      is the cache, keyed on (authorization context, generation, route, canonical body). Tile \
-     labels and icons and edges labels come from the generation. Edges type references and locate \
-     type and property values read request-time store state. Do not retain a detailed response as \
-     an immutable generation tile. Cache geometry and refetch edges and locate detail where \
-     request-time state matters.
+     labels and icons come from the generation, with a placed arrival's label from its \
+     placement's captured display. Edges labels come from the display the server captured at the \
+     link's currently served edition, and from the generation's payload for a fitted link it \
+     holds no capture for. Edges type references and locate type and property values read \
+     request-time store state. Do not retain a detailed response as an immutable generation tile. \
+     Cache geometry and refetch edges and locate detail where request-time state matters.
 - Every error is an RFC 9457 problem document (`application/problem+json`) whose `type` member is \
      a stable root-relative URI (`/problems/atlas/<slug>`): an absent required body answers \
      `missing-body`, a body that is not the operation's JSON shape answers `invalid-body`, an \
@@ -127,7 +129,7 @@ struct AppState {
     authority: Authority,
     remote: Arc<GraphDatabaseClient>,
     /// The type-URL resolution the edges trailer reads through, cached for the process's life.
-    type_urls: Arc<CachedHydrate<Arc<GraphDatabaseClient>>>,
+    type_urls: Arc<CachedTypeUrlResolver<Arc<GraphDatabaseClient>>>,
 }
 
 /// Builds the read API router over one opened generation.
@@ -168,7 +170,7 @@ pub(crate) fn router(
         limits,
         visibility,
         authority: Authority::new(pool, visibility),
-        type_urls: Arc::new(CachedHydrate::new(Arc::clone(&details))),
+        type_urls: Arc::new(CachedTypeUrlResolver::new(Arc::clone(&details))),
         remote: details,
         delta,
     };

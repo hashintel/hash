@@ -81,15 +81,16 @@ use type_system::{
 };
 
 use super::{
-    DeltaCell, FrozenPlacement,
+    DeltaCell, ProjectedArrival,
     consumer::DeltaPolling,
     placement::{NonFiniteProjection, Placer, Projection},
 };
 use crate::{
-    dataset::{PROJECTOR_DIMENSIONS, postgres::PostgresDatasetError},
+    dataset::{PROJECTOR_DIMENSIONS, auxiliary::OwnedLabel, postgres::PostgresDatasetError},
     math::BoxedVecN,
     postgres::{
-        EditionDisplay, id::ArchivedEntityId, read_edition_displays, read_projector_embeddings,
+        id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+        read_edition_displays, read_projector_embeddings,
     },
 };
 
@@ -129,11 +130,11 @@ enum Phase {
     Ready {
         /// The stored whole-entity embedding's l2-normalized projector prefix.
         embedding: BoxedVecN<PROJECTOR_DIMENSIONS>,
-        /// The display payload captured for the recorded edition, absent until its read answers.
+        /// The display parts read for the recorded edition, absent until its read answers.
         ///
-        /// Placement waits for the capture, so a placed arrival always carries the label and
+        /// Placement waits for the read, so a placed arrival always carries the label and
         /// representative type its store row stated at the hand-off.
-        display: Option<EditionDisplay>,
+        display: Option<(OwnedLabel, ArchivedOntologyTypeUuid)>,
     },
     /// The publisher holds the placement, and the published staged set retires the entry.
     Placed,
@@ -249,11 +250,15 @@ impl StagingPipeline {
             .collect()
     }
 
-    /// Records one completed arrival's captured display.
+    /// Records one completed arrival's display parts.
     ///
-    /// A capture for an identity not awaiting one changes nothing, so an answer racing a
+    /// An answer for an identity not awaiting one changes nothing, so an answer racing a
     /// withdrawal drops rather than resurrects.
-    pub(super) fn captured(&mut self, identity: ArchivedEntityId, payload: EditionDisplay) {
+    pub(super) fn captured(
+        &mut self,
+        identity: ArchivedEntityId,
+        payload: (OwnedLabel, ArchivedOntologyTypeUuid),
+    ) {
         if let Some(entry) = self.entries.get_mut(&identity)
             && let Phase::Ready { display, .. } = &mut entry.phase
             && display.is_none()
@@ -316,7 +321,7 @@ impl StagingPipeline {
             ArchivedEntityId,
             EntityEditionId,
             &BoxedVecN<PROJECTOR_DIMENSIONS>,
-            &EditionDisplay,
+            &(OwnedLabel, ArchivedOntologyTypeUuid),
         ),
     > {
         self.entries
@@ -381,8 +386,12 @@ impl fmt::Display for StagingError {
 
 impl core::error::Error for StagingError {}
 
-/// One ready arrival's owned hand-off key: its identity, edition and captured display.
-type PlacementKey = (ArchivedEntityId, EntityEditionId, EditionDisplay);
+/// One ready arrival's owned hand-off key: its identity, edition and display parts.
+type PlacementKey = (
+    ArchivedEntityId,
+    EntityEditionId,
+    (OwnedLabel, ArchivedOntologyTypeUuid),
+);
 
 /// Every row's placement from one projected batch, or the batch's first non-finite row.
 type ProjectionOutcome = Result<Vec<Projection>, NonFiniteProjection>;
@@ -405,8 +414,8 @@ pub(crate) struct StagingArm {
     /// The generation's publish path, or [`None`] for a baseline-placed generation, which
     /// stages without placing.
     placer: Option<Placer>,
-    /// The channel carrying frozen placements to the poll arm's publisher.
-    placements: UnboundedSender<(ArchivedEntityId, FrozenPlacement)>,
+    /// The channel carrying projected arrivals to the poll arm's publisher.
+    placements: UnboundedSender<(ArchivedEntityId, ProjectedArrival)>,
     /// The retry state per staged arrival.
     pipeline: StagingPipeline,
     /// The resolved ensure actor, cached at first use.
@@ -416,7 +425,7 @@ pub(crate) struct StagingArm {
 impl StagingArm {
     /// Builds the arm over the cell the poll arm publishes into.
     ///
-    /// `placements` carries every frozen placement to the poll arm's publisher, and `placer`
+    /// `placements` carries every projected arrival to the poll arm's publisher, and `placer`
     /// being [`None`] stages arrivals without ever placing them, the fail-closed disposition its
     /// construction already logged.
     pub(crate) fn new(
@@ -425,7 +434,7 @@ impl StagingArm {
         polling: DeltaPolling,
         ensure: Option<EmbeddingEnsure>,
         placer: Option<Placer>,
-        placements: UnboundedSender<(ArchivedEntityId, FrozenPlacement)>,
+        placements: UnboundedSender<(ArchivedEntityId, ProjectedArrival)>,
     ) -> Self {
         let pipeline = StagingPipeline::new(polling.retry_polls);
         Self {
@@ -566,8 +575,13 @@ impl StagingArm {
             );
         }
 
-        let by_edition: FastHashMap<EntityEditionId, EditionDisplay> =
-            answers.into_iter().collect();
+        // An answer without a resolved representative type stays uncaptured, so the next cycle
+        // reads it again: a legend cannot exist until the representative resolves.
+        let by_edition: FastHashMap<EntityEditionId, (OwnedLabel, ArchivedOntologyTypeUuid)> =
+            answers
+                .into_iter()
+                .filter_map(|(edition, display)| display.map(|display| (edition, display)))
+                .collect();
         for (identity, edition) in uncaptured {
             if let Some(display) = by_edition.get(&edition) {
                 self.pipeline.captured(identity, display.clone());
@@ -589,7 +603,8 @@ impl StagingArm {
 
         match outcome {
             Ok(projections) => {
-                for ((identity, edition, display), projection) in keyed.into_iter().zip(projections)
+                for ((identity, edition, (label, representative)), projection) in
+                    keyed.into_iter().zip(projections)
                 {
                     match projection {
                         Projection::Placed { wire } => {
@@ -597,10 +612,11 @@ impl StagingArm {
                                 .placements
                                 .send((
                                     identity,
-                                    FrozenPlacement {
+                                    ProjectedArrival {
                                         edition,
-                                        wire,
-                                        display,
+                                        position: wire,
+                                        label,
+                                        representative,
                                     },
                                 ))
                                 .is_err()

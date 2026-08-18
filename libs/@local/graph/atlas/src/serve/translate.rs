@@ -206,7 +206,7 @@ pub(super) struct TranslateColumns<'generation> {
     /// The node universe's wire row-id codec.
     pub node_codec: &'generation RowCodec<NodeRowId>,
     /// The accepted row bound, the cohort's universe, read at every wire encode in one answer.
-    pub universe: Universe,
+    pub universe: Universe<NodeRowId>,
 }
 
 impl TranslateColumns<'_> {
@@ -284,8 +284,8 @@ pub(super) fn translate(
                     target: columns.node_codec.encode(target, columns.universe),
                 },
             );
-        } else if let Some(arrival) = cohort.placed(key) {
-            if proof.verify(arrival.slot).is_none() {
+        } else if let Some(arrival) = cohort.node(key) {
+            if proof.verify(arrival.id).is_none() {
                 // Hidden: the scope's own resolution never admitted the arrival.
                 continue;
             }
@@ -293,9 +293,9 @@ pub(super) fn translate(
             nodes.insert(
                 id_string,
                 TranslatedNode {
-                    id: columns.node_codec.encode(arrival.slot, columns.universe),
-                    x: arrival.wire.x(),
-                    y: arrival.wire.y(),
+                    id: columns.node_codec.encode(arrival.id, columns.universe),
+                    x: arrival.position.x(),
+                    y: arrival.position.y(),
                 },
             );
         } else {

@@ -36,9 +36,9 @@ use crate::{
     },
 };
 
-/// What one mint asks of the delivery-cut policy.
+/// The rule by which one mint seals its delivery-cut offset.
 #[derive(Debug, Copy, Clone)]
-enum Mint {
+enum OffsetRule {
     /// A first token for this actor, which resolves the wanted view's own offset.
     Bootstrap,
     /// A token for the view its predecessor sealed.
@@ -58,25 +58,25 @@ enum Mint {
 /// `view` is what says that, so no route can serve corpus bytes while its manifest declares a
 /// deeper cut.
 ///
-/// With a policy and a scoped view, [`Mint`] states which question this mint asks, and the
+/// With a policy and a scoped view, [`OffsetRule`] states which question this mint asks, and the
 /// arithmetic of every answer lives in [`DensityPolicy`]. Every handler path mints through here, so
 /// no branch can seal an offset by a rule of its own. `view` is the scope's entry-held aggregate,
 /// taken from the store's answer alone, so no mint pays an occupancy pass and no snapshot moves
-/// the offset a mint seals. `Mint::Carry` never reads it: a session keeping its own view keeps
-/// the offset it sealed.
+/// the offset a mint seals. [`OffsetRule::Carry`] never reads it: a session keeping its own view
+/// keeps the offset it sealed.
 fn sealed_offset(
     density: Option<DensityPolicy>,
-    mint: Mint,
+    rule: OffsetRule,
     view: Option<&ViewOccupancy>,
 ) -> CutOffset {
     let (Some(policy), Some(view)) = (density, view) else {
         return CutOffset::ZERO;
     };
 
-    match mint {
-        Mint::Bootstrap => policy.resolve(view),
-        Mint::Carry(carried) => carried,
-        Mint::Rebind(carried) => policy.rebind(carried, view),
+    match rule {
+        OffsetRule::Bootstrap => policy.resolve(view),
+        OffsetRule::Carry(carried) => carried,
+        OffsetRule::Rebind(carried) => policy.rebind(carried, view),
     }
 }
 
@@ -88,12 +88,13 @@ const DESCRIPTION: &str =
 The wire version the binary envelopes speak, the served variant names, the bucket schedule the \
      tile grid follows, the serving limits the handlers enforce, and the snapshot's decision-time \
      point when the source data carried one. Those blocks hold for the generation's lifetime. One \
-     block does not: `scopeSchedule` states the delivery cut resolved for this caller, so two \
-     callers of one generation can read different documents, and a client reads its own rather \
-     than a shared one. The response is not cached either: the `Atlas-Authority` header carries a \
-     fresh authority token the data routes require, valid for `authorityHardSeconds`. Re-fetch at \
-     the `authoritySoftSeconds` cadence, presenting the current token - even expired - in the \
-     same header: a scoped view's sealed delivery depth carries into the fresh mint, so renewing \
+     block does not: `scopeSchedule` states the delivery cut resolved for this caller and, as \
+     `maxZoom`, the deepest zoom at which that view still delivers new points, so two callers of \
+     one generation can read different documents, and a client reads its own rather than a shared \
+     one. The response is not cached either: the `Atlas-Authority` header carries a fresh \
+     authority token the data routes require, valid for `authorityHardSeconds`. Re-fetch at the \
+     `authoritySoftSeconds` cadence, presenting the current token - even expired - in the same \
+     header: a scoped view's sealed delivery depth carries into the fresh mint, so renewing \
      authority does not change the detail a tile carries, and a full-visibility view renews at \
      the corpus cut it serves. There is no separate renewal mode: every request states the view \
      it wants, so a caller that wants its filter must send that filter's exact bytes again. A \
@@ -197,41 +198,40 @@ pub(super) async fn handler(
         (Some(digest), Some(document))
     });
 
+    // Resolve the wanted view rather than trust what a token seals: the authorization behind
+    // the view may have changed, and a wanted filter is rebuilt from the resent bytes because
+    // the server purges a document with its entry. An unfiltered renewal has no document to
+    // rebuild and resolves the same way, and a bootstrap resolves the view it asks for.
+    let visibility = visibility::resolve(&state, actor, wanted, document).await?;
+
     let scope = match carried {
-        // Resolve again rather than trust what the token seals: the authorization behind the view
-        // may have changed, and a wanted filter is rebuilt from the resent bytes because the server
-        // purges a document with its entry. An unfiltered renewal has no document to rebuild and
-        // resolves the same way.
-        Some(scope) if scope.filter.digest() == wanted => {
-            let visibility = visibility::resolve(&state, actor, wanted, document).await?;
-
-            Scope {
-                actor: scope.actor,
-                filter: scope.filter,
-                k: sealed_offset(state.density, Mint::Carry(scope.k), visibility.occupancy()),
-            }
-        }
-        // A different wanted view, removal included: the handler resolves it, and the session
-        // keeps its delivery depth unless the wanted view resolves coarser.
-        Some(scope) => {
-            let visibility = visibility::resolve(&state, actor, wanted, document).await?;
-
-            Scope {
-                actor: scope.actor,
-                filter: ScopeFilter::from(wanted),
-                k: sealed_offset(state.density, Mint::Rebind(scope.k), visibility.occupancy()),
-            }
-        }
-        // A bootstrap resolves the wanted view and the depth it will serve at.
-        None => {
-            let visibility = visibility::resolve(&state, actor, wanted, document).await?;
-
-            Scope::new(
-                actor,
-                wanted,
-                sealed_offset(state.density, Mint::Bootstrap, visibility.occupancy()),
-            )
-        }
+        // The wanted view equals the sealed one, so a scoped session keeps its delivery depth.
+        Some(scope) if scope.filter.digest() == wanted => Scope {
+            actor: scope.actor,
+            filter: scope.filter,
+            k: sealed_offset(
+                state.density,
+                OffsetRule::Carry(scope.k),
+                visibility.occupancy(),
+            ),
+        },
+        // A different wanted view, removal included: the session keeps its delivery depth
+        // unless the wanted view resolves coarser.
+        Some(scope) => Scope {
+            actor: scope.actor,
+            filter: ScopeFilter::from(wanted),
+            k: sealed_offset(
+                state.density,
+                OffsetRule::Rebind(scope.k),
+                visibility.occupancy(),
+            ),
+        },
+        // A bootstrap resolves the depth it will serve at.
+        None => Scope::new(
+            actor,
+            wanted,
+            sealed_offset(state.density, OffsetRule::Bootstrap, visibility.occupancy()),
+        ),
     };
 
     let token = state
@@ -251,11 +251,11 @@ pub(super) async fn handler(
                     .unwrap_or_else(|_| unreachable!("hexadecimal is a valid header value")),
             ),
         ],
-        Json(
-            state
-                .atlas
-                .manifest(state.limits.manifest_limits(state.visibility), scope.k),
-        ),
+        Json(state.atlas.manifest(
+            state.limits.manifest_limits(state.visibility),
+            scope.k,
+            visibility.deepest_occupied(),
+        )),
     ))
 }
 
@@ -343,7 +343,7 @@ mod tests {
 
     use aide::{openapi::Operation, transform::TransformOperation};
 
-    use super::{Mint, document, sealed_offset};
+    use super::{OffsetRule, document, sealed_offset};
     use crate::{
         math::Log2,
         morton::{Depth, MortonCell, MortonKey},
@@ -405,11 +405,11 @@ mod tests {
     #[test]
     fn no_density_policy_seals_zero() {
         assert_eq!(
-            sealed_offset(None, Mint::Bootstrap, Some(&view())),
+            sealed_offset(None, OffsetRule::Bootstrap, Some(&view())),
             CutOffset::ZERO
         );
         assert_eq!(
-            sealed_offset(None, Mint::Rebind(CutOffset::new(2)), Some(&view())),
+            sealed_offset(None, OffsetRule::Rebind(CutOffset::new(2)), Some(&view())),
             CutOffset::ZERO
         );
     }
@@ -421,7 +421,7 @@ mod tests {
     #[test]
     fn bootstrap_resolves_the_wanted_views_own_offset() {
         assert_eq!(
-            sealed_offset(Some(policy()), Mint::Bootstrap, Some(&view())),
+            sealed_offset(Some(policy()), OffsetRule::Bootstrap, Some(&view())),
             CutOffset::new(1)
         );
     }
@@ -430,7 +430,11 @@ mod tests {
     #[test]
     fn rebind_keeps_a_carried_offset_coarser_than_the_views_resolution() {
         assert_eq!(
-            sealed_offset(Some(policy()), Mint::Rebind(CutOffset::ZERO), Some(&view())),
+            sealed_offset(
+                Some(policy()),
+                OffsetRule::Rebind(CutOffset::ZERO),
+                Some(&view())
+            ),
             CutOffset::ZERO,
             "the wanted view resolves to 1 and a session at 0 must not be deepened into it"
         );
@@ -442,7 +446,7 @@ mod tests {
         assert_eq!(
             sealed_offset(
                 Some(policy()),
-                Mint::Rebind(CutOffset::new(2)),
+                OffsetRule::Rebind(CutOffset::new(2)),
                 Some(&view())
             ),
             CutOffset::new(1),
@@ -460,16 +464,24 @@ mod tests {
     #[test]
     fn operator_view_seals_zero_at_every_mint() {
         assert_eq!(
-            sealed_offset(Some(policy()), Mint::Bootstrap, NO_VIEW),
+            sealed_offset(Some(policy()), OffsetRule::Bootstrap, NO_VIEW),
             CutOffset::ZERO,
         );
         assert_eq!(
-            sealed_offset(Some(policy()), Mint::Carry(CutOffset::new(2)), NO_VIEW),
+            sealed_offset(
+                Some(policy()),
+                OffsetRule::Carry(CutOffset::new(2)),
+                NO_VIEW
+            ),
             CutOffset::ZERO,
             "a renewal must not carry an offset the corpus schedule cannot serve",
         );
         assert_eq!(
-            sealed_offset(Some(policy()), Mint::Rebind(CutOffset::new(2)), NO_VIEW),
+            sealed_offset(
+                Some(policy()),
+                OffsetRule::Rebind(CutOffset::new(2)),
+                NO_VIEW
+            ),
             CutOffset::ZERO,
         );
         assert_eq!(
@@ -488,7 +500,7 @@ mod tests {
         assert_eq!(
             sealed_offset(
                 Some(policy()),
-                Mint::Carry(CutOffset::new(2)),
+                OffsetRule::Carry(CutOffset::new(2)),
                 Some(&view())
             ),
             CutOffset::new(2),
@@ -507,7 +519,7 @@ mod tests {
         assert_eq!(
             sealed_offset(
                 Some(policy()),
-                Mint::Rebind(CutOffset::new(2)),
+                OffsetRule::Rebind(CutOffset::new(2)),
                 Some(&empty)
             ),
             CutOffset::ZERO

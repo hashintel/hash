@@ -28,7 +28,8 @@ use uuid::Uuid;
 use super::{
     Atlas, Bound, CutOffset, EDGE_IDS, FIXTURE_LOD, FULL, Generation, UntouchedStore,
     arrival::vacant_cell, coordinate_of, edge_identity_of, edges_request, expected_edges_bytes,
-    full_grid, open_edge_artifacts, publish, section, test_codec, type_expectations,
+    fixture_type_url, full_grid, open_edge_artifacts, publish, section, test_codec,
+    type_expectations,
 };
 use crate::{
     bitset::CompressedBitSet,
@@ -37,7 +38,7 @@ use crate::{
     math::Vec2,
     morton::Depth,
     postgres::{
-        Classification, EditionDisplay, LinkDisplay,
+        Classification,
         id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedOntologyTypeUuid},
     },
     random::{keyed_rng, uniform_below},
@@ -45,11 +46,11 @@ use crate::{
     serve::{
         EdgesLimits, VisibilityProof,
         delta::{
-            DeltaEvent, DeltaRegister, DeltaRevision, DeltaSnapshot, FrozenPlacement,
-            PlacementCohort,
+            DeltaEvent, DeltaRegister, DeltaRevision, DeltaSnapshot, PlacementCohort,
+            ProjectedArrival,
         },
         edges::EdgesDetail,
-        hydrate::{DetailError, EdgesHydration, EdgesOrder, EdgesStore},
+        hydrate::{DetailError, EdgesStore, TypeSlot},
         neighbourhood::EdgeColumns,
     },
 };
@@ -100,7 +101,28 @@ fn archived_id(seed: u8) -> ArchivedEntityId {
 /// equivalent. A link's endpoints are seeds under the same rule, so a link can attach fitted
 /// rows, arrivals, and itself.
 fn publishing(atlas: &Atlas, arrivals: &[(u8, Vec2)], links: &[(u8, u8, u8)]) -> DeltaSnapshot {
-    let mut register = DeltaRegister::new(atlas.universe());
+    publishing_displayed(
+        atlas,
+        arrivals,
+        links,
+        &(OwnedLabel::from("link"), fixture_type()),
+    )
+}
+
+/// The fixture's shared link representative type, unknown to the generation, so the register's
+/// own extension allocates its ontology row.
+fn fixture_type() -> ArchivedOntologyTypeUuid {
+    ArchivedOntologyTypeUuid::from(Uuid::from_u128(0x117C))
+}
+
+/// [`publishing`], with every link capturing `link_display` instead of the default.
+fn publishing_displayed(
+    atlas: &Atlas,
+    arrivals: &[(u8, Vec2)],
+    links: &[(u8, u8, u8)],
+    link_display: &(OwnedLabel, ArchivedOntologyTypeUuid),
+) -> DeltaSnapshot {
+    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
     for &(seed, wire) in arrivals {
         let event = EntityEvent::Updated(EntityUpdate {
             entity: store_id(seed),
@@ -113,14 +135,13 @@ fn publishing(atlas: &Atlas, arrivals: &[(u8, Vec2)], links: &[(u8, u8, u8)]) ->
         register
             .place(
                 archived_id(seed),
-                FrozenPlacement {
+                &ProjectedArrival {
                     edition: EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
-                    wire,
-                    display: EditionDisplay {
-                        label: OwnedLabel::from("arrival"),
-                        representative_type: None,
-                    },
+                    position: wire,
+                    label: OwnedLabel::from("arrival"),
+                    representative: fixture_type(),
                 },
+                atlas,
             )
             .expect("the fixture universe is far from the wire's row domain");
     }
@@ -134,11 +155,23 @@ fn publishing(atlas: &Atlas, arrivals: &[(u8, Vec2)], links: &[(u8, u8, u8)]) ->
         register.apply(DeltaEvent::from(&event));
         register.classify(
             archived_id(seed),
-            Classification::Link {
+            Classification::Edge {
                 source: Some(archived_id(source)),
                 target: Some(archived_id(target)),
             },
         );
+        // Publication withholds an uncaptured link, so the fixture captures exactly as the
+        // poll's own display read does.
+        let (label, representative) = link_display.clone();
+        register
+            .capture_display(
+                archived_id(seed),
+                EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
+                &label,
+                representative,
+                atlas,
+            )
+            .expect("the fixture ontology domain has room");
     }
 
     register.snapshot(
@@ -150,7 +183,7 @@ fn publishing(atlas: &Atlas, arrivals: &[(u8, Vec2)], links: &[(u8, u8, u8)]) ->
 
 /// Folds one `Ended` event per seed into an ingress snapshot withdrawing those identities.
 fn withdrawing(atlas: &Atlas, seeds: &[u8]) -> DeltaSnapshot {
-    let mut register = DeltaRegister::new(atlas.universe());
+    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
     for &seed in seeds {
         let event = EntityEvent::Ended(EntityEnd {
             entity: store_id(seed),
@@ -269,7 +302,7 @@ fn edges_with(
 /// answers the fitted set alone on the same path.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn corpus_views_serve_published_links_in_identity_order() {
+async fn corpus_link_identity_order() {
     let (generation, atlas) = publish("delta-edges-corpus").await;
     let snapshot = publishing(&atlas, &[], &[(LOW_LINK, 0, 1), (HIGH_LINK, 2, 3)]);
     let cohort = PlacementCohort::of(Some(&snapshot));
@@ -322,7 +355,7 @@ async fn corpus_views_serve_published_links_in_identity_order() {
 /// publishes both links.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn scoped_proofs_serve_exactly_their_admitted_links() {
+async fn scoped_admitted_links() {
     let (generation, atlas) = publish("delta-edges-admission").await;
     let snapshot = publishing(&atlas, &[], &[(LOW_LINK, 0, 1), (HIGH_LINK, 2, 3)]);
     let cohort = PlacementCohort::of(Some(&snapshot));
@@ -381,7 +414,7 @@ async fn scoped_proofs_serve_exactly_their_admitted_links() {
 /// with both tiles listed, while the self-loop control survives every case.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn an_arrival_endpoint_qualifies_exactly_when_it_serves() {
+async fn arrival_endpoint_qualification() {
     let (_generation, atlas) = publish("delta-edges-arrival").await;
     let (vacant, arrival_tile) = vacant_cell(&atlas);
 
@@ -400,7 +433,7 @@ async fn an_arrival_endpoint_qualifies_exactly_when_it_serves() {
         ],
     );
     let cohort = PlacementCohort::of(Some(&snapshot));
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
 
     let ids = |proof: &VisibilityProof, tiles: Vec<_>| {
         edge_ids_of(&edges_with(
@@ -450,7 +483,7 @@ async fn an_arrival_endpoint_qualifies_exactly_when_it_serves() {
 /// the capture-free response.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn ingress_withdrawal_kills_retained_links_at_the_next_request() {
+async fn withdrawal_kills_retained_link() {
     let (generation, atlas) = publish("delta-edges-ingress").await;
     let (vacant, _) = vacant_cell(&atlas);
     let snapshot = publishing(
@@ -459,7 +492,7 @@ async fn ingress_withdrawal_kills_retained_links_at_the_next_request() {
         &[(LOW_LINK, 0, 1), (HIGH_LINK, 0, ARRIVAL)],
     );
     let cohort = PlacementCohort::of(Some(&snapshot));
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
     let slot_wire = test_codec(&atlas).encode(slot, snapshot.universe());
     let fitted = fitted_triples(&atlas, &generation);
 
@@ -537,12 +570,12 @@ async fn ingress_withdrawal_kills_retained_links_at_the_next_request() {
 /// slot serves the whole union complete.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn the_cap_ranks_arrival_endpoints_past_every_fitted_row() {
+async fn cap_ranks_arrivals_last() {
     let (generation, atlas) = publish("delta-edges-cap").await;
     let (vacant, _) = vacant_cell(&atlas);
     let snapshot = publishing(&atlas, &[(ARRIVAL, vacant)], &[(HIGH_LINK, 0, ARRIVAL)]);
     let cohort = PlacementCohort::of(Some(&snapshot));
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
     let slot_wire = test_codec(&atlas).encode(slot, snapshot.universe());
     let fitted = fitted_triples(&atlas, &generation);
     let fitted_count = u32::try_from(fitted.len()).expect("fixture edge counts fit u32");
@@ -621,7 +654,7 @@ fn endpoint_ranks(generation: &Generation) -> (Vec<[u64; 2]>, Vec<u32>) {
 /// over the union, the same selection the bounded fold must reproduce.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_truncating_cap_admits_the_winning_delta_link() {
+async fn truncating_cap_admits_winner() {
     let (generation, atlas) = publish("delta-edges-rank-cap").await;
     let (endpoints, row_ranks) = endpoint_ranks(&generation);
     let rank_of_row = |row: usize| row_ranks[row];
@@ -703,7 +736,7 @@ async fn a_truncating_cap_admits_the_winning_delta_link() {
         "the arrival-endpoint link stays out of a selection full of fitted keys"
     );
 
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
     let slot_wire = test_codec(&atlas).encode(slot, snapshot.universe());
     let mut whole = vec![(
         node_wire(&atlas, best_seed),
@@ -740,7 +773,7 @@ async fn a_truncating_cap_admits_the_winning_delta_link() {
 /// only the completeness bit separates the two.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_full_cap_separates_refused_links_from_truncated_ones() {
+async fn full_cap_refusal_vs_truncation() {
     let (generation, atlas) = publish("delta-edges-full-cap").await;
     let (vacant, _) = vacant_cell(&atlas);
     let snapshot = publishing(&atlas, &[(ARRIVAL, vacant)], &[(HIGH_LINK, 0, ARRIVAL)]);
@@ -765,55 +798,64 @@ async fn a_full_cap_separates_refused_links_from_truncated_ones() {
     );
 }
 
-/// A store answering one split order, asserting the split and carrying one delta display.
-struct SplitOrderStore {
-    /// The distinct representative type uuids the fitted order must name, in first-occurrence
-    /// order over the delivered fitted links.
-    fitted: Vec<ArchivedOntologyTypeUuid>,
-    /// The delta identities the order must name, in delivered order.
-    delta: Vec<ArchivedEntityId>,
-    /// The display every delta identity answers.
-    display: LinkDisplay,
+/// A store answering per uuid map, asserting the one order the trailer places.
+///
+/// The expected order is the distinct representative uuids in first-occurrence order over the
+/// delivered slots, delta and fitted alike, so the assertion pins that hydration stopped
+/// splitting the arms. The order is an internal convention rather than a wire property -
+/// `Table::new` bytewise-sorts every trailer table, so the wire is order-invariant - and the
+/// assertion pins the convention the store observes.
+struct ExpectedTypesStore {
+    /// The distinct representative uuids the order must name, in first-occurrence order.
+    expected: Vec<ArchivedOntologyTypeUuid>,
+    /// The resolved URL per uuid. An unlisted uuid answers `None`.
+    urls: FastHashMap<ArchivedOntologyTypeUuid, VersionedUrl>,
 }
 
-impl EdgesStore for SplitOrderStore {
+impl EdgesStore for ExpectedTypesStore {
     #[expect(
         clippy::panic_in_result_fn,
-        reason = "the split order is the contract under test, and the assertion is its witness"
+        reason = "the merged order is the contract under test, and the assertion is its witness"
     )]
-    fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError> {
+    fn hydrate(
+        self,
+        types: &IdSlice<TypeSlot, ArchivedOntologyTypeUuid>,
+    ) -> Result<IdVec<TypeSlot, Option<VersionedUrl>>, DetailError> {
         assert_eq!(
-            order.fitted.iter().copied().collect::<Vec<_>>(),
-            self.fitted,
-            "the fitted order names the fitted links' distinct representative uuids"
-        );
-        assert_eq!(
-            order.delta, self.delta,
-            "the delta order names the delta links"
+            types.iter().copied().collect::<Vec<_>>(),
+            self.expected,
+            "the one order names the distinct representative uuids in first-occurrence order"
         );
 
-        Ok(EdgesHydration {
-            fitted: IdVec::from_elem(None, order.fitted.len()),
-            delta: order.delta.iter().map(|_| self.display.clone()).collect(),
-        })
+        Ok(types
+            .iter()
+            .map(|uuid| self.urls.get(uuid).cloned())
+            .collect())
     }
 }
 
-/// The detail trailer carries each delta display at its own slot of the merged order.
+/// The detail trailer carries each delta link's captured display at its own merged slot.
 ///
-/// The delta link's identity sorts before every fitted edge, so its label and interned type
-/// occupy the column head rather than a tail, which pins the split-and-scatter alignment. The
-/// fitted labels stay the generation's payloads, empty under the fixture's identity rewrite.
+/// The delta link's identity sorts before every fitted edge, so its captured label and interned
+/// type occupy the column head rather than a tail, and its representative uuid takes the merged
+/// order's first slot. The fitted labels stay the generation's payloads, empty under the
+/// fixture's identity rewrite.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn the_detail_trailer_scatters_delta_displays_into_the_merged_order() {
+async fn delta_display_head_slot() {
     let (generation, atlas) = publish("delta-edges-trailer").await;
-    let snapshot = publishing(&atlas, &[], &[(LOW_LINK, 0, 1)]);
-    let fitted = fitted_triples(&atlas, &generation);
     let url: VersionedUrl = "https://example.com/wired/v/1"
         .parse()
         .expect("the fixture URL parses");
+    let delta_uuid = ArchivedOntologyTypeUuid::from_url(&url);
     let wired = OwnedLabel::from("wired");
+    let snapshot = publishing_displayed(
+        &atlas,
+        &[],
+        &[(LOW_LINK, 0, 1)],
+        &(wired.clone(), delta_uuid),
+    );
+    let fitted = fitted_triples(&atlas, &generation);
 
     let mut request = edges_request(full_grid());
     request.detail = EdgesDetail::Auxiliary;
@@ -828,18 +870,16 @@ async fn the_detail_trailer_scatters_delta_displays_into_the_merged_order() {
             &request,
             EdgesLimits::default(),
             bound.view(&atlas),
-            SplitOrderStore {
-                fitted: {
+            ExpectedTypesStore {
+                expected: {
                     let rows: Vec<u32> = (0..u32::try_from(fitted.len())
                         .expect("fixture edge rows fit u32"))
                         .collect();
-                    type_expectations(&generation, &rows).2
+                    let mut expected = vec![delta_uuid];
+                    expected.extend(type_expectations(&generation, &rows).2);
+                    expected
                 },
-                delta: vec![archived_id(LOW_LINK)],
-                display: LinkDisplay {
-                    label: wired.clone(),
-                    representative_type: Some(url.clone()),
-                },
+                urls: FastHashMap::from_iter([(delta_uuid, url.clone())]),
             },
         )
         .expect("the detail request serves");
@@ -854,7 +894,7 @@ async fn the_detail_trailer_scatters_delta_displays_into_the_merged_order() {
 
     let type_table = [alloc::borrow::Cow::Owned(url.to_string())];
     let mut labels: Vec<&Label> = vec![&wired];
-    labels.extend(core::iter::repeat_n(Label::empty(), fitted.len()));
+    labels.extend(core::iter::repeat_n(Label::EMPTY, fitted.len()));
     let mut type_ids = vec![Some(crate::serve::intern::TableIndex::new(0))];
     type_ids.extend(core::iter::repeat_n(None, fitted.len()));
 
@@ -874,46 +914,6 @@ async fn the_detail_trailer_scatters_delta_displays_into_the_merged_order() {
         bytes, expected,
         "the delta display rides the head slot of the merged trailer"
     );
-}
-
-/// Answers real fitted URLs per known uuid beside one delta display, asserting the split.
-struct ResolvingSplitStore {
-    /// The resolved URL per representative uuid.
-    urls: FastHashMap<ArchivedOntologyTypeUuid, VersionedUrl>,
-    /// The distinct representative uuids the fitted order must name, in first-occurrence
-    /// order over the delivered fitted links.
-    fitted: Vec<ArchivedOntologyTypeUuid>,
-    /// The delta identities the order must name, in delivered order.
-    delta: Vec<ArchivedEntityId>,
-    /// The display every delta identity answers.
-    display: LinkDisplay,
-}
-
-impl EdgesStore for ResolvingSplitStore {
-    #[expect(
-        clippy::panic_in_result_fn,
-        reason = "the split order is the contract under test, and the assertion is its witness"
-    )]
-    fn hydrate(self, order: EdgesOrder<'_>) -> Result<EdgesHydration, DetailError> {
-        assert_eq!(
-            order.fitted.iter().copied().collect::<Vec<_>>(),
-            self.fitted,
-            "the fitted order names the distinct representative uuids in first-occurrence order"
-        );
-        assert_eq!(
-            order.delta, self.delta,
-            "the delta order names the delta links"
-        );
-
-        Ok(EdgesHydration {
-            fitted: order
-                .fitted
-                .iter()
-                .map(|uuid| self.urls.get(uuid).cloned())
-                .collect(),
-            delta: order.delta.iter().map(|_| self.display.clone()).collect(),
-        })
-    }
 }
 
 /// The fixture geometry with each edge's type cycling over the three ontology rows.
@@ -974,30 +974,36 @@ fn cycling_types_dataset() -> crate::dataset::memory::MemoryDataset {
 
 /// The trailer resolves several fitted representatives beside a delta display in one response.
 ///
-/// The cycling dataset delivers three distinct representative uuids, so the fitted order's
+/// The cycling dataset delivers three distinct representative uuids, so the merged order's
 /// dedup and first-occurrence contract are exercised beyond one uuid while the delta link's
-/// display occupies the head slot of the same merged trailer. Expected values derive from the
+/// captured display occupies the head slot of the same trailer. Expected values derive from the
 /// published artifacts alone, through [`type_expectations`].
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn compose_trailer_types() {
     let (generation, atlas) =
         super::publish_dataset("delta-edges-composed-trailer", &cycling_types_dataset()).await;
-    let snapshot = publishing(&atlas, &[], &[(LOW_LINK, 0, 1)]);
+    let delta_url: VersionedUrl = "https://example.com/wired/v/1"
+        .parse()
+        .expect("the fixture URL parses");
+    let delta_uuid = ArchivedOntologyTypeUuid::from_url(&delta_url);
+    let wired = OwnedLabel::from("wired");
+    let snapshot = publishing_displayed(
+        &atlas,
+        &[],
+        &[(LOW_LINK, 0, 1)],
+        &(wired.clone(), delta_uuid),
+    );
     let fitted = fitted_triples(&atlas, &generation);
 
     let rows: Vec<u32> =
         (0..u32::try_from(fitted.len()).expect("fixture edge rows fit u32")).collect();
-    let (urls, fitted_urls, expected_asked) = type_expectations(&generation, &rows);
+    let (mut urls, fitted_urls, expected_asked) = type_expectations(&generation, &rows);
     assert!(
         expected_asked.len() > 1,
         "the cycling dataset delivers more than one distinct representative"
     );
-
-    let delta_url: VersionedUrl = "https://example.com/wired/v/1"
-        .parse()
-        .expect("the fixture URL parses");
-    let wired = OwnedLabel::from("wired");
+    urls.insert(delta_uuid, delta_url.clone());
 
     let mut request = edges_request(full_grid());
     request.detail = EdgesDetail::Auxiliary;
@@ -1012,14 +1018,13 @@ async fn compose_trailer_types() {
             &request,
             EdgesLimits::default(),
             bound.view(&atlas),
-            ResolvingSplitStore {
-                urls,
-                fitted: expected_asked,
-                delta: vec![archived_id(LOW_LINK)],
-                display: LinkDisplay {
-                    label: wired.clone(),
-                    representative_type: Some(delta_url.clone()),
+            ExpectedTypesStore {
+                expected: {
+                    let mut expected = vec![delta_uuid];
+                    expected.extend(expected_asked);
+                    expected
                 },
+                urls,
             },
         )
         .expect("the detail request serves");
@@ -1041,7 +1046,7 @@ async fn compose_trailer_types() {
         .map(|url| url.as_ref().map(|url| table.index_of(url)))
         .collect();
     let mut labels: Vec<&Label> = vec![&wired];
-    labels.extend(core::iter::repeat_n(Label::empty(), fitted.len()));
+    labels.extend(core::iter::repeat_n(Label::EMPTY, fitted.len()));
 
     let expected = EdgesResponse {
         generation: generation.id().digest(),
@@ -1058,6 +1063,113 @@ async fn compose_trailer_types() {
     assert_eq!(
         bytes, expected,
         "the merged trailer carries each fitted representative's URL beside the delta display"
+    );
+}
+
+/// A revised fitted link's captured display reaches the edges trailer, overriding the
+/// generation legend at that edge's own slot alone.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn revised_fitted_trailer_overlay() {
+    let (generation, atlas) = publish("revised-fitted-trailer").await;
+    let fitted = fitted_triples(&atlas, &generation);
+
+    // Fitted edge row 0's identity under the rewrite rule.
+    let revised_seed = 64_u8;
+    assert_eq!(
+        archived_id(revised_seed),
+        edge_identity_of(0),
+        "the witness revises fitted edge row 0"
+    );
+
+    let captured: VersionedUrl = "https://example.com/wired/v/1"
+        .parse()
+        .expect("the fixture URL parses");
+    let captured_uuid = ArchivedOntologyTypeUuid::from_url(&captured);
+    let revised_label = OwnedLabel::from("revised");
+
+    let mut register = DeltaRegister::new(atlas.universe(), atlas.ontology_universe());
+    let event = EntityEvent::Updated(EntityUpdate {
+        entity: store_id(revised_seed),
+        edition: EntityEditionId::new(Uuid::from_u128(u128::from(revised_seed))),
+        archived: false,
+        changed_at: Timestamp::from_unix_timestamp(1),
+    });
+    register.apply(DeltaEvent::from(&event));
+    register
+        .capture_display(
+            archived_id(revised_seed),
+            EntityEditionId::new(Uuid::from_u128(u128::from(revised_seed))),
+            &revised_label,
+            captured_uuid,
+            &atlas,
+        )
+        .expect("the fixture ontology domain has room");
+    let snapshot = register.snapshot(
+        &atlas,
+        DeltaRevision::FIRST,
+        Timestamp::from_unix_timestamp(2),
+    );
+    assert!(
+        snapshot.legend_of(archived_id(revised_seed)).is_some(),
+        "publication carries the revised fitted identity's capture"
+    );
+
+    let fitted_url: VersionedUrl = fixture_type_url(2).parse().expect("the fixture URL parses");
+    let fitted_uuid = ArchivedOntologyTypeUuid::from_url(&fitted_url);
+
+    let mut request = edges_request(full_grid());
+    request.detail = EdgesDetail::Auxiliary;
+    let bound = Bound::resolved(
+        &atlas,
+        &FULL,
+        PlacementCohort::of(Some(&snapshot)),
+        CutOffset::ZERO,
+    );
+    let bytes = atlas
+        .edges(
+            &request,
+            EdgesLimits::default(),
+            bound.view(&atlas),
+            ExpectedTypesStore {
+                // The revised slot delivers first, so its captured uuid heads the merged order.
+                expected: vec![captured_uuid, fitted_uuid],
+                urls: FastHashMap::from_iter([
+                    (captured_uuid, captured.clone()),
+                    (fitted_uuid, fitted_url.clone()),
+                ]),
+            },
+        )
+        .expect("the detail request serves");
+
+    let columns = EdgeColumns::pinned(fitted.iter().copied());
+    let type_table = [
+        alloc::borrow::Cow::Owned(fitted_url.to_string()),
+        alloc::borrow::Cow::Owned(captured.to_string()),
+    ];
+    let mut labels: Vec<&Label> = vec![&revised_label];
+    labels.extend(core::iter::repeat_n(Label::EMPTY, fitted.len() - 1));
+    let mut type_ids = vec![Some(crate::serve::intern::TableIndex::new(1))];
+    type_ids.extend(core::iter::repeat_n(
+        Some(crate::serve::intern::TableIndex::new(0)),
+        fitted.len() - 1,
+    ));
+
+    let expected = EdgesResponse {
+        generation: generation.id().digest(),
+        variant: 0,
+        complete: true,
+        edges: &columns,
+        trailer: Some(EdgesTrailer {
+            type_table: IdSlice::from_raw(&type_table),
+            link_labels: IdSlice::from_raw(&labels),
+            link_type_ids: IdSlice::from_raw(&type_ids),
+        }),
+    }
+    .encode();
+    assert_eq!(
+        bytes, expected,
+        "the revised fitted link's capture overrides its legend at its own slot alone"
     );
 }
 
@@ -1083,12 +1195,12 @@ enum OracleRank {
 )]
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn the_fold_matches_the_full_sort_at_every_cap() {
+async fn fold_matches_full_sort() {
     let (generation, atlas) = publish("review-fold-differential").await;
     let (endpoints, row_ranks) = endpoint_ranks(&generation);
     let fitted = fitted_triples(&atlas, &generation);
     let (vacant, _) = vacant_cell(&atlas);
-    let slot = NodeRowId::from_u32(atlas.universe().rows());
+    let slot = NodeRowId::from_usize(atlas.universe().size());
 
     let mut rng = keyed_rng(0x243F_6A88_85A3_08D3, 0, 0);
     let mut next =
@@ -1286,7 +1398,7 @@ fn reciprocal_pairs_dataset() -> crate::dataset::memory::MemoryDataset {
 /// while every targeted witness stays green.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_rank_tie_at_the_cap_still_admits_the_better_identity() {
+async fn rank_tie_admits_better_identity() {
     let (generation, atlas) =
         super::publish_dataset("review-dense", &reciprocal_pairs_dataset()).await;
     let (endpoints, row_ranks) = endpoint_ranks(&generation);

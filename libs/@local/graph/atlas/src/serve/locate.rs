@@ -26,7 +26,7 @@ use super::{
     visibility::{ResolvedRow, VisibleRow},
 };
 use crate::{
-    dataset::auxiliary::Label,
+    dataset::auxiliary::{Label, Legend},
     identity::{BasePosition, NodeRowId},
     morton::MortonKey,
     postgres::id::ArchivedEntityId,
@@ -225,7 +225,7 @@ impl Atlas {
             |cut| cut.arrival_first_zoom(index),
         );
 
-        let [x, y] = WIRE_FRAME.quantize(row.point);
+        let [x, y] = WIRE_FRAME.quantize(row.position);
         let cell = grid::tile_of(MortonKey::new(x, y), zoom);
 
         Some(SourcePoint {
@@ -544,8 +544,9 @@ impl Atlas {
     /// `application/vnd.hash.saltile-v1`.
     ///
     /// Locate is the detail view, so the trailer always accompanies the response: `store` answers
-    /// the one hydration order this call places, and every label resolves in process from the
-    /// generation's own payloads, keyed on the answer's resolution columns.
+    /// the one hydration order this call places, and every label resolves in process - from the
+    /// generation's own payloads, or a placed arrival's placement capture - keyed on the
+    /// answer's resolution columns.
     ///
     /// # Errors
     ///
@@ -583,7 +584,7 @@ impl Atlas {
             .iter_enumerated()
             .map(|(slot, &vessel)| -> &Label {
                 if !hydration.nodes.resolved.contains(slot) {
-                    return Label::empty();
+                    return Label::EMPTY;
                 }
 
                 match vessel {
@@ -593,9 +594,11 @@ impl Atlas {
                         .expect("open validated the identity rows against the code column")
                         .label(),
                     // The generation holds no payload for an entity placed after the fit: the
-                    // label is the placement's captured display, under the same store-resolution
-                    // gate every fitted label takes.
-                    ViewRow::Arrival(index) => &document.arrivals[index].display.label,
+                    // label is the placement's captured legend, under the same store-resolution
+                    // hold every fitted label takes.
+                    ViewRow::Arrival(index) => {
+                        AsRef::<Legend>::as_ref(&document.arrivals[index].legend).label()
+                    }
                 }
             })
             .collect();
@@ -620,7 +623,7 @@ impl Atlas {
                         .label(),
                     // The incident assembly is generation-structural, so no delta origin reaches
                     // this pass, and an unresolved link reads the empty label either way.
-                    (EdgeOrigin::Fitted(_) | EdgeOrigin::Delta, _) => Label::empty(),
+                    (EdgeOrigin::Fitted(_) | EdgeOrigin::Delta, _) => Label::EMPTY,
                 },
             )
             .collect();

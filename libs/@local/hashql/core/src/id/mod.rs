@@ -169,6 +169,17 @@ pub const trait Id:
         *self = self.minus(amount);
     }
 
+    #[inline]
+    fn next(self) -> Option<Self> {
+        match self.as_u64().checked_add(1) {
+            Some(next) => match Self::try_from(next) {
+                Ok(next) => Some(next),
+                Err(_) => None,
+            },
+            None => None,
+        }
+    }
+
     /// Returns the previous ID in sequence, if it exists.
     ///
     /// Returns `None` if this ID is already at the minimum value.

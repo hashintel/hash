@@ -297,10 +297,10 @@ where
             nodes.insert(row_id);
         } else if let Some(row_id) = atlas.edge_ids.row_of(id) {
             edges.insert(row_id);
-        } else if let Some(arrival) = cohort.placed(id) {
-            nodes.insert(arrival.slot);
+        } else if let Some(arrival) = cohort.node(id) {
+            nodes.insert(arrival.id);
             placed += 1;
-        } else if cohort.link(id).is_some() {
+        } else if cohort.edge(id).is_some() {
             links.insert(id);
         } else {
             unplaced += 1;

@@ -25,7 +25,7 @@ fn codec_round_trips_every_small_universe() {
     for universe in [
         1_u32, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 48, 100, 257, 1000,
     ] {
-        let bound = codec::Universe::new(universe);
+        let bound = codec::Universe::new(ProbeRow::new(universe));
 
         let image: Vec<u32> = (0..universe)
             .map(|row| codec.encode(ProbeRow::new(row), bound).get())
@@ -53,7 +53,7 @@ fn codec_round_trips_every_small_universe() {
 #[test]
 fn codec_round_trips_a_large_universe_sample() {
     let universe = 500_000;
-    let bound = codec::Universe::new(universe);
+    let bound = codec::Universe::new(ProbeRow::new(universe));
     let codec = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
@@ -74,7 +74,7 @@ fn codec_round_trips_a_large_universe_sample() {
 #[test]
 fn codec_decodes_only_the_encoded_image() {
     let universe = 48_u32;
-    let bound = codec::Universe::new(universe);
+    let bound = codec::Universe::new(ProbeRow::new(universe));
     let codec =
         codec::RowCodec::<ProbeRow>::derive(&secret(b"secret"), codec_generation(), b"test");
     let image: HashSet<u32> = (0..universe)
@@ -105,7 +105,7 @@ fn codec_degenerate_universes_stay_closed() {
     let codec =
         codec::RowCodec::<ProbeRow>::derive(&secret(b"secret"), codec_generation(), b"test");
 
-    let empty = codec::Universe::new(0);
+    let empty = codec::Universe::new(ProbeRow::new(0));
     for wire in [0, 1, u32::MAX] {
         assert_eq!(
             codec.decode(codec::WireRow::pinned(wire), empty),
@@ -114,7 +114,7 @@ fn codec_degenerate_universes_stay_closed() {
         );
     }
 
-    let single = codec::Universe::new(1);
+    let single = codec::Universe::new(ProbeRow::new(1));
     let wire = codec.encode(ProbeRow::new(0), single);
     assert_eq!(codec.decode(wire, single), Some(ProbeRow::new(0)));
     assert_eq!(
@@ -128,13 +128,13 @@ fn codec_degenerate_universes_stay_closed() {
 fn codec_encode_rejects_out_of_universe_rows() {
     let codec =
         codec::RowCodec::<ProbeRow>::derive(&secret(b"secret"), codec_generation(), b"test");
-    _ = codec.encode(ProbeRow::new(48), codec::Universe::new(48));
+    _ = codec.encode(ProbeRow::new(48), codec::Universe::new(ProbeRow::new(48)));
 }
 
 #[test]
 fn codec_separates_secrets_generations_and_labels() {
     let universe = 4096;
-    let bound = codec::Universe::new(universe);
+    let bound = codec::Universe::new(ProbeRow::new(universe));
     let base = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
@@ -175,7 +175,7 @@ fn codec_separates_secrets_generations_and_labels() {
 #[test]
 fn codec_derivation_is_deterministic() {
     let universe = 4096;
-    let bound = codec::Universe::new(universe);
+    let bound = codec::Universe::new(ProbeRow::new(universe));
     let first = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
@@ -303,7 +303,7 @@ mod codec_reference {
 #[test]
 fn codec_agrees_with_the_spec_reference() {
     for universe in [2_u32, 3, 5, 48, 100, 257, 1025, 4096] {
-        let bound = codec::Universe::new(universe);
+        let bound = codec::Universe::new(ProbeRow::new(universe));
         let shared = secret(b"secret");
         let codec =
             codec::RowCodec::<ProbeRow>::derive(&shared, codec_generation(), codec::NODE_LABEL);
@@ -352,8 +352,8 @@ fn codec_mappings_survive_universe_growth() {
         codec_generation(),
         codec::NODE_LABEL,
     );
-    let small = codec::Universe::new(1_000);
-    let grown = codec::Universe::new(500_000);
+    let small = codec::Universe::new(ProbeRow::new(1_000));
+    let grown = codec::Universe::new(ProbeRow::new(500_000));
 
     for row in 0..1_000 {
         let wire = codec.encode(ProbeRow::new(row), small);
@@ -381,7 +381,7 @@ fn codec_mappings_survive_universe_growth() {
 #[test]
 fn codec_stays_injective_at_scale() {
     let universe = 300_000;
-    let bound = codec::Universe::new(universe);
+    let bound = codec::Universe::new(ProbeRow::new(universe));
     let codec = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
@@ -411,7 +411,7 @@ fn codec_wire_ids_estimate_the_full_range_never_the_universe() {
 
     let mut block_total = 0_u64;
     let mut spread_total = 0_u64;
-    let bound = codec::Universe::new(universe);
+    let bound = codec::Universe::new(ProbeRow::new(universe));
     for trial in 0..trials {
         let seed = trial.to_le_bytes();
         let codec = codec::RowCodec::<ProbeRow>::derive(

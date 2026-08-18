@@ -72,24 +72,41 @@ pub(crate) const NODE_LABEL: &[u8] = b"atlas.wire.node.v1";
 /// reached, so the accepted set is a fact about one snapshot rather than about the generation. A
 /// caller resolves one value and reads it at every encode and decode in one answer.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct Universe(u32);
+pub(crate) struct Universe<N>(N);
 
-impl Universe {
+impl<N> Universe<N>
+where
+    N: Id,
+{
     /// Bounds the universe at `rows`.
     #[must_use]
-    pub(crate) const fn new(rows: u32) -> Self {
+    pub(crate) const fn new(rows: N) -> Self {
         Self(rows)
     }
 
     /// Returns the exclusive row bound.
     #[must_use]
-    pub(crate) const fn rows(self) -> u32 {
-        self.0
+    pub(crate) const fn size(self) -> usize
+    where
+        N: [const] Id,
+    {
+        self.0.as_usize()
+    }
+
+    pub(crate) const fn grow(self) -> Option<(Self, N)>
+    where
+        N: [const] Id,
+    {
+        let next = self.0.next()?;
+        Some((Self(next), self.0))
     }
 
     /// Returns whether `row` lies inside the universe.
-    pub(crate) const fn admits(self, row: u32) -> bool {
-        row < self.0
+    pub(crate) const fn contains(self, id: N) -> bool
+    where
+        N: [const] PartialOrd,
+    {
+        id < self.0
     }
 }
 
@@ -199,23 +216,22 @@ where
     ///
     /// This panics when `row` lies outside `universe`. Encoding is a producer contract, so an
     /// out-of-universe row upstream is a defect in the caller rather than input to reject.
-    pub(crate) fn encode(&self, row: I, universe: Universe) -> WireRow<I> {
-        let row = row.as_u32();
+    pub(crate) fn encode(&self, row: I, universe: Universe<I>) -> WireRow<I> {
         assert!(
-            universe.admits(row),
+            universe.contains(row),
             "the codec encodes rows of the caller's universe",
         );
 
-        WireRow(self.permute(row), PhantomData)
+        WireRow(self.permute(row.as_u32()), PhantomData)
     }
 
     /// Decodes a wire value back to its internal row id, [`None`] outside the image of `universe`.
     ///
     /// [`None`] is the single out-of-image answer; ingress resolution collapses it with every other
     /// lookup failure before a response can observe the cause.
-    pub(crate) fn decode(&self, wire: WireRow<I>, universe: Universe) -> Option<I> {
-        let row = self.unpermute(wire.get());
-        universe.admits(row).then_some(I::from_u32(row))
+    pub(crate) fn decode(&self, wire: WireRow<I>, universe: Universe<I>) -> Option<I> {
+        let row = I::from_u32(self.unpermute(wire.get()));
+        universe.contains(row).then_some(row)
     }
 
     /// Applies the Feistel network once over the `u32` range.

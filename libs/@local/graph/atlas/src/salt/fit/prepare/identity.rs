@@ -330,7 +330,7 @@ mod tests {
     use super::{IdentityTable, IdentityTableArchive, InvalidIdentityFile};
     use crate::{
         dataset::{
-            auxiliary::{Icon, OwnedLegend},
+            auxiliary::{Icon, Label, OwnedLegend},
             memory::{MemoryNodeId, MemoryOntologyId},
         },
         file::{
@@ -354,7 +354,7 @@ mod tests {
 
     /// Owns `text` as a legend representing ontology row 0.
     fn legend(text: &str) -> OwnedLegend {
-        OwnedLegend::new(OntologyRowId::new(0), text)
+        OwnedLegend::new(OntologyRowId::new(0), Label::new(text))
     }
 
     // Ids in row order; ascending id-byte order is rows 2, 0, 1.

@@ -22,29 +22,6 @@ use super::{
 };
 use crate::dataset::{auxiliary::OwnedLabel, postgres::PostgresDatasetError};
 
-/// The display payload of one entity edition, as the store states it.
-///
-/// The label is the edition's cached display text, empty when the cache holds none. The
-/// representative type is the edition's representative cached type as a store uuid rather than
-/// a generation ordinal, because an edition written after a fit can carry a type no generation
-/// tabulated. Resolving
-/// the uuid against a generation's type table is the holder's step, and a miss there means the
-/// edition displays no icon under that generation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct EditionDisplay {
-    /// The cached display text, empty when the edition carries none.
-    pub label: OwnedLabel,
-    /// The representative cached type's ontology uuid, [`None`] when the cache resolves none.
-    pub representative_type: Option<ArchivedOntologyTypeUuid>,
-}
-
-impl EditionDisplay {
-    /// Returns the display's retained heap in bytes: the label's text, exactly.
-    pub(crate) fn heap_bytes(&self) -> usize {
-        AsRef::<str>::as_ref(&*self.label).len()
-    }
-}
-
 /// The column of the unnested edition requests, introduced by [`edition_requests`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum EditionRequest {
@@ -163,22 +140,29 @@ pub(crate) fn edition_display_statement(
 
 /// Decodes one edition-display row.
 ///
-/// An edition without a cache row, and one whose cache holds no label, both decode as the empty
-/// label, the disposition a fitted row's legend shares.
+/// A row without a resolved representative type decodes as [`None`], so the caller's next read
+/// cycle retries it: the register turns the representative into its ontology row, and an absent
+/// representative leaves nothing to resolve. A row whose cache holds no label carries the empty
+/// label, the value a label-less fitted legend carries.
 pub(crate) fn decode_edition_display(
     row: &Row,
     columns: &EditionDisplayColumns,
-) -> Result<(EntityEditionId, EditionDisplay), PostgresDatasetError> {
-    let edition: Uuid = row.try_get(columns.edition)?;
+) -> Result<
+    (
+        EntityEditionId,
+        Option<(OwnedLabel, ArchivedOntologyTypeUuid)>,
+    ),
+    PostgresDatasetError,
+> {
+    let edition: EntityEditionId = row.try_get(columns.edition)?;
     let label: Option<String> = row.try_get(columns.label)?;
-    let representative_type: Option<Uuid> = row.try_get(columns.representative_type)?;
+    let representative: Option<Uuid> = row.try_get(columns.representative_type)?;
+    let representative = representative.map(ArchivedOntologyTypeUuid::from);
 
     Ok((
-        EntityEditionId::new(edition),
-        EditionDisplay {
-            label: OwnedLabel::from(label.unwrap_or_default()),
-            representative_type: representative_type.map(ArchivedOntologyTypeUuid::from),
-        },
+        edition,
+        representative
+            .map(|representative| (OwnedLabel::from(label.unwrap_or_default()), representative)),
     ))
 }
 

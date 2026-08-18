@@ -150,12 +150,12 @@ fn hand_cascade_places_arrivals_by_the_same_law() {
             web_id: uuid::Uuid::from_u128(0xAB).into(),
             entity_uuid: uuid::Uuid::from_u128(u128::from(index) + 1).into(),
         },
-        point: crate::math::Vec2::new(0.25, -0.5),
+        position: crate::math::Vec2::new(0.25, -0.5),
         wire: crate::serve::WireRow::pinned(index),
-        display: crate::postgres::EditionDisplay {
-            label: crate::dataset::auxiliary::OwnedLabel::from("arrival"),
-            representative_type: None,
-        },
+        legend: crate::dataset::auxiliary::OwnedLegend::new(
+            crate::identity::OntologyRowId::new(0),
+            crate::dataset::auxiliary::Label::new("arrival"),
+        ),
     };
 
     let rows = vec![
@@ -223,8 +223,11 @@ fn hand_cascade_places_arrivals_by_the_same_law() {
     assert_eq!(cut.bucket_of(BasePosition::new(0)), Some(Depth::MIN));
     assert_eq!(cut.arrivals().len(), 2);
     assert_eq!(
-        cut.arrivals()[ArrivalIndex::from_u32(0)].display.label,
-        crate::dataset::auxiliary::OwnedLabel::from("arrival")
+        AsRef::<crate::dataset::auxiliary::Legend>::as_ref(
+            &cut.arrivals()[ArrivalIndex::from_u32(0)].legend
+        )
+        .label(),
+        crate::dataset::auxiliary::Label::new("arrival")
     );
 }
 

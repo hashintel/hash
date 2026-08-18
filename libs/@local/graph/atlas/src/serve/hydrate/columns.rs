@@ -136,7 +136,7 @@ impl<'details> NodeDetails<'details> {
     #[must_use]
     pub(crate) fn empty(count: usize) -> Self {
         Self {
-            labels: vec![Label::empty(); count],
+            labels: vec![Label::EMPTY; count],
             icons: vec![Icon::empty(); count],
         }
     }
@@ -218,7 +218,7 @@ impl<'details> LocateNodeDetails<'details> {
     #[must_use]
     pub(crate) fn empty(count: usize) -> Self {
         Self {
-            labels: IdVec::from_elem(Label::empty(), count),
+            labels: IdVec::from_elem(Label::EMPTY, count),
             type_urls: IdVec::from_elem(Vec::new(), count),
             source_properties: None,
             source_properties_complete: false,
@@ -299,7 +299,7 @@ impl<'details> LocateLinkDetails<'details> {
     #[must_use]
     pub(crate) fn empty(count: usize) -> Self {
         Self {
-            labels: IdVec::from_elem(Label::empty(), count),
+            labels: IdVec::from_elem(Label::EMPTY, count),
             type_urls: IdVec::from_elem(Vec::new(), count),
             type_urls_complete: DenseBitSlice::new_empty(count),
             properties: IdVec::from_elem(None, count),
@@ -367,7 +367,7 @@ impl<'details> EdgeLinkDetails<'details> {
     #[must_use]
     pub(crate) fn empty(count: usize) -> Self {
         Self {
-            labels: IdVec::from_elem(Label::empty(), count),
+            labels: IdVec::from_elem(Label::EMPTY, count),
             representative_type_urls: IdVec::from_elem(None, count),
         }
     }

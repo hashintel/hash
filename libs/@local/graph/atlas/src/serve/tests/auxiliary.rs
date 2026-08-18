@@ -172,7 +172,10 @@ fn displaying_dataset() -> MemoryDataset {
     let mut dataset = MemoryDataset::new(nodes, edges, ontology, canonical, cards);
     for (row, legend) in dataset.node_legends.iter_mut().enumerate() {
         let row = u32::try_from(row).expect("fixture counts fit u32");
-        *legend = OwnedLegend::new(legend.representative_ontology(), &expected_label(row));
+        *legend = OwnedLegend::new(
+            legend.representative_ontology(),
+            Label::new(&expected_label(row)),
+        );
     }
     dataset.ontology_icons = ICONS.iter().map(|&icon| OwnedIcon::from(icon)).collect();
 

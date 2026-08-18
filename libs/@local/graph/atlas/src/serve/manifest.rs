@@ -135,6 +135,14 @@ pub(crate) struct ScopeCutSchedule {
     /// The rule by which zoom `z` delivers scope buckets at or below `z + span + k`.
     #[schemars(with = "String")]
     pub cut: BucketCut,
+    /// The deepest zoom at which this scope's schedule still delivers new points.
+    ///
+    /// The resolved view's deepest occupied bucket, carried through the cut rule and clamped to
+    /// the grid: past this zoom every tile repeats content the caller has already accumulated.
+    /// The value describes the fitted view at resolution. Post-fit arrivals can deepen the live
+    /// answer inside the feed's freshness bound, and the root tile's `minResolution` stays the
+    /// authority a session reads mid-flight.
+    pub max_zoom: u8,
 }
 
 /// The cut rule of the manifest's `bucketSchedule.cut` key.
@@ -169,7 +177,16 @@ impl Atlas {
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
     )]
-    pub(crate) fn manifest(&self, limits: ManifestLimits, k: CutOffset) -> Manifest {
+    ///
+    /// `deepest_occupied` is the resolved view's deepest occupied bucket - the scope cascade's
+    /// for a restricted caller, the corpus census's for an operator - and zero for an empty
+    /// view. `scopeSchedule.maxZoom` derives from it through the cut rule.
+    pub(crate) fn manifest(
+        &self,
+        limits: ManifestLimits,
+        k: CutOffset,
+        deepest_occupied: u64,
+    ) -> Manifest {
         // Timestamps serialize as ISO-8601 strings; anything else
         // degrades to an absent `createdAt` rather than panicking a
         // read path.
@@ -200,6 +217,14 @@ impl Atlas {
                 cut: BucketCut {
                     span_log2: self.grid.span_log2() + k.get(),
                 },
+                // Bucket `b` first enters at zoom `b - span - k`, and the deepest served tile
+                // bounds the answer: binding proves the catch-all inverts to `max_tile_depth`.
+                max_zoom: u8::try_from(
+                    deepest_occupied
+                        .saturating_sub(u64::from(self.grid.span_log2()) + u64::from(k.get()))
+                        .min(u64::from(self.grid.max_tile_depth())),
+                )
+                .expect("the minimum against a `u8` bound fits `u8`"),
             },
             limits,
             created_at,

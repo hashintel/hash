@@ -118,7 +118,7 @@ const manifestBody = (
   wireVersion: 1,
   variants: ["plain"],
   bucketSchedule: { span: 64, cut: "z+6", maxZoom },
-  scopeSchedule: { k: scopeOffset, cut: `z+${6 + scopeOffset}` },
+  scopeSchedule: { k: scopeOffset, cut: `z+${6 + scopeOffset}`, maxZoom },
   limits: {
     coloredTypeIds: 8,
     edgesTiles: 32,

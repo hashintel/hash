@@ -99,21 +99,34 @@ pub(crate) struct OwnedLegend(Box<Legend>);
 
 impl OwnedLegend {
     /// Creates the legend pairing `representative` with `label`.
-    pub(crate) fn new(representative: OntologyRowId, label: &str) -> Self {
+    pub(crate) fn new(representative: OntologyRowId, label: &Label) -> Self {
         let mut boxed = Legend::new_box_zeroed_with_elems(label.len())
             .expect("a label's length fits the allocator's limits");
         boxed.representative_ontology = representative;
 
-        // SAFETY: the write copies the bytes of a valid `&str` whole, so the field holds
+        // SAFETY: the write copies the bytes of a valid `&Label` whole, so the field holds
         // valid UTF-8 when the borrow ends.
         unsafe { boxed.label.0.as_bytes_mut() }.copy_from_slice(label.as_bytes());
         Self(boxed)
+    }
+
+    /// Returns the legend's retained heap in bytes: the representative header and the label text.
+    pub(crate) fn heap_bytes(&self) -> u64 {
+        size_of_val(&*self.0) as u64
     }
 }
 
 impl Clone for OwnedLegend {
     fn clone(&self) -> Self {
         Self(Box::clone_from_ref(&self.0))
+    }
+}
+
+const impl Deref for OwnedLegend {
+    type Target = Legend;
+
+    fn deref(&self) -> &Legend {
+        &self.0
     }
 }
 
@@ -125,14 +138,6 @@ impl AsRef<Legend> for OwnedLegend {
 
 impl Borrow<Legend> for OwnedLegend {
     fn borrow(&self) -> &Legend {
-        &self.0
-    }
-}
-
-impl Deref for OwnedLegend {
-    type Target = Legend;
-
-    fn deref(&self) -> &Legend {
         &self.0
     }
 }
@@ -155,6 +160,9 @@ impl Deref for OwnedLegend {
 pub(crate) struct Label(str);
 
 impl Label {
+    /// The empty label, the display of a row that has none.
+    pub(crate) const EMPTY: &'static Self = Self::new("");
+
     /// Views `text` as a label, in place.
     pub(crate) const fn new(text: &str) -> &Self {
         let ptr = &raw const *text;
@@ -165,12 +173,6 @@ impl Label {
         // provenance of `text`. The target is therefore a live, validly initialized `Label` whose
         // borrow is `text`'s.
         unsafe { &*ptr }
-    }
-
-    pub(crate) const fn empty() -> &'static Self {
-        const EMPTY: &Label = Label::new("");
-
-        EMPTY
     }
 }
 
@@ -186,13 +188,21 @@ unsafe impl CloneToUninit for Label {
     }
 }
 
-impl AsRef<str> for Label {
+const impl Deref for Label {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+const impl AsRef<str> for Label {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
 
-impl PartialEq<str> for Label {
+const impl PartialEq<str> for Label {
     fn eq(&self, other: &str) -> bool {
         &self.0 == other
     }
@@ -343,7 +353,7 @@ mod tests {
     #[test]
     fn legend_payload_reads_validate() {
         let representative = OntologyRowId::from_usize(7);
-        let owned = OwnedLegend::new(representative, "naïve 🦀");
+        let owned = OwnedLegend::new(representative, Label::new("naïve 🦀"));
         let legend: &Legend = owned.as_ref();
         assert_eq!(legend.representative_ontology(), representative);
         assert_eq!(legend.label(), "naïve 🦀");
@@ -362,7 +372,7 @@ mod tests {
             Legend::try_ref_from_bytes(&bytes[..len]).expect_err("shorter than the header");
         }
 
-        let empty = OwnedLegend::new(representative, "");
+        let empty = OwnedLegend::new(representative, Label::new(""));
         assert_eq!(empty.as_ref().as_bytes().len(), 8);
         assert_eq!(empty.as_ref().label(), "");
 

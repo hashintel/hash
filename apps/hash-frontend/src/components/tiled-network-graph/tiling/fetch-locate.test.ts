@@ -40,7 +40,7 @@ const manifestBody = (generation: string): unknown => ({
   wireVersion: 1,
   variants: ["plain"],
   bucketSchedule: { span: 64, cut: "z+6", maxZoom: 16 },
-  scopeSchedule: { k: 0, cut: "z+6" },
+  scopeSchedule: { k: 0, cut: "z+6", maxZoom: 16 },
   limits: {
     coloredTypeIds: 8,
     edgesTiles: 32,

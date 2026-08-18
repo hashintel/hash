@@ -65,7 +65,6 @@
 //! - [`edition_display`] reads display payloads keyed by immutable edition.
 //! - [`embeddings`] reads stored embeddings at canonical or projector width.
 //! - [`legends`] streams display legends positioned against the corpus.
-//! - [`link_display`] reads display payloads for live link identities.
 //! - [`node_types`] reads direct types as type-table ordinals.
 //! - [`ontology`] reads supertype lists and inherited icons over the type table.
 //! - [`card`] gathers the store facts behind card rendering.
@@ -85,7 +84,6 @@ pub(crate) mod edition_display;
 pub(crate) mod embeddings;
 pub(crate) mod id;
 pub(crate) mod legends;
-pub(crate) mod link_display;
 pub(crate) mod node_types;
 pub(crate) mod ontology;
 pub(crate) mod requests;
@@ -98,13 +96,12 @@ use tokio_postgres::GenericClient as _;
 use type_system::knowledge::entity::id::EntityEditionId;
 use uuid::Uuid;
 
-use self::id::ArchivedEntityId;
-pub(crate) use self::{
-    card::CardParameters, classification::Classification, edition_display::EditionDisplay,
-    link_display::LinkDisplay,
-};
+use self::id::{ArchivedEntityId, ArchivedOntologyTypeUuid};
+pub(crate) use self::{card::CardParameters, classification::Classification};
 use crate::{
-    dataset::{PROJECTOR_DIMENSIONS, TemporalAxes, postgres::PostgresDatasetError},
+    dataset::{
+        PROJECTOR_DIMENSIONS, TemporalAxes, auxiliary::OwnedLabel, postgres::PostgresDatasetError,
+    },
     math::BoxedVecN,
 };
 
@@ -176,8 +173,9 @@ pub(crate) async fn read_projector_embeddings(
 ///
 /// One batched read per call, keyed by edition rather than identity, because a placement records
 /// the edition whose data it captured and an edition id names one immutable row. Every requested
-/// edition answers exactly once. An edition without a cache row answers the empty label and no
-/// type, the disposition a fitted row's legend shares.
+/// edition answers exactly once. An edition without a resolved representative type answers
+/// [`None`], and one whose cache holds no label answers the empty label beside its
+/// representative, the value a label-less fitted legend carries.
 ///
 /// # Errors
 ///
@@ -185,7 +183,13 @@ pub(crate) async fn read_projector_embeddings(
 pub(crate) async fn read_edition_displays(
     store: &impl AsClient,
     editions: impl Iterator<Item = EntityEditionId>,
-) -> Result<Vec<(EntityEditionId, EditionDisplay)>, PostgresDatasetError> {
+) -> Result<
+    Vec<(
+        EntityEditionId,
+        Option<(OwnedLabel, ArchivedOntologyTypeUuid)>,
+    )>,
+    PostgresDatasetError,
+> {
     let edition_ids: Vec<Uuid> = editions.map(|edition| *edition.as_uuid()).collect();
     let statement = edition_display::edition_display_statement(&edition_ids);
 
@@ -197,34 +201,5 @@ pub(crate) async fn read_edition_displays(
 
     rows.iter()
         .map(|row| edition_display::decode_edition_display(row, &statement.columns))
-        .collect()
-}
-
-/// Reads each requested link identity's display payload: its current edition's cached label and
-/// representative cached type as a versioned URL.
-///
-/// One batched read per call, at axes taken at the call itself, so the payloads describe the
-/// store as it stands rather than any fit's frozen view. The answers arrive keyed by identity,
-/// and the caller counts them against its requests. An identity the read answers nothing about
-/// resolved to no current edition at the read's axes.
-///
-/// # Errors
-///
-/// Returns [`PostgresDatasetError`] when the store rejects the read or a row does not decode.
-pub(crate) async fn read_link_displays(
-    store: &impl AsClient,
-    ids: impl Iterator<Item = ArchivedEntityId>,
-) -> Result<Vec<(ArchivedEntityId, LinkDisplay)>, PostgresDatasetError> {
-    let (web_ids, entity_uuids) = requests::request_arrays(ids);
-    let axes = TemporalAxes::now();
-    let statement = link_display::link_display_statement(&axes, &web_ids, &entity_uuids);
-
-    let rows = store
-        .as_client()
-        .query(&statement.sql, &statement.parameters)
-        .await?;
-
-    rows.iter()
-        .map(|row| link_display::decode_link_display(row, &statement.columns))
         .collect()
 }

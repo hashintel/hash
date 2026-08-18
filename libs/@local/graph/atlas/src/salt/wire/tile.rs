@@ -115,7 +115,7 @@ impl TileResponse<'_> {
         for row in self.delivered {
             let point = match row {
                 ViewRow::Base(position) => self.positions[position],
-                ViewRow::Arrival(index) => self.arrivals[index].point,
+                ViewRow::Arrival(index) => self.arrivals[index].position,
             };
             column.extend_from_slice(&point.x().to_le_bytes());
             column.extend_from_slice(&point.y().to_le_bytes());
@@ -471,8 +471,9 @@ impl GlobalHead {
 
 /// The tile detail trailer.
 ///
-/// Labels and icons from the generation's own payloads, delivered order, `null` marking a row the
-/// generation records no text for.
+/// Labels and icons from the generation's own payloads - a placed arrival's label from its
+/// placement's captured display - delivered order, `null` marking a row whose display records
+/// no text.
 #[derive(Debug)]
 pub(crate) struct TileTrailer<'trailer> {
     /// Trailer key 0.

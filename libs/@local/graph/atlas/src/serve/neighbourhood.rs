@@ -155,9 +155,10 @@ enum EndpointRank {
 
 /// The provenance behind one delivered edge: the hydration key.
 ///
-/// A fitted edge hydrates its label from the generation payload its row addresses. Delta edges
-/// hold no generation row, so their display hydrates from the live store by the identity the
-/// `EDGE_IDS` column already carries.
+/// Both origins resolve their display in process, captured display first. A fitted edge falls
+/// back to the generation payload its row addresses while a delta edge holds no generation row
+/// and always answers from its captured display keyed by the identity the `EDGE_IDS` column
+/// already carries.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum EdgeOrigin {
     /// A generation edge row.
@@ -194,7 +195,7 @@ impl EdgeColumns {
     /// encodes to the same bytes under either bound.
     pub(super) fn of(
         codec: &RowCodec<NodeRowId>,
-        universe: Universe,
+        universe: Universe<NodeRowId>,
         edges: &[(ServedEdge, ArchivedEntityId)],
     ) -> Self {
         let mut columns = Self {
@@ -421,11 +422,11 @@ impl<'atlas> Neighbourhood<'atlas> {
                     if ingress.is_some_and(|delta| delta.withdraws(row.identity)) {
                         continue;
                     }
-                    let Some(placed) = cohort.placed(row.identity) else {
+                    let Some(node) = cohort.node(row.identity) else {
                         continue;
                     };
 
-                    map.insert(row.identity, placed.slot);
+                    map.insert(row.identity, node.id);
                 }
 
                 map
@@ -448,7 +449,7 @@ impl<'atlas> Neighbourhood<'atlas> {
             )
         };
 
-        for (identity, link) in cohort.links() {
+        for (identity, link) in cohort.edges() {
             if !self.proof.admits_delta_link(identity) {
                 continue;
             }

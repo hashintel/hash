@@ -12,9 +12,10 @@ use crate::{
     api,
     file::generation::{CurrentError, GenerationRoot},
     serve::{
-        Atlas, DeltaCell, DeltaConsumer, DeltaEpoch, DeltaPolling, EdgesLimits, EmbeddingEnsure,
-        GraphDatabaseClient, LocateLimits, OpenAtlasError, OpenOptions, PlacementError,
-        ServeLimits, StagingArm, TileLimits, TranslateLimits, VisibilityLimits, WireSecret,
+        Atlas, DeltaCell, DeltaConsumer, DeltaEpoch, DeltaPolling, DeltaRegister, EdgesLimits,
+        EmbeddingEnsure, GraphDatabaseClient, LocateLimits, OpenAtlasError, OpenOptions,
+        PlacementError, ServeLimits, StagingArm, TileLimits, TranslateLimits, VisibilityLimits,
+        WireSecret,
     },
 };
 
@@ -336,7 +337,7 @@ impl ServeCommand {
                 Arc::clone(&atlas),
                 Arc::clone(&cell),
                 fitted,
-                atlas.universe(),
+                DeltaRegister::new(atlas.universe(), atlas.ontology_universe()),
                 polling,
                 placements_rx,
             );

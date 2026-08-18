@@ -12,7 +12,7 @@ use zerocopy::{LE, U64};
 pub(crate) use self::id::{MemoryEdgeId, MemoryNodeId, MemoryOntologyId};
 use super::{
     CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, TemporalAxes,
-    auxiliary::{OwnedIcon, OwnedLegend},
+    auxiliary::{Label, OwnedIcon, OwnedLegend},
     card::Card,
 };
 use crate::math::BoxedVecN;
@@ -23,7 +23,7 @@ use crate::math::BoxedVecN;
 fn default_legend(ontology: &[OntologyRowId]) -> OwnedLegend {
     OwnedLegend::new(
         ontology.first().copied().unwrap_or(OntologyRowId::new(0)),
-        "",
+        Label::EMPTY,
     )
 }
 

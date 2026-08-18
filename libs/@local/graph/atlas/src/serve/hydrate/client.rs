@@ -48,12 +48,10 @@ use super::{
     columns::{EdgeSlot, NodeSlot, ScalarValue},
     order::{LocateLinkHydration, LocateNodeHydration},
     statements::{DetailColumns, TypeColumns, TypeUrlColumns, identity_filter},
-    type_urls::ResolveTypeUrls,
+    type_urls::TypeUrlResolver,
 };
 use crate::{
-    bitset::DenseBitSlice,
-    dataset::postgres::PostgresDatasetError,
-    postgres::{LinkDisplay, id::ArchivedEntityId, read_link_displays},
+    bitset::DenseBitSlice, dataset::postgres::PostgresDatasetError, postgres::id::ArchivedEntityId,
 };
 
 /// The resolved actor one hydration masks properties for.
@@ -375,37 +373,9 @@ impl GraphDatabaseClient {
             properties_complete,
         })
     }
-
-    /// Answers each delta link's display payload: its current edition's cached label and first
-    /// cached type as a versioned URL.
-    ///
-    /// Identities the store no longer resolves answer the empty label and no type. The read
-    /// touches no property value, so it takes no masking actor.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`DetailError`] when the store rejects the query.
-    #[tracing::instrument(skip_all, fields(links = ids.len()))]
-    pub(crate) async fn link_display_hydration(
-        &self,
-        ids: &[ArchivedEntityId],
-    ) -> Result<Vec<LinkDisplay>, DetailError> {
-        if ids.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let connection = self.connection().await?;
-        let answers = read_link_displays(&connection, ids.iter().copied()).await?;
-
-        let mut lookup: FastHashMap<ArchivedEntityId, LinkDisplay> = answers.into_iter().collect();
-        Ok(ids
-            .iter()
-            .map(|id| lookup.remove(id).unwrap_or_else(LinkDisplay::empty))
-            .collect())
-    }
 }
 
-impl ResolveTypeUrls for GraphDatabaseClient {
+impl TypeUrlResolver for GraphDatabaseClient {
     /// Reads each requested type's versioned URL from the store's ontology records.
     ///
     /// The read carries no temporal condition. A type uuid derives from the URL it names, so any

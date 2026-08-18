@@ -52,7 +52,7 @@ use alloc::sync::Arc;
 use std::sync::OnceLock;
 
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-use hashql_core::id::{IdSlice, IdVec};
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 
 pub use self::{
     cache::scope::VisibilityLimits, delta::staging::EmbeddingEnsure, locate::LocateLimits,
@@ -61,7 +61,7 @@ pub use self::{
 pub(crate) use self::{
     codec::{Universe, WireRow},
     delta::{
-        DeltaCell, DeltaEpoch, DeltaSnapshot, PlacementCohort, PlacementError,
+        DeltaCell, DeltaEpoch, DeltaRegister, DeltaSnapshot, PlacementCohort, PlacementError,
         consumer::{DeltaConsumer, DeltaPolling},
         staging::StagingArm,
     },
@@ -246,7 +246,7 @@ pub(crate) struct Atlas {
     ///
     /// The bound before any delta, which the slot allocator starts past and a delta snapshot
     /// widens. A request answering with no snapshot reads this value at every encode and decode.
-    universe: Universe,
+    universe: Universe<NodeRowId>,
     /// The wire row-id column in base order.
     ///
     /// The row column mapped through the node codec once at open, so position-driven gathers
@@ -297,8 +297,14 @@ impl Atlas {
 
     /// Returns the generation's base row universe, the bound before any delta.
     #[must_use]
-    pub(crate) const fn universe(&self) -> Universe {
+    pub(crate) const fn universe(&self) -> Universe<NodeRowId> {
         self.universe
+    }
+
+    /// Returns the generation's ontology row universe, the tabulated types' bound.
+    #[must_use]
+    pub(crate) fn ontology_universe(&self) -> Universe<OntologyRowId> {
+        Universe::new(OntologyRowId::from_u64(self.ontology_ids.len()))
     }
 
     /// Opens the generation's publish path for placing arrivals online.
@@ -387,5 +393,9 @@ impl delta::IdentityTables for Atlas {
 
     fn edge_row_of(&self, id: ArchivedEntityId) -> Option<EdgeRowId> {
         self.edge_ids.row_of(id)
+    }
+
+    fn ontology_row_of(&self, id: ArchivedOntologyTypeUuid) -> Option<OntologyRowId> {
+        self.ontology_ids.row_of(id)
     }
 }

@@ -1,8 +1,9 @@
 //! Live store reads that hydrate detail for delivered points and edges.
 //!
 //! Detail hydrates properties and type references at request time from Postgres, inline in the
-//! trailer. Labels are generation payloads materialized during fitting, so a later label edit does
-//! not change an existing generation.
+//! trailer. Labels never ride these reads. Edges resolves them in process - the server's captured
+//! displays first, the generation's payloads otherwise - while tile and locate serve generation
+//! payloads plus each placed arrival's placement capture.
 //!
 //! # What a trailer carries
 //!
@@ -24,11 +25,13 @@
 //! value materialized per edition. The store derives `entity_edition_cache.labels[1]` from the
 //! whole properties object through the type's `labelProperty` path, with no actor in the
 //! derivation, so a type whose label property the deployment protects keeps that value in its label
-//! column. Fitting copies that value into the generation's identity tables. Locate and edges read
-//! those generation payloads while hydration determines whether an entity still resolves and which
-//! live type references and properties may leave the store. The locate responses also name the base
-//! URL behind the label, which states that the entity has a value at that path without delivering
-//! it.
+//! column. Fitting copies that value into the generation's identity tables, and the server's
+//! captured displays carry the same statement-shared spelling for later editions. Locate reads the
+//! generation payloads plus each placed arrival's placement capture, and edges reads
+//! captured-display-first, while hydration determines whether an entity still resolves and which
+//! live type references and properties may leave the store. The
+//! locate responses also name the base URL behind the label, which states that the entity has a
+//! value at that path without delivering it.
 //!
 //! The locate and edges responses deliver type *references* instead of rendered type display. Each
 //! entity's direct types read from `entity_edition_cache.versioned_urls`, and the client resolves
@@ -72,6 +75,6 @@ pub(crate) use self::{
         DeliveredNodes, EdgeLinkDetails, EdgeSlot, LocateLinkDetails, LocateNodeDetails,
         NodeDetails, NodeSlot, ScalarValue, TypeSlot,
     },
-    order::{EdgesHydration, EdgesOrder, EdgesStore, LocateHydration, LocateOrder, LocateStore},
-    type_urls::{CachedHydrate, ResolveTypeUrls},
+    order::{EdgesStore, LocateHydration, LocateOrder, LocateStore},
+    type_urls::{CachedTypeUrlResolver, TypeUrlResolver},
 };

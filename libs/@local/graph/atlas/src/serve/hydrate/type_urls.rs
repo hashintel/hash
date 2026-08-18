@@ -19,7 +19,7 @@ use type_system::ontology::{VersionedUrl, id::OntologyTypeUuid};
 use super::client::DetailError;
 
 /// The capability to resolve ontology type uuids to their versioned URLs.
-pub(crate) trait ResolveTypeUrls {
+pub(crate) trait TypeUrlResolver {
     /// Resolves the uuids the source knows among `types`, as uuid-URL pairs.
     ///
     /// A uuid the source does not know is absent from the answer rather than an error, so a
@@ -42,9 +42,9 @@ pub(crate) trait ResolveTypeUrls {
     ) -> Result<Vec<(OntologyTypeUuid, VersionedUrl)>, DetailError>;
 }
 
-impl<T> ResolveTypeUrls for Arc<T>
+impl<T> TypeUrlResolver for Arc<T>
 where
-    T: ResolveTypeUrls + Send + Sync,
+    T: TypeUrlResolver,
 {
     async fn resolve(
         &self,
@@ -60,14 +60,14 @@ where
 /// again. An unresolved uuid stays uncached on purpose: deriving uuids from URLs means a
 /// re-created type resurrects under its old uuid, so absence is re-asked on every call rather
 /// than remembered.
-pub(crate) struct CachedHydrate<T> {
+pub(crate) struct CachedTypeUrlResolver<T> {
     /// The cache-oblivious source answering the uuids the cache does not hold.
     inner: T,
     /// Every pair any resolution ever answered.
     known: RwLock<FastHashMap<OntologyTypeUuid, VersionedUrl>>,
 }
 
-impl<T> CachedHydrate<T> {
+impl<T> CachedTypeUrlResolver<T> {
     /// Wraps `inner` behind an empty cache.
     pub(crate) fn new(inner: T) -> Self {
         Self {
@@ -77,9 +77,9 @@ impl<T> CachedHydrate<T> {
     }
 }
 
-impl<T> ResolveTypeUrls for CachedHydrate<T>
+impl<T> TypeUrlResolver for CachedTypeUrlResolver<T>
 where
-    T: ResolveTypeUrls + Sync,
+    T: TypeUrlResolver,
 {
     async fn resolve(
         &self,
@@ -128,7 +128,7 @@ mod tests {
     use hashql_core::collections::FastHashMap;
     use type_system::ontology::{VersionedUrl, id::OntologyTypeUuid};
 
-    use super::{CachedHydrate, ResolveTypeUrls};
+    use super::{CachedTypeUrlResolver, TypeUrlResolver};
     use crate::serve::hydrate::client::DetailError;
 
     /// A resolution source that records every uuid set that reaches it.
@@ -137,7 +137,7 @@ mod tests {
         asked: Mutex<Vec<Vec<OntologyTypeUuid>>>,
     }
 
-    impl ResolveTypeUrls for Ledger {
+    impl TypeUrlResolver for Ledger {
         fn resolve(
             &self,
             types: impl IntoIterator<Item = OntologyTypeUuid, IntoIter: ExactSizeIterator> + Send,
@@ -181,7 +181,7 @@ mod tests {
     #[tokio::test]
     async fn cache_hit() {
         let (ledger, uuids) = ledger([0]);
-        let cached = CachedHydrate::new(ledger);
+        let cached = CachedTypeUrlResolver::new(ledger);
 
         let first = cached
             .resolve(uuids.iter().copied())
@@ -204,7 +204,7 @@ mod tests {
     async fn unresolved_retried() {
         let (ledger, _) = ledger([]);
         let unknown = OntologyTypeUuid::from_url(&type_url(7));
-        let cached = CachedHydrate::new(ledger);
+        let cached = CachedTypeUrlResolver::new(ledger);
 
         let first = cached
             .resolve([unknown])
@@ -227,7 +227,7 @@ mod tests {
     #[tokio::test]
     async fn partial_hit() {
         let (ledger, known) = ledger([0, 1]);
-        let cached = CachedHydrate::new(ledger);
+        let cached = CachedTypeUrlResolver::new(ledger);
 
         let warm: Vec<_> = known.iter().copied().take(1).collect();
         let warmed = cached.resolve(warm).await.expect("the source is total");
@@ -249,7 +249,7 @@ mod tests {
     #[tokio::test]
     async fn arc_source() {
         let (ledger, uuids) = ledger([3]);
-        let cached = CachedHydrate::new(Arc::new(ledger));
+        let cached = CachedTypeUrlResolver::new(Arc::new(ledger));
 
         let answer = cached.resolve(uuids).await.expect("the source is total");
 

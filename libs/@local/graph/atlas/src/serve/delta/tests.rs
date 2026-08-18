@@ -9,18 +9,18 @@ use type_system::knowledge::entity::{
 use uuid::Uuid;
 
 use super::{
-    DeltaCell, DeltaEvent, DeltaLink, DeltaRegister, DeltaRevision, Disposition, FrozenPlacement,
-    IdentityTables, PlacedArrival, Standing, UniverseExhausted,
+    DeltaCell, DeltaEdge, DeltaEvent, DeltaNode, DeltaRegister, DeltaRevision, Disposition,
+    IdentityTables, ProjectedArrival, Standing, UniverseExhausted,
     consumer::PollOutcome,
     staging::{MissAction, StagingPipeline},
 };
 use crate::{
-    dataset::auxiliary::OwnedLabel,
-    identity::{EdgeRowId, NodeRowId},
+    dataset::auxiliary::{Label, OwnedLabel, OwnedLegend},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{BoxedVecN, Vec2},
     postgres::{
-        Classification, EditionDisplay,
-        id::{ArchivedEntityId, ArchivedEntityUuid},
+        Classification,
+        id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedOntologyTypeUuid},
     },
     serve::codec::Universe,
 };
@@ -28,12 +28,18 @@ use crate::{
 /// The fixture generation's base row bound, past every fitted row the tables name.
 const BASE: u32 = 100;
 
-/// An empty register whose slot allocation starts at the fixture's base bound.
+/// The fixture generation's tabulated type bound, where ontology row allocation starts.
+const ONTOLOGY_BASE: u64 = 8;
+
+/// An empty register whose row allocation starts at the fixture's bounds.
 fn register() -> DeltaRegister {
-    DeltaRegister::new(Universe::new(BASE))
+    DeltaRegister::new(
+        Universe::new(slot(BASE)),
+        Universe::new(OntologyRowId::new(ONTOLOGY_BASE)),
+    )
 }
 
-/// The row id `n` names in the fixture's slot domain.
+/// The row id `n` names in the fixture's allocated node domain.
 fn slot(n: u32) -> NodeRowId {
     NodeRowId::new(u64::from(n))
 }
@@ -43,6 +49,7 @@ fn slot(n: u32) -> NodeRowId {
 struct Tables {
     nodes: Vec<(ArchivedEntityId, NodeRowId)>,
     edges: Vec<(ArchivedEntityId, EdgeRowId)>,
+    ontology: Vec<(ArchivedOntologyTypeUuid, OntologyRowId)>,
 }
 
 impl IdentityTables for Tables {
@@ -55,6 +62,13 @@ impl IdentityTables for Tables {
 
     fn edge_row_of(&self, id: ArchivedEntityId) -> Option<EdgeRowId> {
         self.edges
+            .iter()
+            .find(|&&(key, _)| key == id)
+            .map(|&(_, row)| row)
+    }
+
+    fn ontology_row_of(&self, id: ArchivedOntologyTypeUuid) -> Option<OntologyRowId> {
+        self.ontology
             .iter()
             .find(|&&(key, _)| key == id)
             .map(|&(_, row)| row)
@@ -82,16 +96,45 @@ fn live(n: u128) -> Standing {
     }
 }
 
-/// A captured display payload carrying `text` and no representative type.
-fn display(text: &str) -> EditionDisplay {
-    EditionDisplay {
-        label: OwnedLabel::from(text),
-        representative_type: None,
-    }
+/// The fixture's shared representative type, unknown to the tables, so the register's own
+/// extension allocates its row.
+fn type_uuid() -> ArchivedOntologyTypeUuid {
+    ArchivedOntologyTypeUuid::from(Uuid::from_u128(0xE0))
+}
+
+/// A display read answer carrying `text` and the fixture's shared representative type.
+fn display(text: &str) -> (OwnedLabel, ArchivedOntologyTypeUuid) {
+    (OwnedLabel::from(text), type_uuid())
+}
+
+/// The legend the fixture's display read produces: the extension's first ontology row.
+fn legend(text: &str) -> OwnedLegend {
+    OwnedLegend::new(OntologyRowId::new(ONTOLOGY_BASE), Label::new(text))
+}
+
+/// Captures `text` for the identity through `tables`, panicking where the fixture cannot
+/// exhaust the ontology domain.
+fn capture(
+    register: &mut DeltaRegister,
+    entity_n: u128,
+    edition_n: u128,
+    text: &str,
+    tables: &Tables,
+) {
+    let (label, representative) = display(text);
+    register
+        .capture_display(
+            entity(entity_n),
+            edition(edition_n),
+            &label,
+            representative,
+            tables,
+        )
+        .expect("the fixture ontology domain has room");
 }
 
 fn link_between(source: u128, target: u128) -> Classification {
-    Classification::Link {
+    Classification::Edge {
         source: Some(entity(source)),
         target: Some(entity(target)),
     }
@@ -138,7 +181,7 @@ fn newer_event_wins() {
 }
 
 #[test]
-fn unarchive_replaces_tombstone_through_the_ordinary_fold() {
+fn unarchive_replaces_tombstone() {
     let tables = Tables {
         nodes: vec![(entity(1), NodeRowId::new(4))],
         ..Tables::default()
@@ -166,7 +209,7 @@ fn older_event_is_ignored() {
 }
 
 #[test]
-fn same_version_redelivery_is_idempotent() {
+fn redelivery_idempotent() {
     let mut register = register();
 
     assert!(register.apply(event(1, 1, live(10))));
@@ -176,7 +219,7 @@ fn same_version_redelivery_is_idempotent() {
 }
 
 #[test]
-fn equal_version_conflict_resolves_toward_withdrawn_under_both_orders() {
+fn equal_version_withdrawn_bias() {
     let tables = Tables::default();
 
     let mut withdrawal_last = register();
@@ -235,10 +278,11 @@ fn equal_version_live_editions_converge() {
 }
 
 #[test]
-fn withdrawn_fitted_rows_subtract_and_enter_the_identity_set() {
+fn withdrawn_fitted_subtract() {
     let tables = Tables {
         nodes: vec![(entity(1), NodeRowId::new(4))],
         edges: vec![(entity(2), EdgeRowId::new(7))],
+        ..Tables::default()
     };
     let mut register = register();
 
@@ -253,7 +297,7 @@ fn withdrawn_fitted_rows_subtract_and_enter_the_identity_set() {
 }
 
 #[test]
-fn withdrawn_unfitted_identity_enters_the_identity_set_alone() {
+fn withdrawn_unfitted_identity_only() {
     let tables = Tables {
         nodes: vec![(entity(1), NodeRowId::new(4))],
         ..Tables::default()
@@ -285,7 +329,7 @@ fn live_fitted_identity_resolves_to_nothing() {
 }
 
 #[test]
-fn arrival_stages_only_after_a_node_verdict() {
+fn arrival_stages_on_node_verdict() {
     let tables = Tables::default();
     let mut register = register();
 
@@ -296,7 +340,7 @@ fn arrival_stages_only_after_a_node_verdict() {
     // Unclassified, the arrival publishes nowhere while everything else proceeds.
     let unclassified = snapshot(&register, &tables);
     assert_eq!(unclassified.staged(entity(1)), None);
-    assert_eq!(unclassified.link(entity(1)), None);
+    assert_eq!(unclassified.edge(entity(1)), None);
     assert!(unclassified.withdraws(entity(2)));
 
     assert_eq!(
@@ -311,7 +355,7 @@ fn arrival_stages_only_after_a_node_verdict() {
 }
 
 #[test]
-fn unclassified_lists_only_live_unfitted_arrivals() {
+fn unclassified_live_unfitted_only() {
     let tables = Tables {
         nodes: vec![(entity(3), NodeRowId::new(4))],
         ..Tables::default()
@@ -335,7 +379,7 @@ fn unclassified_lists_only_live_unfitted_arrivals() {
 }
 
 #[test]
-fn classification_is_final_for_the_process_lifetime() {
+fn classification_final() {
     let tables = Tables::default();
     let mut register = register();
 
@@ -353,11 +397,11 @@ fn classification_is_final_for_the_process_lifetime() {
 
     let snapshot = snapshot(&register, &tables);
     assert_eq!(snapshot.staged(entity(1)), Some(edition(10)));
-    assert_eq!(snapshot.link(entity(1)), None);
+    assert_eq!(snapshot.edge(entity(1)), None);
 }
 
 #[test]
-fn only_a_resolving_disposition_changes_resolution() {
+fn resolving_changes_resolution() {
     assert!(Disposition::Resolving.changes_resolution());
     assert!(!Disposition::Dormant.changes_resolution());
     assert!(!Disposition::AlreadyHeld.changes_resolution());
@@ -392,7 +436,7 @@ fn dispositions_join_by_resolution_strength() {
 }
 
 #[test]
-fn link_verdict_publishes_endpoint_identities() {
+fn publish_withholds_uncaptured() {
     let tables = Tables::default();
     let mut register = register();
 
@@ -402,17 +446,102 @@ fn link_verdict_publishes_endpoint_identities() {
         Disposition::Resolving
     );
 
+    // Classified but uncaptured: publication withholds the link, and the pending listing
+    // carries the link's edition.
+    let withheld = snapshot(&register, &tables);
+    assert_eq!(withheld.edge(entity(1)), None);
+    assert_eq!(withheld.legend_of(entity(1)), None);
+    let pending: Vec<_> = register.pending_captures(&tables).collect();
+    assert_eq!(pending, [(entity(1), edition(10))]);
+
+    capture(&mut register, 1, 10, "wrote", &tables);
+    assert_eq!(register.pending_captures(&tables).count(), 0);
+
     let snapshot = snapshot(&register, &tables);
     assert_eq!(
-        snapshot.link(entity(1)),
-        Some(DeltaLink {
+        snapshot.edge(entity(1)),
+        Some(DeltaEdge {
             edition: edition(10),
             source: entity(8),
             target: entity(9),
         })
     );
+    assert_eq!(snapshot.legend_of(entity(1)), Some(&*legend("wrote")));
     assert_eq!(snapshot.staged(entity(1)), None);
     assert!(!snapshot.withdraws(entity(1)));
+}
+
+#[test]
+fn revised_fitted_display() {
+    let tables = Tables {
+        nodes: vec![(entity(2), NodeRowId::new(5))],
+        edges: vec![(entity(3), EdgeRowId::new(7))],
+        ..Tables::default()
+    };
+    let mut register = register();
+
+    // A post-fit edition on either fitted domain lists for a capture.
+    assert!(register.apply(event(2, 1, live(20))));
+    assert!(register.apply(event(3, 1, live(30))));
+    assert_eq!(register.pending_captures(&tables).count(), 2);
+
+    // An uncaptured revision publishes no legend, so holders answer from the baked
+    // fit-time payload.
+    let uncaptured = snapshot(&register, &tables);
+    assert_eq!(uncaptured.legend_of(entity(2)), None);
+    assert_eq!(uncaptured.legend_of(entity(3)), None);
+
+    capture(&mut register, 2, 20, "revised", &tables);
+    let captured = snapshot(&register, &tables);
+    assert_eq!(captured.legend_of(entity(2)), Some(&*legend("revised")));
+    assert_eq!(captured.legend_of(entity(3)), None);
+
+    // An edition move re-lists the identity while the held capture keeps serving.
+    assert!(register.apply(event(2, 2, live(21))));
+    assert!(
+        register
+            .pending_captures(&tables)
+            .any(|(id, owed)| id == entity(2) && owed == edition(21))
+    );
+    let stale = snapshot(&register, &tables);
+    assert_eq!(stale.legend_of(entity(2)), Some(&*legend("revised")));
+}
+
+#[test]
+fn display_debts_serving_only() {
+    let tables = Tables {
+        nodes: vec![(entity(4), NodeRowId::new(6))],
+        ..Tables::default()
+    };
+    let mut register = register();
+
+    // A node-classified arrival never lists, because staging captures its display.
+    assert!(register.apply(event(1, 1, live(10))));
+    assert_eq!(
+        register.classify(entity(1), Classification::Node),
+        Disposition::Resolving
+    );
+
+    // An incomplete link never lists, because it never serves.
+    assert!(register.apply(event(2, 1, live(11))));
+    assert_eq!(
+        register.classify(
+            entity(2),
+            Classification::Edge {
+                source: Some(entity(8)),
+                target: None,
+            }
+        ),
+        Disposition::Resolving
+    );
+
+    // An unclassified arrival never lists, because no verdict says its display serves.
+    assert!(register.apply(event(3, 1, live(12))));
+
+    // A withdrawn fitted identity never lists, because it serves nothing.
+    assert!(register.apply(event(4, 1, Standing::Withdrawn)));
+
+    assert_eq!(register.pending_captures(&tables).count(), 0);
 }
 
 #[test]
@@ -426,7 +555,7 @@ fn incomplete_link_publishes_nowhere() {
     assert_eq!(
         register.classify(
             entity(1),
-            Classification::Link {
+            Classification::Edge {
                 source: Some(entity(8)),
                 target: None,
             }
@@ -436,14 +565,14 @@ fn incomplete_link_publishes_nowhere() {
 
     let snapshot = snapshot(&register, &tables);
     assert_eq!(snapshot.staged(entity(1)), None);
-    assert_eq!(snapshot.link(entity(1)), None);
+    assert_eq!(snapshot.edge(entity(1)), None);
     assert!(!snapshot.withdraws(entity(1)));
     // The verdict holds, so the identity never re-lists for classification.
     assert_eq!(register.unclassified(&tables).collect::<Vec<_>>(), []);
 }
 
 #[test]
-fn classify_on_a_withdrawn_identity_changes_no_publication_input() {
+fn classify_withdrawn_no_input_change() {
     let tables = Tables::default();
     let mut register = register();
 
@@ -459,7 +588,7 @@ fn classify_on_a_withdrawn_identity_changes_no_publication_input() {
 }
 
 #[test]
-fn withdraw_then_unarchive_keeps_the_held_verdict() {
+fn withdraw_unarchive_keeps_verdict() {
     let tables = Tables::default();
     let mut register = register();
 
@@ -484,10 +613,11 @@ fn withdraw_then_unarchive_keeps_the_held_verdict() {
 }
 
 #[test]
-fn replay_order_does_not_move_the_snapshot() {
+fn replay_order_invariance() {
     let tables = Tables {
         nodes: vec![(entity(1), NodeRowId::new(4))],
         edges: vec![(entity(3), EdgeRowId::new(7))],
+        ..Tables::default()
     };
     let events = [
         event(1, 1, live(10)),
@@ -546,7 +676,7 @@ fn feed_events_resolve_standing_and_version() {
 }
 
 #[test]
-fn poll_outcome_counts_and_advances_past_ignored_events() {
+fn poll_outcome_advances_past_ignored() {
     let mut register = register();
     let mut outcome = PollOutcome::default();
 
@@ -561,7 +691,7 @@ fn poll_outcome_counts_and_advances_past_ignored_events() {
 }
 
 #[test]
-fn poll_outcome_reports_no_change_for_redelivery() {
+fn poll_outcome_redelivery_no_change() {
     let mut register = register();
 
     let mut first = PollOutcome::default();
@@ -609,7 +739,7 @@ fn staged_map(pairs: &[(u128, u128)]) -> FastHashMap<ArchivedEntityId, EntityEdi
 }
 
 #[test]
-fn sync_stages_a_fresh_arrival_pending() {
+fn sync_stages_fresh_pending() {
     let mut pipeline = StagingPipeline::new(2);
 
     pipeline.sync(&staged_map(&[(1, 10)]));
@@ -619,7 +749,7 @@ fn sync_stages_a_fresh_arrival_pending() {
 }
 
 #[test]
-fn the_read_that_spends_the_budget_obliges_the_ensure() {
+fn budget_read_obliges_ensure() {
     let mut pipeline = StagingPipeline::new(2);
     pipeline.sync(&staged_map(&[(1, 10)]));
 
@@ -630,7 +760,7 @@ fn the_read_that_spends_the_budget_obliges_the_ensure() {
 }
 
 #[test]
-fn an_unconfirmed_ensure_is_obliged_again_at_every_later_miss() {
+fn unconfirmed_ensure_reobliged() {
     let mut pipeline = StagingPipeline::new(1);
     pipeline.sync(&staged_map(&[(1, 10)]));
 
@@ -641,7 +771,7 @@ fn an_unconfirmed_ensure_is_obliged_again_at_every_later_miss() {
 }
 
 #[test]
-fn the_post_ensure_budget_ends_in_exhaustion() {
+fn post_ensure_exhaustion() {
     let mut pipeline = StagingPipeline::new(2);
     pipeline.sync(&staged_map(&[(1, 10)]));
     assert_eq!(pipeline.miss(entity(1)), MissAction::Wait);
@@ -659,7 +789,7 @@ fn the_post_ensure_budget_ends_in_exhaustion() {
 }
 
 #[test]
-fn exhaustion_holds_through_an_edition_move() {
+fn exhaustion_survives_edition_move() {
     let mut pipeline = StagingPipeline::new(1);
     pipeline.sync(&staged_map(&[(1, 10)]));
     assert_eq!(pipeline.miss(entity(1)), MissAction::Ensure(edition(10)));
@@ -673,7 +803,7 @@ fn exhaustion_holds_through_an_edition_move() {
 }
 
 #[test]
-fn a_withdrawal_drops_pipeline_state_and_an_unarchive_restages_fresh() {
+fn withdrawal_drops_unarchive_restages() {
     let mut pipeline = StagingPipeline::new(2);
     pipeline.sync(&staged_map(&[(1, 10)]));
     assert_eq!(pipeline.miss(entity(1)), MissAction::Wait);
@@ -689,7 +819,7 @@ fn a_withdrawal_drops_pipeline_state_and_an_unarchive_restages_fresh() {
 }
 
 #[test]
-fn sync_moves_the_edition_in_place() {
+fn sync_moves_edition_in_place() {
     let mut pipeline = StagingPipeline::new(1);
     pipeline.sync(&staged_map(&[(1, 10)]));
 
@@ -699,7 +829,7 @@ fn sync_moves_the_edition_in_place() {
 }
 
 #[test]
-fn a_hit_completes_the_arrival_at_either_phase() {
+fn hit_completes_either_phase() {
     let mut pipeline = StagingPipeline::new(2);
     pipeline.sync(&staged_map(&[(1, 10), (2, 20)]));
 
@@ -738,7 +868,7 @@ fn a_hit_completes_the_arrival_at_either_phase() {
 }
 
 #[test]
-fn placement_waits_for_the_display_capture() {
+fn placement_waits_for_capture() {
     let mut pipeline = StagingPipeline::new(2);
     pipeline.sync(&staged_map(&[(1, 10)]));
     pipeline.complete(entity(1), BoxedVecN::zero());
@@ -768,7 +898,7 @@ fn placement_waits_for_the_display_capture() {
 }
 
 #[test]
-fn a_capture_for_a_departed_identity_is_dropped() {
+fn departed_capture_dropped() {
     let mut pipeline = StagingPipeline::new(1);
     pipeline.sync(&staged_map(&[]));
 
@@ -780,7 +910,7 @@ fn a_capture_for_a_departed_identity_is_dropped() {
 }
 
 #[test]
-fn a_completion_for_a_departed_identity_is_dropped() {
+fn departed_completion_dropped() {
     let mut pipeline = StagingPipeline::new(1);
     pipeline.sync(&staged_map(&[]));
 
@@ -791,70 +921,73 @@ fn a_completion_for_a_departed_identity_is_dropped() {
     assert!(pipeline.pending().is_empty());
 }
 
-/// A frozen placement at a distinct fixture coordinate.
-fn frozen(edition_n: u128, x: f32, y: f32) -> FrozenPlacement {
-    FrozenPlacement {
+/// A projected arrival at a distinct fixture coordinate.
+fn projected(edition_n: u128, x: f32, y: f32) -> ProjectedArrival {
+    let (label, representative) = display("arrival");
+    ProjectedArrival {
         edition: edition(edition_n),
-        wire: Vec2::new(x, y),
-        display: display("arrival"),
+        position: Vec2::new(x, y),
+        label,
+        representative,
     }
 }
 
 #[test]
-fn the_captured_label_prices_into_the_resident_estimate() {
+fn captured_label_priced() {
     let mut register = register();
     register.apply(event(1, 1, live(10)));
     register.classify(entity(1), Classification::Node);
     let bare = register.resident_estimate();
 
     let label = "a label the estimate carries";
-    let placement = FrozenPlacement {
+    let arrival = ProjectedArrival {
         edition: edition(10),
-        wire: Vec2::new(0.25, -0.5),
-        display: display(label),
+        position: Vec2::new(0.25, -0.5),
+        label: OwnedLabel::from(label),
+        representative: type_uuid(),
     };
-    assert_eq!(place(&mut register, 1, placement), Disposition::Resolving);
+    assert_eq!(place(&mut register, 1, &arrival), Disposition::Resolving);
 
     // The estimate grows by at least the label's text, whatever the map allocation adds.
     assert!(register.resident_estimate() >= bare + label.len());
 }
 
 #[test]
-fn a_placed_arrival_leaves_the_staged_projection() {
+fn placed_arrival_leaves_staged() {
     let mut register = register();
     register.apply(event(1, 1, live(10)));
     register.classify(entity(1), Classification::Node);
     assert_eq!(
-        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        place(&mut register, 1, &projected(10, 0.25, -0.5)),
         Disposition::Resolving
     );
 
     let snapshot = snapshot(&register, &Tables::default());
     assert_eq!(snapshot.staged(entity(1)), None);
     assert_eq!(
-        snapshot.placed(entity(1)),
-        Some(PlacedArrival {
+        snapshot.node(entity(1)),
+        Some(&DeltaNode {
             edition: edition(10),
-            wire: Vec2::new(0.25, -0.5),
-            slot: slot(BASE),
-            display: display("arrival"),
+            position: Vec2::new(0.25, -0.5),
+            id: slot(BASE),
+            legend: legend("arrival"),
         })
     );
 }
 
 #[test]
-fn the_first_placement_freezes_while_the_edition_tracks_the_feed() {
+fn first_placement_freezes() {
     let mut register = register();
     register.apply(event(1, 1, live(10)));
     register.classify(entity(1), Classification::Node);
     assert_eq!(
-        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        place(&mut register, 1, &projected(10, 0.25, -0.5)),
         Disposition::Resolving
     );
 
     // A re-delivered placement changes nothing, coordinate and slot included.
     assert_eq!(
-        place(&mut register, 1, frozen(11, 0.75, 0.75)),
+        place(&mut register, 1, &projected(11, 0.75, 0.75)),
         Disposition::AlreadyHeld
     );
 
@@ -862,18 +995,18 @@ fn the_first_placement_freezes_while_the_edition_tracks_the_feed() {
     register.apply(event(1, 2, live(11)));
     let snapshot = snapshot(&register, &Tables::default());
     assert_eq!(
-        snapshot.placed(entity(1)),
-        Some(PlacedArrival {
+        snapshot.node(entity(1)),
+        Some(&DeltaNode {
             edition: edition(11),
-            wire: Vec2::new(0.25, -0.5),
-            slot: slot(BASE),
-            display: display("arrival"),
+            position: Vec2::new(0.25, -0.5),
+            id: slot(BASE),
+            legend: legend("arrival"),
         })
     );
 }
 
 #[test]
-fn a_placement_after_a_withdrawal_records_without_serving() {
+fn post_withdrawal_placement_unserved() {
     let mut register = register();
     register.apply(event(1, 1, live(10)));
     register.classify(entity(1), Classification::Node);
@@ -882,14 +1015,14 @@ fn a_placement_after_a_withdrawal_records_without_serving() {
     // The completion raced the withdrawal. The coordinate still freezes while the standing
     // keeps the row unserved, so the placement moves no publication input.
     assert_eq!(
-        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        place(&mut register, 1, &projected(10, 0.25, -0.5)),
         Disposition::Dormant
     );
 
     let withdrawn = snapshot(&register, &Tables::default());
     assert!(withdrawn.withdraws(entity(1)));
     assert_eq!(withdrawn.staged(entity(1)), None);
-    assert_eq!(withdrawn.placed(entity(1)), None);
+    assert_eq!(withdrawn.node(entity(1)), None);
 
     // The unarchive republishes the frozen coordinate on its former slot without re-entering
     // the staged set.
@@ -897,18 +1030,18 @@ fn a_placement_after_a_withdrawal_records_without_serving() {
     let restored = snapshot(&register, &Tables::default());
     assert_eq!(restored.staged(entity(1)), None);
     assert_eq!(
-        restored.placed(entity(1)),
-        Some(PlacedArrival {
+        restored.node(entity(1)),
+        Some(&DeltaNode {
             edition: edition(11),
-            wire: Vec2::new(0.25, -0.5),
-            slot: slot(BASE),
-            display: display("arrival"),
+            position: Vec2::new(0.25, -0.5),
+            id: slot(BASE),
+            legend: legend("arrival"),
         })
     );
 }
 
 #[test]
-fn an_unclassified_placement_publishes_nowhere() {
+fn unclassified_placement_unpublished() {
     let mut register = register();
     register.apply(event(1, 1, live(10)));
 
@@ -916,19 +1049,19 @@ fn an_unclassified_placement_publishes_nowhere() {
     // classification it cannot precede in any live pipeline, and publication stays fail-closed
     // if one ever does.
     assert_eq!(
-        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        place(&mut register, 1, &projected(10, 0.25, -0.5)),
         Disposition::Resolving
     );
 
     let snapshot = snapshot(&register, &Tables::default());
     assert_eq!(snapshot.staged(entity(1)), None);
-    assert_eq!(snapshot.placed(entity(1)), None);
+    assert_eq!(snapshot.node(entity(1)), None);
 }
 
 /// Places through the fixture universe, panicking where the fixture cannot exhaust it.
-fn place(register: &mut DeltaRegister, entity_n: u128, placement: FrozenPlacement) -> Disposition {
+fn place(register: &mut DeltaRegister, entity_n: u128, arrival: &ProjectedArrival) -> Disposition {
     register
-        .place(entity(entity_n), placement)
+        .place(entity(entity_n), arrival, &Tables::default())
         .expect("the fixture universe has room")
 }
 
@@ -942,33 +1075,33 @@ fn slots_assign_monotonically_in_placement_order() {
 
     // Placement order assigns the slots, and the base bound is the first one taken.
     assert_eq!(
-        place(&mut register, 2, frozen(20, 0.5, 0.5)),
+        place(&mut register, 2, &projected(20, 0.5, 0.5)),
         Disposition::Resolving
     );
     assert_eq!(
-        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        place(&mut register, 1, &projected(10, 0.25, -0.5)),
         Disposition::Resolving
     );
 
     let snapshot = snapshot(&register, &Tables::default());
     assert_eq!(
-        snapshot.placed(entity(2)).map(|arrival| arrival.slot),
+        snapshot.node(entity(2)).map(|arrival| arrival.id),
         Some(slot(BASE))
     );
     assert_eq!(
-        snapshot.placed(entity(1)).map(|arrival| arrival.slot),
+        snapshot.node(entity(1)).map(|arrival| arrival.id),
         Some(slot(BASE + 1))
     );
-    assert_eq!(snapshot.universe(), Universe::new(BASE + 2));
+    assert_eq!(snapshot.universe(), Universe::new(slot(BASE + 2)));
 }
 
 #[test]
-fn a_withdrawn_slot_is_never_reused() {
+fn withdrawn_slot_never_reused() {
     let mut register = register();
     register.apply(event(1, 1, live(10)));
     register.classify(entity(1), Classification::Node);
     assert_eq!(
-        place(&mut register, 1, frozen(10, 0.25, -0.5)),
+        place(&mut register, 1, &projected(10, 0.25, -0.5)),
         Disposition::Resolving
     );
 
@@ -978,54 +1111,58 @@ fn a_withdrawn_slot_is_never_reused() {
     register.apply(event(2, 1, live(20)));
     register.classify(entity(2), Classification::Node);
     assert_eq!(
-        place(&mut register, 2, frozen(20, 0.5, 0.5)),
+        place(&mut register, 2, &projected(20, 0.5, 0.5)),
         Disposition::Resolving
     );
 
     let snapshot = snapshot(&register, &Tables::default());
     assert_eq!(
-        snapshot.placed(entity(2)).map(|arrival| arrival.slot),
+        snapshot.node(entity(2)).map(|arrival| arrival.id),
         Some(slot(BASE + 1))
     );
-    assert_eq!(snapshot.universe(), Universe::new(BASE + 2));
+    assert_eq!(snapshot.universe(), Universe::new(slot(BASE + 2)));
 }
 
 #[test]
-fn the_universe_publishes_the_base_bound_before_any_placement() {
+fn universe_base_bound_first() {
     let mut register = register();
     register.apply(event(1, 1, live(10)));
 
     assert_eq!(
         snapshot(&register, &Tables::default()).universe(),
-        Universe::new(BASE)
+        Universe::new(slot(BASE))
     );
 }
 
 #[test]
-fn an_exhausted_universe_refuses_placement_and_the_arrival_stays_staged() {
-    let mut register = DeltaRegister::new(Universe::new(u32::MAX));
+fn exhausted_universe_refuses_placement() {
+    let bound = NodeRowId::new(u64::from(u32::MAX) + 1);
+    let mut register = DeltaRegister::new(
+        Universe::new(bound),
+        Universe::new(OntologyRowId::new(ONTOLOGY_BASE)),
+    );
     register.apply(event(1, 1, live(10)));
     register.classify(entity(1), Classification::Node);
 
-    // The slot past `u32::MAX - 1` would grow the accepted universe beyond the wire's row
-    // domain, so the refusal repeats and the bound never moves.
+    // One more node row would take a value the wire codec cannot encode, so the refusal
+    // repeats and the bound never moves.
     assert_eq!(
-        register.place(entity(1), frozen(10, 0.25, -0.5)),
+        register.place(entity(1), &projected(10, 0.25, -0.5), &Tables::default()),
         Err(UniverseExhausted)
     );
     assert_eq!(
-        register.place(entity(1), frozen(10, 0.25, -0.5)),
+        register.place(entity(1), &projected(10, 0.25, -0.5), &Tables::default()),
         Err(UniverseExhausted)
     );
 
     let snapshot = snapshot(&register, &Tables::default());
     assert_eq!(snapshot.staged(entity(1)), Some(edition(10)));
-    assert_eq!(snapshot.placed(entity(1)), None);
-    assert_eq!(snapshot.universe(), Universe::new(u32::MAX));
+    assert_eq!(snapshot.node(entity(1)), None);
+    assert_eq!(snapshot.universe(), Universe::new(bound));
 }
 
 #[test]
-fn a_placed_pipeline_entry_rests_until_the_staged_set_retires_it() {
+fn placed_entry_rests_until_retired() {
     let mut pipeline = StagingPipeline::new(2);
     pipeline.sync(&staged_map(&[(1, 10)]));
     pipeline.complete(entity(1), BoxedVecN::zero());
@@ -1047,7 +1184,7 @@ fn a_placed_pipeline_entry_rests_until_the_staged_set_retires_it() {
 }
 
 #[test]
-fn a_held_pipeline_entry_stays_parked_while_it_stays_staged() {
+fn held_entry_stays_parked() {
     let mut pipeline = StagingPipeline::new(2);
     pipeline.sync(&staged_map(&[(1, 10)]));
     pipeline.complete(entity(1), BoxedVecN::zero());

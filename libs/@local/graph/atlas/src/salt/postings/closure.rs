@@ -192,17 +192,14 @@ impl ClosureMap {
         (type_row.as_usize() < self.bits.row_domain_size()).then(|| self.bits.row(type_row))
     }
 
-    /// Returns the [`IconSource`] `type_row` resolves to, or [`None`] for an icon-free cone.
+    /// Returns the [`IconSource`] `type_row` resolves to, or [`None`] for an icon-free cone or
+    /// a row past the closure's type domain, whose types the closure never tabulated.
     ///
     /// Equal-depth candidates resolve to the earlier parent in the run, so resolution is
     /// deterministic under the artifact's ascending-row parent order.
-    ///
-    /// # Panics
-    ///
-    /// This panics when `type_row` is outside the type domain, which [`Self::types`] reports.
     #[must_use]
-    pub(crate) const fn icon_source(&self, type_row: OntologyRowId) -> Option<IconSource> {
-        self.icon_sources[type_row]
+    pub(crate) fn icon_source(&self, type_row: OntologyRowId) -> Option<IconSource> {
+        self.icon_sources.get(type_row).copied().flatten()
     }
 
     /// Returns whether `descendant` descends from `ancestor` (a type descends from itself).

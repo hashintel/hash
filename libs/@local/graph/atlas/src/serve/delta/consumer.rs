@@ -47,15 +47,15 @@ use hash_graph_postgres_store::store::{
 };
 use hash_graph_store::{error::QueryError, pool::StorePool as _};
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
+use hashql_core::collections::FastHashMap;
 use tokio::{sync::mpsc::UnboundedReceiver, time::MissedTickBehavior};
 
 use super::{
-    DeltaCell, DeltaEvent, DeltaRegister, DeltaRevision, Disposition, FrozenPlacement,
-    IdentityTables,
+    DeltaCell, DeltaEvent, DeltaRegister, DeltaRevision, Disposition, IdentityTables,
+    ProjectedArrival,
 };
-use crate::{
-    postgres::{Classification, classify_entities, id::ArchivedEntityId},
-    serve::codec::Universe,
+use crate::postgres::{
+    Classification, classify_entities, id::ArchivedEntityId, read_edition_displays,
 };
 
 /// The consumer's polling knobs.
@@ -197,8 +197,8 @@ pub(crate) struct DeltaConsumer<T> {
     cell: Arc<DeltaCell>,
     /// The polling knobs.
     polling: DeltaPolling,
-    /// The channel carrying the staging arm's frozen placements.
-    placements: UnboundedReceiver<(ArchivedEntityId, FrozenPlacement)>,
+    /// The channel carrying the staging arm's projected arrivals.
+    placements: UnboundedReceiver<(ArchivedEntityId, ProjectedArrival)>,
     /// The fold of every event applied so far.
     register: DeltaRegister,
     /// The newest event time folded through, the next poll's base.
@@ -217,16 +217,16 @@ where
     ///
     /// `fitted` is the transaction-time point the generation's dataset observed. The first poll
     /// replays the feed from it, minus the safety lag, so the fold covers every store change the
-    /// fit could not see. `universe` is the generation's base row bound, where the register's
-    /// slot allocation starts.
-    pub(crate) fn new(
+    /// fit could not see. `register` is the empty fold the caller built over the generation's
+    /// row bounds, where every allocation starts.
+    pub(crate) const fn new(
         pool: Arc<PostgresStorePool>,
         tables: Arc<T>,
         cell: Arc<DeltaCell>,
         fitted: Timestamp<TransactionTime>,
-        universe: Universe,
+        register: DeltaRegister,
         polling: DeltaPolling,
-        placements: UnboundedReceiver<(ArchivedEntityId, FrozenPlacement)>,
+        placements: UnboundedReceiver<(ArchivedEntityId, ProjectedArrival)>,
     ) -> Self {
         Self {
             pool,
@@ -234,7 +234,7 @@ where
             cell,
             polling,
             placements,
-            register: DeltaRegister::new(universe),
+            register,
             watermark: fitted,
             revision: DeltaRevision::FIRST,
             published: false,
@@ -329,7 +329,7 @@ where
 
         let mut disposition = Disposition::AlreadyHeld;
         for (entity, verdict) in verdicts {
-            if let Classification::Link { source, target } = verdict
+            if let Classification::Edge { source, target } = verdict
                 && (source.is_none() || target.is_none())
             {
                 tracing::warn!(
@@ -343,26 +343,99 @@ where
         disposition.changes_resolution()
     }
 
+    /// Captures the legends the register lists as pending, returning whether any capture landed.
+    ///
+    /// One batched read against the edition cache, keyed by edition, because an edition id
+    /// names one immutable row. Failure changes nothing beyond a warning: the captures stay
+    /// pending and the next poll retries them, with the poll itself still succeeding. The
+    /// statement answers every requested edition exactly once, so a short answer is a broken
+    /// store invariant rather than a lookup miss - warned loudly, because a permanently
+    /// unanswered link edition means publication withholds that link with no other signal.
+    async fn capture_displays(&mut self, store: &impl AsClient) -> bool {
+        let required: Vec<_> = self
+            .register
+            .pending_captures(self.tables.as_ref())
+            .collect();
+        if required.is_empty() {
+            return false;
+        }
+
+        let answers = match read_edition_displays(
+            store,
+            required.iter().map(|&(_, edition)| edition),
+        )
+        .await
+        {
+            Ok(answers) => answers,
+            Err(error) => {
+                tracing::warn!(
+                    %error,
+                    pending = required.len(),
+                    "the display read failed, pending captures retry next poll"
+                );
+                return false;
+            }
+        };
+
+        // The statement answers every requested edition exactly once - `UNNEST` yields one
+        // row per element, and both outer joins match at most one row each, through
+        // `entity_edition_cache`'s primary key and `ontology_ids`' unique (base_url, version)
+        // pair - a mismatched count is therefore a broken store invariant rather than a
+        // lookup miss.
+        if answers.len() != required.len() {
+            tracing::warn!(
+                answers = answers.len(),
+                pending = required.len(),
+                "the display read answered a different edition count than the listing named"
+            );
+        }
+
+        // An answer without a resolved representative type stays pending, so the next poll
+        // reads it again: a legend cannot exist until the representative resolves.
+        let displays: FastHashMap<_, _> = answers.into_iter().collect();
+        let mut captured = false;
+        for (entity, edition) in required {
+            if let Some(Some((label, representative))) = displays.get(&edition) {
+                match self.register.capture_display(
+                    entity,
+                    edition,
+                    label,
+                    *representative,
+                    self.tables.as_ref(),
+                ) {
+                    Ok(()) => captured = true,
+                    Err(exhausted) => tracing::warn!(
+                        ?entity,
+                        %exhausted,
+                        "the ontology row allocator refused a capture, it stays pending"
+                    ),
+                }
+            }
+        }
+
+        captured
+    }
+
     /// Drains the staging arm's placement channel, returning whether any placement changed
     /// publication's resolution input.
     ///
     /// Every queued placement folds into the register in channel order, which is what makes the
-    /// slot assignment follow placement order. A placement for an already-placed identity
-    /// changes nothing, because the first coordinate froze, and a placement for a withdrawn
-    /// identity records without publishing, so the drain never grows the served set on its own.
-    /// A refused slot warns and drops the placement: the arrival stays staged, and the refusal
-    /// repeats at every later projection until a refit retires the register.
+    /// row assignment follow placement order. A placement for an already-placed identity
+    /// changes nothing, because the first coordinate never moves, and a placement for a
+    /// withdrawn identity records without publishing, so the drain never grows the served set on
+    /// its own. A refused allocation warns and drops the placement: the arrival stays staged,
+    /// and the refusal repeats at every later projection until a refit retires the register.
     fn drain_placements(&mut self) -> bool {
         let mut disposition = Disposition::AlreadyHeld;
 
-        while let Ok((entity, placement)) = self.placements.try_recv() {
-            match self.register.place(entity, placement) {
+        while let Ok((entity, arrival)) = self.placements.try_recv() {
+            match self.register.place(entity, &arrival, self.tables.as_ref()) {
                 Ok(placed) => disposition |= placed,
                 Err(exhausted) => {
                     tracing::warn!(
                         ?entity,
                         %exhausted,
-                        "the slot allocator refused a placement, the arrival stays staged"
+                        "the row allocator refused a placement, the arrival stays staged"
                     );
                 }
             }
@@ -401,6 +474,7 @@ where
         }
 
         let classified = self.classify_arrivals(&store).await;
+        let captured = self.capture_displays(&store).await;
 
         // Nothing further reads the store: return the connection before resolving the publication.
         drop(store);
@@ -411,7 +485,7 @@ where
             self.watermark = watermark;
         }
 
-        let publishing = outcome.changed() || classified || placed || !self.published;
+        let publishing = outcome.changed() || classified || captured || placed || !self.published;
         if publishing {
             self.cell.publish(self.register.snapshot(
                 self.tables.as_ref(),

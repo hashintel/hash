@@ -396,10 +396,10 @@ impl Atlas {
         let row = self
             .node_codec
             .decode(wire, cohort.universe(self.universe))?;
-        if self.universe.admits(row.as_u32()) {
+        if self.universe.contains(row) {
             proof.verify(row).map(ResolvedRow::Fitted)
         } else {
-            let (identity, _) = cohort.placed_at(row)?;
+            let (identity, _) = cohort.node_at(row)?;
 
             proof
                 .contains(row)

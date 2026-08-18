@@ -13,7 +13,7 @@ use zerocopy::{FromBytes as _, IntoBytes as _, LE, U64};
 
 use super::{
     CANONICAL_DIMENSIONS, Dataset as _, Edge, Node, Ontology, PROJECTOR_DIMENSIONS,
-    auxiliary::{OwnedIcon, OwnedLegend},
+    auxiliary::{Label, OwnedIcon, OwnedLegend},
     card::Card,
     memory::{MemoryDataset, MemoryNodeId, MemoryOntologyId},
 };
@@ -240,17 +240,17 @@ async fn memory_dataset_streams_display_columns() {
         .unwrap_or_else(|never| never);
     assert_eq!(
         legends,
-        vec![OwnedLegend::new(OntologyRowId::new(0), ""); 2]
+        vec![OwnedLegend::new(OntologyRowId::new(0), Label::EMPTY); 2]
     );
 
     // Node 1's replacement names a representative its ascending type list does not start with.
     dataset.node_legends = vec![
-        OwnedLegend::new(OntologyRowId::new(0), "alpha"),
-        OwnedLegend::new(OntologyRowId::new(1), "beta"),
+        OwnedLegend::new(OntologyRowId::new(0), Label::new("alpha")),
+        OwnedLegend::new(OntologyRowId::new(1), Label::new("beta")),
     ];
     dataset.edge_legends = vec![OwnedLegend::new(
         OntologyRowId::new(1),
-        "alpha employs beta",
+        Label::new("alpha employs beta"),
     )];
     dataset.ontology_icons = vec![OwnedIcon::from("person"), OwnedIcon::from("\u{3bb}")];
 
@@ -262,8 +262,8 @@ async fn memory_dataset_streams_display_columns() {
     assert_eq!(
         legends,
         [
-            OwnedLegend::new(OntologyRowId::new(0), "alpha"),
-            OwnedLegend::new(OntologyRowId::new(1), "beta"),
+            OwnedLegend::new(OntologyRowId::new(0), Label::new("alpha")),
+            OwnedLegend::new(OntologyRowId::new(1), Label::new("beta")),
         ]
     );
 
@@ -276,7 +276,7 @@ async fn memory_dataset_streams_display_columns() {
         legends,
         [OwnedLegend::new(
             OntologyRowId::new(1),
-            "alpha employs beta"
+            Label::new("alpha employs beta")
         )]
     );
 

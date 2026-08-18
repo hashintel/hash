@@ -253,11 +253,10 @@ impl ScheduleCut<'_> {
 
     /// Returns the deepest occupied scope bucket, zero for an empty view.
     pub(crate) fn min_resolution(&self) -> u64 {
-        let deepest_natural = Depth::all().rev().find(|&bucket| {
-            self.schedule.posts[BucketPost::closing(bucket)]
-                > self.schedule.posts[BucketPost::opening(bucket)]
-        });
-        let fitted = deepest_natural.map_or(0, |bucket| u64::from(bucket.min(self.deepest).get()));
+        let fitted = self
+            .schedule
+            .deepest_occupied()
+            .map_or(0, |bucket| u64::from(bucket.min(self.deepest).get()));
         let arrivals = self
             .overlay
             .min_resolution(self.deepest)

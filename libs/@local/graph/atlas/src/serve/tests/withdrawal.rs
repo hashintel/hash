@@ -10,8 +10,8 @@
 //! The fold cases pin the law's resolution-time form. A folded scoped proof and the admission
 //! walk hide the same withdrawn rows, and a corpus proof declines the fold whole. The occupancy
 //! aggregate a mint reads ignores the folded snapshot, while the root's global aggregates follow
-//! the folded view - a recorded default pending the owner's ruling on that divergence, so its
-//! witnesses pin the built behaviour rather than settled law.
+//! the folded view - a split the owner ruled as it stands at the fold's landing, so its
+//! witnesses pin settled law.
 
 use alloc::sync::Arc;
 
@@ -67,7 +67,7 @@ fn tile_with(
 /// bytes, and one withdrawing an unfitted identity skips the walk whole.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn corpus_root_subtracts_a_withdrawn_row_and_splits_its_range() {
+async fn corpus_subtract_splits_range() {
     let (generation, atlas) = publish("withdrawal-root").await;
     let Artifacts {
         quad,
@@ -187,7 +187,7 @@ async fn corpus_root_subtracts_a_withdrawn_row_and_splits_its_range() {
 /// the same path.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn scoped_delivery_drops_the_withdrawn_point_alone() {
+async fn scoped_drops_withdrawn_only() {
     let (generation, atlas) = publish("withdrawal-scoped").await;
     let Artifacts { rows, .. } = open_artifacts(&generation);
     let row_ids = fixture_row_ids(&rows);
@@ -245,7 +245,7 @@ async fn scoped_delivery_drops_the_withdrawn_point_alone() {
 /// with no snapshot serves its full run.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn an_all_withdrawn_tile_serves_the_empty_shape() {
+async fn all_withdrawn_empty_shape() {
     let (generation, atlas) = publish("withdrawal-empty").await;
     let Artifacts {
         quad,
@@ -427,7 +427,7 @@ async fn edges_subtract_withdrawn_endpoints_and_links() {
 /// mechanism. The control withdraws an identity the subgraph never touches.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_refuses_withdrawn_sources_and_drops_withdrawn_partners() {
+async fn locate_withdrawn_refusal() {
     let (_generation, atlas) = publish("withdrawal-locate").await;
 
     // Fixture node row 3 carries exactly one edge, to node row 7.
@@ -621,9 +621,8 @@ async fn a_folded_proof_delivers_the_subtracted_rows_with_nothing_to_subtract() 
 /// aggregates follow the view. The corpus arm serves the same withdrawal as an ingress
 /// subtraction, whose aggregates stay generation-computed because a withdrawn extreme point
 /// keeps stretching the corpus extent until refit. One snapshot therefore pins both regimes,
-/// and this witness records the split between them. The scoped arm is a recorded default
-/// pending the owner's ruling on the divergence, so the witness pins the built behaviour
-/// rather than settled law.
+/// and this witness records the split between them. The owner ruled the split as it stands at
+/// the fold's landing, so the witness pins settled law.
 #[expect(
     clippy::too_many_lines,
     reason = "the three aggregate axes and their corpus and unfolded contrasts share one publish"

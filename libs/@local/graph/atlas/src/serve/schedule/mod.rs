@@ -32,15 +32,16 @@ use self::cut::ScheduleCut;
 use super::grid::Grid;
 use crate::{
     allocator::{MemoryUsage, MemoryUsageAllocator},
+    dataset::auxiliary::OwnedLegend,
     identity::{BasePosition, ImportanceRank, NodeRowId},
     math::Vec2,
     morton::{Depth, MortonCell, MortonKey},
-    postgres::{EditionDisplay, id::ArchivedEntityId},
+    postgres::id::ArchivedEntityId,
     salt::lod::{cascade, stage::WIRE_FRAME},
     serve::{
         Atlas, VisibilityProof, WireRow,
         codec::Universe,
-        delta::{PlacedArrival, PlacementCohort},
+        delta::{DeltaNode, PlacementCohort},
         density::CutOffset,
         visibility::ProofKind,
     },
@@ -87,41 +88,41 @@ pub(crate) enum ViewRow {
 /// Everything an arrival-bearing response reads. The identity keys the ingress withdrawal
 /// filter, and the frozen coordinate feeds the `POSITIONS` column. Its wire id feeds the
 /// `ROW_IDS` column, pre-encoded under the entry universe, which admits every cohort slot by
-/// construction, and the display payload feeds the detail trailer.
+/// construction, and the legend feeds the detail trailer.
 #[derive(Debug, Clone)]
 pub(crate) struct ArrivalRow {
     /// The arrival's identity, the ingress withdrawal filter's key.
     pub identity: ArchivedEntityId,
-    /// The frozen wire coordinate.
-    pub point: Vec2,
+    /// The recorded wire coordinate.
+    pub position: Vec2,
     /// The arrival's wire id, encoded under the entry universe at construction.
     pub wire: WireRow<NodeRowId>,
-    /// The display payload captured at placement.
-    pub display: EditionDisplay,
+    /// The legend captured at placement.
+    pub legend: OwnedLegend,
 }
 
 impl ArrivalRow {
     /// Resolves one placed arrival into its delivery row and quantized key.
     ///
-    /// The key quantizes the frozen coordinate on the wire frame - every published placement
+    /// The key quantizes the recorded coordinate on the wire frame - every published placement
     /// lies inside it, because an out-of-frame projection never places - and the wire id
-    /// encodes under `universe`, the entry's own, which admits every cohort slot by
+    /// encodes under `universe`, the entry's own, which admits every cohort row by
     /// construction.
     fn of(
         atlas: &Atlas,
-        universe: Universe,
+        universe: Universe<NodeRowId>,
         identity: ArchivedEntityId,
-        arrival: &PlacedArrival,
+        arrival: &DeltaNode,
     ) -> (MortonKey, Self) {
-        let [x, y] = WIRE_FRAME.quantize(arrival.wire);
+        let [x, y] = WIRE_FRAME.quantize(arrival.position);
 
         (
             MortonKey::new(x, y),
             Self {
                 identity,
-                point: arrival.wire,
-                wire: atlas.node_codec.encode(arrival.slot, universe),
-                display: arrival.display.clone(),
+                position: arrival.position,
+                wire: atlas.node_codec.encode(arrival.id, universe),
+                legend: arrival.legend.clone(),
             },
         )
     }
@@ -149,14 +150,14 @@ pub(crate) struct Splice {
 fn admitted_arrivals<'scope>(
     proof: &VisibilityProof,
     cohort: PlacementCohort<'scope>,
-) -> Vec<(ArchivedEntityId, &'scope PlacedArrival)> {
-    let mut placed: Vec<_> = cohort
-        .placed_arrivals()
-        .filter(|&(_, arrival)| proof.contains(arrival.slot))
+) -> Vec<(ArchivedEntityId, &'scope DeltaNode)> {
+    let mut admitted: Vec<_> = cohort
+        .nodes()
+        .filter(|&(_, arrival)| proof.contains(arrival.id))
         .collect();
-    placed.sort_unstable_by_key(|&(identity, _)| identity);
+    admitted.sort_unstable_by_key(|&(identity, _)| identity);
 
-    placed
+    admitted
 }
 
 hashql_core::id::newtype! {
@@ -216,9 +217,10 @@ impl ViewSchedule {
     /// buckets and the sharing changes which allocation answers, never which contract. The
     /// sharing test is exact, so a mask even one row short of the corpus - a scope whose cohort
     /// withdrew a single fitted row included - builds and retains its own full-corpus-sized
-    /// cascade instead. After the first fitted withdrawal every corpus-admitting scope resolves
-    /// onto that arm for the life of the generation, a cost on resolution latency and entry
-    /// weight rather than on served bytes.
+    /// cascade instead. While any snapshot withdraws a fitted row, every corpus-admitting scope
+    /// resolves onto that arm - a cost on resolution latency and entry weight rather than on
+    /// served bytes, and one an unarchive can end, because a later publication whose withdrawn
+    /// set is empty folds nothing and the memo answers again.
     ///
     /// The variants that read a shared fitted schedule - the corpus artifacts and the saturated
     /// memo - take their admitted arrivals as an overlay, whose buckets are exact there because
@@ -529,6 +531,17 @@ impl ScopeSchedule {
     /// Views the cohort arrivals the schedule's [`ViewRow::Arrival`] vessels address.
     pub(crate) const fn arrivals(&self) -> &IdSlice<ArrivalIndex, ArrivalRow> {
         &self.arrivals
+    }
+
+    /// Returns the deepest occupied cascade bucket, [`None`] for an empty view.
+    ///
+    /// The fencepost pair of a bucket holding a slot differs, so the answer is the deepest
+    /// bucket whose posts part. The cohort arrivals sit outside it, exactly as they sit outside
+    /// the posts.
+    pub(crate) fn deepest_occupied(&self) -> Option<Depth> {
+        Depth::all().rev().find(|&bucket| {
+            self.posts[BucketPost::closing(bucket)] > self.posts[BucketPost::opening(bucket)]
+        })
     }
 
     /// Returns an arrival's bucket under the slot column's own assignment.

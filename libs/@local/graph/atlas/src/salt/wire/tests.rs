@@ -358,8 +358,8 @@ mod tile {
         TileHead, TileResponse, TileTrailer, Vec2, WireRow, dense_set, section,
     };
     use crate::{
-        dataset::auxiliary::OwnedLabel,
-        postgres::EditionDisplay,
+        dataset::auxiliary::OwnedLegend,
+        identity::OntologyRowId,
         serve::schedule::{ArrivalIndex, ArrivalRow, Splice, ViewRow},
     };
 
@@ -672,12 +672,9 @@ mod tile {
                 web_id: ArchivedWebId::from_bytes([seed; 16]),
                 entity_uuid: ArchivedEntityUuid::from_bytes([seed ^ 0xFF; 16]),
             },
-            point,
+            position: point,
             wire: WireRow::pinned(wire),
-            display: EditionDisplay {
-                label: OwnedLabel::from("arrival"),
-                representative_type: None,
-            },
+            legend: OwnedLegend::new(OntologyRowId::new(0), Label::new("arrival")),
         }
     }
 
@@ -767,7 +764,7 @@ mod tile {
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.trailer = Some(TileTrailer {
-            labels: &const { [Label::new("a"), Label::empty()] },
+            labels: &const { [Label::new("a"), Label::EMPTY] },
             icons: &const { [Icon::empty(), Icon::new("\u{fc}")] },
         });
         let bytes = response.encode();
@@ -917,7 +914,7 @@ mod edges {
         response.trailer = Some(EdgesTrailer {
             type_table: IdSlice::from_raw(&const { [Cow::Borrowed("s"), Cow::Borrowed("t")] }),
             link_labels: IdSlice::from_raw(
-                &const { [Label::new("a"), Label::empty(), Label::empty()] },
+                &const { [Label::new("a"), Label::EMPTY, Label::EMPTY] },
             ),
             link_type_ids: IdSlice::from_raw(
                 &const { [Some(TableIndex::new(1)), Some(TableIndex::new(0)), None] },
@@ -959,7 +956,7 @@ mod edges {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
             type_table: IdSlice::from_raw(&[]),
-            link_labels: IdSlice::from_raw(&const { [Label::empty(); 3] }),
+            link_labels: IdSlice::from_raw(&const { [Label::EMPTY; 3] }),
             link_type_ids: IdSlice::from_raw(&[None]),
         });
         let _bytes = response.encode();
@@ -1043,10 +1040,10 @@ mod locate {
             trailer: LocateTrailer {
                 type_table: IdSlice::from_raw(&[]),
                 property_table: IdSlice::from_raw(&[]),
-                labels: IdSlice::from_raw(&const { [Label::empty(); 3] }),
+                labels: IdSlice::from_raw(&const { [Label::EMPTY; 3] }),
                 type_ids: IdSlice::from_raw(&[None, None, None]),
                 properties: None,
-                link_labels: IdSlice::from_raw(&const { [Label::empty(); 2] }),
+                link_labels: IdSlice::from_raw(&const { [Label::EMPTY; 2] }),
                 link_type_ids: IdSlice::from_raw(&NO_TYPES),
                 link_type_ids_complete: &NO_FLAGS,
                 link_properties: IdSlice::from_raw(&[None, None]),
@@ -1161,12 +1158,12 @@ mod locate {
         response.trailer = LocateTrailer {
             type_table: IdSlice::from_raw(&const { [Cow::Borrowed("s"), Cow::Borrowed("t")] }),
             property_table: IdSlice::from_raw(&const { [Cow::Borrowed("a"), Cow::Borrowed("b")] }),
-            labels: IdSlice::from_raw(&const { [Label::new("n"), Label::empty(), Label::empty()] }),
+            labels: IdSlice::from_raw(&const { [Label::new("n"), Label::EMPTY, Label::EMPTY] }),
             type_ids: IdSlice::from_raw(
                 &const { [Some(TableIndex::new(1)), None, Some(TableIndex::new(0))] },
             ),
             properties: Some(&source_map),
-            link_labels: IdSlice::from_raw(&const { [Label::new("l"), Label::empty()] }),
+            link_labels: IdSlice::from_raw(&const { [Label::new("l"), Label::EMPTY] }),
             link_type_ids: IdSlice::from_raw(&lists),
             link_type_ids_complete: &type_flags,
             link_properties: IdSlice::from_raw(&link_properties),
@@ -1199,7 +1196,7 @@ mod locate {
         response.delivered =
             IdSlice::from_raw(&const { [ViewRow::Base(BasePosition::from_u32(1))] });
         response.edges = &empty;
-        response.trailer.labels = IdSlice::from_raw(&const { [Label::empty()] });
+        response.trailer.labels = IdSlice::from_raw(&const { [Label::EMPTY] });
         response.trailer.type_ids = IdSlice::from_raw(&[None]);
         response.trailer.link_labels = IdSlice::from_raw(&[]);
         response.trailer.link_type_ids = IdSlice::from_raw(&[]);
@@ -1220,7 +1217,7 @@ mod locate {
     fn short_trailers_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.trailer.labels = IdSlice::from_raw(&const { [Label::empty()] });
+        response.trailer.labels = IdSlice::from_raw(&const { [Label::EMPTY] });
         let _bytes = response.encode();
     }
 

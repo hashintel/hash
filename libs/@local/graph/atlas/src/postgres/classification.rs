@@ -50,7 +50,7 @@ pub(crate) enum Classification {
     /// A non-link entity.
     Node,
     /// A link-typed entity, beside its outgoing attachment endpoints.
-    Link {
+    Edge {
         /// The left attachment's endpoint, or [`None`] when the store holds no such edge.
         source: Option<ArchivedEntityId>,
         /// The right attachment's endpoint, or [`None`] when the store holds no such edge.
@@ -182,7 +182,7 @@ pub(crate) fn decode_classification(
     let link_typed: bool = row.try_get(columns.link_typed)?;
 
     let classification = if link_typed {
-        Classification::Link {
+        Classification::Edge {
             source: endpoint(columns.source_web_id, columns.source_entity_uuid)?,
             target: endpoint(columns.target_web_id, columns.target_entity_uuid)?,
         }

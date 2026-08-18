@@ -574,7 +574,7 @@ fn g5_trailer_tile() -> Fixture {
 
     let labels = [
         Label::new("Z\u{fc}rich"),
-        Label::empty(),
+        Label::EMPTY,
         Label::new("e\u{301}"),
         Label::new("\u{1f980}"),
     ];
@@ -634,7 +634,7 @@ fn g6_edges() -> Fixture {
     let link_labels = [
         Label::new("\u{153}uvre"),
         Label::new("created by"),
-        Label::empty(),
+        Label::EMPTY,
     ];
     let type_table = ["https://t.test/authored/v/1", "https://t.test/cites/v/2"].map(Cow::Borrowed);
     let link_type_ids = [Some(TableIndex::new(1)), Some(TableIndex::new(0)), None];
@@ -744,7 +744,7 @@ fn g7_trailer() -> G7Trailer {
         ]),
         labels: [
             Label::new("Caf\u{e9}"),
-            Label::empty(),
+            Label::EMPTY,
             Label::new("\u{1d50a}"),
             Label::new("e\u{301}"),
         ],
@@ -754,11 +754,7 @@ fn g7_trailer() -> G7Trailer {
             Some(TableIndex::new(2)),
             Some(TableIndex::new(0)),
         ],
-        link_labels: [
-            Label::new("\u{153}uvre"),
-            Label::empty(),
-            Label::new("cites"),
-        ],
+        link_labels: [Label::new("\u{153}uvre"), Label::EMPTY, Label::new("cites")],
         link_type_ids: [
             vec![TableIndex::new(1), TableIndex::new(0)],
             vec![TableIndex::new(0)],
@@ -916,7 +912,7 @@ fn locate_sidecar(
             ViewRow::Base(position) => (response.positions[position], response.rows[position]),
             ViewRow::Arrival(index) => {
                 let arrival = &response.arrivals[index];
-                (arrival.point, arrival.wire)
+                (arrival.position, arrival.wire)
             }
         };
         positions_bits.push(point.x().to_bits());
