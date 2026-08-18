@@ -90,7 +90,8 @@ tower                     = { workspace = true, features = ["util"] }
 uuid                      = { workspace = true, features = ["v4"] }
 
 [features]
-clap = ["dep:clap"]
+clap                 = ["dep:clap"]
+unsafe-dev-endpoints = []
 
 [lints]
 workspace = true

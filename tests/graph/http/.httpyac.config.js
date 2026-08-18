@@ -4,7 +4,8 @@
 module.exports = {
   configureHooks: (api) => {
     api.hooks.onRequest.addHook("serviceSecret", (request) => {
-      if (!String(request.url).includes("127.0.0.1:4000")) {
+      const url = String(request.url);
+      if (!url.includes("127.0.0.1:4000") && !url.includes("127.0.0.1:4001")) {
         return;
       }
       request.headers = {

@@ -20,6 +20,8 @@ export const deleteUserByEmail = async (email: string): Promise<void> => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-HASH-Service-Secret":
+          process.env.HASH_GRAPH_SERVICE_SECRET ?? "hash-svc-local-dev-secret",
         "X-Authenticated-User-Actor-Id": systemActorId,
       },
       body: JSON.stringify({ email }),

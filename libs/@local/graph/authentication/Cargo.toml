@@ -15,26 +15,29 @@ hash-status              = { workspace = true, public = true }
 type-system              = { workspace = true, public = true }
 
 # Public third-party dependencies
-http    = { workspace = true, public = true, features = ["std"] }
-reqwest = { workspace = true, public = true }
+http         = { workspace = true, public = true, features = ["std"] }
+jsonwebtoken = { workspace = true, public = true, features = ["aws_lc_rs"] }
+reqwest      = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
 cookie         = { workspace = true }
-derive_more    = { workspace = true, features = ["display"] }
+derive_more    = { workspace = true, features = ["display", "error"] }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
 subtle         = { workspace = true }
+tokio          = { workspace = true, features = ["sync"] }
 tracing        = { workspace = true }
 uuid           = { workspace = true }
 
 [dev-dependencies]
-axum   = { workspace = true }
-rstest = { workspace = true }
-tokio  = { workspace = true, features = ["macros", "rt-multi-thread"] }
-uuid   = { workspace = true, features = ["v4"] }
+axum         = { workspace = true }
+jsonwebtoken = { workspace = true, features = ["use_pem"] }
+rstest       = { workspace = true }
+tokio        = { workspace = true, features = ["macros", "rt-multi-thread"] }
+uuid         = { workspace = true, features = ["v4"] }
 
 [features]
 test-utils = []
