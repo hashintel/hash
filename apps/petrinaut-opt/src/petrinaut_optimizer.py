@@ -205,7 +205,7 @@ class PetrinautOptimizer:
             span.set_attribute("optuna.trial.number", trial.number)
             parameter_values = self.suggest(trial)
             try:
-                value = self.pn_model.objective(parameter_values)
+                value = self.pn_model.evaluate_runs(parameter_values)
             except PetrinautRunError as error:
                 # Pruning is expected Optuna control flow, not a span failure.
                 # Record it as an attribute and re-raise *after* the span closes
