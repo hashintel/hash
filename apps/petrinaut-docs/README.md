@@ -58,11 +58,38 @@ stylistic. The bundle's inter-page links are relative and assume a page's slug
 maps to a URL with no trailing slash; serving `/architecture/core/` instead would
 resolve those links one level too deep.
 
+## Chrome overrides
+
+[`src/styles/chrome.css`](src/styles/chrome.css), registered as Starlight's
+`customCss`, narrows both side panels to give the content column more width,
+tones down the header, and rounds the corners on markdown images so the embedded
+diagrams match the bordered cards beside them. The left nav takes its own
+`--pnd-sidebar-width` because Starlight sizes both panels from
+`--sl-sidebar-width`, and collapsing the nav has to zero one of them without
+flattening the other. The collapse toggle and resize handle come from
+`components.SiteTitle`, the only overridable component inside the fixed header,
+which is the one piece of chrome still on screen once the nav is gone. Both
+controls remember their state in `localStorage`, restored by a `head` script so
+a collapsed sidebar does not render open and then jump.
+
 `installConfig.hoistingLimits` nests this app's dependencies rather than hoisting
 them. Astro's generated prerender entry resolves `cookie` from this app's build
 output, which would otherwise reach the root-hoisted `cookie@0.7.2` that
 `express` pins and fail on a missing `parseCookie` export. Nesting keeps Astro on
 its own `cookie@2.x` without changing hoisting for the rest of the monorepo.
+
+## The code font
+
+Code renders in JetBrains Mono, requested through Astro's font support in
+[`astro.config.mjs`](astro.config.mjs) and emitted by `<Font>` in
+[`src/components/Head.astro`](src/components/Head.astro).
+
+A build downloads one variable file covering weights 400 to 700, subsets it to
+latin, and writes it beside the other assets, so a reader makes no request to a
+font host. The head carries a `preload` link and `font-display: swap`, and Astro
+generates a metric-matched fallback, which is what keeps text from shifting when
+the file arrives. The downloaded originals are cached under `.astro/`, which is
+ignored.
 
 ## Deployment
 
