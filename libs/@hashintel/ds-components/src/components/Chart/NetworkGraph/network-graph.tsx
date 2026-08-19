@@ -336,6 +336,13 @@ const ZOOM_OUT_MARGIN = 0.05;
  */
 const MAX_ZOOM_OFFSET = 9;
 /**
+ * How far (zoom levels) below the latched high-water mark the zoom must drop
+ * before the detail-view latch re-evaluates — deep enough that a pinch
+ * gesture's frame-to-frame wobble never counts as a zoom-out, shallow enough
+ * that any deliberate one does.
+ */
+const DETAIL_LATCH_ZOOM_OUT_TOLERANCE = 0.05;
+/**
  * Screen-space margin (px) reserved when framing, so nodes near the edge aren't
  * clipped by their radius — the bounds cover node centres only, and a disc extends
  * past its centre.
@@ -1368,21 +1375,61 @@ export const NetworkGraph = ({
   // presentation attributes are normalised, so they frame every dataset alike.
   const framingBaseZoom = viewState?.minZoom ?? null;
 
+  const normalisedZoom =
+    currentZoom != null && framingBaseZoom != null
+      ? currentZoom - framingBaseZoom
+      : null;
+
   // Everything the view derives from the current zoom, computed together by {@link deriveZoomAttributes}.
-  const { radiusScale, arrowGapPx, isDetailZoom } = useMemo(
+  const {
+    radiusScale,
+    arrowGapPx,
+    isDetailZoom: rawIsDetailZoom,
+  } = useMemo(
     () =>
       deriveZoomAttributes(
-        currentZoom != null && framingBaseZoom != null
-          ? currentZoom - framingBaseZoom
-          : null,
+        normalisedZoom,
         // Detail view shows in the top 0.5 zoom levels, just below the max zoom —
         // expressed here on the normalised axis (`maxZoom − framingBase − 0.5`).
         viewState?.maxZoom != null && framingBaseZoom != null
           ? viewState.maxZoom - framingBaseZoom - 0.5
           : null,
       ),
-    [currentZoom, viewState?.maxZoom, framingBaseZoom],
+    [normalisedZoom, viewState?.maxZoom, framingBaseZoom],
   );
+
+  // The detail threshold tracks `maxZoom`, which can move while the user is
+  // mid-gesture (a caller extending its limit as denser data arrives — see the
+  // `maxZoom` prop), so the raw `zoom >= threshold` verdict can flap
+  // detail → summary → detail during one zoom-in. Latch it: once the detailed
+  // view is on it stays on through further zoom-in (and through threshold
+  // movement at a standstill); only zooming out re-evaluates, against the
+  // latest threshold. The state is the high-water zoom while latched (`null`
+  // when the detailed view is off), adjusted during render — the sanctioned
+  // previous-render pattern — and ratcheted in tolerance-sized steps so the
+  // extra render it costs is occasional rather than per zoom frame. The
+  // tolerance also absorbs sub-perceptual dips (a pinch gesture's zoom is not
+  // strictly monotonic), so only a deliberate zoom-out unlatches.
+  const [detailLatchZoom, setDetailLatchZoom] = useState<number | null>(null);
+  let nextDetailLatchZoom: number | null;
+  if (normalisedZoom === null) {
+    nextDetailLatchZoom = null;
+  } else if (
+    detailLatchZoom === null ||
+    normalisedZoom < detailLatchZoom - DETAIL_LATCH_ZOOM_OUT_TOLERANCE
+  ) {
+    // Not latched, or deliberately zoomed out: the latest threshold decides.
+    nextDetailLatchZoom = rawIsDetailZoom ? normalisedZoom : null;
+  } else {
+    nextDetailLatchZoom =
+      normalisedZoom >= detailLatchZoom + DETAIL_LATCH_ZOOM_OUT_TOLERANCE
+        ? normalisedZoom
+        : detailLatchZoom;
+  }
+  if (nextDetailLatchZoom !== detailLatchZoom) {
+    setDetailLatchZoom(nextDetailLatchZoom);
+  }
+  const isDetailZoom = nextDetailLatchZoom !== null;
 
   // Density sizing measured as a world-space inter-node spacing, later multiplied by
   // the live world→pixel scale so plain zooming stays smooth. Two measures are
