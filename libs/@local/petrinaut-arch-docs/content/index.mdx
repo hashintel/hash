@@ -76,7 +76,7 @@ Python optimizer service drive; its [usage manual](doc:cli/usage-manual) covers
 the transports, the protocol, and optimization studies.
 
 `apps/petrinaut-opt` (the Python Optuna service) and `@local/petrinaut-python`
-(its CLI bindings) are covered as layers too, though Python files contribute
-no import edges yet. One package is not covered at all:
+(its CLI bindings) are covered too, with their layers and import edges derived
+the same way as the TypeScript ones. One package is not covered at all:
 `@apps/petrinaut-website`. Adding a package is a matter of declaring layers in
 its source; see [Declaring layers](doc:maintaining/declaring-layers).
