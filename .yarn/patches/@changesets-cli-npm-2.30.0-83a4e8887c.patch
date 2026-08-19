@@ -1,7 +1,16 @@
 diff --git a/dist/changesets-cli.cjs.js b/dist/changesets-cli.cjs.js
-index 577f752a6ba6cb2d8ac7c4740818c7db23fcccfc..91f18f1163421dde2e542f8a2321fbb56ffcb478 100644
+index 577f752a6ba6cb2d8ac7c4740818c7db23fcccfc..92963d279a369dbcbabe046324e5c7dc91d89be6 100644
 --- a/dist/changesets-cli.cjs.js
 +++ b/dist/changesets-cli.cjs.js
+@@ -670,7 +670,7 @@ const getLastJsonObjectFromString = str => {
+ };
+ 
+ const NPM_REQUEST_CONCURRENCY_LIMIT = 40;
+-const NPM_PUBLISH_CONCURRENCY_LIMIT = 10;
++const NPM_PUBLISH_CONCURRENCY_LIMIT = 1;
+ const npmRequestQueue = createPromiseQueue(NPM_REQUEST_CONCURRENCY_LIMIT);
+ const npmPublishQueue = createPromiseQueue(NPM_PUBLISH_CONCURRENCY_LIMIT);
+ function jsonParse(input) {
 @@ -1162,7 +1162,8 @@ async function status(cwd, {
    if (changedPackages.length > 0 && changesets.length === 0) {
      logger.error("Some packages have been changed but no changesets were found. Run `changeset add` to resolve this error.");
@@ -13,9 +22,18 @@ index 577f752a6ba6cb2d8ac7c4740818c7db23fcccfc..91f18f1163421dde2e542f8a2321fbb5
    if (output) {
      await fs__default["default"].writeFile(path__default["default"].resolve(cwd, output), JSON.stringify(releasePlan, undefined, 2));
 diff --git a/dist/changesets-cli.esm.js b/dist/changesets-cli.esm.js
-index 1c568a79190bf5fa05ed75799570b9c8eb902cdb..b8ec75415a5e6485b22e9089b5e682a9cdd9e62f 100644
+index 1c568a79190bf5fa05ed75799570b9c8eb902cdb..f6d1c9d7e62065da08d421c978757296c3fb914f 100644
 --- a/dist/changesets-cli.esm.js
 +++ b/dist/changesets-cli.esm.js
+@@ -633,7 +633,7 @@ const getLastJsonObjectFromString = str => {
+ };
+ 
+ const NPM_REQUEST_CONCURRENCY_LIMIT = 40;
+-const NPM_PUBLISH_CONCURRENCY_LIMIT = 10;
++const NPM_PUBLISH_CONCURRENCY_LIMIT = 1;
+ const npmRequestQueue = createPromiseQueue(NPM_REQUEST_CONCURRENCY_LIMIT);
+ const npmPublishQueue = createPromiseQueue(NPM_PUBLISH_CONCURRENCY_LIMIT);
+ function jsonParse(input) {
 @@ -1125,7 +1125,8 @@ async function status(cwd, {
    if (changedPackages.length > 0 && changesets.length === 0) {
      error("Some packages have been changed but no changesets were found. Run `changeset add` to resolve this error.");

@@ -11,6 +11,11 @@ import {
 import { Section, SectionList } from "../../../../../components/section";
 import { Table, type TableColumn } from "../../../../../components/table";
 
+const summaryStyle = css({
+  marginTop: "-1",
+  marginBottom: "3",
+});
+
 const summaryGridStyle = css({
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -20,7 +25,6 @@ const summaryGridStyle = css({
 const statStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "1",
   minWidth: "[0]",
 });
 
@@ -45,6 +49,7 @@ const progressBarStyle = css({
   backgroundColor: "neutral.s30",
   borderRadius: "full",
   overflow: "hidden",
+  marginTop: "4",
 });
 
 const progressFillStyle = css({
@@ -217,7 +222,7 @@ const OptimizationSummary = ({
   );
 
   return (
-    <>
+    <div className={summaryStyle}>
       <div className={summaryGridStyle}>
         <div className={statStyle}>
           <span className={statLabelStyle}>Status</span>
@@ -273,7 +278,7 @@ const OptimizationSummary = ({
       {optimization.error ? (
         <span className={errorStyle}>{optimization.error}</span>
       ) : null}
-    </>
+    </div>
   );
 };
 

@@ -159,8 +159,12 @@ Methods:
 - `optimization.describe`: returns the Optuna direction, study configuration,
   and flat descriptors for only the parameters Optuna should suggest.
 - `optimization.evaluate`: evaluates one complete set of suggested parameter
-  values and returns `{ "objective": number }`. These two methods require an
-  optimization manifest source.
+  values and returns `{ "objective": number }`. When the manifest sets
+  `execution.seedsPerTrial` above 1, the trial runs that many seeded
+  simulations sequentially. `objective` is their mean, and a `replicates`
+  array reports the per-seed values (see
+  [OPTIMIZATION_INTEGRATION.md](./OPTIMIZATION_INTEGRATION.md)). These two
+  methods require an optimization manifest source.
 
 ## Run Request
 

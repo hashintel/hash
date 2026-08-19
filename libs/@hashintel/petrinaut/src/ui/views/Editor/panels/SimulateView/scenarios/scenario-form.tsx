@@ -3,13 +3,14 @@ import { use, useEffect, useRef, useState } from "react";
 
 import {
   Button,
+  Form,
   NumberInput,
   Select,
   TextArea,
   TextInput,
   Toggle,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { Section, SectionList } from "../../../../../components/section";
@@ -28,20 +29,6 @@ import type {
   ScenarioParameter,
 } from "@hashintel/petrinaut-core";
 
-// -- Form styles --------------------------------------------------------------
-
-const fieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[6px]",
-});
-
-const labelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-});
-
 // -- Scenario parameter row styles --------------------------------------------
 
 const paramRowStyle = css({
@@ -50,30 +37,23 @@ const paramRowStyle = css({
   gap: "[8px]",
 });
 
-const paramFieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[4px]",
+const paramIdentifierFieldStyle = css({
   flex: "1",
   minWidth: "[0]",
 });
 
-const paramFieldSmStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[4px]",
+const paramDefaultFieldStyle = css({
   width: "[64px]",
   flex: "[0 0 auto]",
 });
 
-const paramFieldConnectedStyle = css({
-  display: "flex",
-});
-
-const paramLabelStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s100",
+// the compact pre-migration label treatment for the parameter rows
+const paramFieldLabelStyle = css({
+  "& :is(label, legend)": {
+    fontSize: "xs",
+    fontWeight: "medium",
+    color: "neutral.s100",
+  },
 });
 
 // -- Override row styles -------------------------------------------------------
@@ -173,6 +153,7 @@ const switchLabelStyle = css({
   fontWeight: "medium",
   color: "neutral.s80",
   cursor: "pointer",
+  marginRight: "3",
 });
 
 const monospaceInputStyle = css({
@@ -509,8 +490,6 @@ interface ScenarioFormSectionsProps {
   places: Place[];
   /** Map of type ID → Color */
   typesById: Map<string, Color>;
-  /** Unique prefix for element IDs to avoid collisions when multiple forms exist */
-  idPrefix?: string;
   /** LSP session ID for scenario expression type-checking */
   scenarioSessionId?: string;
 }
@@ -523,7 +502,6 @@ const ScenarioFormSections = ({
   parameters,
   places,
   typesById,
-  idPrefix = "",
   scenarioSessionId,
 }: ScenarioFormSectionsProps) => {
   const { diagnosticsByUri } = use(LanguageClientContext);
@@ -544,13 +522,19 @@ const ScenarioFormSections = ({
   // Inline validation for name and scenario parameter identifiers
   const nameHasError = state.name.trim() === "";
   const identifiersSeen = new Set<string>();
-  const identifierHasError = (id: string): boolean => {
+  const identifierError = (id: string): string | undefined => {
     if (id === "") {
-      return false; // Don't flag empty while user hasn't typed yet
+      return undefined; // Don't flag empty while user hasn't typed yet
     }
     const isDuplicate = identifiersSeen.has(id);
     identifiersSeen.add(id);
-    return !SNAKE_CASE_RE.test(id) || isDuplicate;
+    if (!SNAKE_CASE_RE.test(id)) {
+      return "Must be snake_case (lowercase letters, digits, underscores; must start with a letter).";
+    }
+    if (isDuplicate) {
+      return "Duplicate identifier. Identifiers must be unique.";
+    }
+    return undefined;
   };
 
   const addScenarioParam = () => {
@@ -584,34 +568,31 @@ const ScenarioFormSections = ({
     <SectionList>
       {/* -- General -------------------------------------------------- */}
       <Section title="General" collapsible defaultOpen>
-        <div className={fieldStyle}>
-          <label className={labelStyle} htmlFor={`${idPrefix}scenario-name`}>
-            Scenario name
-          </label>
+        <Form.Field
+          label="Scenario name"
+          size="sm"
+          errors={
+            nameHasError && state.name !== ""
+              ? ["Scenario name is required."]
+              : undefined
+          }
+        >
           <TextInput
-            htmlForId={`${idPrefix}scenario-name`}
             size="sm"
             value={state.name}
             onChange={callbacks.onNameChange}
             invalid={nameHasError && state.name !== ""}
           />
-        </div>
+        </Form.Field>
 
-        <div className={fieldStyle}>
-          <label
-            className={labelStyle}
-            htmlFor={`${idPrefix}scenario-description`}
-          >
-            Description
-          </label>
+        <Form.Field label="Description" size="sm">
           <TextArea
-            htmlForId={`${idPrefix}scenario-description`}
             className={css({ minHeight: "[80px]" })}
             size="sm"
             value={state.description}
             onChange={callbacks.onDescriptionChange}
           />
-        </div>
+        </Form.Field>
       </Section>
 
       {/* -- Scenario Parameters -------------------------------------- */}
@@ -637,104 +618,120 @@ const ScenarioFormSections = ({
         {state.scenarioParams.length === 0 ? (
           <span className={emptyStyle}>No scenario parameters</span>
         ) : (
-          state.scenarioParams.map((param) => (
-            <div key={param._key} className={paramRowStyle}>
-              <div className={paramFieldStyle}>
-                <span className={paramLabelStyle}>Identifier</span>
-                <TextInput
+          state.scenarioParams.map((param) => {
+            const error = identifierError(param.identifier);
+            return (
+              <div key={param._key} className={paramRowStyle}>
+                <Form.Field
+                  label="Identifier"
                   size="sm"
-                  className={monospaceInputStyle}
-                  value={param.identifier}
-                  onChange={(identifier) =>
-                    updateScenarioParam(param._key, {
-                      identifier,
-                    })
-                  }
-                  onBlur={(e) => {
-                    const snakified = snakify(e.target.value);
-                    if (snakified !== e.target.value) {
+                  className={cx(
+                    paramIdentifierFieldStyle,
+                    paramFieldLabelStyle,
+                  )}
+                  errors={error ? [error] : undefined}
+                >
+                  <TextInput
+                    size="sm"
+                    className={monospaceInputStyle}
+                    value={param.identifier}
+                    onChange={(identifier) =>
                       updateScenarioParam(param._key, {
-                        identifier: snakified,
-                      });
+                        identifier,
+                      })
                     }
-                  }}
-                  placeholder="name"
-                  invalid={identifierHasError(param.identifier)}
+                    onBlur={(e) => {
+                      const snakified = snakify(e.target.value);
+                      if (snakified !== e.target.value) {
+                        updateScenarioParam(param._key, {
+                          identifier: snakified,
+                        });
+                      }
+                    }}
+                    placeholder="name"
+                    invalid={error !== undefined}
+                  />
+                </Form.Field>
+                <Form.Row gap="none" noWrap>
+                  <Form.Field
+                    label="Type"
+                    size="sm"
+                    className={paramFieldLabelStyle}
+                  >
+                    <Select
+                      required
+                      size="sm"
+                      connectToRightInput={param.type !== "boolean"}
+                      value={param.type}
+                      className={css({
+                        width: "[80px]",
+                        flex: "[0 0 auto]",
+                      })}
+                      onChange={(type) =>
+                        updateScenarioParam(param._key, { type })
+                      }
+                      items={
+                        [
+                          { value: "real", text: "Real" },
+                          { value: "integer", text: "Int" },
+                          { value: "boolean", text: "Bool" },
+                          { value: "ratio", text: "Ratio" },
+                        ] as Array<{
+                          value: ScenarioParameter["type"];
+                          text: string;
+                        }>
+                      }
+                    />
+                  </Form.Field>
+                  <Form.Field
+                    label="Default"
+                    size="sm"
+                    className={cx(paramDefaultFieldStyle, paramFieldLabelStyle)}
+                  >
+                    {param.type === "boolean" ? (
+                      <div className={css({ marginLeft: "3", marginTop: "1" })}>
+                        <Toggle
+                          size="sm"
+                          value={param.default !== 0}
+                          onChange={(checked) =>
+                            updateScenarioParam(param._key, {
+                              default: checked ? 1 : 0,
+                            })
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <NumberInput
+                        size="sm"
+                        connectToLeftInput
+                        hideStepper
+                        max={Number.MAX_SAFE_INTEGER}
+                        step={param.type === "integer" ? 1 : 0.001}
+                        value={param.default}
+                        onChange={(defaultValue) => {
+                          let next = defaultValue ?? 0;
+                          if (param.type === "ratio") {
+                            next = Math.max(0, Math.min(1, next));
+                          }
+                          updateScenarioParam(param._key, { default: next });
+                        }}
+                      />
+                    )}
+                  </Form.Field>
+                </Form.Row>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  tone="error"
+                  aria-label="Remove parameter"
+                  tooltip="Remove parameter"
+                  iconName="trash"
+                  className={css({ marginBottom: "1" })}
+                  onClick={() => removeScenarioParam(param._key)}
                 />
               </div>
-              <div className={paramFieldConnectedStyle}>
-                <div className={paramFieldStyle}>
-                  <span className={paramLabelStyle}>Type</span>
-                  <Select
-                    required
-                    size="sm"
-                    connectToRightInput={param.type !== "boolean"}
-                    value={param.type}
-                    className={css({
-                      width: "[80px]",
-                      flex: "[0 0 auto]",
-                    })}
-                    onChange={(type) =>
-                      updateScenarioParam(param._key, { type })
-                    }
-                    items={
-                      [
-                        { value: "real", text: "Real" },
-                        { value: "integer", text: "Int" },
-                        { value: "boolean", text: "Bool" },
-                        { value: "ratio", text: "Ratio" },
-                      ] as Array<{
-                        value: ScenarioParameter["type"];
-                        text: string;
-                      }>
-                    }
-                  />
-                </div>
-                <div className={paramFieldSmStyle}>
-                  <span className={paramLabelStyle}>Default</span>
-                  {param.type === "boolean" ? (
-                    <div className={css({ marginLeft: "3", marginTop: "1" })}>
-                      <Toggle
-                        size="sm"
-                        value={param.default !== 0}
-                        onChange={(checked) =>
-                          updateScenarioParam(param._key, {
-                            default: checked ? 1 : 0,
-                          })
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <NumberInput
-                      size="sm"
-                      connectToLeftInput
-                      hideStepper
-                      max={Number.MAX_SAFE_INTEGER}
-                      step={param.type === "integer" ? 1 : 0.001}
-                      value={param.default}
-                      onChange={(defaultValue) => {
-                        let next = defaultValue ?? 0;
-                        if (param.type === "ratio") {
-                          next = Math.max(0, Math.min(1, next));
-                        }
-                        updateScenarioParam(param._key, { default: next });
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-              <Button
-                size="xs"
-                variant="ghost"
-                tone="error"
-                aria-label="Remove parameter"
-                tooltip="Remove parameter"
-                iconName="trash"
-                className={css({ marginBottom: "1" })}
-                onClick={() => removeScenarioParam(param._key)}
-              />
-            </div>
-          ))
+            );
+          })
         )}
       </Section>
 
@@ -900,8 +897,6 @@ export interface ScenarioFormBodyProps {
   parameters: Parameter[];
   /** The net-level places */
   places: Place[];
-  /** Unique prefix for element IDs */
-  idPrefix?: string;
 }
 
 /**
@@ -914,7 +909,6 @@ export const ScenarioFormBody = ({
   typesById,
   parameters,
   places,
-  idPrefix,
 }: ScenarioFormBodyProps) => {
   const values = useStore(form.store, (state) => state.values);
 
@@ -954,7 +948,6 @@ export const ScenarioFormBody = ({
       parameters={parameters}
       places={places}
       typesById={typesById}
-      idPrefix={idPrefix}
       scenarioSessionId={scenarioSessionId}
     />
   );

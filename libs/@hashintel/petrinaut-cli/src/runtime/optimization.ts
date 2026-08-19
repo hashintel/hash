@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 
 import {
   compileScenario,
+  deriveRunSeed,
   petrinautOptimizationEvaluateParamsSchema,
   petrinautOptimizationManifestSchema,
 } from "@hashintel/petrinaut-core";
@@ -134,14 +135,30 @@ function validateSuggestedValue(
 
 export type OptimizationProtocol = {
   describe(): PetrinautOptimizationDescribeResult;
-  evaluate(params: unknown): PetrinautOptimizationEvaluateResult;
+  evaluate(params: unknown): Promise<PetrinautOptimizationEvaluateResult>;
 };
+
+/**
+ * Derives one trial's run seeds. Run 0 keeps the base seed, so a single-seed
+ * trial matches the old fixed-seed behaviour; later runs use the Monte Carlo
+ * derivation. Every trial gets the same sequence: common random numbers.
+ */
+export function deriveTrialSeeds(
+  baseSeed: number,
+  seedsPerTrial: number,
+): number[] {
+  return Array.from({ length: seedsPerTrial }, (_, index) =>
+    index === 0 ? baseSeed : deriveRunSeed(baseSeed, index),
+  );
+}
 
 export function createOptimizationProtocol(args: {
   manifest: PetrinautOptimizationManifest;
   model: PetrinautCompiledModel;
 }): OptimizationProtocol {
   const { manifest, model } = args;
+  const seedsPerTrial = manifest.execution.seedsPerTrial ?? 1;
+  const trialSeeds = deriveTrialSeeds(manifest.execution.seed, seedsPerTrial);
   const scenario = manifest.model.definition.scenarios?.[0];
   const metric = manifest.model.definition.metrics?.[0];
   if (!scenario || !metric) {
@@ -165,13 +182,17 @@ export function createOptimizationProtocol(args: {
     describe() {
       return {
         direction: manifest.objective.direction,
-        study: { ...manifest.study, seed: manifest.execution.seed },
+        study: {
+          ...manifest.study,
+          seed: manifest.execution.seed,
+          seedsPerTrial,
+        },
         parameters: optimizedParameters.map(({ parameter, domain }) =>
           describeParameter(parameter, domain),
         ),
       };
     },
-    evaluate(params) {
+    async evaluate(params) {
       const parsed =
         petrinautOptimizationEvaluateParamsSchema.safeParse(params);
       if (!parsed.success) {
@@ -223,21 +244,40 @@ export function createOptimizationProtocol(args: {
         );
       }
 
-      const result = model.run({
-        initialMarking: compiledScenario.result.initialState,
-        parameterValues: compiledScenario.result.parameterValues,
-        metrics: [manifest.objective.metricId],
-        seed: manifest.execution.seed,
-        dt: manifest.execution.dt,
-        maxTime: manifest.execution.maxTime,
+      // Sequential seeded runs: each replicate is validated as it lands, so a
+      // bad objective fails the trial before the remaining seeds run.
+      // Parallelising is deferred to the shared experiment-backend interface.
+      const replicates = trialSeeds.map((seed) => {
+        const result = model.run({
+          initialMarking: compiledScenario.result.initialState,
+          parameterValues: compiledScenario.result.parameterValues,
+          metrics: [manifest.objective.metricId],
+          seed,
+          dt: manifest.execution.dt,
+          maxTime: manifest.execution.maxTime,
+        });
+        const value = result.metrics[metric.name];
+        if (value === undefined || !Number.isFinite(value)) {
+          throw new Error(
+            `Petrinaut result omitted a finite objective metric "${metric.name}" for seed ${seed}`,
+          );
+        }
+        return { seed, objective: value };
       });
-      const objective = result.metrics[metric.name];
-      if (objective === undefined || !Number.isFinite(objective)) {
+      // Online mean: summing the objectives first could overflow to Infinity
+      // even when each one is finite.
+      const objective = replicates.reduce(
+        (mean, replicate, index) =>
+          mean + (replicate.objective - mean) / (index + 1),
+        0,
+      );
+      // A non-finite mean would serialize as null on the wire; fail loudly.
+      if (!Number.isFinite(objective)) {
         throw new Error(
-          `Petrinaut result omitted a finite objective metric "${metric.name}"`,
+          `The mean of the objective metric "${metric.name}" is not finite`,
         );
       }
-      return { objective };
+      return seedsPerTrial > 1 ? { objective, replicates } : { objective };
     },
   };
 }

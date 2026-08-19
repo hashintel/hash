@@ -1,6 +1,12 @@
 import { use } from "react";
 
-import { Button, Icon, NumberInput, Tooltip } from "@hashintel/ds-components";
+import {
+  Button,
+  Form,
+  Icon,
+  NumberInput,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
@@ -11,16 +17,10 @@ import { InitialStateEditor } from "./initial-state-editor";
 
 import type { SubView } from "../../../../../../../components/sub-view/types";
 
-const fieldLabelStyle = css({
-  fontWeight: "medium",
-  fontSize: "xs",
-  marginBottom: "[4px]",
-});
-
-const simpleStateContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[8px]",
+// the subview content wrapper has no top padding (it belongs to the sticky
+// header), so a lone field provides its own
+const stateFieldStyle = css({
+  marginTop: "3",
 });
 
 const scenarioInfoStyle = css({
@@ -124,10 +124,12 @@ const PlaceInitialStateContent: React.FC = () => {
     }
 
     return (
-      <div className={simpleStateContainerStyle}>
-        <div className={fieldLabelStyle}>
-          {hasSimulationFrames ? "Current tokens" : "Initial tokens"}
-        </div>
+      <Form.Field
+        className={stateFieldStyle}
+        label={hasSimulationFrames ? "Current tokens" : "Initial tokens"}
+        size="sm"
+        disabled
+      >
         <Tooltip content="Defined by the selected scenario">
           <NumberInput
             size="sm"
@@ -137,7 +139,7 @@ const PlaceInitialStateContent: React.FC = () => {
             disabled
           />
         </Tooltip>
-      </div>
+      </Form.Field>
     );
   }
 
@@ -154,8 +156,12 @@ const PlaceInitialStateContent: React.FC = () => {
     }
 
     return (
-      <div className={simpleStateContainerStyle}>
-        <div className={fieldLabelStyle}>Token count</div>
+      <Form.Field
+        className={stateFieldStyle}
+        label="Token count"
+        size="sm"
+        disabled={hasSimulationFrames}
+      >
         <Tooltip
           content={UI_MESSAGES.READ_ONLY_MODE}
           disableTooltip={!hasSimulationFrames}
@@ -169,7 +175,7 @@ const PlaceInitialStateContent: React.FC = () => {
             disabled={hasSimulationFrames}
           />
         </Tooltip>
-      </div>
+      </Form.Field>
     );
   }
 

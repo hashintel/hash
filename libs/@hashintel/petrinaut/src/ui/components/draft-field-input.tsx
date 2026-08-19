@@ -1,4 +1,4 @@
-import { TextInput, Tooltip } from "@hashintel/ds-components";
+import { Form, TextInput, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useDraftField } from "../hooks/use-draft-field";
@@ -8,6 +8,10 @@ type ValidationResult =
   | { valid: false; error: string };
 
 interface DraftFieldInputProps {
+  /** Field label, rendered via Form.Field and connected to the input. */
+  label: string;
+  /** Optional info tooltip rendered next to the label. */
+  labelTooltip?: string;
   /** Stable identifier of the entity owning this field; switching it discards stale drafts. */
   sourceId: string;
   /** Current canonical value. */
@@ -18,13 +22,9 @@ interface DraftFieldInputProps {
   onCommit: (name: string) => void;
   disabled?: boolean;
   monospace?: boolean;
+  /** Tooltip shown when hovering the input itself (eg. a read-only hint). */
   tooltip?: string;
 }
-
-const errorMessageStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
-});
 
 const monospaceInputStyle = css({
   "& input": {
@@ -33,11 +33,14 @@ const monospaceInputStyle = css({
 });
 
 /**
- * Standard text input bound to a {@link useDraftField} draft. Renders the
- * input, runs the validator on blur, surfaces the validation error
- * underneath, and commits only when the normalized value actually changes.
+ * Labelled text input bound to a {@link useDraftField} draft. Renders a
+ * Form.Field around the input, runs the validator on blur, surfaces the
+ * validation error via the field's error slot, and commits only when the
+ * normalized value actually changes.
  */
 export const DraftFieldInput: React.FC<DraftFieldInputProps> = ({
+  label,
+  labelTooltip,
   sourceId,
   sourceValue,
   validate,
@@ -49,7 +52,13 @@ export const DraftFieldInput: React.FC<DraftFieldInputProps> = ({
   const field = useDraftField({ sourceId, sourceValue });
 
   return (
-    <>
+    <Form.Field
+      label={label}
+      labelTooltip={labelTooltip}
+      size="sm"
+      disabled={disabled}
+      errors={field.error ? [field.error] : undefined}
+    >
       <Tooltip content={tooltip ?? ""} disableTooltip={!tooltip}>
         <TextInput
           value={field.value}
@@ -78,7 +87,6 @@ export const DraftFieldInput: React.FC<DraftFieldInputProps> = ({
           invalid={!!field.error}
         />
       </Tooltip>
-      {field.error && <div className={errorMessageStyle}>{field.error}</div>}
-    </>
+    </Form.Field>
   );
 };

@@ -1,5 +1,7 @@
 import { useId } from "react";
 
+import { cx } from "@hashintel/ds-helpers/css";
+
 import { Description } from "./description";
 import { Errors } from "./errors";
 import { FieldIdProvider } from "./field-id-context";
@@ -19,6 +21,8 @@ const FormField = ({
   hideLabel,
   size = "md",
   labelDirection = "left",
+  layout = "block",
+  inputAlign = "start",
   description,
   descriptionBottom,
   labelTooltip,
@@ -39,66 +43,135 @@ const FormField = ({
   description?: React.ReactNode;
   descriptionBottom?: React.ReactNode;
   labelTooltip?: string | React.ReactNode;
-  labelActions?: React.ReactNode[];
+  labelActions?: React.ReactNode;
 
   errors?: Array<string | React.ReactNode>;
-} & SharedInputAndFieldProps) => {
-  const classes = styles({ size });
+} & (
+  | {
+      layout: "inline";
+      inputAlign?: "start" | "end";
+    }
+  | {
+      layout?: "block";
+      inputAlign?: never;
+    }
+) &
+  SharedInputAndFieldProps) => {
+  // resolve logical start/end to a physical side against labelDirection
+  const classes = styles({
+    size,
+    layout,
+    labelDirection,
+    hideLabel: !!hideLabel,
+    inputAlign:
+      (inputAlign === "end") !== (labelDirection === "right")
+        ? "right"
+        : "left",
+  });
   const id = useId();
-  const labelType = as === "label" ? { as, htmlFor: id } : { as };
+  // a legend keeps the required mark and (in block layout) the tooltip
+  // trigger inside it, so the fieldset is aria-labelledby'd to just the label
+  // text (wrapped in an id'd span) to keep them out of its accessible name.
+  // inline additionally nests the label inside inlineControl, where a
+  // <legend> would not name the fieldset — the label becomes a <span>
+  const isLegend = as === "legend";
+  const labelType =
+    as === "label"
+      ? { as, htmlFor: id }
+      : { as: layout === "inline" ? ("span" as const) : as };
+
+  const labelEl = (
+    <Label
+      {...labelType}
+      size={size}
+      direction={labelDirection}
+      required={required}
+      actions={layout === "block" ? labelActions : undefined}
+      tooltip={labelTooltip}
+      disabled={disabled}
+      hide={hideLabel}
+      className={classes.label}
+    >
+      {isLegend ? <span id={id}>{label}</span> : label}
+    </Label>
+  );
+
+  const descriptionEl = description && (
+    <Description
+      size={size}
+      direction={labelDirection}
+      disabled={disabled}
+      className={classes.description}
+      data-part="description"
+    >
+      {description}
+    </Description>
+  );
+
+  const descriptionBottomEl = descriptionBottom && (
+    <Description
+      size={size}
+      direction={labelDirection}
+      disabled={disabled}
+      className={classes.descriptionBottom}
+      data-part="descriptionBottom"
+    >
+      {descriptionBottom}
+    </Description>
+  );
+  const errorsEl = errors && (
+    <Errors
+      errors={errors}
+      size={size}
+      direction={labelDirection}
+      disabled={disabled}
+      className={classes.errors}
+      data-part="errors"
+    />
+  );
+
+  const controlEl =
+    as === "label" ? (
+      <FieldIdProvider id={id}>{children}</FieldIdProvider>
+    ) : (
+      children
+    );
+
+  if (layout === "inline") {
+    return (
+      <fieldset
+        aria-labelledby={isLegend ? id : undefined}
+        className={cx(classes.root, className)}
+        data-part="form-field"
+        data-layout="inline"
+      >
+        {descriptionEl}
+        <div className={classes.inlineControl}>
+          {labelEl}
+          <div className={classes.inlineInput}>
+            {controlEl}
+            {labelActions && (
+              <span className={classes.inlineLabelActions}>{labelActions}</span>
+            )}
+          </div>
+        </div>
+        {descriptionBottomEl}
+        {errorsEl}
+      </fieldset>
+    );
+  }
 
   return (
-    <fieldset className={className}>
-      <Label
-        {...labelType}
-        size={size}
-        direction={labelDirection}
-        required={required}
-        actions={labelActions}
-        tooltip={labelTooltip}
-        disabled={disabled}
-        hide={hideLabel}
-        className={classes.label}
-      >
-        {label}
-      </Label>
-      {description && (
-        <Description
-          size={size}
-          direction={labelDirection}
-          disabled={disabled}
-          className={classes.description}
-          data-part="description"
-        >
-          {description}
-        </Description>
-      )}
-      {as === "label" ? (
-        <FieldIdProvider id={id}>{children}</FieldIdProvider>
-      ) : (
-        children
-      )}
-      {descriptionBottom && (
-        <Description
-          size={size}
-          direction={labelDirection}
-          disabled={disabled}
-          className={classes.descriptionBottom}
-          data-part="descriptionBottom"
-        >
-          {descriptionBottom}
-        </Description>
-      )}
-      {errors && (
-        <Errors
-          errors={errors}
-          size={size}
-          direction={labelDirection}
-          disabled={disabled}
-          className={classes.errors}
-          data-part="errors"
-        />
-      )}
+    <fieldset
+      aria-labelledby={isLegend ? id : undefined}
+      className={cx(classes.root, className)}
+      data-part="form-field"
+    >
+      {labelEl}
+      {descriptionEl}
+      {controlEl}
+      {descriptionBottomEl}
+      {errorsEl}
     </fieldset>
   );
 };
