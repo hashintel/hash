@@ -104,6 +104,29 @@ impl NonNegative {
         DNonNegative::from(self)
     }
 
+    /// Squares into double precision, exactly and totally.
+    ///
+    /// A 24-bit significand squares within 53 bits, so the widened square carries no rounding.
+    /// A doubled `f32` exponent sits far inside the `f64` range, so the square never leaves
+    /// the domain. The square of zero is zero.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn square_wide(self) -> DNonNegative {
+        DNonNegative::new_unchecked(self.widen().get() * self.widen().get())
+    }
+
+    /// Divides into double precision, totally.
+    ///
+    /// The quotient of an `f32`-born non-negative by an `f32`-born positive is never NaN and
+    /// never negative, and its exponent stays hundreds of shells inside the `f64` range in
+    /// both directions, so the quotient never leaves the domain. Zero divides to exactly zero.
+    /// One rounding.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn div_wide(self, rhs: Positive) -> DNonNegative {
+        DNonNegative::new_unchecked(self.widen().get() / rhs.widen().get())
+    }
+
     /// Narrows to the strictly positive domain.
     ///
     /// Returns [`None`] exactly at zero, so an `if let` on the result is the zero guard and the
@@ -198,6 +221,18 @@ impl NonNegative {
         Self::new_unchecked((self.0 - rhs.0).max(0.0))
     }
 
+    /// Divides, saturating at the domain ceiling.
+    ///
+    /// The quotient of a non-negative by a positive is never NaN and never negative, and a
+    /// quotient beyond the `f32` range saturates at [`f32::MAX`], mirroring
+    /// [`saturating_sub`](Self::saturating_sub) at the opposite edge. Underflow rounds to
+    /// zero, inside the domain.
+    #[inline]
+    #[must_use]
+    pub(crate) fn saturating_div(self, rhs: Positive) -> Self {
+        Self::new_unchecked((self.0 / rhs.get()).min(f32::MAX))
+    }
+
     /// Computes the logistic function `1 / (1 + exp(-value))` of a raw scalar.
     ///
     /// The evaluation feeds the negated magnitude to `exp`, keeping the intermediate exponent
@@ -274,19 +309,6 @@ impl NonNegative {
         // In domain with no check: `sqrt` over `[0, MAX]` is monotone into `[0, ~1.8e19]`,
         // never NaN for a non-negative operand, and `sqrt(+0.0)` is `+0.0`.
         Self(self.0.sqrt())
-    }
-
-    /// Fuses a multiply-add `self · factor + addend` with one rounding.
-    ///
-    /// Products and sums of non-negatives stay non-negative and are never NaN. Overflow escapes
-    /// to `+∞` and asserts in debug builds, mirroring integer `+`.
-    #[inline]
-    #[must_use]
-    pub(crate) fn mul_add(self, factor: Self, addend: Self) -> Self {
-        let fused = self.0.mul_add(factor.0, addend.0);
-        debug_assert!(fused.is_finite(), "the fused multiply-add overflowed");
-
-        Self(fused)
     }
 
     /// Raises to a real power.
@@ -460,27 +482,6 @@ const impl core::ops::Sub for NonNegative {
     }
 }
 
-const impl core::ops::Mul for NonNegative {
-    type Output = Self;
-
-    /// Multiplies.
-    ///
-    /// A product of non-negatives is non-negative and never NaN, and zero keeps its canonical
-    /// positive sign. Overflow escapes to `+∞` and asserts in debug builds, mirroring integer
-    /// `+`. For a product the caller revalidates, [`checked_mul`](Self::checked_mul) returns the
-    /// overflow as [`None`].
-    #[inline]
-    fn mul(self, rhs: Self) -> Self {
-        let product = self.0 * rhs.0;
-        debug_assert!(
-            product.is_finite(),
-            "non-negative multiplication overflowed"
-        );
-
-        Self(product)
-    }
-}
-
 const impl core::ops::Mul<Finite> for NonNegative {
     type Output = f32;
 
@@ -492,23 +493,6 @@ const impl core::ops::Mul<Finite> for NonNegative {
     #[inline]
     fn mul(self, rhs: Finite) -> f32 {
         self.0 * rhs.get()
-    }
-}
-
-const impl core::ops::Div<Positive> for NonNegative {
-    type Output = Self;
-
-    /// Divides by a positive divisor.
-    ///
-    /// The quotient is non-negative and never NaN, because the divisor is never zero. A divisor
-    /// below one can overflow to `+∞`. The crossing asserts in debug builds the way integer `+`
-    /// does.
-    #[inline]
-    fn div(self, rhs: Positive) -> Self {
-        let quotient = self.0 / rhs.get();
-        debug_assert!(quotient.is_finite(), "the quotient overflowed");
-
-        Self(quotient)
     }
 }
 

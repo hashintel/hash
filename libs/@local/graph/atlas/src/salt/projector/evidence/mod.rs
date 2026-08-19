@@ -306,22 +306,25 @@ impl EvaluationEvidence {
         let frozen_anchors = references.projection.centre().gather(anchors.rows());
         let gauge_spread = anchors.frozen_spread().widen();
 
+        // Total: an rms residual over f32-born fields stays below ~1.2e87 by its own totality
+        // theorem, and the smallest positive f32 spread is 2⁻¹⁴⁹, so a normalized residual
+        // sits more than five hundred exponent shells inside the f64 range.
+        let normalized = |rms: DNonNegative| (rms / gauge_spread).finish_unchecked();
+
         let gauge = Similarity::fit_uniform_par(&canonical_anchors, &zero_anchors)
             .ok_or(EvidenceRefusal::Gauge)?;
-        // The similarity's scale domain is strictly positive normal by its own constructors.
-        let scale = Positive::new_unchecked(gauge.scale().get());
-        let residual = gauge.rms_residual_par(&canonical_anchors, &zero_anchors) / gauge_spread;
+        let scale = gauge.scale();
+        let residual = normalized(gauge.rms_residual_par(&canonical_anchors, &zero_anchors));
 
         let reference = Similarity::fit_uniform_par(&canonical_anchors, &frozen_anchors)
             .ok_or(EvidenceRefusal::ReferenceConfiguration)?;
-        // The similarity's scale domain is strictly positive normal by its own constructors.
-        let reference_scale = Positive::new_unchecked(reference.scale().get());
+        let reference_scale = reference.scale();
         let reference_residual =
-            reference.rms_residual_par(&canonical_anchors, &frozen_anchors) / gauge_spread;
+            normalized(reference.rms_residual_par(&canonical_anchors, &frozen_anchors));
 
         let affine = Transform::fit_uniform(&canonical_anchors, &zero_anchors)
             .ok_or(EvidenceRefusal::Affine)?;
-        let affine_residual = affine.rms_residual(&canonical_anchors, &zero_anchors) / gauge_spread;
+        let affine_residual = normalized(affine.rms_residual(&canonical_anchors, &zero_anchors));
 
         let mut families: BTreeMap<StratumId, Vec<DFinite>> = BTreeMap::new();
         for &row in anchors.rows() {
@@ -334,7 +337,7 @@ impl EvaluationEvidence {
             families
                 .entry(references.strata[row])
                 .or_default()
-                .push(DFinite::new_unchecked(displacement.sqrt()));
+                .push(displacement.sqrt().finish_unchecked().into());
         }
         let displacement = families
             .into_iter()
@@ -399,7 +402,9 @@ where
         .zip(projection.centre().as_raw())
         .zip(strata.as_raw())
     {
-        let squared = (DVec2::from(position) - DVec2::from(centre)).norm_squared();
+        let squared = (DVec2::from(position) - DVec2::from(centre))
+            .norm_squared()
+            .into_raw();
         let tally = tallies.entry(stratum).or_insert((0, 0));
         tally.0 += 1;
         tally.1 += u64::from(squared >= floor);

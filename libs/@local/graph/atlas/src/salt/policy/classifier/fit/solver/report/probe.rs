@@ -31,7 +31,7 @@ use super::super::{
 use crate::{
     file::generation::{GenerationId, GenerationRoot},
     identity::CardRow,
-    math::{BoxedDVecN, DPositive, MatrixN},
+    math::{BoxedDVecN, DPositive, MatrixN, d_finite},
     salt::policy::classifier::report::replay::Frozen,
 };
 
@@ -305,7 +305,7 @@ fn replay_to_outer(
         let inner = newton_step(problem, &point, &accepted.scaled_gradient, &mut control)
             .expect("the production solve completed this inner solve");
 
-        let trial_zeta = flat::advance(&accepted.zeta, 1.0, inner.step());
+        let trial_zeta = flat::advance(&accepted.zeta, d_finite!(1.0), inner.step());
         let trial_point = problem.point(&trial_zeta);
         let trial_objective = problem.objective(&trial_point, &mut control.counters);
         if !trial_objective.is_finite() {
@@ -347,7 +347,13 @@ fn replay_to_outer(
         control.consecutive_rejections = 0;
 
         if inner.is_boundary() && ratio >= config.eta_expand {
-            control.radius = (config.expansion_factor * control.radius).min(config.radius_maximum);
+            // A product of positives above the ceiling, +∞ included, lands on the finite
+            // maximum, so the clamp re-enters the domain. Growth by a factor above one never
+            // falls to zero.
+            control.radius = DPositive::new_unchecked(
+                (config.expansion_factor.get() * control.radius.get())
+                    .min(config.radius_maximum.get()),
+            );
         }
     }
 

@@ -6,7 +6,7 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use super::{DPositive, Negative, NonNegative, raw_interop, unsafe_impl_try_from_bytes};
+use super::{DPositive, Negative, raw_interop, unsafe_impl_try_from_bytes};
 
 /// Validates a positive literal at compile time.
 ///
@@ -35,7 +35,7 @@ pub(crate) use positive;
 /// [`Eq`], [`Ord`] and [`Hash`] are total, agree with one another, and follow numeric value.
 /// The domain excludes NaN and both zeros, so every value owns one bit pattern with no
 /// canonicalization step.
-#[derive(Copy, Clone, zerocopy::Immutable)]
+#[derive(Copy, Clone, zerocopy::Immutable, zerocopy::IntoBytes, zerocopy::KnownLayout)]
 #[repr(transparent)]
 pub(crate) struct Positive(f32);
 
@@ -100,8 +100,61 @@ impl Positive {
 
     #[inline]
     #[must_use]
+    pub(crate) const fn is_normal(self) -> bool {
+        self.0.is_normal()
+    }
+
+    /// Returns whether the value stayed in domain.
+    ///
+    /// Construction admits only finite values and arithmetic escapes to `+∞` on overflow, so a
+    /// non-finite reading is exactly an escaped one.
+    ///
+    /// The one caller shape is a validation point that rejects escaped readings before acting on
+    /// a computed value. Anywhere else the query re-checks what construction already proved, and
+    /// the check itself is the defect.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn is_finite(self) -> bool {
+        self.0.is_finite()
+    }
+
+    #[inline]
+    #[must_use]
     pub(crate) const fn widen(self) -> DPositive {
         DPositive::from(self)
+    }
+
+    /// Multiplies into double precision, exactly and totally.
+    ///
+    /// Two 24-bit significands multiply within 53 bits, so the widened product is the exact
+    /// real product with no rounding, and two `f32` exponents sum hundreds of shells inside
+    /// the `f64` range in both directions, so the product never leaves the positive domain.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn mul_wide(self, rhs: Self) -> DPositive {
+        DPositive::new_unchecked(self.widen().get() * rhs.widen().get())
+    }
+
+    /// Divides into double precision, totally.
+    ///
+    /// The quotient of two `f32`-born positives is never NaN, and its exponent - one `f32`
+    /// exponent less another - stays hundreds of shells inside the `f64` range in both
+    /// directions, so the quotient never leaves the positive domain. One rounding.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn div_wide(self, rhs: Self) -> DPositive {
+        DPositive::new_unchecked(self.widen().get() / rhs.widen().get())
+    }
+
+    /// Squares into double precision, exactly and totally.
+    ///
+    /// A 24-bit significand squares within 53 bits, so the widened square carries no rounding.
+    /// A doubled `f32` exponent sits far inside the `f64` range on both sides, so the square
+    /// never leaves the positive domain.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn square_wide(self) -> DPositive {
+        DPositive::new_unchecked(self.widen().get() * self.widen().get())
     }
 
     /// Multiplies, refusing an escape from the domain.
@@ -140,6 +193,23 @@ impl Positive {
         Self::new_unchecked(self.0.sqrt())
     }
 
+    /// Returns the geometric mean `√(self · rhs)`, total.
+    ///
+    /// The widened product is exact, its root is at most the larger operand and at least the
+    /// smaller, and one `f64` rounding cannot carry a value bounded by [`MAX`](Self::MAX) past
+    /// the narrowing's rounding boundary, so the mean of two representable positives is
+    /// representable: the narrowing needs no check.
+    #[inline]
+    #[must_use]
+    pub(crate) fn geometric_mean(self, rhs: Self) -> Self {
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "the narrowing cast is the operation itself, and the mean of two `f32` \
+                      values narrows back into the `f32` range by the bound above"
+        )]
+        Self::new_unchecked((self.widen().get() * rhs.widen().get()).sqrt() as f32)
+    }
+
     /// Returns the reciprocal.
     ///
     /// The reciprocal of a positive value is positive and never rounds to zero, since even the
@@ -156,20 +226,6 @@ impl Positive {
         );
 
         Self(reciprocal)
-    }
-
-    /// Returns whether the value stayed in domain.
-    ///
-    /// Construction admits only finite values and arithmetic escapes to `+∞` on overflow, so a
-    /// non-finite reading is exactly an escaped one.
-    ///
-    /// The one caller shape is a validation point that rejects escaped readings before acting on
-    /// a computed value. Anywhere else the query re-checks what construction already proved, and
-    /// the check itself is the defect.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn is_finite(self) -> bool {
-        self.0.is_finite()
     }
 }
 
@@ -216,57 +272,6 @@ impl fmt::Debug for Positive {
 impl fmt::Display for Positive {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-const impl core::ops::Mul for Positive {
-    type Output = Self;
-
-    /// Multiplies.
-    ///
-    /// A product of positives is never NaN and never `-0.0`. Overflow escapes to `+∞` and
-    /// underflow to `+0.0` - wrong readings rather than soundness breaks, since no unsafe code
-    /// trusts the domain and a persisted value re-validates at construction - and both assert
-    /// in debug builds, mirroring integer `+`.
-    #[inline]
-    fn mul(self, rhs: Self) -> Self {
-        let product = self.0 * rhs.0;
-        debug_assert!(
-            product.is_finite() && product > 0.0,
-            "positive multiplication left the domain",
-        );
-
-        Self(product)
-    }
-}
-
-const impl core::ops::Mul<NonNegative> for Positive {
-    type Output = NonNegative;
-
-    #[inline]
-    fn mul(self, rhs: NonNegative) -> NonNegative {
-        NonNegative::from(self) * rhs
-    }
-}
-
-const impl core::ops::Div for Positive {
-    type Output = Self;
-
-    /// Divides.
-    ///
-    /// A quotient of positives is never NaN and never `-0.0`. Overflow escapes to `+∞` and
-    /// underflow to `+0.0` - wrong readings rather than soundness breaks, since no unsafe code
-    /// trusts the domain and a persisted value re-validates at construction - and both assert
-    /// in debug builds, mirroring integer `/`.
-    #[inline]
-    fn div(self, rhs: Self) -> Self {
-        let quotient = self.0 / rhs.0;
-        debug_assert!(
-            quotient.is_finite() && quotient > 0.0,
-            "positive division left the domain",
-        );
-
-        Self(quotient)
     }
 }
 

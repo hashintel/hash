@@ -253,7 +253,10 @@ fn the_row_dot_and_dvecn_dot_reduce_equal_bytes_to_identical_bits() {
     let left = DSquareRowBlock::from_slice(&storage.row(0)[..LENGTH]);
     let aligned = DSquareRowBlock::from_slice(&storage.row(1)[..LENGTH]);
 
-    assert_eq!(left.dot(aligned).to_bits(), first.dot(&second).to_bits());
+    assert_eq!(
+        left.dot(aligned).to_bits(),
+        first.dot(&second).into_raw().to_bits()
+    );
 }
 
 #[test]

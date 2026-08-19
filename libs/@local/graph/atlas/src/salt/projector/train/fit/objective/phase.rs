@@ -211,8 +211,9 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error when a forward diverges, or when the gauge fit refuses: training
-    /// refuses the step rather than descending through a degenerate frame.
+    /// Returns an error when a forward diverges, when the gauge fit refuses, or when an
+    /// accumulated target reading diverges: training refuses the step rather than descending
+    /// through a degenerate frame.
     pub(crate) fn step<E, B: AutodiffBackend<FloatElem = f32>>(
         &mut self,
         context: &TargetContext<'_, N>,
@@ -281,6 +282,8 @@ where
         let source = canonical_point_field.gather(&pass.anchors);
         let target = zero_point_field.gather(&pass.anchors);
 
+        // The live fit on the step's own coordinates: canonical onto projected zero, whole
+        // gauge, exact adjoints. The gathers draw from fields the readback already proved.
         let fit = self
             .gauge
             .fit_gathered(&source, &target, context.options().residual_bar)
@@ -295,13 +298,15 @@ where
 
         let mut canonical_field = GradientField::new(pass.rows.len());
         let mut zero_gradient_field = GradientField::new(pass.rows.len());
-        let reading = estimator.evaluate(
-            canonical_point_field,
-            zero_point_field,
-            &pass.units,
-            &mut canonical_field,
-            &mut zero_gradient_field,
-        );
+        let reading = estimator
+            .evaluate(
+                canonical_point_field,
+                zero_point_field,
+                &pass.units,
+                &mut canonical_field,
+                &mut zero_gradient_field,
+            )
+            .map_err(TrainError::TargetReading)?;
         fan_scale_pull(
             reading.scale_pull,
             &fit,

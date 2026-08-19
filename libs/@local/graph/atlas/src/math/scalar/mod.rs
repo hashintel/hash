@@ -38,6 +38,31 @@
 //! Narrowing is lawful at the tensor entry and at the writing of a bulk record, and nowhere else.
 //! `narrow_lossy` names those sites in code. A narrow followed by a widen loses bits that no
 //! destination asked for, and is a defect wherever it appears.
+//!
+//! # Operator edge contracts
+//!
+//! An operator impl on a domain scalar states an output type and edge behaviour derivable from
+//! its operand types alone, never from a consumer: a contract that needs a caller to justify it
+//! is not a contract. The discriminant is the measure of the exit set in exponent space, under
+//! the maximally pessimistic log-uniform model over `f64`'s 2046 exponents. A sum's result
+//! exponent is at most one above its larger operand, so its exit is one shell at the top of the
+//! range - about 0.1% of input pairs, unreachable for physically-born readings without an
+//! upstream defect. A product's exponents add, so its exit is two corner triangles of the
+//! exponent plane, roughly 25% together, and `1e200 · 1e200` overflows with neither operand
+//! extreme. A same-sign difference never exceeds its larger operand, exit measure zero, and a
+//! contraction by a unit fraction exits only through the bottom shell. Real distributions are
+//! tighter than log-uniform, and the shape of the asymmetry - one shell against a fat region -
+//! is distribution-independent.
+//!
+//! | Operands | Exit measure | Form |
+//! |---|---|---|
+//! | A landing a theorem names totally | zero | the landing's type, no check |
+//! | A sum's overflow, a contraction's underflow | one shell, ~0.1% | the typed escape, whose debug assert is a true structural claim |
+//! | A product or quotient of two unbounded operands | fat, ~25% | no operator: `checked_*` at a one-shot site, a [`Derivation`](super::Derivation) for a fold, `new_unchecked` beside a site's own theorem |
+//! | A raw operand or a sign crossing | - | the raw carrier, which claims nothing and cannot lie |
+//!
+//! A derivation exits once, at its destination boundary. An exit followed immediately by more
+//! arithmetic means the vocabulary one step earlier was wrong.
 mod d_non_negative;
 mod d_positive;
 mod finite;
@@ -56,9 +81,9 @@ pub(crate) use d_non_negative::DNonNegative;
 #[cfg(test)]
 pub(crate) use d_non_negative::d_non_negative;
 pub(crate) use d_positive::{DPositive, d_positive};
-pub(crate) use finite::{DFinite, Finite};
 #[cfg(test)]
-pub(crate) use finite::{d_finite, finite};
+pub(crate) use finite::finite;
+pub(crate) use finite::{DFinite, Finite, d_finite};
 pub(crate) use greater_than_one::GreaterThanOne;
 #[cfg(test)]
 pub(crate) use greater_than_one::greater_than_one;

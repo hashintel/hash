@@ -462,14 +462,14 @@ pub(crate) struct RungEvidence {
 mod similarity {
     use serde::{Deserialize as _, Serialize as _, de::Error as _};
 
-    use crate::math::{NonNegative, Rotation, Similarity, Vec2};
+    use crate::math::{Positive, Rotation, Similarity, Vec2};
 
     /// The alignment's wire form.
     ///
     /// The rotation is its unit vector.
     #[derive(serde::Serialize, serde::Deserialize)]
     struct Record {
-        scale: NonNegative,
+        scale: Positive,
         rotation: [f32; 2],
         translation: [f32; 2],
     }

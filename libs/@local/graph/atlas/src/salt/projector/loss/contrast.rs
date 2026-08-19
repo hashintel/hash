@@ -29,7 +29,7 @@
 //! this module returns are direction-free scalars. Zeroing the fold at coincidence is the batch
 //! term's contract, stated on [`ContrastEnergy::evaluate`].
 
-use crate::math::{Negative, NonNegative, Positive};
+use crate::math::{DNonNegative, DPositive, Negative, NonNegative, Positive};
 
 /// The per-evaluation constants of the contrast violation.
 ///
@@ -53,17 +53,21 @@ pub(crate) struct ContrastEnergy {
 /// distances are finite and non-negative, and the fitted scale is finite and strictly positive.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ContrastEvaluation {
-    /// The violation `v = (s·d_c − d₀)/σ₀ + m`.
+    /// The violation `v = (s·d_c − d₀)/σ₀ + m`, raw: the aligned product of unbounded
+    /// working-precision factors can overflow, and the penalty folds the reading under the
+    /// objective's own gate.
     pub violation: f32,
     /// `∂v/∂d_c = s/σ₀`, strictly positive: shrinking the aligned canonical distance is the
-    /// objective's productive direction.
-    pub canonical_slope: Positive,
+    /// objective's productive direction. Total: the widened quotient of two `f32`-born
+    /// positives never leaves the domain.
+    pub canonical_slope: DPositive,
     /// `∂v/∂d₀ = −1/σ₀`, strictly negative: the reward for inflating the zero distance, present
     /// and honest, held by the band projection rather than hidden from the gradient.
     pub zero_slope: Negative,
     /// `∂v/∂s = d_c/σ₀`, non-negative, zero exactly at canonical coincidence. Its adjoint fans
-    /// into the gauge anchors' canonical coordinates through the alignment fit.
-    pub fitted_scale_slope: NonNegative,
+    /// into the gauge anchors' canonical coordinates through the alignment fit. Total by the
+    /// same widened quotient.
+    pub fitted_scale_slope: DNonNegative,
 }
 
 impl ContrastEnergy {
@@ -101,13 +105,15 @@ impl ContrastEnergy {
         zero_distance: NonNegative,
     ) -> ContrastEvaluation {
         let scale = self.fitted_scale;
-        let aligned = scale * canonical_distance;
+        // The aligned product and the violation are raw: two unbounded working-precision
+        // factors can overflow, and the difference crosses signs. The penalty owns the check.
+        let aligned = scale.get() * canonical_distance;
 
         ContrastEvaluation {
-            violation: ((aligned - zero_distance) / ruler) + self.margin,
-            canonical_slope: scale / ruler,
+            violation: (aligned - zero_distance.get()) / ruler + self.margin.get(),
+            canonical_slope: scale.div_wide(ruler),
             zero_slope: -ruler.recip(),
-            fitted_scale_slope: canonical_distance / ruler,
+            fitted_scale_slope: canonical_distance.div_wide(ruler),
         }
     }
 }

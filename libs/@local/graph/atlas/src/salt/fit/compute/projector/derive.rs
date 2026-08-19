@@ -157,7 +157,13 @@ pub(super) fn normalized_coefficients(
             return NonNegative::ZERO;
         };
 
-        (base.widen() / mass).narrow_lossy()
+        base.widen()
+            .checked_div(mass)
+            .expect(
+                "a normalization quotient overflows only for a mass more than 270 orders below \
+                 its f32-born base, a defect of the weights",
+            )
+            .narrow_lossy()
     };
 
     Coefficients::new(

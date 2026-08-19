@@ -67,8 +67,8 @@ use crate::{
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
-        AlignedVecN, DFinite, DNonNegative, DPositive, FinitePointField, NonNegative, UnitFraction,
-        d_positive,
+        AlignedVecN, DFinite, DNonNegative, DPositive, Derivation, FinitePointField, NonNegative,
+        UnitFraction, d_positive,
     },
     salt::{
         fit::{PlacementInner, PlacementOptions, ProjectorOptions, placement_device},
@@ -557,7 +557,11 @@ fn contract(
     let mut edge_count = 0_usize;
     let mut contracted = 0_usize;
     let mut total_mass = DNonNegative::ZERO;
-    let mut weighted_sum = DFinite::ZERO;
+    // The mass-weighted fold multiplies two unbounded operands, so it runs as a derivation and
+    // makes its one claim at the mean's construction. The unweighted fold keeps the typed
+    // escape op by its totality theorem: every difference is bounded by 2·f32::MAX and the
+    // population by the corpus rows, so the serial sum stays far inside `f64`.
+    let mut weighted_sum = Derivation::<DFinite>::ZERO;
     let mut unweighted_sum = DFinite::ZERO;
 
     for term in terms {
@@ -570,25 +574,23 @@ fn contract(
         edge_count += 1;
         contracted += usize::from(after < before);
         total_mass += term.mass;
-        weighted_sum = DFinite::from(term.mass).mul_add(difference, weighted_sum);
+        weighted_sum = Derivation::from(difference).mul_add(term.mass, weighted_sum);
         unweighted_sum += difference;
     }
 
     ContractionReading {
         edge_count,
         total_mass,
-        mass_weighted_mean: if total_mass > 0.0 {
-            DFinite::new(weighted_sum.get() / total_mass.get())
+        mass_weighted_mean: total_mass.positive().map_or(DFinite::ZERO, |total_mass| {
+            (weighted_sum / total_mass)
+                .finish()
                 .expect("a mass-weighted mean of finite distance differences is finite")
-        } else {
-            DFinite::ZERO
-        },
-        unweighted_mean: if edge_count > 0 {
-            DFinite::new(unweighted_sum.get() / edge_count as f64)
+        }),
+        unweighted_mean: NonZero::new(edge_count).map_or(DFinite::ZERO, |edge_count| {
+            (unweighted_sum / DPositive::from_usize(edge_count))
+                .finish()
                 .expect("a mean of finite distance differences is finite")
-        } else {
-            DFinite::ZERO
-        },
+        }),
         contracted_fraction: if edge_count > 0 {
             UnitFraction::new(contracted as f64 / edge_count as f64)
                 .expect("a count never exceeds the population it counts")

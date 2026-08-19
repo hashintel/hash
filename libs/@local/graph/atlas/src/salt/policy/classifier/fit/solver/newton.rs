@@ -43,7 +43,7 @@ use crate::{
     dataset::CANONICAL_DIMENSIONS,
     math::{
         AlignedDVecN, BoxedDVecN, DCholeskyError, DFinite, DNonNegative, DPositive, DSquareMatrix,
-        Derivation, d_positive,
+        Derivation, d_finite,
     },
 };
 
@@ -312,7 +312,7 @@ pub(super) fn newton_step(
     control.counters.complete_newton_traversal();
 
     // A₁₁⁻¹v = (S/λ)·(v − Ũ·C⁻¹·Ũᵀv) per right-hand side.
-    let woodbury_scale = prepared.total_weight / regularization;
+    let woodbury_scale = prepared.total_weight.get() / regularization;
     let mut solved: [CoefficientRows; 3] = core::array::from_fn(|_index| zero_rows());
     for ((output, lift), side) in solved.iter_mut().zip(&lifted).zip(right_hand_sides) {
         for ((out, lifted_row), side_row) in output.iter_mut().zip(lift).zip(side) {
@@ -335,7 +335,7 @@ pub(super) fn newton_step(
         let curvature = evaluation.intercept_columns[k].intercepts[j];
         let correction = pair_dot(&evaluation.intercept_columns[j].coefficients, couplings[k]);
 
-        schur[slot] = Derivation::raw(curvature) - correction;
+        schur[slot] = Derivation::<DFinite>::raw(curvature) - correction;
     }
     let [Ok(s11), Ok(s21), Ok(s22)] = schur.map(Derivation::finish) else {
         return Err(non_finite(NewtonStage::InterceptSchur));
@@ -397,12 +397,13 @@ pub(super) fn newton_step(
     let product_norm = hessian_gradient
         .checked_stable_l2()
         .ok_or(non_finite(NewtonStage::Dogleg))?;
+
     let guard = gradient_norm
         * product_norm
-        * (DPositive::from_u32(config.curvature_guard_ulps) * d_positive!(f64::EPSILON));
-    if !guard.is_finite() {
+        * (DPositive::from_u32(config.curvature_guard_ulps) * DPositive::EPSILON);
+    let Ok(guard) = guard.finish() else {
         return Err(non_finite(NewtonStage::Dogleg));
-    }
+    };
 
     let zero = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
 
@@ -415,10 +416,11 @@ pub(super) fn newton_step(
     let gradient_square = gradient
         .checked_norm_squared()
         .ok_or(non_finite(NewtonStage::Dogleg))?;
+
     let cauchy_length = gradient_square / curvature;
-    if !cauchy_length.is_finite() {
+    let Ok(cauchy_length) = cauchy_length.finish() else {
         return Err(non_finite(NewtonStage::Dogleg));
-    }
+    };
     let cauchy = flat::advance(&zero, -cauchy_length, gradient);
     if !cauchy.is_finite() {
         return Err(non_finite(NewtonStage::Dogleg));
@@ -437,9 +439,9 @@ pub(super) fn newton_step(
     let hessian_newton = priced_product(problem, point, &step, control, NewtonStage::NewtonPoint)?;
     let residual = newton_residual(&hessian_newton, gradient);
 
-    let direction = flat::advance(&step, -1.0, &cauchy);
+    let direction = flat::advance(&step, d_finite!(-1.0), &cauchy);
     let hessian_cauchy = flat::advance(&zero, -cauchy_length, &hessian_gradient);
-    let hessian_direction = flat::advance(&hessian_newton, cauchy_length.get(), &hessian_gradient);
+    let hessian_direction = flat::advance(&hessian_newton, cauchy_length.into(), &hessian_gradient);
     if !direction.is_finite() || !hessian_cauchy.is_finite() || !hessian_direction.is_finite() {
         return Err(non_finite(NewtonStage::Dogleg));
     }
@@ -529,11 +531,10 @@ fn newton_residual(
     hessian_newton: &AlignedDVecN<SOLVER_DIMENSIONS>,
     gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
 ) -> Option<DNonNegative> {
-    let defect = flat::advance(hessian_newton, 1.0, gradient);
+    let defect = flat::advance(hessian_newton, d_finite!(1.0), gradient);
     let defect_norm = defect.checked_stable_l2()?;
     let gradient_norm = gradient.checked_stable_l2()?.positive()?;
-    let residual = defect_norm / gradient_norm;
-    residual.is_finite().then_some(residual)
+    defect_norm.checked_div(gradient_norm)
 }
 
 /// The steepest-descent crossing onto the trust boundary, from the origin along `−g`.

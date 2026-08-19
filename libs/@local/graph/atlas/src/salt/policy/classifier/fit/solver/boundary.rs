@@ -83,9 +83,9 @@ pub(super) fn boundary_step(
     // degenerate pair still resolves deterministically.
     let crossing = [root / quadratic, constant / root]
         .into_iter()
-        .find(|tau| tau.is_finite() && *tau > 0.0)?;
+        .find_map(DPositive::new)?;
 
-    let boundary = flat::advance(&normalized_interior, crossing, &normalized_direction);
+    let boundary = flat::advance(&normalized_interior, crossing.into(), &normalized_direction);
     let norm = boundary.checked_stable_l2()?;
     if (norm - 1.0).abs() > GROSS_DEFECT_GUARD {
         return None;
@@ -102,7 +102,7 @@ pub(super) fn boundary_step(
         return None;
     }
 
-    let hessian_step = flat::advance(hessian_interior, crossing, hessian_direction);
+    let hessian_step = flat::advance(hessian_interior, crossing.into(), hessian_direction);
     hessian_step
         .is_finite()
         .then_some(BoundaryStep { step, hessian_step })

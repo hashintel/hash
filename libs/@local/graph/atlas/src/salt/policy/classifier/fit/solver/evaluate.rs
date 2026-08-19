@@ -28,7 +28,7 @@ use super::{
 };
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{AlignedVecN, DNonNegative, Derivation},
+    math::{AlignedVecN, DNonNegative, Derivation, d_positive},
     salt::policy::GeometryClass,
 };
 
@@ -276,7 +276,9 @@ impl Prepared<'_> {
         counters.complete_hvp_traversal();
 
         // Normalize and add the coefficient-only regularization curvature (λ/S)·U_coefficients.
-        let share = self.regularization / self.total_weight;
+        // The share exits raw at once: it feeds the raw per-component fmas below, on the same
+        // solver-interior bytes the objective's own exit documents.
+        let share = (self.regularization / self.total_weight).into_raw();
         for (product_row, direction_row) in
             product.coefficients.iter_mut().zip(&direction.coefficients)
         {
@@ -398,22 +400,28 @@ impl Prepared<'_> {
 
     /// Adds the regularizer to the accumulated data loss and normalizes by the total weight.
     fn finish_objective(&self, data_loss: f64, parameters: &ContrastVector) -> f64 {
-        // ‖A‖² through the house striped kernel, one row at a time in contrast order. The sum
-        // rides raw because the parameters are unbounded solver state: initialization
-        // deliberately admits a non-finite origin objective, and resolution and final
-        // certification refuse it by name where the design says so.
+        // ‖A‖² through the house striped kernel, one row at a time in contrast order. The
+        // derivation rides raw to one exit because the parameters are unbounded solver state:
+        // initialization deliberately admits a non-finite origin objective, and resolution and
+        // final certification refuse it by name where the design says so.
         let mut coefficient_norm = Derivation::<DNonNegative>::ZERO;
         for row in &parameters.coefficients {
             coefficient_norm += row.norm_squared();
         }
 
-        (0.5 * self.regularization).mul_add(coefficient_norm.into_raw(), data_loss)
-            / self.total_weight
+        // The λ/2 factor stays raw: halving a subnormal λ underflows to zero. That zero is a
+        // lawful degenerate configuration, not a defect for this row's debug assert to catch.
+        // The solve refuses it later, in its own place.
+        (coefficient_norm.mul_add(
+            self.regularization * d_positive!(0.5),
+            Derivation::<DNonNegative>::raw(data_loss),
+        ) / self.total_weight)
+            .into_raw()
     }
 
     /// Normalizes the accumulated residual sum and adds `(λ/S)·[A|0]`.
     fn finish_gradient(&self, gradient: &mut ContrastVector, parameters: &ContrastVector) {
-        let share = self.regularization / self.total_weight;
+        let share = (self.regularization / self.total_weight).into_raw();
         for (gradient_row, parameter_row) in gradient
             .coefficients
             .iter_mut()

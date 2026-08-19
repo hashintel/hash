@@ -27,7 +27,7 @@ use crate::{
     },
     identity::NodeRowId,
     integrity::Sha256Digest,
-    math::AlignedVecN,
+    math::{AlignedVecN, DPositive},
     salt::{
         knn::hannoy::{HannoyIndex, HannoyIndexError},
         landmark::{
@@ -35,7 +35,7 @@ use crate::{
             assignment::assign_landmarks,
             layout::layout_landmarks,
             quotient::quotient_graph,
-            select::{LandmarkCandidate, SamplingWeight, SubgroupAxes, select_landmarks},
+            select::{LandmarkCandidate, SubgroupAxes, select_landmarks},
         },
         semantic::artifact::SemanticGraphArchive,
     },
@@ -133,7 +133,7 @@ impl Context<'_> {
                 .map(DistinctRowId::from_usize)
                 .map(|row| LandmarkCandidate {
                     row,
-                    sampling_weight: SamplingWeight::UNIFORM,
+                    sampling_weight: DPositive::ONE,
                     axes: SubgroupAxes::default(),
                     prior_landmark: prior_distinct.is_some_and(|marks| marks.contains(row)),
                 })

@@ -195,11 +195,10 @@ pub(crate) fn prepare<'corpus>(
 
     counters.complete_preparation_traversal();
 
-    if !total_weight.is_finite() || total_weight <= 0.0 {
-        return Err(PreparationError::InvalidTotalWeight {
+    let total_weight =
+        DPositive::new(total_weight).ok_or(PreparationError::InvalidTotalWeight {
             value: total_weight,
-        });
-    }
+        })?;
 
     // A NaN mass rejects like any non-positive mass.
     if let Some(class) = class_mass
@@ -218,7 +217,7 @@ pub(crate) fn prepare<'corpus>(
         rows,
         targets: targets.into_boxed_slice(),
         total_weight,
-        regularization: settings.regularization.get(),
+        regularization: settings.regularization,
         class_mass,
         scaling: initial.scaling,
         evidence: PreparationEvidence {

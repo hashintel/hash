@@ -4,7 +4,7 @@ use core::{error::Error, fmt};
 
 use super::{TrainingEvidence, TrainingSchedule, objective::SplitPopulation};
 use crate::{
-    math::NonNegative,
+    math::{Diverged, NonNegative},
     salt::projector::{
         band::BandRefusal,
         evidence::EvidenceRefusal,
@@ -29,6 +29,9 @@ pub(crate) enum TargetRefusalCause<N> {
     Band(BandRefusal),
     /// The gauge refused, at the boundary freeze or inside a step's live fit.
     Gauge(GaugeRefusal),
+    /// A step's accumulated target reading diverged: an unbounded data-dependent fold left
+    /// double precision, so no estimand or scale-pull claim exists to read.
+    Reading(Diverged<f64>),
     /// A per-evaluation evidence reading refused, and an evaluation that cannot state its
     /// declared evidence publishes nothing.
     Evidence(EvidenceRefusal),
@@ -43,6 +46,11 @@ where
             Self::Ruler(error) => error.fmt(fmt),
             Self::Band(error) => error.fmt(fmt),
             Self::Gauge(error) => error.fmt(fmt),
+            Self::Reading(diverged) => write!(
+                fmt,
+                "the step's accumulated target reading diverged to {}",
+                diverged.raw
+            ),
             Self::Evidence(error) => error.fmt(fmt),
         }
     }
@@ -124,6 +132,8 @@ pub(crate) enum TrainError<N> {
     /// The target configuration's gauge refused at admission: the declared draw cannot support
     /// the run's evidence obligation.
     Gauge(GaugeRefusal),
+    /// A step's accumulated target reading diverged, and the target pass owns the refusal.
+    TargetReading(Diverged<f64>),
     /// The declared canonical rung lies outside the training curriculum's rung set.
     CanonicalRungOutOfSchedule { rung: usize },
     /// The target estimand's declared unit population carries no mass.
@@ -173,6 +183,7 @@ impl<N> TrainError<N> {
             }
             Self::Ruler(error) => TrainError::Ruler(error.map_rows(row)),
             Self::Gauge(error) => TrainError::Gauge(error),
+            Self::TargetReading(diverged) => TrainError::TargetReading(diverged),
             Self::CanonicalRungOutOfSchedule { rung } => {
                 TrainError::CanonicalRungOutOfSchedule { rung }
             }
@@ -227,6 +238,11 @@ where
             ),
             Self::Ruler(error) => error.fmt(fmt),
             Self::Gauge(error) => error.fmt(fmt),
+            Self::TargetReading(diverged) => write!(
+                fmt,
+                "the step's accumulated target reading diverged to {}",
+                diverged.raw
+            ),
             Self::CanonicalRungOutOfSchedule { rung } => write!(
                 fmt,
                 "the declared canonical rung index {rung} lies outside the training curriculum",
@@ -269,6 +285,7 @@ where
             | Self::CoincidentWithoutProximal
             | Self::DegenerateRadius { .. }
             | Self::ScheduleChanged { .. }
+            | Self::TargetReading(..)
             | Self::CanonicalRungOutOfSchedule { .. }
             | Self::EmptyTargetPopulation
             | Self::TargetWithoutUnitDraws

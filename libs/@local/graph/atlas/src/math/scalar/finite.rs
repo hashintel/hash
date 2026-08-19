@@ -15,10 +15,10 @@
 //! Arithmetic whose result provably stays finite stays in the type - negation, integer
 //! conversion - with no run-time re-check. An operation that can leave the domain returns a
 //! raw float instead, and the caller re-enters through a constructor at whichever boundary
-//! proves the bound. The exceptions are the fused accumulator [`mul_add`](DFinite::mul_add)
-//! and the in-family sum, which stay in the type as the family's folds do: overflow escapes to
-//! `±∞` and asserts in debug builds. Serialization writes plain numbers and deserialization
-//! re-validates, so a persisted value is as trustworthy as a constructed one.
+//! proves the bound. The exception is the in-family sum, which stays in the type as the
+//! family's folds do: overflow escapes to `±∞` and asserts in debug builds. Serialization writes
+//! plain numbers and deserialization re-validates, so a persisted value is as trustworthy as a
+//! constructed one.
 
 use core::{
     cmp::Ordering,
@@ -30,6 +30,7 @@ use super::{
     DNonNegative, DPositive, NonNegative, OpenUnitFraction, Positive, raw_interop,
     unsafe_impl_try_from_bytes,
 };
+use crate::math::Derivation;
 
 /// Validates a finite literal at compile time.
 ///
@@ -48,13 +49,11 @@ pub(crate) use finite;
 ///
 /// The expansion is a `const` block over [`DFinite::new`], so a literal outside the domain fails
 /// the build instead of a test run. Runtime values keep the checked constructor.
-#[cfg(test)]
 macro_rules! d_finite {
     ($value:expr) => {
         const { $crate::math::DFinite::new($value).expect("the literal is finite") }
     };
 }
-#[cfg(test)]
 pub(crate) use d_finite;
 
 /// A finite `f32`, valid by construction.
@@ -359,21 +358,6 @@ impl DFinite {
         DPositive::new(self.0)
     }
 
-    /// Fuses a multiply-add `self · factor + addend` with one rounding.
-    ///
-    /// The fused form computes the exact product and sum before rounding once, so no
-    /// intermediate value exists to overflow and the result is never NaN. A final overflow
-    /// escapes to `±∞` - a wrong reading rather than a soundness break, since no unsafe code
-    /// trusts the domain - and asserts in debug builds.
-    #[inline]
-    #[must_use]
-    pub(crate) fn mul_add(self, factor: Self, addend: Self) -> Self {
-        let fused = self.0.mul_add(factor.0, addend.0);
-        debug_assert!(fused.is_finite(), "the fused multiply-add overflowed");
-
-        Self(fused)
-    }
-
     /// Narrows to working precision with round-to-nearest.
     ///
     /// A value beyond the `f32` range overflows to `±∞` and asserts in debug builds through the
@@ -504,6 +488,59 @@ const impl core::ops::AddAssign for DFinite {
     #[inline]
     fn add_assign(&mut self, rhs: DFinite) {
         *self = *self + rhs;
+    }
+}
+
+const impl core::ops::Sub for DFinite {
+    type Output = DFinite;
+
+    /// Subtracts.
+    ///
+    /// Overflow escapes to `±∞` - a wrong reading rather than a soundness break, since no
+    /// unsafe code trusts the domain - and asserts in debug builds through the constructor.
+    #[inline]
+    fn sub(self, rhs: DFinite) -> DFinite {
+        DFinite::new_unchecked(self.0 - rhs.0)
+    }
+}
+
+const impl core::ops::Neg for DFinite {
+    type Output = Self;
+
+    /// Negates, exactly.
+    ///
+    /// The negation of a finite value is finite, with no re-validation.
+    #[inline]
+    fn neg(self) -> Self {
+        Self(-self.0)
+    }
+}
+
+const impl core::ops::Div<DPositive> for DFinite {
+    type Output = Derivation<DFinite>;
+
+    /// Divides by a positive divisor, which is never zero.
+    ///
+    /// The quotient's exponent is the numerator's minus the divisor's, so a finite value over
+    /// a small positive one can overflow to either infinity, following the numerator's sign.
+    /// The fat exit enters the
+    /// derivation, which claims finiteness at its finish. It is never NaN: that would take a
+    /// zero or infinite operand, and both domains exclude them.
+    #[inline]
+    fn div(self, rhs: DPositive) -> Derivation<DFinite> {
+        Derivation::raw(self.0 / rhs.get())
+    }
+}
+
+const impl<T> core::ops::Mul<T> for DFinite
+where
+    T: [const] Into<DFinite>,
+{
+    type Output = Derivation<DFinite>;
+
+    #[inline]
+    fn mul(self, rhs: T) -> Derivation<DFinite> {
+        Derivation::raw(self.0 * rhs.into().0)
     }
 }
 

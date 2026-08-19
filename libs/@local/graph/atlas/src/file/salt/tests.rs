@@ -23,7 +23,7 @@ use crate::{
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{
         AffinityCurve, Bounds2, Rotation, Similarity, UnitFraction, Vec2, d_non_negative,
-        d_positive, non_negative, open_unit_fraction, unit_fraction,
+        d_positive, non_negative, open_unit_fraction, positive, unit_fraction,
     },
     morton::Depth,
     salt::{
@@ -373,7 +373,7 @@ fn evidence() -> Evidence {
                         // (0.6, 0.8) lies exactly on the unit
                         // circle in f32.
                         alignment: Similarity::new(
-                            non_negative!(1.25),
+                            positive!(1.25),
                             Rotation::from_cos_sin(0.6, 0.8),
                             Vec2::new(0.5, -0.25),
                         )

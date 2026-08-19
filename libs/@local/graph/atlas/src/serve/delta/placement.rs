@@ -464,7 +464,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        math::{BoxedVecN, Rotation, non_negative},
+        math::{BoxedVecN, Rotation, non_negative, positive},
         salt::projector::model::Architecture,
     };
 
@@ -492,7 +492,7 @@ mod tests {
 
     fn alignment() -> Similarity {
         Similarity::new(
-            non_negative!(2.0),
+            positive!(2.0),
             Rotation::from_radians(0.5),
             Vec2::new(3.0, -4.0),
         )

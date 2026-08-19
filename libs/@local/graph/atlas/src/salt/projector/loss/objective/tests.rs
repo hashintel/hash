@@ -91,13 +91,15 @@ fn the_reading_and_the_fields_are_exact_on_a_dyadic_batch() {
     let (canonical, zero, units) = dyadic_fixture();
     let (mut canonical_field, mut zero_field) = fields(4);
 
-    let reading = estimator(2.0, 0.25, 4.0, 1.0, Penalty::Identity).evaluate(
-        FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
-        FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
-        &units,
-        &mut canonical_field,
-        &mut zero_field,
-    );
+    let reading = estimator(2.0, 0.25, 4.0, 1.0, Penalty::Identity)
+        .evaluate(
+            FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+            FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
+            &units,
+            &mut canonical_field,
+            &mut zero_field,
+        )
+        .expect("the dyadic fixture reading is finite");
 
     // Unit one: v = (2·2 − 4)/0.5 + 0.25 = 0.25 at mass 0.5/(4·0.25) = 0.5.
     // Unit two: v = (2·2 − 1)/1 + 0.25 = 3.25 at mass 1/(4·0.5) = 0.5.
@@ -129,13 +131,15 @@ fn the_activation_scales_every_force_and_never_the_reading() {
     for activation in [1.0, 0.0, 2.0] {
         let (mut canonical_field, mut zero_field) = fields(4);
         readings.push(
-            estimator(2.0, 0.25, 4.0, activation, Penalty::Identity).evaluate(
-                canonical,
-                zero,
-                &units,
-                &mut canonical_field,
-                &mut zero_field,
-            ),
+            estimator(2.0, 0.25, 4.0, activation, Penalty::Identity)
+                .evaluate(
+                    canonical,
+                    zero,
+                    &units,
+                    &mut canonical_field,
+                    &mut zero_field,
+                )
+                .expect("the dyadic fixture reading is finite"),
         );
         gradients.push((canonical_field, zero_field));
     }
@@ -216,6 +220,7 @@ fn the_full_inclusion_divisor_is_unbiased_where_the_group_factor_is_not() {
             &mut canonical_field,
             &mut zero_field,
         )
+        .expect("the declared-mean fixture reading is finite")
         .estimand;
     assert_eq!(declared, 1.0);
 
@@ -224,13 +229,15 @@ fn the_full_inclusion_divisor_is_unbiased_where_the_group_factor_is_not() {
     for (probability, member) in [(0.25_f64, 0_usize), (0.25, 1), (0.5, 2)] {
         canonical_field.reset();
         zero_field.reset();
-        let drawn = estimator.evaluate(
-            canonical,
-            zero,
-            &population[member..=member],
-            &mut canonical_field,
-            &mut zero_field,
-        );
+        let drawn = estimator
+            .evaluate(
+                canonical,
+                zero,
+                &population[member..=member],
+                &mut canonical_field,
+                &mut zero_field,
+            )
+            .expect("the drawn fixture reading is finite");
         expectation = probability.mul_add(f64::from(drawn.estimand), expectation);
     }
     assert_eq!(expectation, f64::from(declared));
@@ -253,13 +260,15 @@ fn a_coincident_side_counts_its_value_and_folds_no_pull() {
     let canonical = [Vec2::new(1.0, 1.0), Vec2::new(1.0, 1.0)];
     let zero = [Vec2::new(0.0, 0.0), Vec2::new(0.0, 2.0)];
     let (mut canonical_field, mut zero_field) = fields(2);
-    let reading = estimator(2.0, 0.25, 1.0, 1.0, Penalty::Identity).evaluate(
-        FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
-        FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
-        &[unit(0, 1, 1.0, 1.0, 1.0)],
-        &mut canonical_field,
-        &mut zero_field,
-    );
+    let reading = estimator(2.0, 0.25, 1.0, 1.0, Penalty::Identity)
+        .evaluate(
+            FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+            FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
+            &[unit(0, 1, 1.0, 1.0, 1.0)],
+            &mut canonical_field,
+            &mut zero_field,
+        )
+        .expect("the coincident fixture reading is finite");
     assert_eq!(reading.estimand, -1.75);
     assert_eq!(reading.scale_pull, 0.0);
     assert_eq!(canonical_field.as_slice()[NodeRowId::new(0)], DVec2::ZERO);
@@ -277,13 +286,15 @@ fn a_coincident_side_counts_its_value_and_folds_no_pull() {
     let canonical = [Vec2::new(0.0, 0.0), Vec2::new(2.0, 0.0)];
     let zero = [Vec2::new(5.0, 5.0), Vec2::new(5.0, 5.0)];
     let (mut canonical_field, mut zero_field) = fields(2);
-    let reading = estimator(2.0, 0.25, 1.0, 1.0, Penalty::Identity).evaluate(
-        FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
-        FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
-        &[unit(0, 1, 1.0, 1.0, 1.0)],
-        &mut canonical_field,
-        &mut zero_field,
-    );
+    let reading = estimator(2.0, 0.25, 1.0, 1.0, Penalty::Identity)
+        .evaluate(
+            FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+            FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
+            &[unit(0, 1, 1.0, 1.0, 1.0)],
+            &mut canonical_field,
+            &mut zero_field,
+        )
+        .expect("the coincident fixture reading is finite");
     assert_eq!(reading.estimand, 4.25);
     assert_eq!(reading.scale_pull, 2.0);
     assert_eq!(zero_field.as_slice()[NodeRowId::new(0)], DVec2::ZERO);
@@ -296,6 +307,28 @@ fn a_coincident_side_counts_its_value_and_folds_no_pull() {
         canonical_field.as_slice()[NodeRowId::new(1)],
         DVec2::new(2.0, 0.0)
     );
+}
+
+#[test]
+fn overflowed_violation_diverges() {
+    // A minimum-positive ruler overflows the violation to +∞ in working precision while every
+    // input is individually admitted. The fold carries the poison to the finish, and the
+    // refusal returns as the diverged raw instead of unwinding.
+    let canonical = [Vec2::new(0.0, 0.0), Vec2::new(4.0, 0.0)];
+    let zero = [Vec2::new(0.0, 0.0), Vec2::new(0.0, 0.0)];
+    let (mut canonical_field, mut zero_field) = fields(2);
+
+    let diverged = estimator(2.0, 0.0, 4.0, 1.0, Penalty::Identity)
+        .evaluate(
+            FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+            FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
+            &[unit(0, 1, f32::MIN_POSITIVE, 1.0, 0.5)],
+            &mut canonical_field,
+            &mut zero_field,
+        )
+        .expect_err("an overflowed violation cannot finish into a reading");
+
+    assert!(diverged.raw.is_infinite());
 }
 
 #[test]
@@ -409,13 +442,15 @@ fn field_partials_match_finite_differences_at_a_fixed_scale() {
     };
 
     let (mut canonical_field, mut zero_field) = fields(4);
-    estimator(1.25, 0.1, 2.0, 1.0, Penalty::QuadraticHinge).evaluate(
-        FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
-        FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
-        &units,
-        &mut canonical_field,
-        &mut zero_field,
-    );
+    estimator(1.25, 0.1, 2.0, 1.0, Penalty::QuadraticHinge)
+        .evaluate(
+            FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+            FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
+            &units,
+            &mut canonical_field,
+            &mut zero_field,
+        )
+        .expect("the hinge fixture reading is finite");
 
     let canonical_mirror = widen(&canonical);
     let zero_mirror = widen(&zero);
@@ -545,13 +580,15 @@ fn the_scale_channel_completes_the_derivative_through_a_live_refit() {
         .expect("the generic fixture fits");
 
     let (mut canonical_field, mut zero_field) = fields(6);
-    let reading = estimator(fit.scale().get(), 0.1, 2.0, 1.0, Penalty::Identity).evaluate(
-        FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
-        FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
-        &units,
-        &mut canonical_field,
-        &mut zero_field,
-    );
+    let reading = estimator(fit.scale().get(), 0.1, 2.0, 1.0, Penalty::Identity)
+        .evaluate(
+            FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+            FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
+            &units,
+            &mut canonical_field,
+            &mut zero_field,
+        )
+        .expect("the live-refit fixture reading is finite");
     fan_scale_pull(
         reading.scale_pull,
         &fit,

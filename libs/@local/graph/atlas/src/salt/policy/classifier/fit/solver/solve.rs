@@ -24,7 +24,9 @@ use super::{
     terminal::SolverFailure,
     work::WorkCounters,
 };
-use crate::math::{AlignedDVecN, BoxedDVecN, DFinite, DNonNegative, DPositive, Derivation};
+use crate::math::{
+    AlignedDVecN, BoxedDVecN, DFinite, DNonNegative, DPositive, Derivation, d_finite,
+};
 
 /// The accepted iterate in scaled coordinates, with its objective and gradient.
 #[derive(Debug, Clone, PartialEq)]
@@ -201,7 +203,7 @@ fn run(
             return Err(SolverFailure::ResolutionStall);
         }
 
-        let trial_zeta = flat::advance(&accepted.zeta, 1.0, inner.step());
+        let trial_zeta = flat::advance(&accepted.zeta, d_finite!(1.0), inner.step());
         let trial_point = problem.point(&trial_zeta);
         let trial_objective = problem.objective(&trial_point, &mut control.counters);
         if !trial_objective.is_finite() {
@@ -267,7 +269,13 @@ fn run(
 
         // Only a validated boundary step at or above the expansion ratio grows the radius.
         if inner.is_boundary() && ratio >= config.eta_expand {
-            control.radius = (config.expansion_factor * control.radius).min(config.radius_maximum);
+            // A product of positives above the ceiling, +∞ included, lands on the finite
+            // maximum, so the clamp re-enters the domain. Growth by a factor above one never
+            // falls to zero.
+            control.radius = DPositive::new_unchecked(
+                (config.expansion_factor.get() * control.radius.get())
+                    .min(config.radius_maximum.get()),
+            );
         }
     }
 }
@@ -346,7 +354,7 @@ fn record_inner_step(
     let along_gradient = gradient.dot(inner.step());
     let along_curvature = inner.step().dot(inner.hessian_step());
 
-    let predicted = along_curvature.mul_add(-0.5, -along_gradient);
+    let predicted = along_curvature.mul_add(d_finite!(-0.5), -along_gradient);
 
     if let Some(recorded) = recorded {
         recorded.tag = Some(inner.tag());
@@ -423,7 +431,7 @@ fn curvature_diagnostic(
     trial_gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
     accepted_gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
 ) -> CurvatureDiagnostic {
-    let difference = flat::advance(trial_gradient, -1.0, accepted_gradient);
+    let difference = flat::advance(trial_gradient, d_finite!(-1.0), accepted_gradient);
     if !difference.is_finite() {
         return CurvatureDiagnostic::NonFiniteDifference;
     }

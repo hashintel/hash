@@ -7,7 +7,7 @@
 //! struct field by field: an option field added to a stage fails compilation here until the echo
 //! carries it.
 //!
-//! Validated fields ([`UnitFraction`], [`LearningRate`], [`RepulsionStrength`], [`AffinityCurve`],
+//! Validated fields ([`UnitFraction`], [`Positive`], [`NonNegative`], [`AffinityCurve`],
 //! the `NonZero` counts) deserialize through their validating constructors, so a document whose
 //! echo violates a construction invariant refuses to parse. The `math` types serialize through the
 //! with-modules here rather than own impls: `math` is serialization-free, and how a document spells
@@ -19,15 +19,11 @@ use core::{num::NonZero, time::Duration};
 
 use super::{FitConfig, KnnConstructionChoice, PlacementOptions, PolicyOptions, prepare::norm};
 use crate::{
-    math::{AffinityCurve, DPositive, Log2, OpenUnitFraction, UnitFraction},
+    math::{AffinityCurve, DPositive, Log2, NonNegative, OpenUnitFraction, Positive, UnitFraction},
     salt::{
         importance::RankingConfig,
         knn::{descent::NnDescentOptions, hannoy::HannoyIndexOptions, recall},
-        landmark::{
-            layout::{LayoutOptions, LearningRate, RepulsionStrength},
-            quotient::QuotientOptions,
-            select::SelectionOptions,
-        },
+        landmark::{layout::LayoutOptions, quotient::QuotientOptions, select::SelectionOptions},
         lod::stage::LodConfig,
         policy::{
             CoincidentAdmission, PolicyOverride, annotation::assembly::AssemblyConfig,
@@ -729,8 +725,8 @@ struct QuotientOptionsDef {
 #[serde(remote = "LayoutOptions")]
 struct LayoutOptionsDef {
     epochs: NonZero<u32>,
-    initial_learning_rate: LearningRate,
-    repulsion_strength: RepulsionStrength,
+    initial_learning_rate: Positive,
+    repulsion_strength: NonNegative,
     negative_sample_rate: NonZero<u32>,
 }
 

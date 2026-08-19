@@ -209,7 +209,7 @@ impl<const N: usize> DVecN<N> {
         (self, sum)
     }
 
-    /// Returns the dot product of the two vectors.
+    /// The shared raw fold under [`dot`](Self::dot) and [`norm_squared`](Self::norm_squared).
     ///
     /// The kernel fuses and sums the products eight lanes at a time. See [`VecN::dot_wide`] for
     /// the mixed-precision variant over `f32` data.
@@ -218,8 +218,7 @@ impl<const N: usize> DVecN<N> {
     // keep enough FMA chains in flight to cover the latency-throughput
     // product.
     #[inline]
-    #[must_use]
-    pub fn dot(&self, other: &Self) -> f64 {
+    fn dot_impl(&self, other: &Self) -> f64 {
         let (chunks_left, remainder_left) = self.0.as_chunks::<8>();
         let (chunks_right, remainder_right) = other.0.as_chunks::<8>();
 
@@ -245,11 +244,19 @@ impl<const N: usize> DVecN<N> {
         sum
     }
 
+    /// Returns the dot product of the two vectors.
+    ///
+    /// The exponents compose, so the fold rides as an unclaimed derivation to its consumer's
+    /// own finish.
+    #[inline]
+    pub(crate) fn dot(&self, other: &Self) -> Derivation<DFinite> {
+        Derivation::raw(self.dot_impl(other))
+    }
+
     /// Returns the squared Euclidean length.
     #[inline]
-    #[must_use]
-    pub fn norm_squared(&self) -> f64 {
-        self.dot(self)
+    pub(crate) fn norm_squared(&self) -> Derivation<DNonNegative> {
+        Derivation::raw(self.dot_impl(self))
     }
 
     /// Returns the sum of the components' absolute values: the l1 norm.
@@ -714,12 +721,6 @@ impl<const N: usize> AlignedDVecN<N> {
     #[inline]
     pub(crate) fn checked_norm_squared(&self) -> Option<DNonNegative> {
         DNonNegative::new(self.dot_impl(self))
-    }
-
-    /// Returns the Euclidean length when the result is finite.
-    #[inline]
-    pub(crate) fn checked_norm(&self) -> Option<DNonNegative> {
-        self.checked_norm_squared().map(DNonNegative::sqrt)
     }
 
     /// Returns the l1 norm.

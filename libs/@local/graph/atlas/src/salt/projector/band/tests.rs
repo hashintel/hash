@@ -265,7 +265,7 @@ fn the_per_row_projection_matches_the_application_row_for_row() {
     // back from the landed position within the f32 narrowing allowance.
     let (_, clip) = projection.project(NodeRowId::new(4), LIVE[4]);
     let state = clip.expect("row 4 clipped");
-    let unit_error = (state.direction.dot(state.direction) - 1.0).abs();
+    let unit_error = (state.direction.dot(state.direction).into_raw() - 1.0).abs();
     assert!(unit_error < 1e-15, "direction off unit by {unit_error}");
     let cross = state
         .direction

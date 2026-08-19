@@ -277,22 +277,23 @@ where
 
             let distance = difference.length();
             let normalization = scales.normalization(source, target, epsilon);
-            // A non-negative distance over a positive normalization: the division carries the
-            // domain, so no reading needs re-validation.
-            let normalized = distance / normalization;
+            // A non-negative distance over a positive normalization is never NaN and never
+            // negative, and a quotient past the working range saturates where the class
+            // energies saturate anyway.
+            let normalized = distance.saturating_div(normalization);
             let (value, derivative) =
                 energy.mixture(normalized, weights.coincident, weights.proximal);
             let factor = f64::from(scale)
                 * ((edge.confidence * edge.normalization) * f64::from(weights.strength));
 
-            total = factor.mul_add(f64::from(value), total);
+            total = factor.mul_add(value.into_raw(), total);
             if distance.is_zero() {
                 continue;
             }
 
             // dz/dy_source = (y_source - y_target) / (d · normalization).
             let gradient = DVec2::from(difference)
-                * (factor * f64::from(derivative)
+                * (factor * derivative.into_raw()
                     / (f64::from(distance) * f64::from(normalization)));
             field.add(source, gradient);
             field.add(target, -gradient);

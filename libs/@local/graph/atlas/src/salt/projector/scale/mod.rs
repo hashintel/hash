@@ -17,11 +17,11 @@ pub(crate) mod frozen;
 
 use core::{error::Error, fmt};
 
-use hashql_core::id::{Id, IdSlice};
+use hashql_core::id::{Id, IdSlice, IdVec};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use crate::{
-    math::{FinitePointField, NonNegative, Positive, Vec2},
+    math::{Derivation, FinitePointField, NonNegative, Positive, Vec2},
     salt::knn::table::KnnView,
 };
 
@@ -105,18 +105,23 @@ where
             "the neighbour table should store at least one neighbour per row"
         );
 
-        let scales: Vec<_> = (0..coordinates.len())
+        let derived: IdVec<N, _> = (0..coordinates.len())
             .into_par_iter()
             .map(|row| row_scale(coordinates, knn, N::from_usize(row)))
             .collect();
 
-        if let Some(row) = scales.iter().position(|scale| !scale.is_finite()) {
-            return Err(NonFiniteScale {
-                row: N::from_usize(row),
-            });
+        // Each median makes its one domain claim here at the table boundary, and the smallest
+        // diverged row is the refusal.
+        let mut scales = IdVec::with_capacity(derived.len());
+        for (row, derivation) in derived.iter_enumerated() {
+            let Ok(scale) = derivation.finish() else {
+                return Err(NonFiniteScale { row });
+            };
+
+            scales.push(scale);
         }
 
-        Ok(Self(IdSlice::from_boxed_slice(scales.into_boxed_slice())))
+        Ok(Self(scales.into_boxed_slice()))
     }
 
     /// Borrows the scales in node-row order.
@@ -131,10 +136,9 @@ where
     /// The value is `√((scale(source) + ε) · (scale(target) + ε))`: the geometric mean of the
     /// pair's ε-shifted local scales. Dividing a pair's distance by it yields the locally
     /// normalized distance `z`, comparable between dense and sparse map regions. `epsilon`
-    /// shifts a zero scale off zero. The product is a typed [`Positive`] multiplication, so its
-    /// crossings are the family's: near-maximal shifted scales past the finite domain, or an
-    /// `ε²` below the subnormal range with zero scales, debug-assert and pass through in
-    /// release - a configured `ε` of `2⁻⁷⁴` or more keeps a zero-scale product in domain.
+    /// shifts a zero scale off zero, and the geometric mean is total - the widened product is
+    /// exact and the mean of two representable positives is representable. Every configured
+    /// `ε` reads a finite normalization.
     ///
     /// # Panics
     ///
@@ -142,7 +146,7 @@ where
     #[inline]
     #[must_use]
     pub(crate) fn normalization(&self, source: N, target: N, epsilon: Positive) -> Positive {
-        ((self.0[source] + epsilon) * (self.0[target] + epsilon)).sqrt()
+        (self.0[source] + epsilon).geometric_mean(self.0[target] + epsilon)
     }
 
     /// Returns the node-row count.
@@ -197,8 +201,13 @@ pub(crate) const fn sorted_median(distances: &[NonNegative]) -> NonNegative {
 ///
 /// A distance between pre-divergence coordinates can overflow, and the escaped `+∞` sorts last
 /// under the bit order, so it reaches the median only when overflow dominates the row. The
-/// caller's scan therefore detects divergence at the corpus level rather than per distance.
-fn row_scale<N>(coordinates: &IdSlice<N, Vec2>, knn: &KnnView<'_, N>, row: N) -> NonNegative
+/// median returns unclaimed, and the table constructor's finish detects divergence at the
+/// corpus level rather than per distance.
+fn row_scale<N>(
+    coordinates: &IdSlice<N, Vec2>,
+    knn: &KnnView<'_, N>,
+    row: N,
+) -> Derivation<NonNegative>
 where
     N: Id,
 {
@@ -216,5 +225,5 @@ where
     }
     distances[..count].sort_unstable();
 
-    sorted_median(&distances[..count])
+    Derivation::from(sorted_median(&distances[..count]))
 }

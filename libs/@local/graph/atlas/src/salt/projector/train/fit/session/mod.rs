@@ -392,8 +392,8 @@ where
     /// objective-shape reading, and the bridge ends derive from the whole-corpus fields inside
     /// the reading itself.
     ///
-    /// A gauge fit or evaluation refusal returns as [`TargetPass::Refused`]: the loop owns the
-    /// record and the consequence.
+    /// A gauge fit, a diverged reading, or an evaluation refusal returns as
+    /// [`TargetPass::Refused`]: the loop owns the record and the consequence.
     ///
     /// # Errors
     ///
@@ -422,6 +422,10 @@ where
             // Training refuses the step rather than descending through a degenerate frame.
             Err(TrainError::Gauge(refusal)) => {
                 return Ok(TargetPass::Refused(TargetRefusalCause::Gauge(refusal)));
+            }
+            // A diverged reading is a data-dependent refusal the run record survives.
+            Err(TrainError::TargetReading(diverged)) => {
+                return Ok(TargetPass::Refused(TargetRefusalCause::Reading(diverged)));
             }
             Err(error) => return Err(error),
         };

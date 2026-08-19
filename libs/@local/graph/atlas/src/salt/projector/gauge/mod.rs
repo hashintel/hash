@@ -141,7 +141,7 @@ where
             Positive::new(spread as f32).ok_or(GaugeRefusal::DegenerateSpread { spread })?;
 
         if let Some(floor) = spread_floor {
-            let ratio = DPositive::from(frozen_spread) / DPositive::from(floor.band);
+            let ratio = frozen_spread.div_wide(floor.band);
             if ratio < DPositive::from(floor.kappa) {
                 return Err(GaugeRefusal::SpreadBelowFloor {
                     ratio,
@@ -238,12 +238,13 @@ where
 
         let similarity =
             Similarity::fit_uniform_par(source, target).ok_or(GaugeRefusal::FitRefused)?;
-        // The similarity's scale domain is strictly positive normal by its own constructors.
-        let scale = Positive::new_unchecked(similarity.scale().get());
+        let scale = similarity.scale();
 
         let rms = similarity.rms_residual_par(source, target);
 
-        let residual = rms / DPositive::from(self.frozen_spread);
+        // Total: the rms residual stays below ~1.2e87 by its own totality theorem, and the
+        // smallest positive f32 spread is 2⁻¹⁴⁹, keeping the quotient far inside the domain.
+        let residual = (rms / self.frozen_spread.widen()).finish_unchecked();
         if let Some(bar) = residual_bar
             && residual > DPositive::from(bar)
         {

@@ -147,12 +147,10 @@ where
             "the boundary snapshot should cover at least one row"
         );
 
-        // The f64 product of two f32 values is exact: two 24-bit significands multiply within
-        // 53 bits. The narrowed f32 product is the enforced radius; the refusal carries the
-        // exact value.
+        // The narrowed f32 product is the enforced radius; the refusal carries the exact
+        // widened value.
         let radius = dimensionless_radius.checked_mul(reference_spread);
-        let radius_exact =
-            DPositive::from(dimensionless_radius) * DPositive::from(reference_spread);
+        let radius_exact = dimensionless_radius.mul_wide(reference_spread);
         let Some(radius) = radius else {
             return Err(BandRefusal::RadiusOutOfDomain {
                 radius: radius_exact,
@@ -167,12 +165,13 @@ where
             return Err(BandRefusal::RepresentationCeiling { extent });
         }
 
-        let margin = (extent * MARGIN_SCALE).max(MARGIN_FLOOR);
-        if margin * MARGIN_HEADROOM > radius_exact {
-            return Err(BandRefusal::RepresentationFloor {
-                radius,
-                floor: margin * MARGIN_HEADROOM,
-            });
+        // Total by the ceiling guard above: the extent is at most the f32 maximum and the
+        // scale an exact 2⁻²² that cannot carry a positive extent to zero in f64. The headroom
+        // is a further exact 2¹⁰ on a product still hundreds of shells below the domain's top.
+        let margin = DPositive::new_unchecked(extent.get() * MARGIN_SCALE.get()).max(MARGIN_FLOOR);
+        let floor = DPositive::new_unchecked(margin.get() * MARGIN_HEADROOM.get());
+        if floor > radius_exact {
+            return Err(BandRefusal::RepresentationFloor { radius, floor });
         }
 
         Ok(Self {
@@ -195,9 +194,7 @@ where
     /// bits. The clip predicate compares squared displacements against it.
     #[inline]
     const fn radius_squared(&self) -> DPositive {
-        // Positive with no check: the freeze's headroom keeps the radius at or above 2⁻¹³⁰,
-        // whose exact square sits far above the f64 underflow threshold.
-        self.radius_wide() * self.radius_wide()
+        self.radius.square_wide()
     }
 
     /// Returns the reference spread widened to f64, exactly. Every normalized reading divides
@@ -383,9 +380,13 @@ where
     /// rows within two margins of the boundary.
     #[inline]
     #[must_use]
-    pub(crate) fn saturation_floor_squared(&self) -> f64 {
+    pub(crate) fn saturation_floor_squared(&self) -> DPositive {
+        // Positive with no check: the freeze's headroom keeps the margin at or below a 1024th
+        // of the radius, so the floor keeps at least 1022/1024 of it and stays positive.
         let floor = (self.landing_radius() - self.margin).get();
 
-        floor * floor
+        // Total: the floor is at most the f32-born radius and at least 1022/1024 of a radius
+        // the headroom keeps above 2⁻¹³⁰. Both squares sit far inside the f64 range.
+        DPositive::new_unchecked(floor * floor)
     }
 }

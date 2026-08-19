@@ -7,16 +7,16 @@
 //! typed outcome.
 
 use super::SOLVER_DIMENSIONS;
-use crate::math::{AlignedDVecN, BoxedDVecN, DVecN};
+use crate::math::{AlignedDVecN, BoxedDVecN, DFinite, DVecN};
 
 /// The componentwise advance `base + factor·along`, one fused multiply-add per coordinate.
 pub(super) fn advance(
     base: &AlignedDVecN<SOLVER_DIMENSIONS>,
-    factor: f64,
+    factor: DFinite,
     along: &AlignedDVecN<SOLVER_DIMENSIONS>,
 ) -> BoxedDVecN<SOLVER_DIMENSIONS> {
     let mut advanced = BoxedDVecN::new(DVecN::from_ref(base.as_array()));
-    advanced.mul_add(along, factor);
+    advanced.mul_add(along, factor.get());
     advanced
 }
 

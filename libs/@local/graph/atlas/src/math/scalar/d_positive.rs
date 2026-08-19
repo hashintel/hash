@@ -9,9 +9,10 @@ use core::{
 };
 
 use super::{
-    DFinite, DNonNegative, GreaterThanOne, OpenUnitFraction, Positive, PositiveUnitFraction,
-    raw_interop, unsafe_impl_try_from_bytes,
+    DFinite, DNonNegative, OpenUnitFraction, Positive, PositiveUnitFraction, raw_interop,
+    unsafe_impl_try_from_bytes,
 };
+use crate::math::Derivation;
 
 /// Validates a positive double-precision literal at compile time.
 ///
@@ -66,6 +67,7 @@ impl Error for NotPositive {}
 pub(crate) struct DPositive(f64);
 
 impl DPositive {
+    pub(crate) const EPSILON: Self = Self::new(f64::EPSILON).unwrap();
     /// The value one.
     pub(crate) const ONE: Self = Self(1.0);
 
@@ -103,6 +105,20 @@ impl DPositive {
     #[inline]
     #[must_use]
     pub(crate) const fn from_u32(value: NonZero<u32>) -> Self {
+        Self(value.get() as f64)
+    }
+
+    /// Converts a nonzero count into the domain.
+    ///
+    /// Counts at or below 2⁵³ convert exactly, and a larger count rounds to the nearest
+    /// representable value, staying finite and positive.
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "the rounding above 2^53 is this constructor's stated contract"
+    )]
+    #[inline]
+    #[must_use]
+    pub(crate) const fn from_usize(value: NonZero<usize>) -> Self {
         Self(value.get() as f64)
     }
 
@@ -159,19 +175,6 @@ impl DPositive {
     #[must_use]
     pub(crate) fn ln(self) -> DFinite {
         DFinite::new_unchecked(self.0.ln())
-    }
-
-    /// Fuses a multiply-add `self · factor + addend` with one rounding.
-    ///
-    /// The fused product of a positive value and a non-negative factor is non-negative, and the
-    /// positive addend keeps the sum positive - rounding is monotone, so it never rounds below
-    /// the addend's magnitude class. Overflow escapes to `+∞` - a wrong reading rather than a
-    /// soundness break, since no unsafe code trusts the domain - and asserts in debug builds
-    /// through the constructor.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn mul_add(self, factor: DNonNegative, addend: Self) -> Self {
-        Self::new_unchecked(self.0.mul_add(factor.get(), addend.0))
     }
 
     /// Divides, refusing the escape.
@@ -238,20 +241,6 @@ impl fmt::Display for DPositive {
     }
 }
 
-const impl core::ops::Mul for DPositive {
-    type Output = Self;
-
-    /// Multiplies.
-    ///
-    /// A product of positives is never NaN and never negative. Overflow escapes to `+∞` and
-    /// underflow to zero - each a wrong reading rather than a soundness break, since no unsafe
-    /// code trusts the domain - and each asserts in debug builds through the constructor.
-    #[inline]
-    fn mul(self, rhs: Self) -> Self {
-        Self::new_unchecked(self.0 * rhs.0)
-    }
-}
-
 const impl core::ops::Div<DPositive> for f64 {
     type Output = f64;
 
@@ -266,17 +255,11 @@ const impl core::ops::Div<DPositive> for f64 {
     }
 }
 
-const impl core::ops::Div for DPositive {
-    type Output = DPositive;
-
-    /// Divides.
-    ///
-    /// A quotient of positives is never NaN and never negative. Overflow escapes to `+∞` and
-    /// underflow to zero - each a wrong reading rather than a soundness break, since no unsafe
-    /// code trusts the domain - and each asserts in debug builds through the constructor.
+const impl core::ops::DivAssign<DPositive> for f64 {
+    /// Divides a double-precision measurement in place, as the binary form does.
     #[inline]
-    fn div(self, rhs: DPositive) -> DPositive {
-        DPositive::new_unchecked(self.0 / rhs.0)
+    fn div_assign(&mut self, rhs: DPositive) {
+        *self /= rhs.0;
     }
 }
 
@@ -295,16 +278,20 @@ const impl core::ops::Sub for DPositive {
 }
 
 const impl core::ops::Div<DNonNegative> for DPositive {
-    type Output = f64;
+    type Output = Derivation<DNonNegative>;
 
-    /// Divides by a non-negative value, leaving the domain.
-    ///
-    /// A zero divisor sends the quotient to `+∞`, so the result is a raw float. The caller
-    /// re-enters a domain at whichever boundary proves the bound, and a NaN cannot arise: the
-    /// dividend is positive.
     #[inline]
-    fn div(self, rhs: DNonNegative) -> f64 {
-        self.0 / rhs.get()
+    fn div(self, rhs: DNonNegative) -> Derivation<DNonNegative> {
+        Derivation::raw(self.0 / rhs.get())
+    }
+}
+
+const impl core::ops::Div<DPositive> for DPositive {
+    type Output = Derivation<DPositive>;
+
+    #[inline]
+    fn div(self, rhs: DPositive) -> Derivation<DPositive> {
+        Derivation::raw(self.0 / rhs.0)
     }
 }
 
@@ -338,18 +325,12 @@ const impl core::ops::Mul<DPositive> for OpenUnitFraction {
     }
 }
 
-const impl core::ops::Mul<DPositive> for GreaterThanOne {
-    type Output = DPositive;
+const impl core::ops::Mul for DPositive {
+    type Output = Derivation<Self>;
 
-    /// Grows a positive value.
-    ///
-    /// The product of a positive value and a factor above one is positive, at least the value,
-    /// and never NaN. Overflow escapes to `+∞` - a wrong reading rather than a soundness break,
-    /// since no unsafe code trusts the domain - and asserts in debug builds through the
-    /// constructor.
     #[inline]
-    fn mul(self, rhs: DPositive) -> DPositive {
-        DPositive::new_unchecked(self.get() * rhs.0)
+    fn mul(self, rhs: Self) -> Self::Output {
+        Derivation::raw(self.0 * rhs.0)
     }
 }
 

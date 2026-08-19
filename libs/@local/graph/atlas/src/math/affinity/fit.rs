@@ -58,7 +58,7 @@ impl AffinityFitConfig {
     /// flat membership plateau inside `minimum_distance` and the exponential tail beyond it) with a
     /// handful of points each. Below eight samples the grid underdetermines the fit against the
     /// target the curve traces.
-    pub(crate) const MIN_SAMPLES: u16 = 8;
+    pub(crate) const MIN_SAMPLES: NonZero<u16> = NonZero::new(8).unwrap();
 }
 
 impl AffinityCurve {
@@ -110,23 +110,27 @@ impl AffinityCurve {
             return None;
         }
 
-        if config.samples < AffinityFitConfig::MIN_SAMPLES {
+        let samples_zero_based = NonZero::new(config.samples.saturating_sub(1))?;
+        if samples_zero_based.saturating_add(1) < AffinityFitConfig::MIN_SAMPLES {
             return None;
         }
 
-        let spread = spread.widen();
         let minimum_distance = minimum_distance.widen();
-        let grid = SampleGrid::new(
-            config.samples,
-            config.range_in_spreads.widen() * spread
-                / DPositive::from_u16(NonZero::new(config.samples - 1)?),
-        );
+
+        // Total: the two range factors are f32-born positives widened exactly, so their product
+        // lies far inside the f64 range in both directions. The divisor, an exact integer in [7,
+        // u16::MAX] by the `MIN_SAMPLES` guard above, keeps the quotient positive.
+        let step = (config.range_in_spreads.mul_wide(spread)
+            / DPositive::from_u16(samples_zero_based))
+        .finish_unchecked();
+
+        let grid = SampleGrid::new(config.samples, step);
 
         let (a, b) = fit_curve(grid, |distance| {
             if distance < minimum_distance {
                 1.0
             } else {
-                (-(distance - minimum_distance) / spread).exp()
+                ((-(distance - minimum_distance) / spread.widen()).into_raw()).exp()
             }
         })?;
 
@@ -164,7 +168,11 @@ impl SampleGrid {
 
     /// Returns the sample distance at an index.
     const fn distance(self, index: u16) -> DNonNegative {
-        DNonNegative::from_u16(index) * self.step
+        // The factor is an exact integer below 2^16, so the product leaves the domain only for
+        // a step in the top sixteen exponent shells of `f64`, and every constructed step sits
+        // hundreds of shells below them: an f32-born product in `fit_with`, small literals in
+        // tests. Underflow rounds to zero, inside the domain.
+        DNonNegative::new_unchecked(DNonNegative::from_u16(index).get() * self.step.get())
     }
 }
 
@@ -309,9 +317,12 @@ fn evaluate(
     let mut sums = NormalEquations::ZERO;
 
     for index in 0..grid.samples {
+        // Solver interior: the parameters roam during exploration, and an overflow here is an
+        // expected rejection for the pass-end finiteness check rather than a defective input.
+        // The arithmetic is raw until that check.
         let distance = grid.distance(index);
-        let power = distance.powf(2.0 * b);
-        let denominator = a.mul_add(power, DPositive::ONE);
+        let power = distance.powf(2.0 * b).get();
+        let denominator = a.get().mul_add(power, 1.0);
         let residual = 1.0 / denominator - target(distance);
         sums.residual_sum_of_squares = residual.mul_add(residual, sums.residual_sum_of_squares);
 
