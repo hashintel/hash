@@ -302,7 +302,7 @@ pub(crate) const fn narrow_f32(value: f64) -> Option<f32> {
 /// Narrows an `f64` to `f32` when the value is exactly representable.
 ///
 /// The conversion succeeds precisely when the input is finite and widening the narrowed result back
-/// to `f64` reproduces the input bit for bit; the returned `f32` therefore denotes the same real
+/// to `f64` reproduces the input bit for bit. The returned `f32` therefore denotes the same real
 /// number as the input. Values that would round, overflow the `f32` range, or fail to be finite
 /// yield [`None`]. Negative zero is exactly representable and keeps its sign bit.
 ///

@@ -4,7 +4,7 @@
 //! double precision throughout, such as classifier logits feeding the bounded trust-region
 //! exact-Newton solver.
 //! Its reductions ([`softmax`](DVecN::softmax), [`log_sum_exp`](DVecN::log_sum_exp)) shift,
-//! exponentiate, and fold four lanes at a time; the exponential goes through
+//! exponentiate, and fold four lanes at a time. The exponential goes through
 //! [`kernel::exp_f64x4`](super::kernel), which currently lowers to one libm call per lane.
 //!
 //! [`BoxedDVecN`] owns a heap allocation aligned for [`f64x8`] and hands out [`AlignedDVecN`]

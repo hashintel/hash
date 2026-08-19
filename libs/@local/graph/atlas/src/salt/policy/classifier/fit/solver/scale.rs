@@ -43,7 +43,7 @@ impl Scaling {
     /// Applies `D` componentwise: one multiplication per coordinate.
     ///
     /// The round trip through [`divide`](Self::divide) reproduces a coordinate up to one rounding
-    /// in each direction; the Newton engine's oracle-priced certificate absorbs that reconstruction
+    /// in each direction. The Newton engine's oracle-priced certificate absorbs that reconstruction
     /// error.
     pub(super) fn multiply(
         &self,

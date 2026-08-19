@@ -157,7 +157,7 @@ fn column_dot(left: RowFactor, k: usize, right: RowFactor, l: usize) -> f64 {
 /// Runs one exact Newton inner solve at the accepted point.
 ///
 /// `point` is the physical image `θ(ζ)` of the accepted iterate and `gradient` its scaled gradient.
-/// The Newton point prices one oracle Hessian-vector product; a boundary outer prices one for the
+/// The Newton point prices one oracle Hessian-vector product. A boundary outer prices one for the
 /// Cauchy curvature first and the dogleg segment prices the Newton product as well.
 ///
 /// # Errors

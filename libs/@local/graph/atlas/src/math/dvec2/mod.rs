@@ -338,7 +338,7 @@ impl DVec2x4T {
 
     /// Splits the batch into one SIMD lane group per axis.
     ///
-    /// The first group holds the `x` components, the second the `y` components; lane `i` of each
+    /// The first group holds the `x` components, the second the `y` components. Lane `i` of each
     /// corresponds to vector `i`. This is the inverse of [`from_lanes`](Self::from_lanes) and the
     /// by-value counterpart of [`xs`](Self::xs) and [`ys`](Self::ys).
     #[inline]

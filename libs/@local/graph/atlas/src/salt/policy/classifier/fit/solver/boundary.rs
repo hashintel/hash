@@ -49,7 +49,7 @@ pub(super) struct BoundaryStep {
 /// [`GROSS_DEFECT_GUARD`] of unit norm.
 ///
 /// Returns [`None`] when any normalization, coefficient, discriminant, root, boundary norm, or
-/// extended Hessian product falls outside its domain; the caller maps [`None`] onto its typed
+/// extended Hessian product falls outside its domain. The caller maps [`None`] onto its typed
 /// failure.
 pub(super) fn boundary_step(
     interior: &AlignedDVecN<SOLVER_DIMENSIONS>,

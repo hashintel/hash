@@ -89,7 +89,7 @@ impl Bounds2 {
 
     /// Computes the tight bounding box of a point set.
     ///
-    /// Returns [`None`] when the iterator is empty or any coordinate is not finite; the returned
+    /// Returns [`None`] when the iterator is empty or any coordinate is not finite. The returned
     /// box always reflects every input point.
     ///
     /// This is the flexible, scalar entry point. When the points are already in a slice, prefer
@@ -167,7 +167,7 @@ impl Bounds2 {
     /// Computes the tight bounding box in parallel with a caller-chosen chunk size.
     ///
     /// The contract is identical to [`from_slice`](Self::from_slice). Each rayon work item folds
-    /// `chunk` points; smaller chunks balance better across uneven core loads, larger chunks
+    /// `chunk` points. Smaller chunks balance better across uneven core loads, and larger chunks
     /// amortize task overhead. [`from_slice_par`](Self::from_slice_par) uses
     /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK).
     #[must_use]
@@ -259,7 +259,7 @@ impl Bounds2 {
     ///
     /// This is the viewport operation for a grid of square cells. A point set drawn on `across` by
     /// `down` cells keeps its own shape when this method grows its extent to `across / down` first,
-    /// because equal extent per cell on both axes is what one square cell means; fitting the grown
+    /// because equal extent per cell on both axes is what one square cell means. Fitting the grown
     /// box with [`fit`](Self::fit) then scales both axes by the same factor.
     ///
     /// An axis with no extent grows out of the other one, so a point set collapsed onto a line
@@ -334,7 +334,7 @@ impl Bounds2 {
     /// transform.
     ///
     /// Returns [`None`] when this box has an axis with zero, subnormal, or otherwise non-normal
-    /// extent, where the scale factor degenerates; widen with
+    /// extent, where the scale factor degenerates. Widen with
     /// [`with_minimum_extent`](Self::with_minimum_extent) first when the point set may be
     /// collinear.
     ///

@@ -51,7 +51,7 @@ pub(super) struct CurvatureEvaluation {
 
 /// One shared per-row logits evaluation.
 struct RowPrelude {
-    /// Reference differences `δ_c` of the leading classes; the reference's own is zero by
+    /// Reference differences `δ_c` of the leading classes. The reference's own is zero by
     /// construction.
     delta: [f64; LEADING_CLASSES],
     /// `logsumexp(δ, 0)`, stable under the class-order shifted fold.
@@ -306,7 +306,7 @@ impl Prepared<'_> {
     ///
     /// Rows accumulate in ascending original index and classes fold in discriminant order, as
     /// every other evaluation here. Returns [`None`] for a non-finite request, which visits no
-    /// rows; computed values may be non-finite when the arithmetic overflows, and the caller
+    /// rows. Computed values may be non-finite when the arithmetic overflows, and the caller
     /// maps them onto its typed outcome.
     pub(super) fn curvature_pass(
         &self,

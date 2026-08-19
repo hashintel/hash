@@ -3,7 +3,7 @@
 //! [`solve`] drives the loop over one [`ScaledProblem`]. Every fit starts at `ζ = 0`. Each outer
 //! iteration certifies the accepted gradient and then runs the exact Newton inner solve. It prices
 //! the resulting candidate against the predicted model reduction and accepts or rejects it by
-//! ratio. The accepted point moves only on acceptance; rejection shrinks the trust radius toward
+//! ratio. The accepted point moves only on acceptance. Rejection shrinks the trust radius toward
 //! its minimum and an expanded radius requires a validated boundary step. Success is [`Converged`]
 //! (a fresh final joint evaluation re-proving the certificate) and every other terminal is a
 //! typed [`SolverFailure`] in the normative precedence order: validation, accepted-gradient
@@ -42,7 +42,7 @@ pub(crate) struct AcceptedPoint {
 
 /// The mutable control state beside the accepted point.
 ///
-/// A rejection changes only this state; an acceptance replaces the accepted point after its
+/// Only this state changes on a rejection. An acceptance replaces the accepted point after its
 /// candidate gradient proves finite.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SolverControl {
@@ -293,7 +293,7 @@ const fn gradient_threshold(
 /// Stores the started outer iteration's receipt and returns the outcome it records into.
 ///
 /// A debugging request stores one receipt per started outer iteration and the returned outcome
-/// collects the iteration's diagnostics; the routine posture stores none and returns [`None`], so
+/// collects the iteration's diagnostics. The routine posture stores none and returns [`None`], so
 /// the diagnostic-only arithmetic never runs.
 fn start_receipt<'receipts>(
     receipts: &'receipts mut Vec<OuterReceipt>,

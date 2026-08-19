@@ -1324,7 +1324,7 @@ fn dense_component(index: usize, phase: f64) -> f64 {
 /// given Euclidean norm.
 ///
 /// The magnitude split concentrates the norm in two components while thousands of small squares
-/// absorb into the fold accumulators, the structure that drives the reductions' rounding; uniform
+/// absorb into the fold accumulators, the structure that drives the reductions' rounding. Uniform
 /// dense fills stay within a few ulps of an exact unit norm at this dimension.
 fn spiked_dense(norm: f64, phase: f64) -> BoxedDVecN<SOLVER_DIMENSIONS> {
     let mut vector = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
@@ -1938,8 +1938,8 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
     assert_eq!(run.control.counters.joint_passes, 2);
 }
 
-/// The exposed domain tag and dimension are the exact digest-preimage prefix; the coordinate system
-/// rides only the exposed identity.
+/// The exposed domain tag and dimension are the exact digest-preimage prefix. The coordinate
+/// system rides only the exposed identity.
 #[test]
 #[expect(
     clippy::host_endian_bytes,
@@ -1977,7 +1977,7 @@ fn receipt_domain_tag_and_dimension_are_the_exact_digest_prefix() {
     assert_eq!(hasher.finalize(), vector_digest(&vector));
 }
 
-/// The certificate pins the initial norm and its derived threshold; the norm's domain makes the
+/// The certificate pins the initial norm and its derived threshold. The norm's domain makes the
 /// derivation total.
 #[test]
 fn derive_certificate_pins_the_threshold_formula() {
