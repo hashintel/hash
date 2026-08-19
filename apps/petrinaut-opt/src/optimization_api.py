@@ -594,6 +594,14 @@ async def root() -> dict[str, str]:
 if __name__ == "__main__":
     import uvicorn
 
+    # `uvicorn.run` only configures its own `uvicorn.*` loggers, leaving the
+    # root logger handler-less at WARNING, which drops every `log.info(...)`
+    # this service emits. Configure a console handler for direct invocation.
+    logging.basicConfig(
+        level=os.getenv("HASH_PETRINAUT_OPT_LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s %(levelname)-8s %(name)s %(message)s",
+    )
+    
     host = os.getenv("HASH_PETRINAUT_OPT_HOST", "localhost")
     port = int(os.getenv("HASH_PETRINAUT_OPT_PORT", "4004"))
     uvicorn.run(app, host=host, port=port)
