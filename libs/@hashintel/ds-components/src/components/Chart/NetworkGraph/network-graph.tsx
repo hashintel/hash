@@ -1380,22 +1380,24 @@ export const NetworkGraph = ({
       ? currentZoom - framingBaseZoom
       : null;
 
+  // Detail view shows in the top 0.5 zoom levels, just below the max zoom —
+  // expressed on the normalised axis (`maxZoom − framingBase − 0.5`). It can
+  // sit at or below 0 (the framed-out zoom) when the zoom range is degenerate:
+  // a still-loading session that reports no depth yet, or a tiny dataset whose
+  // whole range is one zoom level.
+  const detailZoomThreshold =
+    viewState?.maxZoom != null && framingBaseZoom != null
+      ? viewState.maxZoom - framingBaseZoom - 0.5
+      : null;
+
   // Everything the view derives from the current zoom, computed together by {@link deriveZoomAttributes}.
   const {
     radiusScale,
     arrowGapPx,
     isDetailZoom: rawIsDetailZoom,
   } = useMemo(
-    () =>
-      deriveZoomAttributes(
-        normalisedZoom,
-        // Detail view shows in the top 0.5 zoom levels, just below the max zoom —
-        // expressed here on the normalised axis (`maxZoom − framingBase − 0.5`).
-        viewState?.maxZoom != null && framingBaseZoom != null
-          ? viewState.maxZoom - framingBaseZoom - 0.5
-          : null,
-      ),
-    [normalisedZoom, viewState?.maxZoom, framingBaseZoom],
+    () => deriveZoomAttributes(normalisedZoom, detailZoomThreshold),
+    [normalisedZoom, detailZoomThreshold],
   );
 
   // The detail threshold tracks `maxZoom`, which can move while the user is
@@ -1419,7 +1421,15 @@ export const NetworkGraph = ({
     normalisedZoom < detailLatchZoom - DETAIL_LATCH_ZOOM_OUT_TOLERANCE
   ) {
     // Not latched, or deliberately zoomed out: the latest threshold decides.
-    nextDetailLatchZoom = rawIsDetailZoom ? normalisedZoom : null;
+    // Only a *real* threshold — one above the framed-out zoom — may latch. A
+    // degenerate threshold classifies the whole range as detail, and holding
+    // that sticky would trap the view once a still-loading session's real
+    // threshold lands; detail still *shows* below (the raw verdict), live
+    // rather than latched, so a later threshold correction undoes it cleanly.
+    nextDetailLatchZoom =
+      rawIsDetailZoom && detailZoomThreshold !== null && detailZoomThreshold > 0
+        ? normalisedZoom
+        : null;
   } else {
     nextDetailLatchZoom =
       normalisedZoom >= detailLatchZoom + DETAIL_LATCH_ZOOM_OUT_TOLERANCE
@@ -1429,7 +1439,8 @@ export const NetworkGraph = ({
   if (nextDetailLatchZoom !== detailLatchZoom) {
     setDetailLatchZoom(nextDetailLatchZoom);
   }
-  const isDetailZoom = nextDetailLatchZoom !== null;
+  // Latched, or live off the raw verdict (the degenerate-threshold case).
+  const isDetailZoom = nextDetailLatchZoom !== null || rawIsDetailZoom;
 
   // Density sizing measured as a world-space inter-node spacing, later multiplied by
   // the live world→pixel scale so plain zooming stays smooth. Two measures are
