@@ -145,6 +145,32 @@ required. In particular the bundle asks for **no Markdown or Rehype
 plugins** — a host renders it with its Markdown pipeline exactly as configured,
 which is what keeps "render the bundle" a small job rather than a negotiation.
 
+### Source links
+
+Generated pages link back to the source they describe: each layer's "Declared
+in" link, its source root, its further-reading list, and any relative link in a
+declaring README's prose. Those URLs carry a git ref, resolved once per build
+from the first of these variables that holds a value:
+
+| Variable                         | Set by                        |
+| -------------------------------- | ----------------------------- |
+| `PETRINAUT_ARCH_DOCS_SOURCE_REF` | You, overriding the rest      |
+| `VERCEL_GIT_COMMIT_SHA`          | Vercel                        |
+| `GITHUB_SHA`                     | GitHub Actions                |
+| `VERCEL_GIT_COMMIT_REF`          | Vercel (branch name)          |
+| `GITHUB_HEAD_REF`                | GitHub Actions (pull request) |
+| `GITHUB_REF_NAME`                | GitHub Actions (push)         |
+
+A commit SHA beats a branch name, because the link still resolves once the
+branch has moved on or been deleted. The branch-name fallbacks assume the
+branch lives in `hashintel/hash`: on a pull request from a fork,
+`GITHUB_HEAD_REF` names a branch this repository does not have, so those links
+404 — the SHA variables, which win when present, resolve regardless. With none of them set the ref is `main`,
+which is what a local build gets; set `PETRINAUT_ARCH_DOCS_SOURCE_REF` to aim a
+local build at another ref. A preview deployment of `apps/petrinaut-docs`
+reads Vercel's variables, so its links point at the commit it was built from
+instead of at a file `main` may not have yet.
+
 ### Embedding the bundle elsewhere
 
 A host reads `manifest.json`, maps each page's `slug` onto its own URL space, and

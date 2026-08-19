@@ -12,7 +12,19 @@
       "cache": false,
       // Declared so consumers can depend on this task rather than on the
       // directory existing, and so `turbo run` prunes it on a clean.
-      "outputs": ["bundle/**"]
+      "outputs": ["bundle/**"],
+      // The ref the source links point at. Declared because the default strict
+      // env mode hides anything unlisted, which would leave a preview build
+      // emitting `main` links. Mirrors REF_VARIABLES in `src/source-url.ts`;
+      // keep the two lists identical.
+      "env": [
+        "PETRINAUT_ARCH_DOCS_SOURCE_REF",
+        "VERCEL_GIT_COMMIT_SHA",
+        "GITHUB_SHA",
+        "VERCEL_GIT_COMMIT_REF",
+        "GITHUB_HEAD_REF",
+        "GITHUB_REF_NAME"
+      ]
     },
     "lint:arch-docs": {
       "cache": false
