@@ -411,7 +411,8 @@
   "execution": {
     "seed": 1234,
     "dt": 0.1,
-    "maxTime": 36.5
+    "maxTime": 36.5,
+    "seedsPerTrial": 3
   },
   "study": {
     "trials": 1000,
