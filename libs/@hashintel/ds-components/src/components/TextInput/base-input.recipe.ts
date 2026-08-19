@@ -40,7 +40,9 @@ export const baseInputRecipe = sva({
       minWidth: "[min-content]",
       position: "relative",
       background: "[var(--base-input-background-color)]",
-      border: "var(--form-border-width) solid transparent",
+      borderWidth: "var(--form-border-width)",
+      borderStyle: "solid",
+      borderColor: "[transparent]",
       borderRadius: "var(--base-input-border-radius)",
       transition: "[background 0.15s ease, border 0.15s ease]",
       "--base-input-background-color": "var(--colors-white)",
@@ -110,11 +112,15 @@ export const baseInputRecipe = sva({
     },
     prefix: {
       borderLeftRadius: "var(--base-input-border-radius)",
-      borderRight: "1px solid transparent",
+      borderRightWidth: "1px",
+      borderRightStyle: "solid",
+      borderRightColor: "[transparent]",
     },
     suffix: {
       borderRightRadius: "var(--base-input-border-radius)",
-      borderLeft: "1px solid transparent",
+      borderLeftWidth: "1px",
+      borderLeftStyle: "solid",
+      borderLeftColor: "[transparent]",
     },
     adornment: {
       display: "inline-flex",
@@ -279,8 +285,6 @@ export const baseInputRecipe = sva({
         },
         adornment: {
           background: "neutral.s20",
-          borderRightColor: "var(--colors-neutral-s40)",
-          borderLeftColor: "var(--colors-neutral-s40)",
           "&:not([data-variant='subtle'])": {
             paddingX: "2",
           },
@@ -289,20 +293,18 @@ export const baseInputRecipe = sva({
           },
         },
         prefix: {
+          borderRightColor: "var(--colors-neutral-s40)",
           "&[data-variant='subtle'][data-part='adornment-text']": {
             position: "relative",
             left: "1",
           },
         },
         suffix: {
+          borderLeftColor: "var(--colors-neutral-s40)",
           "&[data-variant='subtle'][data-part='adornment-text']": {
             position: "relative",
             right: "1",
           },
-        },
-        adornmentButton: {
-          borderRightColor: "var(--colors-neutral-s40)",
-          borderLeftColor: "var(--colors-neutral-s40)",
         },
         input: {
           paddingX: "var(--base-input-padding-x)",

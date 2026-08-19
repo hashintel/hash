@@ -7,8 +7,7 @@ export const styles = sva({
   base: {
     content: {
       backgroundColor: "white",
-      border: "1px solid",
-      borderColor: "bd.subtle",
+      border: "1px solid {colors.bd.subtle}",
       borderRadius: "lg",
       boxShadow: "lg",
       outline: "0",
@@ -24,9 +23,8 @@ export const styles = sva({
       width: "full",
       paddingY: "1",
       marginY: "1",
-      borderTop: "1px solid",
-      borderBottom: "1px solid",
-      borderColor: "neutral.s30",
+      borderTop: "1px solid {colors.neutral.s30}",
+      borderBottom: "1px solid {colors.neutral.s30}",
       "&:first-child": {
         borderTopWidth: "0",
         marginTop: "0",

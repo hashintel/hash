@@ -51,8 +51,7 @@ const valueStyles = css({
 const sectionTitleStyles = css({
   textStyle: "lg",
   fontWeight: "semibold",
-  borderBottom: "[1px_solid]",
-  borderColor: "bd.subtle",
+  borderBottom: "1px solid {colors.bd.subtle}",
   pb: "2",
   mb: "4",
   width: "[100%]",

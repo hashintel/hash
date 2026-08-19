@@ -70,7 +70,8 @@ export const styles = sva({
     },
     tick: {},
     checkbox: {
-      border: "1px solid",
+      borderWidth: "1px",
+      borderStyle: "solid",
       borderColor: "bd.solid",
       borderRadius: "sm",
       backgroundColor: "white",
