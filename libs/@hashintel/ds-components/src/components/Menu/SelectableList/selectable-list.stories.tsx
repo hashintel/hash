@@ -4,7 +4,11 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../../util/form-shared";
 import { type Item, type ItemOrGroup, SelectableList } from "./selectable-list";
-import { defaultSelected, groupedItems } from "./selectable-list.fixtures";
+import {
+  defaultSelected,
+  groupedItems,
+  itemsWithCustomRows,
+} from "./selectable-list.fixtures";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -81,6 +85,33 @@ export const Default: Story<SelectableListProps> = (args) => (
   <StaticMenu>
     <SelectableList {...args} items={groupedItems} selected={defaultSelected} />
   </StaticMenu>
+);
+
+/**
+ * Custom rows render arbitrary content on their own line. They are never
+ * highlighted by arrow keys or mouse hover, but focusable children (the
+ * input and the buttons) join keyboard navigation: Tab / Shift+Tab move
+ * between whole blocks of regular items (entering a block highlights its
+ * first — or, backwards, last — item) and custom-row focusables, and leave
+ * the list past either end (to the surrounding buttons here). Arrow keys
+ * pressed inside a custom row resume item navigation from that row's
+ * position in the list.
+ */
+export const CustomItems: Story<SelectableListProps> = (args) => (
+  <div
+    className={css({
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      gap: "[12px]",
+    })}
+  >
+    <button type="button">Tabbable before the list</button>
+    <StaticMenu>
+      <SelectableList {...args} items={itemsWithCustomRows} />
+    </StaticMenu>
+    <button type="button">Tabbable after the list</button>
+  </div>
 );
 
 export const Disabled: Story<SelectableListProps> = (args) => (

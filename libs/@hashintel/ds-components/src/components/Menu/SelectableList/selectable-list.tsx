@@ -12,17 +12,21 @@ import { isEmptyString } from "../../../util/string";
 import { ItemBody } from "./selectable-list-item";
 import { styles as itemStyles } from "./selectable-list-item.recipe";
 import {
+  type CustomItem,
   type Item,
   type ItemOrGroup,
   getItemId,
+  isCustomItem,
   isGroup,
+  useCustomRowNavigation,
+  useItemsWithCustomIds,
   useLoopSelection,
 } from "./selectable-list-util";
 import { contentPaddingPx, styles } from "./selectable-list.recipe";
 
 import type { FormInputSize } from "../../../util/form-shared";
 
-export { isGroup, type Item, type ItemOrGroup };
+export { type CustomItem, isCustomItem, isGroup, type Item, type ItemOrGroup };
 
 export type SelectableListAs = "Menu" | "Select";
 
@@ -53,7 +57,9 @@ const NestedMenu = ({
   const portalContainerRef = usePortalContainerRef();
   const parentDepth = use(NestedMenuDepthContext);
   const depth = parentDepth + 1;
-  const handleLoopKeyDown = useLoopSelection(subItems);
+  const normalizedSubItems = useItemsWithCustomIds(subItems);
+  const handleLoopKeyDown = useLoopSelection(normalizedSubItems);
+  const handleCustomRowKeyDown = useCustomRowNavigation(normalizedSubItems);
 
   return (
     <Menu.Root
@@ -81,9 +87,14 @@ const NestedMenu = ({
                 }}
                 onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
               >
-                <Menu.Content className={ctx.contentClassName}>
+                <Menu.Content
+                  className={ctx.contentClassName}
+                  onKeyDownCapture={(event) =>
+                    handleCustomRowKeyDown(event, menu)
+                  }
+                >
                   <NestedMenuDepthContext value={depth}>
-                    {subItems.map((entry) => renderEntry(entry, ctx))}
+                    {normalizedSubItems.map((entry) => renderEntry(entry, ctx))}
                   </NestedMenuDepthContext>
                 </Menu.Content>
               </Menu.Positioner>
@@ -95,7 +106,40 @@ const NestedMenu = ({
   );
 };
 
+/**
+ * A custom row is deliberately not an ark `Menu.Item`/`Select.Item`, so the
+ * menu machine never highlights it and arrow keys skip it. In Menu mode all
+ * keyboard integration — arrows resuming item navigation from a focused
+ * child, Tab stepping through the list, shielding other keys from the menu
+ * machine — lives in `useCustomRowNavigation` on the content. The row-level
+ * handler below is the equivalent shield for Select mode, where that hook
+ * is not attached (in Menu mode it never fires: the capture handler has
+ * already stopped propagation of every key it shields).
+ */
+const CustomRow = ({ item, ctx }: { item: CustomItem; ctx: RenderCtx }) => {
+  const classes = styles({ size: ctx.size });
+
+  return (
+    <div
+      role="presentation"
+      className={classes.customItem}
+      data-selectable-list-custom={getItemId(item)}
+      onKeyDown={(event) => {
+        if (event.key !== "Tab" && event.key !== "Escape") {
+          event.stopPropagation();
+        }
+      }}
+    >
+      {item.custom}
+    </div>
+  );
+};
+
 const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
+  if (isCustomItem(item)) {
+    return <CustomRow item={item} ctx={ctx} />;
+  }
+
   const itemId = getItemId(item);
   const isSelected = ctx.selectedSet.has(itemId);
   const selectedStyle = item.selectedStyle ?? "highlight";
@@ -256,12 +300,14 @@ export const SelectableList = ({
   emptyState?: React.ReactNode;
 }) => {
   const selectedSet = useMemo(() => new Set(selected ?? []), [selected]);
+  const normalizedItems = useItemsWithCustomIds(items);
+  const handleCustomRowKeyDown = useCustomRowNavigation(normalizedItems);
   const classes = styles({
     size,
     component: as === "Menu" ? "menu" : "select",
   });
 
-  const isEmpty = items.length === 0;
+  const isEmpty = normalizedItems.length === 0;
 
   const ctx: RenderCtx = {
     as,
@@ -273,7 +319,7 @@ export const SelectableList = ({
   const body = isEmpty ? (
     <div className={classes.emptyContainer}>{emptyState}</div>
   ) : (
-    items.map((item) => renderEntry(item, ctx))
+    normalizedItems.map((item) => renderEntry(item, ctx))
   );
 
   if (as === "Select") {
@@ -285,8 +331,15 @@ export const SelectableList = ({
   }
 
   return (
-    <Menu.Content className={cx(classes.content, className)}>
-      {body}
-    </Menu.Content>
+    <Menu.Context>
+      {(menu) => (
+        <Menu.Content
+          className={cx(classes.content, className)}
+          onKeyDownCapture={(event) => handleCustomRowKeyDown(event, menu)}
+        >
+          {body}
+        </Menu.Content>
+      )}
+    </Menu.Context>
   );
 };

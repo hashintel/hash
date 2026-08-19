@@ -3,7 +3,7 @@ import { sva } from "@hashintel/ds-helpers/css";
 import type { FormInputSize } from "../../../util/form-shared";
 
 export const styles = sva({
-  slots: ["content", "group", "groupLabel", "emptyContainer"],
+  slots: ["content", "group", "groupLabel", "emptyContainer", "customItem"],
   base: {
     content: {
       backgroundColor: "white",
@@ -51,6 +51,10 @@ export const styles = sva({
       color: "neutral.s80",
       padding: "1",
     },
+    customItem: {
+      width: "full",
+      paddingX: "[var(--selectable-list-padding-x)]",
+    },
   },
   variants: {
     size: {
@@ -69,6 +73,10 @@ export const styles = sva({
           fontSize: "[9px]",
           lineHeight: "[10px]",
         },
+        customItem: {
+          textStyle: "xxs",
+          paddingY: "0.5",
+        },
       },
       xs: {
         content: {
@@ -82,6 +90,10 @@ export const styles = sva({
         },
         emptyContainer: {
           textStyle: "xxs",
+        },
+        customItem: {
+          textStyle: "xs",
+          paddingY: "[3px]",
         },
       },
       sm: {
@@ -97,6 +109,10 @@ export const styles = sva({
         emptyContainer: {
           textStyle: "xs",
         },
+        customItem: {
+          textStyle: "sm",
+          paddingY: "[3px]",
+        },
       },
       md: {
         content: {
@@ -111,6 +127,10 @@ export const styles = sva({
         emptyContainer: {
           textStyle: "sm",
         },
+        customItem: {
+          textStyle: "base",
+          paddingY: "[4px]",
+        },
       },
       lg: {
         content: {
@@ -124,6 +144,10 @@ export const styles = sva({
         },
         emptyContainer: {
           textStyle: "sm",
+        },
+        customItem: {
+          textStyle: "base",
+          paddingY: "[4px]",
         },
       },
     },
