@@ -1,9 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { resolveDeclaredEdges } from "./graph";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { buildGraph, resolveDeclaredEdges } from "./graph";
 
 import type { TalksToDeclaration } from "./extract";
-import type { Edge, Layer } from "./model";
+import type { ArchitecturePackage, Edge, Layer } from "./model";
 
 /**
  * A declared edge is the one kind an annotation draws rather than the import
@@ -131,5 +135,94 @@ describe("resolveDeclaredEdges", () => {
 
     expect(edges).toEqual([]);
     expect(diagnostics).toEqual([]);
+  });
+});
+
+/**
+ * Python records go through the same aggregation as TypeScript ones, so one
+ * end-to-end case pins the whole chain: parse, resolve across packages, map to
+ * layers, drop the intra-layer imports, and mark the package crossing.
+ */
+describe("buildGraph with Python packages", () => {
+  let root: string;
+
+  const pythonPackage = (name: string, path: string): ArchitecturePackage => ({
+    name,
+    path,
+    description: `${name} test package`,
+    language: "python",
+    sourceDirectory: "src",
+  });
+
+  const write = async (
+    relativePath: string,
+    contents: string,
+  ): Promise<void> => {
+    const absolute = join(root, relativePath);
+    await mkdir(join(absolute, ".."), { recursive: true });
+    await writeFile(absolute, contents, "utf8");
+  };
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), "arch-docs-graph-"));
+  });
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("aggregates a cross-package Python import into an imports edge", async () => {
+    await write(
+      "libs/py/src/petrinaut/__init__.py",
+      "from .session import Session\n",
+    );
+    await write("libs/py/src/petrinaut/session.py", "import json\n");
+    await write("apps/opt/src/__init__.py", "");
+    await write(
+      "apps/opt/src/api.py",
+      "from petrinaut import Session\nfrom src.utils import helper\n",
+    );
+    await write("apps/opt/src/utils.py", "def helper(): ...\n");
+
+    const files: [string, string][] = [
+      ["libs/py/src/petrinaut/__init__.py", "bindings"],
+      ["libs/py/src/petrinaut/session.py", "bindings"],
+      ["apps/opt/src/__init__.py", "optimizer"],
+      ["apps/opt/src/api.py", "optimizer"],
+      ["apps/opt/src/utils.py", "optimizer"],
+    ];
+
+    const { edges, diagnostics } = await buildGraph({
+      repoRoot: root,
+      packages: [
+        pythonPackage("@test/py", "libs/py"),
+        pythonPackage("@test/opt", "apps/opt"),
+      ],
+      tsconfigPath: "unused-without-typescript-packages.json",
+      ignoredDirectories: [],
+      ignoredFilePattern: /\.test\.py$/u,
+      fileLayers: new Map(files),
+      layers: [layer("bindings", "@test/py"), layer("optimizer", "@test/opt")],
+      talksTo: [],
+    });
+
+    expect(diagnostics).toEqual([]);
+    // The intra-layer imports (`.session`, `src.utils`) and the stdlib import
+    // are all dropped; the cross-package one is the only edge left.
+    expect(edges).toEqual([
+      {
+        from: "optimizer",
+        to: "bindings",
+        provenance: "imports",
+        fileDependencies: 1,
+        examples: [
+          {
+            from: "apps/opt/src/api.py",
+            to: "libs/py/src/petrinaut/__init__.py",
+          },
+        ],
+        crossesPackage: true,
+      },
+    ]);
   });
 });

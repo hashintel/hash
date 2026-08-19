@@ -18,8 +18,7 @@ import type { ArchitecturePackage } from "./model";
  *
  * `.js` variants are absent on purpose: these packages are TypeScript, and a
  * committed `.js` file under `src` would be build output that no layer should
- * claim. The graph builder reads this list directly — it only ever receives
- * TypeScript packages.
+ * claim. The TypeScript provider's coverage check reads this list directly.
  */
 export const sourceExtensions = [".ts", ".tsx", ".mts", ".cts"] as const;
 
