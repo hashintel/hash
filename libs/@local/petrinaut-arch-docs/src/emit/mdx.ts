@@ -1,11 +1,14 @@
 /**
  * MDX page generation.
  *
- * Output here is deliberately **framework-neutral**: YAML frontmatter plus plain
- * CommonMark. No JSX, no imports, no framework-specific components. That
- * constraint is what lets the same bundle render in the Starlight site, in
- * hash.dev's Next.js MDX pipeline, and as plain text for an AI agent — a single
- * `<LayerGraph/>` component here would break two of those three.
+ * Output is YAML frontmatter plus CommonMark, with one exception: generated
+ * layer pages import the `LayerFacts` and `LayerRelations` cards shipped in
+ * the bundle's `components/` directory and pass their facts as structured
+ * props, so a host restyles the cards instead of re-parsing prose. A host
+ * therefore needs a React-capable MDX pipeline for layer pages, the same
+ * requirement authored pages with diagram components already impose.
+ * `architecture.md` keeps every fact as plain text for consumers that render
+ * none of this.
  *
  * Diagrams are referenced as relative image paths, and every layer page links
  * back to the annotation that declared it so a reader can go straight from the
@@ -15,6 +18,12 @@
 import { posix } from "node:path";
 
 import { isDeclaredEdge, isImportEdge } from "../model";
+import {
+  LAYER_FACTS_MODULE,
+  LAYER_RELATIONS_MODULE,
+  LAYER_LINKS_MODULE,
+  LAYER_SOURCE_MODULE,
+} from "./shipped-components";
 
 import type { ArchitectureModel, Edge, Layer } from "../model";
 
@@ -266,93 +275,112 @@ export const resolveDiagramImages = (
   return { contents: resolved, unresolved };
 };
 
-const describeEdges = (
+/** One row of the relations card, mirroring `LayerRelation` in the component. */
+interface LayerRelationEntry {
+  id: string;
+  name: string;
+  href: string;
+  provenance: "imports" | "declared";
+  crossesPackage: boolean;
+  imports?: number;
+  protocol?: string;
+}
+
+/**
+ * Rows for the relations card, per direction. Import edges come first, sorted
+ * by import count, then declared edges: one kind is aggregated from real
+ * imports, the other is an annotation someone wrote, and the `provenance`
+ * field is how the card keeps a reader from mistaking one for the other.
+ */
+const relationEntries = (
   layer: Layer,
   edges: Edge[],
   layersById: Map<string, Layer>,
   slug: string,
-): string[] => {
-  const outgoing = edges.filter((edge) => edge.from === layer.id);
-  const incoming = edges.filter((edge) => edge.to === layer.id);
-
-  const layerLink = (otherId: string): string => {
+): { dependsOn: LayerRelationEntry[]; dependedOnBy: LayerRelationEntry[] } => {
+  const toEntry = (edge: Edge, otherId: string): LayerRelationEntry => {
     const other = layersById.get(otherId);
-    const label = other ? other.name : otherId;
-    return `[${escapeTableCell(label)}](${relativeTo(slug, layerSlug(otherId))})`;
+    const base = {
+      id: otherId,
+      name: other ? other.name : otherId,
+      href: relativeTo(slug, layerSlug(otherId)),
+      provenance: edge.provenance,
+      crossesPackage: edge.crossesPackage,
+    };
+    return isImportEdge(edge)
+      ? { ...base, imports: edge.fileDependencies }
+      : { ...base, protocol: edge.protocol };
   };
 
-  /**
-   * Import edges and declared edges never share a table: one kind is aggregated
-   * from real imports, the other is an annotation someone wrote, and a reader
-   * should not mistake the second kind for the first.
-   */
-  const section = (
-    heading: string,
-    intro: string,
+  const inDirection = (
     rows: Edge[],
     direction: "to" | "from",
-  ): string[] => {
-    const imports = rows.filter(isImportEdge);
-    const declared = rows.filter(isDeclaredEdge);
-
-    if (imports.length === 0 && declared.length === 0) {
-      return [];
-    }
-
-    const lines: string[] = [`## ${heading}`, ""];
-
-    if (imports.length > 0) {
-      lines.push(
-        intro,
-        "",
-        "| Layer | Imports | Package boundary |",
-        "| --- | --- | --- |",
-        ...imports
-          .slice()
-          .sort((left, right) => right.fileDependencies - left.fileDependencies)
-          .map((edge) => {
-            const otherId = direction === "to" ? edge.to : edge.from;
-            const crosses = edge.crossesPackage ? "crossed" : "—";
-            return `| ${layerLink(otherId)} | ${edge.fileDependencies} | ${crosses} |`;
-          }),
-        "",
-      );
-    }
-
-    if (declared.length > 0) {
-      lines.push(
-        "### Declared",
-        "",
-        "Declared with `@talksTo` in the source, for boundaries no import crosses. The protocol text is the annotation's claim; only the endpoints are checked.",
-        "",
-        "| Layer | Protocol |",
-        "| --- | --- |",
-        ...declared.map((edge) => {
-          const otherId = direction === "to" ? edge.to : edge.from;
-          return `| ${layerLink(otherId)} | ${escapeTableCell(edge.protocol)} |`;
-        }),
-        "",
-      );
-    }
-
-    return lines;
+  ): LayerRelationEntry[] => {
+    const otherOf = (edge: Edge): string =>
+      direction === "to" ? edge.to : edge.from;
+    return [
+      ...rows
+        .filter(isImportEdge)
+        .sort((left, right) => right.fileDependencies - left.fileDependencies)
+        .map((edge) => toEntry(edge, otherOf(edge))),
+      ...rows
+        .filter(isDeclaredEdge)
+        .map((edge) => toEntry(edge, otherOf(edge))),
+    ];
   };
 
-  return [
-    ...section(
-      "Depends on",
-      "Aggregated from real TypeScript imports.",
-      outgoing,
+  return {
+    dependsOn: inDirection(
+      edges.filter((edge) => edge.from === layer.id),
       "to",
     ),
-    ...section(
-      "Depended on by",
-      "Who reaches into this layer.",
-      incoming,
+    dependedOnBy: inDirection(
+      edges.filter((edge) => edge.to === layer.id),
       "from",
     ),
-  ];
+  };
 };
+
+/**
+ * A JSX attribute carrying an array of relation entries, one JSON object per
+ * line so a diff of the emitted page shows which edge changed.
+ */
+const relationsProp = (key: string, entries: LayerRelationEntry[]): string[] =>
+  entries.length === 0
+    ? [`  ${key}={[]}`]
+    : [
+        `  ${key}={[`,
+        ...entries.map((entry) => `    ${JSON.stringify(entry)},`),
+        "  ]}",
+      ];
+
+/**
+ * A links card instance. Entries are one per line, like relation entries, so a
+ * diff of the emitted page shows which link changed.
+ */
+const linksCard = (
+  title: string,
+  entries: {
+    label: string;
+    href: string;
+    description?: string;
+    code?: boolean;
+  }[],
+  note?: string,
+): string[] => [
+  "<LayerLinks",
+  `  title={${JSON.stringify(title)}}`,
+  ...(note === undefined ? [] : [`  note={${JSON.stringify(note)}}`]),
+  "  entries={[",
+  ...entries.map((entry) => `    ${JSON.stringify(entry)},`),
+  "  ]}",
+  "/>",
+  "",
+];
+
+/** Import of a shipped component, relative to the page file like any asset. */
+const componentImport = (slug: string, name: string, module: string): string =>
+  `import { ${name} } from "${assetPathFrom(slug, `components/${module}`)}";`;
 
 const buildLayerPage = (
   layer: Layer,
@@ -367,22 +395,43 @@ const buildLayerPage = (
   const slug = layerSlug(layer.id);
   const children = model.layers.filter((other) => other.parent === layer.id);
 
+  const relations = relationEntries(layer, model.edges, layersById, slug);
+  const hasRelations =
+    relations.dependsOn.length > 0 || relations.dependedOnBy.length > 0;
+
   const body: string[] = [];
 
-  body.push(`> ${layer.role}`, "");
+  body.push(componentImport(slug, "LayerFacts", LAYER_FACTS_MODULE));
+  if (hasRelations) {
+    body.push(componentImport(slug, "LayerRelations", LAYER_RELATIONS_MODULE));
+  }
+  if (layer.files.length > 0) {
+    body.push(componentImport(slug, "LayerSource", LAYER_SOURCE_MODULE));
+  }
+  if (
+    children.length > 0 ||
+    attachedGuides.length > 0 ||
+    layer.references.length > 0
+  ) {
+    body.push(componentImport(slug, "LayerLinks", LAYER_LINKS_MODULE));
+  }
+  body.push("");
 
-  body.push(
-    [
-      `**Package** \`${layer.package}\``,
-      `**Layer id** \`${layer.id}\``,
-      `**Files** ${layer.fileCount}`,
-      `**Lines** ${layer.lineCount.toLocaleString("en-US")}`,
-    ].join(" · "),
-    "",
-  );
+  // The role reads as the page's lead paragraph, outside the facts card.
+  body.push(layer.role, "");
 
+  // Values are emitted as `{JSON}` expressions rather than quoted attributes:
+  // JSX string attributes have no escape sequences, so a value containing a
+  // double quote would end the attribute early.
   body.push(
-    `Declared in [\`${layer.declaredIn}\`](${sourceLink(sourceUrlPrefix, layer.declaredIn)}).`,
+    "<LayerFacts",
+    `  package={${JSON.stringify(layer.package)}}`,
+    `  layerId={${JSON.stringify(layer.id)}}`,
+    `  files={${layer.fileCount}}`,
+    `  lines={${layer.lineCount}}`,
+    `  declaredIn={${JSON.stringify(layer.declaredIn)}}`,
+    `  declaredInUrl={${JSON.stringify(sourceLink(sourceUrlPrefix, layer.declaredIn))}}`,
+    "/>",
     "",
   );
 
@@ -392,6 +441,16 @@ const buildLayerPage = (
         slug,
         `diagrams/${neighbourhoodDiagram}.svg`,
       )})`,
+      "",
+    );
+  }
+
+  if (hasRelations) {
+    body.push(
+      "<LayerRelations",
+      ...relationsProp("dependsOn", relations.dependsOn),
+      ...relationsProp("dependedOnBy", relations.dependedOnBy),
+      "/>",
       "",
     );
   }
@@ -408,31 +467,32 @@ const buildLayerPage = (
 
   if (children.length > 0) {
     body.push(
-      "## Sub-layers",
-      "",
-      ...children.map(
-        (child) =>
-          `- [${child.name}](${relativeTo(slug, layerSlug(child.id))}) — ${child.role}`,
+      ...linksCard(
+        "Sub-layers",
+        children.map((child) => ({
+          label: child.name,
+          href: relativeTo(slug, layerSlug(child.id)),
+          description: child.role,
+        })),
       ),
-      "",
     );
   }
 
   if (attachedGuides.length > 0) {
     body.push(
-      "## Guides",
-      "",
-      "Hand-written explanations of this layer. Unlike the rest of this page, they are not generated and not checked against the code.",
-      "",
-      ...attachedGuides.map(
-        (guide) =>
-          `- [${guide.title}](${relativeTo(slug, guide.slug)})${guide.description === "" ? "" : ` — ${guide.description}`}`,
+      ...linksCard(
+        "Guides",
+        attachedGuides.map((guide) => ({
+          label: guide.title,
+          href: relativeTo(slug, guide.slug),
+          ...(guide.description === ""
+            ? {}
+            : { description: guide.description }),
+        })),
+        "Hand-written, not generated and not checked against the code.",
       ),
-      "",
     );
   }
-
-  body.push(...describeEdges(layer, model.edges, layersById, slug));
 
   if (layer.prose !== null) {
     body.push(
@@ -445,13 +505,14 @@ const buildLayerPage = (
 
   if (layer.references.length > 0) {
     body.push(
-      "## Further reading",
-      "",
-      ...layer.references.map(
-        (reference) =>
-          `- [\`${reference}\`](${sourceLink(sourceUrlPrefix, reference)})`,
+      ...linksCard(
+        "Further reading",
+        layer.references.map((reference) => ({
+          label: reference,
+          href: sourceLink(sourceUrlPrefix, reference),
+          code: true,
+        })),
       ),
-      "",
     );
   }
 
@@ -461,9 +522,11 @@ const buildLayerPage = (
     // read `files` from architecture.json instead.
     const folder = posix.dirname(layer.declaredIn);
     body.push(
-      "## Source",
-      "",
-      `${layer.fileCount} file${layer.fileCount === 1 ? "" : "s"} resolve to this layer, rooted at [\`${folder}\`](${sourceUrlPrefix}${folder}) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in \`architecture.json\`.`,
+      "<LayerSource",
+      `  files={${layer.fileCount}}`,
+      `  root={${JSON.stringify(folder)}}`,
+      `  rootUrl={${JSON.stringify(sourceLink(sourceUrlPrefix, folder))}}`,
+      "/>",
       "",
     );
   }

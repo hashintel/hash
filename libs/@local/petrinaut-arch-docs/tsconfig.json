@@ -15,5 +15,9 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["src", "architecture.config.ts"]
+  "include": ["src", "architecture.config.ts"],
+  // Shipped bundle components are React sources copied into the bundle
+  // verbatim, compiled by the consuming site rather than by this package,
+  // which has neither a JSX config nor React types.
+  "exclude": ["src/emit/components"]
 }

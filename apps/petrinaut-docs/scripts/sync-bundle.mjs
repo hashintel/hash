@@ -45,11 +45,11 @@ await mkdir(contentRoot, { recursive: true });
 /**
  * Copies a bundle directory when the generator produced one.
  *
- * Only `pages/` is always present. `components/` exists when an authored page
- * ships a diagram component, and `diagrams/` when `d2` was available to render
- * them, so both are absent from a valid bundle in ordinary cases: a bundle with
- * no `content/` at all has neither. Copying unconditionally turned that into an
- * `ENOENT` that took down `build`, `dev` and `lint:tsc` together.
+ * `pages/` and `components/` are always present (the generator ships the layer
+ * card components in every bundle), but `diagrams/` only exists when `d2` was
+ * available to render them, so it is absent from a valid bundle in ordinary
+ * cases. Copying unconditionally turned that into an `ENOENT` that took down
+ * `build`, `dev` and `lint:tsc` together.
  *
  * @param {string} name Directory within the bundle.
  * @param {string} destination Directory within `src/content/`.
@@ -72,7 +72,7 @@ await cp(`${bundleRoot}pages`, `${contentRoot}docs`, { recursive: true });
 
 await copyIfPresent("diagrams", "diagrams");
 
-// Diagram components imported by authored pages. Copied as siblings of `docs/`
+// React components imported by the pages. Copied as siblings of `docs/`
 // because that is the layout the bundle's own relative imports assume.
 await copyIfPresent("components", "components");
 
