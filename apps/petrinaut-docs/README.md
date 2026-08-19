@@ -64,6 +64,34 @@ output, which would otherwise reach the root-hoisted `cookie@0.7.2` that
 `express` pins and fail on a missing `parseCookie` export. Nesting keeps Astro on
 its own `cookie@2.x` without changing hoisting for the rest of the monorepo.
 
+## Chrome overrides
+
+[`src/styles/chrome.css`](src/styles/chrome.css), registered as Starlight's
+`customCss`, narrows both side panels to give the content column more width,
+tones down the header, and rounds the corners on markdown images so the embedded
+diagrams match the bordered cards beside them. The left nav takes its own
+`--pnd-sidebar-width` because Starlight sizes both panels from
+`--sl-sidebar-width`, and collapsing the nav has to zero one of them without
+flattening the other. The collapse toggle and resize handle come from
+`components.SiteTitle`, the header's leftmost slot, next to the rail they act
+on — and the fixed header is the one piece of chrome still on screen once the
+nav is gone. Both
+controls remember their state in `localStorage`, restored by a `head` script so
+a collapsed sidebar does not render open and then jump.
+
+## The code font
+
+Code renders in JetBrains Mono, requested through Astro's font support in
+[`astro.config.mjs`](astro.config.mjs) and emitted by `<Font>` in
+[`src/components/Head.astro`](src/components/Head.astro).
+
+A build downloads one variable file covering weights 400 to 700, subsets it to
+latin, and writes it beside the other assets, so a reader makes no request to a
+font host. The head carries a `preload` link and `font-display: swap`, and Astro
+generates a metric-matched fallback, which is what keeps text from shifting when
+the file arrives. The downloaded originals are cached under `.astro/`, which is
+ignored.
+
 ## Deployment
 
 Vercel builds the site from [`vercel.json`](vercel.json), which runs

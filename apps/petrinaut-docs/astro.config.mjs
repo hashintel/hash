@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
-import { defineConfig } from "astro/config";
+import { defineConfig, fontProviders } from "astro/config";
 
 /**
  * Renders the architecture bundle produced by `@local/petrinaut-arch-docs`.
@@ -213,12 +213,29 @@ export default defineConfig({
   trailingSlash: "never",
   build: { format: "file" },
 
+  /*
+   * One variable file covers every weight the code blocks use, downloaded and
+   * subset at build time so a reader makes no request to a font host. Italic is
+   * left out: no code style in the docs uses it.
+   */
+  fonts: [
+    {
+      provider: fontProviders.fontsource(),
+      name: "JetBrains Mono",
+      cssVariable: "--pnd-font-mono",
+      weights: ["400 700"],
+      styles: ["normal"],
+      subsets: ["latin"],
+      fallbacks: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+    },
+  ],
+
   integrations: [
     // Generated layer pages import the bundle's facts and relations cards, and
     // authored pages may import its diagram components; both are React.
     react(),
     starlight({
-      title: "Architecture Docs",
+      title: "Docs",
       description:
         "How the Petrinaut packages fit together — generated from annotations in the source.",
       // The helmet carries the Petrinaut identity, so the title beside it names
@@ -229,6 +246,26 @@ export default defineConfig({
         replacesTitle: false,
       },
       favicon: "/favicon.ico",
+      // Narrows both side panels and rounds the images, and styles the collapse
+      // controls that `components.SiteTitle` renders. See `chrome.css`.
+      customCss: ["./src/styles/chrome.css"],
+      components: {
+        Head: "./src/components/Head.astro",
+        SiteTitle: "./src/components/SiteTitle.astro",
+      },
+      // Restores the collapsed state before first paint. In the component's own
+      // script the sidebar would render at full width and then jump.
+      head: [
+        {
+          tag: "script",
+          content: `try {
+  const stored = localStorage.getItem("pnd:sidebar");
+  const width = localStorage.getItem("pnd:sidebar-width");
+  if (stored === "collapsed") document.documentElement.dataset.pndSidebar = stored;
+  if (width) document.documentElement.style.setProperty("--pnd-sidebar-open-width", width);
+} catch {}`,
+        },
+      ],
       social: [
         {
           icon: "github",
