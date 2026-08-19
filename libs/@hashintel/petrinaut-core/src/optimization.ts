@@ -9,6 +9,7 @@ export const PETRINAUT_OPTIMIZATION_MAX_SEED = 2_147_483_647;
 export const PETRINAUT_OPTIMIZATION_MAX_TRIALS = 1_000;
 export const PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL = 100_000;
 export const PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS = 5_000_000;
+export const PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL = 100;
 
 const optimizationScalarSchema = z.union([z.number(), z.boolean()]);
 
@@ -130,6 +131,16 @@ export const petrinautOptimizationExecutionSchema = z
     seed: z.number().int().min(0).max(PETRINAUT_OPTIMIZATION_MAX_SEED),
     dt: z.number().positive(),
     maxTime: z.number().positive(),
+    seedsPerTrial: z
+      .number()
+      .int()
+      .min(1)
+      .max(PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL)
+      .optional()
+      .meta({
+        description:
+          "How many seeded simulations each trial runs. The same derived seed sequence is reused for every trial, and the per-seed objectives are aggregated into the trial objective. Defaults to 1.",
+      }),
   })
   .meta({ description: "Simulation settings shared by every trial." });
 
@@ -410,6 +421,7 @@ export const petrinautOptimizationManifestSchema = z
     const stepsPerTrial = Math.ceil(
       manifest.execution.maxTime / manifest.execution.dt,
     );
+    const seedsPerTrial = manifest.execution.seedsPerTrial ?? 1;
     if (
       !Number.isSafeInteger(stepsPerTrial) ||
       stepsPerTrial > PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL
@@ -417,15 +429,19 @@ export const petrinautOptimizationManifestSchema = z
       addIssue(
         context,
         ["execution"],
-        `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL.toLocaleString()} simulation steps per trial`,
+        `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL.toLocaleString()} simulation steps per seeded run`,
       );
     } else if (
-      stepsPerTrial * manifest.study.trials >
+      stepsPerTrial * seedsPerTrial * manifest.study.trials >
       PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS
     ) {
+      // Blame the seed multiplier only when the study fits without it.
+      const fitsUnseeded =
+        stepsPerTrial * manifest.study.trials <=
+        PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS;
       addIssue(
         context,
-        ["study", "trials"],
+        fitsUnseeded ? ["execution", "seedsPerTrial"] : ["study", "trials"],
         `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS.toLocaleString()} simulation steps across all trials`,
       );
     }
@@ -473,7 +489,11 @@ export type PetrinautOptimizationDescribeParameter =
 
 export type PetrinautOptimizationDescribeResult = {
   direction: "maximize" | "minimize";
-  study: PetrinautOptimizationStudy & { seed: number };
+  study: PetrinautOptimizationStudy & {
+    seed: number;
+    /** Reported once the CLI runs seeded replicates; absent means 1. */
+    seedsPerTrial?: number;
+  };
   parameters: PetrinautOptimizationDescribeParameter[];
 };
 
@@ -481,7 +501,16 @@ export type PetrinautOptimizationEvaluateParams = z.infer<
   typeof petrinautOptimizationEvaluateParamsSchema
 >;
 
-export type PetrinautOptimizationEvaluateResult = { objective: number };
+/**
+ * One trial evaluation. `objective` is the mean of the per-seed objectives
+ * (identical to the sole run's objective when the trial runs one seed).
+ * `replicates` reports the per-seed values whenever a trial runs more than
+ * one seed, so consumers can inspect the spread behind the aggregate.
+ */
+export type PetrinautOptimizationEvaluateResult = {
+  objective: number;
+  replicates?: { seed: number; objective: number }[];
+};
 
 const optimizationBestSchema = z
   .strictObject({

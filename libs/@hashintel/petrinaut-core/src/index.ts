@@ -86,6 +86,7 @@ export type {
 export {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   PETRINAUT_OPTIMIZATION_MAX_SEED,
+  PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
   PETRINAUT_OPTIMIZATION_MAX_TRIALS,
@@ -206,6 +207,7 @@ export {
   createMonteCarloUserDefinedMetric,
   createSimulation,
   createWorkerTransport,
+  deriveRunSeed,
 } from "./simulation";
 export type {
   BackpressureConfig,
