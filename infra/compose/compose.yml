@@ -394,7 +394,14 @@ services:
     profiles:
       - dev
       - hash
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    # `mc` versions itself by release timestamp: upstream publishes no semver
+    # tags, so `RELEASE.<timestamp>Z` *is* the version. This is the newest of
+    # the 471 release tags on Docker Hub, and the one `latest` points at.
+    # Every `minio/*` Docker Hub repo stopped receiving pushes in Sept 2025,
+    # so this tag is likely terminal there; the server above is already pulled
+    # from quay.io, and moving `mc` there too is worth a look.
+    # Pinned by digest as well as tag, since only the digest is immutable.
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
     depends_on:
       minio:
         condition: service_healthy
