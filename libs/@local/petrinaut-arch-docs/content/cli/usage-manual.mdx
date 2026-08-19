@@ -310,53 +310,20 @@ experiment-backend interface.
 
 ## Driving the CLI from Python
 
-The CLI speaks one JSON object per line, so a Python driver needs only
-`subprocess` and `json`. The wrapper below starts one CLI process for a
-manifest and turns each response line into a return value or an exception:
+The [python-bindings](layer:python-bindings) package wraps this protocol: a
+session owns one CLI process, each request is a method, and an error frame
+raises. Its [usage manual](doc:python-bindings/usage-manual) covers the session
+lifecycle, the timeouts, and the exception types.
 
 ```python
-import json
-import subprocess
+from petrinaut import OptimizationSession
 
-
-class PetrinautOptimization:
-    def __init__(self, manifest_path: str):
-        self.process = subprocess.Popen(
-            [
-                "petrinaut",
-                "serve",
-                "--optimization",
-                manifest_path,
-                "--stdio",
-            ],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-        )
-        self.request_id = 0
-
-    def request(self, method: str, params: dict | None = None) -> dict:
-        self.request_id += 1
-        request = {"id": self.request_id, "method": method}
-        if params is not None:
-            request["params"] = params
-
-        assert self.process.stdin and self.process.stdout
-        self.process.stdin.write(json.dumps(request) + "\n")
-        self.process.stdin.flush()
-        response = json.loads(self.process.stdout.readline())
-        if "error" in response:
-            raise RuntimeError(response["error"]["message"])
-        return response["result"]
-
-    def close(self) -> None:
-        self.process.terminate()
-        self.process.wait()
+with OptimizationSession(manifest_path="optimization.json") as session:
+    description = session.describe_optimization()
+    value = session.objective({"production_rate": 112.5})
 ```
 
-An Optuna study calls `optimization.describe` once and maps each described
-parameter to the `suggest_*` call from the table above; its objective function
-sends the suggested values to `optimization.evaluate` and returns the
-`objective` from the response. The manifest and the CLI own the Petrinaut
-types, the scenario compilation, and the fixed values.
+An Optuna study calls `describe_optimization()` once and maps each described
+parameter to the `suggest_*` call from the table above. Its objective function
+passes the suggested values to `objective()`. The manifest and the CLI own the
+Petrinaut types, the scenario compilation, and the fixed values.
