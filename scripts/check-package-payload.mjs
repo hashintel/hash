@@ -23,7 +23,9 @@ const packageDir = resolve(process.argv[2] ?? process.cwd());
 const packageJsonPath = join(packageDir, "package.json");
 
 if (!existsSync(packageJsonPath)) {
-  console.error(`check-package-payload: no package.json found in ${packageDir}`);
+  console.error(
+    `check-package-payload: no package.json found in ${packageDir}`,
+  );
   process.exit(1);
 }
 
