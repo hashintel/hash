@@ -407,8 +407,8 @@ export const Group: Story = () => (
     <span style={stateLabelStyle}>add button contents</span>
     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
       <FilterGroup.AddFilter onClick={noop} />
-      <FilterGroup.AddFilter content="plusLabel" onClick={noop} />
-      <FilterGroup.AddFilter content="filterIcon" onClick={noop} />
+      <FilterGroup.AddFilter renderAs="plusLabel" onClick={noop} />
+      <FilterGroup.AddFilter renderAs="filterIcon" onClick={noop} />
     </div>
   </div>
 );

@@ -24,12 +24,12 @@ type GroupButtonProps = DistributedOmit<
 const AddFilter = ({
   size = "sm",
   variant = "ghost",
-  content = "plus",
+  renderAs = "plus",
   className,
   ...props
 }: GroupButtonProps & {
   /** What fills the button: a plus glyph (default), the plus glyph with an "Add filter" label, or the filter icon */
-  content?: "plus" | "plusLabel" | "filterIcon";
+  renderAs?: "plus" | "plusLabel" | "filterIcon";
 }) => (
   <Button
     aria-label="Add filter"
@@ -37,9 +37,9 @@ const AddFilter = ({
     className={cx(actionClassName, className)}
     size={size}
     variant={variant}
-    iconName={content === "filterIcon" ? "filter" : "plus"}
+    iconName={renderAs === "filterIcon" ? "filter" : "plus"}
   >
-    {content === "plusLabel" ? (
+    {renderAs === "plusLabel" ? (
       <span className={actionLabel({ size })}>Add filter</span>
     ) : undefined}
   </Button>

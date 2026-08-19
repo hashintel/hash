@@ -10,11 +10,15 @@ import {
 import { Icon, type IconName } from "../Icon/icon";
 import { Menu, type MenuItem } from "../Menu/menu";
 import { iconSizeMap } from "../Menu/SelectableList/selectable-list-item.recipe";
+import { TextInput } from "../TextInput/text-input";
 import {
   directionSuffix,
   directionToggle,
   menuContent,
   placeholderLabel,
+  searchEmpty,
+  searchRow,
+  searchRowRingHidden,
   triggerButton,
   triggerDirectionToggle,
 } from "./sort-menu.recipe";
@@ -64,6 +68,85 @@ const flipped = (direction: SortDirection): SortDirection =>
   direction === "ASCENDING" ? "DESCENDING" : "ASCENDING";
 
 /**
+ * The search row rendered as the dropdown's first (non-selectable) row. A
+ * module-level component so its element type is stable across the menu's
+ * re-renders — the input keeps its DOM node, focus and caret while typing
+ * re-filters the rows below.
+ */
+const SearchField = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) => {
+  const inputRef = useRef<HTMLElement>(null);
+
+  // A text input matches :focus-visible whenever focused, so the focus ring
+  // is gated on the interaction modality instead: it shows only when focus
+  // arrived via the keyboard (e.g. Tab or list navigation into the field),
+  // not from the open autofocus, clicks, or typing into a focused field.
+  const modalityRef = useRef<"keyboard" | "pointer">("pointer");
+  const [keyboardFocused, setKeyboardFocused] = useState(false);
+
+  // Focus when the (lazily mounted) dropdown opens. Double rAF so the focus
+  // lands after ark moves focus to the menu content (mirrors Filter).
+  useEffect(() => {
+    let cancelled = false;
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) {
+          inputRef.current?.focus();
+        }
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // Document-level: the keypress that moves focus here (Tab from the menu
+  // content, arrow navigation) fires outside this row.
+  useEffect(() => {
+    const onKeyDown = () => {
+      modalityRef.current = "keyboard";
+    };
+    const onPointerDown = () => {
+      modalityRef.current = "pointer";
+    };
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+    };
+  }, []);
+
+  return (
+    <div
+      className={cx(
+        searchRow(),
+        keyboardFocused ? undefined : searchRowRingHidden(),
+      )}
+    >
+      <TextInput
+        ref={inputRef}
+        value={value}
+        onChange={(next) => onChange(next)}
+        onFocus={() => setKeyboardFocused(modalityRef.current === "keyboard")}
+        onBlur={() => setKeyboardFocused(false)}
+        placeholder="Search…"
+        aria-label="Search sort options"
+        size="sm"
+        prefix={{ iconName: "search", variant: "subtle" }}
+        clearable={{ clearable: true, onClear: () => onChange("") }}
+      />
+    </div>
+  );
+};
+
+/**
  * A dropdown for choosing how a collection is sorted, triggered by a
  * `Button` (all button props are accepted and forwarded). The dropdown
  * lists the given sorters; selecting one (click or Enter) fires `onChange`
@@ -78,6 +161,10 @@ const flipped = (direction: SortDirection): SortDirection =>
  * icon is also a toggle: clicking it fires `onChange` with the flipped
  * direction immediately, without opening the menu.
  *
+ * With `searchable`, a search bar at the top of the dropdown filters the
+ * sorters as the user types (every whitespace-separated term must match).
+ * The field is focused when the menu opens; down/up move into the results.
+ *
  * Controlled via `value`/`onChange`. With `saveSortId` set, the latest
  * selection is persisted to localStorage and — while `value` is undefined on
  * mount — replayed through `onChange` so the parent can adopt it.
@@ -87,6 +174,7 @@ export const SortMenu = <SortKey extends string = string>({
   value,
   onChange,
   saveSortId,
+  searchable = false,
   variant = "subtle",
   size = "sm",
   className,
@@ -100,6 +188,8 @@ export const SortMenu = <SortKey extends string = string>({
   value?: { sortKey: NoInfer<SortKey>; direction: SortDirection };
   onChange?: (sortKey: NoInfer<SortKey>, direction: SortDirection) => void;
   saveSortId?: string | null; // id to save selection to localStorage
+  /** Adds a search bar to the top of the dropdown that filters the sorters */
+  searchable?: boolean;
 } & DistributedOmit<
   ButtonElementProps,
   "children" | "pressed" | "onClick" | "type"
@@ -109,6 +199,17 @@ export const SortMenu = <SortKey extends string = string>({
   const [draftDirections, setDraftDirections] = useState<
     Partial<Record<SortKey, SortDirection>>
   >({});
+
+  const [search, setSearch] = useState("");
+  const searchTerms = search.toLowerCase().split(/\s+/).filter(Boolean);
+  // Every whitespace-separated term must appear in the sorter's name.
+  const visibleSorters =
+    searchable && searchTerms.length > 0
+      ? items.filter((sorter) => {
+          const name = sorter.name.toLowerCase();
+          return searchTerms.every((term) => name.includes(term));
+        })
+      : items;
 
   const commit = (sortKey: SortKey, direction: SortDirection) => {
     setDraftDirections({});
@@ -179,7 +280,9 @@ export const SortMenu = <SortKey extends string = string>({
   };
 
   // Left/right arrows flip the highlighted row's displayed direction; the
-  // change only takes effect when the row is selected.
+  // change only takes effect when the row is selected. Keys typed into the
+  // search row report its row id, which matches no sorter, so caret movement
+  // in the input is never intercepted.
   const handleContentKeyDown = (
     event: React.KeyboardEvent,
     highlightedValue: string | null,
@@ -199,7 +302,7 @@ export const SortMenu = <SortKey extends string = string>({
     flipShownDirection(sorter);
   };
 
-  const menuItems = items.map((sorter): MenuItem => {
+  const sorterItems = visibleSorters.map((sorter): MenuItem => {
     const isActive = value?.sortKey === sorter.sortKey;
     const directions = directionsOf(sorter);
     const flippable = directions.length > 1;
@@ -250,6 +353,26 @@ export const SortMenu = <SortKey extends string = string>({
       ) : undefined,
     };
   });
+
+  const menuItems: MenuItem[] = searchable
+    ? [
+        {
+          id: "sort-menu-search",
+          custom: <SearchField value={search} onChange={setSearch} />,
+        },
+        ...sorterItems,
+        ...(visibleSorters.length === 0
+          ? [
+              {
+                id: "sort-menu-search-empty",
+                custom: (
+                  <span className={searchEmpty()}>No matching sorts</span>
+                ),
+              },
+            ]
+          : []),
+      ]
+    : sorterItems;
 
   const selectedSorter = value
     ? items.find((sorter) => sorter.sortKey === value.sortKey)
@@ -342,6 +465,7 @@ export const SortMenu = <SortKey extends string = string>({
       onOpen={(open) => {
         if (!open) {
           setDraftDirections({});
+          setSearch("");
         }
       }}
       onKeyDown={handleContentKeyDown}

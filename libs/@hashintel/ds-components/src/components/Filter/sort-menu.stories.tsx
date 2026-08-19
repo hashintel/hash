@@ -36,12 +36,14 @@ const Example = ({
   initialValue,
   saveSortId,
   containerMaxWidth,
+  searchable,
 }: {
   label: string;
   initialValue?: Value;
   saveSortId?: string;
   /** Wraps the menu in a max-width container to exercise trigger overflow */
   containerMaxWidth?: number;
+  searchable?: boolean;
 }) => {
   const [value, setValue] = useState<Value | undefined>(initialValue);
 
@@ -51,6 +53,7 @@ const Example = ({
       value={value}
       onChange={(sortKey, direction) => setValue({ sortKey, direction })}
       saveSortId={saveSortId}
+      searchable={searchable}
     />
   );
 
@@ -100,5 +103,6 @@ export const Default: Story = () => (
       label="No value selected, persisted (saveSortId)"
       saveSortId="sort-story"
     />
+    <Example label="Searchable" searchable />
   </div>
 );

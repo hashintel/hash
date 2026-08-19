@@ -78,6 +78,47 @@ export const menuContent = cva({
 });
 
 /**
+ * The search row at the top of the dropdown (`searchable`): hosts a subtle
+ * `TextInput`, separated from the items by a hairline that bleeds across the
+ * content's padding.
+ */
+export const searchRow = cva({
+  base: {
+    marginInline: "[calc(var(--selectable-list-padding-x) / 2 * -1)]",
+    paddingTop: "1",
+    paddingBottom: "0.5",
+  },
+});
+
+/**
+ * Applied to the search row while focus inside it is NOT keyboard-driven.
+ * BaseInput outlines its container on any :focus-within — and a text input
+ * matches :focus-visible on ANY focus (spec carve-out for keyboard-input
+ * elements), so the ring would light up on the menu's open autofocus and on
+ * clicks. The row tracks the interaction modality in JS and drops this class
+ * for keyboard-driven focus. Suppresses only focus-carrying ancestors (never
+ * the focused element itself, so e.g. the clear button keeps its own
+ * focus-visible outline); the `div` tag qualifier out-specifies BaseInput's
+ * `:focus-within` container rule deterministically.
+ */
+export const searchRowRingHidden = cva({
+  base: {
+    "& div:focus-within:not(:focus)": {
+      outline: "none",
+    },
+  },
+});
+
+/** Shown instead of rows when the search matches no sorter. */
+export const searchEmpty = cva({
+  base: {
+    display: "block",
+    color: "neutral.s90",
+    paddingBlock: "0.5",
+  },
+});
+
+/**
  * Lets the trigger `Button` shrink to its container and ellipsize its label
  * on a single line. With an icon the button is a flex row whose label span
  * (its last element child; the icon/direction toggle precedes it) needs
