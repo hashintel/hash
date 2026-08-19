@@ -57,12 +57,41 @@ export const menuContent = cva({
 
 export const searchRow = cva({
   base: {
-    marginInline: "[calc(var(--selectable-list-padding-x) / 2 * -1)]",
-    paddingTop: "1",
-    paddingBottom: "0.5",
-    "& div:focus-within:not(:focus)": {
-      outline: "none",
-    },
+    display: "flex",
+    alignItems: "center",
+    gap: "1.5",
+    marginTop:
+      "[calc(-1 * (var(--spacing-1) + var(--selectable-list-padding-y)))]",
+    marginInline:
+      "[calc(-1 * (var(--selectable-list-padding-x) + var(--spacing-1)))]",
+    marginBottom: "0.5",
+    paddingInline: "[var(--selectable-list-padding-x)]",
+    paddingTop: "1.5",
+    paddingBottom: "1",
+    background: "neutral.s20",
+    borderBottom: "1px solid {colors.neutral.s50}",
+  },
+});
+
+export const searchIcon = cva({
+  base: {
+    color: "fg.muted",
+    flexShrink: "0",
+  },
+});
+
+export const searchInput = cva({
+  base: {
+    flex: "1",
+    minWidth: "0",
+    appearance: "none",
+    border: "none",
+    background: "[transparent]",
+    outline: "none",
+    padding: "0",
+    font: "[inherit]",
+    color: "[inherit]",
+    _placeholder: { color: "neutral.s80" },
   },
 });
 

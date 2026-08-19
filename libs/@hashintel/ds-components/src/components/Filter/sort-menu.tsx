@@ -9,7 +9,6 @@ import {
 } from "../Button/button";
 import { Icon } from "../Icon/icon";
 import { Menu, type MenuItem } from "../Menu/menu";
-import { TextInput } from "../TextInput/text-input";
 import {
   readSavedSort,
   type SortDirection,
@@ -25,6 +24,8 @@ import {
   menuContent,
   placeholderLabel,
   searchEmpty,
+  searchIcon,
+  searchInput,
   searchRow,
   triggerButton,
   triggerDirectionToggle,
@@ -39,7 +40,7 @@ const SearchField = ({
   value: string;
   onChange: (next: string) => void;
 }) => {
-  const inputRef = useRef<HTMLElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus when the (lazily mounted) dropdown opens. Double rAF so the focus
   // lands after ark moves focus to the menu content (mirrors Filter).
@@ -60,15 +61,15 @@ const SearchField = ({
 
   return (
     <div className={searchRow()}>
-      <TextInput
+      <Icon name="search" size="sm" className={searchIcon()} />
+      <input
         ref={inputRef}
+        type="text"
+        className={searchInput()}
         value={value}
-        onChange={(next) => onChange(next)}
+        onChange={(event) => onChange(event.currentTarget.value)}
         placeholder="Search…"
         aria-label="Search sort options"
-        size="sm"
-        prefix={{ iconName: "search", variant: "subtle" }}
-        clearable={{ clearable: true, onClear: () => onChange("") }}
       />
     </div>
   );

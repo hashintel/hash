@@ -54,6 +54,7 @@ export const styles = sva({
     customItem: {
       width: "full",
       paddingX: "[var(--selectable-list-padding-x)]",
+      paddingY: "[var(--selectable-list-padding-y)]",
     },
   },
   variants: {
@@ -62,6 +63,7 @@ export const styles = sva({
         content: {
           padding: "0.5",
           "--selectable-list-padding-x": "var(--spacing-1\\.5)",
+          "--selectable-list-padding-y": "var(--spacing-0\\.5)",
         },
         groupLabel: {
           fontSize: "[9px]",
@@ -75,13 +77,13 @@ export const styles = sva({
         },
         customItem: {
           textStyle: "xxs",
-          paddingY: "0.5",
         },
       },
       xs: {
         content: {
           padding: "0.5",
           "--selectable-list-padding-x": "var(--spacing-2)",
+          "--selectable-list-padding-y": "3px",
         },
         groupLabel: {
           textStyle: "xxs",
@@ -93,13 +95,13 @@ export const styles = sva({
         },
         customItem: {
           textStyle: "xs",
-          paddingY: "[3px]",
         },
       },
       sm: {
         content: {
           padding: "1",
           "--selectable-list-padding-x": "var(--spacing-2)",
+          "--selectable-list-padding-y": "3px",
         },
         groupLabel: {
           textStyle: "xs",
@@ -111,13 +113,13 @@ export const styles = sva({
         },
         customItem: {
           textStyle: "sm",
-          paddingY: "[3px]",
         },
       },
       md: {
         content: {
           padding: "1",
           "--selectable-list-padding-x": "var(--spacing-2\\.5)",
+          "--selectable-list-padding-y": "4px",
         },
         groupLabel: {
           textStyle: "sm",
@@ -129,13 +131,13 @@ export const styles = sva({
         },
         customItem: {
           textStyle: "base",
-          paddingY: "[4px]",
         },
       },
       lg: {
         content: {
           padding: "1.5",
           "--selectable-list-padding-x": "var(--spacing-2\\.5)",
+          "--selectable-list-padding-y": "4px",
         },
         groupLabel: {
           textStyle: "sm",
@@ -147,7 +149,6 @@ export const styles = sva({
         },
         customItem: {
           textStyle: "base",
-          paddingY: "[4px]",
         },
       },
     },
