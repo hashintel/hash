@@ -30,9 +30,7 @@
       "import": "./styled-system/tokens/index.mjs"
     },
     "./types": {
-      "types": "./styled-system/types/index.d.ts",
-      "require": "./styled-system/types/index.mjs",
-      "import": "./styled-system/types/index.mjs"
+      "types": "./styled-system/types/index.d.ts"
     },
     "./patterns": {
       "types": "./styled-system/patterns/index.d.ts",
@@ -43,18 +41,13 @@
       "types": "./styled-system/jsx/index.d.ts",
       "require": "./styled-system/jsx/index.mjs",
       "import": "./styled-system/jsx/index.mjs"
-    },
-    "./recipes": {
-      "types": "./styled-system/recipes/index.d.ts",
-      "require": "./styled-system/recipes/index.mjs",
-      "import": "./styled-system/recipes/index.mjs"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "codegen": "true",
-    "prepack": "turbo run codegen --filter @hashintel/ds-helpers"
+    "codegen": "node scripts/sync-styled-system.mjs",
+    "prepack": "turbo run codegen --filter @hashintel/ds-helpers && node scripts/verify-package-contents.mjs"
   }
 }

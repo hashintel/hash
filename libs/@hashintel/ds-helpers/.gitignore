@@ -1,5 +1,10 @@
 node_modules
 styled-system
+# Staging directory that `scripts/sync-styled-system.mjs` renames files out of.
+# Normally short-lived; left behind only if the process is killed mid-copy.
+# (`expected-payload.json` is deliberately NOT ignored — it is the checked-in
+# expectation both scripts assert the payload against.)
+styled-system.tmp-*
 .build
 dist
 *.log

@@ -17,20 +17,32 @@ It should not own:
 - Playwright tests
 - token generation scripts
 
-The source package is `@hashintel/ds-components`, which writes into `ds-helpers/styled-system` via Panda `outdir`.
+The source package is `@hashintel/ds-components`. Panda's `outdir` is private to that package; this package's `codegen` copies the result into place.
 
 ## Architecture
 
 ```
 ds-components preset/scripts/demo source
         │
-        │ panda codegen (outdir)
+        │ panda codegen --clean (outdir private to ds-components)
+        ▼
+   ds-components/styled-system
+        │
+        │ scripts/sync-styled-system.mjs  (stage in a temp sibling, then rename)
         ▼
    ds-helpers/styled-system
         │
         ▼
 css(), cva(), token(), jsx runtime for consumers
 ```
+
+Panda writes to a `ds-components`-private directory rather than straight into this
+package because `codegen:panda` runs with `--clean`, which empties `outdir`. When
+that pointed here, a concurrent `changeset publish` worker could empty this
+package's entire published payload while npm was packing it — which is how 0.1.1,
+0.2.0 and 0.2.1 shipped with only their six metadata files. The copy is staged in
+a temporary sibling directory, validated against this package's `exports` map,
+and moved in with `rename`, so `styled-system/` is never observed partial.
 
 Boundary rules:
 
@@ -70,13 +82,18 @@ cd libs/@hashintel/ds-components
 yarn codegen
 ```
 
-`ds-helpers` itself intentionally has no local codegen or demo workflow now.
+`ds-helpers` owns no source codegen or demo workflow. Its only script step is the
+copy that materialises `styled-system/` from `ds-components`; `yarn workspace
+@hashintel/ds-components codegen` runs both halves.
 
 ## File Structure
 
 ```
 libs/@hashintel/ds-helpers/
-├── styled-system/        # Panda CSS generated output (committed)
+├── scripts/
+│   ├── sync-styled-system.mjs      # copies styled-system/ in from ds-components
+│   └── verify-package-contents.mjs # prepack guard: every exports target resolves
+├── styled-system/        # Panda CSS generated output (git-ignored, not committed)
 │   ├── css/              # css(), cva(), sva() functions
 │   ├── jsx/              # Styled JSX components
 │   ├── patterns/         # Layout patterns

@@ -4,7 +4,9 @@ import { coreConfig } from "./panda.config";
 
 export default defineConfig({
   ...coreConfig,
-  outdir: "../ds-helpers/styled-system",
+  // `outdir` is inherited from `coreConfig` on purpose: both configs must write
+  // to the same package-private directory, so that whichever one ran last is
+  // what `@hashintel/ds-helpers` copies.
   include: [
     ...(coreConfig.include ?? []),
     "./src/preset/**/*.{ts,tsx}",
