@@ -7,6 +7,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -144,6 +145,61 @@ describe("AiAssistantContents", () => {
       screen.getByText("host-tool-call-1:Ship this change?:submitted"),
     ).not.toBeNull();
     expect(screen.getByText("Approved")).not.toBeNull();
+  });
+
+  test("allows retry when an interactive tool output is rejected", async () => {
+    const onInteractiveToolSubmit = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Output was not accepted"))
+      .mockResolvedValueOnce(undefined);
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "confirmRelease",
+      inputSchema: { parse: () => ({ question: "Ship this change?" }) },
+      outputSchema: { parse: () => ({ approved: true }) },
+      component: ({ submit }) => (
+        <button type="button" onClick={() => submit({ approved: true })}>
+          Approve
+        </button>
+      ),
+    });
+    const messages = [
+      {
+        id: "assistant-host-tool",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "confirmRelease",
+            state: "input-available",
+            toolCallId: "host-tool-call-1",
+            input: { question: "Ship this change?" },
+          },
+        ],
+      },
+    ] as unknown as PetrinautAiMessage[];
+
+    render(
+      <AiAssistantContents
+        input=""
+        interactiveTools={[hostTool]}
+        messages={messages}
+        onClose={noop}
+        onInputChange={noop}
+        onInteractiveToolSubmit={onInteractiveToolSubmit}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    const approveButton = screen.getByRole("button", { name: "Approve" });
+    fireEvent.click(approveButton);
+    await waitFor(() => expect(onInteractiveToolSubmit).toHaveBeenCalledOnce());
+
+    fireEvent.click(approveButton);
+    await waitFor(() =>
+      expect(onInteractiveToolSubmit).toHaveBeenCalledTimes(2),
+    );
   });
 
   test("renders the empty assistant state", () => {

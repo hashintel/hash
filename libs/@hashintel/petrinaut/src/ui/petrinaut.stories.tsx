@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 
+import { css } from "@hashintel/ds-helpers/css";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
@@ -22,6 +23,26 @@ const emptySDCPN: SDCPN = {
   parameters: [],
   differentialEquations: [],
 };
+
+const hostInteractiveToolWidgetStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  padding: "3",
+  border: "[1px solid #bee6ff]",
+  borderRadius: "lg",
+  background: "[#eff9ff]",
+});
+
+const hostInteractiveToolOptionsStyle = css({
+  display: "flex",
+  gap: "2",
+});
+
+const hostInteractiveToolStoryStyle = css({
+  height: "[100vh]",
+  width: "[100vw]",
+});
 
 type ReviewDepthInput = {
   prompt: string;
@@ -66,21 +87,11 @@ const reviewDepthTool = definePetrinautAiInteractiveTool({
   inputSchema: { parse: parseReviewDepthInput },
   outputSchema: { parse: parseReviewDepthOutput },
   component: ({ input, state, submit, submittedOutput, toolCallId }) => (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        padding: 12,
-        border: "1px solid #bee6ff",
-        borderRadius: 8,
-        background: "#eff9ff",
-      }}
-    >
+    <div className={hostInteractiveToolWidgetStyle}>
       <strong>{input.prompt}</strong>
       <small>Tool call: {toolCallId}</small>
       {state === "awaiting" ? (
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className={hostInteractiveToolOptionsStyle}>
           {input.options.map((option) => (
             <button
               key={option}
@@ -137,6 +148,7 @@ const createHostInteractiveToolTransport =
         streamStoryChunks(
           submittedOutput
             ? [
+                { type: "start-step" },
                 { type: "text-start", id: "host-tool-follow-up" },
                 {
                   type: "text-delta",
@@ -146,6 +158,7 @@ const createHostInteractiveToolTransport =
                 { type: "text-end", id: "host-tool-follow-up" },
               ]
             : [
+                { type: "start-step" },
                 {
                   type: "tool-input-available",
                   dynamic: true,
@@ -481,7 +494,7 @@ export const WithHostInteractiveAiTool: Story = {
     },
   },
   render: () => (
-    <div style={{ height: "100vh", width: "100vw" }}>
+    <div className={hostInteractiveToolStoryStyle}>
       <PetrinautStoryProvider
         aiAssistant={{
           interactiveTools: [reviewDepthTool],
