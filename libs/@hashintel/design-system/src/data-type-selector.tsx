@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 
+import { GRID_CLICK_IGNORE_CLASS } from "./constants";
 import { getIconForDataType } from "./data-type-selector/icons";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 import { IconButton } from "./icon-button";
@@ -541,6 +542,14 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
       )}
       <Popper
         anchorEl={externalSearchInput?.inputRef.current ?? textFieldRef.current}
+        /**
+         * The menu is rendered in a portal, i.e. outside the DOM tree of whatever renders this selector.
+         * When the selector is used inside a <Grid /> cell editor, Glide Grid closes the editor on any mousedown
+         * which is outside the editor's DOM tree and has no ancestor with GRID_CLICK_IGNORE_CLASS.
+         * Without this class, mousedown on an option unmounts the editor (and therefore this menu) before the
+         * option's click handler can run – i.e. clicking an option appears to do nothing.
+         */
+        className={GRID_CLICK_IGNORE_CLASS}
         open={externalSearchInput?.focused ?? textFieldFocused}
         ref={externallyProvidedPopoverRef ?? popoverRef}
         sx={{
