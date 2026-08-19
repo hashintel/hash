@@ -378,14 +378,26 @@ services:
       - 9001:9001
     volumes:
       - ../../var/uploads/s3:/data
+    healthcheck:
+      # `/minio/health/live` returns 200 once the S3 API is listening on :9000.
+      # `mc` ships inside the server image and is a fallback if `curl` is absent.
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:9000/minio/health/live || mc ready local",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 15
 
   minio-ensure-bucket-exists:
     profiles:
       - dev
       - hash
-    image: minio/mc
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     restart: "no"
     security_opt:
       - no-new-privileges:true
