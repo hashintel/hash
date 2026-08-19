@@ -12,7 +12,11 @@ import {
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { meQuery } from "../../graphql/queries/user.queries";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
-import { rebaseUserPreferences } from "./use-update-authenticated-user/rebase-preferences";
+import { useUserPreferences } from "../../shared/use-user-preferences";
+import {
+  preferencesToRebaseFrom,
+  rebaseUserPreferences,
+} from "./use-update-authenticated-user/rebase-preferences";
 import { authenticatedUserUpdateQueue } from "./use-update-authenticated-user/serial-queue";
 
 import type {
@@ -39,6 +43,12 @@ type UpdateAuthenticatedUserParams = {
 export const useUpdateAuthenticatedUser = () => {
   const { authenticatedUser, refetch } = useAuthInfo();
 
+  /**
+   * The same preferences the callers of this hook build their payload from –
+   * the user's own, or the defaults substituted for a user who has none stored.
+   */
+  const renderedPreferences = useUserPreferences();
+
   const [getMe] = useLazyQuery<MeQuery>(meQuery, {
     fetchPolicy: "cache-and-network",
   });
@@ -56,9 +66,21 @@ export const useUpdateAuthenticatedUser = () => {
    * therefore read from here when its turn comes, rather than captured in a
    * closure when it was enqueued.
    */
-  const latestRef = useRef({ authenticatedUser, getMe, refetch, updateEntity });
+  const latestRef = useRef({
+    authenticatedUser,
+    getMe,
+    refetch,
+    renderedPreferences,
+    updateEntity,
+  });
   useEffect(() => {
-    latestRef.current = { authenticatedUser, getMe, refetch, updateEntity };
+    latestRef.current = {
+      authenticatedUser,
+      getMe,
+      refetch,
+      renderedPreferences,
+      updateEntity,
+    };
   });
 
   /**
@@ -66,6 +88,14 @@ export const useUpdateAuthenticatedUser = () => {
    * describes the updates this instance is waiting on.
    */
   const inFlightCountRef = useRef(0);
+
+  /**
+   * The preferences this instance last sent, while it is still waiting on them.
+   * A caller which changes the same setting twice in quick succession builds
+   * its second payload from what it rendered, which does not include the first
+   * change yet – see `preferencesToRebaseFrom`.
+   */
+  const inFlightPreferencesRef = useRef<UserPreferences | undefined>(undefined);
 
   const updateAuthenticatedUser = useCallback(
     async (
@@ -76,11 +106,17 @@ export const useUpdateAuthenticatedUser = () => {
     }> => {
       /**
        * The preferences the caller built `params.preferences` from, captured
-       * now, while it is still what they last rendered, so that their change
-       * can be rebased onto the server's preferences when their turn comes.
+       * now, while they are still what the caller has, so that their change can
+       * be rebased onto the server's preferences when their turn comes.
        */
-      const preferencesWhenEnqueued =
-        latestRef.current.authenticatedUser?.preferences;
+      const preferencesWhenEnqueued = preferencesToRebaseFrom({
+        rendered: latestRef.current.renderedPreferences,
+        inFlightPayload: inFlightPreferencesRef.current,
+      });
+
+      if (params.preferences) {
+        inFlightPreferencesRef.current = params.preferences;
+      }
 
       inFlightCountRef.current += 1;
       setLoading(true);
@@ -208,6 +244,7 @@ export const useUpdateAuthenticatedUser = () => {
       } finally {
         inFlightCountRef.current -= 1;
         if (inFlightCountRef.current === 0) {
+          inFlightPreferencesRef.current = undefined;
           setLoading(false);
         }
       }

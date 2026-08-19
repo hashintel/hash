@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { rebaseUserPreferences } from "./rebase-preferences";
+import {
+  preferencesToRebaseFrom,
+  rebaseUserPreferences,
+} from "./rebase-preferences";
 
 import type {
   Favorite,
@@ -104,27 +107,86 @@ describe("rebaseUserPreferences", () => {
     const next = withEntitiesExpanded(preferences);
 
     expect(
-      rebaseUserPreferences({ base: undefined, next, latest: undefined }),
+      rebaseUserPreferences({ base: preferences, next, latest: undefined }),
     ).toStrictEqual(next);
   });
 
-  it("keeps fields the caller never saw when it had no preferences", () => {
-    // The caller rendered before the user had any preferences, so everything it
-    // sends is a change – but a section the caller does not know about must
-    // survive.
+  it("keeps fields the caller never saw", () => {
+    // A section the caller does not know about must survive its update.
     const latest = {
       ...withEntitiesExpanded(preferences),
       unknownSection: { expanded: true },
     } as UserPreferences;
 
     const rebased = rebaseUserPreferences({
-      base: undefined,
+      base: preferences,
       next: withPagesCollapsed(preferences),
       latest,
     });
 
     expect(rebased.sidebarSections.pages.expanded).toBe(false);
-    expect(rebased.sidebarSections.entities.expanded).toBe(false);
+    expect(rebased.sidebarSections.entities.expanded).toBe(true);
     expect(rebased).toHaveProperty("unknownSection", { expanded: true });
+  });
+
+  it("keeps another caller's first change when neither had stored preferences", () => {
+    // Neither caller had any preferences stored, so both built their payload
+    // from the defaults `useUserPreferences` substitutes – which is what they
+    // are rebased from, so the defaults they never chose are not mistaken for
+    // changes of their own.
+    const base = preferencesToRebaseFrom({
+      rendered: preferences,
+      inFlightPayload: undefined,
+    });
+
+    const rebased = rebaseUserPreferences({
+      base,
+      next: withPagesCollapsed(preferences),
+      // the other caller's first-ever save, which landed first
+      latest: withEntitiesExpanded(preferences),
+    });
+
+    expect(rebased.sidebarSections.pages.expanded).toBe(false);
+    expect(rebased.sidebarSections.entities.expanded).toBe(true);
+  });
+});
+
+describe("preferencesToRebaseFrom", () => {
+  it("takes what the caller rendered when it has nothing in flight", () => {
+    expect(
+      preferencesToRebaseFrom({
+        rendered: preferences,
+        inFlightPayload: undefined,
+      }),
+    ).toStrictEqual(preferences);
+  });
+
+  it("keeps a second change to the same field made before the first landed", () => {
+    // The caller expanded a section, then collapsed it again before its own
+    // update landed, so the preferences it renders still show it collapsed and
+    // its second payload matches them exactly.
+    const firstPayload = withEntitiesExpanded(preferences);
+
+    const onServer = rebaseUserPreferences({
+      base: preferencesToRebaseFrom({
+        rendered: preferences,
+        inFlightPayload: undefined,
+      }),
+      next: firstPayload,
+      latest: preferences,
+    });
+
+    expect(onServer.sidebarSections.entities.expanded).toBe(true);
+
+    const rebased = rebaseUserPreferences({
+      base: preferencesToRebaseFrom({
+        rendered: preferences,
+        inFlightPayload: firstPayload,
+      }),
+      next: { ...preferences },
+      latest: onServer,
+    });
+
+    expect(rebased.sidebarSections.entities.expanded).toBe(false);
   });
 });

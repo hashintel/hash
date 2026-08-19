@@ -93,21 +93,44 @@ const rebaseValue = (
 };
 
 /**
+ * What a caller built its payload from, which is what the payload has to be
+ * compared with to see what the caller actually changed.
+ *
+ * `rendered` is the preferences the caller rendered, as `useUserPreferences`
+ * reports them – never `undefined`, because a user with no stored preferences
+ * has still built their payload from the defaults it substitutes.
+ *
+ * `inFlightPayload` is the payload the same caller sent while this one was
+ * being built. The rendered preferences do not include it yet, so it is what
+ * the caller's next payload extends: a caller which toggles a field twice
+ * before the first update lands sends a second payload identical to what it
+ * rendered, and comparing that with the rendered preferences would make the
+ * revert look like no change at all.
+ */
+export const preferencesToRebaseFrom = ({
+  rendered,
+  inFlightPayload,
+}: {
+  rendered: UserPreferences;
+  inFlightPayload: UserPreferences | undefined;
+}): UserPreferences => inFlightPayload ?? rendered;
+
+/**
  * Preferences are stored as a single property on the user entity, so a caller
  * which builds `next` by spreading the preferences it last rendered will
  * overwrite anything which landed in between – including an update of its own
  * which was still in flight.
  *
  * Re-apply only what the caller actually changed (`next` compared with the
- * `base` they built it from) on top of the preferences which are on the server
- * now (`latest`).
+ * `base` they built it from, see `preferencesToRebaseFrom`) on top of the
+ * preferences which are on the server now (`latest`).
  */
 export const rebaseUserPreferences = ({
   base,
   next,
   latest,
 }: {
-  base: UserPreferences | undefined;
+  base: UserPreferences;
   next: UserPreferences;
   latest: UserPreferences | undefined;
 }): UserPreferences => {
