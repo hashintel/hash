@@ -150,6 +150,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     as: ctx.as,
     size: ctx.size,
     tone: item.tone,
+    selectedTone: item.selectedTone ?? item.tone,
     highlighted,
     selected: isSelected,
   });

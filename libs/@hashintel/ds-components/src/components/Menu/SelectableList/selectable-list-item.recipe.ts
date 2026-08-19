@@ -205,6 +205,13 @@ export const styles = sva({
         },
       },
     },
+    // Tone of the selected rendering; styled entirely via compound variants.
+    // The call site defaults it to `tone`.
+    selectedTone: {
+      neutral: {},
+      brand: {},
+      error: {},
+    },
     highlighted: {
       true: {},
     },
@@ -219,30 +226,74 @@ export const styles = sva({
     },
   },
   compoundVariants: [
+    // Persistent background for selectedStyle="highlight". The extra
+    // [data-selected][data-highlighted] rule out-specifies the base tone's
+    // [data-highlighted] hover, keeping a hovered selected item within the
+    // selected tone's ladder.
     {
-      tone: "neutral",
+      selectedTone: "neutral",
       highlighted: true,
       css: {
         item: {
           backgroundColor: "neutral.a35",
+          "&[data-selected][data-highlighted]": {
+            backgroundColor: "neutral.a25",
+          },
         },
       },
     },
     {
-      tone: "brand",
+      selectedTone: "brand",
       highlighted: true,
       css: {
         item: {
           backgroundColor: "blue.a40",
+          "&[data-selected][data-highlighted]": {
+            backgroundColor: "blue.a30",
+          },
         },
       },
     },
     {
-      tone: "error",
+      selectedTone: "error",
       highlighted: true,
       css: {
         item: {
           backgroundColor: "red.a40",
+          "&[data-selected][data-highlighted]": {
+            backgroundColor: "red.a30",
+          },
+        },
+      },
+    },
+    // Tick/checkbox indicator adopts the selected tone. The neutral tick is
+    // pinned so it does not inherit a non-neutral base tone's text color.
+    {
+      selectedTone: "neutral",
+      selected: true,
+      css: {
+        tick: { color: "fg.heading" },
+      },
+    },
+    {
+      selectedTone: "brand",
+      selected: true,
+      css: {
+        tick: { color: "blue.s90" },
+        checkbox: {
+          backgroundColor: "blue.s90",
+          borderColor: "blue.s90",
+        },
+      },
+    },
+    {
+      selectedTone: "error",
+      selected: true,
+      css: {
+        tick: { color: "red.s90" },
+        checkbox: {
+          backgroundColor: "red.s90",
+          borderColor: "red.s90",
         },
       },
     },
@@ -251,6 +302,7 @@ export const styles = sva({
     as: "Menu",
     size: "md",
     tone: "neutral",
+    selectedTone: "neutral",
     highlighted: false,
     selected: false,
   },

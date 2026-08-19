@@ -102,6 +102,14 @@ const highlightToneVariantItems: Item[] = (["brand", "error"] as const).map(
   }),
 );
 
+const selectedToneVariantItems: Item[] = selectedStyles.map((style) => ({
+  id: `selected-tone-${style}`,
+  text: `selectedTone: brand, tone: neutral, ${style} (selected)`,
+  selectedTone: "brand",
+  selectedStyle: style,
+  onClick: noop,
+}));
+
 const itemWithHref: Item = {
   id: "with-href",
   text: "Link item (href)",
@@ -220,6 +228,7 @@ export const defaultSelected = [
   ...selectedStyles.map((style) => `style-${style}-selected`),
   "style-highlight-brand-selected",
   "style-highlight-error-selected",
+  ...selectedStyles.map((style) => `selected-tone-${style}`),
   "kitchen-sink",
 ];
 
@@ -244,7 +253,11 @@ export const groupedItems: ItemOrGroup<Item>[] = [
   {
     id: "group-selected",
     label: "Selected",
-    items: [...selectedStyleVariantItems, ...highlightToneVariantItems],
+    items: [
+      ...selectedStyleVariantItems,
+      ...highlightToneVariantItems,
+      ...selectedToneVariantItems,
+    ],
   },
   {
     id: "group-nested-items",

@@ -17,11 +17,7 @@ type ItemBase = {
   disabled?: boolean;
   tone?: Exclude<Tone, "warning" | "success">;
   selectedStyle?: "tick" | "checkbox" | "highlight";
-
-  /**
-   * When true, selecting this item does not close the parent menu. Has no
-   * effect when rendered inside a `Select` or as a nested-menu trigger.
-   */
+  selectedTone?: Exclude<Tone, "warning" | "success">;
   keepOpenOnSelect?: boolean;
 };
 
