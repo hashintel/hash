@@ -995,13 +995,6 @@ where
         self.store.get_user_by_id(actor_id, id).await
     }
 
-    async fn get_user_id_by_email(
-        &self,
-        email: &str,
-    ) -> Result<Option<UserId>, Report<GetActorError>> {
-        self.store.get_user_id_by_email(email).await
-    }
-
     async fn get_user_kratos_identity_id(
         &self,
         user_id: UserId,

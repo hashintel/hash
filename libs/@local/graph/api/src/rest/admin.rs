@@ -46,7 +46,6 @@ use hash_graph_authentication::provider::AuthenticationProvider;
 use hash_graph_postgres_store::snapshot::SnapshotStore;
 use hash_graph_postgres_store::store::PostgresStorePool;
 use hash_graph_store::{
-    account::AccountStore as _,
     entity::{DeleteEntitiesParams, DeletionSummary, EntityStore as _},
     pool::StorePool as _,
     user_deletion,
@@ -307,27 +306,28 @@ async fn delete_user(
 ) -> Result<BoxedResponse, BoxedResponse> {
     let mut store = pool.acquire(None).await.map_err(report_to_response)?;
 
-    let user_id = match request {
-        DeleteUserRequest::ById { user_id } => UserId::new(user_id),
+    let kratos = KratosIdentityProvider::new(
+        Arc::clone(&http_client),
+        external_services.kratos_admin_url.clone(),
+    );
+
+    let (user_id, kratos_identity_id) = match request {
+        DeleteUserRequest::ById { user_id } => (UserId::new(user_id), None),
         DeleteUserRequest::ByEmail { email } => {
             tracing::info!(%email, "resolving user by email");
-            store
-                .get_user_id_by_email(&email)
+            let resolved = kratos
+                .find_user_by_email(&email)
                 .await
                 .map_err(report_to_response)?
                 .ok_or_else(|| {
                     report_to_response(
                         Report::new(AdminError::UserNotFound).attach(StatusCode::NotFound),
                     )
-                })?
+                })?;
+            (resolved.user_id, Some(resolved.kratos_identity_id))
         }
     };
     tracing::info!(%user_id, "user deletion requested");
-
-    let kratos = KratosIdentityProvider::new(
-        Arc::clone(&http_client),
-        external_services.kratos_admin_url.clone(),
-    );
 
     let hydra = HydraOAuthProvider::new(
         Arc::clone(&http_client),
@@ -356,6 +356,7 @@ async fn delete_user(
         mailchimp.as_ref(),
         actor_id.into(),
         user_id,
+        kratos_identity_id,
     )
     .await
     .map_err(report_to_response)?;
