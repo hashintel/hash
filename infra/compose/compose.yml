@@ -367,7 +367,9 @@ services:
     profiles:
       - dev
       - hash
-    image: quay.io/minio/minio
+    # Pinned by release timestamp — upstream ships no semver tags. Tag only, no
+    # digest: a Docker Hub digest isn't valid for the quay copy of the same tag.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     command: server /data --console-address ":9001"
     environment:
       MINIO_API_CORS_ALLOW_ORIGIN: ${FRONTEND_URL:-http://localhost:3000}
@@ -394,13 +396,8 @@ services:
     profiles:
       - dev
       - hash
-    # `mc` versions itself by release timestamp: upstream publishes no semver
-    # tags, so `RELEASE.<timestamp>Z` *is* the version. This is the newest of
-    # the 471 release tags on Docker Hub, and the one `latest` points at.
-    # Every `minio/*` Docker Hub repo stopped receiving pushes in Sept 2025,
-    # so this tag is likely terminal there; the server above is already pulled
-    # from quay.io, and moving `mc` there too is worth a look.
-    # Pinned by digest as well as tag, since only the digest is immutable.
+    # `mc` versions by release timestamp — upstream ships no semver tags — and
+    # trails the server's series; pinned by digest too, as only that is immutable.
     image: minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
     depends_on:
       minio:
