@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createOptimizationProtocol,
+  deriveTrialSeeds,
   loadOptimizationManifest,
   parseOptimizationManifest,
 } from "./optimization";
@@ -67,6 +68,36 @@ async function createManifest() {
   });
 }
 
+/** The base manifest with `execution.seedsPerTrial` set. */
+async function createSeededManifest(seedsPerTrial: number) {
+  const base = await createManifest();
+  return parseOptimizationManifest({
+    ...base,
+    execution: { ...base.execution, seedsPerTrial },
+  });
+}
+
+/** A model whose objective metric is picked per run seed. */
+function createSeededModel(objectiveForSeed: (seed: number) => number) {
+  const run = vi.fn((config: { seed?: number }) => {
+    const seed = config.seed ?? -1;
+    return {
+      seed,
+      status: "complete" as const,
+      completionReason: "maxTime" as const,
+      frameCount: 1,
+      finalTime: 10,
+      finalPlaceTokenCounts: {},
+      metrics: { "Infected Fraction": objectiveForSeed(seed) },
+    };
+  });
+  const model: PetrinautCompiledModel = {
+    metadata: { parameters: [], places: [], metrics: [] },
+    run,
+  };
+  return { model, run };
+}
+
 describe("createOptimizationProtocol", () => {
   it("executes the checked-in supply-chain optimization manifest", async () => {
     const manifest = await loadOptimizationManifest(
@@ -89,7 +120,7 @@ describe("createOptimizationProtocol", () => {
 
     expect(protocol.describe()).toEqual({
       direction: "maximize",
-      study: { trials: 1_000, sampler: "tpe", seed: 1234 },
+      study: { trials: 1_000, sampler: "tpe", seed: 1234, seedsPerTrial: 1 },
       parameters: [
         {
           identifier: "production_rate",
@@ -205,7 +236,7 @@ describe("createOptimizationProtocol", () => {
 
     expect(protocol.describe()).toEqual({
       direction: "minimize",
-      study: { trials: 20, sampler: "tpe", seed: 42 },
+      study: { trials: 20, sampler: "tpe", seed: 42, seedsPerTrial: 1 },
       parameters: [
         {
           identifier: "infected_ratio",
@@ -368,5 +399,102 @@ describe("createOptimizationProtocol", () => {
     ).rejects.toThrow(
       'Optimization parameter "infected_ratio" must be between 0.01 and 0.5',
     );
+  });
+
+  it("runs every trial seed and aggregates the objectives by mean", async () => {
+    const manifest = await createSeededManifest(3);
+    const seeds = deriveTrialSeeds(42, 3);
+    // Objectives 1, 2 and 3 in seed order, so the mean and the per-seed
+    // echoes are both observable.
+    const { model, run } = createSeededModel((seed) => seeds.indexOf(seed) + 1);
+    const protocol = createOptimizationProtocol({ manifest, model });
+
+    expect(protocol.describe().study).toEqual({
+      trials: 20,
+      sampler: "tpe",
+      seed: 42,
+      seedsPerTrial: 3,
+    });
+    await expect(
+      protocol.evaluate({ parameterValues: { infected_ratio: 0.1 } }),
+    ).resolves.toEqual({
+      objective: 2,
+      replicates: seeds.map((seed, index) => ({ seed, objective: index + 1 })),
+    });
+    expect(run.mock.calls.map(([config]) => config.seed)).toEqual(seeds);
+
+    // The same seeds are reused on every trial: common random numbers.
+    await expect(
+      protocol.evaluate({ parameterValues: { infected_ratio: 0.2 } }),
+    ).resolves.toEqual({
+      objective: 2,
+      replicates: seeds.map((seed, index) => ({ seed, objective: index + 1 })),
+    });
+    expect(run.mock.calls.map(([config]) => config.seed)).toEqual([
+      ...seeds,
+      ...seeds,
+    ]);
+  });
+
+  it("rejects a trial whose replicate omits a finite objective", async () => {
+    const manifest = await createSeededManifest(3);
+    const { model, run } = createSeededModel((seed) =>
+      seed === 42 ? 0.25 : Number.NaN,
+    );
+    const protocol = createOptimizationProtocol({ manifest, model });
+
+    await expect(
+      protocol.evaluate({ parameterValues: { infected_ratio: 0.1 } }),
+    ).rejects.toThrow(
+      'Petrinaut result omitted a finite objective metric "Infected Fraction"',
+    );
+    // Fail fast: the invalid second replicate spares the third simulation.
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the mean finite when extreme finite objectives would overflow a sum", async () => {
+    const manifest = await createSeededManifest(2);
+    const { model } = createSeededModel(() => Number.MAX_VALUE);
+    const protocol = createOptimizationProtocol({ manifest, model });
+
+    await expect(
+      protocol.evaluate({ parameterValues: { infected_ratio: 0.1 } }),
+    ).resolves.toMatchObject({ objective: Number.MAX_VALUE });
+
+    // Opposite extremes overflow the mean update; the aggregate guard turns
+    // that into an error instead of a null objective on the wire.
+    const signFlipping = createSeededModel((seed) =>
+      seed === 42 ? Number.MAX_VALUE : -Number.MAX_VALUE,
+    );
+    const signFlippingProtocol = createOptimizationProtocol({
+      manifest,
+      model: signFlipping.model,
+    });
+    await expect(
+      signFlippingProtocol.evaluate({
+        parameterValues: { infected_ratio: 0.1 },
+      }),
+    ).rejects.toThrow(
+      'The mean of the objective metric "Infected Fraction" is not finite',
+    );
+  });
+});
+
+describe("deriveTrialSeeds", () => {
+  it("keeps the base seed first and derives a stable, in-range sequence", () => {
+    expect(deriveTrialSeeds(42, 1)).toEqual([42]);
+    // Pins the documented derivation |seed + (i + 1) x 2654435761| mod 2^31,
+    // which the other tests' expected seed sequences depend on.
+    expect(deriveTrialSeeds(42, 2)).toEqual([42, 1_013_904_268]);
+
+    const seeds = deriveTrialSeeds(42, 100);
+    expect(seeds[0]).toBe(42);
+    expect(seeds).toEqual(deriveTrialSeeds(42, 100));
+    expect(new Set(seeds).size).toBe(seeds.length);
+    for (const seed of seeds) {
+      expect(Number.isInteger(seed)).toBe(true);
+      expect(seed).toBeGreaterThanOrEqual(0);
+      expect(seed).toBeLessThanOrEqual(2_147_483_647);
+    }
   });
 });
