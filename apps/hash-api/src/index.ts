@@ -55,6 +55,7 @@ import {
 } from "./auth/create-auth-handlers";
 // import { createUnverifiedEmailCleanupJob } from "./auth/create-unverified-email-cleanup-job";
 import { getActorIdFromRequest } from "./auth/get-actor-id";
+import { createKratosProxyAllowlist } from "./auth/kratos-endpoint-allowlist";
 import {
   oauthConsentRequestHandler,
   oauthConsentSubmissionHandler,
@@ -348,6 +349,12 @@ const kratosProxy = createProxyMiddleware<Request, Response>({
   },
 });
 
+/**
+ * Default-deny guard registered immediately in front of {@link kratosProxy}.
+ * See `./auth/kratos-endpoint-allowlist` for the allow-list itself.
+ */
+const kratosProxyAllowlist = createKratosProxyAllowlist({ logger });
+
 const main = async () => {
   logger.info("Type System initialized");
 
@@ -629,6 +636,13 @@ const main = async () => {
    *
    * Although the proxy would ideally come before the body parser, so that we're passing it through untouched,
    * we check the body in this process in order to rate limit requests based on the user attempting to log in.
+   *
+   * `kratosProxyAllowlist` sits last before the proxy itself, so that:
+   *   - the `cors` middleware ahead of it has already answered any `OPTIONS`
+   *     preflight (`preflightContinue` is left at its default of `false`), and
+   *     preflights therefore never need to be allow-listed;
+   *   - probing for non-allow-listed endpoints is still rate limited;
+   *   - the guard reads adjacent to the proxy it guards.
    */
   app.use(
     "/auth",
@@ -636,6 +650,7 @@ const main = async () => {
     kratosProxyReadRateLimiter,
     userIdentifierRateLimiter,
     cors(CORS_CONFIG),
+    kratosProxyAllowlist,
     kratosProxy,
   );
 
