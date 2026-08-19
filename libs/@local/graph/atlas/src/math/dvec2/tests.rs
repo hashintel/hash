@@ -28,10 +28,10 @@ fn products_match_known_values() {
     let x_axis = DVec2::new(1.0, 0.0);
     let y_axis = DVec2::new(0.0, 1.0);
 
-    assert_eq!(x_axis.dot(y_axis), 0.0);
-    assert_eq!(x_axis.perp_dot(y_axis), 1.0);
-    assert_eq!(y_axis.perp_dot(x_axis), -1.0);
-    assert_eq!(DVec2::new(3.0, 4.0).norm_squared(), 25.0);
+    assert_eq!(x_axis.dot(y_axis).into_raw(), 0.0);
+    assert_eq!(x_axis.perp_dot(y_axis).into_raw(), 1.0);
+    assert_eq!(y_axis.perp_dot(x_axis).into_raw(), -1.0);
+    assert_eq!(DVec2::new(3.0, 4.0).norm_squared().into_raw(), 25.0);
 }
 
 #[test]
@@ -97,9 +97,9 @@ fn dvec2x4t_products_match_the_scalar_twin_per_lane() {
     for index in 0..4 {
         let source = DVec2::from(sources[index]);
         let target = DVec2::from(targets[index]);
-        assert_eq!(dot[index], source.dot(target));
-        assert_eq!(perp_dot[index], source.perp_dot(target));
-        assert_eq!(length_squared[index], source.norm_squared());
+        assert_eq!(dot[index], source.dot(target).into_raw());
+        assert_eq!(perp_dot[index], source.perp_dot(target).into_raw());
+        assert_eq!(length_squared[index], source.norm_squared().into_raw());
     }
 }
 
@@ -228,7 +228,9 @@ fn products_refine_the_f32_counterparts(
     #[strategy = -1e3_f32..1e3] by: f32,
 ) {
     let narrow_dot = f64::from(Vec2::new(ax, ay).dot(Vec2::new(bx, by)));
-    let wide_dot = DVec2::from(Vec2::new(ax, ay)).dot(DVec2::from(Vec2::new(bx, by)));
+    let wide_dot = DVec2::from(Vec2::new(ax, ay))
+        .dot(DVec2::from(Vec2::new(bx, by)))
+        .into_raw();
 
     // The narrow path rounds each product at f32; those errors scale
     // with the products' magnitudes, which cancellation can leave far

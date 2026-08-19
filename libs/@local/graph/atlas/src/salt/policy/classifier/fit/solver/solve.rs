@@ -3,7 +3,7 @@
 //! [`solve`] drives the loop over one [`ScaledProblem`]. Every fit starts at `ζ = 0`. Each outer
 //! iteration certifies the accepted gradient and then runs the exact Newton inner solve. It prices
 //! the resulting candidate against the predicted model reduction and accepts or rejects it by
-//! ratio. The accepted point moves only on acceptance; rejection shrinks the trust radius toward
+//! ratio. The accepted point moves only on acceptance. Rejection shrinks the trust radius toward
 //! its minimum and an expanded radius requires a validated boundary step. Success is [`Converged`]
 //! (a fresh final joint evaluation re-proving the certificate) and every other terminal is a
 //! typed [`SolverFailure`] in the normative precedence order: validation, accepted-gradient
@@ -24,7 +24,9 @@ use super::{
     terminal::SolverFailure,
     work::WorkCounters,
 };
-use crate::math::{AlignedDVecN, BoxedDVecN, DFinite, DNonNegative, DPositive, Derivation};
+use crate::math::{
+    AlignedDVecN, BoxedDVecN, DFinite, DNonNegative, DPositive, Derivation, d_finite,
+};
 
 /// The accepted iterate in scaled coordinates, with its objective and gradient.
 #[derive(Debug, Clone, PartialEq)]
@@ -42,7 +44,7 @@ pub(crate) struct AcceptedPoint {
 
 /// The mutable control state beside the accepted point.
 ///
-/// A rejection changes only this state; an acceptance replaces the accepted point after its
+/// Only this state changes on a rejection. An acceptance replaces the accepted point after its
 /// candidate gradient proves finite.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SolverControl {
@@ -201,7 +203,7 @@ fn run(
             return Err(SolverFailure::ResolutionStall);
         }
 
-        let trial_zeta = flat::advance(&accepted.zeta, 1.0, inner.step());
+        let trial_zeta = flat::advance(&accepted.zeta, d_finite!(1.0), inner.step());
         let trial_point = problem.point(&trial_zeta);
         let trial_objective = problem.objective(&trial_point, &mut control.counters);
         if !trial_objective.is_finite() {
@@ -267,7 +269,13 @@ fn run(
 
         // Only a validated boundary step at or above the expansion ratio grows the radius.
         if inner.is_boundary() && ratio >= config.eta_expand {
-            control.radius = (config.expansion_factor * control.radius).min(config.radius_maximum);
+            // A product of positives above the ceiling, +∞ included, lands on the finite
+            // maximum, so the clamp re-enters the domain. Growth by a factor above one never
+            // falls to zero.
+            control.radius = DPositive::new_unchecked(
+                (config.expansion_factor.get() * control.radius.get())
+                    .min(config.radius_maximum.get()),
+            );
         }
     }
 }
@@ -293,7 +301,7 @@ const fn gradient_threshold(
 /// Stores the started outer iteration's receipt and returns the outcome it records into.
 ///
 /// A debugging request stores one receipt per started outer iteration and the returned outcome
-/// collects the iteration's diagnostics; the routine posture stores none and returns [`None`], so
+/// collects the iteration's diagnostics. The routine posture stores none and returns [`None`], so
 /// the diagnostic-only arithmetic never runs.
 fn start_receipt<'receipts>(
     receipts: &'receipts mut Vec<OuterReceipt>,
@@ -346,7 +354,7 @@ fn record_inner_step(
     let along_gradient = gradient.dot(inner.step());
     let along_curvature = inner.step().dot(inner.hessian_step());
 
-    let predicted = along_curvature.mul_add(-0.5, -along_gradient);
+    let predicted = along_curvature.mul_add(d_finite!(-0.5), -along_gradient);
 
     if let Some(recorded) = recorded {
         recorded.tag = Some(inner.tag());
@@ -423,7 +431,7 @@ fn curvature_diagnostic(
     trial_gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
     accepted_gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
 ) -> CurvatureDiagnostic {
-    let difference = flat::advance(trial_gradient, -1.0, accepted_gradient);
+    let difference = flat::advance(trial_gradient, d_finite!(-1.0), accepted_gradient);
     if !difference.is_finite() {
         return CurvatureDiagnostic::NonFiniteDifference;
     }

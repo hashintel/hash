@@ -5,7 +5,7 @@
 //! each derivative against a finite-difference reference. The value and derivative always compute
 //! in one fused evaluation.
 
-use crate::math::{AffinityCurve, NonNegative, Positive, softplus};
+use crate::math::{AffinityCurve, DNonNegative, Derivation, NonNegative, Positive, softplus};
 
 /// The semantic edge energy over the low-dimensional affinity.
 ///
@@ -246,20 +246,28 @@ impl RelationEnergy {
     /// Evaluates the weighted class mixture and its derivative at a normalized distance.
     ///
     /// The mixture scales each class energy by its weight, and the derivative is the matching
-    /// weighted sum of class derivatives.
-    #[must_use]
+    /// weighted sum of class derivatives. The fold widens the f32-born readings once and runs
+    /// in double width, and a product of unbounded weights and saturated energies can still
+    /// overflow, so the pair rides as unclaimed derivations and each consumer folds the
+    /// reading under its own check.
     pub(crate) fn mixture(
         self,
         normalized: NonNegative,
         coincident_weight: NonNegative,
         proximal_weight: NonNegative,
-    ) -> (NonNegative, NonNegative) {
+    ) -> (Derivation<DNonNegative>, Derivation<DNonNegative>) {
         let (coincident_value, coincident_derivative) = self.coincident.evaluate(normalized);
         let (proximal_value, proximal_derivative) = self.proximal.evaluate(normalized);
 
         (
-            coincident_weight.mul_add(coincident_value, proximal_weight * proximal_value),
-            coincident_weight.mul_add(coincident_derivative, proximal_weight * proximal_derivative),
+            Derivation::from(coincident_weight.widen()).mul_add(
+                coincident_value.widen(),
+                proximal_weight.widen() * proximal_value.widen(),
+            ),
+            Derivation::from(coincident_weight.widen()).mul_add(
+                coincident_derivative.widen(),
+                proximal_weight.widen() * proximal_derivative.widen(),
+            ),
         )
     }
 }

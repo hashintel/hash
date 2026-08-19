@@ -685,7 +685,8 @@ fn raw_objective(corpus: &Corpus, raw: &Parameters, regularization: f64) -> f64 
 
     let (rows, _) = raw.as_array().as_chunks::<CANONICAL_DIMENSIONS>();
     for row in rows {
-        objective = (0.5 * regularization).mul_add(DVecN::from_ref(row).norm_squared(), objective);
+        objective = (0.5 * regularization)
+            .mul_add(DVecN::from_ref(row).norm_squared().into_raw(), objective);
     }
     objective
 }
@@ -1324,7 +1325,7 @@ fn dense_component(index: usize, phase: f64) -> f64 {
 /// given Euclidean norm.
 ///
 /// The magnitude split concentrates the norm in two components while thousands of small squares
-/// absorb into the fold accumulators, the structure that drives the reductions' rounding; uniform
+/// absorb into the fold accumulators, the structure that drives the reductions' rounding. Uniform
 /// dense fills stay within a few ulps of an exact unit norm at this dimension.
 fn spiked_dense(norm: f64, phase: f64) -> BoxedDVecN<SOLVER_DIMENSIONS> {
     let mut vector = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
@@ -1396,9 +1397,10 @@ fn boundary_construction_replica(
     }
     let crossing = [root / quadratic, constant / root]
         .into_iter()
-        .find(|tau| tau.is_finite() && *tau > 0.0)?;
+        .find_map(DPositive::new)?;
 
-    let boundary = flat_vectors::advance(&normalized_interior, crossing, &normalized_direction);
+    let boundary =
+        flat_vectors::advance(&normalized_interior, crossing.into(), &normalized_direction);
     let norm = boundary.checked_stable_l2()?;
     let built = (norm - 1.0).abs() / f64::EPSILON;
 
@@ -1486,7 +1488,7 @@ fn the_gross_defect_guard_rejects_a_collapsed_discriminant() {
     let direction = flat(&[(0, 1.0), (1, 1.0)]);
     let zero = flat(&[]);
 
-    let collapsed = -1.2 / (2.0 * 2.0);
+    let collapsed = d_finite!(-1.2 / (2.0 * 2.0));
     let step = flat_vectors::advance(&interior, collapsed, &direction);
     let norm = step
         .checked_stable_l2()
@@ -1510,13 +1512,10 @@ fn the_gross_defect_guard_rejects_a_coefficient_defect() {
     let constant = -0.64_f64;
     let discriminant = defective_linear.mul_add(defective_linear, -4.0 * quadratic * constant);
     let root = -0.5 * (defective_linear + discriminant.sqrt().copysign(defective_linear));
-    let tau = constant / root;
-    assert!(
-        tau > 0.0,
-        "the defective pairing still yields a forward tau"
-    );
+    let tau = DPositive::new(constant / root)
+        .expect("the defective pairing should still yield a forward tau");
 
-    let step = flat_vectors::advance(&interior, tau, &direction);
+    let step = flat_vectors::advance(&interior, tau.into(), &direction);
     let norm = step
         .checked_stable_l2()
         .expect("the defective step is finite");
@@ -1938,8 +1937,8 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
     assert_eq!(run.control.counters.joint_passes, 2);
 }
 
-/// The exposed domain tag and dimension are the exact digest-preimage prefix; the coordinate system
-/// rides only the exposed identity.
+/// The exposed domain tag and dimension are the exact digest-preimage prefix. The coordinate
+/// system rides only the exposed identity.
 #[test]
 #[expect(
     clippy::host_endian_bytes,
@@ -1977,7 +1976,7 @@ fn receipt_domain_tag_and_dimension_are_the_exact_digest_prefix() {
     assert_eq!(hasher.finalize(), vector_digest(&vector));
 }
 
-/// The certificate pins the initial norm and its derived threshold; the norm's domain makes the
+/// The certificate pins the initial norm and its derived threshold. The norm's domain makes the
 /// derivation total.
 #[test]
 fn derive_certificate_pins_the_threshold_formula() {
@@ -2385,7 +2384,7 @@ fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
     let gradient_norm = gradient
         .checked_stable_l2()
         .expect("the gradient is finite");
-    let cauchy_norm = gradient_square / curvature * gradient_norm;
+    let cauchy_norm = gradient_square.get() / curvature * gradient_norm;
 
     // The dogleg premise of the witness: the fixture's Cauchy point sits strictly inside the
     // Newton length.
@@ -2394,7 +2393,7 @@ fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
         "the fixture separates the dogleg legs (cauchy {cauchy_norm:e}, newton {newton_norm:e})",
     );
 
-    let radius = f64::midpoint(cauchy_norm.get(), newton_norm.get());
+    let radius = f64::midpoint(cauchy_norm, newton_norm.get());
     let between = SolverConfig {
         radius_initial: DPositive::new(radius).expect("the measured radius is positive"),
         radius_maximum: d_positive!(1.0e4),
@@ -2507,7 +2506,7 @@ fn flat_operations_keep_the_declared_shapes() {
     let base = flat(&[(0, 1.0), (1, -2.0)]);
     let along = flat(&[(0, 0.5), (2, 4.0)]);
 
-    let advanced = flat_vectors::advance(&base, 2.0, &along);
+    let advanced = flat_vectors::advance(&base, d_finite!(2.0), &along);
     assert_eq!(advanced.as_array()[0], 2.0_f64.mul_add(0.5, 1.0));
     assert_eq!(advanced.as_array()[1], -2.0);
     assert_eq!(advanced.as_array()[2], 8.0);

@@ -38,135 +38,14 @@ use hashql_core::id::{Id, IdSlice, IdVec};
 use rand::{Rng, RngExt as _};
 
 use crate::{
-    math::{AffinityCurve, Rotation, Vec2, Vec2x4T},
+    math::{AffinityCurve, NonNegative, Positive, Rotation, Vec2, Vec2x4T, non_negative, positive},
     random::uniform_below,
     salt::semantic::SemanticGraphView,
 };
 
-/// A value offered as a [`LearningRate`] is not finite and strictly positive.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct LearningRateError(f32);
-
-impl fmt::Display for LearningRateError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            fmt,
-            "the value {} is not a finite, strictly positive learning rate",
-            self.0
-        )
-    }
-}
-
-impl Error for LearningRateError {}
-
-/// A finite, strictly positive epoch-zero learning rate, valid by construction.
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
-#[serde(try_from = "f32", into = "f32")]
-pub(crate) struct LearningRate(f32);
-
-impl LearningRate {
-    /// Validates a learning rate.
-    ///
-    /// Returns [`None`] unless the value is finite and strictly positive.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn new(value: f32) -> Option<Self> {
-        if !(value.is_finite() && value > 0.0) {
-            return None;
-        }
-
-        Some(Self(value))
-    }
-
-    /// Returns the rate.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn get(self) -> f32 {
-        self.0
-    }
-}
-
-impl TryFrom<f32> for LearningRate {
-    type Error = LearningRateError;
-
-    #[inline]
-    fn try_from(value: f32) -> Result<Self, Self::Error> {
-        Self::new(value).ok_or(LearningRateError(value))
-    }
-}
-
-impl From<LearningRate> for f32 {
-    #[inline]
-    fn from(rate: LearningRate) -> Self {
-        rate.get()
-    }
-}
-
-/// A value offered as a [`RepulsionStrength`] is not finite and non-negative.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct RepulsionStrengthError(f32);
-
-impl fmt::Display for RepulsionStrengthError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            fmt,
-            "the value {} is not a finite, non-negative repulsion weight",
-            self.0
-        )
-    }
-}
-
-impl Error for RepulsionStrengthError {}
-
-/// A finite, non-negative repulsion weight, valid by construction.
-///
-/// Zero disables repulsion.
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
-#[serde(try_from = "f32", into = "f32")]
-pub(crate) struct RepulsionStrength(f32);
-
-impl RepulsionStrength {
-    /// Validates a repulsion weight.
-    ///
-    /// Returns [`None`] unless the value is finite and non-negative.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn new(value: f32) -> Option<Self> {
-        if !(value.is_finite() && value >= 0.0) {
-            return None;
-        }
-
-        Some(Self(value))
-    }
-
-    /// Returns the weight.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn get(self) -> f32 {
-        self.0
-    }
-}
-
-impl TryFrom<f32> for RepulsionStrength {
-    type Error = RepulsionStrengthError;
-
-    #[inline]
-    fn try_from(value: f32) -> Result<Self, Self::Error> {
-        Self::new(value).ok_or(RepulsionStrengthError(value))
-    }
-}
-
-impl From<RepulsionStrength> for f32 {
-    #[inline]
-    fn from(strength: RepulsionStrength) -> Self {
-        strength.get()
-    }
-}
-
 const DEFAULT_EPOCHS: NonZero<u32> = const { NonZero::new(500).unwrap() };
-const DEFAULT_INITIAL_LEARNING_RATE: LearningRate = const { LearningRate::new(1.0).unwrap() };
-const DEFAULT_REPULSION_STRENGTH: RepulsionStrength =
-    const { RepulsionStrength::new(1.0).unwrap() };
+const DEFAULT_INITIAL_LEARNING_RATE: Positive = positive!(1.0);
+const DEFAULT_REPULSION_STRENGTH: NonNegative = non_negative!(1.0);
 const DEFAULT_NEGATIVE_SAMPLE_RATE: NonZero<u32> = const { NonZero::new(5).unwrap() };
 
 /// Schedule settings for one layout, valid by construction.
@@ -179,9 +58,9 @@ pub(crate) struct LayoutOptions {
     /// Optimization epochs.
     pub epochs: NonZero<u32> = DEFAULT_EPOCHS,
     /// Learning rate at epoch zero, decaying linearly toward zero across the epoch budget.
-    pub initial_learning_rate: LearningRate = DEFAULT_INITIAL_LEARNING_RATE,
-    /// Weight of repulsive updates.
-    pub repulsion_strength: RepulsionStrength = DEFAULT_REPULSION_STRENGTH,
+    pub initial_learning_rate: Positive = DEFAULT_INITIAL_LEARNING_RATE,
+    /// Weight of repulsive updates. Zero disables repulsion.
+    pub repulsion_strength: NonNegative = DEFAULT_REPULSION_STRENGTH,
     /// Vertices repelled per sampled edge.
     pub negative_sample_rate: NonZero<u32> = DEFAULT_NEGATIVE_SAMPLE_RATE,
 }

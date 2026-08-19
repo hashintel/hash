@@ -24,6 +24,8 @@
 #[cfg(test)]
 mod tests;
 
+use core::num::NonZero;
+
 use super::{
     census::CensusError,
     identity::{DrawSalt, RuleIdentity},
@@ -31,7 +33,7 @@ use super::{
 };
 use crate::{
     identity::NodeRowId,
-    math::{DFinite, DNonNegative, Derivation, UnitFraction},
+    math::{DFinite, DNonNegative, DPositive, UnitFraction},
 };
 
 /// The collateral stratum count.
@@ -208,25 +210,22 @@ impl MovementAggregate {
     /// This panics when `readings` is empty. An aggregate family exists only for a positive
     /// population.
     pub(crate) fn over(readings: &[DFinite]) -> Self {
-        assert!(
-            !readings.is_empty(),
-            "an aggregate family exists only for a positive population"
-        );
+        let Some(len) = NonZero::new(readings.len()) else {
+            panic!("an aggregate family exists only for a positive population");
+        };
 
         // One fixed serial fold in draw order. `Iterator::sum` happens to fold in order too,
-        // but the loop states the contract rather than inheriting it.
-        let mut sum = Derivation::<DFinite>::ZERO;
+        // but the loop states the contract rather than inheriting it. The fold keeps the typed
+        // escape op by its totality theorem. Every reading is a frame distance difference or a
+        // rank difference, bounded below 2¹³¹, and the population is bounded by the corpus
+        // rows, below 2³². The serial sum therefore stays below 2¹⁶³, far inside `f64`.
+        let mut sum = DFinite::ZERO;
         for &reading in readings {
             sum += reading;
         }
-        #[expect(
-            clippy::cast_precision_loss,
-            reason = "reading populations stay far below exact f64 integer precision"
-        )]
-        // Finite with no check. Every reading is a frame distance difference or a rank
-        // difference, bounded below 2¹³¹. The population is bounded by the corpus rows, below
-        // 2³². The serial fold therefore stays below 2¹⁶³, far inside the `f64` exponent range.
-        let mean = DFinite::new_unchecked(sum.into_raw() / readings.len() as f64);
+
+        // Finite with no check: dividing the bounded sum by a count of at least one shrinks it.
+        let mean = (sum / DPositive::from_usize(len)).finish_unchecked();
 
         let mut sorted = readings.to_vec();
         sorted.sort_unstable();

@@ -115,10 +115,10 @@ pub(crate) struct Prepared<'corpus> {
     pub rows: &'corpus [TrainingRow],
     /// Closed target per row, in row order.
     pub targets: Box<[ClosedTarget]>,
-    /// Finite positive total weight `S`, accumulated in row order.
-    pub total_weight: f64,
+    /// Total weight `S`, accumulated in row order.
+    pub total_weight: DPositive,
     /// The validated L2 penalty `λ` that preparation applied to the corpus.
-    pub regularization: f64,
+    pub regularization: DPositive,
     /// Aggregate weighted class mass `Σ_i w_i u_ic`, positive for every class.
     pub class_mass: [f64; GeometryClass::COUNT],
     /// The scaled-coordinate diagonal derived from the initial Hessian diagonal.
@@ -195,11 +195,10 @@ pub(crate) fn prepare<'corpus>(
 
     counters.complete_preparation_traversal();
 
-    if !total_weight.is_finite() || total_weight <= 0.0 {
-        return Err(PreparationError::InvalidTotalWeight {
+    let total_weight =
+        DPositive::new(total_weight).ok_or(PreparationError::InvalidTotalWeight {
             value: total_weight,
-        });
-    }
+        })?;
 
     // A NaN mass rejects like any non-positive mass.
     if let Some(class) = class_mass
@@ -218,7 +217,7 @@ pub(crate) fn prepare<'corpus>(
         rows,
         targets: targets.into_boxed_slice(),
         total_weight,
-        regularization: settings.regularization.get(),
+        regularization: settings.regularization,
         class_mass,
         scaling: initial.scaling,
         evidence: PreparationEvidence {
@@ -292,12 +291,12 @@ struct InitialScaling {
 
 /// Builds the scaled-coordinate diagonal from the accumulated second moments.
 ///
-/// Only the coefficient coordinates carry the `λ/S` regularization term; the intercept curvature
+/// Only the coefficient coordinates carry the `λ/S` regularization term. The intercept curvature
 /// is [`INTERCEPT_CURVATURE`]. The floor is the largest curvature scaled by the configured
 /// relative floor, so it follows the corpus's curvature scale.
 fn initial_scaling(
     moments: &AlignedDVecN<CANONICAL_DIMENSIONS>,
-    total_weight: f64,
+    total_weight: DPositive,
     settings: PreparationSettings,
 ) -> Result<InitialScaling, PreparationError> {
     let normalizer = (3.0 * total_weight).recip();

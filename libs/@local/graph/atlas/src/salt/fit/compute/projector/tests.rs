@@ -39,9 +39,8 @@ use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{
-        AffinityCurve, AlignedVecN, BoxedVecN, DNonNegative, FinitePointField, NonNegative,
-        Positive, Similarity, UnitFraction, Vec2, d_non_negative, d_positive, non_negative,
-        open_unit_fraction, positive,
+        AffinityCurve, AlignedVecN, BoxedVecN, FinitePointField, NonNegative, Positive, Similarity,
+        UnitFraction, Vec2, d_non_negative, d_positive, non_negative, open_unit_fraction, positive,
     },
     salt::{
         embedding::EmbedderFingerprint,
@@ -519,18 +518,16 @@ fn the_capped_estimand_scales_each_share_by_its_draw_probability() {
 
     // Group order with hand-derived clips: `min(1, 2) / 2 = 1/2` for the two-edge group and
     // `min(1, 1) / 1 = 1` for the one-edge group, folded in the walk's own fused chain.
-    let expected = d_non_negative!(1.0).mul_add(
-        share_nine,
-        d_non_negative!(0.5).mul_add(share_seven, DNonNegative::ZERO),
-    );
-    assert_eq!(biting.capped_total.get(), expected.get());
+    let expected = share_nine
+        .get()
+        .mul_add(1.0, share_seven.get().mul_add(0.5, 0.0));
+    assert_eq!(biting.capped_total.get(), expected);
 
     // A cap covering every group leaves nothing to clip.
-    let uncapped = d_non_negative!(1.0).mul_add(
-        share_nine,
-        d_non_negative!(1.0).mul_add(share_seven, DNonNegative::ZERO),
-    );
-    assert_eq!(covering.capped_total.get(), uncapped.get());
+    let uncapped = share_nine
+        .get()
+        .mul_add(1.0, share_seven.get().mul_add(1.0, 0.0));
+    assert_eq!(covering.capped_total.get(), uncapped);
 }
 
 /// Asserts the persisted calibration body echoes the boundary and the tick readings.

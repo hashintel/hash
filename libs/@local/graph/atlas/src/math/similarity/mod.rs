@@ -14,9 +14,9 @@
 use core::simd::Simd;
 
 use super::{
-    NonNegative,
+    Positive,
     kernel::mul_add_f32x4,
-    non_negative,
+    positive,
     rotation::Rotation,
     transform::Transform,
     vec2::{Vec2, Vec2x4T},
@@ -77,7 +77,7 @@ mod tests;
     zerocopy::KnownLayout,
 )]
 pub(crate) struct Similarity {
-    scale: NonNegative,
+    scale: Positive,
     rotation: Rotation,
     translation: Vec2,
 }
@@ -85,7 +85,7 @@ pub(crate) struct Similarity {
 impl Similarity {
     /// The similarity that maps every vector to itself.
     pub(crate) const IDENTITY: Self = Self {
-        scale: non_negative!(1.0),
+        scale: positive!(1.0),
         rotation: Rotation::IDENTITY,
         translation: Vec2::ZERO,
     };
@@ -99,7 +99,7 @@ impl Similarity {
     #[inline]
     #[must_use]
     pub(crate) const fn new(
-        scale: NonNegative,
+        scale: Positive,
         rotation: Rotation,
         translation: Vec2,
     ) -> Option<Self> {
@@ -117,7 +117,7 @@ impl Similarity {
     /// Returns the uniform scale factor.
     #[inline]
     #[must_use]
-    pub(crate) const fn scale(self) -> NonNegative {
+    pub(crate) const fn scale(self) -> Positive {
         self.scale
     }
 
@@ -167,7 +167,8 @@ impl Similarity {
     #[inline]
     #[must_use]
     pub(crate) const fn inverse(self) -> Self {
-        let inverse_scale = self.scale.inverse();
+        // In domain with no check: `new` admits only scales whose reciprocal is also normal.
+        let inverse_scale = self.scale.recip();
         let rotation = self.rotation.inverse();
         let moved = rotation.apply(self.translation);
 
@@ -259,7 +260,7 @@ impl Similarity {
         [scale, cos, sin, translation_x, translation_y]: [f32; 5],
     ) -> Option<Self> {
         Self::new(
-            NonNegative::new(scale)?,
+            Positive::new(scale)?,
             Rotation::from_cos_sin(cos, sin),
             Vec2::new(translation_x, translation_y),
         )

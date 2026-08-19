@@ -19,7 +19,7 @@
 //! embedding dimensions, each with one appended intercept coordinate. Flat solver vectors are
 //! contrast-major, `[A_0,0 … A_0,d−1, a_0, A_1,0 … A_1,d−1, a_1, …]`, and [`ContrastVector`]
 //! carries the same coordinates in structured form. The physical objective, gradient, and
-//! Hessian-vector products evaluate in these coordinates; the solver's own iterate lives in scaled
+//! Hessian-vector products evaluate in these coordinates. The solver's own iterate lives in scaled
 //! coordinates `ζ` reached through the preparation-time diagonal ([`scale`]).
 
 use crate::{

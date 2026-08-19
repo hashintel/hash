@@ -90,7 +90,7 @@ const fn packed_length(order: usize) -> usize {
 
 /// One solve's window onto a fit-level [`Gram`].
 ///
-/// A full-corpus solve reads the matrix directly; a fold solve carries the ascending original
+/// A full-corpus solve reads the matrix directly. A fold solve carries the ascending original
 /// indices of its member rows and reads the full matrix through them. Either way, `entry(i, j)`
 /// speaks the solve's own row indices.
 #[derive(Debug, Copy, Clone)]

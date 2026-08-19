@@ -251,7 +251,10 @@ pub(crate) fn evaluate(
     );
 
     let quantile = super::RADIUS_FRACTION;
-    let tau = MATERIALITY_MULTIPLIER * temperature;
+    // Total at the current unit multiplier - an exact 1.0 multiplies to the operand itself -
+    // and any future multiplier stays a small constant whose product exits only from the top
+    // exponent shells, far above any temperature reading.
+    let tau = (MATERIALITY_MULTIPLIER * temperature).finish_unchecked();
     let confidence = (2.0 / FALSE_PASS_BUDGET).ln();
 
     let effective_support = support.effective();
@@ -279,7 +282,7 @@ pub(crate) fn evaluate(
         for mass in type_masses {
             if mass > 0.0 {
                 total += mass;
-                squares += Derivation::from(mass) * mass;
+                squares += mass.square();
             }
         }
         let total = total.into_raw();

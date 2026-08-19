@@ -22,7 +22,7 @@ use crate::{
     },
     identity::{NodeRowId, OntologyRowId},
     integrity::Sha256Digest,
-    math::{DNonNegative, DPositive, FinitePointField, NonNegative},
+    math::{DNonNegative, DPositive, Derivation, FinitePointField, NonNegative},
     salt::{
         ladder::{
             Field, measure_ladder,
@@ -421,13 +421,15 @@ where
 {
     let epsilon = energy.epsilon();
 
-    let mut uncapped_total = DNonNegative::ZERO;
-    let mut capped_total = DNonNegative::ZERO;
+    // The mixture readings are raw and can carry an f32 overflow, so every accumulation chain
+    // runs as a derivation and makes its one claim at the readout's construction.
+    let mut uncapped_total = Derivation::<DNonNegative>::ZERO;
+    let mut capped_total = Derivation::<DNonNegative>::ZERO;
     let mut per_type = Vec::with_capacity(index.groups().len());
     for group in index.groups() {
         let weights = group.weights();
         let edges = group.edges();
-        let mut share = DNonNegative::ZERO;
+        let mut share = Derivation::<DNonNegative>::ZERO;
 
         for edge in edges {
             let source = edge.source;
@@ -435,14 +437,15 @@ where
             let difference = frame[source] - frame[target];
             let distance = difference.length();
             let normalization = scales.normalization(source, target, epsilon);
-            let normalized = distance / normalization;
+            // Never NaN and never negative; a quotient past the working range saturates where
+            // the class energies saturate anyway.
+            let normalized = distance.saturating_div(normalization);
 
             let (value, _) = energy.mixture(normalized, weights.coincident, weights.proximal);
-            let factor = (edge.confidence.value() * edge.normalization)
-                * DNonNegative::from(weights.strength);
+            let factor = (edge.confidence.value() * edge.normalization) * weights.strength.widen();
 
-            uncapped_total = factor.mul_add(value.into(), uncapped_total);
-            share = factor.mul_add(value.into(), share);
+            uncapped_total = Derivation::from(factor).mul_add(value, uncapped_total);
+            share = Derivation::from(factor).mul_add(value, share);
         }
 
         #[expect(
@@ -453,13 +456,22 @@ where
         // quotient is finite and in `(0, 1]`.
         let clip =
             DNonNegative::new_unchecked(cap.get().min(edges.len()) as f64 / edges.len() as f64);
-        capped_total = clip.mul_add(share, capped_total);
-        per_type.push((group.relation(), share));
+        capped_total = share.mul_add(clip, capped_total);
+        per_type.push((
+            group.relation(),
+            share.finish().expect("the relation share should be finite"),
+        ));
     }
 
+    // The folds run over validated weights and clips in (0, 1], so a non-finite finish marks a
+    // defect upstream of this readout.
     RelationLossReadout {
-        uncapped_total,
-        capped_total,
+        uncapped_total: uncapped_total
+            .finish()
+            .expect("the uncapped relation total should be finite"),
+        capped_total: capped_total
+            .finish()
+            .expect("the capped relation total should be finite"),
         per_type,
     }
 }

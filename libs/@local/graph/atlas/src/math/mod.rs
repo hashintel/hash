@@ -59,7 +59,7 @@
 //!
 //! Unclaimed folds: [`Derivation`] is a data-dependent fold's raw value bound for its
 //! validated [`Domain`](derivation::Domain), claiming nothing until
-//! [`finish`](Derivation::finish). [`Diverged`](derivation::Diverged) returns the raw evidence
+//! [`finish`](Derivation::finish). [`Diverged`] returns the raw evidence
 //! of a refused claim.
 //!
 //! # Precision policy
@@ -108,15 +108,13 @@ mod test_alloc;
 mod tests;
 
 #[cfg(test)]
-pub(crate) use self::scalar::{
-    d_finite, d_non_negative, finite, greater_than_one, positive_unit_fraction,
-};
+pub(crate) use self::scalar::{d_non_negative, finite, greater_than_one, positive_unit_fraction};
 #[cfg(test)]
 pub(crate) use self::translation::Translation;
 pub(crate) use self::{
     affinity::AffinityCurve,
     bounds::Bounds2,
-    derivation::Derivation,
+    derivation::{Derivation, Diverged},
     dsquare::{DCholeskyError, DSquareMatrix},
     dvec2::{DVec2, DVec2x4T},
     dvecn::{AlignedDVecN, BoxedDVecN, DVecN},
@@ -127,8 +125,8 @@ pub(crate) use self::{
     rotation::Rotation,
     scalar::{
         DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, Negative, NonNegative,
-        OpenUnitFraction, Positive, PositiveUnitFraction, UnitFraction, d_positive, narrow_f32,
-        non_negative, nz, open_unit_fraction, positive, softplus, unit_fraction,
+        OpenUnitFraction, Positive, PositiveUnitFraction, UnitFraction, d_finite, d_positive,
+        narrow_f32, non_negative, nz, open_unit_fraction, positive, softplus, unit_fraction,
     },
     similarity::Similarity,
     transform::Transform,

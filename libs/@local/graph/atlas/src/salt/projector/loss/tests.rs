@@ -353,14 +353,17 @@ fn relation_mixture_is_the_weighted_class_sum() {
     let (value, derivative) = energy.mixture(z, non_negative!(0.5), non_negative!(0.25));
 
     assert_eq!(
-        value.get(),
-        0.5_f32.mul_add(coincident_value.get(), 0.25 * proximal_value.get())
+        value.into_raw(),
+        0.5_f64.mul_add(
+            f64::from(coincident_value.get()),
+            0.25 * f64::from(proximal_value.get())
+        )
     );
     assert_eq!(
-        derivative.get(),
-        0.5_f32.mul_add(
-            coincident_derivative.get(),
-            0.25 * proximal_derivative.get()
+        derivative.into_raw(),
+        0.5_f64.mul_add(
+            f64::from(coincident_derivative.get()),
+            0.25 * f64::from(proximal_derivative.get())
         )
     );
 }
@@ -419,7 +422,7 @@ fn attraction_pulls_and_repulsion_pushes() {
     );
     // The loss gradient ascends distance; the descent step moves the
     // endpoints together.
-    assert!(gradient(&field, 0).dot(DVec2::from(toward)) > 0.0);
+    assert!(gradient(&field, 0).dot(DVec2::from(toward)).into_raw() > 0.0);
 
     let mut field = GradientField::new(2);
     repulsion_term(
@@ -429,7 +432,7 @@ fn attraction_pulls_and_repulsion_pushes() {
         1.0,
         &mut field,
     );
-    assert!(gradient(&field, 0).dot(DVec2::from(toward)) < 0.0);
+    assert!(gradient(&field, 0).dot(DVec2::from(toward)).into_raw() < 0.0);
 }
 
 #[test]

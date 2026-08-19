@@ -51,8 +51,8 @@ pub(crate) use self::refusal::InvalidRuler;
 use super::{LOCAL_SCALE_NEIGHBOURS, NonFiniteScale, insert_nearest, sorted_median};
 use crate::{
     math::{
-        DNonNegative, DPositive, FinitePointField, NonNegative, Positive, PositiveUnitFraction,
-        Vec2,
+        DNonNegative, DPositive, Derivation, FinitePointField, NonNegative, Positive,
+        PositiveUnitFraction, Vec2,
     },
     salt::knn::{construction::NeighbourSlot, table::KnnView},
 };
@@ -152,18 +152,21 @@ where
 
         let set_len = knn.neighbours().min(LOCAL_SCALE_NEIGHBOURS);
 
-        let measurements: Vec<_> = (0..zero_field.len())
+        let derived: Vec<_> = (0..zero_field.len())
             .into_par_iter()
             .map(|row| freeze_row(zero_field, knn, N::from_usize(row), set_len))
             .collect();
 
-        if let Some(row) = measurements
-            .iter()
-            .position(|&(scale, _)| !scale.is_finite())
-        {
-            return Err(InvalidRuler::NonFiniteScale {
-                row: N::from_usize(row),
-            });
+        // Each frozen median makes its one domain claim here, and the smallest diverged row is
+        // the refusal.
+        let mut measurements = Vec::with_capacity(derived.len());
+        for (row, (derivation, set)) in derived.into_iter().enumerate() {
+            let Ok(scale) = derivation.finish() else {
+                return Err(InvalidRuler::NonFiniteScale {
+                    row: N::from_usize(row),
+                });
+            };
+            measurements.push((scale, set));
         }
 
         // The spread reduction is bit-deterministic under any thread schedule (the field's
@@ -180,10 +183,10 @@ where
 
         // The window is dimensionless, and both bounds and the membership tests read in f64.
         let epsilon_rel = DPositive::from(parameters.epsilon_rel);
-        let ceiling = DNonNegative::from(quantile_scale) / DPositive::from(reference_spread);
-        let floor = parameters.floor.map(|floor| {
-            DPositive::from(floor.kappa_epsilon) * DPositive::from(floor.projection_band)
-        });
+        let ceiling = quantile_scale.div_wide(reference_spread);
+        let floor = parameters
+            .floor
+            .map(|floor| floor.kappa_epsilon.mul_wide(floor.projection_band));
 
         if let Some(floor) = floor
             && floor > ceiling
@@ -199,24 +202,21 @@ where
             });
         }
 
-        // The representation checks mirror the runtime arithmetic: the pair product is an f32
-        // product whose f64 square is exact, so the floor comparison bounds every runtime
-        // product at or above the domain's minimum. A coincident pair's product is exactly
-        // ε², and the freeze requires it at or above the domain's floor so the product never
-        // rounds to zero. An ε_rel small against s_ref underflows the narrowed ε itself to
-        // zero, and the refusal then carries the exact double product, the reading no working
-        // precision holds.
+        // The representation checks keep every stored reading representable. The narrowed ε
+        // must itself be an f32 value: an ε_rel small against s_ref underflows it to zero, and
+        // the refusal then carries the exact double product, the reading no working precision
+        // holds. The floor comparison requires the coincident pair's exact product ε² at or
+        // above the domain's minimum, so every pair denominator stays inside the validated
+        // window rather than at its subnormal edge.
         let Some(epsilon) = parameters.epsilon_rel.checked_mul(reference_spread) else {
             return Err(InvalidRuler::RepresentationFloor {
-                epsilon_abs: DPositive::from(parameters.epsilon_rel)
-                    * DPositive::from(reference_spread),
+                epsilon_abs: parameters.epsilon_rel.mul_wide(reference_spread),
             });
         };
 
-        let epsilon_exact = DPositive::from(epsilon);
-        if epsilon_exact * epsilon_exact < DPositive::from(Positive::MIN) {
+        if epsilon.square_wide() < DPositive::from(Positive::MIN) {
             return Err(InvalidRuler::RepresentationFloor {
-                epsilon_abs: epsilon_exact,
+                epsilon_abs: DPositive::from(epsilon),
             });
         }
 
@@ -230,7 +230,11 @@ where
         // sum whose square clears that bound sits near 2⁶⁴, far under where f32 overflows, so
         // the narrowed runtime sum cannot overflow once the check passes.
         let shifted_exact = DNonNegative::from(largest) + DPositive::from(epsilon);
-        if shifted_exact * shifted_exact >= DPositive::from(Positive::MAX) {
+        // Total: the exact double sum of two working-precision values is at most 2¹²⁹. Its
+        // square is at most 2²⁵⁸, far inside the `f64` range.
+        if DPositive::new_unchecked(shifted_exact.get() * shifted_exact.get())
+            >= DPositive::from(Positive::MAX)
+        {
             return Err(InvalidRuler::RepresentationCeiling {
                 shifted_scale: shifted_exact,
             });
@@ -260,9 +264,9 @@ where
     /// Returns the pair's denominator `σ₀ = √((ρ₀(source)+ε)(ρ₀(target)+ε))`.
     ///
     /// The reads hit the precomputed ε-shifted scales, so one call is two loads, a product, and
-    /// a root. Total in the typed domain by the freeze-time checks: the floor keeps a coincident
-    /// pair's product `ε²` at or above the domain's minimum positive value, the ceiling keeps
-    /// the densest pair's product finite, and rounding is monotone between them.
+    /// a root, and the geometric mean is total on its own: the widened product is exact, and
+    /// the mean of two representable positives is representable. The freeze-time window checks
+    /// bound where inside the domain the reading can land.
     ///
     /// # Panics
     ///
@@ -270,7 +274,7 @@ where
     #[inline]
     #[must_use]
     pub(crate) fn denominator(&self, source: N, target: N) -> Positive {
-        (self.shifted[source] * self.shifted[target]).sqrt()
+        self.shifted[source].geometric_mean(self.shifted[target])
     }
 
     /// Measures the live field's local scales over the frozen neighbour sets.
@@ -298,7 +302,7 @@ where
         );
 
         let set_len = self.neighbours.columns();
-        let scales: Vec<_> = (0..coordinates.len())
+        let derived: Vec<_> = (0..coordinates.len())
             .into_par_iter()
             .map(|row| {
                 let row = N::from_usize(row);
@@ -309,14 +313,20 @@ where
                 }
                 distances[..set_len].sort_unstable();
 
-                sorted_median(&distances[..set_len])
+                Derivation::raw(sorted_median(&distances[..set_len]).get())
             })
             .collect();
 
-        if let Some(row) = scales.iter().position(|scale| !scale.is_finite()) {
-            return Err(NonFiniteScale {
-                row: N::from_usize(row),
-            });
+        // Each median makes its one domain claim here at the table boundary, and the smallest
+        // diverged row is the refusal.
+        let mut scales = Vec::with_capacity(derived.len());
+        for (row, derivation) in derived.into_iter().enumerate() {
+            let Ok(scale) = derivation.finish() else {
+                return Err(NonFiniteScale {
+                    row: N::from_usize(row),
+                });
+            };
+            scales.push(scale);
         }
 
         Ok(IdSlice::from_boxed_slice(scales.into_boxed_slice()))
@@ -402,7 +412,7 @@ fn freeze_row<N>(
     knn: &KnnView<'_, N>,
     row: N,
     set_len: usize,
-) -> (NonNegative, [N; LOCAL_SCALE_NEIGHBOURS])
+) -> (Derivation<NonNegative>, [N; LOCAL_SCALE_NEIGHBOURS])
 where
     N: Id,
 {
@@ -422,7 +432,10 @@ where
     }
     distances[..set_len].sort_unstable();
 
-    (sorted_median(&distances[..set_len]), set)
+    (
+        Derivation::raw(sorted_median(&distances[..set_len]).get()),
+        set,
+    )
 }
 
 /// Returns the declared order statistic of the positive scales, or [`None`] when none exist.

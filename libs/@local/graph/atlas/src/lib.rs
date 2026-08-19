@@ -76,13 +76,15 @@
     default_field_values,
     exhaustive_patterns,
     f128,
-    never_type,
     impl_restriction,
     macro_metavar_expr_concat,
+    never_type,
 
     // Library Features
     allocator_api,
     array_try_from_fn,
+    clone_from_ref,
+    clone_to_uninit,
     const_array,
     const_closures,
     const_cmp,
@@ -93,12 +95,15 @@
     const_ops,
     const_option_ops,
     const_try,
+    exact_size_is_empty,
     generic_atomic,
     impl_trait_in_assoc_type,
+    integer_casts,
     iter_intersperse,
     iter_map_windows,
     iterator_try_collect,
     nonpoison_mutex,
+    nonpoison_rwlock,
     pointer_is_aligned_to,
     portable_simd,
     ptr_metadata,
@@ -106,11 +111,6 @@
     sync_nonpoison,
     time_saturating_systemtime,
     variant_count,
-    clone_from_ref,
-    clone_to_uninit,
-    integer_casts,
-    nonpoison_rwlock,
-    exact_size_is_empty,
 )]
 // The dashboard's interrupt path leaves through an exit code, and it is
 // the only consumer of the feature.
@@ -119,9 +119,6 @@
     dead_code,
     unsafe_code,
     clippy::float_arithmetic,
-    // Async surfaces follow the `Dataset` trait, which does not promise
-    // `Send` streams: a future's sendability is the caller's dataset
-    // choice, not a per-function property worth restating.
     clippy::future_not_send,
     clippy::indexing_slicing
 )]

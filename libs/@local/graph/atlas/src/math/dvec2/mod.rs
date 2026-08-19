@@ -6,9 +6,10 @@ use core::{
 };
 
 use super::{
+    derivation::Derivation,
     dvecn::DVecN,
     kernel::mul_add_f64x4,
-    scalar::{DNonNegative, narrow_f32},
+    scalar::{DFinite, DNonNegative, narrow_f32},
     vec2::{Vec2, Vec2x4, Vec2x4T},
 };
 
@@ -80,27 +81,33 @@ impl DVec2 {
         self.0[1]
     }
 
-    /// Returns the dot product of the two vectors.
+    /// The shared raw dot fold under [`dot`](Self::dot) and [`norm_squared`](Self::norm_squared).
     #[inline]
-    #[must_use]
-    pub fn dot(self, other: Self) -> f64 {
+    fn dot_impl(self, other: Self) -> f64 {
         self.x().mul_add(other.x(), self.y() * other.y())
+    }
+
+    /// Returns the dot product of the two vectors.
+    ///
+    /// The exponents compose, so the fold rides as an unclaimed derivation to its consumer's
+    /// own finish.
+    #[inline]
+    pub(crate) fn dot(self, other: Self) -> Derivation<DFinite> {
+        Derivation::raw(self.dot_impl(other))
     }
 
     /// Returns the perpendicular dot product, the `z` component of the 3D cross product.
     ///
     /// The sign semantics match [`Vec2::perp_dot`].
     #[inline]
-    #[must_use]
-    pub fn perp_dot(self, other: Self) -> f64 {
-        self.x().mul_add(other.y(), -(self.y() * other.x()))
+    pub(crate) fn perp_dot(self, other: Self) -> Derivation<DFinite> {
+        Derivation::raw(self.x().mul_add(other.y(), -(self.y() * other.x())))
     }
 
     /// Returns the squared Euclidean length of the vector.
     #[inline]
-    #[must_use]
-    pub fn norm_squared(self) -> f64 {
-        self.dot(self)
+    pub(crate) fn norm_squared(self) -> Derivation<DNonNegative> {
+        Derivation::raw(self.dot_impl(self))
     }
 
     /// Returns the squared Euclidean distance to `other`.
@@ -338,7 +345,7 @@ impl DVec2x4T {
 
     /// Splits the batch into one SIMD lane group per axis.
     ///
-    /// The first group holds the `x` components, the second the `y` components; lane `i` of each
+    /// The first group holds the `x` components, the second the `y` components. Lane `i` of each
     /// corresponds to vector `i`. This is the inverse of [`from_lanes`](Self::from_lanes) and the
     /// by-value counterpart of [`xs`](Self::xs) and [`ys`](Self::ys).
     #[inline]

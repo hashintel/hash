@@ -17,7 +17,7 @@ pub(crate) struct ClipJacobian {
     /// `u`: the pre-projection unit displacement from the centre.
     pub direction: DVec2,
     /// `landing/‖x − centre‖`: the tangential scale.
-    pub factor: f64,
+    pub factor: DPositive,
 }
 
 impl ClipJacobian {
@@ -54,13 +54,15 @@ impl ClipJacobian {
         }
 
         let displacement = DVec2::from(value) - DVec2::from(centre);
-        let factor = landing_radius / distance;
+        // In `(0, 1)` on this branch: the distance exceeds the radius and the landing sits
+        // strictly inside it, so the quotient of two finite positives is finite and positive.
+        let factor = DPositive::new_unchecked((landing_radius / distance).into_raw());
         let jacobian = Self {
             direction: displacement / distance,
             factor,
         };
         let landed = displacement
-            .mul_add(factor, DVec2::from(centre))
+            .mul_add(factor.get(), DVec2::from(centre))
             .narrow()
             .expect("the landing point stays finite by the freeze-time extent check");
 
@@ -73,7 +75,7 @@ impl ClipJacobian {
     /// along the clip direction is removed and the remainder scales by the factor.
     #[must_use]
     pub(crate) fn transform(self, force: DVec2) -> DVec2 {
-        (force - self.direction * force.dot(self.direction)) * self.factor
+        (force - self.direction * force.dot(self.direction).into_raw()) * self.factor.get()
     }
 }
 

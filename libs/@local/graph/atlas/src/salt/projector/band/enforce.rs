@@ -112,8 +112,8 @@ impl EnforcementPass {
         let distance = square.sqrt();
         // Proven finite: the entry scan and the freeze admit only finite rows and centres, and
         // the widest f32 displacement quotient by the smallest positive spread stays far inside
-        // the f64 range.
-        let normalized = distance / self.spread_wide;
+        // the f64 range, so the re-entry needs no check.
+        let normalized = (distance / self.spread_wide).finish_unchecked();
         *maximum = (*maximum).max(normalized);
 
         // The clip law returns the applied derivative, and this whole-field path discards it:
@@ -128,9 +128,11 @@ impl EnforcementPass {
             self.landing_radius,
         ) {
             outcome.clipped += 1;
-            // Positive on this branch: the distance exceeds the radius.
-            let overshoot =
-                DNonNegative::new_unchecked((distance - self.radius_wide) / self.spread_wide);
+            // Positive on this branch: the distance exceeds the radius, and the quotient of
+            // finite one-sign readings by a positive spread stays finite.
+            let overshoot = DNonNegative::new_unchecked(
+                ((distance - self.radius_wide) / self.spread_wide).into_raw(),
+            );
             outcome.overshoot = outcome.overshoot.max(overshoot);
 
             *row = landed;

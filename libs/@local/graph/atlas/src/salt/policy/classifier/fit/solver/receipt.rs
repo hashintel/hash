@@ -23,7 +23,7 @@ use crate::{
 
 /// Whether a solve stores diagnostic receipts.
 ///
-/// Receipts serve an explicit debugging consumer; the routine fit stores none and returns the
+/// Receipts serve an explicit debugging consumer. The routine fit stores none and returns the
 /// outcome, control state, counters, and certificate alone.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum ReceiptDetail {
@@ -77,7 +77,9 @@ pub(crate) enum CandidateOutcome {
     AcceptedGradientNonFinite,
 }
 
-/// The accepted-step curvature diagnostic; a failure is a recorded reason, never a terminal.
+/// The accepted-step curvature diagnostic.
+///
+/// A failure is a recorded reason, never a terminal.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum CurvatureDiagnostic {
     /// The accepted-step curvature, given as the dot `p·y` and its normalization `(p·y) / (p·p)`.

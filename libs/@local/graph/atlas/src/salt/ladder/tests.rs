@@ -4,7 +4,9 @@ use super::{
     CanonicalError, Conditions, ConditionsError, Field, LadderError, LadderOptions,
     RungMeasurement, measure_ladder, select_canonical,
 };
-use crate::math::{FinitePointField, Rotation, Similarity, Vec2, d_non_negative, non_negative};
+use crate::math::{
+    FinitePointField, Rotation, Similarity, Vec2, d_non_negative, non_negative, positive,
+};
 
 hashql_core::id::newtype! {
     /// The ladder tests' row domain.
@@ -206,7 +208,7 @@ fn pure_similarity_rung_measures_negligible_movement() {
         .expect("the schedule is valid");
     let base = base_field();
     let transform = Similarity::new(
-        non_negative!(2.0),
+        positive!(2.0),
         Rotation::from_radians(1.3),
         Vec2::new(5.0, -3.0),
     )
@@ -412,7 +414,7 @@ fn canonical_selection_requires_an_exact_member() {
     let base = base_field();
     let deformed = deformed_field(&base);
     let transform = Similarity::new(
-        non_negative!(3.0),
+        positive!(3.0),
         Rotation::from_radians(0.4),
         Vec2::new(-2.0, 8.0),
     )

@@ -16,10 +16,7 @@ use hashql_core::id::IdSlice;
 use super::{EvaluationEvidence, EvidenceReferences, EvidenceRefusal, StratumId};
 use crate::{
     identity::NodeRowId,
-    math::{
-        DNonNegative, FinitePointField, NonNegative, Positive, Rotation, Similarity, Transform,
-        Vec2,
-    },
+    math::{DNonNegative, FinitePointField, Positive, Rotation, Similarity, Transform, Vec2},
     salt::projector::{
         band::BandProjection,
         gauge::{DuplicateClassId, GaugeAnchors, GaugeFit},
@@ -371,7 +368,7 @@ fn the_objective_reading_enters_no_bridge_end() {
 #[test]
 fn the_bridge_composes_the_two_recorded_ends() {
     let gauge_similarity = Similarity::new(
-        NonNegative::new(2.0).expect("2 is non-negative"),
+        Positive::new(2.0).expect("2 is positive"),
         Rotation::IDENTITY,
         Vec2::new(0.0, 0.0),
     )

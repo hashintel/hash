@@ -10,6 +10,7 @@ use super::{
     DFinite, DPositive, NonNegative, OpenUnitFraction, Positive, PositiveUnitFraction,
     UnitFraction, raw_interop, unsafe_impl_try_from_bytes,
 };
+use crate::math::derivation::Derivation;
 
 /// Validates a non-negative double-precision literal at compile time.
 ///
@@ -155,17 +156,13 @@ impl DNonNegative {
         Self(self.0.sqrt())
     }
 
-    /// Fuses a multiply-add `self · factor + addend` with one rounding.
+    /// Squares into a derivation, claiming nothing.
     ///
-    /// Products and sums of non-negatives stay non-negative and are never NaN. Overflow escapes
-    /// to `+∞` and asserts in debug builds, mirroring integer `+`.
+    /// Squaring doubles an unbounded exponent, a fat exit, so the product enters the fold raw
+    /// and the claim waits for the finish.
     #[inline]
-    #[must_use]
-    pub(crate) fn mul_add(self, factor: Self, addend: Self) -> Self {
-        let fused = self.0.mul_add(factor.0, addend.0);
-        debug_assert!(fused.is_finite(), "the fused multiply-add overflowed");
-
-        Self(fused)
+    pub(crate) const fn square(self) -> Derivation<Self> {
+        Derivation::raw(self.0 * self.0)
     }
 
     /// Narrows to working precision with round-to-nearest.
@@ -328,14 +325,14 @@ const impl core::ops::Sub for DNonNegative {
 }
 
 const impl core::ops::Neg for DNonNegative {
-    type Output = f64;
+    type Output = DFinite;
 
-    /// Negates, leaving the domain at the sign flip.
+    /// Negates into the finite domain, exactly.
     ///
-    /// The negation of a non-negative value is non-positive, so the result is a raw float.
+    /// The negation of a finite value is finite, and the sign is the reading.
     #[inline]
-    fn neg(self) -> f64 {
-        -self.0
+    fn neg(self) -> DFinite {
+        DFinite::new_unchecked(-self.0)
     }
 }
 
@@ -392,15 +389,16 @@ const impl core::ops::Sub<DNonNegative> for f64 {
 }
 
 const impl core::ops::Sub<DPositive> for DNonNegative {
-    type Output = f64;
+    type Output = DFinite;
 
-    /// Subtracts a positive value, leaving the domain.
+    /// Subtracts a positive value, into the finite domain.
     ///
-    /// The difference is negative whenever the positive operand exceeds the value, so the result
-    /// is a raw float and the caller re-enters a domain at whichever boundary proves the bound.
+    /// The difference of two finite values of one sign is finite, with no re-validation: its
+    /// magnitude never exceeds the larger operand, so the subtraction cannot overflow. The
+    /// sign is the reading, negative whenever the positive operand exceeds the value.
     #[inline]
-    fn sub(self, rhs: DPositive) -> f64 {
-        self.0 - rhs.get()
+    fn sub(self, rhs: DPositive) -> DFinite {
+        DFinite::new_unchecked(self.0 - rhs.get())
     }
 }
 
@@ -456,20 +454,6 @@ const impl core::ops::AddAssign<PositiveUnitFraction> for DNonNegative {
     }
 }
 
-const impl core::ops::Div<DPositive> for DNonNegative {
-    type Output = Self;
-
-    /// Divides by a positive value.
-    ///
-    /// The quotient of a non-negative by a positive is never NaN and never negative. Overflow
-    /// escapes to `+∞` - a wrong reading rather than a soundness break, since no unsafe code
-    /// trusts the domain - and asserts in debug builds through the constructor.
-    #[inline]
-    fn div(self, rhs: DPositive) -> Self {
-        Self::new_unchecked(self.0 / rhs.get())
-    }
-}
-
 const impl core::ops::Add<DPositive> for DNonNegative {
     type Output = DPositive;
 
@@ -484,7 +468,7 @@ const impl core::ops::Add<DPositive> for DNonNegative {
 }
 
 const impl core::ops::Mul for DNonNegative {
-    type Output = Self;
+    type Output = Derivation<Self>;
 
     /// Multiplies.
     ///
@@ -493,20 +477,48 @@ const impl core::ops::Mul for DNonNegative {
     /// domain - and asserts in debug builds through the constructor. Underflow rounds to zero,
     /// inside the domain.
     #[inline]
-    fn mul(self, rhs: Self) -> Self {
-        Self::new_unchecked(self.0 * rhs.0)
+    fn mul(self, rhs: Self) -> Derivation<Self> {
+        Derivation::raw(self.0 * rhs.0)
     }
 }
 
 const impl core::ops::Mul<DPositive> for DNonNegative {
-    type Output = Self;
+    type Output = Derivation<Self>;
 
     /// Multiplies by a positive factor, staying non-negative.
     ///
     /// Zero stays exactly zero, and overflow escapes to `+∞` as the in-family product does.
     #[inline]
-    fn mul(self, rhs: DPositive) -> Self {
-        Self::new_unchecked(self.0 * rhs.get())
+    fn mul(self, rhs: DPositive) -> Derivation<Self> {
+        Derivation::raw(self.0 * rhs.get())
+    }
+}
+
+const impl core::ops::Div<DPositive> for DNonNegative {
+    type Output = Derivation<Self>;
+
+    /// Divides by a positive divisor, staying non-negative.
+    ///
+    /// The divisor is never zero and never NaN, so the sign is closed and no NaN can arise. The
+    /// exponents compose: a large numerator over a small divisor overflows to `+∞`, the fat
+    /// exit the derivation carries to its finish. Underflow rounds to zero, inside the domain.
+    #[inline]
+    fn div(self, rhs: DPositive) -> Derivation<Self> {
+        Derivation::raw(self.0 / rhs.get())
+    }
+}
+
+const impl core::ops::Div for DNonNegative {
+    type Output = Derivation<Self>;
+
+    /// Divides within the family, staying non-negative where the quotient exists.
+    ///
+    /// A zero divisor sends a positive numerator to `+∞` and zero to NaN, both upward exits
+    /// the derivation carries to its finish. Overflow escapes the same way as the divisor
+    /// shrinks, and underflow rounds to zero, inside the domain.
+    #[inline]
+    fn div(self, rhs: Self) -> Derivation<Self> {
+        Derivation::raw(self.0 / rhs.0)
     }
 }
 

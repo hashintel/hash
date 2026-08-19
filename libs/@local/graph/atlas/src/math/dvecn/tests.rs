@@ -260,7 +260,7 @@ fn dot_matches_a_plain_reference_across_chunk_sizes() {
             .map(|(&lhs, &rhs)| lhs * rhs)
             .sum::<f64>();
 
-        let actual = DVecN::new(left).dot(DVecN::from_ref(&right));
+        let actual = DVecN::new(left).dot(DVecN::from_ref(&right)).into_raw();
         assert!(
             (actual - expected).abs() <= expected.abs().mul_add(1e-12, 1e-12),
             "dot over {N}: {actual} vs {expected}",
@@ -281,13 +281,13 @@ fn norm_squared_and_abs_sum_match_plain_references() {
     let vec = DVecN::new(components);
 
     let expected_norm = components.iter().map(|&value| value * value).sum::<f64>();
-    assert!((vec.norm_squared() - expected_norm).abs() <= expected_norm * 1e-12);
+    assert!((vec.norm_squared().into_raw() - expected_norm).abs() <= expected_norm * 1e-12);
 
     let expected_abs = components.iter().map(|&value| value.abs()).sum::<f64>();
     assert!((vec.abs_sum() - expected_abs).abs() <= expected_abs * 1e-12);
 
     // The empty folds hit their identities exactly.
-    assert_eq!(DVecN::new([]).norm_squared(), 0.0);
+    assert_eq!(DVecN::new([]).norm_squared().into_raw(), 0.0);
     assert_eq!(DVecN::new([]).abs_sum(), 0.0);
 }
 
@@ -680,12 +680,12 @@ fn aligned_reductions_agree_with_unaligned_bits_across_chunk_sizes() {
         let boxed_other = aligned(&other);
 
         assert_eq!(
-            unaligned.dot(&unaligned_other),
+            unaligned.dot(&unaligned_other).into_raw(),
             boxed.dot(&boxed_other).into_raw(),
             "dot over {N}",
         );
         assert_eq!(
-            unaligned.norm_squared(),
+            unaligned.norm_squared().into_raw(),
             boxed.norm_squared().into_raw(),
             "norm over {N}",
         );

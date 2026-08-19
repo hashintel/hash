@@ -9,7 +9,7 @@
 use hashql_core::id::Id;
 
 use super::Transform;
-use crate::math::{DNonNegative, FinitePointField, dvec2::DVec2};
+use crate::math::{DNonNegative, Derivation, FinitePointField, dvec2::DVec2};
 
 impl Transform {
     /// Fits the unweighted least-squares affine map of paired fields.
@@ -160,10 +160,6 @@ impl Transform {
     /// This panics when the field lengths differ or the fields are empty, because the residual
     /// is defined over matched pairs and an empty set has no mean.
     #[must_use]
-    #[expect(
-        clippy::cast_precision_loss,
-        reason = "pair counts remain exactly representable in f64 far beyond any corpus"
-    )]
     pub(crate) fn rms_residual<I: Id>(
         self,
         source: &FinitePointField<I>,
@@ -183,7 +179,7 @@ impl Transform {
         let y_axis = DVec2::from(self.y_axis);
         let translation = DVec2::from(self.translation);
 
-        let mut squared = 0.0_f64;
+        let mut squared = Derivation::<DNonNegative>::ZERO;
         for (&source, &target) in source.iter().zip(target.iter()) {
             let source = DVec2::from(source);
             let target = DVec2::from(target);
@@ -198,6 +194,7 @@ impl Transform {
                     .mul_add(source.x(), y_axis.y().mul_add(source.y(), translation.y()))
                     - target.y(),
             );
+
             squared += residual.norm_squared();
         }
 
@@ -209,6 +206,8 @@ impl Transform {
         // slice of 8-byte points cannot hold more) below 2^577 - finite in `f64` with room to
         // spare, and non-negative as a sum of squares. The quotient by a positive pair count
         // and the square root keep both properties.
-        DNonNegative::new_unchecked((squared / source.len() as f64).sqrt())
+        (squared / DNonNegative::from_usize(source.len()))
+            .sqrt()
+            .finish_unchecked()
     }
 }

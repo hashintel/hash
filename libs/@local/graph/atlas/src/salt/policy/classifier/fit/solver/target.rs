@@ -15,10 +15,7 @@
 use core::num::NonZeroU32;
 
 use super::LEADING_CLASSES;
-use crate::{
-    math::{DPositive, d_positive},
-    salt::policy::GeometryClass,
-};
+use crate::{math::DPositive, salt::policy::GeometryClass};
 
 /// A closed target rejected the raw triple.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -69,8 +66,12 @@ impl ClosedTarget {
             sum += component;
         }
 
-        // A NaN deviation rejects like any out-of-tolerance sum.
-        let tolerance = DPositive::from_u32(target_sum_tolerance_ulps) * d_positive!(f64::EPSILON);
+        // A NaN deviation rejects like any out-of-tolerance sum. The tolerance is total: an
+        // exact integer in [1, 2³²] scaled by 2⁻⁵² lies in [2⁻⁵², 2⁻²⁰], positive and far from
+        // both edges of the domain.
+        let tolerance = DPositive::new_unchecked(
+            DPositive::from_u32(target_sum_tolerance_ulps).get() * f64::EPSILON,
+        );
         let deviation = (sum - 1.0).abs();
         if deviation.is_nan() || deviation > tolerance {
             return Err(ClosedTargetError::SumOutOfTolerance { sum });

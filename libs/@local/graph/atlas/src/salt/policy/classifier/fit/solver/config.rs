@@ -10,7 +10,7 @@
 //! [`PreparationSettings`], so one validated configuration covers the whole fit.
 //!
 //! The outer-iteration budget is an inclusive maximum: equality is allowed and starting one more
-//! iteration fails the solve. It is the loop's only work limit; per-request work is bounded by the
+//! iteration fails the solve. It is the loop's only work limit. Per-request work is bounded by the
 //! iteration structure itself, at a small fixed number of evaluations and traversals per outer
 //! iteration.
 
@@ -19,7 +19,9 @@ use core::num::NonZero;
 use super::prepare::PreparationSettings;
 use crate::math::{DNonNegative, DPositive, GreaterThanOne, OpenUnitFraction};
 
-/// A cross-field constraint failed; per-field domains hold by construction.
+/// A cross-field constraint failed.
+///
+/// Per-field domains hold by construction.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum SolverConfigError {
     /// The radius domain violates `minimum ≤ initial ≤ maximum`.
@@ -75,7 +77,7 @@ pub(crate) struct SolverConfig {
     pub relative_scaled_gradient_tolerance: OpenUnitFraction = const {
         OpenUnitFraction::new(1.0e-6).expect("the relative tolerance is interior")
     },
-    /// Absolute floor of the gradient certificate; zero disables it.
+    /// Absolute floor of the gradient certificate. Zero disables it.
     pub absolute_scaled_gradient_tolerance: DNonNegative = const {
         DNonNegative::new(1.0e-10).expect("the absolute floor is non-negative")
     },

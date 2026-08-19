@@ -40,8 +40,8 @@ use hashql_core::id::{Id, IdSlice};
 use super::{GradientField, contrast::ContrastEnergy, penalty::Penalty};
 use crate::{
     math::{
-        DFinite, DNonNegative, DPositive, DVec2, Finite, FinitePointField, NonNegative, Positive,
-        PositiveUnitFraction, UnitFraction,
+        DFinite, DNonNegative, DPositive, DVec2, Derivation, Diverged, Finite, FinitePointField,
+        NonNegative, Positive, PositiveUnitFraction, UnitFraction,
     },
     salt::projector::gauge::{GaugeFit, GaugeOrdinal},
 };
@@ -216,11 +216,22 @@ impl TargetEstimator {
     /// contract. A canonical coincidence also reads a zero scale slope, so no pull arrives from
     /// it either.
     ///
+    /// # Errors
+    ///
+    /// Returns [`Diverged`] carrying the diverged fold's raw value when an accumulated reading
+    /// lies outside its domain. The folds are unbounded and data-dependent - an overflowed
+    /// violation alone injects +∞ - making a diverged reading an expected numerical refusal
+    /// that the caller owns.
+    ///
     /// # Panics
     ///
     /// This panics when the canonical and zero fields cover different row counts, or when a unit
     /// references a row outside them. Fields, units, and coordinates come from one batch assembly
     /// over one forward pass, so a mismatch is a wiring defect.
+    #[expect(
+        clippy::panic_in_result_fn,
+        reason = "a canonical/zero row mismatch is a wiring defect, not a recoverable error"
+    )]
     pub(crate) fn evaluate<N>(
         &self,
         canonical: &FinitePointField<N>,
@@ -228,7 +239,7 @@ impl TargetEstimator {
         units: &[TargetUnit<N>],
         canonical_field: &mut GradientField<N>,
         zero_field: &mut GradientField<N>,
-    ) -> TargetReading
+    ) -> Result<TargetReading, Diverged<f64>>
     where
         N: Id,
     {
@@ -241,9 +252,11 @@ impl TargetEstimator {
         let denominator = self.population_weight;
         let activation = self.activation.widen();
 
-        // Accumulated in double precision, products included.
-        let mut estimand = DFinite::ZERO;
-        let mut scale_pull = DNonNegative::ZERO;
+        // Accumulated in double precision, products included. The mass and force factors are
+        // unbounded and data-dependent, so both folds run as derivations and make their one
+        // claim at the reading's construction.
+        let mut estimand = Derivation::<DFinite>::ZERO;
+        let mut scale_pull = Derivation::<DNonNegative>::ZERO;
 
         for unit in units {
             let (source, target) = (unit.source, unit.target);
@@ -257,17 +270,20 @@ impl TargetEstimator {
                 .evaluate(unit.ruler, canonical_distance, zero_distance);
             let (value, slope) = self.penalty.evaluate(f64::from(evaluation.violation));
 
-            // The unit's estimator mass w(e)/(W·π(e)). The inclusion divisor is total by type.
-            let mass = unit.weight / (denominator * unit.inclusion);
-            estimand = DFinite::from(mass).mul_add(value, estimand);
+            // The unit's estimator mass w(e)/(W·π(e)), raw in flight. The inclusion divisor is
+            // total by type, and the quotient's claim waits for the folds' finish.
+            let mass = unit.weight.get() / (denominator * unit.inclusion);
+            estimand = Derivation::<DFinite>::raw(mass)
+                .mul_add(Derivation::<DFinite>::raw(value), estimand);
 
             let force = activation * mass * slope;
-            scale_pull = force.mul_add(evaluation.fitted_scale_slope.widen(), scale_pull);
+            scale_pull = Derivation::from(evaluation.fitted_scale_slope)
+                .mul_add(Derivation::<DNonNegative>::raw(force), scale_pull);
 
             if let Some(distance) = canonical_distance.positive() {
                 // dv/dy_source = canonical_slope · (y_source - y_target)/d_c.
                 let gradient = DVec2::from(canonical_difference)
-                    * (force * evaluation.canonical_slope.widen() / distance.widen()).get();
+                    * (force * evaluation.canonical_slope / distance.widen());
                 canonical_field.add(source, gradient);
                 canonical_field.add(target, -gradient);
             }
@@ -282,10 +298,10 @@ impl TargetEstimator {
             }
         }
 
-        TargetReading {
-            estimand: estimand.narrow_lossy(),
-            scale_pull,
-        }
+        Ok(TargetReading {
+            estimand: estimand.finish()?.narrow_lossy(),
+            scale_pull: scale_pull.finish()?,
+        })
     }
 }
 

@@ -295,7 +295,9 @@ where
         .scales
         .as_ref()
         .expect("a batch with relation edges was assembled with its scale table");
-    let scale = batch.eta * options.coefficients.relation * batch.relation_scale;
+    // Raw: the term scale is a product of unbounded working-precision factors, and the
+    // relation term folds it under the batch's total.
+    let scale = batch.eta.get() * options.coefficients.relation * batch.relation_scale;
     let rows = frame.len();
 
     // One scratch field serves every type. The pass reads and re-zeroes only the rows a type

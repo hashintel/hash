@@ -157,7 +157,7 @@ impl Similarity {
                 cos.mul_add(source.x(), (-sin).mul_add(source.y(), translation.x())) - target.x(),
                 sin.mul_add(source.x(), cos.mul_add(source.y(), translation.y())) - target.y(),
             );
-            squared += residual.norm_squared();
+            squared += residual.norm_squared().into_raw();
         }
 
         squared

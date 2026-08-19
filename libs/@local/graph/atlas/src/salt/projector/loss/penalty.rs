@@ -7,8 +7,6 @@
 //! from a derivative. A ruled shape outside the family arrives as a new variant rather than as a
 //! callback.
 
-use crate::math::{DFinite, DNonNegative};
-
 /// The penalty `φ`, mapping a contrast violation to its value and exact derivative.
 ///
 /// Both readings evaluate in double precision, and no variant divides. Every violation widened
@@ -32,19 +30,17 @@ impl Penalty {
     /// Evaluates `(φ(v), φ′(v))` at the violation.
     ///
     /// The violation arrives in double precision, and a caller holding a working-precision
-    /// reading widens it visibly at the call. The value is signed - under
-    /// [`Identity`](Self::Identity) a
-    /// satisfied pair's negative violation subtracts value - and the slope is non-negative at
-    /// every violation, because both declared shapes are nondecreasing.
+    /// reading widens it visibly at the call. The pair is raw like its operand, and a
+    /// non-finite violation flows through to the consumer's own check. The value is signed -
+    /// under [`Identity`](Self::Identity) a satisfied pair's negative violation subtracts
+    /// value - and the slope is non-negative at every violation, because both declared
+    /// shapes are nondecreasing.
     #[must_use]
-    pub(crate) fn evaluate(self, violation: f64) -> (DFinite, DNonNegative) {
+    pub(crate) fn evaluate(self, violation: f64) -> (f64, f64) {
         match self {
-            Self::Identity => (DFinite::new_unchecked(violation), DNonNegative::ONE),
-            Self::QuadraticHinge if violation > 0.0 => (
-                DFinite::new_unchecked(violation * violation),
-                DNonNegative::new_unchecked(2.0 * violation),
-            ),
-            Self::QuadraticHinge => (DFinite::ZERO, DNonNegative::ZERO),
+            Self::Identity => (violation, 1.0),
+            Self::QuadraticHinge if violation > 0.0 => (violation * violation, 2.0 * violation),
+            Self::QuadraticHinge => (0.0, 0.0),
         }
     }
 
@@ -73,10 +69,9 @@ mod tests {
 
     const FAMILY: [Penalty; 2] = [Penalty::Identity, Penalty::QuadraticHinge];
 
-    /// Sheds the typed readings for comparison against raw reference pairs.
+    /// Reads the raw pair for comparison against reference pairs.
     fn raw(penalty: Penalty, violation: f64) -> (f64, f64) {
-        let (value, slope) = penalty.evaluate(violation);
-        (f64::from(value), slope.get())
+        penalty.evaluate(violation)
     }
 
     #[test]

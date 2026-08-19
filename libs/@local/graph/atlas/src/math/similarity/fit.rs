@@ -16,7 +16,7 @@ use rayon::{
 
 use super::Similarity;
 use crate::math::{
-    FinitePointField, NonNegative,
+    FinitePointField, Positive,
     dvec2::{DVec2, DVec2x4T},
     rotation::Rotation,
     scalar::narrow_f32,
@@ -283,9 +283,15 @@ impl FitSums {
             sums.weight += weight;
             sums.source = source.mul_add(weight, sums.source);
             sums.target = target.mul_add(weight, sums.target);
-            sums.dot = source.dot(target).mul_add(weight, sums.dot);
-            sums.perp_dot = source.perp_dot(target).mul_add(weight, sums.perp_dot);
-            sums.source_norm = source.norm_squared().mul_add(weight, sums.source_norm);
+            sums.dot = source.dot(target).into_raw().mul_add(weight, sums.dot);
+            sums.perp_dot = source
+                .perp_dot(target)
+                .into_raw()
+                .mul_add(weight, sums.perp_dot);
+            sums.source_norm = source
+                .norm_squared()
+                .into_raw()
+                .mul_add(weight, sums.source_norm);
         }
 
         sums
@@ -345,9 +351,9 @@ impl FitSums {
 
             sums.source += source;
             sums.target += target;
-            sums.dot += source.dot(target);
-            sums.perp_dot += source.perp_dot(target);
-            sums.source_norm += source.norm_squared();
+            sums.dot += source.dot(target).into_raw();
+            sums.perp_dot += source.perp_dot(target).into_raw();
+            sums.source_norm += source.norm_squared().into_raw();
         }
 
         sums
@@ -393,9 +399,9 @@ impl FitSums {
         //   sum(w |s - cs|^2)           = sum(w |s|^2)      - |ms|^2 / W
         // This fuses centring into the single accumulation pass shared
         // by the serial and parallel fits.
-        let dot = self.dot - self.source.dot(self.target) / self.weight;
-        let perp_dot = self.perp_dot - self.source.perp_dot(self.target) / self.weight;
-        let variance = self.source_norm - self.source.norm_squared() / self.weight;
+        let dot = self.dot - self.source.dot(self.target).into_raw() / self.weight;
+        let perp_dot = self.perp_dot - self.source.perp_dot(self.target).into_raw() / self.weight;
+        let variance = self.source_norm - self.source.norm_squared().into_raw() / self.weight;
 
         // Coincident (up to weight) source points give no scale. The identity's cancellation can
         // round a mathematically zero variance below zero, which the sign check rejects together
@@ -419,7 +425,7 @@ impl FitSums {
         let translation = rotated.mul_add(-scale, target_centroid);
 
         Similarity::new(
-            NonNegative::new(narrow_f32(scale)?)?,
+            Positive::new(narrow_f32(scale)?)?,
             Rotation::from_cos_sin(narrow_f32(cos)?, narrow_f32(sin)?),
             translation.narrow()?,
         )

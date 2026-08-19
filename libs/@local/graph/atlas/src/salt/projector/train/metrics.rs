@@ -261,12 +261,12 @@ pub(crate) struct DisplacementMoments {
 
 impl DisplacementMoments {
     /// Records one displacement.
-    pub(crate) fn record(&mut self, displacement: NonNegative) {
-        let value = DNonNegative::from(displacement);
-
+    pub(crate) const fn record(&mut self, displacement: NonNegative) {
         self.count += 1;
-        self.sum += value;
-        self.sum_squares = value.mul_add(value, self.sum_squares);
+        self.sum += DNonNegative::from(displacement);
+        // The widened square is exact, so adding it matches the fused form bit for bit, and a
+        // sum of at most 2⁶⁴ squares of `f32`-born values stays far inside the `f64` range.
+        self.sum_squares += displacement.square_wide();
         self.maximum = self.maximum.max(displacement);
     }
 
@@ -329,7 +329,7 @@ impl DisplacementHistogram {
     /// `record` is total over what displacement arithmetic produces. A finite reading increments
     /// its exponent bucket, while an overflowed `+∞` reading increments the top bucket (255)
     /// instead. That poisons the moments to `+∞` and appears as a saturated tail.
-    pub(crate) fn record(&mut self, displacement: NonNegative) {
+    pub(crate) const fn record(&mut self, displacement: NonNegative) {
         self.counts[(displacement.to_bits() >> 23) as usize] += 1;
         self.moments.record(displacement);
     }

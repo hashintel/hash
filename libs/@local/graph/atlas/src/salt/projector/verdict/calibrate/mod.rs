@@ -189,7 +189,9 @@ where
         let normalization = scales.normalization(source, target, options.epsilon);
 
         PairReading {
-            z: distance / normalization,
+            // Never NaN and never negative; a quotient past the working range saturates, so one
+            // extreme pair reads as the ceiling instead of poisoning the quantile.
+            z: distance.saturating_div(normalization),
             weight: DNonNegative::new(
                 sampling
                     * f64::from(edge.confidence.value())

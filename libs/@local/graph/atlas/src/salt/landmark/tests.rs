@@ -18,21 +18,18 @@ use rayon::ThreadPoolBuilder;
 use super::{
     artifact::{InvalidLandmarkFile, LandmarkSkeleton, LandmarkSkeletonArchive},
     assignment::{AssignmentError, LandmarkAssignment, assign_landmarks},
-    layout::{
-        EdgelessGraphError, LayoutOptions, LearningRate, RepulsionStrength, layout_landmarks,
-    },
+    layout::{EdgelessGraphError, LayoutOptions, layout_landmarks},
     quotient::{QuotientError, QuotientOptions, quotient_graph},
     select::{
-        LandmarkCandidate, LandmarkOrdinal, LandmarkSelection, SamplingWeight, SelectionError,
-        SelectionOptions, Subgroup, SubgroupAxes, SubgroupDimension, SubgroupMinimum,
-        select_landmarks,
+        LandmarkCandidate, LandmarkOrdinal, LandmarkSelection, SelectionError, SelectionOptions,
+        Subgroup, SubgroupAxes, SubgroupDimension, SubgroupMinimum, select_landmarks,
     },
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{WriteInto as _, landmark::read::LandmarkFile},
     identity::NodeRowId,
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2, positive},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, DPositive, NonNegative, Vec2, positive},
     salt::{
         knn::{Embedding, NearestNeighboursIndex, Neighbour},
         semantic::{SemanticGraph, SemanticMatrix},
@@ -55,7 +52,7 @@ fn in_pool<T: Send>(threads: usize, task: impl FnOnce() -> T + Send) -> T {
 fn candidate(row: u64) -> LandmarkCandidate<NodeRowId> {
     LandmarkCandidate {
         row: NodeRowId::new(row),
-        sampling_weight: SamplingWeight::UNIFORM,
+        sampling_weight: DPositive::ONE,
         axes: SubgroupAxes::default(),
         prior_landmark: false,
     }
@@ -162,7 +159,7 @@ fn selection_prefers_heavier_candidates() {
     // dominate a capacity-10 selection of 200 candidates.
     let mut candidates = candidates(200);
     for candidate in &mut candidates[..10] {
-        candidate.sampling_weight = SamplingWeight::new(1000.0).expect("a thousand is a weight");
+        candidate.sampling_weight = DPositive::new(1000.0).expect("a thousand is a weight");
     }
 
     let mut heavy_selected = 0_usize;
@@ -233,23 +230,6 @@ fn selection_rejects_malformed_inputs() {
         select(&candidates(4), &[minimum, minimum], options(10), rng()),
         Err(SelectionError::DuplicateMinimum { subgroup }),
     );
-}
-
-#[test]
-fn constrained_scalars_reject_out_of_domain_values() {
-    assert_eq!(SamplingWeight::new(0.0), None);
-    assert_eq!(SamplingWeight::new(-1.0), None);
-    assert_eq!(SamplingWeight::new(f64::NAN), None);
-    assert_eq!(SamplingWeight::new(f64::INFINITY), None);
-    assert_eq!(SamplingWeight::new(1.0), Some(SamplingWeight::UNIFORM));
-
-    assert_eq!(LearningRate::new(0.0), None);
-    assert_eq!(LearningRate::new(f32::NAN), None);
-    assert!(LearningRate::new(0.5).is_some());
-
-    assert!(RepulsionStrength::new(0.0).is_some());
-    assert_eq!(RepulsionStrength::new(-1.0), None);
-    assert_eq!(RepulsionStrength::new(f32::INFINITY), None);
 }
 
 #[test]
@@ -346,7 +326,7 @@ fn selection_is_invariant_across_thread_counts() {
     let mut candidates = candidates(10_000);
     for (index, candidate) in (0_u32..).zip(&mut candidates) {
         candidate.sampling_weight =
-            SamplingWeight::new(1.0 + f64::from(index % 7)).expect("small offsets are weights");
+            DPositive::new(1.0 + f64::from(index % 7)).expect("small offsets are weights");
         candidate.prior_landmark = index % 13 == 0;
         candidate.axes[SubgroupDimension::Language] = index % 3;
     }
@@ -848,7 +828,7 @@ fn repulsion_widens_the_gap_between_disconnected_components() {
         curve(),
         LayoutOptions {
             epochs: NonZero::new(200).expect("test epoch budgets are nonzero"),
-            repulsion_strength: RepulsionStrength::new(0.0).expect("zero disables repulsion"),
+            repulsion_strength: NonNegative::ZERO,
             ..
         },
         rng(),

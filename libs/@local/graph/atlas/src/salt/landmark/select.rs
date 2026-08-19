@@ -38,7 +38,7 @@ use rayon::{
     slice::{ParallelSlice as _, ParallelSliceMut as _},
 };
 
-use crate::math::UnitFraction;
+use crate::math::{DPositive, UnitFraction};
 
 /// A landmark-stratification axis.
 #[derive(
@@ -135,56 +135,13 @@ pub(crate) struct SubgroupMinimum {
     pub count: NonZero<usize>,
 }
 
-/// A candidate's relative selection propensity.
-///
-/// Finite and strictly positive, valid by construction.
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
-pub(crate) struct SamplingWeight(f64);
-
-impl SamplingWeight {
-    /// The neutral sampling weight, giving every row equal likelihood.
-    pub(crate) const UNIFORM: Self = Self(1.0);
-
-    /// Validates a weight.
-    ///
-    /// Returns [`None`] unless the value is finite and strictly positive.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn new(value: f64) -> Option<Self> {
-        if !(value.is_finite() && value > 0.0) {
-            return None;
-        }
-
-        Some(Self(value))
-    }
-
-    /// Returns the weight.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn get(self) -> f64 {
-        self.0
-    }
-}
-
-const impl core::ops::Div<SamplingWeight> for f64 {
-    type Output = f64;
-
-    /// Divides a raw `f64` by the weight, staying in `f64`.
-    ///
-    /// The divisor is finite, never zero and never NaN, so a NaN quotient arrives only through
-    /// the numerator. An infinite quotient arrives through the numerator or through overflow
-    /// against a small divisor.
-    #[inline]
-    fn div(self, rhs: SamplingWeight) -> f64 {
-        self / rhs.0
-    }
-}
-
 /// Selection metadata for one candidate node row.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct LandmarkCandidate<N> {
     pub row: N,
-    pub sampling_weight: SamplingWeight,
+    /// The candidate's relative selection propensity. One is the neutral weight, giving every
+    /// row equal likelihood.
+    pub sampling_weight: DPositive,
     /// The candidate's value on every stratification axis.
     pub axes: SubgroupAxes,
     /// Whether the row was a landmark of the prior generation.
