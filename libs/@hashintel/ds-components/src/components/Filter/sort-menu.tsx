@@ -135,16 +135,23 @@ export const SortMenu = <SortKey extends string = string>({
     onChange?.(sortKey, direction);
   };
 
-  // check if a user has saved a sort choice before
+  // Restore a previously saved sort choice. items/saveSortId may arrive
+  // async, so keep retrying until the restore can be resolved one way or
+  // the other; only then latch the ref.
   const restoredRef = useRef(false);
   useEffect(() => {
     if (restoredRef.current) {
       return;
     }
-    restoredRef.current = true;
-    if (!saveSortId || value !== undefined) {
+    if (value !== undefined) {
+      // The consumer already has a sort; never override it.
+      restoredRef.current = true;
       return;
     }
+    if (!saveSortId || items.length === 0) {
+      return;
+    }
+    restoredRef.current = true;
     const saved = readSavedSort(saveSortId);
     if (!saved) {
       return;
