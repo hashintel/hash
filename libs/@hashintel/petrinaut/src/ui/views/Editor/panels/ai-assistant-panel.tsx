@@ -39,7 +39,10 @@ import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-d
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
 import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
 import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
-import { getInteractiveTool } from "./ai-assistant-panel/interactive-tools/registry";
+import {
+  getInteractiveTool,
+  resolveDynamicInteractiveTool,
+} from "./ai-assistant-panel/interactive-tools/registry";
 import { petrinautDocsContent } from "./ai-assistant-panel/petrinaut-docs-content";
 import {
   type AiToolOutput,
@@ -104,6 +107,21 @@ const safelyAddToolOutput = (
   // error message on hover), so we just swallow the rejection to avoid an
   // unhandled-promise warning.
   void Promise.resolve(addToolOutput(params)).catch(() => {});
+};
+
+const safelyAddDynamicToolOutput = (
+  addToolOutput: ReturnType<
+    typeof useChat<PetrinautAiMessage>
+  >["addToolOutput"],
+  params: { tool: string; toolCallId: string; output: unknown },
+) => {
+  // AI SDK models dynamic tool parts at runtime, but its addToolOutput generic
+  // is keyed only by the message's statically declared tools. Keep the cast at
+  // this boundary; the host definition validated the dynamic output already.
+  const addDynamicToolOutput = addToolOutput as unknown as (
+    dynamicParams: typeof params,
+  ) => void | PromiseLike<void>;
+  void Promise.resolve(addDynamicToolOutput(params)).catch(() => {});
 };
 
 const waitForDiagnosticsRefresh = async ({
@@ -362,7 +380,12 @@ export const AiAssistantPanel = ({
       }
 
       if (toolCall.dynamic) {
-        throw new Error(`Unknown AI tool: ${toolCall.toolName}`);
+        resolveDynamicInteractiveTool(
+          toolCall.toolName,
+          toolCall.input,
+          aiAssistant.interactiveTools ?? [],
+        );
+        return;
       }
 
       if (toolCall.toolName === getLatestNetDefinitionToolName) {
@@ -481,7 +504,13 @@ export const AiAssistantPanel = ({
         const commandInput = aiCommandActionInputSchemas[toolName].parse(
           toolCall.input,
         );
-        if (getInteractiveTool(toolName, commandInput)) {
+        if (
+          getInteractiveTool(
+            toolName,
+            commandInput,
+            aiAssistant.interactiveTools,
+          )
+        ) {
           // Defer: the surface will render the widget and call
           // onInteractiveToolSubmit when the user decides.
           return;
@@ -585,6 +614,7 @@ export const AiAssistantPanel = ({
     <AiAssistantContents
       error={streamError ?? error}
       input={input}
+      interactiveTools={aiAssistant.interactiveTools}
       messages={messages}
       onClearMessages={() => {
         // Clearing aborts any in-flight response too, which fires `onFinish`
@@ -606,19 +636,33 @@ export const AiAssistantPanel = ({
       onInputChange={setInput}
       onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
         if (!isPetrinautAiCommandToolName(toolName)) {
-          // Defensive — the registry only exposes AI command tools today.
+          if (
+            !aiAssistant.interactiveTools?.some(
+              (tool) => tool.toolName === toolName,
+            )
+          ) {
+            throw new Error(`Unknown AI tool: ${toolName}`);
+          }
+
+          safelyAddDynamicToolOutput(addToolOutput, {
+            tool: toolName,
+            toolCallId,
+            output,
+          });
           return;
         }
+
+        const petrinautOutput = output as AiToolOutput;
 
         // applyAutoLayout is the only interactive command today. The widget
         // signals "apply" by passing `{ applied: true }`; we still need to
         // run the command to compute the real commitCount before reporting
         // the outcome to the AI. Decline outputs are forwarded verbatim.
-        if (output.applied !== true) {
+        if (petrinautOutput.applied !== true) {
           safelyAddToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
-            output,
+            output: petrinautOutput,
           });
           return;
         }

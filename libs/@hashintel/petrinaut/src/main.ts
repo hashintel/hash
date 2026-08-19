@@ -17,6 +17,13 @@ export { PetrinautOptimizationContext } from "./react/optimization-context";
 
 export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
 export type { ViewportAction } from "./ui/types/viewport-action";
+export { definePetrinautAiInteractiveTool } from "./ui/types/ai-interactive-tool";
+export type {
+  PetrinautAiInteractiveTool,
+  PetrinautAiInteractiveToolDefinition,
+  PetrinautAiInteractiveToolSchema,
+  PetrinautAiInteractiveToolWidgetProps,
+} from "./ui/types/ai-interactive-tool";
 
 export {
   createJsonDocHandle,
@@ -65,4 +72,8 @@ export {
   type WorkerFactory,
 } from "@hashintel/petrinaut-core";
 export { Petrinaut } from "./ui/petrinaut";
-export type { PetrinautProps } from "./ui/petrinaut";
+export type {
+  PetrinautAiAssistant,
+  PetrinautAiChatTransport,
+  PetrinautProps,
+} from "./ui/petrinaut";

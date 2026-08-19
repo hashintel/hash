@@ -30,6 +30,12 @@ The assistant has tools for inspecting and modifying the current net. You'll see
 - **`setNetTitle`** -- renames the net.
 - **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Yes, auto-layout** / **No, keep current layout** buttons. Otherwise it'll run it without asking.
 
+An embedding application may also provide its own interactive tools. These
+appear as inline controls in the conversation when the assistant needs a
+choice or other structured input. After you submit, the control stays visible
+as a read-only record of the submitted value and the assistant continues from
+that result.
+
 Clicking a mutation card usually selects the entity it touched (place, transition, scenario, metric, etc.) so you can inspect what changed.
 
 After applying changes, the assistant may automatically check TypeScript compile diagnostics (you'll see a **Checked net compilation errors** card) and fix problems on its own before continuing.

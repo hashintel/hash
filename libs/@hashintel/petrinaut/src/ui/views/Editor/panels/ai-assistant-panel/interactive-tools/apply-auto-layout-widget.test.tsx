@@ -21,6 +21,7 @@ describe("ApplyAutoLayoutWidget", () => {
         input={{ askUserFirst: true }}
         submit={submit}
         state="awaiting"
+        toolCallId="apply-auto-layout-1"
       />,
     );
 
@@ -39,6 +40,7 @@ describe("ApplyAutoLayoutWidget", () => {
         input={{ askUserFirst: true }}
         submit={submit}
         state="awaiting"
+        toolCallId="apply-auto-layout-2"
       />,
     );
 
@@ -61,6 +63,7 @@ describe("ApplyAutoLayoutWidget", () => {
         submit={() => {}}
         state="submitted"
         submittedOutput={{ applied: true, title: "Auto-laid out 3 nodes" }}
+        toolCallId="apply-auto-layout-3"
       />,
     );
 

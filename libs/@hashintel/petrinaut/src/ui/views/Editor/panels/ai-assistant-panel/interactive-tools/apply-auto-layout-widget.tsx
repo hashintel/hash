@@ -42,9 +42,9 @@ const ApplyAutoLayoutWidget = ({
 }: InteractiveToolWidgetProps<ApplyAutoLayoutInput, AiToolOutput>) => {
   if (state === "submitted") {
     const verdict =
-      submittedOutput?.applied === true
+      submittedOutput.applied === true
         ? submittedOutput.title
-        : ((submittedOutput as { reason?: string } | undefined)?.reason ??
+        : ((submittedOutput as { reason?: string }).reason ??
           "Auto-layout declined.");
     return (
       <div className={widgetStyle}>
@@ -104,5 +104,6 @@ export const applyAutoLayoutInteractiveTool: InteractiveToolDefinition<
   },
   parseInput: (raw): ApplyAutoLayoutInput =>
     aiCommandActionInputSchemas.applyAutoLayout.parse(raw),
+  parseOutput: (raw): AiToolOutput => raw as AiToolOutput,
   Widget: ApplyAutoLayoutWidget,
 };
