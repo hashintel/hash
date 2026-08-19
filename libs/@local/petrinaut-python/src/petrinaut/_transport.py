@@ -24,6 +24,9 @@ import time
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
 from typing import Any, cast
+import logging
+log = logging.getLogger("pn_client")
+
 
 from .errors import (
     PetrinautClientError,
