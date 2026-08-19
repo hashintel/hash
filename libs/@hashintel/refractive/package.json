@@ -28,6 +28,7 @@
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
+    "prepack": "node ../../../scripts/check-package-payload.mjs",
     "prepublishOnly": "yarn build"
   },
   "devDependencies": {
