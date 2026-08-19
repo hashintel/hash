@@ -1,14 +1,9 @@
+import { getPetrinautAiInteractiveToolDefinition } from "../../../../../types/ai-interactive-tool";
 import { applyAutoLayoutInteractiveTool } from "./apply-auto-layout-widget";
 
-import type {
-  ApplyAutoLayoutDecision,
-  ApplyAutoLayoutResult,
-} from "./apply-auto-layout-widget";
-import type {
-  InteractiveToolDefinition,
-  PetrinautAiInteractiveTool,
-} from "./types";
-import type { AiCommandActionName } from "@hashintel/petrinaut-core";
+import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
+import type { AiToolOutput } from "../tool-summaries";
+import type { InteractiveToolDefinition } from "./types";
 
 /**
  * Registry of AI tools that require an inline chat widget for user input.
@@ -22,68 +17,75 @@ import type { AiCommandActionName } from "@hashintel/petrinaut-core";
  */
 export const interactiveTools: Record<
   string,
-  InteractiveToolDefinition<
-    unknown,
-    ApplyAutoLayoutDecision,
-    ApplyAutoLayoutResult,
-    AiCommandActionName
-  >
+  InteractiveToolDefinition<unknown, AiToolOutput>
 > = {
   [applyAutoLayoutInteractiveTool.toolName]:
     applyAutoLayoutInteractiveTool as InteractiveToolDefinition<
       unknown,
-      ApplyAutoLayoutDecision,
-      ApplyAutoLayoutResult,
-      AiCommandActionName
+      AiToolOutput
     >,
-};
-
-export type ResolvedInteractiveTool =
-  | {
-      readonly kind: "petrinaut";
-      readonly definition: InteractiveToolDefinition<
-        unknown,
-        ApplyAutoLayoutDecision,
-        ApplyAutoLayoutResult,
-        AiCommandActionName
-      >;
-    }
-  | {
-      readonly kind: "host";
-      readonly tool: PetrinautAiInteractiveTool;
-    };
-
-export const findHostInteractiveTool = (
-  toolName: string,
-  hostTools: readonly PetrinautAiInteractiveTool[] = [],
-): PetrinautAiInteractiveTool | undefined => {
-  if (interactiveTools[toolName]) {
-    return undefined;
-  }
-  return hostTools.find((hostTool) => hostTool.toolName === toolName);
-};
-
-export const getHostInteractiveTool = (
-  toolName: string,
-  input: unknown,
-  hostTools: readonly PetrinautAiInteractiveTool[] = [],
-): PetrinautAiInteractiveTool | undefined => {
-  const descriptor = findHostInteractiveTool(toolName, hostTools);
-  if (!descriptor) {
-    return undefined;
-  }
-  return descriptor.shouldHandle(input) ? descriptor : undefined;
 };
 
 export const getInteractiveTool = (
   toolName: string,
   input: unknown,
   hostTools: readonly PetrinautAiInteractiveTool[] = [],
-): ResolvedInteractiveTool | undefined => {
-  const petrinautDefinition = interactiveTools[toolName];
-  if (petrinautDefinition?.shouldHandle(input)) {
-    return { kind: "petrinaut", definition: petrinautDefinition };
+): InteractiveToolDefinition<unknown, unknown> | undefined => {
+  const builtInDescriptor = interactiveTools[toolName];
+  const matchingHostTools = hostTools.filter(
+    (tool) => tool.toolName === toolName,
+  );
+
+  if (matchingHostTools.length > 1) {
+    throw new Error(
+      `Interactive AI tool registered more than once: ${toolName}`,
+    );
   }
-  const hostTool = getHostInteractiveTool(toolName, input, hostTools);
-  return hostTool ? { kind: "host", tool: hostTool } : undefined;
+  if (builtInDescriptor && matchingHostTools.length > 0) {
+    throw new Error(
+      `Host interactive AI tool conflicts with a built-in tool: ${toolName}`,
+    );
+  }
+
+  const hostDefinition = matchingHostTools[0]
+    ? getPetrinautAiInteractiveToolDefinition(matchingHostTools[0])
+    : undefined;
+  const descriptor: InteractiveToolDefinition<unknown, unknown> | undefined =
+    builtInDescriptor
+      ? (builtInDescriptor as unknown as InteractiveToolDefinition<
+          unknown,
+          unknown
+        >)
+      : hostDefinition
+        ? {
+            toolName: hostDefinition.toolName,
+            shouldHandle: () => true,
+            parseInput: hostDefinition.parseInput,
+            parseOutput: hostDefinition.parseOutput,
+            Widget: hostDefinition.component,
+          }
+        : undefined;
+  if (!descriptor) {
+    return undefined;
+  }
+  return descriptor.shouldHandle(input) ? descriptor : undefined;
+};
+
+/** Resolve a dynamic call only when the host explicitly registered its name. */
+export const resolveDynamicInteractiveTool = (
+  toolName: string,
+  input: unknown,
+  hostTools: readonly PetrinautAiInteractiveTool[],
+): InteractiveToolDefinition<unknown, unknown> => {
+  if (!hostTools.some((tool) => tool.toolName === toolName)) {
+    throw new Error(`Unknown AI tool: ${toolName}`);
+  }
+
+  const descriptor = getInteractiveTool(toolName, input, hostTools);
+  if (!descriptor) {
+    throw new Error(`Unknown AI tool: ${toolName}`);
+  }
+
+  descriptor.parseInput(input);
+  return descriptor;
 };

@@ -24,7 +24,7 @@ import {
   type OnInteractiveToolSubmit,
 } from "./ai-assistant-contents/tool-list";
 
-import type { PetrinautAiInteractiveTool } from "./interactive-tools/types";
+import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import type { AiToolTarget } from "./tool-summaries";
 import type { PetrinautAiMessage } from "./types";
 
@@ -346,7 +346,7 @@ const AiAssistantMessage = memo(
     message,
   }: {
     handlersRef: MessageHandlersRef;
-    interactiveTools?: readonly PetrinautAiInteractiveTool[];
+    interactiveTools: readonly PetrinautAiInteractiveTool[];
     message: PetrinautAiMessage;
   }) => {
     const role = message.role === "user" ? "user" : "assistant";
@@ -404,7 +404,7 @@ AiAssistantMessage.displayName = "AiAssistantMessage";
 export const AiAssistantContents = ({
   error,
   input,
-  interactiveTools,
+  interactiveTools = [],
   messages,
   onClearMessages,
   onClose,
@@ -562,10 +562,10 @@ export const AiAssistantContents = ({
           )}
           {messages.map((message) => (
             <AiAssistantMessage
-              handlersRef={handlersRef}
               interactiveTools={interactiveTools}
               key={message.id}
               message={message}
+              handlersRef={handlersRef}
             />
           ))}
           {error && <div className={errorStyle}>{error.message}</div>}

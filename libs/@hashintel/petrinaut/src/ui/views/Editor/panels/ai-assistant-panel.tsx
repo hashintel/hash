@@ -1,8 +1,5 @@
 import { useChat } from "@ai-sdk/react";
-import {
-  type DynamicToolUIPart,
-  lastAssistantMessageIsCompleteWithToolCalls,
-} from "ai";
+import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { use, useEffect, useRef, useState } from "react";
 
 import {
@@ -43,8 +40,8 @@ import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/crea
 import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
 import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
 import {
-  getHostInteractiveTool,
   getInteractiveTool,
+  resolveDynamicInteractiveTool,
 } from "./ai-assistant-panel/interactive-tools/registry";
 import { petrinautDocsContent } from "./ai-assistant-panel/petrinaut-docs-content";
 import {
@@ -116,14 +113,13 @@ const safelyAddDynamicToolOutput = (
   addToolOutput: ReturnType<
     typeof useChat<PetrinautAiMessage>
   >["addToolOutput"],
-  params: {
-    tool: DynamicToolUIPart["toolName"];
-    toolCallId: DynamicToolUIPart["toolCallId"];
-    output: Extract<DynamicToolUIPart, { state: "output-available" }>["output"];
-  },
+  params: { tool: string; toolCallId: string; output: unknown },
 ) => {
-  const addDynamicToolOutput = addToolOutput as (
-    toolOutput: typeof params,
+  // AI SDK models dynamic tool parts at runtime, but its addToolOutput generic
+  // is keyed only by the message's statically declared tools. Keep the cast at
+  // this boundary; the host definition validated the dynamic output already.
+  const addDynamicToolOutput = addToolOutput as unknown as (
+    dynamicParams: typeof params,
   ) => void | PromiseLike<void>;
   void Promise.resolve(addDynamicToolOutput(params)).catch(() => {});
 };
@@ -383,20 +379,13 @@ export const AiAssistantPanel = ({
         );
       }
 
-      if (
-        getHostInteractiveTool(
+      if (toolCall.dynamic) {
+        resolveDynamicInteractiveTool(
           toolCall.toolName,
           toolCall.input,
-          aiAssistant.interactiveTools,
-        )
-      ) {
-        // The host renders this tool inline and supplies its output when the
-        // person submits the widget.
+          aiAssistant.interactiveTools ?? [],
+        );
         return;
-      }
-
-      if (toolCall.dynamic) {
-        throw new Error(`Unknown AI tool: ${toolCall.toolName}`);
       }
 
       if (toolCall.toolName === getLatestNetDefinitionToolName) {
@@ -515,7 +504,13 @@ export const AiAssistantPanel = ({
         const commandInput = aiCommandActionInputSchemas[toolName].parse(
           toolCall.input,
         );
-        if (getInteractiveTool(toolName, commandInput)) {
+        if (
+          getInteractiveTool(
+            toolName,
+            commandInput,
+            aiAssistant.interactiveTools,
+          )
+        ) {
           // Defer: the surface will render the widget and call
           // onInteractiveToolSubmit when the user decides.
           return;
@@ -639,27 +634,35 @@ export const AiAssistantPanel = ({
       }}
       onClose={() => setAiAssistantOpen(false)}
       onInputChange={setInput}
-      onInteractiveToolSubmit={({ kind, submission, toolCallId, toolName }) => {
-        if (kind === "host") {
+      onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
+        if (!isPetrinautAiCommandToolName(toolName)) {
+          if (
+            !aiAssistant.interactiveTools?.some(
+              (tool) => tool.toolName === toolName,
+            )
+          ) {
+            throw new Error(`Unknown AI tool: ${toolName}`);
+          }
+
           safelyAddDynamicToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
-            output: submission,
+            output,
           });
           return;
         }
 
+        const petrinautOutput = output as AiToolOutput;
+
         // applyAutoLayout is the only interactive command today. The widget
-        // submits a typed decision; an apply decision still needs to run the
-        // command to compute the real commitCount before reporting the result.
-        if (submission.action === "decline") {
+        // signals "apply" by passing `{ applied: true }`; we still need to
+        // run the command to compute the real commitCount before reporting
+        // the outcome to the AI. Decline outputs are forwarded verbatim.
+        if (petrinautOutput.applied !== true) {
           safelyAddToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
-            output: {
-              applied: false,
-              reason: "User declined auto-layout.",
-            } satisfies AiToolOutput,
+            output: petrinautOutput,
           });
           return;
         }

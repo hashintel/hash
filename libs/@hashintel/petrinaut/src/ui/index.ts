@@ -19,6 +19,13 @@ export type {
   PetrinautAiInteractiveTool,
   PetrinautProps,
 } from "./petrinaut";
+export { definePetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
+export type {
+  PetrinautAiInteractiveTool,
+  PetrinautAiInteractiveToolDefinition,
+  PetrinautAiInteractiveToolSchema,
+  PetrinautAiInteractiveToolWidgetProps,
+} from "./types/ai-interactive-tool";
 export { DefaultChatTransport } from "ai";
 
 // SDCPN value-equality check exposed for consumers that need to detect
