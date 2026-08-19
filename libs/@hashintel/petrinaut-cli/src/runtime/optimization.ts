@@ -134,7 +134,7 @@ function validateSuggestedValue(
 
 export type OptimizationProtocol = {
   describe(): PetrinautOptimizationDescribeResult;
-  evaluate(params: unknown): PetrinautOptimizationEvaluateResult;
+  evaluate(params: unknown): Promise<PetrinautOptimizationEvaluateResult>;
 };
 
 export function createOptimizationProtocol(args: {
@@ -171,7 +171,9 @@ export function createOptimizationProtocol(args: {
         ),
       };
     },
-    evaluate(params) {
+    // Async so implementations may defer simulation work (e.g. to worker
+    // threads) without another protocol change.
+    async evaluate(params) {
       const parsed =
         petrinautOptimizationEvaluateParamsSchema.safeParse(params);
       if (!parsed.success) {
