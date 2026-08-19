@@ -26,8 +26,8 @@ use crate::request::AuthenticationError;
 ///
 /// The Graph provisions this field, and it provisions it for users only.
 #[derive(Deserialize)]
-struct MetadataPublic {
-    graph_actor_id: Option<UserId>,
+pub struct MetadataPublic {
+    pub graph_actor_id: Option<UserId>,
 }
 
 /// Formats a provider response for report attachments, truncating long bodies.

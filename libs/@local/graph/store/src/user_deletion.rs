@@ -81,6 +81,11 @@ pub struct UserDeletionOutcome {
 /// 4. Revoke Hydra login and consent sessions
 /// 5. Delete email subscription entries
 ///
+/// A caller that already resolved the Kratos identity — deletion by email goes through the
+/// identity provider — passes it as `kratos_identity_id`, which skips the graph read in step 1.
+/// This keeps a partially deleted user deletable: the graph entity carrying the identity ID may
+/// already be purged while the identity still exists.
+///
 /// Steps 1–2 are fatal: failure causes an `Err` return and no entities are deleted.
 /// Steps 3–5 are non-fatal: failures are collected into [`UserDeletionOutcome::errors`]
 /// with full error-stack context, but entity deletion is not rolled back.
@@ -104,6 +109,7 @@ pub async fn delete_user<S, I, O, E>(
     email_subscription_provider: Option<&E>,
     actor: AuthenticatedActor,
     user_id: UserId,
+    kratos_identity_id: Option<String>,
 ) -> Result<UserDeletionOutcome, Report<UserDeletionError>>
 where
     S: AccountStore + EntityStore,
@@ -112,11 +118,14 @@ where
     E: EmailSubscriptionProvider,
 {
     // Step 1: Gather data before we delete anything
-    let kratos_identity_id = store
-        .get_user_kratos_identity_id(user_id)
-        .await
-        .change_context(UserDeletionError::UserLookup)?
-        .ok_or(UserDeletionError::MissingKratosIdentityId)?;
+    let kratos_identity_id = match kratos_identity_id {
+        Some(kratos_identity_id) => kratos_identity_id,
+        None => store
+            .get_user_kratos_identity_id(user_id)
+            .await
+            .change_context(UserDeletionError::UserLookup)?
+            .ok_or(UserDeletionError::MissingKratosIdentityId)?,
+    };
     tracing::info!(%user_id, %kratos_identity_id, "resolved Kratos identity");
 
     let emails = store
