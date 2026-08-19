@@ -55,7 +55,7 @@ runs:
     - name: Encrypt credentials
       id: encrypt
       if: ${{ steps.secrets.outcome == 'success' }}
-      uses: hashintel/.github/.github/actions/encrypt-secret@583b0468f2033c884bc82281e8f9c48edf1daeb7 # main
+      uses: hashintel/.github/.github/actions/encrypt-secret@1e18f616b651e2f433895f7ee9791bc22f93942d # main
       with:
         value: ${{ steps.bundle.outputs.credentials }}
         encryption_key: ${{ inputs.encryption_key }}

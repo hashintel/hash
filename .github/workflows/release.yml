@@ -25,7 +25,7 @@ jobs:
 
       - name: Get token
         id: app-token
-        uses: hashintel/.github/.github/actions/github-app-token@69449a772a55c55a101d4fefdceb4024b6bc3107 # main
+        uses: hashintel/.github/.github/actions/github-app-token@1e18f616b651e2f433895f7ee9791bc22f93942d # main
         with:
           vault-address: ${{ vars.VAULT_PROD_ADDR }}
           vault-role: ci-hash-release
@@ -38,7 +38,7 @@ jobs:
       # GitHub drops masked values from job outputs, so only ciphertext can cross.
       - name: Encrypt token
         id: encrypt
-        uses: hashintel/.github/.github/actions/encrypt-secret@583b0468f2033c884bc82281e8f9c48edf1daeb7 # main
+        uses: hashintel/.github/.github/actions/encrypt-secret@1e18f616b651e2f433895f7ee9791bc22f93942d # main
         with:
           value: ${{ steps.app-token.outputs.token }}
           encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
@@ -68,7 +68,7 @@ jobs:
       # Directly after checkout, so the plaintext is masked before anything else runs.
       - name: Decrypt token
         id: app-token
-        uses: hashintel/.github/.github/actions/decrypt-secret@583b0468f2033c884bc82281e8f9c48edf1daeb7 # main
+        uses: hashintel/.github/.github/actions/decrypt-secret@1e18f616b651e2f433895f7ee9791bc22f93942d # main
         with:
           encrypted_value: ${{ needs.mint-token.outputs.encrypted-github-token }}
           encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
