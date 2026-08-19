@@ -18,7 +18,7 @@ type KitchenSinkValues = {
   contains: string;
   equalsNum: number;
   gt: number;
-  power: number;
+  lt: number;
   true: null;
   false: null;
   between: [number, number, number];
@@ -44,7 +44,7 @@ const KitchenSinkOperators: Array<
       },
       {
         key: "contains",
-        label: "contains",
+        label: "contains (min 5, max 10)",
         input: { type: "string", min: 5, max: 10 },
       },
     ],
@@ -60,12 +60,12 @@ const KitchenSinkOperators: Array<
       },
       {
         key: "gt",
-        label: "greater than",
+        label: "greater than (float, min 0, max 99999)",
         input: { type: "float", min: 0, max: 99999, placeholder: "Float" },
       },
       {
-        key: "power",
-        label: "is power of 10",
+        key: "lt",
+        label: "less than (int, step 10)",
         input: { type: "int", step: 10 },
       },
     ],
@@ -95,7 +95,7 @@ const KitchenSinkOperators: Array<
       },
       {
         key: "near",
-        label: "is near",
+        label: "is near (float)",
         input: [
           { type: "float", min: -90, max: 90, placeholder: "Lat" },
           { type: "float", min: -180, max: 180, placeholder: "Lng" },
