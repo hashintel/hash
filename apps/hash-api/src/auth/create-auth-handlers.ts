@@ -9,11 +9,14 @@ import { createUser, getUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { telemetry } from "../telemetry/telemetry";
 import { hydraAdmin } from "./ory-hydra";
-import { kratosFrontendApi } from "./ory-kratos";
+import {
+  deleteKratosIdentity,
+  kratosFrontendApi,
+  type KratosUserIdentity,
+} from "./ory-kratos";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
-import type { KratosUserIdentity } from "./ory-kratos";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { Session } from "@ory/kratos-client";
 import type { AxiosError } from "axios";
@@ -61,6 +64,19 @@ const kratosAfterRegistrationHookHandler =
     void (async () => {
       try {
         const { emails } = traits;
+
+        if (emails.length !== 1) {
+          /**
+           * The after-registration webhook runs after Kratos has already
+           * persisted the identity (`parse: false`). Returning 400 fails the
+           * flow for the client but does not roll the identity back, so delete
+           * it here to release the credential identifiers.
+           */
+          await deleteKratosIdentity({ kratosIdentityId });
+          throw new Error(
+            `Expected exactly one email address, received ${emails.length}.`,
+          );
+        }
 
         const hashInstance = await getHashInstance(context, authentication);
 
