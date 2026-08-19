@@ -162,6 +162,12 @@ const SearchField = ({
  * icon is also a toggle: clicking it fires `onChange` with the flipped
  * direction immediately, without opening the menu.
  *
+ * With `renderTrigger="icon"` the trigger is an icon-only button showing the
+ * sort glyph (direction-aware while a sorter is active). Clicking anywhere on
+ * it opens the menu, so the trigger-icon flip toggle does not apply. Passing
+ * a function instead renders a fully custom trigger element in place of the
+ * `Button` (see the prop's docs for the contract).
+ *
  * With `searchable`, a search bar at the top of the dropdown filters the
  * sorters as the user types (every whitespace-separated term must match).
  * The field is focused when the menu opens; down/up move into the results.
@@ -176,6 +182,7 @@ export const SortMenu = <SortKey extends string = string>({
   onChange,
   saveSortId,
   searchable = false,
+  renderTrigger = "default",
   variant = "subtle",
   size = "sm",
   className,
@@ -191,6 +198,23 @@ export const SortMenu = <SortKey extends string = string>({
   saveSortId?: string | null; // id to save selection to localStorage
   /** Adds a search bar to the top of the dropdown that filters the sorters */
   searchable?: boolean;
+  /**
+   * "default" labels the trigger with the active sorter's name; "icon"
+   * collapses it to an icon-only button showing the sort glyph.
+   * A function renders a fully custom trigger from the active sorter and
+   * direction (both undefined while nothing is selected; direction is also
+   * undefined for a direction-less sorter). The returned element replaces
+   * the `Button` — all button props are ignored — and becomes the menu
+   * trigger: ark merges its trigger props onto it, so it must be (or spread
+   * its props onto) an interactive element, and should label itself.
+   */
+  renderTrigger?:
+    | "default"
+    | "icon"
+    | ((
+        sorter: Sorter<NoInfer<SortKey>> | undefined,
+        direction: SortDirection | undefined,
+      ) => React.ReactElement);
 } & DistributedOmit<
   ButtonElementProps,
   "children" | "pressed" | "onClick" | "type"
@@ -398,8 +422,13 @@ export const SortMenu = <SortKey extends string = string>({
   // the press from reaching the menu trigger. A nested real <button> would
   // be invalid inside the trigger button, so it is a role="button" span,
   // kept out of the tab order (the dropdown is the keyboard path).
+  // Default-mode only: on an icon-only trigger the icon is the whole button,
+  // so intercepting its clicks would leave no pointer path to the menu.
   const flippableTriggerIcon =
-    value && selectedSorter && directionsOf(selectedSorter).length > 1 ? (
+    renderTrigger === "default" &&
+    value &&
+    selectedSorter &&
+    directionsOf(selectedSorter).length > 1 ? (
       <span
         role="button"
         tabIndex={-1}
@@ -446,30 +475,39 @@ export const SortMenu = <SortKey extends string = string>({
                 : ("sortDown" as const),
           };
 
-  return (
-    <Menu
-      trigger={
-        <Button
-          aria-label={
-            selectedSorter && value
-              ? selectedHasDirection
-                ? `Sort by ${selectedSorter.name}, ${value.direction.toLowerCase()}`
-                : `Sort by ${selectedSorter.name}`
-              : "Sort"
-          }
-          {...buttonProps}
-          className={cx(triggerButton(), className)}
-          variant={variant}
-          size={size}
-          {...triggerIconProps}
-        >
-          {selectedSorter ? (
+  const trigger =
+    typeof renderTrigger === "function" ? (
+      renderTrigger(
+        selectedSorter,
+        value && selectedHasDirection ? value.direction : undefined,
+      )
+    ) : (
+      <Button
+        aria-label={
+          selectedSorter && value
+            ? selectedHasDirection
+              ? `Sort by ${selectedSorter.name}, ${value.direction.toLowerCase()}`
+              : `Sort by ${selectedSorter.name}`
+            : "Sort"
+        }
+        {...buttonProps}
+        className={cx(triggerButton(), className)}
+        variant={variant}
+        size={size}
+        {...triggerIconProps}
+      >
+        {renderTrigger === "default" &&
+          (selectedSorter ? (
             selectedSorter.name
           ) : (
             <span className={placeholderLabel()}>Sort</span>
-          )}
-        </Button>
-      }
+          ))}
+      </Button>
+    );
+
+  return (
+    <Menu
+      trigger={trigger}
       items={menuItems}
       className={menuContent()}
       onOpen={(open) => {
