@@ -48,13 +48,6 @@ type StandardItem = ItemBase &
  * focusable children inside it remain reachable with Tab.
  */
 export type CustomItem = {
-  /**
-   * Optional stable identifier. When omitted an internal id is derived from
-   * the row's position among the list's custom items, which stays stable
-   * while regular items change around it. Provide an explicit id when custom
-   * rows themselves are added, removed or reordered dynamically and hold
-   * state (e.g. an input value) that must survive that change.
-   */
   id?: string;
   custom: React.ReactNode;
 } & { [K in Exclude<keyof StandardItem, "id">]?: never };
@@ -82,16 +75,6 @@ export const isGroup = (
 /** Prefix of ids assigned internally to custom items declared without one. */
 const internalCustomIdPrefix = "__custom-";
 
-/**
- * Custom items may omit `id`, but every internal consumer needs one (React
- * keys, the row's `data-selectable-list-custom` attribute, keyboard
- * navigation positions), so each menu content normalizes its own items with
- * this hook before rendering or wiring navigation. Items without an id get
- * `__custom-<n>`, numbered by position among the list's custom items —
- * deliberately positional rather than per-object so inline-declared items
- * keep the same id (and React key) across renders. Nested `subItems` are not
- * visited: each nested menu content normalizes its own level.
- */
 export const useItemsWithCustomIds = (
   items: Array<ItemOrGroup<Item>>,
 ): Array<ItemOrGroup<Item>> =>
@@ -115,10 +98,7 @@ export const useItemsWithCustomIds = (
 
 /**
  * The highlighted-item id to report to consumers for a key event from an
- * open menu: the highlighted regular item's id, or — when the event
- * originates inside a custom row, i.e. one of the row's children is focused
- * — that custom item's id. Internally assigned custom ids are not exposed;
- * they report as null.
+ * open menu. Internally assigned custom ids are not exposed; they report as null.
  */
 export const getEventHighlightedId = (
   event: React.KeyboardEvent,
@@ -187,10 +167,8 @@ const wrapIndex = (index: number, length: number) =>
   ((index % length) + length) % length;
 
 /**
- * A Tab stop of a list with custom rows: each maximal run of regular items
- * is a single stop (a custom row without tabbable content does not split a
- * run), and each custom row that currently contains a tabbable is a stop of
- * its own.
+ * A Tab stop of a list with custom rows: each maximal run of regular items is a single stop,
+ * and each custom row that currently contains a tabbable is a stop of its own.
  */
 type TabStop =
   | { kind: "block"; itemIds: string[] }

@@ -7,10 +7,18 @@ import {
   type ButtonElementProps,
   iconSizeMap as buttonIconSizeMap,
 } from "../Button/button";
-import { Icon, type IconName } from "../Icon/icon";
+import { Icon } from "../Icon/icon";
 import { Menu, type MenuItem } from "../Menu/menu";
-import { iconSizeMap } from "../Menu/SelectableList/selectable-list-item.recipe";
 import { TextInput } from "../TextInput/text-input";
+import {
+  readSavedSort,
+  type SortDirection,
+  writeSavedSort,
+  directionsOf,
+  directionIcons,
+  flipped,
+  type Sorter,
+} from "./sort-menu-util";
 import {
   directionSuffix,
   directionToggle,
@@ -18,61 +26,12 @@ import {
   placeholderLabel,
   searchEmpty,
   searchRow,
-  searchRowRingHidden,
   triggerButton,
   triggerDirectionToggle,
 } from "./sort-menu.recipe";
-import { readSavedSort, type SortDirection, writeSavedSort } from "./sort-util";
 
 import type { DistributedOmit } from "type-fest";
 
-export type { SortDirection } from "./sort-util";
-
-export type SortDirectionsAvailable =
-  | "none"
-  | "ascending"
-  | "descending"
-  | "both";
-
-export type Sorter<SortKey> = {
-  name: string;
-  sortKey: SortKey;
-  /** Defaults to "both"; "none" marks a direction-less sort */
-  directionsAvailable?: SortDirectionsAvailable;
-};
-
-// The letters read in sort order (ascending: A→Z), matching Font Awesome's
-// standard sort pairing rather than mapping the arrow to the direction.
-const directionIcons: Record<SortDirection, IconName> = {
-  ASCENDING: "sortDownAZ",
-  DESCENDING: "sortUpAZ",
-};
-
-// The Menu component renders its dropdown at a fixed `sm` size.
-const suffixIconSize = iconSizeMap.sm;
-
-const directionsByAvailability: Record<
-  SortDirectionsAvailable,
-  readonly SortDirection[]
-> = {
-  none: [],
-  ascending: ["ASCENDING"],
-  descending: ["DESCENDING"],
-  both: ["ASCENDING", "DESCENDING"],
-};
-
-const directionsOf = (sorter: Sorter<string>): readonly SortDirection[] =>
-  directionsByAvailability[sorter.directionsAvailable ?? "both"];
-
-const flipped = (direction: SortDirection): SortDirection =>
-  direction === "ASCENDING" ? "DESCENDING" : "ASCENDING";
-
-/**
- * The search row rendered as the dropdown's first (non-selectable) row. A
- * module-level component so its element type is stable across the menu's
- * re-renders — the input keeps its DOM node, focus and caret while typing
- * re-filters the rows below.
- */
 const SearchField = ({
   value,
   onChange,
@@ -81,13 +40,6 @@ const SearchField = ({
   onChange: (next: string) => void;
 }) => {
   const inputRef = useRef<HTMLElement>(null);
-
-  // A text input matches :focus-visible whenever focused, so the focus ring
-  // is gated on the interaction modality instead: it shows only when focus
-  // arrived via the keyboard (e.g. Tab or list navigation into the field),
-  // not from the open autofocus, clicks, or typing into a focused field.
-  const modalityRef = useRef<"keyboard" | "pointer">("pointer");
-  const [keyboardFocused, setKeyboardFocused] = useState(false);
 
   // Focus when the (lazily mounted) dropdown opens. Double rAF so the focus
   // lands after ark moves focus to the menu content (mirrors Filter).
@@ -106,36 +58,12 @@ const SearchField = ({
     };
   }, []);
 
-  // Document-level: the keypress that moves focus here (Tab from the menu
-  // content, arrow navigation) fires outside this row.
-  useEffect(() => {
-    const onKeyDown = () => {
-      modalityRef.current = "keyboard";
-    };
-    const onPointerDown = () => {
-      modalityRef.current = "pointer";
-    };
-    document.addEventListener("keydown", onKeyDown, true);
-    document.addEventListener("pointerdown", onPointerDown, true);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown, true);
-      document.removeEventListener("pointerdown", onPointerDown, true);
-    };
-  }, []);
-
   return (
-    <div
-      className={cx(
-        searchRow(),
-        keyboardFocused ? undefined : searchRowRingHidden(),
-      )}
-    >
+    <div className={searchRow()}>
       <TextInput
         ref={inputRef}
         value={value}
         onChange={(next) => onChange(next)}
-        onFocus={() => setKeyboardFocused(modalityRef.current === "keyboard")}
-        onBlur={() => setKeyboardFocused(false)}
         placeholder="Search…"
         aria-label="Search sort options"
         size="sm"
@@ -146,36 +74,6 @@ const SearchField = ({
   );
 };
 
-/**
- * A dropdown for choosing how a collection is sorted, triggered by a
- * `Button` (all button props are accepted and forwarded). The dropdown
- * lists the given sorters; selecting one (click or Enter) fires `onChange`
- * with the direction its row shows, and closes the menu. A row's direction
- * appears when the row is active, hovered or keyboard-highlighted; sorters
- * offering both directions show it as a toggle. Clicking the toggle — or
- * pressing left/right on the highlighted row — flips the direction the row
- * displays: on the active sorter that commits immediately (the menu stays
- * open), while on any other row nothing is committed until the row is
- * selected, and closing the menu discards the adjustment.
- *
- * When the active sorter offers both directions, the trigger's own direction
- * icon is also a toggle: clicking it fires `onChange` with the flipped
- * direction immediately, without opening the menu.
- *
- * With `renderTrigger="icon"` the trigger is an icon-only button showing the
- * sort glyph (direction-aware while a sorter is active). Clicking anywhere on
- * it opens the menu, so the trigger-icon flip toggle does not apply. Passing
- * a function instead renders a fully custom trigger element in place of the
- * `Button` (see the prop's docs for the contract).
- *
- * With `searchable`, a search bar at the top of the dropdown filters the
- * sorters as the user types (every whitespace-separated term must match).
- * The field is focused when the menu opens; down/up move into the results.
- *
- * Controlled via `value`/`onChange`. With `saveSortId` set, the latest
- * selection is persisted to localStorage and — while `value` is undefined on
- * mount — replayed through `onChange` so the parent can adopt it.
- */
 export const SortMenu = <SortKey extends string = string>({
   items = [],
   value,
@@ -200,13 +98,7 @@ export const SortMenu = <SortKey extends string = string>({
   searchable?: boolean;
   /**
    * "default" labels the trigger with the active sorter's name; "icon"
-   * collapses it to an icon-only button showing the sort glyph.
-   * A function renders a fully custom trigger from the active sorter and
-   * direction (both undefined while nothing is selected; direction is also
-   * undefined for a direction-less sorter). The returned element replaces
-   * the `Button` — all button props are ignored — and becomes the menu
-   * trigger: ark merges its trigger props onto it, so it must be (or spread
-   * its props onto) an interactive element, and should label itself.
+   * collapses it to an icon-only button. A function renders a fully custom trigger
    */
   renderTrigger?:
     | "default"
@@ -227,7 +119,6 @@ export const SortMenu = <SortKey extends string = string>({
 
   const [search, setSearch] = useState("");
   const searchTerms = search.toLowerCase().split(/\s+/).filter(Boolean);
-  // Every whitespace-separated term must appear in the sorter's name.
   const visibleSorters =
     searchable && searchTerms.length > 0
       ? items.filter((sorter) => {
@@ -236,9 +127,6 @@ export const SortMenu = <SortKey extends string = string>({
         })
       : items;
 
-  // Drafts are per-open-session state, cleared when the menu closes — a
-  // commit does not wipe other rows' pending adjustments (the active row's
-  // direction can be committed while the menu stays open).
   const commit = (sortKey: SortKey, direction: SortDirection) => {
     if (saveSortId) {
       writeSavedSort(saveSortId, sortKey, direction);
@@ -246,9 +134,7 @@ export const SortMenu = <SortKey extends string = string>({
     onChange?.(sortKey, direction);
   };
 
-  // Replay a persisted selection once on mount, only while the parent has
-  // not provided a value of its own. No dependency array: the ref makes it
-  // run once while still reading the mount-time props.
+  // check if a user has saved a sort choice before
   const restoredRef = useRef(false);
   useEffect(() => {
     if (restoredRef.current) {
@@ -274,19 +160,12 @@ export const SortMenu = <SortKey extends string = string>({
     onChange?.(sorter.sortKey, saved.direction);
   });
 
-  // The direction a sorter's row displays: an uncommitted arrow-key draft,
-  // else the live direction for the active sorter, else the direction
-  // selecting it would apply.
   const shownDirection = (sorter: Sorter<SortKey>): SortDirection =>
     draftDirections[sorter.sortKey] ??
     (value && value.sortKey === sorter.sortKey
       ? value.direction
       : (directionsOf(sorter)[0] ?? "ASCENDING"));
 
-  // Flip the direction a row displays. On the active sorter that is a real
-  // change committed immediately (the menu stays open — no selection
-  // happens); on any other row it only adjusts the draft that selecting the
-  // row would apply.
   const flipDirection = (sorter: Sorter<SortKey>) => {
     const next = flipped(shownDirection(sorter));
     if (value?.sortKey === sorter.sortKey) {
@@ -313,8 +192,7 @@ export const SortMenu = <SortKey extends string = string>({
   };
 
   // Left/right arrows flip the highlighted row's displayed direction
-  // (committing immediately on the active row, as a draft elsewhere). Keys
-  // typed into the search row report its row id, which matches no sorter, so
+  // Keys typed into the search row report its row id, which matches no sorter, so
   // caret movement in the input is never intercepted.
   const handleContentKeyDown = (
     event: React.KeyboardEvent,
@@ -377,12 +255,12 @@ export const SortMenu = <SortKey extends string = string>({
               flipDirection(sorter);
             }}
           >
-            <Icon name={directionIcons[direction]} size={suffixIconSize} />
+            <Icon name={directionIcons[direction]} size="sm" />
           </button>
         </span>
       ) : directions.length === 1 ? (
         <span className={directionSuffix()} aria-hidden="true">
-          <Icon name={directionIcons[direction]} size={suffixIconSize} />
+          <Icon name={directionIcons[direction]} size="sm" />
         </span>
       ) : undefined,
     };
@@ -411,19 +289,10 @@ export const SortMenu = <SortKey extends string = string>({
   const selectedSorter = value
     ? items.find((sorter) => sorter.sortKey === value.sortKey)
     : undefined;
-  // A direction-less active sorter shows the generic sort glyph and drops
-  // the direction from the label.
+
   const selectedHasDirection =
     selectedSorter !== undefined && directionsOf(selectedSorter).length > 0;
 
-  // When the active sorter offers both directions, the trigger's icon is
-  // itself a flip control: clicking it commits the opposite direction
-  // without opening (or closing) the menu — the pointer interception keeps
-  // the press from reaching the menu trigger. A nested real <button> would
-  // be invalid inside the trigger button, so it is a role="button" span,
-  // kept out of the tab order (the dropdown is the keyboard path).
-  // Default-mode only: on an icon-only trigger the icon is the whole button,
-  // so intercepting its clicks would leave no pointer path to the menu.
   const flippableTriggerIcon =
     renderTrigger === "default" &&
     value &&

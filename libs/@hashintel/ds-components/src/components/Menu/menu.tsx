@@ -57,12 +57,7 @@ export const Menu = ({
   position?: Position;
   className?: string;
   onOpen?: (open: boolean) => void;
-  /**
-   * Key events from the open menu, with the currently highlighted item id.
-   * For events originating inside a custom row (one of its children is
-   * focused) this is the custom item's id, or null when its id was assigned
-   * internally.
-   */
+  /** Key events from the open menu */
   onKeyDown?: (
     event: React.KeyboardEvent,
     highlightedValue: string | null,
@@ -95,8 +90,6 @@ export const Menu = ({
             </ArkMenu.Trigger>
             <Portal container={portalContainerRef}>
               <ArkMenu.Positioner
-                // Capture phase: the menu machine handles (and swallows) some
-                // keys itself, e.g. left/right for submenu navigation.
                 onKeyDownCapture={(event) => {
                   handleLoopKeyDown(event, menu);
                   onKeyDown?.(event, getEventHighlightedId(event, menu));

@@ -1,4 +1,42 @@
+import { type IconName } from "../Icon/icon";
+
 export type SortDirection = "ASCENDING" | "DESCENDING";
+
+export type SortDirectionsAvailable =
+  | "none"
+  | "ascending"
+  | "descending"
+  | "both";
+
+export type Sorter<SortKey> = {
+  name: string;
+  sortKey: SortKey;
+  /** Defaults to "both" */
+  directionsAvailable?: SortDirectionsAvailable;
+};
+
+export const directionIcons: Record<SortDirection, IconName> = {
+  ASCENDING: "sortDownAZ",
+  DESCENDING: "sortUpAZ",
+};
+
+const directionsByAvailability: Record<
+  SortDirectionsAvailable,
+  readonly SortDirection[]
+> = {
+  none: [],
+  ascending: ["ASCENDING"],
+  descending: ["DESCENDING"],
+  both: ["ASCENDING", "DESCENDING"],
+};
+
+export const directionsOf = (
+  sorter: Sorter<string>,
+): readonly SortDirection[] =>
+  directionsByAvailability[sorter.directionsAvailable ?? "both"];
+
+export const flipped = (direction: SortDirection): SortDirection =>
+  direction === "ASCENDING" ? "DESCENDING" : "ASCENDING";
 
 const storageKey = (saveSortId: string) => `ds-sort:${saveSortId}`;
 

@@ -107,14 +107,8 @@ const NestedMenu = ({
 };
 
 /**
- * A custom row is deliberately not an ark `Menu.Item`/`Select.Item`, so the
- * menu machine never highlights it and arrow keys skip it. In Menu mode all
- * keyboard integration — arrows resuming item navigation from a focused
- * child, Tab stepping through the list, shielding other keys from the menu
- * machine — lives in `useCustomRowNavigation` on the content. The row-level
- * handler below is the equivalent shield for Select mode, where that hook
- * is not attached (in Menu mode it never fires: the capture handler has
- * already stopped propagation of every key it shields).
+ * A custom row is deliberately not selectable item so the
+ * menu machine never highlights it and arrow keys skip it.
  */
 const CustomRow = ({ item, ctx }: { item: CustomItem; ctx: RenderCtx }) => {
   const classes = styles({ size: ctx.size });

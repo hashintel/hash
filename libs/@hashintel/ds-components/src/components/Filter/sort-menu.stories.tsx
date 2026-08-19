@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-import { SortMenu, type SortDirection, type Sorter } from "./sort-menu";
+import { SortMenu } from "./sort-menu";
+import { type SortDirection, type Sorter } from "./sort-menu-util";
 
 import type { Story, StoryDefault } from "@ladle/react";
 

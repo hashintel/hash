@@ -205,8 +205,6 @@ export const styles = sva({
         },
       },
     },
-    // Tone of the selection rendering; styled entirely via compound variants.
-    // The call site defaults it to `tone`.
     selectedTone: {
       neutral: {},
       brand: {},
@@ -228,8 +226,6 @@ export const styles = sva({
     },
   },
   compoundVariants: [
-    // For highlight-style items the hover background follows the selected
-    // tone (overriding the base tone's hover via JS merge), selected or not.
     {
       selectedTone: "neutral",
       selectedStyle: "highlight",
@@ -263,9 +259,6 @@ export const styles = sva({
         },
       },
     },
-    // Persistent background while selected. Hover dims it to the tone's
-    // hover step; for brand/error the higher-specificity [data-selected]
-    // rule keeps a hovered selected item one notch above the a25 hover.
     {
       selectedTone: "neutral",
       selectedStyle: "highlight",
@@ -302,8 +295,6 @@ export const styles = sva({
         },
       },
     },
-    // Tick/checkbox indicator adopts the selected tone. The neutral tick is
-    // pinned so it does not inherit a non-neutral base tone's text color.
     {
       selectedTone: "neutral",
       selected: true,
