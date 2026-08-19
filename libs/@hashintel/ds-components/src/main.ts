@@ -18,6 +18,7 @@ export {
   type NetworkGraphSelection,
   type NetworkGraphSvgIcon,
 } from "./components/Chart/NetworkGraph/network-graph";
+export { minimumNearestNeighbourWorld } from "./components/Chart/NetworkGraph/node-density";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Dialog } from "./components/Dialog/dialog";

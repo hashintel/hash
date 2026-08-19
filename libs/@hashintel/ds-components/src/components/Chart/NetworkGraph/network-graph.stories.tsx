@@ -680,7 +680,7 @@ const useStreamFraming = (
   targetPoints: NetworkGraphPoint[],
 ): {
   graphBounds: NetworkGraphProps["graphBounds"];
-  maxZoom: number | null;
+  maxZoom: { orthographic: number } | null;
 } => {
   const graphBounds = useMemo(() => {
     let minX = Infinity;

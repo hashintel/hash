@@ -22,6 +22,7 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import {
+  minimumNearestNeighbourWorld,
   NetworkGraph,
   PortalContainerContext,
   type NetworkGraphEdge,
@@ -91,12 +92,11 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-/** Aim for roughly this many tiles across the viewport when choosing a depth. */
-const TARGET_TILES_ACROSS = 2;
 /**
  * Fallback deepest tile zoom, used only until the session manifest reports its
- * own `bucketSchedule.maxZoom` (see {@link useGetViewportNodes}'s `tileMaxZoom`).
- * The wire ceiling the quadtree can address; a given generation may tile shallower.
+ * own `scopeSchedule.maxZoom` (see {@link useGetViewportNodes}'s `tileMaxZoom`).
+ * The wire ceiling the quadtree can address; a view's own bound sits at or
+ * below it.
  */
 const DEFAULT_TILE_MAX_ZOOM = 16;
 /** Debounce (ms) on camera changes before refetching, coalescing a pan/zoom drag. */
@@ -107,12 +107,33 @@ const DEBOUNCE_MS = 150;
  */
 const HOVER_LOCATE_DELAY_MS = 300;
 /**
- * Camera max-zoom (absolute orthographic zoom, `2 ** zoom` px per world unit). A
- * cell is one world unit — a depth-16 tile, the finest the quadtree addresses. We
- * cap where one screen dimension shows `max(width, height) / 100` cells, which
- * reduces to 100 px per cell (`2 ** zoom = 100`), independent of canvas size.
+ * Extra tile depths requested beyond the camera's zoom level. The camera's zoom
+ * range covers the session's max tile depth (its level count is passed as
+ * `NetworkGraph`'s `maxZoom`, plus any density headroom — see
+ * {@link MAX_EXTRA_ZOOM_LEVELS}), so tile depth tracks the framing-normalised
+ * zoom 1:1 until it pins at the max; this lead opens the framed-out view at
+ * this depth rather than the bare root tile, and has the deepest tiles already
+ * fetched and showing this many zoom levels before the camera reaches the max
+ * tile depth.
  */
-const MAX_ZOOM = Math.log2(100);
+const TILE_DEPTH_LEAD = 2;
+/**
+ * On-screen spacing (px) of the closest *resolvable* node pair the density
+ * headroom zooms toward. At the deepest tile depth every node is already on
+ * screen, but a dense leaf tile can still render as a blob; the camera may
+ * keep zooming until the closest pair sits this far apart. The minimum rather
+ * than a typical spacing, so every node in a tight cluster becomes
+ * individually hoverable and clickable rather than staying buried under a
+ * neighbour — except exactly coincident points, which no zoom separates and
+ * which therefore don't count toward the measure.
+ */
+const HEADROOM_TARGET_SPACING_PX = 16;
+/**
+ * Cap (zoom levels) on the density headroom past the deepest tile depth.
+ * Coincident nodes would otherwise ask for unbounded zoom; past this, hover and
+ * the locate popover are the disambiguation tools rather than the camera.
+ */
+const MAX_EXTRA_ZOOM_LEVELS = 8;
 
 /** Slack when comparing the live zoom against a limit, to absorb float drift. */
 const ZOOM_LIMIT_EPSILON = 1e-3;
@@ -129,7 +150,14 @@ const zoomButtonSx = {
 };
 
 interface Camera {
+  /** Absolute orthographic zoom (`2 ** zoom` px per world unit). */
   readonly zoom: number | null;
+  /**
+   * Framing-normalised zoom (0 = fully framed out) — the tile-depth axis:
+   * depth tracks it 1:1 up to the session's max tile depth, past which the
+   * remaining range is density headroom (camera-only; the depth stays pinned).
+   */
+  readonly normalisedZoom: number | null;
   readonly center: readonly [number, number] | null;
 }
 
@@ -147,9 +175,9 @@ interface Bounds {
 
 /**
  * The coordinate space Atlas node positions live in, and the extent the quadtree
- * tiles: the full 16-bit axis `[0, WORLD_SIZE)`. Tile depth is measured against
- * this, deliberately not against the framing bounds passed to `NetworkGraph`
- * (which track where the data actually sits so the camera opens bounding it).
+ * tiles: the full 16-bit axis `[0, WORLD_SIZE)`. Distinct from the framing
+ * bounds passed to `NetworkGraph`, which track where the data actually sits so
+ * the camera opens bounding it.
  */
 const GRAPH_WORLD: Bounds = {
   minX: 0,
@@ -159,12 +187,22 @@ const GRAPH_WORLD: Bounds = {
 };
 
 /**
- * Turns the graph's camera (absolute log2 pixels-per-unit zoom + centre), the
+ * Turns the graph's camera (see {@link Camera}: the absolute zoom scales the
+ * world→pixel rectangle, the framing-normalised zoom picks the depth), the
  * container size, and the graph's own bounds into a tiling viewport plus a
  * fractional tile depth. The camera rectangle is clipped to `graphBounds` so the
  * tiling follows the visible graph rather than the empty margin around a
- * contained one. Returns `null` before the camera reports in (so the first fetch
- * is the overview) or when the camera sits entirely off the graph.
+ * contained one.
+ *
+ * Depth tracks the normalised zoom 1:1, led by {@link TILE_DEPTH_LEAD} and
+ * clamped to `[0, maxDepth]`: the framed-out overview opens that many depths in
+ * rather than at the bare root, and the deepest tiles are already showing that
+ * many levels before the camera reaches the max tile depth. Camera zoom past
+ * `maxDepth` (the density headroom) keeps the depth pinned there — it only
+ * magnifies what is already fetched.
+ *
+ * Returns `null` before the camera reports in (so the first fetch is the
+ * depth-0 root) or when the camera sits entirely off the graph.
  */
 const deriveViewport = (
   camera: Camera,
@@ -172,7 +210,12 @@ const deriveViewport = (
   graphBounds: Bounds | null,
   maxDepth: number,
 ): Viewport | null => {
-  if (camera.zoom === null || camera.center === null || size.width === 0) {
+  if (
+    camera.zoom === null ||
+    camera.normalisedZoom === null ||
+    camera.center === null ||
+    size.width === 0
+  ) {
     return null;
   }
   const scale = 2 ** camera.zoom; // pixels per graphWorld unit
@@ -188,9 +231,11 @@ const deriveViewport = (
     return null; // camera is entirely off the graph
   }
 
-  const graphWorldWidth = GRAPH_WORLD.maxX - GRAPH_WORLD.minX;
-  const depth = Math.log2((TARGET_TILES_ACROSS * graphWorldWidth) / (x2 - x1));
-  return { x1, x2, y1, y2, zoom: Math.min(depth, maxDepth) };
+  const depth = Math.min(
+    Math.max(camera.normalisedZoom, 0) + TILE_DEPTH_LEAD,
+    maxDepth,
+  );
+  return { x1, x2, y1, y2, zoom: depth };
 };
 
 /**
@@ -725,7 +770,11 @@ export const NetworkGraphView = ({
 
   const frameRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<NetworkGraphHandle>(null);
-  const cameraRef = useRef<Camera>({ zoom: null, center: null });
+  const cameraRef = useRef<Camera>({
+    zoom: null,
+    normalisedZoom: null,
+    center: null,
+  });
   const sizeRef = useRef<Size>({ width: 0, height: 0 });
   const boundsRef = useRef<Bounds | null>(null);
   // The deepest tile depth to request, mirrored from the manifest so the
@@ -746,8 +795,15 @@ export const NetworkGraphView = ({
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  // The graph opens fully framed out, so zoom-out starts at its limit.
-  const [zoomLimits, setZoomLimits] = useState({ atMin: true, atMax: false });
+  // The live framing-normalised zoom (0 = fully framed out; null until the
+  // camera reports in), mirrored from `onZoom` into state so the zoom-button
+  // limits derive at render — a limit that moves without a zoom event (the
+  // density headroom extending as data lands) re-enables the button.
+  const [normalisedZoom, setNormalisedZoom] = useState<number | null>(null);
+  // The framed-out zoom the graph normalises against (its `framingBaseZoom`,
+  // reported by every `onZoom` and fixed at mount). Held as state because the
+  // density headroom below converts a world-space spacing into zoom levels.
+  const [framingBase, setFramingBase] = useState<number | null>(null);
   // The label of the node currently under the pointer, shown in a subtle box in
   // the top-right corner. Null when the pointer is over empty space or a node
   // without a label.
@@ -829,6 +885,17 @@ export const NetworkGraphView = ({
       filter,
     });
 
+  // The deepest tile depth worth requesting — the deepest zoom this session's
+  // view still delivers new points at, clamped to the wire ceiling, with the
+  // ceiling standing in until the manifest lands. Also the base of the
+  // camera's zoom range (extended by the density headroom below and passed as
+  // `NetworkGraph`'s `maxZoom` level count), which is what keeps zoom level ↔
+  // tile depth 1:1 up to the max depth.
+  const maxTileDepth = Math.min(
+    tileMaxZoom ?? DEFAULT_TILE_MAX_ZOOM,
+    DEFAULT_TILE_MAX_ZOOM,
+  );
+
   // The session revision the painted state below was resolved under. A mismatch
   // with the live revision triggers the synchronous reset further down, so the
   // reset lands in the render that first sees a new session rather than in an
@@ -846,6 +913,50 @@ export const NetworkGraphView = ({
   );
 
   const edges = useMemo(() => (data?.edges ?? []).map(toEdge), [data, toEdge]);
+
+  // Density headroom: at the deepest tile depth every node is on screen, but a
+  // dense leaf tile (up to the catch-all bucket's thousands of points) may
+  // still render as a blob. Measure the delivered nodes' closest resolvable
+  // pair — viewport-local, since the descent only fetches covering tiles;
+  // coincident points are excluded by the measure, since no zoom ever
+  // separates them (the popover disambiguates those) — and extend the camera
+  // until that spacing reads as HEADROOM_TARGET_SPACING_PX, capped by
+  // MAX_EXTRA_ZOOM_LEVELS. Mid-descent the sparse sample overestimates
+  // spacing, so the limit recedes as deeper tiles land; a sparse region
+  // grants none.
+  const extraZoomLevels = useMemo(() => {
+    if (framingBase === null) {
+      return 0;
+    }
+    const spacing = minimumNearestNeighbourWorld(points);
+    if (spacing === null || spacing <= 0) {
+      return 0;
+    }
+    // The absolute zoom at which `spacing` world units span the target px,
+    // rebased to levels above the framed-out zoom — the tile-depth axis.
+    const resolvingLevels =
+      Math.log2(HEADROOM_TARGET_SPACING_PX / spacing) - framingBase;
+    return Math.min(
+      Math.max(0, resolvingLevels - maxTileDepth),
+      MAX_EXTRA_ZOOM_LEVELS,
+    );
+  }, [points, framingBase, maxTileDepth]);
+
+  // The camera's full zoom range: 1:1 with tile depth until the deepest tiles
+  // are fetched and showing, then the density headroom.
+  const maxZoomLevels = maxTileDepth + extraZoomLevels;
+
+  // Zoom-button limits, derived at render so they track a limit that moves
+  // without a zoom event (the headroom extending as denser data lands). The
+  // normalised axis runs `[0, maxZoomLevels]` (the level count passed as
+  // `NetworkGraph`'s `maxZoom`); the graph opens fully framed out, so zoom-out
+  // starts at its limit.
+  const zoomLimits = {
+    atMin: (normalisedZoom ?? 0) <= ZOOM_LIMIT_EPSILON,
+    atMax:
+      normalisedZoom !== null &&
+      normalisedZoom >= maxZoomLevels - ZOOM_LIMIT_EPSILON,
+  };
 
   // The overview query has resolved (so `data` is defined) but carried no nodes:
   // the view is empty — the filters match nothing. Distinct from the initial load
@@ -906,31 +1017,29 @@ export const NetworkGraphView = ({
     }, DEBOUNCE_MS);
   }, []);
 
-  // Mirror the manifest's tile max-zoom into the ref the debounced derivation
-  // reads, and re-derive once it lands so a generation that tiles shallower than
-  // the fallback caps the requested depth. Until it resolves the fallback holds;
-  // the initial overview sits well below any cap, so it never over-requests.
+  // Mirror the session's tile max-zoom into the ref the debounced derivation
+  // reads, and re-derive once it lands so a view whose bound sits shallower
+  // than the fallback caps the requested depth. Until it resolves the fallback
+  // holds; the initial root fetch sits below any cap, so it never over-requests.
   useEffect(() => {
-    maxDepthRef.current = tileMaxZoom ?? DEFAULT_TILE_MAX_ZOOM;
+    maxDepthRef.current = maxTileDepth;
     schedule();
-  }, [tileMaxZoom, schedule]);
+  }, [maxTileDepth, schedule]);
 
   const handleZoom = useCallback(
     (zoom: number, framingBaseZoom: number) => {
-      // `onZoom` reports a framing-normalised zoom (0 = fully framed out), but
-      // `deriveViewport` needs the absolute world→pixel zoom. Add the framing
-      // base back to recover it.
+      // `onZoom` reports the framing-normalised zoom (0 = fully framed out) —
+      // the tile-depth axis — plus the framing base, which recovers the
+      // absolute world→pixel zoom `deriveViewport` sizes the viewport
+      // rectangle with, and which the density headroom rebases against (fixed
+      // at mount, so the setState below settles after the first report).
       cameraRef.current = {
         ...cameraRef.current,
         zoom: zoom + framingBaseZoom,
+        normalisedZoom: zoom,
       };
-      // The framed-in maximum sits at `MAX_ZOOM - framingBaseZoom` on the same
-      // normalised axis; disable whichever button is already at its limit.
-      const maxNormalisedZoom = Math.max(0, MAX_ZOOM - framingBaseZoom);
-      setZoomLimits({
-        atMin: zoom <= ZOOM_LIMIT_EPSILON,
-        atMax: zoom >= maxNormalisedZoom - ZOOM_LIMIT_EPSILON,
-      });
+      setFramingBase(framingBaseZoom);
+      setNormalisedZoom(zoom);
       schedule();
     },
     [schedule],
@@ -1156,6 +1265,11 @@ export const NetworkGraphView = ({
     setHoveredLabel(null);
     setHoverLocateLoading(false);
     setHoverIncomplete(false);
+    // The successor dataset reframes the camera on remount, so the retired
+    // framing base must not convert the new data's spacing into headroom, nor
+    // the retired zoom drive the successor's button limits.
+    setFramingBase(null);
+    setNormalisedZoom(null);
     // The extent is re-frozen off the successor's first load by the derivation
     // above, which fires again once `bounds` is null and points arrive. The ref
     // mirror is cleared in the same breath because the debounced viewport
@@ -1515,7 +1629,7 @@ export const NetworkGraphView = ({
               points={points}
               edges={edges}
               graphBounds={bounds}
-              maxZoom={MAX_ZOOM}
+              maxZoom={maxZoomLevels}
               selected={selected}
               hoveredByExternal={hoveredByExternal}
               onNodeHover={handleNodeHover}

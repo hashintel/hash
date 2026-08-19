@@ -905,19 +905,22 @@ const manifestUrl = (baseUrl: string, generation: string): string =>
   `${baseUrl}/generation/${generation}/manifest`;
 
 /**
- * The deepest quadtree depth the active generation actually tiles, from its
- * manifest's `bucketSchedule.maxZoom`; `null` until the first session
- * bootstraps. Distinct from the wire ceiling {@link ATLAS_TILE_MAX_ZOOM} (the
- * furthest any generation *could* tile) — a given generation may tile shallower.
+ * The deepest tile zoom at which this session's view still delivers new points,
+ * from its manifest's `scopeSchedule.maxZoom` — past it every tile repeats
+ * accumulated content; `null` until the first session bootstraps. Distinct from
+ * both the wire ceiling {@link ATLAS_TILE_MAX_ZOOM} and the generation's own
+ * `bucketSchedule.maxZoom` (the route-validity bound the session retains as
+ * `maxZoom`): this is the *useful* depth for the resolved view, which may sit
+ * shallower than either.
  */
 let atlasTileMaxZoom: number | null = null;
 const tileMaxZoomListeners = new Set<() => void>();
 
 /**
- * The active generation's tile max-zoom, or `null` before the first session
+ * The session view's tile max-zoom, or `null` before the first session
  * bootstraps. Paired with {@link subscribeToAtlasTileMaxZoom} it is a
- * `useSyncExternalStore` source, so a view can clamp its requested tile depth to
- * what the server tiles rather than the wire ceiling {@link ATLAS_TILE_MAX_ZOOM}.
+ * `useSyncExternalStore` source, so a view can bound its camera and requested
+ * tile depth by the deepest zoom that still delivers new points.
  */
 export const getAtlasTileMaxZoom = (): number | null => atlasTileMaxZoom;
 
@@ -1023,11 +1026,11 @@ const fetchSaltileSession = async (
     }
   }
 
-  // Publish the manifest's tile max-zoom so a view driving the camera can clamp
-  // its requested tile depth to what this generation actually tiles, rather than
-  // the wire ceiling (see {@link getAtlasTileMaxZoom}). Immutable per generation,
-  // so a renewal never moves it; only a re-pin (a fresh bootstrap) can.
-  publishAtlasTileMaxZoom(manifest.bucketSchedule.maxZoom);
+  // Publish the resolved view's tile max-zoom — the deepest zoom that still
+  // delivers new points (see {@link getAtlasTileMaxZoom}) — so a view driving
+  // the camera can bound its zoom range and requested tile depth by it.
+  // Per-session rather than per-generation, so it lands on every bootstrap.
+  publishAtlasTileMaxZoom(manifest.scopeSchedule.maxZoom);
 
   return {
     generation: current.generation,

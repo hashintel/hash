@@ -222,13 +222,19 @@ export interface NetworkGraphProps {
    */
   graphBounds: { minX: number; maxX: number; minY: number; maxY: number };
   /**
-   * The camera's maximum zoom, as an absolute orthographic zoom (`2 ** zoom` =
-   * pixels per world unit). Floored at the framing-out zoom so the range is never
-   * inverted. Omit (or pass `null`) to fall back to a fixed offset above the
-   * framed-in zoom — e.g. when node spacing is unknown. Non-tiled callers derive
-   * it from node spacing via {@link maxZoomForNodeMinDistance}.
+   * The camera's maximum zoom. A bare number is the zoom range above the
+   * framed-out view, in zoom levels (doublings): the maximum sits that many
+   * levels past the framing-normalised zero, wherever the dataset's framing
+   * puts it — the tiled consumer passes its deepest tile depth here, making one
+   * zoom level correspond to one tile depth. `{ orthographic }` pins the
+   * maximum absolutely instead (`2 ** zoom` = pixels per world unit), for a
+   * caller that knows a world-space answer rather than a framing-relative one —
+   * derived from node spacing via {@link maxZoomForNodeMinDistance}. Either
+   * form is floored at the framing-out zoom so the range is never inverted.
+   * Omit (or pass `null`) to fall back to a fixed offset above the framed-in
+   * zoom, e.g. when node spacing is unknown.
    */
-  maxZoom?: number | null;
+  maxZoom?: number | { orthographic: number } | null;
   /** Extra class name applied to the chart container. */
   className?: string;
   /**
@@ -1114,6 +1120,14 @@ export const NetworkGraph = ({
     [neighbourhoodOf, activeNode],
   );
 
+  // The `maxZoom` union split into primitives, so the fit effect's deps stay
+  // value-stable when a caller passes an inline `{ orthographic }` object.
+  const maxZoomLevels = typeof maxZoomProp === "number" ? maxZoomProp : null;
+  const maxZoomOrthographic =
+    typeof maxZoomProp === "object"
+      ? (maxZoomProp?.orthographic ?? null)
+      : null;
+
   /** Frame the graph to fit the container on mount and on resize. */
   useEffect(() => {
     const element = containerRef.current;
@@ -1150,20 +1164,29 @@ export const NetworkGraph = ({
       // `framingBaseZoom`), so the framing-normalised zoom starts at 0 for any dataset
       // regardless of its world extent.
       const minZoom = fitZoom(outPadding);
-      // Furthest zoom-in comes from the caller (see the `maxZoom` prop), floored at
-      // `minZoom` so a sparse graph never yields an inverted range, and falling back
-      // to a fixed offset above the framed-in zoom when unspecified. The normalised
-      // range the view exposes is `maxZoom − minZoom`: min fits the graph's extent,
-      // max the node spacing, so it's the node-spacing↔extent ratio, independent of
-      // the absolute world size.
+      // Furthest zoom-in comes from the caller — a range above the framed-out
+      // zoom (a bare `maxZoom` number, so the normalised axis spans exactly
+      // that many levels) or pinned absolutely (`{ orthographic }`) — floored
+      // at `minZoom` so a sparse graph never yields an inverted range, and
+      // falling back to a fixed offset above the framed-in zoom when
+      // unspecified.
       const maxZoom = Math.max(
         minZoom,
-        maxZoomProp ?? framingZoom + MAX_ZOOM_OFFSET,
+        maxZoomOrthographic ??
+          (maxZoomLevels != null
+            ? minZoom + maxZoomLevels
+            : framingZoom + MAX_ZOOM_OFFSET),
       );
-      // Only auto-frame until the user takes control of the view.
-      setViewState(
-        (previous) =>
-          previous ?? {
+      // Only auto-frame until the user takes control of the view. After that,
+      // the one field a later run may move is `maxZoom`: a tiled caller
+      // extends its limit as denser data arrives. The levels form re-resolves
+      // against the framing base the normalised axis actually uses
+      // (`previous.minZoom`, fixed at mount) rather than this run's remeasured
+      // fit, and the limit is floored at the current zoom so a shrinking one
+      // binds on the next zoom-out instead of yanking the camera.
+      setViewState((previous) => {
+        if (!previous) {
+          return {
             target: [
               (graphBounds.minX + graphBounds.maxX) / 2,
               (graphBounds.minY + graphBounds.maxY) / 2,
@@ -1173,14 +1196,29 @@ export const NetworkGraph = ({
             zoom: minZoom,
             minZoom,
             maxZoom,
-          },
-      );
+          };
+        }
+        if (maxZoomLevels == null && maxZoomOrthographic == null) {
+          return previous;
+        }
+        const base = previous.minZoom ?? minZoom;
+        const limit = Math.max(
+          base,
+          maxZoomOrthographic ?? base + (maxZoomLevels ?? 0),
+        );
+        const current =
+          typeof previous.zoom === "number" ? previous.zoom : null;
+        const next = current === null ? limit : Math.max(limit, current);
+        return next === previous.maxZoom
+          ? previous
+          : { ...previous, maxZoom: next };
+      });
     };
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [graphBounds, maxZoomProp]);
+  }, [graphBounds, maxZoomLevels, maxZoomOrthographic]);
 
   // Distinct icons used by the graph (points + overlay points), keyed by their
   // atlas key (a ds icon name, or an SVG icon's URL) -> the icon itself. Deduped
