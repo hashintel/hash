@@ -1,9 +1,7 @@
-use alloc::sync::Arc;
-
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authentication::kratos::MetadataPublic;
 use hash_graph_store::identity_provider::{IdentityProvider, IdentityProviderError};
-use reqwest::{Client, Url};
+use reqwest::{Client, Url, redirect};
 use serde::Deserialize;
 use type_system::principal::actor::UserId;
 
@@ -34,14 +32,27 @@ pub(crate) struct ResolvedUser {
 
 /// Ory Kratos implementation of [`IdentityProvider`].
 pub(crate) struct KratosIdentityProvider {
-    client: Arc<Client>,
+    client: Client,
     admin_url: Url,
 }
 
 impl KratosIdentityProvider {
+    /// Creates a new identity provider for the given Kratos admin URL.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the HTTP client cannot be built.
     #[must_use]
-    pub(crate) const fn new(client: Arc<Client>, admin_url: Url) -> Self {
-        Self { client, admin_url }
+    pub(crate) fn new(admin_url: Url) -> Self {
+        Self {
+            // The admin endpoints never redirect. Following a redirect would forward the request
+            // — and the identity data it returns — to the redirect target.
+            client: Client::builder()
+                .redirect(redirect::Policy::none())
+                .build()
+                .expect("the HTTP client should build with default TLS configuration"),
+            admin_url,
+        }
     }
 
     /// Resolves the user actor owning the given email address.
@@ -87,10 +98,15 @@ impl KratosIdentityProvider {
             .send()
             .await
             .map_err(reqwest::Error::without_url)
-            .change_context(EmailLookupError::LookupFailed)?
-            .error_for_status()
-            .map_err(reqwest::Error::without_url)
             .change_context(EmailLookupError::LookupFailed)?;
+
+        // `error_for_status` only covers 4xx/5xx — with redirects disabled, a 3xx has to be
+        // rejected here as well.
+        let status = response.status();
+        if !status.is_success() {
+            return Err(Report::new(EmailLookupError::LookupFailed)
+                .attach(format!("Kratos responded with status {status}")));
+        }
 
         let mut identities: Vec<AdminIdentity> = response
             .json()
@@ -153,14 +169,18 @@ impl IdentityProvider for KratosIdentityProvider {
             .change_context(IdentityProviderError::DeletionFailed)?;
 
         // 404 means the identity was already deleted — treat as success for idempotency
-        if response.status() == reqwest::StatusCode::NOT_FOUND {
+        let status = response.status();
+        if status == reqwest::StatusCode::NOT_FOUND {
             tracing::info!(%identity_id, "Kratos identity already deleted");
             return Ok(());
         }
 
-        response
-            .error_for_status()
-            .change_context(IdentityProviderError::DeletionFailed)?;
+        // `error_for_status` only covers 4xx/5xx — with redirects disabled, a 3xx has to be
+        // rejected here as well.
+        if !status.is_success() {
+            return Err(Report::new(IdentityProviderError::DeletionFailed)
+                .attach(format!("Kratos responded with status {status}")));
+        }
 
         Ok(())
     }
@@ -168,7 +188,6 @@ impl IdentityProvider for KratosIdentityProvider {
 
 #[cfg(test)]
 mod tests {
-    use alloc::sync::Arc;
     use core::net::SocketAddr;
     use std::collections::HashMap;
 
@@ -223,10 +242,7 @@ mod tests {
     }
 
     async fn provider_for(identities: JsonValue) -> KratosIdentityProvider {
-        KratosIdentityProvider::new(
-            Arc::new(reqwest::Client::new()),
-            spawn_fake_kratos(identities).await,
-        )
+        KratosIdentityProvider::new(spawn_fake_kratos(identities).await)
     }
 
     /// Builds the wire format of a Kratos admin identity.
