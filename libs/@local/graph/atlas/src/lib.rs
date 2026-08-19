@@ -119,9 +119,6 @@
     dead_code,
     unsafe_code,
     clippy::float_arithmetic,
-    // Async surfaces follow the `Dataset` trait, which does not promise
-    // `Send` streams: a future's sendability is the caller's dataset
-    // choice, not a per-function property worth restating.
     clippy::future_not_send,
     clippy::indexing_slicing
 )]
