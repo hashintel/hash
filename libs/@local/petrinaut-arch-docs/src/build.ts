@@ -98,7 +98,7 @@ export const buildBundle = async (options: {
 
   const graph = await buildGraph({
     repoRoot,
-    packages: packages.filter((pkg) => pkg.language === "typescript"),
+    packages,
     tsconfigPath: join(
       repoRoot,
       "libs/@local/petrinaut-arch-docs/dependency-cruiser.tsconfig.json",
