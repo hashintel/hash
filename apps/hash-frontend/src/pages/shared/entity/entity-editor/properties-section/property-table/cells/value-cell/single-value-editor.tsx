@@ -166,6 +166,14 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     latestValueCellRef.current = cell;
   });
 
+  /**
+   * The validation enforcer below mutates document.body and adds a listener to document.
+   * We keep its teardown here so it also runs when the editor is closed without a click – <Grid /> does that on
+   * Escape and Tab – rather than leaving click handling disabled for every editor on the page.
+   */
+  const stopEnforcingValidationRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopEnforcingValidationRef.current?.(), []);
+
   if (
     !chosenDataType ||
     !cell.data.propertyRow.valueMetadata ||
@@ -402,11 +410,10 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
      * If another grid cell is clicked, we cannot validate using the input and we may have an invalid value in the
      * table. The alternative is that clicking another cell wipes the value, which is slightly worse UX. Ideally we
      * would prevent the form being closed when another cell is clicked, to allow validation to run, and in any case
-     * have an indicator that an invalid value is in the form – tracked in H-1834
+     * have an indicator that an invalid value is in the form – tracked in FE-244
      */
     onFinishedEditing(latestValueCellRef.current);
-    document.removeEventListener("click", validationHandler);
-    document.body.classList.remove(GRID_CLICK_IGNORE_CLASS);
+    stopEnforcingValidationRef.current?.();
 
     return true;
   };
@@ -423,6 +430,12 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     }
     document.body.classList.add(GRID_CLICK_IGNORE_CLASS);
     document.addEventListener("click", validationHandler);
+
+    stopEnforcingValidationRef.current = () => {
+      document.removeEventListener("click", validationHandler);
+      document.body.classList.remove(GRID_CLICK_IGNORE_CLASS);
+      stopEnforcingValidationRef.current = null;
+    };
   };
 
   return (
@@ -461,7 +474,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
                * number). Adding the validation enforcer means clicking into another cell requires a second click to
                * activate it, so we don't want to add it unnecessarily. Ideally we wouldn't need the click handler
                * hacks to enforce validation, or have a different validation strategy – especially given that the
-               * validation enforcement can be bypassed by clicking another cell – see H-1834.
+               * validation enforcement can be bypassed by clicking another cell – see FE-244.
                */
               ensureFormValidation();
             }

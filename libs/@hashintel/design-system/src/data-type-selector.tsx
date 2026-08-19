@@ -72,7 +72,15 @@ const DataTypeLabel = (props: {
   const icon = getIconForDataType(dataType);
 
   return (
-    <Tooltip title={dataType.description} placement="left">
+    <Tooltip
+      title={dataType.description}
+      placement="left"
+      PopperProps={{
+        // this className prevents editor overlay from closing
+        className: GRID_CLICK_IGNORE_CLASS,
+      }}
+      disableInteractive
+    >
       <Stack direction="row" alignItems="center">
         <FontAwesomeIcon
           icon={{ icon }}
@@ -543,11 +551,8 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
       <Popper
         anchorEl={externalSearchInput?.inputRef.current ?? textFieldRef.current}
         /**
-         * The menu is rendered in a portal, i.e. outside the DOM tree of whatever renders this selector.
-         * When the selector is used inside a <Grid /> cell editor, Glide Grid closes the editor on any mousedown
-         * which is outside the editor's DOM tree and has no ancestor with GRID_CLICK_IGNORE_CLASS.
-         * Without this class, mousedown on an option unmounts the editor (and therefore this menu) before the
-         * option's click handler can run – i.e. clicking an option appears to do nothing.
+         * The menu is portalled, so it is outside the DOM tree of a <Grid /> cell editor hosting this selector.
+         * This className stops mousedown in the menu closing the editor before the option's onClick can run.
          */
         className={GRID_CLICK_IGNORE_CLASS}
         open={externalSearchInput?.focused ?? textFieldFocused}

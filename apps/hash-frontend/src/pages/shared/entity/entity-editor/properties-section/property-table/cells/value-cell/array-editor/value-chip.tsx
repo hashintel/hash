@@ -2,6 +2,7 @@ import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Box, Tooltip } from "@mui/material";
 
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 
 import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import type { ReactNode } from "react";
@@ -45,7 +46,15 @@ export const ValueChip = ({
             }}
           />
         ) : (
-          <Tooltip title={tooltip} placement="top">
+          <Tooltip
+            title={tooltip}
+            placement="top"
+            PopperProps={{
+              // this className prevents editor overlay from closing
+              className: GRID_CLICK_IGNORE_CLASS,
+            }}
+            disableInteractive
+          >
             <FontAwesomeIcon
               icon={icon}
               sx={{
