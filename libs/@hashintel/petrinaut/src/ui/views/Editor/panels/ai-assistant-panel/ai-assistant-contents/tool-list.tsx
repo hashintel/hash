@@ -61,7 +61,7 @@ export type OnInteractiveToolSubmit = (params: {
   toolCallId: string;
   toolName: string;
   output: unknown;
-}) => void;
+}) => void | PromiseLike<void>;
 
 const toolListStyle = cva({
   base: {
@@ -526,17 +526,25 @@ const InteractiveToolItem = ({
       input={typedInput}
       state="awaiting"
       submit={(output) => {
-        if (submittedOnceRef.current) {
+        if (submittedOnceRef.current || !onInteractiveToolSubmit) {
           return;
         }
 
         const parsedOutput = definition.parseOutput(output);
         submittedOnceRef.current = true;
-        onInteractiveToolSubmit?.({
-          toolCallId: tool.id,
-          toolName: tool.toolName,
-          output: parsedOutput,
-        });
+        try {
+          const submission = onInteractiveToolSubmit({
+            toolCallId: tool.id,
+            toolName: tool.toolName,
+            output: parsedOutput,
+          });
+          void Promise.resolve(submission).catch(() => {
+            submittedOnceRef.current = false;
+          });
+        } catch (error) {
+          submittedOnceRef.current = false;
+          throw error;
+        }
       }}
       toolCallId={tool.id}
     />

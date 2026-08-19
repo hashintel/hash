@@ -109,19 +109,19 @@ const safelyAddToolOutput = (
   void Promise.resolve(addToolOutput(params)).catch(() => {});
 };
 
-const safelyAddDynamicToolOutput = (
+const addDynamicToolOutput = (
   addToolOutput: ReturnType<
     typeof useChat<PetrinautAiMessage>
   >["addToolOutput"],
   params: { tool: string; toolCallId: string; output: unknown },
-) => {
+): Promise<void> => {
   // AI SDK models dynamic tool parts at runtime, but its addToolOutput generic
   // is keyed only by the message's statically declared tools. Keep the cast at
   // this boundary; the host definition validated the dynamic output already.
-  const addDynamicToolOutput = addToolOutput as unknown as (
+  const addToolOutputForDynamicTool = addToolOutput as unknown as (
     dynamicParams: typeof params,
   ) => void | PromiseLike<void>;
-  void Promise.resolve(addDynamicToolOutput(params)).catch(() => {});
+  return Promise.resolve(addToolOutputForDynamicTool(params));
 };
 
 const waitForDiagnosticsRefresh = async ({
@@ -644,12 +644,11 @@ export const AiAssistantPanel = ({
             throw new Error(`Unknown AI tool: ${toolName}`);
           }
 
-          safelyAddDynamicToolOutput(addToolOutput, {
+          return addDynamicToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
             output,
           });
-          return;
         }
 
         const petrinautOutput = output as AiToolOutput;

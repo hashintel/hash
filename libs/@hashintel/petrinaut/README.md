@@ -61,9 +61,11 @@ checked before Petrinaut calls the AI SDK's `addToolOutput`.
 
 The component receives a stable `toolCallId` plus a discriminated lifecycle:
 `state: "awaiting"` has no submitted output, while `state: "submitted"`
-includes the validated `submittedOutput`. Only the first valid `submit` call
-is forwarded. Once every pending tool call has output, the existing AI SDK
-automatic follow-up runs as usual.
+includes the validated `submittedOutput`. While a submission is in flight,
+duplicate `submit` calls are ignored. An accepted submission stays one-shot;
+if the AI SDK rejects it, the awaiting component can submit again. Once every
+pending tool call has output, the existing AI SDK automatic follow-up runs as
+usual.
 
 Tool names must be unique within the host registry and must not collide with a
 built-in Petrinaut tool such as `applyAutoLayout`. A dynamic tool call with no
