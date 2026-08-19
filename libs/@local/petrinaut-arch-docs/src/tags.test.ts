@@ -109,6 +109,85 @@ line three
   });
 });
 
+describe("scanTags @talksTo", () => {
+  it("reads a target and protocol from a TypeScript comment", () => {
+    const { tags, diagnostics } = scanTags(`/**
+ * @layerRoot bindings
+ * @role Python bindings for the CLI protocol
+ * @talksTo cli via JSON lines over stdio (spawned subprocess)
+ */`);
+
+    expect(diagnostics).toEqual([]);
+    expect(tags.talksTo).toEqual([
+      {
+        target: "cli",
+        protocol: "JSON lines over stdio (spawned subprocess)",
+        line: 4,
+      },
+    ]);
+  });
+
+  it("is repeatable, one target per tag", () => {
+    const { tags, diagnostics } = scanTags(`/**
+ * @talksTo cli via JSON lines over stdio
+ * @talksTo core.simulation.worker via postMessage
+ */`);
+
+    expect(diagnostics).toEqual([]);
+    expect(tags.talksTo.map((tag) => tag.target)).toEqual([
+      "cli",
+      "core.simulation.worker",
+    ]);
+  });
+
+  it("reads the tag from a Python module docstring", () => {
+    const { tags, diagnostics } = scanTags(
+      `"""One CLI process, spoken to over JSON lines on stdio.
+
+@talksTo cli via JSON lines over stdio (spawned subprocess)
+"""
+`,
+      "python",
+    );
+
+    expect(diagnostics).toEqual([]);
+    expect(tags.talksTo[0]?.target).toBe("cli");
+    expect(tags.talksTo[0]?.protocol).toBe(
+      "JSON lines over stdio (spawned subprocess)",
+    );
+  });
+
+  it("reports a tag with no via clause", () => {
+    const { tags, diagnostics } = scanTags(`/**
+ * @talksTo cli
+ */`);
+
+    expect(tags.talksTo).toEqual([]);
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain("via <protocol>");
+  });
+
+  it("reports a target that is not a well-formed layer id", () => {
+    const { tags, diagnostics } = scanTags(`/**
+ * @talksTo Not_A_Layer via stdio
+ */`);
+
+    expect(tags.talksTo).toEqual([]);
+    expect(diagnostics).toHaveLength(1);
+  });
+
+  it("suggests a correction for a miscased tag", () => {
+    const { diagnostics } = scanTags(`/**
+ * @talksto cli via stdio
+ */`);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toBe(
+      "unknown tag @talksto; did you mean @talksTo?",
+    );
+  });
+});
+
 describe("scanTags for Python", () => {
   it("reads a layer declaration from a module docstring", () => {
     const { tags, diagnostics } = scanTags(

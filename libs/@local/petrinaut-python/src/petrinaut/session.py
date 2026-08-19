@@ -7,6 +7,8 @@ written one JSON object per line, and every read is size- and time-bounded.
 
 POSIX only: the session signals process groups with ``os.killpg`` and polls
 descriptors with ``select.select``.
+
+@talksTo cli via JSON lines over stdio (spawned subprocess)
 """
 
 from __future__ import annotations

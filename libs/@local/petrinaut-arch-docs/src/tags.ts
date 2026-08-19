@@ -6,10 +6,10 @@
  * prose then becomes the layer's page. Files with no tags inherit from the
  * nearest declaring ancestor.
  *
- * The vocabulary is deliberately two tags: an id and a one-line role. Both are
- * needed to place a layer in the graph and to label it — anything more is a
- * claim the generator cannot check, and this version does not make claims it
- * cannot keep.
+ * The vocabulary is three tags. `@layerRoot` and `@role` place a layer in the
+ * graph and label it. `@talksTo` declares an edge no import produces, such as a
+ * spawned subprocess or a postMessage channel; anything more is a claim the
+ * generator cannot check, and this version does not make claims it cannot keep.
  *
  * Tags are recognised only at the start of a line inside a doc comment — a
  * `/** ... *​/` block in TypeScript, a triple-quoted docstring in Python — so a
@@ -30,6 +30,15 @@ export interface TagValue {
   line: number;
 }
 
+/** One `@talksTo` occurrence: a dependency on `target` over `protocol`. */
+export interface TalksToTag {
+  /** Layer id on the receiving end of the protocol. */
+  target: string;
+  /** The text after `via`, e.g. "JSON lines over stdio". */
+  protocol: string;
+  line: number;
+}
+
 export interface ParsedTags {
   /**
    * `@layerRoot` — declares that this file's folder *and its descendants* form
@@ -39,6 +48,12 @@ export interface ParsedTags {
   layerRoot: TagValue | null;
   /** `@role` — one-line statement of what the layer is responsible for. */
   role: TagValue | null;
+  /**
+   * `@talksTo <layer-id> via <protocol>` — declares a dependency no import
+   * produces, such as a spawned subprocess or a postMessage channel. The
+   * declaring file's own layer is the edge source. Repeatable.
+   */
+  talksTo: TalksToTag[];
 }
 
 export interface TagDiagnostic {
@@ -54,6 +69,7 @@ export interface TagScanResult {
 const emptyTags = (): ParsedTags => ({
   layerRoot: null,
   role: null,
+  talksTo: [],
 });
 
 /** Tags that may appear at most once per file. */
@@ -61,7 +77,14 @@ const singularTags = ["layerRoot", "role"] as const;
 
 type SingularTag = (typeof singularTags)[number];
 
-const knownTagNames = new Set<string>(singularTags);
+const knownTagNames = new Set<string>([...singularTags, "talksTo"]);
+
+/**
+ * `<layer-id> via <protocol>`: the id grammar matches `layerSchema` in
+ * `model.ts`, and the protocol is required free text.
+ */
+const talksToPattern =
+  /^([a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)*)\s+via\s+(\S.*)$/u;
 
 /** The language a file's doc comments are written for. */
 export type CommentLanguage = "typescript" | "python";
@@ -220,6 +243,24 @@ export const scanTags = (
 
       if (singularTags.includes(name as SingularTag)) {
         assignSingular(name as SingularTag, rawTag);
+        continue;
+      }
+
+      if (name === "talksTo") {
+        const parsed = talksToPattern.exec(rawTag.text);
+        if (parsed) {
+          tags.talksTo.push({
+            target: parsed[1] ?? "",
+            protocol: (parsed[2] ?? "").trim(),
+            line,
+          });
+        } else {
+          diagnostics.push({
+            line,
+            message:
+              "@talksTo expects `@talksTo <layer-id> via <protocol>`, e.g. `@talksTo cli via JSON lines over stdio`",
+          });
+        }
         continue;
       }
 

@@ -105,6 +105,7 @@ export const buildBundle = async (options: {
     ignoredFilePattern: settings.ignoredFilePattern,
     fileLayers: extraction.fileLayers,
     layers: extraction.layers,
+    talksTo: extraction.talksTo,
   });
 
   diagnostics.push(...graph.diagnostics);

@@ -22,7 +22,12 @@
 
 import { spawnSync } from "node:child_process";
 
-import type { Edge, Layer } from "../model";
+import {
+  isDeclaredEdge,
+  type DeclaredEdge,
+  type Edge,
+  type Layer,
+} from "../model";
 
 const quote = (text: string): string => JSON.stringify(text);
 
@@ -40,6 +45,7 @@ const styleClasses = [
   `  optimizer: {style.fill: "#e0f2f1"; style.stroke: "#2b7a72"}`,
   `  other: {style.fill: "#f2f2f2"; style.stroke: "#777777"}`,
   `  boundary: {style.stroke-dash: 4}`,
+  `  declared: {style.stroke-dash: 4}`,
   `  focus: {style.stroke-width: 3; style.bold: true}`,
   `  elided: {style.fill: "#ffffff"; style.stroke: "#aaaaaa"; style.stroke-dash: 3; style.italic: true}`,
   `}`,
@@ -73,6 +79,18 @@ const header = (generatedBy: string): string =>
  * alongside each other regardless of where they live in the taxonomy.
  */
 const flatKey = (id: string): string => id.replace(/\./gu, "_");
+
+/** Tooltip shared by every rendering of a `@talksTo` edge. */
+const declaredTooltip =
+  "declared with @talksTo; no import crosses this boundary";
+
+/** A declared edge: dashed, labelled with the protocol the annotation names. */
+const declaredEdgeLine = (
+  from: string,
+  to: string,
+  edge: DeclaredEdge,
+): string =>
+  `${from} -> ${to}: ${quote(edge.protocol)} {class: declared; tooltip: ${quote(declaredTooltip)}}`;
 
 /**
  * How many neighbours a neighbourhood diagram draws before eliding the rest.
@@ -114,12 +132,25 @@ export const buildNeighbourhoodDiagram = (
   };
 
   for (const edge of edges) {
+    if (edge.provenance !== "imports") {
+      continue;
+    }
     if (edge.from === focusId && edge.to !== focusId) {
       record(edge.to, "out", edge.fileDependencies);
     } else if (edge.to === focusId && edge.from !== focusId) {
       record(edge.from, "in", edge.fileDependencies);
     }
   }
+
+  // Declared edges bypass the neighbour cap: each is a hand-written annotation,
+  // so their number stays small, and eliding one would hide the only record of
+  // a boundary no import reaches.
+  const declaredEdges = edges
+    .filter(isDeclaredEdge)
+    .filter(
+      (edge) =>
+        (edge.from === focusId || edge.to === focusId) && edge.from !== edge.to,
+    );
 
   const ranked = [...neighbours.entries()].sort(
     ([leftId, left], [rightId, right]) =>
@@ -141,6 +172,21 @@ export const buildNeighbourhoodDiagram = (
       )}; tooltip: ${quote(layer?.role ?? id)}}`;
     }),
   ];
+
+  const drawnIds = new Set(shown.map(([id]) => id));
+  for (const edge of declaredEdges) {
+    const otherId = edge.from === focusId ? edge.to : edge.from;
+    if (drawnIds.has(otherId)) {
+      continue;
+    }
+    drawnIds.add(otherId);
+    const other = layersById.get(otherId);
+    nodeLines.push(
+      `${flatKey(otherId)}: {class: ${classFor(otherId)}; label: ${quote(
+        other?.name ?? otherId,
+      )}; tooltip: ${quote(other?.role ?? otherId)}}`,
+    );
+  }
 
   const elidedOut = elided.reduce((sum, [, counts]) => sum + counts.out, 0);
   const elidedIn = elided.reduce((sum, [, counts]) => sum + counts.in, 0);
@@ -181,6 +227,12 @@ export const buildNeighbourhoodDiagram = (
         )}}`,
       );
     }
+  }
+
+  for (const edge of declaredEdges) {
+    edgeLines.push(
+      declaredEdgeLine(flatKey(edge.from), flatKey(edge.to), edge),
+    );
   }
 
   // Drawn dashed and in whichever directions the elided layers actually use, so
@@ -274,6 +326,9 @@ export const buildSubtreeDiagram = (
 
   const aggregated = new Map<string, number>();
   for (const edge of edges) {
+    if (edge.provenance !== "imports") {
+      continue;
+    }
     const from = childScopeOf(edge.from);
     const to = childScopeOf(edge.to);
     if (from === null || to === null || from === to) {
@@ -294,6 +349,17 @@ export const buildSubtreeDiagram = (
         pluralise(count, "file-level dependency", "file-level dependencies"),
       )}}`;
     });
+
+  // Declared edges keep their individual protocol labels rather than being
+  // aggregated: two protocols between the same pair are two facts.
+  for (const edge of edges.filter(isDeclaredEdge)) {
+    const from = childScopeOf(edge.from);
+    const to = childScopeOf(edge.to);
+    if (from === null || to === null || from === to) {
+      continue;
+    }
+    edgeLines.push(declaredEdgeLine(key(from), key(to), edge));
+  }
 
   return [
     header(generatedBy),
@@ -334,6 +400,9 @@ export const buildOverviewDiagram = (
 
   const aggregated = new Map<string, number>();
   for (const edge of edges) {
+    if (edge.provenance !== "imports") {
+      continue;
+    }
     const from = rootSegment(edge.from);
     const to = rootSegment(edge.to);
     if (from === to) {
@@ -360,6 +429,15 @@ export const buildOverviewDiagram = (
         pluralise(count, "file-level dependency", "file-level dependencies"),
       )}}`;
     });
+
+  for (const edge of edges.filter(isDeclaredEdge)) {
+    const from = rootSegment(edge.from);
+    const to = rootSegment(edge.to);
+    if (from === to) {
+      continue;
+    }
+    edgeLines.push(declaredEdgeLine(from, to, edge));
+  }
 
   return [
     header(generatedBy),

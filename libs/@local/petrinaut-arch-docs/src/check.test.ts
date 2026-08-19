@@ -37,6 +37,7 @@ const layer = (overrides: Partial<Layer> & Pick<Layer, "id">): Layer => ({
 const edge = (from: string, to: string, count = 1): Edge => ({
   from,
   to,
+  provenance: "imports",
   fileDependencies: count,
   examples: [{ from: `src/${from}.ts`, to: `src/${to}.ts` }],
   crossesPackage: false,
