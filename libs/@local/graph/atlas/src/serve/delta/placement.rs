@@ -34,14 +34,16 @@
 
 use std::fs::File;
 
+use burn::backend::libtorch::LibTorchDevice;
 use hashql_core::id::{Id as _, IdSlice};
 
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
+    device::Inference,
     file::{array::ArrayFile, generation::Generation},
     math::{AlignedVecN, Bounds2, MatrixN, NonNegative, Similarity, Vec2},
     salt::{
-        fit::{PlacementInner, PlacementOptions, placement_device},
+        fit::PlacementOptions,
         ladder::report::CERTIFICATE_TOLERANCE,
         lod::stage::WIRE_FRAME,
         projector::{
@@ -151,7 +153,9 @@ impl core::error::Error for PlacementError {}
 /// to wire coordinates - the same function the fit applied to every fitted row.
 pub(crate) struct Placer {
     /// The reopened checkpoint on the placement backend.
-    model: Projector<PlacementInner>,
+    model: Projector<Inference>,
+    /// The device every projection runs on.
+    device: LibTorchDevice,
     /// The canonical rung's condition, or zero for a generation without a measured ladder.
     condition: NonNegative,
     /// The canonical rung's recorded similarity, or [`None`] where the zero frame published
@@ -192,7 +196,10 @@ impl Placer {
     /// - [`PlacementError::Checkpoint`] when the checkpoint does not open or does not decode
     /// - [`PlacementError::Certificate`] when the reopened path does not reproduce the generation's
     ///   own published coordinates
-    pub(crate) fn open(generation: &Generation) -> Result<Option<Self>, PlacementError> {
+    pub(crate) fn open(
+        generation: &Generation,
+        device: LibTorchDevice,
+    ) -> Result<Option<Self>, PlacementError> {
         let repository = generation.repository();
         let metadata = &repository.metadata;
 
@@ -232,7 +239,6 @@ impl Placer {
             None => (NonNegative::ZERO, None),
         };
 
-        let device = placement_device();
         let checkpoint = match File::open(generation.path_of(&checkpoint.name)) {
             Ok(file) => file,
             Err(error) => {
@@ -240,7 +246,7 @@ impl Placer {
                 return Err(PlacementError::Checkpoint);
             }
         };
-        let model: Projector<PlacementInner> =
+        let model: Projector<Inference> =
             match artifact::open_model(checkpoint, options.architecture, &device) {
                 Ok(model) => model,
                 Err(error) => {
@@ -254,6 +260,7 @@ impl Placer {
 
         let placer = Self {
             model,
+            device,
             condition,
             alignment,
             world: metadata.evidence.lod.world,
@@ -429,7 +436,7 @@ impl Placer {
                 columns,
                 self.condition,
                 self.forward_rows,
-                &placement_device(),
+                &self.device,
             )
             .map_err(|error| match error {
                 refresh::RefreshError::Diverged { row, .. }
@@ -482,10 +489,10 @@ mod tests {
         }
     }
 
-    fn model() -> Projector<PlacementInner> {
+    fn model() -> Projector<Inference> {
         Projector::new(
             architecture(),
-            &placement_device(),
+            &LibTorchDevice::Cpu,
             Xoshiro256PlusPlus::seed_from_u64(7),
         )
     }
@@ -502,6 +509,7 @@ mod tests {
     fn placer(alignment: Option<Similarity>, world: Bounds2) -> Placer {
         Placer {
             model: model(),
+            device: LibTorchDevice::Cpu,
             condition: non_negative!(0.25),
             alignment,
             world,
@@ -546,7 +554,7 @@ mod tests {
             columns,
             placer.condition,
             placer.forward_rows,
-            &placement_device(),
+            &LibTorchDevice::Cpu,
         )
         .expect("the fixture forward is finite");
         let world: Vec<Vec2> = placer.alignment.map_or_else(

@@ -193,6 +193,43 @@ impl Adjacency {
             )))
         }
     }
+
+    /// Returns the node row count `N`.
+    #[must_use]
+    pub(crate) fn rows(&self) -> usize {
+        let runs = match &self.0 {
+            AdjacencyGraph::U16(graph) => graph.rows(),
+            AdjacencyGraph::U32(graph) => graph.rows(),
+            AdjacencyGraph::U64(graph) => graph.rows(),
+        };
+        runs / 2
+    }
+
+    /// Returns a node's incident-edge degree: its outgoing plus incoming slots.
+    ///
+    /// A self-loop counts twice, once per direction, matching the slot contract above. Returns
+    /// [`None`] when the row lies outside the node domain.
+    #[must_use]
+    pub(crate) fn degree(&self, node: NodeRowId) -> Option<usize> {
+        fn incident<I>(graph: &AdjacencySparseGraph<I, u64>, node: NodeRowId) -> Option<usize>
+        where
+            I: SpIndex,
+        {
+            let outgoing = node.as_usize().checked_mul(2)?;
+            let incoming = outgoing + 1;
+            if incoming >= graph.rows() {
+                return None;
+            }
+
+            Some(graph.outer_view(outgoing)?.nnz() + graph.outer_view(incoming)?.nnz())
+        }
+
+        match &self.0 {
+            AdjacencyGraph::U16(graph) => incident(graph, node),
+            AdjacencyGraph::U32(graph) => incident(graph, node),
+            AdjacencyGraph::U64(graph) => incident(graph, node),
+        }
+    }
 }
 
 /// Fills the value column at index width `I` and assembles the CSR adjacency.

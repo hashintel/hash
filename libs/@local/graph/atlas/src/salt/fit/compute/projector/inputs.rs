@@ -1,34 +1,32 @@
-//! The mapped artifacts and staging products one placement binds.
+//! The values one placement binds, and the supplied-verdict resolution.
 
-use hashql_core::id::IdSlice;
+use camino::Utf8Path;
 
-use super::super::quotient::{DistinctRowId, RowQuotient};
+use super::super::{
+    error::ComputeError,
+    quotient::{DistinctRowId, Quotient},
+};
 use crate::{
-    dataset::PROJECTOR_DIMENSIONS,
+    dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
-        repository::RepositoryFile,
-        salt::metadata::{Placement, ProjectorEvidence, Reproducibility, Snapshot},
+        identity::{Key, read::IdentityFile},
+        salt::metadata::{Reproducibility, Snapshot},
     },
-    identity::{EdgeRowId, NodeRowId},
-    math::AlignedVecN,
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     salt::{
-        knn::{artifact::KnnArchive, table::KnnView},
-        landmark::artifact::LandmarkSkeletonArchive,
+        fit::{SuppliedVerdicts, prepare::identity::IdentityTableArchive, role::Role},
+        knn::table::{Knn, KnnView},
+        landmark::artifact::LandmarkSkeleton,
         projector::verdict::ResolvedVerdict,
         relation::{RelationIndexes, attraction::AttractionIndex},
-        semantic::artifact::SemanticGraphArchive,
+        semantic::SemanticGraph,
     },
 };
 
-/// The mapped artifacts one placement consumes, bound once per fit.
-pub(in crate::salt::fit::compute) struct PlacementInputs<'fit> {
-    /// The mapped representation matrix, one aligned row per corpus node.
-    ///
-    /// These rows are the publication domain that ladder frames and the canonical coordinate
-    /// column cover.
-    pub rows: &'fit IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
-    /// The staged landmark skeleton, over the corpus row domain.
-    pub skeleton: &'fit LandmarkSkeletonArchive,
+/// The values one placement consumes, bound once per fit.
+pub(crate) struct PlacementInputs<'fit> {
+    /// The landmark skeleton, over the corpus row domain.
+    pub skeleton: &'fit LandmarkSkeleton<NodeRowId>,
     /// The supplied verdicts, resolved into the corpus row domain.
     pub resolution: &'fit VerdictResolution,
     /// The metadata document's `snapshot` section, the value the seal serializes.
@@ -44,31 +42,29 @@ pub(in crate::salt::fit::compute) struct PlacementInputs<'fit> {
 
 /// The trainer's distinct-row view of the corpus.
 ///
-/// Training and the ladder's loss measurements run over the quotient and the artifacts built on it,
+/// Training and the ladder's loss measurements run over the quotient and the values built on it,
 /// where byte-identical rows are one point. Publication evaluates the full corpus, and identical
 /// representations project identically, so the two domains describe one field.
-pub(in crate::salt::fit::compute) struct DistinctInputs<'fit> {
-    /// The distinct representation rows, first occurrences in corpus order.
-    pub rows: &'fit IdSlice<DistinctRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
-    /// The corpus-to-distinct row quotient.
-    pub quotient: &'fit RowQuotient,
+pub(crate) struct DistinctInputs<'fit> {
+    /// The corpus-to-distinct row quotient, carrying both row domains' matrices.
+    pub quotient: &'fit Quotient<'fit, PROJECTOR_DIMENSIONS>,
     /// The distinct-domain neighbour table.
-    pub knn: &'fit KnnArchive<DistinctRowId>,
+    pub knn: &'fit Knn<DistinctRowId>,
     /// The distinct-domain semantic graph.
-    pub semantic: &'fit SemanticGraphArchive<DistinctRowId>,
+    pub semantic: &'fit SemanticGraph<DistinctRowId>,
     /// The distinct-domain relation indexes.
     pub indexes: &'fit RelationIndexes<DistinctRowId, EdgeRowId>,
 }
 
 /// The training-domain views the publish half reads.
 ///
-/// The quotient, the neighbour table, and the attraction index carry the ladder's per-rung loss
+/// The quotient, the neighbour table, and the attraction index carry the ladder's per-level loss
 /// measurements over the distinct rows, and the unresolved-verdict count echoes into the
 /// placement's evidence. The metadata document's input sections ride beside them as the
 /// paired-movement salt preimage.
-pub(in crate::salt::fit::compute) struct PublishInputs<'fit> {
+pub(crate) struct PublishInputs<'fit> {
     /// The corpus-to-distinct row quotient.
-    pub quotient: &'fit RowQuotient,
+    pub quotient: &'fit Quotient<'fit, PROJECTOR_DIMENSIONS>,
     /// The distinct-domain neighbour table.
     pub knn: KnnView<'fit, DistinctRowId>,
     /// The distinct-domain attraction index.
@@ -86,23 +82,75 @@ pub(in crate::salt::fit::compute) struct PublishInputs<'fit> {
 
 /// The supplied verdicts resolved into the corpus row domain.
 #[derive(Debug, Default)]
-pub(in crate::salt::fit) struct VerdictResolution {
+pub(crate) struct VerdictResolution {
     /// Verdicts naming a type table row, ascending by row.
     pub resolved: Vec<ResolvedVerdict>,
     /// Verdicts naming no row of this corpus.
     pub unresolved: usize,
 }
 
-/// What the placement stage hands the assembly.
-pub(in crate::salt::fit::compute) struct PlacementArtifacts {
-    /// The staged canonical coordinate column.
-    pub coordinates: RepositoryFile,
-    /// The staged projector checkpoint.
+impl VerdictResolution {
+    /// Resolves the supplied verdicts against the staged ontology identity column.
     ///
-    /// Present exactly for a trained placement.
-    pub checkpoint: Option<RepositoryFile>,
-    /// Which placement ran.
-    pub placement: Placement,
-    /// The training and ladder measurements of a trained placement.
-    pub evidence: Option<ProjectorEvidence>,
+    /// Typed by the dataset's own ontology id. A run without supplied verdicts resolves to the
+    /// empty resolution.
+    ///
+    /// # Errors
+    ///
+    /// Returns an I/O error when the staged identity column does not open, and the open's
+    /// admission error when the column is not keyed by `O`.
+    pub(crate) fn resolve<O>(
+        context: &super::super::Context,
+        verdicts: Option<&SuppliedVerdicts>,
+    ) -> Result<Self, ComputeError>
+    where
+        O: Key + OntologyIdentity + Eq + core::hash::Hash,
+    {
+        let Some(supplied) = verdicts else {
+            return Ok(Self::default());
+        };
+
+        resolve_supplied::<O>(
+            &context
+                .staging
+                .path_of(&Role::OntologyIdentities.file_name()),
+            supplied,
+        )
+    }
+}
+
+/// Resolves supplied verdicts against the ontology identity column at `path`.
+///
+/// Read under the dataset's ontology id type `O`.
+///
+/// Each verdict's reviewed versioned URL derives the id naming it in the corpus's own id space
+/// ([`OntologyIdentity`]). Verdicts whose identity derives no id there record as unresolved. A
+/// column file keyed by any other id type fails the open.
+///
+/// # Errors
+///
+/// Returns an I/O error when the identity column does not open, and the open's admission error
+/// when the column is not keyed by `O`.
+pub(crate) fn resolve_supplied<O>(
+    path: &Utf8Path,
+    supplied: &SuppliedVerdicts,
+) -> Result<VerdictResolution, ComputeError>
+where
+    O: Key + OntologyIdentity + Eq + core::hash::Hash,
+{
+    let table =
+        IdentityTableArchive::<O, OntologyRowId>::new(IdentityFile::open(path.as_std_path())?)?;
+
+    let resolution = supplied.document().resolve(table.ids());
+    let unresolved = resolution.unresolved().len();
+    tracing::info!(
+        resolved = resolution.resolved().len(),
+        unresolved,
+        "resolved the supplied verdicts"
+    );
+
+    Ok(VerdictResolution {
+        resolved: resolution.resolved().to_vec(),
+        unresolved,
+    })
 }

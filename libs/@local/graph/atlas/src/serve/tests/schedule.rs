@@ -51,14 +51,14 @@ pub(super) mod reference {
 
     /// One visible row with its base position, pinned key, and pinned rank.
     #[derive(Debug, Copy, Clone)]
-    pub(in crate::serve) struct Row {
+    pub(crate) struct Row {
         pub position: u32,
         pub key: MortonKey,
         pub rank: u32,
     }
 
     /// Gathers the visible rows of `proof` with their generation-layout values.
-    pub(in crate::serve) fn rows(atlas: &Atlas, proof: &VisibilityProof) -> Vec<Row> {
+    pub(crate) fn rows(atlas: &Atlas, proof: &VisibilityProof) -> Vec<Row> {
         let row_ids = atlas.rows.view();
         let ranks = atlas.ranks.view();
         let count = u32::try_from(atlas.morton.count()).expect("fixture counts fit u32");
@@ -78,7 +78,7 @@ pub(super) mod reference {
     /// Rank order, coarse to fine: a row takes the shallowest depth at which it is the first
     /// representative of its cell; rows never claiming a cell - co-located at the complete key -
     /// take the deepest bucket.
-    pub(in crate::serve) fn buckets(rows: &[Row]) -> Vec<u8> {
+    pub(crate) fn buckets(rows: &[Row]) -> Vec<u8> {
         let mut by_rank: Vec<usize> = (0..rows.len()).collect();
         by_rank.sort_unstable_by_key(|&local| rows[local].rank);
 
@@ -110,14 +110,14 @@ pub(super) mod reference {
 
     /// One reference delivery of positions in wire order, with the head's run vocabulary.
     #[derive(Debug)]
-    pub(in crate::serve) struct Delivery {
+    pub(crate) struct Delivery {
         pub positions: Vec<u32>,
         pub runs: Vec<u64>,
     }
 
     /// The scope schedule of one view at offset `k`, replayed from the law.
     #[derive(Debug)]
-    pub(in crate::serve) struct Schedule {
+    pub(crate) struct Schedule {
         rows: Vec<Row>,
         clamped: Vec<u8>,
         span: u8,
@@ -127,7 +127,7 @@ pub(super) mod reference {
 
     impl Schedule {
         /// Builds the reference schedule over `rows` at offset `k`.
-        pub(in crate::serve) fn new(rows: Vec<Row>, span: u8, max_tile_depth: u8, k: u8) -> Self {
+        pub(crate) fn new(rows: Vec<Row>, span: u8, max_tile_depth: u8, k: u8) -> Self {
             let deepest = max_tile_depth + span + k;
             assert!(deepest <= Depth::MAX.get(), "the battery stays on the grid");
             let clamped = buckets(&rows)
@@ -163,7 +163,7 @@ pub(super) mod reference {
         }
 
         /// The delivery of `(z, cell, mode)`, made only of contiguous bucket intervals.
-        pub(in crate::serve) fn delivery(&self, z: u8, cell: MortonCell, mode: Mode) -> Delivery {
+        pub(crate) fn delivery(&self, z: u8, cell: MortonCell, mode: Mode) -> Delivery {
             let cut = self.cut(z);
             let first = match (mode, z) {
                 (Mode::Total, _) | (Mode::Delta, 0) => 0,
@@ -182,7 +182,7 @@ pub(super) mod reference {
         }
 
         /// The expected child bitmask of `(z, cell)`.
-        pub(in crate::serve) fn children(&self, z: u8, cell: MortonCell) -> u8 {
+        pub(crate) fn children(&self, z: u8, cell: MortonCell) -> u8 {
             let cut = self.cut(z);
             if cut >= self.deepest {
                 return 0;
@@ -209,7 +209,7 @@ pub(super) mod reference {
         /// [`Self::cut`] inverted: the smallest `z` with `clamped <= z + span + k`. Written as a
         /// search rather than as the subtraction the implementation uses, so the two derivations
         /// share no arithmetic. [`None`] when the view does not hold the position.
-        pub(in crate::serve) fn first_zoom(&self, position: u32) -> Option<u8> {
+        pub(crate) fn first_zoom(&self, position: u32) -> Option<u8> {
             let local = self.rows.iter().position(|row| row.position == position)?;
             let bucket = self.clamped[local];
 
@@ -221,7 +221,7 @@ pub(super) mod reference {
         /// The union of the listed tiles' delivered positions: the edges route's bounding set.
         ///
         /// A tile's delivered set is mode-independent, so the total delivery is the whole answer.
-        pub(in crate::serve) fn delivered_union(&self, tiles: &[(u8, MortonCell)]) -> HashSet<u32> {
+        pub(crate) fn delivered_union(&self, tiles: &[(u8, MortonCell)]) -> HashSet<u32> {
             tiles
                 .iter()
                 .flat_map(|&(z, cell)| self.delivery(z, cell, Mode::Total).positions)
@@ -229,7 +229,7 @@ pub(super) mod reference {
         }
 
         /// The visible count and deepest occupied bucket expected in the root's global metadata.
-        pub(in crate::serve) fn global(&self) -> (u64, u64) {
+        pub(crate) fn global(&self) -> (u64, u64) {
             let visible = self
                 .clamped
                 .iter()

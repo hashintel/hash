@@ -52,7 +52,7 @@ fn cpu_flavors_run_and_agree() {
     assert_flavors_agree(BackendKind::Cpu);
 }
 
-#[cfg(all(feature = "bench", feature = "gpu"))]
+#[cfg(feature = "bench")]
 #[test]
 #[ignore = "requires an Apple GPU; run with --run-ignored all"]
 fn metal_flavors_run_and_agree() {

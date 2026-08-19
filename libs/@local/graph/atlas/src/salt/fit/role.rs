@@ -1,20 +1,11 @@
-//! Artifact roles and staged-write plumbing shared by the fit stages.
+//! Artifact roles: the fit's staged file names and their repository bindings.
 
-use std::{
-    fs::File,
-    io::{self, BufWriter, Write as _},
-};
+use std::{fs::File, io};
 
 use camino::Utf8Path;
 
-use super::error::StageError;
 use crate::{
-    file::{
-        WriteInto,
-        array::{ArrayVariant, ArrayWriter, Dim, SizedArrayWriter},
-        generation::StagedGeneration,
-        repository::{FileName, RepositoryFile},
-    },
+    file::repository::{FileName, RepositoryFile},
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
@@ -130,51 +121,6 @@ const _: [FileName; 29] = [
     Role::AnnotationHashes.file_name(),
 ];
 
-/// One staged artifact, carried from its stage to the assembly.
-///
-/// `file` is the repository binding the seal publishes, `artifact` the staged value mapped back for
-/// the stages that consume it, and `evidence` the stage's measurement for the generation metadata.
-pub(super) struct Staged<A, E = ()> {
-    pub file: RepositoryFile,
-    pub artifact: A,
-    pub evidence: E,
-}
-
-/// Stages one artifact under its role.
-///
-/// The artifact writes itself into the role's buffered staged file through its own single digest
-/// pass, and the digest binds to the role.
-pub(super) fn stage<A>(
-    staging: &StagedGeneration,
-    role: Role,
-    artifact: &A,
-) -> Result<RepositoryFile, StageError>
-where
-    A: WriteInto,
-    StageError: From<A::Error>,
-{
-    let mut writer = BufWriter::new(staging.create(&role.file_name())?);
-    let digest = artifact.write_into(&mut writer)?;
-    writer.flush()?;
-
-    Ok(role.file(digest))
-}
-
-/// Runs `write` against the role's buffered staged file.
-///
-/// Surfaces flush errors, and binds the written digest to the role.
-pub(super) fn write_staged(
-    staging: &StagedGeneration,
-    role: Role,
-    write: impl FnOnce(&mut BufWriter<File>) -> io::Result<Sha256Digest>,
-) -> io::Result<RepositoryFile> {
-    let mut writer = BufWriter::new(staging.create(&role.file_name())?);
-    let digest = write(&mut writer)?;
-    writer.flush()?;
-
-    Ok(role.file(digest))
-}
-
 /// Returns the SHA-256 of the file at `path`, streaming its bytes.
 pub(super) fn digest_file(path: impl AsRef<Utf8Path>) -> io::Result<Sha256Digest> {
     let path = path.as_ref();
@@ -187,52 +133,4 @@ pub(super) fn digest_file(path: impl AsRef<Utf8Path>) -> io::Result<Sha256Digest
     io::copy(&mut File::open(path)?, &mut writer)?;
 
     Ok(writer.accumulator.finalize())
-}
-
-/// Stages one array column row by row and binds the sealed file's digest to the role.
-///
-/// The digest streams over the finished file because the array writer seals its header by seeking.
-pub(super) fn stage_column(
-    staging: &StagedGeneration,
-    role: Role,
-    variant: ArrayVariant,
-    row_dims: &[Dim],
-    rows: impl Iterator<Item: AsRef<[u8]>>,
-) -> io::Result<RepositoryFile> {
-    {
-        let mut writer = BufWriter::new(staging.create(&role.file_name())?);
-        let mut array = ArrayWriter::new(&mut writer, variant, row_dims)?;
-        for row in rows {
-            array.write_row(row.as_ref())?;
-        }
-        array.finish()?;
-    }
-
-    let digest = digest_file(staging.path_of(&role.file_name()))?;
-    Ok(role.file(digest))
-}
-
-/// Stages one array column whose shape names the row count up front.
-///
-/// Binds the digest accumulated over the single write pass to the role.
-///
-/// `dims` is the full shape, the leading dimension the row count; `rows` must deliver exactly that
-/// many rows.
-pub(super) fn stage_sized_column(
-    staging: &StagedGeneration,
-    role: Role,
-    variant: ArrayVariant,
-    dims: &[Dim],
-    rows: impl Iterator<Item: AsRef<[u8]>>,
-) -> io::Result<RepositoryFile> {
-    let mut writer = BufWriter::new(staging.create(&role.file_name())?);
-    let mut array = SizedArrayWriter::new(&mut writer, variant, dims)?;
-
-    for row in rows {
-        array.write_row(row.as_ref())?;
-    }
-
-    let digest = array.finish()?;
-
-    Ok(role.file(digest))
 }

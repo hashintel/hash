@@ -322,8 +322,11 @@ impl Atlas {
     ///
     /// Returns [`delta::PlacementError`] when the generation stages a projector checkpoint whose
     /// publish path does not reopen and certify. Each refusal logs its own line at the site.
-    pub(crate) fn arrival_placer(&self) -> Result<Option<delta::Placer>, delta::PlacementError> {
-        delta::Placer::open(&self.generation)
+    pub(crate) fn arrival_placer(
+        &self,
+        device: burn::backend::libtorch::LibTorchDevice,
+    ) -> Result<Option<delta::Placer>, delta::PlacementError> {
+        delta::Placer::open(&self.generation, device)
     }
 
     /// Configures the delivery-cut policy over this generation's schedule, aiming for `band`.

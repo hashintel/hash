@@ -134,6 +134,7 @@ pub mod bench;
 pub(crate) mod bitset;
 pub mod cli;
 pub(crate) mod dataset;
+mod device;
 pub(crate) mod file;
 pub(crate) mod identity;
 pub(crate) mod integrity;

@@ -20,13 +20,17 @@ use core::{error::Error, fmt, str::FromStr};
 use std::{
     ffi::OsString,
     fs::{self, File},
-    io::{self, Write as _},
+    io::{self, BufWriter, Write as _},
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
 use uuid::Uuid;
 
-use super::{repository::FileName, salt::SaltRepository};
+use super::{
+    WriteInto,
+    repository::{FileName, RepositoryFile},
+    salt::SaltRepository,
+};
 use crate::integrity::{ParseHexError, Sha256, Sha256Digest, Update as _};
 
 mod open;
@@ -388,6 +392,19 @@ impl ScratchDirectory {
 
         File::create(&path).map(|file| (path, file))
     }
+
+    pub(crate) fn write<A>(&self, name: &str, artifact: A) -> io::Result<Utf8PathBuf>
+    where
+        A: WriteInto<Error = io::Error>,
+    {
+        let (path, file) = self.file(name)?;
+        let mut writer = BufWriter::new(file);
+
+        let _digest = artifact.write_into(&mut writer)?;
+        writer.flush()?;
+
+        Ok(path)
+    }
 }
 
 impl Drop for ScratchDirectory {
@@ -432,6 +449,44 @@ impl StagedGeneration {
     #[must_use]
     pub(crate) fn path_of(&self, name: &FileName) -> Utf8PathBuf {
         self.path.join(name.as_str())
+    }
+
+    /// Stages one artifact under a repository file name.
+    ///
+    /// The artifact writes itself into the named staged file through one buffered pass, and the
+    /// written bytes' digest binds to the name as the repository entry the seal publishes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when creating or flushing the staged file fails, and the artifact's own
+    /// error when its write fails.
+    pub(crate) fn stage<A>(&self, name: FileName, artifact: &A) -> Result<RepositoryFile, A::Error>
+    where
+        A: WriteInto,
+        A::Error: From<io::Error>,
+    {
+        let mut writer = BufWriter::new(self.create(&name)?);
+        let hash = artifact.write_into(&mut writer)?;
+        writer.flush()?;
+
+        Ok(RepositoryFile { name, hash })
+    }
+
+    /// Runs `write` against the named buffered staged file and binds the digest it returns.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when creating or flushing the staged file fails or when `write` fails.
+    pub(crate) fn stage_with(
+        &self,
+        name: FileName,
+        write: impl FnOnce(&mut BufWriter<File>) -> io::Result<Sha256Digest>,
+    ) -> io::Result<RepositoryFile> {
+        let mut writer = BufWriter::new(self.create(&name)?);
+        let hash = write(&mut writer)?;
+        writer.flush()?;
+
+        Ok(RepositoryFile { name, hash })
     }
 
     /// Seals the staging into a published generation.

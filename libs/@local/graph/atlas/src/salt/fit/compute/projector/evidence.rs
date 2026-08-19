@@ -10,7 +10,7 @@ use hashql_core::id::Id;
 use zerocopy::IntoBytes as _;
 
 use super::{
-    super::super::{error::StageError, role::Role},
+    super::{super::role::Role, error::ComputeError},
     report::RelationLossReadout,
 };
 use crate::{
@@ -39,7 +39,7 @@ pub(super) fn rung_path(ladder: &Utf8Path, index: usize) -> Utf8PathBuf {
 pub(super) fn write_frame<N>(
     path: impl AsRef<Utf8Path>,
     frame: &FinitePointField<N>,
-) -> Result<(), StageError>
+) -> Result<(), ComputeError>
 where
     N: Id,
 {
@@ -60,7 +60,7 @@ pub(super) fn stage_coordinate_column(
     staging: &StagedGeneration,
     rows: u64,
     points: impl Iterator<Item = Vec2>,
-) -> Result<Sha256Digest, StageError> {
+) -> Result<Sha256Digest, ComputeError> {
     let mut writer = BufWriter::new(staging.create(&Role::Coordinates.file_name())?);
     let mut array = SizedArrayWriter::new(
         &mut writer,

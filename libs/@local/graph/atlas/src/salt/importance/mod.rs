@@ -12,7 +12,7 @@
 
 use hashql_core::id::IdVec;
 
-use crate::{identity::NodeRowId, salt::adjacency::AdjacencyArchive};
+use crate::{identity::NodeRowId, salt::adjacency::Adjacency};
 
 #[cfg(test)]
 mod tests;
@@ -75,15 +75,15 @@ impl ImportanceSignal for ConstantImportance {
 /// per node; beyond that the ranking key rounds, which reorders only rows already within a quarter
 /// of a percent of each other.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct DegreeImportance<'map> {
-    adjacency: &'map AdjacencyArchive,
+pub(crate) struct DegreeImportance<'graph> {
+    adjacency: &'graph Adjacency,
 }
 
-impl<'map> DegreeImportance<'map> {
+impl<'graph> DegreeImportance<'graph> {
     /// Wraps the adjacency the degrees read from.
     #[inline]
     #[must_use]
-    pub(crate) const fn new(adjacency: &'map AdjacencyArchive) -> Self {
+    pub(crate) const fn new(adjacency: &'graph Adjacency) -> Self {
         Self { adjacency }
     }
 }
@@ -103,7 +103,7 @@ impl ImportanceSignal for DegreeImportance<'_> {
     fn derive(&self, rows: usize) -> IdVec<NodeRowId, f32> {
         assert_eq!(
             self.adjacency.rows(),
-            rows as u64,
+            rows,
             "the adjacency spans the generation's node rows",
         );
 

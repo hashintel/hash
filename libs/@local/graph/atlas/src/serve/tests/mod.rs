@@ -12,6 +12,7 @@
 use core::{assert_matches, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
+use burn::backend::libtorch::LibTorchDevice;
 use camino::Utf8PathBuf;
 use futures::future::ready;
 use hash_graph_postgres_store::store::{EntityEnd, EntityEvent};
@@ -375,6 +376,7 @@ async fn fit_dataset(name: &str, dataset: &MemoryDataset) -> (GenerationRoot, Ge
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await

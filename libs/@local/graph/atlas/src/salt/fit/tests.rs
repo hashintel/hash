@@ -1,6 +1,7 @@
 use core::{future::ready, num::NonZero};
 use std::{collections::HashMap, fs};
 
+use burn::backend::libtorch::LibTorchDevice;
 use camino::{Utf8Path, Utf8PathBuf};
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
@@ -11,8 +12,8 @@ use zerocopy::{LE, TryFromBytes as _, U64};
 
 use super::{
     ClassifierInput, FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions,
-    StageError, SuppliedAnnotations, SuppliedVerdicts, Supplies,
-    compute::resolve_supplied,
+    SuppliedAnnotations, SuppliedVerdicts, Supplies,
+    compute::{ComputeError, resolve_supplied},
     error::PlacementError,
     fit,
     prepare::identity::{IdentityTable, IdentityTableArchive},
@@ -531,6 +532,7 @@ async fn fit_publishes_a_complete_generation() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -771,6 +773,7 @@ async fn policy_artifacts_publish_and_read_back() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -827,6 +830,7 @@ async fn lod_columns_publish_in_base_order() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -943,6 +947,7 @@ async fn supplied_verdicts_publish_verbatim() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -1106,6 +1111,7 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -1220,6 +1226,7 @@ async fn prior_generation_seeds_reuse_and_retention() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -1238,6 +1245,7 @@ async fn prior_generation_seeds_reuse_and_retention() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -1300,6 +1308,7 @@ async fn override_supersedes_the_classifier() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -1349,6 +1358,7 @@ async fn equal_seeds_publish_equal_generations() {
             ..
         },
         &first_root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -1362,6 +1372,7 @@ async fn equal_seeds_publish_equal_generations() {
             ..
         },
         &second_root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -1412,13 +1423,14 @@ async fn defective_corpus_publishes_nothing() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await;
     assert!(
         matches!(
             result,
-            Err(FitError::Stage(StageError::RepresentationDefects(ref check))) if !check.passes(),
+            Err(FitError::RepresentationDefects(ref check)) if !check.passes(),
         ),
         "the defective corpus should fail the norm check",
     );
@@ -1567,6 +1579,7 @@ async fn forceless_projector_publishes_the_baseline_rung() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -1724,6 +1737,7 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -1958,6 +1972,7 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -2060,13 +2075,14 @@ async fn vacuous_placement_trains_without_reviews() {
             ..
         },
         &refused,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await;
     assert!(
         matches!(
             result,
-            Err(FitError::Stage(StageError::Placement(
+            Err(FitError::Compute(ComputeError::Placement(
                 PlacementError::Train(TrainError::MissingProximalReviews)
             ))),
         ),
@@ -2094,6 +2110,7 @@ async fn vacuous_placement_trains_without_reviews() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await
@@ -2186,13 +2203,14 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await;
     assert!(
         matches!(
             result,
-            Err(FitError::Stage(StageError::Placement(
+            Err(FitError::Compute(ComputeError::Placement(
                 PlacementError::Canonical(CanonicalError::UnknownRung { .. })
             ))),
         ),
@@ -2390,6 +2408,7 @@ async fn edge_artifacts_publish_and_read_back() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await

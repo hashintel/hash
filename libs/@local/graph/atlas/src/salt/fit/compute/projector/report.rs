@@ -3,17 +3,17 @@
 
 use core::num::NonZero;
 
+use burn::backend::libtorch::LibTorchDevice;
 use hashql_core::id::{Id, IdSlice, IdVec};
 
 use super::{
-    super::super::{ProjectorOptions, error::StageError, role::Role},
-    TrainerInner,
+    super::error::ComputeError,
     derive::gather_distinct,
-    device,
     evidence::{rung_evidence, rung_path, stage_coordinate_column, write_frame},
     inputs::PublishInputs,
 };
 use crate::{
+    device::Inference,
     file::{
         array::ArrayFile,
         attraction::read::AttractionFile,
@@ -24,6 +24,7 @@ use crate::{
     integrity::Sha256Digest,
     math::{DNonNegative, DPositive, Derivation, FinitePointField, NonNegative},
     salt::{
+        fit::{ProjectorOptions, role::Role},
         ladder::{
             Field, measure_ladder,
             paired::{self, PairedMovementEvidence},
@@ -47,8 +48,10 @@ use crate::{
 pub(super) struct LadderPass<'fit> {
     /// The staged generation the canonical column publishes into and re-reads from.
     staging: &'fit StagedGeneration,
-    /// The scratch directory the rung frames project into.
+    /// The scratch directory the level frames project into.
     scratch: &'fit ScratchDirectory,
+    /// The device every frame projects on.
+    device: LibTorchDevice,
 }
 
 impl<'fit> LadderPass<'fit> {
@@ -56,8 +59,13 @@ impl<'fit> LadderPass<'fit> {
     pub(super) const fn new(
         staging: &'fit StagedGeneration,
         scratch: &'fit ScratchDirectory,
+        device: LibTorchDevice,
     ) -> Self {
-        Self { staging, scratch }
+        Self {
+            staging,
+            scratch,
+            device,
+        }
     }
 
     /// Projects, measures, and publishes the condition ladder, returning its evidence.
@@ -68,12 +76,12 @@ impl<'fit> LadderPass<'fit> {
     pub(super) fn measure_conditions(
         &self,
         options: &ProjectorOptions,
-        model: &Projector<TrainerInner>,
+        model: &Projector<Inference>,
         columns: NodeColumns<'_, NodeRowId>,
         inputs: &PublishInputs<'_>,
         energy: RelationEnergy,
-    ) -> Result<(LadderEvidence, Sha256Digest), StageError> {
-        let device = device();
+    ) -> Result<(LadderEvidence, Sha256Digest), ComputeError> {
+        let device = self.device;
         let ladder = self.scratch.directory("ladder")?;
         let conditions = options.ladder.conditions.values();
 
@@ -85,7 +93,7 @@ impl<'fit> LadderPass<'fit> {
             // distinct rows' own frame.
             let distinct_frame = gather_distinct(&frame, inputs.quotient);
             let scales = refresh::scales(&distinct_frame, &inputs.knn, eta)
-                .map_err(|error| error.map_rows(|row| inputs.quotient.first_row(row)))?;
+                .map_err(|error| error.map_rows(|row| inputs.quotient.representative(row)))?;
             readouts.push(relation_loss(
                 &distinct_frame,
                 &scales,
@@ -117,7 +125,8 @@ impl<'fit> LadderPass<'fit> {
         // its finiteness once here, and the fits consume the proof.
         let files = (0..conditions.len())
             .map(|index| {
-                ArrayFile::open(rung_path(&ladder, index)).map_err(StageError::MapCoordinates)
+                ArrayFile::open(rung_path(&ladder, index))
+                    .map_err(|error| ComputeError::MapCoordinates(error.into()))
             })
             .collect::<Result<Vec<_>, _>>()?;
         let fields: Vec<Field<'_, NodeRowId>> = files
@@ -129,14 +138,14 @@ impl<'fit> LadderPass<'fit> {
                     .points()
                     .expect("the rung frame was written as f32 pairs");
                 let coordinates = FinitePointField::new(IdSlice::<NodeRowId, _>::from_raw(points))
-                    .map_err(|source| StageError::NonFiniteRung { rung, source })?;
+                    .map_err(|source| ComputeError::NonFiniteRung { rung, source })?;
 
                 Ok(Field {
                     coordinates,
                     relation_loss: readout.uncapped_total,
                 })
             })
-            .collect::<Result<_, StageError>>()?;
+            .collect::<Result<_, ComputeError>>()?;
 
         let measurements = measure_ladder(&options.ladder.conditions, &fields)?;
         let selection = select_canonical(&measurements, options.ladder.canonical)?;
@@ -155,7 +164,7 @@ impl<'fit> LadderPass<'fit> {
         // The alignment's f32 arithmetic can overflow, so the published frame is proven here,
         // at its creation, and every consumer below takes the field.
         let aligned = FinitePointField::new_boxed(IdVec::from_raw(aligned).into_boxed_slice())
-            .map_err(|source| StageError::NonFiniteAligned { source })?;
+            .map_err(|source| ComputeError::NonFiniteAligned { source })?;
         let digest =
             stage_coordinate_column(self.staging, aligned.len() as u64, aligned.iter().copied())?;
 
@@ -205,17 +214,17 @@ impl<'fit> LadderPass<'fit> {
         condition: NonNegative,
         energy: RelationEnergy,
         cap: NonZero<usize>,
-    ) -> Result<DNonNegative, StageError> {
+    ) -> Result<DNonNegative, ComputeError> {
         let file = ArrayFile::open(self.staging.path_of(&Role::Coordinates.file_name()))
-            .map_err(StageError::MapCoordinates)?;
+            .map_err(|error| ComputeError::MapCoordinates(error.into()))?;
         let frame = file
             .points()
             .expect("the coordinate column was sealed as f32 pairs");
         let frame = FinitePointField::new(IdSlice::from_raw(frame))
-            .map_err(|source| StageError::NonFiniteAligned { source })?;
+            .map_err(|source| ComputeError::NonFiniteAligned { source })?;
         let distinct_frame = gather_distinct(frame, inputs.quotient);
         let scales = refresh::scales(&distinct_frame, &inputs.knn, condition)
-            .map_err(|error| error.map_rows(|row| inputs.quotient.first_row(row)))?;
+            .map_err(|error| error.map_rows(|row| inputs.quotient.representative(row)))?;
         Ok(relation_loss(&distinct_frame, &scales, inputs.attraction, energy, cap).uncapped_total)
     }
 
@@ -228,9 +237,9 @@ impl<'fit> LadderPass<'fit> {
     ///
     /// # Errors
     ///
-    /// - [`StageError::SaltPreimage`] when the salt preimage does not serialize. The preimage is a
-    ///   strict subset of the metadata document, so the seal shares the failure.
-    /// - [`StageError::MapAttraction`] when the staged attraction index does not map back.
+    /// - [`ComputeError::SaltPreimage`] when the salt preimage does not serialize. The preimage is
+    ///   a strict subset of the metadata document, so the seal shares the failure.
+    /// - [`ComputeError::MapAttraction`] when the staged attraction index does not map back.
     ///
     /// # Panics
     ///
@@ -248,7 +257,7 @@ impl<'fit> LadderPass<'fit> {
         reproducibility: &Reproducibility,
         zero: &FinitePointField<NodeRowId>,
         canonical: &FinitePointField<NodeRowId>,
-    ) -> Result<PairedMovementEvidence<NodeRowId>, StageError> {
+    ) -> Result<PairedMovementEvidence<NodeRowId>, ComputeError> {
         let index = AttractionFile::open(self.staging.path_of(&Role::Attraction.file_name()))?;
         assert_eq!(
             index.rows(),

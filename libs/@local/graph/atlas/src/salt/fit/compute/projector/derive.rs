@@ -4,13 +4,13 @@ use hashql_core::id::{Id, IdSlice};
 
 use super::super::{
     super::ProjectorOptions,
-    quotient::{DistinctRowId, RowQuotient},
+    quotient::{DistinctRowId, Quotient},
 };
 use crate::{
     identity::NodeRowId,
     math::{DNonNegative, DPositive, FinitePointField, NonNegative, Positive, Vec2},
     salt::{
-        landmark::artifact::LandmarkSkeletonArchive,
+        landmark::artifact::LandmarkSkeleton,
         projector::{
             loss::{ProximalEnergy, RelationEnergy},
             scale::{LOCAL_SCALE_NEIGHBOURS, insert_nearest, sorted_median},
@@ -51,10 +51,10 @@ pub(super) fn compose_energy(
 /// the same local-scale convention the relation loss normalizes by. A landmark in a dense skeleton
 /// region therefore holds its row tighter than one in a sparse region. A one-landmark skeleton has
 /// no ruler and anchors at radius zero. The support term's ε guards the division.
-pub(super) fn landmark_anchors(
-    skeleton: &LandmarkSkeletonArchive,
+pub(super) fn landmark_anchors<const N: usize>(
+    skeleton: &LandmarkSkeleton<NodeRowId>,
     options: &ProjectorOptions,
-    quotient: &RowQuotient,
+    quotient: &Quotient<'_, N>,
 ) -> Vec<SupportAnchor<DistinctRowId>> {
     let coordinates = skeleton.coordinates();
 
@@ -62,7 +62,7 @@ pub(super) fn landmark_anchors(
         .selected_rows()
         .iter_enumerated()
         .map(|(ordinal, &row)| SupportAnchor {
-            row: quotient.representative(row),
+            row: quotient.class_of(row),
             target: coordinates[ordinal],
             radius: skeleton_scale(coordinates, ordinal),
             weight: options.landmark_support.weight(),
@@ -71,11 +71,11 @@ pub(super) fn landmark_anchors(
 }
 
 /// Gathers a corpus frame's rows at the quotient's first rows: the training domain's own frame.
-pub(super) fn gather_distinct(
+pub(super) fn gather_distinct<const N: usize>(
     frame: &FinitePointField<NodeRowId>,
-    quotient: &RowQuotient,
+    quotient: &Quotient<'_, N>,
 ) -> Box<FinitePointField<DistinctRowId>> {
-    frame.gather(quotient.first_rows())
+    frame.gather(quotient.representatives())
 }
 
 /// Computes one landmark's median layout distance to its nearest skeleton neighbours.

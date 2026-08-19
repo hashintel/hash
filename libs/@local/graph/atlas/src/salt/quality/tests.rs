@@ -13,6 +13,7 @@ use alloc::borrow::Cow;
 use core::{assert_matches, future::ready, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
+use burn::backend::libtorch::LibTorchDevice;
 use camino::Utf8PathBuf;
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
@@ -1639,6 +1640,7 @@ async fn runner_reports_a_published_generation() {
             ..
         },
         &root,
+        LibTorchDevice::Cpu,
         &NoProgress,
     )
     .await

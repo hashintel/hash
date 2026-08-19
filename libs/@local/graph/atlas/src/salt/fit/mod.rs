@@ -10,7 +10,7 @@
 //! The last dataset touch splits the pipeline. [`ingest`] runs on the async runtime and drains the
 //! dataset's streams and the embedding provider into staged files. [`compute`] runs on the rayon
 //! pool behind [`offload`], so the CPU-heavy stages never occupy a tokio runtime thread. A stage
-//! panic surfaces as [`StageError::Panicked`] instead of poisoning the executor.
+//! panic surfaces as [`compute::ComputeError::Panicked`] instead of poisoning the executor.
 //!
 //! # Memory discipline
 //!
@@ -36,16 +36,14 @@
 use core::{error::Error, fmt, num::NonZero};
 use std::io::{self, Write as _};
 
+use burn::backend::libtorch::LibTorchDevice;
 use camino::Utf8Path;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use self::prepare::norm;
 pub(crate) use self::{
-    annotations::SuppliedAnnotations,
-    compute::{PlacementInner, placement_device},
-    echo::FitConfigDef,
-    error::{FitError, StageError},
+    annotations::SuppliedAnnotations, echo::FitConfigDef, error::FitError,
     verdicts::SuppliedVerdicts,
 };
 use crate::{
@@ -560,6 +558,7 @@ pub(crate) async fn fit<D, E, P>(
         prior,
     }: Supplies<'_>,
     root: &GenerationRoot,
+    device: LibTorchDevice,
     progress: &P,
 ) -> Result<PublishedGeneration, FitError<D::Error, E::Error>>
 where
@@ -575,7 +574,7 @@ where
     // reject it, and the staged bytes are the supplied file verbatim.
     let reviewed_verdicts = match verdicts {
         Some(supplied) => {
-            let file = role::write_staged(&staging, role::Role::ReviewedVerdicts, |writer| {
+            let file = staging.stage_with(role::Role::ReviewedVerdicts.file_name(), |writer| {
                 writer.write_all(supplied.bytes())?;
                 Ok(supplied.hash())
             })?;
@@ -598,7 +597,7 @@ where
             source: *source,
         },
         ClassifierInput::Annotations(supplied) => {
-            let file = role::write_staged(&staging, role::Role::AnnotationCorpus, |writer| {
+            let file = staging.stage_with(role::Role::AnnotationCorpus.file_name(), |writer| {
                 writer.write_all(supplied.bytes())?;
                 Ok(supplied.hash())
             })?;
@@ -632,23 +631,25 @@ where
 
     // Everything after the last dataset touch is CPU-and-file work:
     // it crosses onto the rayon pool as one owned unit.
-    let inputs = compute::Inputs {
-        config: config.clone(),
+    let compute = compute::Compute {
+        context: compute::Context {
+            staging,
+            scratch,
+            config: config.clone(),
+            device,
+        },
         classifier,
         reviewed_verdicts,
         verdicts: verdicts.cloned(),
         prior: prior.cloned(),
+        ingested,
     };
 
     // The compute half leaves this stack for the rayon pool, so it takes the observer's detached
     // half rather than a borrow the spawn cannot hold.
     let detached = progress.detach();
-    let published = offload(move || {
-        compute::run::<D::NodeId, D::OntologyId, P::Detached>(
-            staging, &scratch, &inputs, ingested, &detached,
-        )
-    })
-    .await?;
+    let published =
+        offload(move || compute.run::<D::NodeId, D::OntologyId, P::Detached>(&detached)).await?;
 
     Ok(published)
 }
@@ -656,12 +657,12 @@ where
 /// Runs compute-side work on the rayon pool, keeping the tokio runtime thread free.
 ///
 /// The caller's span carries across, so stage spans keep their parent. A panic in the work unwinds
-/// the worker and surfaces as [`StageError::Panicked`]. The unwind drops the staging and scratch
-/// directories the worker owns, and they remove themselves. The async executor never observes the
-/// unwind.
+/// the worker and surfaces as [`compute::ComputeError::Panicked`]. The unwind drops the staging and
+/// scratch directories the worker owns, and they remove themselves. The async executor never
+/// observes the unwind.
 async fn offload<T: Send + 'static>(
-    work: impl FnOnce() -> Result<T, StageError> + Send + 'static,
-) -> Result<T, StageError> {
+    work: impl FnOnce() -> Result<T, compute::ComputeError> + Send + 'static,
+) -> Result<T, compute::ComputeError> {
     let span = tracing::Span::current();
     let (sender, receiver) = tokio::sync::oneshot::channel();
 
@@ -671,7 +672,7 @@ async fn offload<T: Send + 'static>(
         // state survives to observe a broken invariant.
         let result = std::panic::catch_unwind(core::panic::AssertUnwindSafe(work)).unwrap_or_else(
             |payload| {
-                Err(StageError::Panicked {
+                Err(compute::ComputeError::Panicked {
                     message: panic_message(payload.as_ref()),
                 })
             },

@@ -74,7 +74,7 @@ impl<A> ReadingGrid<A> {
     ///
     /// This panics when a row's cell count differs from `rungs`; every anchor reads the same rungs,
     /// so a ragged row is a wiring defect.
-    pub(in crate::salt::quality) fn from_anchor_cells(rows: Vec<Vec<A>>, rungs: usize) -> Self {
+    pub(crate) fn from_anchor_cells(rows: Vec<Vec<A>>, rungs: usize) -> Self {
         Self {
             cells: IdMatrix::from_rows(rows, rungs),
         }

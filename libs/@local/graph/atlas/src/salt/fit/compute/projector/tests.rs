@@ -6,28 +6,24 @@
 use core::assert_matches;
 use std::fs;
 
-use burn::module::AutodiffModule as _;
+use burn::{backend::libtorch::LibTorchDevice, module::AutodiffModule as _};
 use camino::Utf8PathBuf;
 use hashql_core::id::{Id as _, IdSlice};
 
 use super::{
     super::{
-        super::{
-            ProjectorOptions, Stage,
-            role::{Role, write_staged},
-            stage_rng,
-        },
+        super::{ProjectorOptions, Stage, role::Role, stage_rng},
         Context,
-        quotient::{DistinctRowId, RowQuotient},
+        quotient::{DistinctRowId, Quotient},
     },
-    TrainerBackend, TrainerInner,
+    StagedPlacement,
     derive::compose_energy,
-    device,
     inputs::PublishInputs,
     report::{loss_regressions, relation_loss},
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
+    device::{Inference, Training},
     file::{
         array::ArrayFile,
         generation::{GenerationRoot, StagedGeneration},
@@ -71,7 +67,7 @@ use crate::{
 };
 
 #[test]
-fn loss_regressions_examine_the_even_to_odd_transition() {
+fn loss_regression_even_odd_transition() {
     // Only 1→2 rises. A non-overlapping pairing ((0,1), (2,3))
     // sees two falling pairs and misses it.
     let conditions = [
@@ -98,7 +94,7 @@ fn loss_regressions_examine_the_even_to_odd_transition() {
 }
 
 #[test]
-fn loss_regressions_examine_the_final_transition_of_an_odd_series() {
+fn loss_regression_final_odd_transition() {
     // Only 3→4 rises. A non-overlapping pairing of a five-rung
     // series discards the final element with the remainder.
     let conditions = [
@@ -127,7 +123,7 @@ fn loss_regressions_examine_the_final_transition_of_an_odd_series() {
 }
 
 #[test]
-fn loss_regression_relative_delta_is_absent_over_a_zero_predecessor() {
+fn loss_regression_zero_predecessor() {
     let conditions = [non_negative!(0.0), non_negative!(1.0)];
     let losses = [d_non_negative!(0.0), d_non_negative!(1.0)];
 
@@ -276,16 +272,17 @@ fn corpus_indexes() -> RelationIndexes<NodeRowId, EdgeRowId> {
 /// publish reads this file back.
 fn stage_attraction(staging: &StagedGeneration) {
     let relations = corpus_indexes();
-    write_staged(staging, Role::Attraction, |writer| {
-        relations.attraction.write_into(ROWS as u64, writer)
-    })
-    .expect("the attraction index should stage");
+    staging
+        .stage_with(Role::Attraction.file_name(), |writer| {
+            relations.attraction.write_into(ROWS as u64, writer)
+        })
+        .expect("the attraction index should stage");
 }
 
 /// The skinny projector fixture.
 ///
 /// The representation width stays the pipeline's contract while the hidden architecture
-/// shrinks, so a forward pass costs a fraction of the ratified model's.
+/// shrinks, so a forward pass costs a fraction of the `ratified()` model's.
 fn skinny_options() -> ProjectorOptions {
     let mut options = ProjectorOptions::ratified();
     options.architecture = Architecture {
@@ -327,7 +324,11 @@ fn skinny_options() -> ProjectorOptions {
 /// projection-identity assertions stay bit-exact. The tolerance keeps headroom over the
 /// observed single-ulp motion while still refusing value-scale divergence: a duplicate
 /// placed anywhere else in the plane is millions of ulps away.
-const DUPLICATE_ULPS: i64 = 4;
+// Byte-identical rows project through one model, but the torch batched forward varies its
+// reduction order with the row's batch position, so duplicates land within a few last bits
+// rather than bit-identically. Measured at 8 ulps on this fixture; the bound holds twice that,
+// and a wiring defect scatters duplicates by whole coordinates rather than last bits.
+const DUPLICATE_ULPS: i64 = 16;
 
 /// Maps a finite `f32` onto a line where integer distance is ulp distance, signs included.
 fn ulp_key(value: f32) -> i64 {
@@ -369,11 +370,11 @@ fn assert_column_is_aligned_projection(
     ladder: &LadderEvidence,
     columns: NodeColumns<'_, NodeRowId>,
 ) {
-    let device = device();
+    let device = LibTorchDevice::Cpu;
     let checkpoint = fs::read(staging.path_of(&Role::Projector.file_name()))
         .expect("the checkpoint should read");
     let reopened =
-        artifact::open_model::<TrainerInner>(checkpoint.as_slice(), options.architecture, &device)
+        artifact::open_model::<Inference>(checkpoint.as_slice(), options.architecture, &device)
             .expect("the checkpoint should open on the inner backend");
     let projected = refresh::forward(
         &reopened,
@@ -444,7 +445,7 @@ fn assert_per_type_additivity(ladder: &LadderEvidence) {
 /// passes whole. At a cap covering both groups nothing clips, and the estimand is the
 /// shares' fused sum.
 #[test]
-fn the_capped_estimand_scales_each_share_by_its_draw_probability() {
+fn capped_estimand_draw_probability() {
     let policy = |relation: u64| RelationPolicy {
         relation: OntologyRowId::new(relation),
         attraction: ClassProbabilities {
@@ -647,13 +648,16 @@ fn fit_config() -> FitConfig {
     reason = "the staging directory is read back after the publish returns; dropping it early \
               would delete the files under assertion"
 )]
-fn publish_stages_the_baseline_field_for_a_vacuous_boundary() {
+fn publish_vacuous_baseline() {
     let corpus = corpus_storage();
     let rows: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> = IdSlice::from_raw(
         AlignedVecN::from_slice(&corpus.as_array()[..CORPUS_CAPACITY])
             .expect("boxed storage is aligned"),
     );
-    let quotient = RowQuotient::build(rows);
+    let root = GenerationRoot::new(scratch_dir("vacuous")).expect("the root should open");
+    let staging = root.stage().expect("the staging directory should open");
+    let scratch = root.scratch().expect("the scratch directory should open");
+    let quotient = Quotient::build(rows, &scratch).expect("the distinct matrix writes");
     assert_eq!(quotient.distinct_len(), DISTINCT);
 
     let knn = distinct_knn();
@@ -675,27 +679,31 @@ fn publish_stages_the_baseline_field_for_a_vacuous_boundary() {
     };
 
     let options = skinny_options();
-    let device = device();
-    let model = Projector::<TrainerBackend>::new(
+    let device = LibTorchDevice::Cpu;
+    let model = Projector::<Training>::new(
         options.architecture,
         &device,
         stage_rng(11, Stage::ProjectorInit),
     );
 
-    let config = fit_config();
-    let root = GenerationRoot::new(scratch_dir("vacuous")).expect("the root should open");
-    let staging = root.stage().expect("the staging directory should open");
-    let scratch = root.scratch().expect("the scratch directory should open");
     let context = Context {
-        staging: &staging,
-        scratch: &scratch,
-        config: &config,
+        staging,
+        scratch,
+        config: fit_config(),
+        device,
     };
 
     let boundary = vacuous_boundary();
-    let artifacts = context
-        .publish_projector(&options, &inputs, columns(), &model, Some(&boundary), &[])
-        .expect("the publish half should stage");
+    let artifacts = StagedPlacement::publish(
+        &context,
+        &options,
+        &inputs,
+        columns(),
+        &model,
+        Some(&boundary),
+        &[],
+    )
+    .expect("the publish half should stage");
 
     assert_eq!(artifacts.placement, Placement::Projector);
     assert!(artifacts.checkpoint.is_some());
@@ -718,7 +726,7 @@ fn publish_stages_the_baseline_field_for_a_vacuous_boundary() {
     // The staged column is the model's own zero-rung projection, bit
     // for bit, and byte-identical representations share one
     // coordinate up to the last-bit motion `staged_column` prices.
-    let placed = staged_column(&staging);
+    let placed = staged_column(&context.staging);
     let projected = refresh::forward(
         &model.valid(),
         columns(),
@@ -746,13 +754,17 @@ fn publish_stages_the_baseline_field_for_a_vacuous_boundary() {
     reason = "the staging directory is read back after the publish returns; dropping it early \
               would delete the files under assertion"
 )]
-fn publish_stages_the_aligned_canonical_rung_for_a_measured_boundary() {
+fn publish_measured_aligned_canonical() {
     let corpus = corpus_storage();
     let rows: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> = IdSlice::from_raw(
         AlignedVecN::from_slice(&corpus.as_array()[..CORPUS_CAPACITY])
             .expect("boxed storage is aligned"),
     );
-    let quotient = RowQuotient::build(rows);
+    let root = GenerationRoot::new(scratch_dir("measured")).expect("the root should open");
+    let staging = root.stage().expect("the staging directory should open");
+    stage_attraction(&staging);
+    let scratch = root.scratch().expect("the scratch directory should open");
+    let quotient = Quotient::build(rows, &scratch).expect("the distinct matrix writes");
     let knn = distinct_knn();
     let indexes = distinct_indexes();
     let snapshot = snapshot();
@@ -772,35 +784,31 @@ fn publish_stages_the_aligned_canonical_rung_for_a_measured_boundary() {
     };
 
     let options = skinny_options();
-    let device = device();
-    let model = Projector::<TrainerBackend>::new(
+    let device = LibTorchDevice::Cpu;
+    let model = Projector::<Training>::new(
         options.architecture,
         &device,
         stage_rng(13, Stage::ProjectorInit),
     );
 
-    let config = fit_config();
-    let root = GenerationRoot::new(scratch_dir("measured")).expect("the root should open");
-    let staging = root.stage().expect("the staging directory should open");
-    stage_attraction(&staging);
-    let scratch = root.scratch().expect("the scratch directory should open");
     let context = Context {
-        staging: &staging,
-        scratch: &scratch,
-        config: &config,
+        staging,
+        scratch,
+        config: fit_config(),
+        device,
     };
 
     let boundary = measured_boundary();
-    let artifacts = context
-        .publish_projector(
-            &options,
-            &inputs,
-            columns(),
-            &model,
-            Some(&boundary),
-            &tick_fractions(),
-        )
-        .expect("the publish half should stage");
+    let artifacts = StagedPlacement::publish(
+        &context,
+        &options,
+        &inputs,
+        columns(),
+        &model,
+        Some(&boundary),
+        &tick_fractions(),
+    )
+    .expect("the publish half should stage");
 
     let evidence = artifacts
         .evidence
@@ -825,5 +833,5 @@ fn publish_stages_the_aligned_canonical_rung_for_a_measured_boundary() {
     );
     assert_per_type_additivity(ladder);
 
-    assert_column_is_aligned_projection(&staging, &options, ladder, columns());
+    assert_column_is_aligned_projection(&context.staging, &options, ladder, columns());
 }

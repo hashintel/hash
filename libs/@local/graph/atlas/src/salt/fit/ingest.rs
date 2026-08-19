@@ -18,14 +18,14 @@ use zerocopy::{IntoBytes as _, LE, U64};
 
 use super::{
     FitConfig, Stage,
-    error::{FitError, PriorError, StageError},
+    error::{FitError, PriorError},
     prepare::{
         self, PrepareError,
         identity::IdentityTable,
         instance::{InstanceRecord, InstanceSpool, InstanceSpoolWriter},
         norm,
     },
-    role::{Role, digest_file, write_staged},
+    role::{Role, digest_file},
     stage_rng,
 };
 use crate::{
@@ -212,7 +212,7 @@ where
         .instrument(tracing::info_span!("labels"))
         .await
         .map_err(FitError::Dataset)?;
-    let identities = write_staged(staging, Role::NodeIdentities, |writer| {
+    let identities = staging.stage_with(Role::NodeIdentities.file_name(), |writer| {
         columns
             .ids
             .write_into(auxiliary.iter().map(Borrow::borrow), writer)
@@ -238,7 +238,7 @@ fn certify_representations<D, E>(
     let _span = tracing::info_span!("norm-check").entered();
 
     let representations = ArrayFile::open(staging.path_of(&Role::Representations.file_name()))
-        .map_err(|error| FitError::Stage(StageError::MapRepresentations(error)))?;
+        .map_err(|error| FitError::MapRepresentations(error.into()))?;
     let rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>] = representations
         .vectors()
         .expect("the representation matrix was sealed as f32 rows of the projector width");
@@ -248,9 +248,9 @@ fn certify_representations<D, E>(
         config.norm_check,
         stage_rng(config.seed, Stage::NormCheck),
     )
-    .map_err(StageError::NormCheck)?;
+    .map_err(FitError::NormCheck)?;
     if !norm.passes() {
-        return Err(StageError::RepresentationDefects(norm).into());
+        return Err(FitError::RepresentationDefects(norm));
     }
     tracing::info!(
         sampled = norm.sampled_rows,
@@ -349,7 +349,7 @@ where
         .instrument(tracing::info_span!("labels"))
         .await
         .map_err(FitError::Dataset)?;
-    let identities = write_staged(staging, Role::EdgeIdentities, |writer| {
+    let identities = staging.stage_with(Role::EdgeIdentities.file_name(), |writer| {
         ids.write_into(auxiliary.iter().map(Borrow::borrow), writer)
     })?;
     let digest = digest_file(staging.path_of(&Role::EdgeEndpoints.file_name()))?;
@@ -437,7 +437,7 @@ where
         .instrument(tracing::info_span!("icons"))
         .await
         .map_err(FitError::Dataset)?;
-    let identities = write_staged(staging, Role::OntologyIdentities, |writer| {
+    let identities = staging.stage_with(Role::OntologyIdentities.file_name(), |writer| {
         ids.write_into(auxiliary.iter().map(Borrow::borrow), writer)
     })?;
 
@@ -475,10 +475,10 @@ where
         .map_err(FitError::Embedding)?;
     drop(cards);
 
-    let embeddings = write_staged(staging, Role::CardEmbeddings, |writer| {
+    let embeddings = staging.stage_with(Role::CardEmbeddings.file_name(), |writer| {
         table.write_embeddings_into(writer)
     })?;
-    let hashes = write_staged(staging, Role::CardHashes, |writer| {
+    let hashes = staging.stage_with(Role::CardHashes.file_name(), |writer| {
         table.write_hashes_into(writer)
     })?;
 

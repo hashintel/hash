@@ -127,6 +127,24 @@ where
             coordinates,
         }
     }
+
+    /// Views the selected node rows, strictly ascending, keyed by landmark ordinal.
+    #[must_use]
+    pub(crate) fn selected_rows(&self) -> &IdSlice<LandmarkOrdinal, N> {
+        self.selection.rows()
+    }
+
+    /// Views the assignment: every node row's landmark ordinal, inside the landmark domain.
+    #[must_use]
+    pub(crate) fn assignment(&self) -> &IdSlice<N, LandmarkOrdinal> {
+        self.assignment.as_slice()
+    }
+
+    /// Views the layout coordinates, finite, keyed by landmark ordinal.
+    #[must_use]
+    pub(crate) fn coordinates(&self) -> &IdSlice<LandmarkOrdinal, Vec2> {
+        &self.coordinates
+    }
 }
 
 impl<N> WriteInto for LandmarkSkeleton<N>

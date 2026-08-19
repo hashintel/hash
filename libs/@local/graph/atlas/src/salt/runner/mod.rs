@@ -14,6 +14,7 @@
 //!
 //! Retiring old generations is offline tooling over published directories.
 
+use burn::backend::libtorch::LibTorchDevice;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use tracing::Instrument as _;
@@ -21,6 +22,7 @@ use tracing::Instrument as _;
 pub(crate) use self::error::RunnerError;
 use crate::{
     dataset::Dataset,
+    device::Device,
     file::generation::{Generation, GenerationRoot},
     integrity::{Sha256, Update as _},
     progress::{Progress, Stage},
@@ -64,6 +66,8 @@ pub(crate) struct RunnerOptions {
     pub prior: PriorMode = PriorMode::FromActive,
     /// The admission probe's sampling, grouping, and thresholds.
     pub quality: QualityRunOptions = QualityRunOptions::default(),
+    /// The device the fit's tensor stages run on. The host-derived family by default.
+    pub device: LibTorchDevice = Device::host().resolve(0),
 }
 
 /// How one published generation left the runner.
@@ -138,6 +142,7 @@ where
             prior: prior.as_ref(),
         },
         root,
+        options.device,
         progress,
     )
     .await?;

@@ -233,7 +233,7 @@ pub struct Stepper<'fixture> {
 
 enum StepFlavor {
     Cpu(Box<Live<NdArray>>),
-    #[cfg(all(feature = "bench", feature = "gpu"))]
+    #[cfg(feature = "bench")]
     Metal(Box<Live<super::Gpu>>),
 }
 
@@ -256,7 +256,7 @@ impl<'fixture> Stepper<'fixture> {
             BackendKind::Cpu => {
                 StepFlavor::Cpu(Box::new(Live::build(NdArrayDevice::default(), seed)))
             }
-            #[cfg(all(feature = "bench", feature = "gpu"))]
+            #[cfg(feature = "bench")]
             BackendKind::Metal => StepFlavor::Metal(Box::new(Live::build(
                 burn::backend::wgpu::WgpuDevice::default(),
                 seed,
@@ -279,7 +279,7 @@ impl<'fixture> Stepper<'fixture> {
     pub fn input(&self, batch: &Assembled) {
         match &self.flavor {
             StepFlavor::Cpu(live) => live.input(batch, &self.evaluation),
-            #[cfg(all(feature = "bench", feature = "gpu"))]
+            #[cfg(feature = "bench")]
             StepFlavor::Metal(live) => live.input(batch, &self.evaluation),
         }
     }
@@ -294,7 +294,7 @@ impl<'fixture> Stepper<'fixture> {
     pub fn forward(&self, batch: &Assembled) -> f32 {
         match &self.flavor {
             StepFlavor::Cpu(live) => live.forward(batch, &self.evaluation),
-            #[cfg(all(feature = "bench", feature = "gpu"))]
+            #[cfg(feature = "bench")]
             StepFlavor::Metal(live) => live.forward(batch, &self.evaluation),
         }
     }
@@ -307,7 +307,7 @@ impl<'fixture> Stepper<'fixture> {
     pub fn refresh(&self, batch: &Assembled) -> f32 {
         match &self.flavor {
             StepFlavor::Cpu(live) => live.refresh(batch, &self.evaluation),
-            #[cfg(all(feature = "bench", feature = "gpu"))]
+            #[cfg(feature = "bench")]
             StepFlavor::Metal(live) => live.refresh(batch, &self.evaluation),
         }
     }
@@ -321,7 +321,7 @@ impl<'fixture> Stepper<'fixture> {
     pub fn objective(&self, batch: &Assembled) -> f32 {
         match &self.flavor {
             StepFlavor::Cpu(live) => live.objective(batch, &self.evaluation),
-            #[cfg(all(feature = "bench", feature = "gpu"))]
+            #[cfg(feature = "bench")]
             StepFlavor::Metal(live) => live.objective(batch, &self.evaluation),
         }
     }
@@ -331,7 +331,7 @@ impl<'fixture> Stepper<'fixture> {
     pub fn step(&mut self, batch: &Assembled) -> f32 {
         match &mut self.flavor {
             StepFlavor::Cpu(live) => live.step(batch, &self.evaluation),
-            #[cfg(all(feature = "bench", feature = "gpu"))]
+            #[cfg(feature = "bench")]
             StepFlavor::Metal(live) => live.step(batch, &self.evaluation),
         }
     }

@@ -36,7 +36,7 @@ type Cpu = NdArray;
 ///
 /// Burn's `CubeCL` `wgpu` runtime compiling to MSL, with fusion enabled - the configuration a GPU
 /// deployment would run.
-#[cfg(all(feature = "bench", feature = "gpu"))]
+#[cfg(feature = "bench")]
 type Gpu = burn::backend::Metal;
 
 /// One synthesized batch at the trainer's input shape.
@@ -56,7 +56,7 @@ pub enum BackendKind {
     /// The CPU backend, burn's ndarray.
     Cpu,
     /// The Metal GPU backend, available behind the `bench` and `gpu` features together.
-    #[cfg(all(feature = "bench", feature = "gpu"))]
+    #[cfg(feature = "bench")]
     Metal,
 }
 
@@ -64,7 +64,7 @@ impl BackendKind {
     /// Every flavor this build can run.
     pub const ALL: &[Self] = &[
         Self::Cpu,
-        #[cfg(all(feature = "bench", feature = "gpu"))]
+        #[cfg(feature = "bench")]
         Self::Metal,
     ];
 
@@ -73,7 +73,7 @@ impl BackendKind {
     pub const fn label(self) -> &'static str {
         match self {
             Self::Cpu => "cpu",
-            #[cfg(all(feature = "bench", feature = "gpu"))]
+            #[cfg(feature = "bench")]
             Self::Metal => "metal",
         }
     }
@@ -90,7 +90,7 @@ pub struct Model(Flavor);
 // inline (megabytes), a GPU pair holds device handles.
 enum Flavor {
     Cpu(Box<Pair<Cpu>>),
-    #[cfg(all(feature = "bench", feature = "gpu"))]
+    #[cfg(feature = "bench")]
     Metal(Box<Pair<Gpu>>),
 }
 
@@ -175,7 +175,7 @@ impl Model {
                 NdArrayDevice::default(),
                 seed,
             )))),
-            #[cfg(all(feature = "bench", feature = "gpu"))]
+            #[cfg(feature = "bench")]
             BackendKind::Metal => Self(Flavor::Metal(Box::new(Pair::build::<R>(
                 burn::backend::wgpu::WgpuDevice::default(),
                 seed,
@@ -191,7 +191,7 @@ impl Model {
     pub fn forward(&self, batch: &Batch) -> f32 {
         match &self.0 {
             Flavor::Cpu(pair) => pair.forward(batch),
-            #[cfg(all(feature = "bench", feature = "gpu"))]
+            #[cfg(feature = "bench")]
             Flavor::Metal(pair) => pair.forward(batch),
         }
     }
@@ -205,7 +205,7 @@ impl Model {
     pub fn forward_backward(&self, batch: &Batch) -> f32 {
         match &self.0 {
             Flavor::Cpu(pair) => pair.forward_backward(batch),
-            #[cfg(all(feature = "bench", feature = "gpu"))]
+            #[cfg(feature = "bench")]
             Flavor::Metal(pair) => pair.forward_backward(batch),
         }
     }

@@ -339,7 +339,9 @@ impl ServeCommand {
                 .map_err(|error| ServeError::Epoch(Box::new(error)))?;
             let polling = DeltaPolling::from(&self.delta);
 
-            let placer = atlas.arrival_placer().map_err(ServeError::Placement)?;
+            let placer = atlas
+                .arrival_placer(crate::device::Device::host().resolve(0))
+                .map_err(ServeError::Placement)?;
             let (placements_tx, placements_rx) =
                 tokio::sync::mpsc::channel(polling.placement_backlog);
 

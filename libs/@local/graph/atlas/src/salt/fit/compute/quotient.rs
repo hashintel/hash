@@ -6,22 +6,19 @@
 //! zero, and the semantic graph calibrates memberships across their self-edges. The quotient
 //! maps every corpus row to its first byte-identical occurrence, which keeps those stages over
 //! distinct rows. The published coordinate artifacts still evaluate the full corpus directly,
-//! because identical representations project identically through the trained model.
+//! because identical representations project onto one coordinate up to the last-bit motion of
+//! the batched forward pass.
 
-use std::{
-    collections::HashMap,
-    io::{self, BufWriter, Write as _},
-};
+use std::{collections::HashMap, io};
 
-use camino::Utf8PathBuf;
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rayon::slice::ParallelSliceMut as _;
 use zerocopy::IntoBytes as _;
 
+use super::vector::VectorFile;
 use crate::{
     file::{
-        WriteInto,
-        array::{ArrayVariant, ArrayWriter, Dim},
+        array::{ArrayVariant, Dim, SizedArrayWriter},
         generation::ScratchDirectory,
     },
     identity::{EdgeRowId, NodeRowId},
@@ -43,77 +40,102 @@ hashql_core::id::newtype! {
     pub(super) struct DistinctRowId(u32)
 }
 
-/// Writes one artifact under `directory` and returns its path.
+/// The byte-exact quotient of a representation matrix, holding both row domains of one fit.
 ///
-/// The scratch twin of the staged-write plumbing: distinct-domain artifacts live beside the
-/// generation's scratch files, map back for the stages that consume them, and vanish with the
-/// scratch directory. Nothing records the digest - scratch files have no repository binding.
-///
-/// # Errors
-///
-/// Returns an error when creating the scratch directory fails, and when creating or writing the
-/// file fails.
-pub(super) fn write_scratch<A>(
-    directory: &ScratchDirectory,
-    name: &str,
-    artifact: &A,
-) -> io::Result<Utf8PathBuf>
-where
-    A: WriteInto<Error = io::Error>,
-{
-    let (path, file) = directory.file(name)?;
-    let mut writer = BufWriter::new(file);
-
-    let _digest = artifact.write_into(&mut writer)?;
-    writer.flush()?;
-
-    Ok(path)
+/// The quotient owns the two row maps, keeps the corpus matrix it was built over, and owns the
+/// materialized distinct matrix where copies exist. It is therefore the one value that answers
+/// every domain question of a fit: [`corpus`](Self::corpus) is the publication domain,
+/// [`training`](Self::training) the training domain, and [`class_of`](Self::class_of) and
+/// [`representative`](Self::representative) translate between them.
+pub(super) struct Quotient<'corpus, const N: usize> {
+    /// The distinct class of every corpus row.
+    classes: IdVec<NodeRowId, DistinctRowId>,
+    /// The representative of every distinct class: its first corpus row, strictly ascending.
+    representatives: IdVec<DistinctRowId, NodeRowId>,
+    /// The corpus matrix the quotient was built over: the publication row domain.
+    corpus: &'corpus IdSlice<NodeRowId, AlignedVecN<N>>,
+    /// The materialized distinct matrix, present exactly when copies exist.
+    ///
+    /// An identity quotient materializes nothing: the corpus rows are the distinct rows, and
+    /// [`training`](Self::training) reborrows the corpus under the distinct key.
+    materialized: Option<VectorFile<DistinctRowId, N>>,
 }
 
-/// The byte-exact quotient of a representation matrix.
-///
-/// Every corpus row maps to a distinct row, and every distinct row names its first corpus row.
-/// Distinct rows ascend with their first occurrence, so gathering the first rows from the corpus
-/// preserves stream order. Row equality is raw byte equality of the representation vectors: the
-/// key distinguishes every representable bit pattern.
-pub(super) struct RowQuotient {
-    /// The distinct row of every corpus row.
-    representative: IdVec<NodeRowId, DistinctRowId>,
-    /// The first corpus row of every distinct row, strictly ascending.
-    first_rows: IdVec<DistinctRowId, NodeRowId>,
-}
-
-impl RowQuotient {
-    /// Builds the quotient over the mapped representation rows.
+impl<'corpus, const N: usize> Quotient<'corpus, N> {
+    /// Quotients the corpus by byte equality of its rows and materializes the training matrix.
+    ///
+    /// Every corpus row maps to a distinct row, and every distinct row names its first corpus
+    /// row. Distinct rows ascend with their first occurrence, so gathering the first rows from
+    /// the corpus preserves stream order. Row equality is raw byte equality of the representation
+    /// vectors: the key distinguishes every representable bit pattern.
+    ///
+    /// The distinct matrix materializes under `scratch` exactly when copies exist, gathering each
+    /// distinct row's bytes from its first corpus occurrence. An identity quotient writes nothing,
+    /// because the corpus and the distinct domain are the same rows in the same order.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when creating the scratch file or writing the distinct matrix fails.
     ///
     /// # Panics
     ///
-    /// This panics when the corpus exceeds `u32::MAX` rows. Row identifiers are `u32` throughout
-    /// the store.
-    pub(super) fn build<const N: usize>(rows: &IdSlice<NodeRowId, AlignedVecN<N>>) -> Self {
-        u32::try_from(rows.len()).expect("the corpus row count fits the store's u32 row domain");
+    /// Panics when the matrix this call just wrote does not map back as aligned `f32` rows,
+    /// which is a defect of the writer rather than of the input.
+    #[tracing::instrument(name = "quotient", skip_all)]
+    pub(super) fn build(
+        corpus: &'corpus IdSlice<NodeRowId, AlignedVecN<N>>,
+        scratch: &ScratchDirectory,
+    ) -> io::Result<Self> {
+        let mut unique = HashMap::with_capacity(corpus.len());
+        let mut classes = IdVec::with_capacity(corpus.len());
+        let mut representatives: IdVec<DistinctRowId, NodeRowId> = IdVec::new();
 
-        let mut lookup: HashMap<&[u8], DistinctRowId> = HashMap::with_capacity(rows.len());
-        let mut representative = IdVec::with_capacity(rows.len());
-        let mut first_rows = IdVec::new();
-
-        for (row, vector) in rows.iter_enumerated() {
-            let distinct = *lookup
+        for (row, vector) in corpus.iter_enumerated() {
+            let distinct = *unique
                 .entry(vector.as_bytes())
-                .or_insert_with(|| first_rows.push(row));
+                .or_insert_with(|| representatives.push(row));
 
-            representative.push(distinct);
+            classes.push(distinct);
         }
+        tracing::info!(
+            rows = classes.len(),
+            distinct = representatives.len(),
+            "built the representation quotient"
+        );
 
-        Self {
-            representative,
-            first_rows,
-        }
+        let materialized = if representatives.len() == classes.len() {
+            None
+        } else {
+            let (path, file) = scratch.file("quotient-distinct.arr")?;
+            let mut writer = SizedArrayWriter::new(
+                file,
+                ArrayVariant::F32,
+                &[Dim::new(representatives.len() as u64), Dim::new(N as u64)],
+            )?;
+            for &row in &representatives {
+                writer.write_row(corpus[row].as_bytes())?;
+            }
+            writer.finish()?;
+
+            Some(VectorFile::open(path).expect("the distinct matrix should map back"))
+        };
+
+        Ok(Self {
+            classes,
+            representatives,
+            corpus,
+            materialized,
+        })
+    }
+
+    /// Number of corpus rows.
+    pub(super) const fn len(&self) -> usize {
+        self.classes.len()
     }
 
     /// Number of distinct representation rows.
     pub(super) const fn distinct_len(&self) -> usize {
-        self.first_rows.len()
+        self.representatives.len()
     }
 
     /// Whether every corpus row is already distinct.
@@ -121,151 +143,137 @@ impl RowQuotient {
     /// An identity quotient lets a fit skip the distinct detour entirely: the corpus and the
     /// distinct domain are the same rows in the same order.
     pub(super) const fn is_identity(&self) -> bool {
-        self.first_rows.len() == self.representative.len()
+        self.representatives.len() == self.classes.len()
     }
 
-    /// Returns the distinct row representing a corpus row.
-    pub(super) const fn representative(&self, row: NodeRowId) -> DistinctRowId {
-        self.representative[row]
+    /// The corpus matrix the quotient was built over: the publication row domain.
+    pub(super) const fn corpus(&self) -> &'corpus IdSlice<NodeRowId, AlignedVecN<N>> {
+        self.corpus
     }
 
-    /// Returns the first corpus row of a distinct row.
-    pub(super) const fn first_row(&self, distinct: DistinctRowId) -> NodeRowId {
-        self.first_rows[distinct]
+    /// The training matrix: every distinct representation row, in first-occurrence order.
+    ///
+    /// Where copies exist this is the materialized distinct matrix. Under the identity quotient
+    /// it is the corpus matrix reborrowed under the distinct key, because the two domains are
+    /// then the same rows in the same order, so no second mapping and no copy exists.
+    pub(super) fn training(&self) -> &IdSlice<DistinctRowId, AlignedVecN<N>> {
+        match &self.materialized {
+            Some(matrix) => matrix,
+            None => IdSlice::from_raw(self.corpus.as_raw()),
+        }
     }
 
-    /// The distinct row of every corpus row, in corpus order.
-    pub(super) const fn representatives(&self) -> &IdSlice<NodeRowId, DistinctRowId> {
-        &self.representative
+    /// Returns the distinct class of a corpus row.
+    pub(super) const fn class_of(&self, row: NodeRowId) -> DistinctRowId {
+        self.classes[row]
     }
 
-    /// The first corpus row of every distinct row, strictly ascending.
-    pub(super) const fn first_rows(&self) -> &IdSlice<DistinctRowId, NodeRowId> {
-        &self.first_rows
+    /// Returns a distinct class's representative: its first corpus row.
+    pub(super) const fn representative(&self, distinct: DistinctRowId) -> NodeRowId {
+        self.representatives[distinct]
     }
-}
 
-/// Materializes the distinct representation matrix under the given directory.
-///
-/// The written file is the standard `f32[D, N]` array artifact: the distinct rows gathered from
-/// the corpus in first-occurrence order, mapping exactly as the corpus matrix maps.
-///
-/// # Errors
-///
-/// Returns an error when creating the scratch directory or the file fails. Writing a row returns
-/// an error when it fails.
-pub(super) fn materialize_distinct<const N: usize>(
-    directory: &ScratchDirectory,
-    rows: &IdSlice<NodeRowId, AlignedVecN<N>>,
-    quotient: &RowQuotient,
-) -> io::Result<Utf8PathBuf> {
-    let (path, file) = directory.file("quotient-distinct.arr")?;
-
-    let mut writer = ArrayWriter::new(
-        BufWriter::new(file),
-        ArrayVariant::F32,
-        &[Dim::new(N as u64)],
-    )?;
-
-    for &row in quotient.first_rows() {
-        writer.write_row(rows[row].as_bytes())?;
+    /// The distinct class of every corpus row, in corpus order.
+    pub(super) const fn classes(&self) -> &IdSlice<NodeRowId, DistinctRowId> {
+        &self.classes
     }
-    writer.finish()?;
 
-    Ok(path)
-}
+    /// The representative of every distinct class, strictly ascending.
+    pub(super) const fn representatives(&self) -> &IdSlice<DistinctRowId, NodeRowId> {
+        &self.representatives
+    }
 
-/// Expands a distinct-domain neighbour table onto the corpus row domain.
-///
-/// Every corpus row takes its representative's neighbour list, each neighbour named by its own
-/// first corpus row. The gather preserves every table invariant: `first_rows` ascends strictly, so
-/// row entries stay strictly ascending, and no entry names its own row - a distinct list excludes
-/// its own index, and expanded entries name first rows only.
-pub(super) fn expand_neighbours(
-    table: &KnnView<'_, DistinctRowId>,
-    quotient: &RowQuotient,
-) -> Knn<NodeRowId> {
-    let rows = quotient.representatives().len();
-    let neighbours = table.neighbours();
-    let entries = rows
-        .checked_mul(neighbours)
-        .expect("the expanded table stays addressable");
-    let (_, columns, distances) = table.matrix().into_raw_storage();
+    /// Expands a distinct-domain neighbour table onto the corpus row domain.
+    ///
+    /// Every corpus row takes its representative's neighbour list, each neighbour named by its own
+    /// first corpus row. The gather preserves every table invariant: `representatives` ascends
+    /// strictly, so row entries stay strictly ascending, and no entry names its own row - a
+    /// distinct list excludes its own index, and expanded entries name first rows only.
+    pub(super) fn expand_neighbours(&self, table: &KnnView<'_, DistinctRowId>) -> Knn<NodeRowId> {
+        let rows = self.len();
+        let neighbours = table.neighbours();
 
-    let mut expanded_columns = vec![0_u32; entries];
-    let mut expanded_distances = vec![NonNegative::ZERO; entries];
+        let entries = rows
+            .checked_mul(neighbours)
+            .expect("the expanded table stays addressable");
+        let (_, columns, distances) = table.matrix().into_raw_storage();
 
-    for (row, &distinct) in quotient.representatives().iter_enumerated() {
-        let source_start = distinct.as_usize() * neighbours;
-        let source = source_start..source_start + neighbours;
-        let target_start = row.as_usize() * neighbours;
-        let target = target_start..target_start + neighbours;
+        let mut expanded_columns = vec![0_u32; entries];
+        let mut expanded_distances = vec![NonNegative::ZERO; entries];
 
-        for (slot, &column) in expanded_columns[target.clone()]
-            .iter_mut()
-            .zip(&columns[source.clone()])
-        {
-            let neighbour = quotient.first_row(DistinctRowId::from_u32(column));
-            *slot =
-                u32::try_from(neighbour).expect("corpus rows fit the table's u32 column encoding");
+        for (row, &distinct) in self.classes().iter_enumerated() {
+            let source_start = distinct.as_usize() * neighbours;
+            let source = source_start..source_start + neighbours;
+            let target_start = row.as_usize() * neighbours;
+            let target = target_start..target_start + neighbours;
+
+            for (slot, &column) in expanded_columns[target.clone()]
+                .iter_mut()
+                .zip(&columns[source.clone()])
+            {
+                let neighbour = self.representative(DistinctRowId::from_u32(column));
+                *slot = u32::try_from(neighbour)
+                    .expect("corpus rows fit the table's u32 column encoding");
+            }
+
+            expanded_distances[target].copy_from_slice(&distances[source]);
         }
 
-        expanded_distances[target].copy_from_slice(&distances[source]);
+        let indptr: Vec<u64> = (0..=rows).map(|row| (row * neighbours) as u64).collect();
+        let matrix = KnnMatrix::try_new((rows, rows), indptr, expanded_columns, expanded_distances)
+            .map_err(|(_, _, _, error)| error)
+            .expect(
+                "the gather of a validated table through the ascending first rows stays compressed",
+            );
+
+        Knn::new(matrix).expect("the gather of a validated table preserves every table invariant")
     }
 
-    let indptr: Vec<u64> = (0..=rows).map(|row| (row * neighbours) as u64).collect();
-    let matrix = KnnMatrix::try_new((rows, rows), indptr, expanded_columns, expanded_distances)
-        .map_err(|(_, _, _, error)| error)
-        .expect(
-            "the gather of a validated table through the ascending first rows stays compressed",
-        );
-
-    Knn::new(matrix).expect("the gather of a validated table preserves every table invariant")
-}
-
-/// Maps relation instances onto the distinct row domain and collapses duplicate readings.
-///
-/// Endpoints map to their representations' distinct indices. Instances that agree on `(relation,
-/// source, target)` after the map collapse to the one with the highest effective confidence,
-/// breaking ties toward the lowest edge row. Byte-identical rows render one asserted link as many
-/// edge rows, and the trainer weighs the assertion once rather than per copy. Instances whose
-/// endpoints collapse onto one distinct row pass through, and the index build drops and counts them
-/// as self-references. The collapse orders totally before deduplicating, so the result is a
-/// function of the instance set.
-pub(super) fn collapse_instances(
-    instances: &[RelationInstance<NodeRowId, EdgeRowId>],
-    quotient: &RowQuotient,
-) -> Vec<RelationInstance<DistinctRowId, EdgeRowId>> {
-    let mut mapped: Vec<_> = instances
-        .iter()
-        .map(|&instance| RelationInstance {
-            source: quotient.representative(instance.source),
-            target: quotient.representative(instance.target),
-            edge: instance.edge,
-            relation: instance.relation,
-            confidence: instance.confidence,
-            multiplicity: instance.multiplicity,
-        })
-        .collect();
-
-    mapped.par_sort_unstable_by(|left, right| {
-        (left.relation, left.source, left.target)
-            .cmp(&(right.relation, right.source, right.target))
-            .then_with(|| {
-                right
-                    .confidence
-                    .effective()
-                    .value()
-                    .cmp(&left.confidence.effective().value())
+    /// Maps relation instances onto the distinct row domain and collapses duplicate readings.
+    ///
+    /// Endpoints map to their representations' distinct indices. Instances that agree on
+    /// `(relation, source, target)` after the map collapse to the one with the highest
+    /// effective confidence, breaking ties toward the lowest edge row. Byte-identical rows
+    /// render one asserted link as many edge rows, and the trainer weighs the assertion once
+    /// rather than per copy. Instances whose endpoints collapse onto one distinct row pass
+    /// through, and the index build drops and counts them as self-references. The collapse
+    /// orders totally before deduplicating, so the result is a function of the instance set.
+    pub(super) fn collapse_instances(
+        &self,
+        instances: &[RelationInstance<NodeRowId, EdgeRowId>],
+    ) -> Vec<RelationInstance<DistinctRowId, EdgeRowId>> {
+        let mut mapped: Vec<_> = instances
+            .iter()
+            .map(|&instance| RelationInstance {
+                source: self.class_of(instance.source),
+                target: self.class_of(instance.target),
+                edge: instance.edge,
+                relation: instance.relation,
+                confidence: instance.confidence,
+                multiplicity: instance.multiplicity,
             })
-            .then_with(|| left.edge.cmp(&right.edge))
-    });
+            .collect();
 
-    mapped.dedup_by(|later, kept| {
-        (later.relation, later.source, later.target) == (kept.relation, kept.source, kept.target)
-    });
+        mapped.par_sort_unstable_by(|left, right| {
+            (left.relation, left.source, left.target)
+                .cmp(&(right.relation, right.source, right.target))
+                .then_with(|| {
+                    right
+                        .confidence
+                        .effective()
+                        .value()
+                        .cmp(&left.confidence.effective().value())
+                })
+                .then_with(|| left.edge.cmp(&right.edge))
+        });
 
-    mapped
+        mapped.dedup_by(|later, kept| {
+            (later.relation, later.source, later.target)
+                == (kept.relation, kept.source, kept.target)
+        });
+
+        mapped
+    }
 }
 
 #[cfg(test)]
@@ -273,9 +281,9 @@ mod tests {
     use hashql_core::id::Id as _;
     use zerocopy::IntoBytes as _;
 
-    use super::RowQuotient;
+    use super::Quotient;
     use crate::{
-        file::array::ArrayFile,
+        file::generation::ScratchDirectory,
         identity::{EdgeRowId, NodeRowId, OntologyRowId},
         math::{AlignedVecN, BoxedVecN, UnitFraction, non_negative, unit_fraction},
         salt::{
@@ -322,16 +330,30 @@ mod tests {
         [fill; WIDTH]
     }
 
+    /// A scratch directory of its own per call, under the test process's temp root.
+    fn scratch() -> ScratchDirectory {
+        static NEXT: core::sync::atomic::AtomicUsize = core::sync::atomic::AtomicUsize::new(0);
+        let unique = NEXT.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+        let directory = camino::Utf8PathBuf::from_path_buf(std::env::temp_dir())
+            .expect("the temp directory is utf-8")
+            .join(format!(
+                "hash-graph-atlas-quotient-{}-{unique}",
+                std::process::id(),
+            ));
+        std::fs::create_dir_all(&directory).expect("the temp directory is writable");
+        ScratchDirectory::rooted(directory)
+    }
+
     /// The quotient's two maps as raw positions, for compact assertions.
-    fn maps(quotient: &RowQuotient) -> (Vec<u32>, Vec<u64>) {
+    fn maps(quotient: &Quotient<'_, WIDTH>) -> (Vec<u32>, Vec<u64>) {
         (
             quotient
-                .representatives()
+                .classes()
                 .iter()
                 .map(|distinct| distinct.as_u32())
                 .collect(),
             quotient
-                .first_rows()
+                .representatives()
                 .iter()
                 .map(|&row| row.as_u64())
                 .collect(),
@@ -339,73 +361,88 @@ mod tests {
     }
 
     #[test]
-    fn distinct_corpus_is_the_identity() {
+    fn identity_quotient() {
         let matrix = Matrix::new(&[row(1.0), row(2.0), row(3.0)]);
-        let quotient = RowQuotient::build(matrix.view());
+        let directory = scratch();
+        let quotient = Quotient::build(matrix.view(), &directory)
+            .expect("the identity quotient persists nothing");
 
         assert!(quotient.is_identity());
         assert_eq!(quotient.distinct_len(), 3);
-        let (representatives, first_rows) = maps(&quotient);
+        // The identity training matrix is the corpus reborrowed, never a copy.
+        assert_eq!(
+            quotient.training().as_raw().as_ptr(),
+            matrix.view().as_raw().as_ptr(),
+        );
+        let (classes, representatives) = maps(&quotient);
+        assert_eq!(classes, [0, 1, 2]);
         assert_eq!(representatives, [0, 1, 2]);
-        assert_eq!(first_rows, [0, 1, 2]);
     }
 
     #[test]
-    fn copies_map_to_their_first_occurrence() {
+    fn copies_first_occurrence() {
         // The rows A B A C B have distinct classes A(0), B(1), C(3).
         let matrix = Matrix::new(&[row(1.0), row(2.0), row(1.0), row(3.0), row(2.0)]);
-        let quotient = RowQuotient::build(matrix.view());
+        let directory = scratch();
+        let quotient =
+            Quotient::build(matrix.view(), &directory).expect("the distinct matrix writes");
 
         assert!(!quotient.is_identity());
         assert_eq!(quotient.distinct_len(), 3);
-        let (representatives, first_rows) = maps(&quotient);
-        assert_eq!(representatives, [0, 1, 0, 2, 1]);
-        assert_eq!(first_rows, [0, 1, 3]);
+        // Copies materialize a distinct matrix of their own rather than reborrowing the corpus.
+        assert_ne!(
+            quotient.training().as_raw().as_ptr(),
+            matrix.view().as_raw().as_ptr(),
+        );
+        let (classes, representatives) = maps(&quotient);
+        assert_eq!(classes, [0, 1, 0, 2, 1]);
+        assert_eq!(representatives, [0, 1, 3]);
 
-        // The maps invert on the distinct domain: a first row's
-        // representative is the distinct row that named it.
-        for (distinct, &first) in quotient.first_rows().iter_enumerated() {
-            assert_eq!(quotient.representative(first), distinct);
+        // The maps invert on the distinct domain: a representative's
+        // class is the distinct row that named it.
+        for (distinct, &representative) in quotient.representatives().iter_enumerated() {
+            assert_eq!(quotient.class_of(representative), distinct);
         }
     }
 
     #[test]
-    fn equality_is_byte_exact() {
+    fn byte_exact_equality() {
         // 0.0 and -0.0 compare equal as floats and differ as bytes; the
         // quotient keys on bytes.
         let mut negative = row(0.0);
         negative[0] = -0.0;
         let matrix = Matrix::new(&[row(0.0), negative, row(0.0)]);
-        let quotient = RowQuotient::build(matrix.view());
+        let directory = scratch();
+        let quotient =
+            Quotient::build(matrix.view(), &directory).expect("the distinct matrix writes");
 
         assert_eq!(quotient.distinct_len(), 2);
-        let (representatives, first_rows) = maps(&quotient);
-        assert_eq!(representatives, [0, 1, 0]);
-        assert_eq!(first_rows, [0, 1]);
+        let (classes, representatives) = maps(&quotient);
+        assert_eq!(classes, [0, 1, 0]);
+        assert_eq!(representatives, [0, 1]);
     }
 
     #[test]
-    fn first_rows_ascend_with_the_stream() {
+    fn representatives_ascending() {
         let matrix = Matrix::new(&[row(5.0), row(5.0), row(4.0), row(4.0), row(6.0)]);
-        let quotient = RowQuotient::build(matrix.view());
+        let directory = scratch();
+        let quotient =
+            Quotient::build(matrix.view(), &directory).expect("the distinct matrix writes");
 
-        let (_, first_rows) = maps(&quotient);
-        assert_eq!(first_rows, [0, 2, 4]);
-        let ascending = first_rows.is_sorted_by(|one, other| one < other);
+        let (_, representatives) = maps(&quotient);
+        assert_eq!(representatives, [0, 2, 4]);
+        let ascending = representatives.is_sorted_by(|one, other| one < other);
         assert!(ascending, "distinct rows follow first occurrence order");
     }
 
-    /// The A B A C B quotient every remap test reads against.
-    fn fixture_quotient() -> RowQuotient {
-        let matrix = Matrix::new(&[row(1.0), row(2.0), row(1.0), row(3.0), row(2.0)]);
-        RowQuotient::build(matrix.view())
-    }
-
     #[test]
-    fn expanded_neighbours_name_first_rows() {
-        let quotient = fixture_quotient();
+    fn expand_names_representatives() {
+        let matrix = Matrix::new(&[row(1.0), row(2.0), row(1.0), row(3.0), row(2.0)]);
+        let directory = scratch();
+        let quotient =
+            Quotient::build(matrix.view(), &directory).expect("the distinct matrix writes");
         // Distinct table over A(0) B(1) C(2), one neighbour per row.
-        let matrix = KnnMatrix::try_new(
+        let table_matrix = KnnMatrix::try_new(
             (3, 3),
             vec![0, 1, 2, 3],
             vec![1, 0, 1],
@@ -414,9 +451,9 @@ mod tests {
         .map_err(|(_, _, _, error)| error)
         .expect("the fixture matrix is compressed");
         let table: Knn<super::DistinctRowId> =
-            Knn::new(matrix).expect("the fixture table is valid");
+            Knn::new(table_matrix).expect("the fixture table is valid");
 
-        let expanded = super::expand_neighbours(&table.view(), &quotient);
+        let expanded = quotient.expand_neighbours(&table.view());
 
         assert_eq!(expanded.rows(), 5);
         assert_eq!(expanded.neighbours(), 1);
@@ -433,8 +470,11 @@ mod tests {
     }
 
     #[test]
-    fn collapse_keeps_the_strongest_reading_per_triple() {
-        let quotient = fixture_quotient();
+    fn collapse_strongest_per_triple() {
+        let matrix = Matrix::new(&[row(1.0), row(2.0), row(1.0), row(3.0), row(2.0)]);
+        let directory = scratch();
+        let quotient =
+            Quotient::build(matrix.view(), &directory).expect("the distinct matrix writes");
         let instance =
             |edge: u64, relation: u64, source: u64, target: u64, link: Option<UnitFraction>| {
                 RelationInstance {
@@ -465,7 +505,7 @@ mod tests {
             instance(15, 9, 0, 4, Some(unit_fraction!(0.1))),
         ];
 
-        let collapsed = super::collapse_instances(&instances, &quotient);
+        let collapsed = quotient.collapse_instances(&instances);
 
         let readings: Vec<(u64, u64, u64, u64)> = collapsed
             .iter()
@@ -485,37 +525,20 @@ mod tests {
     }
 
     #[test]
-    fn materialized_distinct_matrix_maps_back_byte_for_byte() {
-        let directory = camino::Utf8PathBuf::from_path_buf(std::env::temp_dir())
-            .expect("the temp directory is utf-8")
-            .join(format!("hash-graph-atlas-quotient-{}", std::process::id()));
-        std::fs::create_dir_all(&directory).expect("the temp directory is writable");
-
-        let directory = crate::file::generation::ScratchDirectory::rooted(directory);
-
+    fn materialize_gathers_representatives() {
         let matrix = Matrix::new(&[row(1.0), row(2.0), row(1.0), row(3.0)]);
-        let quotient = RowQuotient::build(matrix.view());
-        let path = super::materialize_distinct(&directory, matrix.view(), &quotient)
-            .expect("the distinct matrix writes");
-
-        let file = ArrayFile::open(&path).expect("the distinct matrix reopens");
-        let distinct: &[AlignedVecN<WIDTH>] = file.vectors().expect("the file is aligned f32 rows");
+        let directory = scratch();
+        let quotient =
+            Quotient::build(matrix.view(), &directory).expect("the distinct matrix writes");
+        let distinct = quotient.training();
 
         assert_eq!(distinct.len(), 3);
-        for (index, &first) in quotient.first_rows().iter().enumerate() {
+        for (index, &representative) in quotient.representatives().iter().enumerate() {
             assert_eq!(
-                distinct[index].as_bytes(),
-                matrix.view()[first].as_bytes(),
-                "distinct row {index} gathers corpus row {first}",
+                distinct.as_raw()[index].as_bytes(),
+                matrix.view()[representative].as_bytes(),
+                "distinct row {index} gathers corpus row {representative}",
             );
         }
-
-        // The distinct matrix is scratch: its storage lives and dies with the directory.
-        drop(file);
-        drop(directory);
-        assert!(
-            ArrayFile::open(&path).is_err(),
-            "the scratch storage is removed with its directory",
-        );
     }
 }

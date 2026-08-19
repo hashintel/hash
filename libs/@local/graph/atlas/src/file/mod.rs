@@ -216,3 +216,14 @@ pub(crate) trait WriteInto {
     /// Returns an error when the underlying writer fails or the value has no on-disk form.
     fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, Self::Error>;
 }
+
+impl<T> WriteInto for &T
+where
+    T: WriteInto,
+{
+    type Error = T::Error;
+
+    fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, Self::Error> {
+        T::write_into(self, write)
+    }
+}

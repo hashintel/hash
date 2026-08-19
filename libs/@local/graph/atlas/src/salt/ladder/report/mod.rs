@@ -71,7 +71,7 @@ use crate::{
         UnitFraction, d_positive,
     },
     salt::{
-        fit::{PlacementInner, PlacementOptions, ProjectorOptions, placement_device},
+        fit::{PlacementOptions, ProjectorOptions},
         projector::{
             artifact,
             model::{NodeRole, Projector},
@@ -225,7 +225,11 @@ impl LadderReport {
     /// [`CERTIFICATE_TOLERANCE`]. A report run has no recovery path, and the error is the
     /// diagnosis.
     #[tracing::instrument(skip_all)]
-    pub(crate) fn compile(root: &GenerationRoot, id: GenerationId) -> Self {
+    pub(crate) fn compile(
+        root: &GenerationRoot,
+        id: GenerationId,
+        device: burn::backend::libtorch::LibTorchDevice,
+    ) -> Self {
         let generation = root.open(id).expect("the generation is published");
         let repository = generation.repository();
 
@@ -273,8 +277,7 @@ impl LadderReport {
         );
 
         // The model, opened on the placement backend the fit trained on.
-        let device = placement_device();
-        let model: Projector<PlacementInner> = artifact::open_model(
+        let model: Projector<crate::device::Inference> = artifact::open_model(
             File::open(generation.path_of(&checkpoint.name)).expect("the checkpoint opens"),
             options.architecture,
             &device,
