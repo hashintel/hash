@@ -324,6 +324,7 @@ export const SortMenu = <SortKey extends string = string>({
       text: sorter.name,
       selectedStyle: "highlight",
       selected: isActive,
+      selectedTone: "brand",
       onClick: () => selectSorter(sorter),
       suffix: flippable ? (
         <span

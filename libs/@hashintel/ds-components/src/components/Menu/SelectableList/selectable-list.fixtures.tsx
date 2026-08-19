@@ -102,13 +102,23 @@ const highlightToneVariantItems: Item[] = (["brand", "error"] as const).map(
   }),
 );
 
-const selectedToneVariantItems: Item[] = selectedStyles.map((style) => ({
-  id: `selected-tone-${style}`,
-  text: `selectedTone: brand, tone: neutral, ${style} (selected)`,
-  selectedTone: "brand",
-  selectedStyle: style,
-  onClick: noop,
-}));
+const selectedToneVariantItems: Item[] = [
+  ...selectedStyles.map<Item>((style) => ({
+    id: `selected-tone-${style}`,
+    text: `selectedTone: brand, tone: neutral, ${style} (selected)`,
+    selectedTone: "brand",
+    selectedStyle: style,
+    onClick: noop,
+  })),
+  // Unselected: highlight-style items hover in the selected tone.
+  {
+    id: "selected-tone-highlight-unselected",
+    text: "selectedTone: brand, tone: neutral, highlight (not selected)",
+    selectedTone: "brand",
+    selectedStyle: "highlight",
+    onClick: noop,
+  },
+];
 
 const itemWithHref: Item = {
   id: "with-href",

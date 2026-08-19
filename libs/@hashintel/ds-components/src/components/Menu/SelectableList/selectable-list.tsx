@@ -142,8 +142,6 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
 
   const itemId = getItemId(item);
   const isSelected = ctx.selectedSet.has(itemId);
-  const selectedStyle = item.selectedStyle ?? "highlight";
-  const highlighted = isSelected && selectedStyle === "highlight";
   const isInteractive = !item.disabled && !item.loading;
 
   const classes = itemStyles({
@@ -151,7 +149,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
     size: ctx.size,
     tone: item.tone,
     selectedTone: item.selectedTone ?? item.tone,
-    highlighted,
+    selectedStyle: item.selectedStyle ?? "highlight",
     selected: isSelected,
   });
 

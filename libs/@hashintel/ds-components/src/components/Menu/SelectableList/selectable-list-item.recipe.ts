@@ -192,7 +192,7 @@ export const styles = sva({
         item: {
           color: "blue.s90",
           "&[data-highlighted]": {
-            backgroundColor: "blue.a30",
+            backgroundColor: "blue.a25",
           },
         },
       },
@@ -200,20 +200,22 @@ export const styles = sva({
         item: {
           color: "red.s90",
           "&[data-highlighted]": {
-            backgroundColor: "red.a30",
+            backgroundColor: "red.a25",
           },
         },
       },
     },
-    // Tone of the selected rendering; styled entirely via compound variants.
+    // Tone of the selection rendering; styled entirely via compound variants.
     // The call site defaults it to `tone`.
     selectedTone: {
       neutral: {},
       brand: {},
       error: {},
     },
-    highlighted: {
-      true: {},
+    selectedStyle: {
+      tick: {},
+      checkbox: {},
+      highlight: {},
     },
     selected: {
       true: {
@@ -226,17 +228,14 @@ export const styles = sva({
     },
   },
   compoundVariants: [
-    // Persistent background for selectedStyle="highlight". The extra
-    // [data-selected][data-highlighted] rule out-specifies the base tone's
-    // [data-highlighted] hover, keeping a hovered selected item within the
-    // selected tone's ladder.
+    // For highlight-style items the hover background follows the selected
+    // tone (overriding the base tone's hover via JS merge), selected or not.
     {
       selectedTone: "neutral",
-      highlighted: true,
+      selectedStyle: "highlight",
       css: {
         item: {
-          backgroundColor: "neutral.a35",
-          "&[data-selected][data-highlighted]": {
+          "&[data-highlighted]": {
             backgroundColor: "neutral.a25",
           },
         },
@@ -244,7 +243,43 @@ export const styles = sva({
     },
     {
       selectedTone: "brand",
-      highlighted: true,
+      selectedStyle: "highlight",
+      css: {
+        item: {
+          "&[data-highlighted]": {
+            backgroundColor: "blue.a25",
+          },
+        },
+      },
+    },
+    {
+      selectedTone: "error",
+      selectedStyle: "highlight",
+      css: {
+        item: {
+          "&[data-highlighted]": {
+            backgroundColor: "red.a25",
+          },
+        },
+      },
+    },
+    // Persistent background while selected. Hover dims it to the tone's
+    // hover step; for brand/error the higher-specificity [data-selected]
+    // rule keeps a hovered selected item one notch above the a25 hover.
+    {
+      selectedTone: "neutral",
+      selectedStyle: "highlight",
+      selected: true,
+      css: {
+        item: {
+          backgroundColor: "neutral.a35",
+        },
+      },
+    },
+    {
+      selectedTone: "brand",
+      selectedStyle: "highlight",
+      selected: true,
       css: {
         item: {
           backgroundColor: "blue.a40",
@@ -256,7 +291,8 @@ export const styles = sva({
     },
     {
       selectedTone: "error",
-      highlighted: true,
+      selectedStyle: "highlight",
+      selected: true,
       css: {
         item: {
           backgroundColor: "red.a40",
@@ -303,7 +339,7 @@ export const styles = sva({
     size: "md",
     tone: "neutral",
     selectedTone: "neutral",
-    highlighted: false,
+    selectedStyle: "highlight",
     selected: false,
   },
 });
