@@ -19,6 +19,7 @@ import {
   joinOrg,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
+import { userHasAccessToHash } from "@apps/hash-api/src/shared/user-has-access-to-hash";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -330,6 +331,39 @@ describe("User model class", () => {
             deleteKratosIdentity({ kratosIdentityId: identity.id }),
           ),
         );
+      }
+    }
+  });
+
+  it("does not grant access for an unverified allowlisted trait email", async () => {
+    const authentication = { actorId: systemAccountId };
+    const verifiedEmail = `${generateRandomShortname("access")}@example.com`;
+    const identity = await createKratosIdentity({
+      traits: {
+        emails: [verifiedEmail],
+      },
+      verifyEmails: true,
+    });
+
+    let user: User | undefined;
+
+    try {
+      user = await createUser(graphContext, authentication, {
+        emails: [verifiedEmail],
+        kratosIdentityId: identity.id,
+      });
+
+      await expect(
+        userHasAccessToHash(graphContext, authentication, {
+          ...user,
+          emails: [verifiedEmail, allowListedEmail],
+        }),
+      ).resolves.toEqual({ allowed: false });
+    } finally {
+      if (user) {
+        await deleteUser({ userId: user.accountId });
+      } else {
+        await deleteKratosIdentity({ kratosIdentityId: identity.id });
       }
     }
   });
