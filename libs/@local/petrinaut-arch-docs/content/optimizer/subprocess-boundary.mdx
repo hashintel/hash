@@ -7,10 +7,11 @@ attachTo: optimizer
 
 The optimizer never imports Petrinaut. The [optimizer](layer:optimizer) and
 the [CLI](layer:cli) meet at a **process boundary**: one `petrinaut serve`
-child per optimization run, spoken to over JSON lines on stdio. No generated
-diagram shows this edge, and none ever will — the import graph records static
-module references, and claiming runtime facts it cannot check is exactly what
-the model refuses to do. This page is the missing arrow.
+child per optimization run, spoken to over JSON lines on stdio. The diagrams
+draw this as a dashed edge, declared by a `@talksTo` tag on the
+[Python bindings](layer:python-bindings) — the side that spawns the process —
+because no import produces it. This page carries what a one-line edge label
+cannot: the contract at the boundary and what each side owns.
 
 ## The contract
 

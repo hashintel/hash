@@ -37,10 +37,25 @@ interface LayerAccumulator {
   lineCount: number;
 }
 
+/**
+ * One `@talksTo` occurrence, kept against its file so the graph stage can
+ * resolve the declaring file's layer and report errors with a location.
+ */
+export interface TalksToDeclaration {
+  /** Repo-relative source file carrying the annotation. */
+  file: string;
+  line: number;
+  /** Layer id on the receiving end of the protocol. */
+  target: string;
+  protocol: string;
+}
+
 export interface ExtractionResult {
   layers: Layer[];
   /** Repo-relative source file → layer id, for the graph stage. */
   fileLayers: Map<string, string>;
+  /** `@talksTo` declarations, resolved into edges by the graph stage. */
+  talksTo: TalksToDeclaration[];
   diagnostics: Diagnostic[];
 }
 
@@ -141,6 +156,7 @@ export const extract = async (
   const diagnostics: Diagnostic[] = [];
 
   const accumulators = new Map<string, LayerAccumulator>();
+  const talksTo: TalksToDeclaration[] = [];
   /** Folder → layer id it declares. */
   const scopes = new Map<string, string>();
   /** Layer id → the file that declared it, for duplicate reporting. */
@@ -247,6 +263,15 @@ export const extract = async (
         );
       }
 
+      for (const declaration of tags.talksTo) {
+        talksTo.push({
+          file: entry.path,
+          line: declaration.line,
+          target: declaration.target,
+          protocol: declaration.protocol,
+        });
+      }
+
       if (tags.layerRoot) {
         const id = tags.layerRoot.value;
         const segments = id.split(".");
@@ -314,9 +339,8 @@ export const extract = async (
         continue;
       }
 
-      // Only line counts are read here: with no per-file tags left in the
-      // vocabulary, a file's contents say nothing about the architecture beyond
-      // which layer's folder it sits in.
+      // Only line counts are read here: pass 1 already collected every tag,
+      // so at this point a file's contents add nothing beyond its size.
       const contents = await readFile(entry.absolutePath, "utf8");
 
       accumulator.files.push(entry.path);
@@ -373,5 +397,5 @@ export const extract = async (
     })
     .sort((left, right) => left.id.localeCompare(right.id));
 
-  return { layers, fileLayers, diagnostics };
+  return { layers, fileLayers, talksTo, diagnostics };
 };

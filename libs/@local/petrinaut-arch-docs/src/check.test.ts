@@ -8,6 +8,8 @@ import {
   withinScope,
 } from "./check";
 
+import { ARCHITECTURE_MODEL_VERSION } from "./model";
+
 import type { ArchitectureModel, Edge, Layer } from "./model";
 
 /**
@@ -37,13 +39,14 @@ const layer = (overrides: Partial<Layer> & Pick<Layer, "id">): Layer => ({
 const edge = (from: string, to: string, count = 1): Edge => ({
   from,
   to,
+  provenance: "imports",
   fileDependencies: count,
   examples: [{ from: `src/${from}.ts`, to: `src/${to}.ts` }],
   crossesPackage: false,
 });
 
 const model = (layers: Layer[], edges: Edge[] = []): ArchitectureModel => ({
-  version: 1,
+  version: ARCHITECTURE_MODEL_VERSION,
   packages: [],
   layers,
   edges,

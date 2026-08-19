@@ -36,6 +36,7 @@ import {
 import { extract } from "./extract";
 import { buildGraph } from "./graph";
 import {
+  ARCHITECTURE_MODEL_VERSION,
   architectureModelSchema,
   packageSchema,
   type ArchitectureModel,
@@ -105,12 +106,13 @@ export const buildBundle = async (options: {
     ignoredFilePattern: settings.ignoredFilePattern,
     fileLayers: extraction.fileLayers,
     layers: extraction.layers,
+    talksTo: extraction.talksTo,
   });
 
   diagnostics.push(...graph.diagnostics);
 
   const model: ArchitectureModel = {
-    version: 1,
+    version: ARCHITECTURE_MODEL_VERSION,
     packages,
     layers: extraction.layers,
     edges: graph.edges,
