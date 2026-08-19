@@ -13,7 +13,8 @@ import threading
 import time
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
-
+import logging
+log = logging.getLogger("pn_client")
 
 MAX_MANIFEST_BYTES = 8 * 1024 * 1024
 MAX_PROTOCOL_LINE_BYTES = 8 * 1024 * 1024
@@ -329,27 +330,30 @@ class PetrinautModel:
             )
         return result
 
-    def objective(self, parameter_values: Mapping[str, Any]) -> float:
-        """Evaluate one flat set of Optuna-proposed scenario parameter values."""
+    def evaluate_runs(self, parameter_values: Mapping[str, Any]) -> float:
+        """Evaluates one or more runs (one for each seed) over one flat set of suggested scenario parameter values.
+        Evaluate: run the Petrinaut simulator and compute one or more metrics from each run.
+        """
         result = self._exchange(
             "optimization.evaluate",
             {"parameterValues": dict(parameter_values)},
         )
+        log.debug(f"Evaluate runs result: {result}")
         if not isinstance(result, dict):
             self.close(graceful=False)
             raise PetrinautProtocolError(
                 "optimization.evaluate returned a non-object result"
             )
-        objective = result.get("objective")
+        aggregated_metric = result.get("objective")
         if (
-            isinstance(objective, bool)
-            or not isinstance(objective, (int, float))
-            or not math.isfinite(objective)
+            isinstance(aggregated_metric, bool)
+            or not isinstance(aggregated_metric, (int, float))
+            or not math.isfinite(aggregated_metric)
         ):
             raise PetrinautRunError(
-                "Petrinaut optimization objective is not a finite number"
+                "Petrinaut optimization aggregated metric is not a finite number"
             )
-        return float(objective)
+        return float(aggregated_metric)
 
     @staticmethod
     def _signal_process(process: Any, signal_number: signal.Signals) -> None:
