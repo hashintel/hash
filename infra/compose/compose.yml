@@ -693,6 +693,8 @@ services:
       - no-new-privileges:true
     ports:
       - "${PETRINAUT_OPT_PORT:-4004}:4004"
+    environment:
+      HASH_PETRINAUT_OPT_LOG_LEVEL: "${HASH_PETRINAUT_OPT_LOG_LEVEL:-info}"
 
   api-migrate:
     profiles:

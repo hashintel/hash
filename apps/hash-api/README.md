@@ -33,6 +33,7 @@ The HASH Backend API service is configured using the following environment varia
 - Petrinaut optimizer
   - `HASH_PETRINAUT_OPT_HOST`: the hostname of the Petrinaut optimizer service.
   - `HASH_PETRINAUT_OPT_PORT`: the port of the Petrinaut optimizer service.
+  - `HASH_PETRINAUT_OPT_LOG_LEVEL`: the logging level for the Petrinaut optimizer service.
   - Both variables are optional for local NodeAPI development, but must be set
     together to enable Petrinaut optimization. The authenticated capabilities
     endpoint reports this configuration independently of service health, so a

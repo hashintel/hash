@@ -192,8 +192,8 @@ uv run python -m scripts.generate_openapi
 ```
 
 Running `python -m src.optimization_api` reads
-`HASH_PETRINAUT_OPT_HOST`/`HASH_PETRINAUT_OPT_PORT`, defaulting to
-`localhost:4004`. The Docker image passes `0.0.0.0:4004` explicitly to Uvicorn.
+`HASH_PETRINAUT_OPT_HOST`/`HASH_PETRINAUT_OPT_PORT`/`HASH_PETRINAUT_OPT_LOG_LEVEL`, defaulting to
+`localhost:4004` with `INFO` as logging level. The Docker image passes `0.0.0.0:4004` explicitly to Uvicorn.
 
 Build and run the image from the repository root:
 
