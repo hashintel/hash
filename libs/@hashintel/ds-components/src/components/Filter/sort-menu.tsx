@@ -153,9 +153,10 @@ const SearchField = ({
  * with the direction its row shows, and closes the menu. A row's direction
  * appears when the row is active, hovered or keyboard-highlighted; sorters
  * offering both directions show it as a toggle. Clicking the toggle — or
- * pressing left/right on the highlighted row — only flips the direction the
- * row displays: nothing is committed (and the trigger does not change) until
- * a selection is made, and closing the menu discards the adjustment.
+ * pressing left/right on the highlighted row — flips the direction the row
+ * displays: on the active sorter that commits immediately (the menu stays
+ * open), while on any other row nothing is committed until the row is
+ * selected, and closing the menu discards the adjustment.
  *
  * When the active sorter offers both directions, the trigger's own direction
  * icon is also a toggle: clicking it fires `onChange` with the flipped
@@ -211,8 +212,10 @@ export const SortMenu = <SortKey extends string = string>({
         })
       : items;
 
+  // Drafts are per-open-session state, cleared when the menu closes — a
+  // commit does not wipe other rows' pending adjustments (the active row's
+  // direction can be committed while the menu stays open).
   const commit = (sortKey: SortKey, direction: SortDirection) => {
-    setDraftDirections({});
     if (saveSortId) {
       writeSavedSort(saveSortId, sortKey, direction);
     }
@@ -256,9 +259,16 @@ export const SortMenu = <SortKey extends string = string>({
       ? value.direction
       : (directionsOf(sorter)[0] ?? "ASCENDING"));
 
-  // Flip the direction a row displays without committing anything.
-  const flipShownDirection = (sorter: Sorter<SortKey>) => {
+  // Flip the direction a row displays. On the active sorter that is a real
+  // change committed immediately (the menu stays open — no selection
+  // happens); on any other row it only adjusts the draft that selecting the
+  // row would apply.
+  const flipDirection = (sorter: Sorter<SortKey>) => {
     const next = flipped(shownDirection(sorter));
+    if (value?.sortKey === sorter.sortKey) {
+      commit(sorter.sortKey, next);
+      return;
+    }
     setDraftDirections((previous) => ({
       ...previous,
       [sorter.sortKey]: next,
@@ -273,16 +283,15 @@ export const SortMenu = <SortKey extends string = string>({
       value.direction === direction
     ) {
       // Re-selecting the current sort unchanged: close without firing.
-      setDraftDirections({});
       return;
     }
     commit(sorter.sortKey, direction);
   };
 
-  // Left/right arrows flip the highlighted row's displayed direction; the
-  // change only takes effect when the row is selected. Keys typed into the
-  // search row report its row id, which matches no sorter, so caret movement
-  // in the input is never intercepted.
+  // Left/right arrows flip the highlighted row's displayed direction
+  // (committing immediately on the active row, as a draft elsewhere). Keys
+  // typed into the search row report its row id, which matches no sorter, so
+  // caret movement in the input is never intercepted.
   const handleContentKeyDown = (
     event: React.KeyboardEvent,
     highlightedValue: string | null,
@@ -299,7 +308,7 @@ export const SortMenu = <SortKey extends string = string>({
     }
     event.preventDefault();
     event.stopPropagation();
-    flipShownDirection(sorter);
+    flipDirection(sorter);
   };
 
   const sorterItems = visibleSorters.map((sorter): MenuItem => {
@@ -340,7 +349,7 @@ export const SortMenu = <SortKey extends string = string>({
             aria-label={`Sort by ${sorter.name}, ${outcome.toLowerCase()}`}
             onClick={(event) => {
               event.stopPropagation();
-              flipShownDirection(sorter);
+              flipDirection(sorter);
             }}
           >
             <Icon name={directionIcons[direction]} size={suffixIconSize} />
