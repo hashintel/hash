@@ -1,0 +1,157 @@
+---
+import Default from "@astrojs/starlight/components/SiteTitle.astro";
+
+/**
+ * Adds the desktop sidebar collapse toggle and resize handle beside the title.
+ *
+ * They hang off `SiteTitle` because it is the header's leftmost slot, next to
+ * the rail's edge where the controls act, and the fixed header is the only
+ * chrome still on screen once the sidebar pane itself is collapsed away. Both
+ * are display: none unless the page has a sidebar (see `chrome.css`), so the
+ * splash-template 404 page does not grow controls with nothing to control.
+ */
+---
+
+<button
+  class="pnd-sidebar-toggle"
+  type="button"
+  aria-controls="starlight__sidebar"
+  aria-expanded="true"
+  aria-label="Toggle sidebar"
+>
+  <svg
+    aria-hidden="true"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linejoin="round"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+    <path d="M9 3v18"></path>
+  </svg>
+</button>
+
+<Default><slot /></Default>
+
+<div
+  class="pnd-sidebar-resize"
+  role="separator"
+  aria-orientation="vertical"
+  aria-label="Resize sidebar"
+  tabindex="0"
+>
+</div>
+
+<script is:inline>
+  (() => {
+    const root = document.documentElement;
+    const toggle = /** @type {HTMLButtonElement | null} */ (
+      document.querySelector(".pnd-sidebar-toggle")
+    );
+    const handle = /** @type {HTMLElement | null} */ (
+      document.querySelector(".pnd-sidebar-resize")
+    );
+
+    if (!toggle || !handle) {
+      return;
+    }
+
+    /**
+     * @param {string} key
+     * @param {string} value
+     */
+    const remember = (key, value) => {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // Private browsing denies storage; the control still works this session.
+      }
+    };
+
+    toggle.setAttribute(
+      "aria-expanded",
+      String(root.dataset.pndSidebar !== "collapsed"),
+    );
+
+    toggle.addEventListener("click", () => {
+      const collapsed = root.dataset.pndSidebar !== "collapsed";
+
+      if (collapsed) {
+        root.dataset.pndSidebar = "collapsed";
+      } else {
+        delete root.dataset.pndSidebar;
+      }
+
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+      remember("pnd:sidebar", collapsed ? "collapsed" : "expanded");
+    });
+
+    /** @param {number} edge Where the pane's trailing edge should land, in px. */
+    const resizeTo = (edge) => {
+      const width = `${Math.round(Math.min(Math.max(edge, 224), 480))}px`;
+
+      root.style.setProperty("--pnd-sidebar-open-width", width);
+      remember("pnd:sidebar-width", width);
+    };
+
+    handle.addEventListener("pointerdown", (event) => {
+      handle.setPointerCapture(event.pointerId);
+
+      /** @param {PointerEvent} move */
+      const onMove = (move) => resizeTo(move.clientX);
+
+      handle.addEventListener("pointermove", onMove);
+      handle.addEventListener(
+        "pointerup",
+        () => handle.removeEventListener("pointermove", onMove),
+        { once: true },
+      );
+    });
+
+    handle.addEventListener("keydown", (event) => {
+      const step =
+        event.key === "ArrowLeft" ? -16 : event.key === "ArrowRight" ? 16 : 0;
+
+      if (step !== 0) {
+        event.preventDefault();
+        resizeTo(handle.getBoundingClientRect().left + 3 + step);
+      }
+    });
+
+    // A gradient cannot ask whether the text fits, so the labels that do not
+    // fit are marked here and the fade keys off the mark. Deferred because this
+    // script is in the header, which the browser parses before the sidebar.
+    const markLabels = () => {
+      const pane = document.querySelector(".sidebar-content");
+
+      if (!pane) {
+        return;
+      }
+
+      const labels = pane.querySelectorAll("a > span, .group-label > span");
+
+      const markClipped = () => {
+        for (const label of labels) {
+          label.toggleAttribute(
+            "data-pnd-clipped",
+            label.scrollWidth > label.clientWidth + 1,
+          );
+        }
+      };
+
+      markClipped();
+      // Fires on the pane's own resize and when expanding a group changes it.
+      new ResizeObserver(markClipped).observe(pane);
+      pane.addEventListener("toggle", markClipped, { capture: true });
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", markLabels, { once: true });
+    } else {
+      markLabels();
+    }
+  })();
+</script>
