@@ -31,6 +31,8 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     tabIndex?: number;
     /** Set to true to make the element focused on mount or 'never' to prevent the item being auto-focused */
     autoFocus?: boolean | "never";
+    /** An optional testId */
+    testId?: string;
     onClick?: React.ButtonHTMLAttributes<Element>["onClick"];
     onMouseDown?: React.ButtonHTMLAttributes<Element>["onMouseDown"];
     onMouseUp?: React.ButtonHTMLAttributes<Element>["onMouseUp"];
@@ -137,6 +139,7 @@ export const Button = (props: ButtonProps) => {
     onBlur,
     tabIndex,
     autoFocus,
+    testId,
     tooltipOptions,
     ...rest
   } = props;
@@ -210,6 +213,7 @@ export const Button = (props: ButtonProps) => {
     "aria-busy": loading,
     "aria-live": loading ? ("polite" as const) : undefined,
     "aria-disabled": disabled || loading || undefined,
+    "data-testid": testId,
     ...rest,
     ...resolveAutoFocusProps(autoFocus),
   };

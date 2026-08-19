@@ -363,6 +363,67 @@ describe("petrinautOptimizationManifestSchema", () => {
     expect(tooManySteps.success).toBe(false);
     expect(tooMuchTotalWork.success).toBe(false);
   });
+
+  it("bounds the seeds each trial may run", () => {
+    const withSeeds = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      execution: { ...validManifest.execution, seedsPerTrial: 10 },
+    });
+    const zeroSeeds = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      execution: { ...validManifest.execution, seedsPerTrial: 0 },
+    });
+    const fractionalSeeds = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      execution: { ...validManifest.execution, seedsPerTrial: 1.5 },
+    });
+    const tooManySeeds = petrinautOptimizationManifestSchema.safeParse({
+      ...validManifest,
+      execution: { ...validManifest.execution, seedsPerTrial: 101 },
+    });
+
+    expect(withSeeds.success).toBe(true);
+    expect(zeroSeeds.success).toBe(false);
+    expect(fractionalSeeds.success).toBe(false);
+    expect(tooManySeeds.success).toBe(false);
+  });
+
+  it("counts every trial seed against the total work budget", () => {
+    // 1,000 steps x 100 trials fits the 5,000,000-step budget with one seed
+    // per trial but exceeds it with one hundred.
+    const base = {
+      ...validManifest,
+      execution: { ...validManifest.execution, dt: 0.1, maxTime: 100 },
+      study: { ...validManifest.study, trials: 100 },
+    };
+    const singleSeed = petrinautOptimizationManifestSchema.safeParse(base);
+    const replicated = petrinautOptimizationManifestSchema.safeParse({
+      ...base,
+      execution: { ...base.execution, seedsPerTrial: 100 },
+    });
+
+    expect(singleSeed.success).toBe(true);
+    expect(replicated.success).toBe(false);
+    if (!replicated.success) {
+      expect(replicated.error.issues[0]?.path).toEqual([
+        "execution",
+        "seedsPerTrial",
+      ]);
+    }
+
+    // A workload that overflows even unseeded stays a trial-count issue.
+    const oversizedUnseeded = petrinautOptimizationManifestSchema.safeParse({
+      ...base,
+      execution: { ...base.execution, dt: 0.001, seedsPerTrial: 2 },
+    });
+    expect(oversizedUnseeded.success).toBe(false);
+    if (!oversizedUnseeded.success) {
+      expect(oversizedUnseeded.error.issues[0]?.path).toEqual([
+        "study",
+        "trials",
+      ]);
+    }
+  });
 });
 
 describe("petrinautOptimizationEventSchema", () => {

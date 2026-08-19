@@ -20,13 +20,13 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function handleProtocolLine(
+export async function handleProtocolLine(
   model: PetrinautCompiledModel,
   line: string,
   writeResponse: (value: unknown) => void,
   sdcpn?: SDCPN,
   optimization?: OptimizationProtocol,
-): void {
+): Promise<void> {
   if (line.trim() === "") {
     return;
   }
@@ -76,7 +76,7 @@ export function handleProtocolLine(
         }
         writeResponse({
           id,
-          result: optimization.evaluate(request.params ?? {}),
+          result: await optimization.evaluate(request.params ?? {}),
         });
         return;
       default:

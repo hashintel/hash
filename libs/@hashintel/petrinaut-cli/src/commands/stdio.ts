@@ -138,7 +138,7 @@ export async function serveStdio(options: ServeStdioOptions): Promise<void> {
       });
       continue;
     }
-    handleProtocolLine(
+    await handleProtocolLine(
       model,
       line,
       (value) => writeResponse(output, value),

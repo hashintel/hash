@@ -2,9 +2,11 @@
 
 Petrinaut CLI owns the Petrinaut side of optimization: it validates the
 manifest, applies fixed and suggested scenario parameters, materializes the
-initial state, runs the model, and returns one scalar objective. An optimizer
-such as Optuna only needs to consume the flat parameter description and submit
-one suggestion per trial.
+initial state, runs the model, and returns one scalar objective. A trial runs
+one seeded simulation by default, or `execution.seedsPerTrial` of them with
+the per-seed objectives aggregated by mean. An optimizer such as Optuna only
+needs to consume the flat parameter description and submit one suggestion per
+trial.
 
 An optimization manifest is a versioned JSON document containing a complete
 model snapshot with **one scenario** and **one metric**. Its
@@ -63,7 +65,12 @@ only the non-fixed parameters:
   "id": 1,
   "result": {
     "direction": "maximize",
-    "study": { "trials": 100, "sampler": "tpe", "seed": 42 },
+    "study": {
+      "trials": 100,
+      "sampler": "tpe",
+      "seed": 42,
+      "seedsPerTrial": 1
+    },
     "parameters": [
       {
         "identifier": "production_rate",
@@ -129,6 +136,35 @@ and returns the objective value:
 
 Use one CLI process with a single Optuna worker, or start an independent CLI
 process for each parallel worker.
+
+### Seeded runs per trial
+
+Set `execution.seedsPerTrial` (1–100, default 1) to evaluate every trial as a
+small Monte Carlo batch. The seeds derive from `execution.seed`: run 0 keeps
+it, and run `i` uses `|seed + (i + 1) × 2654435761| mod 2^31`. Every trial
+reuses the same sequence, so Optuna compares parameter configurations under
+common random numbers.
+
+With more than one seed, the response's `objective` is the mean of the
+per-seed objectives and a `replicates` array reports each seed's value:
+
+```json
+{
+  "id": 2,
+  "result": {
+    "objective": 1234.5,
+    "replicates": [
+      { "seed": 42, "objective": 1230.0 },
+      { "seed": 1013904268, "objective": 1239.0 }
+    ]
+  }
+}
+```
+
+The seeded runs execute sequentially within the evaluate request, so a
+trial's wall-clock time grows linearly with `seedsPerTrial`: budget your
+protocol timeout accordingly. Parallelising them is deferred to the shared
+experiment-backend interface.
 
 ## Python wrapper with Optuna
 

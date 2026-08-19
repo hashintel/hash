@@ -26,6 +26,7 @@ export {
   createMonteCarloSimulator,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
+  deriveRunSeed,
 } from "./monte-carlo";
 export type {
   CreateMonteCarloExperimentConfig,

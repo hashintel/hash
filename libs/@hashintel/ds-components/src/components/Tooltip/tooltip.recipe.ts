@@ -8,6 +8,19 @@ export const contentStyles = cva({
     textStyle: "xs",
     maxWidth: "[300px]",
     wordWrap: "break-word",
+    // Set by Ark's positioner to the side facing the trigger, so the
+    // tooltip pops out of / recedes into the trigger.
+    transformOrigin: "var(--transform-origin)",
+    _open: {
+      animationName: "tooltipIn",
+      animationDuration: "fast",
+      animationTimingFunction: "[ease-out]",
+    },
+    _closed: {
+      animationName: "tooltipOut",
+      animationDuration: "faster",
+      animationTimingFunction: "[ease-in]",
+    },
   },
   variants: {
     variant: {

@@ -5,6 +5,10 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "cache": false
+    },
+    "test:unit": {
+      "dependsOn": ["build", "codegen", "^build"],
+      "env": ["TEST_COVERAGE"]
     }
   }
 }
