@@ -6,7 +6,12 @@
  * single file, which is cheaper for a model to read than fetching thirty pages.
  */
 
-import { ARCHITECTURE_MODEL_VERSION, type ArchitectureModel } from "../model";
+import {
+  ARCHITECTURE_MODEL_VERSION,
+  isDeclaredEdge,
+  isImportEdge,
+  type ArchitectureModel,
+} from "../model";
 
 import type { AuthoredPage } from "../content";
 import type { GeneratedPage } from "./mdx";
@@ -116,14 +121,23 @@ export const buildSingleFileArchitecture = (
     );
 
     const outgoing = model.edges.filter((edge) => edge.from === layer.id);
+    const imports = outgoing.filter(isImportEdge);
+    const declared = outgoing.filter(isDeclaredEdge);
 
-    if (outgoing.length > 0) {
-      const rendered = outgoing
+    if (imports.length > 0) {
+      const rendered = imports
         .slice()
         .sort((left, right) => right.fileDependencies - left.fileDependencies)
         .map((edge) => `\`${edge.to}\` (${edge.fileDependencies})`)
         .join(", ");
       lines.push(`- Depends on: ${rendered}`);
+    }
+
+    if (declared.length > 0) {
+      const rendered = declared
+        .map((edge) => `\`${edge.to}\` via ${edge.protocol}`)
+        .join("; ");
+      lines.push(`- Talks to: ${rendered}`);
     }
 
     if (layer.references.length > 0) {

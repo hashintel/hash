@@ -111,10 +111,11 @@ If a change ships without doc updates, call that out in your summary so the user
 
 Distinct from the user guide above: the **architecture** docs describe the shape of the code for the people (and agents) working on it. They are generated from annotations in the source by `@local/petrinaut-arch-docs`, and building the bundle fails when they drift.
 
-The architecture is declared **next to the code it describes** — never in a central mapping file. Two tags, and that is the whole vocabulary:
+The architecture is declared **next to the code it describes** — never in a central mapping file. Three tags, and that is the whole vocabulary:
 
 - `@layerRoot <id>` plus `@role <one line>` in a doc comment on a folder's primary file declares a layer. Prefer this — it needs no new file.
 - A folder's `README.md` frontmatter (`layer` and `role`) does the same, and the prose below becomes that layer's page. Use it when the folder has real prose to carry, or when no single file is the obvious host.
+- `@talksTo <layer-id> via <protocol>` in any scanned doc comment or docstring declares an edge no import produces, such as a spawned subprocess or a postMessage channel. The declaring file's own layer is the edge source; the build fails on an unknown target or on a pair the imports already prove.
 - Files with no annotation inherit from the nearest declaring ancestor, so 37 declarations cover 412 files. Do not annotate every file.
 
 Any other tag is ignored, so do not add one expecting it to appear in the docs. In a declaring README's frontmatter, `layer` and `role` are the only keys and anything else fails the build.
