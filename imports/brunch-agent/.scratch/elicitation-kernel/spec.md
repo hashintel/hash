@@ -104,7 +104,9 @@ A capture carries:
 - **Evidence spans** — each span is a **quoted excerpt plus a pointer** (session id + entry
   range). The excerpt is primary at proposal time and is the **model-facing citation currency**;
   the pointer is **derived by the harness**, which alone can see the entry projection
-  (harness-resolved anchoring, §8.2). Spans anchor only on true user and user-affordance-payload
+  (harness-resolved anchoring, §8.2). The stored capture carries **both**: quote-to-entry
+  resolution happens exactly once, at sweep application; every later reader navigates by pointer
+  into the session-log archive (§9.6), never by text search. Spans anchor only on true user and user-affordance-payload
   entries (§9.4); `defaulted` / `external-lookup` captures cite a declared default or documented
   transformation instead of a user span (Appendix A, C5).
 - **Epistemic status** — `explicit | inferred | tentative | defaulted | external-lookup`. Distinct
@@ -144,6 +146,11 @@ Distinctions that must not collapse:
 - `not-yet-decided` — the user states the decision has not been made (a fact about the world).
 - `deferred` — the user postpones answering (a fact about the interview).
 - `explicitly-absent` ("we have no deadline") ≠ `unknown-to-user` ("I don't know the deadline").
+- `declined` ≠ `deferred` (amended on review 2026-08-11): a decline is a **boundary** — re-asking
+  is an interviewing error, and the gap closes only through an explicit act (a declared default,
+  or a descoped requirement); a deferral is an **invitation** — re-raising it later is correct
+  interviewing, and completion evaluation chases it (§8.6). Collapsing them makes the agent
+  either nag someone who refused or forget someone who said "later".
 
 The absence strip's three labels map: **don't-know → `unknown-to-user`**, **not-applicable →
 `not-applicable`**, **decide-later → `deferred`**.
@@ -385,6 +392,10 @@ re-entry briefing, §9.3) and the agent judges whether to sweep before proceedin
   authoritative state is **the capture store plus all session logs — never the render**.
   Projections, renders, and artifacts are strictly derived: cacheable, disposable. Session logs
   are durable truth too: discarding swept logs would dead-end every capture's evidence pointers.
+  **Conversations are themselves documents** (amended on review 2026-08-11): each session log is
+  kept as reference, indefinitely, and lives **with** the target-document in the same persistence
+  home — the storage port's session-log archive (§9.6) — so evidence pointers resolve against
+  the target-document's own store, never against whatever the substrate happens to retain.
 - **Session** = one substrate conversation. Sessions **never formally close** — they go quiet and
   stay resumable; "ended" would be a fiction the harness cannot verify.
 - **Session→document binding** (adjudicated, L4): a new session's `initialData` carries the
@@ -445,10 +456,19 @@ of the consuming app; the harness's *capture store* is the storage port, impleme
 `packages/binding-flue` (and any future binding). The remote-parity constraint reads accordingly: the
 storage port is owned **outside the plugin** (§12.5).
 
+**The port's scope is the capture store plus the session-log archive** (amended on review
+2026-08-11): session logs attached to a target-document live with it, retained indefinitely.
+The mechanism is **archive-on-read** — whenever the binding reads the durable entry projection
+(every sweep, every briefing computation), it retains the entries it read in the
+target-document store. At minimum, every entry a capture points to must be retrievable from the
+archive forever; the substrate's conversation store remains the live transport copy, never the
+provenance record.
+
 **Milestone-one local store**: binding-owned; the format is binding-internal **but constrained** —
 it must provide whole-sweep-atomic application and refusals with serialized writes (adjudicated,
 L13; a flat append-only text file does not qualify unaided). The ticket-13 skeleton's shape (JSON
-file, tmp+rename atomic, in-process serialization) is the proven floor.
+file, tmp+rename atomic, in-process serialization) is the proven floor; it holds the session-log
+archive alongside captures, issues, and events.
 
 ### 9.7 Context compaction vs. the durable log
 
@@ -462,6 +482,8 @@ constraint holds, stated here as part of the storage contract**:
   not to the model's context window. A binding must guarantee the durable projection is
   compaction-independent; a substrate whose compaction prunes durable history is a substrate whose
   binding must preserve the pruned entries itself (binding absorption, as with capability 10).
+  The session-log archive (§9.6) is that preservation mechanism, already in place: compaction
+  cannot remove anything the archive holds.
 - Two existing mechanisms already cushion the model-side loss: **excerpt-primary evidence spans**
   (§5) keep every capture citable and self-contained even where durable access degrades, and the
   **re-entry briefing** (§9.3) already treats "the model no longer remembers" as a normal state —
@@ -469,8 +491,7 @@ constraint holds, stated here as part of the storage contract**:
   mark, pending-affordance slot) lives outside the transcript and cannot be compacted away.
 - If a binding supplies a compaction definition, injected signals and affordance tool parts need
   no protected status: briefings are recomputable facts and affordance identity is durable on
-  tool output parts — only true user entries are irreplaceable, and those are the durable
-  projection's problem, not compaction's.
+  tool output parts — only true user entries are irreplaceable, and the archive holds those.
 
 Whether Flue's compaction (if and as it ships one) preserves the durable-history projection
 unmodified is **unverified** — named in §14.5.
@@ -543,6 +564,27 @@ directives (a load-bearing prompt paragraph as a versioned, testable artifact); 
 non-authoritative scratchpad for "noticed, not yet asked" — **not** harness session state; on Flue
 its natural home is the `harness.prompt` private scratch conversation; "react to this" separate
 from "accept this"; agenda as derived state, never stored.
+
+### 11.5 Generic strategy cards (named, not designed)
+
+Some interviewing technique is target-independent. Socratic pressure on premises, contrastive
+cases that separate competing interpretations, stress-testing the weak points of an argument —
+these operate on vocabulary the **harness** owns (conflicts, alternatives, ambiguity, weak or
+missing evidence, absence clusters), not on any plugin's domain. By the same rule that governs
+schemas ("the shell that defines a capability owns its affordance schemas", §4), **guidance
+ownership follows vocabulary ownership**: cards that teach *what to notice in a domain* are
+plugin pack content; cards that teach *how to work an interview situation the envelope can name*
+may ship with the harness as a **generic strategy quiver**, composed by plugins at authoring
+time exactly as packs compose (added on review 2026-08-11).
+
+Named, not designed: milestone one ships all guidance in plugin packs. Reference shapes for the
+quiver when it graduates: brunch's `ln-grill` (relentless Socratic interviewing — question
+premises, surface constraints, name anti-patterns) and `ln-disambiguate` (generate contrastive
+cases where plausible interpretations diverge and have the person classify them, instead of
+asking abstract questions), plus brunch's `elicitation_style: interrogate | disambiguate |
+propose` trichotomy, which the exchange-schema audit already classed generic. The assurance
+target is the worked example of the split: its technique decomposes into a generic
+stress-the-argument strategy card plus the plugin's domain cards (§13.2).
 
 ## 12. Shipping shape
 

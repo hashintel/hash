@@ -100,13 +100,13 @@ A computed, ephemeral, non-blocking fact the harness surfaces to the agent (unac
 A unit within a plugin: **ElicitationPack** (kernel cards, completion contract, clarification hints) or **ProjectionPack** (`project` + `validate`, optional `reconcile`, annotated shapes, typed loss reports). Packs are shapes-to-fill plus behavioral guidance, per Principle v2.
 
 **Kernel card**:
-The pack-content unit of elicitation guidance: Detects / Goal / contrastive Questions / Artifacts (brunch `BEHAVIORAL_KERNELS.md` lineage — "kernel" here names a small unit of behavioral guidance, not a shell; the compound is the glossary's one sanctioned "kernel" use).
+The pack-content unit of elicitation guidance: Detects / Goal / contrastive Questions / Artifacts (brunch `BEHAVIORAL_KERNELS.md` lineage — "kernel" here names a small unit of behavioral guidance, not a shell; the compound is the glossary's one sanctioned "kernel" use). Splits by ownership: domain cards are plugin pack content; a harness-shipped **generic strategy quiver** (cards over envelope vocabulary — conflict, ambiguity, weak evidence) is named in spec §11.5, not designed.
 
 **PluginContext**:
 The narrow injected context through which a plugin receives harness capabilities (the ask API, envelope, issue queue, sweep bookkeeping). The plugin's entire world at runtime; the four operations remain pure (snapshot-in/deltas-out) regardless.
 
 **Storage port**:
-The harness-defined contract for the capture store (atomic sweep application, envelope invariants as store-level refusals), implemented by the binding for its deploy target. Plugins are storage-blind.
+The harness-defined contract for the capture store (atomic sweep application, envelope invariants as store-level refusals), implemented by the binding for its deploy target. Plugins are storage-blind. Scope includes the **session-log archive** (archive-on-read; spec §9.6): session logs live with the target-document, retained indefinitely — the substrate's conversation store is the live transport copy, never the provenance record.
 
 **Walking skeleton**:
 A prototype that proves a transport or integration end-to-end on the real substrate (e.g. a real Flue agent + web UI) with stubbed internals.
