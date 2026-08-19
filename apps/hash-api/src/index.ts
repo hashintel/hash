@@ -55,7 +55,7 @@ import {
 } from "./auth/create-auth-handlers";
 // import { createUnverifiedEmailCleanupJob } from "./auth/create-unverified-email-cleanup-job";
 import { getActorIdFromRequest } from "./auth/get-actor-id";
-import { createKratosProxyAllowlist } from "./auth/kratos-endpoint-allowlist";
+import { guardKratosProxy } from "./auth/kratos-endpoint-allowlist";
 import {
   oauthConsentRequestHandler,
   oauthConsentSubmissionHandler,
@@ -303,57 +303,59 @@ const kratosProxyLogger = {
   error: (...args: unknown[]) => forwardProxyLog("error", args),
 };
 
-const kratosProxy = createProxyMiddleware<Request, Response>({
-  target: kratosPublicUrl,
-  pathRewrite: {
-    /**
-     * Remove the `/auth` prefix from the request path, so the path is
-     * formatted correctly for the Ory Kratos API.
-     */
-    "^/auth": "",
-  },
-  logger: kratosProxyLogger,
-  selfHandleResponse: true,
-  on: {
-    proxyReq: fixRequestBody,
-    /**
-     * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
-     * by default, which is not permitted by browsers when including credentials
-     * in requests.
-     *
-     * When setting the value of the `Access-Control-Allow-Origin` header in
-     * the Ory Kratos configuration, the frontend URL is included twice in the
-     * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
-     * which is also not permitted by browsers when including credentials in requests.
-     *
-     * Therefore we manually set the `Access-Control-Allow-Origin` header to the
-     * expected value here before returning the response, to prevent CORS errors
-     * in modern browsers.
-     */
-    proxyRes: (proxyRes, req, res) => {
-      const expectedAccessControlAllowOriginHeader = res.getHeader(
-        "access-control-allow-origin",
-      );
-
-      return responseInterceptor((responseBuffer, _, __, inflightRes) => {
-        if (typeof expectedAccessControlAllowOriginHeader === "string") {
-          inflightRes.setHeader(
-            "access-control-allow-origin",
-            expectedAccessControlAllowOriginHeader,
-          );
-        }
-
-        return Promise.resolve(responseBuffer);
-      })(proxyRes, req, res);
-    },
-  },
-});
-
 /**
- * Default-deny guard registered immediately in front of {@link kratosProxy}.
- * See `./auth/kratos-endpoint-allowlist` for the allow-list itself.
+ * The `/auth` proxy to the Ory Kratos public API, guarded by a default-deny
+ * allow-list of the Kratos endpoints we actually use. See
+ * `./auth/kratos-endpoint-allowlist` for the list itself.
  */
-const kratosProxyAllowlist = createKratosProxyAllowlist({ logger });
+const kratosProxy = guardKratosProxy({
+  logger,
+  proxy: createProxyMiddleware<Request, Response>({
+    target: kratosPublicUrl,
+    pathRewrite: {
+      /**
+       * Remove the `/auth` prefix from the request path, so the path is
+       * formatted correctly for the Ory Kratos API.
+       */
+      "^/auth": "",
+    },
+    logger: kratosProxyLogger,
+    selfHandleResponse: true,
+    on: {
+      proxyReq: fixRequestBody,
+      /**
+       * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
+       * by default, which is not permitted by browsers when including credentials
+       * in requests.
+       *
+       * When setting the value of the `Access-Control-Allow-Origin` header in
+       * the Ory Kratos configuration, the frontend URL is included twice in the
+       * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
+       * which is also not permitted by browsers when including credentials in requests.
+       *
+       * Therefore we manually set the `Access-Control-Allow-Origin` header to the
+       * expected value here before returning the response, to prevent CORS errors
+       * in modern browsers.
+       */
+      proxyRes: (proxyRes, req, res) => {
+        const expectedAccessControlAllowOriginHeader = res.getHeader(
+          "access-control-allow-origin",
+        );
+
+        return responseInterceptor((responseBuffer, _, __, inflightRes) => {
+          if (typeof expectedAccessControlAllowOriginHeader === "string") {
+            inflightRes.setHeader(
+              "access-control-allow-origin",
+              expectedAccessControlAllowOriginHeader,
+            );
+          }
+
+          return Promise.resolve(responseBuffer);
+        })(proxyRes, req, res);
+      },
+    },
+  }),
+});
 
 const main = async () => {
   logger.info("Type System initialized");
@@ -637,12 +639,10 @@ const main = async () => {
    * Although the proxy would ideally come before the body parser, so that we're passing it through untouched,
    * we check the body in this process in order to rate limit requests based on the user attempting to log in.
    *
-   * `kratosProxyAllowlist` sits last before the proxy itself, so that:
-   *   - the `cors` middleware ahead of it has already answered any `OPTIONS`
-   *     preflight (`preflightContinue` is left at its default of `false`), and
-   *     preflights therefore never need to be allow-listed;
-   *   - probing for non-allow-listed endpoints is still rate limited;
-   *   - the guard reads adjacent to the proxy it guards.
+   * The proxy's own allow-list runs last, after `cors`, so that the `OPTIONS`
+   * preflight is already answered (`preflightContinue` is left at its default of
+   * `false`) and preflights never need to be allow-listed, and so that probing
+   * for non-allow-listed endpoints is still rate limited.
    */
   app.use(
     "/auth",
@@ -650,7 +650,6 @@ const main = async () => {
     kratosProxyReadRateLimiter,
     userIdentifierRateLimiter,
     cors(CORS_CONFIG),
-    kratosProxyAllowlist,
     kratosProxy,
   );
 

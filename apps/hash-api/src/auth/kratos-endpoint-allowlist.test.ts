@@ -1,14 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+import http from "node:http";
+
+import cors from "cors";
+import express from "express";
+import { createProxyMiddleware } from "http-proxy-middleware";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   canonicaliseKratosProxyPath,
-  createKratosProxyAllowlist,
+  guardKratosProxy,
   isAllowedKratosProxyRequest,
   KRATOS_PROXY_ALLOWLIST,
 } from "./kratos-endpoint-allowlist";
 
 import type { Logger } from "@local/hash-backend-utils/logger";
-import type { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, RequestHandler, Response } from "express";
+import type { AddressInfo } from "node:net";
 
 type ProxyRequest = [method: string, url: string];
 
@@ -16,7 +22,7 @@ type ProxyRequest = [method: string, url: string];
  * A concrete example request for every entry in the allow-list, so the
  * "allowed" cases are asserted against real paths rather than re-derived from
  * the constant under test. The one `RegExp` entry is represented by the two
- * provider ids configured in `infra/compose/kratos/kratos.yml`.
+ * configured SSO provider ids.
  */
 const allowedRequests: ProxyRequest[] = [
   ["GET", "/sessions/whoami"],
@@ -202,43 +208,46 @@ describe("canonicaliseKratosProxyPath — traversal and encoding", () => {
   });
 });
 
-describe("createKratosProxyAllowlist middleware", () => {
+describe("guardKratosProxy", () => {
   const setup = () => {
     const warn = vi.fn();
     const next = vi.fn();
     const sendStatus = vi.fn();
+    const proxy = vi.fn();
 
-    const middleware = createKratosProxyAllowlist({
+    const guarded = guardKratosProxy({
       logger: { warn } as unknown as Logger,
+      proxy: proxy as unknown as RequestHandler,
     });
 
     const call = (method: string, url: string) => {
-      middleware(
+      guarded(
         { method, url } as unknown as Request,
         { sendStatus } as unknown as Response,
         next as unknown as NextFunction,
       );
     };
 
-    return { call, next, sendStatus, warn };
+    return { call, next, proxy, sendStatus, warn };
   };
 
   it("calls through to the proxy for an allowed request", () => {
-    const { call, next, sendStatus, warn } = setup();
+    const { call, proxy, sendStatus, warn } = setup();
 
     call("GET", "/self-service/login/browser?refresh=false");
 
-    expect(next).toHaveBeenCalledTimes(1);
+    expect(proxy).toHaveBeenCalledTimes(1);
     expect(sendStatus).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("responds 404 — not 403 — and does not call through when denied", () => {
-    const { call, next, sendStatus } = setup();
+  it("responds 404 — not 403 — and does not invoke the proxy when denied", () => {
+    const { call, next, proxy, sendStatus } = setup();
 
     call("GET", "/self-service/errors");
 
     expect(sendStatus).toHaveBeenCalledWith(404);
+    expect(proxy).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -281,5 +290,167 @@ describe("createKratosProxyAllowlist middleware", () => {
       "Blocked non-allow-listed Kratos proxy request",
       { method: "GET", path: "/self-service/errors", deniedCount: 1 },
     );
+  });
+});
+
+/**
+ * The unit tests above exercise the guard against a stub proxy. These drive a
+ * real Express app wrapping a real `http-proxy-middleware` instance, against a
+ * stub standing in for Kratos, to assert the property the allow-list exists
+ * for: a denied request must not reach the target at all — not even as an
+ * inbound connection.
+ */
+describe("guardKratosProxy — against a real Express and proxy stack", () => {
+  const teardown: (() => Promise<void>)[] = [];
+
+  afterEach(async () => {
+    await Promise.all(teardown.splice(0).map((fn) => fn()));
+  });
+
+  const listen = async (server: http.Server): Promise<number> => {
+    await new Promise<void>((resolve) => {
+      server.listen(0, "127.0.0.1", resolve);
+    });
+    teardown.push(
+      () =>
+        new Promise<void>((resolve) => {
+          server.close(() => resolve());
+        }),
+    );
+    return (server.address() as AddressInfo).port;
+  };
+
+  const setup = async () => {
+    const requests: string[] = [];
+    let connections = 0;
+
+    const kratos = http.createServer((req, res) => {
+      requests.push(`${req.method} ${req.url}`);
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("kratos");
+    });
+    kratos.on("connection", () => {
+      connections += 1;
+    });
+    const kratosPort = await listen(kratos);
+
+    const app = express();
+    app.use(
+      "/auth",
+      cors({ origin: "http://localhost:3000", credentials: true }),
+      guardKratosProxy({
+        logger: { warn: vi.fn() } as unknown as Logger,
+        proxy: createProxyMiddleware({
+          target: `http://127.0.0.1:${kratosPort}`,
+          pathRewrite: { "^/auth": "" },
+          logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+        }),
+      }),
+    );
+    const port = await listen(http.createServer(app));
+
+    const request = (
+      method: string,
+      path: string,
+      headers: Record<string, string> = {},
+    ) =>
+      new Promise<{ status?: number; allowOrigin?: string; body: string }>(
+        (resolve, reject) => {
+          const req = http.request(
+            {
+              port,
+              path,
+              method,
+              headers: { origin: "http://localhost:3000", ...headers },
+            },
+            (res) => {
+              let body = "";
+              res.on("data", (chunk) => {
+                body += chunk;
+              });
+              res.on("end", () =>
+                resolve({
+                  status: res.statusCode,
+                  allowOrigin: res.headers["access-control-allow-origin"],
+                  body,
+                }),
+              );
+            },
+          );
+          req.on("error", reject);
+          req.end();
+        },
+      );
+
+    return { request, requests, connectionCount: () => connections };
+  };
+
+  it("forwards an allow-listed request to the target", async () => {
+    const { request, requests } = await setup();
+
+    const res = await request("GET", "/auth/sessions/whoami");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toBe("kratos");
+    expect(requests).toStrictEqual(["GET /sessions/whoami"]);
+  });
+
+  it("answers a denied request with 404 without opening a connection to the target", async () => {
+    const { request, requests, connectionCount } = await setup();
+
+    const res = await request("GET", "/auth/self-service/errors?id=secret");
+
+    expect(res.status).toBe(404);
+    expect(requests).toStrictEqual([]);
+    expect(connectionCount()).toBe(0);
+  });
+
+  it("denies a traversal attempt without reaching the target", async () => {
+    const { request, requests, connectionCount } = await setup();
+
+    const res = await request(
+      "GET",
+      "/auth/self-service/%2e%2e/admin/identities",
+    );
+
+    expect(res.status).toBe(404);
+    expect(requests).toStrictEqual([]);
+    expect(connectionCount()).toBe(0);
+  });
+
+  it("denies a method mismatch on an allow-listed path", async () => {
+    const { request, requests } = await setup();
+
+    const res = await request("DELETE", "/auth/self-service/settings");
+
+    expect(res.status).toBe(404);
+    expect(requests).toStrictEqual([]);
+  });
+
+  it("keeps the CORS headers on a denied response", async () => {
+    const { request } = await setup();
+
+    const res = await request("GET", "/auth/self-service/errors");
+
+    expect(res.status).toBe(404);
+    expect(res.allowOrigin).toBe("http://localhost:3000");
+  });
+
+  it("still answers an OPTIONS preflight ahead of the guard, on any path", async () => {
+    const { request, requests } = await setup();
+
+    for (const path of [
+      "/auth/self-service/login",
+      "/auth/self-service/errors",
+    ]) {
+      const res = await request("OPTIONS", path, {
+        "access-control-request-method": "POST",
+      });
+
+      expect(res.status).toBe(204);
+      expect(res.allowOrigin).toBe("http://localhost:3000");
+    }
+
+    expect(requests).toStrictEqual([]);
   });
 });
