@@ -19,16 +19,14 @@
  * swapping.
  */
 
-import { askTool } from '@brunch/binding-flue';
+import { useElicitation } from '@brunch/binding-flue';
 import { gherkin } from '@brunch/plugin-gherkin';
-import { useModel, useTool, type AgentProps } from '@flue/runtime';
+import { useModel, type AgentProps } from '@flue/runtime';
 import * as v from 'valibot';
 
 export function GherkinElicitor(_props: AgentProps) {
   useModel('anthropic/claude-haiku-4-5');
-  useTool(askTool);
-
-  return `You are interviewing someone about ${gherkin.targetDomain}.`;
+  return useElicitation(gherkin);
 }
 
 /**

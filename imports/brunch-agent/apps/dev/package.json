@@ -12,13 +12,16 @@
     "@brunch/binding-flue": "workspace:*",
     "@brunch/core": "workspace:*",
     "@brunch/plugin-gherkin": "workspace:*",
+    "@flue/react": "^2.0.3",
     "@flue/runtime": "^2.0.3",
+    "@flue/sdk": "^2.0.3",
     "hono": "^4.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "valibot": "^1.4.2"
   },
   "devDependencies": {
+    "@earendil-works/pi-ai": "^0.83.0",
     "@flue/vite": "^2.0.3",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
