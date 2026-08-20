@@ -367,7 +367,9 @@ services:
     profiles:
       - dev
       - hash
-    image: quay.io/minio/minio
+    # Pinned by release timestamp — upstream ships no semver tags. Tag only, no
+    # digest: a Docker Hub digest isn't valid for the quay copy of the same tag.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     command: server /data --console-address ":9001"
     environment:
       MINIO_API_CORS_ALLOW_ORIGIN: ${FRONTEND_URL:-http://localhost:3000}
@@ -378,14 +380,28 @@ services:
       - 9001:9001
     volumes:
       - ../../var/uploads/s3:/data
+    healthcheck:
+      # `/minio/health/live` returns 200 once the S3 API is listening on :9000.
+      # `mc` ships inside the server image and is a fallback if `curl` is absent.
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:9000/minio/health/live || mc ready local",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 15
 
   minio-ensure-bucket-exists:
     profiles:
       - dev
       - hash
-    image: minio/mc
+    # `mc` versions by release timestamp — upstream ships no semver tags — and
+    # trails the server's series; pinned by digest too, as only that is immutable.
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     restart: "no"
     security_opt:
       - no-new-privileges:true
