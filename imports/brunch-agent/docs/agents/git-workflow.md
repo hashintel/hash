@@ -23,6 +23,14 @@ metadata and can corrupt the stack; commits and reads are safe as plain git.
   (e.g. `FE-1362: Decide the September demo vehicle`).
 - PR descriptions are written when tying off a branch, not during active development.
 
+## Deposit rule
+
+Work deposits its own description at authoring time, whatever tool authored it: a commit
+carries a body that explains outcome and mechanism (the FE-1400 sweep's messages are the
+register), and a branch is not tied off until its PR body says what it establishes. A
+semantically heavy branch with an empty message is a defect, not a style choice — prose
+backfill is remediation, not workflow (see `legibility.md`).
+
 ## Lifecycle
 
 ```
