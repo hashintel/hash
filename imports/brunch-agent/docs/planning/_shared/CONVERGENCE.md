@@ -7,8 +7,11 @@ the implementation map: the elicitation-kernel effort closed 2026-08-10 with a s
 (FE-1384–FE-1396) are its vertical slices, each naming the spec sections it implements —
 FE-1388/89/90 are the ones landed so far. **FE-1357** ("Plan the September elicitation demo and
 the plugin spec behind it") is the planning map for the demo and the process-model plugin: it
-has produced decisions and observation documents (`process-model-elicitation/`) but no spec yet
-— its spec-shaped half (the plugin spec) is still unwritten, pending ratifications and FE-1405.
+has produced decisions and observation documents (`process-model-elicitation/`), and — as of
+2026-08-18 — the first spec-shaped artifact: FE-1405 closed with ADR-0003 (three-register IR)
+and the provisional plugin-contract spec
+([`process-model-elicitation/plugin-contract-spec.md`](../process-model-elicitation/plugin-contract-spec.md));
+the ratification pass that removes the provisional marker is tracked as FE-1431.
 
 This document does three jobs neither map does. First, the **obligation-level status ledger**:
 FE-1383's tickets name spec sections but don't record per-obligation status — what is partial,
@@ -67,10 +70,10 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | No stored status; derived at read time (C3) | §5 | **discharged** | `deriveCaptureStatus`/`deriveIssueStatus`; tests assert no `status` field persisted |
 | Retraction: explicit user-cited event, no successor | §5 | **discharged** | `RetractionEvent` (FE-1390) |
 | Pointer **derived by the harness**; model cites quotes, never sequence numbers | §5, §8.2 | **contradicted** (latent) | `EvidenceSpan` *requires* caller-supplied `entryStart`/`entryEnd`; no anchoring code exists anywhere. Safe only while no model-facing sweep tool exists; unmarked in code |
-| Confidence qualitative, never a scalar | §5 | **partial** | non-empty string only; `"0.93"` accepted |
+| Confidence qualitative, never a scalar | §5 | **partial** | non-empty string only; `"0.93"` accepted. Vocabulary now settled (plugin-contract spec, closing remediation A5's design half): picklist `firm | hedged | speculative`, store refuses numeric-parsing strings — refusal rule still to implement |
 | Six absence states; `not-mentioned` computed, never stored | §5.1 | **discharged** | `ABSENCE_STATES` (FE-1390) |
 | Reserved reply encoding for structured taps (C4) | §5.1 | **pending** | UI sends bare text; absences from this UI are honestly `inferred` |
-| One epistemic status per capture | §5 | **discharged**, with named friction | Status is the proposal union's discriminant, coupled to provenance shape — per-field status is unrepresentable, and payload-smuggling it breaks dedup identity. This is FE-1405's central input (deep-read FE-1390, tiering section) |
+| One epistemic status per capture | §5 | **discharged**, with named friction | Status is the proposal union's discriminant, coupled to provenance shape — per-field status is unrepresentable, and payload-smuggling it breaks dedup identity. This was FE-1405's central input (deep-read FE-1390, tiering section); the arc consumed it *without* amendment — one status per capture survives, and the structure that wanted per-field status lives below it in proposal interiors (ADR-0003, plugin-contract spec) |
 
 ## Operations & validation (§6)
 
@@ -178,11 +181,18 @@ below lives on it — this list is the coordination record their overlap has lac
   until a second, harder target has stressed it — and which target that is depends on decisions
   still resolving on FE-1357. FE-1383's own body names this dependency; nothing on FE-1357's
   side names it back.
-- **Payload interiors (FE-1405).** The plugin spec's field-level schemas are FE-1357-side work,
-  but the envelope facts they must respect are FE-1383-side code: the status-arity answer (one
-  epistemic status per capture, coupled structurally to provenance shape — §5 row above) was
-  discovered in FE-1390's type system, and any amendment touches the proposal union, the dedup
-  key's exclusion rule, and the explicit-requires-span guarantee together.
+- **Payload interiors (FE-1405 — closed 2026-08-18).** The plugin spec's field-level schemas
+  are FE-1357-side work, but the envelope facts they must respect are FE-1383-side code: the
+  status-arity answer (one epistemic status per capture, coupled structurally to provenance
+  shape — §5 row above) was discovered in FE-1390's type system, and any amendment touches the
+  proposal union, the dedup key's exclusion rule, and the explicit-requires-span guarantee
+  together. The arc settled *without* amending the envelope — ADR-0003 and the provisional
+  plugin-contract spec put the structure below the status, in proposal interiors. One confirmed
+  pressure stays on this seam: **absence captures carry no locator** — the fold needs every
+  absence addressed to a fold-table coordinate (anchor × slot), and today that address rides in
+  payload convention only (three C1 worked cases in the spec's open-strains section). Recorded
+  here rather than forked around; if it hardens into an envelope amendment, that is FE-1383-side
+  work.
 - **Envelope amendment adjudications.** FE-1390 silently adjudicated that `resolve-conflict`
   rejects structured-tap evidence (contradicted row, §8.5 vs §5.1/C4) — a harness ruling with
   direct consequences for FE-1357's interview UX. Amendments of this kind need a home both maps
@@ -206,6 +216,17 @@ compilation path, FE-1420's floor finding moved to ride FE-1385's React adoption
 schedulable items exist — the ask-protocol extraction (remediation A1 — now FE-1422) and the
 pre-remote gates (A10, unowned at evaluation time — since filed as FE-1423, see below). The
 recommendation survives with an amended opener; see below.
+
+**Third evaluation, 2026-08-18 (post-FE-1405).** The interiors arc closed: ADR-0003 (three
+registers, pure fold, write-time-only semantics) plus the provisional plugin-contract spec,
+ratification tracked as FE-1431. That discharges the FE-1357 half of the convergence collision —
+envelope facts × payload interiors now waits only on the build spine reaching FE-1392, so the
+spine's order (FE-1422 → B1/B2 reads → FE-1391 → FE-1392) is unchanged and its urgency is up.
+FE-1393/1402/1403/1407 each hold named design inputs from the spec's open-strains section
+instead of blank dependencies. Into today's 18 Aug gate: the contract's existence strengthens
+the process-model-plugin-as-second-target recommendation on the FE-1387 decision — there is now
+a concrete contract for a second target to stress. The recommendation below otherwise survives
+verbatim.
 Ledgers: [`remediation-plan-2026-08-17.md`](../legibility-sweep/remediation-plan-2026-08-17.md); placement rules:
 [`topology.md`](topology.md).
 
@@ -236,14 +257,15 @@ building** — every slice with a paraphrase-grade dependency runs its Ledger-B 
 
 | Issue | What | Why | How / weight |
 | --- | --- | --- | --- |
-| FE-1405 | Payload interiors — field-level capture schemas | The epistemic bottleneck: blocks FE-1402/03 → FE-1404 → plugin spec; armed with the status-arity answer (§5 row); schema-as-forcing-function (penciled 1) | HITL, grilling-shaped; **startable now** |
-| FE-1402 | Completion adjudication + retro-rehearsal | Layer-3 machinery for the stopping problem (deferral-without-deposit) | Desk/HITL, after FE-1405 |
-| FE-1403 | Guidance assembly — cards typed by mechanism | Compiles the audit's techniques; activation probes first (penciled 4); verdicts recorded per substrate version | Desk, after FE-1405. Cards likely compile to skills (`activate_skill` disclosure = the card economy); content must stay assertable outside the Vite graph (B4 probe decides how) |
+| FE-1405 | Payload interiors — field-level capture schemas | Was the epistemic bottleneck: blocked FE-1402/03 → FE-1404 → plugin spec | **Closed 2026-08-18**: ADR-0003 (three registers, pure fold) + provisional plugin-contract spec; ratification pass = FE-1431 |
+| FE-1431 | Plugin-contract spec issue — "a domain is two schemas and two tables" | Carries the settled-provisional spec and its ratification condition (a full FE-1397-style worked pass across three plugin targets removes the marker) | Desk/HITL; feeds FE-1387's freeze decision; consumers FE-1392/93/1402/03/07 |
+| FE-1402 | Completion adjudication + retro-rehearsal | Layer-3 machinery for the stopping problem (deferral-without-deposit) | Desk/HITL; unblocked — computes over the spec's slot states; co-owns the support-closure strain (spec §Open strains) |
+| FE-1403 | Guidance assembly — cards typed by mechanism | Compiles the audit's techniques; activation probes first (penciled 4); verdicts recorded per substrate version | Desk; unblocked — the spec's `firesWhen`/`technique` annotations are its hook points; co-owns strain-7 mitigations. Cards likely compile to skills (`activate_skill` disclosure = the card economy); content must stay assertable outside the Vite graph (B4 probe decides how) |
 | FE-1404 | Armed condition-3 rerun | Measures guidance+machinery against the baseline — the three-layer claim's validation | Agent-runnable experiment, after FE-1402/03 |
 | FE-1406 | Generic strategy quiver (root issue) | Envelope-vocabulary cards, harness-shipped (§11.5); the crack casualty, now owned | Desk; pairs naturally with FE-1403; same skills path + Vite-graph constraint; placement rule is topology N2 (plugin/harness packages export, hosts register) |
 | FE-1407 | Frontier-elicitor failure catalogue | FE-1404's scoring instrument; licensed-vs-evasive deferral; an open gap in the field | Desk/research |
 | FE-1423 | Pre-remote gates: auth + per-conversation authorization, runtime telemetry, state versioning/backup, restart durability (FE-1396 blocks) | Blocks remote exposure, not the demo; ratified as requirements 2026-08-17; the infra deployment conversation makes it current | Auth is the long pole (app middleware around the mounts); telemetry carries a dual charter — see watch items |
-| Plugin-spec authoring | FE-1357's terminal deliverable | Needs FE-1405 + 18 Aug ratifications; the manifest sketch (penciled 2) is the candidate structure | HITL, heavy |
+| Plugin-spec authoring | FE-1357's terminal deliverable (the process-model plugin as an instance of the contract) | FE-1405 need met; still wants the 18 Aug ratifications; the plugin-contract spec is now the structure (superseding the manifest sketch, penciled 2) | HITL, heavy; the FE-1431 ratification pass is its natural first movement |
 | Situation-pack authoring | Deliberately held for PRO-99 reaction | Dossier + authenticity traps ready | Desk, after the gate |
 | Answer key / reference net | Eval rubric; who builds nets is the open Dora/Yannis thread | Gated-on-external |
 
@@ -257,8 +279,10 @@ FE-1385's React adoption. FE-1401 items 3–4 (lens write-ups, ds-induct port �
 schedulable any time). **Unowned, needing homes** (remediation Ledger A; recommendations, not
 filings): the ask-protocol extraction (A1 → FE-1422, ahead of FE-1392) and the
 pre-remote gates (A10 → **FE-1423**, filed 2026-08-17 under FE-1357 with the four gates as its
-checklist, FE-1396 blocking; Lu ratified the gates as requirements); A5/A6/A7/A9 fold into FE-1405 and
-FE-1393 at their design moments, noted on the ledger.
+checklist, FE-1396 blocking; Lu ratified the gates as requirements); A5 folded into FE-1405 as planned
+(the spec settles the confidence picklist `firm | hedged | speculative` + a store refusal rule
+for numeric-parsing strings — store side still to implement, §5 row); A6/A7/A9 still await
+FE-1393's design moments, noted on the ledger.
 
 ### Strategic orderings
 
@@ -285,7 +309,8 @@ differentiate.
 `1394 ∥ 1395 → 1385 → 1392 → 1391 → 1405 → …`
 
 **Recommendation: convergence-first, opened uncertainty-first — survives the second
-evaluation, with an amended opener.** Run FE-1405 (Lu's HITL time) in parallel with the
+evaluation, with an amended opener.** Run FE-1405 (Lu's HITL time — since closed, see the
+third evaluation above) in parallel with the
 agent-built spine, which now has one more step at its head: **ask-protocol extraction (FE-1422) →
 FE-1391's source-read pre-work (B1/B2, AFK-cheap) → FE-1391 → FE-1392**. The extraction goes
 first because FE-1392 would otherwise double the mechanism-in-binding debt in the same file
@@ -301,7 +326,7 @@ gates as requirements, not recommendations) — and a demo-deployment conversati
 already underway, which promotes FE-1423 from "exists before the conversation" to
 schedule-relevant: its auth gate is the long pole, and the deploy-target choice feeds N5's
 storage-port question.
-`FE-1422 → [B1/B2 reads] → 1391 → 1392  ∥  1405 → 18 Aug gate → 1387 decision → 1402/03 → plugin spec ∥ 1393 → 1394/95/1385`
+`FE-1422 → [B1/B2 reads] → 1391 → 1392  ∥  (1405 ✓) → 18 Aug gate → 1387 decision → 1402/03 → plugin spec ∥ 1393 → 1394/95/1385`
 
 **Watch items**: gherkin wiring ahead of the freeze stays legal only while FE-1387 holds; the
 §14.5 wake-wart residue clause is back in the ledger (`wake-wart-write-paths`, FE-1392 owns its
