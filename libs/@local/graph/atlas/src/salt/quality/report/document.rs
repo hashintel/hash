@@ -239,7 +239,7 @@ impl Bound {
 /// One control of the battery, reading one metric against the threshold that admits it.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct Control {
-    /// The metric the control gates.
+    /// The metric the control checks.
     pub metric: QualityMetric,
     /// The reading the verdict turns on, absent exactly when the evidence is.
     pub reading: Option<f64>,

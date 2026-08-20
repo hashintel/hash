@@ -67,7 +67,7 @@ where
         }
     }
 
-    /// Derives the delivery structure: the base order, the quadtree cut, and the postings.
+    /// Derives the delivery structure: the base order, then the quadtree cut and its postings.
     ///
     /// The importance column comes from the configured signal, and the metadata's ranking origin
     /// records the signal that ran.
@@ -204,7 +204,7 @@ pub(super) struct LodArtifacts {
     pub row_of_position: Binding<artifact::RowOfPosition>,
 }
 
-/// The staged delivery structure: the typed artifact set and every evidence section.
+/// The staged delivery structure, pairing the typed artifact set with every evidence section.
 pub(super) struct StagedDelivery {
     pub files: LodArtifacts,
     pub evidence: LodMeasurements,

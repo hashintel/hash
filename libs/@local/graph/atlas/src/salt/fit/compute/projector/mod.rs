@@ -346,8 +346,8 @@ impl StagedPlacement {
 
     /// Stages the published model checkpoint.
     ///
-    /// The clone is the recorder's: recording moves the parameters into the record, and the
-    /// model still projects the ladder after its checkpoint stages.
+    /// Recording moves a clone of the parameters into the record, so the model still projects
+    /// the ladder after its checkpoint stages.
     fn checkpoint(
         context: &Context,
         model: &Projector<Training>,
@@ -362,7 +362,7 @@ impl StagedPlacement {
 
 /// Stages every row's assigned landmark coordinate as the canonical column.
 ///
-/// The baseline placement: every corpus row takes its assigned landmark's layout coordinate,
+/// Every corpus row takes its assigned landmark's layout coordinate as the baseline placement,
 /// gathered into one owned column and staged as the `f32[N, 2]` coordinate artifact. Returns the
 /// typed binding the staging boundary mints.
 #[tracing::instrument(name = "coordinates", skip_all)]

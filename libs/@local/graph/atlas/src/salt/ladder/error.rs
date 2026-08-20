@@ -12,7 +12,7 @@ pub(crate) enum ConditionsError {
         /// steps offered.
         count: usize,
     },
-    /// The first step is not the exact zero-condition value `0.0`.
+    /// The schedule's first step is not the exact zero-condition value `0.0`.
     BaselineNotZero {
         /// The offered first step.
         value: NonNegative,

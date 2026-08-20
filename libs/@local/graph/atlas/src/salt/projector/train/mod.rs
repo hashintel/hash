@@ -6,7 +6,7 @@
 //! value is one backward-ready scalar whose gradient carries exactly the combined per-node field
 //! through the shared model parameters.
 //!
-//! The step splits along the module seams: [`batch`] draws the step's populations and re-indexes
+//! The step splits along module boundaries: [`batch`] draws the step's populations and re-indexes
 //! them into a batch-local coordinate domain, [`step`] evaluates the objective over the assembled
 //! batch, [`metrics`] accumulates the budget outcomes and the displacement telemetry into the
 //! reporting buckets (overall, per relation type, per relation-degree decile), [`refresh`]

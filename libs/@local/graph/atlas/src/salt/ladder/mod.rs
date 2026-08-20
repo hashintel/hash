@@ -7,11 +7,11 @@
 //! model projected at a different lens strength) that persists as evidence and never publishes as
 //! the coordinate field.
 //!
-//! [`Conditions`] carries the schedule, valid by construction. The first step is the zero-condition
-//! value `0.0`, the jointly trained model with the lens off rather than a relation-free model
-//! trained on its own. The steps ascend strictly and every value is finite. The step count has no
-//! upper bound. Each step costs one projection pass plus four alignment passes, so the schedule
-//! length is configuration rather than a format limit.
+//! [`Conditions`] carries the schedule, valid by construction. The schedule opens at the
+//! zero-condition value `0.0`, the jointly trained model with the lens off rather than a
+//! relation-free model trained on its own. The steps ascend strictly and every value is finite. The
+//! step count has no upper bound. Each step costs one projection pass plus four alignment passes,
+//! so the schedule length is configuration rather than a format limit.
 //!
 //! [`measure_ladder`] derives each step's evidence. Every step aligns onto the baseline and onto
 //! its predecessor with the unweighted Procrustes fit ([`Similarity::fit_uniform_par`]); the RMS
@@ -44,7 +44,7 @@ pub(crate) use self::error::{CanonicalError, ConditionsError, LadderError};
 
 /// A validated relation-lens condition schedule.
 ///
-/// Construction validates the schedule. A schedule has at least two steps. The first step is the
+/// Construction validates the schedule. A schedule has at least two steps and opens at the
 /// zero-condition step that every other step measures against. The steps ascend strictly, and
 /// every value is finite and non-negative with a canonical sign of zero by construction
 /// ([`NonNegative`]), so a step's bits identify its value in reproducibility records with no

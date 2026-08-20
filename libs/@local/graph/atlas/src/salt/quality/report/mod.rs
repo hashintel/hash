@@ -8,10 +8,10 @@
 //! The primary fidelity surface is the corpus-exact map-versus-representation grid. The pass ranks
 //! each sampled anchor against the full corpus, so the comparison universe carries no subsampling,
 //! while the anchors themselves come from a sample, so aggregate means retain anchor-sampling
-//! uncertainty. The thresholds bind there and gate the observed probe statistic, not a population
-//! guarantee or lower confidence bound. The sampled grids provide context - the canonical triangle
-//! that supplies the representation baseline for the map's canonical reading - and stay
-//! report-only.
+//! uncertainty. The thresholds bind there, against the observed probe statistic rather than a
+//! population guarantee or lower confidence bound. The sampled grids provide context - the
+//! canonical triangle that supplies the representation baseline for the map's canonical reading -
+//! and stay report-only.
 //!
 //! Subgroups are entity types: an anchor contributes to one subgroup per direct type, so
 //! multi-typed anchors count in each of their groups. A subgroup flags at a neighbourhood size when
@@ -36,7 +36,7 @@
 //! either way, and they steer the human reading the report without affecting admission.
 //!
 //! The thresholds default to maximally permissive values - floors at zero, ceilings at their domain
-//! edge - and the default verdict therefore gates evidence presence rather than fidelity. An
+//! edge - and the default verdict therefore turns on evidence presence rather than fidelity. An
 //! invented floor would rest release verdicts on fiction. Deployments impose measured bounds
 //! through the run's validated thresholds document.
 //!

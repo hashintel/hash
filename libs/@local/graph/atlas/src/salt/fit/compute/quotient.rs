@@ -42,9 +42,9 @@ hashql_core::id::newtype! {
 
 /// The byte-exact quotient of a representation matrix, holding both row domains of one fit.
 ///
-/// The quotient owns the two row maps, keeps the corpus matrix it was built over, and owns the
-/// materialized distinct matrix where copies exist. It is therefore the one value that answers
-/// every domain question of a fit: [`corpus`](Self::corpus) is the publication domain,
+/// The quotient owns the two row maps and keeps the corpus matrix it was built over; where
+/// copies exist it also owns the materialized distinct matrix. It is therefore the one value that
+/// answers every domain question of a fit: [`corpus`](Self::corpus) is the publication domain,
 /// [`training`](Self::training) the training domain, and [`class_of`](Self::class_of) and
 /// [`representative`](Self::representative) translate between them.
 pub(super) struct Quotient<'corpus, const N: usize> {
@@ -79,11 +79,11 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
     ///
     /// # Panics
     ///
-    /// Panics when the corpus row count exceeds the store's `u32` row domain: every published
+    /// A corpus row count exceeding the store's `u32` row domain panics here: every published
     /// column and the neighbour table's packed columns address rows as `u32`, so a wider corpus
-    /// refuses here, before any stage spends time on it. Also panics when the matrix this call
-    /// just wrote does not map back as aligned `f32` rows, which is a defect of the writer
-    /// rather than of the input.
+    /// refuses before any stage spends time on it. The call also panics when the matrix it just
+    /// wrote does not map back as aligned `f32` rows, which is a defect of the writer rather
+    /// than of the input.
     #[tracing::instrument(name = "quotient", skip_all)]
     pub(super) fn build(
         corpus: &'corpus IdSlice<NodeRowId, AlignedVecN<N>>,
@@ -157,7 +157,7 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
         self.corpus
     }
 
-    /// The training matrix: every distinct representation row, in first-occurrence order.
+    /// The training matrix of every distinct representation row, in first-occurrence order.
     ///
     /// Where copies exist this is the materialized distinct matrix. Under the identity quotient
     /// it is the corpus matrix reborrowed under the distinct key, because the two domains are

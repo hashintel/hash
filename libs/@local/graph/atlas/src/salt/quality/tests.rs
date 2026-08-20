@@ -1723,7 +1723,7 @@ async fn runner_reports_a_published_generation() {
 
     // Subgroups below the default anchor floor never flag, and the verdict still refuses. Step 2 of
     // this landmark-baseline fixture reads all-degenerate radii, so the density evidence is absent
-    // there and the gate fails closed on absence, permissive ceilings included.
+    // there and the control fails closed on absence, permissive ceilings included.
     assert!(report.flags.is_empty());
     assert!(
         report.density[0].spread.is_none(),
@@ -1751,7 +1751,7 @@ fn every_metric_is_listed_once_under_the_noun_its_threshold_is_keyed_by() {
     labels.dedup();
     assert_eq!(labels.len(), QualityMetric::ALL.len(), "{labels:?}");
 
-    // The report gates each metric under a threshold key whose noun is the label, so an operator
+    // The report checks each metric under a threshold key whose noun is the label, so an operator
     // reading a rendered reading knows which key moves it. The keys are this test's own copy of
     // that wire vocabulary: renaming one is a deliberate edit here as well as there.
     for (metric, key) in QualityMetric::ALL.into_iter().zip([

@@ -4,7 +4,7 @@
 //! pseudo-random sample of force-bearing Proximal pairs, the readout measures how each pair's
 //! distance and local neighbourhood rank moved between the zero-condition step and the
 //! canonical step, against a matched control population of nonparticipant rows. It persists as
-//! ladder evidence beside the step measurements. It is warn-only and gates nothing.
+//! ladder evidence beside the step measurements. It is warn-only and blocks nothing.
 //!
 //! The sample must be replayable without persisting pair identities, so the draw is a pure
 //! function of the generation's declared inputs under a versioned rule. [`identity`] carries
@@ -28,7 +28,7 @@ mod measure;
 mod movement;
 
 // The lib consumes the sibling modules inside this module only, so these re-exports are the
-// module's whole production API. The test-gated names are the inputs of the two external
+// module's whole production API. The test-only names are the inputs of the two external
 // acceptance suites: the fit writer's replay assertions and the salt document's wire pins.
 // The projector's evidence reading shares the aggregate family, so its gauge displacement
 // quantiles keep the control evidence's exact shape by construction.

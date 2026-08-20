@@ -99,7 +99,7 @@ pub(super) struct Context {
     pub device: LibTorchDevice,
 }
 
-/// One stage's product: the owned value, its typed binding, and its evidence.
+/// One stage's product, pairing the owned value with its typed binding and its evidence.
 ///
 /// The value flows to the stages downstream, while the binding and the evidence flow to the
 /// seal, so everything one stage produced travels as one typed unit until the trunk routes its
@@ -115,7 +115,8 @@ pub(super) struct Staged<V, A, E> {
     pub evidence: E,
 }
 
-/// One fit's compute run: the owned inputs the async side hands across the thread boundary.
+/// One fit's compute run, holding the owned inputs the async side hands across the thread
+/// boundary.
 pub(super) struct Compute {
     /// The run's places and settings.
     pub context: Context,
@@ -162,8 +163,9 @@ impl Compute {
             ingested,
         } = self;
 
-        // The boundary map-ins: the corpus matrix, whose file is the data's home for the whole
-        // run, and the identity table the prior translation and the ranking tiebreak read.
+        // The run maps in two boundary artifacts. The corpus matrix's file is the data's home
+        // for the whole run, and the identity table feeds the prior translation and the ranking
+        // tiebreak.
         let corpus: VectorFile<NodeRowId, PROJECTOR_DIMENSIONS> =
             VectorFile::open(context.staging.path_of(&artifact::Representations::NAME))
                 .map_err(ComputeError::OpenRepresentations)?;
@@ -260,8 +262,8 @@ impl Compute {
         .stage(&context.staging)?;
         progress.stage_completed(Stage::Lod);
 
-        // The seal binds every rim: each typed binding and evidence value enters the repository
-        // exactly once, and the sealed document is the generation's identity.
+        // Each typed binding and evidence value enters the repository exactly once at the seal,
+        // and the sealed document is the generation's identity.
         let (annotation_corpus, annotation_embeddings, annotation_hashes) = acquired
             .annotation
             .map_or((None, None, None), |annotation| {

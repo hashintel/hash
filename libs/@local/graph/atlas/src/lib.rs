@@ -15,14 +15,14 @@
 //! - [`integrity`] - SHA-256 content identity for published artifacts.
 //! - [`morton`] - Z-order keys from interleaved axes, plus grid cells and contiguous key ranges.
 //! - [`runs`] - compressed runs of items over dense key domains stored as two flat columns.
-//! - [`progress`] - observation of a running fit, the seam operator surfaces render from.
+//! - [`progress`] - observation of a running fit, the feed the `cli` dashboard renders from.
 //! - [`file`](mod@file) - the on-disk artifact formats, plain files in a directory described by
 //!   metadata beside them.
 //! - [`dataset`] - the [`Dataset`](dataset::Dataset) trait for the data one fit runs over, wherever
 //!   it lives, plus the relation-card format.
 //! - [`salt`] - the pipeline that runs graph construction, landmark layout, projector training,
-//!   evaluation, and materialization. `salt::runner::live` is the operator seam the `cli` commands
-//!   drive.
+//!   evaluation, and materialization. `salt::runner::live` is the operator entry point the `cli`
+//!   commands drive.
 //! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
 //! # Using the crate
@@ -34,17 +34,18 @@
 //!
 //! # Crate features
 //!
-//! Each feature below gates optional compilation beyond the default build.
+//! Each feature below compiles in something the default build leaves out.
 //!
-//! - `bench` exposes `bench`, the measurement seams the five `[[bench]]` targets in `Cargo.toml`
-//!   consume; the lab instruments the standalone binary runs are not gated behind it and build with
-//!   the crate regardless.
+//! - `bench` exposes `bench`, the measurement hooks the five `[[bench]]` targets in `Cargo.toml`
+//!   consume; the lab instruments the standalone binary runs stay outside it and build with the
+//!   crate regardless.
 //! - `gpu` switches the projector's training and inference backend from the CPU `NdArray` backend
 //!   to `burn`'s Metal-backed `wgpu` `CubeBackend`. It compiles on any target. The GPU-flavored
 //!   tests carry `#[ignore]` because running them needs an Apple GPU.
-//! - `cli` gates the standalone `hash-graph-atlas` binary's shell and its exclusive dependencies,
-//!   `ratatui`'s dashboard and `tracing-subscriber`'s log formatting; the operator commands and the
-//!   read-API routes build unconditionally, so the `hash-graph` binary consumes them feature-free.
+//! - `cli` compiles in the standalone `hash-graph-atlas` binary's shell and its exclusive
+//!   dependencies, `ratatui`'s dashboard and `tracing-subscriber`'s log formatting; the operator
+//!   commands and the read-API routes build unconditionally, so the `hash-graph` binary consumes
+//!   them feature-free.
 //!
 //! # Performance
 //!

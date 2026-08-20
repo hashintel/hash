@@ -144,11 +144,11 @@ struct ResumeRecord<B: AutodiffBackend<FloatElem = f32>> {
     generator: [u8; 32],
 }
 
-/// One recorded model checkpoint: the framework's serialized bytes, ready to stage.
+/// One recorded model checkpoint holding the framework's serialized bytes, ready to stage.
 ///
-/// The record-then-stage split keeps the two failure domains apart: recording can only fail in
-/// the framework's encoder, and staging can only fail in the writer, so neither error path has
-/// to explain the other. Its writer marking admits the value as the published
+/// The record-then-stage split keeps the two failure domains apart: recording fails only in the
+/// framework's encoder while staging fails only in the writer, so neither error path has to
+/// explain the other. Its writer marking admits the value as the published
 /// [`artifact::Projector`] entry.
 pub(crate) struct RecordedModel(Vec<u8>);
 

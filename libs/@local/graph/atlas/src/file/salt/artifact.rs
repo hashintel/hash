@@ -126,7 +126,7 @@ artifact!(
     OntologyIdentities = "ontology-identities.idnt"
 );
 artifact!(
-    /// The endpoint column: each edge row's source and target node rows.
+    /// The endpoint column holding each edge row's source and target node rows.
     EdgeEndpoints = "edge-endpoints.arr"
 );
 artifact!(

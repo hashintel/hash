@@ -957,7 +957,7 @@ fn quad_build_rejects_what_no_tree_covers() {
     );
 
     // A configuration shallower than the cascade that built the lod:
-    // the catch-all pair sits in bucket 2, beyond this deepest grid.
+    // the catch-all pair is stored in bucket 2, beyond this deepest grid.
     assert_eq!(
         QuadTree::build(
             &lod,

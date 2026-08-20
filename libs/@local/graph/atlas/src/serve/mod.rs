@@ -36,7 +36,7 @@
 //! produces; `grid` is the bucket schedule and its addressing; `secret`, the wire secret; and
 //! `error`, the open-failure taxonomy.
 //!
-//! The domain: `visibility` carries the proof and the resolution seam; `codec` the keyed row-id
+//! The domain: `visibility` carries the proof and its resolution; `codec` the keyed row-id
 //! permutation; `density` the public band that resolves one scope's delivery cut; `walk` the
 //! schedule-driven point delivery - full-visibility range assembly, the masked delivery chain, and
 //! the census; `neighbourhood` the adjacency edge sets and their caps; `colour` the type-colouring

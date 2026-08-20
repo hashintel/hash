@@ -5,7 +5,7 @@
 //!
 //! A [`Session`] is everything the loop derives deterministically from the borrowed inputs and
 //! options; [`Training`] is the mutable state a step advances - model, optimizer, scheduler,
-//! evidence. The split is what makes the phase boundary a first-class seam: the opening segment and
+//! evidence. The split is what makes the phase boundary first-class: the opening segment and
 //! the ladder run the same loop body over the same session, and a resumed ladder rebuilds its
 //! session from the same artifacts while the training state arrives from the checkpoint.
 //!

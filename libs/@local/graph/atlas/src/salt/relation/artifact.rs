@@ -70,7 +70,7 @@ where
     }
 }
 
-// The corpus-domain index alone publishes: the distinct-domain twin serves the trainer and
+// Only the corpus-domain index publishes; the distinct-domain twin feeds the trainer and
 // never stages.
 impl WriteAs<artifact::Protection> for ProtectionIndex<NodeRowId> {}
 

@@ -558,8 +558,8 @@ fn discriminating_tile_lists() -> Vec<Vec<TileCoordinate>> {
 /// draws one between endpoints the scope's own tiles have yet to deliver.
 ///
 /// The sweep carries its own negative control. It counts the cases where the two laws disagree and
-/// asserts the count is nonzero, so a fixture that stopped discriminating fails loudly here rather
-/// than passing this test for the wrong reason.
+/// asserts the count is nonzero, so a fixture that stopped discriminating fails this assertion
+/// rather than passing the test for the wrong reason.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn scoped_edges_bound_the_view_cascade_delivery() {

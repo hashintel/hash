@@ -56,9 +56,10 @@ impl Error for OpenCoordinatesError {
 
 /// The staged coordinate column, mapped, proven finite, and addressed by the corpus row domain.
 ///
-/// The value is the fit's coordinates: it owns the mapping, carries the repository binding the
-/// seal publishes, and dereferences to the proven point field. Finiteness is proven once at the
-/// open, so every consumer downstream reads a [`FinitePointField`] and re-proves nothing.
+/// The value is the fit's coordinates: it owns the mapping and dereferences to the proven point
+/// field, while the repository binding it holds is what the seal publishes. Finiteness is proven
+/// once at the open, so every consumer downstream reads a [`FinitePointField`] and re-proves
+/// nothing.
 pub(super) struct Coordinates {
     /// The staged column's typed repository binding.
     pub binding: Binding<artifact::Coordinates>,

@@ -482,7 +482,7 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
 fn open_reports_a_retired_version_before_interpreting_the_body() {
     let root = GenerationRoot::new(scratch("open-version")).expect("the root should open");
 
-    // Serialized by this crate, so the keys arrive in the order the version gate
+    // Serialized by this crate, so the keys arrive in the order the version check
     // depends on.
     let document = serde_json::to_string(&repository()).expect("the repository should serialize");
     assert!(document.contains(r#""version":2"#));

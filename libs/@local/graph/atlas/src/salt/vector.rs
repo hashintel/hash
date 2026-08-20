@@ -47,11 +47,11 @@ impl Error for OpenVectorError {
 
 /// A mapped matrix of aligned `f32` rows, addressed by the row domain `I`.
 ///
-/// The handle owns the mapping and is the matrix: it dereferences to the typed row slice, and the
-/// row domain travels in the type, so a corpus-row matrix and a distinct-row matrix are different
-/// types a call cannot confuse. Where a theorem identifies two domains, the identification lives
-/// with the theorem's owner - the quotient's `training()` reborrows the corpus under the
-/// distinct domain instead of retyping the handle.
+/// The handle owns the mapping and is the matrix: it dereferences to the typed row slice, with
+/// the row domain traveling in the type, so a corpus-row matrix and a distinct-row matrix are
+/// different types a call cannot confuse. Where a theorem identifies two domains, the
+/// identification lives with the theorem's owner - the quotient's `training()` reborrows the corpus
+/// under the distinct domain instead of retyping the handle.
 pub(super) struct VectorFile<I, const N: usize> {
     /// The mapping. Held for its lifetime alone: every read goes through `rows`.
     file: ArrayFile,

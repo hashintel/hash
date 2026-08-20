@@ -1,4 +1,4 @@
-//! Benchmark seams over the projector model.
+//! Benchmark hooks over the projector model.
 //!
 //! The training backend decision (train time is the binding constraint) and the refresh-cost risk
 //! (one full-corpus forward per ladder step per cadence tick) both price out through two numbers:

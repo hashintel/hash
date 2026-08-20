@@ -107,9 +107,9 @@
 //!
 //! # Combined files
 //!
-//! Parts combine into one file when they derive from one another, mean nothing apart, and always
-//! read together. A lookup index in front of the array it indexes is the canonical case. Parts that
-//! version or get replaced independently stay separate files.
+//! Parts combine into one file when they derive from one another and mean nothing apart, so a
+//! read always takes them together. A lookup index in front of the array it indexes is the
+//! canonical case. Parts that version or get replaced independently stay separate files.
 //!
 //! Layout, derivation, and alignment keep a combined file distinct from a container. Regions are
 //! fields of the kind's own pinned header, so the format needs no generic directory, section table,
@@ -136,8 +136,8 @@
 //! |                                 | and segment-safe                             |        |
 //! | importance ranks, permutations  | mmap, tile assembly (`u32` arrays)           | array  |
 //! | semantic graph adjacency        | training reads, audits; a CSR matrix over    | sprs   |
-//! |                                 | the row domain, its three columns never read |        |
-//! |                                 | apart                                        |        |
+//! |                                 | the row domain, its three columns reading    |        |
+//! |                                 | as one                                       |        |
 //! | attraction index                | training sampling; group records delimiting  | combined |
 //! |                                 | a flat edge array, never read apart          |        |
 //! | edge endpoints                  | mmap, edge-row lookups (`u64[E, 2]`)         | array  |
@@ -230,9 +230,8 @@ where
 
 /// Marks a value as an admitted writer of the artifact `A`.
 ///
-/// The impls on a value type are the artifact's writer set: a staged write for `A` accepts
-/// exactly the values marked here, so which container may produce which published file is a
-/// compile-time fact rather than a convention at the call sites.
+/// A staged write for `A` accepts exactly the values marked here, so which container may produce
+/// which published file is a compile-time fact rather than a convention at the call sites.
 pub(crate) trait WriteAs<A>: WriteInto {}
 
 impl<T, A> WriteAs<A> for &T where T: WriteAs<A> + ?Sized {}

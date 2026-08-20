@@ -1,4 +1,4 @@
-//! The relation stages: the incident-edge adjacency and the relation indexes.
+//! The relation stages, building the incident-edge adjacency and the relation indexes.
 
 use super::{
     Context, Staged,
@@ -56,9 +56,9 @@ pub(super) fn adjacency(
 
 /// Assembles the spooled relation instances against the resolved policy table.
 ///
-/// Builds the corpus-domain relation indexes, stages their published artifacts, and keeps their
-/// measurements, so the edge-scale corpus pair is spent inside this stage. It then rebuilds the
-/// pair over the distinct row domain for the placement stage: endpoints quotient-mapped,
+/// Builds the corpus-domain relation indexes and stages their published artifacts, keeping
+/// their measurements, so the edge-scale corpus pair is spent inside this stage. It then rebuilds
+/// the pair over the distinct row domain for the placement stage: endpoints quotient-mapped,
 /// duplicate readings collapsed, degrees and protection evidence re-derived by the same build
 /// over the collapsed set. The trainer's indexes return owned.
 ///
@@ -140,7 +140,8 @@ pub(super) fn indexes(
     ))
 }
 
-/// The relation stage's published artifacts: the staged corpus bindings and their measurements.
+/// The relation stage's published artifacts, pairing the staged corpus bindings with their
+/// measurements.
 ///
 /// The corpus-domain indexes are spent once staged. The manifest keeps their measurements, and
 /// the placement's paired-movement readout replays from the staged bytes on purpose.

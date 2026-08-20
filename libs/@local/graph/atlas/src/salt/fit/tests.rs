@@ -1465,7 +1465,7 @@ fn minimal_schedule() -> TrainingSchedule {
 ///
 /// Short enough for a test, long enough that the boundary and every step run. The hidden
 /// architecture shrinks while the representation width keeps the pipeline's contract, so a
-/// forward or training step costs a fraction of the ratified model's; the publish seam's own
+/// forward or training step costs a fraction of the ratified model's; the publish boundary's own
 /// certificates (`compute::projector::tests`) pin the bit-exact publish contracts, and these
 /// fixtures certify the fit's composition.
 fn projector_options() -> ProjectorOptions {
@@ -1609,7 +1609,7 @@ async fn forceless_projector_publishes_the_baseline_step() {
         "a forceless run measures no ladder"
     );
 
-    // The publish seam's certificates (`compute::projector::tests`) pin
+    // The publish boundary's certificates (`compute::projector::tests`) pin
     // the column's bit-exact relationship to the checkpoint; here the
     // column covers the corpus rows.
     let coordinates =
@@ -1786,9 +1786,9 @@ async fn trained_lens_publishes_the_canonical_step_aligned() {
     // the published document alone.
     assert_paired_replay(published.path(), &repository);
 
-    // The publish seam's certificates (`compute::projector::tests`) pin the column's bit-exact
-    // relationship to the checkpoint and the recorded alignment; here the column covers the
-    // corpus rows.
+    // The publish boundary's certificates (`compute::projector::tests`) pin the column's
+    // bit-exact relationship to the checkpoint and the recorded alignment; here the column
+    // covers the corpus rows.
     let coordinates =
         ArrayFile::open(published.path().join("coordinates.arr")).expect("the column maps");
     assert_eq!(

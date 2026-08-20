@@ -357,7 +357,7 @@ fn draws_are_deterministic_at_a_fixed_seed() {
     );
 }
 
-/// The allocator seam is bit-inert: `_in` through a different allocator draws and assembles
+/// The allocator choice is bit-inert: `_in` through a different allocator draws and assembles
 /// identically.
 ///
 /// Equal seeds through `draw`/`assemble` (global) and `draw_in`/`assemble_in` (system) produce
@@ -910,7 +910,7 @@ fn support_terms_ride_autodiff_outside_the_budget() {
     // residual d = 1 smoothed to √(1.25) - 0.5, normalized by
     // radius 0.5 + ε 0.5 = 1, inside the unit Huber threshold.
     // Its gradient flows through autodiff; row 0 keeps exactly its
-    // semantic gradient, certifying the seam separation.
+    // semantic gradient, certifying the two terms stay separate.
     let mut populations = empty_populations(non_negative!(0.0));
     populations.semantic = vec![pair(0, 1)];
     populations.semantic_scale = 2.0;

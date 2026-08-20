@@ -8,8 +8,9 @@
 //! [`RepositoryVersion`] versions the repository itself. The metadata document that describes the
 //! repository records it. That version is the JSON analog of the pinned binary headers. It leads
 //! the serialized document, so deserialization rejects a repository of another layout before it
-//! interprets the rest of the document. Field order carries that guarantee for documents this crate
-//! wrote. Whichever field fails first rejects a document whose keys arrive in another order.
+//! interprets the rest of the document. That guarantee depends on field order and therefore covers
+//! documents this crate wrote. Whichever field fails first rejects a document whose keys arrive in
+//! another order.
 //!
 //! The layout is version 2 and **mutable**, covering the directory structure and naming. Change it
 //! to fit what the pipeline needs and increment [`RepositoryVersion`] when you do. Published files

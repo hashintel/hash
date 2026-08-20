@@ -211,7 +211,7 @@ fn classifier() -> ClassifierInput {
     }
 }
 
-/// Fixture-sized runner options over the given gates.
+/// Fixture-sized runner options over the given thresholds.
 fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
     RunnerOptions {
         fit: FitConfig {
@@ -304,7 +304,7 @@ async fn passing_run_activates_the_generation() {
 
     assert_eq!(outcome.admission, Admission::Active);
     // The battery reports the readings its own verdict turns on, one per control. They are the same
-    // numbers the report reduces, so an observer and the gate can never disagree about the
+    // numbers the report reduces, so an observer and the verdict can never disagree about the
     // measurement.
     assert_eq!(
         outcome

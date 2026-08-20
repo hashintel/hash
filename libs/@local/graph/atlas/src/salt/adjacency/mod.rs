@@ -202,7 +202,7 @@ impl Adjacency {
             AdjacencyGraph::U32(graph) => graph.rows(),
             AdjacencyGraph::U64(graph) => graph.rows(),
         };
-        // Two runs per node by the list contract, so the halving is exact.
+        // The list contract stores two runs per node, so the halving is exact.
         runs.div_euclid(2)
     }
 

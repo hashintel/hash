@@ -2,7 +2,7 @@
 //!
 //! The base delivery order ranks rows by importance first ([`crate::salt::lod::rank`]), so the
 //! importance column decides what a zoomed-out tile shows. [`ImportanceSignal`] is the derivation
-//! seam: an implementation turns published generation artifacts into one `f32[N]` column, and
+//! trait: an implementation turns published generation artifacts into one `f32[N]` column, and
 //! [`RankingConfig`] selects which one a fit runs - adding a signal is one implementation plus one
 //! variant, and the exhaustive matches carry it into the config echo and the metadata origin
 //! marker.

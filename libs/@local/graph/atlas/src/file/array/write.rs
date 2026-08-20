@@ -279,8 +279,9 @@ impl<W: Write> SizedArrayWriter<W> {
 
 /// One scalar element of a sized array column: its stored variant and its trailing row shape.
 ///
-/// The impls are the column vocabulary: a typed column write derives its whole file shape from
-/// the element type and the row count, so no call site restates a variant or a dimension.
+/// An implementation supplies the stored variant and the row shape, so a typed column write
+/// derives its whole file shape from the element type and the row count, and no call site
+/// restates a variant or a dimension.
 pub(crate) trait ColumnScalar: zerocopy::Immutable + zerocopy::IntoBytes {
     /// The array file's element variant.
     const VARIANT: ArrayVariant;

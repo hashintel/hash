@@ -53,7 +53,7 @@ pub(crate) enum PriorMode {
     FromActive,
     /// No prior: every card row embeds anew and the landmark selection starts cold.
     ///
-    /// The clean slate for a changed embedding contract.
+    /// The reset for a changed embedding contract.
     Fresh,
 }
 

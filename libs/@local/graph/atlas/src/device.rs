@@ -13,7 +13,7 @@ use burn::backend::{
 /// The backend inference runs on.
 pub(crate) type Inference = LibTorch;
 
-/// The backend training runs on: the inference backend under autodiff.
+/// The inference backend under autodiff, which training runs on.
 pub(crate) type Training = Autodiff<Inference>;
 
 /// A device family the torch backend drives.

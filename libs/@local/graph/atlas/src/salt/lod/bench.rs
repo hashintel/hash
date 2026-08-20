@@ -1,4 +1,4 @@
-//! Measurement seam for the restricted-view backfill walk.
+//! Measurement hooks for the restricted-view backfill walk.
 //!
 //! A masked tile delivery fills its budget by pulling visible points up from deeper importance
 //! buckets. Two candidate-selection strategies produce the same response shape and differ only in
@@ -533,8 +533,8 @@ impl WalkBench {
         )
         .expect("finite synthetic coordinates admit a world frame");
 
-        // The column values cross from the typed lod domains into this instrument's raw u32
-        // vocabulary once, at this seam; the scan machinery below reads the raw form, while
+        // The column values cross from the typed lod domains into this probe's raw u32
+        // vocabulary once, at this boundary; the scan machinery below reads the raw form, while
         // storage indexed by an id keeps its index domain.
         let row_of_position: Box<[u32]> = lod
             .row_of_position
@@ -1226,7 +1226,7 @@ impl WalkBench {
     ///
     /// The visible entries cascade alone at [`Depth::MAX`] under the corpus's own importance order
     /// restricted to them, then sort bucket-major and ascending by key inside a bucket. `layout`
-    /// chooses whether the keys ride along: [`GenerationLayout::Shared`] recovers each key from the
+    /// chooses whether each entry stores its key: [`GenerationLayout::Shared`] recovers it from the
     /// corpus base column through the entry's position, for four bytes per visible row against
     /// twelve.
     ///
@@ -4105,7 +4105,7 @@ mod tests {
     };
     use crate::morton::{Depth, MortonKey};
 
-    /// The corpus scale the seam's own checks run at.
+    /// The corpus scale the module's own checks run at.
     const POINTS: usize = 8_000;
 
     /// The fixture seed.
