@@ -29,6 +29,7 @@ import {
   searchRow,
   triggerButton,
   triggerDirectionToggle,
+  triggerIcon,
 } from "./sort-menu.recipe";
 
 import type { DistributedOmit } from "type-fest";
@@ -332,6 +333,7 @@ export const SortMenu = <SortKey extends string = string>({
         <Icon
           name={directionIcons[value.direction]}
           size={buttonIconSizeMap[size]}
+          className={triggerIcon({ size })}
         />
       </span>
     ) : undefined;

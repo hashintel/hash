@@ -173,7 +173,7 @@ export const Default: Story = () => (
             }}
           >
             {sorter ? `Sorted by ${sorter.name}` : "Sort"}
-            {direction ? (direction === "ASCENDING" ? " ↑" : " ↓") : null}
+            {direction ? (direction === "ASCENDING" ? " A-Z" : " Z-A") : null}
           </button>
         )}
       />

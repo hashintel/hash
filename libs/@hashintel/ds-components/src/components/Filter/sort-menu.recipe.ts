@@ -118,6 +118,21 @@ export const triggerButton = cva({
   },
 });
 
+// The flippable direction icon is passed as a Button prefix, so it misses the
+// Button recipe's icon-slot sizing; mirror its lg 20px override (&& outranks
+// the Icon recipe's own --icon-size class, which ties on specificity).
+export const triggerIcon = cva({
+  variants: {
+    size: {
+      xxs: {},
+      xs: {},
+      sm: {},
+      md: {},
+      lg: { "&&": { "--icon-size": "20px" } },
+    },
+  },
+});
+
 export const triggerDirectionToggle = cva({
   base: {
     display: "inline-flex",
