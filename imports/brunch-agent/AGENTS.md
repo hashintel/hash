@@ -2,9 +2,17 @@
 
 ## Agent skills
 
+### Git workflow
+
+Graphite (`gt`) stacks, one stacked branch per Linear issue tackled. See `docs/agents/git-workflow.md`.
+
 ### Issue tracker
 
-Issues live as markdown files under `.scratch/<feature-slug>/` in this repo. See `docs/agents/issue-tracker.md`.
+Issues live in Linear (team `FE`, project `brunch`, label `lite`), worked via the `linear` CLI. See `docs/agents/issue-tracker.md`.
+
+### Issue writing
+
+Root issues carry a human-readable contract (outcome title + plain-prose context); sub-issues are exempt. See `docs/agents/issue-writing.md`.
 
 ### Triage labels
 

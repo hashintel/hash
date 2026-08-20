@@ -1,30 +1,63 @@
-# Issue tracker: Local Markdown
+# Issue tracker: Linear
 
-Issues and specs for this repo live as markdown files in `.scratch/`.
+Issues for this repo live in **Linear**, worked through the `linear` CLI (see the
+`tool-linear-cli` skill). Long-form artifacts — specs, research write-ups, notes — stay in this
+repo under `docs/planning/<effort>/` (see `documentation.md`); Linear issues link to them by repo path (and to Notion/Google
+docs by URL). The issue is the tracker record; the repo file is the document.
+
+How issue titles and bodies are written — the contract/execution-record split, outcome-shaped
+titles, plain-prose context — is covered in `issue-writing.md`; it applies to every issue
+created for this repo.
 
 ## Conventions
 
-- One feature per directory: `.scratch/<feature-slug>/`
-- The spec is `.scratch/<feature-slug>/spec.md`
-- Implementation issues are one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` — never a single combined tickets file
-- Triage state is recorded as a `Status:` line near the top of each issue file (see `triage-labels.md` for the role strings)
-- Comments and conversation history append to the bottom of the file under a `## Comments` heading
+- **Default team**: `FE`. **Project**: `brunch`. Create issues with
+  `linear issue create --team FE --project brunch`.
+- Related work also lives on teams `PRO` (product) and `H` (HASH) — read/reference those freely;
+  create there only when asked.
+- Use `--description-file` / `--body-file` for any multi-line markdown (shell-escaping otherwise
+  mangles it).
+- Triage state is expressed through Linear workflow states and labels (see `triage-labels.md`).
+- Comments and conversation history go on the issue as Linear comments.
 
 ## When a skill says "publish to the issue tracker"
 
-Create a new file under `.scratch/<feature-slug>/` (creating the directory if needed).
+Create a Linear issue on team `FE`, project `brunch`. If the content is long-form, commit it
+under `docs/planning/<effort>/` and link the repo path from the issue description.
 
 ## When a skill says "fetch the relevant ticket"
 
-Read the file at the referenced path. The user will normally pass the path or the issue number directly.
+`linear issue view <ID>` (e.g. `FE-1333`). The user will normally pass the identifier directly.
 
 ## Wayfinding operations
 
-Used by `/wayfinder`. The **map** is a file with one **child** file per ticket.
+Used by `/wayfinder`. The **map** is a Linear issue with one **child** sub-issue per ticket.
 
-- **Map**: `.scratch/<effort>/map.md` — the Notes / Decisions-so-far / Fog body.
-- **Child ticket**: `.scratch/<effort>/issues/NN-<slug>.md`, numbered from `01`, with the question in the body. A `Type:` line records the ticket type (`research`/`prototype`/`grilling`/`task`); a `Status:` line records `claimed`/`resolved`.
-- **Blocking**: a `Blocked by: NN, NN` line near the top. A ticket is unblocked when every file it lists is `resolved`.
-- **Frontier**: scan `.scratch/<effort>/issues/` for files that are open, unblocked, and unclaimed; first by number wins.
-- **Claim**: set `Status: claimed` and save before any work.
-- **Resolve**: append the answer under an `## Answer` heading, set `Status: resolved`, then append a context pointer (gist + link) to the map's Decisions-so-far in `map.md`.
+- **Map**: an FE issue in project `brunch`, labeled `wayfinder → map` (label group `wayfinder`,
+  children `map` / `research` / `prototype` / `grilling` / `manual-task` — created 2026-08-11;
+  `manual-task` stands in for the skills' `task` type because the workspace already has an
+  unrelated "Task" label). The issue description holds the map body: Destination / Notes /
+  Decisions so far / Not yet specified / Out of scope.
+- **Child ticket**: a sub-issue of the map (native parent relation), same team and project,
+  carrying its `wayfinder → <type>` label. The description holds the question.
+- **Blocking**: Linear's native **blocks / blocked-by** relations. A ticket is unblocked when
+  every issue blocking it is closed (Done or Canceled).
+- **Frontier**: open, unblocked, **unassigned** sub-issues of the map — lowest issue number
+  first.
+- **Claim**: assign the issue to yourself (the dev driving the map) before any work.
+- **Resolve**: post the answer as a comment on the issue, set state **Done**, then append a
+  one-line gist + link to the map issue's *Decisions so far* section (edit the map description).
+- **Out of scope**: set state **Canceled** and record the gist + reason in the map's
+  *Out of scope* section.
+- Pre-existing product issues (the PM's stubs) are **referenced** from map tickets via *related*
+  relations — never duplicated as wayfinder tickets and never closed by the map. A wayfinder
+  ticket that validates a product issue links to it and records its verdict in the resolution
+  comment.
+
+## Historical note
+
+Before 2026-08-11 this repo tracked issues as local markdown under `.scratch/<feature-slug>/`
+(map at `map.md`, tickets at `issues/NN-<slug>.md`; that tree now lives under `docs/planning/`). The completed `elicitation-kernel` effort
+remains in that form as the canonical archive (now at `docs/planning/elicitation-kernel/`), and is **mirrored in Linear for team
+visibility** as FE-1366 (map) with sub-issues FE-1367–FE-1379, all Done, blocking relations
+preserved. New efforts go to Linear directly.

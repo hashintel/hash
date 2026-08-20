@@ -25,7 +25,7 @@ Concrete test cases for every boundary claim (from issue 07): how would `elicit-
 
 ## Answer
 
-> Resolved by HITL grilling, 2026-08-06 (four rounds, including an evidence pass over `~/Clones/mattpocock/skills` + `../brunch/docs/design/BEHAVIORAL_KERNELS.md`, and integration of [agentic-elicitation-criteria](../../docs/inbox/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md), the second inbox doc).
+> Resolved by HITL grilling, 2026-08-06 (four rounds, including an evidence pass over `~/Clones/mattpocock/skills` + `../brunch/docs/design/BEHAVIORAL_KERNELS.md`, and integration of [agentic-elicitation-criteria](../../../inbox/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md), the second inbox doc).
 
 ### Ownership table
 
