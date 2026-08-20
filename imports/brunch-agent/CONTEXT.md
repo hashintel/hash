@@ -70,6 +70,10 @@ _Avoid_: digest (brunch's form)
 
 ### Envelope & packs
 
+**Intermediate representation (IR)**:
+The elicited description a target-document accumulates: the set of active captures, read through the plugin's declared payload type system. Not a second store — every consolidated view (entity graph, net, completion table) is a read-time projection over active captures, and the rendered artifact is one projection of the IR, never the IR itself. Defining a plugin's IR means defining its payload type system.
+_Avoid_: knowledge store, domain model (as a stored unit), staging area
+
 **Capture envelope**:
 The harness-defined, domain-free wrapper around an opaque plugin payload: harness-minted id, evidence spans, epistemic status, confidence, value-xor-absence, alternatives grouping, one `supersedes` link. The hourglass waist. No stored status — envelope status (`active | superseded | retracted`) derives at read time from links and events.
 
