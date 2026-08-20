@@ -39,11 +39,13 @@ jobs:
         run: bun run typecheck
 
       # Reads the repository tree and the harness contract; touches no model
-      # and no substrate. Three suites, with different jobs: boundaries makes
+      # and no substrate. The root suites have different jobs: boundaries makes
       # the spec §4/§12.2 invariants enforceable rather than aspirational;
+      # workspace pins the tree-shape rules those invariants stand on;
       # build-artifact checks what was actually emitted, because a Flue build
-      # that silently drops an agent still exits 0; known-gaps keeps the spec
-      # §14.5 open items visible and goes red when one closes unremarked.
+      # that silently drops an agent still exits 0; open-gaps keeps the spec
+      # §14.5 open items in the run output until the commit that proves one
+      # deletes its entry.
       #
       # The build gate lives inside this step: build-artifact's beforeAll
       # runs the full build (Flue server environment plus the plain client

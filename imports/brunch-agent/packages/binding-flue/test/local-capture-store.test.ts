@@ -76,4 +76,72 @@ describe('local capture store', () => {
       { value: 'beta' },
     ]);
   });
+
+  test('a command refused by the conflict guard leaves the file byte-identical and readable', async () => {
+    const path = await storePath();
+    const store = createLocalCaptureStore(path);
+    await store.execute({
+      type: 'apply-sweep',
+      proposals: [proposal('March', 1), proposal('June', 2)],
+    });
+    const captures = await store.read();
+    const [marchId, juneId] = captures.captures.map((capture) => capture.id);
+    const opened = await store.execute({
+      type: 'open-issue',
+      issueType: 'conflicting',
+      origin: { type: 'harness' },
+      references: [marchId!, juneId!],
+      canDefault: false,
+    });
+    expect(opened.ok).toBe(true);
+
+    const before = await readFile(path, 'utf8');
+    for (const command of [
+      {
+        type: 'apply-sweep',
+        proposals: [{ ...proposal('April', 3), supersedes: marchId! }],
+      },
+      { type: 'retract-capture', captureId: marchId!, evidence: [userEvidence('Forget it', 4)] },
+    ] as const) {
+      const refused = await store.execute(command);
+      expect(refused).toMatchObject({
+        ok: false,
+        refusal: { code: 'blocked-by-open-conflict', captureId: marchId },
+      });
+    }
+
+    // Byte-identical, not merely equivalent: a rewrite of the same content would
+    // pass an equality check while still having put the file at risk.
+    expect(await readFile(path, 'utf8')).toBe(before);
+    // And still readable through the parser, which is what makes it a snapshot
+    // rather than surviving bytes.
+    expect((await createLocalCaptureStore(path).read()).captures.map((c) => c.content)).toEqual([
+      { value: 'March' },
+      { value: 'June' },
+    ]);
+    expect((await readdir(join(path, '..'))).filter((name) => name.endsWith('.tmp'))).toEqual([]);
+  });
+
+  test('what a command returns is what the file gives back, even after the caller edits its arrays', async () => {
+    const path = await storePath();
+    const store = createLocalCaptureStore(path);
+    const created = await store.execute({
+      type: 'apply-sweep',
+      proposals: [proposal('June', 1)],
+    });
+    if (!created.ok) throw new Error('the sweep was refused');
+    const captureId = created.snapshot.captures[0]!.id;
+
+    const evidence = [userEvidence('Forget the June date', 2)];
+    const retracted = await store.execute({ type: 'retract-capture', captureId, evidence });
+    if (!retracted.ok) throw new Error('the retraction was refused');
+
+    // The caller edits everything it still holds, after the store accepted and
+    // wrote it. If the snapshot aliased any of it, the result the caller was
+    // handed and the bytes on disk would now disagree.
+    (evidence[0]!.pointer as { entryEnd: number }).entryEnd = 99;
+    evidence.push(userEvidence('Injected after the write', 3));
+
+    expect(await createLocalCaptureStore(path).read()).toEqual(retracted.snapshot);
+  });
 });

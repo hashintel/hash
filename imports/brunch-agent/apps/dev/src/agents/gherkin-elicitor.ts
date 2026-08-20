@@ -24,8 +24,15 @@ import { gherkin } from '@brunch/plugin-gherkin';
 import { useModel, type AgentProps } from '@flue/runtime';
 import * as v from 'valibot';
 
+/**
+ * One definition for the agent and the faux provider alike: the two must name
+ * the same model id, and drift fails at resolution only if both sides resolve
+ * the same string (Flue patterns audit, 2026-08-17).
+ */
+export const GHERKIN_MODEL_ID = 'claude-haiku-4-5';
+
 export function GherkinElicitor(_props: AgentProps) {
-  useModel('anthropic/claude-haiku-4-5');
+  useModel(`anthropic/${GHERKIN_MODEL_ID}`);
   return useElicitation(gherkin);
 }
 

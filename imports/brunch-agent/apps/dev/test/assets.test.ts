@@ -13,7 +13,7 @@
  */
 
 import { afterAll, describe, expect, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -23,13 +23,38 @@ import { assetHandler } from '../src/assets.ts';
 const uiRoot = mkdtempSync(join(tmpdir(), 'brunch-assets-'));
 const BINARY_BYTES = Uint8Array.from({ length: 256 }, (_, i) => i);
 
+/**
+ * Names a bundler can legally emit, because `[name]` in `assetFileNames` is the
+ * source basename and neither vite nor rollup reduces it to `[\w.-]`. Each file
+ * holds its own name as its body, so serving the wrong file is a failure rather
+ * than a coincidental pass.
+ */
+const PRODUCER_PUNCTUATION = [
+  'logo (1).png',
+  'café.woff2',
+  "a+b,c'd.js",
+  'x#y.js',
+  'q?z.js',
+  '@scope~thing.js',
+] as const;
+
 mkdirSync(join(uiRoot, 'assets/fonts'), { recursive: true });
+// A directory whose name looks like an asset: reading it is EISDIR, which is an
+// expected absence rather than a fault.
+mkdirSync(join(uiRoot, 'assets/legacy.js'), { recursive: true });
 writeFileSync(join(uiRoot, 'assets/index.js'), 'export {};\n');
 writeFileSync(join(uiRoot, 'assets/index.css'), 'body {}\n');
 writeFileSync(join(uiRoot, 'assets/brand.woff2'), BINARY_BYTES);
 writeFileSync(join(uiRoot, 'assets/Logo.PNG'), BINARY_BYTES);
 writeFileSync(join(uiRoot, 'assets/blob.dat'), BINARY_BYTES);
 writeFileSync(join(uiRoot, 'assets/fonts/nested.woff2'), BINARY_BYTES);
+for (const name of PRODUCER_PUNCTUATION) writeFileSync(join(uiRoot, `assets/${name}`), name);
+// Outside `assets/`, so a traversal that escapes has something to find: a 404
+// on a path that leads nowhere proves nothing about refusal.
+writeFileSync(join(uiRoot, 'secret.js'), 'SECRET\n');
+// A symlink to itself: reading it is ELOOP, a broken tree rather than a missing
+// file, and nothing about it should read as "this asset was never emitted".
+symlinkSync('loop.js', join(uiRoot, 'assets/loop.js'));
 
 afterAll(() => rmSync(uiRoot, { recursive: true, force: true }));
 
@@ -84,23 +109,74 @@ describe('the production asset route', () => {
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(BINARY_BYTES);
   });
 
-  test('refuses traversal, hidden files, and extensionless names', async () => {
+  test('every name the producer can legally emit serves, punctuation and all', async () => {
+    // The old grammar accepted only `[\w.-]`, so each of these 404'd in
+    // production while vite dev served it — and `#` and `?` additionally break
+    // the URL the handler builds, silently addressing a different file.
+    for (const name of PRODUCER_PUNCTUATION) {
+      const response = await app.request(`/assets/${encodeURIComponent(name)}`);
+      expect({ name, status: response.status, body: await response.text() }).toEqual({
+        name,
+        status: 200,
+        body: name,
+      });
+    }
+  });
+
+  test('refuses traversal, hidden files, extensionless names, and nul bytes', async () => {
     for (const path of [
       '/assets/..%2Fsecret.js',
       '/assets/%2e%2e%2fsecret.js',
       '/assets/../secret.js',
       '/assets/fonts/../../secret.js',
+      // A backslash is a path separator to the URL parser under the file:
+      // scheme, so this escapes `assets/` if the path reaches the URL raw.
+      '/assets/..%5Csecret.js',
+      '/assets/..%5C..%5Csecret.js',
       '/assets/.env',
       '/assets/fonts/.hidden.js',
       '/assets/noextension',
+      // Refused before the filesystem sees it: a nul byte is a TypeError from
+      // readFile, not an errno, so translating it would mean catching broadly.
+      '/assets/a%00b.js',
     ]) {
       const response = await app.request(path);
-      expect({ path, status: response.status }).toEqual({ path, status: 404 });
+      expect({
+        path,
+        status: response.status,
+        leaked: (await response.text()).includes('SECRET'),
+      }).toEqual({ path, status: 404, leaked: false });
     }
   });
 
-  test('a missing asset is a 404, not a crash', async () => {
-    const response = await app.request('/assets/never-emitted.js');
-    expect(response.status).toBe(404);
+  test('every way a path can be absent is a 404, not a crash', async () => {
+    for (const [path, reason] of [
+      ['/assets/never-emitted.js', 'ENOENT — no such file'],
+      ['/assets/index.js/nested.js', 'ENOTDIR — a file used as a directory'],
+      ['/assets/legacy.js', 'EISDIR — a directory shaped like an asset'],
+      [`/assets/${'x'.repeat(400)}.js`, 'ENAMETOOLONG — no file can carry this name'],
+    ] as const) {
+      const response = await app.request(path);
+      expect({ reason, status: response.status }).toEqual({ reason, status: 404 });
+    }
+  });
+
+  test('an unexpected filesystem failure propagates instead of reading as absence', async () => {
+    // The broad catch this replaces turned every read failure into `notFound`,
+    // so a broken build tree served a clean 404 and looked like an asset the
+    // build had simply never emitted.
+    let propagated: unknown;
+    const guarded = new Hono();
+    guarded.onError((error, c) => {
+      propagated = error;
+      return c.text('propagated', 500);
+    });
+    guarded.get('/assets/*', assetHandler(pathToFileURL(`${uiRoot}/`)));
+
+    const response = await guarded.request('/assets/loop.js');
+    expect({
+      status: response.status,
+      code: (propagated as NodeJS.ErrnoException | undefined)?.code,
+    }).toEqual({ status: 500, code: 'ELOOP' });
   });
 });

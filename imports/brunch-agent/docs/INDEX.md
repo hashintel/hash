@@ -15,7 +15,7 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 | [hash-sails-public-report.pdf](inbox/hash-sails-public-report.pdf) | 2026-08-11 (pub. 2026-01) | SAILS/ARIA public report: Safeguarded AI gatekeeper (world model + safety spec + verifier), biopharma supply-chain research, tacit knowledge as adoption barrier | FE-1357 map (the "why"); FE-1363 cold-chain anchor |
 | [voice-implementation-recommendation-pplx](inbox/voice-implementation-recommendation-pplx.md) | 2026-08-11 | Perplexity research: voice-adapter options (ElevenLabs/OpenAI/Gemini/xAI) | FE-1359 (superseded in part by its findings) |
 | [yannis-dora-lu-transcript](inbox/yannis-dora-lu-transcript-2026-08-11.md) | 2026-08-11 | Meeting transcript: no in-house interviewing practice; SDCPN-as-hypothesis aired; baseline-control and priming ideas | expert-meeting-findings note; FE-1360, FE-1361 |
-| [amp-analysis-flue-vs-tilde](inbox/amp-analysis-flue-vs-tilde.md) | 2026-08-14 | Amp thread export: comparative assessment of the Flue and tilde agent frameworks (development and deployment stories) and its import for this project | substrate/binding decisions (unprocessed) |
+| [amp-analysis-flue-vs-tilde](inbox/amp-analysis-flue-vs-tilde.md) | 2026-08-14 | Amp thread export: comparative assessment of the Flue and tilde agent frameworks (development and deployment stories) and its import for this project; verdict: keep Flue, Tilde is a control plane not a runtime | reconciled into flue-architecture-cheatsheet (2026-08-17); source of the pre-remote-exposure gates |
 
 ## planning/elicitation-kernel (effort complete 2026-08-10; settled 2026-08-12)
 
@@ -55,8 +55,12 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 
 | Document | Status | Linear | Digest |
 | --- | --- | --- | --- |
-| [CONVERGENCE](planning/CONVERGENCE.md) | active | FE-1401 (created); maintained per legibility.md | The convergence trace: backward mapping from kernel-spec obligation to implementation status (~73 rows: 20 discharged, 18 partial, 27 pending, 7 contradicted, 1 superseded); vocabulary-drift table; frontier pointer to FE-1357. Rows update as branches land |
+| [CONVERGENCE](planning/CONVERGENCE.md) | active | FE-1401 (created); maintained per legibility.md | The convergence record between the two root maps (FE-1383 build, FE-1357 demo/plugin-spec): per-obligation status ledger (~73 rows incl. 7 contradicted), vocabulary-drift table, the inter-map seam record, and the living cross-map sequencing strategy. Rows and sequencing update as branches land |
 | [refactor-queue-2026-08-14](planning/refactor-queue-2026-08-14.md) | active | FE-1419 | Nine-commit refactor queue from an inductive review of open PR comments: capture-store contract closure + verification-oracle integrity; second-order review of the FE-1400 sweep's own countermeasures |
+| [flue-patterns-audit-2026-08-17](planning/flue-patterns-audit-2026-08-17.md) | active | commented on FE-1383 | Audit of Flue usage against the official docs: substantially canonical; two fragile spots since fixed; its two "undocumented semantics" strain items were later resolved by the cheatsheet's agent-hooks read (documented after all — the pins stay) |
+| [flue-architecture-cheatsheet](planning/flue-architecture-cheatsheet.md) | active | commented on FE-1383; feeds docs/agents/flue-routing.md | Architect's consolidation of all 21 Flue guide pages: affordances, recommended patterns, do-not-rebuild warnings per concern; three-lane boundary summary (consume / translate-in-binding / own); five ranked divergence risks; reconciled against the flue-vs-tilde analysis (pre-remote gates, churn, at-least-once floor, skills-need-the-build-graph) |
+| [remediation-plan-2026-08-17](planning/remediation-plan-2026-08-17.md) | active | A1 → FE-1422; corrections on FE-1391/96/1420 | Two ledgers from the sweep's consolidated read: A — eleven wrong-or-fragile items with owners and plan corrections (one decision, three folded into FE-1393/1405 design moments, pre-remote gates → FE-1423); B — seven information gaps routed by cheapest honest resolution (types < raw page < probe < spike) |
+| [topology](planning/topology.md) | active | ratified → ADR-0002 | Pseudo-style verification of the package/app tree against the three-lane model and spec §12.2 (one violation: the ask protocol in the binding → FE-1422; two tolerated-untils) + normative placement rules N1–N6 for the sweep executor, packs/cards, demo shell, experiments, and storage-port implementations |
 
 ## Decision records (`docs/adr/`)
 
@@ -67,6 +71,7 @@ of what was decided in August, and the ADR is how a later change is recorded.
 | Document | Status | Linear | Digest |
 | --- | --- | --- | --- |
 | [0001-brunch-is-the-product-name](adr/0001-brunch-is-the-product-name.md) | accepted | FE-1388 | `brunch` settles as the product name and may appear in structure: `brunch_*` tools, `@brunch/*` scope, `brunch-gherkin-elicitor` agent identity. Supersedes spec §12.3's `bl_*` provisional; the ban on function-naming (`elicit_*`) survives |
+| [0002-topology-and-placement-rules](adr/0002-topology-and-placement-rules.md) | accepted | FE-1401; FE-1422 is its one code change | The three-lane topology and placement rules N1–N6 ratified (topology.md stays the living reference); N2/N5 to become boundary gates |
 
 ## External canonical documents
 
