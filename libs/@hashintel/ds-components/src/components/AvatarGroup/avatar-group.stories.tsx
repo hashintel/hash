@@ -25,10 +25,6 @@ const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
 
 export default {
   title: "Components/AvatarGroup",
-  parameters: {
-    layout: "centered",
-    controls: { disabled: true },
-  },
 } satisfies StoryDefault<AvatarGroupProps>;
 
 // Avatars are passed as children; the group sets size/tone via context, so the

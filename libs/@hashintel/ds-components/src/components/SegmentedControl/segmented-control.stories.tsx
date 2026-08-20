@@ -9,9 +9,6 @@ import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
   title: "Legacy/SegmentedControl",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
     defaultValue: {
       control: { type: "text" },
@@ -65,7 +62,4 @@ export const Interactive: Story<SegmentedControlProps> = (args) => {
       />
     </div>
   );
-};
-Interactive.parameters = {
-  layout: "fullscreen",
 };

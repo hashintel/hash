@@ -32,9 +32,6 @@ const mixedVariantPairs = buttonVariants.flatMap((first, index) =>
 
 export default {
   title: "Components/ButtonGroup",
-  parameters: {
-    layout: "centered",
-  },
 } satisfies StoryDefault<ButtonGroupProps>;
 
 const pageClass = css({
@@ -167,12 +164,6 @@ export const Default: Story = () => (
   </div>
 );
 
-Default.parameters = {
-  controls: { disable: true },
-  actions: { disable: true },
-  interactions: { disable: true },
-};
-
 export const Spacing: Story = () => (
   <div className={pageClass}>
     <section className={sectionClass}>
@@ -189,12 +180,6 @@ export const Spacing: Story = () => (
     </section>
   </div>
 );
-
-Spacing.parameters = {
-  controls: { disable: true },
-  actions: { disable: true },
-  interactions: { disable: true },
-};
 
 export const Variants: Story = () => (
   <div className={pageClass}>
@@ -230,9 +215,3 @@ export const Variants: Story = () => (
     </section>
   </div>
 );
-
-Variants.parameters = {
-  controls: { disable: true },
-  actions: { disable: true },
-  interactions: { disable: true },
-};

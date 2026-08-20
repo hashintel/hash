@@ -46,12 +46,9 @@ const ControlledRadioGroup = ({
 
 export default {
   title: "Components/RadioGroup",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
-    layout: { control: { type: "select", options: layouts } },
-    size: { control: { type: "select", options: formInputSizes } },
+    layout: { control: { type: "select" }, options: layouts },
+    size: { control: { type: "select" }, options: formInputSizes },
     disabled: { control: { type: "boolean" } },
   },
   args: {
@@ -87,32 +84,32 @@ const layoutRowClass = css({
   flexWrap: "wrap",
 });
 
-export const Layouts: Story = () => (
+export const Layouts: Story<Props> = (args) => (
   <div className={sectionClass}>
     {layouts.map((layout) => (
       <div key={layout}>
         <div className={headingClass}>layout={layout}</div>
-        <ControlledRadioGroup layout={layout} />
+        <ControlledRadioGroup {...args} layout={layout} />
       </div>
     ))}
     <div>
       <div className={headingClass}>
         layout=blockWithBorder, labelPlacement=left
       </div>
-      <ControlledRadioGroup layout="blockWithBorder" items={leftLabelItems} />
+      <ControlledRadioGroup
+        {...args}
+        layout="blockWithBorder"
+        items={leftLabelItems}
+      />
     </div>
     <div>
       <div className={headingClass}>layout=block, labelPlacement=left</div>
-      <ControlledRadioGroup layout="block" items={leftLabelItems} />
+      <ControlledRadioGroup {...args} layout="block" items={leftLabelItems} />
     </div>
   </div>
 );
 
-Layouts.parameters = {
-  controls: { disable: true },
-};
-
-export const Sizes: Story = () => (
+export const Sizes: Story<Props> = (args) => (
   <div className={sectionClass}>
     {formInputSizes.map((size) => (
       <div key={size}>
@@ -121,7 +118,7 @@ export const Sizes: Story = () => (
           {layouts.map((layout) => (
             <div key={layout}>
               <div className={subHeadingClass}>{layout}</div>
-              <ControlledRadioGroup layout={layout} size={size} />
+              <ControlledRadioGroup {...args} layout={layout} size={size} />
             </div>
           ))}
         </div>
@@ -130,19 +127,16 @@ export const Sizes: Story = () => (
   </div>
 );
 
-Sizes.parameters = {
-  controls: { disable: true },
-};
-
-export const Disabled: Story = () => (
+export const Disabled: Story<Props> = (args) => (
   <div className={sectionClass}>
     <div>
       <div className={headingClass}>whole group disabled</div>
-      <ControlledRadioGroup disabled />
+      <ControlledRadioGroup {...args} disabled />
     </div>
     <div>
       <div className={headingClass}>single option disabled</div>
       <ControlledRadioGroup
+        {...args}
         items={[
           { value: "apple", label: "Apple" },
           { value: "banana", label: "Banana", disabled: true },
@@ -152,7 +146,3 @@ export const Disabled: Story = () => (
     </div>
   </div>
 );
-
-Disabled.parameters = {
-  controls: { disable: true },
-};

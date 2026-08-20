@@ -26,12 +26,10 @@ const positions = [
 
 export default {
   title: "Components/RightClickMenu",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
     position: {
-      control: { type: "select", options: positions },
+      control: { type: "select" },
+      options: positions,
     },
   },
   args: {

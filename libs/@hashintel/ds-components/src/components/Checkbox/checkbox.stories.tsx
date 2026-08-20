@@ -30,20 +30,13 @@ const ControlledCheckbox = ({
 
 export default {
   title: "Components/Checkbox",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
-    tone: {
-      control: { type: "select", options: tones },
-    },
-    size: {
-      control: { type: "select", options: formInputSizes },
-    },
+    tone: { control: { type: "select" }, options: tones },
+    size: { control: { type: "select" }, options: formInputSizes },
     disabled: { control: { type: "boolean" } },
     invalid: { control: { type: "boolean" } },
     indeterminate: { control: { type: "boolean" } },
-    labelPlacement: { control: { type: "select", options: labelPlacements } },
+    labelPlacement: { control: { type: "select" }, options: labelPlacements },
     label: { control: { type: "text" } },
   },
   args: {
@@ -122,7 +115,7 @@ const labelClass = css({
   color: "neutral.s80",
 });
 
-export const Default: Story<CheckboxProps> = () => (
+export const Default: Story<CheckboxProps> = (args) => (
   <div
     className={css({
       display: "grid",
@@ -138,9 +131,14 @@ export const Default: Story<CheckboxProps> = () => (
     {examples.map(({ label, props, defaultValue, withDisabled }) => (
       <Fragment key={label}>
         <span className={labelClass}>{label}</span>
-        <ControlledCheckbox {...props} defaultValue={defaultValue} />
+        <ControlledCheckbox {...args} {...props} defaultValue={defaultValue} />
         {withDisabled ? (
-          <ControlledCheckbox {...props} disabled defaultValue={defaultValue} />
+          <ControlledCheckbox
+            {...args}
+            {...props}
+            disabled
+            defaultValue={defaultValue}
+          />
         ) : (
           <span />
         )}
@@ -149,13 +147,7 @@ export const Default: Story<CheckboxProps> = () => (
   </div>
 );
 
-Default.parameters = {
-  actions: { disable: true },
-  interactions: { disable: true },
-  controls: { disable: true },
-};
-
-export const Sizes: Story<CheckboxProps> = () => (
+export const Sizes: Story<CheckboxProps> = (args) => (
   <div
     className={css({
       display: "flex",
@@ -181,9 +173,10 @@ export const Sizes: Story<CheckboxProps> = () => (
         >
           {size}
         </span>
-        <ControlledCheckbox size={size} defaultValue />
-        <ControlledCheckbox size={size} label="Label" defaultValue />
+        <ControlledCheckbox {...args} size={size} defaultValue />
+        <ControlledCheckbox {...args} size={size} label="Label" defaultValue />
         <ControlledCheckbox
+          {...args}
           size={size}
           label="I agree to the terms of service and privacy policy"
           className={wrappingLabelClass}
@@ -193,9 +186,3 @@ export const Sizes: Story<CheckboxProps> = () => (
     ))}
   </div>
 );
-
-Sizes.parameters = {
-  actions: { disable: true },
-  interactions: { disable: true },
-  controls: { disable: true },
-};
