@@ -9,6 +9,7 @@
     "packages/*/test",
     "apps/*/src",
     "apps/*/test",
-    "apps/*/*.config.ts"
+    "apps/*/*.config.ts",
+    "docs/planning/**/*.ts"
   ]
 }
