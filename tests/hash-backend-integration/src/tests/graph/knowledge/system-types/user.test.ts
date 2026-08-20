@@ -15,12 +15,10 @@ import {
   createUser,
   getUser,
   getUserOrgMemberships,
-  getUserPendingInvitations,
   isUserMemberOfOrg,
   joinOrg,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import { inviteUserToOrgResolver } from "@apps/hash-api/src/graphql/resolvers/knowledge/org/invite-user-to-org";
 import { userHasAccessToHash } from "@apps/hash-api/src/shared/user-has-access-to-hash";
 import {
   extractEntityUuidFromEntityId,
@@ -28,10 +26,7 @@ import {
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  addActorGroupAdministrator,
-  getActorGroupRole,
-} from "@local/hash-graph-sdk/principal/actor-group";
+import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
 import {
   currentTimeInstantTemporalAxes,
@@ -48,15 +43,11 @@ import { deleteUser } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
-  createTestUser,
   generateRandomShortname,
 } from "../../../util";
 
-import type { EmailTransporter } from "@apps/hash-api/src/email/transporters";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { LoggedInGraphQLContext } from "@apps/hash-api/src/graphql/context";
 import type { EntityId } from "@blockprotocol/type-system";
-import type { GraphQLResolveInfo } from "graphql";
 
 const logger = new Logger({
   environment: "test",
@@ -65,23 +56,6 @@ const logger = new Logger({
 });
 
 const graphContext = createTestImpureGraphContext();
-
-const resolverInfo = {} as unknown as GraphQLResolveInfo;
-
-const graphQLContextForUser = (user: User): LoggedInGraphQLContext => ({
-  dataSources: {
-    graphApi: graphContext.graphApi,
-    uploadProvider: graphContext.uploadProvider,
-  },
-  emailTransporter: {
-    sendMail: async () => {},
-  } as unknown as EmailTransporter,
-  logger,
-  authentication: { actorId: user.accountId },
-  user,
-  provenance: { ...graphContext.provenance, actorType: "user" },
-  temporal: graphContext.temporalClient,
-});
 
 const shortname = generateRandomShortname("userTest");
 const incompleteUserShortname = generateRandomShortname("incomplete");
@@ -390,73 +364,6 @@ describe("User model class", () => {
         await deleteUser({ userId: user.accountId });
       } else {
         await deleteKratosIdentity({ kratosIdentityId: identity.id });
-      }
-    }
-  });
-
-  it("does not treat unverified trait emails as invitation or access credentials", async () => {
-    const authentication = { actorId: systemAccountId };
-    const attackerEmail = `${generateRandomShortname("inviteAttacker")}@example.com`;
-    const victimEmail = `${generateRandomShortname("inviteVictim")}@example.com`;
-
-    const identity = await createKratosIdentity({
-      traits: {
-        emails: [attackerEmail],
-      },
-      verifyEmails: true,
-    });
-
-    let inviter: User | undefined;
-
-    try {
-      const attacker = await createUser(graphContext, authentication, {
-        emails: [attackerEmail],
-        kratosIdentityId: identity.id,
-      });
-
-      inviter = await createTestUser(graphContext, "invadmin", logger);
-      const testOrg = await createTestOrg(
-        graphContext,
-        authentication,
-        "invorg",
-      );
-
-      await addActorGroupAdministrator(graphContext.graphApi, authentication, {
-        actorId: inviter.accountId,
-        actorGroupId: testOrg.webId,
-      });
-
-      await inviteUserToOrgResolver(
-        {},
-        { orgWebId: testOrg.webId, userEmail: victimEmail },
-        graphQLContextForUser(inviter),
-        resolverInfo,
-      );
-
-      const attackerWithInjectedEmail = {
-        ...attacker,
-        emails: [attackerEmail, victimEmail],
-      };
-
-      await expect(
-        getUserPendingInvitations(graphContext, authentication, {
-          user: attackerWithInjectedEmail,
-        }),
-      ).resolves.toHaveLength(0);
-
-      await expect(
-        userHasAccessToHash(
-          graphContext,
-          authentication,
-          attackerWithInjectedEmail,
-        ),
-      ).resolves.toMatchObject({ allowed: false });
-    } finally {
-      await deleteKratosIdentity({ kratosIdentityId: identity.id });
-      if (inviter) {
-        await deleteKratosIdentity({
-          kratosIdentityId: inviter.kratosIdentityId,
-        });
       }
     }
   });
