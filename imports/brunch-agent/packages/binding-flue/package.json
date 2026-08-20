@@ -1,0 +1,15 @@
+{
+  "name": "@brunch/binding-flue",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Flue binding: implements the substrate-capability list and owns the storage-port implementation.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@brunch/core": "workspace:*",
+    "@flue/runtime": "^2.0.3",
+    "valibot": "^1.4.2"
+  }
+}

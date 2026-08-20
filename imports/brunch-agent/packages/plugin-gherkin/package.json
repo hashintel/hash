@@ -1,0 +1,14 @@
+{
+  "name": "@brunch/plugin-gherkin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The gherkin target: the tracer plugin, wired end-to-end first as the cheap mechanism proof.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@brunch/core": "workspace:*",
+    "valibot": "^1.4.2"
+  }
+}

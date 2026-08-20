@@ -1,0 +1,46 @@
+# The CI smoke (spec §12.5): `vite build` plus the simulation suite — no model
+# key, no substrate, no flake. An optional secret-gated real-model `flue run`
+# smoke is named in the spec and deliberately absent until a provider key
+# exists; the suite asserts that it has not drifted in.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint:check
+
+      - name: Formatting
+        run: bun run fmt:check
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      # Reads the repository tree and the harness contract; touches no model
+      # and no substrate. Three suites, with different jobs: boundaries makes
+      # the spec §4/§12.2 invariants enforceable rather than aspirational;
+      # build-artifact checks what was actually emitted, because a Flue build
+      # that silently drops an agent still exits 0; known-gaps keeps the spec
+      # §14.5 open items visible and goes red when one closes unremarked.
+      - name: Test
+        run: bun test
+
+      # Both builds: the Flue server environment, and the plain client build
+      # that @flue/vite does not do. Without the second, nothing in CI ever
+      # transforms the ui tree.
+      - name: Build
+        run: bun run build
