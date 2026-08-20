@@ -227,6 +227,19 @@ pages needs a React-capable MDX pipeline. Generated pages remain plain
 CommonMark and need nothing, and `architecture.md` — the single-file artefact
 for agents — contains no components at all.
 
+### Hand-written D2 diagrams
+
+`content/diagrams/` holds `.d2` sources. The build renders each to SVG in the
+bundle's `diagrams/` directory, next to the generated ones, and authored pages
+embed them as images:
+
+```mdx
+![One request through the CLI](@diagrams/cli-request-flow.svg)
+```
+
+An unknown name, or a name colliding with a generated diagram, fails the
+check.
+
 ### Linking between pages
 
 Because `attachTo` decides where a page ends up, an authored page cannot know its

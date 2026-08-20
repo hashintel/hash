@@ -7648,7 +7648,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hashintel/petrinaut-cli@workspace:libs/@hashintel/petrinaut-cli":
+"@hashintel/petrinaut-cli@workspace:*, @hashintel/petrinaut-cli@workspace:libs/@hashintel/petrinaut-cli":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut-cli@workspace:libs/@hashintel/petrinaut-cli"
   dependencies:
@@ -9441,6 +9441,7 @@ __metadata:
   resolution: "@local/petrinaut-arch-docs@workspace:libs/@local/petrinaut-arch-docs"
   dependencies:
     "@hashintel/petrinaut": "workspace:*"
+    "@hashintel/petrinaut-cli": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@types/js-yaml": "npm:^4"

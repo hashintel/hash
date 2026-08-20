@@ -128,6 +128,22 @@ const assetPathFrom = (slug: string, assetPath: string): string =>
   posix.relative(posix.dirname(`pages/${slug}`), assetPath);
 
 /**
+ * Applies a rewrite to prose only, leaving fenced blocks and inline code spans
+ * as written. The pages that document these link schemes show them in examples,
+ * and rewriting an example teaches the wrong syntax.
+ *
+ * Splitting on a capturing pattern puts the code parts at odd indices.
+ */
+const outsideCode = (
+  contents: string,
+  rewrite: (text: string) => string,
+): string =>
+  contents
+    .split(/(```[\s\S]*?```|`[^`\n]*`)/gu)
+    .map((part, index) => (index % 2 === 1 ? part : rewrite(part)))
+    .join("");
+
+/**
  * Resolves `doc:` and `layer:` link targets in authored pages.
  *
  * An authored page's final slug depends on its `attachTo`, so it cannot know
@@ -150,28 +166,30 @@ export const resolveAuthoredLinks = (
 ): { contents: string; unresolved: string[] } => {
   const unresolved: string[] = [];
 
-  const resolved = contents.replace(
-    /(\]\()(layer|doc):([^)\s#]+)(#[^)\s]*)?(\))/gu,
-    (
-      match,
-      open: string,
-      scheme: string,
-      target: string,
-      fragment: string | undefined,
-      close: string,
-    ) => {
-      const slug =
-        scheme === "layer"
-          ? options.layerSlugs.get(target)
-          : options.docSlugs.get(target);
+  const resolved = outsideCode(contents, (text) =>
+    text.replace(
+      /(\]\()(layer|doc):([^)\s#]+)(#[^)\s]*)?(\))/gu,
+      (
+        match,
+        open: string,
+        scheme: string,
+        target: string,
+        fragment: string | undefined,
+        close: string,
+      ) => {
+        const slug =
+          scheme === "layer"
+            ? options.layerSlugs.get(target)
+            : options.docSlugs.get(target);
 
-      if (slug === undefined) {
-        unresolved.push(`${scheme}:${target}`);
-        return match;
-      }
+        if (slug === undefined) {
+          unresolved.push(`${scheme}:${target}`);
+          return match;
+        }
 
-      return `${open}${relativeTo(fromSlug, slug)}${fragment ?? ""}${close}`;
-    },
+        return `${open}${relativeTo(fromSlug, slug)}${fragment ?? ""}${close}`;
+      },
+    ),
   );
 
   return { contents: resolved, unresolved };
@@ -192,17 +210,55 @@ export const resolveComponentImports = (
   const unresolved: string[] = [];
   const fromDirectory = posix.dirname(`pages/${fromSlug}`);
 
-  const resolved = contents.replace(
-    /(["'])@diagrams\/([^"']+)\1/gu,
-    (match, quote: string, name: string) => {
-      if (!available.has(name)) {
-        unresolved.push(`@diagrams/${name}`);
-        return match;
-      }
+  const resolved = outsideCode(contents, (text) =>
+    text.replace(
+      /(["'])@diagrams\/([^"']+)\1/gu,
+      (match, quote: string, name: string) => {
+        if (!available.has(name)) {
+          unresolved.push(`@diagrams/${name}`);
+          return match;
+        }
 
-      const target = posix.relative(fromDirectory, `components/${name}`);
-      return `${quote}${target.startsWith(".") ? target : `./${target}`}${quote}`;
-    },
+        const target = posix.relative(fromDirectory, `components/${name}`);
+        return `${quote}${target.startsWith(".") ? target : `./${target}`}${quote}`;
+      },
+    ),
+  );
+
+  return { contents: resolved, unresolved };
+};
+
+/**
+ * Rewrites `![alt](@diagrams/x.svg)` image references in authored pages to the
+ * bundle's rendered SVG, relative to the page file. Same rationale as
+ * `resolveComponentImports`: the page cannot know its own depth.
+ *
+ * With `emit` false the whole image is dropped, matching how generated pages
+ * omit their diagrams when no renderer is available. An unknown name is
+ * reported either way, so a typo still fails the check.
+ */
+export const resolveDiagramImages = (
+  contents: string,
+  fromSlug: string,
+  available: Set<string>,
+  emit = true,
+): { contents: string; unresolved: string[] } => {
+  const unresolved: string[] = [];
+
+  const resolved = outsideCode(contents, (text) =>
+    text.replace(
+      /!\[([^\]]*)\]\(@diagrams\/([^)\s]+?)\.svg\)(\n?)/gu,
+      (match, alt: string, name: string, newline: string) => {
+        if (!available.has(name)) {
+          unresolved.push(`@diagrams/${name}.svg`);
+          return match;
+        }
+        if (!emit) {
+          return "";
+        }
+        return `![${alt}](${assetPathFrom(fromSlug, `diagrams/${name}.svg`)})${newline}`;
+      },
+    ),
   );
 
   return { contents: resolved, unresolved };

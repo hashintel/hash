@@ -46,9 +46,19 @@ export interface AuthoredComponent {
   contents: string;
 }
 
+/** A hand-written D2 diagram, rendered to SVG alongside the generated ones. */
+export interface AuthoredDiagram {
+  /** Name pages reference, e.g. `cli-request-flow` for `@diagrams/cli-request-flow.svg`. */
+  name: string;
+  source: string;
+  /** Repo-relative source file, for error messages. */
+  sourceFile: string;
+}
+
 export interface AuthoredContentResult {
   pages: AuthoredPage[];
   components: AuthoredComponent[];
+  diagrams: AuthoredDiagram[];
   errors: { file: string; message: string }[];
 }
 
@@ -57,6 +67,9 @@ const componentExtensions = new Set([".tsx", ".ts", ".css"]);
 
 /** Directory under `content/` holding importable diagram components. */
 const componentDirectory = "components";
+
+/** Directory under `content/` holding hand-written `.d2` diagram sources. */
+const diagramDirectory = "diagrams";
 
 const extensionOf = (name: string): string => {
   const dot = name.lastIndexOf(".");
@@ -135,6 +148,7 @@ export const collectAuthoredContent = async (options: {
   const root = join(options.repoRoot, options.contentDirectory);
   const pages: AuthoredPage[] = [];
   const components: AuthoredComponent[] = [];
+  const diagrams: AuthoredDiagram[] = [];
   const errors: { file: string; message: string }[] = [];
 
   let entries: Dirent<string>[];
@@ -147,7 +161,7 @@ export const collectAuthoredContent = async (options: {
     if ((cause as NodeJS.ErrnoException).code !== "ENOENT") {
       throw cause;
     }
-    return { pages, components, errors };
+    return { pages, components, diagrams, errors };
   }
 
   for (const entry of entries) {
@@ -167,6 +181,21 @@ export const collectAuthoredContent = async (options: {
             .slice(componentDirectory.length + 1)
             .replace(/\.[^.]+$/u, ""),
           contents: await readFile(join(entry.parentPath, entry.name), "utf8"),
+        });
+      }
+      continue;
+    }
+
+    if (componentPath.startsWith(`${diagramDirectory}/`)) {
+      if (extensionOf(entry.name) === ".d2") {
+        diagrams.push({
+          name: componentPath
+            .slice(diagramDirectory.length + 1)
+            .replace(/\.d2$/u, ""),
+          source: await readFile(join(entry.parentPath, entry.name), "utf8"),
+          sourceFile: toPosix(
+            relative(options.repoRoot, join(entry.parentPath, entry.name)),
+          ),
         });
       }
       continue;
@@ -222,6 +251,9 @@ export const collectAuthoredContent = async (options: {
     pages: pages.sort((left, right) => left.slug.localeCompare(right.slug)),
     components: components.sort((left, right) =>
       left.path.localeCompare(right.path),
+    ),
+    diagrams: diagrams.sort((left, right) =>
+      left.name.localeCompare(right.name),
     ),
     errors,
   };

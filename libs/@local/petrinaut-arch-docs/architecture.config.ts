@@ -47,6 +47,13 @@ export const config: ArchitectureConfig = {
         "React editor built on the headless core: providers, canvas, panels, Monaco integration.",
       language: "typescript",
     },
+    {
+      name: "@hashintel/petrinaut-cli",
+      path: "libs/@hashintel/petrinaut-cli",
+      description:
+        "JSON-lines CLI serving one compiled model per process: run requests and optimization studies over stdio or a Unix socket. No HTTP, no React.",
+      language: "typescript",
+    },
   ],
 
   /**
@@ -77,6 +84,12 @@ export const config: ArchitectureConfig = {
       to: "ui",
       reason:
         "state providers must not depend on the components that render them, so the React layer stays testable without mounting the editor",
+    },
+    {
+      from: "core",
+      to: "cli",
+      reason:
+        "the engine must not depend on its packaging: the CLI is one consumer of the core, never the reverse",
     },
   ],
 

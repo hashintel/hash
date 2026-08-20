@@ -171,10 +171,9 @@ The CLI owns fixed-value injection, scenario compilation, initial-state
 materialization, simulation, and metric evaluation. It returns one finite
 number as `{ "objective": 42.5 }`.
 
-For an end-to-end local request, use the checked-in
-`libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-optimization.json`
-manifest. It defines the supply-chain `Profit` study used for an end-to-end
-optimization test.
+For an end-to-end local request, export an optimization manifest from the
+Petrinaut editor. The supply-chain `Profit` study used by the end-to-end tests
+lives in `libs/@hashintel/petrinaut-cli/test-fixtures/`.
 
 CLI startup is limited to 25 seconds and each protocol response to 240 seconds.
 Protocol lines are limited to 8 MiB. Python continuously drains CLI stderr once

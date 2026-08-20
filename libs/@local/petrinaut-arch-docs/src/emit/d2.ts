@@ -35,6 +35,7 @@ const styleClasses = [
   `  react: {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}`,
   `  ui: {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}`,
   `  petrinaut: {style.fill: "#fdeedc"; style.stroke: "#b5762f"}`,
+  `  cli: {style.fill: "#fbe3e8"; style.stroke: "#ad3a5b"}`,
   `  other: {style.fill: "#f2f2f2"; style.stroke: "#777777"}`,
   `  boundary: {style.stroke-dash: 4}`,
   `  focus: {style.stroke-width: 3; style.bold: true}`,
@@ -42,7 +43,7 @@ const styleClasses = [
   `}`,
 ].join("\n");
 
-const knownRoots = ["core", "react", "ui", "petrinaut"];
+const knownRoots = ["core", "react", "ui", "petrinaut", "cli"];
 
 const classFor = (id: string): string => {
   const root = rootSegment(id);

@@ -71,8 +71,11 @@ unchanged in Node and inside workers.
 that owns state and a UI layer that renders it — and the dependency only goes one
 way, which is enforced rather than merely intended.
 
-Three further packages are not yet covered by the generated model:
-`@hashintel/petrinaut-cli`, `@apps/petrinaut-website`, and `apps/petrinaut-opt`
-(the Python Optuna service).
+`@hashintel/petrinaut-cli` is the headless JSON-lines CLI that scripts and the
+Python optimizer service drive; its [usage manual](doc:cli/usage-manual) covers
+the transports, the protocol, and optimization studies.
+
+Two further packages are not yet covered by the generated model:
+`@apps/petrinaut-website` and `apps/petrinaut-opt` (the Python Optuna service).
 Adding them is a matter of declaring layers in their source; see
 [Declaring layers](doc:maintaining/declaring-layers).
