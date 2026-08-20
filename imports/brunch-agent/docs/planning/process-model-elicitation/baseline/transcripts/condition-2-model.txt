@@ -1,0 +1,11 @@
+Changeover      = 1.0 × changeover_hours
+Idle            = 0                        (invisible on paper; bites only via the clock)
+
+Meridian late   = 200 (step, on missing the truck) + 1.0 × hours_late
+Other late      = 0                     h ≤ 4
+                = 0.5 × (h − 4)         4 < h ≤ 24
+                = 10 + 4.0 × (h − 24)   h > 24
+Whole-week req. = ×2 on the above
+
+End-of-week     = expected changeover hours from each line's Friday state
+                  into Monday's likely first job

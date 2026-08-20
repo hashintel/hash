@@ -1,6 +1,6 @@
 # Findings — Yannis/Dora/Lu meeting, 2026-08-11
 
-Source: [transcript](../../../../inbox/yannis-dora-lu-transcript-2026-08-11.md). Prep doc:
+Source: [transcript](../../../inbox/yannis-dora-lu-transcript-2026-08-11.md). Prep doc:
 [expert-meeting-prep-2026-08-11](expert-meeting-prep-2026-08-11.md). Participants: Lu, Yannis
 Zachos (Petrinaut team), Dora Ma (PM, "Speaker 4").
 

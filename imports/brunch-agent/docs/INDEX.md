@@ -40,6 +40,7 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 | [research/voice-feasibility](planning/process-model-elicitation/research/voice-feasibility.md) | active | gisted in FE-1359 resolution | Voice verdict: bolt-on with constraints; T0–T3 tiers |
 | [research/elicitation-strategy-literature](planning/process-model-elicitation/research/elicitation-strategy-literature.md) | active | gisted in FE-1360 resolution | Literature synthesis, 9 sections, verification-labeled |
 | [research/re-interviewing-literature-worker-report](planning/process-model-elicitation/research/re-interviewing-literature-worker-report.md) | active | noted on FE-1361 | Verbatim instruments: 34-mistake taxonomy, question typologies, LLM-interviewer results |
+| [baseline/](planning/process-model-elicitation/baseline/) | active | gisted in FE-1361 resolution | Baseline-control experiment: protocol, situation pack, v0 prompt, runner, both transcripts, scored read-out |
 
 ## Decision records (`docs/adr/`)
 

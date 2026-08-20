@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+  <net id="coatings_sched_v1"
+       type="http://www.pnml.org/version-2009/grammar/ptnet">
+    <name><text>Coatings Plant Scheduling Model v1.0</text></name>
+    <toolspecific tool="spec" version="1.0">
+      <timeUnit>minutes</timeUnit>
+      <runLength>60480</runLength>
+      <warmup>10080</warmup>
+      <replications>30</replications>
+      <note>Colour sets, guards and policy layer defined in accompanying
+            spec sections 2-5. Parameter values in parameter file section 8.
+            UNVALIDATED assumptions listed on page one.</note>
+    </toolspecific>
+    <page id="top">
+
+      <!-- ============ CALENDAR SUBNET ============ -->
+      <place id="P_Clock">
+        <name><text>Calendar cycle</text></name>
+        <initialMarking><text>1</text></initialMarking>
+        <graphics><position x="40" y="40"/></graphics>
+      </place>
+      <place id="P_TechShiftOpen">
+        <name><text>Tech shift open 06:00-14:00</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="200" y="40"/></graphics>
+      </place>
+      <place id="P_LineOpen_L1">
+        <name><text>Line 1 open 06:00-22:00</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="360" y="40"/></graphics>
+      </place>
+      <place id="P_LineOpen_L2">
+        <name><text>Line 2 open 06:00-22:00</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="520" y="40"/></graphics>
+      </place>
+      <place id="P_LineOpen_L3">
+        <name><text>Line 3 open 06:00-14:00 (OT lever)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="680" y="40"/></graphics>
+      </place>
+      <place id="P_LabOpen">
+        <name><text>Lab open (A10 UNVALIDATED)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="840" y="40"/></graphics>
+      </place>
+
+      <transition id="T_ShiftStart">
+        <name><text>06:00 daily open</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <schedule>daily 06:00, weekdays</schedule>
+          <effect>mark P_TechShiftOpen, P_LineOpen_L1/2/3, P_LabOpen;
+                  move 2 tokens P_TechsOff -> P_Techs</effect>
+        </toolspecific>
+        <graphics><position x="120" y="120"/></graphics>
+      </transition>
+      <transition id="T_TechShiftEnd">
+        <name><text>14:00 tech shift end</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <schedule>daily 14:00</schedule>
+          <effect>unmark P_TechShiftOpen; free techs -> P_TechsOff</effect>
+        </toolspecific>
+        <graphics><position x="280" y="120"/></graphics>
+      </transition>
+      <transition id="T_Line3Close">
+        <name><text>14:00 Line 3 close</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <schedule>daily 14:00 unless OT lever set</schedule>
+        </toolspecific>
+        <graphics><position x="440" y="120"/></graphics>
+      </transition>
+      <transition id="T_Line12Close">
+        <name><text>22:00 Lines 1-2 close</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <schedule>daily 22:00</schedule>
+        </toolspecific>
+        <graphics><position x="600" y="120"/></graphics>
+      </transition>
+
+      <arc id="a01" source="P_Clock" target="T_ShiftStart"/>
+      <arc id="a02" source="T_ShiftStart" target="P_TechShiftOpen"/>
+      <arc id="a03" source="T_ShiftStart" target="P_LineOpen_L1"/>
+      <arc id="a04" source="T_ShiftStart" target="P_LineOpen_L2"/>
+      <arc id="a05" source="T_ShiftStart" target="P_LineOpen_L3"/>
+      <arc id="a06" source="T_ShiftStart" target="P_LabOpen"/>
+      <arc id="a07" source="P_TechShiftOpen" target="T_TechShiftEnd"/>
+      <arc id="a08" source="P_LineOpen_L3" target="T_Line3Close"/>
+      <arc id="a09" source="P_LineOpen_L1" target="T_Line12Close"/>
+      <arc id="a10" source="P_LineOpen_L2" target="T_Line12Close"/>
+      <arc id="a11" source="T_Line12Close" target="P_Clock"/>
+
+      <!-- ============ SHARED RESOURCES ============ -->
+      <place id="P_Techs">
+        <name><text>Techs on shift and free</text></name>
+        <initialMarking><text>2</text></initialMarking>
+        <toolspecific tool="spec" version="1.0">
+          <lever>count = 2 (baseline) | 3 (third-tech arm)</lever>
+        </toolspecific>
+        <graphics><position x="200" y="220"/></graphics>
+      </place>
+      <place id="P_TechsOff">
+        <name><text>Techs off shift</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="200" y="300"/></graphics>
+      </place>
+      <place id="P_Lab">
+        <name><text>Lab capacity</text></name>
+        <initialMarking><text>2</text></initialMarking>
+        <graphics><position x="840" y="220"/></graphics>
+      </place>
+      <place id="P_Demand">
+        <name><text>Order arrivals (ERP stream)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <toolspecific tool="spec" version="1.0">
+          <colour>ORDER = id,sku,qty,tier,dueTime</colour>
+          <source>ERP export, 4-6 weeks. A17 until loaded.</source>
+        </toolspecific>
+        <graphics><position x="40" y="380"/></graphics>
+      </place>
+      <place id="P_Ready">
+        <name><text>Released, awaiting assignment</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="180" y="380"/></graphics>
+      </place>
+
+      <transition id="T_Release">
+        <name><text>Release order</text></name>
+        <graphics><position x="110" y="380"/></graphics>
+      </transition>
+      <arc id="a12" source="P_Demand" target="T_Release"/>
+      <arc id="a13" source="T_Release" target="P_Ready"/>
+
+      <!-- ============ LINE 1 SUBNET ============ -->
+      <!-- duplicate this block for L2, L3; substitute ids and parameters -->
+
+      <place id="P_UpIdle_L1">
+        <name><text>L1 upstream idle (mix/mill/tint)</text></name>
+        <initialMarking><text>1</text></initialMarking>
+        <graphics><position x="300" y="460"/></graphics>
+      </place>
+      <place id="P_UpBusy_L1">
+        <name><text>L1 upstream in progress</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="380" y="460"/></graphics>
+      </place>
+      <place id="P_Tank_L1">
+        <name><text>L1 holding tank (DISPUTED CAPACITY - A15)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <toolspecific tool="spec" version="1.0">
+          <capacity>K1 = PLACEHOLDER</capacity>
+          <note>Flag 2. Do not run the inversion before Line 1 fill rate
+                is measured with a non-empty tank.</note>
+        </toolspecific>
+        <graphics><position x="460" y="460"/></graphics>
+      </place>
+      <place id="P_TankFree_L1">
+        <name><text>L1 tank free slots</text></name>
+        <initialMarking><text>K1</text></initialMarking>
+        <graphics><position x="460" y="540"/></graphics>
+      </place>
+      <place id="P_LineIdle_L1">
+        <name><text>L1 idle, carrying lastSKU/lastFamily/lastShade</text></name>
+        <initialMarking><text>1</text></initialMarking>
+        <toolspecific tool="spec" version="1.0">
+          <colour>LINESTATE = lineId,lastSKU,lastFamily,lastShade,up</colour>
+        </toolspecific>
+        <graphics><position x="560" y="460"/></graphics>
+      </place>
+      <place id="P_LineFilling_L1">
+        <name><text>L1 filling</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="660" y="460"/></graphics>
+      </place>
+      <place id="P_ChangeoverDue_L1">
+        <name><text>L1 changeover raised, not started</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="560" y="620"/></graphics>
+      </place>
+      <place id="P_Rinsing_L1">
+        <name><text>L1 rinsing (operator, no tech)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="480" y="700"/></graphics>
+      </place>
+      <place id="P_Washing_L1">
+        <name><text>L1 washing (tech, QA signoff)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="640" y="700"/></graphics>
+      </place>
+      <place id="P_Down_L1">
+        <name><text>L1 down</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="760" y="540"/></graphics>
+      </place>
+
+      <transition id="T_Assign_L1">
+        <name><text>Assign order to L1</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <guard>POLICY LAYER - spec section 5.
+                 Baseline: Meridian white -> L2 only; specialty -> L1;
+                 else prefer matching lastFamily; sort TIER then dueTime.</guard>
+        </toolspecific>
+        <graphics><position x="240" y="380"/></graphics>
+      </transition>
+      <transition id="T_UpStart_L1">
+        <name><text>L1 start upstream</text></name>
+        <graphics><position x="340" y="460"/></graphics>
+      </transition>
+      <transition id="T_UpEnd_L1">
+        <name><text>L1 end upstream</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <delay>upstream_time[family]; specialty slowest (thick, slow mill)</delay>
+        </toolspecific>
+        <graphics><position x="420" y="460"/></graphics>
+      </transition>
+      <transition id="T_StartFill_L1">
+        <name><text>L1 start fill</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <guard>P_LineOpen_L1 marked AND NOT P_Down_L1 AND batch in tank
+                 AND no changeover outstanding AND sku qualified on L1
+                 (specialty: L1 only - C11)</guard>
+        </toolspecific>
+        <graphics><position x="610" y="460"/></graphics>
+      </transition>
+      <transition id="T_EndFill_L1">
+        <name><text>L1 end fill</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <delay>qty / rate[sku][L1]  (A14 placeholder)</delay>
+          <effect>emit LOT to P_QAQueue, less ramp_scrap if run followed
+                  a family switch (A5, swept)</effect>
+        </toolspecific>
+        <graphics><position x="720" y="460"/></graphics>
+      </transition>
+      <transition id="T_RaiseChangeover_L1">
+        <name><text>L1 raise changeover</text
