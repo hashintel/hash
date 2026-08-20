@@ -18,27 +18,35 @@ packages/core                      LANE 3 (harness; substrate-free)
 ├─ storage.ts         ✓  binding-only storage support subpath; not part of the plugin SDK.
 ├─ affordance.ts      ✓  envelope schemas (free-text form)
 ├─ naming.ts          ✓  identity/tool-name policy (ADR-0001)
-├─ plugin.ts          ✓  plugin surface (thin today; grows ops at FE-1393)
+├─ plugin.ts          ✓  plugin identity + one declared proposal floor (FE-1392); grows the
+│                        full catalog/tables/ops contract at FE-1393
 ├─ testing/           ✓  test utilities subpath (mirrors Flue's own store-contract pattern)
-└─ ask-protocol.ts    ✓  substrate-free ask/suspension mechanism: affordance minting, guard,
-                         reply-binding signal, and instruction fragments (FE-1422). See N1.
+├─ ask-protocol.ts    ✓  substrate-free ask/suspension mechanism: affordance minting, guard,
+│                        reply-binding signal, and instruction fragments (FE-1422). See N1.
+└─ sweep-protocol.ts  ✓  substrate-free settlement/sweep mechanism: trigger/high-water facts,
+                         replayable settled range, repair continuation, quote-only extraction,
+                         and affordance-bound accounting advisories (FE-1392). See N1.
 
 packages/binding-flue              LANE 2 (translate harness ↔ Flue dialect)
 ├─ capabilities.ts    ✓  capability declaration — the binding's contract-of-record
 ├─ history-reader.ts  ✓  public SDK `history()` mapping over a host-injected URL resolver/fetch;
-│                        archive-on-read; no private canonical/update-chunk vocabulary.
+│                        non-writing peek + binding-private archive refresh; no private
+│                        canonical/update-chunk vocabulary.
 ├─ archive-capability.ts ✓ binding-private write capability; callers holding `CaptureStore`
 │                        cannot inject pre-classified archive entries.
-├─ index.ts           ✓  useElicitation is Flue HOOK WIRING (useTool, usePersistentState
-│                        updater, useAgentStart/useDelivery, useDataWriter, terminate:true,
-│                        ctx.append) and calls core's ask protocol (FE-1422).
+├─ capture-accounting.ts ✓ recovers active-session Flue ids from session-qualified archived
+│                        evidence pointers; contains no accounting policy.
+├─ index.ts           ✓  useElicitation is Flue HOOK WIRING (useTool, usePersistentState,
+│                        useAgentStart/useAgentFinish, useDataWriter, harness.prompt, durable
+│                        step.do, ctx.append) and calls core's ask/sweep protocols (FE-1422/92).
 │                        Never: elicitation semantics, store rules, prompt content.
 └─ local-capture-store.ts ✓ versioned storage-port implementation (capture store + session-log
                          archive, legacy provisioning, parse-on-read, tmp+rename, per-path
                          queue). One per deploy target per binding. Never: business rules.
 
 packages/plugin-gherkin            LANE 3 (target policy)
-└─ index.ts           ✓  {name, targetDomain} — honest thinness (smallest-honest bar).
+└─ index.ts           ✓  identity + one `statement-noted` ConditionStated verbatim floor;
+                         strict schema forbids parsed structure and silent hardening.
                          Never: harness mechanism, substrate imports, storage.
 
 apps/dev                           LANE 1 SHELL (consume Flue directly) + thin host
@@ -46,6 +54,8 @@ apps/dev                           LANE 1 SHELL (consume Flue directly) + thin h
 ├─ src/routes.ts      ✓  the one shared mount constant (doctrine per routing guide)
 ├─ src/agents/gherkin-elicitor.ts ✓ thin directive-marked host (§12.1); flat file OK until
 │                        the second agent (then per-agent folders, FE-1385)
+├─ src/elicitation-session.ts, target-document-path.ts ✓ host-owned session/document binding,
+│                        full mount URL/transport, and opaque local target path
 ├─ src/db.ts, db-path.ts ✓ convention entry + bun-testable path logic, deliberately split
 ├─ src/ui/chat.tsx    ~  hand-rolled client; tolerated ONLY until FE-1385 adopts @flue/react
 │                        (divergence risk 1). Never: growing new part-rendering features here.
@@ -57,13 +67,13 @@ docs/planning/**/baseline/run.ts   EXPERIMENT (JS-API workflow pattern, independ
 
 ## Specification — where what's next lands
 
-- **N1 (the structural repair, discharged by FE-1422).**
+- **N1 (the structural repair, discharged by FE-1422 + FE-1392).**
   `packages/core/src/ask-protocol.ts` now owns pure affordance minting, the one-live guard,
-  reply-binding signal payload, and instruction fragments; `useElicitation` is hooks-in,
-  protocol-calls-out wiring. The remaining future constraint still applies: FE-1392's
-  trigger/judgment logic goes to `core/src/sweep-protocol.ts` from day one, while the binding
-  contributes only `useAgentFinish`/`useSubagent`/durable-tool wiring. A future `binding-pi`
-  should reuse both protocol modules wholesale.
+  reply-binding signal payload, and instruction fragments. `packages/core/src/sweep-protocol.ts`
+  owns range selection, trigger/repair decisions (including reopening the loop guard after a
+  refusal), prompt content, and advisory semantics;
+  `useElicitation` contributes only Flue projection, hooks, persistent-state, private-prompt,
+  refresh, and durable-step wiring. A future `binding-pi` reuses both protocol modules.
 - **N2 (packs and cards).** Plugin-owned content lives in plugin packages, exported as
   `defineSkill`-compatible definitions; the app's agent module *registers* what the plugin
   exports. Never per-agent `skills/` dirs holding plugin content in the app — that puts lane-3
@@ -86,7 +96,8 @@ docs/planning/**/baseline/run.ts   EXPERIMENT (JS-API workflow pattern, independ
 - **N6 (plugin-assurance, when chartered).** `packages/plugin-assurance`, same shape as
   gherkin; its existence is FE-1387's contract-freeze instrument, not a feature.
 
-Ratification note: N1 was the only item that changed existing code and landed in FE-1422;
+Ratification note: N1 was the only item that changed existing code; FE-1422 extracted the ask
+protocol and FE-1392 continued the same repair for sweep mechanism.
 N2–N6 constrain future placement. ADR-0002 records the ratification. The boundary gates in
 `test/boundaries.test.ts` should learn the enforceable parts as their packages arrive (N2's
 "no plugin content in app skills dirs" and N5's "port implementations only in bindings" are

@@ -54,11 +54,11 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | --- | --- | --- | --- |
 | Shell separation: plugins→core only; core imports no substrate; binding imports both | §4, §12.2 | **discharged** | boundary gates (FE-1388/FE-1399, `test/boundaries.test.ts`); `workspacePackages()` derives groups from manifest; `plugin-gherkin` imports `@brunch/core` only |
 | Package topology | §12.2 | **partial** | `core` (+`testing` subpath), `binding-flue`, `plugin-gherkin`, `apps/dev` exist; `plugin-assurance` pending. Topology pin derives from §12.2 itself (FE-1400 `ef00201`) |
-| Core *is* the harness (mechanism lives in core) | §12.2, §14.2 | **discharged** | FE-1422 (`ln/fe-1422-ask-protocol`, 2026-08-18) moved affordance minting, the one-live guard, reply-binding signal, and instruction assembly into `packages/core/src/ask-protocol.ts`; `binding-flue` now supplies Flue hook wiring |
+| Core *is* the harness (mechanism lives in core) | §12.2, §14.2 | **discharged** | FE-1422 moved ask mechanism into `core/ask-protocol`; FE-1392 added range selection, trigger/repair decisions, quote-only prompting, and advisory semantics in `core/sweep-protocol`. `binding-flue` supplies substrate reading and orchestration wiring only |
 | Tool naming: identity not function | §12.3 | **superseded → discharged** | ADR-0001 replaces `bl_*` with `brunch_*`; `toolName('ask')` → `brunch_ask`; `elicit_*` ban enforced |
 | Valibot at every boundary | §12.4 | **discharged** | core + binding schemas throughout |
 | SDK surface (anchoring, retries, tracing, arbitraries, simulation harness) | §12.4 | **pending** | none built; owned by FE-1393 (FE-1383 slice), export-surface ratification gated on the contract freeze (FE-1387) |
-| Host-authored thin agent calling `useElicitation(plugin)` | §12.1 | **discharged** | `apps/dev/src/agents/gherkin-elicitor.ts` (FE-1389) |
+| Host-authored thin agent calling `useElicitation(plugin, session)` | §12.1 | **discharged** | `apps/dev/src/agents/gherkin-elicitor.ts`; FE-1392 adds host-owned immutable session/document and transport wiring |
 | Dev app's three roles (dev loop, target gallery, probe surface) | §12.5 | **partial** | dev loop only (FE-1389 chat UI); gallery and probe surface owned by FE-1385 (FE-1383 slice, backlog) |
 | CI smoke: no model key, no network, no flake | §12.5 | **discharged** | faux-provider integration test through real runtime + real Hono app (FE-1389); the smoke workflow itself never executed until FE-1400 `699ebe4` un-killed it (org policy vs. tag-pinned actions). Hermeticity probed, not assumed: explicit `start()` config leaves the dev db untouched across the run (Flue audit, 2026-08-17) |
 | Remote-parity constraints (pinned agentName, storage outside plugin, no dynamic agents) | §12.5 | **discharged** | pinned-identity gates (FE-1399/FE-1400); storage port in binding (FE-1390) |
@@ -81,13 +81,13 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 
 | Obligation | Spec | Status | Evidence |
 | --- | --- | --- | --- |
-| `project` + typed loss report; `validate`; optional `reconcile`; purity (C2) | §6.1 | **pending** | no plugin operations exist; `plugin-gherkin` is `{name, targetDomain}` only |
+| `project` + typed loss report; `validate`; optional `reconcile`; purity (C2) | §6.1 | **pending** | FE-1392 adds only the plugin-declared `statement-noted` verbatim proposal floor; operations remain FE-1393 |
 | Envelope-level refusals (provenance, XOR, single-hop supersession) | §6.2 | **discharged** | FE-1390 command surface |
-| Citations resolve to true user entries (store-level refusal) | §6.2 | **discharged at the store boundary** | FE-1391 resolves quote-only inputs against archived public messages, derives source from binding-classified entries, refuses injected non-user matches, and proves pointer retrieval through the real mounted router. FE-1392 still owns refresh-before-apply orchestration |
+| Citations resolve to true user entries | §6.2 | **discharged** | FE-1391 resolves quote-only inputs against archived public messages and refuses injected non-user matches. FE-1392's mounted oracle starts with a quote absent from the archive, permits only non-writing peeks, then proves the refresh adjacent to apply resolves and stores it |
 | Duplicate detection free for flat-record plugins | §6.2 | **partial** | near-identical advisory fires for string payloads only; a flat record gets none |
 | Issues typed + namespaced to producer (invariant 6) | §6.3 | **partial** | all seven types, origin variants present; producer self-declared, unauthenticated |
 | Advisories computed, ephemeral, never stored | §6.3 | **discharged** | returned in results, never in snapshot (FE-1390) |
-| Cadence as policy (§6.4) | §6.4 | **pending** | no orchestration exists |
+| Cadence as policy (§6.4) | §6.4 | **partial** | FE-1392 makes successful sweep the cadence boundary and keeps projection/validation read-time-only, leaving sweep outcome unchanged. Concrete operations remain absent until FE-1393 |
 
 ## Questioning UX (§7)
 
@@ -97,7 +97,7 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | Three baseline forms + questionnaire chaining | §7.2 | **partial** | free-text only, by design (FE-1389); remainder owned by FE-1395 |
 | Markdown floor: unknown forms still render | §7.2 | **contradicted** | dev UI `safeParse`s the whole concrete form and renders nothing on failure (`apps/dev/src/ui/chat.tsx`); needs envelope-only schema. Filed FE-1420 |
 | One live affordance; durable identity on tool output part; channel as live-render sugar (C6) | §7.3 | **discharged** | updater-form guard + `output` part + channel write (FE-1389); *retry hole*: a re-executed ask (at-least-once tools) is refused as a duplicate — FE-1420 |
-| No instruction interpolation; mechanical reply binding via signal; no echo token (C7) | §7.4 | **discharged** | render-invariant instructions; `affordance-reply-bound` signal (FE-1389); wake-wart gap retired for the observed path; §14.5's future-write-paths clause has its own ledger entry again (`wake-wart-write-paths`, owned by FE-1392) |
+| No instruction interpolation; mechanical reply binding via signal; no echo token (C7) | §7.4 | **discharged** | render-invariant instructions; `affordance-reply-bound` signal (FE-1389); FE-1392's high-water and repair-signal paths run through the mounted lifecycle without instruction-update wakes |
 | Transport outcomes `answered / redirected / unanswered` | §7.5 | **pending** | slot clears unconditionally; no outcome recorded. FE-1420 (abandoned asks) |
 | Interpretation render | §7.6 | **pending** | open in `test/open-gaps.ts` (FE-1394) |
 | Outbound rich / inbound string; UI filters on `purpose`/`display` | §7.7 | **discharged** | FE-1389 |
@@ -106,13 +106,13 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 
 | Obligation | Spec | Status | Evidence |
 | --- | --- | --- | --- |
-| Settlement trigger + judgment | §8.1 | **pending** | no `useAgentFinish`, no trigger; FE-1389 and FE-1390 touch only via the `'user-affordance-payload'` literal — two bridge ends, no middle span (rendering strain #3). Owned by FE-1392 |
+| Settlement trigger + judgment | §8.1 | **discharged** | FE-1392 computes the unswept true-user tail, guards pending asks and repeated frontiers, permits decline, and injects same-response settlement judgment through awaited `useAgentFinish` |
 | Harness-resolved anchoring at sweep application | §8.2 | **discharged** | FE-1391 resolves exact quotes against archived user entries at command application; no match returns a repair hint, multiple matches choose latest with an advisory, and injected non-user matches refuse |
-| Sweep idempotence, content-keyed | §8.3 | **discharged** (store side) | dedup key + three-way skip logic (FE-1390); no sweep producer exists |
+| Sweep idempotence, content-keyed | §8.3 | **discharged** | FE-1392's durable executor may replay the settled prefix; the mounted oracle proves a repeated proposal skips while an earlier omission applies. On refusal the successful high-water stays fixed while the loop guard reopens; the oracle stops once on the repair continuation and proves the range is offered again before succeeding |
 | Single-hop supersession over active heads; stale-session guard | §8.4, §9.2 | **discharged** | refusal carries `currentHeadIds` (FE-1390) |
 | Resolution records close conflicts; user-cited | §8.5 | **discharged** | FE-1419 (`ln/fe-1419-contract-closure`): conflicts open only over two-plus distinct active captures, referenced captures are pinned until a user-cited resolution frees them, resolutions compare by set equality, and every accepted command round-trips through the persisted parser. The one-reference and supersession-stranding holes are closed and red-proved. The tap-evidence adjudication (contradicted row below) remains open |
 | Resolution evidence may be a structured tap | §5.1/C4 vs. §8.5 | **contradicted** (silent adjudication) | `resolve-conflict` rejects `user-affordance-payload` evidence — a user who resolves a conflict by tapping a choice strip cannot close it. Defensible strict reading of §8.5; made without a record. FE-1395's body owns the other half of the same fact (tap-ness must be a transport fact); neither ticket references the other — seam item |
-| Unaccounted-ask advisory | §8.6 | **pending** | FE-1420 |
+| Unaccounted-ask advisory | §8.6 | **discharged for affordance-bound accounting** | FE-1392 derives ask → bound user entry → capture evidence at read time and returns unmatched asks only as sweep advisories. Free-text accounting and abandoned slots remain FE-1420; no envelope field was added |
 | Resume-time sweep reconciliation | §8.7 | **pending** | — |
 
 ## Sessions & durability (§9)
@@ -120,7 +120,7 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | Obligation | Spec | Status | Evidence |
 | --- | --- | --- | --- |
 | Durable target-document, transient sessions, sweep the only bridge | §9.1 | **partial** | store is session-independent (FE-1390); dev UI mints a fresh document per page load, so many-sessions-one-document is unreachable from any surface (deep-read FE-1389) |
-| Per-session state = evidence log, swept high-water mark, pending-affordance slot | §9.2 | **partial** | pending slot exists (FE-1389) and the durable session-log archive exists (FE-1391); swept high-water remains pending FE-1392 |
+| Per-session state = evidence log, swept high-water mark, pending-affordance slot | §9.2 | **discharged** | pending slot (FE-1389), durable session-log archive (FE-1391), and FE-1392's parse-validated high-water/last-judged bookkeeping under one `sweepHighWater` state slot |
 | Re-entry briefing; user-visible insertion notice | §9.3 | **pending** | signal carrier proved; no briefing; the one injected signal is filtered out of the UI. Owned by FE-1396 |
 | Only the true user's side is evidence; injected entries structurally non-user | §9.4 | **partial** | FE-1391 verifies role/purpose against the public projection, refuses signal/advisory text, and classifies affordance replies only from the harness-owned reply-binding signal. The kickoff remains a machine-authored `user` entry until FE-1420/FE-1385 move it to `useInitialData`; FE-1396 still owns briefing-never-evidence |
 | Completion derived, never a gate | §9.5 | **pending** | — |
@@ -133,15 +133,15 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | Obligation | Spec | Status | Evidence |
 | --- | --- | --- | --- |
 | Caps 1–5: tool, instructions, persistent state, affordance emission, suspend-for-reply (absorbed) | §10 | **discharged** | all five exercised against the real runtime (FE-1389 integration test) |
-| Caps 6–8, incl. entry-projection read | §10 | **partial — cap 8 discharged** | FE-1391's binding reader calls public SDK `history()` through a host-injected full URL resolver and fetch transport, maps only materialized public messages, and archives each read with identity-keyed versions. The walking skeleton pins the actual mounted-router custom-fetch path; FE-1392 owns the narrower refresh-before-sweep gap and cap 6/7 callers |
+| Caps 6–8, incl. entry-projection read | §10 | **discharged** | FE-1391 supplies the public reader/archive. FE-1392 uses direct structured `harness.prompt` inside a durable tool whose peek/extract/refresh/apply boundaries use `step.do`; the mounted runtime pins same-response finish-hook steering and refresh-before-apply |
 
 ## Plugins, packs, dev targets (§11, §13)
 
 | Obligation | Spec | Status | Evidence |
 | --- | --- | --- | --- |
-| Plugin ownership: packs, forms, validators | §11.1 | **partial** | `definePlugin` exists; `plugin-gherkin` declares name + targetDomain only; `targetDomain` reaches the prompt as a raw slug |
+| Plugin ownership: packs, forms, validators | §11.1 | **partial** | `plugin-gherkin` now owns its one FE-1392 proposal declaration/schema and target identity; packs, forms, validators, fold, and demand table remain FE-1393/FE-1387 work |
 | Pack form, Principle v2 | §11.2 | **pending** | — |
-| Smallest honest plugin as a standing bar | §11.3 | **partial** | held informally (FE-1389 kept the plugin surface at two fields); no test encodes it |
+| Smallest honest plugin as a standing bar | §11.3 | **partial** | `statement-noted.test.ts` and the core plugin fixture encode the one-type verbatim floor and reject undeclared parsed/pointer shape; the standing bar must grow with FE-1393's operations |
 | Generic strategy quiver | §11.5 | **pending** (ownership repaired) | was **orphaned** — named-not-designed, carried by no map — now FE-1406 (root issue) |
 | Portfolio + hybrid order: both packs authored before the pack interface freezes | §13 | **pending** | Owned by FE-1387 (FE-1383 slice, backlog), explicitly gated on FE-1357's second-target decision — the inter-map seam in miniature (see the seam section). Gherkin wiring ahead stays legal while FE-1387 holds the freeze |
 | Gherkin validation (parse validity, step lexicon) | §13.1 | **pending** | — |
@@ -158,7 +158,7 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | Five proof obligations; smallest-honest + second-binding tests | §14.2 | **partial** | smallest-honest holding; FE-1422 repaired the ask protocol's second-binding failure by moving portable mechanism to core. No literal second binding exists yet |
 | Gating tests (reprojection, minimal pairs, black-box authoring) | §14.3 | **pending** | — |
 | Generation-first fixtures, `arbitraryFromSchema`, `fc.commands` | §14.4 | **pending** | both new suites are hand-written examples; no fast-check anywhere. Owned by FE-1384 (FE-1383 slice, backlog) |
-| Open verification items tracked with homes | §14.5 | **discharged** (as a mechanism) | `test/open-gaps.ts` ledger: an entry's existence is the open claim, and the commit that lands the behavioural proof deletes the entry (FE-1419 commit 1, replacing the citation-token inference of FE-1400 `7ae3d45`). Note: the wake-wart entry's deletion (FE-1389) discharged the *observed* path only; the broader clause is re-entered as `wake-wart-write-paths` (FE-1392) |
+| Open verification items tracked with homes | §14.5 | **discharged** (as a mechanism) | `test/open-gaps.ts` deletes claims only with behavioral proof. FE-1392's mounted lifecycle closes `history-refresh-before-sweep` causally and exercises its high-water/repair writes without an instruction wake, closing `wake-wart-write-paths` |
 
 ## Vocabulary drift (CONTEXT.md as authority)
 
@@ -210,14 +210,13 @@ below lives on it — this list is the coordination record their overlap has lac
 ## Cross-map sequencing (living — re-evaluate when rows above change)
 
 Each map orders its own issues; nothing in Linear orders work across them. This section is
-that strategy, with its reasoning, revised as things land. As of **2026-08-18 (fourth
-evaluation, after FE-1405 and FE-1391 implementation)**. FE-1405 closed the interiors arc with
-ADR-0003 and the provisional plugin-contract spec. The accepted build opener also crossed its
-source and implementation gates without reordering: FE-1422 repaired ask placement, and FE-1391
-removed caller-supplied ranges, landed the public-history reader and durable archive, and cleared
-FE-1392's provenance dependency. FE-1386 remains a narrow behavioral compatibility pin because
-a genuine main-conversation compaction requires test-agent/model setup outside FE-1391's natural
-reader/archive path. FE-1393/1402/1403/1407 now hold named plugin-spec inputs.
+that strategy, with its reasoning, revised as things land. As of **2026-08-18 (fifth
+evaluation, after FE-1405's decision and FE-1392's implementation)**. The accepted opener has
+crossed both source and semantic gates without reordering: FE-1391 supplied verified provenance;
+FE-1405 authorized the three-register proposal architecture; and FE-1392 uses only its minimum
+verbatim proposal floor to close the first settlement path. FE-1386 remains a separate narrow
+behavioral compatibility pin because a genuine main-conversation compaction requires
+test-agent/model setup outside this path.
 Ledgers: [`remediation-plan-2026-08-17.md`](../legibility-sweep/remediation-plan-2026-08-17.md); placement rules:
 [`topology.md`](topology.md).
 
@@ -233,9 +232,9 @@ building** — every slice with a paraphrase-grade dependency runs its Ledger-B 
 
 | Issue | What | Why | How / weight |
 | --- | --- | --- | --- |
-| FE-1391 | Harness-resolved anchoring, durable entry projection, session-log archive | **Implemented locally.** Converts declared provenance into verified provenance and un-forecloses §9.6 | Public `history()` over host-injected URL/fetch; archive-owned ordinal pointers with Flue ids as provenance; distinct versions for evolving messages; versioned/migrating local target-document record; quote-only command input |
-| FE-1392 | Settlement trigger + sweep — the first captured statement | The missing middle span (rendering strain #3): after this the system genuinely elicits, and every store guarantee gets its first real caller | De-risked by documented affordances: `useAgentFinish` trigger seam, `useSubagent` (= capability 6), durable tool steps. Prerequisite: the ask-protocol extraction (FE-1422) lands first so sweep mechanism starts in core (`sweep-protocol`, topology N1); raw-doc check on `useSubagent` at start (B3); wake-wart ledger entry's assertion lands with its writes |
-| FE-1393 | Plugin SDK + gherkin plugin — first projected artifact + loss report | Makes the contract programmable-against; explicit non-goal: no freeze (two-targets rule) | Medium, after FE-1392; §12.4 SDK items live here. Absorbs at its design moments: origin minted by op context (A6), flat-record advisory (A7), plugin displayName (A9) |
+| FE-1391 | Harness-resolved anchoring, durable entry projection, session-log archive | **Implemented.** Converts declared provenance into verified provenance and un-forecloses §9.6 | Public `history()` over host-injected URL/fetch; archive-owned ordinal pointers with Flue ids as provenance; distinct versions for evolving messages; versioned/migrating local target-document record; quote-only command input |
+| FE-1392 | Settlement trigger + sweep — the first captured statement | **Implemented.** Closes the missing middle span: settlement judgment now reaches the capture store without weakening provenance or inventing richer payload meaning | `useAgentFinish` steering; direct structured `harness.prompt`; durable replayable tool steps; archive refresh adjacent to apply; plugin-declared `statement-noted` at FE-1405's verbatim grade floor; refusal-safe loop reopening; session-qualified, derived affordance accounting |
+| FE-1393 | Plugin SDK + gherkin plugin — first projected artifact + loss report | **Dependency-clear; not started.** Makes the contract programmable-against; explicit non-goal: no freeze (two-targets rule) | Medium, after FE-1392 and FE-1405; §12.4 SDK items and the richer proposal catalog live here. Absorbs at its design moments: origin minted by op context (A6), flat-record advisory (A7), plugin displayName (A9) |
 | FE-1394 | Conflict, supersession, interpretation render | Exercises the correction machinery in UX; FE-1419's conflict fixes are its substrate; closes the §7.6 gap | Needs FE-1392's captures to mean anything |
 | FE-1395 | Full affordance set + absence strip | Tap-ness as a *transport fact* — the same evidence-grade question FE-1390 adjudicated silently (§8.5 contradicted row); markdown-floor consumer of FE-1420's fix | Independent of the sweep line; can parallelize |
 | FE-1396 | Re-entry briefing, resume, restart durability | Makes many-sessions-one-document real (§9.1); briefing-never-evidence is a provenance invariant | Consumes FE-1391's archive |
@@ -248,7 +247,7 @@ building** — every slice with a paraphrase-grade dependency runs its Ledger-B 
 
 | Issue | What | Why | How / weight |
 | --- | --- | --- | --- |
-| FE-1405 | Payload interiors — field-level capture schemas | Was the epistemic bottleneck: blocked FE-1402/03 → FE-1404 → plugin spec | **Closed 2026-08-18**: ADR-0003 (three registers, pure fold) + provisional plugin-contract spec; ratification pass = FE-1431 |
+| FE-1405 | Payload interiors — field-level capture schemas | **Completed.** Establishes evidence-bearing semantic proposals → typed conceptual IR → deterministic projection, including the verbatim floor FE-1392 consumes | ADR-0003 plus `plugin-contract-spec.md`; richer domain proposal interiors remain outside FE-1392 and enter through FE-1393 |
 | FE-1431 | Plugin-contract spec issue — "a domain is two schemas and two tables" | Carries the settled-provisional spec and its ratification condition (a full FE-1397-style worked pass across three plugin targets removes the marker) | Desk/HITL; feeds FE-1387's freeze decision; consumers FE-1392/93/1402/03/07 |
 | FE-1402 | Completion adjudication + retro-rehearsal | Layer-3 machinery for the stopping problem (deferral-without-deposit) | Desk/HITL; unblocked — computes over the spec's slot states; co-owns the support-closure strain (spec §Open strains) |
 | FE-1403 | Guidance assembly — cards typed by mechanism | Compiles the audit's techniques; activation probes first (penciled 4); verdicts recorded per substrate version | Desk; unblocked — the spec's `firesWhen`/`technique` annotations are its hook points; co-owns strain-7 mitigations. Cards likely compile to skills (`activate_skill` disclosure = the card economy); content must stay assertable outside the Vite graph (B4 probe decides how) |
@@ -276,51 +275,37 @@ its checklist and FE-1396 blocking; Lu ratified them as requirements.
 
 ### Strategic orderings
 
-**Uncertainty-first** — retire the biggest unknowns per unit work. FE-1391's B1/B2 read has
-already retired the substrate half: provenance can use the public projection, and compaction
-does not prune it. FE-1405 still owns the deepest semantic unknown (what captures contain),
-while FE-1391 now performs implementation rather than discovery. FE-1386's residual pin can
-ride FE-1391 rather than interrupt the spine.
-`[1422/B1/B2 complete] → 1405 ∥ 1391(+1386 pin) → 1392 → 1393 → gate-dependent rest`
+**Uncertainty-first** — retire the biggest unknowns per unit work. FE-1391 retired the substrate
+half; FE-1405 resolved the semantic architecture; FE-1392 joined them at the smallest authorized
+verbatim floor. FE-1386's residual real-compaction pin remains separate from the spine.
+`[1422/B1/B2/1391/1405/1392 complete] → 1393 → gate-dependent rest`
 
-**Convergence-first** — force the maps' designs to collide while both are cheap to change.
-Build the middle span (FE-1392) in lockstep with the interiors (FE-1405): envelope facts and
-payload designs meet in a working capture path within days, and every mismatch (status arity,
-tap evidence, granularity) surfaces as a concrete refusal instead of a spec debate. Press the
-FE-1387 target decision at the 18 Aug gate rather than after it. Cost: FE-1391's provenance
-verification trails the sweep it should be checking, briefly.
-`1405 ∥ 1392 → 1391 → 1393 → 1387 decision → 1402/03 → plugin spec ∥ 1394/95`
+**Convergence-first** — the chosen path has now forced the maps' designs to collide while both
+were cheap to change. FE-1405's proposal architecture and FE-1391's verified provenance meet in
+FE-1392's working verbatim capture path; status arity and payload grade are explicit rather than
+hidden in a local workaround. The collision clears FE-1393 without freezing the contract.
+`1405 ✓ ∥ 1391 ✓ → 1392 ✓ → 1393 → 1387 decision → 1402/03 → plugin spec ∥ 1394/95`
 
-**Graduation-first** — maximize demoable increments. FE-1394 + FE-1395 complete the visible
-conversation surface, FE-1385 makes the machinery showable, and stakeholders see motion
-weekly. Cost: the contract freezes late, FE-1405's unknowns compound toward September, and the
-demo risks being a polished skeleton — the baseline already proved conversation alone doesn't
-differentiate.
-`1394 ∥ 1395 → 1385 → 1392 → 1391 → 1405 → …`
+**Graduation-first** — this alternative was not taken. Starting with FE-1394/95 and FE-1385
+would have maximized visible motion while leaving provenance and payload semantics unresolved,
+risking a polished skeleton. FE-1405/1391/1392 now remove that reason to lead with graduation;
+those UI edges remain downstream of FE-1393.
+`rejected opener: 1394 ∥ 1395 → 1385; current spine: 1393 → 1394/95/1385`
 
-**Recommendation: convergence-first, opened uncertainty-first — survives the fourth
-evaluation, with FE-1405 closed and FE-1392 now dependency-clear.** The agent-built spine is
-**ask-protocol extraction (FE-1422, complete) → B1/B2 source read
-(complete) → FE-1391 (implemented locally) → FE-1392**. The source read removed the open-ended
-FE-1386 spike from the critical path; FE-1391 showed its residual real-compaction pin is not a
-narrow natural reader/archive test, so it remains a separate compatibility check. The
-convergence collision (envelope
-facts × payload interiors in a working capture path) still happens the moment FE-1405 and
-FE-1392 both exist; take the 18 Aug outputs directly into the FE-1387 target question. On that
-decision my recommendation to the team side is unchanged: the process-model plugin as second
-target (the assurance tradeoff partly PM's to weigh). Graduation work (FE-1394/95, FE-1385 with
-the React adoption) stays behind the spine; FE-1420's cheap half (findings 1+3) can land any
-idle moment. The pre-remote gates are now **FE-1423** (filed 2026-08-17; Lu ratified the four
-gates as requirements, not recommendations) — and a demo-deployment conversation with infra is
-already underway, which promotes FE-1423 from "exists before the conversation" to
-schedule-relevant: its auth gate is the long pole, and the deploy-target choice feeds N5's
-storage-port question.
-`FE-1422 ✓ → B1/B2 ✓ → 1391 ✓ → 1392  ∥  1405 ✓ → 18 Aug gate → 1387 decision → 1402/03 → plugin spec ∥ 1393 → 1394/95/1385`.
+**Recommendation: convergence-first, opened uncertainty-first — survives the fifth
+evaluation, and FE-1393 is now the next dependency-clear spine edge.** The completed sequence is
+**ask-protocol extraction (FE-1422) → B1/B2 source read → FE-1391 → FE-1405 decision →
+FE-1392**. FE-1392's working capture path makes the intended collision explicit without
+smuggling a domain IR into the envelope: one plugin-declared `statement-noted` proposal stores
+only a cited verbatim statement, while the richer catalog stays with FE-1393. The source read
+keeps FE-1386's residual real-compaction pin off the critical path as a separate compatibility
+check. Graduation work (FE-1394/95, FE-1385 with the React adoption) remains behind the spine;
+FE-1420's cheap half can land independently. The pre-remote gates remain FE-1423.
+`FE-1422 ✓ → B1/B2 ✓ → 1391 ✓ → 1405 ✓ → 1392 ✓ → 1393 → 1387 decision / 1402/03 → plugin spec → 1394/95/1385`.
 The FE-1386 behavioral pin remains off the critical path.
 
 **Watch items**: gherkin wiring ahead of the freeze stays legal only while FE-1387 holds; the
-§14.5 wake-wart residue clause is back in the ledger (`wake-wart-write-paths`, FE-1392 owns its
-closure); the two Flue runtime semantics the binding relies on turned out to be documented in
+two Flue runtime semantics the binding relies on turned out to be documented in
 the agent-hooks guide (cheatsheet correction, 2026-08-17 — the audit had sampled only the
 agent-api reference), though the walking-skeleton pins stay and re-verify at any Flue upgrade,
 since the changelog shows migration-free breaking churn; the same upgrade rule now covers the

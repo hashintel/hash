@@ -25,9 +25,10 @@ export {
   type ReplyBindingSignalPayload,
 } from './ask-protocol.ts';
 export { OPERATIONS, PRODUCT_NAME, toolName, toolPrefix, type Operation } from './naming.ts';
-export { definePlugin, PluginDescriptor, type Plugin } from './plugin.ts';
+export { definePlugin, PluginDescriptor, type Plugin, type PluginProposalType } from './plugin.ts';
 export {
   ABSENCE_STATES,
+  CaptureInputProposalSchema,
   applyCaptureStoreCommand,
   captureDedupKey,
   createEmptyCaptureStoreSnapshot,
@@ -68,3 +69,29 @@ export {
   type MultipleEvidenceMatchesAdvisory,
   type SessionEntryKind,
 } from './session-log.ts';
+export {
+  advanceSweepHighWater,
+  buildSettlementCheckSignal,
+  buildSweepExtractionPrompt,
+  buildSweepRepairSignal,
+  computeUnaccountedAskAdvisories,
+  createSweepExtractionResultSchema,
+  createInitialSweepState,
+  decideSettlementTrigger,
+  parseSweepState,
+  pendingSweepRepair,
+  reopenSweepAfterRefusal,
+  settlementProtocolInstructionFragments,
+  sweepableRange,
+  unsweptTail,
+  type SettlementCheckSignal,
+  type SettlementTriggerDecision,
+  type SweepAffordance,
+  type SweepExtraction,
+  type SweepRepairSignal,
+  type SweepRefusalFact,
+  type SweepResultFact,
+  type SweepSessionEntry,
+  type SweepState,
+  type UnaccountedAskAdvisory,
+} from './sweep-protocol.ts';

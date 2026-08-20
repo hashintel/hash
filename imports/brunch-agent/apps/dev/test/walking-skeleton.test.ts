@@ -27,9 +27,17 @@ test('the dev app suspends for free-text replies without instruction wakes', asy
     affordanceReplyClassified: true,
     archivePointerResolved: true,
     boundReplyReachedModel: true,
+    captureStoredThroughSweep: true,
+    capturesStayAtVerbatimFloor: true,
     durableOutput: true,
     markdownFloor: true,
     noInstructionWake: true,
+    pendingAskSuppressedSettlement: true,
+    quoteAbsentFromPreviousArchive: true,
+    refusalStopReopenedRange: true,
+    replayRepairedOmission: true,
     secondAskRejected: true,
+    settlementNudgedAtEachFrontier: true,
+    unaccountedAskAdvisory: true,
   });
 });

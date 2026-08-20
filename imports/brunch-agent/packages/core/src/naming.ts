@@ -29,11 +29,10 @@ export const PRODUCT_NAME = 'brunch';
  * The abstract operations core names. The binding renders each into its
  * substrate's tool namespace; nothing here knows Flue's dialect.
  *
- * Milestone one grows this list one slice at a time — `ask` is the tracer that
- * proves the seam (its turn-suspension behaviour lands with the walking
- * skeleton, not here).
+ * Milestone one grows this list one slice at a time. `ask` proves suspension;
+ * `sweep` proves the first durable session-to-document transition.
  */
-export const OPERATIONS = ['ask'] as const;
+export const OPERATIONS = ['ask', 'sweep'] as const;
 
 export type Operation = (typeof OPERATIONS)[number];
 

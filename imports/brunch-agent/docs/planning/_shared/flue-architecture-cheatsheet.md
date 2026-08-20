@@ -83,10 +83,11 @@ that map directly onto roadmap items:
 - *FE-1392 (settlement trigger)*: `useAgentFinish`/`useResponseFinish` are the documented
   seam. At-least-once hook execution is exactly why the store's content-keyed sweep dedup
   exists — the two designs interlock; say so in the ticket.
-- *Capability 6 (private model call)*: **`useSubagent` is the affordance.** A sweep/extraction
-  delegate gets a fresh frame, its own (cheaper) model, and returns only its final message —
-  capture extraction never pollutes the interview conversation. Strong candidate shape for
-  FE-1392's sweep executor; do not hand-roll a second model client inside the binding.
+- *Capability 6 (private model call)* has two non-interchangeable affordances. A harness tool can
+  call `harness.prompt(..., { result })` deterministically for private structured scratch work.
+  `useSubagent` instead declares a model-visible `task` delegate with a fresh frame and optional
+  model override; it does not return a directly callable delegate. FE-1392 uses the first shape
+  for deterministic extraction and does not hand-roll a second model client.
 - *FE-1386 (compaction pin)*: the source read retired the discovery spike; `useModel`'s
   `compaction` options are the knobs for the one residual behavioral boundary-crossing test.
 
@@ -105,6 +106,9 @@ that map directly onto roadmap items:
 - **Durable tools**: `step.do(name, fn)` — "exactly-once-recorded, at-least-once-executed";
   completed steps replay their recorded values on recovery. Ordinary tools are *not*
   re-executed after crashes; they settle as unknown-outcome errors.
+- **Harness prompts**: a `harness: true` tool receives `harness.prompt(prompt, { result, signal })`
+  for a private structured model call. This is a direct call; `useSubagent` is separately
+  model-driven through the reserved `task` tool.
 - Reserved names: `read`, `write`, `edit`, `bash`, `grep`, `glob`, `task`, `activate_skill`,
   `read_skill_resource`.
 - **Skills**: markdown expertise loaded on demand. Mounted skills appear as name+description
@@ -285,8 +289,9 @@ between the second and third:
    would be a parallel SDK — lens-2 debt at the API level.
 2. **Translate in the binding (current capabilities list — correct).** The agent-loop
    capabilities: tool registration, instruction assembly, persistent state, affordance
-   emission, suspend-for-reply, private model call (→ `useSubagent`), entry-projection read,
-   durable store hosting. The binding's job stays translation of harness semantics into hook
+   emission, suspend-for-reply, private model call (`harness.prompt` for deterministic structured
+   work; `useSubagent` for model-driven delegation), entry-projection read, durable store hosting.
+   The binding's job stays translation of harness semantics into hook
    dialect — and the hooks guide now documents the two semantics we depend on.
 3. **Own outright (harness + storage port).** Elicitation semantics and the capture store:
    envelope invariants, settlement judgment, sweep idempotence, provenance verification,
@@ -297,9 +302,9 @@ between the second and third:
 1. **The parallel chat client.** `chat.tsx` grows feature-by-feature into a hand-rolled
    `useFlueAgent`. Adopt the React package at FE-1385/demo-shell; route FE-1420's markdown
    floor through `dynamic-tool` parts.
-2. **Sweep machinery ignoring `useSubagent` + durable tools.** FE-1392 built as in-conversation
-   prompting with a bare store write would hand-roll both the private model call and
-   crash-safe side effects that `task` delegation and `step.do` provide.
+2. **Sweep machinery ignoring private harness prompts + durable tools.** FE-1392 built as
+   in-conversation prompting with a bare store write would leak extraction into the interview and
+   discard the crash-safe side-effect boundaries that `harness.prompt` and `step.do` provide.
 3. **Cards as a bespoke loader.** FE-1403/FE-1406 inventing pack-content delivery when
    skills' `activate_skill` progressive disclosure is the documented mechanism with the right
    economics.

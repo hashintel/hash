@@ -51,22 +51,6 @@ export const OPEN_GAPS: readonly OpenGap[] = [
       'A test under packages/binding-flue/test driving one genuine compaction, deep-comparing complete public messages and settlements aside from offset/incarnation, verifying persistent state, and asserting an FE-1391 archive pointer still resolves.',
   },
   {
-    id: 'history-refresh-before-sweep',
-    spec: '§8.2, §14.5',
-    ticket: 'FE-1392',
-    gap: 'FE-1391 proves the public reader and archive against the real mounted router, but no settlement caller yet refreshes that archive immediately before applying quote-bearing sweep output.',
-    proof:
-      'FE-1392’s real lifecycle test must read history through the binding immediately before store application and prove that a quote absent from the prior archive resolves from the refreshed projection without in-hook transport or reentrancy failure.',
-  },
-  {
-    id: 'wake-wart-write-paths',
-    spec: '§7.4, §14.5',
-    ticket: 'FE-1392',
-    gap: 'FE-1389 proved the one existing instruction-state write path cannot re-trigger advisory wakes; §14.5 covers every future write path, and the settlement trigger will add the next ones unchecked.',
-    proof:
-      'The settlement trigger (and any further instruction-state write path) landing with its own no-advisory-wake assertion over a real runtime history.',
-  },
-  {
     id: 'interpretation-render-plugin-seam',
     spec: '§7.6, §14.5',
     ticket: 'FE-1394',

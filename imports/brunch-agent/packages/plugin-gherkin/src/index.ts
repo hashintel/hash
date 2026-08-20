@@ -12,8 +12,41 @@
  */
 
 import { definePlugin } from '@brunch/core';
+import * as v from 'valibot';
+
+const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
+const evidenceQuote = v.strictObject({ excerpt: nonEmptyString });
+
+const StatementNotedProposal = v.pipe(
+  v.strictObject({
+    evidence: v.pipe(v.array(evidenceQuote), v.minLength(1)),
+    epistemicStatus: v.literal('explicit'),
+    confidence: v.picklist(['firm', 'hedged', 'speculative']),
+    content: v.strictObject({
+      value: v.strictObject({
+        type: v.literal('statement-noted'),
+        interior: v.strictObject({ verbatim: nonEmptyString }),
+      }),
+    }),
+  }),
+  v.check(
+    (proposal) =>
+      proposal.evidence.some(
+        (evidence) => evidence.excerpt === proposal.content.value.interior.verbatim,
+      ),
+    'The verbatim interior must equal one cited user quote.',
+  ),
+);
 
 export const gherkin = definePlugin({
   name: 'plugin-gherkin',
   targetDomain: 'gherkin',
+  proposalCatalog: [
+    {
+      name: 'statement-noted',
+      description:
+        'Record one condition-shaped statement at the verbatim grade floor, with no parsed structure.',
+      schema: StatementNotedProposal,
+    },
+  ],
 });

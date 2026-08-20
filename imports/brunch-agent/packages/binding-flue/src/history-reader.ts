@@ -1,4 +1,12 @@
-import type { CaptureStore, JsonValue, SessionEntryKind } from '@brunch/core';
+import {
+  toolName,
+  type CaptureStore,
+  type JsonValue,
+  type SessionEntryKind,
+  type SweepAffordance,
+  type SweepResultFact,
+  type SweepSessionEntry,
+} from '@brunch/core';
 import type { SessionLogRead } from '@brunch/core/storage';
 import {
   createFlueClient,
@@ -16,6 +24,9 @@ export interface FlueHistoryReaderOptions {
 }
 
 export interface FlueHistoryReader {
+  /** Read the live public projection without mutating the target archive. */
+  peek(sessionId: string): Promise<FlueConversationSnapshot>;
+  /** Refresh the binding-private archive from the live public projection. */
   read(sessionId: string): Promise<FlueConversationSnapshot>;
 }
 
@@ -28,27 +39,64 @@ const messageText = (message: FlueConversationMessage): string =>
     .map((part) => part.text)
     .join('');
 
-const affordanceIdFrom = (value: unknown): string | undefined => {
-  if (typeof value !== 'object' || value === null || !('id' in value)) return undefined;
-  return typeof value.id === 'string' && value.id.length > 0 ? value.id : undefined;
+const affordanceFrom = (value: unknown): SweepAffordance | undefined => {
+  if (typeof value !== 'object' || value === null || !('id' in value) || !('markdown' in value)) {
+    return undefined;
+  }
+  return typeof value.id === 'string' &&
+    value.id.length > 0 &&
+    typeof value.markdown === 'string' &&
+    value.markdown.length > 0
+    ? { id: value.id, markdown: value.markdown }
+    : undefined;
 };
 
-const classifyMessages = (
-  messages: readonly FlueConversationMessage[],
-): readonly SessionLogRead['entries'][number][] => {
-  const emittedAffordanceIds = new Set<string>();
-  for (const message of messages) {
-    for (const part of message.parts) {
-      const id =
-        part.type === 'data-affordance'
-          ? affordanceIdFrom(part.data)
-          : part.type === 'dynamic-tool' && part.state === 'output-available'
-            ? affordanceIdFrom(part.output)
-            : undefined;
-      if (id) emittedAffordanceIds.add(id);
-    }
+const sweepResultFrom = (value: unknown): SweepResultFact | undefined => {
+  if (typeof value !== 'object' || value === null || !('status' in value)) return undefined;
+  if (value.status === 'applied' || value.status === 'no-settled-range') {
+    return { status: value.status };
   }
-  const affordanceReplyIds = new Set<string>();
+  if (
+    value.status !== 'refused' ||
+    !('refusal' in value) ||
+    typeof value.refusal !== 'object' ||
+    value.refusal === null ||
+    !('code' in value.refusal) ||
+    typeof value.refusal.code !== 'string' ||
+    !('message' in value.refusal) ||
+    typeof value.refusal.message !== 'string'
+  ) {
+    return undefined;
+  }
+  return {
+    status: 'refused',
+    refusal: { code: value.refusal.code, message: value.refusal.message },
+  };
+};
+
+export const projectFlueHistoryForSweep = (
+  snapshot: Pick<FlueConversationSnapshot, 'messages'>,
+): readonly SweepSessionEntry[] => {
+  const { messages } = snapshot;
+  const emittedAffordanceIds = new Set<string>();
+  const affordancesByMessageId = new Map<string, SweepAffordance[]>();
+  for (const message of messages) {
+    const affordances: SweepAffordance[] = [];
+    for (const part of message.parts) {
+      const affordance =
+        part.type === 'data-affordance'
+          ? affordanceFrom(part.data)
+          : part.type === 'dynamic-tool' && part.state === 'output-available'
+            ? affordanceFrom(part.output)
+            : undefined;
+      if (affordance && !emittedAffordanceIds.has(affordance.id)) {
+        emittedAffordanceIds.add(affordance.id);
+        affordances.push(affordance);
+      }
+    }
+    if (affordances.length > 0) affordancesByMessageId.set(message.id, affordances);
+  }
+  const replyAffordanceByMessageId = new Map<string, string>();
   for (let index = 1; index < messages.length; index += 1) {
     const message = messages[index]!;
     const previous = messages[index - 1]!;
@@ -62,43 +110,75 @@ const classifyMessages = (
       previous.role === 'user' &&
       previous.purpose === 'user'
     ) {
-      affordanceReplyIds.add(previous.id);
+      replyAffordanceByMessageId.set(previous.id, affordanceId);
     }
   }
 
   return messages.map((message) => {
     let kind: SessionEntryKind;
     if (message.role === 'user' && message.purpose === 'user') {
-      kind = affordanceReplyIds.has(message.id) ? 'user-affordance-payload' : 'user';
+      kind = replyAffordanceByMessageId.has(message.id) ? 'user-affordance-payload' : 'user';
     } else if (message.role === 'assistant' && message.purpose === 'assistant') {
       kind = 'assistant';
     } else {
       kind = 'non-user';
     }
+    const affordances = affordancesByMessageId.get(message.id);
+    const replyToAffordanceId = replyAffordanceByMessageId.get(message.id);
+    const sweepResult = message.parts.reduce<SweepResultFact | undefined>((latest, part) => {
+      if (
+        part.type !== 'dynamic-tool' ||
+        part.toolName !== toolName('sweep') ||
+        part.state !== 'output-available'
+      ) {
+        return latest;
+      }
+      return sweepResultFrom(part.output) ?? latest;
+    }, undefined);
     return {
-      substrateEntryId: message.id,
+      id: message.id,
       kind,
       text: messageText(message),
-      materialized: materializedJson(message),
+      ...(affordances === undefined ? {} : { affordances }),
+      ...(replyToAffordanceId === undefined ? {} : { replyToAffordanceId }),
+      ...(sweepResult === undefined ? {} : { sweepResult }),
+      ...(message.signal?.tagName === 'sweep-repair' ? { sweepRepairSignal: true as const } : {}),
     };
   });
 };
 
-export const createFlueHistoryReader = (options: FlueHistoryReaderOptions): FlueHistoryReader => ({
-  async read(sessionId) {
+const classifyMessages = (
+  snapshot: FlueConversationSnapshot,
+): readonly SessionLogRead['entries'][number][] =>
+  projectFlueHistoryForSweep(snapshot).map((entry, index) => ({
+    substrateEntryId: entry.id,
+    kind: entry.kind,
+    text: entry.text,
+    materialized: materializedJson(snapshot.messages[index]!),
+  }));
+
+export const createFlueHistoryReader = (options: FlueHistoryReaderOptions): FlueHistoryReader => {
+  const peek = async (sessionId: string): Promise<FlueConversationSnapshot> => {
     const client = createFlueClient({
       url: options.resolveConversationUrl(sessionId),
       fetch: options.transport,
     });
-    const snapshot = await client.history();
-    await archiveThroughBinding(options.archive, {
-      sessionId,
-      substrateConversationId: snapshot.conversationId,
-      offset: snapshot.offset,
-      ...(snapshot.incarnation === undefined ? {} : { incarnation: snapshot.incarnation }),
-      entries: classifyMessages(snapshot.messages),
-      settlements: snapshot.settlements.map(materializedJson),
-    });
-    return snapshot;
-  },
-});
+    return client.history();
+  };
+
+  return {
+    peek,
+    async read(sessionId) {
+      const snapshot = await peek(sessionId);
+      await archiveThroughBinding(options.archive, {
+        sessionId,
+        substrateConversationId: snapshot.conversationId,
+        offset: snapshot.offset,
+        ...(snapshot.incarnation === undefined ? {} : { incarnation: snapshot.incarnation }),
+        entries: classifyMessages(snapshot),
+        settlements: snapshot.settlements.map(materializedJson),
+      });
+      return snapshot;
+    },
+  };
+};
