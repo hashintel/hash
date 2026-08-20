@@ -80,15 +80,6 @@ export const KNOWN_GAPS: readonly KnownGap[] = [
     closed: () => closedByTest('packages/binding-flue/test', 'compaction-vs-durable-history'),
   },
   {
-    id: 'wake-wart-residue',
-    spec: '§7.4, §14.5',
-    ticket: 'FE-1389',
-    gap: 'The no-interpolation ruling removes the cause of the wake wart observed in ticket 10, but no other instruction-state write path has been checked for re-triggering advisory wakes.',
-    closes:
-      'The walking skeleton (under apps/dev/test) asserting no "instructions updated" advisory wake occurs per ask — citing `closes-gap: <this id>`.',
-    closed: () => closedByTest('apps/dev/test', 'wake-wart-residue'),
-  },
-  {
     id: 'history-projection-paging',
     spec: '§14.5',
     ticket: 'FE-1391',

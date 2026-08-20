@@ -12,14 +12,15 @@ import { createAgentRouter } from '@flue/runtime/routing';
 import { Hono } from 'hono';
 import { GherkinElicitor } from './agents/gherkin-elicitor.ts';
 import { assetHandler } from './assets.ts';
+import { GHERKIN_AGENT_ROUTE } from './routes.ts';
 
 const app = new Hono();
 
 // One route per target agent. The gallery grows an entry per plugin; gherkin
-// is the tracer that wires end-to-end first (spec §13). The path derives from
-// the pinned identity — a copied literal here would let a second agent shadow
-// this mount with every test still green.
-app.route(`/agents/${GherkinElicitor.agentName}`, createAgentRouter(GherkinElicitor));
+// is the tracer that wires end-to-end first (spec §13). The browser and mount
+// share the route constant; Flue still keys storage on the agent's independent,
+// pinned identity.
+app.route(`/agents/${GHERKIN_AGENT_ROUTE}`, createAgentRouter(GherkinElicitor));
 
 // The flue dev controller owns the whole request space — no fall-through to
 // vite's html serving — so the ui is app-served, in dev and in production
@@ -31,7 +32,7 @@ app.route(`/agents/${GherkinElicitor.agentName}`, createAgentRouter(GherkinElici
 // bundled asset. `@flue/vite` emits the server environment only, so that
 // client build is a second, plain vite build — without it the ui tree would
 // have no build coverage at all.
-const uiRoot = new URL(import.meta.env.DEV ? '../' : './client/', import.meta.url);
+const uiRoot = new URL(import.meta.env?.DEV === false ? './client/' : '../', import.meta.url);
 
 app.get('/', async (c) => c.html(await readFile(new URL('index.html', uiRoot), 'utf8')));
 

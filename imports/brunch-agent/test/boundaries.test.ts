@@ -401,7 +401,7 @@ describe('the CI smoke is runnable without a model key or a network (spec §12.5
     expect(rootManifest.scripts?.['lint:check']).toContain('--deny-warnings');
   });
 
-  test('no test names a model key or reaches for the substrate', () => {
+  test('tests use neither live model credentials nor unmarked substrate integration', () => {
     // Keeps the suite hermetic by construction. The spec names an optional
     // secret-gated real-model `flue run` smoke; it is deliberately not part of
     // this run, and this check is what stops it drifting in unnoticed.
@@ -422,10 +422,14 @@ describe('the CI smoke is runnable without a model key or a network (spec §12.5
         keys: [],
       });
       const substrateImports = importedPackages(file).filter((s) => isSubstrate(packageOf(s)));
-      expect({ file: file.relPath, substrateImports }).toEqual({
+      if (substrateImports.length === 0) continue;
+
+      expect({
         file: file.relPath,
-        substrateImports: [],
-      });
+        hermeticSubstrateTest:
+          file.relPath.endsWith('.integration.ts') &&
+          file.text.includes('hermetic-substrate-test: faux-provider'),
+      }).toEqual({ file: file.relPath, hermeticSubstrateTest: true });
     }
   });
 });

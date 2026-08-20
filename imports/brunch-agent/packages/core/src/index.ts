@@ -10,5 +10,10 @@
  * mechanically — see `test/boundaries.test.ts` at the repo root.
  */
 
+export {
+  AskInput,
+  FreeTextAffordance,
+  type FreeTextAffordance as FreeTextAffordanceValue,
+} from './affordance.ts';
 export { OPERATIONS, PRODUCT_NAME, toolName, toolPrefix, type Operation } from './naming.ts';
 export { definePlugin, PluginDescriptor, type Plugin } from './plugin.ts';

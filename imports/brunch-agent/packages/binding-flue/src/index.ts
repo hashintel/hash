@@ -11,33 +11,82 @@
  * dialect?
  */
 
-import { toolName } from '@brunch/core';
-import { defineTool } from '@flue/runtime';
-import * as v from 'valibot';
+import {
+  AskInput,
+  FreeTextAffordance,
+  toolName,
+  type FreeTextAffordanceValue,
+  type Plugin,
+} from '@brunch/core';
+import {
+  useAgentStart,
+  useDataWriter,
+  useDelivery,
+  usePersistentState,
+  useTool,
+} from '@flue/runtime';
 
 export { CAPABILITIES, type Capability, type Provision } from './capabilities.ts';
 
 /**
- * The ask tool — capability 5, which Flue does not provide natively.
+ * Mount the elicitation harness in a Flue agent.
  *
  * Flue has no ask-the-user primitive, so the harness owns the turn-suspension
  * protocol: a `terminate: true` ask tool, the pending affordance in
  * per-session state, and the answer arriving as a fresh dispatch (spec §7.4).
- *
- * **Scaffold only.** What is fixed here is the seam — the tool's name derives
- * from core's abstract operation, and its schema is Valibot like every other
- * boundary. Suspension, the pending-affordance slot, and mechanical reply
- * binding are the walking skeleton's work, not this slice's.
  */
-export const askTool = defineTool({
-  name: toolName('ask'),
-  description: 'Ask the person a question and suspend the turn until they reply.',
-  input: v.object({
-    question: v.pipe(v.string(), v.nonEmpty()),
-  }),
-  run: () => {
-    throw new Error(
-      'The ask tool is scaffolding: turn suspension and reply binding land with the walking skeleton (FE-1389).',
-    );
-  },
-});
+export function useElicitation(plugin: Plugin): string {
+  const delivery = useDelivery();
+  const [pending, setPending] = usePersistentState<FreeTextAffordanceValue | null>(
+    'pendingAffordance',
+    null,
+  );
+  const writeAffordance = useDataWriter('affordance', { schema: FreeTextAffordance });
+
+  useAgentStart((ctx) => {
+    if (delivery.kind !== 'user' || pending === null) return;
+
+    setPending(null);
+    ctx.append({
+      kind: 'signal',
+      type: 'affordance-reply-bound',
+      tagName: 'affordance-reply-bound',
+      body: `The immediately preceding user message is mechanically bound as the reply to this pending affordance:\n\n${pending.markdown}`,
+      attributes: { affordanceId: pending.id },
+    });
+  });
+
+  useTool({
+    name: toolName('ask'),
+    description:
+      'Ask one free-text question and suspend this turn for the person’s reply. A second ask in the same tool batch is rejected.',
+    input: AskInput,
+    output: FreeTextAffordance,
+    run({ data, toolCallId }) {
+      const affordance: FreeTextAffordanceValue = {
+        id: `affordance_${toolCallId}`,
+        form: 'free-text',
+        markdown: data.question,
+        payload: { question: data.question },
+      };
+
+      setPending((current) => {
+        if (current !== null) {
+          throw new Error(
+            `An interactive affordance is already pending (${current.id}); wait for its reply before asking another question.`,
+          );
+        }
+        return affordance;
+      });
+      writeAffordance(affordance);
+
+      return { output: affordance, terminate: true };
+    },
+  });
+
+  return [
+    `You are interviewing someone to elicit ${plugin.targetDomain}.`,
+    `Ask one question at a time with ${toolName('ask')}.`,
+    'Continue the conversation after each reply, using the harness-provided reply binding as a mechanical fact.',
+  ].join('\n\n');
+}
