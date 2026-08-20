@@ -132,4 +132,15 @@ export const triggerDirectionToggle = cva({
       background: "neutral.a50",
     },
   },
+  // Smaller hit-area chrome on the compact triggers so the hover background
+  // keeps clear of the trigger border; the icon size is unchanged.
+  variants: {
+    size: {
+      xxs: { padding: "[1px]", margin: "[-1px]" },
+      xs: { padding: "[2px]", margin: "[-2px]" },
+      sm: {},
+      md: {},
+      lg: {},
+    },
+  },
 });
