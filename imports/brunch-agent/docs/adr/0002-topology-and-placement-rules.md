@@ -9,10 +9,10 @@ Decided on: FE-1401 (remediation sweep); ratified by Lu, 2026-08-17
 ## Context
 
 The Flue architecture cheatsheet's full read of the framework's affordance surface
-([flue-architecture-cheatsheet](../planning/flue-architecture-cheatsheet.md)) sorted this
+([flue-architecture-cheatsheet](../planning/_shared/flue-architecture-cheatsheet.md)) sorted this
 system into three lanes: shell-facing affordances to consume directly, agent-loop capabilities
 to translate in the binding, and elicitation semantics plus the capture store to own outright.
-The topology verification ([topology.md](../planning/topology.md)) then walked the actual tree
+The topology verification ([topology.md](../planning/_shared/topology.md)) then walked the actual tree
 against that model and spec §12.2 and found one violation — the ask/suspension protocol's
 portable mechanism living in the Flue binding (the §14.2 second-binding test failing in
 spirit) — and no rule governing where upcoming work lands, which is how the violation happened.
@@ -20,7 +20,7 @@ spirit) — and no rule governing where upcoming work lands, which is how the vi
 ## Decision
 
 The three-lane model and placement rules N1–N6, as specified in
-[topology.md](../planning/topology.md), are ratified. In brief:
+[topology.md](../planning/_shared/topology.md), are ratified. In brief:
 
 - **N1**: the ask protocol extracts to `core/src/ask-protocol.ts` (FE-1422, before FE-1392);
   sweep mechanism starts in `core/src/sweep-protocol.ts` from day one. Bindings contain hook

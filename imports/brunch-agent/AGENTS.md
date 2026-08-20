@@ -30,6 +30,14 @@ Prototype posture, high stakes (persisted data and merge gates fail loudly, neve
 
 Work arcs close by re-rendering their central artifact into another register and reading the strain; capture channels reconcile before landing; work deposits its own description at authoring time. See `docs/agents/legibility.md`.
 
+### Documentation protocol
+
+Documents arrive in `docs/inbox/`, settle to `docs/reference/` or their effort's `docs/planning/<effort>/`; cross-effort living docs in `docs/planning/_shared/`; `docs/INDEX.md` covers everything (gated by `test/docs-index.test.ts`); issue IDs glossed at first mention in living docs. See `docs/agents/documentation.md`.
+
+### Arc close
+
+One triggerable checklist for closing a work arc (also the `/arc-close` skill): inbox sweep, INDEX pass, CONVERGENCE re-evaluation, registry audit, tense repair. See `docs/agents/arc-close.md`.
+
 ### Flue routing
 
 At design moments — before adding state, a layer, a loop, a route, or a test harness — route the symptom to the Flue affordance to rely on, the divergence to avoid, and the escalation point. See `docs/agents/flue-routing.md`.

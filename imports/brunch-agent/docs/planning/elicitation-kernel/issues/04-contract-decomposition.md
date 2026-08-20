@@ -17,7 +17,7 @@ Sub-questions this grilling must close:
 - Where is control inverted: typed issues as backpressure (projector → elicitation controller) — is that the only inversion, or do observation lenses invert too?
 - The policy-vs-mechanism rule: enumerate what would otherwise become the central `switch` and check each is on the plugin side.
 
-Primary input: docs/inbox/agentic-elicitation-challenges-2026-08-06T10-02-41Z.md
+Primary input: docs/reference/agentic-elicitation-challenges-2026-08-06T10-02-41Z.md
 
 Named input from the portfolio decision (issue 07): **behavioral over procedural** — agents do better with behavioral guidance than procedural scripts, and with clear shapes/patterns to fill rather than schemas that require extensive parsing to build a model of the output shape. Brunch's unsolved problem — specifying how an elicitation process should work plus skill material to guide an agent through it, without over-proceduralizing — is a core stress test for the pack contract. The decomposition must say what a pack *feels like* to the agent consuming it, not only what it validates.
 
@@ -25,7 +25,7 @@ Concrete test cases for every boundary claim (from issue 07): how would `elicit-
 
 ## Answer
 
-> Resolved by HITL grilling, 2026-08-06 (four rounds, including an evidence pass over `~/Clones/mattpocock/skills` + `../brunch/docs/design/BEHAVIORAL_KERNELS.md`, and integration of [agentic-elicitation-criteria](../../../inbox/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md), the second inbox doc).
+> Resolved by HITL grilling, 2026-08-06 (four rounds, including an evidence pass over `~/Clones/mattpocock/skills` + `../brunch/docs/design/BEHAVIORAL_KERNELS.md`, and integration of [agentic-elicitation-criteria](../../../reference/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md), the second inbox doc).
 
 ### Ownership table
 
