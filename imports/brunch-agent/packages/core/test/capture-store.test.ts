@@ -451,6 +451,36 @@ describe('capture-store contract', () => {
     ).toThrow(/without a resolution record/i);
   });
 
+  test('persisted snapshots refuse more than one closing event for an issue', () => {
+    const captures = apply(createEmptyCaptureStoreSnapshot(), {
+      type: 'apply-sweep',
+      proposals: [valueProposal('March', userEvidence('March', 1))],
+    }).snapshot;
+    const captureId = captures.captures[0]!.id;
+    const issue = apply(captures, {
+      type: 'open-issue',
+      issueType: 'ambiguous',
+      origin: { type: 'harness' },
+      references: [captureId],
+      canDefault: true,
+    }).snapshot;
+    const closed = apply(issue, {
+      type: 'close-issue',
+      issueId: issue.issues[0]!.id,
+    }).snapshot;
+
+    expect(() => parseCaptureStoreSnapshot(closed)).not.toThrow();
+    expect(() =>
+      parseCaptureStoreSnapshot({
+        ...closed,
+        events: [
+          ...closed.events,
+          { id: 'event-duplicate-close', type: 'issue-closed', issueId: issue.issues[0]!.id },
+        ],
+      }),
+    ).toThrow(/more than one closing event/i);
+  });
+
   test('persisted snapshots refuse stale keys and forking supersession graphs', () => {
     const base = apply(createEmptyCaptureStoreSnapshot(), {
       type: 'apply-sweep',
@@ -557,17 +587,31 @@ describe('capture-store contract', () => {
         canDefault: false,
       });
 
-    for (const [reason, references] of [
-      ['a conflict of one capture', [juneId!]],
-      ['a conflict naming a superseded capture', [juneId!, marchId!]],
-      ['a conflict naming a retracted capture', [juneId!, septemberId!]],
+    for (const [reason, references, expectedMessage] of [
+      ['a conflict of one capture', [juneId!], /conflicting issue needs at least two/i],
+      [
+        'a conflict naming a superseded capture',
+        [juneId!, marchId!],
+        /active captures.*superseded/i,
+      ],
+      [
+        'a conflict naming a retracted capture',
+        [juneId!, septemberId!],
+        /active captures.*retracted/i,
+      ],
     ] as const) {
       const result = openConflict(references);
       expect({
         reason,
         refused: !result.ok,
         code: result.ok ? undefined : result.refusal.code,
-      }).toEqual({ reason, refused: true, code: 'invalid-envelope' });
+        message: result.ok ? undefined : result.refusal.message,
+      }).toEqual({
+        reason,
+        refused: true,
+        code: 'invalid-envelope',
+        message: expect.stringMatching(expectedMessage),
+      });
     }
 
     // The positive control, and the reason the rule is worth having: a conflict
@@ -605,6 +649,97 @@ describe('capture-store contract', () => {
       issueId: ambiguous.value.issueId,
     });
     expect(deriveIssueStatus(closed.snapshot, ambiguous.value.issueId)).toBe('closed');
+  });
+
+  test('open conflicts stay pairwise disjoint so every conflict keeps a legal closing path', () => {
+    const captures = apply(createEmptyCaptureStoreSnapshot(), {
+      type: 'apply-sweep',
+      proposals: [
+        valueProposal('March', userEvidence('March', 1)),
+        valueProposal('June', userEvidence('June', 2)),
+        valueProposal('September', userEvidence('September', 3)),
+        valueProposal('December', userEvidence('December', 4)),
+      ],
+    });
+    const [marchId, juneId, septemberId, decemberId] = captures.snapshot.captures.map(
+      (capture) => capture.id,
+    );
+    const first = apply(captures.snapshot, {
+      type: 'open-issue',
+      issueType: 'conflicting',
+      origin: { type: 'harness' },
+      references: [marchId!, juneId!],
+      canDefault: false,
+    });
+
+    for (const [reason, references] of [
+      ['shares the first capture', [marchId!, septemberId!]],
+      ['shares the second capture', [juneId!, septemberId!]],
+      ['contains the first conflict', [marchId!, juneId!, septemberId!]],
+    ] as const) {
+      const result = applyCaptureStoreCommand(first.snapshot, {
+        type: 'open-issue',
+        issueType: 'conflicting',
+        origin: { type: 'harness' },
+        references,
+        canDefault: false,
+      });
+      expect({
+        reason,
+        refused: !result.ok,
+        code: result.ok ? undefined : result.refusal.code,
+        message: result.ok ? undefined : result.refusal.message,
+      }).toEqual({
+        reason,
+        refused: true,
+        code: 'invalid-envelope',
+        message: expect.stringMatching(/open conflict.*share/i),
+      });
+    }
+
+    const disjoint = apply(first.snapshot, {
+      type: 'open-issue',
+      issueType: 'conflicting',
+      origin: { type: 'harness' },
+      references: [septemberId!, decemberId!],
+      canDefault: false,
+    });
+    expect(disjoint.snapshot.issues).toHaveLength(2);
+
+    expect(() =>
+      parseCaptureStoreSnapshot({
+        ...first.snapshot,
+        issues: [
+          ...first.snapshot.issues,
+          {
+            id: 'issue-overlap',
+            type: 'conflicting',
+            origin: { type: 'harness' },
+            references: [juneId!, septemberId!],
+            canDefault: false,
+          },
+        ],
+      }),
+    ).toThrow(/open conflict.*share/i);
+
+    // The command surface pins these captures, but a persisted snapshot could
+    // have been edited or written by an older producer. The read boundary must
+    // enforce the same closure property instead of reviving an unresolvable
+    // open conflict.
+    expect(() =>
+      parseCaptureStoreSnapshot({
+        ...first.snapshot,
+        events: [
+          ...first.snapshot.events,
+          {
+            id: 'event-illegal-retraction',
+            type: 'retraction',
+            captureId: marchId!,
+            evidence: [storedEvidence('Forget March', 5)],
+          },
+        ],
+      }),
+    ).toThrow(/open conflict.*inactive capture/i);
   });
 
   test('an unresolved conflict pins its captures against supersession and retraction', () => {

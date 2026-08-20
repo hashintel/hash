@@ -8,3 +8,6 @@
 # holds; this pins the mechanism that provides it.
 [install]
 linker = "isolated"
+# New direct and transitive resolutions must age for seven days; versions
+# already recorded in bun.lock remain reproducible and are not re-resolved.
+minimumReleaseAge = 604800
