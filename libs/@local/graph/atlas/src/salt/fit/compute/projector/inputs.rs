@@ -10,11 +10,15 @@ use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
         identity::{Key, read::IdentityFile},
-        salt::metadata::{Reproducibility, Snapshot},
+        repository::Artifact as _,
+        salt::{
+            artifact,
+            metadata::{Reproducibility, Snapshot},
+        },
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     salt::{
-        fit::{SuppliedVerdicts, prepare::identity::IdentityTableArchive, role::Role},
+        fit::{SuppliedVerdicts, prepare::identity::IdentityTableArchive},
         knn::table::{Knn, KnnView},
         landmark::artifact::LandmarkSkeleton,
         projector::verdict::ResolvedVerdict,
@@ -111,9 +115,7 @@ impl VerdictResolution {
         };
 
         resolve_supplied::<O>(
-            &context
-                .staging
-                .path_of(&Role::OntologyIdentities.file_name()),
+            &context.staging.path_of(&artifact::OntologyIdentities::NAME),
             supplied,
         )
     }

@@ -54,7 +54,7 @@ use super::{
 use crate::{
     file::morton::{Fenceposts, SEGMENTS},
     identity::{BasePosition, ImportanceRank, NodeRowId, bench::KeyOrdinal},
-    math::Vec2,
+    math::{FinitePointField, Vec2},
     morton::{Depth, MortonCell, MortonKey},
     random::{keyed_rng, uniform_below},
 };
@@ -518,8 +518,10 @@ impl WalkBench {
         let identities: Vec<u64> = (0..points as u64).collect();
 
         let config = LodConfig::default();
+        let coordinates = FinitePointField::new(IdSlice::from_raw(&coordinates))
+            .expect("the bench coordinates are finite");
         let lod = Lod::build(
-            &coordinates,
+            coordinates,
             RankInputs::new(
                 IdSlice::from_raw(&importance),
                 IdSlice::from_raw(&priority),

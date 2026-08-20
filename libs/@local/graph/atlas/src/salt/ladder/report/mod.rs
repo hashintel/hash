@@ -242,7 +242,7 @@ impl LadderReport {
             .as_ref()
             .expect("a projector placement stages its checkpoint");
 
-        let representations = ArrayFile::open(generation.path_of(&files.representations.name))
+        let representations = ArrayFile::open(generation.path_of(&files.representations.name()))
             .expect("the representation matrix opens");
         let representations: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> =
             IdSlice::from_raw(
@@ -252,7 +252,7 @@ impl LadderReport {
             );
         let rows = representations.len();
 
-        let coordinates = ArrayFile::open(generation.path_of(&files.coordinates.name))
+        let coordinates = ArrayFile::open(generation.path_of(&files.coordinates.name()))
             .expect("the coordinate column opens");
         let coordinates = coordinates
             .points()
@@ -266,7 +266,7 @@ impl LadderReport {
         );
 
         let attraction = AttractionArchive::new(
-            AttractionFile::open(generation.path_of(&files.attraction.name))
+            AttractionFile::open(generation.path_of(&files.attraction.name()))
                 .expect("the attraction index opens"),
         )
         .expect("the published attraction index is valid");
@@ -278,7 +278,7 @@ impl LadderReport {
 
         // The model, opened on the placement backend the fit trained on.
         let model: Projector<crate::device::Inference> = artifact::open_model(
-            File::open(generation.path_of(&checkpoint.name)).expect("the checkpoint opens"),
+            File::open(generation.path_of(&checkpoint.name())).expect("the checkpoint opens"),
             options.architecture,
             &device,
         )

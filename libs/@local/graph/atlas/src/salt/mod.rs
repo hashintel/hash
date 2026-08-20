@@ -29,4 +29,5 @@ pub(crate) mod relation;
 pub(crate) mod runner;
 pub(crate) mod semantic;
 // Crate-visible for the serving surface's response assembly.
+mod vector;
 pub(crate) mod wire;

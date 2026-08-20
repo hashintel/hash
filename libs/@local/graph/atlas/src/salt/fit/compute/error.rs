@@ -11,20 +11,23 @@
 use core::{error::Error, fmt};
 use std::io;
 
-use super::super::{
-    error::{PlacementError, PriorError},
-    prepare::identity::InvalidIdentityFile,
+use super::{
+    super::{
+        error::{PlacementError, PriorError},
+        prepare::identity::InvalidIdentityFile,
+    },
+    coordinates::OpenCoordinatesError,
 };
 use crate::{
     file::{
         array::OpenArrayError, attraction::read::OpenAttractionError, generation::SealError,
-        identity::read::OpenIdentityError,
+        identity::read::OpenIdentityError, sprs::write::WriteSprsError,
     },
     identity::NodeRowId,
     math::NonFinitePoint,
     salt::{
         knn::{descent::NnDescentError, error::KnnError, hannoy::HannoyIndexError, recall},
-        ladder::paired::EncodeError,
+        ladder::{CanonicalError, LadderError, paired::EncodeError},
         landmark::{
             assignment::AssignmentError, layout::EdgelessGraphError, quotient::QuotientError,
             select::SelectionError,
@@ -35,7 +38,12 @@ use crate::{
             classifier::{FitError as ClassifierFitError, PredictError, TrainingSetError},
         },
         postings::build::PostingsError,
+        projector::{
+            artifact::CheckpointError,
+            train::{TrainError, refresh::RefreshError},
+        },
         relation::RelationIndexError,
+        vector::OpenVectorError,
     },
 };
 
@@ -46,7 +54,7 @@ use crate::{
 #[derive(Debug)]
 pub(crate) enum ComputeError {
     /// The staged representation matrix failed to map in at the run's boundary.
-    OpenRepresentations(super::OpenVectorError),
+    OpenRepresentations(OpenVectorError),
     /// The staged endpoint column failed to map in.
     OpenEndpoints(OpenArrayError),
     /// The staged card table failed to map in.
@@ -60,7 +68,7 @@ pub(crate) enum ComputeError {
     /// A staged write or a scratch directory failed.
     Io(io::Error),
     /// A sparse artifact failed to write.
-    WriteSparse(crate::file::sprs::write::WriteSprsError),
+    WriteSparse(WriteSprsError),
     /// The assembled corpus violates the classifier's training-set contract.
     ClassifierTraining(TrainingSetError),
     /// The relation classifier failed to fit.
@@ -92,7 +100,7 @@ pub(crate) enum ComputeError {
     /// The projector placement failed to train, measure, or publish.
     Placement(PlacementError),
     /// A persisted coordinate column failed to map back for its measurement.
-    MapCoordinates(super::OpenVectorError),
+    OpenCoordinates(OpenCoordinatesError),
     /// A mapped rung frame carries a non-finite coordinate.
     ///
     /// The refusal names the rung and its first offending row, ahead of the alignment fits
@@ -113,7 +121,7 @@ pub(crate) enum ComputeError {
         source: NonFinitePoint<NodeRowId>,
     },
     /// The staged attraction index failed to map back for the paired-movement replay.
-    MapAttraction(OpenAttractionError),
+    OpenAttraction(OpenAttractionError),
     /// The paired-movement salt preimage failed to serialize.
     ///
     /// The preimage is a strict subset of the metadata document, so the seal would refuse the
@@ -142,8 +150,8 @@ impl From<io::Error> for ComputeError {
     }
 }
 
-impl From<crate::file::sprs::write::WriteSprsError> for ComputeError {
-    fn from(error: crate::file::sprs::write::WriteSprsError) -> Self {
+impl From<WriteSprsError> for ComputeError {
+    fn from(error: WriteSprsError) -> Self {
         Self::WriteSparse(error)
     }
 }
@@ -244,39 +252,45 @@ impl From<PlacementError> for ComputeError {
     }
 }
 
-impl From<crate::salt::projector::train::TrainError<NodeRowId>> for ComputeError {
-    fn from(error: crate::salt::projector::train::TrainError<NodeRowId>) -> Self {
+impl From<TrainError<NodeRowId>> for ComputeError {
+    fn from(error: TrainError<NodeRowId>) -> Self {
         Self::Placement(error.into())
     }
 }
 
-impl From<crate::salt::projector::artifact::CheckpointError> for ComputeError {
-    fn from(error: crate::salt::projector::artifact::CheckpointError) -> Self {
+impl From<CheckpointError> for ComputeError {
+    fn from(error: CheckpointError) -> Self {
         Self::Placement(error.into())
     }
 }
 
-impl From<crate::salt::projector::train::refresh::RefreshError<NodeRowId>> for ComputeError {
-    fn from(error: crate::salt::projector::train::refresh::RefreshError<NodeRowId>) -> Self {
+impl From<RefreshError<NodeRowId>> for ComputeError {
+    fn from(error: RefreshError<NodeRowId>) -> Self {
         Self::Placement(error.into())
     }
 }
 
-impl From<crate::salt::ladder::LadderError> for ComputeError {
-    fn from(error: crate::salt::ladder::LadderError) -> Self {
+impl From<LadderError> for ComputeError {
+    fn from(error: LadderError) -> Self {
         Self::Placement(error.into())
     }
 }
 
-impl From<crate::salt::ladder::CanonicalError> for ComputeError {
-    fn from(error: crate::salt::ladder::CanonicalError) -> Self {
+impl From<CanonicalError> for ComputeError {
+    fn from(error: CanonicalError) -> Self {
         Self::Placement(error.into())
+    }
+}
+
+impl From<OpenCoordinatesError> for ComputeError {
+    fn from(error: OpenCoordinatesError) -> Self {
+        Self::OpenCoordinates(error)
     }
 }
 
 impl From<OpenAttractionError> for ComputeError {
     fn from(error: OpenAttractionError) -> Self {
-        Self::MapAttraction(error)
+        Self::OpenAttraction(error)
     }
 }
 
@@ -316,10 +330,6 @@ fn map_in(fmt: &mut fmt::Formatter<'_>, artifact: &str, error: &dyn fmt::Display
 }
 
 impl fmt::Display for ComputeError {
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one display arm per stage failure; the taxonomy is the length"
-    )]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OpenRepresentations(error) => map_in(fmt, "representation matrix", error),
@@ -371,7 +381,7 @@ impl fmt::Display for ComputeError {
             Self::Placement(error) => {
                 write!(fmt, "the placement stage failed: {error}")
             }
-            Self::MapCoordinates(error) => {
+            Self::OpenCoordinates(error) => {
                 write!(fmt, "a coordinate column failed to map back: {error}")
             }
             Self::NonFiniteRung { rung, source } => {
@@ -380,7 +390,7 @@ impl fmt::Display for ComputeError {
             Self::NonFiniteAligned { source } => {
                 write!(fmt, "the aligned canonical frame is not finite: {source}")
             }
-            Self::MapAttraction(error) => {
+            Self::OpenAttraction(error) => {
                 write!(
                     fmt,
                     "the staged attraction index failed to map back: {error}"
@@ -412,7 +422,8 @@ impl fmt::Display for ComputeError {
 impl Error for ComputeError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::OpenRepresentations(error) | Self::MapCoordinates(error) => Some(error),
+            Self::OpenRepresentations(error) => Some(error),
+            Self::OpenCoordinates(error) => Some(error),
             Self::OpenEndpoints(error) | Self::OpenCards(error) => Some(error),
             Self::OpenIdentities(error) => Some(error),
             Self::InvalidIdentities(error) => Some(error),
@@ -432,7 +443,7 @@ impl Error for ComputeError {
             Self::Layout(error) => Some(error),
             Self::Prior(error) => Some(error),
             Self::Placement(error) => Some(error),
-            Self::MapAttraction(error) => Some(error),
+            Self::OpenAttraction(error) => Some(error),
             Self::SaltPreimage(error) => Some(error),
             Self::Lod(error) => Some(error),
             Self::Quad(error) => Some(error),

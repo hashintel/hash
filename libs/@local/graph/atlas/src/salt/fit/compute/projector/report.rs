@@ -18,13 +18,17 @@ use crate::{
         array::ArrayFile,
         attraction::read::AttractionFile,
         generation::{ScratchDirectory, StagedGeneration},
-        salt::metadata::{LadderEvidence, Reproducibility, Snapshot},
+        repository::Artifact as _,
+        salt::{
+            artifact,
+            metadata::{LadderEvidence, Reproducibility, Snapshot},
+        },
     },
     identity::{NodeRowId, OntologyRowId},
     integrity::Sha256Digest,
     math::{DNonNegative, DPositive, Derivation, FinitePointField, NonNegative},
     salt::{
-        fit::{ProjectorOptions, role::Role},
+        fit::ProjectorOptions,
         ladder::{
             Field, measure_ladder,
             paired::{self, PairedMovementEvidence},
@@ -126,7 +130,7 @@ impl<'fit> LadderPass<'fit> {
         let files = (0..conditions.len())
             .map(|index| {
                 ArrayFile::open(rung_path(&ladder, index))
-                    .map_err(|error| ComputeError::MapCoordinates(error.into()))
+                    .map_err(|error| ComputeError::OpenCoordinates(error.into()))
             })
             .collect::<Result<Vec<_>, _>>()?;
         let fields: Vec<Field<'_, NodeRowId>> = files
@@ -215,8 +219,8 @@ impl<'fit> LadderPass<'fit> {
         energy: RelationEnergy,
         cap: NonZero<usize>,
     ) -> Result<DNonNegative, ComputeError> {
-        let file = ArrayFile::open(self.staging.path_of(&Role::Coordinates.file_name()))
-            .map_err(|error| ComputeError::MapCoordinates(error.into()))?;
+        let file = ArrayFile::open(self.staging.path_of(&artifact::Coordinates::NAME))
+            .map_err(|error| ComputeError::OpenCoordinates(error.into()))?;
         let frame = file
             .points()
             .expect("the coordinate column was sealed as f32 pairs");
@@ -258,7 +262,7 @@ impl<'fit> LadderPass<'fit> {
         zero: &FinitePointField<NodeRowId>,
         canonical: &FinitePointField<NodeRowId>,
     ) -> Result<PairedMovementEvidence<NodeRowId>, ComputeError> {
-        let index = AttractionFile::open(self.staging.path_of(&Role::Attraction.file_name()))?;
+        let index = AttractionFile::open(self.staging.path_of(&artifact::Attraction::NAME))?;
         assert_eq!(
             index.rows(),
             zero.len() as u64,

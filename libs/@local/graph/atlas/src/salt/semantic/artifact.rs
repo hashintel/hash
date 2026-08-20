@@ -13,7 +13,8 @@ use hashql_core::id::Id;
 use super::{SemanticGraph, SemanticGraphView, SemanticValidationError, validate};
 use crate::{
     file::{
-        WriteInto,
+        WriteAs, WriteInto,
+        salt::artifact,
         sprs::{
             read::{SprsFile, SprsMatrixError},
             write::{WriteSprsError, write_matrix},
@@ -54,6 +55,8 @@ where
         Ok(writer.accumulator.finalize())
     }
 }
+
+impl<N> WriteAs<artifact::Semantic> for SemanticGraph<N> where N: Id {}
 
 /// An opened sparse matrix file does not hold a valid semantic graph.
 #[derive(Debug)]

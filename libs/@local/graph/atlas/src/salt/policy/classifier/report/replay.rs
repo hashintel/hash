@@ -158,7 +158,7 @@ impl Frozen {
             .as_ref()
             .expect("a fitted classifier stages its hash column");
 
-        let supplied = SuppliedAnnotations::open(generation.path_of(&corpus_file.name))
+        let supplied = SuppliedAnnotations::open(generation.path_of(&corpus_file.name()))
             .expect("the staged corpus document parses");
         let mut hasher = Sha256::new();
         hasher.update(supplied.bytes());
@@ -166,8 +166,8 @@ impl Frozen {
 
         let embedder = TableEmbedder::load(
             repository.metadata.reproducibility.embedder,
-            &generation.path_of(&hashes_file.name),
-            &generation.path_of(&embeddings_file.name),
+            &generation.path_of(&hashes_file.name()),
+            &generation.path_of(&embeddings_file.name()),
         );
 
         // A replay takes its configuration from the typed echo, never from the defaults
@@ -177,11 +177,11 @@ impl Frozen {
         Self {
             supplied,
             embedder,
-            staged_document_digest: corpus_file.hash,
+            staged_document_digest: corpus_file.hash(),
             document_digest: corpus_digest,
-            staged_embeddings_digest: embeddings_file.hash,
-            staged_hashes_digest: hashes_file.hash,
-            staged_classifier_digest: Some(files.classifier.hash),
+            staged_embeddings_digest: embeddings_file.hash(),
+            staged_hashes_digest: hashes_file.hash(),
+            staged_classifier_digest: Some(files.classifier.hash()),
             assembly: config.policy.assembly,
             fit: config.policy.classifier_fit,
         }

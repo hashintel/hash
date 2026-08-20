@@ -13,7 +13,7 @@ use hashql_core::id::Id;
 use super::table::{Knn, KnnValidationError, KnnView, validate};
 use crate::{
     file::{
-        WriteInto,
+        WriteAs, WriteInto,
         sprs::{
             read::{SprsFile, SprsMatrixError},
             write::{WriteSprsError, write_matrix},
@@ -53,6 +53,10 @@ where
         Ok(writer.accumulator.finalize())
     }
 }
+
+// Both row domains are admitted: the corpus expansion writes the published table, and under the
+// identity quotient the distinct table is the corpus's own rows in the corpus's own order.
+impl<N> WriteAs<crate::file::salt::artifact::Knn> for Knn<N> where N: Id {}
 
 /// An opened sparse matrix file does not hold a valid k-NN table.
 #[derive(Debug)]

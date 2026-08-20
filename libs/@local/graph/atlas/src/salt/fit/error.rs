@@ -32,6 +32,7 @@ use crate::{
             artifact::CheckpointError,
             train::{TrainError, refresh::RefreshError},
         },
+        vector::OpenVectorError,
     },
 };
 
@@ -214,7 +215,7 @@ pub(crate) enum FitError<D, E> {
     /// A streamed ingest write failed.
     Io(io::Error),
     /// The freshly staged representation matrix failed to map for the norm spot check.
-    MapRepresentations(super::compute::OpenVectorError),
+    OpenRepresentations(OpenVectorError),
     /// The norm spot check's sampling settings are unusable.
     NormCheck(SpotCheckError),
     /// Sampled representation rows violate the source contract.
@@ -257,7 +258,7 @@ impl<D: fmt::Display, E: fmt::Display> fmt::Display for FitError<D, E> {
                 write!(fmt, "the annotation corpus failed to assemble: {error}")
             }
             Self::Io(error) => write!(fmt, "a streamed ingest write failed: {error}"),
-            Self::MapRepresentations(error) => write!(
+            Self::OpenRepresentations(error) => write!(
                 fmt,
                 "the staged representation matrix failed to map back: {error}"
             ),
@@ -284,7 +285,7 @@ where
             Self::Cards(error) | Self::Io(error) => Some(error),
             Self::Embedding(error) => Some(error),
             Self::Assembly(error) => Some(error),
-            Self::MapRepresentations(error) => Some(error),
+            Self::OpenRepresentations(error) => Some(error),
             Self::NormCheck(error) => Some(error),
             Self::Compute(error) => Some(error),
             Self::RepresentationDefects(_) => None,

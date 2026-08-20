@@ -12,7 +12,7 @@ use hashql_core::id::{Id as _, IdSlice};
 
 use super::{
     super::{
-        super::{ProjectorOptions, Stage, role::Role, stage_rng},
+        super::{ProjectorOptions, Stage, stage_rng},
         Context,
         quotient::{DistinctRowId, Quotient},
     },
@@ -27,9 +27,13 @@ use crate::{
     file::{
         array::ArrayFile,
         generation::{GenerationRoot, StagedGeneration},
-        salt::metadata::{
-            FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence,
-            RefreshFractionEvidence, Reproducibility, Snapshot, StabilityCertificateEvidence,
+        repository::Artifact as _,
+        salt::{
+            artifact,
+            metadata::{
+                FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence,
+                RefreshFractionEvidence, Reproducibility, Snapshot, StabilityCertificateEvidence,
+            },
         },
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
@@ -46,7 +50,7 @@ use crate::{
         landmark::select::SelectionOptions,
         policy::ClassProbabilities,
         projector::{
-            artifact,
+            artifact as checkpoint,
             loss::CoincidentEnergy,
             model::{Architecture, NodeRole, Projector},
             scale::LocalScales,
@@ -273,7 +277,7 @@ fn corpus_indexes() -> RelationIndexes<NodeRowId, EdgeRowId> {
 fn stage_attraction(staging: &StagedGeneration) {
     let relations = corpus_indexes();
     staging
-        .stage_with(Role::Attraction.file_name(), |writer| {
+        .stage_with(artifact::Attraction, |writer| {
             relations.attraction.write_into(ROWS as u64, writer)
         })
         .expect("the attraction index should stage");
@@ -342,7 +346,7 @@ fn ulp_key(value: f32) -> i64 {
 /// Reads the staged canonical column and asserts each duplicate cluster shares one
 /// coordinate, up to [`DUPLICATE_ULPS`].
 fn staged_column(staging: &StagedGeneration) -> Vec<Vec2> {
-    let column = ArrayFile::open(staging.path_of(&Role::Coordinates.file_name()))
+    let column = ArrayFile::open(staging.path_of(&artifact::Coordinates::NAME))
         .expect("the column should map");
     let placed = column.points().expect("the column holds 2D points");
     assert_eq!(placed.len(), ROWS);
@@ -371,10 +375,10 @@ fn assert_column_is_aligned_projection(
     columns: NodeColumns<'_, NodeRowId>,
 ) {
     let device = LibTorchDevice::Cpu;
-    let checkpoint = fs::read(staging.path_of(&Role::Projector.file_name()))
-        .expect("the checkpoint should read");
+    let checkpoint =
+        fs::read(staging.path_of(&artifact::Projector::NAME)).expect("the checkpoint should read");
     let reopened =
-        artifact::open_model::<Inference>(checkpoint.as_slice(), options.architecture, &device)
+        checkpoint::open_model::<Inference>(checkpoint.as_slice(), options.architecture, &device)
             .expect("the checkpoint should open on the inner backend");
     let projected = refresh::forward(
         &reopened,

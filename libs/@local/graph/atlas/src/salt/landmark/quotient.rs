@@ -178,6 +178,7 @@ where
 ///
 /// Returns an error when the assignment does not cover the graph's rows or when no edge crosses
 /// landmark boundaries.
+#[tracing::instrument(name = "quotient", skip_all)]
 pub(crate) fn quotient_graph<N>(
     semantic: &SemanticGraphView<'_, N>,
     assignment: &LandmarkAssignment<N>,

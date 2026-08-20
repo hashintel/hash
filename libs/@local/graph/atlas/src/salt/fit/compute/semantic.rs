@@ -1,10 +1,10 @@
 //! The semantic stage smooths the neighbour tables into the fuzzy semantic graphs.
 
-use super::{Context, error::ComputeError, quotient::DistinctRowId};
+use super::{Context, Staged, error::ComputeError, quotient::DistinctRowId};
 use crate::{
-    file::repository::RepositoryFile,
+    file::salt::artifact,
     identity::NodeRowId,
-    salt::{fit::role::Role, knn::table::Knn, semantic::SemanticGraph},
+    salt::{knn::table::Knn, semantic::SemanticGraph},
 };
 
 /// Smooths the neighbour tables into the training graph and the staged published graph.
@@ -22,19 +22,21 @@ pub(super) fn smooth(
     context: &Context,
     admitted: &Knn<DistinctRowId>,
     expanded: Option<&Knn<NodeRowId>>,
-) -> Result<(RepositoryFile, SemanticGraph<DistinctRowId>), ComputeError> {
+) -> Result<Staged<SemanticGraph<DistinctRowId>, artifact::Semantic, ()>, ComputeError> {
     let distinct = SemanticGraph::build(&admitted.view(), context.config.smoothing);
 
-    let file = match expanded {
+    let binding = match expanded {
         Some(corpus) => {
             let graph = SemanticGraph::build(&corpus.view(), context.config.smoothing);
-            context.staging.stage(Role::Semantic.file_name(), &graph)?
+            context.staging.stage(artifact::Semantic, &graph)?
         }
-        None => context
-            .staging
-            .stage(Role::Semantic.file_name(), &distinct)?,
+        None => context.staging.stage(artifact::Semantic, &distinct)?,
     };
     tracing::info!("staged the semantic graph");
 
-    Ok((file, distinct))
+    Ok(Staged {
+        value: distinct,
+        binding,
+        evidence: (),
+    })
 }

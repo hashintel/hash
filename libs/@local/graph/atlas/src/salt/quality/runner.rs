@@ -71,19 +71,19 @@ pub(crate) async fn run<D: Dataset>(
     let knn = {
         let _span = tracing::info_span!("knn").entered();
         KnnArchive::new(
-            SprsFile::open(generation.path_of(&files.knn.name))
+            SprsFile::open(generation.path_of(&files.knn.name()))
                 .map_err(QualityRunError::OpenKnn)?,
         )
         .map_err(QualityRunError::InvalidKnn)?
     };
 
-    let representations_file = ArrayFile::open(generation.path_of(&files.representations.name))
+    let representations_file = ArrayFile::open(generation.path_of(&files.representations.name()))
         .map_err(QualityRunError::OpenRepresentations)?;
     let representations = representations_file
         .vectors::<PROJECTOR_DIMENSIONS>()
         .ok_or(QualityRunError::InvalidRepresentations)?;
 
-    let coordinates_file = ArrayFile::open(generation.path_of(&files.coordinates.name))
+    let coordinates_file = ArrayFile::open(generation.path_of(&files.coordinates.name()))
         .map_err(QualityRunError::OpenCoordinates)?;
     let coordinates = coordinates_file
         .points()
@@ -92,7 +92,7 @@ pub(crate) async fn run<D: Dataset>(
         .map_err(QualityRunError::NonFiniteCoordinate)?;
 
     let identities = IdentityTableArchive::<D::NodeId, NodeRowId>::new(
-        IdentityFile::open(generation.path_of(&files.node_identities.name))
+        IdentityFile::open(generation.path_of(&files.node_identities.name()))
             .map_err(QualityRunError::OpenIdentities)?,
     )
     .map_err(QualityRunError::InvalidIdentities)?;

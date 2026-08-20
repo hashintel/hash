@@ -19,6 +19,7 @@
 //! layout whole and never reinterprets it. Its store requires a fresh generation.
 
 use alloc::borrow::Cow;
+use core::{fmt, marker::PhantomData};
 
 use crate::integrity::Sha256Digest;
 
@@ -178,4 +179,129 @@ impl core::error::Error for InvalidFileName {}
 pub(crate) struct RepositoryFile {
     pub name: FileName,
     pub hash: Sha256Digest,
+}
+
+/// One artifact class of a repository: the pinned file name its bindings certify.
+///
+/// An implementation is a unit marker type. The name is an associated constant rather than a
+/// stored field, so a binding cannot name one artifact and certify another, and every name is
+/// checkable against its whole set at compile and test time.
+pub(crate) trait Artifact {
+    /// The artifact's pinned file name.
+    const NAME: FileName;
+}
+
+/// A repository binding typed by the artifact it certifies.
+///
+/// The value is the digest alone. The file name derives from `A`, so two artifacts' bindings are
+/// different types, and a manifest slot for one cannot take the other. Serialization matches
+/// [`RepositoryFile`] byte for byte, and deserialization refuses an entry whose name is not
+/// `A`'s own.
+pub(crate) struct Binding<A> {
+    hash: Sha256Digest,
+    _artifact: PhantomData<fn(&A)>,
+}
+
+impl<A> Binding<A>
+where
+    A: Artifact,
+{
+    /// Binds a written artifact's digest.
+    ///
+    /// The digest is the SHA-256 of the staged file's bytes, accumulated by the write that
+    /// produced them.
+    #[must_use]
+    pub(crate) const fn new(hash: Sha256Digest) -> Self {
+        Self {
+            hash,
+            _artifact: PhantomData,
+        }
+    }
+
+    /// Returns the artifact's pinned file name.
+    #[expect(
+        clippy::unused_self,
+        reason = "the name is the artifact's constant, read through the value so call sites \
+                  mirror `hash()`"
+    )]
+    #[must_use]
+    pub(crate) const fn name(&self) -> FileName {
+        A::NAME
+    }
+
+    /// Returns the digest of the bound file's bytes.
+    #[must_use]
+    pub(crate) const fn hash(&self) -> Sha256Digest {
+        self.hash
+    }
+
+    /// Returns the binding as a plain repository file entry.
+    #[must_use]
+    pub(crate) const fn file(&self) -> RepositoryFile {
+        RepositoryFile {
+            name: A::NAME,
+            hash: self.hash,
+        }
+    }
+}
+
+impl<A> fmt::Debug for Binding<A>
+where
+    A: Artifact,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("Binding")
+            .field("name", &A::NAME)
+            .field("hash", &self.hash)
+            .finish()
+    }
+}
+
+impl<A> Copy for Binding<A> {}
+
+impl<A> Clone for Binding<A> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<A> PartialEq for Binding<A> {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash == other.hash
+    }
+}
+
+impl<A> Eq for Binding<A> {}
+
+impl<A> serde::Serialize for Binding<A>
+where
+    A: Artifact,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.file().serialize(serializer)
+    }
+}
+
+impl<'de, A> serde::Deserialize<'de> for Binding<A>
+where
+    A: Artifact,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let file = RepositoryFile::deserialize(deserializer)?;
+        if file.name != A::NAME {
+            return Err(serde::de::Error::custom(format_args!(
+                "the {} entry names {}",
+                A::NAME.as_str(),
+                file.name.as_str(),
+            )));
+        }
+
+        Ok(Self::new(file.hash))
+    }
 }

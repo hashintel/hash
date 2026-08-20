@@ -219,11 +219,38 @@ pub(crate) trait WriteInto {
 
 impl<T> WriteInto for &T
 where
-    T: WriteInto,
+    T: WriteInto + ?Sized,
 {
     type Error = T::Error;
 
     fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, Self::Error> {
         T::write_into(self, write)
     }
+}
+
+/// Marks a value as an admitted writer of the artifact `A`.
+///
+/// The impls on a value type are the artifact's writer set: a staged write for `A` accepts
+/// exactly the values marked here, so which container may produce which published file is a
+/// compile-time fact rather than a convention at the call sites.
+pub(crate) trait WriteAs<A>: WriteInto {}
+
+impl<T, A> WriteAs<A> for &T where T: WriteAs<A> + ?Sized {}
+
+/// Returns the SHA-256 of the file at `path`, streaming its bytes.
+///
+/// # Errors
+///
+/// Returns an error when opening or reading the file fails.
+pub(crate) fn digest_file(path: impl AsRef<camino::Utf8Path>) -> io::Result<Sha256Digest> {
+    let path = path.as_ref();
+    let _span = tracing::info_span!("digest", file = %path).entered();
+
+    let mut writer = crate::integrity::Writer {
+        accumulator: crate::integrity::Sha256::new(),
+        writer: io::sink(),
+    };
+    io::copy(&mut std::fs::File::open(path)?, &mut writer)?;
+
+    Ok(writer.accumulator.finalize())
 }

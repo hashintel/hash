@@ -440,7 +440,7 @@ fn store_identities(generation: &Generation) {
             .rows()
     };
 
-    let ontology_rows = rows_of(&files.ontology_identities.name);
+    let ontology_rows = rows_of(&files.ontology_identities.name());
     let mut ontology = IdentityTable::<OntologyRowId, ArchivedOntologyTypeUuid>::new();
     for row in 0..ontology_rows {
         let url: VersionedUrl = fixture_type_url(row)
@@ -449,25 +449,25 @@ fn store_identities(generation: &Generation) {
         ontology.push(ArchivedOntologyTypeUuid::from_url(&url));
     }
 
-    let nodes = entity_table::<NodeRowId>(rows_of(&files.node_identities.name), 0);
-    let edges = entity_table::<EdgeRowId>(rows_of(&files.edge_identities.name), EDGE_SEED);
+    let nodes = entity_table::<NodeRowId>(rows_of(&files.node_identities.name()), 0);
+    let edges = entity_table::<EdgeRowId>(rows_of(&files.edge_identities.name()), EDGE_SEED);
 
-    let ontology_payloads = payloads_of(&generation.path_of(&files.ontology_identities.name));
-    let node_payloads = payloads_of(&generation.path_of(&files.node_identities.name));
-    let edge_payloads = payloads_of(&generation.path_of(&files.edge_identities.name));
+    let ontology_payloads = payloads_of(&generation.path_of(&files.ontology_identities.name()));
+    let node_payloads = payloads_of(&generation.path_of(&files.node_identities.name()));
+    let edge_payloads = payloads_of(&generation.path_of(&files.edge_identities.name()));
 
     rewrite_identities(
-        &generation.path_of(&files.ontology_identities.name),
+        &generation.path_of(&files.ontology_identities.name()),
         &ontology,
         &ontology_payloads,
     );
     rewrite_identities(
-        &generation.path_of(&files.node_identities.name),
+        &generation.path_of(&files.node_identities.name()),
         &nodes,
         &node_payloads,
     );
     rewrite_identities(
-        &generation.path_of(&files.edge_identities.name),
+        &generation.path_of(&files.edge_identities.name()),
         &edges,
         &edge_payloads,
     );
@@ -733,13 +733,13 @@ pub(crate) struct Artifacts {
 pub(crate) fn open_artifacts(generation: &Generation) -> Artifacts {
     let files = &generation.repository().files;
     Artifacts {
-        morton: MortonFile::open(generation.path_of(&files.morton.name))
+        morton: MortonFile::open(generation.path_of(&files.morton.name()))
             .expect("the morton artifact should open"),
-        quad: QuadFile::open(generation.path_of(&files.quad.name))
+        quad: QuadFile::open(generation.path_of(&files.quad.name()))
             .expect("the quad artifact should open"),
-        coordinates: ArrayFile::open(generation.path_of(&files.wire_coordinates.name))
+        coordinates: ArrayFile::open(generation.path_of(&files.wire_coordinates.name()))
             .expect("the coordinate artifact should open"),
-        rows: ArrayFile::open(generation.path_of(&files.row_of_position.name))
+        rows: ArrayFile::open(generation.path_of(&files.row_of_position.name()))
             .expect("the row artifact should open"),
     }
 }
@@ -1154,11 +1154,11 @@ struct EdgeArtifacts {
 fn open_edge_artifacts(generation: &Generation) -> EdgeArtifacts {
     let files = &generation.repository().files;
     EdgeArtifacts {
-        endpoints: ArrayFile::open(generation.path_of(&files.edge_endpoints.name))
+        endpoints: ArrayFile::open(generation.path_of(&files.edge_endpoints.name()))
             .expect("the endpoint artifact should open"),
-        ranks: ArrayFile::open(generation.path_of(&files.rank_of_position.name))
+        ranks: ArrayFile::open(generation.path_of(&files.rank_of_position.name()))
             .expect("the rank artifact should open"),
-        positions: ArrayFile::open(generation.path_of(&files.position_of_row.name))
+        positions: ArrayFile::open(generation.path_of(&files.position_of_row.name()))
             .expect("the position artifact should open"),
     }
 }
@@ -1712,7 +1712,7 @@ fn type_expectations(
     use crate::postgres::id::ArchivedOntologyTypeUuid;
 
     let files = &generation.repository().files;
-    let ontology_rows = payloads_of(&generation.path_of(&files.ontology_identities.name)).len();
+    let ontology_rows = payloads_of(&generation.path_of(&files.ontology_identities.name())).len();
     let uuid_of = |row: usize| {
         let url: VersionedUrl = fixture_type_url(row as u64)
             .parse()
@@ -1728,7 +1728,7 @@ fn type_expectations(
         .map(|row| (uuid_of(row), resolved_of(row)))
         .collect();
 
-    let edge_payloads = payloads_of(&generation.path_of(&files.edge_identities.name));
+    let edge_payloads = payloads_of(&generation.path_of(&files.edge_identities.name()));
     let representative_of = |edge: u32| {
         let payload = &edge_payloads[usize::try_from(edge).expect("fixture rows fit usize")];
         let representative = u64::from_le_bytes(

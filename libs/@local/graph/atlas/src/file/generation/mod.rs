@@ -27,8 +27,8 @@ use camino::{Utf8Path, Utf8PathBuf};
 use uuid::Uuid;
 
 use super::{
-    WriteInto,
-    repository::{FileName, RepositoryFile},
+    WriteAs, WriteInto,
+    repository::{Artifact, Binding, FileName},
     salt::SaltRepository,
 };
 use crate::integrity::{ParseHexError, Sha256, Sha256Digest, Update as _};
@@ -48,13 +48,6 @@ const CURRENT_FILE: &str = "current";
 /// A staging could not seal into a published generation.
 #[derive(Debug)]
 pub(crate) enum SealError {
-    /// The manifest lists one name for two roles.
-    Duplicate {
-        /// The repeated file name.
-        name: FileName,
-    },
-    /// The manifest claims the metadata document's name.
-    Reserved,
     /// A manifest-listed file is absent from the staging directory.
     Missing {
         /// The absent file's name.
@@ -76,13 +69,6 @@ pub(crate) enum SealError {
 impl fmt::Display for SealError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Duplicate { name } => {
-                write!(fmt, "the manifest lists {name} for two roles")
-            }
-            Self::Reserved => write!(
-                fmt,
-                "the manifest claims the metadata document's name {METADATA_FILE}",
-            ),
             Self::Missing { name } => {
                 write!(fmt, "the manifest-listed file {name} is not staged")
             }
@@ -107,11 +93,7 @@ impl Error for SealError {
         match self {
             Self::Document(error) => Some(error),
             Self::Io(error) => Some(error),
-            Self::Duplicate { .. }
-            | Self::Reserved
-            | Self::Missing { .. }
-            | Self::Unlisted { .. }
-            | Self::AlreadyPublished(_) => None,
+            Self::Missing { .. } | Self::Unlisted { .. } | Self::AlreadyPublished(_) => None,
         }
     }
 }
@@ -451,42 +433,50 @@ impl StagedGeneration {
         self.path.join(name.as_str())
     }
 
-    /// Stages one artifact under a repository file name.
+    /// Stages one value as the artifact it is admitted to write.
     ///
-    /// The artifact writes itself into the named staged file through one buffered pass, and the
-    /// written bytes' digest binds to the name as the repository entry the seal publishes.
+    /// The value writes itself into the artifact's pinned staged file through one buffered pass,
+    /// and the written bytes' digest binds to the artifact as the typed entry the seal
+    /// publishes. The values a given artifact accepts are its [`WriteAs`] impls.
     ///
     /// # Errors
     ///
-    /// Returns an error when creating or flushing the staged file fails, and the artifact's own
+    /// Returns an error when creating or flushing the staged file fails, and the value's own
     /// error when its write fails.
-    pub(crate) fn stage<A>(&self, name: FileName, artifact: &A) -> Result<RepositoryFile, A::Error>
+    #[expect(unused_variables, reason = "used to signal the artifact's pinned name")]
+    pub(crate) fn stage<A, V>(&self, artifact: A, value: V) -> Result<Binding<A>, V::Error>
     where
-        A: WriteInto,
-        A::Error: From<io::Error>,
+        A: Artifact,
+        V: WriteAs<A, Error: From<io::Error>>,
     {
-        let mut writer = BufWriter::new(self.create(&name)?);
-        let hash = artifact.write_into(&mut writer)?;
+        let mut writer = BufWriter::new(self.create(&A::NAME)?);
+        let hash = value.write_into(&mut writer)?;
         writer.flush()?;
 
-        Ok(RepositoryFile { name, hash })
+        Ok(Binding::new(hash))
     }
 
-    /// Runs `write` against the named buffered staged file and binds the digest it returns.
+    /// Runs `write` against the artifact's buffered staged file and binds the digest it returns.
+    ///
+    /// The streaming escape for artifacts whose bytes no single value serializes, so the binding
+    /// stays typed while the write stays free.
     ///
     /// # Errors
     ///
     /// Returns an error when creating or flushing the staged file fails or when `write` fails.
-    pub(crate) fn stage_with(
+    pub(crate) fn stage_with<A>(
         &self,
-        name: FileName,
+        _artifact: A,
         write: impl FnOnce(&mut BufWriter<File>) -> io::Result<Sha256Digest>,
-    ) -> io::Result<RepositoryFile> {
-        let mut writer = BufWriter::new(self.create(&name)?);
+    ) -> io::Result<Binding<A>>
+    where
+        A: Artifact,
+    {
+        let mut writer = BufWriter::new(self.create(&A::NAME)?);
         let hash = write(&mut writer)?;
         writer.flush()?;
 
-        Ok(RepositoryFile { name, hash })
+        Ok(Binding::new(hash))
     }
 
     /// Seals the staging into a published generation.
@@ -501,26 +491,17 @@ impl StagedGeneration {
     ///
     /// # Errors
     ///
-    /// Returns an error when the manifest repeats a name or claims the metadata document's name. It
-    /// also returns an error when the manifest disagrees with the staged file set or names a
+    /// Returns an error when the manifest disagrees with the staged file set or names a
     /// generation that is already published. Serializing the metadata document returns an error
     /// when it fails. A write, sync, permission, or rename failure returns an error as well.
     pub(crate) fn seal(
         self,
         repository: &SaltRepository,
     ) -> Result<PublishedGeneration, SealError> {
-        let mut expected = BTreeSet::<FileName>::new();
-        for file in repository.files.files() {
-            if file.name.as_str() == METADATA_FILE {
-                return Err(SealError::Reserved);
-            }
-
-            if !expected.insert(file.name.clone()) {
-                return Err(SealError::Duplicate {
-                    name: file.name.clone(),
-                });
-            }
-        }
+        // Typed bindings pin every manifest name: the artifact set holds the names distinct
+        // and off the metadata document's own, so the expected set is the manifest's names
+        // verbatim and the seal re-checks neither fact.
+        let expected: BTreeSet<FileName> = repository.files.files().map(|file| file.name).collect();
 
         // Manifest names are valid `FileName`s by construction, so this
         // loop reports a staged name that is not one as unlisted before

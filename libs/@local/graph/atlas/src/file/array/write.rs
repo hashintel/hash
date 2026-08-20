@@ -2,12 +2,15 @@
 
 use std::io::{self, Seek, SeekFrom, Write};
 
+use hashql_core::id::{Id, IdSlice};
 use zerocopy::IntoBytes as _;
 
 use super::{ArrayShape, ArrayVariant, Dim, FileHeader, PaddedFileHeader};
 use crate::{
-    file::region::PAGE_BYTES,
+    file::{WriteInto, region::PAGE_BYTES},
+    identity::{BasePosition, ImportanceRank, NodeRowId},
     integrity::{Sha256, Sha256Digest, Writer},
+    math::Vec2,
 };
 
 /// Writes an array file row by row, counting rows as they stream.
@@ -271,5 +274,85 @@ impl<W: Write> SizedArrayWriter<W> {
         );
         self.writer.flush()?;
         Ok(self.writer.accumulator.finalize())
+    }
+}
+
+/// One scalar element of a sized array column: its stored variant and its trailing row shape.
+///
+/// The impls are the column vocabulary: a typed column write derives its whole file shape from
+/// the element type and the row count, so no call site restates a variant or a dimension.
+pub(crate) trait ColumnScalar: zerocopy::Immutable + zerocopy::IntoBytes {
+    /// The array file's element variant.
+    const VARIANT: ArrayVariant;
+    /// The dimensions one row adds beyond the leading row count.
+    const TRAILING: &'static [Dim];
+}
+
+impl ColumnScalar for Vec2 {
+    const TRAILING: &'static [Dim] = &[Dim::new(2)];
+    const VARIANT: ArrayVariant = ArrayVariant::F32;
+}
+
+impl ColumnScalar for ImportanceRank {
+    const TRAILING: &'static [Dim] = &[];
+    const VARIANT: ArrayVariant = ArrayVariant::U32Le;
+}
+
+impl ColumnScalar for BasePosition {
+    const TRAILING: &'static [Dim] = &[];
+    const VARIANT: ArrayVariant = ArrayVariant::U32Le;
+}
+
+impl ColumnScalar for NodeRowId {
+    const TRAILING: &'static [Dim] = &[];
+    const VARIANT: ArrayVariant = ArrayVariant::U64Le;
+}
+
+/// One typed column as a sized array file: the value form of a column write.
+///
+/// The wrapper is transparent over the rows, so a column wraps by reference with no copy. The
+/// row domain `I` and the element type travel in the value, so a write site cannot swap two
+/// permutation columns of equal width, and the file shape derives from the element alone.
+#[repr(transparent)]
+pub(crate) struct SizedColumn<I, T>(IdSlice<I, T>);
+
+impl<I, T> SizedColumn<I, T>
+where
+    I: Id,
+    T: ColumnScalar,
+{
+    /// Wraps a column by reference.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new(rows: &IdSlice<I, T>) -> &Self {
+        // SAFETY: `Self` is `repr(transparent)` over `IdSlice<I, T>`, so the reference
+        // reinterprets in place at the same layout, and the borrow keeps the input's lifetime.
+        unsafe { &*((&raw const *rows) as *const Self) }
+    }
+}
+
+impl<I, T> WriteInto for SizedColumn<I, T>
+where
+    I: Id,
+    T: ColumnScalar,
+{
+    type Error = io::Error;
+
+    /// Writes the column as a sized array file, the row count leading the shape.
+    ///
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the underlying writer fails.
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+        let mut dims = [Dim::ZERO; ArrayShape::MAX_RANK];
+        dims[0] = Dim::new(self.0.len() as u64);
+        dims[1..1 + T::TRAILING.len()].copy_from_slice(T::TRAILING);
+
+        let mut writer = SizedArrayWriter::new(write, T::VARIANT, &dims[..1 + T::TRAILING.len()])?;
+        writer.write_rows(self.0.len() as u64, self.0.as_raw().as_bytes())?;
+        writer.finish()
     }
 }

@@ -963,8 +963,8 @@ async fn supplied_verdicts_publish_verbatim() {
         .reviewed_verdicts
         .as_ref()
         .expect("the supplied verdicts should be staged");
-    assert_eq!(entry.name.as_str(), "reviewed-verdicts.json");
-    assert_eq!(entry.hash, supplied.hash());
+    assert_eq!(entry.name().as_str(), "reviewed-verdicts.json");
+    assert_eq!(entry.hash(), supplied.hash());
 
     // The published bytes are the supplied file verbatim, and they
     // still read back through the verdict reader the trainer uses.
@@ -1129,8 +1129,8 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
         .annotation_corpus
         .as_ref()
         .expect("the supplied corpus should be staged");
-    assert_eq!(corpus_entry.name.as_str(), "annotation-corpus.json");
-    assert_eq!(corpus_entry.hash, supplied.hash());
+    assert_eq!(corpus_entry.name().as_str(), "annotation-corpus.json");
+    assert_eq!(corpus_entry.hash(), supplied.hash());
 
     // The published corpus bytes are the supplied file verbatim.
     let bytes = fs::read(published.path().join("annotation-corpus.json"))
@@ -1269,12 +1269,12 @@ async fn prior_generation_seeds_reuse_and_retention() {
     // digests certify.
     assert_eq!(repository.metadata.evidence.landmarks.retained, LANDMARKS);
     assert_eq!(
-        repository.files.landmarks.hash,
-        prior.repository().files.landmarks.hash,
+        repository.files.landmarks,
+        prior.repository().files.landmarks,
     );
     assert_eq!(
-        repository.files.node_identities.hash,
-        prior.repository().files.node_identities.hash,
+        repository.files.node_identities,
+        prior.repository().files.node_identities,
     );
 }
 

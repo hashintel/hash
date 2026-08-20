@@ -25,17 +25,18 @@ use super::{
         instance::{InstanceRecord, InstanceSpool, InstanceSpoolWriter},
         norm,
     },
-    role::{Role, digest_file},
     stage_rng,
 };
 use crate::{
     dataset::{Dataset, PROJECTOR_DIMENSIONS, TemporalAxes},
     file::{
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
+        digest_file,
         generation::{Generation, ScratchDirectory, StagedGeneration},
-        repository::RepositoryFile,
+        repository::{Artifact as _, Binding},
+        salt::artifact,
     },
-    identity::OntologyRowId,
+    identity::{NodeRowId, OntologyRowId},
     math::AlignedVecN,
     progress::Progress,
     salt::{
@@ -57,21 +58,21 @@ pub(super) struct Ingested {
     /// Nodes the dataset streamed.
     pub nodes: u64,
     /// Each node row's direct types, in row order: the quadtree build's type column.
-    pub node_types: Vec<SmallVec<OntologyRowId, 2>>,
+    pub node_types: IdVec<NodeRowId, SmallVec<OntologyRowId, 2>>,
     /// Edges the dataset streamed.
     pub edges: u64,
     /// Distinct ontology rows the edge stream carried, ascending, forming the relation universe.
     pub relations: Vec<OntologyRowId>,
     /// Each ontology row's direct parents, in row order: the postings build's parent column.
-    pub type_parents: Vec<SmallVec<OntologyRowId, 2>>,
+    pub type_parents: IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>>,
     /// The staged representation matrix.
-    pub representations: RepositoryFile,
+    pub representations: Binding<artifact::Representations>,
     /// The staged node identity table.
-    pub node_identities: RepositoryFile,
+    pub node_identities: Binding<artifact::NodeIdentities>,
     /// The staged edge identity table.
-    pub edge_identities: RepositoryFile,
+    pub edge_identities: Binding<artifact::EdgeIdentities>,
     /// The staged endpoint column.
-    pub edge_endpoints: RepositoryFile,
+    pub edge_endpoints: Binding<artifact::EdgeEndpoints>,
     /// The spooled `(edge, relation)` readings the relation stage consumes.
     pub instances: InstanceSpool,
     /// The edge multiplicity histogram, whose entry `i` counts edges carrying `i + 1` relation
@@ -174,11 +175,11 @@ struct NodeArtifacts {
     /// Nodes the stream carried.
     nodes: u64,
     /// Each node row's direct types, in row order.
-    types: Vec<SmallVec<OntologyRowId, 2>>,
+    types: IdVec<NodeRowId, SmallVec<OntologyRowId, 2>>,
     /// The staged representation matrix.
-    representations: RepositoryFile,
+    representations: Binding<artifact::Representations>,
     /// The staged node identity table.
-    identities: RepositoryFile,
+    identities: Binding<artifact::NodeIdentities>,
 }
 
 /// Streams every node's representation and ids into their staged files.
@@ -195,7 +196,7 @@ async fn stage_representations<D, E>(
 where
     D: Dataset,
 {
-    let mut writer = BufWriter::new(staging.create(&Role::Representations.file_name())?);
+    let mut writer = BufWriter::new(staging.create(&artifact::Representations::NAME)?);
     let columns = prepare::write_node_representations(dataset, &mut writer)
         .instrument(tracing::info_span!("stream"))
         .await
@@ -212,18 +213,18 @@ where
         .instrument(tracing::info_span!("labels"))
         .await
         .map_err(FitError::Dataset)?;
-    let identities = staging.stage_with(Role::NodeIdentities.file_name(), |writer| {
+    let identities = staging.stage_with(artifact::NodeIdentities, |writer| {
         columns
             .ids
             .write_into(auxiliary.iter().map(Borrow::borrow), writer)
     })?;
 
-    let digest = digest_file(staging.path_of(&Role::Representations.file_name()))?;
+    let digest = digest_file(staging.path_of(&artifact::Representations::NAME))?;
 
     Ok(NodeArtifacts {
         nodes,
         types: columns.types,
-        representations: Role::Representations.file(digest),
+        representations: Binding::new(digest),
         identities,
     })
 }
@@ -237,8 +238,8 @@ fn certify_representations<D, E>(
 ) -> Result<norm::NormSpotCheck, FitError<D, E>> {
     let _span = tracing::info_span!("norm-check").entered();
 
-    let representations = ArrayFile::open(staging.path_of(&Role::Representations.file_name()))
-        .map_err(|error| FitError::MapRepresentations(error.into()))?;
+    let representations = ArrayFile::open(staging.path_of(&artifact::Representations::NAME))
+        .map_err(|error| FitError::OpenRepresentations(error.into()))?;
     let rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>] = representations
         .vectors()
         .expect("the representation matrix was sealed as f32 rows of the projector width");
@@ -267,9 +268,9 @@ struct EdgeArtifacts {
     /// Distinct ontology rows the edges carried, ascending, forming the relation universe.
     relations: Vec<OntologyRowId>,
     /// The staged edge identity table.
-    identities: RepositoryFile,
+    identities: Binding<artifact::EdgeIdentities>,
     /// The staged endpoint column.
-    endpoints: RepositoryFile,
+    endpoints: Binding<artifact::EdgeEndpoints>,
     /// The spooled `(edge, relation)` readings.
     instances: InstanceSpool,
     /// The edge multiplicity histogram, whose entry `i` counts edges carrying `i + 1` relation
@@ -298,7 +299,7 @@ where
     let mut multi_typed: Vec<u64> = Vec::new();
     let mut spool = InstanceSpoolWriter::create(scratch)?;
 
-    let mut writer = BufWriter::new(staging.create(&Role::EdgeEndpoints.file_name())?);
+    let mut writer = BufWriter::new(staging.create(&artifact::EdgeEndpoints::NAME)?);
     let mut endpoints = ArrayWriter::new(&mut writer, ArrayVariant::U64Le, &[Dim::new(2)])?;
 
     let mut stream = pin!(dataset.edges());
@@ -349,17 +350,17 @@ where
         .instrument(tracing::info_span!("labels"))
         .await
         .map_err(FitError::Dataset)?;
-    let identities = staging.stage_with(Role::EdgeIdentities.file_name(), |writer| {
+    let identities = staging.stage_with(artifact::EdgeIdentities, |writer| {
         ids.write_into(auxiliary.iter().map(Borrow::borrow), writer)
     })?;
-    let digest = digest_file(staging.path_of(&Role::EdgeEndpoints.file_name()))?;
+    let digest = digest_file(staging.path_of(&artifact::EdgeEndpoints::NAME))?;
     let instances = spool.finish()?;
 
     Ok(EdgeArtifacts {
         edges: ids.len(),
         relations: relations.into_iter().map(OntologyRowId::new).collect(),
         identities,
-        endpoints: Role::EdgeEndpoints.file(digest),
+        endpoints: Binding::new(digest),
         instances,
         multi_typed,
     })
@@ -371,11 +372,11 @@ where
 /// it as the published type graph's parent regions.
 async fn collect_type_parents<D, E>(
     dataset: &D,
-) -> Result<Vec<SmallVec<OntologyRowId, 2>>, FitError<D::Error, E>>
+) -> Result<IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>>, FitError<D::Error, E>>
 where
     D: Dataset,
 {
-    let mut parents = Vec::new();
+    let mut parents = IdVec::new();
     let mut stream = pin!(dataset.ontology());
     while let Some(entry) = stream.try_next().await.map_err(FitError::Dataset)? {
         parents.push(entry.parents);
@@ -389,11 +390,11 @@ pub(super) struct CardArtifacts {
     /// Ontology types embedded: the row count of the staged files.
     pub types: u64,
     /// The staged embedding matrix.
-    pub embeddings: RepositoryFile,
+    pub embeddings: Binding<artifact::CardEmbeddings>,
     /// The staged text-hash column.
-    pub hashes: RepositoryFile,
+    pub hashes: Binding<artifact::CardHashes>,
     /// The staged ontology identity table.
-    pub identities: RepositoryFile,
+    pub identities: Binding<artifact::OntologyIdentities>,
     /// How the embedding pass obtained the rows, recorded as metadata evidence.
     pub stats: CardEmbeddingStats,
 }
@@ -437,16 +438,16 @@ where
         .instrument(tracing::info_span!("icons"))
         .await
         .map_err(FitError::Dataset)?;
-    let identities = staging.stage_with(Role::OntologyIdentities.file_name(), |writer| {
+    let identities = staging.stage_with(artifact::OntologyIdentities, |writer| {
         ids.write_into(auxiliary.iter().map(Borrow::borrow), writer)
     })?;
 
     let prior_files = prior
         .map(|generation| -> Result<_, PriorError> {
             let files = &generation.repository().files;
-            let hashes = ArrayFile::open(generation.path_of(&files.card_hashes.name))
+            let hashes = ArrayFile::open(generation.path_of(&files.card_hashes.name()))
                 .map_err(PriorError::MapCards)?;
-            let embeddings = ArrayFile::open(generation.path_of(&files.card_embeddings.name))
+            let embeddings = ArrayFile::open(generation.path_of(&files.card_embeddings.name()))
                 .map_err(PriorError::MapCards)?;
             Ok((
                 hashes,
@@ -475,10 +476,10 @@ where
         .map_err(FitError::Embedding)?;
     drop(cards);
 
-    let embeddings = staging.stage_with(Role::CardEmbeddings.file_name(), |writer| {
+    let embeddings = staging.stage_with(artifact::CardEmbeddings, |writer| {
         table.write_embeddings_into(writer)
     })?;
-    let hashes = staging.stage_with(Role::CardHashes.file_name(), |writer| {
+    let hashes = staging.stage_with(artifact::CardHashes, |writer| {
         table.write_hashes_into(writer)
     })?;
 

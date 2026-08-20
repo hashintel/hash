@@ -14,10 +14,15 @@ use super::{
 use crate::{
     file::quad::Node,
     identity::{BasePosition, ImportanceRank, NodeRowId, OntologyRowId},
-    math::{Bounds2, Log2, Vec2},
+    math::{Bounds2, FinitePointField, Log2, Vec2},
     morton::{Depth, MortonCell, MortonKey},
     postgres::id::ArchivedEntityId,
 };
+
+/// Pins raw fixture coordinates as the proven-finite corpus field.
+fn finite(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
+    FinitePointField::new(IdSlice::from_raw(points)).expect("the fixture coordinates are finite")
+}
 
 fn identity(index: u128) -> ArchivedEntityId {
     ArchivedEntityId {
@@ -440,7 +445,7 @@ fn lod_config_carries_the_key_width_bound() {
     assert_eq!(beyond.deepest(), None);
 
     let build = Lod::build(
-        &[Vec2::new(0.0, 0.0)],
+        finite(&[Vec2::new(0.0, 0.0)]),
         rank_inputs(&[0.0], &[0.0], &identities(1)).expect("the columns agree"),
         0,
         beyond,
@@ -486,7 +491,7 @@ fn hand_stage() -> (Lod, LodConfig) {
     };
 
     let lod = Lod::build(
-        &coordinates,
+        finite(&coordinates),
         rank_inputs(&importance, &priority, &ids).expect("the columns agree"),
         7,
         config,
@@ -602,7 +607,7 @@ fn normalization_is_exact_far_from_the_origin() {
     let ids = identities(3);
 
     let lod = Lod::build(
-        &coordinates,
+        finite(&coordinates),
         rank_inputs(&importance, &priority, &ids).expect("the columns agree"),
         0,
         LodConfig::default(),
@@ -632,7 +637,7 @@ fn degenerate_axis_maps_to_the_wire_centre() {
     let ids = identities(2);
 
     let lod = Lod::build(
-        &coordinates,
+        finite(&coordinates),
         rank_inputs(&importance, &priority, &ids).expect("the columns agree"),
         0,
         LodConfig::default(),
@@ -652,28 +657,21 @@ fn build_rejects_what_no_columns_cover() {
 
     // One coordinate against two rank rows.
     assert_eq!(
-        Lod::build(&[Vec2::new(0.0, 0.0)], inputs, 0, LodConfig::default())
-            .expect_err("disagreeing columns must not build"),
+        Lod::build(
+            finite(&[Vec2::new(0.0, 0.0)]),
+            inputs,
+            0,
+            LodConfig::default()
+        )
+        .expect_err("disagreeing columns must not build"),
         LodError::Columns { coordinates: 1 },
     );
 
     // No rows admit no frame.
     let empty = rank_inputs(&[], &[], &[]).expect("empty columns agree");
     assert_eq!(
-        Lod::build(&[], empty, 0, LodConfig::default())
+        Lod::build(finite(&[]), empty, 0, LodConfig::default())
             .expect_err("an empty column must not build"),
-        LodError::Frame,
-    );
-
-    // A non-finite coordinate admits no frame.
-    assert_eq!(
-        Lod::build(
-            &[Vec2::new(f32::NAN, 0.0), Vec2::new(1.0, 1.0)],
-            inputs,
-            0,
-            LodConfig::default(),
-        )
-        .expect_err("a non-finite coordinate must not build"),
         LodError::Frame,
     );
 }
@@ -730,13 +728,13 @@ fn built_columns_uphold_the_contract_laws(
     };
 
     let inputs = rank_inputs(&importance, &priority, &ids).expect("the fixture columns agree");
-    let lod =
-        Lod::build(&coordinates, inputs, seed, config).expect("finite non-empty coordinates build");
+    let lod = Lod::build(finite(&coordinates), inputs, seed, config)
+        .expect("finite non-empty coordinates build");
     let deepest = config.deepest().expect("the schedule fits the key width");
 
     // Determinism: equal inputs give equal structures.
     prop_assert_eq!(
-        &Lod::build(&coordinates, inputs, seed, config).expect("the rebuild builds"),
+        &Lod::build(finite(&coordinates), inputs, seed, config).expect("the rebuild builds"),
         &lod,
     );
 
@@ -894,7 +892,7 @@ fn quad_build_gathers_types_through_the_base_order() {
         max_tile_depth: 1,
     };
     let lod = Lod::build(
-        &coordinates,
+        finite(&coordinates),
         rank_inputs(&importance, &priority, &ids).expect("the columns agree"),
         7,
         config,
@@ -1043,8 +1041,8 @@ fn quad_trees_uphold_the_contract_laws(
     };
 
     let inputs = rank_inputs(&importance, &priority, &ids).expect("the fixture columns agree");
-    let lod =
-        Lod::build(&coordinates, inputs, seed, config).expect("finite non-empty coordinates build");
+    let lod = Lod::build(finite(&coordinates), inputs, seed, config)
+        .expect("finite non-empty coordinates build");
     let deepest = config.deepest().expect("the schedule fits the key width");
 
     let tree = QuadTree::build(&lod, &types, config).expect("the built lod cuts");

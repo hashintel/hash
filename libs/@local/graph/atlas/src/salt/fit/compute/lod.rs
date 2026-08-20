@@ -1,20 +1,19 @@
-//! The level-of-detail stage produces the served columns in base delivery order and the quadtree
-//! cut over them.
+//! The level-of-detail stage derives the served delivery structure and stages its columns.
 
-use hashql_core::id::{Id, IdSlice, IdVec};
+use hashql_core::id::{IdSlice, IdVec};
 use smallvec::SmallVec;
 
-use super::{Context, coordinates::Coordinates, error::ComputeError};
+use super::error::ComputeError;
 use crate::{
     file::{
-        array::{ArrayVariant, Dim, SizedArrayWriter},
-        identity::Key,
-        repository::RepositoryFile,
+        array::SizedColumn, generation::StagedGeneration, identity::Key, repository::Binding,
+        salt::artifact,
     },
-    identity::{BasePosition, NodeRowId, OntologyRowId},
+    identity::{NodeRowId, OntologyRowId},
+    math::FinitePointField,
     salt::{
         adjacency::Adjacency,
-        fit::{prepare::identity::IdentityTableArchive, role::Role},
+        fit::{FitConfig, prepare::identity::IdentityTableArchive},
         importance::{ConstantImportance, DegreeImportance, ImportanceSignal as _, RankingConfig},
         lod::{
             quad::{QuadMeasurements, QuadTree},
@@ -25,201 +24,190 @@ use crate::{
     },
 };
 
-/// The staged level-of-detail files of one fit.
-pub(super) struct LodArtifacts {
-    pub morton: RepositoryFile,
-    pub quad: RepositoryFile,
-    pub postings: RepositoryFile,
-    pub wire_coordinates: RepositoryFile,
-    pub rank_of_position: RepositoryFile,
-    pub position_of_rank: RepositoryFile,
-    pub position_of_row: RepositoryFile,
-    pub row_of_position: RepositoryFile,
+/// The level-of-detail stage, bound to the values it derives from.
+///
+/// [`run`](Self::run) derives the delivery structure and [`Delivery::stage`] persists it, so the
+/// computation and its artifacts separate: the stage consumes proven values, and only the staging
+/// step touches the generation.
+pub(super) struct LevelOfDetail<'fit, I> {
+    /// The canonical coordinates, proven finite at their readback.
+    coordinates: &'fit FinitePointField<NodeRowId>,
+    /// The incident-edge adjacency, the degree signal's source.
+    adjacency: &'fit Adjacency,
+    /// The staged identity table, the ranking tiebreak's key source.
+    ids: &'fit IdentityTableArchive<I, NodeRowId>,
+    /// Each node row's direct types in row order.
+    types: &'fit IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
+    /// Each ontology row's direct parents in row order.
+    parents: &'fit IdSlice<OntologyRowId, SmallVec<OntologyRowId, 2>>,
 }
 
-/// The level-of-detail structure of one fit: the staged files and every evidence section.
-pub(super) struct LevelOfDetail {
+impl<'fit, I> LevelOfDetail<'fit, I>
+where
+    I: Key,
+{
+    /// Binds the stage to the values it derives from.
+    ///
+    /// `types` is each node row's direct types in row order, the quadtree's per-tile type sets
+    /// and the postings' membership source. `parents` is each ontology row's direct parents in
+    /// row order, the postings' type graph.
+    pub(super) const fn new(
+        coordinates: &'fit FinitePointField<NodeRowId>,
+        adjacency: &'fit Adjacency,
+        ids: &'fit IdentityTableArchive<I, NodeRowId>,
+        types: &'fit IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
+        parents: &'fit IdSlice<OntologyRowId, SmallVec<OntologyRowId, 2>>,
+    ) -> Self {
+        Self {
+            coordinates,
+            adjacency,
+            ids,
+            types,
+            parents,
+        }
+    }
+
+    /// Derives the delivery structure: the base order, the quadtree cut, and the postings.
+    ///
+    /// The importance column comes from the configured signal, and the metadata's ranking origin
+    /// records the signal that ran.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ComputeError::WireEncoding`] when the rank inputs refuse their domains, and
+    /// [`ComputeError::Lod`], [`ComputeError::Quad`] or [`ComputeError::Postings`] when a build
+    /// rejects its input.
+    #[tracing::instrument(name = "lod", skip_all)]
+    pub(super) fn run(self, config: &FitConfig) -> Result<Delivery, ComputeError> {
+        let rows = self.coordinates.len();
+        let importance = match config.ranking {
+            RankingConfig::ConstantColumns => ConstantImportance.derive(rows),
+            RankingConfig::IncidentDegree => DegreeImportance::new(self.adjacency).derive(rows),
+        };
+
+        // The priority column is the rank inputs' product-override
+        // lane: a product-side boost (a pinned or promoted entity)
+        // will feed it the day one exists. Until then every row
+        // carries the neutral 0 and the column stays present, so the
+        // rank contract and the wire shape do not change when the
+        // signal arrives.
+        let priority = IdVec::from_domain(0.0_f32, &importance);
+        let inputs = RankInputs::new(&importance, &priority, self.ids.ids()).ok_or_else(|| {
+            ComputeError::WireEncoding {
+                rows: self.ids.len(),
+            }
+        })?;
+
+        let lod = Lod::build(self.coordinates, inputs, config.seed, config.lod)?;
+        drop(importance);
+        drop(priority);
+
+        let quad = QuadTree::build(&lod, self.types, config.lod)?;
+        let postings = Postings::build(self.types, &lod.row_of_position, self.parents)?;
+
+        let evidence = lod.measurements(config.lod);
+        tracing::info!(
+            catch_all = evidence.catch_all_population,
+            co_location_excess = evidence.co_location_excess,
+            quad_nodes = quad.measurements().nodes,
+            dense_types = postings.measurements().dense_types,
+            "derived the delivery structure"
+        );
+
+        Ok(Delivery {
+            lod,
+            quad,
+            postings,
+            evidence,
+        })
+    }
+}
+
+/// The derived delivery structure of one fit, computed and not yet staged.
+pub(super) struct Delivery {
+    /// The served columns in base delivery order.
+    lod: Lod,
+    /// The quadtree cut over the finished columns.
+    quad: QuadTree,
+    /// The type postings over the base delivery order.
+    postings: Postings,
+    /// The delivery-order readings, echoed into the metadata.
+    evidence: LodMeasurements,
+}
+
+impl Delivery {
+    /// Stages every served column and returns the typed artifact set with its measurements.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a staged column does not write.
+    #[tracing::instrument(name = "lod-artifacts", skip_all)]
+    pub(super) fn stage(self, staging: &StagedGeneration) -> Result<StagedDelivery, ComputeError> {
+        let Self {
+            lod,
+            quad,
+            postings,
+            evidence,
+        } = self;
+
+        let files = LodArtifacts {
+            morton: staging.stage(
+                artifact::Morton,
+                &MortonColumn {
+                    fenceposts: &lod.fenceposts,
+                    codes: lod.codes.as_raw(),
+                },
+            )?,
+            quad: staging.stage(artifact::Quad, &quad)?,
+            postings: staging.stage(artifact::Postings, &postings)?,
+            wire_coordinates: staging.stage(
+                artifact::WireCoordinates,
+                SizedColumn::new(&lod.coordinates),
+            )?,
+            rank_of_position: staging.stage(
+                artifact::RankOfPosition,
+                SizedColumn::new(&lod.rank_of_position),
+            )?,
+            position_of_rank: staging.stage(
+                artifact::PositionOfRank,
+                SizedColumn::new(&lod.position_of_rank),
+            )?,
+            position_of_row: staging.stage(
+                artifact::PositionOfRow,
+                SizedColumn::new(&lod.position_of_row),
+            )?,
+            row_of_position: staging.stage(
+                artifact::RowOfPosition,
+                SizedColumn::new(&lod.row_of_position),
+            )?,
+        };
+        tracing::info!("staged the delivery columns, the quadtree, and the postings");
+
+        Ok(StagedDelivery {
+            files,
+            evidence,
+            quad: quad.measurements(),
+            postings: postings.measurements(),
+        })
+    }
+}
+
+/// The staged level-of-detail files of one fit, each binding typed by its artifact.
+pub(super) struct LodArtifacts {
+    pub morton: Binding<artifact::Morton>,
+    pub quad: Binding<artifact::Quad>,
+    pub postings: Binding<artifact::Postings>,
+    pub wire_coordinates: Binding<artifact::WireCoordinates>,
+    pub rank_of_position: Binding<artifact::RankOfPosition>,
+    pub position_of_rank: Binding<artifact::PositionOfRank>,
+    pub position_of_row: Binding<artifact::PositionOfRow>,
+    pub row_of_position: Binding<artifact::RowOfPosition>,
+}
+
+/// The staged delivery structure: the typed artifact set and every evidence section.
+pub(super) struct StagedDelivery {
     pub files: LodArtifacts,
     pub evidence: LodMeasurements,
     pub quad: QuadMeasurements,
     pub postings: PostingsMeasurements,
-}
-
-impl LevelOfDetail {
-    /// Derives the level-of-detail structure over the staged coordinates.
-    ///
-    /// Stages every served column, and cuts the finished columns into the staged quadtree.
-    ///
-    /// The importance column comes from the configured signal over `adjacency`, the value the
-    /// relation stage built, and the metadata's ranking origin records the signal that ran.
-    /// `types` is each node row's direct types in row order, the quadtree's per-tile type sets
-    /// and the postings' membership source; `parents` is each ontology row's direct parents in
-    /// row order, the postings' type graph.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`ComputeError::WireEncoding`] when the rank inputs refuse their domains,
-    /// [`ComputeError::Lod`], [`ComputeError::Quad`] or [`ComputeError::Postings`] when a build
-    /// rejects its input, and an I/O error when a staged column does not write.
-    #[tracing::instrument(name = "lod", skip_all)]
-    pub(super) fn stage<I>(
-        context: &Context,
-        coordinates: &Coordinates,
-        adjacency: &Adjacency,
-        ids: &IdentityTableArchive<I, NodeRowId>,
-        types: &[SmallVec<OntologyRowId, 2>],
-        parents: &[SmallVec<OntologyRowId, 2>],
-    ) -> Result<Self, ComputeError>
-    where
-        I: Key,
-    {
-        let points = coordinates.as_raw();
-
-        let importance = match context.config.ranking {
-            RankingConfig::ConstantColumns => ConstantImportance.derive(points.len()),
-            RankingConfig::IncidentDegree => DegreeImportance::new(adjacency).derive(points.len()),
-        };
-
-        // The priority column is the rank inputs' product-override lane: a product-side boost (a
-        // pinned or promoted entity) will feed it the day one exists. Until then every row
-        // carries the neutral 0 and the column stays present, so the rank contract and the wire
-        // shape do not change when the signal arrives.
-        let priority = IdVec::from_domain(0.0_f32, &importance);
-        let inputs = RankInputs::new(&importance, &priority, ids.ids())
-            .ok_or_else(|| ComputeError::WireEncoding { rows: ids.len() })?;
-
-        let lod = Lod::build(points, inputs, context.config.seed, context.config.lod)?;
-        drop(importance);
-        drop(priority);
-
-        // The row-order and type-domain claims the streams established, pinned once at the seam.
-        let types = IdSlice::<NodeRowId, _>::from_raw(types);
-        let parents = IdSlice::<OntologyRowId, _>::from_raw(parents);
-
-        let morton = context.staging.stage(
-            Role::Morton.file_name(),
-            &MortonColumn {
-                fenceposts: &lod.fenceposts,
-                codes: lod.codes.as_raw(),
-            },
-        )?;
-
-        let (quad, quad_measurements) = Self::stage_quad(context, &lod, types)?;
-        let (postings, postings_measurements) =
-            Self::stage_postings(context, types, parents, &lod.row_of_position)?;
-
-        let files = LodArtifacts {
-            morton,
-            quad,
-            postings,
-            wire_coordinates: stage_column(
-                context,
-                Role::WireCoordinates,
-                ArrayVariant::F32,
-                &[Dim::new(lod.coordinates.len() as u64), Dim::new(2)],
-                &lod.coordinates,
-            )?,
-            rank_of_position: stage_column(
-                context,
-                Role::RankOfPosition,
-                ArrayVariant::U32Le,
-                &[Dim::new(lod.rank_of_position.len() as u64)],
-                &lod.rank_of_position,
-            )?,
-            position_of_rank: stage_column(
-                context,
-                Role::PositionOfRank,
-                ArrayVariant::U32Le,
-                &[Dim::new(lod.position_of_rank.len() as u64)],
-                &lod.position_of_rank,
-            )?,
-            position_of_row: stage_column(
-                context,
-                Role::PositionOfRow,
-                ArrayVariant::U32Le,
-                &[Dim::new(lod.position_of_row.len() as u64)],
-                &lod.position_of_row,
-            )?,
-            row_of_position: stage_column(
-                context,
-                Role::RowOfPosition,
-                ArrayVariant::U64Le,
-                &[Dim::new(lod.row_of_position.len() as u64)],
-                &lod.row_of_position,
-            )?,
-        };
-
-        let evidence = lod.measurements(context.config.lod);
-        tracing::info!(
-            catch_all = evidence.catch_all_population,
-            co_location_excess = evidence.co_location_excess,
-            quad_nodes = quad_measurements.nodes,
-            dense_types = postings_measurements.dense_types,
-            "staged the level-of-detail columns, the quadtree, and the postings"
-        );
-
-        Ok(Self {
-            files,
-            evidence,
-            quad: quad_measurements,
-            postings: postings_measurements,
-        })
-    }
-
-    /// Cuts the quadtree over the finished columns while they are still resident and stages it.
-    ///
-    /// The cut runs under the configuration the cascade ran under, which the build re-checks.
-    fn stage_quad(
-        context: &Context,
-        lod: &Lod,
-        types: &IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
-    ) -> Result<(RepositoryFile, QuadMeasurements), ComputeError> {
-        let _span = tracing::info_span!("quad").entered();
-
-        let tree = QuadTree::build(lod, types, context.config.lod)?;
-        let file = context.staging.stage(Role::Quad.file_name(), &tree)?;
-
-        Ok((file, tree.measurements()))
-    }
-
-    /// Builds the postings over the finished lod permutation and stages them beside the quadtree.
-    ///
-    /// Membership gathers through the same permutation the served columns did. The parent
-    /// regions restate the ontology stream.
-    fn stage_postings(
-        context: &Context,
-        types: &IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
-        parents: &IdSlice<OntologyRowId, SmallVec<OntologyRowId, 2>>,
-        row_of_position: &IdSlice<BasePosition, NodeRowId>,
-    ) -> Result<(RepositoryFile, PostingsMeasurements), ComputeError> {
-        let _span = tracing::info_span!("postings").entered();
-
-        let postings = Postings::build(types, row_of_position, parents)?;
-        let file = context
-            .staging
-            .stage(Role::Postings.file_name(), &postings)?;
-
-        Ok((file, postings.measurements()))
-    }
-}
-
-/// Stages one resident column of rows under its role.
-fn stage_column<I, T>(
-    context: &Context,
-    role: Role,
-    variant: ArrayVariant,
-    dims: &[Dim],
-    rows: &IdSlice<I, T>,
-) -> Result<RepositoryFile, ComputeError>
-where
-    I: Id,
-    T: zerocopy::IntoBytes + zerocopy::Immutable,
-{
-    Ok(context.staging.stage_with(role.file_name(), |writer| {
-        let mut array = SizedArrayWriter::new(writer, variant, dims)?;
-        for row in rows.iter() {
-            array.write_row(zerocopy::IntoBytes::as_bytes(row))?;
-        }
-        array.finish()
-    })?)
 }

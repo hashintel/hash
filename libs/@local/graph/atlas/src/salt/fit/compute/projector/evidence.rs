@@ -9,17 +9,18 @@ use camino::{Utf8Path, Utf8PathBuf};
 use hashql_core::id::Id;
 use zerocopy::IntoBytes as _;
 
-use super::{
-    super::{super::role::Role, error::ComputeError},
-    report::RelationLossReadout,
-};
+use super::{super::error::ComputeError, report::RelationLossReadout};
 use crate::{
     file::{
         array::{ArrayVariant, ArrayWriter, Dim, SizedArrayWriter},
         generation::StagedGeneration,
-        salt::metadata::{
-            ProximalCalibrationEvidence, RefreshFractionEvidence, RungEvidence,
-            StabilityCertificateEvidence, TypeRelationLoss,
+        repository::Artifact as _,
+        salt::{
+            artifact,
+            metadata::{
+                ProximalCalibrationEvidence, RefreshFractionEvidence, RungEvidence,
+                StabilityCertificateEvidence, TypeRelationLoss,
+            },
         },
     },
     integrity::Sha256Digest,
@@ -61,7 +62,7 @@ pub(super) fn stage_coordinate_column(
     rows: u64,
     points: impl Iterator<Item = Vec2>,
 ) -> Result<Sha256Digest, ComputeError> {
-    let mut writer = BufWriter::new(staging.create(&Role::Coordinates.file_name())?);
+    let mut writer = BufWriter::new(staging.create(&artifact::Coordinates::NAME)?);
     let mut array = SizedArrayWriter::new(
         &mut writer,
         ArrayVariant::F32,

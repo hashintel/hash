@@ -29,20 +29,21 @@ use crate::{
     device::Training,
     file::{
         array::{ArrayVariant, Dim, SizedArrayWriter},
-        repository::RepositoryFile,
-        salt::metadata::{FrozenRadiusEvidence, Placement, ProjectorEvidence},
+        repository::{Artifact as _, Binding},
+        salt::{
+            artifact,
+            metadata::{FrozenRadiusEvidence, Placement, ProjectorEvidence},
+        },
     },
     identity::{EdgeRowId, NodeRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     math::NonNegative,
     progress::Progress,
     salt::{
-        fit::{
-            PlacementOptions, ProjectorOptions, Stage, error::PlacementError, role::Role, stage_rng,
-        },
+        fit::{PlacementOptions, ProjectorOptions, Stage, error::PlacementError, stage_rng},
         landmark::artifact::LandmarkSkeleton,
         projector::{
-            artifact,
+            artifact as checkpoint,
             loss::AffinityEnergy,
             model::{NodeRole, Projector},
             train::{
@@ -68,7 +69,7 @@ pub(super) struct StagedPlacement {
     /// The staged projector checkpoint.
     ///
     /// Present exactly for a trained placement.
-    pub checkpoint: Option<RepositoryFile>,
+    pub checkpoint: Option<Binding<artifact::Projector>>,
     /// Which placement ran.
     pub placement: Placement,
     /// The training and ladder measurements of a trained placement.
@@ -94,8 +95,7 @@ impl StagedPlacement {
     ) -> Result<Self, ComputeError> {
         let PlacementOptions::Projector(options) = &context.config.placement else {
             let digest = place_at_landmarks(context, inputs.skeleton)?;
-            let coordinates = Coordinates::open(&context.staging, digest)
-                .map_err(ComputeError::MapCoordinates)?;
+            let coordinates = Coordinates::open(&context.staging, digest)?;
             tracing::info!("staged the baseline coordinates");
             return Ok(Self {
                 coordinates,
@@ -283,8 +283,7 @@ impl StagedPlacement {
             )?;
             (None, digest)
         };
-        let coordinates =
-            Coordinates::open(&context.staging, digest).map_err(ComputeError::MapCoordinates)?;
+        let coordinates = Coordinates::open(&context.staging, digest)?;
         tracing::info!("staged the canonical coordinates");
 
         Ok(Self {
@@ -349,16 +348,16 @@ impl StagedPlacement {
     fn checkpoint(
         context: &Context,
         model: &Projector<Training>,
-    ) -> Result<RepositoryFile, ComputeError> {
+    ) -> Result<Binding<artifact::Projector>, ComputeError> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
-            writer: BufWriter::new(context.staging.create(&Role::Projector.file_name())?),
+            writer: BufWriter::new(context.staging.create(&artifact::Projector::NAME)?),
         };
-        artifact::write_model(model.clone(), &mut writer)?;
+        checkpoint::write_model(model.clone(), &mut writer)?;
         writer.writer.flush()?;
         tracing::info!("staged the projector checkpoint");
 
-        Ok(Role::Projector.file(writer.accumulator.finalize()))
+        Ok(Binding::new(writer.accumulator.finalize()))
     }
 }
 
@@ -366,14 +365,13 @@ impl StagedPlacement {
 ///
 /// The baseline placement: every corpus row takes its assigned landmark's layout coordinate as
 /// one `f32[N, 2]` array file. Returns the sealed file's digest.
+#[tracing::instrument(name = "coordinates", skip_all)]
 fn place_at_landmarks(
     context: &Context,
     skeleton: &LandmarkSkeleton<NodeRowId>,
 ) -> Result<Sha256Digest, io::Error> {
-    let _span = tracing::info_span!("coordinates").entered();
-
     let coordinates = skeleton.coordinates();
-    let writer = BufWriter::new(context.staging.create(&Role::Coordinates.file_name())?);
+    let writer = BufWriter::new(context.staging.create(&artifact::Coordinates::NAME)?);
 
     let mut writer = SizedArrayWriter::new(
         writer,

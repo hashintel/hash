@@ -23,16 +23,17 @@ use super::{
 };
 use crate::{
     file::{
-        WriteInto,
+        WriteAs, WriteInto,
         attraction::{
             EdgeRecord, EdgeRow, GroupRecord, NodeRow, read::AttractionFile, write::write_records,
         },
+        salt::artifact,
         sprs::{
             read::{SprsFile, SprsMatrixError},
             write::{WriteSprsError, write_matrix},
         },
     },
-    identity::OntologyRowId,
+    identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
@@ -68,6 +69,10 @@ where
         Ok(writer.accumulator.finalize())
     }
 }
+
+// The corpus-domain index alone publishes: the distinct-domain twin serves the trainer and
+// never stages.
+impl WriteAs<artifact::Protection> for ProtectionIndex<NodeRowId> {}
 
 /// An opened sparse matrix file does not hold a valid protection index.
 #[derive(Debug)]

@@ -25,7 +25,7 @@ use crate::{
         morton::read::MortonFile,
         postings::read::PostingsFile,
         quad::read::QuadFile,
-        repository::RepositoryFile,
+        repository::{Artifact, Binding},
         sprs::read::SprsFile,
     },
     identity::{
@@ -101,8 +101,8 @@ impl Artifacts {
     fn open(generation: &Generation) -> Result<Self, OpenAtlasError> {
         let files = &generation.repository().files;
 
-        let quad = QuadFile::open(generation.path_of(&files.quad.name))?;
-        let morton = MortonFile::open(generation.path_of(&files.morton.name))?;
+        let quad = QuadFile::open(generation.path_of(&files.quad.name()))?;
+        let morton = MortonFile::open(generation.path_of(&files.morton.name()))?;
         let points: Column<BasePosition, Vec2> =
             open_column(generation, &files.wire_coordinates, ArrayKind::Coordinates)?;
         let rows: Column<BasePosition, NodeRowId> =
@@ -119,9 +119,9 @@ impl Artifacts {
             ArrayKind::RankPositions,
         )?;
         let adjacency =
-            AdjacencyArchive::new(SprsFile::open(generation.path_of(&files.adjacency.name))?)?;
+            AdjacencyArchive::new(SprsFile::open(generation.path_of(&files.adjacency.name()))?)?;
         let postings = PostingsArchive::new(PostingsFile::open(
-            generation.path_of(&files.postings.name),
+            generation.path_of(&files.postings.name()),
         )?)?;
         let ontology_ids = open_identities(
             generation,
@@ -406,12 +406,12 @@ impl Atlas {
 /// Opens one array artifact as its serving role's typed column.
 ///
 /// Every failure names the role: the open error and the shape error alike carry `kind`.
-fn open_column<I: Id, T: Element>(
+fn open_column<A: Artifact, I: Id, T: Element>(
     generation: &Generation,
-    file: &RepositoryFile,
+    binding: &Binding<A>,
     kind: ArrayKind,
 ) -> Result<Column<I, T>, OpenAtlasError> {
-    let array = ArrayFile::open(generation.path_of(&file.name))
+    let array = ArrayFile::open(generation.path_of(&binding.name()))
         .map_err(|error| OpenAtlasError::OpenArray { kind, error })?;
 
     Column::new(array).ok_or(OpenAtlasError::Shape { kind })
@@ -420,16 +420,17 @@ fn open_column<I: Id, T: Element>(
 /// Opens and validates one identity artifact, binding its failures to the domain it serves.
 ///
 /// Every failure is loud - a key kind other than the store's included.
-fn open_identities<I, R>(
+fn open_identities<A, I, R>(
     generation: &Generation,
-    file: &RepositoryFile,
+    binding: &Binding<A>,
     domain: IdentityDomain,
 ) -> Result<IdentityTableArchive<I, R>, OpenAtlasError>
 where
+    A: Artifact,
     I: Key,
     R: Row,
 {
-    let identities = IdentityFile::open(generation.path_of(&file.name))
+    let identities = IdentityFile::open(generation.path_of(&binding.name()))
         .map_err(|error| OpenAtlasError::OpenIdentity { domain, error })?;
     IdentityTableArchive::new(identities)
         .map_err(|error| OpenAtlasError::Identity { domain, error })

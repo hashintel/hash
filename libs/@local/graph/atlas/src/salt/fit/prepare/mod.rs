@@ -14,6 +14,7 @@ use core::{error::Error, fmt, pin::pin};
 use std::io::{self, Seek, Write};
 
 use futures::TryStreamExt as _;
+use hashql_core::id::IdVec;
 use smallvec::SmallVec;
 use zerocopy::IntoBytes as _;
 
@@ -64,7 +65,7 @@ pub(crate) struct NodeColumns<I> {
     /// Entry `i` is node row `i`'s direct types.
     ///
     /// Ascending and deduplicated as the dataset streams them.
-    pub types: Vec<SmallVec<OntologyRowId, 2>>,
+    pub types: IdVec<NodeRowId, SmallVec<OntologyRowId, 2>>,
 }
 
 /// Streams every node's representation into one `f32[N, 512]` array file.
@@ -95,7 +96,7 @@ pub(crate) async fn write_node_representations<D: Dataset>(
     .map_err(PrepareError::Io)?;
 
     let mut ids = identity::IdentityTable::new();
-    let mut types = Vec::new();
+    let mut types = IdVec::new();
     let mut nodes = pin!(dataset.nodes());
     while let Some(node) = nodes.try_next().await.map_err(PrepareError::Dataset)? {
         ids.push(node.id);

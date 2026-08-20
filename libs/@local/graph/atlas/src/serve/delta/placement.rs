@@ -239,7 +239,7 @@ impl Placer {
             None => (NonNegative::ZERO, None),
         };
 
-        let checkpoint = match File::open(generation.path_of(&checkpoint.name)) {
+        let checkpoint = match File::open(generation.path_of(&checkpoint.name())) {
             Ok(file) => file,
             Err(error) => {
                 tracing::warn!(%error, "the projector checkpoint does not open");
@@ -282,20 +282,20 @@ impl Placer {
     fn certify(&self, generation: &Generation) -> bool {
         let files = &generation.repository().files;
 
-        let representations = match ArrayFile::open(generation.path_of(&files.representations.name))
-        {
-            Ok(file) => file,
-            Err(error) => {
-                tracing::warn!(%error, "the representation matrix does not open");
-                return false;
-            }
-        };
+        let representations =
+            match ArrayFile::open(generation.path_of(&files.representations.name())) {
+                Ok(file) => file,
+                Err(error) => {
+                    tracing::warn!(%error, "the representation matrix does not open");
+                    return false;
+                }
+            };
         let Some(representations) = representations.vectors::<PROJECTOR_DIMENSIONS>() else {
             tracing::warn!("the representation matrix does not read as projector-width rows");
             return false;
         };
 
-        let coordinates = match ArrayFile::open(generation.path_of(&files.coordinates.name)) {
+        let coordinates = match ArrayFile::open(generation.path_of(&files.coordinates.name())) {
             Ok(file) => file,
             Err(error) => {
                 tracing::warn!(%error, "the coordinate column does not open");

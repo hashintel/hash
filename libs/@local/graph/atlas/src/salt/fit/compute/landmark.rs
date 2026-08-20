@@ -1,9 +1,9 @@
 //! The landmark stage selects, assigns, contracts, and lays out the skeleton.
 
-use hashql_core::id::{Id as _, IdSlice, bit_vec::DenseBitSet};
+use hashql_core::id::{Id as _, IdSlice, IdVec, bit_vec::DenseBitSet};
 
 use super::{
-    Context,
+    Context, Staged,
     error::ComputeError,
     quotient::{DistinctRowId, Quotient},
 };
@@ -13,23 +13,19 @@ use crate::{
         generation::Generation,
         identity::{Key, read::IdentityFile},
         landmark::read::LandmarkFile,
-        repository::RepositoryFile,
-        salt::metadata::LandmarkEvidence,
+        salt::{artifact, metadata::LandmarkEvidence},
     },
     identity::NodeRowId,
     math::DPositive,
     salt::{
-        fit::{
-            Stage, error::PriorError, prepare::identity::IdentityTableArchive, role::Role,
-            stage_rng,
-        },
+        fit::{Stage, error::PriorError, prepare::identity::IdentityTableArchive, stage_rng},
         knn::hannoy::{HannoyIndex, HannoyIndexError},
         landmark::{
             artifact::{LandmarkSkeleton, LandmarkSkeletonArchive},
             assignment::assign_landmarks,
             layout::layout_landmarks,
             quotient::quotient_graph,
-            select::{LandmarkCandidate, SubgroupAxes, select_landmarks},
+            select::{CandidateId, LandmarkCandidate, SubgroupAxes, select_landmarks},
         },
         semantic::SemanticGraph,
     },
@@ -55,13 +51,13 @@ where
 {
     let files = &prior.repository().files;
     let skeleton = LandmarkSkeletonArchive::new(
-        LandmarkFile::open(prior.path_of(&files.landmarks.name))
+        LandmarkFile::open(prior.path_of(&files.landmarks.name()))
             .map_err(PriorError::MapLandmarks)?,
     )
     .map_err(PriorError::InvalidLandmarks)?;
 
     let prior_ids = IdentityTableArchive::<I, NodeRowId>::new(
-        IdentityFile::open(prior.path_of(&files.node_identities.name))
+        IdentityFile::open(prior.path_of(&files.node_identities.name()))
             .map_err(PriorError::MapIdentities)?,
     )
     .map_err(PriorError::InvalidIdentities)?;
@@ -91,7 +87,7 @@ where
 /// Candidates are uniform over the distinct rows; `prior_marks` names the corpus rows
 /// competing for the retained share. The skeleton builds over the distinct representation rows
 /// and publishes over the corpus row domain: selected rows name their first corpus rows, and
-/// every corpus row takes its representative's landmark. It returns owned beside its staged
+/// every corpus row takes its representative's landmark. It returns owned beside its typed
 /// binding, so the placement stage reads the value this call built rather than the staged bytes.
 ///
 /// # Errors
@@ -107,14 +103,8 @@ pub(super) fn skeleton(
     quotient: &Quotient<'_, PROJECTOR_DIMENSIONS>,
     semantic: &SemanticGraph<DistinctRowId>,
     prior_marks: Option<&DenseBitSet<NodeRowId>>,
-) -> Result<
-    (
-        LandmarkSkeleton<NodeRowId>,
-        RepositoryFile,
-        LandmarkEvidence,
-    ),
-    ComputeError,
-> {
+) -> Result<Staged<LandmarkSkeleton<NodeRowId>, artifact::Landmarks, LandmarkEvidence>, ComputeError>
+{
     let training = quotient.training();
     // The skeleton builds over distinct rows; the published failure surface speaks corpus
     // rows.
@@ -135,8 +125,7 @@ pub(super) fn skeleton(
     let prior_distinct = prior_distinct.as_ref();
 
     let selection = {
-        let _span = tracing::info_span!("landmark-selection").entered();
-        let candidates: Vec<LandmarkCandidate<DistinctRowId>> = (0..training.len())
+        let candidates: IdVec<CandidateId, LandmarkCandidate<DistinctRowId>> = (0..training.len())
             .map(DistinctRowId::from_usize)
             .map(|row| LandmarkCandidate {
                 row,
@@ -147,7 +136,7 @@ pub(super) fn skeleton(
             .collect();
 
         select_landmarks(
-            IdSlice::from_raw(&candidates),
+            &candidates,
             IdSlice::from_raw(&[]),
             context.config.selection,
             stage_rng(context.config.seed, Stage::LandmarkSelection),
@@ -165,7 +154,6 @@ pub(super) fn skeleton(
     };
 
     let assignment = {
-        let _span = tracing::info_span!("landmark-assignment").entered();
         let mut index = HannoyIndex::new(
             context.scratch.directory("assignment")?,
             context.config.index,
@@ -180,16 +168,13 @@ pub(super) fn skeleton(
         .map_err(|error| error.map_rows(corpus, |fault| fault.map_rows(corpus)))?
     };
 
-    let contracted = tracing::info_span!("quotient")
-        .in_scope(|| quotient_graph(&semantic.view(), &assignment, context.config.quotient))?;
-    let coordinates = tracing::info_span!("landmark-layout").in_scope(|| {
-        layout_landmarks(
-            &contracted.view(),
-            context.config.curve,
-            context.config.layout,
-            stage_rng(context.config.seed, Stage::LandmarkLayout),
-        )
-    })?;
+    let contracted = quotient_graph(&semantic.view(), &assignment, context.config.quotient)?;
+    let coordinates = layout_landmarks(
+        &contracted.view(),
+        context.config.curve,
+        context.config.layout,
+        stage_rng(context.config.seed, Stage::LandmarkLayout),
+    )?;
     drop(contracted);
 
     // Publication crosses back to the corpus row domain; the
@@ -200,10 +185,12 @@ pub(super) fn skeleton(
         assignment.reindex(quotient.classes().iter().copied()),
         coordinates,
     );
-    let file = context
-        .staging
-        .stage(Role::Landmarks.file_name(), &skeleton)?;
+    let binding = context.staging.stage(artifact::Landmarks, &skeleton)?;
     tracing::info!(selected = evidence.selected, "staged the landmark skeleton");
 
-    Ok((skeleton, file, evidence))
+    Ok(Staged {
+        value: skeleton,
+        binding,
+        evidence,
+    })
 }

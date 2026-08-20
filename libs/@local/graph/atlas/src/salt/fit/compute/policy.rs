@@ -4,14 +4,17 @@ use alloc::collections::BTreeSet;
 
 use hashql_core::id::{Id as _, IdSlice};
 
-use super::{Context, error::ComputeError};
+use super::{Context, Staged, error::ComputeError};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    file::{array::ArrayFile, repository::RepositoryFile, salt::metadata::PolicyEvidence},
+    file::{
+        array::ArrayFile,
+        repository::Artifact as _,
+        salt::{artifact, metadata::PolicyEvidence},
+    },
     identity::OntologyRowId,
     math::AlignedVecN,
     salt::{
-        fit::role::Role,
         policy::{Classification, artifact::write_policies, classifier::Classifier, resolve},
         relation::RelationPolicy,
     },
@@ -35,8 +38,8 @@ pub(super) fn resolve_table(
     context: &Context,
     model: &Classifier,
     relations: &[OntologyRowId],
-) -> Result<(Vec<RelationPolicy>, RepositoryFile, PolicyEvidence), ComputeError> {
-    let cards = ArrayFile::open(context.staging.path_of(&Role::CardEmbeddings.file_name()))
+) -> Result<Staged<Vec<RelationPolicy>, artifact::Policy, PolicyEvidence>, ComputeError> {
+    let cards = ArrayFile::open(context.staging.path_of(&artifact::CardEmbeddings::NAME))
         .map_err(ComputeError::OpenCards)?;
     // The staged card table is row-aligned with the type table, so
     // its rows index by ontology row. The pin makes that claim once.
@@ -61,11 +64,9 @@ pub(super) fn resolve_table(
         context.config.policy.admission,
     )?;
 
-    let file = context
+    let binding = context
         .staging
-        .stage_with(Role::Policy.file_name(), |writer| {
-            write_policies(&policies, writer)
-        })?;
+        .stage_with(artifact::Policy, |writer| write_policies(&policies, writer))?;
 
     let overridden = context
         .config
@@ -86,5 +87,9 @@ pub(super) fn resolve_table(
         "staged the resolved policy table"
     );
 
-    Ok((policies, file, evidence))
+    Ok(Staged {
+        value: policies,
+        binding,
+        evidence,
+    })
 }

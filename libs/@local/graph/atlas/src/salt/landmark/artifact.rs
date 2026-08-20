@@ -18,7 +18,7 @@ use super::{
 };
 use crate::{
     file::{
-        WriteInto,
+        WriteAs, WriteInto,
         landmark::{read::LandmarkFile, write::write_regions},
         region::ByteStable,
     },
@@ -178,6 +178,10 @@ where
         Ok(writer.accumulator.finalize())
     }
 }
+
+// The skeleton publishes over the corpus row domain alone: the constructor mapped selection and
+// assignment onto first corpus rows before any write.
+impl WriteAs<crate::file::salt::artifact::Landmarks> for LandmarkSkeleton<NodeRowId> {}
 
 /// A published landmark skeleton opened over its mapped file.
 ///

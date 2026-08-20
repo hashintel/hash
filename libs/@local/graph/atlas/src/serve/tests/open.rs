@@ -304,12 +304,12 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     let edges = endpoints.len() as u64;
     drop(atlas);
 
-    let types = IdentityFile::open(generation.path_of(&files.ontology_identities.name))
+    let types = IdentityFile::open(generation.path_of(&files.ontology_identities.name()))
         .expect("the published ontology identities open")
         .rows();
 
     // The node identity table against the code column.
-    let node_identities = Saved::of(generation.path_of(&files.node_identities.name));
+    let node_identities = Saved::of(generation.path_of(&files.node_identities.name()));
     shorten_entities::<NodeRowId>(&node_identities.path, nodes - 1, 0);
     assert_matches!(
         open().expect_err("a short node identity table is refused"),
@@ -320,7 +320,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     open().expect("the repaired fixture opens");
 
     // The edge identity table against the adjacency's edge domain.
-    let edge_identities = Saved::of(generation.path_of(&files.edge_identities.name));
+    let edge_identities = Saved::of(generation.path_of(&files.edge_identities.name()));
     shorten_entities::<EdgeRowId>(&edge_identities.path, edges - 1, EDGE_SEED);
     assert_matches!(
         open().expect_err("a short edge identity table is refused"),
@@ -331,7 +331,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     open().expect("the repaired fixture opens");
 
     // The ontology identity table against the postings' type domain.
-    let ontology_identities = Saved::of(generation.path_of(&files.ontology_identities.name));
+    let ontology_identities = Saved::of(generation.path_of(&files.ontology_identities.name()));
     shorten_ontology(&ontology_identities.path, types - 1);
     assert_matches!(
         open().expect_err("a short ontology identity table is refused"),
@@ -342,7 +342,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     open().expect("the repaired fixture opens");
 
     // A base-order column against the code column.
-    let ranks = Saved::of(generation.path_of(&files.rank_of_position.name));
+    let ranks = Saved::of(generation.path_of(&files.rank_of_position.name()));
     shorten_u32_column(&ranks.path, nodes - 1);
     assert_matches!(
         open().expect_err("a short rank column is refused"),
@@ -364,7 +364,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     open().expect("the repaired fixture opens");
 
     // The adjacency's node domain against the code column.
-    let adjacency = Saved::of(generation.path_of(&files.adjacency.name));
+    let adjacency = Saved::of(generation.path_of(&files.adjacency.name()));
     respan_adjacency(
         &adjacency.path,
         usize::try_from(nodes + 1).expect("fixture node counts fit usize"),
@@ -379,7 +379,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     open().expect("the repaired fixture opens");
 
     // The endpoint column against the adjacency's edge domain.
-    let endpoint_column = Saved::of(generation.path_of(&files.edge_endpoints.name));
+    let endpoint_column = Saved::of(generation.path_of(&files.edge_endpoints.name()));
     shorten_endpoints(&endpoint_column.path, &endpoints[..endpoints.len() - 1]);
     assert_matches!(
         open().expect_err("a short endpoint column is refused"),
@@ -390,7 +390,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     open().expect("the repaired fixture opens");
 
     // The quadtree root's subtree count against the code column.
-    let quad = Saved::of(generation.path_of(&files.quad.name));
+    let quad = Saved::of(generation.path_of(&files.quad.name()));
     retarget_quad_root(
         &quad.path,
         u32::try_from(nodes - 1).expect("fixture point counts fit u32"),
@@ -404,7 +404,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     open().expect("the repaired fixture opens");
 
     // The postings' point domain against the code column.
-    let postings = Saved::of(generation.path_of(&files.postings.name));
+    let postings = Saved::of(generation.path_of(&files.postings.name()));
     retarget_postings_points(&postings.path, nodes + 1);
     assert_matches!(
         open().expect_err("a postings point domain above the point count is refused"),
@@ -435,7 +435,7 @@ async fn rank_pair_tampers_name_their_own_variants() {
     drop(atlas);
 
     // The reverse rank permutation against the code column.
-    let rank_positions = Saved::of(generation.path_of(&files.position_of_rank.name));
+    let rank_positions = Saved::of(generation.path_of(&files.position_of_rank.name()));
     shorten_u32_column(&rank_positions.path, nodes - 1);
     assert_matches!(
         open().expect_err("a short reverse rank permutation is refused"),
@@ -463,7 +463,7 @@ async fn rank_pair_tampers_name_their_own_variants() {
     open().expect("the repaired fixture opens");
 
     // When a rank lies outside the domain, the sample reports the roundtrip as absent.
-    let ranks = Saved::of(generation.path_of(&files.rank_of_position.name));
+    let ranks = Saved::of(generation.path_of(&files.rank_of_position.name()));
     constant_u32_column(&ranks.path, nodes, u32::MAX);
     assert_matches!(
         open().expect_err("an out-of-domain rank is refused"),

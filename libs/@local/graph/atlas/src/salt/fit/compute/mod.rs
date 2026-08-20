@@ -17,6 +17,7 @@
 
 use burn::backend::libtorch::LibTorchDevice;
 
+pub(super) use self::error::ComputeError;
 #[cfg(test)]
 pub(super) use self::projector::inputs::resolve_supplied;
 use self::{
@@ -24,28 +25,28 @@ use self::{
     lod::LevelOfDetail,
     projector::{DistinctInputs, PlacementInputs, StagedPlacement, VerdictResolution},
     quotient::Quotient,
-    vector::VectorFile,
 };
-pub(super) use self::{error::ComputeError, vector::OpenVectorError};
 use super::{
     FitConfig, SuppliedVerdicts, ingest::Ingested, prepare::identity::IdentityTableArchive,
-    role::Role,
 };
 use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
         generation::{Generation, PublishedGeneration, ScratchDirectory, StagedGeneration},
         identity::{Key, read::IdentityFile},
-        repository::{RepositoryFile, RepositoryVersion},
+        repository::{Artifact as _, Binding, RepositoryVersion},
         salt::{
-            SaltFiles, SaltRepository,
+            SaltFiles, SaltRepository, artifact,
             metadata::{Evidence, RankingOrigin, Reproducibility, SaltMetadata, Snapshot},
         },
     },
     identity::NodeRowId,
     integrity::Sha256Digest,
     progress::{Progress, Stage},
-    salt::policy::{annotation::assembly::AssembledCorpus, classifier::Classifier},
+    salt::{
+        policy::{annotation::assembly::AssembledCorpus, classifier::Classifier},
+        vector::VectorFile,
+    },
 };
 
 mod classifier;
@@ -59,7 +60,6 @@ mod projector;
 mod quotient;
 mod relation;
 mod semantic;
-mod vector;
 
 /// The relation-policy classifier supply.
 ///
@@ -79,7 +79,7 @@ pub(super) enum ClassifierPlan {
         /// The SHA-256 of the corpus document's bytes.
         source: Sha256Digest,
         /// The corpus document's staged binding.
-        staged: RepositoryFile,
+        staged: Binding<artifact::AnnotationCorpus>,
     },
 }
 
@@ -99,6 +99,20 @@ pub(super) struct Context {
     pub device: LibTorchDevice,
 }
 
+/// One stage's product: the owned value, its typed binding, and its evidence.
+///
+/// The value flows to the stages downstream, while the binding and the evidence flow to the
+/// seal, so everything one stage produced travels as one typed unit until the trunk routes its
+/// parts.
+pub(super) struct Staged<V, A, E> {
+    /// The owned value the next stages consume.
+    pub value: V,
+    /// The staged file's typed repository binding.
+    pub binding: Binding<A>,
+    /// The stage's measurement, echoed into the metadata document.
+    pub evidence: E,
+}
+
 /// One fit's compute run: the owned inputs the async side hands across the thread boundary.
 pub(super) struct Compute {
     /// The run's places and settings.
@@ -106,7 +120,7 @@ pub(super) struct Compute {
     /// A fitted model, or the assembled corpus to fit one from.
     pub classifier: ClassifierPlan,
     /// The manifest binding of the supplied reviewed-verdicts file, when the fit received one.
-    pub reviewed_verdicts: Option<RepositoryFile>,
+    pub reviewed_verdicts: Option<Binding<artifact::ReviewedVerdicts>>,
     /// The validated supplied reviewed-verdicts document.
     pub verdicts: Option<SuppliedVerdicts>,
     /// The generation seeding reuse, when the fit received one.
@@ -126,6 +140,11 @@ impl Compute {
     ///
     /// Returns the failing stage's [`ComputeError`]. The staging and scratch directories remove
     /// themselves on the early return, so a failed run publishes nothing.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "the run is the fit's one straight line, and splitting it would scatter the data \
+                  flow it exists to show"
+    )]
     pub(super) fn run<I, O, P>(self, progress: &P) -> Result<PublishedGeneration, ComputeError>
     where
         I: Key,
@@ -144,10 +163,10 @@ impl Compute {
         // The boundary map-ins: the corpus matrix, whose file is the data's home for the whole
         // run, and the identity table the prior translation and the ranking tiebreak read.
         let corpus: VectorFile<NodeRowId, PROJECTOR_DIMENSIONS> =
-            VectorFile::open(context.staging.path_of(&Role::Representations.file_name()))
+            VectorFile::open(context.staging.path_of(&artifact::Representations::NAME))
                 .map_err(ComputeError::OpenRepresentations)?;
         let identities = IdentityTableArchive::<I, NodeRowId>::new(IdentityFile::open(
-            context.staging.path_of(&Role::NodeIdentities.file_name()),
+            context.staging.path_of(&artifact::NodeIdentities::NAME),
         )?)?;
 
         let quotient =
@@ -156,37 +175,23 @@ impl Compute {
         let acquired = AcquiredClassifier::acquire(&context, &classifier, progress)?;
         let classifier_file = context
             .staging
-            .stage(Role::Classifier.file_name(), &acquired.model)?;
+            .stage(artifact::Classifier, &acquired.model)?;
         progress.stage_completed(Stage::Classifier);
 
-        let (policies, policy_file, policy_evidence) =
-            policy::resolve_table(&context, &acquired.model, &ingested.relations)?;
+        let policy = policy::resolve_table(&context, &acquired.model, &ingested.relations)?;
         progress.stage_completed(Stage::Policy);
 
-        let (adjacency, adjacency_file) = relation::adjacency(&context, corpus.len())?;
+        let adjacency = relation::adjacency(&context, corpus.len())?;
         progress.stage_completed(Stage::Adjacency);
 
-        let (corpus_relations, trainer_relations) = relation::indexes(
+        let (relations, trainer_relations) = relation::indexes(
             &context,
             corpus.len(),
             &quotient,
-            &policies,
+            &policy.value,
             &ingested.instances,
             &ingested.multi_typed,
         )?;
-        let attraction = context
-            .staging
-            .stage_with(Role::Attraction.file_name(), |writer| {
-                corpus_relations
-                    .attraction
-                    .write_into(corpus.len() as u64, writer)
-            })?;
-        let protection = context
-            .staging
-            .stage(Role::Protection.file_name(), &corpus_relations.protection)?;
-        // The corpus indexes are spent once staged: the manifest keeps their measurements, and
-        // the placement's paired-movement readout replays from the staged bytes on purpose.
-        let relation_measurements = corpus_relations.measurements;
         progress.stage_completed(Stage::Relations);
 
         let (admitted, recall) = neighbours::admit(&context, &quotient, progress)?;
@@ -195,13 +200,17 @@ impl Compute {
         // the corpus's own.
         let expanded =
             (!quotient.is_identity()).then(|| quotient.expand_neighbours(&admitted.view()));
-        let knn = match &expanded {
-            Some(table) => context.staging.stage(Role::Knn.file_name(), table)?,
-            None => context.staging.stage(Role::Knn.file_name(), &admitted)?,
+        let knn = Staged {
+            binding: match &expanded {
+                Some(table) => context.staging.stage(artifact::Knn, table)?,
+                None => context.staging.stage(artifact::Knn, &admitted)?,
+            },
+            value: admitted,
+            evidence: recall,
         };
         progress.stage_completed(Stage::Knn);
 
-        let (semantic_file, semantic) = semantic::smooth(&context, &admitted, expanded.as_ref())?;
+        let semantic = semantic::smooth(&context, &knn.value, expanded.as_ref())?;
         drop(expanded);
         progress.stage_completed(Stage::Semantic);
 
@@ -209,8 +218,8 @@ impl Compute {
             .as_ref()
             .map(|generation| landmark::prior_marks::<I>(generation, &identities))
             .transpose()?;
-        let (skeleton, landmarks_file, landmark_evidence) =
-            landmark::skeleton(&context, &quotient, &semantic, prior_marks.as_ref())?;
+        let skeleton =
+            landmark::skeleton(&context, &quotient, &semantic.value, prior_marks.as_ref())?;
         progress.stage_completed(Stage::Landmarks);
 
         let (snapshot, reproducibility) =
@@ -219,14 +228,14 @@ impl Compute {
         let placement = StagedPlacement::stage(
             &context,
             &PlacementInputs {
-                skeleton: &skeleton,
+                skeleton: &skeleton.value,
                 resolution: &resolution,
                 snapshot: &snapshot,
                 reproducibility: &reproducibility,
                 distinct: DistinctInputs {
                     quotient: &quotient,
-                    knn: &admitted,
-                    semantic: &semantic,
+                    knn: &knn.value,
+                    semantic: &semantic.value,
                     indexes: &trainer_relations,
                 },
             },
@@ -234,27 +243,28 @@ impl Compute {
         )?;
         progress.stage_completed(Stage::Projector);
 
-        let lod = LevelOfDetail::stage::<I>(
-            &context,
+        let lod = LevelOfDetail::new(
             &placement.coordinates,
-            &adjacency,
+            &adjacency.value,
             &identities,
             &ingested.node_types,
             &ingested.type_parents,
-        )?;
+        )
+        .run(&context.config)?
+        .stage(&context.staging)?;
         progress.stage_completed(Stage::Lod);
 
-        // The seal binds every rim: each staged binding and evidence value enters the
-        // repository exactly once, and the sealed document is the generation's identity.
-        let (annotation_corpus, annotation_embeddings, annotation_hashes) =
-            match acquired.annotation {
-                Some(annotation) => (
+        // The seal binds every rim: each typed binding and evidence value enters the repository
+        // exactly once, and the sealed document is the generation's identity.
+        let (annotation_corpus, annotation_embeddings, annotation_hashes) = acquired
+            .annotation
+            .map_or((None, None, None), |annotation| {
+                (
                     Some(annotation.corpus),
                     Some(annotation.embeddings),
                     Some(annotation.hashes),
-                ),
-                None => (None, None, None),
-            };
+                )
+            });
         let ranking = RankingOrigin::from(reproducibility.config.ranking);
         let repository = SaltRepository {
             version: RepositoryVersion::V2,
@@ -262,13 +272,13 @@ impl Compute {
                 representations: ingested.representations,
                 card_embeddings: ingested.cards.embeddings,
                 card_hashes: ingested.cards.hashes,
-                knn,
-                semantic: semantic_file,
-                landmarks: landmarks_file,
+                knn: knn.binding,
+                semantic: semantic.binding,
+                landmarks: skeleton.binding,
                 classifier: classifier_file,
-                policy: policy_file,
-                attraction,
-                protection,
+                policy: policy.binding,
+                attraction: relations.attraction,
+                protection: relations.protection,
                 coordinates: placement.coordinates.binding,
                 morton: lod.files.morton,
                 quad: lod.files.quad,
@@ -282,7 +292,7 @@ impl Compute {
                 edge_identities: ingested.edge_identities,
                 ontology_identities: ingested.cards.identities,
                 edge_endpoints: ingested.edge_endpoints,
-                adjacency: adjacency_file,
+                adjacency: adjacency.binding,
                 projector: placement.checkpoint,
                 reviewed_verdicts,
                 annotation_corpus,
@@ -297,11 +307,11 @@ impl Compute {
                 evidence: Evidence {
                     cards: ingested.cards.stats,
                     norm: ingested.norm,
-                    recall,
-                    landmarks: landmark_evidence,
-                    policy: policy_evidence,
+                    recall: knn.evidence,
+                    landmarks: skeleton.evidence,
+                    policy: policy.evidence,
                     classifier: acquired.evidence,
-                    relations: relation_measurements,
+                    relations: relations.measurements,
                     lod: lod.evidence,
                     quad: lod.quad,
                     postings: lod.postings,

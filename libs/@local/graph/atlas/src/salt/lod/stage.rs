@@ -24,7 +24,7 @@ use super::{
 };
 use crate::{
     file::{
-        WriteInto,
+        WriteAs, WriteInto,
         morton::{
             Fenceposts, SEGMENTS,
             write::{PAGE_STRIDE, write_regions},
@@ -32,7 +32,7 @@ use crate::{
     },
     identity::{BasePosition, ImportanceRank, NodeRowId},
     integrity::{Sha256, Sha256Digest, Writer},
-    math::{Bounds2, Log2, Vec2},
+    math::{Bounds2, FinitePointField, Log2, Vec2},
     morton::{Depth, MortonKey},
 };
 
@@ -101,7 +101,7 @@ pub(crate) enum LodError {
     /// Columns disagreeing among themselves cannot reach here: [`RankInputs`] admits only
     /// equal-length columns.
     Columns { coordinates: usize },
-    /// The coordinates hold a non-finite value or no rows, so no world frame exists.
+    /// The coordinates hold no rows, so no world frame exists.
     Frame,
 }
 
@@ -121,7 +121,7 @@ impl core::fmt::Display for LodError {
             ),
             Self::Frame => write!(
                 fmt,
-                "the coordinates hold a non-finite value or no rows, so no world frame exists",
+                "the coordinates hold no rows, so no world frame exists",
             ),
         }
     }
@@ -193,8 +193,8 @@ pub(crate) struct Lod {
 impl Lod {
     /// Builds the level-of-detail structure over the canonical coordinates.
     ///
-    /// `coordinates` is the canonical `f32[N, 2]` column in row order. `inputs` holds the per-row
-    /// rank columns and `seed` the generation's reproducibility seed.
+    /// `coordinates` is the canonical column in row order, proven finite by its type. `inputs`
+    /// holds the per-row rank columns and `seed` the generation's reproducibility seed.
     ///
     /// The build fits the world frame from the coordinates and normalizes each axis onto `[-1, 1]`
     /// in `f64` with one final rounding, so the wire column is within `2^-23` of exact everywhere
@@ -205,10 +205,9 @@ impl Lod {
     ///
     /// Returns [`LodError::Schedule`] when the configuration exceeds the key width,
     /// [`LodError::Columns`] when the rank columns disagree with the coordinates, and
-    /// [`LodError::Frame`] when the coordinates admit no world frame (no rows, or a non-finite
-    /// value).
+    /// [`LodError::Frame`] when the coordinates hold no rows.
     pub(crate) fn build<I>(
-        coordinates: &[Vec2],
+        coordinates: &FinitePointField<NodeRowId>,
         inputs: RankInputs<'_, I>,
         seed: u64,
         config: LodConfig,
@@ -223,8 +222,10 @@ impl Lod {
             });
         }
 
-        let world = Bounds2::from_slice_par(coordinates).ok_or(LodError::Frame)?;
-        let normalized = world.normalize_into(WIRE_FRAME, coordinates);
+        // Finite input leaves emptiness as the one way no frame exists.
+        let world =
+            Bounds2::from_slice_par(coordinates.as_slice().as_raw()).ok_or(LodError::Frame)?;
+        let normalized = world.normalize_into(WIRE_FRAME, coordinates.as_slice().as_raw());
 
         let keys = key::keys(&normalized, WIRE_FRAME);
         let wire = IdSlice::<NodeRowId, Vec2>::from_raw(&normalized);
@@ -357,6 +358,8 @@ pub(crate) struct MortonColumn<'lod> {
     /// Morton codes in base order, segmented by `fenceposts`.
     pub codes: &'lod [MortonKey],
 }
+
+impl WriteAs<crate::file::salt::artifact::Morton> for MortonColumn<'_> {}
 
 impl WriteInto for MortonColumn<'_> {
     type Error = io::Error;

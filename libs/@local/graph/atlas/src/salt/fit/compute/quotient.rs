@@ -15,7 +15,6 @@ use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rayon::slice::ParallelSliceMut as _;
 use zerocopy::IntoBytes as _;
 
-use super::vector::VectorFile;
 use crate::{
     file::{
         array::{ArrayVariant, Dim, SizedArrayWriter},
@@ -26,6 +25,7 @@ use crate::{
     salt::{
         knn::table::{Knn, KnnMatrix, KnnView},
         relation::RelationInstance,
+        vector::VectorFile,
     },
 };
 
@@ -156,7 +156,7 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
     /// Where copies exist this is the materialized distinct matrix. Under the identity quotient
     /// it is the corpus matrix reborrowed under the distinct key, because the two domains are
     /// then the same rows in the same order, so no second mapping and no copy exists.
-    pub(super) fn training(&self) -> &IdSlice<DistinctRowId, AlignedVecN<N>> {
+    pub(super) const fn training(&self) -> &IdSlice<DistinctRowId, AlignedVecN<N>> {
         match &self.materialized {
             Some(matrix) => matrix,
             None => IdSlice::from_raw(self.corpus.as_raw()),
@@ -277,6 +277,11 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "each test's scratch directory backs the quotient's mapped distinct matrix, so it \
+              lives to the end of the assertions on purpose"
+)]
 mod tests {
     use hashql_core::id::Id as _;
     use zerocopy::IntoBytes as _;

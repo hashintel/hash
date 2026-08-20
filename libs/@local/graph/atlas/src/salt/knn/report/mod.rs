@@ -155,7 +155,7 @@ fn open_representations(root: &GenerationRoot) -> Result<(GenerationId, ArrayFil
     let generation = root.open(id).map_err(SetupError::Generation)?;
 
     let file =
-        ArrayFile::open(generation.path_of(&generation.repository().files.representations.name))
+        ArrayFile::open(generation.path_of(&generation.repository().files.representations.name()))
             .map_err(SetupError::Artifact)?;
 
     Ok((id, file))

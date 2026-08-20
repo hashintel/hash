@@ -5,22 +5,22 @@ use hashql_core::id::IdSlice;
 use super::{ClassifierPlan, Context, error::ComputeError};
 use crate::{
     file::{
-        repository::RepositoryFile,
-        salt::metadata::{
-            ClassifierEvidence, ClassifierFitSummary, HoldoutEvidence, HoldoutRecord,
-            RegularizationReading,
+        repository::Binding,
+        salt::{
+            artifact,
+            metadata::{
+                ClassifierEvidence, ClassifierFitSummary, HoldoutEvidence, HoldoutRecord,
+                RegularizationReading,
+            },
         },
     },
     identity::CardRow,
     integrity::Sha256Digest,
     progress::Progress,
-    salt::{
-        fit::role::Role,
-        policy::{
-            GeometryClass,
-            annotation::assembly::AssembledCorpus,
-            classifier::{Classifier, TrainingSet, fit as fit_classifier},
-        },
+    salt::policy::{
+        GeometryClass,
+        annotation::assembly::AssembledCorpus,
+        classifier::{Classifier, TrainingSet, fit as fit_classifier},
     },
 };
 
@@ -28,9 +28,9 @@ use crate::{
 ///
 /// The corpus document beside the embedding table it assembled to.
 pub(super) struct AnnotationArtifacts {
-    pub corpus: RepositoryFile,
-    pub embeddings: RepositoryFile,
-    pub hashes: RepositoryFile,
+    pub corpus: Binding<artifact::AnnotationCorpus>,
+    pub embeddings: Binding<artifact::AnnotationEmbeddings>,
+    pub hashes: Binding<artifact::AnnotationHashes>,
 }
 
 /// The run's relation-policy classifier with its provenance.
@@ -74,7 +74,7 @@ impl AcquiredClassifier {
                 corpus,
                 source,
                 staged,
-            } => Self::fit(context, corpus, *source, staged, progress),
+            } => Self::fit(context, corpus, *source, *staged, progress),
         }
     }
 
@@ -84,17 +84,17 @@ impl AcquiredClassifier {
         context: &Context,
         corpus: &AssembledCorpus,
         source: Sha256Digest,
-        staged: &RepositoryFile,
+        staged: Binding<artifact::AnnotationCorpus>,
         progress: &P,
     ) -> Result<Self, ComputeError> {
         let embeddings = context
             .staging
-            .stage_with(Role::AnnotationEmbeddings.file_name(), |writer| {
+            .stage_with(artifact::AnnotationEmbeddings, |writer| {
                 corpus.table().write_embeddings_into(writer)
             })?;
         let hashes = context
             .staging
-            .stage_with(Role::AnnotationHashes.file_name(), |writer| {
+            .stage_with(artifact::AnnotationHashes, |writer| {
                 corpus.table().write_hashes_into(writer)
             })?;
 
@@ -181,7 +181,7 @@ impl AcquiredClassifier {
                 },
             },
             annotation: Some(AnnotationArtifacts {
-                corpus: staged.clone(),
+                corpus: staged,
                 embeddings,
                 hashes,
             }),

@@ -14,7 +14,7 @@ use super::{
 use crate::{
     file::{
         morton::SEGMENTS,
-        repository::{FileName, RepositoryFile, RepositoryVersion},
+        repository::{Artifact, Binding, FileName, RepositoryVersion},
         salt::{
             SaltFiles, SaltRepository,
             metadata::{
@@ -61,11 +61,8 @@ fn name(name: &str) -> FileName {
     FileName::new(name.to_owned()).expect("the fixture name is a plain file name")
 }
 
-fn file(file_name: &str) -> RepositoryFile {
-    RepositoryFile {
-        name: name(file_name),
-        hash: digest(file_name),
-    }
+fn binding<A: Artifact>(seed: &str) -> Binding<A> {
+    Binding::new(digest(seed))
 }
 
 fn config(seed: u64) -> FitConfig {
@@ -85,32 +82,32 @@ fn repository() -> SaltRepository {
     SaltRepository {
         version: RepositoryVersion::V2,
         files: SaltFiles {
-            representations: file("representations.arr"),
-            card_embeddings: file("card-embeddings.arr"),
-            card_hashes: file("card-hashes.arr"),
-            knn: file("knn.sprs"),
-            semantic: file("semantic.sprs"),
-            landmarks: file("landmarks.lndm"),
-            classifier: file("classifier.clsf"),
-            policy: file("policy.plcy"),
-            attraction: file("attraction.atrc"),
-            protection: file("protection.sprs"),
-            coordinates: file("coordinates.arr"),
-            morton: file("morton.mrtn"),
-            quad: file("quadtree.quad"),
-            postings: file("postings.post"),
-            wire_coordinates: file("wire-coordinates.arr"),
-            rank_of_position: file("rank-of-position.arr"),
-            position_of_rank: file("position-of-rank.arr"),
-            position_of_row: file("position-of-row.arr"),
-            row_of_position: file("row-of-position.arr"),
-            node_identities: file("node-identities.idnt"),
-            edge_identities: file("edge-identities.idnt"),
-            ontology_identities: file("ontology-identities.idnt"),
-            edge_endpoints: file("edge-endpoints.arr"),
-            adjacency: file("adjacency.sprs"),
+            representations: binding("representations.arr"),
+            card_embeddings: binding("card-embeddings.arr"),
+            card_hashes: binding("card-hashes.arr"),
+            knn: binding("knn.sprs"),
+            semantic: binding("semantic.sprs"),
+            landmarks: binding("landmarks.lndm"),
+            classifier: binding("classifier.clsf"),
+            policy: binding("policy.plcy"),
+            attraction: binding("attraction.atrc"),
+            protection: binding("protection.sprs"),
+            coordinates: binding("coordinates.arr"),
+            morton: binding("morton.mrtn"),
+            quad: binding("quadtree.quad"),
+            postings: binding("postings.post"),
+            wire_coordinates: binding("wire-coordinates.arr"),
+            rank_of_position: binding("rank-of-position.arr"),
+            position_of_rank: binding("position-of-rank.arr"),
+            position_of_row: binding("position-of-row.arr"),
+            row_of_position: binding("row-of-position.arr"),
+            node_identities: binding("node-identities.idnt"),
+            edge_identities: binding("edge-identities.idnt"),
+            ontology_identities: binding("ontology-identities.idnt"),
+            edge_endpoints: binding("edge-endpoints.arr"),
+            adjacency: binding("adjacency.sprs"),
             projector: None,
-            reviewed_verdicts: Some(file("reviewed-verdicts.json")),
+            reviewed_verdicts: Some(binding("reviewed-verdicts.json")),
             annotation_corpus: None,
             annotation_embeddings: None,
             annotation_hashes: None,
@@ -278,14 +275,14 @@ fn sealed_files_refuse_rewriting() {
     // Every published file, the metadata document included, is read-only and
     // refuses a write handle: the permission drop turns a rewriting accident
     // into an OS error.
-    let mut names: Vec<&str> = repository
+    let mut names: Vec<String> = repository
         .files
         .files()
-        .map(|entry| entry.name.as_str())
+        .map(|entry| entry.name.as_str().to_owned())
         .collect();
-    names.push(METADATA_FILE);
+    names.push(METADATA_FILE.to_owned());
     for name in names {
-        let path = published.path().join(name);
+        let path = published.path().join(&name);
         assert!(
             fs::metadata(&path)
                 .expect("a published file should stat")
@@ -318,19 +315,6 @@ fn seal_rejects_a_manifest_the_staging_disagrees_with() {
             .expect("the stray file should create"),
     );
     assert_matches!(staging.seal(&repository), Err(SealError::Unlisted { .. }));
-
-    // Sealing rejects a manifest that claims the document's name before
-    // any filesystem comparison.
-    let mut reserved = repository.clone();
-    reserved.files.knn.name = name(METADATA_FILE);
-    let staging = root.stage().expect("the staging should create");
-    assert_matches!(staging.seal(&reserved), Err(SealError::Reserved));
-
-    // Sealing rejects one name used for two roles.
-    let mut duplicated = repository;
-    duplicated.files.knn.name = name("semantic.sprs");
-    let staging = root.stage().expect("the staging should create");
-    assert_matches!(staging.seal(&duplicated), Err(SealError::Duplicate { .. }));
 
     // No failure published anything: the root holds no generation.
     let entries: Vec<_> = fs::read_dir(&root.path)

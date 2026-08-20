@@ -61,7 +61,7 @@ pub(crate) use self::artifact::EdgeList;
 pub(crate) use self::artifact::{AdjacencyArchive, InvalidAdjacencyFile};
 use crate::{
     file::{
-        WriteInto,
+        WriteAs, WriteInto,
         sprs::write::{WriteSprsError, write_matrix},
     },
     identity::NodeRowId,
@@ -202,7 +202,8 @@ impl Adjacency {
             AdjacencyGraph::U32(graph) => graph.rows(),
             AdjacencyGraph::U64(graph) => graph.rows(),
         };
-        runs / 2
+        // Two runs per node by the list contract, so the halving is exact.
+        runs.div_euclid(2)
     }
 
     /// Returns a node's incident-edge degree: its outgoing plus incoming slots.
@@ -270,6 +271,8 @@ where
         )
     }
 }
+
+impl WriteAs<crate::file::salt::artifact::Adjacency> for Adjacency {}
 
 impl WriteInto for Adjacency {
     type Error = WriteSprsError;

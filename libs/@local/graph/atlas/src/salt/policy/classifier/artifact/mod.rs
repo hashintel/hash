@@ -12,7 +12,7 @@ use super::{Applicability, Classifier};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     file::{
-        WriteInto,
+        WriteAs, WriteInto,
         classifier::{CLASSES, read::ClassifierFile, write::write_regions},
     },
     integrity::{Sha256, Sha256Digest, Writer},
@@ -97,6 +97,8 @@ impl fmt::Display for InvalidClassifierFile {
 }
 
 impl Error for InvalidClassifierFile {}
+
+impl WriteAs<crate::file::salt::artifact::Classifier> for Classifier {}
 
 impl WriteInto for Classifier {
     type Error = io::Error;

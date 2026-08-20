@@ -8,7 +8,7 @@ use smallvec::SmallVec;
 use crate::{
     bitset::{DenseBitSlice, DenseBitSliceArray},
     file::{
-        WriteInto,
+        WriteAs, WriteInto,
         postings::write::{Regions, write_regions},
     },
     identity::{BasePosition, NodeRowId, OntologyRowId},
@@ -104,6 +104,7 @@ impl Postings {
         reason = "the Result carries domain errors; mismatched columns and unsorted streams are \
                   caller contract violations, documented under Panics"
     )]
+    #[tracing::instrument(name = "postings", skip_all)]
     pub(crate) fn build(
         types: &IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
         row_of_position: &IdSlice<BasePosition, NodeRowId>,
@@ -276,6 +277,8 @@ fn invert(direct_posts: &[u64], direct_ids: &[OntologyRowId], domain: usize) -> 
         dense_sets,
     }
 }
+
+impl WriteAs<crate::file::salt::artifact::Postings> for Postings {}
 
 impl WriteInto for Postings {
     type Error = io::Error;

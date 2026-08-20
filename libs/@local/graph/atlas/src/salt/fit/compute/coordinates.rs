@@ -8,12 +8,12 @@ use crate::{
     file::{
         array::{ArrayFile, OpenArrayError},
         generation::StagedGeneration,
-        repository::RepositoryFile,
+        repository::{Artifact as _, Binding},
+        salt::artifact,
     },
     identity::NodeRowId,
     integrity::Sha256Digest,
     math::{FinitePointField, NonFinitePoint, Vec2},
-    salt::fit::role::Role,
 };
 
 /// The staged coordinate column failed to open as a finite point field.
@@ -55,8 +55,8 @@ impl Error for OpenCoordinatesError {
 /// seal publishes, and dereferences to the proven point field. Finiteness is proven once at the
 /// open, so every consumer downstream reads a [`FinitePointField`] and re-proves nothing.
 pub(super) struct Coordinates {
-    /// The staged column's repository binding.
-    pub binding: RepositoryFile,
+    /// The staged column's typed repository binding.
+    pub binding: Binding<artifact::Coordinates>,
     /// The mapping. Held for its lifetime alone: every read goes through `points`.
     file: ArrayFile,
     /// The mapped point slice, validated as finite at construction.
@@ -78,7 +78,7 @@ impl Coordinates {
         staging: &StagedGeneration,
         digest: Sha256Digest,
     ) -> Result<Self, OpenCoordinatesError> {
-        let file = ArrayFile::open(staging.path_of(&Role::Coordinates.file_name()))
+        let file = ArrayFile::open(staging.path_of(&artifact::Coordinates::NAME))
             .map_err(OpenCoordinatesError::Open)?;
         let points: &[Vec2] = file.points().ok_or(OpenCoordinatesError::InvalidArray)?;
         let points = FinitePointField::new(IdSlice::<NodeRowId, _>::from_raw(points))
@@ -86,7 +86,7 @@ impl Coordinates {
         let points = NonNull::from(points.as_slice().as_raw());
 
         Ok(Self {
-            binding: Role::Coordinates.file(digest),
+            binding: Binding::new(digest),
             file,
             points,
         })

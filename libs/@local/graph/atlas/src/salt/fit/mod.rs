@@ -51,6 +51,7 @@ use crate::{
     file::{
         classifier::read::{ClassifierFile, OpenClassifierError},
         generation::{Generation, GenerationRoot, PublishedGeneration},
+        salt::artifact,
     },
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AffinityCurve, NonNegative, Positive, non_negative, nz, positive, unit_fraction},
@@ -87,7 +88,6 @@ mod echo;
 mod error;
 mod ingest;
 pub(crate) mod prepare;
-mod role;
 pub(crate) mod verdicts;
 
 #[cfg(test)]
@@ -489,7 +489,7 @@ impl ClassifierInput {
     /// valid classifier.
     pub(crate) fn open_artifact(path: impl AsRef<Utf8Path>) -> Result<Self, ClassifierSupplyError> {
         let path = path.as_ref();
-        let source = role::digest_file(path).map_err(ClassifierSupplyError::Io)?;
+        let source = crate::file::digest_file(path).map_err(ClassifierSupplyError::Io)?;
         let file = ClassifierFile::open(path).map_err(ClassifierSupplyError::Open)?;
         let classifier =
             Classifier::from_artifact(&file).map_err(ClassifierSupplyError::Invalid)?;
@@ -574,7 +574,7 @@ where
     // reject it, and the staged bytes are the supplied file verbatim.
     let reviewed_verdicts = match verdicts {
         Some(supplied) => {
-            let file = staging.stage_with(role::Role::ReviewedVerdicts.file_name(), |writer| {
+            let file = staging.stage_with(artifact::ReviewedVerdicts, |writer| {
                 writer.write_all(supplied.bytes())?;
                 Ok(supplied.hash())
             })?;
@@ -597,7 +597,7 @@ where
             source: *source,
         },
         ClassifierInput::Annotations(supplied) => {
-            let file = staging.stage_with(role::Role::AnnotationCorpus.file_name(), |writer| {
+            let file = staging.stage_with(artifact::AnnotationCorpus, |writer| {
                 writer.write_all(supplied.bytes())?;
                 Ok(supplied.hash())
             })?;

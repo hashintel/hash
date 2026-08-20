@@ -97,6 +97,7 @@ hashql_core::id::newtype! {
 /// # Errors
 ///
 /// Returns an error when the graph stores no edges.
+#[tracing::instrument(name = "landmark-layout", skip_all)]
 pub(crate) fn layout_landmarks<N>(
     graph: &SemanticGraphView<'_, N>,
     curve: AffinityCurve,
