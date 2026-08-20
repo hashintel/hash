@@ -356,6 +356,13 @@ impl<'verdicts> ResolvedVerdicts<'verdicts> {
         &self.resolved
     }
 
+    /// Takes the resolved verdicts, ascending by relation row.
+    #[inline]
+    #[must_use]
+    pub(crate) fn into_resolved(self) -> Vec<ResolvedVerdict> {
+        self.resolved
+    }
+
     /// Returns the verdicts that resolve to no row.
     ///
     /// The reviewed version is not in the snapshot, or the verdict records no store identity at

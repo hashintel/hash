@@ -9,8 +9,9 @@ use super::super::{
 use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
+        generation::StagedGeneration,
         identity::{Key, read::IdentityFile},
-        repository::Artifact as _,
+        repository::Binding,
         salt::{
             artifact,
             metadata::{Reproducibility, Snapshot},
@@ -96,15 +97,17 @@ pub(crate) struct VerdictResolution {
 impl VerdictResolution {
     /// Resolves the supplied verdicts against the staged ontology identity column.
     ///
-    /// Typed by the dataset's own ontology id. A run without supplied verdicts resolves to the
-    /// empty resolution.
+    /// Typed by the dataset's own ontology id, and addressed by the binding the ingest minted
+    /// for the column, so the resolution reads exactly the staged entry the seal publishes. A
+    /// run without supplied verdicts resolves to the empty resolution.
     ///
     /// # Errors
     ///
     /// Returns an I/O error when the staged identity column does not open, and the open's
     /// admission error when the column is not keyed by `O`.
     pub(crate) fn resolve<O>(
-        context: &super::super::Context,
+        staging: &StagedGeneration,
+        identities: &Binding<artifact::OntologyIdentities>,
         verdicts: Option<&SuppliedVerdicts>,
     ) -> Result<Self, ComputeError>
     where
@@ -114,10 +117,7 @@ impl VerdictResolution {
             return Ok(Self::default());
         };
 
-        resolve_supplied::<O>(
-            &context.staging.path_of(&artifact::OntologyIdentities::NAME),
-            supplied,
-        )
+        resolve_supplied::<O>(&staging.path_of(&identities.name()), supplied)
     }
 }
 
@@ -152,7 +152,7 @@ where
     );
 
     Ok(VerdictResolution {
-        resolved: resolution.resolved().to_vec(),
+        resolved: resolution.into_resolved(),
         unresolved,
     })
 }

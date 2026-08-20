@@ -137,7 +137,7 @@ pub(super) fn skeleton(
 
         select_landmarks(
             &candidates,
-            IdSlice::from_raw(&[]),
+            IdSlice::empty(),
             context.config.selection,
             stage_rng(context.config.seed, Stage::LandmarkSelection),
         )?

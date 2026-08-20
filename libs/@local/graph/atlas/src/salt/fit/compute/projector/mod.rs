@@ -11,15 +11,15 @@
 //! measurement, so the stage's owned working set stays one frame regardless of the schedule
 //! length. Only the canonical aligned column publishes - version 1 publishes one variant.
 
-use std::io::{self, BufWriter, Write as _};
+use std::io;
 
 use burn::module::AutodiffModule as _;
-use hashql_core::id::IdSlice;
+use hashql_core::id::IdVec;
 
 pub(super) use self::inputs::{DistinctInputs, PlacementInputs, VerdictResolution};
 use self::{
     derive::{compose_energy, landmark_anchors, normalized_coefficients, semantic_weight},
-    evidence::{calibration_evidence, stage_coordinate_column},
+    evidence::calibration_evidence,
     inputs::PublishInputs,
     report::LadderPass,
 };
@@ -28,15 +28,14 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     device::Training,
     file::{
-        array::{ArrayVariant, Dim, SizedArrayWriter},
-        repository::{Artifact as _, Binding},
+        array::SizedColumn,
+        repository::Binding,
         salt::{
             artifact,
             metadata::{FrozenRadiusEvidence, Placement, ProjectorEvidence},
         },
     },
     identity::{EdgeRowId, NodeRowId},
-    integrity::{Sha256, Sha256Digest, Writer},
     math::NonNegative,
     progress::Progress,
     salt::{
@@ -94,8 +93,8 @@ impl StagedPlacement {
         progress: &P,
     ) -> Result<Self, ComputeError> {
         let PlacementOptions::Projector(options) = &context.config.placement else {
-            let digest = place_at_landmarks(context, inputs.skeleton)?;
-            let coordinates = Coordinates::open(&context.staging, digest)?;
+            let binding = place_at_landmarks(context, inputs.skeleton)?;
+            let coordinates = Coordinates::open(&context.staging, binding)?;
             tracing::info!("staged the baseline coordinates");
             return Ok(Self {
                 coordinates,
@@ -140,19 +139,22 @@ impl StagedPlacement {
         // quotient.
         let corpus = distinct.quotient.corpus();
         let training = distinct.quotient.training();
-        // Every corpus row is a knowledge entity: the dataset streams
-        // entities, and no other role projects yet. One column serves
-        // both domains - the trainer's is its distinct-length prefix.
-        let roles = vec![NodeRole::KnowledgeEntity; corpus.len()];
+        // Every corpus row is a knowledge entity: the dataset streams entities, and no other
+        // role projects yet. Each domain's uniform column is born in its own row domain, so
+        // neither view relabels the other's rows.
+        let corpus_roles: IdVec<NodeRowId, _> =
+            IdVec::from_raw(vec![NodeRole::KnowledgeEntity; corpus.len()]);
+        let training_roles: IdVec<super::quotient::DistinctRowId, _> =
+            IdVec::from_raw(vec![NodeRole::KnowledgeEntity; training.len()]);
         let landmarks = landmark_anchors(inputs.skeleton, options, distinct.quotient);
 
         let columns = NodeColumns {
             representations: corpus,
-            roles: IdSlice::from_raw(&roles),
+            roles: &corpus_roles,
         };
         let trainer_columns = NodeColumns {
             representations: training,
-            roles: IdSlice::from_raw(&roles[..training.len()]),
+            roles: &training_roles,
         };
 
         // A vacuous placement withholds the relation evidence. The
@@ -262,12 +264,12 @@ impl StagedPlacement {
         let model = model.valid();
         let energy = boundary.and_then(|boundary| compose_energy(options, boundary.radius));
 
-        let (ladder, digest) = if let Some(energy) = energy {
+        let (ladder, binding) = if let Some(energy) = energy {
             let _span = tracing::info_span!("ladder").entered();
-            let (evidence, digest) =
+            let (evidence, binding) =
                 LadderPass::new(&context.staging, &context.scratch, context.device)
                     .measure_conditions(options, &model, columns, inputs, energy)?;
-            (Some(evidence), digest)
+            (Some(evidence), binding)
         } else {
             let frame = refresh::forward(
                 &model,
@@ -276,14 +278,12 @@ impl StagedPlacement {
                 options.forward_rows,
                 &context.device,
             )?;
-            let digest = stage_coordinate_column(
-                &context.staging,
-                frame.len() as u64,
-                frame.iter().copied(),
-            )?;
-            (None, digest)
+            let binding = context
+                .staging
+                .stage(artifact::Coordinates, SizedColumn::new(frame.as_slice()))?;
+            (None, binding)
         };
-        let coordinates = Coordinates::open(&context.staging, digest)?;
+        let coordinates = Coordinates::open(&context.staging, binding)?;
         tracing::info!("staged the canonical coordinates");
 
         Ok(Self {
@@ -344,42 +344,40 @@ impl StagedPlacement {
         Ok(fitted)
     }
 
-    /// Stages the published model checkpoint, digesting the framework bytes as they stream.
+    /// Stages the published model checkpoint.
+    ///
+    /// The clone is the recorder's: recording moves the parameters into the record, and the
+    /// model still projects the ladder after its checkpoint stages.
     fn checkpoint(
         context: &Context,
         model: &Projector<Training>,
     ) -> Result<Binding<artifact::Projector>, ComputeError> {
-        let mut writer = Writer {
-            accumulator: Sha256::new(),
-            writer: BufWriter::new(context.staging.create(&artifact::Projector::NAME)?),
-        };
-        checkpoint::write_model(model.clone(), &mut writer)?;
-        writer.writer.flush()?;
+        let recorded = checkpoint::RecordedModel::record(model.clone())?;
+        let binding = context.staging.stage(artifact::Projector, &recorded)?;
         tracing::info!("staged the projector checkpoint");
 
-        Ok(Binding::new(writer.accumulator.finalize()))
+        Ok(binding)
     }
 }
 
-/// Streams every row's assigned landmark coordinate into the staged canonical column.
+/// Stages every row's assigned landmark coordinate as the canonical column.
 ///
-/// The baseline placement: every corpus row takes its assigned landmark's layout coordinate as
-/// one `f32[N, 2]` array file. Returns the sealed file's digest.
+/// The baseline placement: every corpus row takes its assigned landmark's layout coordinate,
+/// gathered into one owned column and staged as the `f32[N, 2]` coordinate artifact. Returns the
+/// typed binding the staging boundary mints.
 #[tracing::instrument(name = "coordinates", skip_all)]
 fn place_at_landmarks(
     context: &Context,
     skeleton: &LandmarkSkeleton<NodeRowId>,
-) -> Result<Sha256Digest, io::Error> {
+) -> Result<Binding<artifact::Coordinates>, io::Error> {
     let coordinates = skeleton.coordinates();
-    let writer = BufWriter::new(context.staging.create(&artifact::Coordinates::NAME)?);
+    let column: IdVec<NodeRowId, _> = skeleton
+        .assignment()
+        .iter()
+        .map(|&ordinal| coordinates[ordinal])
+        .collect();
 
-    let mut writer = SizedArrayWriter::new(
-        writer,
-        ArrayVariant::F32,
-        &[Dim::new(skeleton.assignment().len() as u64), Dim::new(2)],
-    )?;
-    for &ordinal in skeleton.assignment() {
-        writer.write_row(zerocopy::IntoBytes::as_bytes(&coordinates[ordinal]))?;
-    }
-    writer.finish()
+    context
+        .staging
+        .stage(artifact::Coordinates, SizedColumn::new(&column))
 }

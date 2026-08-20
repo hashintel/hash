@@ -79,13 +79,19 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
     ///
     /// # Panics
     ///
-    /// Panics when the matrix this call just wrote does not map back as aligned `f32` rows,
-    /// which is a defect of the writer rather than of the input.
+    /// Panics when the corpus row count exceeds the store's `u32` row domain: every published
+    /// column and the neighbour table's packed columns address rows as `u32`, so a wider corpus
+    /// refuses here, before any stage spends time on it. Also panics when the matrix this call
+    /// just wrote does not map back as aligned `f32` rows, which is a defect of the writer
+    /// rather than of the input.
     #[tracing::instrument(name = "quotient", skip_all)]
     pub(super) fn build(
         corpus: &'corpus IdSlice<NodeRowId, AlignedVecN<N>>,
         scratch: &ScratchDirectory,
     ) -> io::Result<Self> {
+        u32::try_from(corpus.len())
+            .expect("the corpus row count should fit the store's u32 row domain");
+
         let mut unique = HashMap::with_capacity(corpus.len());
         let mut classes = IdVec::with_capacity(corpus.len());
         let mut representatives: IdVec<DistinctRowId, NodeRowId> = IdVec::new();

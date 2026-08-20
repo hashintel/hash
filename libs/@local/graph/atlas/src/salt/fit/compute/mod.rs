@@ -103,7 +103,9 @@ pub(super) struct Context {
 ///
 /// The value flows to the stages downstream, while the binding and the evidence flow to the
 /// seal, so everything one stage produced travels as one typed unit until the trunk routes its
-/// parts.
+/// parts. The value and the binding need not describe the same bytes: under a real quotient the
+/// neighbour and semantic stages publish the corpus-domain table while the distinct-domain twin
+/// flows on as the value the trainer consumes.
 pub(super) struct Staged<V, A, E> {
     /// The owned value the next stages consume.
     pub value: V,
@@ -224,7 +226,11 @@ impl Compute {
 
         let (snapshot, reproducibility) =
             input_sections(&context.config, prior.as_ref(), &ingested);
-        let resolution = VerdictResolution::resolve::<O>(&context, verdicts.as_ref())?;
+        let resolution = VerdictResolution::resolve::<O>(
+            &context.staging,
+            &ingested.cards.identities,
+            verdicts.as_ref(),
+        )?;
         let placement = StagedPlacement::stage(
             &context,
             &PlacementInputs {

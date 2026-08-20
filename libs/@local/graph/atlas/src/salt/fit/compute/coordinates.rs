@@ -8,11 +8,10 @@ use crate::{
     file::{
         array::{ArrayFile, OpenArrayError},
         generation::StagedGeneration,
-        repository::{Artifact as _, Binding},
+        repository::Binding,
         salt::artifact,
     },
     identity::NodeRowId,
-    integrity::Sha256Digest,
     math::{FinitePointField, NonFinitePoint, Vec2},
 };
 
@@ -73,7 +72,10 @@ pub(super) struct Coordinates {
 }
 
 impl Coordinates {
-    /// Maps the staged coordinate column back under its sealed digest and proves it finite.
+    /// Maps the staged coordinate column back under its typed binding and proves it finite.
+    ///
+    /// The binding is the one the staging boundary returned for the column's write, so the
+    /// mapped view carries the same identity the seal publishes.
     ///
     /// # Errors
     ///
@@ -82,9 +84,9 @@ impl Coordinates {
     /// [`OpenCoordinatesError::NonFinite`] when a point of the column is not finite.
     pub(super) fn open(
         staging: &StagedGeneration,
-        digest: Sha256Digest,
+        binding: Binding<artifact::Coordinates>,
     ) -> Result<Self, OpenCoordinatesError> {
-        let file = ArrayFile::open(staging.path_of(&artifact::Coordinates::NAME))
+        let file = ArrayFile::open(staging.path_of(&binding.name()))
             .map_err(OpenCoordinatesError::Open)?;
         let points: &[Vec2] = file.points().ok_or(OpenCoordinatesError::InvalidArray)?;
         let points = FinitePointField::new(IdSlice::<NodeRowId, _>::from_raw(points))
@@ -92,7 +94,7 @@ impl Coordinates {
         let points = NonNull::from(points.as_slice().as_raw());
 
         Ok(Self {
-            binding: Binding::new(digest),
+            binding,
             file,
             points,
         })

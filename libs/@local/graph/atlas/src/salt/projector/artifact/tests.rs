@@ -17,7 +17,7 @@ use burn::{
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{CheckpointError, ResumeRecord, open_model, open_resume, write_model};
+use super::{CheckpointError, RecordedModel, ResumeRecord, open_model, open_resume};
 use crate::{
     identity::NodeRowId,
     salt::projector::model::{Architecture, Dimension, Layer, Projector, ProjectorInput},
@@ -105,8 +105,9 @@ fn record_bytes(record: ResumeRecord<TestBackend>) -> Vec<u8> {
 #[test]
 fn model_checkpoint_round_trips_bit_exactly_across_backends() {
     let trained = model(7);
-    let mut bytes = Vec::new();
-    write_model(trained.clone(), &mut bytes).expect("the model checkpoint writes");
+    let bytes = RecordedModel::record(trained.clone())
+        .expect("the model checkpoint records")
+        .0;
 
     let reopened = open_model::<NdArray>(bytes.as_slice(), architecture(), &device())
         .expect("the model checkpoint opens on the plain inference backend");
@@ -120,8 +121,9 @@ fn model_checkpoint_round_trips_bit_exactly_across_backends() {
 
 #[test]
 fn open_model_rejects_a_different_width() {
-    let mut bytes = Vec::new();
-    write_model(model(7), &mut bytes).expect("the model checkpoint writes");
+    let bytes = RecordedModel::record(model(7))
+        .expect("the model checkpoint records")
+        .0;
 
     let mut wider = architecture();
     wider.width = nonzero(16);
@@ -136,8 +138,9 @@ fn open_model_rejects_a_different_width() {
 
 #[test]
 fn open_model_rejects_a_different_depth_before_loading() {
-    let mut bytes = Vec::new();
-    write_model(model(7), &mut bytes).expect("the model checkpoint writes");
+    let bytes = RecordedModel::record(model(7))
+        .expect("the model checkpoint records")
+        .0;
 
     let mut deeper = architecture();
     deeper.residual_blocks = nonzero(3);
@@ -155,8 +158,9 @@ fn open_model_rejects_a_different_depth_before_loading() {
 
 #[test]
 fn open_model_rejects_truncated_bytes() {
-    let mut bytes = Vec::new();
-    write_model(model(7), &mut bytes).expect("the model checkpoint writes");
+    let mut bytes = RecordedModel::record(model(7))
+        .expect("the model checkpoint records")
+        .0;
     // A fixed prefix well inside the record: an incomplete file.
     bytes.truncate(100);
 

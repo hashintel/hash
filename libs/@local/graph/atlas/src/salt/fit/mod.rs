@@ -541,7 +541,7 @@ pub(crate) struct Supplies<'fit> {
 /// [`FitError::Cards`], [`FitError::Embedding`]) or a supplied annotation corpus fails to assemble
 /// into the classifier's training set ([`FitError::Assembly`]). A streamed ingest write can also
 /// fail ([`FitError::Io`]), and any compute stage rejecting its input, failing an admission check,
-/// or unable to write, map, or publish answers [`FitError::Stage`]. The run publishes nothing on
+/// or unable to write, map, or publish answers [`FitError::Compute`]. The run publishes nothing on
 /// any error.
 #[expect(
     clippy::significant_drop_tightening,

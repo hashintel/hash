@@ -49,8 +49,9 @@ impl Error for OpenVectorError {
 ///
 /// The handle owns the mapping and is the matrix: it dereferences to the typed row slice, and the
 /// row domain travels in the type, so a corpus-row matrix and a distinct-row matrix are different
-/// types a call cannot confuse. Where a theorem identifies two domains,
-/// [`cast`](Self::cast) rebinds the same mapping under the other one.
+/// types a call cannot confuse. Where a theorem identifies two domains, the identification lives
+/// with the theorem's owner - the quotient's `training()` reborrows the corpus under the
+/// distinct domain instead of retyping the handle.
 pub(super) struct VectorFile<I, const N: usize> {
     /// The mapping. Held for its lifetime alone: every read goes through `rows`.
     file: ArrayFile,
@@ -94,22 +95,6 @@ where
         ArrayFile::open(path)
             .map_err(OpenVectorError::from)
             .and_then(Self::new)
-    }
-
-    /// Rebinds the mapping under the row domain `J`.
-    ///
-    /// The bytes and the mapping stay the same, so the call is a domain retype rather than a
-    /// copy. The caller owns the identification of the two domains, such as an identity quotient
-    /// making the corpus rows the distinct rows.
-    pub(super) fn cast<J>(self) -> VectorFile<J, N>
-    where
-        J: Id,
-    {
-        VectorFile {
-            file: self.file,
-            rows: self.rows,
-            _marker: PhantomData,
-        }
     }
 }
 

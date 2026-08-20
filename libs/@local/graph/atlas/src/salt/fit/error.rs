@@ -3,7 +3,7 @@
 //! The failure surface mirrors the pipeline's thread boundary. [`FitError`] is the async side's:
 //! it holds the failures only ingest produces - the dataset, the card stream, the embedding
 //! provider, and the norm admission check - and wraps the compute side's
-//! [`ComputeError`](super::compute::ComputeError) whole. [`PriorError`] and [`PlacementError`]
+//! [`ComputeError`] whole. [`PriorError`] and [`PlacementError`]
 //! are shared vocabularies: the prior generation's artifacts are read on both sides of the
 //! boundary, and the placement's refusals live with the projector stage that produces them.
 

@@ -9,23 +9,22 @@ use hashql_core::id::{Id, IdSlice, IdVec};
 use super::{
     super::error::ComputeError,
     derive::gather_distinct,
-    evidence::{stage_coordinate_column, step_evidence, step_path, write_frame},
+    evidence::{step_evidence, step_path, write_frame},
     inputs::PublishInputs,
 };
 use crate::{
     device::Inference,
     file::{
-        array::ArrayFile,
+        array::{ArrayFile, SizedColumn},
         attraction::read::AttractionFile,
         generation::{ScratchDirectory, StagedGeneration},
-        repository::Artifact as _,
+        repository::{Artifact as _, Binding},
         salt::{
             artifact,
             metadata::{LadderEvidence, Reproducibility, Snapshot},
         },
     },
     identity::{NodeRowId, OntologyRowId},
-    integrity::Sha256Digest,
     math::{DNonNegative, DPositive, Derivation, FinitePointField, NonNegative},
     salt::{
         fit::ProjectorOptions,
@@ -84,7 +83,7 @@ impl<'fit> LadderPass<'fit> {
         columns: NodeColumns<'_, NodeRowId>,
         inputs: &PublishInputs<'_>,
         energy: RelationEnergy,
-    ) -> Result<(LadderEvidence, Sha256Digest), ComputeError> {
+    ) -> Result<(LadderEvidence, Binding<artifact::Coordinates>), ComputeError> {
         let device = self.device;
         let ladder = self.scratch.directory("ladder")?;
         let conditions = options.ladder.conditions.values();
@@ -168,8 +167,9 @@ impl<'fit> LadderPass<'fit> {
         // at its creation, and every consumer below takes the field.
         let aligned = FinitePointField::new_boxed(IdVec::from_raw(aligned).into_boxed_slice())
             .map_err(|source| ComputeError::NonFiniteAligned { source })?;
-        let digest =
-            stage_coordinate_column(self.staging, aligned.len() as u64, aligned.iter().copied())?;
+        let binding = self
+            .staging
+            .stage(artifact::Coordinates, SizedColumn::new(aligned.as_slice()))?;
 
         let persisted_relation_loss = self.measure_persisted_loss(
             inputs,
@@ -203,7 +203,7 @@ impl<'fit> LadderPass<'fit> {
                 persisted_relation_loss,
                 paired_movement: Some(paired_movement),
             },
-            digest,
+            binding,
         ))
     }
 
@@ -233,6 +233,9 @@ impl<'fit> LadderPass<'fit> {
 
     /// Measures the paired-movement readout over the staged attraction index.
     ///
+    /// The index maps back from its staged bytes rather than riding in from the stage that built
+    /// it, so the readout replays from exactly what the published generation carries.
+    ///
     /// The readings run over the ladder's aligned frames: `zero` is the baseline step's field
     /// and `canonical` the published step's field in the baseline basis. [`paired::measure`]
     /// runs the whole readout, and every readout resolution is an evidence body, so the
@@ -242,7 +245,7 @@ impl<'fit> LadderPass<'fit> {
     ///
     /// - [`ComputeError::SaltPreimage`] when the salt preimage does not serialize. The preimage is
     ///   a strict subset of the metadata document, so the seal shares the failure.
-    /// - [`ComputeError::MapAttraction`] when the staged attraction index does not map back.
+    /// - [`ComputeError::OpenAttraction`] when the staged attraction index does not map back.
     ///
     /// # Panics
     ///

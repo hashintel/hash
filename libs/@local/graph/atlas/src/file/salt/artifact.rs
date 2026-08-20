@@ -2,7 +2,7 @@
 //!
 //! Each marker names one artifact of the repository and pins its file name, so a binding, a
 //! staged write, and a manifest slot all speak the same typed vocabulary. A write is admitted
-//! per artifact through [`WriteAs`](crate::file::WriteAs) impls beside the value types, which
+//! per artifact through [`WriteAs`] impls beside the value types, which
 //! makes the set of values allowed to produce each file a checkable fact rather than a
 //! convention.
 //!
@@ -152,6 +152,7 @@ artifact!(
 
 // The served column set, each admitted from exactly its own row domain and element type, so two
 // permutation columns of equal width cannot swap at the write.
+impl WriteAs<Coordinates> for SizedColumn<NodeRowId, Vec2> {}
 impl WriteAs<WireCoordinates> for SizedColumn<BasePosition, Vec2> {}
 impl WriteAs<RankOfPosition> for SizedColumn<BasePosition, ImportanceRank> {}
 impl WriteAs<PositionOfRank> for SizedColumn<ImportanceRank, BasePosition> {}

@@ -12,19 +12,13 @@ use zerocopy::IntoBytes as _;
 use super::{super::error::ComputeError, report::RelationLossReadout};
 use crate::{
     file::{
-        array::{ArrayVariant, ArrayWriter, Dim, SizedArrayWriter},
-        generation::StagedGeneration,
-        repository::Artifact as _,
-        salt::{
-            artifact,
-            metadata::{
-                ProximalCalibrationEvidence, RefreshFractionEvidence, StabilityCertificateEvidence,
-                StepEvidence, TypeRelationLoss,
-            },
+        array::{ArrayVariant, ArrayWriter, Dim},
+        salt::metadata::{
+            ProximalCalibrationEvidence, RefreshFractionEvidence, StabilityCertificateEvidence,
+            StepEvidence, TypeRelationLoss,
         },
     },
-    integrity::Sha256Digest,
-    math::{FinitePointField, Vec2},
+    math::FinitePointField,
     salt::{
         ladder::StepMeasurement,
         projector::train::{BoundaryEvidence, FrozenRadius, RefreshFraction},
@@ -52,26 +46,6 @@ where
     array.finish()?;
     writer.flush()?;
     Ok(())
-}
-
-/// Streams one coordinate frame of `rows` points into the staged canonical column.
-///
-/// Returns the sealed file's digest.
-pub(super) fn stage_coordinate_column(
-    staging: &StagedGeneration,
-    rows: u64,
-    points: impl Iterator<Item = Vec2>,
-) -> Result<Sha256Digest, ComputeError> {
-    let mut writer = BufWriter::new(staging.create(&artifact::Coordinates::NAME)?);
-    let mut array = SizedArrayWriter::new(
-        &mut writer,
-        ArrayVariant::F32,
-        &[Dim::new(rows), Dim::new(2)],
-    )?;
-    for point in points {
-        array.write_row(point.as_bytes())?;
-    }
-    Ok(array.finish()?)
 }
 
 /// Joins each step's alignment measurement with its own walk's per-type loss shares.

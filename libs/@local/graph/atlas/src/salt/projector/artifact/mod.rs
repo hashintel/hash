@@ -18,7 +18,7 @@
 mod tests;
 
 use core::num::NonZero;
-use std::io;
+use std::io::{self, Write as _};
 
 use burn::{
     module::Module as _,
@@ -29,6 +29,8 @@ use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use crate::{
+    file::{WriteAs, WriteInto, salt::artifact},
+    integrity::{Sha256, Sha256Digest, Writer},
     math::UnitFraction,
     salt::projector::{
         model::{Architecture, ArchitectureMismatch, Projector, ProjectorRecord},
@@ -142,27 +144,48 @@ struct ResumeRecord<B: AutodiffBackend<FloatElem = f32>> {
     generator: [u8; 32],
 }
 
-/// Writes the published model checkpoint.
+/// One recorded model checkpoint: the framework's serialized bytes, ready to stage.
 ///
-/// Consumes the model. Recording moves the parameters into the record, so a caller that keeps its
-/// own copy clones at the call site where the copy is visible.
-///
-/// # Errors
-///
-/// Returns an error when encoding or writing fails.
-pub(crate) fn write_model<B: Backend>(
-    model: Projector<B>,
-    writer: &mut impl io::Write,
-) -> Result<(), CheckpointError> {
-    // Burn's "full" precision is f32 (as opposed to half); the model is f32 end to end, so the
-    // recorder round-trips the parameters exactly.
-    let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
-    let bytes = recorder
-        .record(model.into_record(), ())
-        .map_err(CheckpointError::record)?;
-    writer.write_all(&bytes)?;
-    Ok(())
+/// The record-then-stage split keeps the two failure domains apart: recording can only fail in
+/// the framework's encoder, and staging can only fail in the writer, so neither error path has
+/// to explain the other. Its writer marking admits the value as the published
+/// [`artifact::Projector`] entry.
+pub(crate) struct RecordedModel(Vec<u8>);
+
+impl RecordedModel {
+    /// Records the model's parameters as the checkpoint's byte form.
+    ///
+    /// Consumes the model. Recording moves the parameters into the record, so a caller that
+    /// keeps its own copy clones at the call site where the copy is visible.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the framework cannot encode the record.
+    pub(crate) fn record<B: Backend>(model: Projector<B>) -> Result<Self, CheckpointError> {
+        // Burn's "full" precision is f32 (as opposed to half); the model is f32 end to end, so
+        // the recorder round-trips the parameters exactly.
+        let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
+        let bytes = recorder
+            .record(model.into_record(), ())
+            .map_err(CheckpointError::record)?;
+        Ok(Self(bytes))
+    }
 }
+
+impl WriteInto for RecordedModel {
+    type Error = io::Error;
+
+    fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, io::Error> {
+        let mut writer = Writer {
+            accumulator: Sha256::new(),
+            writer: write,
+        };
+        writer.write_all(&self.0)?;
+        Ok(writer.accumulator.finalize())
+    }
+}
+
+impl WriteAs<artifact::Projector> for RecordedModel {}
 
 /// Opens a published model checkpoint on any backend.
 ///

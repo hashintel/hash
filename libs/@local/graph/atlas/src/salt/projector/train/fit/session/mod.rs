@@ -252,10 +252,12 @@ where
                 });
             }
 
-            let step_index = step(step_index, schedule.boundary(), self.vacuous);
+            // The drawn ladder position is its own index: binding it over `step_index` would
+            // hand the ladder position to every step-indexed consumer below.
+            let ladder_step = step(step_index, schedule.boundary(), self.vacuous);
             let populations = self.sampler.draw(
                 DrawContext {
-                    eta: STEPS[step_index],
+                    eta: STEPS[ladder_step],
                     mined: mined.as_ref(),
                     landmarks: self.inputs.landmarks,
                     anchors: self.inputs.anchors,
@@ -287,7 +289,7 @@ where
                 }
             };
 
-            let batch = assemble_batch(populations, step_index, scales.as_ref());
+            let batch = assemble_batch(populations, ladder_step, scales.as_ref());
 
             let mut objective =
                 self.evaluation

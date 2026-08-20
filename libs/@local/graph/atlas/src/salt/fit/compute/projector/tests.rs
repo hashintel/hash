@@ -375,10 +375,10 @@ fn assert_column_is_aligned_projection(
     columns: NodeColumns<'_, NodeRowId>,
 ) {
     let device = LibTorchDevice::Cpu;
-    let checkpoint =
+    let bytes =
         fs::read(staging.path_of(&artifact::Projector::NAME)).expect("the checkpoint should read");
     let reopened =
-        checkpoint::open_model::<Inference>(checkpoint.as_slice(), options.architecture, &device)
+        checkpoint::open_model::<Inference>(bytes.as_slice(), options.architecture, &device)
             .expect("the checkpoint should open on the inner backend");
     let projected = refresh::forward(
         &reopened,

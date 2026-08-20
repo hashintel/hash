@@ -86,7 +86,7 @@ pub(crate) struct SaltFiles {
     ///
     /// The permutation the filter contract maps entity bitmaps through. An array file.
     pub position_of_row: Binding<artifact::PositionOfRow>,
-    /// Each base position's node row, `u32[N]`.
+    /// Each base position's node row, `u64[N]`.
     ///
     /// The gather order that assembles any row-aligned column into base order. An array file.
     pub row_of_position: Binding<artifact::RowOfPosition>,
