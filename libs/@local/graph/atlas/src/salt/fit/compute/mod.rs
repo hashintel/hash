@@ -206,7 +206,9 @@ impl Compute {
             NeighbourAdmission::new(&context, &quotient).run(progress)?;
         progress.stage_completed(Stage::Knn);
 
-        let semantic = neighbourhood.smooth(&context, expansion)?;
+        let semantic = neighbourhood
+            .smooth(&context, expansion)
+            .map_err(ComputeError::Semantic)?;
         progress.stage_completed(Stage::Semantic);
 
         let prior_marks = prior

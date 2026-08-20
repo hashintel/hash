@@ -1,9 +1,11 @@
 //! The neighbour stage constructs, admits, and publishes the k-NN table, and smooths it into
 //! the semantic graphs.
 
+use core::{error::Error, fmt};
+use std::io;
+
 use super::{
     Context, Staged,
-    error::ComputeError,
     quotient::{DistinctRowId, Quotient},
 };
 use crate::{
@@ -15,7 +17,8 @@ use crate::{
         fit::{KnnConstructionChoice, Stage, stage_rng},
         knn::{
             construction::{IndexConstruction, KnnConstruction as _},
-            descent::NnDescent,
+            descent::{NnDescent, NnDescentError},
+            error::KnnError,
             hannoy::{HannoyIndex, HannoyIndexError},
             recall::{self, RecallAdmission, RecallSpotCheck},
             table::Knn,
@@ -23,6 +26,84 @@ use crate::{
         semantic::SemanticGraph,
     },
 };
+
+/// The neighbour stage failed and staged no table.
+///
+/// One variant per way the stage refuses, so a neighbour failure attributes to this stage by
+/// construction. The published failure surface speaks corpus rows.
+#[derive(Debug)]
+pub(crate) enum NeighbourError {
+    /// The search backend failed.
+    Index(HannoyIndexError<NodeRowId>),
+    /// The NN-Descent construction failed.
+    Descent(NnDescentError),
+    /// The search backend's recall is demonstrably below the configured minimum.
+    RecallBelowMinimum(RecallSpotCheck),
+    /// The k-NN table failed to assemble or admit.
+    Knn(KnnError<NodeRowId, HannoyIndexError<NodeRowId>>),
+    /// The backend's scratch directory failed to create, or the table failed to stage.
+    Io(io::Error),
+}
+
+impl From<HannoyIndexError<NodeRowId>> for NeighbourError {
+    fn from(error: HannoyIndexError<NodeRowId>) -> Self {
+        Self::Index(error)
+    }
+}
+
+impl From<NnDescentError> for NeighbourError {
+    fn from(error: NnDescentError) -> Self {
+        Self::Descent(error)
+    }
+}
+
+impl From<KnnError<NodeRowId, HannoyIndexError<NodeRowId>>> for NeighbourError {
+    fn from(error: KnnError<NodeRowId, HannoyIndexError<NodeRowId>>) -> Self {
+        Self::Knn(error)
+    }
+}
+
+impl From<io::Error> for NeighbourError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl fmt::Display for NeighbourError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Index(error) => write!(fmt, "the search backend failed: {error}"),
+            Self::Descent(error) => write!(fmt, "the NN-Descent construction failed: {error}"),
+            Self::RecallBelowMinimum(check) => write!(
+                fmt,
+                "the search backend's recall {:.4} falls below the {:.4} minimum by more than the \
+                 {:.4} its sample resolves",
+                check.recall(),
+                check.minimum_recall,
+                check.resolution,
+            ),
+            Self::Knn(error) => {
+                write!(fmt, "the k-NN table failed to assemble or admit: {error}")
+            }
+            Self::Io(error) => write!(
+                fmt,
+                "the backend scratch directory or the staged table failed: {error}"
+            ),
+        }
+    }
+}
+
+impl Error for NeighbourError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Index(error) => Some(error),
+            Self::Descent(error) => Some(error),
+            Self::Knn(error) => Some(error),
+            Self::Io(error) => Some(error),
+            Self::RecallBelowMinimum(_) => None,
+        }
+    }
+}
 
 /// The neighbour stage, bound to the training domain it links.
 pub(super) struct NeighbourAdmission<'fit> {
@@ -52,14 +133,14 @@ impl<'fit> NeighbourAdmission<'fit> {
     ///
     /// # Errors
     ///
-    /// Returns [`ComputeError::Index`] when the search backend fails,
-    /// [`ComputeError::Descent`] when the NN-Descent construction fails,
-    /// [`ComputeError::RecallBelowMinimum`] when the sample resolves a recall below the
-    /// configured minimum, [`ComputeError::Knn`] when the table fails to assemble or admit, and
-    /// an I/O error when the search backend's scratch directory does not create or the published
-    /// table does not write.
-    #[tracing::instrument(skip_all)]
-    pub(super) fn run<P>(self, progress: &P) -> Result<(Neighbourhood, Expansion), ComputeError>
+    /// Returns [`NeighbourError::Index`] when the search backend fails,
+    /// [`NeighbourError::Descent`] when the NN-Descent construction fails,
+    /// [`NeighbourError::RecallBelowMinimum`] when the sample resolves a recall below the
+    /// configured minimum, [`NeighbourError::Knn`] when the table fails to assemble or admit,
+    /// and an I/O error when the search backend's scratch directory does not create or the
+    /// published table does not write.
+    #[tracing::instrument(name = "neighbour-admission", skip_all)]
+    pub(super) fn run<P>(self, progress: &P) -> Result<(Neighbourhood, Expansion), NeighbourError>
     where
         P: Progress + Sync,
     {
@@ -120,7 +201,7 @@ impl<'fit> NeighbourAdmission<'fit> {
                 sampled_rows = recall.sampled_rows,
                 "the recall sample does not resolve the admission minimum"
             ),
-            RecallAdmission::Refused => return Err(ComputeError::RecallBelowMinimum(recall)),
+            RecallAdmission::Refused => return Err(NeighbourError::RecallBelowMinimum(recall)),
         }
 
         let _table_span = tracing::info_span!("knn-table").entered();
@@ -185,12 +266,12 @@ impl Neighbourhood {
     /// # Errors
     ///
     /// Returns an error when the staged graph does not write.
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(name = "semantic-smoothing", skip_all)]
     pub(super) fn smooth(
         &self,
         context: &Context,
         expansion: Expansion,
-    ) -> Result<Staged<SemanticGraph<DistinctRowId>, artifact::Semantic, ()>, ComputeError> {
+    ) -> Result<Staged<SemanticGraph<DistinctRowId>, artifact::Semantic, ()>, io::Error> {
         let distinct = SemanticGraph::build(&self.admitted.view(), context.config.smoothing);
 
         let binding = match expansion.0 {

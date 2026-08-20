@@ -1,7 +1,7 @@
 //! Writes the resolved policy table to one policy file and reads it back through a mapping.
 //!
-//! The resolved table publishes as one [`crate::file::policy`] file in the order
-//! [`resolve`](super::resolve) produces, strictly ascending by relation row. [`PolicyTableArchive`]
+//! The certified table publishes as one [`crate::file::policy`] file in the strictly ascending
+//! relation order its type carries. [`PolicyTableArchive`]
 //! reopens the file over a whole-file mapping and validates the table invariants once. An open
 //! table then serves its rows as a borrowed [`RelationPolicy`] slice. The domain type's `repr(C)`
 //! layout is the file's pinned wire row, so reads decode nothing.
@@ -12,7 +12,7 @@ use std::io;
 use hashql_core::id::Id as _;
 use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
-use super::RelationPolicy;
+use super::{CertifiedPolicies, RelationPolicy};
 use crate::{
     file::policy::{PolicyRow, read::PolicyFile, write::write_rows},
     identity::OntologyRowId,
@@ -75,40 +75,24 @@ impl fmt::Display for InvalidPolicyFile {
 
 impl Error for InvalidPolicyFile {}
 
-/// Writes the resolved policies as a policy file.
+/// Writes the certified policies as a policy file.
 ///
-/// `policies` is [`resolve`](super::resolve)'s output: strictly ascending by relation row, every
-/// value in its domain, written as its own bytes. Returns the SHA-256 of the written bytes: the
-/// identity the repository records for the published file.
+/// The rows write in the table's certified order, every value as its own bytes. Returns the
+/// SHA-256 of the written bytes: the identity the repository records for the published file.
 ///
 /// # Errors
 ///
 /// Returns an error when the underlying writer fails.
-///
-/// # Panics
-///
-/// This panics when the policies are not strictly ascending by relation, which violates the
-/// resolution contract.
-#[expect(
-    clippy::panic_in_result_fn,
-    reason = "the Result carries write failures; an unordered table is a caller contract \
-              violation, documented under Panics"
-)]
 pub(crate) fn write_policies(
-    policies: &[RelationPolicy],
+    policies: &CertifiedPolicies,
     write: impl io::Write,
 ) -> io::Result<Sha256Digest> {
-    assert!(
-        policies.is_sorted_by(|left, right| left.relation < right.relation),
-        "the resolved table is strictly ascending by relation",
-    );
-
     let mut writer = Writer {
         accumulator: Sha256::new(),
         writer: write,
     };
 
-    let rows = <[PolicyRow]>::ref_from_bytes(policies.as_bytes())
+    let rows = <[PolicyRow]>::ref_from_bytes(policies.as_slice().as_bytes())
         .expect("the policy row layouts are pinned equal at compile time");
     write_rows(rows, &mut writer)?;
 

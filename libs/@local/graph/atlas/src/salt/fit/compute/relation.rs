@@ -1,24 +1,121 @@
 //! The relation stages, building the incident-edge adjacency and the relation indexes.
 
+use core::{error::Error, fmt};
+use std::io;
+
 use super::{
     Context, Staged,
-    error::ComputeError,
     quotient::{DistinctRowId, Quotient},
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{
-        array::ArrayFile,
+        array::{ArrayFile, OpenArrayError},
         repository::{Artifact as _, Binding},
         salt::artifact,
+        sprs::write::WriteSprsError,
     },
     identity::{EdgeRowId, NodeRowId},
     salt::{
         adjacency::Adjacency,
         fit::prepare::instance::{InstanceRecord, InstanceSpool},
-        relation::{BuildMeasurements, Policies, RelationIndexes, RelationPolicy},
+        policy::CertifiedPolicies,
+        relation::{BuildMeasurements, Policies, RelationIndexError, RelationIndexes},
     },
 };
+
+/// The adjacency stage failed and staged nothing.
+///
+/// One variant per way the stage refuses, so an adjacency failure attributes to this stage by
+/// construction.
+#[derive(Debug)]
+pub(crate) enum AdjacencyError {
+    /// The staged endpoint column failed to map in.
+    OpenEndpoints(OpenArrayError),
+    /// The derived adjacency failed to stage.
+    Write(WriteSprsError),
+}
+
+impl From<WriteSprsError> for AdjacencyError {
+    fn from(error: WriteSprsError) -> Self {
+        Self::Write(error)
+    }
+}
+
+impl fmt::Display for AdjacencyError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::OpenEndpoints(error) => {
+                write!(fmt, "the staged endpoint column failed to map in: {error}")
+            }
+            Self::Write(error) => write!(fmt, "the derived adjacency failed to stage: {error}"),
+        }
+    }
+}
+
+impl Error for AdjacencyError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::OpenEndpoints(error) => Some(error),
+            Self::Write(error) => Some(error),
+        }
+    }
+}
+
+/// The relation stage failed and staged no index.
+///
+/// One variant per way the stage refuses, so a relation failure attributes to this stage by
+/// construction.
+#[derive(Debug)]
+pub(crate) enum RelationError {
+    /// An index build rejected its instances.
+    Build(RelationIndexError),
+    /// The protection index failed to stage.
+    Write(WriteSprsError),
+    /// The instance spool failed to map, or the attraction index failed to stage.
+    Io(io::Error),
+}
+
+impl From<RelationIndexError> for RelationError {
+    fn from(error: RelationIndexError) -> Self {
+        Self::Build(error)
+    }
+}
+
+impl From<WriteSprsError> for RelationError {
+    fn from(error: WriteSprsError) -> Self {
+        Self::Write(error)
+    }
+}
+
+impl From<io::Error> for RelationError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl fmt::Display for RelationError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Build(error) => write!(fmt, "the relation index build failed: {error}"),
+            Self::Write(error) => write!(fmt, "the protection index failed to stage: {error}"),
+            Self::Io(error) => write!(
+                fmt,
+                "the instance spool failed to map or the attraction index failed to stage: {error}"
+            ),
+        }
+    }
+}
+
+impl Error for RelationError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Build(error) => Some(error),
+            Self::Write(error) => Some(error),
+            Self::Io(error) => Some(error),
+        }
+    }
+}
 
 /// The adjacency stage, bound to the staged endpoint column it derives from.
 pub(super) struct AdjacencyDerivation<'fit> {
@@ -41,13 +138,13 @@ impl<'fit> AdjacencyDerivation<'fit> {
     ///
     /// # Errors
     ///
-    /// Returns [`ComputeError::OpenEndpoints`] when the staged endpoint column does not map, and
-    /// an error when the staged adjacency does not write.
-    #[tracing::instrument(skip_all)]
-    pub(super) fn run(self) -> Result<Staged<Adjacency, artifact::Adjacency, ()>, ComputeError> {
+    /// Returns [`AdjacencyError::OpenEndpoints`] when the staged endpoint column does not map,
+    /// and [`AdjacencyError::Write`] when the staged adjacency does not write.
+    #[tracing::instrument(name = "adjacency-derivation", skip_all)]
+    pub(super) fn run(self) -> Result<Staged<Adjacency, artifact::Adjacency, ()>, AdjacencyError> {
         let endpoints =
             ArrayFile::open(self.context.staging.path_of(&artifact::EdgeEndpoints::NAME))
-                .map_err(ComputeError::OpenEndpoints)?;
+                .map_err(AdjacencyError::OpenEndpoints)?;
         let pairs = endpoints
             .u64_le_pairs()
             .expect("the endpoint column was sealed as little-endian u64 pairs");
@@ -78,8 +175,8 @@ pub(super) struct RelationAssembly<'fit> {
     rows: usize,
     /// The corpus-to-distinct row quotient.
     quotient: &'fit Quotient<'fit, PROJECTOR_DIMENSIONS>,
-    /// The resolved policy table, covering exactly the relation universe the readings carry.
-    policies: &'fit [RelationPolicy],
+    /// The certified policy table, covering exactly the relation universe the readings carry.
+    policies: &'fit CertifiedPolicies,
     /// The spooled `(edge, relation)` readings, one per pair.
     spool: &'fit InstanceSpool,
     /// The edge multiplicity histogram, a drain fact joining the build measurements.
@@ -92,7 +189,7 @@ impl<'fit> RelationAssembly<'fit> {
         context: &'fit Context,
         rows: usize,
         quotient: &'fit Quotient<'fit, PROJECTOR_DIMENSIONS>,
-        policies: &'fit [RelationPolicy],
+        policies: &'fit CertifiedPolicies,
         spool: &'fit InstanceSpool,
         multi_typed: &'fit [u64],
     ) -> Self {
@@ -116,14 +213,13 @@ impl<'fit> RelationAssembly<'fit> {
     ///
     /// # Errors
     ///
-    /// Returns [`ComputeError::Relation`] when the table is not strictly ascending by relation
-    /// row or when either index build rejects the instances, and an I/O error when the instance
-    /// spool does not map or a staged artifact does not write.
-    #[tracing::instrument(skip_all)]
+    /// Returns [`RelationError::Build`] when either index build rejects the instances, and an
+    /// I/O error when the instance spool does not map or a staged artifact does not write.
+    #[tracing::instrument(name = "relation-assembly", skip_all)]
     pub(super) fn run(
         self,
-    ) -> Result<(RelationArtifacts, RelationIndexes<DistinctRowId, EdgeRowId>), ComputeError> {
-        let policies = Policies::new(self.policies)?;
+    ) -> Result<(RelationArtifacts, RelationIndexes<DistinctRowId, EdgeRowId>), RelationError> {
+        let policies = Policies::from(self.policies);
 
         let mapped = self.spool.map()?;
         // The spool maps read-only encoded records and the index build sorts its instance slice

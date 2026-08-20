@@ -1,41 +1,31 @@
 //! The compute run's failure surface.
 //!
-//! [`ComputeError`] holds every failure a compute stage produces, one variant per way a stage
-//! can refuse, and grows with the stages. It carries no dataset or provider type, so it is
-//! `Send + 'static` by construction and crosses the rayon offload. The boundary map-ins (the
-//! corpus matrix, the endpoint and card columns, the identity tables) and the placement's
-//! deliberate re-reads of persisted artifacts are the only open failures here: a stage never
-//! reads its own staged bytes back mid-run, so no map-back variant exists for the values that
-//! now flow as owned containers.
+//! [`ComputeError`] holds one variant per stage: each stage owns a closed error enum beside its
+//! stage type. The run carries the stage's enum here whole, so a failure attributes to its
+//! stage by construction. The enum carries no dataset or provider type, so it is
+//! `Send + 'static` by construction and crosses the rayon offload. The trunk keeps its own
+//! legs. The corpus matrix and the identity table map in at its boundary. The quotient's distinct
+//! matrix materializes into scratch, and the trunk's own staged writes and the seal complete
+//! its variants. A stage never reads its own staged bytes back mid-run, so no map-back variant
+//! exists for the values that flow as owned containers. The placement's deliberate re-reads of
+//! persisted artifacts live in its own error.
 
 use core::{error::Error, fmt};
 use std::io;
 
 use super::{
     super::{error::PriorError, prepare::identity::InvalidIdentityFile},
+    classifier::ClassifierError,
+    landmark::LandmarkError,
+    lod::DeliveryError,
+    neighbours::NeighbourError,
+    policy::PolicyError,
     projector::error::ProjectorError,
+    relation::{AdjacencyError, RelationError},
 };
 use crate::{
-    file::{
-        array::OpenArrayError, generation::SealError, identity::read::OpenIdentityError,
-        sprs::write::WriteSprsError,
-    },
-    identity::NodeRowId,
-    salt::{
-        file::OpenVectorError,
-        knn::{descent::NnDescentError, error::KnnError, hannoy::HannoyIndexError, recall},
-        landmark::{
-            assignment::AssignmentError, layout::EdgelessGraphError, quotient::QuotientError,
-            select::SelectionError,
-        },
-        lod::{quad::QuadError, stage::LodError},
-        policy::{
-            ResolveError,
-            classifier::{FitError as ClassifierFitError, PredictError, TrainingSetError},
-        },
-        postings::build::PostingsError,
-        relation::RelationIndexError,
-    },
+    file::{generation::SealError, identity::read::OpenIdentityError},
+    salt::file::OpenVectorError,
 };
 
 /// A compute-side stage failed and published nothing.
@@ -46,10 +36,6 @@ use crate::{
 pub(crate) enum ComputeError {
     /// The staged representation matrix failed to map in at the run's boundary.
     OpenRepresentations(OpenVectorError),
-    /// The staged endpoint column failed to map in.
-    OpenEndpoints(OpenArrayError),
-    /// The staged card table failed to map in.
-    OpenCards(OpenVectorError),
     /// The staged identity table failed to map in.
     OpenIdentities(OpenIdentityError),
     /// A staged identity table does not hold a valid table.
@@ -58,46 +44,26 @@ pub(crate) enum ComputeError {
     PersistQuotient(io::Error),
     /// A staged write or a scratch directory failed.
     Io(io::Error),
-    /// A sparse artifact failed to write.
-    WriteSparse(WriteSprsError),
-    /// The assembled corpus violates the classifier's training-set contract.
-    ClassifierTraining(TrainingSetError),
-    /// The relation classifier failed to fit.
-    ClassifierFit(ClassifierFitError),
-    /// A relation card's classification overflowed.
-    Classify(PredictError),
-    /// The policy resolution rejected its input.
-    Policy(ResolveError),
-    /// The relation index build rejected its input.
-    Relation(RelationIndexError),
-    /// The search backend failed.
-    Index(HannoyIndexError<NodeRowId>),
-    /// The search backend's recall is demonstrably below the configured minimum.
-    RecallBelowMinimum(recall::RecallSpotCheck),
-    /// The k-NN table failed to assemble or admit.
-    Knn(KnnError<NodeRowId, HannoyIndexError<NodeRowId>>),
-    /// The NN-Descent construction failed.
-    Descent(NnDescentError),
-    /// The landmark selection rejected its input.
-    Selection(SelectionError),
-    /// The landmark assignment failed.
-    Assignment(AssignmentError<NodeRowId, HannoyIndexError<NodeRowId>>),
-    /// The quotient contraction rejected its input.
-    Quotient(QuotientError),
-    /// The quotient graph stores no edges to lay out against.
-    Layout(EdgelessGraphError),
+    /// The classifier stage failed to acquire a deployable model.
+    Classifier(ClassifierError),
+    /// The policy stage failed to resolve or stage the table.
+    Policy(PolicyError),
+    /// The adjacency stage failed to derive or stage the adjacency.
+    Adjacency(AdjacencyError),
+    /// The relation stage failed to assemble or stage the indexes.
+    Relation(RelationError),
+    /// The neighbour stage failed to construct, admit, or stage the table.
+    Neighbours(NeighbourError),
+    /// The semantic graph failed to stage.
+    Semantic(io::Error),
     /// The prior generation offered for reuse could not serve it.
     Prior(PriorError),
+    /// The landmark stage failed to build or stage the skeleton.
+    Landmark(LandmarkError),
     /// The placement stage failed to bind, train, measure, or publish.
     Projector(ProjectorError),
-    /// The corpus exceeds the `u32` wire position encoding.
-    WireEncoding { rows: u64 },
-    /// The level-of-detail derivation rejected its input.
-    Lod(LodError),
-    /// The quadtree build rejected its input.
-    Quad(QuadError),
-    /// The postings build rejected its input.
-    Postings(PostingsError),
+    /// The delivery stage failed to derive or stage the served structure.
+    Delivery(DeliveryError),
     /// The finished staging failed to seal into a generation.
     Seal(SealError),
     /// A stage panicked on the compute pool.
@@ -113,12 +79,6 @@ impl From<io::Error> for ComputeError {
     }
 }
 
-impl From<WriteSprsError> for ComputeError {
-    fn from(error: WriteSprsError) -> Self {
-        Self::WriteSparse(error)
-    }
-}
-
 impl From<OpenIdentityError> for ComputeError {
     fn from(error: OpenIdentityError) -> Self {
         Self::OpenIdentities(error)
@@ -131,75 +91,33 @@ impl From<InvalidIdentityFile> for ComputeError {
     }
 }
 
-impl From<TrainingSetError> for ComputeError {
-    fn from(error: TrainingSetError) -> Self {
-        Self::ClassifierTraining(error)
+impl From<ClassifierError> for ComputeError {
+    fn from(error: ClassifierError) -> Self {
+        Self::Classifier(error)
     }
 }
 
-impl From<ClassifierFitError> for ComputeError {
-    fn from(error: ClassifierFitError) -> Self {
-        Self::ClassifierFit(error)
-    }
-}
-
-impl From<PredictError> for ComputeError {
-    fn from(error: PredictError) -> Self {
-        Self::Classify(error)
-    }
-}
-
-impl From<ResolveError> for ComputeError {
-    fn from(error: ResolveError) -> Self {
+impl From<PolicyError> for ComputeError {
+    fn from(error: PolicyError) -> Self {
         Self::Policy(error)
     }
 }
 
-impl From<RelationIndexError> for ComputeError {
-    fn from(error: RelationIndexError) -> Self {
+impl From<AdjacencyError> for ComputeError {
+    fn from(error: AdjacencyError) -> Self {
+        Self::Adjacency(error)
+    }
+}
+
+impl From<RelationError> for ComputeError {
+    fn from(error: RelationError) -> Self {
         Self::Relation(error)
     }
 }
 
-impl From<HannoyIndexError<NodeRowId>> for ComputeError {
-    fn from(error: HannoyIndexError<NodeRowId>) -> Self {
-        Self::Index(error)
-    }
-}
-
-impl From<KnnError<NodeRowId, HannoyIndexError<NodeRowId>>> for ComputeError {
-    fn from(error: KnnError<NodeRowId, HannoyIndexError<NodeRowId>>) -> Self {
-        Self::Knn(error)
-    }
-}
-
-impl From<NnDescentError> for ComputeError {
-    fn from(error: NnDescentError) -> Self {
-        Self::Descent(error)
-    }
-}
-
-impl From<SelectionError> for ComputeError {
-    fn from(error: SelectionError) -> Self {
-        Self::Selection(error)
-    }
-}
-
-impl From<AssignmentError<NodeRowId, HannoyIndexError<NodeRowId>>> for ComputeError {
-    fn from(error: AssignmentError<NodeRowId, HannoyIndexError<NodeRowId>>) -> Self {
-        Self::Assignment(error)
-    }
-}
-
-impl From<QuotientError> for ComputeError {
-    fn from(error: QuotientError) -> Self {
-        Self::Quotient(error)
-    }
-}
-
-impl From<EdgelessGraphError> for ComputeError {
-    fn from(error: EdgelessGraphError) -> Self {
-        Self::Layout(error)
+impl From<NeighbourError> for ComputeError {
+    fn from(error: NeighbourError) -> Self {
+        Self::Neighbours(error)
     }
 }
 
@@ -209,27 +127,21 @@ impl From<PriorError> for ComputeError {
     }
 }
 
+impl From<LandmarkError> for ComputeError {
+    fn from(error: LandmarkError) -> Self {
+        Self::Landmark(error)
+    }
+}
+
 impl From<ProjectorError> for ComputeError {
     fn from(error: ProjectorError) -> Self {
         Self::Projector(error)
     }
 }
 
-impl From<QuadError> for ComputeError {
-    fn from(error: QuadError) -> Self {
-        Self::Quad(error)
-    }
-}
-
-impl From<LodError> for ComputeError {
-    fn from(error: LodError) -> Self {
-        Self::Lod(error)
-    }
-}
-
-impl From<PostingsError> for ComputeError {
-    fn from(error: PostingsError) -> Self {
-        Self::Postings(error)
+impl From<DeliveryError> for ComputeError {
+    fn from(error: DeliveryError) -> Self {
+        Self::Delivery(error)
     }
 }
 
@@ -248,8 +160,6 @@ impl fmt::Display for ComputeError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OpenRepresentations(error) => map_in(fmt, "representation matrix", error),
-            Self::OpenEndpoints(error) => map_in(fmt, "endpoint column", error),
-            Self::OpenCards(error) => map_in(fmt, "card-embedding matrix", error),
             Self::OpenIdentities(error) => map_in(fmt, "identity table", error),
             Self::InvalidIdentities(error) => {
                 write!(fmt, "a staged identity table is not a valid table: {error}")
@@ -258,51 +168,22 @@ impl fmt::Display for ComputeError {
                 write!(fmt, "the distinct matrix failed to materialize: {error}")
             }
             Self::Io(error) => write!(fmt, "a staged write failed: {error}"),
-            Self::WriteSparse(error) => {
-                write!(fmt, "a sparse artifact failed to write: {error}")
+            Self::Classifier(error) => write!(fmt, "the classifier stage failed: {error}"),
+            Self::Policy(error) => write!(fmt, "the policy stage failed: {error}"),
+            Self::Adjacency(error) => write!(fmt, "the adjacency stage failed: {error}"),
+            Self::Relation(error) => write!(fmt, "the relation stage failed: {error}"),
+            Self::Neighbours(error) => write!(fmt, "the neighbour stage failed: {error}"),
+            Self::Semantic(error) => {
+                write!(fmt, "the semantic stage failed to stage its graph: {error}")
             }
-            Self::ClassifierTraining(error) => write!(
-                fmt,
-                "the assembled corpus violates the training-set contract: {error}"
-            ),
-            Self::ClassifierFit(error) => {
-                write!(fmt, "the relation classifier failed to fit: {error}")
-            }
-            Self::Classify(error) => write!(fmt, "a relation card failed to classify: {error}"),
-            Self::Policy(error) => write!(fmt, "the policy resolution failed: {error}"),
-            Self::Relation(error) => write!(fmt, "the relation index build failed: {error}"),
-            Self::Index(error) => write!(fmt, "the search backend failed: {error}"),
-            Self::RecallBelowMinimum(check) => write!(
-                fmt,
-                "the search backend's recall {:.4} falls below the {:.4} minimum by more than the \
-                 {:.4} its sample resolves",
-                check.recall(),
-                check.minimum_recall,
-                check.resolution,
-            ),
-            Self::Knn(error) => {
-                write!(fmt, "the k-NN table failed to assemble or admit: {error}")
-            }
-            Self::Descent(error) => {
-                write!(fmt, "the NN-Descent construction failed: {error}")
-            }
-            Self::Selection(error) => write!(fmt, "the landmark selection failed: {error}"),
-            Self::Assignment(error) => write!(fmt, "the landmark assignment failed: {error}"),
-            Self::Quotient(error) => write!(fmt, "the quotient contraction failed: {error}"),
-            Self::Layout(error) => write!(fmt, "the landmark layout failed: {error}"),
             Self::Prior(error) => {
                 write!(fmt, "the prior generation could not serve reuse: {error}")
             }
+            Self::Landmark(error) => write!(fmt, "the landmark stage failed: {error}"),
             Self::Projector(error) => {
                 write!(fmt, "the placement stage failed: {error}")
             }
-            Self::WireEncoding { rows } => write!(
-                fmt,
-                "the corpus holds {rows} rows, beyond the u32 wire position encoding"
-            ),
-            Self::Lod(error) => write!(fmt, "the level-of-detail derivation failed: {error}"),
-            Self::Quad(error) => write!(fmt, "the quadtree build failed: {error}"),
-            Self::Postings(error) => write!(fmt, "the postings build failed: {error}"),
+            Self::Delivery(error) => write!(fmt, "the delivery stage failed: {error}"),
             Self::Seal(error) => write!(fmt, "the generation failed to publish: {error}"),
             Self::Panicked { message } => {
                 fmt.write_str("a stage panicked on the compute pool")?;
@@ -318,31 +199,21 @@ impl fmt::Display for ComputeError {
 impl Error for ComputeError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::OpenRepresentations(error) | Self::OpenCards(error) => Some(error),
-            Self::OpenEndpoints(error) => Some(error),
+            Self::OpenRepresentations(error) => Some(error),
             Self::OpenIdentities(error) => Some(error),
             Self::InvalidIdentities(error) => Some(error),
-            Self::PersistQuotient(error) | Self::Io(error) => Some(error),
-            Self::WriteSparse(error) => Some(error),
-            Self::ClassifierTraining(error) => Some(error),
-            Self::ClassifierFit(error) => Some(error),
-            Self::Classify(error) => Some(error),
+            Self::PersistQuotient(error) | Self::Io(error) | Self::Semantic(error) => Some(error),
+            Self::Classifier(error) => Some(error),
             Self::Policy(error) => Some(error),
+            Self::Adjacency(error) => Some(error),
             Self::Relation(error) => Some(error),
-            Self::Index(error) => Some(error),
-            Self::Knn(error) => Some(error),
-            Self::Descent(error) => Some(error),
-            Self::Selection(error) => Some(error),
-            Self::Assignment(error) => Some(error),
-            Self::Quotient(error) => Some(error),
-            Self::Layout(error) => Some(error),
+            Self::Neighbours(error) => Some(error),
             Self::Prior(error) => Some(error),
+            Self::Landmark(error) => Some(error),
             Self::Projector(error) => Some(error),
-            Self::Lod(error) => Some(error),
-            Self::Quad(error) => Some(error),
-            Self::Postings(error) => Some(error),
+            Self::Delivery(error) => Some(error),
             Self::Seal(error) => Some(error),
-            Self::RecallBelowMinimum(_) | Self::WireEncoding { .. } | Self::Panicked { .. } => None,
+            Self::Panicked { .. } => None,
         }
     }
 }

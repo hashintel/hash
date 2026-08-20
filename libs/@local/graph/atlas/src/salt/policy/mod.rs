@@ -11,7 +11,7 @@
 //! attraction stays bounded while a mistaken repulsion destroys local structure.
 #![expect(clippy::empty_enums, reason = "zerocopy derive")]
 
-use core::{fmt, mem};
+use core::{fmt, mem, ops};
 
 use crate::{
     identity::OntologyRowId,
@@ -252,4 +252,37 @@ pub(crate) struct RelationPolicy {
     pub strength: NonNegative,
     /// Layout filler pinning the tail padding; writers emit zero, readers ignore.
     pub _pad: [u8; 4],
+}
+
+/// The certified policy table, strictly ascending by relation row.
+///
+/// [`resolve`] mints the table sorted with duplicate relations refused, so the order is a
+/// construction fact. The checked door certifies tables assembled anywhere else.
+#[derive(Debug)]
+pub(crate) struct CertifiedPolicies(Vec<RelationPolicy>);
+
+impl CertifiedPolicies {
+    /// Certifies a table assembled outside [`resolve`].
+    ///
+    /// Returns [`None`] when the rows are not strictly ascending by relation row.
+    #[must_use]
+    pub(crate) fn new(policies: Vec<RelationPolicy>) -> Option<Self> {
+        policies
+            .is_sorted_by(|left, right| left.relation < right.relation)
+            .then_some(Self(policies))
+    }
+
+    /// Views the rows, strictly ascending by relation row.
+    #[must_use]
+    pub(crate) const fn as_slice(&self) -> &[RelationPolicy] {
+        &self.0
+    }
+}
+
+impl ops::Deref for CertifiedPolicies {
+    type Target = [RelationPolicy];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }

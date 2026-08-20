@@ -1,9 +1,11 @@
 //! The level-of-detail stage derives the served delivery structure and stages its columns.
 
+use core::{error::Error, fmt};
+use std::io;
+
 use hashql_core::id::{IdSlice, IdVec};
 use smallvec::SmallVec;
 
-use super::error::ComputeError;
 use crate::{
     file::{
         array::SizedColumn, generation::StagedGeneration, identity::Key, repository::Binding,
@@ -16,13 +18,82 @@ use crate::{
         fit::{FitConfig, prepare::identity::IdentityTableArchive},
         importance::{ConstantImportance, DegreeImportance, ImportanceSignal as _, RankingConfig},
         lod::{
-            quad::{QuadMeasurements, QuadTree},
+            quad::{QuadError, QuadMeasurements, QuadTree},
             rank::RankInputs,
-            stage::{Lod, LodMeasurements, MortonColumn},
+            stage::{Lod, LodError, LodMeasurements, MortonColumn},
         },
-        postings::build::{Postings, PostingsMeasurements},
+        postings::build::{Postings, PostingsError, PostingsMeasurements},
     },
 };
+
+/// The delivery stage failed and staged no column.
+///
+/// One variant per way the stage refuses, so a delivery failure attributes to this stage by
+/// construction.
+#[derive(Debug)]
+pub(crate) enum DeliveryError {
+    /// The corpus exceeds the `u32` wire position encoding.
+    WireEncoding { rows: u64 },
+    /// The level-of-detail derivation rejected its input.
+    Lod(LodError),
+    /// The quadtree build rejected its input.
+    Quad(QuadError),
+    /// The postings build rejected its input.
+    Postings(PostingsError),
+    /// A staged delivery column failed to write.
+    Io(io::Error),
+}
+
+impl From<LodError> for DeliveryError {
+    fn from(error: LodError) -> Self {
+        Self::Lod(error)
+    }
+}
+
+impl From<QuadError> for DeliveryError {
+    fn from(error: QuadError) -> Self {
+        Self::Quad(error)
+    }
+}
+
+impl From<PostingsError> for DeliveryError {
+    fn from(error: PostingsError) -> Self {
+        Self::Postings(error)
+    }
+}
+
+impl From<io::Error> for DeliveryError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl fmt::Display for DeliveryError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::WireEncoding { rows } => write!(
+                fmt,
+                "the corpus holds {rows} rows, beyond the u32 wire position encoding"
+            ),
+            Self::Lod(error) => write!(fmt, "the level-of-detail derivation failed: {error}"),
+            Self::Quad(error) => write!(fmt, "the quadtree build failed: {error}"),
+            Self::Postings(error) => write!(fmt, "the postings build failed: {error}"),
+            Self::Io(error) => write!(fmt, "a staged delivery column failed to write: {error}"),
+        }
+    }
+}
+
+impl Error for DeliveryError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Lod(error) => Some(error),
+            Self::Quad(error) => Some(error),
+            Self::Postings(error) => Some(error),
+            Self::Io(error) => Some(error),
+            Self::WireEncoding { .. } => None,
+        }
+    }
+}
 
 /// The level-of-detail stage, bound to the values it derives from.
 ///
@@ -74,11 +145,11 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`ComputeError::WireEncoding`] when the rank inputs refuse their domains, and
-    /// [`ComputeError::Lod`], [`ComputeError::Quad`] or [`ComputeError::Postings`] when a build
-    /// rejects its input.
-    #[tracing::instrument(skip_all)]
-    pub(super) fn run(self, config: &FitConfig) -> Result<Delivery, ComputeError> {
+    /// Returns [`DeliveryError::WireEncoding`] when the rank inputs refuse their domains, and
+    /// [`DeliveryError::Lod`], [`DeliveryError::Quad`] or [`DeliveryError::Postings`] when a
+    /// build rejects its input.
+    #[tracing::instrument(name = "delivery-derivation", skip_all)]
+    pub(super) fn run(self, config: &FitConfig) -> Result<Delivery, DeliveryError> {
         let rows = self.coordinates.len();
         let importance = match config.ranking {
             RankingConfig::ConstantColumns => ConstantImportance.derive(rows),
@@ -93,7 +164,7 @@ where
         // signal arrives.
         let priority = IdVec::from_domain(0.0_f32, &importance);
         let inputs = RankInputs::new(&importance, &priority, self.ids.ids()).ok_or_else(|| {
-            ComputeError::WireEncoding {
+            DeliveryError::WireEncoding {
                 rows: self.ids.len(),
             }
         })?;
@@ -141,8 +212,8 @@ impl Delivery {
     /// # Errors
     ///
     /// Returns an error when a staged column does not write.
-    #[tracing::instrument(skip_all)]
-    pub(super) fn stage(self, staging: &StagedGeneration) -> Result<StagedDelivery, ComputeError> {
+    #[tracing::instrument(name = "delivery-staging", skip_all)]
+    pub(super) fn stage(self, staging: &StagedGeneration) -> Result<StagedDelivery, DeliveryError> {
         let Self {
             lod,
             quad,

@@ -39,7 +39,7 @@ use core::{error::Error, fmt};
 
 use hashql_core::id::Id as _;
 
-use super::{ClassProbabilities, Posterior, RelationPolicy};
+use super::{CertifiedPolicies, ClassProbabilities, Posterior, RelationPolicy};
 use crate::{
     identity::OntologyRowId,
     math::{NonNegative, UnitFraction},
@@ -155,8 +155,8 @@ const impl Default for CoincidentAdmission {
 /// Resolves every relation's geometry policy.
 ///
 /// `classifications` is the relation universe: one entry per relation type in scope, in any order.
-/// `overrides` supersede classifier outcomes by precedence. The result is strictly ascending by
-/// relation row, ready for the relation indexes' certified table.
+/// `overrides` supersede classifier outcomes by precedence. The result returns certified: this
+/// construction is the proof of its strictly ascending relation order.
 ///
 /// # Errors
 ///
@@ -166,7 +166,7 @@ pub(crate) fn resolve(
     classifications: &[(OntologyRowId, Classification)],
     overrides: &[PolicyOverride],
     admission: CoincidentAdmission,
-) -> Result<Vec<RelationPolicy>, ResolveError> {
+) -> Result<CertifiedPolicies, ResolveError> {
     let mut ordered = classifications.to_vec();
     ordered.sort_unstable_by_key(|(relation, _)| relation.as_u64());
 
@@ -181,7 +181,7 @@ pub(crate) fn resolve(
 
     let winners = winning_overrides(&ordered, overrides)?;
 
-    Ok(ordered
+    let policies = ordered
         .iter()
         .zip(winners)
         .map(|(&(relation, classification), winner)| {
@@ -211,7 +211,11 @@ pub(crate) fn resolve(
                 _pad: [0; 4],
             }
         })
-        .collect())
+        .collect();
+
+    // Sorted above with duplicates refused, and the map preserves order, so the table is
+    // strictly ascending by construction.
+    Ok(CertifiedPolicies(policies))
 }
 
 /// Applies the applicability mix and Coincident admission.

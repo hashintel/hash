@@ -95,6 +95,7 @@ pub(crate) use crate::salt::policy::RelationPolicy;
 use crate::{
     identity::OntologyRowId,
     math::{DNonNegative, NonNegative, UnitFraction},
+    salt::policy::CertifiedPolicies,
 };
 
 pub(crate) mod artifact;
@@ -149,8 +150,9 @@ impl<N, E> RelationInstance<N, E> {
 
 /// A certified relation policy table.
 ///
-/// Construction checks the strictly ascending relation order once; every value's domain rides
-/// in the policy's field types. Lookups and the build consume the table without further
+/// Construction checks the strictly ascending relation order once, or adopts it from an owned
+/// [`CertifiedPolicies`] whose construction already proved it. Every value's domain rides in
+/// the policy's field types. Lookups and the build consume the table without further
 /// validation.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Policies<'policy>(&'policy [RelationPolicy]);
@@ -186,6 +188,13 @@ impl<'policy> Policies<'policy> {
             .binary_search_by_key(&relation.as_u64(), |policy| policy.relation.as_u64())
             .ok()
             .map(|position| &self.0[position])
+    }
+}
+
+impl<'policy> From<&'policy CertifiedPolicies> for Policies<'policy> {
+    /// Adopts the owned table's construction fact without re-checking it.
+    fn from(certified: &'policy CertifiedPolicies) -> Self {
+        Self(certified.as_slice())
     }
 }
 

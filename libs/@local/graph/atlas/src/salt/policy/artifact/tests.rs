@@ -10,7 +10,7 @@ use crate::{
     file::policy::read::PolicyFile,
     identity::OntologyRowId,
     math::{NonNegative, UnitFraction, unit_fraction},
-    salt::policy::{ClassProbabilities, RelationPolicy},
+    salt::policy::{CertifiedPolicies, ClassProbabilities, RelationPolicy},
 };
 
 /// A per-test scratch file path under the system temp directory.
@@ -49,8 +49,9 @@ fn fixture() -> Vec<RelationPolicy> {
 }
 
 fn fixture_bytes() -> Vec<u8> {
+    let policies = CertifiedPolicies::new(fixture()).expect("the fixture is strictly ascending");
     let mut bytes = Vec::new();
-    write_policies(&fixture(), &mut bytes).expect("writing into a vector cannot fail");
+    write_policies(&policies, &mut bytes).expect("writing into a vector cannot fail");
     bytes
 }
 
@@ -84,8 +85,10 @@ fn find_resolves_by_relation() {
 
 #[test]
 fn empty_table_maps() {
+    let policies =
+        CertifiedPolicies::new(Vec::new()).expect("an empty table is trivially ascending");
     let mut bytes = Vec::new();
-    write_policies(&[], &mut bytes).expect("writing into a vector cannot fail");
+    write_policies(&policies, &mut bytes).expect("writing into a vector cannot fail");
 
     let table = reopen("empty.plcy", &bytes).expect("an empty table is valid");
     assert_eq!(table.len(), 0);
@@ -153,14 +156,12 @@ fn rejects_out_of_domain_values() {
 }
 
 #[test]
-#[should_panic(expected = "the resolved table is strictly ascending by relation")]
-fn writer_rejects_unordered_input() {
-    let mut bytes = Vec::new();
-    let _result = write_policies(
-        &[
+fn certification_rejects_unordered_tables() {
+    assert!(
+        CertifiedPolicies::new(vec![
             policy(5, unit_fraction!(0.5)),
             policy(2, unit_fraction!(0.0)),
-        ],
-        &mut bytes,
+        ])
+        .is_none()
     );
 }

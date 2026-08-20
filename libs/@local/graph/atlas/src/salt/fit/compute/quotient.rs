@@ -84,7 +84,7 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
     /// refuses before any stage spends time on it. The call also panics when the matrix it just
     /// wrote does not map back as aligned `f32` rows, which is a defect of the writer rather
     /// than of the input.
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(name = "quotient-build", skip_all)]
     pub(super) fn build(
         corpus: &'corpus IdSlice<NodeRowId, AlignedVecN<N>>,
         scratch: &ScratchDirectory,

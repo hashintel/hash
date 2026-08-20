@@ -619,6 +619,25 @@ fn vacuous_boundary() -> BoundaryEvidence {
     }
 }
 
+/// A finished model whose evidence carries only the boundary and refresh fractions under test.
+fn published_model<N>(
+    projector: Projector<Training>,
+    boundary: BoundaryEvidence,
+    fractions: Vec<RefreshFraction>,
+) -> Model<N, Training> {
+    Model {
+        projector,
+        evidence: TrainingEvidence {
+            boundary: Some(boundary),
+            budget: BudgetBreakdown::default(),
+            losses: Vec::new(),
+            telemetry: Vec::new(),
+            fractions,
+            target: None,
+        },
+    }
+}
+
 /// The metadata document's frozen-graph section of the publish fixture.
 fn snapshot() -> Snapshot {
     Snapshot {
@@ -722,17 +741,7 @@ fn publish_vacuous_baseline() {
         .expect("the ratified placement configuration resolves")
         .publish(
             &options,
-            Model {
-                projector: model.clone(),
-                evidence: TrainingEvidence {
-                    boundary: Some(vacuous_boundary()),
-                    budget: BudgetBreakdown::default(),
-                    losses: Vec::new(),
-                    telemetry: Vec::new(),
-                    fractions: Vec::new(),
-                    target: None,
-                },
-            },
+            published_model(model.clone(), vacuous_boundary(), Vec::new()),
             columns(),
         )
         .expect("the publish half should stage");
@@ -848,17 +857,7 @@ fn publish_measured_aligned_canonical() {
         .expect("the ratified placement configuration resolves")
         .publish(
             &options,
-            Model {
-                projector: model,
-                evidence: TrainingEvidence {
-                    boundary: Some(measured_boundary()),
-                    budget: BudgetBreakdown::default(),
-                    losses: Vec::new(),
-                    telemetry: Vec::new(),
-                    fractions: tick_fractions().to_vec(),
-                    target: None,
-                },
-            },
+            published_model(model, measured_boundary(), tick_fractions().to_vec()),
             columns(),
         )
         .expect("the publish half should stage");

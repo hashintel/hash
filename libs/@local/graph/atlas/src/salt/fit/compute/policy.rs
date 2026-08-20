@@ -1,8 +1,10 @@
 //! The policy stage classifies relation cards and resolves the policy table.
 
 use alloc::collections::BTreeSet;
+use core::{error::Error, fmt};
+use std::io;
 
-use super::{Context, Staged, error::ComputeError};
+use super::{Context, Staged};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     file::{
@@ -11,11 +13,74 @@ use crate::{
     },
     identity::OntologyRowId,
     salt::{
-        file::VectorFile,
-        policy::{Classification, artifact::write_policies, classifier::Classifier, resolve},
-        relation::RelationPolicy,
+        file::{OpenVectorError, VectorFile},
+        policy::{
+            CertifiedPolicies, Classification, ResolveError,
+            artifact::write_policies,
+            classifier::{Classifier, PredictError},
+            resolve,
+        },
     },
 };
+
+/// The policy stage failed and staged no table.
+///
+/// One variant per way the stage refuses, so a policy failure attributes to this stage by
+/// construction.
+#[derive(Debug)]
+pub(crate) enum PolicyError {
+    /// The staged card table failed to map in.
+    OpenCards(OpenVectorError),
+    /// A relation card's classification overflowed.
+    Classify(PredictError),
+    /// The policy resolution rejected its input.
+    Resolve(ResolveError),
+    /// The resolved table failed to stage.
+    Io(io::Error),
+}
+
+impl From<PredictError> for PolicyError {
+    fn from(error: PredictError) -> Self {
+        Self::Classify(error)
+    }
+}
+
+impl From<ResolveError> for PolicyError {
+    fn from(error: ResolveError) -> Self {
+        Self::Resolve(error)
+    }
+}
+
+impl From<io::Error> for PolicyError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl fmt::Display for PolicyError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::OpenCards(error) => write!(
+                fmt,
+                "the staged card-embedding matrix failed to map in: {error}"
+            ),
+            Self::Classify(error) => write!(fmt, "a relation card failed to classify: {error}"),
+            Self::Resolve(error) => write!(fmt, "the policy resolution failed: {error}"),
+            Self::Io(error) => write!(fmt, "the resolved policy table failed to stage: {error}"),
+        }
+    }
+}
+
+impl Error for PolicyError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::OpenCards(error) => Some(error),
+            Self::Classify(error) => Some(error),
+            Self::Resolve(error) => Some(error),
+            Self::Io(error) => Some(error),
+        }
+    }
+}
 
 /// The policy stage, bound to the classifier and the relation universe.
 pub(super) struct PolicyResolution<'fit> {
@@ -45,20 +110,20 @@ impl<'fit> PolicyResolution<'fit> {
     ///
     /// The relation universe is the distinct ontology rows the edge stream carried. Each indexes
     /// the staged card table, which is row-aligned with the type table. Every card exists, so
-    /// every relation classifies. The resolved table returns owned beside its staged binding, so
-    /// the relation stage certifies the value this call resolved rather than the staged bytes.
+    /// every relation classifies. The resolved table returns owned and certified beside its
+    /// staged binding, so the relation stage consumes the certified value rather than the staged
+    /// bytes.
     ///
     /// # Errors
     ///
-    /// Returns [`ComputeError::OpenCards`] when the staged card table does not map as aligned
-    /// rows of the canonical width, [`ComputeError::Classify`] when a card's classification
-    /// overflows,
-    /// [`ComputeError::Policy`] when the policy resolution rejects its input, and an I/O error
-    /// when the staged table does not write.
-    #[tracing::instrument(skip_all)]
+    /// Returns [`PolicyError::OpenCards`] when the staged card table does not map as aligned
+    /// rows of the canonical width, [`PolicyError::Classify`] when a card's classification
+    /// overflows, [`PolicyError::Resolve`] when the policy resolution rejects its input, and an
+    /// I/O error when the staged table does not write.
+    #[tracing::instrument(name = "policy-resolution", skip_all)]
     pub(super) fn run(
         self,
-    ) -> Result<Staged<Vec<RelationPolicy>, artifact::Policy, PolicyEvidence>, ComputeError> {
+    ) -> Result<Staged<CertifiedPolicies, artifact::Policy, PolicyEvidence>, PolicyError> {
         // The staged card table is row-aligned with the type table, so its rows index by
         // ontology row: the handle's id domain makes that claim once.
         let cards: VectorFile<OntologyRowId, CANONICAL_DIMENSIONS> = VectorFile::open(
@@ -66,7 +131,7 @@ impl<'fit> PolicyResolution<'fit> {
                 .staging
                 .path_of(&artifact::CardEmbeddings::NAME),
         )
-        .map_err(ComputeError::OpenCards)?;
+        .map_err(PolicyError::OpenCards)?;
 
         let classifications: Vec<_> = self
             .relations

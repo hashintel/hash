@@ -156,6 +156,7 @@ fn admission_reroutes_failing_coincident_mass() {
     ];
 
     let policies = resolve(&classifications, &[], admission).expect("judged predictions resolve");
+    assert_eq!(policies.len(), 3);
 
     assert_eq!(policies[0].attraction.coincident, 0.25);
     assert_eq!(policies[1].attraction.coincident, 0.0);

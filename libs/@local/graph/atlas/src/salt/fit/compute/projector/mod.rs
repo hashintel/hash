@@ -162,7 +162,7 @@ impl<'fit> PlacementPass<'fit> {
     /// Every corpus row takes its assigned landmark's layout coordinate as the baseline
     /// placement, gathered into one owned column and staged as the `f32[N, 2]` coordinate
     /// artifact.
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(name = "baseline-placement", skip_all)]
     fn baseline(self) -> Result<Placement, ProjectorError> {
         let skeleton = self.inputs.skeleton;
         let layout = skeleton.coordinates();
@@ -190,7 +190,7 @@ impl<'fit> PlacementPass<'fit> {
     /// Trains the projector and publishes the canonical level's aligned field.
     ///
     /// The checkpoint stages beside it.
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(name = "projector-placement", skip_all)]
     fn projector<P: Progress>(
         self,
         options: &ProjectorOptions,
@@ -372,7 +372,7 @@ impl<'fit> PlacementPass<'fit> {
     ///
     /// Training speaks distinct rows, and its errors translate through the quotient onto
     /// corpus rows.
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(name = "projector-training", skip_all)]
     fn train<P: Progress>(
         &self,
         options: &ProjectorOptions,

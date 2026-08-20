@@ -1,10 +1,12 @@
 //! The landmark stage selects, assigns, contracts, and lays out the skeleton.
 
+use core::{error::Error, fmt};
+use std::io;
+
 use hashql_core::id::{Id as _, IdSlice, IdVec, bit_vec::DenseBitSet};
 
 use super::{
     Context, Staged,
-    error::ComputeError,
     quotient::{DistinctRowId, Quotient},
 };
 use crate::{
@@ -22,14 +24,101 @@ use crate::{
         knn::hannoy::{HannoyIndex, HannoyIndexError},
         landmark::{
             artifact::{LandmarkSkeleton, LandmarkSkeletonArchive},
-            assignment::assign_landmarks,
-            layout::layout_landmarks,
-            quotient::quotient_graph,
-            select::{CandidateId, LandmarkCandidate, SubgroupAxes, select_landmarks},
+            assignment::{AssignmentError, assign_landmarks},
+            layout::{EdgelessGraphError, layout_landmarks},
+            quotient::{QuotientError, quotient_graph},
+            select::{
+                CandidateId, LandmarkCandidate, SelectionError, SubgroupAxes, select_landmarks,
+            },
         },
         semantic::SemanticGraph,
     },
 };
+
+/// The landmark stage failed and staged no skeleton.
+///
+/// One variant per way the stage refuses, so a landmark failure attributes to this stage by
+/// construction. The published failure surface speaks corpus rows.
+#[derive(Debug)]
+pub(crate) enum LandmarkError {
+    /// The landmark selection rejected its input.
+    Selection(SelectionError),
+    /// The assignment's search backend failed.
+    Index(HannoyIndexError<NodeRowId>),
+    /// The landmark assignment failed.
+    Assignment(AssignmentError<NodeRowId, HannoyIndexError<NodeRowId>>),
+    /// The quotient contraction rejected its input.
+    Quotient(QuotientError),
+    /// The layout rejected its input.
+    Layout(EdgelessGraphError),
+    /// The assignment scratch directory failed to create, or the skeleton failed to stage.
+    Io(io::Error),
+}
+
+impl From<SelectionError> for LandmarkError {
+    fn from(error: SelectionError) -> Self {
+        Self::Selection(error)
+    }
+}
+
+impl From<HannoyIndexError<NodeRowId>> for LandmarkError {
+    fn from(error: HannoyIndexError<NodeRowId>) -> Self {
+        Self::Index(error)
+    }
+}
+
+impl From<AssignmentError<NodeRowId, HannoyIndexError<NodeRowId>>> for LandmarkError {
+    fn from(error: AssignmentError<NodeRowId, HannoyIndexError<NodeRowId>>) -> Self {
+        Self::Assignment(error)
+    }
+}
+
+impl From<QuotientError> for LandmarkError {
+    fn from(error: QuotientError) -> Self {
+        Self::Quotient(error)
+    }
+}
+
+impl From<EdgelessGraphError> for LandmarkError {
+    fn from(error: EdgelessGraphError) -> Self {
+        Self::Layout(error)
+    }
+}
+
+impl From<io::Error> for LandmarkError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl fmt::Display for LandmarkError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Selection(error) => write!(fmt, "the landmark selection failed: {error}"),
+            Self::Index(error) => write!(fmt, "the assignment's search backend failed: {error}"),
+            Self::Assignment(error) => write!(fmt, "the landmark assignment failed: {error}"),
+            Self::Quotient(error) => write!(fmt, "the quotient contraction failed: {error}"),
+            Self::Layout(error) => write!(fmt, "the landmark layout failed: {error}"),
+            Self::Io(error) => write!(
+                fmt,
+                "the assignment scratch directory or the staged skeleton failed: {error}"
+            ),
+        }
+    }
+}
+
+impl Error for LandmarkError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Selection(error) => Some(error),
+            Self::Index(error) => Some(error),
+            Self::Assignment(error) => Some(error),
+            Self::Quotient(error) => Some(error),
+            Self::Layout(error) => Some(error),
+            Self::Io(error) => Some(error),
+        }
+    }
+}
 
 /// The current corpus rows whose nodes were landmarks of the prior generation.
 pub(super) struct PriorMarks {
@@ -46,13 +135,13 @@ impl PriorMarks {
     ///
     /// # Errors
     ///
-    /// Returns [`ComputeError::Prior`] when a prior artifact does not map or the prior skeleton
-    /// names a row beyond the prior identity table.
-    #[tracing::instrument(skip_all)]
+    /// Returns a [`PriorError`] when a prior artifact does not map or the prior skeleton names a
+    /// row beyond the prior identity table.
+    #[tracing::instrument(name = "prior-translation", skip_all)]
     pub(super) fn translated<I>(
         prior: &Generation,
         current: &IdentityTableArchive<I, NodeRowId>,
-    ) -> Result<Self, ComputeError>
+    ) -> Result<Self, PriorError>
     where
         I: Key,
     {
@@ -149,17 +238,17 @@ impl<'fit> LandmarkSurvey<'fit> {
     ///
     /// # Errors
     ///
-    /// Returns [`ComputeError::Selection`] when the landmark selection rejects its input,
-    /// [`ComputeError::Index`] when the assignment's search backend fails,
-    /// [`ComputeError::Quotient`] when the graph contraction rejects its input,
-    /// [`ComputeError::Layout`] when the layout rejects its input, and an I/O error when the
+    /// Returns [`LandmarkError::Selection`] when the landmark selection rejects its input,
+    /// [`LandmarkError::Index`] when the assignment's search backend fails,
+    /// [`LandmarkError::Quotient`] when the graph contraction rejects its input,
+    /// [`LandmarkError::Layout`] when the layout rejects its input, and an I/O error when the
     /// staged skeleton does not write.
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(name = "landmark-survey", skip_all)]
     pub(super) fn run(
         self,
     ) -> Result<
         Staged<LandmarkSkeleton<NodeRowId>, artifact::Landmarks, LandmarkEvidence>,
-        ComputeError,
+        LandmarkError,
     > {
         let training = self.quotient.training();
         // The skeleton builds over distinct rows; the published failure surface speaks corpus

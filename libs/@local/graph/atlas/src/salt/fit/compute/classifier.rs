@@ -1,8 +1,11 @@
 //! The classifier stage obtains the run's relation-policy classifier.
 
+use core::{error::Error, fmt};
+use std::io;
+
 use hashql_core::id::IdSlice;
 
-use super::{ClassifierPlan, Context, error::ComputeError};
+use super::{ClassifierPlan, Context};
 use crate::{
     file::{
         repository::Binding,
@@ -20,9 +23,59 @@ use crate::{
     salt::policy::{
         GeometryClass,
         annotation::assembly::AssembledCorpus,
-        classifier::{Classifier, TrainingSet, fit as fit_classifier},
+        classifier::{
+            Classifier, FitError, PredictError, TrainingSet, TrainingSetError,
+            fit as fit_classifier,
+        },
     },
 };
+
+/// The classifier stage failed and acquired no deployable model.
+///
+/// One variant per way the stage refuses, so a classifier failure attributes to this stage by
+/// construction.
+#[derive(Debug)]
+pub(crate) enum ClassifierError {
+    /// The assembled corpus violates the classifier's training-set contract.
+    Training(TrainingSetError),
+    /// The relation classifier failed to fit.
+    Fit(FitError),
+    /// A holdout card's prediction overflowed.
+    Holdout(PredictError),
+    /// A staged annotation artifact failed to write.
+    Io(io::Error),
+}
+
+impl From<io::Error> for ClassifierError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl fmt::Display for ClassifierError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Training(error) => write!(
+                fmt,
+                "the assembled corpus violates the training-set contract: {error}"
+            ),
+            Self::Fit(error) => write!(fmt, "the relation classifier failed to fit: {error}"),
+            Self::Holdout(error) => write!(fmt, "a holdout card failed to classify: {error}"),
+            Self::Io(error) => write!(fmt, "a staged annotation artifact failed to write: {error}"),
+        }
+    }
+}
+
+impl Error for ClassifierError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Training(error) => Some(error),
+            Self::Fit(error) => Some(error),
+            Self::Holdout(error) => Some(error),
+            Self::Io(error) => Some(error),
+        }
+    }
+}
 
 /// The staged annotation artifacts of one in-run classifier fit.
 ///
@@ -55,15 +108,15 @@ impl AcquiredClassifier {
     ///
     /// # Errors
     ///
-    /// Returns [`ComputeError::ClassifierTraining`] when the assembled corpus violates the
-    /// classifier's training-set contract, [`ComputeError::ClassifierFit`] when the fit fails,
-    /// [`ComputeError::Classify`] when a holdout prediction overflows, and an I/O error when a
+    /// Returns [`ClassifierError::Training`] when the assembled corpus violates the classifier's
+    /// training-set contract, [`ClassifierError::Fit`] when the fit fails,
+    /// [`ClassifierError::Holdout`] when a holdout prediction overflows, and an I/O error when a
     /// staged annotation artifact does not write.
     pub(super) fn acquire<P: Progress + Sync>(
         context: &Context,
         plan: &ClassifierPlan,
         progress: &P,
-    ) -> Result<Self, ComputeError> {
+    ) -> Result<Self, ClassifierError> {
         match plan {
             ClassifierPlan::Use { classifier, source } => Ok(Self {
                 model: classifier.clone(),
@@ -79,14 +132,14 @@ impl AcquiredClassifier {
     }
 
     /// Fits the classifier from the assembled corpus and evaluates it on the holdout cards.
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(name = "classifier-fit", skip_all)]
     fn fit<P: Progress + Sync>(
         context: &Context,
         corpus: &AssembledCorpus,
         source: Sha256Digest,
         staged: Binding<artifact::AnnotationCorpus>,
         progress: &P,
-    ) -> Result<Self, ComputeError> {
+    ) -> Result<Self, ClassifierError> {
         let embeddings = context
             .staging
             .stage_with(artifact::AnnotationEmbeddings, |writer| {
@@ -104,9 +157,9 @@ impl AcquiredClassifier {
         // trained prefix keeps that domain.
         let rows = IdSlice::<CardRow, _>::from_raw(corpus.table().rows());
         let training = TrainingSet::new(rows.prefix(corpus.rows().bound()), corpus.rows())
-            .map_err(ComputeError::ClassifierTraining)?;
+            .map_err(ClassifierError::Training)?;
         let fitted = fit_classifier(training, context.config.policy.classifier_fit, progress)
-            .map_err(ComputeError::ClassifierFit)?;
+            .map_err(ClassifierError::Fit)?;
 
         let mut evaluated = 0_usize;
         let mut agreements = 0_usize;
@@ -115,7 +168,7 @@ impl AcquiredClassifier {
             let prediction = fitted
                 .classifier
                 .predict(&rows[holdout.row])
-                .map_err(ComputeError::Classify)?;
+                .map_err(ClassifierError::Holdout)?;
             let predicted = GeometryClass::VARIANTS
                 .into_iter()
                 .max_by(|left, right| {
