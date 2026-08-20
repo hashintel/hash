@@ -15,6 +15,15 @@ export {
   FreeTextAffordance,
   type FreeTextAffordance as FreeTextAffordanceValue,
 } from './affordance.ts';
+export {
+  ASK_TOOL_DESCRIPTION,
+  askProtocolInstructionFragments,
+  buildReplyBindingSignalPayload,
+  decidePendingAffordance,
+  mintAskAffordance,
+  type PendingAffordanceDecision,
+  type ReplyBindingSignalPayload,
+} from './ask-protocol.ts';
 export { OPERATIONS, PRODUCT_NAME, toolName, toolPrefix, type Operation } from './naming.ts';
 export { definePlugin, PluginDescriptor, type Plugin } from './plugin.ts';
 export {
