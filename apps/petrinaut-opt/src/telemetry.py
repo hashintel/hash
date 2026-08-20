@@ -30,7 +30,10 @@ from fastapi import FastAPI
 from opentelemetry import metrics, trace
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
-from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter
+from opentelemetry.sdk._logs.export import (
+    BatchLogRecordProcessor,
+    LogRecordExporter,
+)
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import (
     MetricExporter,
@@ -72,7 +75,7 @@ def _protocol() -> str:
 
 def _build_exporters(
     protocol: str,
-) -> tuple[SpanExporter, MetricExporter, LogExporter]:
+) -> tuple[SpanExporter, MetricExporter, LogRecordExporter]:
     """Return the (span, metric, log) exporters for the requested OTLP protocol.
 
     Raises ``ValueError`` for an unrecognised ``OTEL_EXPORTER_OTLP_PROTOCOL``.
@@ -143,9 +146,7 @@ def setup_telemetry(app: FastAPI) -> bool:
 
         logger_provider = LoggerProvider(resource=resource)
         providers.append(logger_provider)
-        logger_provider.add_log_record_processor(
-            BatchLogRecordProcessor(log_exporter)
-        )
+        logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
         # Bridge stdlib logging (`log.info(...)` across the service) to OTLP so
         # records reach Loki alongside the traces they belong to.
         logging_handler = LoggingHandler(

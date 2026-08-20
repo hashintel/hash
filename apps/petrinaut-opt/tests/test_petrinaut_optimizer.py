@@ -104,9 +104,7 @@ def test_objective_prunes_only_evaluation_errors(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     sensitive_detail = "secret user-authored expression"
-    model = FailingModel(
-        optimization_description, PetrinautRunError(sensitive_detail)
-    )
+    model = FailingModel(optimization_description, PetrinautRunError(sensitive_detail))
     optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
     trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
 
@@ -373,9 +371,7 @@ def test_max_study_seconds_environment_parsing(
 def test_max_study_seconds_rejects_non_finite_values(
     monkeypatch: pytest.MonkeyPatch, raw: str
 ) -> None:
-    monkeypatch.setenv(
-        petrinaut_optimizer.MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE, raw
-    )
+    monkeypatch.setenv(petrinaut_optimizer.MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE, raw)
     assert petrinaut_optimizer.max_study_seconds_from_environment() == 900.0
 
 
@@ -437,9 +433,7 @@ def test_pump_events_completed_before_the_ceiling_is_not_misreported(
     optimization_description: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv(
-        petrinaut_optimizer.MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE, "5"
-    )
+    monkeypatch.setenv(petrinaut_optimizer.MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE, "5")
     model = FakeModel(optimization_description)
     optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
     app, run_id = _status_app_with_run()
@@ -499,9 +493,7 @@ def test_pump_events_drains_a_queued_completion_after_the_deadline(
         worker.start()
         return worker, petrinaut_optimizer.tracer.start_span("test-study")
 
-    monkeypatch.setattr(
-        PetrinautOptimizer, "_start_study_worker", preloaded_worker
-    )
+    monkeypatch.setattr(PetrinautOptimizer, "_start_study_worker", preloaded_worker)
     model = FakeModel(optimization_description)
     optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
     app, run_id = _status_app_with_run()

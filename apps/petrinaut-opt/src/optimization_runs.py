@@ -329,8 +329,10 @@ class OptimizationRunRegistry:
             cancellation = error
         except Exception as error:
             # Backstop only: the pump reports study failures itself. The raw
-            # message may quote user content, so log its type only.
-            log.error(
+            # message may quote user content, so log its type only — which is
+            # also why this is not `log.exception`, whose traceback would carry
+            # the message into the logs.
+            log.error(  # noqa: TRY400
                 "optimization run pump failed",
                 extra={
                     "event": "run_pump_failed",

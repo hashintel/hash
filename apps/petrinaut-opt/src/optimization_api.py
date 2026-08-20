@@ -14,12 +14,12 @@ from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request, Response
-from pydantic import BaseModel
 from fastapi.responses import JSONResponse, StreamingResponse
 from opentelemetry import trace
 from opentelemetry.propagate import extract
 from opentelemetry.trace import SpanKind, Status, StatusCode
 from petrinaut import OptimizationSession
+from pydantic import BaseModel
 from starlette.background import BackgroundTask
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -27,7 +27,6 @@ from src.optimization_runs import OptimizationRunRegistry, attachment_event_stre
 from src.petrinaut_optimizer import PetrinautOptimizer
 from src.telemetry import flush_telemetry, setup_telemetry
 from src.utils import Phase, RunStatus, StatusStore, set_status
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 load_dotenv(REPO_ROOT / ".env")
@@ -37,7 +36,7 @@ MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024
 MAX_ACTIVE_OPTIMIZATIONS = 4
 RETRY_AFTER_SECONDS = 30
 _OPTIMIZATION_PATHS = {"/optimize/runs"}
-_CREATE_RUN_RESPONSES = {
+_CREATE_RUN_RESPONSES: dict[int | str, dict[str, Any]] = {
     201: {"description": "A detached optimization run was started"},
     413: {"description": "The optimization manifest exceeds 8 MiB"},
     429: {
@@ -51,7 +50,7 @@ _CREATE_RUN_RESPONSES = {
     },
     500: {"description": "The session or optimization study could not initialize"},
 }
-_RUN_EVENTS_RESPONSES = {
+_RUN_EVENTS_RESPONSES: dict[int | str, dict[str, Any]] = {
     200: {
         "description": (
             "Server-Sent Events attachment to a detached optimization run. "
@@ -77,7 +76,7 @@ _RUN_EVENTS_RESPONSES = {
     },
     404: {"description": "No optimization run with this id is registered"},
 }
-_DELETE_RUN_RESPONSES = {
+_DELETE_RUN_RESPONSES: dict[int | str, dict[str, Any]] = {
     204: {
         "description": (
             "The run was cancelled (or had already reached a terminal "
@@ -291,9 +290,7 @@ async def _initialize_admitted_optimizer(
                 optimizer = await asyncio.shield(initializer)
             if optimizer is not None:
                 with suppress(Exception):
-                    await asyncio.to_thread(
-                        optimizer.pn_model.close, graceful=False
-                    )
+                    await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
         finally:
             await asyncio.shield(_release_optimization_slot(app))
         raise
@@ -539,16 +536,18 @@ async def get_optimize_run_events(
     )
 
 
-@app.delete(
-    "/optimize/runs/{run_id}", status_code=204, responses=_DELETE_RUN_RESPONSES
-)
+@app.delete("/optimize/runs/{run_id}", status_code=204, responses=_DELETE_RUN_RESPONSES)
 async def delete_optimize_run(run_id: str, request: Request) -> Response:
     """Cancel a detached run and wait for its resources to be released."""
     run = _resolve_owned_run(request, run_id)
     if run.request_cancel("cancelled by client request"):
         log.info(
             "optimization run cancellation requested",
-            extra={"event": "run_cancel_requested", "run_id": run_id, **_request_correlation(request)},
+            extra={
+                "event": "run_cancel_requested",
+                "run_id": run_id,
+                **_request_correlation(request),
+            },
         )
     await run.finished.wait()
     return Response(status_code=204)
