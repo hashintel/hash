@@ -13,8 +13,13 @@
  */
 
 import {
+  ASK_TOOL_DESCRIPTION,
   AskInput,
   FreeTextAffordance,
+  askProtocolInstructionFragments,
+  buildReplyBindingSignalPayload,
+  decidePendingAffordance,
+  mintAskAffordance,
   toolName,
   type FreeTextAffordanceValue,
   type Plugin,
@@ -49,36 +54,21 @@ export function useElicitation(plugin: Plugin): string {
     if (delivery.kind !== 'user' || pending === null) return;
 
     setPending(null);
-    ctx.append({
-      kind: 'signal',
-      type: 'affordance-reply-bound',
-      tagName: 'affordance-reply-bound',
-      body: `The immediately preceding user message is mechanically bound as the reply to this pending affordance:\n\n${pending.markdown}`,
-      attributes: { affordanceId: pending.id },
-    });
+    ctx.append({ kind: 'signal', ...buildReplyBindingSignalPayload(pending) });
   });
 
   useTool({
     name: toolName('ask'),
-    description:
-      'Ask one free-text question and suspend this turn for the person’s reply. A second ask in the same tool batch is rejected.',
+    description: ASK_TOOL_DESCRIPTION,
     input: AskInput,
     output: FreeTextAffordance,
     run({ data, toolCallId }) {
-      const affordance: FreeTextAffordanceValue = {
-        id: `affordance_${toolCallId}`,
-        form: 'free-text',
-        markdown: data.question,
-        payload: { question: data.question },
-      };
+      const affordance = mintAskAffordance(data.question, toolCallId);
 
       setPending((current) => {
-        if (current !== null) {
-          throw new Error(
-            `An interactive affordance is already pending (${current.id}); wait for its reply before asking another question.`,
-          );
-        }
-        return affordance;
+        const decision = decidePendingAffordance(current, affordance);
+        if (!decision.ok) throw new Error(decision.reason);
+        return decision.pending;
       });
       writeAffordance(affordance);
 
@@ -86,9 +76,5 @@ export function useElicitation(plugin: Plugin): string {
     },
   });
 
-  return [
-    `You are interviewing someone to elicit ${plugin.targetDomain}.`,
-    `Ask one question at a time with ${toolName('ask')}.`,
-    'Continue the conversation after each reply, using the harness-provided reply binding as a mechanical fact.',
-  ].join('\n\n');
+  return askProtocolInstructionFragments(plugin.targetDomain).join('\n\n');
 }
