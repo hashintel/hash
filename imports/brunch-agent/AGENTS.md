@@ -8,11 +8,11 @@ Graphite (`gt`) stacks, one stacked branch per Linear issue tackled. See `docs/a
 
 ### Issue tracker
 
-Issues live in Linear (team `FE`, project `brunch`, label `lite`), worked via the `linear` CLI. See `docs/agents/issue-tracker.md`.
+Issues live in Linear (team `FE`, project `brunch-agent`), worked via the `linear` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Issue writing
 
-Root issues carry a human-readable contract (outcome title + plain-prose context); sub-issues are exempt. See `docs/agents/issue-writing.md`.
+Every agent-authored issue, including a sub-issue, carries a human-owned contract (compact task title + plain technical prose) above a collapsed, agent-maintained `🏗️ Agent notes` section; linked PRs use the same split. Agents read and preserve the current contract before writing on its owner's behalf. Comments state one decision or change in a sentence or two, with detail in `🏗️ Agent notes`. See `docs/agents/issue-writing.md`.
 
 ### Triage labels
 

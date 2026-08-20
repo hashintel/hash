@@ -240,6 +240,16 @@ place the new graph touches modeled-but-unproven work; a coordination edge, not 
 keeps the two consumers from colliding). FE-1423 is re-scoped, not retired: the demo shell it
 named is gone, but its gates now guard the remote elicitor server — auth discharged by
 FE-1439, deployment gated behind it via FE-1441.
+
+**Seventh evaluation, 2026-08-19 (after FE-1451).** The issue-writing change affects how this
+work is reported, not its dependencies. The integration graph and recommended order stay the
+same.
+
+**Eighth evaluation, 2026-08-20 (after the issue and PR migration).** The migration applied the
+writing rules to 67 agent-authored Linear issues and 25 linked pull requests without changing
+issue state, parentage, relations, or delivery commitments. The integration graph and
+recommended order therefore remain unchanged.
+
 Ledgers: [`remediation-plan-2026-08-17.md`](../legibility-sweep/remediation-plan-2026-08-17.md); placement rules:
 [`topology.md`](topology.md).
 
@@ -298,7 +308,15 @@ FE-1385's React adoption. FE-1422 landed the ask-protocol extraction on
 the spec settles confidence as `firm | hedged | speculative` and proposes a store refusal rule
 for numeric-parsing strings, whose store side remains pending. A6/A7/A9 remain FE-1393 design
 inputs. The pre-remote gates are FE-1423, filed 2026-08-17 under FE-1357 with the four gates as
-its checklist and FE-1396 blocking; Lu ratified them as requirements.
+its checklist and FE-1396 blocking; Lu ratified them as requirements. FE-1451 (the collapsed
+notes protocol, filed 2026-08-19: every agent-authored issue, including child issues, and every
+linked PR uses plain technical prose above its collapsed `🏗️ Agent notes`; comments report one
+decision or material change; recorded in `docs/agents/issue-writing.md` and `issue-tracker.md`,
+with the completed 2026-08-20 migration and original records under
+`docs/planning/legibility-sweep/issue-pr-migration-2026-08-20/`; implemented and reconciled on
+`ln/fe-1451-fold-protocol`). FE-1334 ("Offer user a surprising scenario of their model") is an
+intentionally standalone, Dora-authored product root: the registry records it here without
+rewriting or re-parenting its owner's issue.
 
 ### The integration sub-graph (FE-1433, published 2026-08-18)
 
@@ -354,7 +372,7 @@ risking a polished skeleton. FE-1405/1391/1392 now remove that reason to lead wi
 those UI edges remain downstream of FE-1393.
 `rejected opener: 1394 ∥ 1395 → 1385; current spine: 1393 → 1394/95/1385`
 
-**Recommendation: convergence-first, opened uncertainty-first — survives the fifth
+**Recommendation: convergence-first, opened uncertainty-first — survives the eighth
 evaluation, and FE-1393 is now the next dependency-clear spine edge.** The completed sequence is
 **ask-protocol extraction (FE-1422) → B1/B2 source read → FE-1391 → FE-1405 decision →
 FE-1392**. FE-1392's working capture path makes the intended collision explicit without

@@ -21,7 +21,8 @@ metadata and can corrupt the stack; commits and reads are safe as plain git.
   (e.g. `ln/fe-1362-demo-vehicle`).
 - **PR title**: `{ISSUE-ID}: {Linear issue title in sentence case}`
   (e.g. `FE-1362: Decide the September demo vehicle`).
-- PR descriptions are written when tying off a branch, not during active development.
+- PR descriptions are written when tying off a branch, not during active development, and use
+  the visible-summary / `🏗️ Agent notes` split in `issue-writing.md`.
 
 ## Deposit rule
 
