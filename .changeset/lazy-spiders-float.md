@@ -2,4 +2,4 @@
 "@hashintel/ds-components": minor
 ---
 
-Refactors avatar component to new api + UI
+Breaking change: refactor Avatar component to new api + UI
