@@ -77,6 +77,13 @@ export type BaseTooltipProps = {
   gapX?: number;
   /** The Y distance the tooltip will be from the trigger in px */
   gapY?: number;
+  /**
+   * Whether clicking the trigger closes the tooltip (defaults to true).
+   * Disable for triggers whose keyboard activation dispatches a native click
+   * (e.g. radios checked via arrow keys), which would otherwise instantly
+   * dismiss the tooltip that just opened on focus.
+   */
+  closeOnClick?: boolean;
   onOpen?: () => void;
   onClose?: () => void;
 };
@@ -101,6 +108,7 @@ export const BaseTooltip = ({
   closeDelay = "medium",
   gapX = 8,
   gapY = 8,
+  closeOnClick = true,
   onOpen,
   onClose,
 }: BaseTooltipProps) => {
@@ -146,6 +154,7 @@ export const BaseTooltip = ({
     <ArkTooltip.Root
       openDelay={openDelayMsMap[openDelay]}
       closeDelay={closeDelayMsMap[closeDelay]}
+      closeOnClick={closeOnClick}
       positioning={{ placement: position, offset }}
       onOpenChange={
         onOpen || onClose

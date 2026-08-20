@@ -145,7 +145,12 @@ export const SegmentedControl = <const ValueType extends string>({
           <Tooltip
             key={item.value}
             content={item.tooltip}
+            openDelay="slow"
             {...tooltipOptions}
+            // Arrow-key activation dispatches a native click on the radio,
+            // which would instantly dismiss the tooltip that just opened on
+            // focus (and flash it unpositioned at the viewport origin).
+            closeOnClick={false}
             className={cx(classes.tooltipTrigger, tooltipClassName)}
           >
             {segment}
