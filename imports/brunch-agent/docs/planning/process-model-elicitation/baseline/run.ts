@@ -40,6 +40,9 @@ const CONTINUE_MESSAGE =
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  // Present only when the API ended this model-generated message at its token limit.
+  // Older checkpoints and human-authored messages legitimately omit it.
+  truncated?: true;
 }
 
 interface Usage {
@@ -359,10 +362,9 @@ if (mode === '--continue-final') {
 }
 
 if (mode === '--resume') {
-  // A checkpoint that ends in an assistant message is a *delivered* run —
-  // in-loop checkpoints always end with the expert's user message. Resuming
-  // one would pop and regenerate the paid final deliverable, then overwrite
-  // the transcript with the result. Refuse rather than destroy.
+  // A delivered checkpoint must never resume: doing so would pop and regenerate the paid
+  // final delivery, then overwrite the transcript. Check the durable reason rather than the
+  // trailing role because a capped non-final interviewer turn also ends with an assistant.
   if (stopReason.startsWith('delivered')) {
     console.error(
       `condition ${condition} already ended '${stopReason}' — resuming would regenerate and ` +
@@ -370,6 +372,45 @@ if (mode === '--resume') {
         'or move the transcripts aside to rerun from scratch.',
     );
     process.exit(1);
+  }
+  if (stopReason === 'expert-truncated') {
+    const partialExpertReply = interviewerMessages.at(-1);
+    if (partialExpertReply?.role !== 'user' || !partialExpertReply.truncated) {
+      console.error(
+        "checkpoint says 'expert-truncated' but does not end with a truncated expert reply",
+      );
+      process.exit(1);
+    }
+    // The partial text remains in the stopped checkpoint as evidence, but must never be fed
+    // to the interviewer as a complete answer. Resume removes it and retries the expert call
+    // against the same preceding interviewer question.
+    interviewerMessages.pop();
+    console.error(`regenerating truncated expert reply at interviewer turn ${interviewerTurns}`);
+    const expertResult = await callClaude(
+      'expert',
+      EXPERT_MODEL,
+      situationPack,
+      expertView(),
+      1_500,
+    );
+    let expertText = expertResult.text;
+    if (interviewerTurns === IMPATIENCE_AT) {
+      expertText = `${expertText}\n\n${IMPATIENCE_LINE}`;
+    }
+    interviewerMessages.push({
+      role: 'user',
+      content: expertText,
+      ...(expertResult.truncated ? { truncated: true as const } : {}),
+    });
+    if (expertResult.truncated) {
+      console.error(
+        '⚠ the regenerated expert reply is still truncated — checkpointed the partial reply ' +
+          'without sending it to the interviewer; rerun with --resume to try again',
+      );
+      await writeArtifacts();
+      process.exit(0);
+    }
+    await writeCheckpoint('in-progress');
   }
   // Checkpoints are written after complete exchanges only, but tolerate a trailing
   // assistant message by regenerating that turn.
@@ -384,7 +425,11 @@ while (interviewerTurns < HARD_STOP_AT) {
   interviewerTurns++;
   console.error(`turn ${interviewerTurns} (interviewer)`);
   const interviewer = await callInterviewer(v0Prompt, interviewerMessages);
-  interviewerMessages.push({ role: 'assistant', content: interviewer.text });
+  interviewerMessages.push({
+    role: 'assistant',
+    content: interviewer.text,
+    ...(interviewer.truncated ? { truncated: true as const } : {}),
+  });
 
   if (await isFinalModel(interviewer.text)) {
     stopReason = interviewerTurns > FORCE_WRAP_AT ? 'delivered-after-forced-wrap' : 'delivered';
@@ -398,7 +443,18 @@ while (interviewerTurns < HARD_STOP_AT) {
     break;
   }
 
+  if (interviewer.truncated) {
+    stopReason = 'interviewer-truncated';
+    console.error(
+      '⚠ the non-final interviewer reply is truncated after the continuation cap — ' +
+        'checkpointed it without sending the partial question to the expert; rerun with ' +
+        '--resume to regenerate the interviewer turn',
+    );
+    break;
+  }
+
   let expertText: string;
+  let expertTruncated = false;
   if (interviewerTurns >= FORCE_WRAP_AT) {
     expertText = FORCED_WRAP_MESSAGE;
   } else {
@@ -411,11 +467,24 @@ while (interviewerTurns < HARD_STOP_AT) {
       1_500,
     );
     expertText = expertResult.text;
+    expertTruncated = expertResult.truncated;
     if (interviewerTurns === IMPATIENCE_AT) {
       expertText = `${expertText}\n\n${IMPATIENCE_LINE}`;
     }
   }
-  interviewerMessages.push({ role: 'user', content: expertText });
+  interviewerMessages.push({
+    role: 'user',
+    content: expertText,
+    ...(expertTruncated ? { truncated: true as const } : {}),
+  });
+  if (expertTruncated) {
+    stopReason = 'expert-truncated';
+    console.error(
+      '⚠ the expert reply is truncated — checkpointed the partial reply without sending it ' +
+        'to the interviewer; rerun with --resume to regenerate it',
+    );
+    break;
+  }
   await writeCheckpoint('in-progress');
 }
 

@@ -234,6 +234,8 @@ try {
         }),
     );
   });
+  const serializedReplyContext =
+    replyContext === undefined ? undefined : JSON.stringify(replyContext);
 
   console.log(
     `WALKING_SKELETON_RESULT ${JSON.stringify({
@@ -242,8 +244,8 @@ try {
       captureStoredThroughSweep: captured.captures.length === 3,
       capturesStayAtVerbatimFloor,
       boundReplyReachedModel:
-        JSON.stringify(replyContext).includes('A shopper completes checkout.') &&
-        JSON.stringify(replyContext).includes('affordance-reply-bound'),
+        serializedReplyContext?.includes('A shopper completes checkout.') === true &&
+        serializedReplyContext.includes('affordance-reply-bound'),
       durableOutput:
         JSON.stringify(firstAskOutput).includes('What outcome should the scenario describe?') &&
         JSON.stringify(firstAskOutput).includes('"form":"free-text"'),

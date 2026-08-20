@@ -424,6 +424,7 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
       throw new TypeError(`Capture ${capture.id} supersedes an unknown capture.`);
     }
   }
+  const closingEventByIssue = new Map<string, string>();
   for (const event of snapshot.events) {
     if (
       (event.type === 'resolution' || event.type === 'retraction') &&
@@ -441,6 +442,13 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
     }
     const issue = snapshot.issues.find((candidate) => candidate.id === event.issueId);
     if (!issue) throw new TypeError(`Event ${event.id} references an unknown issue.`);
+    const previousClosingEventId = closingEventByIssue.get(issue.id);
+    if (previousClosingEventId !== undefined) {
+      throw new TypeError(
+        `Issue ${issue.id} has more than one closing event: ${previousClosingEventId} and ${event.id}.`,
+      );
+    }
+    closingEventByIssue.set(issue.id, event.id);
     if (event.type === 'issue-closed') {
       if (issue.type === 'conflicting') {
         throw new TypeError('A conflicting issue cannot be closed without a resolution record.');
@@ -489,6 +497,29 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
       }
       visited.add(current);
       current = successorByCapture.get(current);
+    }
+  }
+  const openConflicts = snapshot.issues.filter(
+    (issue) => issue.type === 'conflicting' && !closingEventByIssue.has(issue.id),
+  );
+  for (const [index, issue] of openConflicts.entries()) {
+    const inactiveReference = issue.references.find(
+      (captureId) => deriveCaptureStatus(snapshot, captureId) !== 'active',
+    );
+    if (inactiveReference !== undefined) {
+      throw new TypeError(
+        `Open conflict ${issue.id} references inactive capture ${inactiveReference}.`,
+      );
+    }
+    const overlappingIssue = openConflicts
+      .slice(index + 1)
+      .find((candidate) =>
+        candidate.references.some((captureId) => issue.references.includes(captureId)),
+      );
+    if (overlappingIssue !== undefined) {
+      throw new TypeError(
+        `Open conflicts ${issue.id} and ${overlappingIssue.id} share a capture reference.`,
+      );
     }
   }
   return snapshot;
@@ -840,7 +871,7 @@ export const applyCaptureStoreCommand = (
         return refusal({
           code: 'invalid-envelope',
           message:
-            'An issue must carry a known type, an origin naming its producer, and at least one distinct reference.',
+            'An issue must carry a known type, an origin naming its producer, and distinct references to at least one capture; a conflicting issue needs at least two.',
         });
       }
       const unknownReference = candidateIssue.references.find(
@@ -865,6 +896,21 @@ export const applyCaptureStoreCommand = (
         return refusal({
           code: 'invalid-envelope',
           message: `A new conflicting issue must reference active captures; capture ${inactiveReference} is ${deriveCaptureStatus(snapshot, inactiveReference)}.`,
+        });
+      }
+      const overlappingOpenConflict =
+        candidateIssue.type === 'conflicting'
+          ? snapshot.issues.find(
+              (issue) =>
+                issue.type === 'conflicting' &&
+                deriveIssueStatus(snapshot, issue.id) === 'open' &&
+                issue.references.some((captureId) => candidateIssue.references.includes(captureId)),
+            )
+          : undefined;
+      if (overlappingOpenConflict !== undefined) {
+        return refusal({
+          code: 'invalid-envelope',
+          message: `Open conflicts cannot share capture references; issue ${overlappingOpenConflict.id} already names one of them.`,
         });
       }
       return {

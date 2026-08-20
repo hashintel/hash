@@ -117,17 +117,22 @@ describe('local capture store', () => {
   test('a command refused by the conflict guard leaves capture state unchanged and readable', async () => {
     const path = await storePath();
     const store = createLocalCaptureStore(path);
-    await store.execute({
+    const created = await store.execute({
       type: 'apply-sweep',
       proposals: [proposal('March', 1), proposal('June', 2)],
     });
+    expect(created.ok).toBe(true);
+    if (!created.ok) throw new Error(`The setup sweep was refused: ${created.refusal.message}`);
     const captures = await store.read();
     const [marchId, juneId] = captures.captures.map((capture) => capture.id);
+    if (marchId === undefined || juneId === undefined) {
+      throw new Error('The setup sweep did not persist both conflicting captures.');
+    }
     const opened = await store.execute({
       type: 'open-issue',
       issueType: 'conflicting',
       origin: { type: 'harness' },
-      references: [marchId!, juneId!],
+      references: [marchId, juneId],
       canDefault: false,
     });
     expect(opened.ok).toBe(true);
@@ -138,9 +143,9 @@ describe('local capture store', () => {
     for (const command of [
       {
         type: 'apply-sweep',
-        proposals: [{ ...proposal('April', 3), supersedes: marchId! }],
+        proposals: [{ ...proposal('April', 3), supersedes: marchId }],
       },
-      { type: 'retract-capture', captureId: marchId!, evidence: [userEvidence('Forget it', 4)] },
+      { type: 'retract-capture', captureId: marchId, evidence: [userEvidence('Forget it', 4)] },
     ] as const) {
       const refused = await store.execute(command);
       expect(refused).toMatchObject({

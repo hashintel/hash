@@ -269,12 +269,16 @@ describe('Valibot is the schema library at every boundary (spec §12.4)', () => 
     }
   });
 
-  test('every package that validates anything declares valibot', () => {
+  test('a package declares valibot exactly when its source imports it', () => {
     for (const pkg of PACKAGES) {
-      const usesValibot = sourceFiles(pkg).some((file) =>
+      const importsValibot = sourceFiles(pkg).some((file) =>
         importedPackages(file).some((specifier) => packageOf(specifier) === 'valibot'),
       );
-      if (usesValibot) expect(allDependencies(pkg)).toContain('valibot');
+      const declaresValibot = allDependencies(pkg).includes('valibot');
+      expect({ pkg: pkg.relPath, declaresValibot }).toEqual({
+        pkg: pkg.relPath,
+        declaresValibot: importsValibot,
+      });
     }
   });
 });

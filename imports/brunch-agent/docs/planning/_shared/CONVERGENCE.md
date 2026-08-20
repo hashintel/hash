@@ -199,6 +199,17 @@ below lives on it — this list is the coordination record their overlap has lac
   rejects structured-tap evidence (contradicted row, §8.5 vs §5.1/C4) — a harness ruling with
   direct consequences for FE-1357's interview UX. Amendments of this kind need a home both maps
   can see; today this trace is that home.
+- **FE-1392's payload question (adjudicated 2026-08-18, comment on FE-1392).** The sweep
+  worker stopped before persisting an undeclared `content: { value: <quote> }` convention —
+  correctly. Ruling: neither an ad-hoc raw-quote convention nor waiting for FE-1393; FE-1392
+  lands with a minimal plugin-declared proposal type at the verbatim grade floor (`StatedForm`'s
+  parsed-absence *is* the floor, per the plugin-contract spec), one type only — the catalog is
+  FE-1393's. This resolves the apparent FE-1392 ⇄ FE-1393 cycle: the dependency was on a payload
+  contract *existing*, and a floor contract satisfies it. Same comment adjudicates §8.6's "cite
+  an assistant ask": an **accounting relation, derived at read time** from the reply binding
+  (ask → user-affordance-payload entry → citing capture), never a stored envelope field —
+  evidence stays user-side only. If a stored accounting link ever proves necessary, that is a
+  seam amendment, adjudicated here.
 - **The quiver (FE-1406).** The original crack casualty: envelope-vocabulary elicitation
   guidance, harness-shipped (§11.5, kernel-side) but authored with plugin-spec methods
   (FE-1403, FE-1357-side). Repaired to a root issue; the pattern it exposed is this section's
@@ -263,7 +274,11 @@ building** — every slice with a paraphrase-grade dependency runs its Ledger-B 
 `ln/fe-1419-contract-closure`; the `-0` residue closed). FE-1424 (docs housekeeping, landed on
 `ln/fe-1424-docs-housekeeping`: inbox settled to `docs/reference/`, planning split into
 `_shared/` + effort records, INDEX coverage gated by `test/docs-index.test.ts`, arc-close
-consolidated into a triggerable protocol). FE-1420 splits: findings 1+3 (retry
+consolidated into a triggerable protocol). FE-1432 (filed 2026-08-18: the cross-stack
+PR-thread review's queue,
+[`review-remediation-2026-08-18.md`](../legibility-sweep/review-remediation-2026-08-18.md) —
+six lens-backed findings, 15 open threads to adjudicate, partly FE-1419's out-of-scope list
+coming due). FE-1420 splits: findings 1+3 (retry
 tolerance, abandoned-slot relief) are cheap and standalone; finding 2 (markdown floor) rides
 FE-1385's React adoption. FE-1422 landed the ask-protocol extraction on
 `ln/fe-1422-ask-protocol` before the B1/B2 read and FE-1391, as ordered. FE-1401 items 3–4
