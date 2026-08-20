@@ -9,16 +9,26 @@ to `issue-tracker.md` (which governs issues; this file governs documents).
 | --- | --- | --- |
 | `docs/inbox/` | Untriaged arrivals: PDFs, exports, transcripts, pasted research. Timestamped filenames where the arrival date matters. | Temporary — everything here is awaiting settlement |
 | `docs/planning/<effort>/` | All artifacts of an effort, active or complete: notes, research findings, maps, specs — nested by effort name. | Permanent (dispositioned at effort close) |
+| `docs/planning/_shared/` | Cross-effort **living** documents: the convergence trace, the topology, consolidations that outlive any one effort. | Permanent, always current |
 | `docs/reference/` | Settled documents of lasting value: external reports, transcripts, digested research. | Permanent |
 | `docs/INDEX.md` | The TOC: one line per settled or in-flight document — title, date, one-line digest, provenance, where used. | Permanent, always current |
 | `CONTEXT.md` | Glossary only (see domain-modeling discipline). | Permanent |
 
 **Ephemera** live outside all zones: any directory named `drafts/` is git-ignored (root
 `.gitignore`), for documents whose delivered form is the record — outbound comment and message
-drafts, one-off prep. Place one inside the effort it serves (e.g.
-`docs/planning/<effort>/notes/drafts/`). Never register drafts in `INDEX.md`, and never link a
+drafts, one-off prep. Place one directly inside the effort it serves
+(`docs/planning/<effort>/drafts/` — no deeper nesting). Never register drafts in `INDEX.md`, and never link a
 `drafts/` path from Linear or a committed document — once delivered, link the destination
 (the posted comment, the sent message) instead.
+
+**Living vs record.** Every planning document is one or the other. A *record* is arc-scoped,
+carries its date in the filename, and eventually stops changing — it lives inside the effort
+directory that produced it. A *living* document is cross-effort, never dated in the filename,
+and never stops changing — it lives in `docs/planning/_shared/`. The planning top level
+contains only directories; this rule and `INDEX.md` coverage (every file has a row, every
+row's path resolves) are enforced by `test/docs-index.test.ts`. Freshness — whether statuses
+and digests are still *true* — cannot be mechanized without building a dead gate; it belongs
+to the arc-close sweep (`arc-close.md`, step 2).
 
 External stores (Linear, Notion) hold *pointers and mirrors*, never the only copy: Linear issue
 descriptions gist and link; Notion pages that originate content (e.g. team-facing question docs)
@@ -33,7 +43,21 @@ are listed in `INDEX.md` with their URL.
    `docs/planning/<effort>/` if it is a working artifact of that effort), update its `INDEX.md`
    line (new path, status `settled`), and fix any links that pointed at the inbox path.
 4. **Sweep**: at every effort boundary (map charted, map closed), empty the inbox — everything
-   either settles or is deleted *with its INDEX line recording the deletion and reason*.
+   either settles or is deleted *with its INDEX line recording the deletion and reason*. This
+   runs as step 1 of the arc-close sweep (`arc-close.md`).
+
+## Referencing ephemera (issues, external state)
+
+Long-lived documents outlive the trackers they cite. Three rules:
+
+- **Gloss at first mention**: an issue ID in a living document is introduced with its gist —
+  "FE-1423 (the pre-remote gates)" — so the document degrades gracefully for a reader who
+  cannot resolve Linear.
+- **Load-bearing only in the tracking layer**: the convergence trace and remediation ledgers
+  may depend on issue resolution — tracking is their job. Everywhere else an issue ID is a
+  parenthetical citation the sentence must survive without.
+- **Tense repair at arc close**: prophecy becomes history when the issue lands ("will
+  extract" → "extracted (FE-1422)") — step 5 of `arc-close.md`.
 
 ## Effort completion
 

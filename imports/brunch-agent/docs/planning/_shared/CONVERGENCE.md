@@ -3,7 +3,7 @@
 Two root maps are live, with considerable technical design overlap and — until this document —
 no record coordinating them. **FE-1383** ("Build the elicitation harness to milestone one") is
 the implementation map: the elicitation-kernel effort closed 2026-08-10 with a settled spec
-([`elicitation-kernel/spec.md`](elicitation-kernel/spec.md)), and FE-1383's sub-issues
+([`elicitation-kernel/spec.md`](../elicitation-kernel/spec.md)), and FE-1383's sub-issues
 (FE-1384–FE-1396) are its vertical slices, each naming the spec sections it implements —
 FE-1388/89/90 are the ones landed so far. **FE-1357** ("Plan the September elicitation demo and
 the plugin spec behind it") is the planning map for the demo and the process-model plugin: it
@@ -30,13 +30,13 @@ Per-map sequencing stays in Linear — this document does not restate either map
 order. What it owns is the rest: what is discharged, what is partial, where implementation and
 spec disagree, what sits between the maps, and in what order the open work across both maps is
 best discharged. Maintenance rule (see
-[`../agents/legibility.md`](../agents/legibility.md)): rows update in the same change that
+[`../../agents/legibility.md`](../../agents/legibility.md)): rows update in the same change that
 lands the discharging branch; sweep-ticket accruals (FE-1401-style) consolidate here rather
 than terminating in comments. Fine-grained evidence lives in the deep-read notes:
-[`process-model-elicitation/notes/deep-read-fe-1389.md`](process-model-elicitation/notes/deep-read-fe-1389.md),
-[`process-model-elicitation/notes/deep-read-fe-1390.md`](process-model-elicitation/notes/deep-read-fe-1390.md),
+[`process-model-elicitation/notes/deep-read-fe-1389.md`](../process-model-elicitation/notes/deep-read-fe-1389.md),
+[`process-model-elicitation/notes/deep-read-fe-1390.md`](../process-model-elicitation/notes/deep-read-fe-1390.md),
 and the rendering
-[`process-model-elicitation/capture-store-plain.md`](process-model-elicitation/capture-store-plain.md).
+[`process-model-elicitation/capture-store-plain.md`](../process-model-elicitation/capture-store-plain.md).
 
 Status vocabulary: **discharged** (built and proved; commit/branch named) · **partial** (built
 with named gaps) · **pending** (nothing built; expected) · **superseded** (an ADR changed the
@@ -206,7 +206,7 @@ compilation path, FE-1420's floor finding moved to ride FE-1385's React adoption
 schedulable items exist — the ask-protocol extraction (remediation A1 — now FE-1422) and the
 pre-remote gates (A10, unowned at evaluation time — since filed as FE-1423, see below). The
 recommendation survives with an amended opener; see below.
-Ledgers: [`remediation-plan-2026-08-17.md`](remediation-plan-2026-08-17.md); placement rules:
+Ledgers: [`remediation-plan-2026-08-17.md`](../legibility-sweep/remediation-plan-2026-08-17.md); placement rules:
 [`topology.md`](topology.md).
 
 **Ordering principle.** Discharge epistemic dependencies before functional ones: prefer the
@@ -248,7 +248,10 @@ building** — every slice with a paraphrase-grade dependency runs its Ledger-B 
 | Answer key / reference net | Eval rubric; who builds nets is the open Dora/Yannis thread | Gated-on-external |
 
 **Sweep filings (FE-1401 lineage).** FE-1419 (all nine commits landed on
-`ln/fe-1419-contract-closure`; the `-0` residue closed). FE-1420 splits: findings 1+3 (retry
+`ln/fe-1419-contract-closure`; the `-0` residue closed). FE-1424 (docs housekeeping, landed on
+`ln/fe-1424-docs-housekeeping`: inbox settled to `docs/reference/`, planning split into
+`_shared/` + effort records, INDEX coverage gated by `test/docs-index.test.ts`, arc-close
+consolidated into a triggerable protocol). FE-1420 splits: findings 1+3 (retry
 tolerance, abandoned-slot relief) are cheap and standalone; finding 2 (markdown floor) rides
 FE-1385's React adoption. FE-1401 items 3–4 (lens write-ups, ds-induct port — tooling-side,
 schedulable any time). **Unowned, needing homes** (remediation Ledger A; recommendations, not

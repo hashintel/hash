@@ -2,7 +2,7 @@
 
 Resolves FE-1359. Written 2026-08-11 against
 [`spec.md`](../../elicitation-kernel/spec.md) (draft assembled 2026-08-10, reviewed twice since),
-the inbox note [voice-implementation-recommendation-pplx](../../../inbox/voice-implementation-recommendation-pplx.md),
+the inbox note [voice-implementation-recommendation-pplx](../../../reference/voice-implementation-recommendation-pplx.md),
 the three prototype branches (`prototype/10-flue-roundtrip`, `prototype/11-capture-sweep`,
 `prototype/13-sweep-seam`), and web verification of the provider landscape (sources at the end).
 
@@ -269,7 +269,7 @@ false. And the failure is not uniform noise: ASR breaks proper nouns and technic
 is precisely the population of things worth capturing.
 
 The local evidence is stark. This project's own expert-meeting transcript
-(`docs/inbox/yannis-dora-lu-transcript-2026-08-11.md`), an ASR product's output on exactly the
+(`docs/reference/yannis-dora-lu-transcript-2026-08-11.md`), an ASR product's output on exactly the
 conversation type the demo is imitating, renders the central domain noun as **"PetriKnot" 35 times
 and "Petri net"/"Petrinaut" zero times**, and "STCPN" 14 times where the project's term is SDCPN —
 a misreading that propagated into the human-written findings note. A demo that captured from that
@@ -623,12 +623,12 @@ Spec and repo (primary):
   — turn suspension proven, wake wart, update-in-place data channel
 - `prototypes/sweep-seam/src/ui/chat.tsx` on `prototype/13-sweep-seam` — the existing reply
   transport (`useFlueAgent`, `agent.sendMessage(text)`), tap-as-string, `StorePanel`
-- [`docs/inbox/yannis-dora-lu-transcript-2026-08-11.md`](../../../inbox/yannis-dora-lu-transcript-2026-08-11.md)
+- [`docs/reference/yannis-dora-lu-transcript-2026-08-11.md`](../../../reference/yannis-dora-lu-transcript-2026-08-11.md)
   — the ASR-fidelity evidence
 
 Provider and practice (web, fetched 2026-08-11):
 
-- [`docs/inbox/voice-implementation-recommendation-pplx.md`](../../../inbox/voice-implementation-recommendation-pplx.md)
+- [`docs/reference/voice-implementation-recommendation-pplx.md`](../../../reference/voice-implementation-recommendation-pplx.md)
   — the prior recommendation this document refines and partly dissents from
 - [ElevenLabs Speech Engine overview](https://elevenlabs.io/docs/overview/capabilities/speech-engine)
   — "adds voice capabilities to any chat agent"; "your server provides the LLM logic"; SDK "manages

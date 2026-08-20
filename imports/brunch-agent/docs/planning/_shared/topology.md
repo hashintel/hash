@@ -1,6 +1,6 @@
 # Topology: verification and specification
 
-**Status: ratified 2026-08-17 (Lu) — recorded as [ADR-0002](../adr/0002-topology-and-placement-rules.md);
+**Status: ratified 2026-08-17 (Lu) — recorded as [ADR-0002](../../adr/0002-topology-and-placement-rules.md);
 this file remains the living reference.** Verifies
 the current app/package topology against the three-lane model (cheatsheet, boundary summary),
 spec §12.2, and Flue's project-layout guide; then specifies where upcoming work lands. Pseudo-

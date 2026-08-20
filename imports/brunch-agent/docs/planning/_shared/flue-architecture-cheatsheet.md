@@ -5,7 +5,7 @@ An architect's consolidation of the Flue documentation — all 21 guide entrypoi
 FE-1383/FE-1357 roadmap. Purpose (Lu's charter): align with recommended patterns and use
 provided affordances *before* we diverge by building layers we don't need or drawing
 boundaries in the wrong place. Companion to the narrower usage audit
-([`flue-patterns-audit-2026-08-17.md`](flue-patterns-audit-2026-08-17.md)); same caveat —
+([`flue-patterns-audit-2026-08-17.md`](../legibility-sweep/flue-patterns-audit-2026-08-17.md)); same caveat —
 WebFetch summarizes, so unquoted API details are paraphrase-grade.
 
 Link form: every page has a markdown mirror at `<url>/index.md`.
@@ -299,7 +299,7 @@ between the second and third:
 
 ## Reconciliation with the Flue-vs-tilde analysis (2026-08-14)
 
-The comparative analysis at [`../inbox/amp-analysis-flue-vs-tilde.md`](../inbox/amp-analysis-flue-vs-tilde.md)
+The comparative analysis at [`../../reference/amp-analysis-flue-vs-tilde.md`](../../reference/amp-analysis-flue-vs-tilde.md)
 read Flue's *source and changelog*, not only the guides, so where it speaks it carries higher
 evidence grade than this sheet's paraphrase-level doc reads. Reconciled 2026-08-17; no
 contradictions found — the analysis's verdict (keep Flue; Tilde is a hosted control plane, not
