@@ -17,13 +17,16 @@
 //! Count the consumers per site before choosing. A site with one consumer and one refusal does
 //! not need three forms.
 //!
-//! # Reading a refused finish
+//! # Reading a refusal
 //!
-//! [`Diverged`] holds the raw value, and the raw value names the severity. A non-finite raw is
-//! an overflow or an indeterminate form, the expected numerical refusal, and the consumer
-//! refuses the reading by name. A finite raw that misses the domain, such as a negative value
-//! finishing into [`DNonNegative`], is a wrong claim - the derivation was typed at the wrong
-//! domain, and the defect is the finish's type rather than the data.
+//! [`Diverged`] holds the raw value, and the refusing site with the raw value names the
+//! severity. A non-finite raw is an overflow or an indeterminate form, the expected numerical
+//! refusal, and the consumer refuses the reading by name. A finite raw refused by a finish,
+//! such as a negative value finishing into [`DNonNegative`], is a wrong claim - the derivation
+//! was typed at the wrong domain, and the defect is the finish's type rather than the data. A
+//! finite raw refused by a checked narrowing is lawful data past working precision - the claim
+//! held at double width, and the refusal is the expected one where the overflow window is
+//! lawful input.
 //!
 //! # Domain transitions
 //!
@@ -198,10 +201,12 @@ const impl Domain for NonNegative {
 #[repr(transparent)]
 pub(crate) struct Derivation<D: Domain>(D::Carrier);
 
-/// A finished derivation whose raw value missed its domain.
+/// A refused derivation reading: the raw value that missed its claim.
 ///
-/// The raw value is the evidence: non-finite is the expected numerical refusal, and a finite
-/// miss is a wrong claim on the wrong domain.
+/// The raw value is the evidence, and the refusing site fixes its meaning: at a finish,
+/// non-finite is the expected numerical refusal and a finite miss is a wrong claim on the
+/// wrong domain; at a checked narrowing, a finite raw is lawful data whose reading overflows
+/// working precision.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct Diverged<C> {
     /// The raw value the validation refused.

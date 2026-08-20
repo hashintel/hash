@@ -330,6 +330,30 @@ fn overflowed_violation_diverges() {
 }
 
 #[test]
+fn narrow_overflow_diverges() {
+    // A tiny ruler lands the violation near 8·10³⁰ in working precision, and the hinge squares
+    // it to an estimand near 3.2·10⁶¹ at mass 0.5: finite in double width, past the f32 range
+    // of the reading's storage. The checked narrow refuses with the double-width value instead
+    // of unwinding or storing ±∞.
+    let canonical = [Vec2::new(0.0, 0.0), Vec2::new(4.0, 0.0)];
+    let zero = [Vec2::new(0.0, 0.0), Vec2::new(0.0, 0.0)];
+    let (mut canonical_field, mut zero_field) = fields(2);
+
+    let diverged = estimator(2.0, 0.0, 2.0, 1.0, Penalty::QuadraticHinge)
+        .evaluate(
+            FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
+            FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
+            &[unit(0, 1, 1e-30, 1.0, 1.0)],
+            &mut canonical_field,
+            &mut zero_field,
+        )
+        .expect_err("an estimand past the f32 range cannot narrow into a reading");
+
+    assert!(diverged.raw.is_finite());
+    assert!(diverged.raw > f64::from(f32::MAX));
+}
+
+#[test]
 fn the_draw_law_prices_inclusion_as_the_exact_product() {
     let law = CappedDrawLaw::new(nz!(1), nz!(4), nz!(2));
     assert_eq!(law.inclusion(nz!(8)).get(), 0.0625);

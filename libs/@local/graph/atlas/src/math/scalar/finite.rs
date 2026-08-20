@@ -27,7 +27,7 @@ use core::{
 };
 
 use super::{
-    DNonNegative, DPositive, NonNegative, OpenUnitFraction, Positive, raw_interop,
+    DNonNegative, DPositive, NonNegative, OpenUnitFraction, Positive, narrow_f32, raw_interop,
     unsafe_impl_try_from_bytes,
 };
 use crate::math::Derivation;
@@ -358,10 +358,25 @@ impl DFinite {
         DPositive::new(self.0)
     }
 
+    /// Narrows to working precision, refusing the overflow window.
+    ///
+    /// Converts with round-to-nearest and returns [`None`] where the rounded value overflows to
+    /// `±∞`. Where a bound proves overflow impossible, [`narrow_lossy`](Self::narrow_lossy) narrows
+    /// without the check.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn narrow(self) -> Option<Finite> {
+        match narrow_f32(self.0) {
+            Some(narrowed) => Some(Finite::new_unchecked(narrowed)),
+            None => None,
+        }
+    }
+
     /// Narrows to working precision with round-to-nearest.
     ///
     /// A value beyond the `f32` range overflows to `±∞` and asserts in debug builds through the
-    /// constructor.
+    /// constructor. Where the overflow window is lawful input,
+    /// [`narrow`](Self::narrow) refuses it instead.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the rounding cast is the operation itself"

@@ -30,7 +30,8 @@ pub(crate) enum TargetRefusalCause<N> {
     /// The gauge refused, at the boundary freeze or inside a step's live fit.
     Gauge(GaugeRefusal),
     /// A step's accumulated target reading diverged: an unbounded data-dependent fold left
-    /// double precision, so no estimand or scale-pull claim exists to read.
+    /// double precision, or the finished estimand overflowed its narrowing to working
+    /// precision, so the step publishes no reading.
     Reading(Diverged<f64>),
     /// A per-evaluation evidence reading refused, and an evaluation that cannot state its
     /// declared evidence publishes nothing.
@@ -48,7 +49,7 @@ where
             Self::Gauge(error) => error.fmt(fmt),
             Self::Reading(diverged) => write!(
                 fmt,
-                "the step's accumulated target reading diverged to {}",
+                "the step's accumulated target reading diverged to {:e}",
                 diverged.raw
             ),
             Self::Evidence(error) => error.fmt(fmt),
@@ -240,7 +241,7 @@ where
             Self::Gauge(error) => error.fmt(fmt),
             Self::TargetReading(diverged) => write!(
                 fmt,
-                "the step's accumulated target reading diverged to {}",
+                "the step's accumulated target reading diverged to {:e}",
                 diverged.raw
             ),
             Self::CanonicalStepOutOfSchedule { step } => write!(

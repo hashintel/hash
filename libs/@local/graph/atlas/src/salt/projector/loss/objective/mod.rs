@@ -218,10 +218,12 @@ impl TargetEstimator {
     ///
     /// # Errors
     ///
-    /// Returns [`Diverged`] carrying the diverged fold's raw value when an accumulated reading
-    /// lies outside its domain. The folds are unbounded and data-dependent - an overflowed
-    /// violation alone injects +∞ - making a diverged reading an expected numerical refusal
-    /// that the caller owns.
+    /// Returns [`Diverged`] carrying the diverged fold's raw value when an accumulated reading lies
+    /// outside its domain. The estimand's storage is single width, so a fold whose finished value
+    /// overflows the narrowing to working precision is refused the same way, carrying the
+    /// double-width value. The folds are unbounded and data-dependent, an overflowed violation
+    /// alone injecting +∞, so a diverged reading is an expected numerical refusal that the caller
+    /// owns.
     ///
     /// # Panics
     ///
@@ -298,8 +300,14 @@ impl TargetEstimator {
             }
         }
 
+        // The folds are unbounded, so the overflow window is lawful input and the narrow is the
+        // checked form rather than the escape.
+        let estimand = estimand.finish()?;
+
         Ok(TargetReading {
-            estimand: estimand.finish()?.narrow_lossy(),
+            estimand: estimand.narrow().ok_or_else(|| Diverged {
+                raw: estimand.get(),
+            })?,
             scale_pull: scale_pull.finish()?,
         })
     }
