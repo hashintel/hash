@@ -657,6 +657,40 @@ export const getUserPendingInvitations: ImpureGraphFunction<
     actorId: systemAccountId,
   };
 
+  const verifiedEmails = await getUserVerifiedEmails(context, _authentication, {
+    user,
+  });
+
+  const invitationMatchFilters: Filter[] = [
+    ...verifiedEmails.map((email) => ({
+      equal: [
+        {
+          path: ["properties", systemPropertyTypes.email.propertyTypeBaseUrl],
+        },
+        { parameter: email },
+      ],
+    })),
+    ...(user.shortname
+      ? [
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.shortname.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: user.shortname },
+            ],
+          },
+        ]
+      : []),
+  ];
+
+  if (invitationMatchFilters.length === 0) {
+    return [];
+  }
+
   const { subgraph: invitationSubgraph } = await queryEntitySubgraph(
     context,
     systemAccountAuthentication,
@@ -681,34 +715,7 @@ export const getUserPendingInvitations: ImpureGraphFunction<
             ],
           },
           {
-            any: [
-              ...user.emails.map((email) => ({
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.email.propertyTypeBaseUrl,
-                    ],
-                  },
-                  { parameter: email },
-                ],
-              })),
-              ...(user.shortname
-                ? [
-                    {
-                      equal: [
-                        {
-                          path: [
-                            "properties",
-                            systemPropertyTypes.shortname.propertyTypeBaseUrl,
-                          ],
-                        },
-                        { parameter: user.shortname },
-                      ],
-                    },
-                  ]
-                : []),
-            ],
+            any: invitationMatchFilters,
           },
         ],
       },
