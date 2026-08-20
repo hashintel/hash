@@ -2,4 +2,4 @@
 "@hashintel/ds-components": minor
 ---
 
-Badge: new UI + api
+Breaking change: new Badge api + UI

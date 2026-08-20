@@ -2,4 +2,4 @@
 "@hashintel/ds-components": patch
 ---
 
-Adds Filter component
+Add Filter component
