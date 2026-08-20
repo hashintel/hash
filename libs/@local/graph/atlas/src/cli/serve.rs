@@ -8,8 +8,10 @@ use clap::Args;
 use hash_graph_postgres_store::store::PostgresStorePool;
 use rand::rngs::SysRng;
 
+use super::RootArgs;
 use crate::{
     api,
+    device::PinnedDevice,
     file::generation::{CurrentError, GenerationRoot},
     serve::{
         Atlas, DeltaCell, DeltaConsumer, DeltaEpoch, DeltaPolling, DeltaRegister, EdgesLimits,
@@ -253,6 +255,7 @@ impl Error for ServeError {
 #[derive(Debug)]
 pub struct ServeCommand {
     root: GenerationRoot,
+    device: PinnedDevice,
     limits: ServeLimits,
     secret: Option<WireSecret>,
     delta: DeltaArgs,
@@ -261,9 +264,10 @@ pub struct ServeCommand {
 impl ServeCommand {
     /// Resolves the parsed flags into one serve invocation over the root.
     #[must_use]
-    pub fn new(root: super::RootArgs, args: ServeArgs) -> Self {
+    pub fn new(root: RootArgs, args: ServeArgs) -> Self {
         Self {
             root: root.root,
+            device: root.device,
             limits: args.limits.into(),
             secret: args.secret,
             delta: args.delta,
@@ -340,7 +344,7 @@ impl ServeCommand {
             let polling = DeltaPolling::from(&self.delta);
 
             let placer = atlas
-                .arrival_placer(crate::device::Device::host().resolve(0))
+                .arrival_placer(self.device.resolve())
                 .map_err(ServeError::Placement)?;
             let (placements_tx, placements_rx) =
                 tokio::sync::mpsc::channel(polling.placement_backlog);

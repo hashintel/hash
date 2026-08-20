@@ -11,6 +11,7 @@ use tokio_postgres::Client;
 
 use crate::{
     dataset::TemporalAxes,
+    device::PinnedDevice,
     file::generation::GenerationRoot,
     integrity::SecretString,
     progress::{NoProgress, Progress},
@@ -250,6 +251,7 @@ impl fmt::Display for FitVerdict {
 #[derive(Debug)]
 pub struct FitCommand<P> {
     root: GenerationRoot,
+    device: PinnedDevice,
     report: Utf8PathBuf,
     openai_api_key: SecretString,
     options: Options<P>,
@@ -261,6 +263,7 @@ impl<P> FitCommand<P> {
     pub fn with_progress<P2>(self, progress: P2) -> FitCommand<P2> {
         FitCommand {
             root: self.root,
+            device: self.device,
             report: self.report,
             openai_api_key: self.openai_api_key,
             options: Options {
@@ -343,6 +346,7 @@ where
         let summary = live(
             client,
             self.root,
+            self.device,
             TemporalAxes::now(),
             self.options,
             &embedder,
@@ -383,6 +387,7 @@ impl FitCommand<NoProgress> {
 
         Self {
             root: root.root,
+            device: root.device,
             report: args.report,
             openai_api_key: args.openai_api_key,
             options: Options {

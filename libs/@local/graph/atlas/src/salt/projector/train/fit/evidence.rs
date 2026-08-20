@@ -4,10 +4,11 @@
 //! a reader judges a run from its published record alone. Step-indexed readings append in step
 //! order, and the boundary's record carries the full measurement it froze from.
 
-use super::objective::TargetEvidence;
+use super::{objective::TargetEvidence, options::RelationLens};
 use crate::{
     math::{DNonNegative, NonNegative},
     salt::projector::{
+        loss::RelationEnergy,
         train::{
             metrics::{BudgetBreakdown, DisplacementSummary},
             step::LossBreakdown,
@@ -23,6 +24,28 @@ pub(crate) enum FrozenRadius {
     Measured { radius: NonNegative },
     /// Nothing to freeze: the attraction index carries no force.
     Vacuous,
+}
+
+impl FrozenRadius {
+    /// Composes the relation energy the ladder measures with, from the configured lens.
+    ///
+    /// Returns [`None`] for a vacuous boundary: no force means no relation loss to measure.
+    ///
+    /// # Panics
+    ///
+    /// This panics when a measured radius fails the lens's radius ordering. The trainer composed
+    /// this exact energy at the boundary before freezing the radius, so the failure is a defect
+    /// of the freeze rather than a data condition.
+    #[must_use]
+    pub(crate) fn energy(self, lens: &RelationLens) -> Option<RelationEnergy> {
+        match self {
+            Self::Measured { radius } => Some(
+                lens.energy(radius)
+                    .expect("the trainer composed this energy at the boundary"),
+            ),
+            Self::Vacuous => None,
+        }
+    }
 }
 
 /// The step the phase boundary ran at, what it froze, and the measurement it froze from.

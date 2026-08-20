@@ -29,6 +29,7 @@ use crate::{
         TemporalAxes,
         postgres::{PostgresDataset, PostgresDatasetError},
     },
+    device::PinnedDevice,
     file::generation::GenerationRoot,
     math::{AffinityCurve, UnitFraction, positive},
     progress::Progress,
@@ -344,6 +345,7 @@ fn placement_options(placement: Placement, initial: PlacementOptions) -> Placeme
 pub(crate) async fn live<P: Progress + Sync>(
     client: &mut Client,
     root: GenerationRoot,
+    device: PinnedDevice,
     axes: TemporalAxes,
     options: Options<P>,
     embedder: &ExternalEmbeddingProvider<OpenAiEmbeddingClient, P::Detached>,
@@ -368,6 +370,7 @@ pub(crate) async fn live<P: Progress + Sync>(
         } else {
             PriorMode::FromActive
         },
+        device: device.resolve(),
         ..
     };
 

@@ -31,7 +31,7 @@ use sprs::{CsMatI, CsMatViewI, binop::csmat_binop};
 
 pub(crate) use self::error::SemanticValidationError;
 use super::knn::table::KnnView;
-use crate::math::{DPositive, PositiveUnitFraction, d_positive};
+use crate::math::{DNonNegative, DPositive, PositiveUnitFraction, d_positive};
 
 pub(crate) mod artifact;
 mod bandwidth;
@@ -302,5 +302,21 @@ where
                 weight: PositiveUnitFraction::new(f64::from(weight))
                     .expect("the graph validated every stored weight into (0, 1]"),
             })
+    }
+
+    /// Sums the graph's positive edge weight in double precision.
+    ///
+    /// Every stored entry contributes, so each undirected edge counts once per endpoint row.
+    #[must_use]
+    pub(crate) fn total_weight(&self) -> DNonNegative {
+        let mut total = DNonNegative::ZERO;
+
+        for row in 0..self.rows() {
+            for edge in self.row(N::from_usize(row)) {
+                total += edge.weight;
+            }
+        }
+
+        total
     }
 }

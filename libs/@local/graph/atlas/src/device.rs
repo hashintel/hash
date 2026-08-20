@@ -5,6 +5,8 @@
 //! families torch drives. [`Device::host`] derives the family this machine accelerates, so an
 //! entry point that does not care resolves the derived family and one that does passes its own.
 
+use core::{fmt, str::FromStr};
+
 use burn::backend::{
     Autodiff,
     libtorch::{LibTorch, LibTorchDevice},
@@ -39,15 +41,65 @@ impl Device {
         }
     }
 
-    /// Resolves the family to torch's device handle.
-    ///
-    /// `ordinal` selects among the family's devices, and only CUDA distinguishes them.
-    pub(crate) const fn resolve(self, ordinal: usize) -> LibTorchDevice {
+    pub(crate) const fn pin(self, ordinal: usize) -> PinnedDevice {
+        PinnedDevice(self, ordinal)
+    }
+}
+
+impl fmt::Display for Device {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Cpu => LibTorchDevice::Cpu,
-            Self::Vulkan => LibTorchDevice::Vulkan,
-            Self::Cuda => LibTorchDevice::Cuda(ordinal),
-            Self::Metal => LibTorchDevice::Mps,
+            Self::Metal => fmt.write_str("metal"),
+            Self::Cuda => fmt.write_str("cuda"),
+            Self::Vulkan => fmt.write_str("vulkan"),
+            Self::Cpu => fmt.write_str("cpu"),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct PinnedDevice(Device, usize);
+
+impl PinnedDevice {
+    /// Returns a pinned device on the host's CUDA device.
+    pub(crate) const fn host() -> Self {
+        Device::host().pin(0)
+    }
+
+    /// Resolves the family to torch's device handle.
+    pub(crate) const fn resolve(self) -> LibTorchDevice {
+        match self.0 {
+            Device::Cpu => LibTorchDevice::Cpu,
+            Device::Vulkan => LibTorchDevice::Vulkan,
+            Device::Cuda => LibTorchDevice::Cuda(self.1),
+            Device::Metal => LibTorchDevice::Mps,
+        }
+    }
+}
+
+impl fmt::Display for PinnedDevice {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}:{}", self.0, self.1)
+    }
+}
+
+impl FromStr for PinnedDevice {
+    type Err = !;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (device, ordinal) = s.split_once(':').unwrap_or((s, "0"));
+        let ordinal = usize::from_str(ordinal).unwrap();
+
+        if device.eq_ignore_ascii_case("metal") {
+            Ok(Self(Device::Metal, ordinal))
+        } else if device.eq_ignore_ascii_case("cuda") {
+            Ok(Self(Device::Cuda, ordinal))
+        } else if device.eq_ignore_ascii_case("vulkan") {
+            Ok(Self(Device::Vulkan, ordinal))
+        } else if device.eq_ignore_ascii_case("cpu") {
+            Ok(Self(Device::Cpu, ordinal))
+        } else {
+            todo!()
         }
     }
 }

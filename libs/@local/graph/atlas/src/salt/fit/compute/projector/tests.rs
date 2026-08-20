@@ -17,7 +17,6 @@ use super::{
         quotient::{DistinctRowId, Quotient},
     },
     StagedPlacement,
-    derive::compose_energy,
     inputs::PublishInputs,
     report::{loss_regressions, relation_loss},
 };
@@ -496,12 +495,10 @@ fn capped_estimand_draw_probability() {
         .expect("the fixture frame is finite");
     let knn = distinct_knn();
     let scales = LocalScales::compute(frame, &knn.view()).expect("the fixture frame is finite");
-    let energy = compose_energy(
-        &skinny_options(),
-        FrozenRadius::Measured {
-            radius: non_negative!(0.5),
-        },
-    )
+    let energy = FrozenRadius::Measured {
+        radius: non_negative!(0.5),
+    }
+    .energy(&skinny_options().lens)
     .expect("a measured radius composes an energy");
 
     let biting = relation_loss(frame, &scales, &indexes.attraction, energy, nonzero(1));

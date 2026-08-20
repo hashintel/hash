@@ -2,6 +2,7 @@ use alloc::{borrow::Cow, sync::Arc};
 use core::{future::ready, num::NonZero};
 use std::{collections::HashMap, sync::Mutex};
 
+use burn::backend::libtorch::LibTorchDevice;
 use camino::Utf8PathBuf;
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
@@ -243,6 +244,7 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
             thresholds,
             ..
         },
+        device: LibTorchDevice::Cpu,
         ..
     }
 }

@@ -17,13 +17,8 @@ use burn::module::AutodiffModule as _;
 use hashql_core::id::IdVec;
 
 pub(super) use self::inputs::{DistinctInputs, PlacementInputs, VerdictResolution};
-use self::{
-    derive::{compose_energy, landmark_anchors, normalized_coefficients, semantic_weight},
-    evidence::calibration_evidence,
-    inputs::PublishInputs,
-    report::LadderPass,
-};
-use super::{Context, coordinates::Coordinates, error::ComputeError};
+use self::{evidence::calibration_evidence, inputs::PublishInputs, report::LadderPass};
+use super::{Context, coordinates::Coordinates, error::ComputeError, quotient::DistinctRowId};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     device::Training,
@@ -46,15 +41,14 @@ use crate::{
             loss::AffinityEnergy,
             model::{NodeRole, Projector},
             train::{
-                self, BoundaryEvidence, NodeColumns, RefreshFraction, TrainOptions, TrainerInputs,
-                refresh,
+                self, BoundaryEvidence, NodeColumns, RefreshFraction, SupportAnchor, TrainOptions,
+                TrainerInputs, refresh,
             },
         },
         relation::attraction::AttractionIndex,
     },
 };
 
-mod derive;
 mod evidence;
 pub(super) mod inputs;
 mod report;
@@ -139,14 +133,17 @@ impl StagedPlacement {
         // quotient.
         let corpus = distinct.quotient.corpus();
         let training = distinct.quotient.training();
-        // Every corpus row is a knowledge entity: the dataset streams entities, and no other
-        // role projects yet. Each domain's uniform column is born in its own row domain, so
-        // neither view relabels the other's rows.
-        let corpus_roles: IdVec<NodeRowId, _> =
-            IdVec::from_raw(vec![NodeRole::KnowledgeEntity; corpus.len()]);
-        let training_roles: IdVec<super::quotient::DistinctRowId, _> =
-            IdVec::from_raw(vec![NodeRole::KnowledgeEntity; training.len()]);
-        let landmarks = landmark_anchors(inputs.skeleton, options, distinct.quotient);
+
+        // Every corpus row is a knowledge entity: the dataset streams entities, and no other role
+        // projects yet. Each domain's uniform column is born in its own row domain, so neither view
+        // relabels the other's rows.
+        let corpus_roles = IdVec::from_elem(NodeRole::KnowledgeEntity, corpus.len());
+        let training_roles = IdVec::from_elem(NodeRole::KnowledgeEntity, training.len());
+        let landmarks = SupportAnchor::at_landmarks(
+            inputs.skeleton,
+            options.landmark_support.weight(),
+            |row| distinct.quotient.class_of(row),
+        );
 
         let columns = NodeColumns {
             representations: corpus,
@@ -185,16 +182,15 @@ impl StagedPlacement {
             target: None,
         };
 
-        // The configured coefficients are corpus-free bases. The semantic and
-        // ordinary bases divide by the total semantic edge weight, the hard-negative base
-        // by the row count, and the support bases by the pools the trainer receives, so each base
-        // weighs the same objective share on every corpus. The relation base is already mass-free.
-        // The masses are the training domain's - the distinct rows and their graph -
-        // matching the objective the trainer optimizes. A weightless graph passes the bases
-        // through - the trainer rejects it as evidence-free immediately after.
-        let coefficients = normalized_coefficients(
-            options.coefficients,
-            semantic_weight(&distinct.semantic.view()),
+        // The configured coefficients are corpus-free bases. The semantic and ordinary bases divide
+        // by the total semantic edge weight, the hard-negative base by the row count, and the
+        // support bases by the pools the trainer receives, so each base weighs the same objective
+        // share on every corpus. The relation base is already mass-free. The masses are the
+        // training domain's - the distinct rows and their graph - matching the objective the
+        // trainer optimizes. A weightless graph passes the bases through - the trainer rejects it
+        // as evidence-free immediately after.
+        let coefficients = options.coefficients.normalized(
+            distinct.semantic.view().total_weight(),
             training.len(),
             trainer_inputs.anchors.len(),
             trainer_inputs.landmarks.len(),
@@ -262,7 +258,7 @@ impl StagedPlacement {
         // level provably projects the identical field, and the baseline
         // publishes directly with no ladder to measure.
         let model = model.valid();
-        let energy = boundary.and_then(|boundary| compose_energy(options, boundary.radius));
+        let energy = boundary.and_then(|boundary| boundary.radius.energy(&options.lens));
 
         let (ladder, binding) = if let Some(energy) = energy {
             let _span = tracing::info_span!("ladder").entered();
@@ -308,11 +304,11 @@ impl StagedPlacement {
     fn train<P: Progress>(
         context: &Context,
         options: &ProjectorOptions,
-        inputs: &TrainerInputs<'_, super::quotient::DistinctRowId, EdgeRowId>,
+        inputs: &TrainerInputs<'_, DistinctRowId, EdgeRowId>,
         distinct: &DistinctInputs<'_>,
         train_options: &TrainOptions,
         progress: &P,
-    ) -> Result<train::Fitted<super::quotient::DistinctRowId, Training>, ComputeError> {
+    ) -> Result<train::Fitted<DistinctRowId, Training>, ComputeError> {
         let _span = tracing::info_span!("train").entered();
         let model = Projector::<Training>::new(
             options.architecture,

@@ -64,7 +64,7 @@ pub(crate) use self::{
     step::LossBreakdown,
 };
 use crate::{
-    math::{NonNegative, Positive},
+    math::{DNonNegative, DPositive, NonNegative, Positive},
     salt::projector::{
         budget::Budget,
         loss::{AffinityEnergy, RelationEnergy, SupportOptions},
@@ -198,6 +198,57 @@ impl Coefficients {
     #[must_use]
     pub(crate) const fn landmark(self) -> NonNegative {
         self.landmark
+    }
+
+    /// Normalizes the coefficient bases by their objective masses.
+    ///
+    /// Semantic and ordinary by the total semantic edge weight, hard by the corpus row count, and
+    /// each support base by its own pool size. The anchor base divides by the temporal anchor
+    /// pool and the landmark base by the landmark pool.
+    ///
+    /// The relation base passes through, and a pool of zero keeps its base inert rather than
+    /// dividing by nothing. A weightless graph passes every base through unchanged.
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "corpus and pool counts remain exactly representable in f64 far beyond any corpus"
+    )]
+    #[must_use]
+    pub(crate) fn normalized(
+        self,
+        weight: DNonNegative,
+        rows: usize,
+        anchor_pool: usize,
+        landmark_pool: usize,
+    ) -> Self {
+        if weight == DNonNegative::ZERO {
+            return self;
+        }
+
+        let scaled = |base: NonNegative, mass: f64| -> NonNegative {
+            let Some(mass) = DPositive::new(mass) else {
+                return NonNegative::ZERO;
+            };
+
+            base.widen()
+                .checked_div(mass)
+                .expect(
+                    "a normalization quotient overflows only for a mass more than 270 orders \
+                     below its f32-born base, a defect of the weights",
+                )
+                .narrow_lossy()
+        };
+
+        Self::new(
+            Positive::new(scaled(self.semantic.into(), weight.get()).get()).expect(
+                "a quotient leaves the positive domain only for a weight total more than 38 \
+                 orders from its base",
+            ),
+            scaled(self.ordinary, weight.get()),
+            scaled(self.hard, rows as f64),
+            self.relation,
+            scaled(self.anchor, anchor_pool as f64),
+            scaled(self.landmark, landmark_pool as f64),
+        )
     }
 }
 

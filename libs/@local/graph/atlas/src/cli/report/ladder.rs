@@ -6,13 +6,13 @@ use camino::Utf8PathBuf;
 use clap::{Args, ValueHint};
 
 use super::ReportError;
-use crate::{file::generation::GenerationId, salt::ladder::report::LadderReport};
+use crate::{cli::RootArgs, file::generation::GenerationId, salt::ladder::report::LadderReport};
 
 /// Root, generation, and output settings of one ladder report.
 #[derive(Debug, Args)]
 pub(crate) struct LadderArgs {
     #[command(flatten)]
-    root: crate::cli::RootArgs,
+    root: RootArgs,
 
     /// Hex identity of the published generation whose ladder this report reads.
     #[arg(long)]
@@ -153,11 +153,8 @@ impl LadderArgs {
     /// canonical frame does not reproduce the published coordinate column. A report run has no
     /// recovery path, and the error is the diagnosis.
     pub(super) fn run(self) -> Result<LadderVerdict, ReportError> {
-        let report = LadderReport::compile(
-            &self.root.root,
-            self.generation,
-            crate::device::Device::host().resolve(0),
-        );
+        let report =
+            LadderReport::compile(&self.root.root, self.generation, self.root.device.resolve());
 
         let bundle =
             serde_json::to_vec_pretty(&report).expect("the report bundle serializes to JSON");

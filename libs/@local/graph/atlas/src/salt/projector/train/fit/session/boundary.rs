@@ -9,7 +9,7 @@ use super::super::{
 use crate::{
     math::{DNonNegative, FinitePointField, Positive},
     salt::projector::{
-        loss::{ProximalEnergy, RelationEnergy},
+        loss::RelationEnergy,
         verdict::calibrate::{CalibrationOptions, ProximalCalibration, calibrate},
     },
 };
@@ -56,12 +56,13 @@ where
         None => return Err(TrainError::MissingProximalReviews),
     };
 
-    let proximal = ProximalEnergy::new(frozen, options.lens.temperature());
-    let energy = RelationEnergy::new(options.lens.coincident(), proximal, options.lens.epsilon())
+    let energy = options
+        .lens
+        .energy(frozen)
         .ok_or_else(|| TrainError::DegenerateRadius {
-        radius: frozen,
-        coincident: options.lens.coincident().radius(),
-    })?;
+            radius: frozen,
+            coincident: options.lens.coincident().radius(),
+        })?;
 
     Ok((
         energy,

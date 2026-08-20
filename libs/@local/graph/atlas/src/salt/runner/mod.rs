@@ -22,7 +22,6 @@ use tracing::Instrument as _;
 pub(crate) use self::error::RunnerError;
 use crate::{
     dataset::Dataset,
-    device::Device,
     file::generation::{Generation, GenerationRoot},
     integrity::{Sha256, Update as _},
     progress::{Progress, Stage},
@@ -67,7 +66,7 @@ pub(crate) struct RunnerOptions {
     /// The admission probe's sampling, grouping, and thresholds.
     pub quality: QualityRunOptions = QualityRunOptions::default(),
     /// The device the fit's tensor stages run on. The host-derived family by default.
-    pub device: LibTorchDevice = Device::host().resolve(0),
+    pub device: LibTorchDevice,
 }
 
 /// How one published generation left the runner.

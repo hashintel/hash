@@ -8,7 +8,6 @@ use hashql_core::id::{Id, IdSlice, IdVec};
 
 use super::{
     super::error::ComputeError,
-    derive::gather_distinct,
     evidence::{step_evidence, step_path, write_frame},
     inputs::PublishInputs,
 };
@@ -94,7 +93,7 @@ impl<'fit> LadderPass<'fit> {
             // The loss population is the training domain: the full frame gathers at the quotient's
             // first rows - identical representations project identically, so the gather is the
             // distinct rows' own frame.
-            let distinct_frame = gather_distinct(&frame, inputs.quotient);
+            let distinct_frame = inputs.quotient.training_frame(&frame);
             let scales = refresh::scales(&distinct_frame, &inputs.knn, eta)
                 .map_err(|error| error.map_rows(|row| inputs.quotient.representative(row)))?;
             readouts.push(relation_loss(
@@ -225,7 +224,7 @@ impl<'fit> LadderPass<'fit> {
             .expect("the coordinate column was sealed as f32 pairs");
         let frame = FinitePointField::new(IdSlice::from_raw(frame))
             .map_err(|source| ComputeError::NonFiniteAligned { source })?;
-        let distinct_frame = gather_distinct(frame, inputs.quotient);
+        let distinct_frame = inputs.quotient.training_frame(frame);
         let scales = refresh::scales(&distinct_frame, &inputs.knn, condition)
             .map_err(|error| error.map_rows(|row| inputs.quotient.representative(row)))?;
         Ok(relation_loss(&distinct_frame, &scales, inputs.attraction, energy, cap).uncapped_total)

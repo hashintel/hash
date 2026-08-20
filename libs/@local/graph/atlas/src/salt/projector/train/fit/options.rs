@@ -7,10 +7,10 @@
 use core::num::NonZero;
 
 use crate::{
-    math::{Positive, UnitFraction},
+    math::{NonNegative, Positive, UnitFraction},
     salt::projector::{
         budget::Budget,
-        loss::{AffinityEnergy, CoincidentEnergy, SupportOptions},
+        loss::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy, SupportOptions},
         miner::MinerOptions,
         train::{BatchPlan, Coefficients},
     },
@@ -145,6 +145,18 @@ impl RelationLens {
     #[must_use]
     pub(crate) const fn epsilon(self) -> Positive {
         self.epsilon
+    }
+
+    /// Composes the relation energy at a Proximal radius.
+    ///
+    /// The Proximal energy takes the radius at the lens temperature, and the configured
+    /// Coincident energy and the scale guard complete the mixture. Returns [`None`] unless the
+    /// Coincident radius lies strictly below the Proximal one, the ordering
+    /// [`RelationEnergy::new`] requires.
+    #[must_use]
+    pub(crate) fn energy(self, radius: NonNegative) -> Option<RelationEnergy> {
+        let proximal = ProximalEnergy::new(radius, self.temperature);
+        RelationEnergy::new(self.coincident, proximal, self.epsilon)
     }
 }
 

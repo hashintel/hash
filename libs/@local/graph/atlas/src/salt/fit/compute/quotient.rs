@@ -21,7 +21,7 @@ use crate::{
         generation::ScratchDirectory,
     },
     identity::{EdgeRowId, NodeRowId},
-    math::{AlignedVecN, NonNegative},
+    math::{AlignedVecN, FinitePointField, NonNegative},
     salt::{
         knn::table::{Knn, KnnMatrix, KnnView},
         relation::RelationInstance,
@@ -187,6 +187,17 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
     /// The representative of every distinct class, strictly ascending.
     pub(super) const fn representatives(&self) -> &IdSlice<DistinctRowId, NodeRowId> {
         &self.representatives
+    }
+
+    /// Gathers a corpus frame at the representatives: the training domain's own frame.
+    ///
+    /// Identical representations project identically, so the gathered frame is the distinct
+    /// rows' own coordinates rather than a sample of them.
+    pub(super) fn training_frame(
+        &self,
+        frame: &FinitePointField<NodeRowId>,
+    ) -> Box<FinitePointField<DistinctRowId>> {
+        frame.gather(self.representatives())
     }
 
     /// Expands a distinct-domain neighbour table onto the corpus row domain.

@@ -7,20 +7,23 @@
 use core::alloc::Allocator;
 use std::alloc::Global;
 
-use hashql_core::id::Id;
+use hashql_core::id::{Id, IdSlice};
 use rand::Rng;
 
 use super::super::BatchPlan;
 use crate::{
+    identity::NodeRowId,
     math::{NonNegative, Vec2},
     random::sample_indices_vec,
     salt::{
+        landmark::artifact::LandmarkSkeleton,
         projector::{
             miner::MinedFrame,
             sample::{
                 OrdinaryNegativeSampler, RelationEdgeSampler, SampledRelationEdges,
                 SemanticEdgeSampler,
             },
+            scale::{LOCAL_SCALE_NEIGHBOURS, insert_nearest, sorted_median},
         },
         relation::{
             attraction::AttractionIndex,
@@ -43,6 +46,73 @@ pub(crate) struct SupportAnchor<N> {
     pub target: Vec2,
     pub radius: NonNegative,
     pub weight: f32,
+}
+
+/// Computes one landmark's median layout distance to its nearest skeleton neighbours.
+///
+/// The neighbour count and median convention are the corpus local-scale kernel's
+/// ([`insert_nearest`] and [`sorted_median`]); the skeleton is capacity-bounded, so the nearest set
+/// comes from a plain pass over the layout.
+// PERF: this runs once per landmark and is an all-nearest-neighbours
+// scan. The cost is O(S^2) distance evaluations over the
+// capacity-bounded skeleton and tens of milliseconds once per fit. If
+// skeleton capacity ever rises enough to matter, the fix is algorithmic
+// before it is SIMD. Build one kd-tree over the layout (kiddo is
+// already in-tree for serving) and take the fifteen nearest per
+// landmark in O(S log S) total. The median consumes distances only, so
+// tied neighbour choices cannot change the result. An exact index
+// reproduces the brute-force output bit for bit. Measure at a raised
+// capacity before acting.
+fn skeleton_scale<N>(coordinates: &IdSlice<N, Vec2>, ordinal: N) -> NonNegative
+where
+    N: Id,
+{
+    let mut nearest = [NonNegative::MAX; LOCAL_SCALE_NEIGHBOURS];
+    let mut count = 0_usize;
+    for (other, &coordinate) in coordinates.iter_enumerated() {
+        if other == ordinal {
+            continue;
+        }
+
+        if insert_nearest(&mut nearest, coordinates[ordinal].distance(coordinate)) {
+            count += 1;
+        }
+    }
+
+    let count = count.min(LOCAL_SCALE_NEIGHBOURS);
+    sorted_median(&nearest[..count])
+}
+
+impl<N> SupportAnchor<N> {
+    /// Anchors every skeleton landmark at its laid-out coordinate.
+    ///
+    /// With the skeleton's own local ruler as its radius, and each anchor's row translated
+    /// through `class_of`, the door from the skeleton's corpus rows into the trainer's own row
+    /// domain.
+    ///
+    /// The radius is the median layout distance to the landmark's nearest skeleton neighbours.
+    /// That is the same local-scale convention the relation loss normalizes by. A landmark in a
+    /// dense skeleton region therefore holds its row tighter than one in a sparse region. A
+    /// one-landmark skeleton has no ruler and anchors at radius zero. The support term's ε
+    /// guards the division.
+    pub(crate) fn at_landmarks(
+        skeleton: &LandmarkSkeleton<NodeRowId>,
+        weight: f32,
+        mut class_of: impl FnMut(NodeRowId) -> N,
+    ) -> Vec<Self> {
+        let coordinates = skeleton.coordinates();
+
+        skeleton
+            .selected_rows()
+            .iter_enumerated()
+            .map(|(ordinal, &row)| Self {
+                row: class_of(row),
+                target: coordinates[ordinal],
+                radius: skeleton_scale(coordinates, ordinal),
+                weight,
+            })
+            .collect()
+    }
 }
 
 /// One step's drawn populations, in corpus row space.

@@ -42,7 +42,7 @@ pub use self::{
     postgres::{ConnectError, PostgresArgs, connect},
     serve::{ServeArgs, ServeCommand, ServeError},
 };
-use crate::file::generation::GenerationRoot;
+use crate::{device::PinnedDevice, file::generation::GenerationRoot};
 pub use crate::{
     salt::runner::live::{ClassifierSource, Options, Placement, RunError, Summary},
     serve::{EmbeddingEnsure, LocateLimits, TileLimits, TranslateLimits, VisibilityLimits},
@@ -70,6 +70,13 @@ pub struct RootArgs {
         value_hint = ValueHint::DirPath,
     )]
     root: GenerationRoot,
+
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_DEVICE",
+        default_value_t = PinnedDevice::host()
+    )]
+    device: PinnedDevice,
 }
 
 /// Parses a generation-root argument: opens the root, creating the directory when absent.
