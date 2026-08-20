@@ -22,7 +22,7 @@ async function createBaselineCopy(): Promise<string> {
 async function runBaseline(
   testDirectory: string,
   replies: StubReply[],
-  mode?: '--resume',
+  mode?: '--resume' | '--continue-final',
 ): Promise<{
   checkpoint: {
     stopReason: string;
@@ -34,7 +34,9 @@ async function runBaseline(
     }>;
   };
   stderr: string;
+  requests: Array<{ messages: Array<Record<string, unknown>> }>;
 }> {
+  const requestsPath = join(testDirectory, 'requests.jsonl');
   const subprocess = Bun.spawn(
     [
       'bun',
@@ -52,6 +54,7 @@ async function runBaseline(
         // the live provider-key name literally in a test source file.
         [`ANTHROPIC_${'API'}_${'KEY'}`]: 'test-key',
         BASELINE_STUB_REPLIES: JSON.stringify(replies),
+        BASELINE_STUB_REQUESTS_PATH: requestsPath,
       },
       stdout: 'pipe',
       stderr: 'pipe',
@@ -66,7 +69,11 @@ async function runBaseline(
   const checkpoint = JSON.parse(
     await readFile(join(testDirectory, 'transcripts/condition-1.raw.json'), 'utf8'),
   );
-  return { checkpoint, stderr };
+  const requests = (await readFile(requestsPath, 'utf8'))
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line));
+  return { checkpoint, stderr, requests };
 }
 
 afterEach(async () => {
@@ -139,5 +146,43 @@ describe('baseline runner completion metadata', () => {
       truncated: true,
     });
     expect(result.stderr).toContain('non-final interviewer reply is truncated');
+  });
+
+  test('continues a truncated final delivery without sending checkpoint metadata', async () => {
+    const testDirectory = await createBaselineCopy();
+    await runBaseline(testDirectory, [
+      { text: 'part-1', truncated: true },
+      { text: 'part-2', truncated: true },
+      { text: 'part-3', truncated: true },
+      { text: 'part-4', truncated: true },
+      { text: 'part-5', truncated: true },
+      { text: 'YES' },
+    ]);
+    await rm(join(testDirectory, 'requests.jsonl'));
+
+    const continued = await runBaseline(
+      testDirectory,
+      [{ text: ' continued' }],
+      '--continue-final',
+    );
+
+    expect(continued.requests).toHaveLength(1);
+    expect(continued.requests[0]?.messages).toEqual([
+      expect.objectContaining({ role: 'user' }),
+      { role: 'assistant', content: 'part-1part-2part-3part-4part-5' },
+      {
+        role: 'user',
+        content:
+          'You were cut off mid-document. Continue exactly from where you stopped — no preamble, no repetition.',
+      },
+    ]);
+    for (const message of continued.requests[0]?.messages ?? []) {
+      expect(Object.keys(message).sort()).toEqual(['content', 'role']);
+    }
+    expect(continued.checkpoint.stopReason).toBe('delivered');
+    expect(continued.checkpoint.interviewerMessages.at(-1)).toEqual({
+      role: 'assistant',
+      content: 'part-1part-2part-3part-4part-5 continued',
+    });
   });
 });

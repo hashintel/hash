@@ -270,6 +270,65 @@ describe('Flue materialized-history reader', () => {
     );
   });
 
+  test('preserves capture identity when a full-prefix replay reclassifies a reply', async () => {
+    const path = await storePath();
+    const store = createLocalCaptureStore(path);
+    const snapshots = [
+      {
+        ...snapshot,
+        offset: '1',
+        // Before the reply-binding signal arrives, this is an ordinary user
+        // entry. The next full-prefix read classifies the same Flue message as
+        // an affordance payload.
+        messages: snapshot.messages.slice(0, 3),
+      },
+      { ...snapshot, offset: '2' },
+    ];
+    const reader = createFlueHistoryReader({
+      resolveConversationUrl: () => 'http://host.test/agent/session-1',
+      transport: (async () => Response.json(snapshots.shift()!)) as unknown as typeof fetch,
+      archive: store,
+    });
+
+    await reader.read('session-1');
+    const first = await store.execute(
+      {
+        type: 'apply-sweep',
+        proposals: [
+          {
+            evidence: [{ excerpt: 'June works.' }],
+            epistemicStatus: 'explicit',
+            confidence: 'high',
+            content: { value: 'June' },
+          },
+        ],
+      },
+      { sessionId: 'session-1' },
+    );
+    if (!first.ok) throw new Error(first.refusal.message);
+
+    await reader.read('session-1');
+    const retry = await store.execute(
+      {
+        type: 'apply-sweep',
+        proposals: [
+          {
+            evidence: [{ excerpt: 'June works.' }],
+            epistemicStatus: 'explicit',
+            confidence: 'high',
+            content: { value: 'June' },
+          },
+        ],
+      },
+      { sessionId: 'session-1' },
+    );
+
+    expect(retry.ok).toBe(true);
+    if (!retry.ok || !('skippedDedupKeys' in retry.value)) throw new Error('retry sweep refused');
+    expect(retry.snapshot.captures).toHaveLength(1);
+    expect(retry.value.skippedDedupKeys).toHaveLength(1);
+  });
+
   test('versions an evolving public message instead of duplicating its archive ordinal', async () => {
     const path = await storePath();
     const store = createLocalCaptureStore(path);

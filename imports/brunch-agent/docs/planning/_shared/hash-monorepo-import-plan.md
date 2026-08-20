@@ -161,11 +161,22 @@ relationship.
 - Use `docs/INDEX.md` plus the tracked files outside `apps/`, `packages/`, and `test/` as the
   disposition inventory. For every entry, record one outcome in the FE-1437 work: move to a named
   HASH path, retain as an explicitly historical record, or remove after import with a reason.
-- Move architecture, ADR, and package documentation still governing the imported code to named
-  HASH destinations reachable from the package documentation. Re-home only the cross-effort
-  control surfaces that remain live after the handoff; historical planning need not remain live.
-- Do not carry standalone CI, Bun lockfiles, repository setup, or agent guidance forward as a
+- The named home for living documentation is `libs/@hashintel/brunch-agent/docs/`. Move there
+  everything that still governs the imported code: ADR-0002 (the placement rules behind the
+  boundary gates), ADR-0004, the amended kernel spec, `CONTEXT.md` (the domain model), and this
+  plan's own settled record. The harness package README links that home so every living document
+  remains reachable from the package documentation.
+- Re-home the cross-effort control surfaces that remain live after the handoff to the same home.
+  At import time FE-1440, FE-1441, and FE-1442 are still open, so `COORDINATION.md` and
+  `SPEC-LEDGER.md` qualify. Historical planning need not remain live.
+- The agent working methods (`AGENTS.md`, `CLAUDE.md`, the `docs/agents/*` protocols, the
+  `arc-close` skill, and the INDEX gate in `test/docs-index.test.ts`) receive an explicit
+  recorded decision rather than disposal by omission: either re-author them under HASH's own
+  agent-guidance conventions, or retire them and restate the practices that outlive this
+  repository — the issue-writing contract, triage roles, and documentation protocol govern the
+  Linear-side work regardless of where the code lives. Do not carry them forward unchanged as a
   nested project root.
+- Do not carry standalone CI, Bun lockfiles, or repository setup forward.
 - The disposition is complete only when every inventory row resolves to its recorded destination
   or removal commit. Removing a file after the mechanical import does not remove its Git history.
 

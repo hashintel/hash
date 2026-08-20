@@ -1,3 +1,4 @@
+import { appendFile } from 'node:fs/promises';
 import { mock } from 'bun:test';
 
 interface StubReply {
@@ -6,12 +7,14 @@ interface StubReply {
 }
 
 const replies = JSON.parse(process.env['BASELINE_STUB_REPLIES'] ?? '[]') as StubReply[];
+const requestsPath = process.env['BASELINE_STUB_REQUESTS_PATH'];
 let requestCount = 0;
 
 mock.module('@anthropic-ai/sdk', () => ({
   default: class AnthropicStub {
     messages = {
-      create: async () => {
+      create: async (request: unknown) => {
+        if (requestsPath) await appendFile(requestsPath, `${JSON.stringify(request)}\n`);
         const reply = replies[requestCount++];
         if (!reply) throw new Error(`unexpected model call ${requestCount}`);
         return {

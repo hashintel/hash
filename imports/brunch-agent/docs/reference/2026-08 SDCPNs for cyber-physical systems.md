@@ -14,7 +14,7 @@ This blog post builds one such model through five levels of the formalism, then 
 
 A [Petri net](https://petrinaut.org/) is a directed graph of places, transitions, and arcs. Tokens sit in places, transitions fire and move tokens between places, and the arrangement of all tokens at a given moment represents the state of the system. A plain Petri net records what can happen and in what order, but without modelling durations, likelihoods, or what distinguishes one token from another, it cannot answer "how often" or "how likely" in a scenario.
 
-An SDCPN extends a plan Petri net with 4 features:
+An SDCPN extends a plain Petri net with 4 features:
 
 * **Colour**. Tokens carry data so they become distinguishable. A transition can inspect that data before firing.
 

@@ -72,6 +72,173 @@ describe('capture anchoring', () => {
     });
   });
 
+  test('keeps a quote-only replay anchored to one archived entry', () => {
+    const firstRead = archiveSessionLogRead(createEmptySessionLogArchive(), {
+      sessionId: 'session-1',
+      offset: '1',
+      entries: [
+        {
+          substrateEntryId: 'reply',
+          kind: 'user',
+          text: 'June works.',
+          materialized: { id: 'reply', text: 'June works.' },
+        },
+      ],
+      settlements: [],
+    });
+    const first = applyCaptureStoreCommand(
+      createEmptyCaptureStoreSnapshot(),
+      { type: 'apply-sweep', proposals: [proposal('June works.')] },
+      { sessionId: 'session-1', archive: firstRead },
+    );
+    if (!first.ok || !('appliedCaptureIds' in first.value)) throw new Error('first sweep refused');
+
+    const replayedRead = archiveSessionLogRead(firstRead, {
+      sessionId: 'session-1',
+      offset: '2',
+      entries: [
+        {
+          substrateEntryId: 'reply',
+          kind: 'user',
+          text: 'June works.',
+          materialized: { id: 'reply', text: 'June works.' },
+        },
+      ],
+      settlements: [],
+    });
+    const replay = applyCaptureStoreCommand(
+      first.snapshot,
+      { type: 'apply-sweep', proposals: [proposal('June works.')] },
+      { sessionId: 'session-1', archive: replayedRead },
+    );
+
+    expect(replay.ok).toBe(true);
+    if (!replay.ok || !('skippedDedupKeys' in replay.value)) throw new Error('replay refused');
+    expect(replay.snapshot.captures).toHaveLength(1);
+    expect(replay.value.skippedDedupKeys).toEqual([first.snapshot.captures[0]!.dedupKey]);
+  });
+
+  test('keeps a full-prefix replay bound to its first matching occurrence', () => {
+    const firstRead = archiveSessionLogRead(createEmptySessionLogArchive(), {
+      sessionId: 'session-1',
+      offset: '1',
+      entries: [
+        {
+          substrateEntryId: 'first',
+          kind: 'user',
+          text: 'June works.',
+          materialized: { id: 'first', text: 'June works.' },
+        },
+      ],
+      settlements: [],
+    });
+    const first = applyCaptureStoreCommand(
+      createEmptyCaptureStoreSnapshot(),
+      { type: 'apply-sweep', proposals: [proposal('June works.')] },
+      { sessionId: 'session-1', archive: firstRead },
+    );
+    if (!first.ok) throw new Error('first sweep refused');
+
+    const secondRead = archiveSessionLogRead(firstRead, {
+      sessionId: 'session-1',
+      offset: '2',
+      entries: [
+        {
+          substrateEntryId: 'first',
+          kind: 'user',
+          text: 'June works.',
+          materialized: { id: 'first', text: 'June works.' },
+        },
+        {
+          substrateEntryId: 'second',
+          kind: 'user',
+          text: 'June works.',
+          materialized: { id: 'second', text: 'June works.' },
+        },
+      ],
+      settlements: [],
+    });
+    const replay = applyCaptureStoreCommand(
+      first.snapshot,
+      { type: 'apply-sweep', proposals: [proposal('June works.')] },
+      { sessionId: 'session-1', archive: secondRead },
+    );
+
+    expect(replay.ok).toBe(true);
+    if (!replay.ok || !('skippedDedupKeys' in replay.value)) throw new Error('replay refused');
+    expect(replay.snapshot.captures).toHaveLength(1);
+    expect(
+      replay.snapshot.captures.flatMap((capture) =>
+        'evidence' in capture ? capture.evidence.map((span) => span.pointer.entryStart) : [],
+      ),
+    ).toEqual([1]);
+
+    // A full-prefix extraction has one proposal for A and a genuinely new
+    // proposal for B. Their quotes and contents are intentionally identical;
+    // their ordered occurrence slots are assigned by the harness.
+    const bothOccurrences = applyCaptureStoreCommand(
+      replay.snapshot,
+      {
+        type: 'apply-sweep',
+        proposals: [proposal('June works.'), proposal('June works.')],
+      },
+      { sessionId: 'session-1', archive: secondRead },
+    );
+    expect(bothOccurrences.ok).toBe(true);
+    if (!bothOccurrences.ok) throw new Error('full-prefix sweep refused');
+    expect(bothOccurrences.snapshot.captures).toHaveLength(2);
+    expect(
+      bothOccurrences.snapshot.captures.flatMap((capture) =>
+        'evidence' in capture ? capture.evidence.map((span) => span.pointer.entryStart) : [],
+      ),
+    ).toEqual([1, 2]);
+  });
+
+  test('does not duplicate a retry when its archived source is reclassified', () => {
+    const firstRead = archiveSessionLogRead(createEmptySessionLogArchive(), {
+      sessionId: 'session-1',
+      offset: '1',
+      entries: [
+        {
+          substrateEntryId: 'reply',
+          kind: 'user',
+          text: 'June works.',
+          materialized: { id: 'reply', text: 'June works.' },
+        },
+      ],
+      settlements: [],
+    });
+    const first = applyCaptureStoreCommand(
+      createEmptyCaptureStoreSnapshot(),
+      { type: 'apply-sweep', proposals: [proposal('June works.')] },
+      { sessionId: 'session-1', archive: firstRead },
+    );
+    if (!first.ok) throw new Error('first sweep refused');
+
+    const reclassifiedRead = archiveSessionLogRead(firstRead, {
+      sessionId: 'session-1',
+      offset: '2',
+      entries: [
+        {
+          substrateEntryId: 'reply',
+          kind: 'user-affordance-payload',
+          text: 'June works.',
+          materialized: { id: 'reply', text: 'June works.', affordanceId: 'when' },
+        },
+      ],
+      settlements: [],
+    });
+    const retry = applyCaptureStoreCommand(
+      first.snapshot,
+      { type: 'apply-sweep', proposals: [proposal('June works.')] },
+      { sessionId: 'session-1', archive: reclassifiedRead },
+    );
+
+    expect(retry.ok).toBe(true);
+    if (!retry.ok) throw new Error('retry sweep refused');
+    expect(retry.snapshot.captures).toHaveLength(1);
+  });
+
   test('refuses an injected entry and a missing quote before writing a capture', () => {
     for (const [excerpt, code] of [
       ['Begin the interview.', 'non-user-evidence'],

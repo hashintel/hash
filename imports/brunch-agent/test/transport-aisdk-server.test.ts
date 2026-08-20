@@ -190,6 +190,68 @@ describe('FE-1436 Petrinaut wire server', () => {
     }
   });
 
+  test('streams a failed server tool outcome before settling the failed turn', async () => {
+    const handler = createAiSdkChatHandler({
+      async runTurn(_input, emit) {
+        emit({ type: 'response-start', messageId: 'message-tool-failed' });
+        emit({ type: 'turn-start', turnId: 'turn-tool-failed' });
+        emit({
+          type: 'tool-input',
+          toolCallId: 'tool-failed',
+          toolName: 'bl_sweep',
+          input: {},
+          execution: 'server',
+        });
+        emit({
+          type: 'tool-output-error',
+          toolCallId: 'tool-failed',
+          errorText: 'Sweep persistence failed.',
+          execution: 'server',
+        });
+        emit({ type: 'turn-finish', turnId: 'turn-tool-failed' });
+        emit({
+          type: 'response-finish',
+          terminalState: 'failed',
+          finishReason: 'error',
+        });
+      },
+    });
+
+    const response = await handler(
+      new Request('http://brunch.test/api/petrinaut/chat', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          id: 'conversation-tool-failed',
+          trigger: 'submit-message',
+          messages: [
+            { id: 'user-tool-failed', role: 'user', parts: [{ type: 'text', text: 'Go' }] },
+          ],
+        }),
+      }),
+    );
+
+    expect(await responseChunks(response)).toEqual([
+      { type: 'start', messageId: 'message-tool-failed' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-failed',
+        toolName: 'bl_sweep',
+        input: {},
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'tool-failed',
+        errorText: 'Sweep persistence failed.',
+        providerExecuted: true,
+      },
+      { type: 'finish-step' },
+      { type: 'error', errorText: 'The elicitor turn failed.' },
+    ]);
+  });
+
   test('answers an allowlisted panel preflight without opening every origin', async () => {
     const handler = createAiSdkChatHandler({
       allowedOrigins: ['http://127.0.0.1:4915'],
