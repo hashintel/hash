@@ -3,10 +3,8 @@ from enum import Enum
 from threading import Lock
 from uuid import uuid4
 
-from pydantic import BaseModel
-
 from fastapi import FastAPI
-
+from pydantic import BaseModel
 
 MAX_STATUS_HISTORY = 100
 

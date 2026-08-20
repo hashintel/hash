@@ -10,8 +10,8 @@ import time
 from typing import Any
 
 import pytest
-
 from conftest import FakeProcess, spawn
+
 from petrinaut import (
     OptimizationSession,
     PetrinautClientError,

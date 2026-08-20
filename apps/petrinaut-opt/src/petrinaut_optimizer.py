@@ -10,16 +10,17 @@ import math
 import os
 import threading
 from collections.abc import Callable, Mapping
-from datetime import datetime
+from contextlib import suppress
+from datetime import datetime, timezone
 from typing import Any, Literal, TypeAlias, cast
 
 import optuna
-from opentelemetry import context as otel_context, trace
+from opentelemetry import context as otel_context
+from opentelemetry import trace
 from opentelemetry.trace import Span, Status, StatusCode
 from petrinaut import OptimizationSession, PetrinautRunError
 
 from src.utils import Phase, set_status
-
 
 log = logging.getLogger("pn_optimize")
 tracer = trace.get_tracer("pn_optimize")
@@ -187,9 +188,7 @@ class PetrinautOptimizer:
         )
 
         self.parameters = parameters
-        self.study_name = (
-            f"{DEFAULT_STUDY_NAME}_{datetime.now().strftime('%m/%d/%Y-%H:%M:%S')}"
-        )
+        self.study_name = f"{DEFAULT_STUDY_NAME}_{datetime.now(tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')}"
         sampler_options.setdefault("seed", seed)
         self.sampler = SAMPLERS[sampler_name](**sampler_options)
         self.direction = direction
@@ -270,7 +269,8 @@ class PetrinautOptimizer:
             | None
         ) = None,
         *,
-        callback: Callable[[optuna.Study, optuna.trial.FrozenTrial], None] | None = None,
+        callback: Callable[[optuna.Study, optuna.trial.FrozenTrial], None]
+        | None = None,
     ) -> tuple[threading.Thread, Span]:
         """Run the study on a worker thread that inherits the request's context.
 
@@ -282,11 +282,14 @@ class PetrinautOptimizer:
         """
         if n_trials is None:
             raise ValueError("n_trials is required")
-        if callback is None:
+        study_callback = callback
+        if study_callback is None:
             if stop_flag is None or payload_builder is None:
-                raise ValueError("callback or detached-run callback inputs are required")
+                raise ValueError(
+                    "callback or detached-run callback inputs are required"
+                )
 
-            def callback(
+            def emit_trial_payload(
                 study: optuna.Study, trial: optuna.trial.FrozenTrial
             ) -> None:
                 payload = payload_builder(study, trial)
@@ -294,6 +297,8 @@ class PetrinautOptimizer:
                     loop.call_soon_threadsafe(events.put_nowait, payload)
                 if stop_flag.is_set():
                     study.stop()
+
+            study_callback = emit_trial_payload
 
         study_span = tracer.start_span("optimization.study")
         study_span.set_attribute("optuna.study.trials", n_trials)
@@ -309,7 +314,7 @@ class PetrinautOptimizer:
                 self.study.optimize(
                     self.objective,
                     n_trials=n_trials,
-                    callbacks=[callback],
+                    callbacks=[study_callback],
                 )
             except Exception as error:
                 study_span.record_exception(error)
@@ -416,11 +421,17 @@ class PetrinautOptimizer:
                 except asyncio.TimeoutError:
                     continue
                 if item is _SENTINEL:
-                    set_status(app, run_id, phase=Phase.done, detail="optimization completed")
+                    set_status(
+                        app, run_id, phase=Phase.done, detail="optimization completed"
+                    )
                     completed = True
                     log.info(
                         "optimization study completed",
-                        extra={"event": "study_completed", "trials": n_trials, **log_context},
+                        extra={
+                            "event": "study_completed",
+                            "trials": n_trials,
+                            **log_context,
+                        },
                     )
                     on_event("event: done\ndata: {}\n\n")
                     record_outcome("completed")
@@ -453,10 +464,9 @@ class PetrinautOptimizer:
                     )
             finally:
                 self.lock.release()
-                try:
+                # No completed trial means no best value to report.
+                with suppress(ValueError):
                     study_span.set_attribute(
                         "optuna.study.best_value", self.study.best_value
                     )
-                except ValueError:
-                    pass
                 study_span.end()

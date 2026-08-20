@@ -10,6 +10,8 @@ from typing import Any
 from .errors import PetrinautRunError
 from .session import PetrinautSession, _encode_bootstrap_line
 
+_ONE_SOURCE = "provide exactly one of optimization_manifest or manifest_path"
+
 
 class OptimizationSession(PetrinautSession):
     """Own one CLI process initialized with an opaque optimization manifest.
@@ -27,18 +29,20 @@ class OptimizationSession(PetrinautSession):
         manifest_path: str | os.PathLike[str] | None = None,
         **options: Any,
     ) -> None:
-        if (optimization_manifest is None) == (manifest_path is None):
-            raise ValueError(
-                "provide exactly one of optimization_manifest or manifest_path"
-            )
-        if manifest_path is not None:
-            serve_arguments = ("--optimization", os.fspath(manifest_path), "--stdio")
-            bootstrap_line = None
-        else:
+        # Branching on each argument in turn, rather than on a combined check,
+        # so the payload is known to be present where it is encoded.
+        if optimization_manifest is not None:
+            if manifest_path is not None:
+                raise ValueError(_ONE_SOURCE)
             serve_arguments = ("--optimization-stdin", "--stdio")
             bootstrap_line = _encode_bootstrap_line(
                 optimization_manifest, "optimization manifest"
             )
+        elif manifest_path is not None:
+            serve_arguments = ("--optimization", os.fspath(manifest_path), "--stdio")
+            bootstrap_line = None
+        else:
+            raise ValueError(_ONE_SOURCE)
         super().__init__(
             serve_arguments=serve_arguments,
             bootstrap_line=bootstrap_line,
