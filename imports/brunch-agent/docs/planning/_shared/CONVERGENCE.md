@@ -40,6 +40,8 @@ than terminating in comments. Fine-grained evidence lives in the deep-read notes
 [`process-model-elicitation/notes/deep-read-fe-1390.md`](../process-model-elicitation/notes/deep-read-fe-1390.md),
 and the rendering
 [`process-model-elicitation/capture-store-plain.md`](../process-model-elicitation/capture-store-plain.md).
+The FE-1391/FE-1386 substrate evidence lives in
+[`legibility-sweep/flue-entry-projection-source-read-2026-08-18.md`](../legibility-sweep/flue-entry-projection-source-read-2026-08-18.md).
 
 Status vocabulary: **discharged** (built and proved; commit/branch named) · **partial** (built
 with named gaps) · **pending** (nothing built; expected) · **superseded** (an ADR changed the
@@ -52,7 +54,7 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | --- | --- | --- | --- |
 | Shell separation: plugins→core only; core imports no substrate; binding imports both | §4, §12.2 | **discharged** | boundary gates (FE-1388/FE-1399, `test/boundaries.test.ts`); `workspacePackages()` derives groups from manifest; `plugin-gherkin` imports `@brunch/core` only |
 | Package topology | §12.2 | **partial** | `core` (+`testing` subpath), `binding-flue`, `plugin-gherkin`, `apps/dev` exist; `plugin-assurance` pending. Topology pin derives from §12.2 itself (FE-1400 `ef00201`) |
-| Core *is* the harness (mechanism lives in core) | §12.2, §14.2 | **contradicted** (in spirit) | Suspension protocol, affordance id scheme, one-live-affordance rule, reply binding all live in `binding-flue/src/index.ts`; core exports schemas + naming. The second-binding test fails in spirit (deep-read FE-1389) |
+| Core *is* the harness (mechanism lives in core) | §12.2, §14.2 | **discharged** | FE-1422 (`ln/fe-1422-ask-protocol`, 2026-08-18) moved affordance minting, the one-live guard, reply-binding signal, and instruction assembly into `packages/core/src/ask-protocol.ts`; `binding-flue` now supplies Flue hook wiring |
 | Tool naming: identity not function | §12.3 | **superseded → discharged** | ADR-0001 replaces `bl_*` with `brunch_*`; `toolName('ask')` → `brunch_ask`; `elicit_*` ban enforced |
 | Valibot at every boundary | §12.4 | **discharged** | core + binding schemas throughout |
 | SDK surface (anchoring, retries, tracing, arbitraries, simulation harness) | §12.4 | **pending** | none built; owned by FE-1393 (FE-1383 slice), export-surface ratification gated on the contract freeze (FE-1387) |
@@ -69,8 +71,8 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | Envelope fields: minted id + content dedup key (status excluded), spans, epistemic status, confidence, value XOR absence, alternatives, one `supersedes` | §5 | **discharged** | `packages/core/src/capture-store.ts` (FE-1390); invariants 9/10 pinned by named tests |
 | No stored status; derived at read time (C3) | §5 | **discharged** | `deriveCaptureStatus`/`deriveIssueStatus`; tests assert no `status` field persisted |
 | Retraction: explicit user-cited event, no successor | §5 | **discharged** | `RetractionEvent` (FE-1390) |
-| Pointer **derived by the harness**; model cites quotes, never sequence numbers | §5, §8.2 | **contradicted** (latent) | `EvidenceSpan` *requires* caller-supplied `entryStart`/`entryEnd`; no anchoring code exists anywhere. Safe only while no model-facing sweep tool exists; unmarked in code |
-| Confidence qualitative, never a scalar | §5 | **partial** | non-empty string only; `"0.93"` accepted. Vocabulary now settled (plugin-contract spec, closing remediation A5's design half): picklist `firm | hedged | speculative`, store refuses numeric-parsing strings — refusal rule still to implement |
+| Pointer **derived by the harness**; model cites quotes, never sequence numbers | §5, §8.2 | **discharged** | FE-1391 split caller `EvidenceQuote` from persisted `EvidenceSpan`: every evidence command accepts verbatim quotes only, resolves once against the session archive, and stores an archive-owned ordinal range; extra pointer/source fields are refused |
+| Confidence qualitative, never a scalar | §5 | **partial** | non-empty string only; `"0.93"` accepted. Vocabulary is settled by the plugin-contract spec as `firm | hedged | speculative`; its proposed store refusal rule for numeric-parsing strings remains to implement |
 | Six absence states; `not-mentioned` computed, never stored | §5.1 | **discharged** | `ABSENCE_STATES` (FE-1390) |
 | Reserved reply encoding for structured taps (C4) | §5.1 | **pending** | UI sends bare text; absences from this UI are honestly `inferred` |
 | One epistemic status per capture | §5 | **discharged**, with named friction | Status is the proposal union's discriminant, coupled to provenance shape — per-field status is unrepresentable, and payload-smuggling it breaks dedup identity. This was FE-1405's central input (deep-read FE-1390, tiering section); the arc consumed it *without* amendment — one status per capture survives, and the structure that wanted per-field status lives below it in proposal interiors (ADR-0003, plugin-contract spec) |
@@ -81,7 +83,7 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | --- | --- | --- | --- |
 | `project` + typed loss report; `validate`; optional `reconcile`; purity (C2) | §6.1 | **pending** | no plugin operations exist; `plugin-gherkin` is `{name, targetDomain}` only |
 | Envelope-level refusals (provenance, XOR, single-hop supersession) | §6.2 | **discharged** | FE-1390 command surface |
-| Citations resolve to true user entries (store-level refusal) | §6.2 | **partial** | `source` label enforced; resolution against a real entry projection absent — declaration, not verification (deep-read FE-1390) |
+| Citations resolve to true user entries (store-level refusal) | §6.2 | **discharged at the store boundary** | FE-1391 resolves quote-only inputs against archived public messages, derives source from binding-classified entries, refuses injected non-user matches, and proves pointer retrieval through the real mounted router. FE-1392 still owns refresh-before-apply orchestration |
 | Duplicate detection free for flat-record plugins | §6.2 | **partial** | near-identical advisory fires for string payloads only; a flat record gets none |
 | Issues typed + namespaced to producer (invariant 6) | §6.3 | **partial** | all seven types, origin variants present; producer self-declared, unauthenticated |
 | Advisories computed, ephemeral, never stored | §6.3 | **discharged** | returned in results, never in snapshot (FE-1390) |
@@ -105,7 +107,7 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | Obligation | Spec | Status | Evidence |
 | --- | --- | --- | --- |
 | Settlement trigger + judgment | §8.1 | **pending** | no `useAgentFinish`, no trigger; FE-1389 and FE-1390 touch only via the `'user-affordance-payload'` literal — two bridge ends, no middle span (rendering strain #3). Owned by FE-1392 |
-| Harness-resolved anchoring at sweep application | §8.2 | **pending** | capability 8 declared `absorbed`, never consulted; see the §5 contradicted row. Owned by FE-1391 |
+| Harness-resolved anchoring at sweep application | §8.2 | **discharged** | FE-1391 resolves exact quotes against archived user entries at command application; no match returns a repair hint, multiple matches choose latest with an advisory, and injected non-user matches refuse |
 | Sweep idempotence, content-keyed | §8.3 | **discharged** (store side) | dedup key + three-way skip logic (FE-1390); no sweep producer exists |
 | Single-hop supersession over active heads; stale-session guard | §8.4, §9.2 | **discharged** | refusal carries `currentHeadIds` (FE-1390) |
 | Resolution records close conflicts; user-cited | §8.5 | **discharged** | FE-1419 (`ln/fe-1419-contract-closure`): conflicts open only over two-plus distinct active captures, referenced captures are pinned until a user-cited resolution frees them, resolutions compare by set equality, and every accepted command round-trips through the persisted parser. The one-reference and supersession-stranding holes are closed and red-proved. The tap-evidence adjudication (contradicted row below) remains open |
@@ -118,20 +120,20 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | Obligation | Spec | Status | Evidence |
 | --- | --- | --- | --- |
 | Durable target-document, transient sessions, sweep the only bridge | §9.1 | **partial** | store is session-independent (FE-1390); dev UI mints a fresh document per page load, so many-sessions-one-document is unreachable from any surface (deep-read FE-1389) |
-| Per-session state = evidence log, swept high-water mark, pending-affordance slot | §9.2 | **partial** | the slot exists (FE-1389); the other two pending |
+| Per-session state = evidence log, swept high-water mark, pending-affordance slot | §9.2 | **partial** | pending slot exists (FE-1389) and the durable session-log archive exists (FE-1391); swept high-water remains pending FE-1392 |
 | Re-entry briefing; user-visible insertion notice | §9.3 | **pending** | signal carrier proved; no briefing; the one injected signal is filtered out of the UI. Owned by FE-1396 |
-| Only the true user's side is evidence; injected entries structurally non-user | §9.4 | **partial** | signals project non-user (FE-1389); span sources declared not verified; the kickoff message is a machine-authored `user` entry — an anchorable non-utterance once sweeps land. Same family, from FE-1396's body: the re-entry briefing reads as the user's side, and a capture citing it would launder the system's words into the person's mouth — one "authored non-utterances" invariant, two known instances |
+| Only the true user's side is evidence; injected entries structurally non-user | §9.4 | **partial** | FE-1391 verifies role/purpose against the public projection, refuses signal/advisory text, and classifies affordance replies only from the harness-owned reply-binding signal. The kickoff remains a machine-authored `user` entry until FE-1420/FE-1385 move it to `useInitialData`; FE-1396 still owns briefing-never-evidence |
 | Completion derived, never a gate | §9.5 | **pending** | — |
-| Storage port: harness-defined, binding-implemented, plugin-blind (C1) | §9.6 | **partial** | capture-store half discharged in exactly that shape (FE-1390); session-log archive absent — see next row |
-| Port scope includes the session-log archive | §9.6 | **contradicted** | `snapshotSchema` is a `strictObject`, so the archive is a breaking format change, while `binding-flue`'s header claims §9.6 whole. Evidence pointers are promises the store cannot keep or check (rendering strain #4; FE-1419 comment). Archive build owned by FE-1391 |
-| Compaction vs. durable log | §9.7 | **pending** | open in `test/open-gaps.ts` (FE-1386) |
+| Storage port: harness-defined, binding-implemented, plugin-blind (C1) | §9.6 | **discharged for the local target** | core owns capture/archive/anchoring semantics; `binding-flue` owns the file implementation; plugins cannot import the binding (FE-1390 + FE-1391) |
+| Port scope includes the session-log archive | §9.6 | **discharged** | FE-1391 provisions a versioned target-document record containing capture state and session logs, migrates the legacy capture-only shape on mutation, parses both halves on read, identity-versions evolving messages, and retrieves every cited ordinal independently of Flue |
+| Compaction vs. durable log | §9.7 | **partial — source-settled, behavioral pin open** | Flue 2.0.3's append-only stream contract and implementation show compaction appends a canonical record, rewrites only model context, preserves the public message projection, and leaves `state_write` reduction untouched. The source-read record reshapes FE-1386 to one upgrade pin; `test/open-gaps.ts` remains until behavioral proof lands |
 
 ## Binding capabilities (§10)
 
 | Obligation | Spec | Status | Evidence |
 | --- | --- | --- | --- |
 | Caps 1–5: tool, instructions, persistent state, affordance emission, suspend-for-reply (absorbed) | §10 | **discharged** | all five exercised against the real runtime (FE-1389 integration test) |
-| Caps 6–8, incl. entry-projection read | §10 | **partial** | declared in `capabilities.ts`; cap 8 never consulted; history-projection paging open (FE-1391) |
+| Caps 6–8, incl. entry-projection read | §10 | **partial — cap 8 discharged** | FE-1391's binding reader calls public SDK `history()` through a host-injected full URL resolver and fetch transport, maps only materialized public messages, and archives each read with identity-keyed versions. The walking skeleton pins the actual mounted-router custom-fetch path; FE-1392 owns the narrower refresh-before-sweep gap and cap 6/7 callers |
 
 ## Plugins, packs, dev targets (§11, §13)
 
@@ -153,7 +155,7 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | Invariant 1 (no value without provenance) | §14.1 | **partial** | structural (span/basis shapes required); pointer truth unverified |
 | Invariant 6 (issues namespaced) | §14.1 | **partial** | namespace stored, producer unauthenticated |
 | Invariants 3, 8 (projection loss, equivalent projection) | §14.1 | **pending** | no `project` exists |
-| Five proof obligations; smallest-honest + second-binding tests | §14.2 | **partial** | smallest-honest holding; **second-binding failing in spirit** (mechanism in `binding-flue`; core a schema bag) |
+| Five proof obligations; smallest-honest + second-binding tests | §14.2 | **partial** | smallest-honest holding; FE-1422 repaired the ask protocol's second-binding failure by moving portable mechanism to core. No literal second binding exists yet |
 | Gating tests (reprojection, minimal pairs, black-box authoring) | §14.3 | **pending** | — |
 | Generation-first fixtures, `arbitraryFromSchema`, `fc.commands` | §14.4 | **pending** | both new suites are hand-written examples; no fast-check anywhere. Owned by FE-1384 (FE-1383 slice, backlog) |
 | Open verification items tracked with homes | §14.5 | **discharged** (as a mechanism) | `test/open-gaps.ts` ledger: an entry's existence is the open claim, and the commit that lands the behavioural proof deletes the entry (FE-1419 commit 1, replacing the citation-token inference of FE-1400 `7ae3d45`). Note: the wake-wart entry's deletion (FE-1389) discharged the *observed* path only; the broader clause is re-entered as `wake-wart-write-paths` (FE-1392) |
@@ -208,25 +210,14 @@ below lives on it — this list is the coordination record their overlap has lac
 ## Cross-map sequencing (living — re-evaluate when rows above change)
 
 Each map orders its own issues; nothing in Linear orders work across them. This section is
-that strategy, with its reasoning, revised as things land. As of **2026-08-17 (second
-evaluation, post-cheatsheet)**. What changed since the first: the FE-1419 queue landed whole;
-the Flue cheatsheet/routing work re-weighted four build slices (FE-1392 de-risked by documented
-affordances, FE-1391 gains cheap source-exploration pre-work, FE-1403/06 gain the skills
-compilation path, FE-1420's floor finding moved to ride FE-1385's React adoption); and two new
-schedulable items exist — the ask-protocol extraction (remediation A1 — now FE-1422) and the
-pre-remote gates (A10, unowned at evaluation time — since filed as FE-1423, see below). The
-recommendation survives with an amended opener; see below.
-
-**Third evaluation, 2026-08-18 (post-FE-1405).** The interiors arc closed: ADR-0003 (three
-registers, pure fold, write-time-only semantics) plus the provisional plugin-contract spec,
-ratification tracked as FE-1431. That discharges the FE-1357 half of the convergence collision —
-envelope facts × payload interiors now waits only on the build spine reaching FE-1392, so the
-spine's order (FE-1422 → B1/B2 reads → FE-1391 → FE-1392) is unchanged and its urgency is up.
-FE-1393/1402/1403/1407 each hold named design inputs from the spec's open-strains section
-instead of blank dependencies. Into today's 18 Aug gate: the contract's existence strengthens
-the process-model-plugin-as-second-target recommendation on the FE-1387 decision — there is now
-a concrete contract for a second target to stress. The recommendation below otherwise survives
-verbatim.
+that strategy, with its reasoning, revised as things land. As of **2026-08-18 (fourth
+evaluation, after FE-1405 and FE-1391 implementation)**. FE-1405 closed the interiors arc with
+ADR-0003 and the provisional plugin-contract spec. The accepted build opener also crossed its
+source and implementation gates without reordering: FE-1422 repaired ask placement, and FE-1391
+removed caller-supplied ranges, landed the public-history reader and durable archive, and cleared
+FE-1392's provenance dependency. FE-1386 remains a narrow behavioral compatibility pin because
+a genuine main-conversation compaction requires test-agent/model setup outside FE-1391's natural
+reader/archive path. FE-1393/1402/1403/1407 now hold named plugin-spec inputs.
 Ledgers: [`remediation-plan-2026-08-17.md`](../legibility-sweep/remediation-plan-2026-08-17.md); placement rules:
 [`topology.md`](topology.md).
 
@@ -242,14 +233,14 @@ building** — every slice with a paraphrase-grade dependency runs its Ledger-B 
 
 | Issue | What | Why | How / weight |
 | --- | --- | --- | --- |
-| FE-1391 | Harness-resolved anchoring, durable entry projection, session-log archive | Converts the store's *declared* provenance into *verified* provenance (penciled 7's deterministic tier); un-forecloses the §9.6 archive; must *remove* the caller-supplied-range path, not add beside it (remediation A3) | Medium-heavy. Pre-work first: source-read the GET-surface contract and compaction internals (Ledger B1/B2 — may partially answer FE-1386 for free); `migrate()`-style versioned provisioning is the schema-widening precedent |
+| FE-1391 | Harness-resolved anchoring, durable entry projection, session-log archive | **Implemented locally.** Converts declared provenance into verified provenance and un-forecloses §9.6 | Public `history()` over host-injected URL/fetch; archive-owned ordinal pointers with Flue ids as provenance; distinct versions for evolving messages; versioned/migrating local target-document record; quote-only command input |
 | FE-1392 | Settlement trigger + sweep — the first captured statement | The missing middle span (rendering strain #3): after this the system genuinely elicits, and every store guarantee gets its first real caller | De-risked by documented affordances: `useAgentFinish` trigger seam, `useSubagent` (= capability 6), durable tool steps. Prerequisite: the ask-protocol extraction (FE-1422) lands first so sweep mechanism starts in core (`sweep-protocol`, topology N1); raw-doc check on `useSubagent` at start (B3); wake-wart ledger entry's assertion lands with its writes |
 | FE-1393 | Plugin SDK + gherkin plugin — first projected artifact + loss report | Makes the contract programmable-against; explicit non-goal: no freeze (two-targets rule) | Medium, after FE-1392; §12.4 SDK items live here. Absorbs at its design moments: origin minted by op context (A6), flat-record advisory (A7), plugin displayName (A9) |
 | FE-1394 | Conflict, supersession, interpretation render | Exercises the correction machinery in UX; FE-1419's conflict fixes are its substrate; closes the §7.6 gap | Needs FE-1392's captures to mean anything |
 | FE-1395 | Full affordance set + absence strip | Tap-ness as a *transport fact* — the same evidence-grade question FE-1390 adjudicated silently (§8.5 contradicted row); markdown-floor consumer of FE-1420's fix | Independent of the sweep line; can parallelize |
 | FE-1396 | Re-entry briefing, resume, restart durability | Makes many-sessions-one-document real (§9.1); briefing-never-evidence is a provenance invariant | Consumes FE-1391's archive |
 | FE-1387 | Second pack + **contract freeze** | The seam's hinge. Its own body: if the second target is the process-model plugin (the FE-1362/FE-1364 trajectory), this is demo-critical path, not cleanup | Gated on the target decision (18 Aug), then heavy authoring |
-| FE-1386 | Compaction vs. durable projection | Knowledge, not feature: either the projection survives compaction or the archive must absorb it; de-risks every long interview | Spike-shaped — but FE-1391's source-read pre-work (B2) may answer most of it for free; hold the live spike until that read lands |
+| FE-1386 | Compaction vs. durable projection | Flue 2.0.3 source settles the architecture: compaction appends a canonical record, rewrites only model context, and preserves public history plus persistent state | Still one behavioral upgrade pin: cross a real main-conversation compaction boundary and deep-compare complete messages/settlements, persistent state, and an FE-1391 archive pointer. Not folded into FE-1391 because exposing a genuine compaction trigger requires separate test-agent/model setup |
 | FE-1385 | Dev app gallery + diagnostic probe surface | The probe surface is machinery legibility in-product (this session's theme); gallery serves demo prep | Any time after FE-1392. Now also owns the `@flue/react` adoption (divergence risk 1) — FE-1420's markdown-floor fix rides it; probe surface = `observe()` events, per-agent folders arrive here |
 | FE-1384 | Generative corpus over the replay driver | The ten invariants are literally properties (§14.4); multiplies every hand-written test that exists by then | Best after FE-1392/93 exist to generate against |
 
@@ -275,23 +266,22 @@ building** — every slice with a paraphrase-grade dependency runs its Ledger-B 
 `_shared/` + effort records, INDEX coverage gated by `test/docs-index.test.ts`, arc-close
 consolidated into a triggerable protocol). FE-1420 splits: findings 1+3 (retry
 tolerance, abandoned-slot relief) are cheap and standalone; finding 2 (markdown floor) rides
-FE-1385's React adoption. FE-1401 items 3–4 (lens write-ups, ds-induct port — tooling-side,
-schedulable any time). **Unowned, needing homes** (remediation Ledger A; recommendations, not
-filings): the ask-protocol extraction (A1 → FE-1422, ahead of FE-1392) and the
-pre-remote gates (A10 → **FE-1423**, filed 2026-08-17 under FE-1357 with the four gates as its
-checklist, FE-1396 blocking; Lu ratified the gates as requirements); A5 folded into FE-1405 as planned
-(the spec settles the confidence picklist `firm | hedged | speculative` + a store refusal rule
-for numeric-parsing strings — store side still to implement, §5 row); A6/A7/A9 still await
-FE-1393's design moments, noted on the ledger.
+FE-1385's React adoption. FE-1422 landed the ask-protocol extraction on
+`ln/fe-1422-ask-protocol` before the B1/B2 read and FE-1391, as ordered. FE-1401 items 3–4
+(lens write-ups, ds-induct port — tooling-side, schedulable any time). A5 folded into FE-1405:
+the spec settles confidence as `firm | hedged | speculative` and proposes a store refusal rule
+for numeric-parsing strings, whose store side remains pending. A6/A7/A9 remain FE-1393 design
+inputs. The pre-remote gates are FE-1423, filed 2026-08-17 under FE-1357 with the four gates as
+its checklist and FE-1396 blocking; Lu ratified them as requirements.
 
 ### Strategic orderings
 
-**Uncertainty-first** — retire the biggest unknowns per unit work. FE-1405 and FE-1391 kill
-the two deepest ones (what captures actually contain; whether provenance can be verified at
-all), FE-1386's spike answers the one untested durability claim, and the rehearsals
-(FE-1402/03) stress the results before anything freezes. Cost: little demo-visible progress
-for two-plus weeks, and the sweep line (FE-1392) waits.
-`[1419/1420] → 1405 ∥ 1391 → 1386 → 1402/03 → 1392 → 1393 → gate-dependent rest`
+**Uncertainty-first** — retire the biggest unknowns per unit work. FE-1391's B1/B2 read has
+already retired the substrate half: provenance can use the public projection, and compaction
+does not prune it. FE-1405 still owns the deepest semantic unknown (what captures contain),
+while FE-1391 now performs implementation rather than discovery. FE-1386's residual pin can
+ride FE-1391 rather than interrupt the spine.
+`[1422/B1/B2 complete] → 1405 ∥ 1391(+1386 pin) → 1392 → 1393 → gate-dependent rest`
 
 **Convergence-first** — force the maps' designs to collide while both are cheap to change.
 Build the middle span (FE-1392) in lockstep with the interiors (FE-1405): envelope facts and
@@ -308,14 +298,13 @@ demo risks being a polished skeleton — the baseline already proved conversatio
 differentiate.
 `1394 ∥ 1395 → 1385 → 1392 → 1391 → 1405 → …`
 
-**Recommendation: convergence-first, opened uncertainty-first — survives the second
-evaluation, with an amended opener.** Run FE-1405 (Lu's HITL time — since closed, see the
-third evaluation above) in parallel with the
-agent-built spine, which now has one more step at its head: **ask-protocol extraction (FE-1422) →
-FE-1391's source-read pre-work (B1/B2, AFK-cheap) → FE-1391 → FE-1392**. The extraction goes
-first because FE-1392 would otherwise double the mechanism-in-binding debt in the same file
-(topology N1), and the source reads go early because they're the cheapest uncertainty
-retirement on the board and may cancel most of FE-1386. The convergence collision (envelope
+**Recommendation: convergence-first, opened uncertainty-first — survives the fourth
+evaluation, with FE-1405 closed and FE-1392 now dependency-clear.** The agent-built spine is
+**ask-protocol extraction (FE-1422, complete) → B1/B2 source read
+(complete) → FE-1391 (implemented locally) → FE-1392**. The source read removed the open-ended
+FE-1386 spike from the critical path; FE-1391 showed its residual real-compaction pin is not a
+narrow natural reader/archive test, so it remains a separate compatibility check. The
+convergence collision (envelope
 facts × payload interiors in a working capture path) still happens the moment FE-1405 and
 FE-1392 both exist; take the 18 Aug outputs directly into the FE-1387 target question. On that
 decision my recommendation to the team side is unchanged: the process-model plugin as second
@@ -326,14 +315,17 @@ gates as requirements, not recommendations) — and a demo-deployment conversati
 already underway, which promotes FE-1423 from "exists before the conversation" to
 schedule-relevant: its auth gate is the long pole, and the deploy-target choice feeds N5's
 storage-port question.
-`FE-1422 → [B1/B2 reads] → 1391 → 1392  ∥  (1405 ✓) → 18 Aug gate → 1387 decision → 1402/03 → plugin spec ∥ 1393 → 1394/95/1385`
+`FE-1422 ✓ → B1/B2 ✓ → 1391 ✓ → 1392  ∥  1405 ✓ → 18 Aug gate → 1387 decision → 1402/03 → plugin spec ∥ 1393 → 1394/95/1385`.
+The FE-1386 behavioral pin remains off the critical path.
 
 **Watch items**: gherkin wiring ahead of the freeze stays legal only while FE-1387 holds; the
 §14.5 wake-wart residue clause is back in the ledger (`wake-wart-write-paths`, FE-1392 owns its
 closure); the two Flue runtime semantics the binding relies on turned out to be documented in
 the agent-hooks guide (cheatsheet correction, 2026-08-17 — the audit had sampled only the
 agent-api reference), though the walking-skeleton pins stay and re-verify at any Flue upgrade,
-since the changelog shows migration-free breaking churn; FE-1387's
+since the changelog shows migration-free breaking churn; the same upgrade rule now covers the
+entry projection and compaction pin because 2.0.3 source, rather than a named public projection-
+preservation guarantee, settles the exact post-compaction shape; FE-1387's
 body still names FE-1364 as the deciding input — FE-1364 is resolved, so the dependency is
 effectively "the 18 Aug ratification of its consequences", and the ticket's framing should be
 updated when the gate passes; FE-1423's telemetry gate carries a dual charter (Lu, 2026-08-17) —

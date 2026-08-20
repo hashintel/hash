@@ -1,5 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import * as v from 'valibot';
+import {
+  resolveEvidenceQuotes,
+  type EvidenceQuote,
+  type EvidenceResolutionRefusal,
+  type MultipleEvidenceMatchesAdvisory,
+  type ArchivedSessionEntry,
+  type SessionLogArchive,
+} from './session-log.ts';
 
 export const ABSENCE_STATES = [
   'unknown-to-user',
@@ -60,6 +68,28 @@ interface CaptureProposalCommon {
   readonly supersedes?: string;
 }
 
+export type CaptureInputProposal = CaptureProposalCommon &
+  (
+    | {
+        readonly evidence: readonly EvidenceQuote[];
+        readonly epistemicStatus: 'explicit' | 'inferred' | 'tentative';
+      }
+    | {
+        readonly basis: {
+          readonly type: 'declared-default';
+          readonly description: string;
+        };
+        readonly epistemicStatus: 'defaulted';
+      }
+    | {
+        readonly basis: {
+          readonly type: 'documented-transformation';
+          readonly description: string;
+        };
+        readonly epistemicStatus: 'external-lookup';
+      }
+  );
+
 export type CaptureProposal = CaptureProposalCommon &
   (
     | {
@@ -99,11 +129,13 @@ export interface CaptureIssue {
   readonly canDefault: boolean;
 }
 
-export interface CaptureAdvisory {
-  readonly type: 'possibly-equivalent';
-  readonly reason: 'same-evidence' | 'near-identical-payload';
-  readonly captureIds: readonly [string, string];
-}
+export type CaptureAdvisory =
+  | {
+      readonly type: 'possibly-equivalent';
+      readonly reason: 'same-evidence' | 'near-identical-payload';
+      readonly captureIds: readonly [string, string];
+    }
+  | MultipleEvidenceMatchesAdvisory;
 
 export interface ResolutionRecord {
   readonly type: 'resolution';
@@ -138,11 +170,23 @@ export interface CaptureStoreSnapshot {
 
 export interface CaptureStore {
   read(): Promise<CaptureStoreSnapshot>;
-  execute(command: CaptureStoreCommand): Promise<CaptureStoreResult>;
+  execute(
+    command: CaptureStoreCommand,
+    context?: CaptureStoreEvidenceContext,
+  ): Promise<CaptureStoreResult>;
+  readArchivedEntries(pointer: EvidenceSpan['pointer']): Promise<readonly ArchivedSessionEntry[]>;
+}
+
+export interface CaptureStoreEvidenceContext {
+  readonly sessionId: string;
+}
+
+export interface CaptureStoreCommandEvidenceContext extends CaptureStoreEvidenceContext {
+  readonly archive: SessionLogArchive;
 }
 
 export type CaptureStoreCommand =
-  | { readonly type: 'apply-sweep'; readonly proposals: readonly CaptureProposal[] }
+  | { readonly type: 'apply-sweep'; readonly proposals: readonly CaptureInputProposal[] }
   | {
       readonly type: 'open-issue';
       readonly issueType: IssueType;
@@ -155,17 +199,22 @@ export type CaptureStoreCommand =
       readonly type: 'resolve-conflict';
       readonly issueId: string;
       readonly decision: string;
-      readonly evidence: readonly EvidenceSpan[];
+      readonly evidence: readonly EvidenceQuote[];
       readonly winnerCaptureId: string;
       readonly loserCaptureIds: readonly string[];
     }
   | {
       readonly type: 'retract-capture';
       readonly captureId: string;
-      readonly evidence: readonly EvidenceSpan[];
+      readonly evidence: readonly EvidenceQuote[];
     };
 
 export type CaptureStoreRefusal =
+  | EvidenceResolutionRefusal
+  | {
+      readonly code: 'evidence-session-required';
+      readonly message: string;
+    }
   | { readonly code: 'invalid-envelope'; readonly message: string }
   | { readonly code: 'unknown-capture'; readonly message: string; readonly captureId: string }
   | { readonly code: 'unknown-issue'; readonly message: string; readonly issueId: string }
@@ -197,7 +246,7 @@ export type CaptureStoreResult =
             readonly advisories: readonly CaptureAdvisory[];
           }
         | { readonly issueId: string }
-        | { readonly eventId: string };
+        | { readonly eventId: string; readonly advisories: readonly CaptureAdvisory[] };
     }
   | { readonly ok: false; readonly refusal: CaptureStoreRefusal };
 
@@ -222,6 +271,7 @@ const evidenceSpanSchema = v.strictObject({
   ),
   source: v.picklist(['user', 'user-affordance-payload']),
 });
+const evidenceQuoteSchema = v.strictObject({ excerpt: nonEmptyString });
 const contentSchema = v.union([
   v.strictObject({ value: v.unknown() }),
   v.strictObject({ absence: v.picklist(ABSENCE_STATES) }),
@@ -255,6 +305,15 @@ const externalCaptureFields = {
 };
 const captureProposalSchema = v.union([
   v.strictObject(userCaptureFields),
+  v.strictObject(defaultedCaptureFields),
+  v.strictObject(externalCaptureFields),
+]);
+const captureInputProposalSchema = v.union([
+  v.strictObject({
+    ...captureCommonFields,
+    evidence: v.pipe(v.array(evidenceQuoteSchema), v.minLength(1)),
+    epistemicStatus: v.picklist(['explicit', 'inferred', 'tentative']),
+  }),
   v.strictObject(defaultedCaptureFields),
   v.strictObject(externalCaptureFields),
 ]);
@@ -502,6 +561,29 @@ const validateProposal = (input: CaptureProposal): CaptureStoreRefusal | undefin
   return undefined;
 };
 
+const validateInputProposal = (input: CaptureInputProposal): CaptureStoreRefusal | undefined => {
+  const parsed = v.safeParse(captureInputProposalSchema, input);
+  if (!parsed.success) {
+    return {
+      code: 'invalid-envelope',
+      message:
+        'A capture must carry the provenance shape its epistemic status names, exactly one of value or absence, and non-empty verbatim evidence quotes.',
+    };
+  }
+  if ('value' in parsed.output.content && !isJsonValue(parsed.output.content.value)) {
+    return { code: 'invalid-envelope', message: 'A capture value must be JSON-compatible.' };
+  }
+  return undefined;
+};
+
+const requireEvidenceContext = (
+  context: CaptureStoreCommandEvidenceContext | undefined,
+): CaptureStoreCommandEvidenceContext | CaptureStoreRefusal =>
+  context ?? {
+    code: 'evidence-session-required',
+    message: 'Evidence-bearing commands require the harness-owned session context.',
+  };
+
 export const deriveCaptureStatus = (
   snapshot: CaptureStoreSnapshot,
   captureId: string,
@@ -706,10 +788,43 @@ const applySweep = (
 export const applyCaptureStoreCommand = (
   snapshot: CaptureStoreSnapshot,
   command: CaptureStoreCommand,
+  evidenceContext?: CaptureStoreCommandEvidenceContext,
 ): CaptureStoreResult => {
   switch (command.type) {
-    case 'apply-sweep':
-      return applySweep(snapshot, command.proposals);
+    case 'apply-sweep': {
+      const invalidProposal = command.proposals
+        .map(validateInputProposal)
+        .find((candidate) => candidate !== undefined);
+      if (invalidProposal) return refusal(invalidProposal);
+
+      const proposals: CaptureProposal[] = [];
+      const anchoringAdvisories: MultipleEvidenceMatchesAdvisory[] = [];
+      for (const proposal of command.proposals) {
+        if (!('evidence' in proposal)) {
+          proposals.push(structuredClone(proposal));
+          continue;
+        }
+        const context = requireEvidenceContext(evidenceContext);
+        if ('code' in context) return refusal(context);
+        const resolved = resolveEvidenceQuotes(
+          context.archive,
+          context.sessionId,
+          proposal.evidence,
+        );
+        if (!resolved.ok) return refusal(resolved.refusal);
+        proposals.push({ ...structuredClone(proposal), evidence: resolved.evidence });
+        anchoringAdvisories.push(...resolved.advisories);
+      }
+      const result = applySweep(snapshot, proposals);
+      if (!result.ok || !('appliedCaptureIds' in result.value)) return result;
+      return {
+        ...result,
+        value: {
+          ...result.value,
+          advisories: [...anchoringAdvisories, ...result.value.advisories],
+        },
+      };
+    }
 
     case 'open-issue': {
       const candidateIssue: CaptureIssue = {
@@ -790,7 +905,7 @@ export const applyCaptureStoreCommand = (
       return {
         ok: true,
         snapshot: { ...snapshot, events: [...snapshot.events, event] },
-        value: { eventId: event.id },
+        value: { eventId: event.id, advisories: [] },
       };
     }
 
@@ -803,6 +918,19 @@ export const applyCaptureStoreCommand = (
           issueId: command.issueId,
         });
       }
+      if (
+        !v.safeParse(v.pipe(v.array(evidenceQuoteSchema), v.minLength(1)), command.evidence).success
+      ) {
+        return refusal({
+          code: 'invalid-resolution',
+          message: 'A conflict resolution must cite non-empty verbatim user quotes.',
+          issueId: issue.id,
+        });
+      }
+      const context = requireEvidenceContext(evidenceContext);
+      if ('code' in context) return refusal(context);
+      const resolved = resolveEvidenceQuotes(context.archive, context.sessionId, command.evidence);
+      if (!resolved.ok) return refusal(resolved.refusal);
       const candidateRecord: ResolutionRecord = {
         type: 'resolution' as const,
         id: `event-${randomUUID()}`,
@@ -810,7 +938,7 @@ export const applyCaptureStoreCommand = (
         decision: command.decision,
         // Cloned, not aliased: the snapshot is the store's record, and a caller
         // that keeps its evidence array must not be able to edit it afterwards.
-        evidence: structuredClone(command.evidence),
+        evidence: structuredClone(resolved.evidence),
         winnerCaptureId: command.winnerCaptureId,
         loserCaptureIds: structuredClone(command.loserCaptureIds),
       };
@@ -819,7 +947,7 @@ export const applyCaptureStoreCommand = (
         issue.type !== 'conflicting' ||
         deriveIssueStatus(snapshot, issue.id) === 'closed' ||
         !v.safeParse(resolutionSchema, candidateRecord).success ||
-        !command.evidence.every((span) => span.source === 'user') ||
+        !resolved.evidence.every((span) => span.source === 'user') ||
         !denotesSameCaptureSet(issue.references, citedCaptureIds) ||
         citedCaptureIds.some((captureId) => deriveCaptureStatus(snapshot, captureId) !== 'active');
       if (invalid) {
@@ -833,7 +961,7 @@ export const applyCaptureStoreCommand = (
       return {
         ok: true,
         snapshot: { ...snapshot, events: [...snapshot.events, candidateRecord] },
-        value: { eventId: candidateRecord.id },
+        value: { eventId: candidateRecord.id, advisories: resolved.advisories },
       };
     }
 
@@ -855,18 +983,31 @@ export const applyCaptureStoreCommand = (
           blockingIssueIds,
         });
       }
+      if (
+        !v.safeParse(v.pipe(v.array(evidenceQuoteSchema), v.minLength(1)), command.evidence).success
+      ) {
+        return refusal({
+          code: 'invalid-retraction',
+          message: 'A retraction must cite non-empty verbatim user quotes.',
+          captureId: capture.id,
+        });
+      }
+      const context = requireEvidenceContext(evidenceContext);
+      if ('code' in context) return refusal(context);
+      const resolved = resolveEvidenceQuotes(context.archive, context.sessionId, command.evidence);
+      if (!resolved.ok) return refusal(resolved.refusal);
       const event: RetractionEvent = {
         type: 'retraction',
         id: `event-${randomUUID()}`,
         captureId: command.captureId,
         // Cloned for the same reason as a resolution's: a shallow array copy
         // still shares every span object with the caller.
-        evidence: structuredClone(command.evidence),
+        evidence: structuredClone(resolved.evidence),
       };
       if (
         deriveCaptureStatus(snapshot, capture.id) !== 'active' ||
         !v.safeParse(retractionSchema, event).success ||
-        !command.evidence.every((span) => span.source === 'user')
+        !resolved.evidence.every((span) => span.source === 'user')
       ) {
         return refusal({
           code: 'invalid-retraction',
@@ -878,7 +1019,7 @@ export const applyCaptureStoreCommand = (
       return {
         ok: true,
         snapshot: { ...snapshot, events: [...snapshot.events, event] },
-        value: { eventId: event.id },
+        value: { eventId: event.id, advisories: resolved.advisories },
       };
     }
 

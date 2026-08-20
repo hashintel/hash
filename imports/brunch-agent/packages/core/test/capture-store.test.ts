@@ -1,24 +1,67 @@
-import { describe, expect, test } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'bun:test';
 import {
-  applyCaptureStoreCommand,
-  captureDedupKey,
+  applyCaptureStoreCommand as applyCaptureStoreCommandWithArchive,
   createEmptyCaptureStoreSnapshot,
   deriveCaptureStatus,
   deriveIssueStatus,
   parseCaptureStoreSnapshot,
-  type CaptureProposal,
+  type CaptureInputProposal,
   type CaptureStoreCommand,
   type CaptureStoreSnapshot,
   type EvidenceSpan,
 } from '../src/capture-store.ts';
+import {
+  archiveSessionLogRead,
+  createEmptySessionLogArchive,
+  type EvidenceQuote,
+} from '../src/session-log.ts';
 
-const userEvidence = (excerpt: string, entry = 1): EvidenceSpan => ({
+const excerptsByEntry = new Map<number, Set<string>>();
+
+beforeEach(() => excerptsByEntry.clear());
+
+const userEvidence = (excerpt: string, entry = 1): EvidenceQuote => {
+  const excerpts = excerptsByEntry.get(entry) ?? new Set<string>();
+  excerpts.add(excerpt);
+  excerptsByEntry.set(entry, excerpts);
+  return { excerpt };
+};
+
+const storedEvidence = (excerpt: string, entry = 1): EvidenceSpan => ({
   excerpt,
   pointer: { sessionId: 'session-1', entryStart: entry, entryEnd: entry },
   source: 'user',
 });
 
-type UserCaptureProposal = Extract<CaptureProposal, { readonly evidence: readonly EvidenceSpan[] }>;
+const evidenceArchive = () => {
+  const maxEntry = Math.max(1, ...excerptsByEntry.keys());
+  return archiveSessionLogRead(createEmptySessionLogArchive(), {
+    sessionId: 'session-1',
+    offset: String(maxEntry),
+    entries: Array.from({ length: maxEntry }, (_, index) => {
+      const ordinal = index + 1;
+      const text = [...(excerptsByEntry.get(ordinal) ?? [`filler-${ordinal}`])].join('\n');
+      return {
+        substrateEntryId: `message-${ordinal}`,
+        kind: 'user' as const,
+        text,
+        materialized: { id: `message-${ordinal}`, text },
+      };
+    }),
+    settlements: [],
+  });
+};
+
+const applyCaptureStoreCommand = (snapshot: CaptureStoreSnapshot, command: CaptureStoreCommand) =>
+  applyCaptureStoreCommandWithArchive(snapshot, command, {
+    sessionId: 'session-1',
+    archive: evidenceArchive(),
+  });
+
+type UserCaptureProposal = Extract<
+  CaptureInputProposal,
+  { readonly evidence: readonly EvidenceQuote[] }
+>;
 
 const valueProposal = (
   value: string,
@@ -67,7 +110,7 @@ describe('capture-store contract', () => {
     expect(retry.snapshot.captures).toHaveLength(1);
     expect(retry.value).toEqual({
       appliedCaptureIds: [],
-      skippedDedupKeys: [captureDedupKey(proposal)],
+      skippedDedupKeys: [first.snapshot.captures[0]!.dedupKey],
       advisories: [],
     });
 
@@ -78,7 +121,7 @@ describe('capture-store contract', () => {
     });
     expect(revisedReading.snapshot.captures).toHaveLength(2);
     expect(revisedReading.snapshot.captures[1]).toMatchObject({
-      dedupKey: captureDedupKey(proposal),
+      dedupKey: first.snapshot.captures[0]!.dedupKey,
       epistemicStatus: 'tentative',
       supersedes: originalId,
     });
@@ -126,12 +169,15 @@ describe('capture-store contract', () => {
         valueProposal('  LAUNCH   = june ', userEvidence('June is the launch month.', 2)),
       ],
     });
-    if (!('advisories' in result.value)) throw new Error('A sweep did not return advisories.');
+    if (!('appliedCaptureIds' in result.value))
+      throw new Error('A sweep did not return advisories.');
 
-    expect(result.value.advisories.map((advisory) => advisory.reason).sort()).toEqual([
-      'near-identical-payload',
-      'same-evidence',
-    ]);
+    expect(
+      result.value.advisories
+        .filter((advisory) => advisory.type === 'possibly-equivalent')
+        .map((advisory) => advisory.reason)
+        .sort(),
+    ).toEqual(['near-identical-payload', 'same-evidence']);
     expect(result.snapshot.events).toEqual([]);
   });
 
@@ -146,7 +192,7 @@ describe('capture-store contract', () => {
           epistemicStatus: 'explicit',
           confidence: 'high',
           content: { value: 'value', absence: 'deferred' },
-        } as unknown as CaptureProposal,
+        } as unknown as CaptureInputProposal,
       ],
     });
 
@@ -164,7 +210,7 @@ describe('capture-store contract', () => {
       'declined',
       'deferred',
     ] as const;
-    const proposals: CaptureProposal[] = absences.map((absence, index) => ({
+    const proposals: CaptureInputProposal[] = absences.map((absence, index) => ({
       evidence: [userEvidence(absence, index + 1)],
       epistemicStatus: 'inferred',
       confidence: 'medium',
@@ -180,7 +226,7 @@ describe('capture-store contract', () => {
   });
 
   test('harness-invariant: 10 — explicit, inferred, and defaulted remain distinct', () => {
-    const proposals: CaptureProposal[] = [
+    const proposals: CaptureInputProposal[] = [
       valueProposal('value-0', userEvidence('evidence-0', 1)),
       valueProposal('value-1', userEvidence('evidence-1', 2), {
         epistemicStatus: 'inferred',
@@ -203,7 +249,7 @@ describe('capture-store contract', () => {
   });
 
   test('defaulted and external values cite their non-user provenance instead of a user span', () => {
-    const proposals: CaptureProposal[] = [
+    const proposals: CaptureInputProposal[] = [
       {
         basis: { type: 'declared-default', description: 'Default from the target contract.' },
         epistemicStatus: 'defaulted',
@@ -233,7 +279,7 @@ describe('capture-store contract', () => {
         {
           ...valueProposal('invalid default'),
           epistemicStatus: 'defaulted',
-        } as unknown as CaptureProposal,
+        } as unknown as CaptureInputProposal,
       ],
     });
     expect(userCitedDefault).toMatchObject({
@@ -316,7 +362,7 @@ describe('capture-store contract', () => {
           {
             ...userEvidence('I suggest June', 3),
             source: 'agent',
-          } as unknown as EvidenceSpan,
+          } as unknown as EvidenceQuote,
         ],
         winnerCaptureId: juneId!,
         loserCaptureIds: [marchId!],
@@ -331,7 +377,7 @@ describe('capture-store contract', () => {
           {
             ...userEvidence('June', 4),
             source: 'user-affordance-payload',
-          },
+          } as unknown as EvidenceQuote,
         ],
         winnerCaptureId: juneId!,
         loserCaptureIds: [marchId!],
@@ -759,10 +805,10 @@ describe('capture-store contract', () => {
     });
 
     // Everything the caller still holds, edited after the store accepted it.
-    (resolutionEvidence[0]!.pointer as { entryEnd: number }).entryEnd = 99;
+    (resolutionEvidence[0] as { excerpt: string }).excerpt = 'Mutated resolution quote';
     resolutionEvidence.push(userEvidence('Injected into the resolution', 5));
     losers.push('capture-injected');
-    (retractionEvidence[0]!.pointer as { entryEnd: number }).entryEnd = 99;
+    (retractionEvidence[0] as { excerpt: string }).excerpt = 'Mutated retraction quote';
     retractionEvidence.push(userEvidence('Injected into the retraction', 6));
 
     const resolution = retracted.snapshot.events.find((event) => event.type === 'resolution');
@@ -775,18 +821,15 @@ describe('capture-store contract', () => {
       loserCaptureIds: resolution.loserCaptureIds,
       retractionEvidence: retraction.evidence,
     }).toEqual({
-      resolutionEvidence: [userEvidence('Confirmed: June', 3)],
+      resolutionEvidence: [storedEvidence('Confirmed: June', 3)],
       loserCaptureIds: [marchId!],
-      retractionEvidence: [userEvidence('Forget June too', 4)],
+      retractionEvidence: [storedEvidence('Forget June too', 4)],
     });
     // And the snapshot the caller could still reach is one the parser accepts.
     expect(() => parseCaptureStoreSnapshot(retracted.snapshot)).not.toThrow();
   });
 
-  test('a reversed evidence range is refused at every surface that accepts evidence', () => {
-    // One rule, three doors. Before it moved into the shared span schema, a
-    // reversed range was refused in a proposal and accepted in a resolution
-    // record, a retraction, and a persisted snapshot.
+  test('a caller-supplied evidence range is refused at every evidence command surface', () => {
     const reversed: EvidenceSpan = {
       excerpt: 'Reversed range',
       pointer: { sessionId: 'session-1', entryStart: 5, entryEnd: 4 },
@@ -815,7 +858,10 @@ describe('capture-store contract', () => {
     for (const [surface, command, code] of [
       [
         'apply-sweep',
-        { type: 'apply-sweep', proposals: [valueProposal('reversed', reversed)] },
+        {
+          type: 'apply-sweep',
+          proposals: [valueProposal('reversed', reversed as unknown as EvidenceQuote)],
+        },
         'invalid-envelope',
       ],
       [
@@ -824,7 +870,7 @@ describe('capture-store contract', () => {
           type: 'resolve-conflict',
           issueId: issue.value.issueId,
           decision: 'June wins',
-          evidence: [reversed],
+          evidence: [reversed as unknown as EvidenceQuote],
           winnerCaptureId: juneId!,
           loserCaptureIds: [marchId!],
         },
@@ -832,7 +878,11 @@ describe('capture-store contract', () => {
       ],
       [
         'retract-capture',
-        { type: 'retract-capture', captureId: septemberId!, evidence: [reversed] },
+        {
+          type: 'retract-capture',
+          captureId: septemberId!,
+          evidence: [reversed as unknown as EvidenceQuote],
+        },
         'invalid-retraction',
       ],
     ] as const) {
@@ -981,7 +1031,7 @@ describe('capture-store contract', () => {
           {
             ...userEvidence('Forget the June date', 2),
             source: 'user-affordance-payload',
-          },
+          } as unknown as EvidenceQuote,
         ],
       }),
     ).toMatchObject({ ok: false, refusal: { code: 'invalid-retraction' } });

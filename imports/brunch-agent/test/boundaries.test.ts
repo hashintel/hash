@@ -131,6 +131,7 @@ describe('dependency direction (spec §4, §12.2)', () => {
           const pkg = packageOf(specifier);
           expect(isSubstrate(pkg)).toBe(false);
           if (pkg.startsWith('@brunch/')) expect(pkg).toBe(CORE);
+          expect(specifier).not.toBe(`${CORE}/storage`);
         }
       }
     }
@@ -375,10 +376,10 @@ describe('recorded Flue constraints hold by construction (spec §10)', () => {
   });
 });
 
-describe('the testing subpath stays off production paths (spec §12.2)', () => {
-  test('core exposes testing as a subpath export', () => {
+describe('core auxiliary subpaths stay in their assigned lanes (spec §12.2)', () => {
+  test('core exposes binding storage support and testing as explicit subpaths', () => {
     const core = PACKAGES.find((pkg) => pkg.name === CORE)!;
-    expect(Object.keys(core.manifest.exports ?? {})).toEqual(['.', './testing']);
+    expect(Object.keys(core.manifest.exports ?? {})).toEqual(['.', './storage', './testing']);
   });
 
   test('no package source imports core/testing', () => {
@@ -387,6 +388,14 @@ describe('the testing subpath stays off production paths (spec §12.2)', () => {
     for (const pkg of PACKAGES) {
       for (const file of sourceFiles(pkg)) {
         expect(importedPackages(file)).not.toContain(`${CORE}/testing`);
+      }
+    }
+  });
+
+  test('only bindings import core/storage', () => {
+    for (const pkg of PACKAGES.filter((candidate) => !candidate.dir.startsWith('binding-'))) {
+      for (const file of sourceFiles(pkg)) {
+        expect(importedPackages(file)).not.toContain(`${CORE}/storage`);
       }
     }
   });
