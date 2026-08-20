@@ -20,6 +20,7 @@ export type SegmentedControlItem = (
     }
 ) & {
   value: string;
+  disabled?: boolean;
   /** Shown on hover/focus of the segment. Also serves as the accessible label of icon-only segments. */
   tooltip?: string;
   tooltipOptions?: Omit<
@@ -61,9 +62,11 @@ export const SegmentedControl = ({
 
   // The checked segment's hidden radio is the group's single tab stop, so it
   // carries the external id, `inputRef` and `autoFocus`. Falls back to the
-  // first segment when nothing is selected.
+  // first enabled segment when nothing is selected.
   const selectedIndex = items.findIndex((item) => item.value === value);
-  const primaryIndex = selectedIndex === -1 ? 0 : selectedIndex;
+  const firstEnabledIndex = items.findIndex((item) => item.disabled !== true);
+  const primaryIndex =
+    selectedIndex === -1 ? Math.max(0, firstEnabledIndex) : selectedIndex;
   const primaryValue = items[primaryIndex]?.value;
 
   const classes = styles({ size, layout });
@@ -103,6 +106,7 @@ export const SegmentedControl = ({
         const segment = (
           <SegmentGroup.Item
             value={item.value}
+            disabled={item.disabled}
             className={cx(classes.item, isIconOnly && classes.iconOnlyItem)}
           >
             {"iconName" in item && item.iconName !== undefined && (
