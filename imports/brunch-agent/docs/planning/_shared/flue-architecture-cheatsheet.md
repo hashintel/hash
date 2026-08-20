@@ -8,6 +8,10 @@ boundaries in the wrong place. Companion to the narrower usage audit
 ([`flue-patterns-audit-2026-08-17.md`](../legibility-sweep/flue-patterns-audit-2026-08-17.md)); same caveat —
 WebFetch summarizes, so unquoted API details are paraphrase-grade.
 
+The FE-1391 B1/B2 gate later checked the installed 2.0.3 source, exported types, and
+package-shipped docs directly. Its corrections below are source-grade and link to the
+[source-read record](../legibility-sweep/flue-entry-projection-source-read-2026-08-18.md).
+
 Link form: every page has a markdown mirror at `<url>/index.md`.
 
 ---
@@ -83,8 +87,8 @@ that map directly onto roadmap items:
   delegate gets a fresh frame, its own (cheaper) model, and returns only its final message —
   capture extraction never pollutes the interview conversation. Strong candidate shape for
   FE-1392's sweep executor; do not hand-roll a second model client inside the binding.
-- *FE-1386 (compaction spike)*: `useModel`'s `compaction` options are the knobs under test;
-  read them before designing the spike.
+- *FE-1386 (compaction pin)*: the source read retired the discovery spike; `useModel`'s
+  `compaction` options are the knobs for the one residual behavioral boundary-crossing test.
 
 ## 3. Capability surface
 
@@ -136,9 +140,13 @@ do-not-rebuild warnings, one large:
 **Affordances**
 
 - Routing: `createAgentRouter(agent)`; mount path ≠ identity (documented doctrine);
-  HTTP surface = POST `/:id` (202, fire-and-forget) · GET `/:id` (snapshot;
-  `?view=updates&offset=…` for SSE/long-poll) · `/:id/abort` · attachments. `dispatch()` for
-  server-side delivery with no mount. Auth is app middleware in `app.ts`.
+  HTTP surface = POST `/:id` (202, fire-and-forget) · GET `/:id` (`history` returns one
+  unpaged materialized-message snapshot; `?view=updates&offset=…` pages 100 durable batches
+  and supports SSE/long-poll) · `/:id/abort` · attachments. The framework cannot discover the
+  host-owned mount, so server-side clients need a full conversation URL; custom `fetch` plus
+  router `.fetch` is the candidate in-process composition and still needs an FE-1391 lifecycle
+  pin. Update chunks are SDK/UI protocol, not the supported app consumption surface.
+  `dispatch()` delivers server-side without a mount. Auth is app middleware in `app.ts`.
 - **React: `useFlueAgent()`** — binds one conversation URL to React state: durable-history
   reconstruction, live streaming, optimistic sends, `status`/`historyReady`. Messages are
   parts-based: `text`, `reasoning`, **`dynamic-tool`** (validated tool output on `.output`),
@@ -179,20 +187,24 @@ the channels guide's signal shape — convergent with canon.
   `usePersistentState` writes commit atomically with their unit of work.
 - Not guaranteed: sandbox files, external side effects, local promises (persist the
   `DispatchReceipt`, re-attach with `read(receipt)`), arbitrary code checkpointing.
-- Compaction: context-overflow compacts and retries the turn; the durability page gives **no
-  detail on history retention through compaction** — our FE-1386 question is real and the
-  docs don't answer it.
+- Compaction: context-overflow compacts and retries the turn. The guide alone does not state the
+  projection consequence, but the installed 2.0.3 source settles it: compaction appends a
+  canonical record, model-context construction substitutes summary plus kept suffix, and the
+  public history projector still walks every message on the active path. Persistent-state
+  reduction is independent. FE-1386 therefore narrows to a behavioral upgrade pin.
 
 **For brunch-lite.** Canon explicitly endorses the storage-port split: captures are business
 data, Flue's store is the conversation record — the boundary we drew is the boundary the
 database guide draws. Two implications:
 
-- *FE-1391 (archive)*: the "durable entry projection" we plan to archive **is Flue's
-  canonical stream**, read over the documented GET surface. Archive-on-read should *consume*
-  that stream, never shadow-record entries a second time from inside hooks. The spec's line
+- *FE-1391 (archive)*: the durable entry projection we plan to archive is Flue's **public
+  materialized-message projection**, folded from the canonical stream and read with the SDK's
+  `history()` surface. The raw canonical record schema is intentionally not public.
+  Archive-on-read should consume that projection, never shadow-record entries a second time
+  from inside hooks. The spec's line
   ("the substrate's conversation store is the live transport copy, never the provenance
   record") is about *retention authority*, not about re-capturing — the archive copies out of
-  the canonical stream on read, into the target-document's storage.
+  the public projection on read, into the target-document's storage.
 - The capture store should adopt Flue's own persistence manners: a `migrate()`-style
   idempotent, format-versioned provisioning step is the documented precedent for the schema
   widening FE-1391 needs (session-log archive slot).
@@ -292,8 +304,11 @@ between the second and third:
    skills' `activate_skill` progressive disclosure is the documented mechanism with the right
    economics.
 4. **The archive shadow-recording the stream.** FE-1391 re-capturing entries inside hooks
-   instead of archiving from the canonical GET surface — two copies of the conversation, one
-   drifting.
+   instead of archiving the public materialized `history()` projection — two copies of the
+   conversation, one drifting. The public projection is not the private canonical record
+  schema; stable message IDs or archive ordinals must supply pointer identity.
+   Repeated snapshots may carry a still-materializing message under the same ID, so the archive
+   also needs identity-keyed merge/version semantics rather than snapshot append.
 5. **Hand-rolled accounting/oracles in experiments.** FE-1404/FE-1407 re-counting tokens or
    substring-matching histories when `observe()`, `onEvent`, and judge harnesses exist.
 

@@ -46,17 +46,17 @@ export const OPEN_GAPS: readonly OpenGap[] = [
     id: 'compaction-vs-durable-history',
     spec: '§9.7, §14.5',
     ticket: 'FE-1386',
-    gap: 'No session has been driven across a compaction boundary, so whether Flue compaction leaves the durable entry projection intact is unverified — and evidence pointers bind to that projection.',
+    gap: 'Flue 2.0.3 source shows compaction appends to the canonical stream and rewrites model context only, but no session has behaviorally pinned that the public message projection and persistent state survive a real compaction boundary.',
     proof:
-      'A test under packages/binding-flue/test driving a session past compaction and asserting every capture’s evidence pointer still resolves through the session-log archive.',
+      'A test under packages/binding-flue/test driving one genuine compaction, deep-comparing complete public messages and settlements aside from offset/incarnation, verifying persistent state, and asserting an FE-1391 archive pointer still resolves.',
   },
   {
-    id: 'history-projection-paging',
-    spec: '§14.5',
-    ticket: 'FE-1391',
-    gap: 'The durable-history projection is read over self-HTTP; paging past ~1000 entries and binding base-URL discovery are both untested.',
+    id: 'history-refresh-before-sweep',
+    spec: '§8.2, §14.5',
+    ticket: 'FE-1392',
+    gap: 'FE-1391 proves the public reader and archive against the real mounted router, but no settlement caller yet refreshes that archive immediately before applying quote-bearing sweep output.',
     proof:
-      'The binding’s history reader covering a paged projection, tested under packages/binding-flue/test.',
+      'FE-1392’s real lifecycle test must read history through the binding immediately before store application and prove that a quote absent from the prior archive resolves from the refreshed projection without in-hook transport or reentrancy failure.',
   },
   {
     id: 'wake-wart-write-paths',

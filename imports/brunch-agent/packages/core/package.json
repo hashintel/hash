@@ -6,6 +6,7 @@
   "description": "The harness: mechanism and orchestration. Its public export surface is the plugin SDK.",
   "exports": {
     ".": "./src/index.ts",
+    "./storage": "./src/storage.ts",
     "./testing": "./src/testing/index.ts"
   },
   "dependencies": {

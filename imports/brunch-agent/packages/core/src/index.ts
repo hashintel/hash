@@ -40,11 +40,14 @@ export {
   type CaptureContent,
   type CaptureAdvisory,
   type CaptureEnvelope,
+  type CaptureInputProposal,
   type CaptureIssue,
   type CaptureProposal,
   type CaptureStatus,
   type CaptureStore,
   type CaptureStoreCommand,
+  type CaptureStoreCommandEvidenceContext,
+  type CaptureStoreEvidenceContext,
   type CaptureStoreEvent,
   type CaptureStoreRefusal,
   type CaptureStoreResult,
@@ -56,3 +59,12 @@ export {
   type IssueType,
   type JsonValue,
 } from './capture-store.ts';
+export {
+  type ArchivedSessionEntry,
+  type ArchivedSessionEntryVersion,
+  type EvidenceQuote,
+  type EvidenceResolutionRefusal,
+  type EvidenceResolutionResult,
+  type MultipleEvidenceMatchesAdvisory,
+  type SessionEntryKind,
+} from './session-log.ts';

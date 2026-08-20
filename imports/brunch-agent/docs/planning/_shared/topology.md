@@ -13,26 +13,29 @@ next.
 packages/core                      LANE 3 (harness; substrate-free)
 ├─ capture-store.ts   ✓  the storage port's contract + pure command surface; owns envelope
 │                        invariants. Never: substrate imports, IO, per-substrate shapes.
+├─ session-log.ts     ✓  substrate-neutral archive/version/anchoring rules; archive ordinals
+│                        are evidence identity, substrate ids remain provenance only.
+├─ storage.ts         ✓  binding-only storage support subpath; not part of the plugin SDK.
 ├─ affordance.ts      ✓  envelope schemas (free-text form)
 ├─ naming.ts          ✓  identity/tool-name policy (ADR-0001)
 ├─ plugin.ts          ✓  plugin surface (thin today; grows ops at FE-1393)
 ├─ testing/           ✓  test utilities subpath (mirrors Flue's own store-contract pattern)
-└─ [MISSING]          ✗  the ask/suspension PROTOCOL — mechanism currently in binding-flue.
-                         This is the §14.2 second-binding failure in spirit. See N1.
+└─ ask-protocol.ts    ✓  substrate-free ask/suspension mechanism: affordance minting, guard,
+                         reply-binding signal, and instruction fragments (FE-1422). See N1.
 
 packages/binding-flue              LANE 2 (translate harness ↔ Flue dialect)
-├─ capabilities.ts    ✓  the 8-capability declaration — the binding's contract-of-record
-├─ index.ts           ~  useElicitation: the HOOK WIRING is correctly here (useTool,
-│                        usePersistentState updater, useAgentStart, useDataWriter,
-│                        terminate:true, ctx.append) — but interleaved with portable
-│                        mechanism that isn't:
-│                          ✗ affordance id scheme        (`affordance_${toolCallId}` policy)
-│                          ✗ one-live-affordance guard + refusal text
-│                          ✗ reply-binding signal payload (type/tagName/body/attributes)
-│                          ✗ elicitation instruction text
+├─ capabilities.ts    ✓  capability declaration — the binding's contract-of-record
+├─ history-reader.ts  ✓  public SDK `history()` mapping over a host-injected URL resolver/fetch;
+│                        archive-on-read; no private canonical/update-chunk vocabulary.
+├─ archive-capability.ts ✓ binding-private write capability; callers holding `CaptureStore`
+│                        cannot inject pre-classified archive entries.
+├─ index.ts           ✓  useElicitation is Flue HOOK WIRING (useTool, usePersistentState
+│                        updater, useAgentStart/useDelivery, useDataWriter, terminate:true,
+│                        ctx.append) and calls core's ask protocol (FE-1422).
 │                        Never: elicitation semantics, store rules, prompt content.
-└─ local-capture-store.ts ✓ storage-port implementation (file, tmp+rename, per-path queue).
-                         One per deploy target per binding. Never: business rules (all in core).
+└─ local-capture-store.ts ✓ versioned storage-port implementation (capture store + session-log
+                         archive, legacy provisioning, parse-on-read, tmp+rename, per-path
+                         queue). One per deploy target per binding. Never: business rules.
 
 packages/plugin-gherkin            LANE 3 (target policy)
 └─ index.ts           ✓  {name, targetDomain} — honest thinness (smallest-honest bar).
@@ -54,14 +57,13 @@ docs/planning/**/baseline/run.ts   EXPERIMENT (JS-API workflow pattern, independ
 
 ## Specification — where what's next lands
 
-- **N1 (the one structural repair).** `packages/core/src/ask-protocol.ts`: pure functions —
-  mint affordance from (question, callId), the one-live guard as a pure decision, the
-  reply-binding signal payload builder, the instruction fragments. `useElicitation` becomes
-  wiring: hooks in, protocol calls out. The second-binding test then has content: a
-  `binding-pi` reuses the protocol module wholesale. Do this **before FE-1392**, which
-  otherwise lands sweep mechanism in the binding the same way (recommend: its trigger/judgment
-  logic goes to `core/src/sweep-protocol.ts` from day one; the binding contributes only
-  `useAgentFinish`/`useSubagent`/durable-tool wiring).
+- **N1 (the structural repair, discharged by FE-1422).**
+  `packages/core/src/ask-protocol.ts` now owns pure affordance minting, the one-live guard,
+  reply-binding signal payload, and instruction fragments; `useElicitation` is hooks-in,
+  protocol-calls-out wiring. The remaining future constraint still applies: FE-1392's
+  trigger/judgment logic goes to `core/src/sweep-protocol.ts` from day one, while the binding
+  contributes only `useAgentFinish`/`useSubagent`/durable-tool wiring. A future `binding-pi`
+  should reuse both protocol modules wholesale.
 - **N2 (packs and cards).** Plugin-owned content lives in plugin packages, exported as
   `defineSkill`-compatible definitions; the app's agent module *registers* what the plugin
   exports. Never per-agent `skills/` dirs holding plugin content in the app — that puts lane-3
@@ -76,14 +78,16 @@ docs/planning/**/baseline/run.ts   EXPERIMENT (JS-API workflow pattern, independ
 - **N4 (experiments).** Experiment runners (FE-1404, future condition reruns) stay beside their
   planning docs (`docs/planning/**/`), JS-API pattern, `observe()` accounting — never in
   `packages/` (they are instruments, not product) and never a bespoke daemon.
-- **N5 (storage-port implementations).** One per (binding × deploy target), always in the
-  binding package, always implementing core's `CaptureStore` + parse-on-read. The Cloudflare
-  case (per-object SQLite) is a new implementation behind the same port — the file-path
-  assumption never leaks above the binding.
+- **N5 (storage-port implementations; local target discharged by FE-1391).** One per (binding ×
+  deploy target), always in the binding package, always implementing core's `CaptureStore` +
+  parse-on-read. The local implementation provisions a versioned target-document record around
+  both capture and archive state. The Cloudflare case (per-object SQLite) is a new implementation
+  behind the same port — the file-path assumption never leaks above the binding.
 - **N6 (plugin-assurance, when chartered).** `packages/plugin-assurance`, same shape as
   gherkin; its existence is FE-1387's contract-freeze instrument, not a feature.
 
-Ratification note: N1 is the only item that *changes* existing code; N2–N6 constrain future
-placement. If ratified, N1–N6 become an ADR and the boundary gates in `test/boundaries.test.ts`
-should learn the enforceable parts (N2's "no plugin content in app skills dirs" and N5's
-"port implementations only in bindings" are both mechanically checkable).
+Ratification note: N1 was the only item that changed existing code and landed in FE-1422;
+N2–N6 constrain future placement. ADR-0002 records the ratification. The boundary gates in
+`test/boundaries.test.ts` should learn the enforceable parts as their packages arrive (N2's
+"no plugin content in app skills dirs" and N5's "port implementations only in bindings" are
+both mechanically checkable).

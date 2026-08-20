@@ -10,6 +10,7 @@
   "dependencies": {
     "@brunch/core": "workspace:*",
     "@flue/runtime": "^2.0.3",
+    "@flue/sdk": "^2.0.3",
     "valibot": "^1.4.2"
   }
 }

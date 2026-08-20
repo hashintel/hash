@@ -76,7 +76,7 @@ export const CAPABILITIES: readonly Capability[] = [
     name: 'Read the durable entry projection with provenance-discriminating entry kinds',
     provision: 'absorbed',
     mechanism:
-      'no in-process API: public history projection over self-HTTP; `purpose` discriminates provenance',
+      'public materialized history snapshot over a host-injected conversation URL/transport; `role`/`purpose` discriminate provenance; no raw entry ranges',
   },
   {
     id: 9,

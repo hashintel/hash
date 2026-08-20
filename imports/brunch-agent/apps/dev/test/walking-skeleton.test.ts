@@ -24,6 +24,8 @@ test('the dev app suspends for free-text replies without instruction wakes', asy
   const resultLine = stdout.split('\n').find((line) => line.startsWith('WALKING_SKELETON_RESULT '));
   expect(resultLine, stdout).toBeDefined();
   expect(JSON.parse(resultLine!.slice('WALKING_SKELETON_RESULT '.length))).toEqual({
+    affordanceReplyClassified: true,
+    archivePointerResolved: true,
     boundReplyReachedModel: true,
     durableOutput: true,
     markdownFloor: true,

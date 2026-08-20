@@ -1,28 +1,65 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { CaptureProposal, EvidenceSpan } from '@brunch/core';
-import { createLocalCaptureStore } from '../src/local-capture-store.ts';
+import type {
+  CaptureInputProposal,
+  CaptureStore,
+  CaptureStoreCommand,
+  EvidenceQuote,
+} from '@brunch/core';
+import { archiveThroughBinding } from '../src/archive-capability.ts';
+import { createLocalCaptureStore as createLocalCaptureStoreAdapter } from '../src/local-capture-store.ts';
 
 const directories: string[] = [];
 
 afterEach(async () => {
   await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true })));
+  excerptsByEntry.clear();
 });
 
-const userEvidence = (excerpt: string, entry: number): EvidenceSpan => ({
-  excerpt,
-  pointer: { sessionId: 'session-1', entryStart: entry, entryEnd: entry },
-  source: 'user',
-});
+const excerptsByEntry = new Map<number, Set<string>>();
 
-const proposal = (value: string, entry: number): CaptureProposal => ({
+const userEvidence = (excerpt: string, entry: number): EvidenceQuote => {
+  const excerpts = excerptsByEntry.get(entry) ?? new Set<string>();
+  excerpts.add(excerpt);
+  excerptsByEntry.set(entry, excerpts);
+  return { excerpt };
+};
+
+const proposal = (value: string, entry: number): CaptureInputProposal => ({
   evidence: [userEvidence(value, entry)],
   epistemicStatus: 'explicit',
   confidence: 'high',
   content: { value },
 });
+
+const createLocalCaptureStore = (path: string): CaptureStore => {
+  const store = createLocalCaptureStoreAdapter(path);
+  return {
+    read: () => store.read(),
+    readArchivedEntries: (pointer) => store.readArchivedEntries(pointer),
+    async execute(command: CaptureStoreCommand) {
+      const maxEntry = Math.max(1, ...excerptsByEntry.keys());
+      await archiveThroughBinding(store, {
+        sessionId: 'session-1',
+        offset: String(maxEntry),
+        entries: Array.from({ length: maxEntry }, (_, index) => {
+          const ordinal = index + 1;
+          const text = [...(excerptsByEntry.get(ordinal) ?? [`filler-${ordinal}`])].join('\n');
+          return {
+            substrateEntryId: `message-${ordinal}`,
+            kind: 'user' as const,
+            text,
+            materialized: { id: `message-${ordinal}`, text },
+          };
+        }),
+        settlements: [],
+      });
+      return store.execute(command, { sessionId: 'session-1' });
+    },
+  };
+};
 
 const storePath = async (): Promise<string> => {
   const directory = await mkdtemp(join(tmpdir(), 'brunch-captures-'));
@@ -65,7 +102,7 @@ describe('local capture store', () => {
         {
           ...proposal('invalid', 4),
           content: { value: 'invalid', absence: 'deferred' },
-        } as unknown as CaptureProposal,
+        } as unknown as CaptureInputProposal,
       ],
     });
     expect(refused).toMatchObject({ ok: false, refusal: { code: 'invalid-envelope' } });
@@ -77,7 +114,7 @@ describe('local capture store', () => {
     ]);
   });
 
-  test('a command refused by the conflict guard leaves the file byte-identical and readable', async () => {
+  test('a command refused by the conflict guard leaves capture state unchanged and readable', async () => {
     const path = await storePath();
     const store = createLocalCaptureStore(path);
     await store.execute({
@@ -95,7 +132,9 @@ describe('local capture store', () => {
     });
     expect(opened.ok).toBe(true);
 
-    const before = await readFile(path, 'utf8');
+    const before = JSON.parse(await readFile(path, 'utf8')) as {
+      captureStore: unknown;
+    };
     for (const command of [
       {
         type: 'apply-sweep',
@@ -110,9 +149,12 @@ describe('local capture store', () => {
       });
     }
 
-    // Byte-identical, not merely equivalent: a rewrite of the same content would
-    // pass an equality check while still having put the file at risk.
-    expect(await readFile(path, 'utf8')).toBe(before);
+    // Reading the later cited quotes legitimately grows the co-located archive,
+    // but neither refused command may change the capture-store half.
+    const after = JSON.parse(await readFile(path, 'utf8')) as {
+      captureStore: unknown;
+    };
+    expect(after.captureStore).toEqual(before.captureStore);
     // And still readable through the parser, which is what makes it a snapshot
     // rather than surviving bytes.
     expect((await createLocalCaptureStore(path).read()).captures.map((c) => c.content)).toEqual([
@@ -139,9 +181,66 @@ describe('local capture store', () => {
     // The caller edits everything it still holds, after the store accepted and
     // wrote it. If the snapshot aliased any of it, the result the caller was
     // handed and the bytes on disk would now disagree.
-    (evidence[0]!.pointer as { entryEnd: number }).entryEnd = 99;
+    (evidence[0] as { excerpt: string }).excerpt = 'Mutated after the write';
     evidence.push(userEvidence('Injected after the write', 3));
 
     expect(await createLocalCaptureStore(path).read()).toEqual(retracted.snapshot);
+  });
+
+  test('migrates the legacy capture-only shape on the next successful archive write', async () => {
+    const path = await storePath();
+    const legacy = { captures: [], issues: [], events: [] };
+    await writeFile(path, `${JSON.stringify(legacy)}\n`);
+
+    const store = createLocalCaptureStoreAdapter(path);
+    expect(await store.read()).toEqual(legacy);
+    await archiveThroughBinding(store, {
+      sessionId: 'session-1',
+      offset: '0',
+      entries: [],
+      settlements: [],
+    });
+
+    expect(JSON.parse(await readFile(path, 'utf8'))).toEqual({
+      formatVersion: 1,
+      captureStore: legacy,
+      sessionLogArchive: {
+        sessions: [
+          {
+            sessionId: 'session-1',
+            entries: [],
+            reads: [{ offset: '0', entries: [], settlements: [] }],
+          },
+        ],
+      },
+    });
+  });
+
+  test('fails loudly when the versioned archive cannot be parsed', async () => {
+    const path = await storePath();
+    await writeFile(
+      path,
+      JSON.stringify({
+        formatVersion: 1,
+        captureStore: { captures: [], issues: [], events: [] },
+        sessionLogArchive: {
+          sessions: [
+            {
+              sessionId: 'session-1',
+              entries: [
+                {
+                  ordinal: 2,
+                  substrateEntryId: 'message-2',
+                  versions: [],
+                },
+              ],
+              reads: [],
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(createLocalCaptureStoreAdapter(path).read()).rejects.toThrow();
   });
 });
