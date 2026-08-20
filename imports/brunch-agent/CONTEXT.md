@@ -71,7 +71,7 @@ _Avoid_: digest (brunch's form)
 ### Envelope & packs
 
 **Intermediate representation (IR)**:
-The elicited description a target-document accumulates: the set of active captures, read through the plugin's declared payload type system. Not a second store — every consolidated view (entity graph, net, completion table) is a read-time projection over active captures, and the rendered artifact is one projection of the IR, never the IR itself. Defining a plugin's IR means defining its payload type system.
+The elicited conceptual model a target-document accumulates — the middle of three registers (ADR-0003): typed **assertions** (active captures) are folded by a pure, plugin-declared fold into the **model** (the IR proper — node instances with slot states), which **projections** consume without rereading the transcript. Not a second store — the model is a derivation, recomputable from active captures at any time, never a persistence surface; the rendered artifact is one projection of the model, never the model itself. Defining a plugin's IR means writing its contract — model schema, proposal catalog, fold table, demand table (`plugin-contract-spec.md`, provisional). An earlier definition read the capture set itself as the IR; ADR-0003 amends it.
 _Avoid_: knowledge store, domain model (as a stored unit), staging area
 
 **Capture envelope**:
@@ -81,7 +81,11 @@ The harness-defined, domain-free wrapper around an opaque plugin payload: harnes
 A capture's provenance link: a **quoted excerpt** (primary, the model-facing citation currency) plus a **pointer** (session id + entry range, harness-derived — entry identity is harness-side vocabulary only). Anchors only on true user and user-affordance-payload entries.
 
 **Epistemic status**:
-`explicit | inferred | tentative | defaulted | external-lookup` — how a capture's content relates to what the user actually said. Distinct from confidence; excluded from capture identity. One status per capture, coupled structurally to the provenance shape (see Basis) — per-field status is unrepresentable by design (FE-1390; FE-1405's central input).
+`explicit | inferred | tentative | defaulted | external-lookup` — how a capture's content relates to what the user actually said. Distinct from confidence; excluded from capture identity. One status per capture, coupled structurally to the provenance shape (see Basis) — per-field status is unrepresentable by design (FE-1390; FE-1405's central input, consumed without amendment: the structure that wanted per-field status lives below the status, in proposal interiors).
+
+**Grade**:
+How narrow a slot value's interpretation space is — "fewer readings remain." Per-slot orderings read by the fold, promotion, and demands ("this anchor demands the `range` rung"). Never claim strength: that is confidence (`firm | hedged | speculative`, envelope-side, orthogonal by design). Two sources: **form grades** from the standard-interiors library's ladders (e.g. verbal < point < range < quantiles), **composition grades** plugin-declared (e.g. Gherkin's given-only < given-when < full-gwt). Coined by the FE-1405 arc (`plugin-contract-spec.md`, provisional).
+_Avoid_: confidence (for narrowing), precision (unqualified)
 
 **Basis**:
 The provenance carrier for non-user-grounded captures: `declared-default` or `documented-transformation`, required exactly when epistemic status is `defaulted` / `external-lookup` and structurally exclusive with evidence spans (FE-1390 coined the field for what spec §5/C5 states in prose).

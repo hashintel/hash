@@ -7,7 +7,7 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 
 ## Inbox (awaiting settlement)
 
-*(empty — the arc-close sweep keeps it that way)*
+*(empty — items settle out via the arc-close inbox sweep)*
 
 ## Reference (settled sources)
 
@@ -20,6 +20,7 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 | [voice-implementation-recommendation-pplx](reference/voice-implementation-recommendation-pplx.md) | settled | 2026-08-11 | Perplexity research: voice-adapter options (ElevenLabs/OpenAI/Gemini/xAI) | FE-1359 (superseded in part by its findings) |
 | [yannis-dora-lu-transcript](reference/yannis-dora-lu-transcript-2026-08-11.md) | settled | 2026-08-11 | Meeting transcript: no in-house interviewing practice; SDCPN-as-hypothesis aired; baseline-control and priming ideas | expert-meeting-findings note; FE-1360, FE-1361 |
 | [amp-analysis-flue-vs-tilde](reference/amp-analysis-flue-vs-tilde.md) | settled | 2026-08-14 | Amp thread export: comparative assessment of the Flue and tilde agent frameworks (development and deployment stories) and its import for this project; verdict: keep Flue, Tilde is a control plane not a runtime | reconciled into flue-architecture-cheatsheet (2026-08-17); source of the pre-remote-exposure gates |
+| [2026-08 SDCPNs for cyber-physical systems](reference/2026-08%20SDCPNs%20for%20cyber-physical%20systems.md) | settled | 2026-08 (settled 2026-08-18) | Unattributed draft blog post (image placeholders, typos): five-level SDCPN explainer applied to gas supply, truck fleet, semiconductor fab; arrived during the FE-1405 arc. Read skeptically: good pedagogy, promotional register — concedes its formal guarantees don't apply once continuous/stochastic features are used (open research problem), models carry heavy kernel/guard logic that strains the "formal and inspectable" claim, and Petrinaut's integrator limitation is admitted | Register-3 background (projection-target expressivity) only; not elicitation design input; no consumer yet |
 
 ## planning/elicitation-kernel (effort complete 2026-08-10; settled 2026-08-12)
 
@@ -46,7 +47,7 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 | [research/elicitation-strategy-literature](planning/process-model-elicitation/research/elicitation-strategy-literature.md) | active | gisted in FE-1360 resolution | Literature synthesis, 9 sections, verification-labeled |
 | [research/re-interviewing-literature-worker-report](planning/process-model-elicitation/research/re-interviewing-literature-worker-report.md) | active | noted on FE-1361 | Verbatim instruments: 34-mistake taxonomy, question typologies, LLM-interviewer results |
 | [baseline/](planning/process-model-elicitation/baseline/) | active | gisted in FE-1361 resolution | Baseline-control experiment: protocol, situation pack, v0 prompt, runner, both transcripts, scored read-out |
-| [ir-design](planning/process-model-elicitation/ir-design.md) | active | gisted in FE-1364 resolution | The IR design: Layer A (ratified on worked examples, FE-1397) + the CPS plugin's ten-kind payload (Layer B) |
+| [ir-design](planning/process-model-elicitation/ir-design.md) | active | gisted in FE-1364 resolution | The IR design: Layer A (ratified on worked examples, FE-1397; definition sentence amended by ADR-0003) + the CPS plugin's ten-kind payload (Layer B) |
 | [ir-worked-examples](planning/process-model-elicitation/ir-worked-examples.md) | active | gisted in FE-1397 | Layer-A validation across Gherkin/CPS/BPMN + assurance: property verdicts, amendments, sublimation findings |
 | [ir-design-plain](planning/process-model-elicitation/ir-design-plain.md) | active | strain findings on FE-1401 | Plain-prose rendering of the IR design; the rendering pass doubled as review (7 strain findings, one load-bearing) |
 | [notes/research-patterns-audit](planning/process-model-elicitation/notes/research-patterns-audit.md) | active | FE-1401 / card inputs on FE-1403 | Plain-language audit of ~30 research imports in 7 families, evidence-graded, with an 8-point strain appendix |
@@ -54,6 +55,7 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 | [capture-store-plain](planning/process-model-elicitation/capture-store-plain.md) | active | strain findings on FE-1401 | STE-leaning rendering of the capture-store semantics (FE-1390/FE-1389) with a load-bearing not-guaranteed section; 8-point strain report incl. two command-reachable unclosable-conflict paths (confirms FE-1419 commits 7/8) and the FE-1405 status-arity answer |
 | [notes/deep-read-fe-1389](planning/process-model-elicitation/notes/deep-read-fe-1389.md) | active | FE-1401 / findings in FE-1420 | Deep-read of the walking skeleton: builder's account, spec-discharge table (issues 10/13 capabilities discharged; markdown floor contradicted in the UI), 12 findings; source of PR #10's backfilled record |
 | [notes/deep-read-fe-1390](planning/process-model-elicitation/notes/deep-read-fe-1390.md) | active | FE-1401 / probes on FE-1419 | Deep-read of the capture store: spec-discharge table, write-time tiering assessment (penciled item 7), the FE-1405 status-arity answer, and live-probed confirmation of FE-1419's capture-store claims plus one new aliasing hole; source of PR #11's backfilled record |
+| [plugin-contract-spec](planning/process-model-elicitation/plugin-contract-spec.md) | active | FE-1431 (spec issue); decided on FE-1405 | Provisional spec: a plugin is two schemas and two tables (model schema, proposal catalog, fold table, demand table) over the three-register IR (ADR-0003) — harness-machinery typology, standard-interiors library, grade-as-narrowing, derived fold rules; strains 4–7 and envelope pressure #2 held open with owners |
 
 ## planning/_shared (cross-effort living documents — never dated, never finished)
 
@@ -81,6 +83,7 @@ of what was decided in August, and the ADR is how a later change is recorded.
 | --- | --- | --- | --- |
 | [0001-brunch-is-the-product-name](adr/0001-brunch-is-the-product-name.md) | accepted | FE-1388 | `brunch` settles as the product name and may appear in structure: `brunch_*` tools, `@brunch/*` scope, `brunch-gherkin-elicitor` agent identity. Supersedes spec §12.3's `bl_*` provisional; the ban on function-naming (`elicit_*`) survives |
 | [0002-topology-and-placement-rules](adr/0002-topology-and-placement-rules.md) | accepted | FE-1401; FE-1422 is its one code change | The three-lane topology and placement rules N1–N6 ratified (topology.md stays the living reference); N2/N5 to become boundary gates |
+| [0003-three-register-ir](adr/0003-three-register-ir.md) | accepted | FE-1405 | The IR is the elicited conceptual model, derived by a pure fold — three registers (assertions / model / projections); write-time-only semantics; promotion never refusal; amends ir-design.md Layer A's definition sentence; full FE-1397-style pass is a stated condition |
 
 ## External canonical documents
 

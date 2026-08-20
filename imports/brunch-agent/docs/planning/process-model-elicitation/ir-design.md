@@ -10,11 +10,14 @@ worked-examples exercise are marked *(amended FE-1397)*; the exercise itself is
 
 ## Layer A — what "the IR" is, architecturally
 
-**Definition.** The intermediate representation of a target-document is the set of active
-captures, read through the plugin's declared payload type system. There is no second store:
-every consolidated view — an entity graph, a net, a completion table — is a read-time
-projection over active captures. The rendered artifact is one projection of the IR, never the
-IR itself.
+**Definition.** *(amended by [ADR-0003](../../adr/0003-three-register-ir.md), 2026-08-18 —
+the IR proper is the elicited conceptual model, derived by a pure fold over active captures;
+the sentence below describes register 1 of three, and "no second store" survives because
+register 2 is a derivation, never a persistence surface.)* The intermediate representation of
+a target-document is the set of active captures, read through the plugin's declared payload
+type system. There is no second store: every consolidated view — an entity graph, a net, a
+completion table — is a read-time projection over active captures. The rendered artifact is
+one projection of the IR, never the IR itself.
 
 The harness half is already fixed by the kernel spec: each capture is an envelope (id, evidence
 spans, epistemic status, confidence, value-xor-absence, alternatives, supersession) around an
