@@ -12,10 +12,10 @@ smallest honest recommendation. Do not paste the generated graph here or mirror 
 
 ## Current sequencing recommendation
 
-As of **2026-08-20**, land the current review range through FE-1449. That closes the structured-ask
-and durable-settlement proofs (FE-1449 and FE-1392), settles the FE-1405 payload-interior design,
-lands both import-gating spike verdicts (FE-1434 and FE-1435), and satisfies FE-1437's review-stack
-state gate. Then perform the FE-1437 authority cutover before opening new implementation work in
+As of **2026-08-20**, land the current review range through FE-1464. That closes the structured-ask
+and durable-settlement proofs (FE-1449 and FE-1392), the final review remediation (FE-1464), settles
+the FE-1405 payload-interior design, lands both import-gating spike verdicts (FE-1434 and FE-1435),
+and satisfies FE-1437's review-stack state gate. Then perform the FE-1437 authority cutover before opening new implementation work in
 this standalone repository. After the cutover, advance FE-1438 (client-tool round-trip) beside
 FE-1393 (plugin SDK and first projection); FE-1439 (private durable sessions) can proceed in
 parallel. The integration stream joins at FE-1440, while the harness stream reaches its
@@ -30,8 +30,9 @@ legend:
   -[state-gate]-> condition in the world, not an issue edge
 
 nodes:
-  review-stack [now]               # land the current range through FE-1449
+  review-stack [now]               # land the current range through FE-1464
   FE-1449 [in-review-range]        # structured ask: real-panel convergence proof
+  FE-1464 [in-review-range]        # final review remediation before repository handoff
   FE-1392 [in-review-range]        # settlement: durable-capture convergence proof
   FE-1405 [in-review-range]        # payload-interior decision already deposited
   FE-1434 [in-review-range]        # client-tool suspension spike

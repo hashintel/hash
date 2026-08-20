@@ -72,7 +72,7 @@ export type TransportInspectionEvent =
   | {
       readonly type: 'part-emitted';
       readonly requestId: string;
-      readonly kind: 'text' | 'reasoning' | 'tool-input' | 'tool-output';
+      readonly kind: 'text' | 'reasoning' | 'tool-input' | 'tool-output' | 'tool-output-error';
       readonly partId?: string;
       readonly toolCallId?: string;
     }
@@ -335,6 +335,13 @@ const toUiChunk = (event: HarnessReplyEvent): UIMessageChunk => {
         output: event.output,
         ...(event.execution === 'server' ? { providerExecuted: true } : {}),
       };
+    case 'tool-output-error':
+      return {
+        type: 'tool-output-error',
+        toolCallId: event.toolCallId,
+        errorText: event.errorText,
+        ...(event.execution === 'server' ? { providerExecuted: true } : {}),
+      };
     case 'turn-finish':
       return { type: 'finish-step' };
     case 'response-finish':
@@ -375,6 +382,13 @@ const inspectionFor = (
         type: 'part-emitted',
         requestId,
         kind: 'tool-output',
+        toolCallId: event.toolCallId,
+      };
+    case 'tool-output-error':
+      return {
+        type: 'part-emitted',
+        requestId,
+        kind: 'tool-output-error',
         toolCallId: event.toolCallId,
       };
     case 'turn-finish':

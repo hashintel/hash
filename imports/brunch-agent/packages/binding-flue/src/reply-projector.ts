@@ -112,6 +112,14 @@ export const createFlueReplyProjector = (
             execution: 'server',
           });
           return;
+        case 'tool-output-error':
+          options.emit({
+            type: 'tool-output-error',
+            toolCallId: chunk.toolCallId,
+            errorText: chunk.errorText,
+            execution: 'server',
+          });
+          return;
         case 'message-completed':
           if (chunk.messageId === messageId) finishTurn();
           return;
@@ -119,7 +127,6 @@ export const createFlueReplyProjector = (
         case 'message-appended':
         case 'message-metadata':
         case 'data-part':
-        case 'tool-output-error':
         case 'stream-checkpoint':
           return;
       }

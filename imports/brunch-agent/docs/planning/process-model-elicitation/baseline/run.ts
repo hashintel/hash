@@ -124,7 +124,10 @@ async function callClaude(
       max_tokens: tokenBudget,
       ...(options.allowThinking ? {} : { thinking: { type: 'disabled' as const } }),
       ...(system ? { system } : {}),
-      messages,
+      // `truncated` is checkpoint-only recovery metadata. The provider accepts
+      // just role/content message objects, so keep persistence concerns outside
+      // the request boundary.
+      messages: messages.map(({ role, content }) => ({ role, content })),
     });
     calls.push({
       agent,
@@ -354,8 +357,11 @@ if (mode === '--continue-final') {
   final.content += continued.text;
   if (continued.truncated) {
     console.error('⚠ still truncated after this continuation — run --continue-final again');
-  } else if (stopReason.endsWith('-incomplete')) {
-    stopReason = stopReason.slice(0, -'-incomplete'.length);
+  } else {
+    delete final.truncated;
+    if (stopReason.endsWith('-incomplete')) {
+      stopReason = stopReason.slice(0, -'-incomplete'.length);
+    }
   }
   await writeArtifacts();
   process.exit(0);

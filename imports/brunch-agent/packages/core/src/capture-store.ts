@@ -572,6 +572,76 @@ export const captureDedupKey = (proposal: CaptureProposal): string => {
   });
 };
 
+/**
+ * The model's quote-only proposal identity before the harness anchors it. It
+ * deliberately has no pointer or source: those are assigned by the harness
+ * after the proposal crosses this boundary.
+ */
+const captureOccurrenceKey = (
+  proposal: CaptureInputProposal | CaptureEnvelope,
+): string | undefined => {
+  if (!('evidence' in proposal)) return undefined;
+  const content: JsonValue =
+    'absence' in proposal.content
+      ? { absence: proposal.content.absence }
+      : { value: proposal.content.value };
+  return canonicalString({
+    evidence: proposal.evidence.map((evidence) => evidence.excerpt).sort(),
+    content,
+  });
+};
+
+/**
+ * Sweep retries identify evidence by its harness-owned pointer and cited text,
+ * not its current source classification. A binding may later recognize that the
+ * same archived entry is an affordance payload; that is a provenance update,
+ * not another user occurrence. `dedupKey` remains the persisted content key so
+ * existing target documents retain their validated shape.
+ */
+const captureRetryKey = (proposal: CaptureProposal): string => {
+  const provenance: JsonValue =
+    'evidence' in proposal
+      ? {
+          evidence: [...proposal.evidence]
+            .map((span) =>
+              canonicalString({
+                excerpt: span.excerpt,
+                pointer: span.pointer,
+              } as unknown as JsonValue),
+            )
+            .sort(),
+        }
+      : { basis: proposal.basis as unknown as JsonValue };
+  const content: JsonValue =
+    'absence' in proposal.content
+      ? { absence: proposal.content.absence }
+      : { value: proposal.content.value };
+  return canonicalString({
+    ...provenance,
+    content,
+  });
+};
+
+const priorEvidenceForOccurrence = (
+  snapshot: CaptureStoreSnapshot,
+  sessionId: string,
+  proposal: CaptureInputProposal,
+  occurrence: number,
+): readonly EvidenceSpan[] | undefined => {
+  const occurrenceKey = captureOccurrenceKey(proposal);
+  if (occurrenceKey === undefined) return undefined;
+  return snapshot.captures
+    .filter(
+      (
+        capture,
+      ): capture is Extract<CaptureEnvelope, { readonly evidence: readonly EvidenceSpan[] }> =>
+        'evidence' in capture &&
+        capture.evidence.every((evidence) => evidence.pointer.sessionId === sessionId) &&
+        captureOccurrenceKey(capture) === occurrenceKey,
+    )
+    .at(occurrence)?.evidence;
+};
+
 const refusal = (value: CaptureStoreRefusal): CaptureStoreResult => ({ ok: false, refusal: value });
 
 const validateProposal = (input: CaptureProposal): CaptureStoreRefusal | undefined => {
@@ -718,19 +788,21 @@ const applySweep = (
     if (invalid) return refusal(invalid);
 
     const dedupKey = captureDedupKey(proposal);
+    const retryKey = captureRetryKey(proposal);
     const exactRetry = snapshot.captures.some(
       (capture) =>
-        capture.dedupKey === dedupKey &&
+        captureRetryKey(capture) === retryKey &&
         capture.supersedes === proposal.supersedes &&
         capture.epistemicStatus === proposal.epistemicStatus &&
         capture.confidence === proposal.confidence &&
         capture.alternativeGroup === proposal.alternativeGroup,
     );
     const duplicateWithoutSupersession =
-      !proposal.supersedes && snapshot.captures.some((capture) => capture.dedupKey === dedupKey);
+      !proposal.supersedes &&
+      snapshot.captures.some((capture) => captureRetryKey(capture) === retryKey);
     const duplicateInBatch = accepted.some(
       (candidate) =>
-        captureDedupKey(candidate) === dedupKey && candidate.supersedes === proposal.supersedes,
+        captureRetryKey(candidate) === retryKey && candidate.supersedes === proposal.supersedes,
     );
     if (exactRetry || duplicateWithoutSupersession || duplicateInBatch) {
       skippedDedupKeys.push(dedupKey);
@@ -830,6 +902,7 @@ export const applyCaptureStoreCommand = (
 
       const proposals: CaptureProposal[] = [];
       const anchoringAdvisories: MultipleEvidenceMatchesAdvisory[] = [];
+      const occurrencesByKey = new Map<string, number>();
       for (const proposal of command.proposals) {
         if (!('evidence' in proposal)) {
           proposals.push(structuredClone(proposal));
@@ -837,6 +910,24 @@ export const applyCaptureStoreCommand = (
         }
         const context = requireEvidenceContext(evidenceContext);
         if ('code' in context) return refusal(context);
+        const occurrenceKey = captureOccurrenceKey(proposal);
+        if (occurrenceKey !== undefined) {
+          const occurrence = occurrencesByKey.get(occurrenceKey) ?? 0;
+          occurrencesByKey.set(occurrenceKey, occurrence + 1);
+          const priorEvidence = priorEvidenceForOccurrence(
+            snapshot,
+            context.sessionId,
+            proposal,
+            occurrence,
+          );
+          if (priorEvidence !== undefined) {
+            proposals.push({
+              ...structuredClone(proposal),
+              evidence: structuredClone(priorEvidence),
+            });
+            continue;
+          }
+        }
         const resolved = resolveEvidenceQuotes(
           context.archive,
           context.sessionId,

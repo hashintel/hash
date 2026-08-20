@@ -37,6 +37,12 @@ export type HarnessReplyEvent =
       readonly output: unknown;
       readonly execution: 'client' | 'server';
     }
+  | {
+      readonly type: 'tool-output-error';
+      readonly toolCallId: string;
+      readonly errorText: string;
+      readonly execution: 'client' | 'server';
+    }
   | { readonly type: 'turn-finish'; readonly turnId: string }
   | {
       readonly type: 'response-finish';

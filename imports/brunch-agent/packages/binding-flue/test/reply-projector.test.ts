@@ -146,3 +146,67 @@ test('ignores replayed chunks belonging to a different submission', () => {
 
   expect(emitted).toEqual([]);
 });
+
+test('projects a failed server tool through the substrate-neutral terminal outcome', () => {
+  const emitted: HarnessReplyEvent[] = [];
+  const projector = createFlueReplyProjector({
+    submissionId: 'submission-tool-failed',
+    emit: (event) => emitted.push(event),
+  });
+
+  projector.accept({
+    type: 'message-started',
+    conversationId: 'conversation-tool-failed',
+    messageId: 'message-tool-failed',
+    submissionId: 'submission-tool-failed',
+    turnId: 'turn-tool-failed',
+    position: position(1, 0),
+  });
+  projector.accept({
+    type: 'tool-input',
+    conversationId: 'conversation-tool-failed',
+    messageId: 'message-tool-failed',
+    toolCallId: 'tool-failed',
+    toolName: 'bl_sweep',
+    input: {},
+    position: position(1, 1),
+  });
+  projector.accept({
+    type: 'tool-output-error',
+    conversationId: 'conversation-tool-failed',
+    toolCallId: 'tool-failed',
+    errorText: 'Sweep persistence failed.',
+    position: position(1, 2),
+  });
+  projector.accept({
+    type: 'submission-settled',
+    conversationId: 'conversation-tool-failed',
+    submissionId: 'submission-tool-failed',
+    outcome: 'failed',
+    position: position(1, 3),
+  });
+
+  expect(emitted).toEqual([
+    { type: 'response-start', messageId: 'message-tool-failed' },
+    { type: 'turn-start', turnId: 'turn-tool-failed' },
+    {
+      type: 'tool-input',
+      toolCallId: 'tool-failed',
+      toolName: 'bl_sweep',
+      input: {},
+      execution: 'server',
+    },
+    {
+      type: 'tool-output-error',
+      toolCallId: 'tool-failed',
+      errorText: 'Sweep persistence failed.',
+      execution: 'server',
+    },
+    { type: 'turn-finish', turnId: 'turn-tool-failed' },
+    {
+      type: 'response-finish',
+      terminalState: 'failed',
+      finishReason: 'error',
+    },
+  ]);
+});

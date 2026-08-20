@@ -14,14 +14,11 @@ export const capturedUserEntryIdsForSession = async (
   for (const capture of snapshot.captures) {
     if (!('evidence' in capture)) continue;
     for (const evidence of capture.evidence) {
-      if (
-        evidence.source !== 'user-affordance-payload' ||
-        evidence.pointer.sessionId !== sessionId
-      ) {
-        continue;
-      }
+      if (evidence.pointer.sessionId !== sessionId) continue;
       for (const entry of await store.readArchivedEntries(evidence.pointer)) {
-        entryIds.add(entry.substrateEntryId);
+        if (entry.versions.at(-1)?.kind === 'user-affordance-payload') {
+          entryIds.add(entry.substrateEntryId);
+        }
       }
     }
   }

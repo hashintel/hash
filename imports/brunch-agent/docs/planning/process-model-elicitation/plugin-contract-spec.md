@@ -239,7 +239,8 @@ define these ladders; **composition grades** are plugin-declared (Gherkin's give
 given-when < full-gwt is about slot composition, not one statement's form). The fold engine
 reads grade off the interior or the fold output, never off the proposal type name — formal
 verification's `formalization` is a *different proposal type* folding into the *same slot* at
-higher grade. Beyond formal-parsed lies checking, which is validation, not grade.
+higher grade. Grade orders promotion only: they never choose a winner among active values.
+Beyond formal-parsed lies checking, which is validation, not grade.
 
 ### Slot states and fold rules
 
@@ -250,8 +251,7 @@ SlotState: unaddressed | stated(value, grade, supportingCaptureIds)
          | diverged(prescribed, practiced)     # only if the plugin declares a variant dimension
 
 _foldRuleDerivation:   # foldTable holds overrides only; both example fold tables are empty
-  - cardinality one + gradeOrder   -> unique-at-highest-grade
-  - cardinality one, ungraded      -> unique (second active non-alternative => conflicted)
+  - cardinality one                 -> unique (grade order, if declared, gates promotion only)
   - cardinality set                -> set-union (member removal = supersede that member)
   - cardinality ordered, positions stated in-utterance -> ordered-append
   - order stated pairwise          -> graph-union, order derived at read
@@ -261,10 +261,13 @@ _foldRuleDerivation:   # foldTable holds overrides only; both example fold table
   # space; the rule enum is its image.
 ```
 
-Two active, un-superseded, non-alternative proposals for a unique slot fold to `conflicted`
-with a typed issue — never a silent pick. Regime divergence is per-slot; a regime-split
-*existence* (the off-shift wash that's prescribed-possible, practiced-never) is the degenerate
-node-level case.
+One active value occupies a unique slot. Competing active, un-superseded values — at equal or
+different grades — fold to `conflicted` with a typed issue, never a silent pick. Values that
+are genuine alternatives must be declared as such and handled by the plugin's explicit
+alternative rule; they do not authorize the fold to choose one. A higher-grade value replaces
+a lower-grade value only through an explicit supersession, after which the lower capture is no
+longer active. Regime divergence is per-slot; a regime-split *existence* (the off-shift wash
+that's prescribed-possible, practiced-never) is the degenerate node-level case.
 
 ### Demand, scope, and firing conditions
 
