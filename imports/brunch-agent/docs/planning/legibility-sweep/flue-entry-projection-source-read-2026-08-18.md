@@ -279,7 +279,7 @@ do not state that consequence as a named compatibility guarantee. That is why a 
 still has value at Flue upgrades.
 
 The settled elicitation-kernel spec remains the historical decision record, so its §14.5 text
-still names the pre-read `>1000` and compaction unknowns. Current truth lives in CONVERGENCE,
+still names the pre-read `>1000` and compaction unknowns. Current truth lives in SPEC-LEDGER,
 the remediation ledger, and `test/open-gaps.ts`. Capability 8's metadata is reconciled in this
 change; FE-1391 still owns its implementation.
 

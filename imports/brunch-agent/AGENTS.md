@@ -32,11 +32,11 @@ Work arcs close by re-rendering their central artifact into another register and
 
 ### Documentation protocol
 
-Documents arrive in `docs/inbox/`, settle to `docs/reference/` or their effort's `docs/planning/<effort>/`; cross-effort living docs in `docs/planning/_shared/`; `docs/INDEX.md` covers everything (gated by `test/docs-index.test.ts`); issue IDs glossed at first mention in living docs. See `docs/agents/documentation.md`.
+Documents arrive in `docs/inbox/`, settle to `docs/reference/` or their effort's `docs/planning/<effort>/`; cross-effort control docs live in `docs/planning/_shared/`; `docs/INDEX.md` covers everything (gated by `test/docs-index.test.ts`); issue IDs glossed at first mention in living docs. See `docs/agents/documentation.md`.
 
 ### Arc close
 
-One triggerable checklist for closing a work arc (also the `/arc-close` skill): inbox sweep, INDEX pass, CONVERGENCE re-evaluation, registry audit, tense repair. See `docs/agents/arc-close.md`.
+Before submitting a branch that closes a work arc, load and run the `arc-close` skill. It always reconciles inbox/INDEX, the Linear orphan registry, and touched issue references; it conditionally updates the spec ledger and project coordination map. See `docs/agents/arc-close.md`.
 
 ### Flue routing
 

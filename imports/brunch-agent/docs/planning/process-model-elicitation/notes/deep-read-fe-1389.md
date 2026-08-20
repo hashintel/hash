@@ -2,7 +2,7 @@
 
 Deep-read of commit 81e9ce0 (branch `ln/fe-1389-walking-skeleton`, PR #10), produced during the
 remediation sweep (FE-1401) as one of three outputs: this builder's account + spec-discharge
-note, the commit-message backfill (applied to the branch), and rows for the convergence trace.
+note, the commit-message backfill (applied to the branch), and rows for the specification ledger.
 Agent-authored under instruction; reviewed before landing.
 
 Files read (all paths as of 81e9ce0):

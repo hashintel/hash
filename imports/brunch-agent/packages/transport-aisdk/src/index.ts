@@ -5,11 +5,18 @@
  * substrate-backed `runTurn`; the transport never imports a binding or Flue.
  */
 
-import { type HarnessReplyEvent } from '@brunch/core';
+import {
+  AskSubmission,
+  toolName,
+  type AskReplyAdmission,
+  type HarnessReplyEvent,
+} from '@brunch/core';
 import { createUIMessageStream, createUIMessageStreamResponse, type UIMessageChunk } from 'ai';
 import * as v from 'valibot';
 
-export { type HarnessReplyEvent } from '@brunch/core';
+export { type AskReplyAdmission, type HarnessReplyEvent } from '@brunch/core';
+
+const ASK_TOOL_NAME = toolName('ask');
 
 export interface HarnessTurnInput {
   readonly conversationId: string;
@@ -24,6 +31,25 @@ export type HarnessTurnRunner = (
   input: HarnessTurnInput,
   emit: (event: HarnessReplyEvent) => void,
 ) => Promise<void>;
+
+export interface HarnessAskReplyInput {
+  readonly conversationId: string;
+  readonly idempotencyKey: string;
+  readonly ask: {
+    readonly toolCallId: string;
+    readonly answer: string;
+  };
+}
+
+/**
+ * The application's ask-return seam. `admit` consults durable pending-ask
+ * state before anything is dispatched; `run` projects the admitted answer
+ * into the harness's user-affordance reply path and streams the resumed turn.
+ */
+export interface AskReplyHandler {
+  admit(input: HarnessAskReplyInput): Promise<AskReplyAdmission>;
+  run(input: HarnessAskReplyInput, emit: (event: HarnessReplyEvent) => void): Promise<void>;
+}
 
 export type TransportInspectionEvent =
   | {
@@ -60,10 +86,34 @@ export type TransportInspectionEvent =
       readonly requestId: string;
       readonly terminalState: 'completed' | 'failed' | 'aborted';
       readonly finishReason: 'stop' | 'tool-calls' | 'error';
+    }
+  | {
+      readonly type: 'ask-await';
+      readonly requestId: string;
+      readonly toolCallId: string;
+    }
+  | {
+      readonly type: 'ask-reply-admitted';
+      readonly requestId: string;
+      readonly conversationId: string;
+      readonly toolCallId: string;
+    }
+  | {
+      readonly type: 'ask-reply-refused';
+      readonly requestId: string;
+      readonly conversationId: string;
+      readonly toolCallId: string;
+      readonly reason: 'no-pending-ask' | 'different-ask-pending';
     };
 
 export interface AiSdkChatHandlerOptions {
   readonly runTurn: HarnessTurnRunner;
+  /**
+   * Ask-return support. Absent, every tool-result follow-up stays refused
+   * (the FE-1436 negative contract); present, exactly the pending ask's
+   * correlated submission resumes the conversation.
+   */
+  readonly askReply?: AskReplyHandler;
   /** Exact browser origins allowed to call this endpoint across origins. */
   readonly allowedOrigins?: readonly string[];
   /** Opt-in diagnostic sink. Events are metadata only and never re-enter the conversation. */
@@ -73,6 +123,10 @@ export interface AiSdkChatHandlerOptions {
 const panelPartSchema = v.looseObject({
   type: v.optional(v.unknown()),
   text: v.optional(v.unknown()),
+  toolName: v.optional(v.unknown()),
+  toolCallId: v.optional(v.unknown()),
+  state: v.optional(v.unknown()),
+  output: v.optional(v.unknown()),
 });
 
 const panelMessageSchema = v.looseObject({
@@ -101,6 +155,11 @@ type TransportRequestRefusal =
       readonly reason: 'tool-result-follow-up-not-supported';
       readonly status: 422;
       readonly error: 'tool_result_follow_up_not_supported';
+    }
+  | {
+      readonly reason: 'invalid-ask-submission';
+      readonly status: 400;
+      readonly error: 'invalid_ask_submission';
     };
 
 const transportRequestRefusals = {
@@ -114,7 +173,17 @@ const transportRequestRefusals = {
     status: 422,
     error: 'tool_result_follow_up_not_supported',
   },
+  invalidAskSubmission: {
+    reason: 'invalid-ask-submission',
+    status: 400,
+    error: 'invalid_ask_submission',
+  },
 } as const satisfies Record<string, TransportRequestRefusal>;
+
+const askReplyRefusalErrors = {
+  'no-pending-ask': 'ask_not_pending',
+  'different-ask-pending': 'ask_mismatch',
+} as const;
 
 const jsonResponse = (body: unknown, status: number, headers?: Headers): Response =>
   Response.json(body, { status, headers });
@@ -149,22 +218,70 @@ const userTextFrom = (message: PanelMessage): string | undefined => {
   return text.length > 0 ? text : undefined;
 };
 
-const parseInitialTurn = (
-  body: PanelPostBody,
-):
-  | { readonly ok: true; readonly value: HarnessTurnInput }
-  | { readonly ok: false; readonly refusal: TransportRequestRefusal } => {
-  // The automatic tool-result follow-up is a machine-input protocol owned by
-  // the later external-tool slice. Refuse it here instead of mistaking the
-  // diagnostics decorator's synthetic user-role message for user evidence.
-  if (body.messageId !== undefined) {
-    return { ok: false, refusal: transportRequestRefusals.toolResultFollowUpNotSupported };
+type ParsedTransportRequest =
+  | { readonly kind: 'initial'; readonly value: HarnessTurnInput }
+  | { readonly kind: 'ask-reply'; readonly value: HarnessAskReplyInput }
+  | { readonly kind: 'refused'; readonly refusal: TransportRequestRefusal };
+
+/**
+ * Classify one tool-result follow-up POST. A human answer submitted through
+ * the registered ask component travels tool-output-shaped but is not a
+ * machine tool result: exactly one submitted `brunch_ask` output on the
+ * referenced assistant message is a candidate reply. Everything else —
+ * Petrinaut mutation outputs, the synthetic diagnostics message — remains
+ * the machine-input protocol this transport still refuses (FE-1438 owns it).
+ */
+const parseAskReplyTurn = (body: PanelPostBody): ParsedTransportRequest => {
+  if (
+    typeof body.id !== 'string' ||
+    body.id.length === 0 ||
+    body.trigger !== 'submit-message' ||
+    !Array.isArray(body.messages)
+  ) {
+    return { kind: 'refused', refusal: transportRequestRefusals.invalidChatRequest };
   }
+
+  const message = body.messages.find(
+    (candidate) => candidate.id === body.messageId && candidate.role === 'assistant',
+  );
+  const askParts = (message?.parts ?? []).filter(
+    (part) =>
+      part.type === 'dynamic-tool' &&
+      part.toolName === ASK_TOOL_NAME &&
+      part.state === 'output-available',
+  );
+  if (askParts.length === 0) {
+    return { kind: 'refused', refusal: transportRequestRefusals.toolResultFollowUpNotSupported };
+  }
+  const askPart = askParts[0]!;
+  const submission = v.safeParse(AskSubmission, askPart.output);
+  if (
+    askParts.length !== 1 ||
+    typeof askPart.toolCallId !== 'string' ||
+    askPart.toolCallId.length === 0 ||
+    !submission.success
+  ) {
+    return { kind: 'refused', refusal: transportRequestRefusals.invalidAskSubmission };
+  }
+
+  return {
+    kind: 'ask-reply',
+    value: {
+      conversationId: body.id,
+      // Keyed by the ask itself: concurrent duplicate submissions of the same
+      // pending ask collapse to one dispatch at the substrate.
+      idempotencyKey: `${body.id}:ask:${askPart.toolCallId}`,
+      ask: { toolCallId: askPart.toolCallId, answer: submission.output.answer },
+    },
+  };
+};
+
+const parseInitialTurn = (body: PanelPostBody): ParsedTransportRequest => {
   if (typeof body.id !== 'string' || body.id.length === 0 || body.trigger !== 'submit-message') {
-    return { ok: false, refusal: transportRequestRefusals.invalidChatRequest };
+    return { kind: 'refused', refusal: transportRequestRefusals.invalidChatRequest };
   }
   if (!Array.isArray(body.messages)) {
-    return { ok: false, refusal: transportRequestRefusals.invalidChatRequest };
+    return { kind: 'refused', refusal: transportRequestRefusals.invalidChatRequest };
   }
 
   const message = body.messages.at(-1) as PanelMessage | undefined;
@@ -174,15 +291,15 @@ const parseInitialTurn = (
     message.id.length === 0 ||
     message.id === 'petrinaut-diagnostics-context'
   ) {
-    return { ok: false, refusal: transportRequestRefusals.invalidChatRequest };
+    return { kind: 'refused', refusal: transportRequestRefusals.invalidChatRequest };
   }
   const text = userTextFrom(message);
   if (text === undefined) {
-    return { ok: false, refusal: transportRequestRefusals.invalidChatRequest };
+    return { kind: 'refused', refusal: transportRequestRefusals.invalidChatRequest };
   }
 
   return {
-    ok: true,
+    kind: 'initial',
     value: {
       conversationId: body.id,
       idempotencyKey: `${body.id}:${message.id}`,
@@ -308,8 +425,19 @@ export const createAiSdkChatHandler =
       const refusal = transportRequestRefusals.invalidChatRequest;
       return jsonResponse({ error: refusal.error }, refusal.status, crossOriginHeaders);
     }
-    const parsed = parseInitialTurn(validatedBody.output);
-    if (!parsed.ok) {
+    const postBody = validatedBody.output;
+    // The follow-up admits exactly the pending ask's correlated human answer;
+    // absent an application ask-reply seam, every follow-up stays refused.
+    const parsed =
+      postBody.messageId !== undefined && options.askReply !== undefined
+        ? parseAskReplyTurn(postBody)
+        : postBody.messageId !== undefined
+          ? ({
+              kind: 'refused',
+              refusal: transportRequestRefusals.toolResultFollowUpNotSupported,
+            } as const)
+          : parseInitialTurn(postBody);
+    if (parsed.kind === 'refused') {
       return jsonResponse(
         { error: parsed.refusal.error },
         parsed.refusal.status,
@@ -318,20 +446,72 @@ export const createAiSdkChatHandler =
     }
 
     const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
-    options.inspect?.({
-      type: 'request-start',
-      requestId,
-      conversationId: parsed.value.conversationId,
-      userMessageId: parsed.value.userMessage.id,
-    });
+
+    let run: (emit: (event: HarnessReplyEvent) => void) => Promise<void>;
+    if (parsed.kind === 'ask-reply') {
+      const askReply = options.askReply!;
+      const admission = await askReply.admit(parsed.value);
+      if (!admission.ok) {
+        options.inspect?.({
+          type: 'ask-reply-refused',
+          requestId,
+          conversationId: parsed.value.conversationId,
+          toolCallId: parsed.value.ask.toolCallId,
+          reason: admission.reason,
+        });
+        return jsonResponse(
+          { error: askReplyRefusalErrors[admission.reason] },
+          409,
+          crossOriginHeaders,
+        );
+      }
+      options.inspect?.({
+        type: 'ask-reply-admitted',
+        requestId,
+        conversationId: parsed.value.conversationId,
+        toolCallId: parsed.value.ask.toolCallId,
+      });
+      const input = parsed.value;
+      run = (emit) => askReply.run(input, emit);
+    } else {
+      options.inspect?.({
+        type: 'request-start',
+        requestId,
+        conversationId: parsed.value.conversationId,
+        userMessageId: parsed.value.userMessage.id,
+      });
+      const input = parsed.value;
+      run = (emit) => options.runTurn(input, emit);
+    }
 
     let messageId: string | undefined;
     let terminalEventEmitted = false;
+    const awaitingAskToolCallIds = new Set<string>();
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
         try {
-          await options.runTurn(parsed.value, (event) => {
+          await run((event) => {
             if (event.type === 'response-start') messageId = event.messageId;
+            // An ask suspends the turn for a human answer: its call goes to the
+            // panel as an awaiting client tool, and the harness's own output
+            // record (the minted affordance) never reaches the wire — the
+            // registered component supplies the output when the person submits.
+            if (event.type === 'tool-input' && event.toolName === ASK_TOOL_NAME) {
+              awaitingAskToolCallIds.add(event.toolCallId);
+              writer.write({
+                type: 'tool-input-available',
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+                input: event.input,
+              });
+              const inspection = inspectionFor(event, requestId, messageId);
+              if (inspection) options.inspect?.(inspection);
+              return;
+            }
+            if (event.type === 'tool-output' && awaitingAskToolCallIds.has(event.toolCallId)) {
+              options.inspect?.({ type: 'ask-await', requestId, toolCallId: event.toolCallId });
+              return;
+            }
             writer.write(toUiChunk(event));
             if (event.type === 'response-finish') terminalEventEmitted = true;
             const inspection = inspectionFor(event, requestId, messageId);

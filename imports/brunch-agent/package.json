@@ -9,6 +9,7 @@
     "lint:check": "oxlint --deny-warnings .",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
+    "linear:graph": "bun scripts/linear-project-graph.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "bun test",
     "build": "bun run --filter '@brunch/*' build",

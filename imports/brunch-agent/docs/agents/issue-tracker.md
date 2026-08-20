@@ -12,9 +12,11 @@ agent authors from this repo.
 ## Conventions
 
 - **Default team**: `FE`. **Project**: `brunch-agent`. Create issues with
-  `linear issue create --team FE --project brunch-agent`.
+  `linear issue create --team FE --project brunch-agent`. The project is the
+  ownership boundary for this codebase — see the registry rule below.
 - Related work also lives on teams `PRO` (product) and `H` (HASH) — read/reference those freely;
-  create there only when asked.
+  create there only when asked. The legacy `brunch` project holds the old brunch product's
+  history and is not this codebase's tracker.
 - Use `--description-file` / `--body-file` for any multi-line markdown (shell-escaping otherwise
   mangles it).
 - Triage state is expressed through Linear workflow states and labels (see `triage-labels.md`).
@@ -89,23 +91,26 @@ Used by `/wayfinder`. The **map** is a Linear issue with one **child** sub-issue
 
 ## The registry rule
 
-Every issue this project creates is **reachable from a root**: either it is a sub-issue
-(directly or transitively) of a root map — currently FE-1383 (build) and FE-1357 (demo +
-plugin spec) — or a sub-issue of a named sweep ticket (FE-1401-style), or it *is* a root and
-`docs/planning/_shared/CONVERGENCE.md`'s seam/sequencing sections name it. The `brunch-agent`
-project is a filter, not ownership — an issue in the project but reachable from no root is
-captured-then-orphaned, the failure mode this rule exists to stop. Set the parent at creation
-(`--parent FE-XXXX`), not in a later sweep.
+**Project membership is the ownership boundary**: an issue belongs to this codebase iff it is
+in the `brunch-agent` project. Nothing else — no label, no team, no root-walking — decides
+belonging. Within the project, every issue must additionally be **reachable from a root**: either
+it is a sub-issue (directly or transitively) of a root map — currently FE-1383 (build) and
+FE-1357 (demo + plugin spec) — or a sub-issue of a named sweep ticket (FE-1401-style), or it
+*is* a root and `docs/planning/_shared/COORDINATION.md` names it under **Exceptional roots**. An
+issue in the project but reachable from no root is captured-then-orphaned, the failure mode this
+rule exists to stop. Set the parent at creation (`--parent FE-XXXX`), not in a later sweep.
 
 Audit (run at arc close, alongside the legibility protocol's consolidation step):
 
 ```
-linear issue mine --team FE --project brunch-agent \
-  -s triage -s backlog -s unstarted -s started --limit 0 --no-pager
+bun run linear:graph
 ```
 
-then check each row without a parent or relation against the roots above. An orphan gets a
-parent or an explicit root listing in CONVERGENCE.md — silence is not an option it has.
+Check each open row without a `p:` parent against the roots above. An orphan gets a parent or an
+explicit root listing in `COORDINATION.md` — silence is not an option it has. The projection is
+project-wide rather than assignment-scoped: assignment is fallible, and more contributors means
+unassigned work is normal. A shared custom view — "brunch-agent: open without parent" — surfaces
+candidate orphans continuously; its only legitimate rows are the roots themselves.
 
 ## Historical note
 
@@ -114,3 +119,8 @@ Before 2026-08-11 this repo tracked issues as local markdown under `.scratch/<fe
 remains in that form as the canonical archive (now at `docs/planning/elicitation-kernel/`), and is **mirrored in Linear for team
 visibility** as FE-1366 (map) with sub-issues FE-1367–FE-1379, all Done, blocking relations
 preserved. New efforts go to Linear directly.
+
+Between 2026-08-11 and 2026-08-20 lite work was identified by a `lite` label plus the shared
+`brunch` project — filters, not ownership, which is how six pre-registry stubs (FE-1328–FE-1334)
+ended up orphaned. On 2026-08-20 the `brunch-agent` project was created, all 73 lite issues
+moved into it, and the `lite` label was deleted; the project itself is now the boundary.

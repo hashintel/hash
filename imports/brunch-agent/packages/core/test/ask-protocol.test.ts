@@ -1,11 +1,16 @@
 import { describe, expect, test } from 'bun:test';
+import * as v from 'valibot';
 import {
   ASK_TOOL_DESCRIPTION,
   askProtocolInstructionFragments,
+  AskSubmission,
   buildReplyBindingSignalPayload,
+  decideAskReplyAdmission,
   decidePendingAffordance,
   mintAskAffordance,
+  pendingAskAffordanceId,
 } from '../src/ask-protocol.ts';
+import type { SweepSessionEntry } from '../src/sweep-protocol.ts';
 
 const firstAffordance = mintAskAffordance(
   'What outcome should the scenario describe?',
@@ -51,6 +56,59 @@ describe('ask protocol', () => {
       ].join('\n\n'),
       attributes: { affordanceId: 'affordance_tool-call-1' },
     });
+  });
+
+  test('reports the last emitted affordance without a bound reply as pending', () => {
+    const entries: SweepSessionEntry[] = [
+      { id: 'entry-1', kind: 'user', text: 'Start.' },
+      {
+        id: 'entry-2',
+        kind: 'assistant',
+        text: '',
+        affordances: [{ id: 'affordance_tool-call-1', markdown: 'First question?' }],
+      },
+    ];
+
+    expect(pendingAskAffordanceId(entries)).toBe('affordance_tool-call-1');
+  });
+
+  test('stops reporting an affordance as pending once a reply is bound to it', () => {
+    const entries: SweepSessionEntry[] = [
+      {
+        id: 'entry-1',
+        kind: 'assistant',
+        text: '',
+        affordances: [{ id: 'affordance_tool-call-1', markdown: 'First question?' }],
+      },
+      {
+        id: 'entry-2',
+        kind: 'user-affordance-payload',
+        text: 'The answer.',
+        replyToAffordanceId: 'affordance_tool-call-1',
+      },
+    ];
+
+    expect(pendingAskAffordanceId(entries)).toBeUndefined();
+    expect(pendingAskAffordanceId([])).toBeUndefined();
+  });
+
+  test('admits only the pending ask’s correlated submission', () => {
+    expect(decideAskReplyAdmission('affordance_tool-call-1', 'tool-call-1')).toEqual({ ok: true });
+    expect(decideAskReplyAdmission(undefined, 'tool-call-1')).toEqual({
+      ok: false,
+      reason: 'no-pending-ask',
+    });
+    expect(decideAskReplyAdmission('affordance_tool-call-1', 'tool-call-9')).toEqual({
+      ok: false,
+      reason: 'different-ask-pending',
+    });
+  });
+
+  test('accepts only a non-empty answer as a submitted ask output', () => {
+    expect(v.safeParse(AskSubmission, { answer: 'A settled order.' }).success).toBe(true);
+    for (const output of [{ answer: '' }, {}, null, 'A settled order.', { answer: 42 }]) {
+      expect(v.safeParse(AskSubmission, output).success).toBe(false);
+    }
   });
 
   test('supplies render-invariant instruction fragments', () => {

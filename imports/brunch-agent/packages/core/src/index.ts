@@ -17,10 +17,15 @@ export {
 } from './affordance.ts';
 export {
   ASK_TOOL_DESCRIPTION,
+  askAffordanceId,
   askProtocolInstructionFragments,
+  AskSubmission,
   buildReplyBindingSignalPayload,
+  decideAskReplyAdmission,
   decidePendingAffordance,
   mintAskAffordance,
+  pendingAskAffordanceId,
+  type AskReplyAdmission,
   type PendingAffordanceDecision,
   type ReplyBindingSignalPayload,
 } from './ask-protocol.ts';

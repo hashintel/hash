@@ -351,7 +351,7 @@ decidedness.
   worked-instance gold set as the accuracy rubric (FE-1407).
 - **Envelope pressure #2 — absence locator (seam, unresolved).** Absence captures carry no
   payload; a field-specific absence cannot name its slot. Three C1 cases logged. The needed
-  locator is a fold-table coordinate. Owner: the FE-1383 seam (CONVERGENCE record), for
+  locator is a fold-table coordinate. Owner: the FE-1383 seam (`COORDINATION.md`), for
   adjudication — the register-2 `absent` state is representable but not populatable until it
   lands.
 
