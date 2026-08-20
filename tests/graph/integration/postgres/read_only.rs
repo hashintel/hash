@@ -20,7 +20,7 @@ use type_system::{
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     principal::{
-        actor::{ActorEntityUuid, ActorType},
+        actor::{ActorEntityUuid, ActorId, ActorType},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -43,8 +43,7 @@ enum Modification<'a> {
 async fn modify(
     api: &mut DatabaseApi<'_>,
     entity_id: EntityId,
-    actor: ActorEntityUuid,
-    actor_type: ActorType,
+    actor: ActorId,
     modification: Modification<'_>,
 ) -> Result<Entity, Report<UpdateError>> {
     let (properties, archived) = match modification {
@@ -78,7 +77,8 @@ async fn modify(
             archived,
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
-                actor_type,
+                // Derived from the actor, so the recorded type cannot disagree with who acted.
+                actor_type: actor.actor_type(),
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
                 sources: Vec::new(),
             },
@@ -153,10 +153,12 @@ async fn read_only_modification_matrix() {
 
     // All three actors administer the web, so each holds `UpdateEntity`. The read-only forbid is
     // then the only thing that differs between them.
-    let machine = ActorEntityUuid::from(api.create_machine("test-machine").await);
-    let ai = ActorEntityUuid::from(api.create_ai("test-ai").await);
-    api.assign_web_administrator(machine, web_id).await;
-    api.assign_web_administrator(ai, web_id).await;
+    let machine = ActorId::from(api.create_machine("test-machine").await);
+    let ai = ActorId::from(api.create_ai("test-ai").await);
+    api.assign_web_administrator(ActorEntityUuid::from(machine), web_id)
+        .await;
+    api.assign_web_administrator(ActorEntityUuid::from(ai), web_id)
+        .await;
 
     let read_only_entity = api
         .create_entity(
@@ -215,16 +217,11 @@ async fn read_only_modification_matrix() {
         .entity_id;
 
     // Writable entities are editable by every actor type.
-    for (label, actor, actor_type) in [
-        ("user", user, ActorType::User),
-        ("machine", machine, ActorType::Machine),
-        ("ai", ai, ActorType::Ai),
-    ] {
+    for (label, actor) in [("user", user), ("machine", machine), ("ai", ai)] {
         modify(
             &mut api,
             writable_entity,
             actor,
-            actor_type,
             Modification::SetName {
                 property: &name,
                 value: label,
@@ -237,13 +234,12 @@ async fn read_only_modification_matrix() {
     // Read-only entities may only be modified by machine actors. The user and AI actors modified
     // the writable entity above, so they hold the permits — a denial here can only be the forbid,
     // which covers both `UpdateEntity` and `ArchiveEntity`.
-    for (label, actor, actor_type) in [("user", user, ActorType::User), ("ai", ai, ActorType::Ai)] {
+    for (label, actor) in [("user", user), ("ai", ai)] {
         assert_denied(
             modify(
                 &mut api,
                 read_only_entity,
                 actor,
-                actor_type,
                 Modification::SetName {
                     property: &name,
                     value: label,
@@ -254,14 +250,7 @@ async fn read_only_modification_matrix() {
             "update",
         );
         assert_denied(
-            modify(
-                &mut api,
-                read_only_entity,
-                actor,
-                actor_type,
-                Modification::Archive,
-            )
-            .await,
+            modify(&mut api, read_only_entity, actor, Modification::Archive).await,
             label,
             "archive",
         );
@@ -272,7 +261,6 @@ async fn read_only_modification_matrix() {
         &mut api,
         read_only_entity,
         machine,
-        ActorType::Machine,
         Modification::SetName {
             property: &name,
             value: "machine",
@@ -280,13 +268,7 @@ async fn read_only_modification_matrix() {
     )
     .await
     .expect("machine actors should update read-only entities");
-    modify(
-        &mut api,
-        read_only_entity,
-        machine,
-        ActorType::Machine,
-        Modification::Archive,
-    )
-    .await
-    .expect("machine actors should archive read-only entities");
+    modify(&mut api, read_only_entity, machine, Modification::Archive)
+        .await
+        .expect("machine actors should archive read-only entities");
 }

@@ -130,8 +130,6 @@ export const entityTypedef = gql`
       request: QueryEntitySubgraphRequest!
     ): QueryEntitySubgraphResponse!
 
-    isEntityPublic(entityId: EntityId!): Boolean!
-
     getEntityAuthorizationRelationships(
       entityId: EntityId!
     ): [EntityAuthorizationRelationship!]!

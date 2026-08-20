@@ -3,9 +3,7 @@ use core::iter;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
-use hash_graph_authorization::policies::{
-    action::ActionName, principal::actor::AuthenticatedActor,
-};
+use hash_graph_authorization::policies::action::ActionName;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
@@ -19,7 +17,10 @@ use type_system::{
         property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId},
+        actor_group::WebId,
+    },
 };
 
 use crate::{
@@ -418,7 +419,7 @@ pub trait EntityTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_entity_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreateEntityTypeParams,
     ) -> impl Future<Output = Result<EntityTypeMetadata, Report<InsertionError>>> + Send
     where
@@ -443,7 +444,7 @@ pub trait EntityTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_entity_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<InsertionError>>> + Send
     where
@@ -451,34 +452,40 @@ pub trait EntityTypeStore {
 
     /// Count the number of [`EntityType`]s specified by the [`CountEntityTypesParams`].
     ///
+    /// [`None`] reads as the public actor.
+    ///
     /// # Errors
     ///
     /// - if the underlying store fails to count the entity types.
     fn count_entity_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: CountEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
     /// Get the [`Subgraph`]s specified by the [`QueryEntityTypeSubgraphParams`].
+    ///
+    /// [`None`] reads as the public actor.
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
     fn query_entity_type_subgraph(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryEntityTypeSubgraphParams<'_>,
     ) -> impl Future<Output = Result<QueryEntityTypeSubgraphResponse, Report<QueryError>>> + Send;
 
     /// Get the [`EntityType`]s specified by the [`QueryEntityTypesParams`].
+    ///
+    /// [`None`] reads as the public actor.
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
     fn query_entity_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<QueryEntityTypesResponse, Report<QueryError>>> + Send;
 
@@ -489,7 +496,7 @@ pub trait EntityTypeStore {
     /// - if the requested [`EntityType`]s cannot be retrieved
     fn search_entity_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: SearchEntityTypesParams,
     ) -> impl Future<Output = Result<SearchEntityTypesResponse, Report<QueryError>>> + Send;
 
@@ -510,12 +517,14 @@ pub trait EntityTypeStore {
     ///
     /// # Errors
     ///
+    /// [`None`] reads as the public actor.
+    ///
     /// Returns a `QueryError` if:
     /// - Database operations fail when retrieving closed entity type information
     /// - Type resolution fails due to invalid entity type references
     fn get_closed_multi_entity_types<I, J>(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         entity_type_ids: I,
         temporal_axes: QueryTemporalAxesUnresolved,
         include_resolved: Option<IncludeResolvedEntityTypeOption>,
@@ -531,7 +540,7 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`] doesn't exist.
     fn update_entity_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: UpdateEntityTypesParams,
     ) -> impl Future<Output = Result<EntityTypeMetadata, Report<UpdateError>>> + Send
     where
@@ -553,7 +562,7 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`]s do not exist.
     fn update_entity_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<UpdateError>>> + Send
     where
@@ -566,7 +575,7 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`] doesn't exist.
     fn archive_entity_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
 
         params: ArchiveEntityTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
@@ -578,14 +587,14 @@ pub trait EntityTypeStore {
     /// - if the [`EntityType`] doesn't exist.
     fn unarchive_entity_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
 
         params: UnarchiveEntityTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     fn update_entity_type_embeddings(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
 
         params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
@@ -614,7 +623,7 @@ pub trait EntityTypeStore {
     /// [`StoreError`]: CheckPermissionError::StoreError
     fn has_permission_for_entity_types(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         params: HasPermissionForEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<HashSet<VersionedUrl>, Report<CheckPermissionError>>> + Send;
 }

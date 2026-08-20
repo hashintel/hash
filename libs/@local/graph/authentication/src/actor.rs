@@ -13,7 +13,7 @@ use crate::request::AuthenticationError;
 ///
 /// Indirection over [`PrincipalStore::determine_actor`].
 pub trait ResolveActor: Send + Sync {
-    /// Returns the [`ActorId`] for the given actor entity UUID, or `None` for the public actor.
+    /// Returns the [`ActorId`] for the given actor entity UUID.
     ///
     /// # Errors
     ///
@@ -25,7 +25,7 @@ pub trait ResolveActor: Send + Sync {
     fn resolve_actor(
         &self,
         actor_entity_uuid: ActorEntityUuid,
-    ) -> impl Future<Output = Result<Option<ActorId>, Report<DetermineActorError>>> + Send;
+    ) -> impl Future<Output = Result<ActorId, Report<DetermineActorError>>> + Send;
 }
 
 /// [`ResolveActor`] implementation backed by a [`StorePool`].
@@ -48,7 +48,7 @@ where
     async fn resolve_actor(
         &self,
         actor_entity_uuid: ActorEntityUuid,
-    ) -> Result<Option<ActorId>, Report<DetermineActorError>> {
+    ) -> Result<ActorId, Report<DetermineActorError>> {
         self.pool
             .acquire(None)
             .await
@@ -58,11 +58,40 @@ where
     }
 }
 
+/// Resolves the actor against the principal store.
+///
+/// # Errors
+///
+/// - [`ActorNotFound`] if the actor does not exist
+/// - [`StoreError`] if the underlying store returns an error
+///
+/// [`ActorNotFound`]: AuthenticationError::ActorNotFound
+/// [`StoreError`]: AuthenticationError::StoreError
+pub(crate) async fn resolve_actor<R>(
+    actor_resolver: &R,
+    actor_id: ActorEntityUuid,
+) -> Result<ActorId, Report<AuthenticationError>>
+where
+    R: ResolveActor,
+{
+    actor_resolver
+        .resolve_actor(actor_id)
+        .await
+        .map_err(|report| match report.current_context() {
+            DetermineActorError::ActorNotFound { .. } => {
+                report.change_context(AuthenticationError::ActorNotFound { actor_id })
+            }
+            DetermineActorError::StoreError => {
+                report.change_context(AuthenticationError::StoreError)
+            }
+        })
+}
+
 /// Resolves the actor against the principal store and requires it to be a user actor.
 ///
 /// # Errors
 ///
-/// - [`NotAUser`] if the actor is not a user, or is the public actor
+/// - [`NotAUser`] if the actor is not a user
 /// - [`ActorNotFound`] if the actor does not exist
 /// - [`StoreError`] if the underlying store returns an error
 ///
@@ -76,22 +105,16 @@ pub(crate) async fn resolve_user_actor<R>(
 where
     R: ResolveActor,
 {
-    match actor_resolver.resolve_actor(actor_id).await {
-        Ok(Some(ActorId::User(user_id))) => Ok(user_id),
-        Ok(Some(_) | None) => Err(Report::new(AuthenticationError::NotAUser { actor_id })),
-        Err(report) => match report.current_context() {
-            DetermineActorError::ActorNotFound { .. } => {
-                Err(report.change_context(AuthenticationError::ActorNotFound { actor_id }))
-            }
-            DetermineActorError::StoreError => {
-                Err(report.change_context(AuthenticationError::StoreError))
-            }
-        },
+    match resolve_actor(actor_resolver, actor_id).await? {
+        ActorId::User(user_id) => Ok(user_id),
+        ActorId::Machine(_) | ActorId::Ai(_) => {
+            Err(Report::new(AuthenticationError::NotAUser { actor_id }))
+        }
     }
 }
 
-#[cfg(test)]
-pub(crate) mod tests {
+#[cfg(any(test, feature = "test-utils"))]
+pub mod tests {
     use std::collections::HashMap;
 
     use error_stack::Report;
@@ -102,14 +125,13 @@ pub(crate) mod tests {
     use super::ResolveActor;
 
     /// Actor resolver serving a fixed set of actors.
-    ///
-    /// A `None` entry resolves to the public actor.
-    pub(crate) struct FixedActorResolver {
-        actors: HashMap<ActorEntityUuid, Option<ActorId>>,
+    pub struct FixedActorResolver {
+        actors: HashMap<ActorEntityUuid, ActorId>,
     }
 
     impl FixedActorResolver {
-        pub(crate) fn new(actors: HashMap<ActorEntityUuid, Option<ActorId>>) -> Self {
+        #[must_use]
+        pub const fn new(actors: HashMap<ActorEntityUuid, ActorId>) -> Self {
             Self { actors }
         }
     }
@@ -118,22 +140,21 @@ pub(crate) mod tests {
         fn resolve_actor(
             &self,
             actor_entity_uuid: ActorEntityUuid,
-        ) -> impl Future<Output = Result<Option<ActorId>, Report<DetermineActorError>>> + Send
-        {
+        ) -> impl Future<Output = Result<ActorId, Report<DetermineActorError>>> + Send {
             core::future::ready(self.actors.get(&actor_entity_uuid).copied().ok_or_else(|| {
                 Report::new(DetermineActorError::ActorNotFound { actor_entity_uuid })
             }))
         }
     }
 
-    pub(crate) fn random_actor() -> ActorEntityUuid {
+    #[must_use]
+    pub fn random_actor() -> ActorEntityUuid {
         ActorEntityUuid::new(Uuid::new_v4())
     }
 
     /// A resolver map holding the given actor as a user.
-    pub(crate) fn known_user(
-        actor_id: ActorEntityUuid,
-    ) -> HashMap<ActorEntityUuid, Option<ActorId>> {
-        HashMap::from([(actor_id, Some(ActorId::User(UserId::new(actor_id))))])
+    #[must_use]
+    pub fn known_user(actor_id: ActorEntityUuid) -> HashMap<ActorEntityUuid, ActorId> {
+        HashMap::from([(actor_id, ActorId::User(UserId::new(actor_id)))])
     }
 }

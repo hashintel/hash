@@ -186,7 +186,7 @@ mod tests {
 
     fn resolver_at(
         url: Url,
-        actors: HashMap<ActorEntityUuid, Option<ActorId>>,
+        actors: HashMap<ActorEntityUuid, ActorId>,
     ) -> KratosEmailActorResolver<FixedActorResolver> {
         KratosEmailActorResolver::new(
             KratosAdminConfig {
@@ -205,7 +205,7 @@ mod tests {
     /// query.
     async fn resolver_for(
         identities: JsonValue,
-        actors: HashMap<ActorEntityUuid, Option<ActorId>>,
+        actors: HashMap<ActorEntityUuid, ActorId>,
     ) -> KratosEmailActorResolver<FixedActorResolver> {
         let router = Router::new().route(
             "/admin/identities",
@@ -331,13 +331,13 @@ mod tests {
     )]
     #[case::machine_actor(
         json!([identity_json(Some(case_actor()), json!([verified_address(EMAIL)]))]),
-        HashMap::from([(case_actor(), Some(ActorId::Machine(MachineId::new(case_actor()))))]),
+        HashMap::from([(case_actor(), ActorId::Machine(MachineId::new(case_actor())))]),
         |error: &AuthenticationError| matches!(error, AuthenticationError::NotAUser { .. })
     )]
     #[tokio::test]
     async fn unresolvable_email_fails_resolution(
         #[case] identities: JsonValue,
-        #[case] actors: HashMap<ActorEntityUuid, Option<ActorId>>,
+        #[case] actors: HashMap<ActorEntityUuid, ActorId>,
         #[case] expected: fn(&AuthenticationError) -> bool,
     ) {
         let resolver = resolver_for(identities, actors).await;

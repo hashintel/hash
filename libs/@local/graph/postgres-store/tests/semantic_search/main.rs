@@ -16,7 +16,7 @@ use hash_graph_store::{
     filter::SemanticDistance,
 };
 use hash_graph_types::Embedding;
-use type_system::principal::actor::ActorEntityUuid;
+use type_system::principal::actor::{ActorId, UserId};
 use uuid::Uuid;
 
 use self::common::DatabaseTestWrapper;
@@ -55,7 +55,8 @@ async fn search_with_real_policies() {
         .expect("disabling parallel workers should succeed");
 
     for actor_row in actor_rows {
-        let actor_id = ActorEntityUuid::new(actor_row.get::<_, Uuid>(0));
+        // The rows come from `user_actor`, so the type is known without a lookup.
+        let actor_id = ActorId::User(UserId::new(actor_row.get::<_, Uuid>(0)));
 
         for run in ["cold", "warm"] {
             let started = std::time::Instant::now();

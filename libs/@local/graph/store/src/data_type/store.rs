@@ -3,9 +3,7 @@ use core::iter;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
-use hash_graph_authorization::policies::{
-    action::ActionName, principal::actor::AuthenticatedActor,
-};
+use hash_graph_authorization::policies::action::ActionName;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::{self, Embedding};
 use serde::{Deserialize, Serialize};
@@ -17,7 +15,7 @@ use type_system::{
         },
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    principal::actor::ActorEntityUuid,
+    principal::actor::ActorId,
 };
 
 use crate::{
@@ -267,7 +265,7 @@ pub trait DataTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_data_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreateDataTypeParams,
     ) -> impl Future<Output = Result<DataTypeMetadata, Report<InsertionError>>> + Send
     where
@@ -292,7 +290,7 @@ pub trait DataTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_data_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<DataTypeMetadata>, Report<InsertionError>>> + Send
     where
@@ -300,34 +298,40 @@ pub trait DataTypeStore {
 
     /// Count the number of [`DataType`]s specified by the [`CountDataTypesParams`].
     ///
+    /// [`None`] reads as the public actor.
+    ///
     /// # Errors
     ///
     /// - if the underlying store fails to count the data types.
     fn count_data_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: CountDataTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
     /// Get the [`DataType`]s specified by the [`QueryDataTypesParams`].
+    ///
+    /// [`None`] reads as the public actor.
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
     fn query_data_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryDataTypesParams<'_>,
     ) -> impl Future<Output = Result<QueryDataTypesResponse, Report<QueryError>>> + Send;
 
     /// Get the [`Subgraph`] specified by the [`QueryDataTypeSubgraphParams`].
+    ///
+    /// [`None`] reads as the public actor.
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
     fn query_data_type_subgraph(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryDataTypeSubgraphParams<'_>,
     ) -> impl Future<Output = Result<QueryDataTypeSubgraphResponse, Report<QueryError>>> + Send;
 
@@ -338,7 +342,7 @@ pub trait DataTypeStore {
     /// - if the [`DataType`] doesn't exist.
     fn update_data_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: UpdateDataTypesParams,
     ) -> impl Future<Output = Result<DataTypeMetadata, Report<UpdateError>>> + Send
     where
@@ -360,7 +364,7 @@ pub trait DataTypeStore {
     /// - if the [`DataType`]s do not exist.
     fn update_data_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<DataTypeMetadata>, Report<UpdateError>>> + Send
     where
@@ -373,7 +377,7 @@ pub trait DataTypeStore {
     /// - if the [`DataType`] doesn't exist.
     fn archive_data_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: ArchiveDataTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
@@ -384,19 +388,22 @@ pub trait DataTypeStore {
     /// - if the [`DataType`] doesn't exist.
     fn unarchive_data_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: UnarchiveDataTypeParams,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     fn update_data_type_embeddings(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 
+    /// Find the conversion targets reachable from the given [`DataType`]s.
+    ///
+    /// [`None`] reads as the public actor.
     fn find_data_type_conversion_targets(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: FindDataTypeConversionTargetsParams,
     ) -> impl Future<Output = Result<FindDataTypeConversionTargetsResponse, Report<QueryError>>> + Send;
 
@@ -424,7 +431,7 @@ pub trait DataTypeStore {
     /// [`StoreError`]: CheckPermissionError::StoreError
     fn has_permission_for_data_types(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         params: HasPermissionForDataTypesParams<'_>,
     ) -> impl Future<Output = Result<HashSet<VersionedUrl>, Report<CheckPermissionError>>> + Send;
 }

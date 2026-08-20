@@ -35,7 +35,7 @@ async fn create_team() -> Result<(), Box<dyn Error>> {
     assert!(client.is_team(team_id).await?);
 
     let team = client
-        .get_team_by_id(actor_id.into(), team_id)
+        .get_team_by_id(actor_id, team_id)
         .await?
         .expect("Team should exist");
 
@@ -270,7 +270,7 @@ async fn get_team() -> Result<(), Box<dyn Error>> {
 
     // Get the team and verify it matches
     let retrieved = client
-        .get_team_by_id(actor_id.into(), team_id)
+        .get_team_by_id(actor_id, team_id)
         .await?
         .expect("Team should exist");
     assert_eq!(retrieved.id, team_id);
@@ -285,9 +285,7 @@ async fn get_non_existent_team() -> Result<(), Box<dyn Error>> {
 
     // Try to get a non-existent team
     let non_existent_id = TeamId::new(Uuid::new_v4());
-    let result = client
-        .get_team_by_id(actor_id.into(), non_existent_id)
-        .await?;
+    let result = client.get_team_by_id(actor_id, non_existent_id).await?;
 
     // The implementation now returns a PrincipalNotFound error
     assert!(

@@ -195,10 +195,8 @@ impl Error for TeamRoleError {}
 #[derive(Debug, derive_more::Display)]
 #[display("Could change role assignment: {_variant}")]
 pub enum RoleAssignmentError {
-    #[display("Actor was not provided")]
-    ActorNotProvided,
     #[display("Actor with ID `{actor_id}` does not exist")]
-    ActorNotFound { actor_id: ActorId },
+    ActorNotFound { actor_id: ActorEntityUuid },
     #[display("{name} role for `{actor_group_id}` does not exist")]
     RoleNotFound {
         actor_group_id: ActorGroupId,
@@ -225,8 +223,6 @@ impl Error for RoleAssignmentError {}
 pub enum ContextCreationError {
     #[display("Actor with ID `{actor_id}` does not exist")]
     ActorNotFound { actor_id: ActorId },
-    #[display("Actor with ID `{actor_id}` is not a valid actor")]
-    DetermineActor { actor_id: ActorEntityUuid },
     #[display("Could not build principal context for actor with ID `{actor_id}`")]
     BuildPrincipalContext { actor_id: ActorId },
     #[display("Could not build entity type context for entity types with IDs `{}`",
@@ -249,7 +245,11 @@ pub enum ContextCreationError {
     BuildEntityContext {
         entity_edition_ids: HashSet<EntityEditionId>,
     },
-    #[display("Could not resolve policies for actor with ID `{}`", actor_id.map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from))]
+    #[display("Could not resolve policies for {}",
+        actor_id.map_or_else(
+            || "the public actor".to_owned(),
+            |actor_id| format!("actor with ID `{actor_id}`"),
+        ))]
     ResolveActorPolicies { actor_id: Option<ActorId> },
     #[display("Could not create policy set")]
     CreatePolicySet,
@@ -358,8 +358,6 @@ impl Error for UpdatePolicyError {}
 #[derive(Debug, derive_more::Display)]
 #[display("Could not get policies for actor: {_variant}")]
 pub enum GetPoliciesError {
-    #[display("Actor with UUID `{actor_entity_uuid}` does not exist")]
-    ActorIdNotFound { actor_entity_uuid: ActorEntityUuid },
     #[display("Actor with ID `{actor_id}` does not exist")]
     ActorNotFound { actor_id: ActorId },
     #[display("Invalid principal constraint")]

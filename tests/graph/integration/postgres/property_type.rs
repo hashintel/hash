@@ -80,7 +80,7 @@ async fn query() {
 
     let property_type = api
         .query_property_types(
-            api.account_id,
+            Some(api.account_id),
             QueryPropertyTypesParams {
                 filter: Filter::for_versioned_url(&favorite_quote_pt.id),
                 temporal_axes: QueryTemporalAxesUnresolved::all(),
@@ -154,7 +154,7 @@ async fn update() {
 
     let returned_user_id_pt_v1 = api
         .query_property_types(
-            api.account_id,
+            Some(api.account_id),
             QueryPropertyTypesParams {
                 filter: Filter::for_versioned_url(&user_id_pt_v1.id),
                 temporal_axes: QueryTemporalAxesUnresolved::all(),
@@ -171,7 +171,7 @@ async fn update() {
 
     let returned_user_id_pt_v2 = api
         .query_property_types(
-            api.account_id,
+            Some(api.account_id),
             QueryPropertyTypesParams {
                 filter: Filter::for_versioned_url(&user_id_pt_v2.id),
                 temporal_axes: QueryTemporalAxesUnresolved::all(),

@@ -56,9 +56,7 @@ use serde::Deserialize as _;
 use tokio::io;
 #[cfg(feature = "unsafe-dev-endpoints")]
 use tokio_util::{codec::FramedRead, io::StreamReader};
-#[cfg(feature = "unsafe-dev-endpoints")]
-use type_system::principal::actor::ActorEntityUuid;
-use type_system::principal::actor::UserId;
+use type_system::principal::actor::{ActorId, UserId};
 use uuid::Uuid;
 
 use super::{
@@ -81,9 +79,14 @@ pub struct ExternalServicesConfig {
 
 /// Creates the admin API router.
 ///
-/// All routes except `/health` require authentication through the given provider chain. The bulk
-/// destructive endpoints (`/snapshot`, `/accounts`, `/data-types`, `/property-types`,
-/// `/entity-types`) exist only in builds with the `unsafe-dev-endpoints` feature.
+/// `/entities/delete` and `/users/delete` authenticate through the given provider chain and
+/// require an actor.
+///
+/// The bulk destructive endpoints (`/snapshot`, `/accounts`, `/data-types`, `/property-types`,
+/// `/entity-types`) exist only in builds with the `unsafe-dev-endpoints` feature. They must work
+/// on a store with no principals, so they take no actor — the service secret is their only gate.
+///
+/// `/health` is open.
 pub fn routes<P>(
     store_pool: Arc<PostgresStorePool>,
     authentication_provider: Arc<P>,
@@ -91,32 +94,43 @@ pub fn routes<P>(
     external_services: ExternalServicesConfig,
 ) -> Router
 where
-    P: AuthenticationProvider + 'static,
+    P: AuthenticationProvider<ActorId> + 'static,
 {
     let protected = Router::new()
         .route("/entities/delete", post(delete_entities))
         .route("/users/delete", post(delete_user));
 
     #[cfg(feature = "unsafe-dev-endpoints")]
-    let protected = protected
-        .route("/snapshot", post(restore_snapshot))
-        .route("/accounts", delete(delete_accounts))
-        .route("/data-types", delete(delete_data_types))
-        .route("/property-types", delete(delete_property_types))
-        .route("/entity-types", delete(delete_entity_types));
+    let secret_gate_secret = Arc::clone(&service_secret);
 
     let kratos = Arc::new(KratosIdentityProvider::new(
         external_services.kratos_admin_url.clone(),
     ));
 
-    probe::router()
-        .merge(
-            protected.route_layer(axum::middleware::from_fn(move |request, next| {
-                let provider = Arc::clone(&authentication_provider);
-                let service_secret = Arc::clone(&service_secret);
-                auth::authentication_middleware(provider, service_secret, request, next)
+    let router = probe::router().merge(protected.route_layer(axum::middleware::from_fn(
+        move |request, next| {
+            let provider = Arc::clone(&authentication_provider);
+            let service_secret = Arc::clone(&service_secret);
+            auth::authentication_middleware::<_, ActorId>(provider, service_secret, request, next)
+        },
+    )));
+
+    // Layering an empty router panics, so the group only exists with its routes.
+    #[cfg(feature = "unsafe-dev-endpoints")]
+    let router = router.merge(
+        Router::new()
+            .route("/snapshot", post(restore_snapshot))
+            .route("/accounts", delete(delete_accounts))
+            .route("/data-types", delete(delete_data_types))
+            .route("/property-types", delete(delete_property_types))
+            .route("/entity-types", delete(delete_entity_types))
+            .route_layer(axum::middleware::from_fn(move |request, next| {
+                let service_secret = Arc::clone(&secret_gate_secret);
+                auth::service_secret_middleware(service_secret, request, next)
             })),
-        )
+    );
+
+    router
         .fallback(|| async {
             status_to_response(Status::<()>::new(
                 StatusCode::NotFound,
@@ -142,11 +156,10 @@ enum AdminError {
 /// See [`SnapshotStore::restore_snapshot`] for details.
 #[cfg(feature = "unsafe-dev-endpoints")]
 async fn restore_snapshot(
-    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<PostgresStorePool>>,
     snapshot: Body,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(%actor_id, "restoring snapshot");
+    tracing::info!("restoring snapshot");
     let store = store_pool.acquire(None).await.map_err(report_to_response)?;
 
     SnapshotStore::new(store)
@@ -175,14 +188,13 @@ async fn restore_snapshot(
 /// [`PostgresStore::delete_principals`]: hash_graph_postgres_store::store::PostgresStore::delete_principals
 #[cfg(feature = "unsafe-dev-endpoints")]
 async fn delete_accounts(
-    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(%actor_id, "deleting all accounts");
+    tracing::info!("deleting all accounts");
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
-        .delete_principals(ActorEntityUuid::new(Uuid::nil()))
+        .delete_principals()
         .await
         .map_err(report_to_response)?;
 
@@ -200,10 +212,9 @@ async fn delete_accounts(
 /// [`PostgresStore::delete_data_types`]: hash_graph_postgres_store::store::PostgresStore::delete_data_types
 #[cfg(feature = "unsafe-dev-endpoints")]
 async fn delete_data_types(
-    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(%actor_id, "deleting all data types");
+    tracing::info!("deleting all data types");
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -225,10 +236,9 @@ async fn delete_data_types(
 /// [`PostgresStore::delete_property_types`]: hash_graph_postgres_store::store::PostgresStore::delete_property_types
 #[cfg(feature = "unsafe-dev-endpoints")]
 async fn delete_property_types(
-    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(%actor_id, "deleting all property types");
+    tracing::info!("deleting all property types");
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -250,10 +260,9 @@ async fn delete_property_types(
 /// [`PostgresStore::delete_entity_types`]: hash_graph_postgres_store::store::PostgresStore::delete_entity_types
 #[cfg(feature = "unsafe-dev-endpoints")]
 async fn delete_entity_types(
-    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(%actor_id, "deleting all entity types");
+    tracing::info!("deleting all entity types");
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -289,7 +298,7 @@ async fn delete_entities(
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
-        .delete_entities(actor_id.into(), params)
+        .delete_entities(actor_id, params)
         .await
         .map(Json)
         .map_err(report_to_response)
@@ -355,7 +364,7 @@ async fn delete_user(
         kratos.as_ref(),
         &hydra,
         mailchimp.as_ref(),
-        actor_id.into(),
+        actor_id,
         user_id,
         kratos_identity_id,
     )

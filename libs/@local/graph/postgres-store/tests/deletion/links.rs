@@ -38,7 +38,7 @@ async fn purge_error_rejects_with_incoming_links() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -89,7 +89,7 @@ async fn purge_ignore_succeeds_with_incoming_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -144,7 +144,7 @@ async fn erase_rejects_with_incoming_links() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -209,7 +209,7 @@ async fn purge_link_entity_removes_all_edges() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_link),
                 include_drafts: false,
@@ -279,7 +279,7 @@ async fn self_referential_batch_not_counted() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -358,7 +358,7 @@ async fn draft_deletion_skips_link_check() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id),
                 include_drafts: true,
@@ -419,7 +419,7 @@ async fn incoming_link_count_is_accurate() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -460,7 +460,7 @@ async fn self_loop_link() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -483,7 +483,7 @@ async fn self_loop_link() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -536,7 +536,7 @@ async fn chain_deletion() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -559,7 +559,7 @@ async fn chain_deletion() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -611,7 +611,7 @@ async fn bidirectional_links() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -634,7 +634,7 @@ async fn bidirectional_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -686,7 +686,7 @@ async fn erase_batch_excludes_in_batch_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -752,7 +752,7 @@ async fn erase_link_entity_alone_succeeds() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_link),
                 include_drafts: false,
@@ -817,7 +817,7 @@ async fn purge_archive_archives_incoming_link() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -892,7 +892,7 @@ async fn purge_archive_multiple_incoming_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -941,7 +941,7 @@ async fn purge_archive_batch_links_not_archived() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -986,7 +986,7 @@ async fn purge_archive_no_incoming_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id),
                 include_drafts: false,
@@ -1034,7 +1034,7 @@ async fn purge_archive_chain() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1080,7 +1080,7 @@ async fn purge_archive_self_loop() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -1159,7 +1159,7 @@ async fn purge_archive_includes_draft_link_versions() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1219,7 +1219,7 @@ async fn erase_rejects_archived_incoming_links() {
     // Purge A with Archive → L gets archived
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -1241,7 +1241,7 @@ async fn erase_rejects_archived_incoming_links() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1278,7 +1278,7 @@ async fn purge_error_ignores_archived_links() {
     // Archive L by purging A
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -1298,7 +1298,7 @@ async fn purge_error_ignores_archived_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1361,7 +1361,7 @@ async fn archive_creates_historical_temporal_rows() {
 
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1422,7 +1422,7 @@ async fn broad_temporal_axes_find_archived_entities() {
     // Archive L by purging B
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1440,7 +1440,7 @@ async fn broad_temporal_axes_find_archived_entities() {
     let summary_live = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_link),
                 include_drafts: false,
@@ -1460,7 +1460,7 @@ async fn broad_temporal_axes_find_archived_entities() {
     let summary_all = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_link),
                 include_drafts: false,
@@ -1508,7 +1508,7 @@ async fn user_deletion_then_reset_graph() {
     // "User deletion": purge A with Archive
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: true,
@@ -1528,7 +1528,7 @@ async fn user_deletion_then_reset_graph() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -1593,7 +1593,7 @@ async fn archive_already_archived_link_is_noop() {
     // Purge A1 with Archive -> L1 archived
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a1),
                 include_drafts: false,
@@ -1621,7 +1621,7 @@ async fn archive_already_archived_link_is_noop() {
     // Purge A2 with Archive -> L2 archived, L1 untouched
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a2),
                 include_drafts: false,

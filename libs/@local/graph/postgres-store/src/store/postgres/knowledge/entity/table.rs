@@ -53,7 +53,7 @@ use type_system::{
         property::metadata::PropertyObjectMetadata,
     },
     ontology::{VersionedUrl, entity_type::EntityTypeUuid},
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{actor::ActorId, actor_group::WebId},
 };
 
 use crate::store::{
@@ -356,11 +356,11 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     pub(crate) async fn query_entities_table_impl(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: QueryEntitiesTableParams,
     ) -> Result<QueryEntitiesTableResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -643,7 +643,7 @@ where
             };
             Some(
                 self.get_closed_multi_entity_types(
-                    actor_id,
+                    Some(actor_id),
                     rows.iter()
                         .map(|row| row.entity_type_ids.clone())
                         .chain(
@@ -690,7 +690,7 @@ where
                     .collect::<Vec<_>>();
                 Some(
                     self.get_entity_type_resolve_definitions(
-                        actor_id,
+                        Some(actor_id),
                         &entity_type_uuids,
                         params.include_entity_types
                             == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),

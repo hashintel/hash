@@ -956,17 +956,20 @@ impl<'p> Filter<'p, Entity> {
             EntityResourceFilter::Not { filter } => {
                 Self::Not(Box::new(Self::for_resource_filter(filter, actor_id)))
             }
-            EntityResourceFilter::CreatedByPrincipal => Self::Equal(
-                FilterExpression::Path {
-                    path: EntityQueryPath::CreatedById,
-                },
-                FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(
-                        actor_id
-                            .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from)
-                            .into(),
-                    ),
-                    convert: None,
+            EntityResourceFilter::CreatedByPrincipal => actor_id.map_or_else(
+                // An empty `Any` transpiles to `FALSE`, so a request without an actor matches
+                // no row.
+                || Self::Any(Vec::new()),
+                |actor_id| {
+                    Self::Equal(
+                        FilterExpression::Path {
+                            path: EntityQueryPath::CreatedById,
+                        },
+                        FilterExpression::Parameter {
+                            parameter: Parameter::Uuid(ActorEntityUuid::from(actor_id).into()),
+                            convert: None,
+                        },
+                    )
                 },
             ),
             EntityResourceFilter::IsReadOnly => Self::Equal(

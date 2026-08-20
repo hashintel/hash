@@ -25,7 +25,10 @@ use type_system::{
             provenance::EntityDeletionProvenance,
         },
     },
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId},
+        actor_group::WebId,
+    },
 };
 
 use crate::store::{
@@ -550,7 +553,7 @@ where
     /// All operations run in a single CTE within the caller's transaction.
     async fn archive_incoming_link_edges(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         target: &FullEntityDeletionTarget,
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
@@ -652,7 +655,7 @@ where
     /// - [`LinkDeletionBehavior::Ignore`] — no-op.
     async fn handle_incoming_link_edges(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         scope: &DeletionScope,
         target: &FullEntityDeletionTarget,
         transaction_time: Timestamp<TransactionTime>,
@@ -761,12 +764,12 @@ where
     async fn update_entity_ids_provenance(
         &mut self,
         target: &FullEntityDeletionTarget,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         decision_time: Timestamp<DecisionTime>,
         transaction_time: Timestamp<TransactionTime>,
     ) -> Result<u64, Report<DeletionError>> {
         let provenance = EntityDeletionProvenance {
-            deleted_by_id: actor_id,
+            deleted_by_id: ActorEntityUuid::from(actor_id),
             deleted_at_transaction_time: transaction_time,
             deleted_at_decision_time: decision_time,
         };
@@ -898,7 +901,7 @@ where
     /// [`Store`]: DeletionError::Store
     pub(super) async fn execute_entity_deletion(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: DeleteEntitiesParams<'_>,
     ) -> Result<DeletionSummary, Report<DeletionError>> {
         let transaction_time = Timestamp::<TransactionTime>::now();

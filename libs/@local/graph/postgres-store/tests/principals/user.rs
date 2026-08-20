@@ -75,9 +75,7 @@ async fn get_non_existent_user() -> Result<(), Box<dyn Error>> {
     let (client, actor_id) = db.seed().await?;
 
     let non_existent_id = UserId::new(Uuid::new_v4());
-    let result = client
-        .get_user_by_id(actor_id.into(), non_existent_id)
-        .await?;
+    let result = client.get_user_by_id(actor_id, non_existent_id).await?;
 
     assert!(
         result.is_none(),

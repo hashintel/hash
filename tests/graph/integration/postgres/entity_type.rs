@@ -103,7 +103,7 @@ async fn query() {
 
     let entity_type = api
         .query_entity_types(
-            api.account_id,
+            Some(api.account_id),
             QueryEntityTypesParams {
                 request: CommonQueryEntityTypesParams {
                     filter: Filter::for_versioned_url(&organization_et.id),
@@ -199,7 +199,7 @@ async fn update() {
 
     let returned_page_et_v1 = api
         .query_entity_types(
-            api.account_id,
+            Some(api.account_id),
             QueryEntityTypesParams {
                 request: CommonQueryEntityTypesParams {
                     filter: Filter::for_versioned_url(&page_et_v1.id),
@@ -221,7 +221,7 @@ async fn update() {
 
     let returned_page_et_v2 = api
         .query_entity_types(
-            api.account_id,
+            Some(api.account_id),
             QueryEntityTypesParams {
                 request: CommonQueryEntityTypesParams {
                     filter: Filter::for_versioned_url(&page_et_v2.id),

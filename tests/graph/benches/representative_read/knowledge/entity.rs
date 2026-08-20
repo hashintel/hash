@@ -15,7 +15,7 @@ use hash_graph_store::{
 };
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
-use type_system::{knowledge::entity::id::EntityUuid, principal::actor::ActorEntityUuid};
+use type_system::{knowledge::entity::id::EntityUuid, principal::actor::ActorId};
 
 use crate::util::Store;
 
@@ -28,7 +28,7 @@ pub fn bench_get_entity_by_id(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &RefCell<&mut Store>,
-    actor_id: ActorEntityUuid,
+    actor_id: ActorId,
     entity_uuids: &[EntityUuid],
 ) {
     bencher.to_async(runtime).iter_batched(
@@ -43,7 +43,7 @@ pub fn bench_get_entity_by_id(
             let response = store
                 .borrow_mut()
                 .query_entities(
-                    actor_id,
+                    Some(actor_id),
                     QueryEntitiesParams {
                         filter: Filter::Equal(
                             FilterExpression::Path {
@@ -83,7 +83,7 @@ pub fn bench_query_entities_by_property(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &RefCell<&mut Store>,
-    actor_id: ActorEntityUuid,
+    actor_id: ActorId,
     traversal_params: &SubgraphTraversalParams,
 ) {
     bencher.to_async(runtime).iter(|| {
@@ -105,7 +105,7 @@ pub fn bench_query_entities_by_property(
             let response = store
                 .borrow_mut()
                 .query_entity_subgraph(
-                    actor_id,
+                    Some(actor_id),
                     QueryEntitySubgraphParams::from_parts(
                         QueryEntitiesParams {
                             filter,
@@ -139,7 +139,7 @@ pub fn bench_get_link_by_target_by_property(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &RefCell<&mut Store>,
-    actor_id: ActorEntityUuid,
+    actor_id: ActorId,
     traversal_params: &SubgraphTraversalParams,
 ) {
     bencher.to_async(runtime).iter(|| {
@@ -165,7 +165,7 @@ pub fn bench_get_link_by_target_by_property(
             let response = store
                 .borrow_mut()
                 .query_entity_subgraph(
-                    actor_id,
+                    Some(actor_id),
                     QueryEntitySubgraphParams::from_parts(
                         QueryEntitiesParams {
                             filter,

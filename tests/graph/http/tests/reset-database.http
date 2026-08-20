@@ -1,8 +1,31 @@
 
+### Seed default policies
+# Seeds the actions and system policies and creates the system machine the fetch below reads,
+# after a previous reset erased the principals.
+GET http://127.0.0.1:4000/policies/seed
+Content-Type: application/json
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 204, "Response status is not 204");
+    });
+%}
+
+### Get the system machine to act as
+GET http://127.0.0.1:4000/actors/machine/identifier/system/h
+Content-Type: application/json
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("system_machine_id", response.body);
+%}
+
 ### Delete entities
 POST http://127.0.0.1:4001/entities/delete
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
 {
   "filter": { "all": [] },
@@ -31,7 +54,6 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 ### Delete entity types
 DELETE http://127.0.0.1:4001/entity-types
-X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%
     client.test("status", function() {
@@ -41,7 +63,6 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 ### Delete property types
 DELETE http://127.0.0.1:4001/property-types
-X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%
     client.test("status", function() {
@@ -51,7 +72,6 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 ### Delete data types
 DELETE http://127.0.0.1:4001/data-types
-X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%
     client.test("status", function() {
@@ -61,7 +81,6 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 ### Delete principals
 DELETE http://127.0.0.1:4001/accounts
-X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%
     client.test("status", function() {
