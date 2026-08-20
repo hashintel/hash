@@ -13,13 +13,13 @@ import { styles } from "./segmented-control.recipe";
 
 import type { FormInputSize, SharedInputProps } from "../../util/form-shared";
 
-export type SegmentedControlItem = (
+export type SegmentedControlItem<ValueType extends string = string> = (
   | { label: React.ReactNode; iconName?: IconName }
   | {
       iconName: IconName;
     }
 ) & {
-  value: string;
+  value: ValueType;
   disabled?: boolean;
   /** Shown on hover/focus of the segment. Also serves as the accessible label of icon-only segments. */
   tooltip?: string;
@@ -29,17 +29,20 @@ export type SegmentedControlItem = (
   >;
 };
 
-export type SegmentedControlProps = {
+export type SegmentedControlProps<ValueType extends string = string> = {
   /** How the segments are arranged (defaults to `horizontal`) */
   layout?: "horizontal" | "vertical";
   /** The size (height) of the control */
   size?: FormInputSize;
   /** The selectable segments */
-  items?: SegmentedControlItem[];
-} & Omit<SharedInputProps<HTMLInputElement, string>, "required" | "invalid"> &
+  items?: SegmentedControlItem<ValueType>[];
+} & Omit<
+  SharedInputProps<HTMLInputElement, NoInfer<ValueType>>,
+  "required" | "invalid"
+> &
   React.AriaAttributes;
 
-export const SegmentedControl = ({
+export const SegmentedControl = <const ValueType extends string>({
   layout = "horizontal",
   size = "md",
   items = [],
@@ -56,7 +59,7 @@ export const SegmentedControl = ({
   autoFocus,
   disabled,
   ...ariaProps
-}: SegmentedControlProps) => {
+}: SegmentedControlProps<ValueType>) => {
   const fieldIdFromContext = useFieldId();
   const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
 
@@ -76,7 +79,7 @@ export const SegmentedControl = ({
       value={value}
       onValueChange={(details) => {
         if (details.value !== null) {
-          onChange(details.value);
+          onChange(details.value as ValueType);
         }
       }}
       name={name}
