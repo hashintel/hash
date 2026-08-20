@@ -324,7 +324,7 @@ fn a_second_reading_of_one_metric_replaces_the_first() {
     state.probe_quality(QualityMetric::Continuity, 0.8000);
     state.probe_quality(QualityMetric::Continuity, 0.9104);
 
-    // One reduction over the probe's rungs answers one question,
+    // One reduction over the probe's steps answers one question,
     // so a repeat is a fresher answer and never a second row.
     assert_eq!(
         state.quality().collect::<Vec<_>>(),

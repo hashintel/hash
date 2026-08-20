@@ -18,13 +18,19 @@ use crate::{
 
 /// The staged coordinate column failed to open as a finite point field.
 #[derive(Debug)]
-pub(super) enum OpenCoordinatesError {
+pub(crate) enum OpenCoordinatesError {
     /// The staged column failed to open as an array.
     Open(OpenArrayError),
     /// The array does not hold `f32` pairs.
     InvalidArray,
     /// The column carries a non-finite point.
     NonFinite(NonFinitePoint<NodeRowId>),
+}
+
+impl From<OpenArrayError> for OpenCoordinatesError {
+    fn from(error: OpenArrayError) -> Self {
+        Self::Open(error)
+    }
 }
 
 impl fmt::Display for OpenCoordinatesError {

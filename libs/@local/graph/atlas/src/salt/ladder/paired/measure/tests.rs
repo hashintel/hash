@@ -32,8 +32,8 @@ fn readout_index() -> (Vec<GroupRecord>, Vec<EdgeRecord<NodeRowId, EdgeRowId>>) 
 
 /// The writer fixture's aligned frames, exact in every drawn reading.
 ///
-/// The pair clusters sit far apart, and each partner is its source's nearest row at both rungs
-/// except one designed movement: row 4 moves ahead of partner 3 at the canonical rung, where
+/// The pair clusters sit far apart, and each partner is its source's nearest row at both steps
+/// except one designed movement: row 4 moves ahead of partner 3 at the canonical step, where
 /// row 5's reading ties the partner's own squared distance exactly (81) and resolves behind it
 /// by row identity. Every drawn distance is an integer by construction:
 ///
@@ -248,9 +248,9 @@ fn the_readout_reproduces_its_bytes_and_pins_exact_decimal_aggregates() {
         }),
     );
 
-    // The forbidden shortcut over the same readings: subtracting the rung medians reads
+    // The forbidden shortcut over the same readings: subtracting the step medians reads
     // 2 - 4 = -2 where the pair-first median reads -1, so the pinned aggregate cannot have
-    // come from rung-aggregate subtraction.
+    // come from step-aggregate subtraction.
     let typed = |readings: [f64; 4]| {
         readings.map(|reading| DFinite::new(reading).expect("the fixture readings are finite"))
     };

@@ -1,6 +1,6 @@
 //! The persisted paired-movement evidence body and its aggregation.
 //!
-//! [`PairedMovementEvidence`] is the block the metadata document embeds beside the rung
+//! [`PairedMovementEvidence`] is the block the metadata document embeds beside the step
 //! measurements: the draw metadata a replay re-derives, then a tri-state outcome. A
 //! [`MovementOutcome::Measured`] body carries the aggregate families, and the other two
 //! structurally cannot. [`MovementOutcome::Vacuous`] records an empty pair domain, while
@@ -11,7 +11,7 @@
 //! quantile grid and the strata alone.
 //!
 //! Aggregation forms each per-pair difference from one reading's own fields in `f64` and never
-//! subtracts rung aggregates. Means commute with subtraction while fractions and quantiles do
+//! subtracts step aggregates. Means commute with subtraction while fractions and quantiles do
 //! not, so the shortcut would fabricate readings no pair produced. Quantiles follow the nearest
 //! rank, and every accumulating sum is one serial `f64` fold in draw order, so one draw
 //! reproduces its aggregates bit for bit.
@@ -106,7 +106,7 @@ pub(crate) enum MovementOutcome<I> {
 ///
 /// Each difference forms per pair from one [`PairMovement`]'s own fields. A negative distance
 /// change contracts, and a negative rank change improves rank, so the fractions read the share
-/// of pairs the canonical rung moved toward their partners.
+/// of pairs the canonical step moved toward their partners.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PairAggregates {
     /// The population count `n`, every drawn pair.
@@ -125,7 +125,7 @@ impl PairAggregates {
     /// Aggregates the drawn pairs' readings, in draw order.
     ///
     /// Every difference forms directly from a reading's own fields in `f64`, never by
-    /// subtracting persisted rung aggregates. Means commute with subtraction while fractions
+    /// subtracting persisted step aggregates. Means commute with subtraction while fractions
     /// and quantiles do not, so the subtraction shortcut fabricates readings no pair produced.
     ///
     /// # Panics
@@ -264,7 +264,7 @@ pub(crate) struct ControlDecile {
 impl ControlDecile {
     /// Builds the ten collateral strata.
     ///
-    /// `candidates` holds every nonparticipant row's zero-rung nearest-anchor distance and is
+    /// `candidates` holds every nonparticipant row's zero-step nearest-anchor distance and is
     /// sorted in place. `readings` holds the drawn controls' readings in draw order, and each
     /// drawn reading re-derives through the one metric, so it is one of the candidate readings.
     /// A reading joins the first stratum whose upper boundary reaches it. Equal readings
@@ -356,7 +356,7 @@ pub(crate) enum FailureReason<I> {
         /// The corpus row count.
         rows: u64,
     },
-    /// The rung frames disagree on the corpus row count.
+    /// The step frames disagree on the corpus row count.
     FrameRows {
         /// The zero-condition frame's row count.
         zero: u64,

@@ -3,7 +3,7 @@
 use hashql_core::id::Id;
 
 use super::super::{
-    super::{RUNGS, refresh},
+    super::{STEPS, refresh},
     BoundaryEvidence, FrozenRadius, TrainError, TrainOptions, TrainerInputs,
 };
 use crate::{
@@ -39,7 +39,7 @@ where
     N: Id,
     E: Id,
 {
-    let scales = refresh::scales(frame, &inputs.knn, RUNGS[0])?;
+    let scales = refresh::scales(frame, &inputs.knn, STEPS[0])?;
     let calibration = calibrate(
         inputs.verdicts,
         inputs.attraction,

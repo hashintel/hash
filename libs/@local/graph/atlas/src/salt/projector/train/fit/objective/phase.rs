@@ -18,7 +18,7 @@ use hashql_core::id::{Id, IdSlice, IdVec};
 use super::{
     super::{
         super::{
-            RUNGS, StepError,
+            STEPS, StepError,
             batch::{NodeColumns, ROW_ALIGNMENT, materialize_input},
             refresh,
             step::read_frame_finite,
@@ -65,7 +65,7 @@ pub(crate) struct ForwardContext<'run, N, B: AutodiffBackend> {
 
 /// One step's target pass products.
 ///
-/// The surrogate carries both rungs' hand-gradient deposits. The contribution is the
+/// The surrogate carries both steps' hand-gradient deposits. The contribution is the
 /// activation-scaled estimand the composite loss descends. The fit and the projected zero field
 /// feed the evaluation evidence on tick steps.
 pub(crate) struct TargetStep<N, B: AutodiffBackend> {
@@ -200,9 +200,9 @@ where
 
     /// Runs one step's target pass.
     ///
-    /// Forwards the whole corpus at the zero rung and enforces the band - the enforcement
+    /// Forwards the whole corpus at the zero step and enforces the band - the enforcement
     /// point every post-boundary step passes through. The pass then forwards its own row set
-    /// at both estimand rungs, projects its zero values under the frozen constraint, and fits
+    /// at both estimand steps, projects its zero values under the frozen constraint, and fits
     /// the live gauge alignment on those coordinates. The batch estimator folds over the
     /// priced units. The scale pull fans into the anchors. The zero side composes through the
     /// pass's own applied clip derivatives, and both gradient fields deposit through the
@@ -233,7 +233,7 @@ where
         let mut zero_field = refresh::forward(
             &forward.model.valid(),
             forward.columns,
-            RUNGS[0],
+            STEPS[0],
             forward.forward_rows,
             forward.device,
         )?;
@@ -252,7 +252,7 @@ where
             })
         };
 
-        // The two-rung forwards. Each rung's values read back from its own tensor, so every
+        // The two-step forwards. Each step's values read back from its own tensor, so every
         // reading the estimator takes shares a graph with the tensor its gradient deposits
         // through.
         let canonical_tensor = forward.model.forward(materialize_input(
@@ -268,7 +268,7 @@ where
 
         let zero_tensor = forward.model.forward(materialize_input(
             &pass.rows,
-            RUNGS[0],
+            STEPS[0],
             forward.columns,
             forward.device,
             ROW_ALIGNMENT,
@@ -396,7 +396,7 @@ where
         let mut field = refresh::forward(
             &forward.model.valid(),
             forward.columns,
-            RUNGS[0],
+            STEPS[0],
             forward.forward_rows,
             forward.device,
         )?;

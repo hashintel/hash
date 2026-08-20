@@ -134,8 +134,8 @@ pub(crate) enum TrainError<N> {
     Gauge(GaugeRefusal),
     /// A step's accumulated target reading diverged, and the target pass owns the refusal.
     TargetReading(Diverged<f64>),
-    /// The declared canonical rung lies outside the training curriculum's rung set.
-    CanonicalRungOutOfSchedule { rung: usize },
+    /// The declared canonical step lies outside the training curriculum's step set.
+    CanonicalStepOutOfSchedule { step: usize },
     /// The target estimand's declared unit population carries no mass.
     ///
     /// A forceless attraction index and an index whose every instance weighs zero resolve the
@@ -184,8 +184,8 @@ impl<N> TrainError<N> {
             Self::Ruler(error) => TrainError::Ruler(error.map_rows(row)),
             Self::Gauge(error) => TrainError::Gauge(error),
             Self::TargetReading(diverged) => TrainError::TargetReading(diverged),
-            Self::CanonicalRungOutOfSchedule { rung } => {
-                TrainError::CanonicalRungOutOfSchedule { rung }
+            Self::CanonicalStepOutOfSchedule { step } => {
+                TrainError::CanonicalStepOutOfSchedule { step }
             }
             Self::EmptyTargetPopulation => TrainError::EmptyTargetPopulation,
             Self::TargetWithoutUnitDraws => TrainError::TargetWithoutUnitDraws,
@@ -243,9 +243,9 @@ where
                 "the step's accumulated target reading diverged to {}",
                 diverged.raw
             ),
-            Self::CanonicalRungOutOfSchedule { rung } => write!(
+            Self::CanonicalStepOutOfSchedule { step } => write!(
                 fmt,
-                "the declared canonical rung index {rung} lies outside the training curriculum",
+                "the declared canonical step index {step} lies outside the training curriculum",
             ),
             Self::EmptyTargetPopulation => fmt.write_str(
                 "the target estimand's declared unit population carries no mass; the run belongs \
@@ -286,7 +286,7 @@ where
             | Self::DegenerateRadius { .. }
             | Self::ScheduleChanged { .. }
             | Self::TargetReading(..)
-            | Self::CanonicalRungOutOfSchedule { .. }
+            | Self::CanonicalStepOutOfSchedule { .. }
             | Self::EmptyTargetPopulation
             | Self::TargetWithoutUnitDraws
             | Self::PenaltyWithoutForceAtEquality

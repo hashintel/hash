@@ -1463,7 +1463,7 @@ fn minimal_schedule() -> TrainingSchedule {
 
 /// The projector fixture's training run.
 ///
-/// Short enough for a test, long enough that the boundary and every rung run. The hidden
+/// Short enough for a test, long enough that the boundary and every step run. The hidden
 /// architecture shrinks while the representation width keeps the pipeline's contract, so a
 /// forward or training step costs a fraction of the ratified model's; the publish seam's own
 /// certificates (`compute::projector::tests`) pin the bit-exact publish contracts, and these
@@ -1546,7 +1546,7 @@ fn default_placement_is_the_trained_projector() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn forceless_projector_publishes_the_baseline_rung() {
+async fn forceless_projector_publishes_the_baseline_step() {
     let root = GenerationRoot::new(scratch("projector-vacuous")).expect("the root should open");
     let dataset = dataset();
 
@@ -1704,7 +1704,7 @@ fn assert_paired_replay(published: &Utf8Path, repository: &SaltRepository) {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn trained_lens_publishes_the_canonical_rung_aligned() {
+async fn trained_lens_publishes_the_canonical_step_aligned() {
     let root = GenerationRoot::new(scratch("projector-ladder")).expect("the root should open");
     let dataset = dataset();
 
@@ -1767,22 +1767,22 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
         .ladder
         .as_ref()
         .expect("a trained lens measures the ladder");
-    assert_eq!(ladder.rungs.len(), options.ladder.conditions.len());
+    assert_eq!(ladder.steps.len(), options.ladder.conditions.len());
     assert_eq!(ladder.canonical.get().to_bits(), 1.0_f32.to_bits());
-    assert_eq!(ladder.canonical_index, ladder.rungs.len() - 1);
+    assert_eq!(ladder.canonical_index, ladder.steps.len() - 1);
 
-    // The baseline rung is its own frame; every recorded loss is a
+    // The baseline step is its own frame; every recorded loss is a
     // real measurement.
-    assert_eq!(ladder.rungs[0].alignment, Similarity::IDENTITY);
+    assert_eq!(ladder.steps[0].alignment, Similarity::IDENTITY);
     assert_eq!(
-        ladder.rungs[0].baseline_movement.get().to_bits(),
+        ladder.steps[0].baseline_movement.get().to_bits(),
         0.0_f64.to_bits()
     );
-    // The run trained the lens, and the canonical rung moved measurably against its predecessor.
-    let canonical = &ladder.rungs[ladder.canonical_index];
+    // The run trained the lens, and the canonical step moved measurably against its predecessor.
+    let canonical = &ladder.steps[ladder.canonical_index];
     assert!(canonical.adjacent_movement > d_non_negative!(0.0));
 
-    // The paired-movement readout lands beside the rungs, and its salt and draw replay from
+    // The paired-movement readout lands beside the steps, and its salt and draw replay from
     // the published document alone.
     assert_paired_replay(published.path(), &repository);
 
@@ -2122,7 +2122,7 @@ async fn vacuous_placement_trains_without_reviews() {
         serde_json::from_slice(&document).expect("the document should deserialize");
 
     // The placement trained, no radius froze, and the untrained lens
-    // publishes the baseline rung directly - no ladder to measure.
+    // publishes the baseline step directly - no ladder to measure.
     assert_eq!(repository.metadata.placement, Placement::Projector);
     let evidence = repository
         .metadata
@@ -2166,11 +2166,11 @@ async fn vacuous_placement_trains_without_reviews() {
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn canonical_condition_outside_the_schedule_publishes_nothing() {
-    let path = scratch("projector-unknown-rung");
+    let path = scratch("projector-unknown-step");
     let root = GenerationRoot::new(&path).expect("the root should open");
     let dataset = dataset();
 
-    // 0.3 names no rung of the schedule, so the configuration
+    // 0.3 names no step of the schedule, so the configuration
     // contradicts itself and the fit must refuse to publish. The
     // membership is decidable from the options alone, so the refusal
     // lands before a single training step: the run's cost is the
@@ -2211,7 +2211,7 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
         matches!(
             result,
             Err(FitError::Compute(ComputeError::Placement(
-                PlacementError::Canonical(CanonicalError::UnknownRung { .. })
+                PlacementError::Canonical(CanonicalError::UnknownStep { .. })
             ))),
         ),
         "an off-schedule canonical condition should abort the fit",

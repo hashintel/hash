@@ -368,7 +368,7 @@ where
 ///
 /// The population, weights, and normalization convention are the calibration's own
 /// ([`calibrate`]), re-measured over the given frame and scales: the per-refresh drift
-/// report re-asks the freeze-time question of a later frame, on the same rung the freeze
+/// report re-asks the freeze-time question of a later frame, on the same step the freeze
 /// measured. At the freeze frame itself the reading is the smallest mass share the atom
 /// structure realizes at or above the radius fraction, so later readings drift against that
 /// first entry rather than against the fraction constant.

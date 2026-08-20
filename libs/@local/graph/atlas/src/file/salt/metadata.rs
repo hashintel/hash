@@ -54,7 +54,7 @@ pub(crate) enum Placement {
     LandmarkBaseline,
     /// The trained conditioned projector placed every row.
     ///
-    /// The published coordinates are the canonical rung's aligned field, and the checkpoint
+    /// The published coordinates are the canonical step's aligned field, and the checkpoint
     /// publishes as the `projector` role.
     Projector,
 }
@@ -186,7 +186,7 @@ pub(crate) struct ProjectorEvidence {
     /// The measured condition ladder.
     ///
     /// Absent when the corpus carries no relation force: the lens receives zero gradient there,
-    /// every rung projects the identical field, and the baseline publishes directly.
+    /// every step projects the identical field, and the baseline publishes directly.
     pub ladder: Option<LadderEvidence>,
 }
 
@@ -222,7 +222,7 @@ pub(crate) struct ProximalCalibrationEvidence {
     /// Per-refresh boundary-drift readings, in step order.
     ///
     /// The weighted fraction of reviewed mass at or below the frozen radius, re-measured at
-    /// each scale-bearing refresh tick over the freeze rung's frame and scale table. The
+    /// each scale-bearing refresh tick over the freeze step's frame and scale table. The
     /// boundary tick contributes the first entry, and later entries drift against it.
     pub fractions: Vec<RefreshFractionEvidence>,
     /// The reviews arm's evaluated stability certificate.
@@ -383,22 +383,22 @@ pub(crate) struct SaltMetadata {
     pub evidence: Evidence,
 }
 
-/// The measured condition ladder and its published canonical rung.
+/// The measured condition ladder and its published canonical step.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LadderEvidence {
-    /// One record per rung, in schedule order.
-    pub rungs: Vec<RungEvidence>,
-    /// The published rung's condition.
+    /// One record per step, in schedule order.
+    pub steps: Vec<StepEvidence>,
+    /// The published step's condition.
     pub canonical: NonNegative,
-    /// The published rung's schedule index.
+    /// The published step's schedule index.
     pub canonical_index: usize,
     /// The relation loss re-measured over the persisted aligned column.
     ///
     /// Guards the alignment application and the narrowing to `f32`. The reading is the corpus
     /// total over every attraction instance, with no per-type cap; it does not store the capped
-    /// trained estimand ([`RungEvidence::capped_relation_loss`]).
+    /// trained estimand ([`StepEvidence::capped_relation_loss`]).
     pub persisted_relation_loss: DNonNegative,
-    /// The paired-movement readout beside the rungs.
+    /// The paired-movement readout beside the steps.
     ///
     /// `None` records a ladder written before the readout existed. A ladder writer that
     /// carries the readout always emits a present body, so a vacuous or failed measurement
@@ -406,7 +406,7 @@ pub(crate) struct LadderEvidence {
     pub paired_movement: Option<PairedMovementEvidence<NodeRowId>>,
 }
 
-/// One relation type's share of a rung's relation loss.
+/// One relation type's share of a step's relation loss.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct TypeRelationLoss {
     /// The relation's ontology row.
@@ -415,17 +415,17 @@ pub(crate) struct TypeRelationLoss {
     pub loss: DNonNegative,
 }
 
-/// One rung's cross-condition evidence.
+/// One step's cross-condition evidence.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub(crate) struct RungEvidence {
-    /// The rung's condition value.
+pub(crate) struct StepEvidence {
+    /// The step's condition value.
     pub condition: NonNegative,
     /// The field's frozen relation loss at projection time.
     ///
     /// The corpus total over every attraction instance, with no per-type cap; it does not store
     /// the capped trained estimand ([`Self::capped_relation_loss`]).
     pub relation_loss: DNonNegative,
-    /// The capped trained estimand at this rung.
+    /// The capped trained estimand at this step.
     ///
     /// The per-type clipped total the trainer optimizes: each type's share scaled by
     /// `min(cap, n) / n`, the exact expectation of the capped-sampling batch estimator, measured
@@ -445,7 +445,7 @@ pub(crate) struct RungEvidence {
     /// accumulation chains, so their sum matches the total to rounding, not bit-exactly.
     #[serde(default)]
     pub relation_losses: Vec<TypeRelationLoss>,
-    /// The similarity aligning the rung's field onto the baseline field.
+    /// The similarity aligning the step's field onto the baseline field.
     ///
     /// The identity for the baseline itself.
     #[serde(with = "similarity")]

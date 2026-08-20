@@ -17,12 +17,12 @@ use crate::math::NonNegative;
 hashql_core::id::newtype! {
     /// One position on the grids' neighbourhood axis, in the options' reporting order.
     ///
-    /// The probe reads every metric at a ladder of neighbourhood sizes, and a rung addresses one of
-    /// them. The grids address cells by rung, and the rung's neighbourhood size lives in
-    /// [`ProbeReadings::neighbourhoods`], so a rung index and a neighbourhood size can never
+    /// The probe reads every metric at a ladder of neighbourhood sizes, and a step addresses one of
+    /// them. The grids address cells by step, and the step's neighbourhood size lives in
+    /// [`ProbeReadings::neighbourhoods`], so a step index and a neighbourhood size can never
     /// stand in for one another.
     #[id(const)]
-    pub(crate) struct Rung(u32)
+    pub(crate) struct Step(u32)
 }
 
 hashql_core::id::newtype! {
@@ -64,7 +64,7 @@ pub(crate) type SpacePairArray<T> = IdArray<SpacePair, T, { SpacePair::COUNT }>;
 /// aggregates for the space-pair grids, clump aggregates for the collapsed corpus grid.
 #[derive(Debug, Clone)]
 pub(crate) struct ReadingGrid<A = NeighbourhoodAggregate> {
-    cells: IdMatrix<AnchorOrdinal, Rung, A>,
+    cells: IdMatrix<AnchorOrdinal, Step, A>,
 }
 
 impl<A> ReadingGrid<A> {
@@ -72,11 +72,11 @@ impl<A> ReadingGrid<A> {
     ///
     /// # Panics
     ///
-    /// This panics when a row's cell count differs from `rungs`; every anchor reads the same rungs,
+    /// This panics when a row's cell count differs from `steps`; every anchor reads the same steps,
     /// so a ragged row is a wiring defect.
-    pub(crate) fn from_anchor_cells(rows: Vec<Vec<A>>, rungs: usize) -> Self {
+    pub(crate) fn from_anchor_cells(rows: Vec<Vec<A>>, steps: usize) -> Self {
         Self {
-            cells: IdMatrix::from_rows(rows, rungs),
+            cells: IdMatrix::from_rows(rows, steps),
         }
     }
 
@@ -87,36 +87,36 @@ impl<A> ReadingGrid<A> {
         self.cells.rows()
     }
 
-    /// Returns the rung count of the neighbourhood axis.
+    /// Returns the step count of the neighbourhood axis.
     #[inline]
     #[must_use]
-    pub(crate) const fn rungs(&self) -> usize {
+    pub(crate) const fn steps(&self) -> usize {
         self.cells.columns()
     }
 
-    /// Borrows one anchor's reading at one rung.
+    /// Borrows one anchor's reading at one step.
     ///
     /// # Panics
     ///
-    /// This panics when `anchor` or `rung` lies outside the grid.
+    /// This panics when `anchor` or `step` lies outside the grid.
     #[inline]
     #[must_use]
-    pub(crate) const fn anchor(&self, anchor: AnchorOrdinal, rung: Rung) -> &A {
-        &self.cells[(anchor, rung)]
+    pub(crate) const fn anchor(&self, anchor: AnchorOrdinal, step: Step) -> &A {
+        &self.cells[(anchor, step)]
     }
 }
 
 // Each cell type implements `overall` itself rather than sharing one
 // merge trait.
 impl ReadingGrid<NeighbourhoodAggregate> {
-    /// Merges every anchor's reading at one rung.
+    /// Merges every anchor's reading at one step.
     ///
     /// # Panics
     ///
-    /// This panics when `rung` lies outside the grid or the grid holds no anchor.
+    /// This panics when `step` lies outside the grid or the grid holds no anchor.
     #[must_use]
-    pub(crate) fn overall(&self, rung: Rung) -> NeighbourhoodAggregate {
-        let mut column = self.cells.column(rung);
+    pub(crate) fn overall(&self, step: Step) -> NeighbourhoodAggregate {
+        let mut column = self.cells.column(step);
         let mut merged = column
             .next()
             .expect("the grid holds at least one anchor")
@@ -135,10 +135,10 @@ impl ReadingGrid<ClumpAggregate> {
     ///
     /// # Panics
     ///
-    /// This panics when `rung` lies outside the grid or the grid holds no anchor.
+    /// This panics when `step` lies outside the grid or the grid holds no anchor.
     #[must_use]
-    pub(crate) fn overall(&self, rung: Rung) -> ClumpAggregate {
-        let mut column = self.cells.column(rung);
+    pub(crate) fn overall(&self, step: Step) -> ClumpAggregate {
+        let mut column = self.cells.column(step);
         let mut merged = *column.next().expect("the grid holds at least one anchor");
         for cell in column {
             merged.merge(cell);
@@ -198,8 +198,8 @@ pub(crate) struct ProbeReadings<N> {
     pub comparisons: Box<[N]>,
     /// The neighbourhood sizes every grid reads at, in options order.
     ///
-    /// The size at each [`Rung`] of the grids' neighbourhood axis.
-    pub neighbourhoods: Box<IdSlice<Rung, NonZero<usize>>>,
+    /// The size at each [`Step`] of the grids' neighbourhood axis.
+    pub neighbourhoods: Box<IdSlice<Step, NonZero<usize>>>,
     /// Map versus representation, ranking every non-anchor row against each sampled anchor. The
     /// comparison universe is every row that is not itself an anchor - exact, and the whole corpus
     /// but for the anchors - while the aggregate remains an anchor-sampled statistic rather than a

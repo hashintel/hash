@@ -500,7 +500,7 @@ pub(crate) struct Vote {
     pub quantization: Option<String>,
     /// The prompt-framing id.
     pub framing: String,
-    /// The reasoning-effort rung.
+    /// The reasoning-effort step.
     pub effort: String,
     /// The sampling temperature, when the run pinned one.
     ///

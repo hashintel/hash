@@ -101,17 +101,17 @@ pub(crate) enum ComputeError {
     Placement(PlacementError),
     /// A persisted coordinate column failed to map back for its measurement.
     OpenCoordinates(OpenCoordinatesError),
-    /// A mapped rung frame carries a non-finite coordinate.
+    /// A mapped step frame carries a non-finite coordinate.
     ///
-    /// The refusal names the rung and its first offending row, ahead of the alignment fits
+    /// The refusal names the step and its first offending row, ahead of the alignment fits
     /// that consume the frame as a proven-finite field.
-    NonFiniteRung {
-        /// The rung's position in the condition schedule.
-        rung: usize,
+    NonFiniteStep {
+        /// The step's position in the condition schedule.
+        step: usize,
         /// The first offending row.
         source: NonFinitePoint<NodeRowId>,
     },
-    /// The canonical rung's aligned frame has a non-finite point.
+    /// The canonical step's aligned frame has a non-finite point.
     ///
     /// The alignment onto the baseline basis runs in `f32` and can overflow, so the aligned
     /// frame is proven at its creation before it publishes, and the persisted coordinate
@@ -384,8 +384,8 @@ impl fmt::Display for ComputeError {
             Self::OpenCoordinates(error) => {
                 write!(fmt, "a coordinate column failed to map back: {error}")
             }
-            Self::NonFiniteRung { rung, source } => {
-                write!(fmt, "rung {rung}'s mapped frame is not finite: {source}")
+            Self::NonFiniteStep { step, source } => {
+                write!(fmt, "step {step}'s mapped frame is not finite: {source}")
             }
             Self::NonFiniteAligned { source } => {
                 write!(fmt, "the aligned canonical frame is not finite: {source}")
@@ -449,7 +449,7 @@ impl Error for ComputeError {
             Self::Quad(error) => Some(error),
             Self::Postings(error) => Some(error),
             Self::Seal(error) => Some(error),
-            Self::NonFiniteRung { source, .. } | Self::NonFiniteAligned { source } => Some(source),
+            Self::NonFiniteStep { source, .. } | Self::NonFiniteAligned { source } => Some(source),
             Self::RecallBelowMinimum(_) | Self::WireEncoding { .. } | Self::Panicked { .. } => None,
         }
     }

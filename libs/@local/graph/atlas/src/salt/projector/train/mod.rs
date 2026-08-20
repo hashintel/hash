@@ -1,7 +1,7 @@
 //! Training-step machinery for the conditioned projector.
 //!
 //! One training step draws a minibatch over the built artifacts and projects its rows at the step's
-//! relation-lens rung. The step then evaluates the composite objective against the detached
+//! relation-lens step. The step then evaluates the composite objective against the detached
 //! coordinates and measures the relation forces per node for the budget diagnostics. Its return
 //! value is one backward-ready scalar whose gradient carries exactly the combined per-node field
 //! through the shared model parameters.
@@ -71,19 +71,19 @@ use crate::{
     },
 };
 
-/// The relation-lens rungs the trainer schedules, ascending.
+/// The relation-lens steps the trainer schedules, ascending.
 ///
 /// The first and last entries are the lens extremes.
 ///
 /// This is the training curriculum rather than the published schedule. The lens is a continuous
 /// conditioning input, and these three points (both extremes plus the midpoint) are where the
-/// trainer samples it. The configurable rung set lives on the ladder
+/// trainer samples it. The configurable step set lives on the ladder
 /// ([`LadderOptions`](crate::salt::ladder::LadderOptions)), which decides where the fitted model is
-/// *evaluated* for publication. Publication admits any rung in `[0, 1]`, independent of the
+/// *evaluated* for publication. Publication admits any step in `[0, 1]`, independent of the
 /// curriculum.
-pub(crate) const RUNGS: [NonNegative; 3] = [
+pub(crate) const STEPS: [NonNegative; 3] = [
     NonNegative::ZERO,
-    NonNegative::new(0.5).expect("the midpoint rung is finite and non-negative"),
+    NonNegative::new(0.5).expect("the midpoint step is finite and non-negative"),
     NonNegative::ONE,
 ];
 
@@ -126,7 +126,7 @@ impl<N> Error for StepError<N> where N: fmt::Debug + fmt::Display {}
 /// coefficient is finite and non-negative.
 ///
 /// The relation coefficient is the lens-independent factor; the training loop multiplies it by the
-/// step's rung, so a zero rung contributes nothing regardless of the configured value.
+/// step's step, so a zero step contributes nothing regardless of the configured value.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct Coefficients {
     semantic: Positive,

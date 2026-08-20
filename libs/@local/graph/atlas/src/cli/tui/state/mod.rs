@@ -349,7 +349,7 @@ impl RunState {
     /// Records one measured quality metric of the admission probe.
     ///
     /// A second reading of the same metric replaces the first: the reading a control turns on is
-    /// one reduction over the probe's rungs, so a repeat is a fresher answer to the same question
+    /// one reduction over the probe's steps, so a repeat is a fresher answer to the same question
     /// rather than a second measurement.
     pub(super) fn probe_quality(&mut self, metric: QualityMetric, reading: f64) {
         let Some(index) = QualityMetric::ALL
@@ -454,7 +454,7 @@ impl RunState {
     /// The admission probe's readings, in [`QualityMetric::ALL`] order, skipping what it has not
     /// measured.
     ///
-    /// Every reading arrives in one burst as the probe's report reduces its rungs, so the sequence
+    /// Every reading arrives in one burst as the probe's report reduces its steps, so the sequence
     /// is normally empty or whole; a short one is a battery whose evidence was absent for the
     /// missing controls.
     pub(super) fn quality(&self) -> impl Iterator<Item = (QualityMetric, f64)> + use<> {

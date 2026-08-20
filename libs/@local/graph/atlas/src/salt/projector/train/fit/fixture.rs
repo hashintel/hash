@@ -375,7 +375,7 @@ pub(super) fn target_inputs<'run>(
 
 pub(super) const fn target_options(activation: f32) -> TargetOptions {
     TargetOptions {
-        canonical_rung: nonzero(2),
+        canonical_step: nonzero(2),
         activation: NonNegative::new(activation).expect("fixture activations are non-negative"),
         dimensionless_radius: positive!(0.5),
         epsilon_rel: positive!(0.001),

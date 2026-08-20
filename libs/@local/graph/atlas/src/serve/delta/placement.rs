@@ -1,7 +1,7 @@
 //! The online projection placing arrivals through the generation's own publish path.
 //!
 //! A fitted row's published coordinate is not the checkpoint forward alone. The fit selects the
-//! canonical rung and applies that rung's recorded similarity to every projected point, and the
+//! canonical step and applies that step's recorded similarity to every projected point, and the
 //! aligned field then normalizes through the world frame onto the wire. [`Placer`] repeats
 //! exactly that construction for one arrival. The checkpoint opens against the architecture the
 //! metadata document echoes, the forward runs at the recorded canonical condition, and the
@@ -110,8 +110,8 @@ pub enum PlacementError {
     EchoDisagrees,
     /// The generation stages a projector checkpoint without training evidence.
     MissingEvidence,
-    /// The ladder evidence names a canonical rung outside its own schedule.
-    CanonicalRung,
+    /// The ladder evidence names a canonical step outside its own schedule.
+    CanonicalStep,
     /// The projector checkpoint does not open, or does not decode against the echoed
     /// architecture.
     Checkpoint,
@@ -129,8 +129,8 @@ impl core::fmt::Display for PlacementError {
             Self::MissingEvidence => fmt.write_str(
                 "the generation stages a projector checkpoint without training evidence",
             ),
-            Self::CanonicalRung => {
-                fmt.write_str("the ladder evidence names a canonical rung outside its own schedule")
+            Self::CanonicalStep => {
+                fmt.write_str("the ladder evidence names a canonical step outside its own schedule")
             }
             Self::Checkpoint => fmt.write_str(
                 "the projector checkpoint does not open or does not decode against the echoed \
@@ -156,9 +156,9 @@ pub(crate) struct Placer {
     model: Projector<Inference>,
     /// The device every projection runs on.
     device: LibTorchDevice,
-    /// The canonical rung's condition, or zero for a generation without a measured ladder.
+    /// The canonical step's condition, or zero for a generation without a measured ladder.
     condition: NonNegative,
-    /// The canonical rung's recorded similarity, or [`None`] where the zero frame published
+    /// The canonical step's recorded similarity, or [`None`] where the zero frame published
     /// directly.
     alignment: Option<Similarity>,
     /// The recorded world frame the wire normalization maps from.
@@ -191,7 +191,7 @@ impl Placer {
     /// - [`PlacementError::EchoDisagrees`] when the placement discriminant and the configuration
     ///   echo disagree
     /// - [`PlacementError::MissingEvidence`] when the checkpoint stages without training evidence
-    /// - [`PlacementError::CanonicalRung`] when the ladder evidence names a rung outside its own
+    /// - [`PlacementError::CanonicalStep`] when the ladder evidence names a step outside its own
     ///   schedule
     /// - [`PlacementError::Checkpoint`] when the checkpoint does not open or does not decode
     /// - [`PlacementError::Certificate`] when the reopened path does not reproduce the generation's
@@ -226,15 +226,15 @@ impl Placer {
 
         let (condition, alignment) = match &evidence.ladder {
             Some(ladder) => {
-                let Some(rung) = ladder.rungs.get(ladder.canonical_index) else {
+                let Some(step) = ladder.steps.get(ladder.canonical_index) else {
                     tracing::warn!(
                         canonical_index = ladder.canonical_index,
-                        rungs = ladder.rungs.len(),
-                        "the ladder evidence names a canonical rung outside its own schedule"
+                        steps = ladder.steps.len(),
+                        "the ladder evidence names a canonical step outside its own schedule"
                     );
-                    return Err(PlacementError::CanonicalRung);
+                    return Err(PlacementError::CanonicalStep);
                 };
-                (ladder.canonical, Some(rung.alignment))
+                (ladder.canonical, Some(step.alignment))
             }
             None => (NonNegative::ZERO, None),
         };

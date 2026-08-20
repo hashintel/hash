@@ -9,7 +9,7 @@ use hashql_core::id::{Id, IdSlice, IdVec};
 use super::{
     super::error::ComputeError,
     derive::gather_distinct,
-    evidence::{rung_evidence, rung_path, stage_coordinate_column, write_frame},
+    evidence::{stage_coordinate_column, step_evidence, step_path, write_frame},
     inputs::PublishInputs,
 };
 use crate::{
@@ -46,7 +46,7 @@ use crate::{
 
 /// The ladder pass over one staged placement.
 ///
-/// The pass projects every rung into scratch, publishes the canonical rung's aligned field into
+/// The pass projects every step into scratch, publishes the canonical step's aligned field into
 /// the staged generation, and re-reads the persisted artifacts for the loss and paired-movement
 /// readings. Its whole run is [`measure_conditions`](Self::measure_conditions).
 pub(super) struct LadderPass<'fit> {
@@ -74,7 +74,7 @@ impl<'fit> LadderPass<'fit> {
 
     /// Projects, measures, and publishes the condition ladder, returning its evidence.
     ///
-    /// Every rung projects into the scratch directory and maps back. The canonical rung's field
+    /// Every step projects into the scratch directory and maps back. The canonical step's field
     /// aligns into the baseline frame and stages as the coordinate column, and the relation loss
     /// re-measures over the persisted bytes.
     pub(super) fn measure_conditions(
@@ -106,7 +106,7 @@ impl<'fit> LadderPass<'fit> {
                 options.plan.relation_cap,
             ));
 
-            write_frame(rung_path(&ladder, index), &frame)?;
+            write_frame(step_path(&ladder, index), &frame)?;
         }
         let losses: Vec<_> = readouts
             .iter()
@@ -119,17 +119,16 @@ impl<'fit> LadderPass<'fit> {
             radius = %energy.proximal().radius(),
             conditions = ?conditions,
             losses = ?losses,
-            "measured the rung relation losses"
+            "measured the step relation losses"
         );
         warn_loss_regressions(conditions, &losses);
 
-        // The frames map back together for the alignment fits; each is
-        // one scratch array file, so the resident set is the mapped
-        // pages the fits touch, not the owned frames. Each frame proves
-        // its finiteness once here, and the fits consume the proof.
+        // The frames map back together for the alignment fits; each is one scratch array file, so
+        // the resident set is the mapped pages the fits touch, not the owned frames. Each frame
+        // proves its finiteness once here, and the fits consume the proof.
         let files = (0..conditions.len())
             .map(|index| {
-                ArrayFile::open(rung_path(&ladder, index))
+                ArrayFile::open(step_path(&ladder, index))
                     .map_err(|error| ComputeError::OpenCoordinates(error.into()))
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -137,12 +136,12 @@ impl<'fit> LadderPass<'fit> {
             .iter()
             .zip(&readouts)
             .enumerate()
-            .map(|(rung, (file, readout))| {
+            .map(|(step, (file, readout))| {
                 let points = file
                     .points()
-                    .expect("the rung frame was written as f32 pairs");
+                    .expect("the step frame was written as f32 pairs");
                 let coordinates = FinitePointField::new(IdSlice::<NodeRowId, _>::from_raw(points))
-                    .map_err(|source| ComputeError::NonFiniteRung { rung, source })?;
+                    .map_err(|source| ComputeError::NonFiniteStep { step, source })?;
 
                 Ok(Field {
                     coordinates,
@@ -157,7 +156,7 @@ impl<'fit> LadderPass<'fit> {
         tracing::info!(
             canonical = selection.measurement.condition.get(),
             index = selection.index,
-            "selected the canonical rung"
+            "selected the canonical step"
         );
 
         let canonical = fields[selection.index].coordinates;
@@ -179,7 +178,7 @@ impl<'fit> LadderPass<'fit> {
             options.plan.relation_cap,
         )?;
 
-        // The schedule's first rung is bit-exactly `0.0` by
+        // The schedule's first step is bit-exactly `0.0` by
         // construction, so `losses[0]` is the zero-condition raw loss.
         warn_persisted_regression(
             selection.measurement.condition,
@@ -187,7 +186,7 @@ impl<'fit> LadderPass<'fit> {
             losses[0],
         );
 
-        // The readout measures between the two frames the evidence narrates: the baseline rung
+        // The readout measures between the two frames the evidence narrates: the baseline step
         // and the published canonical field, both in the baseline basis.
         let paired_movement = self.measure_paired_movement(
             inputs.snapshot,
@@ -198,7 +197,7 @@ impl<'fit> LadderPass<'fit> {
 
         Ok((
             LadderEvidence {
-                rungs: rung_evidence(&measurements, readouts),
+                steps: step_evidence(&measurements, readouts),
                 canonical: selection.measurement.condition,
                 canonical_index: selection.index,
                 persisted_relation_loss,
@@ -211,7 +210,7 @@ impl<'fit> LadderPass<'fit> {
     /// Re-measures the relation loss over the persisted aligned column.
     ///
     /// The narrowing to `f32` and the alignment application are inside the measurement, ahead of
-    /// the same distinct gather the rung losses used, so the reading guards both.
+    /// the same distinct gather the step losses used, so the reading guards both.
     fn measure_persisted_loss(
         &self,
         inputs: &PublishInputs<'_>,
@@ -234,8 +233,8 @@ impl<'fit> LadderPass<'fit> {
 
     /// Measures the paired-movement readout over the staged attraction index.
     ///
-    /// The readings run over the ladder's aligned frames: `zero` is the baseline rung's field
-    /// and `canonical` the published rung's field in the baseline basis. [`paired::measure`]
+    /// The readings run over the ladder's aligned frames: `zero` is the baseline step's field
+    /// and `canonical` the published step's field in the baseline basis. [`paired::measure`]
     /// runs the whole readout, and every readout resolution is an evidence body, so the
     /// generation publishes around a vacuous or failed reading.
     ///
@@ -283,7 +282,7 @@ impl<'fit> LadderPass<'fit> {
 
 /// One adjacent raw relation-loss regression in a measured series.
 pub(super) struct LossRegression {
-    /// The regressing rung's condition value.
+    /// The regressing step's condition value.
     pub condition: NonNegative,
     /// The predecessor's condition value.
     pub previous_condition: NonNegative,
@@ -298,7 +297,7 @@ pub(super) struct LossRegression {
 
 /// Finds every adjacent raw relation-loss regression in a measured series.
 ///
-/// Examines every adjacent transition and yields one entry per rung whose loss exceeds its
+/// Examines every adjacent transition and yields one entry per step whose loss exceeds its
 /// predecessor's, in schedule order.
 pub(super) fn loss_regressions<'series>(
     conditions: &'series [NonNegative],
@@ -339,14 +338,14 @@ pub(super) fn warn_loss_regressions(conditions: &[NonNegative], losses: &[DNonNe
                 previous_condition = %previous_condition,
                 delta = %delta,
                 relative = %relative,
-                "a rung's relation loss exceeds its predecessor's"
+                "a step's relation loss exceeds its predecessor's"
             );
         } else {
             tracing::warn!(
                 condition = %condition,
                 previous_condition = %previous_condition,
                 delta = %delta,
-                "a rung's relation loss exceeds its predecessor's"
+                "a step's relation loss exceeds its predecessor's"
             );
         }
     }

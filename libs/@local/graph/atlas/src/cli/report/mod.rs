@@ -138,7 +138,7 @@ pub(crate) enum ReportCommand {
 
     /// Reads the relation effect of the condition ladder in world units over a published
     /// generation - endpoint-distance contraction of the engaged pairs against the zero-condition
-    /// rung - and writes the report bundle.
+    /// step - and writes the report bundle.
     Ladder(LadderArgs),
 
     /// Solves one fold subset from a frozen classifier corpus - a published generation's or

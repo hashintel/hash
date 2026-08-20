@@ -28,11 +28,11 @@ use crate::{
 /// wiring fixes no variant choice.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct TargetOptions {
-    /// The canonical condition's index into [`RUNGS`](super::super::super::RUNGS).
+    /// The canonical condition's index into [`STEPS`](super::super::super::STEPS).
     ///
-    /// Structurally non-zero: the estimand compares the canonical rung against the zero rung,
-    /// and a canonical rung equal to the baseline would read a self-comparison.
-    pub canonical_rung: NonZero<usize>,
+    /// Structurally non-zero: the estimand compares the canonical step against the zero step,
+    /// and a canonical step equal to the baseline would read a self-comparison.
+    pub canonical_step: NonZero<usize>,
     /// `λ`: the treatment activation.
     ///
     /// Zero is the reference replicate's value, with the whole code path live.

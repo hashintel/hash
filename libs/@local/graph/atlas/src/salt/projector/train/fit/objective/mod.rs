@@ -12,9 +12,9 @@
 //! coordinate channels beside the fitted scale's fan into the gauge anchors - through one
 //! surrogate scalar.
 //!
-//! The estimand exists at exactly two rungs, zero and canonical, whatever rung the step's
+//! The estimand exists at exactly two steps, zero and canonical, whatever step the step's
 //! round-robin trains the released families at. The pass therefore forwards its own row set -
-//! the drawn unit endpoints beside the whole gauge - at both rungs, and never rides the released
+//! the drawn unit endpoints beside the whole gauge - at both steps, and never rides the released
 //! batch frame. The estimand's zero-side calculus lives entirely inside that pass forward: the
 //! pass's zero values project under the frozen constraint's own clip law, forces are evaluated
 //! at the projected values, and the deposit composes them through the applied clip derivatives
@@ -47,7 +47,7 @@ pub(crate) use self::{
     inputs::{SplitPopulation, TargetInputs, TargetOptions},
 };
 use super::{
-    super::{BatchPlan, RUNGS, TrainingSchedule},
+    super::{BatchPlan, STEPS, TrainingSchedule},
     TrainError,
 };
 use crate::{
@@ -67,7 +67,7 @@ hashql_core::id::newtype! {
     /// A row position local to one step's target pass.
     ///
     /// The pass re-indexes the drawn unit endpoints and the gauge anchors into a dense local
-    /// domain for its two-rung forwards, exactly as batch assembly re-indexes the released
+    /// domain for its two-step forwards, exactly as batch assembly re-indexes the released
     /// families. The key is distinct by design from both the corpus row and the released
     /// batch position: the three frames never share a coordinate tensor, and confusing them is
     /// the wiring defect this type exists to prevent.
@@ -96,7 +96,7 @@ where
     ///
     /// Every check here is coordinate-free and runs at session construction, so an impossible
     /// target run fails before its opening segment. The schedule must open the ladder, and the
-    /// canonical rung must exist within it. The plan must draw unit types, and the corpus must
+    /// canonical step must exist within it. The plan must draw unit types, and the corpus must
     /// carry a weighted unit population under the declared unit law. The declared split
     /// populations must be pairwise-disjoint - the membership law that keeps the optimizer
     /// from owning its own ruler or reaching a reference population.
@@ -108,7 +108,7 @@ where
     /// # Errors
     ///
     /// The first failed admission is the refusal. A schedule with no boundary refuses as the
-    /// ruler's missing reference. A canonical rung outside the schedule and a plan without
+    /// ruler's missing reference. A canonical step outside the schedule and a plan without
     /// unit draws each refuse by name, and so does a hinge-dead penalty declared with a zero
     /// margin. An undersized gauge draw refuses before the freeze. A
     /// forceless corpus and a weightless unit population both resolve into the
@@ -139,9 +139,9 @@ where
             // The ladder never opens, so no zero-condition reference exists to freeze.
             return Err(TrainError::Ruler(InvalidRuler::MissingReference));
         }
-        let Some(&canonical_eta) = RUNGS.get(options.canonical_rung.get()) else {
-            return Err(TrainError::CanonicalRungOutOfSchedule {
-                rung: options.canonical_rung.get(),
+        let Some(&canonical_eta) = STEPS.get(options.canonical_step.get()) else {
+            return Err(TrainError::CanonicalStepOutOfSchedule {
+                step: options.canonical_step.get(),
             });
         };
         // Distance equality must carry corrective force under the ruled shape constraint, so
@@ -257,7 +257,7 @@ where
         })
     }
 
-    /// Returns the canonical condition's rung value.
+    /// Returns the canonical condition's step value.
     #[inline]
     pub(super) const fn canonical_eta(&self) -> NonNegative {
         self.canonical_eta

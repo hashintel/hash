@@ -18,25 +18,25 @@ use crate::{
         salt::{
             artifact,
             metadata::{
-                ProximalCalibrationEvidence, RefreshFractionEvidence, RungEvidence,
-                StabilityCertificateEvidence, TypeRelationLoss,
+                ProximalCalibrationEvidence, RefreshFractionEvidence, StabilityCertificateEvidence,
+                StepEvidence, TypeRelationLoss,
             },
         },
     },
     integrity::Sha256Digest,
     math::{FinitePointField, Vec2},
     salt::{
-        ladder::RungMeasurement,
+        ladder::StepMeasurement,
         projector::train::{BoundaryEvidence, FrozenRadius, RefreshFraction},
     },
 };
 
-/// Returns one rung's scratch frame path.
-pub(super) fn rung_path(ladder: &Utf8Path, index: usize) -> Utf8PathBuf {
-    ladder.join(format!("rung-{index}.arr"))
+/// Returns one step's scratch frame path.
+pub(super) fn step_path(ladder: &Utf8Path, index: usize) -> Utf8PathBuf {
+    ladder.join(format!("step-{index}.arr"))
 }
 
-/// Writes one rung's frame as a scratch array file.
+/// Writes one step's frame as a scratch array file.
 pub(super) fn write_frame<N>(
     path: impl AsRef<Utf8Path>,
     frame: &FinitePointField<N>,
@@ -74,17 +74,17 @@ pub(super) fn stage_coordinate_column(
     Ok(array.finish()?)
 }
 
-/// Joins each rung's alignment measurement with its own walk's per-type loss shares.
-pub(super) fn rung_evidence(
-    measurements: &[RungMeasurement],
+/// Joins each step's alignment measurement with its own walk's per-type loss shares.
+pub(super) fn step_evidence(
+    measurements: &[StepMeasurement],
     readouts: impl IntoIterator<Item = RelationLossReadout>,
-) -> Vec<RungEvidence> {
+) -> Vec<StepEvidence> {
     measurements
         .iter()
         .zip(readouts)
         .map(
             |(
-                &RungMeasurement {
+                &StepMeasurement {
                     condition,
                     relation_loss,
                     alignment,
@@ -92,7 +92,7 @@ pub(super) fn rung_evidence(
                     adjacent_movement,
                 },
                 readout,
-            )| RungEvidence {
+            )| StepEvidence {
                 relation_losses: readout
                     .per_type
                     .into_iter()

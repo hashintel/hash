@@ -1,7 +1,7 @@
 //! Benchmark seams over the projector model.
 //!
 //! The training backend decision (train time is the binding constraint) and the refresh-cost risk
-//! (one full-corpus forward per ladder rung per cadence tick) both price out through two numbers:
+//! (one full-corpus forward per ladder step per cadence tick) both price out through two numbers:
 //! forward wall time at inference batches, and forward-plus-backward wall time at training
 //! minibatches, each at the real architecture. This module gives the bench target (an external
 //! crate) those levers over the production [`Projector`] - never a mirror - while the model types

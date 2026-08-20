@@ -1,13 +1,13 @@
 //! The refresh tick.
 //!
-//! Whole-corpus forwards, per-rung local scales, two-extreme hard-negative mining, and displacement
+//! Whole-corpus forwards, per-step local scales, two-extreme hard-negative mining, and displacement
 //! telemetry.
 //!
 //! Local scales, mined negatives, and the displacement field are all defined over current
-//! coordinates, and current coordinates under a conditioned model are one frame per lens rung. A
-//! tick forwards the corpus at the rungs it needs - both lens extremes always, every rung when
+//! coordinates, and current coordinates under a conditioned model are one frame per lens step. A
+//! tick forwards the corpus at the steps it needs - both lens extremes always, every step when
 //! relation training consumes scale tables - and derives everything from those shared frames: one
-//! scale table per rung, hard negatives mined at both extremes and pooled by maximum weight, and
+//! scale table per step, hard negatives mined at both extremes and pooled by maximum weight, and
 //! the per-node displacement between the extremes.
 //!
 //! Ticks run at a configured cadence rather than per step. The artifacts a tick produces stay stale
@@ -19,7 +19,7 @@ use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
 use hashql_core::id::{Id, IdSlice, IdVec};
 
 use super::{
-    RUNGS,
+    STEPS,
     batch::{NodeColumns, SupportAnchor},
     metrics::{DegreeDeciles, DisplacementSummary, TypeParticipants},
 };
@@ -40,9 +40,9 @@ use crate::{
 /// A refresh tick failed.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum RefreshError<N> {
-    /// A corpus forward produced a non-finite coordinate: training diverged at this row and rung.
+    /// A corpus forward produced a non-finite coordinate: training diverged at this row and step.
     Diverged { row: N, eta: NonNegative },
-    /// A local scale came out non-finite at this row and rung.
+    /// A local scale came out non-finite at this row and step.
     NonFiniteScale { row: N, eta: NonNegative },
 }
 
@@ -70,11 +70,11 @@ where
         match self {
             Self::Diverged { row, eta } => write!(
                 fmt,
-                "training diverged: row {row} projected to a non-finite coordinate at rung {eta}",
+                "training diverged: row {row} projected to a non-finite coordinate at step {eta}",
             ),
             Self::NonFiniteScale { row, eta } => write!(
                 fmt,
-                "training diverged: row {row} measured a non-finite local scale at rung {eta}",
+                "training diverged: row {row} measured a non-finite local scale at step {eta}",
             ),
         }
     }
@@ -85,18 +85,18 @@ impl<N> Error for RefreshError<N> where N: fmt::Debug + fmt::Display {}
 /// One refresh tick's artifacts.
 #[derive(Debug)]
 pub(crate) struct RefreshOutcome<N> {
-    /// The low rung's forwarded frame.
+    /// The low step's forwarded frame.
     ///
     /// The tick's own artifacts consume it in place. It rides out for the boundary-drift
-    /// report, which re-measures the reviewed mass fraction over the same rung the radius
+    /// report, which re-measures the reviewed mass fraction over the same step the radius
     /// froze on.
     pub frame: Box<FinitePointField<N>>,
     /// Hard negatives mined at both lens extremes, pooled by maximum weight.
     pub mined: MinedFrame<N>,
-    /// One local-scale table per rung, in [`RUNGS`] order.
+    /// One local-scale table per step, in [`STEPS`] order.
     ///
     /// Present exactly when the tick ran with scales.
-    pub scales: Option<[LocalScales<N>; RUNGS.len()]>,
+    pub scales: Option<[LocalScales<N>; STEPS.len()]>,
     /// The displacement field between the lens extremes.
     pub displacement: DisplacementSummary,
 }
@@ -230,13 +230,13 @@ where
 {
     /// Runs one refresh tick over the current model.
     ///
-    /// `with_scales` selects the post-boundary shape, where the tick forwards every rung and
+    /// `with_scales` selects the post-boundary shape, where the tick forwards every step and
     /// measures each one into a scale table. Without it the tick forwards only the two extremes.
     /// The opening semantic-only segment and the vacuous-relation run consume no scale tables, so a
-    /// middle-rung forward is dead weight.
+    /// middle-step forward is dead weight.
     ///
     /// The tick is where the whole corpus exists in coordinates, so it reports `sample`'s rows of
-    /// the low rung's frame to `progress`. That is the same frame the miner and the displacement
+    /// the low step's frame to `progress`. That is the same frame the miner and the displacement
     /// summary read, retained no longer than they retain it.
     ///
     /// # Errors
@@ -252,7 +252,7 @@ where
         sample: &SnapshotSample<N>,
         progress: &P,
     ) -> Result<RefreshOutcome<N>, RefreshError<N>> {
-        let [low_eta, middle_eta, high_eta] = RUNGS;
+        let [low_eta, middle_eta, high_eta] = STEPS;
 
         let low = forward(model, self.columns, low_eta, self.forward_rows, device)?;
         sample.report(&low, progress);
@@ -287,7 +287,7 @@ where
     }
 }
 
-/// Projects the whole corpus at one rung, in bounded row slices.
+/// Projects the whole corpus at one step, in bounded row slices.
 ///
 /// `forward_rows` bounds each slice's row count, and with it the peak device memory of a corpus
 /// forward; the frame it returns matches a single whole-corpus pass because the model maps rows
@@ -338,7 +338,7 @@ where
     ))
 }
 
-/// Measures one rung's local scales over its forwarded frame.
+/// Measures one step's local scales over its forwarded frame.
 ///
 /// # Errors
 ///
@@ -358,7 +358,7 @@ where
     })
 }
 
-/// Materializes one row slice's model input at a rung on `device`.
+/// Materializes one row slice's model input at a step on `device`.
 fn slice_input<N, B: Backend>(
     columns: NodeColumns<'_, N>,
     range: Range<usize>,

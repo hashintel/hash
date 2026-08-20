@@ -349,9 +349,9 @@ where
     fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut dims = [Dim::ZERO; ArrayShape::MAX_RANK];
         dims[0] = Dim::new(self.0.len() as u64);
-        dims[1..1 + T::TRAILING.len()].copy_from_slice(T::TRAILING);
+        dims[1..=T::TRAILING.len()].copy_from_slice(T::TRAILING);
 
-        let mut writer = SizedArrayWriter::new(write, T::VARIANT, &dims[..1 + T::TRAILING.len()])?;
+        let mut writer = SizedArrayWriter::new(write, T::VARIANT, &dims[..=T::TRAILING.len()])?;
         writer.write_rows(self.0.len() as u64, self.0.as_raw().as_bytes())?;
         writer.finish()
     }

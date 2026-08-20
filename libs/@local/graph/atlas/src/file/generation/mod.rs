@@ -443,7 +443,11 @@ impl StagedGeneration {
     ///
     /// Returns an error when creating or flushing the staged file fails, and the value's own
     /// error when its write fails.
-    #[expect(unused_variables, reason = "used to signal the artifact's pinned name")]
+    #[expect(
+        unused_variables,
+        clippy::needless_pass_by_value,
+        reason = "used to signal the artifact's pinned name"
+    )]
     pub(crate) fn stage<A, V>(&self, artifact: A, value: V) -> Result<Binding<A>, V::Error>
     where
         A: Artifact,

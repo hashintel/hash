@@ -31,8 +31,8 @@ pub(crate) struct TrainingSchedule {
 impl TrainingSchedule {
     /// Validates a schedule.
     ///
-    /// The boundary is the step index at which the Proximal radius freezes and the rung ladder
-    /// opens. Steps below it train at the zero rung only. A boundary equal to the step count never
+    /// The boundary is the step index at which the Proximal radius freezes and the step ladder
+    /// opens. Steps below it train at the zero step only. A boundary equal to the step count never
     /// opens the ladder: the run is semantic-only and records no boundary evidence. Refresh ticks
     /// run at step zero and every `refresh_interval` steps after it.
     ///

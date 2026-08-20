@@ -43,7 +43,7 @@ use crate::{
             model::{NodeRole, Projector},
             scale::LocalScales,
             train::{
-                BatchPlan, ObjectiveOptions, RUNGS,
+                BatchPlan, ObjectiveOptions, STEPS,
                 batch::{
                     Batch, BatchSampler, DrawContext, NodeColumns, Populations, SupportAnchor,
                 },
@@ -210,7 +210,7 @@ impl Sampler<'_> {
         let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
         Drawn(self.sampler.draw(
             DrawContext {
-                eta: RUNGS[RUNGS.len() - 1],
+                eta: STEPS[STEPS.len() - 1],
                 mined: Some(&self.fixture.mined),
                 landmarks: &self.fixture.landmarks,
                 anchors: &[],
@@ -301,7 +301,7 @@ impl<'fixture> Stepper<'fixture> {
 
     /// Runs the refresh forward on the plain backend, fenced by a scalar readback.
     ///
-    /// This records no autodiff graph: it is the per-rung refresh motion as production performs it,
+    /// This records no autodiff graph: it is the per-step refresh motion as production performs it,
     /// safe to loop on any backend.
     #[must_use]
     pub fn refresh(&self, batch: &Assembled) -> f32 {

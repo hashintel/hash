@@ -44,8 +44,8 @@ pub(crate) use self::{
     error::{DeliveryError, ProbeError},
     options::ProbeOptions,
     readings::{
-        AnchorOrdinal, ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, Rung, SpacePair,
-        SpacePairArray,
+        AnchorOrdinal, ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair,
+        SpacePairArray, Step,
     },
 };
 use self::{
@@ -300,13 +300,13 @@ pub(crate) async fn probe<D: Dataset>(
         .collect(),
     );
 
-    let rungs = options.neighbourhoods.len();
+    let steps = options.neighbourhoods.len();
     let mut triplet_columns = transpose_triplets(sampled.triplets);
 
     // The pair-indexed arrays move into named fields through the enum, so
     // reordering the pair schema cannot mismatch a reading with its field.
     let mut sampled_grids = transpose_pairs(sampled.cells)
-        .map(|cells| Some(ReadingGrid::from_anchor_cells(cells, rungs)));
+        .map(|cells| Some(ReadingGrid::from_anchor_cells(cells, steps)));
     let mut sampled_grid = |pair: SpacePair| {
         sampled_grids[pair]
             .take()
@@ -319,16 +319,16 @@ pub(crate) async fn probe<D: Dataset>(
         anchors: anchor_rows.iter().copied().collect(),
         comparisons: comparison_rows.iter().copied().collect(),
         neighbourhoods: IdSlice::from_boxed_slice(options.neighbourhoods.iter().copied().collect()),
-        map_representation: ReadingGrid::from_anchor_cells(corpus_cells, rungs),
+        map_representation: ReadingGrid::from_anchor_cells(corpus_cells, steps),
         clumps: corpus.clumps.map(|clumps| ClumpReadings {
             epsilon: clumps.epsilon(),
             count: clumps.clumps(),
             groups: clumps.groups(),
             grouped_rows: clumps.grouped_rows(),
-            map_representation: ReadingGrid::from_anchor_cells(clump_cells, rungs),
+            map_representation: ReadingGrid::from_anchor_cells(clump_cells, steps),
             representation_canonical: ReadingGrid::from_anchor_cells(
                 sampled.baseline_clumps,
-                rungs,
+                steps,
             ),
         }),
         sampled_map_representation: sampled_grid(SpacePair::MapRepresentation),

@@ -1,12 +1,12 @@
 //! The schedule, phase boundary, refresh ticks, and optimization loop of a training run.
 //!
 //! One run trains the conditioned projector end to end. It opens with a semantic-only segment at
-//! the zero rung. At the configured boundary step it freezes the Proximal radius from data - the
+//! the zero step. At the configured boundary step it freezes the Proximal radius from data - the
 //! force-mass-weighted 25th percentile of the locally normalized distance `z` over the
 //! reviewed-Proximal attraction pairs, measured against the boundary's own coordinates - composes
-//! the relation energy, and opens the rung ladder, round-robining the steps across the lens rungs
-//! with the relation term scaled by each step's rung. Refresh ticks at a configured cadence
-//! re-measure everything defined over current coordinates: per-rung local scales, hard negatives
+//! the relation energy, and opens the step ladder, round-robining the steps across the lens steps
+//! with the relation term scaled by each step's step. Refresh ticks at a configured cadence
+//! re-measure everything defined over current coordinates: per-step local scales, hard negatives
 //! mined at both lens extremes, and the displacement telemetry.
 //!
 //! Optimization is Adam under a cosine learning-rate schedule, with one backward pass per step
@@ -24,7 +24,7 @@
 //! A target-configured run additionally trains the declared estimand from the boundary on: the
 //! boundary freezes the target references against the same zero-condition frame the radius
 //! measures on, every ladder step enforces the band constraint and folds the batch estimator at
-//! the estimand's two rungs, and every post-boundary tick reads the per-evaluation evidence.
+//! the estimand's two steps, and every post-boundary tick reads the per-evaluation evidence.
 //! [`mod@objective`] owns that machinery, and its whole configuration is optional: a released run
 //! passes none of it and trains exactly as before.
 
@@ -217,7 +217,7 @@ pub(crate) fn fit<
     fit_from_boundary(state, inputs, options, rng, device, progress)
 }
 
-/// Trains the opening segment: steps zero to the phase boundary, all at the zero rung.
+/// Trains the opening segment: steps zero to the phase boundary, all at the zero step.
 ///
 /// The returned state is the run's fork point. Hand it to [`fit_from_boundary`] to continue, or
 /// serialize it through the checkpoint artifact first. A boundary equal to the run length makes
@@ -280,7 +280,7 @@ pub(crate) fn fit_to_boundary<
 /// Trains the ladder from a boundary state.
 ///
 /// Freezes the Proximal radius against the state's own coordinates, then round-robins the remaining
-/// steps across the lens rungs.
+/// steps across the lens steps.
 ///
 /// The options must carry the schedule the opening segment ran under. Everything else may differ,
 /// which is what a boundary fork varies.

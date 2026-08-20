@@ -164,7 +164,7 @@ where
     .map_err(|source| RunnerError::Quality { id, source })?;
 
     // The run reports the battery's readings here rather than from inside the probe, because the
-    // reading a control turns on is an extremum over the probe's rungs and only exists once the
+    // reading a control turns on is an extremum over the probe's steps and only exists once the
     // report reduces them - and it is the same reduction the verdict reads. A control whose
     // evidence is absent reports nothing: there is no measurement to observe, and the refusal is
     // the report's to carry.

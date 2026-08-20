@@ -46,8 +46,8 @@ pub(crate) struct RefreshFraction {
     pub step: usize,
     /// The weighted fraction of reviewed-Proximal mass at or below the frozen radius.
     ///
-    /// Measured over the tick's low-rung frame and its low-rung scale table, the same
-    /// rung/frame-scale pair the freeze measured on, so the series reads calibration drift and
+    /// Measured over the tick's low-step frame and its low-step scale table, the same
+    /// step/frame-scale pair the freeze measured on, so the series reads calibration drift and
     /// never answers a movement question. The boundary tick contributes the first entry, and
     /// later entries drift against it.
     pub fraction: DNonNegative,

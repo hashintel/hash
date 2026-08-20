@@ -127,7 +127,7 @@ fn pair_readings_equal_the_full_scan_restatement() {
 
 #[test]
 fn an_exact_distance_tie_resolves_by_row_identity() {
-    // Rows 1 and 2 sit at exactly distance one from the source at both rungs.
+    // Rows 1 and 2 sit at exactly distance one from the source at both steps.
     let points = [
         Vec2::new(0.0, 0.0),
         Vec2::new(0.0, 1.0),
@@ -164,11 +164,11 @@ fn an_exact_distance_tie_resolves_by_row_identity() {
 }
 
 #[test]
-fn a_partner_outside_one_rung_ranks_over_the_union_domain() {
-    // At the zero rung the k = 2 set of row 0 is {1, 2}, and at the canonical rung it is
+fn a_partner_outside_one_step_ranks_over_the_union_domain() {
+    // At the zero step the k = 2 set of row 0 is {1, 2}, and at the canonical step it is
     // {4, 3}. Partner 4 enters only the canonical set and partner 1 only the zero set, and each
-    // rank at the partner's absent rung needs a union row its own k-set does not carry, so a
-    // single-rung candidate domain reads 3 where the union reads 4.
+    // rank at the partner's absent step needs a union row its own k-set does not carry, so a
+    // single-step candidate domain reads 3 where the union reads 4.
     let zero = [
         Vec2::new(0.0, 0.0),
         Vec2::new(1.0, 0.0),
@@ -201,7 +201,7 @@ fn a_partner_outside_one_rung_ranks_over_the_union_domain() {
             rank_zero: 4,
             rank_canonical: 1,
         },
-        "zero-rung rank of the canonical-only partner counts union row 3",
+        "zero-step rank of the canonical-only partner counts union row 3",
     );
     assert_eq!(
         movement.pair(NodeRowId::new(0), NodeRowId::new(1), &scratch),
@@ -211,7 +211,7 @@ fn a_partner_outside_one_rung_ranks_over_the_union_domain() {
             rank_zero: 1,
             rank_canonical: 4,
         },
-        "canonical-rung rank of the zero-only partner counts union row 2",
+        "canonical-step rank of the zero-only partner counts union row 2",
     );
 }
 

@@ -133,7 +133,7 @@ fn displacement_splits_on_the_participant_mask() {
 }
 
 /// Ties keep the first index, an empty series reads the baseline, and an all-negative series
-/// names the baseline as well: index zero states that no rung beats doing nothing.
+/// names the baseline as well: index zero states that no step beats doing nothing.
 #[test]
 fn argmax_keeps_the_first_and_defaults_to_the_baseline() {
     assert_eq!(

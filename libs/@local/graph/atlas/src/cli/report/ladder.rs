@@ -56,29 +56,29 @@ impl Display for LadderVerdict {
 
         writeln!(
             fmt,
-            "rung     eta   relation-loss  contraction-mass  contraction-mean  contracted  \
+            "step     eta   relation-loss  contraction-mass  contraction-mean  contracted  \
              bystander-move",
         )?;
-        for (index, rung) in report.rungs.iter().enumerate() {
+        for (index, step) in report.steps.iter().enumerate() {
             writeln!(
                 fmt,
                 "{index:>4}  {:>6.2}  {:>14.3}  {:>+16.5}  {:>+16.5}  {:>9.1}%  {:>14.5}",
-                rung.condition,
-                rung.relation_loss,
-                rung.contraction.mass_weighted_mean,
-                rung.contraction.unweighted_mean,
-                f64::from(rung.contraction.contracted_fraction) * 100.0,
-                rung.non_participant_displacement.mean,
+                step.condition,
+                step.relation_loss,
+                step.contraction.mass_weighted_mean,
+                step.contraction.unweighted_mean,
+                f64::from(step.contraction.contracted_fraction) * 100.0,
+                step.non_participant_displacement.mean,
             )?;
         }
         writeln!(fmt)?;
 
-        let canonical = &report.rungs[report.canonical_index];
-        let argmax = &report.rungs[report.contraction_argmax_index];
+        let canonical = &report.steps[report.canonical_index];
+        let argmax = &report.steps[report.contraction_argmax_index];
         writeln!(
             fmt,
-            "canonical rung {} (eta {:.2}); contraction argmax rung {} (eta {:.2}): the published \
-             rung is{} the argmax of its own measured curve",
+            "canonical step {} (eta {:.2}); contraction argmax step {} (eta {:.2}): the published \
+             step is{} the argmax of its own measured curve",
             report.canonical_index,
             canonical.condition,
             report.contraction_argmax_index,
@@ -93,7 +93,7 @@ impl Display for LadderVerdict {
 
         writeln!(
             fmt,
-            "canonical rung groups, ascending by contraction-mass (world units):",
+            "canonical step groups, ascending by contraction-mass (world units):",
         )?;
         writeln!(
             fmt,

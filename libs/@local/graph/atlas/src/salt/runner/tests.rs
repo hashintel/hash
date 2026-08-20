@@ -232,10 +232,10 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
             probe: ProbeOptions {
                 anchors: NonZero::new(8).expect("nonzero"),
                 comparisons: NonZero::new(16).expect("nonzero"),
-                // Rung 2 is all-degenerate on this 8-node landmark-baseline fixture (coincident map
+                // Step 2 is all-degenerate on this 8-node landmark-baseline fixture (coincident map
                 // placements zero the radii), and the verdict fails closed on absent density
                 // evidence. The quality tests pin the fail-closed arm itself, while the runner
-                // fixtures probe the run protocol, so they read the rung where evidence exists.
+                // fixtures probe the run protocol, so they read the step where evidence exists.
                 neighbourhoods: Cow::Owned(vec![NonZero::new(4).expect("nonzero")]),
                 triplet_pairs: 8,
                 ..

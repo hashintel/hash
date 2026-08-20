@@ -59,7 +59,7 @@ pub(crate) use self::{
 };
 use super::{
     clump::ClumpAggregate,
-    probe::{AnchorOrdinal, ProbeReadings, ReadingGrid, Rung},
+    probe::{AnchorOrdinal, ProbeReadings, ReadingGrid, Step},
 };
 use crate::identity::OntologyRowId;
 
@@ -94,16 +94,16 @@ pub(crate) fn assess<N>(
     let overall_rows = |grid: &ReadingGrid| -> Vec<MetricRow> {
         neighbourhoods
             .iter_enumerated()
-            .map(|(rung, &neighbourhood)| MetricRow::read(neighbourhood, &grid.overall(rung)))
+            .map(|(step, &neighbourhood)| MetricRow::read(neighbourhood, &grid.overall(step)))
             .collect()
     };
 
     let map_representation = overall_rows(&readings.map_representation);
-    let clump_overall: Option<IdVec<Rung, ClumpAggregate>> =
+    let clump_overall: Option<IdVec<Step, ClumpAggregate>> =
         readings.clumps.as_ref().map(|clumps| {
             neighbourhoods
                 .ids()
-                .map(|rung| clumps.map_representation.overall(rung))
+                .map(|step| clumps.map_representation.overall(step))
                 .collect()
         });
 
@@ -132,7 +132,7 @@ pub(crate) fn assess<N>(
         anchors: readings.anchors.len(),
         corpus_universe: readings
             .map_representation
-            .overall(Rung::from_usize(0))
+            .overall(Step::from_usize(0))
             .universe(),
         comparisons: readings.comparisons.len(),
         map_representation,
@@ -140,8 +140,8 @@ pub(crate) fn assess<N>(
             let rendered = |grid: &ReadingGrid<ClumpAggregate>| -> Vec<ClumpRow> {
                 neighbourhoods
                     .iter_enumerated()
-                    .map(|(rung, &neighbourhood)| {
-                        let aggregate = grid.overall(rung);
+                    .map(|(step, &neighbourhood)| {
+                        let aggregate = grid.overall(step);
                         ClumpRow {
                             neighbourhood,
                             queries: aggregate.queries(),
@@ -189,7 +189,7 @@ pub(crate) fn assess<N>(
 fn subgroup_reports<N>(
     readings: &ProbeReadings<N>,
     overall: &[MetricRow],
-    clump_overall: Option<&IdSlice<Rung, ClumpAggregate>>,
+    clump_overall: Option<&IdSlice<Step, ClumpAggregate>>,
     members: &BTreeMap<OntologyRowId, Vec<AnchorOrdinal>>,
     thresholds: &QualityThresholds,
 ) -> (Vec<SubgroupReport>, Vec<SubgroupFlag>) {
@@ -203,18 +203,18 @@ fn subgroup_reports<N>(
             .neighbourhoods
             .ids()
             .zip(overall)
-            .map(|(rung, overall_row)| {
-                let mut merged = readings.map_representation.anchor(first, rung).clone();
+            .map(|(step, overall_row)| {
+                let mut merged = readings.map_representation.anchor(first, step).clone();
                 for &anchor in rest {
-                    merged.merge(readings.map_representation.anchor(anchor, rung));
+                    merged.merge(readings.map_representation.anchor(anchor, step));
                 }
                 MetricRow::read(overall_row.neighbourhood, &merged)
             })
             .collect();
 
         if anchors.len() >= thresholds.minimum_subgroup_anchors {
-            let read_rungs = readings.neighbourhoods.ids();
-            for (rung, (subgroup_row, overall_row)) in read_rungs.zip(rows.iter().zip(overall)) {
+            let read_steps = readings.neighbourhoods.ids();
+            for (step, (subgroup_row, overall_row)) in read_steps.zip(rows.iter().zip(overall)) {
                 let degradation = subgroup_row.recall.complement();
                 let overall_degradation = overall_row.recall.complement();
 
@@ -225,13 +225,13 @@ fn subgroup_reports<N>(
                 // The triage re-evaluation applies the same rule on clump
                 // ids, subgroup against the whole probe.
                 let collapsed = readings.clumps.as_ref().map(|clumps| {
-                    let mut merged = *clumps.map_representation.anchor(first, rung);
+                    let mut merged = *clumps.map_representation.anchor(first, step);
                     for &anchor in rest {
-                        merged.merge(clumps.map_representation.anchor(anchor, rung));
+                        merged.merge(clumps.map_representation.anchor(anchor, step));
                     }
 
                     let overall = &clump_overall
-                        .expect("clump readings produce overall clump aggregates")[rung];
+                        .expect("clump readings produce overall clump aggregates")[step];
                     (merged.recall().complement(), overall.recall().complement())
                 });
 
@@ -278,23 +278,23 @@ fn baseline_subgroup_reports<N>(
             let rows = readings
                 .neighbourhoods
                 .iter_enumerated()
-                .map(|(rung, &neighbourhood)| {
+                .map(|(step, &neighbourhood)| {
                     let mut merged = readings
                         .sampled_representation_canonical
-                        .anchor(first, rung)
+                        .anchor(first, step)
                         .clone();
                     for &anchor in rest {
                         merged.merge(
                             readings
                                 .sampled_representation_canonical
-                                .anchor(anchor, rung),
+                                .anchor(anchor, step),
                         );
                     }
 
                     let collapsed = readings.clumps.as_ref().map(|clumps| {
-                        let mut merged = *clumps.representation_canonical.anchor(first, rung);
+                        let mut merged = *clumps.representation_canonical.anchor(first, step);
                         for &anchor in rest {
-                            merged.merge(clumps.representation_canonical.anchor(anchor, rung));
+                            merged.merge(clumps.representation_canonical.anchor(anchor, step));
                         }
 
                         merged.recall()
@@ -320,16 +320,16 @@ fn baseline_subgroup_reports<N>(
 
 /// Reads each neighbourhood size's density distortion from the radii.
 fn density_rows<N>(readings: &ProbeReadings<N>) -> Vec<DensityRow> {
-    let rungs = readings.neighbourhoods.len();
+    let steps = readings.neighbourhoods.len();
     readings
         .neighbourhoods
         .iter_enumerated()
-        .map(|(rung, &neighbourhood)| {
+        .map(|(step, &neighbourhood)| {
             let mut ratios: Vec<f64> = readings
                 .radii
                 .iter()
-                .skip(rung.as_usize())
-                .step_by(rungs.max(1))
+                .skip(step.as_usize())
+                .step_by(steps.max(1))
                 .filter(|radii| radii.map > 0.0 && radii.representation > 0.0)
                 .map(|radii| f64::from(radii.map).ln() - f64::from(radii.representation).ln())
                 .collect();

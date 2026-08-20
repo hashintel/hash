@@ -2,29 +2,29 @@
 //!
 //! One projected layout per relation-lens condition, aligned and measured against its neighbours.
 //!
-//! A generation publishes one coordinate field, the configured canonical rung's layout aligned into
-//! the baseline frame. Every other rung is a measurement counterfactual (the same jointly trained
+//! A generation publishes one coordinate field, the configured canonical step's layout aligned into
+//! the baseline frame. Every other step is a measurement counterfactual (the same jointly trained
 //! model projected at a different lens strength) that persists as evidence and never publishes as
 //! the coordinate field.
 //!
-//! [`Conditions`] carries the schedule, valid by construction. The first rung is the zero-condition
+//! [`Conditions`] carries the schedule, valid by construction. The first step is the zero-condition
 //! value `0.0`, the jointly trained model with the lens off rather than a relation-free model
-//! trained on its own. The rungs ascend strictly and every value is finite. The rung count has no
-//! upper bound. Each rung costs one projection pass plus four alignment passes, so the schedule
+//! trained on its own. The steps ascend strictly and every value is finite. The step count has no
+//! upper bound. Each step costs one projection pass plus four alignment passes, so the schedule
 //! length is configuration rather than a format limit.
 //!
-//! [`measure_ladder`] derives each rung's evidence. Every rung aligns onto the baseline and onto
+//! [`measure_ladder`] derives each step's evidence. Every step aligns onto the baseline and onto
 //! its predecessor with the unweighted Procrustes fit ([`Similarity::fit_uniform_par`]); the RMS
-//! movement the alignment cannot explain is the rung's real geometric change, invariant under the
+//! movement the alignment cannot explain is the step's real geometric change, invariant under the
 //! scale, rotation, and translation freedom the projector never promises to pin down. The
 //! measurements are diagnostics: they persist as evidence and surface as structured log events, and
 //! they never block publication.
 //!
-//! [`select_canonical`] names the rung that publishes as the canonical field. The configured
-//! condition names an exact member of the measured schedule, so configuration picks a rung rather
+//! [`select_canonical`] names the step that publishes as the canonical field. The configured
+//! condition names an exact member of the measured schedule, so configuration picks a step rather
 //! than an interpolation point.
 //!
-//! Projection itself is the conditioned projector's inference (`salt/projector`), and the per-rung
+//! Projection itself is the conditioned projector's inference (`salt/projector`), and the per-step
 //! relation loss is its frozen objective. Both enter here as constructed domain values, so the
 //! boundary between the stages stays artifact-level.
 
@@ -44,10 +44,10 @@ pub(crate) use self::error::{CanonicalError, ConditionsError, LadderError};
 
 /// A validated relation-lens condition schedule.
 ///
-/// Construction validates the schedule. A schedule has at least two rungs. The first rung is the
-/// zero-condition rung that every other rung measures against. The rungs ascend strictly, and
+/// Construction validates the schedule. A schedule has at least two steps. The first step is the
+/// zero-condition step that every other step measures against. The steps ascend strictly, and
 /// every value is finite and non-negative with a canonical sign of zero by construction
-/// ([`NonNegative`]), so a rung's bits identify its value in reproducibility records with no
+/// ([`NonNegative`]), so a step's bits identify its value in reproducibility records with no
 /// `-0.0` alias to guard against. A [`Cow`] carries the values so the reference schedule is a
 /// constant.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,7 +56,7 @@ pub(crate) struct Conditions {
 }
 
 impl Conditions {
-    /// The reference schedule, the baseline plus four evenly spaced rungs.
+    /// The reference schedule, the baseline plus four evenly spaced steps.
     ///
     /// An unvalidated starting point carried over from the legacy pipeline. The ladder's own
     /// movement evidence revises it.
@@ -74,8 +74,8 @@ impl Conditions {
     ///
     /// # Errors
     ///
-    /// Returns an error when the schedule has fewer than two rungs, the first rung is not zero,
-    /// or a rung does not strictly exceed its predecessor.
+    /// Returns an error when the schedule has fewer than two steps, the first step is not zero,
+    /// or a step does not strictly exceed its predecessor.
     pub(crate) fn new(
         values: impl Into<Cow<'static, [NonNegative]>>,
     ) -> Result<Self, ConditionsError> {
@@ -108,14 +108,14 @@ impl Conditions {
         Ok(Self { values })
     }
 
-    /// Returns the rungs in ascending order, the baseline first.
+    /// Returns the steps in ascending order, the baseline first.
     #[inline]
     #[must_use]
     pub(crate) fn values(&self) -> &[NonNegative] {
         &self.values
     }
 
-    /// Returns the rung count, which is at least two by construction.
+    /// Returns the step count, which is at least two by construction.
     #[inline]
     #[must_use]
     pub(crate) fn len(&self) -> usize {
@@ -129,13 +129,13 @@ const impl Default for Conditions {
     }
 }
 
-/// One rung's projected field with its frozen relation loss.
+/// One step's projected field with its frozen relation loss.
 ///
-/// `I` is the rung frames' shared row domain. The coordinates arrive proven finite, so the
+/// `I` is the step frames' shared row domain. The coordinates arrive proven finite, so the
 /// alignment fits consume them with no rescan and a non-finite frame is unrepresentable here.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Field<'coordinates, I> {
-    /// The rung's projected coordinates, row-aligned with every other rung's.
+    /// The step's projected coordinates, row-aligned with every other step's.
     pub coordinates: &'coordinates FinitePointField<I>,
     /// The field's frozen attraction-energy loss.
     ///
@@ -145,7 +145,7 @@ pub(crate) struct Field<'coordinates, I> {
 
 /// One fit's whole ladder configuration.
 ///
-/// The schedule and the rung that publishes.
+/// The schedule and the step that publishes.
 ///
 /// The canonical value names a schedule member exactly ([`select_canonical`]): equality on
 /// [`NonNegative`] is bit equality. A value outside the schedule is a configuration
@@ -162,21 +162,21 @@ pub(crate) struct LadderOptions {
 }
 
 impl LadderOptions {
-    /// Returns the canonical rung's position in the schedule.
+    /// Returns the canonical step's position in the schedule.
     ///
     /// The canonical value names a schedule member exactly, so the index exists exactly when
     /// the configuration is self-consistent. The membership is a property of the options alone,
-    /// decidable before any rung projects.
+    /// decidable before any step projects.
     ///
     /// # Errors
     ///
-    /// Returns an error when the canonical value names no rung of the schedule.
+    /// Returns an error when the canonical value names no step of the schedule.
     pub(crate) fn canonical_index(&self) -> Result<usize, CanonicalError> {
         self.conditions
             .values()
             .iter()
             .position(|&condition| condition == self.canonical)
-            .ok_or(CanonicalError::UnknownRung {
+            .ok_or(CanonicalError::UnknownStep {
                 value: self.canonical,
             })
     }
@@ -188,14 +188,14 @@ const impl Default for LadderOptions {
     }
 }
 
-/// One rung's cross-condition evidence.
+/// One step's cross-condition evidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct RungMeasurement {
-    /// The rung's condition value.
+pub(crate) struct StepMeasurement {
+    /// The step's condition value.
     pub condition: NonNegative,
     /// The field's frozen relation loss, echoed from the input.
     pub relation_loss: DNonNegative,
-    /// The similarity aligning the rung's field onto the baseline field.
+    /// The similarity aligning the step's field onto the baseline field.
     ///
     /// The identity for the baseline itself.
     pub alignment: Similarity,
@@ -208,8 +208,8 @@ pub(crate) struct RungMeasurement {
 /// Aligns and measures a condition ladder.
 ///
 /// `fields[i]` is the projection of the whole corpus at `conditions.values()[i]`; rows correspond
-/// across fields. Each non-baseline rung fits its alignment onto the baseline and onto its
-/// predecessor in parallel, and the returned measurements carry one entry per rung in schedule
+/// across fields. Each non-baseline step fits its alignment onto the baseline and onto its
+/// predecessor in parallel, and the returned measurements carry one entry per step in schedule
 /// order.
 ///
 /// # Errors
@@ -220,7 +220,7 @@ pub(crate) struct RungMeasurement {
 pub(crate) fn measure_ladder<I: Id>(
     conditions: &Conditions,
     fields: &[Field<'_, I>],
-) -> Result<Vec<RungMeasurement>, LadderError> {
+) -> Result<Vec<StepMeasurement>, LadderError> {
     if fields.len() != conditions.len() {
         return Err(LadderError::FieldCount {
             conditions: conditions.len(),
@@ -257,7 +257,7 @@ pub(crate) fn measure_ladder<I: Id>(
             (against_baseline.0, against_baseline.1, against_previous.1)
         };
 
-        measurements.push(RungMeasurement {
+        measurements.push(StepMeasurement {
             condition,
             relation_loss: field.relation_loss,
             alignment,
@@ -269,37 +269,37 @@ pub(crate) fn measure_ladder<I: Id>(
     Ok(measurements)
 }
 
-/// The rung authorized to publish as the canonical field.
+/// The step authorized to publish as the canonical field.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CanonicalSelection<'ladder> {
-    /// The rung's position in the schedule.
+    /// The step's position in the schedule.
     ///
-    /// The index of its coordinate field among the ladder's per-rung artifacts.
+    /// The index of its coordinate field among the ladder's per-step artifacts.
     pub index: usize,
-    /// The rung's measurement.
+    /// The step's measurement.
     ///
-    /// Its [`RungMeasurement::alignment`] maps the field into the baseline frame, and applying it
+    /// Its [`StepMeasurement::alignment`] maps the field into the baseline frame, and applying it
     /// row by row is the canonical field's production.
-    pub measurement: &'ladder RungMeasurement,
+    pub measurement: &'ladder StepMeasurement,
 }
 
-/// Selects the rung publishing as the canonical field.
+/// Selects the step publishing as the canonical field.
 ///
 /// The value must be an exact member of the measured schedule, so the canonical condition names
-/// an existing rung. Equality on [`NonNegative`] is bit equality.
+/// an existing step. Equality on [`NonNegative`] is bit equality.
 ///
 /// # Errors
 ///
-/// Returns an error when the value names no rung.
+/// Returns an error when the value names no step.
 pub(crate) fn select_canonical(
-    measurements: &[RungMeasurement],
+    measurements: &[StepMeasurement],
     value: NonNegative,
 ) -> Result<CanonicalSelection<'_>, CanonicalError> {
     let (index, measurement) = measurements
         .iter()
         .enumerate()
         .find(|(_, measurement)| measurement.condition == value)
-        .ok_or(CanonicalError::UnknownRung { value })?;
+        .ok_or(CanonicalError::UnknownStep { value })?;
 
     Ok(CanonicalSelection { index, measurement })
 }

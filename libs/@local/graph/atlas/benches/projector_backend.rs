@@ -1,7 +1,7 @@
 //! Wall-time benchmarks for the projector's training backend.
 //!
 //! The training backend decision holds train time as the binding constraint, and the training
-//! schedule's refresh risk is one full-corpus forward per ladder rung per cadence tick. Both price
+//! schedule's refresh risk is one full-corpus forward per ladder step per cadence tick. Both price
 //! out through the two motions measured here, at the real default architecture (512-wide stem, four
 //! residual blocks, `FiLM` from the width-1 `[eta]` condition), on every backend flavor the build
 //! carries - the CPU backend always, Metal behind `bench` + `gpu`:
@@ -14,7 +14,7 @@
 //!   (the per-step cost an epoch budget multiplies). A device sync fences asynchronous backends
 //!   inside the timed region, and batches materialize per iteration, so the measurement prices
 //!   host-to-device transfer as it recurs per training step.
-//! - `forward` times inference forward at refresh-pass batch sizes. The per-rung refresh cost is
+//! - `forward` times inference forward at refresh-pass batch sizes. The per-step refresh cost is
 //!   (corpus rows / batch) of these.
 //! - `threads` times one fixed CPU step across rayon pool sizes. The CPU backend's matrix work runs
 //!   on matrixmultiply's own pool (`MATMUL_NUM_THREADS`), so a flat response here is the expected

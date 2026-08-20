@@ -13,8 +13,8 @@
 //! placement idempotent and batch composition irrelevant to the result. Equal inputs therefore
 //! place identically: rows sharing an exact representation and role are coincident in every
 //! published map, at every lens. The condition input is the relation lens η ∈ [0, 1]: one model
-//! covers the whole lens continuum, and the ladder publishes chosen rungs of it instead of one
-//! model per rung.
+//! covers the whole lens continuum, and the ladder publishes chosen steps of it instead of one
+//! model per step.
 //!
 //! [`model`] defines the architecture and its initialization contracts; [`scale`] measures the
 //! detached local radii the relation objective normalizes by; [`sample`] draws the seeded minibatch

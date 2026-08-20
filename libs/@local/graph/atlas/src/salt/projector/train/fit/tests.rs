@@ -111,7 +111,7 @@ fn model() -> Projector<TestBackend> {
     Projector::new(architecture(), &device(), rng(7))
 }
 
-/// Forwards the trained corpus at a rung.
+/// Forwards the trained corpus at a step.
 fn project(
     trained: &Projector<TestBackend>,
     corpus: &Corpus,
@@ -395,14 +395,14 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     assert!(entry.mass > d_non_negative!(0.0));
     assert!(entry.quantiles.is_some());
 
-    // Phase A is semantic-only; the ladder's zero rung stays so; and
-    // every positive rung exerts relation force (the Proximal energy
+    // Phase A is semantic-only; the ladder's zero step stays so; and
+    // every positive step exerts relation force (the Proximal energy
     // is strictly positive).
     let losses = &fitted.evidence.losses;
     assert!(losses[..6].iter().all(|loss| loss.relation == 0.0));
-    assert_eq!(losses[6].relation, 0.0, "the ladder opens at the zero rung");
-    assert!(losses[7].relation > 0.0, "the half rung pulls");
-    assert!(losses[8].relation > 0.0, "the full rung pulls");
+    assert_eq!(losses[6].relation, 0.0, "the ladder opens at the zero step");
+    assert!(losses[7].relation > 0.0, "the half step pulls");
+    assert!(losses[8].relation > 0.0, "the full step pulls");
 
     // The evidence records the relation-active nodes the run measured.
     assert!(fitted.evidence.budget.overall().nodes() > 0);
@@ -512,8 +512,8 @@ fn forceless_corpus_trains_vacuously() {
 fn vacuous_run_trains_a_flat_ladder() {
     let corpus = semantic_corpus();
     // The ladder opens at step 3, but a forceless corpus pins the
-    // zero rung through it: the condition weights never receive
-    // gradient, so every rung projects the identical map.
+    // zero step through it: the condition weights never receive
+    // gradient, so every step projects the identical map.
     let options = options(schedule(9, 3, 4));
     let fitted = fit(
         model(),
@@ -535,7 +535,7 @@ fn vacuous_run_trains_a_flat_ladder() {
     assert_eq!(
         low,
         project(&fitted.model, &corpus, non_negative!(0.5)),
-        "the middle rung should project the same map as the extremes"
+        "the middle step should project the same map as the extremes"
     );
     assert!(
         fitted.evidence.telemetry.iter().all(|tick| tick
@@ -601,7 +601,7 @@ fn coincident_without_proximal_force_refuses() {
 fn phase_a_ticks_measure_a_frozen_lens() {
     // Through the opening segment the FiLM condition weight is
     // zero-initialized and receives an exactly-zero gradient at the
-    // zero rung, so Adam never moves it and the two lens extremes
+    // zero step, so Adam never moves it and the two lens extremes
     // produce bit-identical frames: the measured displacement is
     // exactly zero, not approximately.
     let corpus = semantic_corpus();
@@ -1309,7 +1309,7 @@ fn gauge_fit_refusal_keeps_the_recorded_evidence() {
     let draws = target_draws();
     let options = options(schedule(12, 6, 4));
     let mut declared = target_options(1.0);
-    // At the boundary step no relation gradient has flowed, the rungs read bit-identical
+    // At the boundary step no relation gradient has flowed, the steps read bit-identical
     // coordinates, and the residual is exactly zero, so a bar below any real deformation
     // refuses the first fit after a post-boundary update.
     declared.residual_bar = Some(positive!(1e-12));
@@ -1656,14 +1656,14 @@ fn every_target_misconfiguration_refuses_at_admission() {
     unopened.schedule = schedule(12, 12, 4);
     assert_matches!(refusal(&inputs, &unopened), TrainError::Ruler(_));
 
-    // A canonical rung outside the curriculum names itself.
+    // A canonical step outside the curriculum names itself.
     let off_schedule = TargetOptions {
-        canonical_rung: nonzero(3),
+        canonical_step: nonzero(3),
         ..target_options(1.0)
     };
     assert_eq!(
         refusal(&target_inputs(&corpus, &draws, off_schedule), &options),
-        TrainError::CanonicalRungOutOfSchedule { rung: 3 },
+        TrainError::CanonicalStepOutOfSchedule { step: 3 },
     );
 
     // A hinge-dead penalty with a zero margin would leave distance equality forceless.

@@ -109,7 +109,7 @@ pub(super) fn render_rail(
     }
 
     // The readings the admission probe reported, under the stage that reported them. The probe
-    // reports the whole battery in one burst as its report reduces the rungs, so the rows arrive
+    // reports the whole battery in one burst as its report reduces the steps, so the rows arrive
     // together. The composition decides whether the rail has the room for them, and a frame
     // shorter than the rail asked for drops the lines it cannot hold from the bottom.
     rows.extend(

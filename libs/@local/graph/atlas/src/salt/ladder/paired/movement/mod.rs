@@ -1,16 +1,16 @@
-//! The per-subject movement readings between two aligned rungs.
+//! The per-subject movement readings between two aligned steps.
 //!
 //! [`Movement`] holds the zero-condition and canonical frames of one generation, already aligned
 //! by the ladder, and reads each drawn subject. A pair reading ([`Movement::pair`]) carries the
-//! source-to-partner distance and the partner's local rank at both rungs. A control reading
-//! ([`Movement::control`]) carries the row's displacement between the rungs and its zero-rung
+//! source-to-partner distance and the partner's local rank at both steps. A control reading
+//! ([`Movement::control`]) carries the row's displacement between the steps and its zero-step
 //! distance to the nearest sampled anchor, the stratification key of the collateral deciles.
 //!
 //! The local rank follows the union domain. With `K_r(u)` the exact `k` nearest other rows
-//! of `u` at rung `r`, the partner's rank at rung `r` is one plus the number of rows in
-//! `K_0(u) ∪ K_c(u)` whose `(distance at rung r, row)` orders before the partner's own reading.
-//! The union is the candidate domain at both rungs. A row that leaves the neighbourhood at one
-//! rung is still rank-relevant at the other, and a rank read over a single rung's `k`-set alone
+//! of `u` at step `r`, the partner's rank at step `r` is one plus the number of rows in
+//! `K_0(u) ∪ K_c(u)` whose `(distance at step r, row)` orders before the partner's own reading.
+//! The union is the candidate domain at both steps. A row that leaves the neighbourhood at one
+//! step is still rank-relevant at the other, and a rank read over a single step's `k`-set alone
 //! would miscount it.
 //! Every distance is [`Vec2::distance_squared_wide`](crate::math::Vec2::distance_squared_wide),
 //! the one metric, whether the row came from a tree readout or enters the comparison directly,
@@ -37,37 +37,37 @@ use crate::{
 
 /// The rank-readout window `k`, the size of one row's local neighbourhood.
 ///
-/// A rank reading counts within the union of both rungs' `k`-sets, so the readout resolves rank
+/// A rank reading counts within the union of both steps' `k`-sets, so the readout resolves rank
 /// movement inside the window and saturates beyond it, and no rank exceeds `1 + 2k`. The window
 /// is a readout resolution rather than a derived quantity, and the evidence body records it
 /// beside every generation's readings, so a persisted reading stays interpretable if the window
 /// moves.
 pub(super) const RANK_WINDOW: NonZero<usize> = NonZero::new(256).expect("256 is not zero");
 
-/// The reading of one drawn pair, its distance and local rank at both rungs.
+/// The reading of one drawn pair, its distance and local rank at both steps.
 ///
 /// Distances are world-unit Euclidean readings, finite and non-negative by construction. Ranks
 /// are one-based over the union domain, so a rank never exceeds `1 + 2k`. Downstream
 /// aggregation forms the per-pair differences from these fields directly and never subtracts
-/// rung aggregates.
+/// step aggregates.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(super) struct PairMovement {
-    /// The source-to-partner distance at the zero rung.
+    /// The source-to-partner distance at the zero step.
     pub distance_zero: DNonNegative,
-    /// The source-to-partner distance at the canonical rung.
+    /// The source-to-partner distance at the canonical step.
     pub distance_canonical: DNonNegative,
-    /// The partner's local rank at the zero rung.
+    /// The partner's local rank at the zero step.
     pub rank_zero: u32,
-    /// The partner's local rank at the canonical rung.
+    /// The partner's local rank at the canonical step.
     pub rank_canonical: u32,
 }
 
 /// The reading of one drawn control row, its displacement and anchor proximity.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(super) struct ControlMovement {
-    /// The row's displacement between the aligned zero and canonical rungs.
+    /// The row's displacement between the aligned zero and canonical steps.
     pub displacement: DNonNegative,
-    /// The row's zero-rung distance to the nearest sampled anchor.
+    /// The row's zero-step distance to the nearest sampled anchor.
     pub anchor_distance: DNonNegative,
 }
 
@@ -85,7 +85,7 @@ hashql_core::id::newtype! {
 /// The frame pair [`Movement::new`] refused.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) enum MovementError {
-    /// The rung frames disagree on the corpus row count.
+    /// The step frames disagree on the corpus row count.
     Rows {
         /// The zero-condition frame's row count.
         zero: usize,
@@ -107,7 +107,7 @@ impl fmt::Display for MovementError {
 
 impl Error for MovementError {}
 
-/// The movement readout over one generation's aligned rung frames.
+/// The movement readout over one generation's aligned step frames.
 #[derive(Debug)]
 pub(super) struct Movement<'frame> {
     /// The zero-condition frame, row-indexed.
@@ -118,7 +118,7 @@ pub(super) struct Movement<'frame> {
     zero_tree: KdTree<'frame, NodeRowId>,
     /// The canonical frame's neighbour index.
     canonical_tree: KdTree<'frame, NodeRowId>,
-    /// The neighbourhood size `k` of each rung's readout.
+    /// The neighbourhood size `k` of each step's readout.
     k: NonZero<usize>,
 }
 
@@ -126,7 +126,7 @@ impl<'frame> Movement<'frame> {
     /// Builds the readout over both aligned frames.
     ///
     /// The frames share the corpus row domain, so row `r` is one corpus row's position at each
-    /// rung. Alignment between the rungs is the caller's and arrives already applied.
+    /// step. Alignment between the steps is the caller's and arrives already applied.
     ///
     /// # Errors
     ///
@@ -152,7 +152,7 @@ impl<'frame> Movement<'frame> {
         })
     }
 
-    /// Reads one drawn pair: distances and union-domain local ranks at both rungs.
+    /// Reads one drawn pair: distances and union-domain local ranks at both steps.
     ///
     /// The readouts and the union buffer allocate in `scratch`, and the reading returns none of
     /// them, so the caller resets the arena between readings to reclaim them in bulk.
@@ -183,7 +183,7 @@ impl<'frame> Movement<'frame> {
         // One plus the union rows ordering before the partner under `(distance, row)`. The
         // partner itself never counts: its own reading compares equal, and equality is not
         // before. Recomputing every union member's reading through the one metric keeps the
-        // comparison independent of which rung's readout supplied the row. The union rows are
+        // comparison independent of which step's readout supplied the row. The union rows are
         // scattered by construction, so the sweep gathers four at a time through the lane
         // metric, whose readings equal the scalar metric's bit for bit.
         let mut rank_zero: u32 = 1;
@@ -234,9 +234,9 @@ impl<'frame> Movement<'frame> {
 
     /// Reads one drawn control row against the sampled anchor index.
     ///
-    /// `anchors` indexes the anchor positions at the zero rung, and the reading's
+    /// `anchors` indexes the anchor positions at the zero step, and the reading's
     /// `anchor_distance` is [`Self::anchor_distance`], the nearest of them to this row's
-    /// zero-rung position.
+    /// zero-step position.
     ///
     /// # Panics
     ///
@@ -256,7 +256,7 @@ impl<'frame> Movement<'frame> {
         }
     }
 
-    /// Reads one frame row's zero-rung distance to the nearest sampled anchor.
+    /// Reads one frame row's zero-step distance to the nearest sampled anchor.
     ///
     /// The one anchor readout. The drawn controls ([`Self::control`]) and the evidence writer's
     /// candidate sweep both read through it, so a drawn control's reading is bit-identical to

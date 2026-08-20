@@ -107,7 +107,7 @@ pub(crate) struct Batch<N, A: Allocator = Global> {
     ///
     /// Present exactly when relation edges are.
     pub scales: Option<LocalScales<BatchRowId>>,
-    /// The step's relation-lens rung.
+    /// The step's relation-lens step.
     pub eta: NonNegative,
 }
 
@@ -117,7 +117,7 @@ where
 {
     /// Re-indexes drawn populations into the batch-local row domain.
     ///
-    /// `scales` is the corpus-wide local-scale table of the step's rung; the batch gathers the
+    /// `scales` is the corpus-wide local-scale table of the step's step; the batch gathers the
     /// participating rows' entries. The opening semantic-only segment has no scale tables and
     /// passes [`None`] - its draws carry no relation edges.
     ///
@@ -158,7 +158,7 @@ where
     {
         assert!(
             populations.relation.is_empty() || scales.is_some(),
-            "relation edges need the rung's local scales"
+            "relation edges need the step's local scales"
         );
 
         let mut rows: Vec<N, A> = Vec::new_in(alloc.clone());
@@ -272,7 +272,7 @@ where
     ///
     /// With the row dimension padded to [`ROW_ALIGNMENT`].
     ///
-    /// The condition vector is the relation lens, and every row carries the batch's rung as its
+    /// The condition vector is the relation lens, and every row carries the batch's step as its
     /// single column. The model is parametric in the condition width.
     ///
     /// # Panics
@@ -292,7 +292,7 @@ where
     /// Materializes the batch's model input at an explicit row alignment.
     ///
     /// The row count pads up to the next `alignment` multiple. Padded rows replicate the last
-    /// participating row and carry the batch's rung. No population references them, so they project
+    /// participating row and carry the batch's step. No population references them, so they project
     /// dead coordinates that receive exactly zero force. Production goes through [`Batch::input`],
     /// and certificates pass `1` to obtain the unpadded frame.
     ///
@@ -312,11 +312,11 @@ where
     }
 }
 
-/// Materializes a model input for an explicit row set at one rung on `device`.
+/// Materializes a model input for an explicit row set at one step on `device`.
 ///
 /// The row count pads up to the next `alignment` multiple. Padded rows replicate the last row and
-/// carry the same rung. [`Batch::input`] wraps this for the assembled batch, and the target
-/// objective materializes its own row set at the estimand's two rungs through it.
+/// carry the same step. [`Batch::input`] wraps this for the assembled batch, and the target
+/// objective materializes its own row set at the estimand's two steps through it.
 ///
 /// # Panics
 ///

@@ -8,9 +8,9 @@ use super::{
         ClassifierEvidence, ClassifierFitSummary, Evidence, FrozenRadiusEvidence, HoldoutEvidence,
         HoldoutRecord, LadderEvidence, LandmarkEvidence, Placement, PolicyEvidence,
         ProjectorEvidence, ProximalCalibrationEvidence, RankingOrigin, RefreshFractionEvidence,
-        RegularizationReading, Reproducibility, RungEvidence, SaltMetadata, Snapshot, StabilityArm,
-        StabilityBoundEvidence, StabilityCertificateEvidence, TypeCalibrationEvidence,
-        TypeRelationLoss,
+        RegularizationReading, Reproducibility, SaltMetadata, Snapshot, StabilityArm,
+        StabilityBoundEvidence, StabilityCertificateEvidence, StepEvidence,
+        TypeCalibrationEvidence, TypeRelationLoss,
     },
 };
 use crate::{
@@ -349,8 +349,8 @@ fn evidence() -> Evidence {
             proximal_calibration: Some(calibration()),
             unresolved_verdicts: 1,
             ladder: Some(LadderEvidence {
-                rungs: vec![
-                    RungEvidence {
+                steps: vec![
+                    StepEvidence {
                         condition: non_negative!(0.0),
                         relation_loss: d_non_negative!(421.5),
                         capped_relation_loss: Some(d_non_negative!(210.75)),
@@ -362,7 +362,7 @@ fn evidence() -> Evidence {
                         baseline_movement: d_non_negative!(0.0),
                         adjacent_movement: d_non_negative!(0.0),
                     },
-                    RungEvidence {
+                    StepEvidence {
                         condition: non_negative!(1.0),
                         relation_loss: d_non_negative!(397.25),
                         capped_relation_loss: Some(d_non_negative!(99.3125)),
@@ -669,19 +669,19 @@ fn a_document_without_the_empty_cut_count_decodes_as_absent() {
 }
 
 #[test]
-fn a_rung_without_the_capped_estimand_decodes_as_absent() {
+fn a_step_without_the_capped_estimand_decodes_as_absent() {
     let mut document: serde_json::Value =
         serde_json::to_value(repository()).expect("the repository should serialize");
-    let rung = document
-        .pointer_mut("/metadata/evidence/projector/ladder/rungs/0")
+    let step = document
+        .pointer_mut("/metadata/evidence/projector/ladder/steps/0")
         .and_then(serde_json::Value::as_object_mut)
-        .expect("the first rung should be an object");
+        .expect("the first step should be an object");
 
     // The key is physically removed, the shape a ladder carries when
     // it was written before the capped readout existed.
     assert!(
-        rung.remove("capped_relation_loss").is_some(),
-        "the published shape should carry the capped estimand: {rung:?}",
+        step.remove("capped_relation_loss").is_some(),
+        "the published shape should carry the capped estimand: {step:?}",
     );
     let decoded: SaltRepository =
         serde_json::from_value(document.clone()).expect("the older shape should deserialize");
@@ -693,7 +693,7 @@ fn a_rung_without_the_capped_estimand_decodes_as_absent() {
         .and_then(|projector| projector.ladder.as_ref())
         .expect("the fixture carries a ladder");
     assert_eq!(
-        ladder.rungs[0].capped_relation_loss, None,
+        ladder.steps[0].capped_relation_loss, None,
         "an absent key reads as an absent reading rather than a measured zero"
     );
     let mut expected = repository();
@@ -704,19 +704,19 @@ fn a_rung_without_the_capped_estimand_decodes_as_absent() {
         .as_mut()
         .and_then(|projector| projector.ladder.as_mut())
         .expect("the fixture carries a ladder")
-        .rungs[0]
+        .steps[0]
         .capped_relation_loss = None;
     assert_eq!(decoded, expected);
 
     // The control for the removal itself: the retained uncapped key
     // has no default and refuses, so the decode above passed on the
     // optional key and not on a tolerated-absence rule covering the
-    // whole rung.
-    let rung = document
-        .pointer_mut("/metadata/evidence/projector/ladder/rungs/0")
+    // whole step.
+    let step = document
+        .pointer_mut("/metadata/evidence/projector/ladder/steps/0")
         .and_then(serde_json::Value::as_object_mut)
-        .expect("the first rung should be an object");
-    rung.remove("relation_loss")
+        .expect("the first step should be an object");
+    step.remove("relation_loss")
         .expect("the published shape should carry the uncapped total");
     let error = serde_json::from_value::<SaltRepository>(document)
         .expect_err("a missing undefaulted field should refuse");
@@ -775,7 +775,7 @@ fn tampered_configuration_echo_refuses_to_deserialize() {
             "/metadata/reproducibility/config/placement/projector/coefficients",
             serde_json::json!([0.0, 1.0, 1.0, 1.0, 0.0, 1.0]),
         ),
-        // Each rung must exceed the one before it, from the exact zero
+        // Each step must exceed the one before it, from the exact zero
         // baseline up.
         (
             "/metadata/reproducibility/config/placement/projector/ladder/conditions",
@@ -788,11 +788,11 @@ fn tampered_configuration_echo_refuses_to_deserialize() {
         // The rotation of a recorded alignment must lie on the unit
         // circle.
         (
-            "/metadata/evidence/projector/ladder/rungs/1/alignment/rotation",
+            "/metadata/evidence/projector/ladder/steps/1/alignment/rotation",
             serde_json::json!([2.0, 2.0]),
         ),
         (
-            "/metadata/evidence/projector/ladder/rungs/1/alignment/scale",
+            "/metadata/evidence/projector/ladder/steps/1/alignment/scale",
             serde_json::json!(0.0),
         ),
     ] {
@@ -956,7 +956,7 @@ fn a_decoded_document_carries_only_in_domain_readings() {
             serde_json::Value::Null,
         ),
         (
-            "/metadata/evidence/projector/ladder/rungs/0/relation_losses/0/loss".to_owned(),
+            "/metadata/evidence/projector/ladder/steps/0/relation_losses/0/loss".to_owned(),
             serde_json::json!(-1.0),
         ),
         (
@@ -1020,11 +1020,11 @@ fn an_old_document_without_the_optional_keys_decodes_as_absent() {
         "the writer emits the calibration key"
     );
 
-    let rung = json["metadata"]["evidence"]["projector"]["ladder"]["rungs"][0]
+    let step = json["metadata"]["evidence"]["projector"]["ladder"]["steps"][0]
         .as_object_mut()
-        .expect("a rung is an object");
+        .expect("a step is an object");
     assert!(
-        rung.remove("relation_losses").is_some(),
+        step.remove("relation_losses").is_some(),
         "the writer emits the per-type key"
     );
 
@@ -1037,7 +1037,7 @@ fn an_old_document_without_the_optional_keys_decodes_as_absent() {
         .expect("the projector evidence survives");
     assert_eq!(evidence.proximal_calibration, None);
     assert!(
-        evidence.ladder.expect("the ladder survives").rungs[0]
+        evidence.ladder.expect("the ladder survives").steps[0]
             .relation_losses
             .is_empty()
     );

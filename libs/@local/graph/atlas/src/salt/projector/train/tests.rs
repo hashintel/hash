@@ -465,7 +465,7 @@ fn allocator_seam_draws_and_assembles_identically() {
 }
 
 #[test]
-fn draw_skips_the_relation_family_at_a_zero_rung() {
+fn draw_skips_the_relation_family_at_a_zero_step() {
     let graph = semantic_graph(4, &[(0, 1, 0.5)]);
     let indexes = relation_indexes(4, &[proximal_policy(7)], vec![instance(0, 7, 2, 3)]);
     let plan = BatchPlan {
@@ -716,7 +716,7 @@ fn assemble_reindexes_into_the_local_domain() {
 }
 
 #[test]
-#[should_panic(expected = "relation edges need the rung's local scales")]
+#[should_panic(expected = "relation edges need the step's local scales")]
 fn assemble_rejects_relation_edges_without_scales() {
     let indexes = relation_indexes(2, &[proximal_policy(7)], vec![instance(0, 7, 0, 1)]);
     let group = &indexes.attraction.groups()[0];
@@ -1211,7 +1211,7 @@ fn parameter_gradients(
 fn input_pads_the_gathered_rows_to_the_alignment() {
     // Rows {0, 1, 2, 5} participate: four rows pad to the alignment,
     // and the padded tail replicates corpus row 5 - representation,
-    // role, and rung alike. Alignment one is the unpadded frame.
+    // role, and step alike. Alignment one is the unpadded frame.
     let mut populations = empty_populations(non_negative!(0.5));
     populations.semantic = vec![pair(0, 2)];
     populations.semantic_scale = 2.0;

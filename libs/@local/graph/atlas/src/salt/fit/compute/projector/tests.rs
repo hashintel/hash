@@ -99,7 +99,7 @@ fn loss_regression_even_odd_transition() {
 
 #[test]
 fn loss_regression_final_odd_transition() {
-    // Only 3→4 rises. A non-overlapping pairing of a five-rung
+    // Only 3→4 rises. A non-overlapping pairing of a five-step
     // series discards the final element with the remainder.
     let conditions = [
         non_negative!(0.0),
@@ -366,7 +366,7 @@ fn staged_column(staging: &StagedGeneration) -> Vec<Vec2> {
     placed.to_vec()
 }
 
-/// Asserts the staged column is the staged checkpoint's canonical-rung projection under the
+/// Asserts the staged column is the staged checkpoint's canonical-step projection under the
 /// recorded alignment, bit for bit: checkpoint, evidence, and column describe one field.
 fn assert_column_is_aligned_projection(
     staging: &StagedGeneration,
@@ -390,7 +390,7 @@ fn assert_column_is_aligned_projection(
     .expect("the reopened model projects finitely");
 
     let placed = staged_column(staging);
-    let alignment = ladder.rungs[ladder.canonical_index].alignment;
+    let alignment = ladder.steps[ladder.canonical_index].alignment;
     assert!(
         placed
             .iter()
@@ -418,26 +418,26 @@ fn tick_fractions() -> [RefreshFraction; 2] {
     ]
 }
 
-/// Asserts every rung's per-type shares add up to its total within accumulation rounding.
+/// Asserts every step's per-type shares add up to its total within accumulation rounding.
 ///
 /// The shares run their own chains, so the agreement is a relative tolerance, not bit
 /// equality.
 fn assert_per_type_additivity(ladder: &LadderEvidence) {
-    for rung in &ladder.rungs {
-        let shares = &rung.relation_losses;
+    for step in &ladder.steps {
+        let shares = &step.relation_losses;
         let sum: f64 = shares.iter().map(|entry| entry.loss.get()).sum();
-        let total = rung.relation_loss.get();
+        let total = step.relation_loss.get();
         assert!(
             (sum - total).abs() <= 1e-12 * total.max(1.0),
-            "per-type shares {sum} should add up to the rung total {total}",
+            "per-type shares {sum} should add up to the step total {total}",
         );
         // The fixture's one group holds fewer edges than the ratified cap, so its clip is
         // one and the capped estimand echoes the total bit-exactly: with a single group the
         // share's chain is the total's, and a fused multiply by one onto zero is exact.
         assert_eq!(
-            rung.capped_relation_loss,
-            Some(rung.relation_loss),
-            "an uncapped fixture's estimand should echo the rung total",
+            step.capped_relation_loss,
+            Some(step.relation_loss),
+            "an uncapped fixture's estimand should echo the step total",
         );
     }
 }
@@ -727,7 +727,7 @@ fn publish_vacuous_baseline() {
         "a vacuous boundary persists no calibration body, absent rather than zero"
     );
 
-    // The staged column is the model's own zero-rung projection, bit
+    // The staged column is the model's own zero-step projection, bit
     // for bit, and byte-identical representations share one
     // coordinate up to the last-bit motion `staged_column` prices.
     let placed = staged_column(&context.staging);
@@ -827,12 +827,12 @@ fn publish_measured_aligned_canonical() {
         .ladder
         .as_ref()
         .expect("a measured boundary measures the ladder");
-    assert_eq!(ladder.rungs.len(), 2);
+    assert_eq!(ladder.steps.len(), 2);
     assert_eq!(ladder.canonical.get().to_bits(), 1.0_f32.to_bits());
     assert_eq!(ladder.canonical_index, 1);
-    assert_eq!(ladder.rungs[0].alignment, Similarity::IDENTITY);
+    assert_eq!(ladder.steps[0].alignment, Similarity::IDENTITY);
     assert_eq!(
-        ladder.rungs[0].baseline_movement.get().to_bits(),
+        ladder.steps[0].baseline_movement.get().to_bits(),
         0.0_f64.to_bits()
     );
     assert_per_type_additivity(ladder);

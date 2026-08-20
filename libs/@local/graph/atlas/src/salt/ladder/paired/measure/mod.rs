@@ -2,7 +2,7 @@
 //!
 //! [`measure`] is the C2 evidence writer's core. It derives the draw salt and takes the census
 //! over the attraction index's regions, then reads every drawn subject between the aligned
-//! rung frames and assembles the persisted evidence body. It is a pure function of its inputs, so
+//! step frames and assembles the persisted evidence body. It is a pure function of its inputs, so
 //! the acceptance fixtures drive the exact production path over constructed index regions and
 //! frames, injected failures included, while the fit's writer wraps it around the staged
 //! artifacts.
@@ -36,7 +36,7 @@ use crate::{
 /// Measures the paired-movement readout of one generation.
 ///
 /// `groups` and `edges` are the attraction index's regions in file order, and `zero` and
-/// `canonical` are the ladder's aligned rung frames. The zero frame's row count is the corpus
+/// `canonical` are the ladder's aligned step frames. The zero frame's row count is the corpus
 /// row domain the census walks, and the fit's writer asserts it against the staged index. The
 /// salt derives under the initial rule identity from the same `snapshot` and `reproducibility`
 /// values the seal serializes, so the draw replays from the published document's input
@@ -118,7 +118,7 @@ pub(crate) fn measure(
         })
         .collect();
 
-    // The anchor index holds the drawn pairs' endpoints at their zero-rung positions. A gather
+    // The anchor index holds the drawn pairs' endpoints at their zero-step positions. A gather
     // from the proven zero field stays proven.
     let anchor_rows = draw.anchors();
     let anchor_frame = zero.gather(IdSlice::<AnchorRowId, _>::from_raw(&anchor_rows));

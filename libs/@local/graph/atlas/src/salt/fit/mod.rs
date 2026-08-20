@@ -210,7 +210,7 @@ pub(crate) struct ProjectorOptions {
     pub landmark_support: LandmarkSupport,
     /// Rows per corpus-forward slice, bounding the peak device memory of a whole-corpus pass.
     pub forward_rows: NonZero<usize>,
-    /// The condition ladder and its canonical rung.
+    /// The condition ladder and its canonical step.
     pub ladder: LadderOptions,
     /// Withhold the relation evidence from the trainer.
     ///
@@ -310,7 +310,7 @@ pub(crate) enum PlacementOptions {
     LandmarkBaseline,
     /// The trained conditioned projector places every row.
     ///
-    /// The ladder measures the schedule and the canonical rung's aligned field publishes.
+    /// The ladder measures the schedule and the canonical step's aligned field publishes.
     Projector(ProjectorOptions),
 }
 

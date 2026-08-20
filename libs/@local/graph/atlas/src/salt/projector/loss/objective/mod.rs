@@ -14,8 +14,8 @@
 //! effective confidence and degree normalization enter, and so does the relation's frozen
 //! strength multiplier. The class masses stay out because they weight the penalty family's class
 //! energies, which decision 4 owns. The composite objective's term coefficient stays out because
-//! composition carries no per-unit structure. The rung factor selects the canonical condition and
-//! never multiplies, so the canonical coordinates handed to this term are the canonical rung's
+//! composition carries no per-unit structure. The step factor selects the canonical condition and
+//! never multiplies, so the canonical coordinates handed to this term are the canonical step's
 //! field and no lens factor exists here. The force-pruning threshold decides population
 //! membership before any unit reaches this module.
 //!

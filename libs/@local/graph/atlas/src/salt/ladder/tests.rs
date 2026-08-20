@@ -2,7 +2,7 @@ use hashql_core::id::IdSlice;
 
 use super::{
     CanonicalError, Conditions, ConditionsError, Field, LadderError, LadderOptions,
-    RungMeasurement, measure_ladder, select_canonical,
+    StepMeasurement, measure_ladder, select_canonical,
 };
 use crate::math::{
     FinitePointField, Rotation, Similarity, Vec2, d_non_negative, non_negative, positive,
@@ -11,12 +11,12 @@ use crate::math::{
 hashql_core::id::newtype! {
     /// The ladder tests' row domain.
     #[id(const)]
-    struct RungRow(u32)
+    struct StepRow(u32)
 }
 
 /// Proves a fixture's points finite over the tests' row domain.
 #[track_caller]
-fn field(points: &[Vec2]) -> &FinitePointField<RungRow> {
+fn field(points: &[Vec2]) -> &FinitePointField<StepRow> {
     FinitePointField::new(IdSlice::from_raw(points)).expect("the fixture points are finite")
 }
 
@@ -203,7 +203,7 @@ fn measure_rejects_a_degenerate_field() {
 }
 
 #[test]
-fn pure_similarity_rung_measures_negligible_movement() {
+fn pure_similarity_step_measures_negligible_movement() {
     let conditions = Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
         .expect("the schedule is valid");
     let base = base_field();
@@ -225,7 +225,7 @@ fn pure_similarity_rung_measures_negligible_movement() {
         .sum::<f64>();
     assert!(
         raw_displacement > 16.0,
-        "the rung must move far in raw coordinates, moved {raw_displacement}"
+        "the step must move far in raw coordinates, moved {raw_displacement}"
     );
 
     let fields = [
@@ -240,26 +240,26 @@ fn pure_similarity_rung_measures_negligible_movement() {
     ];
     let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
-    let rung = &measurements[1];
+    let step = &measurements[1];
     assert!(
-        rung.adjacent_movement < d_non_negative!(1e-3),
+        step.adjacent_movement < d_non_negative!(1e-3),
         "a pure similarity image leaves no residual movement, moved {}",
-        rung.adjacent_movement.get()
+        step.adjacent_movement.get()
     );
     // The fitted alignment inverts the transform: its scale undoes the
     // doubling.
     assert!(
-        (rung.alignment.scale().get() - 0.5).abs() < 1e-4,
+        (step.alignment.scale().get() - 0.5).abs() < 1e-4,
         "the alignment must recover the inverse scale, got {}",
-        rung.alignment.scale()
+        step.alignment.scale()
     );
     // Both comparands are the baseline field here, and the two fits run
     // over identical slices, so the movements agree exactly.
-    assert_eq!(rung.baseline_movement, rung.adjacent_movement);
+    assert_eq!(step.baseline_movement, step.adjacent_movement);
 }
 
 #[test]
-fn deformed_rung_measures_a_large_movement() {
+fn deformed_step_measures_a_large_movement() {
     let conditions = Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
         .expect("the schedule is valid");
     let base = base_field();
@@ -294,7 +294,7 @@ fn adjacent_and_baseline_movements_use_their_own_comparands() {
     .expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);
-    // The third rung repeats the second exactly: no movement against
+    // The third step repeats the second exactly: no movement against
     // its predecessor, real movement against the baseline.
     let fields = [
         Field {
@@ -320,7 +320,7 @@ fn adjacent_and_baseline_movements_use_their_own_comparands() {
         "the repeat still differs from the baseline, got {}",
         repeat.baseline_movement.get()
     );
-    // The repeated rung's baseline alignment matches its predecessor's:
+    // The repeated step's baseline alignment matches its predecessor's:
     // identical fields fit identical alignments.
     assert_eq!(repeat.alignment, measurements[1].alignment);
 }
@@ -390,14 +390,14 @@ fn canonical_index_is_membership_over_the_options_alone() {
     }
 
     // Membership rejects a value inside the schedule's range that names
-    // no rung rather than interpolating it.
+    // no step rather than interpolating it.
     let options = LadderOptions {
         conditions,
         canonical: non_negative!(0.25),
     };
     assert_eq!(
         options.canonical_index(),
-        Err(CanonicalError::UnknownRung {
+        Err(CanonicalError::UnknownStep {
             value: non_negative!(0.25)
         })
     );
@@ -434,7 +434,7 @@ fn canonical_selection_requires_an_exact_member() {
             relation_loss: d_non_negative!(0.9),
         },
         // A pure similarity image of its predecessor whose loss rises:
-        // the measurements record both, and the rung still publishes.
+        // the measurements record both, and the step still publishes.
         Field {
             coordinates: field(&moved),
             relation_loss: d_non_negative!(2.0),
@@ -443,7 +443,7 @@ fn canonical_selection_requires_an_exact_member() {
 
     let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
-    // Every schedule member selects; the selection names the rung's
+    // Every schedule member selects; the selection names the step's
     // field position and carries its alignment.
     let baseline =
         select_canonical(&measurements, non_negative!(0.0)).expect("the baseline is a member");
@@ -451,33 +451,33 @@ fn canonical_selection_requires_an_exact_member() {
     assert_eq!(baseline.measurement.alignment, Similarity::IDENTITY);
 
     let selected =
-        select_canonical(&measurements, non_negative!(0.5)).expect("the middle rung is a member");
+        select_canonical(&measurements, non_negative!(0.5)).expect("the middle step is a member");
     assert_eq!(selected.index, 1);
     assert_eq!(selected.measurement.alignment, measurements[1].alignment);
 
-    // The rung whose loss rose and whose movement collapsed onto its
+    // The step whose loss rose and whose movement collapsed onto its
     // predecessor publishes like any other member: the measurements
     // are diagnostics, and they block nothing.
     let risen =
-        select_canonical(&measurements, non_negative!(1.0)).expect("the last rung is a member");
+        select_canonical(&measurements, non_negative!(1.0)).expect("the last step is a member");
     assert_eq!(risen.index, 2);
     assert_eq!(risen.measurement.relation_loss, d_non_negative!(2.0));
 
     // Selection rejects a value outside the schedule rather than interpolating.
     assert_eq!(
         select_canonical(&measurements, non_negative!(0.25)),
-        Err(CanonicalError::UnknownRung {
+        Err(CanonicalError::UnknownStep {
             value: non_negative!(0.25)
         })
     );
 }
 
 #[test]
-fn canonical_selection_publishes_a_rung_that_repeats_the_baseline() {
+fn canonical_selection_publishes_a_step_that_repeats_the_baseline() {
     let conditions = Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
         .expect("the schedule is valid");
     let base = base_field();
-    // The rung repeats the baseline exactly: zero residual movement,
+    // The step repeats the baseline exactly: zero residual movement,
     // and it publishes regardless.
     let fields = [
         Field {
@@ -493,13 +493,13 @@ fn canonical_selection_publishes_a_rung_that_repeats_the_baseline() {
     let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
     let selected =
-        select_canonical(&measurements, non_negative!(1.0)).expect("the rung is a member");
+        select_canonical(&measurements, non_negative!(1.0)).expect("the step is a member");
     assert_eq!(selected.index, 1);
     assert!(selected.measurement.adjacent_movement < d_non_negative!(1e-6));
 }
 
 #[test]
-fn baseline_rung_measures_as_the_identity() {
+fn baseline_step_measures_as_the_identity() {
     let conditions = Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
         .expect("the schedule is valid");
     let base = base_field();
@@ -517,7 +517,7 @@ fn baseline_rung_measures_as_the_identity() {
 
     let measurements = measure_ladder(&conditions, &fields).expect("well-formed");
 
-    let RungMeasurement {
+    let StepMeasurement {
         condition,
         relation_loss,
         alignment,

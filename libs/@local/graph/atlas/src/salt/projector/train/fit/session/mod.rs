@@ -9,7 +9,7 @@
 //! the ladder run the same loop body over the same session, and a resumed ladder rebuilds its
 //! session from the same artifacts while the training state arrives from the checkpoint.
 //!
-//! Refresh products (mined negatives, per-rung scale tables) never cross a [`Session::run`] call:
+//! Refresh products (mined negatives, per-step scale tables) never cross a [`Session::run`] call:
 //! the boundary step opens with an unconditional refresh, so a ladder segment re-derives them from
 //! the model it starts with. That property is what makes a checkpointed resume bit-equal to the
 //! straight run on a deterministic backend.
@@ -27,7 +27,7 @@ use rand::Rng;
 
 use super::{
     super::{
-        ObjectiveOptions, RUNGS,
+        ObjectiveOptions, STEPS,
         batch::{BatchSampler, DrawContext, Populations},
         metrics::{DegreeDeciles, TypeParticipants},
         refresh::{self, Refresh, SnapshotSample},
@@ -60,7 +60,7 @@ pub(super) use self::training::{RunOutcome, Training, optimizer, scheduler};
 use self::{
     admission::admit,
     boundary::{BoundaryOutcome, calibration_options, freeze_radius},
-    draw::{assemble_batch, rung},
+    draw::{assemble_batch, step},
 };
 
 /// One step's target-pass outcome.
@@ -123,7 +123,7 @@ where
         let mut plan = options.plan;
         if vacuous {
             // No group exerts force, so relation draws would be dead
-            // weight at every rung; the ladder still runs for the lens
+            // weight at every step; the ladder still runs for the lens
             // conditioning.
             plan.relation_types = 0;
         }
@@ -200,7 +200,7 @@ where
             self.inputs.landmarks,
             progress.projector_sample_size(),
         );
-        let mut scales: Option<[LocalScales<N>; RUNGS.len()]> = None;
+        let mut scales: Option<[LocalScales<N>; STEPS.len()]> = None;
         let mut mined: Option<MinedFrame<N>> = None;
         let mut phase: Option<TargetPhase<N>> = None;
 
@@ -252,10 +252,10 @@ where
                 });
             }
 
-            let rung_index = rung(step_index, schedule.boundary(), self.vacuous);
+            let step_index = step(step_index, schedule.boundary(), self.vacuous);
             let populations = self.sampler.draw(
                 DrawContext {
-                    eta: RUNGS[rung_index],
+                    eta: STEPS[step_index],
                     mined: mined.as_ref(),
                     landmarks: self.inputs.landmarks,
                     anchors: self.inputs.anchors,
@@ -287,7 +287,7 @@ where
                 }
             };
 
-            let batch = assemble_batch(populations, rung_index, scales.as_ref());
+            let batch = assemble_batch(populations, step_index, scales.as_ref());
 
             let mut objective =
                 self.evaluation
@@ -363,13 +363,13 @@ where
 
     /// Reads a scale-bearing tick's boundary-drift fraction, when the boundary froze a radius.
     ///
-    /// The boundary froze against the low rung, so each scale-bearing tick re-asks the
-    /// freeze-time question of its own low-rung frame: what share of reviewed mass now sits
+    /// The boundary froze against the low step, so each scale-bearing tick re-asks the
+    /// freeze-time question of its own low-step frame: what share of reviewed mass now sits
     /// at or inside the frozen radius.
     fn drift_fraction(
         &self,
         frame: &FinitePointField<N>,
-        scales: Option<&[LocalScales<N>; RUNGS.len()]>,
+        scales: Option<&[LocalScales<N>; STEPS.len()]>,
     ) -> Option<DNonNegative> {
         let energy = self.evaluation.options.relation?;
         let tables = scales?;
@@ -488,7 +488,7 @@ where
         let frame = refresh::forward(
             &model.valid(),
             self.inputs.columns,
-            RUNGS[0],
+            STEPS[0],
             self.options.forward_rows,
             device,
         )?;

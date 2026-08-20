@@ -1,11 +1,11 @@
 //! The relation-effect report over one published generation's condition ladder.
 //!
-//! The ladder's evidence records how far each rung moved and what the frozen relation loss read,
+//! The ladder's evidence records how far each step moved and what the frozen relation loss read,
 //! both in the trainer's own vocabulary of RMS movement after alignment and loss in local-scale
 //! units. Neither states the product's named claim - that the relation lens ends related entities
 //! closer on the published map. This report reads that claim in the map's own units. For every
 //! force-bearing relation instance it takes the distance between its endpoints at the
-//! zero-condition rung against the same distance at every other rung, aggregated with the
+//! zero-condition step against the same distance at every other step, aggregated with the
 //! trainer's own engagement mass. The bridge between the two vocabularies is the point of the
 //! bundle: the manifest's loss column rides beside the measured contraction so a reader can see
 //! where they disagree.
@@ -13,7 +13,7 @@
 //! # What the report reads
 //!
 //! Everything comes from the published generation directory; the report dials no store and mutates
-//! nothing. The trained checkpoint projects the representation matrix at every rung condition of
+//! nothing. The trained checkpoint projects the representation matrix at every step condition of
 //! the recorded schedule (rows project independently, so this reproduces the fit's own frames),
 //! each raw frame maps into the baseline frame through its recorded manifest alignment, and the
 //! attraction index supplies the engaged pairs with their weights. Frames are rebuilt rather than
@@ -22,7 +22,7 @@
 //!
 //! # The certificate
 //!
-//! Before the report takes any reading, the canonical rung's rebuilt aligned frame must reproduce
+//! Before the report takes any reading, the canonical step's rebuilt aligned frame must reproduce
 //! the published coordinate column within [`CERTIFICATE_TOLERANCE`] world units per component. A
 //! report whose forward pass does not reproduce the published bytes would describe a lookalike,
 //! so failure panics instead of reporting. The tolerance derives from measurement. Independent
@@ -32,7 +32,7 @@
 //!
 //! # Bases, stated
 //!
-//! - Distances are Euclidean world units in the baseline frame after each rung's own manifest
+//! - Distances are Euclidean world units in the baseline frame after each step's own manifest
 //!   alignment. The alignment quotients the global similarity freedom the projector never promises
 //!   to pin down, exactly as the ladder's published movement evidence does; a uniform rescale of a
 //!   whole frame is therefore not read as contraction.
@@ -45,7 +45,7 @@
 //!   the same convention the trainer's loss uses. Confidence machinery over these point readings is
 //!   a later concern. Nothing here is an estimate.
 //! - The contracted fraction counts instances whose endpoint distance strictly shrank against the
-//!   baseline; ties - including coincident duplicates at distance zero on both rungs - do not
+//!   baseline; ties - including coincident duplicates at distance zero on both steps - do not
 //!   count.
 
 #[cfg(test)]
@@ -81,7 +81,7 @@ use crate::{
     },
 };
 
-/// The certificate bound on the canonical rung's reproduction, world units per component.
+/// The certificate bound on the canonical step's reproduction, world units per component.
 ///
 /// One order above the measured reproduction floor: independent full-corpus rebuilds of two prior
 /// generations reached maximum component errors of `7.6e-5` and `1.03e-4` against their published
@@ -103,21 +103,21 @@ pub(crate) struct LadderReport {
     pub groups: usize,
     /// Rows that are an endpoint of at least one retained instance.
     pub participants: usize,
-    /// The published rung's schedule index.
+    /// The published step's schedule index.
     pub canonical_index: usize,
-    /// The published rung's condition.
+    /// The published step's condition.
     pub canonical_condition: NonNegative,
     /// The schedule index with the largest mass-weighted mean contraction.
     ///
-    /// Ties keep the first. Index `0` states that no rung contracts the engaged pairs against the
+    /// Ties keep the first. Index `0` states that no step contracts the engaged pairs against the
     /// baseline at all.
     pub contraction_argmax_index: usize,
-    /// Whether the published rung is the contraction argmax.
+    /// Whether the published step is the contraction argmax.
     pub canonical_is_argmax: bool,
-    /// The canonical rung's reproduction residual against the published coordinate column.
+    /// The canonical step's reproduction residual against the published coordinate column.
     pub certificate: Certificate,
-    /// One reading per rung, in schedule order. The baseline rung is the all-zero row.
-    pub rungs: Vec<RungReading>,
+    /// One reading per step, in schedule order. The baseline step is the all-zero row.
+    pub steps: Vec<StepReading>,
 }
 
 /// The reproduction residual of the rebuilt canonical frame against the published column.
@@ -133,29 +133,29 @@ pub(crate) struct Certificate {
     pub max_point_distance: DNonNegative,
 }
 
-/// One rung's manifest evidence beside its measured relation effect.
+/// One step's manifest evidence beside its measured relation effect.
 #[derive(Debug, serde::Serialize)]
-pub(crate) struct RungReading {
-    /// The rung's condition value.
+pub(crate) struct StepReading {
+    /// The step's condition value.
     pub condition: NonNegative,
     /// The manifest's frozen relation loss at projection time, local-scale units.
     pub relation_loss: DNonNegative,
     /// The manifest's RMS movement against the baseline field after alignment.
     pub baseline_movement: DNonNegative,
-    /// The measured contraction of engaged pairs against the baseline rung, over all groups.
+    /// The measured contraction of engaged pairs against the baseline step, over all groups.
     pub contraction: ContractionReading,
     /// Per-group contraction, ascending by relation row.
     pub group_contractions: Vec<GroupReading>,
-    /// Point displacement against the baseline rung over participant rows.
+    /// Point displacement against the baseline step over participant rows.
     pub participant_displacement: DisplacementReading,
-    /// Point displacement against the baseline rung over non-participant rows.
+    /// Point displacement against the baseline step over non-participant rows.
     ///
-    /// A rung that buys contraction by disturbing rows the relation term never touches shows it
+    /// A step that buys contraction by disturbing rows the relation term never touches shows it
     /// here.
     pub non_participant_displacement: DisplacementReading,
 }
 
-/// Aggregated endpoint-distance contraction of engaged pairs against the baseline rung.
+/// Aggregated endpoint-distance contraction of engaged pairs against the baseline step.
 ///
 /// Positive values state that engaged pairs end closer than the baseline placed them.
 #[derive(Debug, serde::Serialize)]
@@ -164,7 +164,7 @@ pub(crate) struct ContractionReading {
     pub edge_count: usize,
     /// Total engagement mass of those instances.
     pub total_mass: DNonNegative,
-    /// Mass-weighted mean of `baseline distance - rung distance`, world units.
+    /// Mass-weighted mean of `baseline distance - step distance`, world units.
     ///
     /// Zero when no mass entered.
     pub mass_weighted_mean: DFinite,
@@ -292,7 +292,7 @@ impl LadderReport {
         let aligned = rebuild_frames(&model, columns, evidence, options.forward_rows, &device);
         let certificate = certify(&aligned[evidence.canonical_index], coordinates);
 
-        // The reading. Terms materialize once and every rung reuses them.
+        // The reading. Terms materialize once and every step reuses them.
         let group_terms = materialize_terms(&attraction);
         let mut participant = vec![false; rows];
         for group in &group_terms {
@@ -303,10 +303,10 @@ impl LadderReport {
         }
         let participants = participant.iter().filter(|&&engaged| engaged).count();
 
-        let rungs = read_rungs(evidence, &aligned, &group_terms, &participant);
+        let steps = read_steps(evidence, &aligned, &group_terms, &participant);
 
         let contraction_argmax_index =
-            argmax(rungs.iter().map(|rung| rung.contraction.mass_weighted_mean));
+            argmax(steps.iter().map(|step| step.contraction.mass_weighted_mean));
 
         Self {
             generation: id,
@@ -319,12 +319,12 @@ impl LadderReport {
             contraction_argmax_index,
             canonical_is_argmax: contraction_argmax_index == evidence.canonical_index,
             certificate,
-            rungs,
+            steps,
         }
     }
 }
 
-/// One relation group's terms, materialized once and reused by every rung.
+/// One relation group's terms, materialized once and reused by every step.
 struct GroupTerms {
     /// The relation type's ontology row.
     relation: OntologyRowId,
@@ -347,6 +347,7 @@ fn ladder_sources(repository: &SaltRepository) -> (&ProjectorOptions, &LadderEvi
     else {
         panic!("the generation placed rows by landmark baseline; no ladder exists to read");
     };
+
     let evidence = repository
         .metadata
         .evidence
@@ -360,27 +361,27 @@ fn ladder_sources(repository: &SaltRepository) -> (&ProjectorOptions, &LadderEvi
     let schedule = options.ladder.conditions.values();
     assert_eq!(
         schedule.len(),
-        evidence.rungs.len(),
-        "the echoed schedule and the ladder evidence disagree on the rung count",
+        evidence.steps.len(),
+        "the echoed schedule and the ladder evidence disagree on the step count",
     );
-    for (index, (&condition, rung)) in schedule.iter().zip(&evidence.rungs).enumerate() {
+    for (index, (&condition, step)) in schedule.iter().zip(&evidence.steps).enumerate() {
         assert_eq!(
-            condition, rung.condition,
-            "rung {index}: the echoed schedule and the ladder evidence disagree on the condition \
+            condition, step.condition,
+            "step {index}: the echoed schedule and the ladder evidence disagree on the condition \
              ({condition} against {})",
-            rung.condition,
+            step.condition,
         );
     }
 
     assert_eq!(
-        evidence.rungs[evidence.canonical_index].condition, evidence.canonical,
+        evidence.steps[evidence.canonical_index].condition, evidence.canonical,
         "the canonical index does not name the canonical condition",
     );
 
     (options, evidence)
 }
 
-/// Rebuilds every rung: the production forward pass at the rung's condition, then the recorded
+/// Rebuilds every step: the production forward pass at the step's condition, then the recorded
 /// manifest alignment into the baseline frame.
 ///
 /// # Panics
@@ -394,27 +395,27 @@ fn rebuild_frames<B: Backend<FloatElem = f32>>(
     device: &B::Device,
 ) -> Vec<Box<FinitePointField<NodeRowId>>> {
     evidence
-        .rungs
+        .steps
         .iter()
         .enumerate()
-        .map(|(index, rung)| {
-            let frame = refresh::forward(model, columns, rung.condition, forward_rows, device)
-                .unwrap_or_else(|error| panic!("rung {index} projects a finite frame: {error:?}"));
+        .map(|(index, step)| {
+            let frame = refresh::forward(model, columns, step.condition, forward_rows, device)
+                .unwrap_or_else(|error| panic!("step {index} projects a finite frame: {error:?}"));
 
             tracing::info!(
                 index,
-                condition = %rung.condition,
-                "projected the rung"
+                condition = %step.condition,
+                "projected the step"
             );
 
             let points: IdVec<_, _> = frame
                 .as_raw()
                 .iter()
-                .map(|&point| rung.alignment.apply(point))
+                .map(|&point| step.alignment.apply(point))
                 .collect();
 
             FinitePointField::new_boxed(points.into_boxed_slice())
-                .unwrap_or_else(|error| panic!("rung {index} aligns to a finite frame: {error:?}"))
+                .unwrap_or_else(|error| panic!("step {index} aligns to a finite frame: {error:?}"))
         })
         .collect()
 }
@@ -443,21 +444,21 @@ fn materialize_terms(attraction: &AttractionArchive<NodeRowId, EdgeRowId>) -> Ve
         .collect()
 }
 
-/// Reads every rung against the baseline: contraction per group and in aggregate, and the point
+/// Reads every step against the baseline: contraction per group and in aggregate, and the point
 /// displacement of both row populations.
-fn read_rungs(
+fn read_steps(
     evidence: &LadderEvidence,
     aligned: &[Box<FinitePointField<NodeRowId>>],
     group_terms: &[GroupTerms],
     participant: &[bool],
-) -> Vec<RungReading> {
+) -> Vec<StepReading> {
     let baseline = &*aligned[0];
 
     evidence
-        .rungs
+        .steps
         .iter()
         .enumerate()
-        .map(|(index, rung)| {
+        .map(|(index, step)| {
             let frame = &*aligned[index];
 
             let group_contractions = group_terms
@@ -476,10 +477,10 @@ fn read_rungs(
                 group_terms.iter().flat_map(|group| &group.terms).copied(),
             );
 
-            RungReading {
-                condition: rung.condition,
-                relation_loss: rung.relation_loss,
-                baseline_movement: rung.baseline_movement,
+            StepReading {
+                condition: step.condition,
+                relation_loss: step.relation_loss,
+                baseline_movement: step.baseline_movement,
                 contraction,
                 group_contractions,
                 participant_displacement: displace(baseline, frame, participant, true),
@@ -489,7 +490,7 @@ fn read_rungs(
         .collect()
 }
 
-/// Measures the canonical rung's reproduction residual and asserts the certificate bound.
+/// Measures the canonical step's reproduction residual and asserts the certificate bound.
 ///
 /// # Panics
 ///

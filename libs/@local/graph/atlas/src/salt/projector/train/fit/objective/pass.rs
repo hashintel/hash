@@ -63,7 +63,7 @@ where
     }
 }
 
-/// Deposits one rung's hand-gradient field through its forward tensor.
+/// Deposits one step's hand-gradient field through its forward tensor.
 ///
 /// The gradient tensor matches the forward's padded shape, and the padding rows carry exactly
 /// zero force.

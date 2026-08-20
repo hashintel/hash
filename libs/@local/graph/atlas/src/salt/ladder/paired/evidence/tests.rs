@@ -168,8 +168,8 @@ fn pair_first_quantiles_defeat_aggregate_subtraction() {
 
     let aggregates = PairAggregates::over(&readings);
 
-    // Δd = [-9, 10, -18] has median -9. The rung medians are 20 and 12, whose difference -8
-    // is a reading no pair produced, so an implementation that subtracts persisted rung
+    // Δd = [-9, 10, -18] has median -9. The step medians are 20 and 12, whose difference -8
+    // is a reading no pair produced, so an implementation that subtracts persisted step
     // aggregates cannot reproduce the family.
     let zero_median =
         MovementAggregate::over(&[d_finite!(10.0), d_finite!(20.0), d_finite!(30.0)]).q50;

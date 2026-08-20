@@ -85,12 +85,12 @@ pub(crate) struct Populations<'index, N, E, A: Allocator = Global> {
     /// The target objective's unit draws, per-type capped like the relation family.
     ///
     /// Drawn exactly when the caller says the target estimand exists - every step from the
-    /// boundary on a target-configured run - independent of the step's rung and of the
+    /// boundary on a target-configured run - independent of the step's step and of the
     /// activation, so a zero-activation reference replicate consumes the identical stream. The
     /// batch assembly never touches this family: the target term forwards its own row set at
-    /// the estimand's two rungs instead of riding the batch frame.
+    /// the estimand's two steps instead of riding the batch frame.
     pub target: Vec<SampledRelationEdges<'index, N, E>, A>,
-    /// The step's relation-lens rung.
+    /// The step's relation-lens step.
     pub eta: NonNegative,
 }
 
@@ -100,7 +100,7 @@ pub(crate) struct Populations<'index, N, E, A: Allocator = Global> {
 /// call names them once as one value.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct DrawContext<'frame, N> {
-    /// `η`: the step rung's relation activation.
+    /// `η`: the step step's relation activation.
     pub eta: NonNegative,
     /// The pooled hard-negative frame, absent before the first refresh tick.
     pub mined: Option<&'frame MinedFrame<N>>,
@@ -170,7 +170,7 @@ where
         self.semantic.total_weight()
     }
 
-    /// Draws one step's populations at the context's lens rung.
+    /// Draws one step's populations at the context's lens step.
     ///
     /// At a zero `eta` the draw structurally skips the relation family, because the relation
     /// term contributes nothing there and its draws would be dead weight. Hard negatives come
@@ -189,7 +189,7 @@ where
         self.draw_in(context, rng, Global)
     }
 
-    /// Draws one step's populations at the context's lens rung, allocating them in `alloc`.
+    /// Draws one step's populations at the context's lens step, allocating them in `alloc`.
     ///
     /// The population vectors live in `alloc`, and sampler-internal scratch stays global. Contract
     /// and panics as in [`BatchSampler::draw`].

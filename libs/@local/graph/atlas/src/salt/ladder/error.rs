@@ -7,19 +7,19 @@ use crate::math::NonNegative;
 /// A rejected condition schedule.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum ConditionsError {
-    /// Fewer than two rungs: nothing to compare across.
+    /// Fewer than two steps: nothing to compare across.
     TooFew {
-        /// Rungs offered.
+        /// steps offered.
         count: usize,
     },
-    /// The first rung is not the exact zero-condition value `0.0`.
+    /// The first step is not the exact zero-condition value `0.0`.
     BaselineNotZero {
-        /// The offered first rung.
+        /// The offered first step.
         value: NonNegative,
     },
-    /// A rung does not exceed its predecessor.
+    /// A step does not exceed its predecessor.
     Unordered {
-        /// Position of the rejected rung.
+        /// Position of the rejected step.
         index: usize,
         /// The predecessor it fails to exceed.
         previous: NonNegative,
@@ -34,13 +34,13 @@ impl fmt::Display for ConditionsError {
             Self::TooFew { count } => {
                 write!(
                     fmt,
-                    "a condition schedule needs at least two rungs, got {count}"
+                    "a condition schedule needs at least two steps, got {count}"
                 )
             }
             Self::BaselineNotZero { value } => {
                 write!(
                     fmt,
-                    "the first rung must be the exact zero-condition value 0.0, got {value}"
+                    "the first step must be the exact zero-condition value 0.0, got {value}"
                 )
             }
             Self::Unordered {
@@ -50,7 +50,7 @@ impl fmt::Display for ConditionsError {
             } => {
                 write!(
                     fmt,
-                    "rung {index} ({value}) does not exceed its predecessor ({previous})"
+                    "step {index} ({value}) does not exceed its predecessor ({previous})"
                 )
             }
         }
@@ -64,7 +64,7 @@ impl Error for ConditionsError {}
 pub(crate) enum LadderError {
     /// The field count does not match the schedule.
     FieldCount {
-        /// Rungs in the schedule.
+        /// steps in the schedule.
         conditions: usize,
         /// Fields offered.
         fields: usize,
@@ -78,7 +78,7 @@ pub(crate) enum LadderError {
         /// The baseline field's row count.
         expected: usize,
     },
-    /// A rung's field has no Procrustes alignment onto the compared field.
+    /// A step's field has no Procrustes alignment onto the compared field.
     ///
     /// Its points are coincident or the covariance cancels exactly.
     Degenerate {
@@ -95,7 +95,7 @@ impl fmt::Display for LadderError {
             Self::FieldCount { conditions, fields } => {
                 write!(
                     fmt,
-                    "the schedule has {conditions} rungs but {fields} fields were offered"
+                    "the schedule has {conditions} steps but {fields} fields were offered"
                 )
             }
             Self::RowMismatch {
@@ -123,8 +123,8 @@ impl Error for LadderError {}
 /// A rejected canonical selection.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum CanonicalError {
-    /// The requested value is not a rung of the measured ladder.
-    UnknownRung {
+    /// The requested value is not a step of the measured ladder.
+    UnknownStep {
         /// The requested condition.
         value: NonNegative,
     },
@@ -133,8 +133,8 @@ pub(crate) enum CanonicalError {
 impl fmt::Display for CanonicalError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            Self::UnknownRung { value } => {
-                write!(fmt, "condition {value} is not a rung of the ladder")
+            Self::UnknownStep { value } => {
+                write!(fmt, "condition {value} is not a step of the ladder")
             }
         }
     }

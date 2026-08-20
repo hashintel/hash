@@ -27,7 +27,7 @@ use super::{
     metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
     probe::{
         AnchorOrdinal, ClumpReadings, DeliveryError, ProbeCorpus, ProbeError, ProbeOptions,
-        ProbeReadings, RadiusPair, ReadingGrid, Rung, match_deliveries, probe, sample_pairs,
+        ProbeReadings, RadiusPair, ReadingGrid, Step, match_deliveries, probe, sample_pairs,
     },
     report::{QualityThresholds, ThresholdOverrides, assess},
     runner::{QualityRunOptions, run},
@@ -525,9 +525,9 @@ async fn probe_reads_a_faithful_map_as_perfect() {
         &readings.sampled_representation_canonical,
     ] {
         assert_eq!(grid.anchors(), 5);
-        assert_eq!(grid.rungs(), 2);
-        for rung in 0..2 {
-            let overall = grid.overall(Rung::from_usize(rung));
+        assert_eq!(grid.steps(), 2);
+        for step in 0..2 {
+            let overall = grid.overall(Step::from_usize(step));
             assert_eq!(overall.queries(), 5);
             assert_eq!(overall.recall(), 1.0);
             assert_eq!(overall.trustworthiness(), 1.0);
@@ -615,7 +615,7 @@ async fn corpus_readings_match_a_sorting_reference() {
         assert_eq!(
             *readings
                 .map_representation
-                .anchor(AnchorOrdinal::from_usize(index), Rung::from_usize(0)),
+                .anchor(AnchorOrdinal::from_usize(index), Step::from_usize(0)),
             expected,
             "anchor {anchor} disagrees with the sorting reference",
         );
@@ -675,7 +675,7 @@ fn assert_singleton_collapse_matches_plain_recall(
     anchors: usize,
 ) {
     for anchor in 0..anchors {
-        let origin = (AnchorOrdinal::from_usize(anchor), Rung::from_usize(0));
+        let origin = (AnchorOrdinal::from_usize(anchor), Step::from_usize(0));
         assert_eq!(
             clumps
                 .map_representation
@@ -786,7 +786,7 @@ async fn clump_readings_match_a_sorting_reference() {
 
         let cell = clumps
             .map_representation
-            .anchor(AnchorOrdinal::from_usize(index), Rung::from_usize(0));
+            .anchor(AnchorOrdinal::from_usize(index), Step::from_usize(0));
         assert_eq!(
             *cell, expected,
             "anchor {anchor} disagrees with the collapsed sorting reference",
@@ -796,7 +796,7 @@ async fn clump_readings_match_a_sorting_reference() {
             cell.recall()
                 >= readings
                     .map_representation
-                    .anchor(AnchorOrdinal::from_usize(index), Rung::from_usize(0))
+                    .anchor(AnchorOrdinal::from_usize(index), Step::from_usize(0))
                     .recall()
         );
     }
@@ -1151,9 +1151,9 @@ fn assess_fails_pinned_thresholds_without_evidence() {
 /// The neighbourhood controls demand a nonempty grid.
 ///
 /// `all` over an empty grid is vacuously true. The verdict must not be. `assess` cannot emit an
-/// empty grid (it reads rung 0 unconditionally and panics), but the report is a serializable value
+/// empty grid (it reads step 0 unconditionally and panics), but the report is a serializable value
 /// whose verdict must hold under every construction - persisted reports get read back, and a
-/// control over zero rungs is the same evidence absence as a density ceiling over absent readings,
+/// control over zero steps is the same evidence absence as a density ceiling over absent readings,
 /// failing the same way.
 #[test]
 fn neighbourhood_controls_demand_a_nonempty_grid() {
@@ -1721,13 +1721,13 @@ async fn runner_reports_a_published_generation() {
         }
     }
 
-    // Subgroups below the default anchor floor never flag, and the verdict still refuses. Rung 2 of
+    // Subgroups below the default anchor floor never flag, and the verdict still refuses. Step 2 of
     // this landmark-baseline fixture reads all-degenerate radii, so the density evidence is absent
     // there and the gate fails closed on absence, permissive ceilings included.
     assert!(report.flags.is_empty());
     assert!(
         report.density[0].spread.is_none(),
-        "the small rung's density evidence is absent on this fixture",
+        "the small step's density evidence is absent on this fixture",
     );
     assert!(!report.passes());
 }

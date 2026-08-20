@@ -34,7 +34,7 @@ impl MetricRow {
     /// Reads one aggregate at the given neighbourhood size.
     ///
     /// Every row a probe produces observes at least one query, from three independent reasons:
-    /// `ProbeOptions::anchors` is a `NonZero`, the sampled pass observes every rung cell once per
+    /// `ProbeOptions::anchors` is a `NonZero`, the sampled pass observes every step cell once per
     /// anchor, and a subgroup row merges at least the anchor that created its membership. A row
     /// read from an empty aggregate publishes each reading's own optimum instead - recall one, the
     /// rates zero - and [`controls`](QualityReport::controls) folds those into its extremum as
@@ -318,9 +318,9 @@ pub(crate) struct QualityReport {
 impl QualityReport {
     /// Returns the battery's controls, each carrying the reading its verdict turns on.
     ///
-    /// Each control is a conjunction over the neighbourhood rungs, so the reading that decides it
-    /// is the extremum across them - the lowest rung against a floor and the highest against a
-    /// ceiling. An absent reading is absent evidence - an empty grid, a rung whose spread is
+    /// Each control is a conjunction over the neighbourhood steps, so the reading that decides it
+    /// is the extremum across them - the lowest step against a floor and the highest against a
+    /// ceiling. An absent reading is absent evidence - an empty grid, a step whose spread is
     /// absent, triplet sampling switched off - and a control refuses that rather than passing
     /// vacuously.
     ///
@@ -341,8 +341,8 @@ impl QualityReport {
                 .reduce(UnitFraction::max)
         };
 
-        // A rung with no spread reading gives the ceiling nothing to check, so the control loses
-        // its evidence whole rather than reading the rungs that do have one.
+        // A step with no spread reading gives the ceiling nothing to check, so the control loses
+        // its evidence whole rather than reading the steps that do have one.
         let spread = self
             .density
             .iter()
