@@ -15,11 +15,11 @@ import {
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
 const modelPath = fileURLToPath(
-  new URL("../../examples/sir-model.json", import.meta.url),
+  new URL("../../test-fixtures/sir-model.json", import.meta.url),
 );
 const supplyChainOptimizationPath = fileURLToPath(
   new URL(
-    "../../examples/supply-chain-profit-optimization.json",
+    "../../test-fixtures/supply-chain-profit-optimization.json",
     import.meta.url,
   ),
 );

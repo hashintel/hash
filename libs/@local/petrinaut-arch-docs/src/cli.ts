@@ -62,7 +62,10 @@ const summarise = (bundle: BuiltBundle): void => {
 };
 
 /** Returns false when a diagram the pages already reference failed to render. */
-const writeBundle = async (bundle: BuiltBundle): Promise<boolean> => {
+const writeBundle = async (
+  bundle: BuiltBundle,
+  renderDiagrams: boolean,
+): Promise<boolean> => {
   // Generated pages, diagrams and components are rewritten wholesale so a
   // renamed layer or a deleted component cannot leave an orphan behind, which
   // would silently keep serving a description of code that no longer exists.
@@ -75,6 +78,12 @@ const writeBundle = async (bundle: BuiltBundle): Promise<boolean> => {
     const target = join(bundleRoot, path);
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, contents, "utf8");
+  }
+
+  // The `.d2` sources always ship. Without a renderer the pages reference no
+  // SVG, so rendering here would fail on a bundle that is already complete.
+  if (!renderDiagrams) {
+    return true;
   }
 
   for (const name of bundle.diagramSources.keys()) {
@@ -143,7 +152,7 @@ const main = async (): Promise<number> => {
     return 1;
   }
 
-  if (!(await writeBundle(bundle))) {
+  if (!(await writeBundle(bundle, diagramsAvailable))) {
     return 1;
   }
 

@@ -1,0 +1,11 @@
+# Hand-written; rendered by the arch-docs build.
+shape: sequence_diagram
+
+optimizer: Optimizer (Python)
+cli: Petrinaut CLI
+
+optimizer -> cli: optimization.describe
+cli -> optimizer: "direction, parameters, seedsPerTrial"
+optimizer -> cli: "optimization.evaluate { parameterValues }"
+cli -> cli: seedsPerTrial seeded runs, sequential
+cli -> optimizer: "{ objective: mean, replicates }"

@@ -60,7 +60,7 @@ A deliberately compact single-stage supply chain (loaded from the **Supply Chain
 
 **Suggested initial state:** pick a scenario from the scenario panel and press Play. _Baseline with enough stock_ seeds `RawInventory` **200** and `FinishedGoods` **100**; the _without stock_ variants start empty and let you watch stockouts and lost sales build before replenishment catches up. Select the `Profit` metric in the timeline to compare policies. Because the policy costs are charged per observation, compare runs at the same simulation horizon.
 
-**Optimization:** the profit objective and its decision parameters make this the model used to demonstrate parameter search -- the [Petrinaut CLI](../../petrinaut-cli/OPTIMIZATION_INTEGRATION.md) can maximize `Profit` over `production_rate`, `reorder_threshold`, and `batch_size` while holding the remaining levers fixed.
+**Optimization:** the profit objective and its decision parameters make this the model used to demonstrate parameter search -- the [Petrinaut CLI](../../../@local/petrinaut-arch-docs/content/cli/usage-manual.mdx) can maximize `Profit` over `production_rate`, `reorder_threshold`, and `batch_size` while holding the remaining levers fixed.
 
 **Key concepts:** [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [inhibitor arcs](petri-net-extensions.md#inhibitor-arcs), [competing transitions](useful-patterns.md#competing-transitions--routing), [optimization objectives](useful-patterns.md#optimization-objectives-metrics-that-read-parameters), [scenarios](scenarios.md).
 

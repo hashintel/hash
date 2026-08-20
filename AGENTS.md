@@ -121,7 +121,7 @@ Any other tag is ignored, so do not add one expecting it to appear in the docs. 
 
 The generated docs are **build output and are not committed** — there is nothing to regenerate before pushing. Only the annotations are versioned.
 
-When you change structure in `libs/@hashintel/petrinaut-core` or `libs/@hashintel/petrinaut`, you MUST add a declaration if you introduce a folder that is a genuinely new architectural unit — a new boundary or a distinct responsibility, not merely a new directory.
+When you change structure in `libs/@hashintel/petrinaut-core`, `libs/@hashintel/petrinaut`, or `libs/@hashintel/petrinaut-cli`, you MUST add a declaration if you introduce a folder that is a new architectural unit, meaning a new boundary or a distinct responsibility rather than only a new directory.
 
 Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, which fails on unannotated files, undeclared ancestors and rule violations. To read the docs, `turbo run doc:architecture --filter @local/petrinaut-arch-docs` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored); open `bundle/architecture.md` for the entire model in one file.
 

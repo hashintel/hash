@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@hashintel/petrinaut": "workspace:*",
+    "@hashintel/petrinaut-cli": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@types/js-yaml": "^4",

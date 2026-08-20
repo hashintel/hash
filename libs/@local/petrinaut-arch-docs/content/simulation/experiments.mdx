@@ -33,8 +33,9 @@ the batch.
 ## Per run
 
 Each run carries its own seed, parameter values and initial marking — defaults
-come from the experiment config and are overridable per run, typically as
-`base seed + index`.
+come from the experiment config and are overridable per run. The default seed
+is `deriveRunSeed(baseSeed, index)`, the derivation the
+[CLI's seeded trials](doc:cli/usage-manual) reuse.
 
 Stepping errors are **per run**: once the experiment is running, one run throwing
 does not stop the others, which is what makes a large sweep survive a parameter
