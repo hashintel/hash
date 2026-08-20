@@ -78,7 +78,7 @@ test('every package is actually scanned', () => {
 describe('role prefixes name what a package is architecturally (spec §12.2)', () => {
   test('every package under packages/ is core or carries a role prefix', () => {
     for (const pkg of PACKAGES.filter((p) => p.kind === 'package')) {
-      expect(pkg.dir).toMatch(/^(core|plugin-[a-z0-9-]+|binding-[a-z0-9-]+)$/);
+      expect(pkg.dir).toMatch(/^(core|plugin-[a-z0-9-]+|binding-[a-z0-9-]+|transport-[a-z0-9-]+)$/);
     }
   });
 
@@ -151,6 +151,19 @@ describe('dependency direction (spec §4, §12.2)', () => {
     for (const binding of byRole('binding')) {
       for (const dependency of allDependencies(binding)) {
         expect(dependency).not.toMatch(/^@brunch\/plugin-/);
+      }
+    }
+  });
+
+  test('transports consume harness parts and their wire encoder only', () => {
+    const transports = byRole('transport');
+    expect(transports.length).toBeGreaterThan(0);
+    for (const transport of transports) {
+      expect(allDependencies(transport).sort()).toEqual([CORE, 'ai', 'valibot'].sort());
+      for (const file of sourceFiles(transport)) {
+        for (const specifier of importedPackages(file)) {
+          expect([CORE, 'ai', 'valibot']).toContain(packageOf(specifier));
+        }
       }
     }
   });
@@ -229,6 +242,20 @@ describe('the direction is physical, not merely declared', () => {
         specifier,
         resolves: true,
       });
+    }
+  });
+
+  test('a transport cannot resolve a binding or the substrate', () => {
+    for (const transport of byRole('transport')) {
+      expect(resolvesFrom(transport, CORE)).toBe(true);
+      expect(resolvesFrom(transport, 'ai')).toBe(true);
+      expect(resolvesFrom(transport, 'valibot')).toBe(true);
+      for (const binding of byRole('binding')) {
+        expect(resolvesFrom(transport, binding.name)).toBe(false);
+      }
+      for (const specifier of substratePackages) {
+        expect(resolvesFrom(transport, specifier)).toBe(false);
+      }
     }
   });
 });
@@ -471,6 +498,8 @@ describe('the CI smoke is runnable without a model key or a network (spec §12.5
    * path enters here by review only.
    */
   const SUBSTRATE_INTEGRATION_ENTRY_POINTS: Readonly<Record<string, string>> = {
+    'apps/dev/test/petrinaut-chat.integration.ts':
+      "Boots the real Gherkin elicitor on Flue's node runtime with pi-ai's faux provider, drives the committed application AI SDK route over app.fetch, and proves live reasoning/text plus inspection events without a provider key, socket, or external checkout mutation.",
     'apps/dev/test/walking-skeleton.integration.ts':
       "Boots the dev app on Flue's node runtime with pi-ai's faux provider and drives it over app.fetch — no provider key, no socket, no model call. Run as a child process by walking-skeleton.test.ts, which is what makes the node runtime drivable from this suite at all.",
   };

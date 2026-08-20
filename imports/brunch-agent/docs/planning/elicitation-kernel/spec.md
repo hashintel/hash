@@ -604,16 +604,20 @@ Bun-workspace monorepo in this repo:
 packages/core              # the harness; plugin SDK is its public export surface
 packages/core/testing      # (subpath) fixtures, arbitraries, replay driver — prod bundles stay clean
 packages/binding-flue      # the Flue binding (implements §10; owns the storage port impl)
+packages/transport-aisdk   # validated UI ingress + harness replies → AI SDK wire; no binding/substrate imports
 packages/plugin-gherkin
 packages/plugin-assurance  # renamed 2026-08-10 from plugin-proof-obligations (§13.2)
 apps/dev                   # owns 'use agent' module, app.ts, db.ts, Vite build
 ```
 
 **Dependency invariants (spec invariants):** plugins depend on `core` only — never on the binding,
-never on Flue; the harness imports no substrate; a binding imports both. **Role prefixes name
-what a package is architecturally**: plugin packages are `plugin-*` (never `elicit-*`) and
-binding packages are `binding-*` — the glossary's own noun, where `adapter-*`/`wrapper-*` are
-avoided terms (amended on review 2026-08-10; ticket 06 had bare `packages/flue` and a
+never on Flue; the harness imports no substrate; a binding imports both. A transport consumes
+harness-level reply parts plus its wire encoder and ingress validator only: `transport-aisdk`
+depends on `core`, `ai`, and `valibot`, never on a binding or Flue. **Role prefixes name what a
+package is architecturally**: plugin
+packages are `plugin-*` (never `elicit-*`), binding packages are `binding-*`, and ui reply-wire
+packages are `transport-*` — the glossary's own nouns, where `adapter-*`/`wrapper-*` are
+avoided terms (amended on review 2026-08-10 and FE-1436; ticket 06 had bare `packages/flue` and a
 `<substrate>-<name>` horizon scheme — the product name belongs in the npm scope, e.g.
 `@<name>/binding-flue`, not the package basename). Envisioned horizon, named not committed:
 per-substrate binding packages (`binding-flue`, `binding-pi`, `binding-codex`) — the payoff if
@@ -646,9 +650,10 @@ operators, fixture freeze/replay format).
   the **diagnostic probe surface** (provisional affordance renderers now; the exploded-view
   instrumented readout when that fog graduates). One agent per target (`ElicitGherkin`,
   `ElicitAssurance`): static per-agent tool sets, and the shape Cloudflare forces anyway.
-- **UI affordance package deferred**, named as intended: React renderers + reply transport over
-  `@flue/react`; non-React hosts build on `@flue/sdk`. Milestone one keeps renderers in the dev
-  app.
+- **UI affordance package deferred**, named as intended: React renderers over `@flue/react`;
+  non-React UIs build on `@flue/sdk`. The Petrinaut staging instead uses the committed
+  `transport-aisdk` server wire, without introducing a second renderer. Milestone one keeps
+  renderers in the dev app.
 - **Milestone one is local-only**, with **remote-parity constraints pinned now** so nothing
   local-only creeps in: one-agent-many-conversations; pinned `agentName`; the storage port owned
   outside the plugin (harness-defined, binding-implemented, §9.6); no dynamic agent creation.

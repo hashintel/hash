@@ -25,6 +25,7 @@ export {
   type ReplyBindingSignalPayload,
 } from './ask-protocol.ts';
 export { OPERATIONS, PRODUCT_NAME, toolName, toolPrefix, type Operation } from './naming.ts';
+export { type HarnessReplyEvent } from './reply-protocol.ts';
 export { definePlugin, PluginDescriptor, type Plugin, type PluginProposalType } from './plugin.ts';
 export {
   ABSENCE_STATES,
