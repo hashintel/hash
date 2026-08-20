@@ -187,6 +187,26 @@ const GRAPH_WORLD: Bounds = {
 };
 
 /**
+ * The viewport fetched before the camera reports in: the whole world at the
+ * depth the framed-out camera will request (zoom 0 plus
+ * {@link TILE_DEPTH_LEAD}). Fetching the complete initial tile set up front —
+ * rather than the bare root tile — makes the first paint carry the full
+ * initial density, instead of a sparse overview that visibly densifies (and
+ * steps the density-derived node sizes) as the camera-driven refetch lands
+ * moments later; the camera-derived viewport that replaces this one covers the
+ * same data tiles at the same depth, so its refetch changes nothing visible.
+ * It also freezes the framing bounds off the full union rather than the root
+ * tile's sample.
+ */
+const INITIAL_VIEWPORT: Viewport = {
+  x1: GRAPH_WORLD.minX,
+  x2: GRAPH_WORLD.maxX,
+  y1: GRAPH_WORLD.minY,
+  y2: GRAPH_WORLD.maxY,
+  zoom: TILE_DEPTH_LEAD,
+};
+
+/**
  * Turns the graph's camera (see {@link Camera}: the absolute zoom scales the
  * world→pixel rectangle, the framing-normalised zoom picks the depth), the
  * container size, and the graph's own bounds into a tiling viewport plus a
@@ -201,8 +221,9 @@ const GRAPH_WORLD: Bounds = {
  * `maxDepth` (the density headroom) keeps the depth pinned there — it only
  * magnifies what is already fetched.
  *
- * Returns `null` before the camera reports in (so the first fetch is the
- * depth-0 root) or when the camera sits entirely off the graph.
+ * Returns `null` before the camera reports in or when the camera sits entirely
+ * off the graph; the caller keeps its current viewport in both cases
+ * (initially {@link INITIAL_VIEWPORT}).
  */
 const deriveViewport = (
   camera: Camera,
@@ -792,7 +813,7 @@ export const NetworkGraphView = ({
     null,
   );
 
-  const [viewport, setViewport] = useState<Viewport | null>(null);
+  const [viewport, setViewport] = useState<Viewport>(INITIAL_VIEWPORT);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   // The live framing-normalised zoom (0 = fully framed out; null until the
@@ -1006,21 +1027,26 @@ export const NetworkGraphView = ({
       window.clearTimeout(timerRef.current);
     }
     timerRef.current = window.setTimeout(() => {
-      setViewport(
-        deriveViewport(
-          cameraRef.current,
-          sizeRef.current,
-          boundsRef.current,
-          maxDepthRef.current,
-        ),
+      const derived = deriveViewport(
+        cameraRef.current,
+        sizeRef.current,
+        boundsRef.current,
+        maxDepthRef.current,
       );
+      // Pre-camera and off-graph derivations keep the current viewport rather
+      // than regressing to a shallower fetch mid-session.
+      if (derived !== null) {
+        setViewport(derived);
+      }
     }, DEBOUNCE_MS);
   }, []);
 
   // Mirror the session's tile max-zoom into the ref the debounced derivation
   // reads, and re-derive once it lands so a view whose bound sits shallower
   // than the fallback caps the requested depth. Until it resolves the fallback
-  // holds; the initial root fetch sits below any cap, so it never over-requests.
+  // holds; the initial overview requests only TILE_DEPTH_LEAD depths, and the
+  // descent's completeness pruning stops a shallower dataset earlier, so it
+  // never meaningfully over-requests.
   useEffect(() => {
     maxDepthRef.current = maxTileDepth;
     schedule();
@@ -1277,6 +1303,15 @@ export const NetworkGraphView = ({
     // mirror would clip the successor's first viewport to the retired extent.
     setBounds(null);
     boundsRef.current = null;
+    // The successor loads as a fresh mount does: the full-world overview under
+    // a camera that has not yet reported. The retired camera's viewport would
+    // otherwise fetch the new dataset through the old framing — a rect that
+    // may cover an empty corner of it (reading as "no results" for a filter
+    // that matches plenty) — and freeze `bounds` to that partial extent. Both
+    // writes are idempotent, so a repeated render lands the same place; the
+    // remounted graph's camera report re-derives from there.
+    setViewport(INITIAL_VIEWPORT);
+    cameraRef.current = { zoom: null, normalisedZoom: null, center: null };
   }
 
   // Locate an entity by id, sharing only a request that is still in flight. The
@@ -1592,8 +1627,8 @@ export const NetworkGraphView = ({
       schedule();
     });
     observer.observe(frame);
-    // Initial overview, deferred through the debounce so the effect doesn't
-    // setState during commit.
+    // Re-derive with the just-seeded size. Pre-camera this no-ops (the guard
+    // in `schedule` keeps the initial overview viewport).
     schedule();
     return () => {
       observer.disconnect();
