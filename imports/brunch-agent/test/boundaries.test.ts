@@ -14,6 +14,7 @@ import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  agentModules,
   allDependencies,
   filesIn,
   importedPackages,
@@ -215,17 +216,20 @@ describe('Valibot is the schema library at every boundary (spec §12.4)', () => 
 
 describe('recorded Flue constraints hold by construction (spec §10)', () => {
   const dev = PACKAGES.find((pkg) => pkg.relPath === 'apps/dev')!;
-  const agentModules = sourceFiles(dev).filter((file) => /'use agent'|"use agent"/.test(file.text));
+  // Statement-anchored detection (see workspace.ts): a comment mentioning the
+  // directive is not an agent module, but a *misplaced* directive still is —
+  // so the first-statement test below sees it and goes red.
+  const devAgentModules = agentModules(dev);
 
   test('the dev app has at least one agent module', () => {
-    expect(agentModules.length).toBeGreaterThan(0);
+    expect(devAgentModules.length).toBeGreaterThan(0);
   });
 
   test("'use agent' is the module's first statement", () => {
     // The build does NOT catch this: a misplaced directive builds green and
     // the module simply stops being an agent. Nothing else would notice until
     // a conversation failed to start.
-    for (const file of agentModules) {
+    for (const file of devAgentModules) {
       // Comments are not statements, so a leading doc block is legal and must
       // not read as a violation.
       const withoutLeadingComments = file.text
@@ -239,8 +243,37 @@ describe('recorded Flue constraints hold by construction (spec §10)', () => {
   test('agentName is a pinned string literal', () => {
     // Conversation storage keys on it, so a computed value is unsupportable
     // and a changed value orphans every existing conversation.
-    for (const file of agentModules) {
+    for (const file of devAgentModules) {
       expect(file.text).toMatch(/^\s*\w+\.agentName\s*=\s*'[a-z][a-z0-9-]*';\s*$/m);
+    }
+  });
+
+  test('a pinned identity appears only in its own agent module', () => {
+    // The mount path (and anything else naming the agent) must derive from
+    // `agentName`, not copy it: a duplicated literal is the seam the FE-1361
+    // review verified — a copy-pasted second agent shadows the mount while
+    // every test stays green, because nothing ties the copies together.
+    const identities = devAgentModules.flatMap((file) =>
+      [...file.text.matchAll(/\w+\.agentName\s*=\s*'([^']+)'/g)].map((match) => ({
+        identity: match[1]!,
+        pinnedIn: file.relPath,
+      })),
+    );
+    expect(identities.length).toBeGreaterThan(0);
+    // Quoted occurrences only: prose in a comment may *name* the agent without
+    // duplicating its identity into anything the runtime reads — flagging that
+    // would be the cry-wolf failure this ticket removed from the directive
+    // check. A string literal carrying the identity anywhere else is real
+    // duplication, including inside a longer path like '/agents/…'.
+    const STRING_LITERAL = /(['"`])(?:\\.|(?!\1)[^\\\n])*\1/g;
+    for (const { identity, pinnedIn } of identities) {
+      const duplicatedIn = sourceFiles(dev)
+        .filter((file) => file.relPath !== pinnedIn)
+        .filter((file) =>
+          (file.text.match(STRING_LITERAL) ?? []).some((literal) => literal.includes(identity)),
+        )
+        .map((file) => file.relPath);
+      expect({ identity, duplicatedIn }).toEqual({ identity, duplicatedIn: [] });
     }
   });
 

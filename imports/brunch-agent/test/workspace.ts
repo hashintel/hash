@@ -41,17 +41,51 @@ export interface PackageManifest {
 }
 
 function directoriesIn(parent: string): string[] {
-  if (!existsSync(parent)) return [];
   return readdirSync(parent).filter((entry) => statSync(join(parent, entry)).isDirectory());
 }
 
+/**
+ * The architectural kind of each workspace group. Every glob the root manifest
+ * declares must resolve here: a group this map does not know is a group no
+ * boundary invariant governs, and that has to be a loud failure rather than a
+ * vacuous pass (the FE-1361 review's verified finding — the old hardcoded
+ * group list simply never saw a new group).
+ */
+const GROUP_KINDS: Readonly<Record<string, 'package' | 'app'>> = {
+  packages: 'package',
+  apps: 'app',
+};
+
 export function workspacePackages(): WorkspacePackage[] {
-  const groups: ReadonlyArray<[string, 'package' | 'app']> = [
-    ['packages', 'package'],
-    ['apps', 'app'],
-  ];
-  return groups.flatMap(([group, kind]) =>
-    directoriesIn(join(REPO_ROOT, group)).map((dir) => {
+  // Derived from the root manifest rather than listed by hand, so the set of
+  // groups the suite scans is the set Bun actually links as workspaces.
+  const rootManifest = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8')) as {
+    workspaces?: string[];
+  };
+  const globs = rootManifest.workspaces ?? [];
+  if (globs.length === 0) {
+    throw new Error('Root package.json declares no workspaces — nothing for the suite to govern.');
+  }
+  return globs.flatMap((glob) => {
+    const group = /^([\w-]+)\/\*$/.exec(glob)?.[1];
+    if (!group) {
+      throw new Error(
+        `Workspace glob ${JSON.stringify(glob)} is not the '<group>/*' shape this suite scans — teach test/workspace.ts to read it.`,
+      );
+    }
+    const kind = GROUP_KINDS[group];
+    if (!kind) {
+      throw new Error(
+        `Workspace group '${group}/' has no architectural kind — add it to GROUP_KINDS in test/workspace.ts so its packages are governed by the boundary suite.`,
+      );
+    }
+    const parent = join(REPO_ROOT, group);
+    if (!existsSync(parent)) {
+      throw new Error(
+        `Workspace group '${group}/' is declared in package.json but missing on disk.`,
+      );
+    }
+    return directoriesIn(parent).map((dir) => {
       const path = join(REPO_ROOT, group, dir);
       const manifestPath = join(path, 'package.json');
       if (!existsSync(manifestPath)) {
@@ -61,8 +95,8 @@ export function workspacePackages(): WorkspacePackage[] {
       }
       const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as PackageManifest;
       return { name: manifest.name, dir, path, relPath: `${group}/${dir}`, kind, manifest };
-    }),
-  );
+    });
+  });
 }
 
 /** Every declared dependency of a package, production and dev alike. */
@@ -118,6 +152,29 @@ export function sourceFiles(pkg: WorkspacePackage): SourceFile[] {
 /** Every test file belonging to a package. */
 export function testFiles(pkg: WorkspacePackage): SourceFile[] {
   return TEST_DIRECTORIES.flatMap((dir) => filesIn(join(pkg.path, dir)));
+}
+
+/**
+ * The `'use agent'` directive as a statement: alone on its line, terminated,
+ * quotes matching. Anchoring to a statement rather than matching raw text
+ * keeps a comment that merely *mentions* the directive from turning a file
+ * into an agent module (the FE-1361 review's verified failure: CI red on a
+ * comment-only change).
+ *
+ * Deliberately not anchored to the *first* statement: a misplaced directive
+ * must still be detected, so the first-statement invariant in
+ * `test/boundaries.test.ts` can fail it loudly instead of never seeing it.
+ */
+const AGENT_DIRECTIVE_STATEMENT = /^\s*(['"])use agent\1;?\s*(?:$|\/\/|\/\*)/m;
+
+/** Whether a file declares itself an agent module (well-placed or not). */
+export function isAgentModule(file: SourceFile): boolean {
+  return AGENT_DIRECTIVE_STATEMENT.test(file.text);
+}
+
+/** Every agent module a package ships. */
+export function agentModules(pkg: WorkspacePackage): SourceFile[] {
+  return sourceFiles(pkg).filter(isAgentModule);
 }
 
 /**

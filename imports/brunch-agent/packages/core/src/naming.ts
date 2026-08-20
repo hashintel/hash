@@ -56,8 +56,14 @@ export function toolPrefix(productName: string = PRODUCT_NAME): string {
   return `${normalized}_`;
 }
 
-/** Render an abstract operation into its model-facing tool name. */
-export function toolName(operation: string, productName: string = PRODUCT_NAME): string {
+/**
+ * Render an abstract operation into its model-facing tool name.
+ *
+ * The parameter is the `Operation` union, not `string`, so a misspelled
+ * operation is a compile error rather than a misnamed tool the model quietly
+ * fails to find. The runtime guard stays for untyped callers.
+ */
+export function toolName(operation: Operation, productName: string = PRODUCT_NAME): string {
   if (!IDENTIFIER.test(operation)) {
     throw new Error(
       `Unusable operation name ${JSON.stringify(operation)}: expected a lowercase identifier.`,

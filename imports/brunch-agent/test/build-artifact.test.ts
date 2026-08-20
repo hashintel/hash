@@ -16,10 +16,11 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { REPO_ROOT, sourceFiles, workspacePackages } from './workspace.ts';
+import { agentModules, REPO_ROOT, workspacePackages } from './workspace.ts';
 
 const DEV_APP = join(REPO_ROOT, 'apps/dev');
 const DIST = join(DEV_APP, 'dist');
+const CLIENT = join(DIST, 'client');
 
 /** Everything the server build emitted, concatenated. */
 let bundle = '';
@@ -43,8 +44,7 @@ beforeAll(async () => {
 /** The pinned identity of every agent module in the dev app, read from source. */
 function declaredAgentIdentities(): string[] {
   const dev = workspacePackages().find((pkg) => pkg.relPath === 'apps/dev')!;
-  return sourceFiles(dev)
-    .filter((file) => /'use agent'|"use agent"/.test(file.text))
+  return agentModules(dev)
     .flatMap((file) => [...file.text.matchAll(/\w+\.agentName\s*=\s*'([^']+)'/g)])
     .map((match) => match[1]!);
 }
@@ -94,8 +94,6 @@ describe('the emitted client bundle', () => {
   // a second plain vite config. Without these, a client-side break would be
   // invisible to CI — the Flue build would go green having never transformed a
   // line of it.
-  const CLIENT = join(DIST, 'client');
-
   test('emits html and a bundled entry', () => {
     expect(existsSync(join(CLIENT, 'index.html'))).toBe(true);
     expect(existsSync(join(CLIENT, 'assets/index.js'))).toBe(true);
@@ -115,3 +113,7 @@ describe('the emitted client bundle', () => {
     expect(entry.length).toBeGreaterThan(10_000);
   });
 });
+
+// The production asset route is tested in `apps/dev/test/assets.test.ts`,
+// against the handler module directly: the emitted server bundle targets
+// node (`node:sqlite`), so it cannot be imported and driven under `bun test`.
