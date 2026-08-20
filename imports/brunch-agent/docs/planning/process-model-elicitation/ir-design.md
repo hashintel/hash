@@ -1,0 +1,161 @@
+# Intermediate representation — design (FE-1364)
+
+Resolved 2026-08-13 (FE-1364 grilling session). Two layers: a general, architecture-level
+definition of the IR — **conditionally ratified**, see the status note — and the CPS plugin's
+specific payload design, the September working design. Inputs: the kernel spec (§5, §6, §11),
+the Petrinaut survey's format facts, Dora's PRO-98 ontology (its Maps-to column), the
+open-questions doc §7, and the FE-1363 use-case resolution.
+
+## Layer A — what "the IR" is, architecturally
+
+**Definition.** The intermediate representation of a target-document is the set of active
+captures, read through the plugin's declared payload type system. There is no second store:
+every consolidated view — an entity graph, a net, a completion table — is a read-time
+projection over active captures. The rendered artifact is one projection of the IR, never the
+IR itself.
+
+The harness half is already fixed by the kernel spec: each capture is an envelope (id, evidence
+spans, epistemic status, confidence, value-xor-absence, alternatives, supersession) around an
+opaque plugin payload. Defining an IR is therefore defining a payload type system.
+
+**What a plugin's payload type system must do** (durable, cross-plugin):
+
+1. **Declare a closed, named catalog of assertion kinds** (namespaced concept declarations).
+   Assurance: `Statement` kinds; Gherkin: scenario/step records; CPS: the catalog below.
+   *(already spec canon, §11.1)*
+2. **Statement granularity.** Each payload is one assertion at the granularity the user stated
+   it; factoring into artifact-shaped elements belongs to `project`. The interviewer never does
+   the artifact's modelling work mid-conversation. *(new in this decision)*
+3. **Projection-independence.** Kinds are defined in domain vocabulary, never a projection
+   target's vocabulary; the IR may legitimately hold kinds no current projection consumes — the
+   typed loss report is what keeps that honest. *(new in this decision)*
+4. **Relations are payload data, not envelope structure.** A plugin needing structure declares
+   its own reference/edge vocabulary (assurance's four edge kinds; CPS's symbolic name
+   references). *(already spec canon, §5)*
+5. **Domain labels and rollups derive at read time via `project`, never stored.**
+   *(already spec canon, §5, §13.3)*
+
+**Recommended patterns** (MAY, not obligations):
+
+- Symbolic, name-based references between payloads, with `reconcile` doing identity resolution
+  at read time — matches how experts talk and survives supersession without dangling edges.
+- A purpose/objective kind anchoring a **question-relative completion contract**.
+- Non-load-bearing pattern/motif annotations that projection may take hints from but never
+  depend on.
+
+**Status: conditionally ratified** (Lu, 2026-08-13). Ratification requires drafting speculative
+payload designs across at least three plugin targets at different complexity levels — Gherkin
+(thin, known), CPS (thick, this document), plus a third to triangulate (the kernel spec names
+BPMN/process-mining as the third dev target) — and checking which properties survive. That
+exercise is its own prototype ticket. Two standing expectations for it: **sublimation pressure
+is the norm** (drafting the assurance plugin moved content harness-ward into the generic
+strategy quiver; expect the same of CPS facets — a kind migrating to the harness is a finding,
+not a failure), and all Layer-A claims stay provisional until real examples run through a
+working harness.
+
+## Layer B — the CPS plugin's IR
+
+A working design, validated only against the truck-fleet reference case (FE-1363). The
+worked-examples exercise and the harness will bend it.
+
+### Assertion kinds
+
+| # | Kind | Holds | Projects to (Petrinaut) |
+|---|------|-------|-------------------------|
+| 1 | **entity-type** | object types and their attributes, incl. continuous state variables (truck, component, wear level) | colours + typed elements |
+| 2 | **boundary-condition** | initial populations, arrival/departure rates, external inputs ("40 trucks, 3 bays", initial wear distribution) | scenario `initialState` + `scenarioParameters` |
+| 3 | **activity** | steps *as the expert states them*: actors, resources, preconditions, outcomes, duration | factored transitions (see granularity rule) |
+| 4 | **ordering/flow** | sequencing, branching, trigger conditions | arcs, guards, arc types (read/inhibitor) |
+| 5 | **policy** | decision rules at choice/conflict points | guard/priority code where compilable; mostly IR-only |
+| 6 | **dynamics** | continuous evolution laws (wear accumulation) | differential equations on real-valued colour elements |
+| 7 | **objective** | questions the model must answer; goals; penalty weights | metrics where expressible as scalars over simulation state; weights IR-only |
+| 8 | **constraint** | regulatory/business rules, conservation laws | guards partially; references IR-only |
+| 9 | **data-binding** | model variable ↔ data feed | nothing today (Live Mode unimplemented) |
+| 10 | **validation-criterion** | how we would know the model is right | nothing today |
+
+Kinds 1–6 are **net-bearing**; 7–10 are partly or wholly **IR-only**. That split is the demo's
+story: the net is one projection of the elicited description, and what the net cannot hold is
+neither lost nor hidden — it is in the IR with provenance, and the loss report says so.
+(Corroborated independently: Dora's Maps-to column marks constraints, policies, and penalty
+weights as living "in the intermediate representation", and routes objectives to the
+simulation/experiment layer — i.e. metrics.)
+
+**Attribute patterns** (cross-kind, deliberately not kinds):
+
+- **quantity** — durations, rates, probabilities, capacities; quantile-elicited (never
+  min/mode/max), attachable to any kind; shared/tunable quantities project to `parameters`.
+- **rationale** — available on every kind, never only under objective.
+- **source-regime** — `prescribed | practiced` on every kind (manuals vs. how it actually
+  runs). One model, not parallel models; a prescribed/practiced divergence surfaces as an
+  ordinary typed `conflicting` issue — which is elicitation gold ("rules nobody wrote down"),
+  not an error state.
+
+### Granularity rule (Dora's claim #2, validated with correction)
+
+"Steps become transitions; states between become places" survives as a **projection** rule,
+not a storage rule. The IR stores activities at the expert's statement granularity, durations
+included. Petrinaut has no timing field of any kind — a timed step cannot be one transition —
+so `project` owns the factoring (e.g. start-transition → in-progress place → end-transition,
+or rate code). If the IR stored net-granularity elements, every factoring change would
+masquerade as a knowledge change and the interviewer would be doing net modelling
+mid-conversation.
+
+### Motifs
+
+The motif quiver (small, parameterised, variant selectors) lives in the **ElicitationPack as
+question guidance only** — scaffold-yes, generator-no, per the literature verdict. No motif
+vocabulary in the payload for September; the optional non-load-bearing annotation pattern
+(Layer A) exists if projection ever demonstrably needs the hint. Per-object-type templates
+live nowhere.
+
+### Completion
+
+The CPS plugin commits to **question-relative completion**: `objective` captures anchor the
+completion contract — every objective has its supporting kinds covered — over a small static
+floor (at least one objective; entities; a happy-path flow). The interview therefore opens on
+objectives. This operationalizes the earning test (stochasticity and colour only where an
+objective demands them) and is the corrected form of a static category ordering.
+
+### Projection to Petrinaut
+
+- **Emission surfaces**: all four in-file surfaces — net structure (places, transitions,
+  colours, ODEs, arcs), **scenario** (mandatory: a bare net loads with an empty marking and
+  does nothing when simulated), **metrics**, **parameters**. The Optuna/optimization file
+  format (`petrinaut-optimization`) is **excluded for September**: its ontology is itself in
+  flight (Yannis is working on it; his design is a candidate future input). Penalty weights
+  stay IR-only and appear in the loss report.
+- **Typed loss report**: per-capture; every active capture lands in exactly one of
+  `mapped-exactly / normalized / approximate / collapsed / omitted / defaulted /
+  unrepresentable`. The table above implies the first cut: entity-types and dynamics map
+  exactly (names normalized); boundary-conditions map to scenario content; activity structure
+  is normalized with durations approximate (rate code); orderings map exactly; policies are
+  approximate/collapsed with rationale unrepresentable; objectives normalize to metrics where
+  scalar-expressible, with penalty weights and rationale unrepresentable; constraints collapse
+  partially with regulatory references unrepresentable; data-bindings and validation-criteria
+  are unrepresentable. **First cut, illustrative** — the binding table is owned by the plugin
+  spec; the mechanism (per-capture, seven categories) is resolution-grade.
+- **Regime rule**: the net projects the **practiced** process. Where prescribed and practiced
+  diverge unresolved, practiced wins and the prescribed reading lands as `omitted` in the
+  report.
+- **Naming discipline**: IR payloads keep expert-language names verbatim (evidence-faithful).
+  The ProjectionPack owns a deterministic name→PascalCase identifier scheme — place names are
+  identifiers inside every code surface (guards, kernels, ODEs, metrics), and import does not
+  validate them — emits the name-map as projection metadata for the demo shell to display, and
+  records collision renames as `normalized`.
+- **Provenance stays outside the file.** The Petrinaut format has no provenance, rationale,
+  confidence, or draft-ness fields anywhere, and unknown keys are stripped on import (inline
+  annotation is explicitly not round-trippable). Everything IR-only is honestly
+  `unrepresentable` in the artifact; provenance display is the demo shell's job, never
+  smuggled into the file.
+
+### September minimum (the open-questions doc's §7.2, answered)
+
+The schema holds all ten kinds. The demo requires captures in the seven net-bearing-plus-
+objective kinds (entity-type, boundary-condition, activity, ordering/flow, policy, dynamics,
+objective); constraint, data-binding, and validation-criterion are schema-present and may be
+sparsely populated — their presence *is* the "net is one projection" story even at two
+captures each.
+
+§7.1 asked what else belongs on the lives-outside-the-net list: **initial/boundary conditions**
+(populations, arrival rates, external inputs — scenario-bound, not net-bound) and **user
+identity as elicitation-shaping metadata** (Dora's ontology; harness-side, not payload).
