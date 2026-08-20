@@ -1,0 +1,7 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "quoteStyle": "single",
+  "jsxQuoteStyle": "double",
+  "lineWidth": 100,
+  "ignorePatterns": ["**/dist/**"]
+}

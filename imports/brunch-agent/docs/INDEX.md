@@ -41,6 +41,16 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 | [research/elicitation-strategy-literature](planning/process-model-elicitation/research/elicitation-strategy-literature.md) | active | gisted in FE-1360 resolution | Literature synthesis, 9 sections, verification-labeled |
 | [research/re-interviewing-literature-worker-report](planning/process-model-elicitation/research/re-interviewing-literature-worker-report.md) | active | noted on FE-1361 | Verbatim instruments: 34-mistake taxonomy, question typologies, LLM-interviewer results |
 
+## Decision records (`docs/adr/`)
+
+Decisions taken *after* the elicitation-kernel spec settled. Where an ADR
+supersedes part of the spec, the spec file is left unedited — it is the record
+of what was decided in August, and the ADR is how a later change is recorded.
+
+| Document | Status | Linear | Digest |
+| --- | --- | --- | --- |
+| [0001-brunch-is-the-product-name](adr/0001-brunch-is-the-product-name.md) | accepted | FE-1388 | `brunch` settles as the product name and may appear in structure: `brunch_*` tools, `@brunch/*` scope, `brunch-gherkin-elicitor` agent identity. Supersedes spec §12.3's `bl_*` provisional; the ban on function-naming (`elicit_*`) survives |
+
 ## External canonical documents
 
 | Document | Where | Digest |

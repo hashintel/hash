@@ -1,0 +1,10 @@
+# Pinned, not merely inherited from Bun's current default.
+#
+# The isolated linker gives each workspace package only what its own manifest
+# declares, which is what makes the spec §12.2 dependency direction physical
+# rather than advisory: `plugin-gherkin` cannot resolve Flue or the binding even
+# if someone writes the import. A hoisted node_modules would quietly restore
+# every forbidden path. `test/boundaries.test.ts` asserts the property still
+# holds; this pins the mechanism that provides it.
+[install]
+linker = "isolated"

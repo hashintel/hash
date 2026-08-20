@@ -1,6 +1,13 @@
 .DS_Store
 node_modules/
 
+# Build output and local runtime state
+dist/
+.flue/
+*.tsbuildinfo
+# The dev app's local conversation store — disposable by name
+.data-wipe-me/
+
 # Ephemeral working documents (outbound comment/message drafts, one-off prep) —
 # any directory named drafts/ is untracked; the delivered artifact is the record.
 drafts/

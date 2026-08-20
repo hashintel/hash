@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["bun", "vite/client"]
+  },
+  "include": [
+    "test",
+    "packages/*/src",
+    "packages/*/test",
+    "apps/*/src",
+    "apps/*/test",
+    "apps/*/*.config.ts"
+  ]
+}
