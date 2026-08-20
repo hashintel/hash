@@ -1,6 +1,10 @@
 {
   "extends": ["//"],
   "tasks": {
+    "codegen": {
+      "dependsOn": ["@hashintel/petrinaut-core#build"],
+      "outputs": ["schemas/**"]
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],

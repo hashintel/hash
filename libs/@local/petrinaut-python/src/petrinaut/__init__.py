@@ -14,10 +14,24 @@ from .errors import (
     PetrinautProtocolError,
     PetrinautRunError,
 )
+from .models import (
+    OptimizationBooleanParameter,
+    OptimizationDescribeResult,
+    OptimizationEvaluateResult,
+    OptimizationFloatParameter,
+    OptimizationIntParameter,
+    OptimizationReplicate,
+)
 from .optimization import OptimizationSession
 from .session import PetrinautSession
 
 __all__ = [
+    "OptimizationBooleanParameter",
+    "OptimizationDescribeResult",
+    "OptimizationEvaluateResult",
+    "OptimizationFloatParameter",
+    "OptimizationIntParameter",
+    "OptimizationReplicate",
     "OptimizationSession",
     "PetrinautClientError",
     "PetrinautProtocolError",
