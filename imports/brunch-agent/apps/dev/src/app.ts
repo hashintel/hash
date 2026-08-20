@@ -11,12 +11,15 @@ import { readFile } from 'node:fs/promises';
 import { createAgentRouter } from '@flue/runtime/routing';
 import { Hono } from 'hono';
 import { GherkinElicitor } from './agents/gherkin-elicitor.ts';
+import { assetHandler } from './assets.ts';
 
 const app = new Hono();
 
 // One route per target agent. The gallery grows an entry per plugin; gherkin
-// is the tracer that wires end-to-end first (spec §13).
-app.route('/agents/brunch-gherkin-elicitor', createAgentRouter(GherkinElicitor));
+// is the tracer that wires end-to-end first (spec §13). The path derives from
+// the pinned identity — a copied literal here would let a second agent shadow
+// this mount with every test still green.
+app.route(`/agents/${GherkinElicitor.agentName}`, createAgentRouter(GherkinElicitor));
 
 // The flue dev controller owns the whole request space — no fall-through to
 // vite's html serving — so the ui is app-served, in dev and in production
@@ -33,18 +36,6 @@ const uiRoot = new URL(import.meta.env.DEV ? '../' : './client/', import.meta.ur
 app.get('/', async (c) => c.html(await readFile(new URL('index.html', uiRoot), 'utf8')));
 
 // Production only: in dev, vite serves the module graph under /src.
-app.get('/assets/:file', async (c) => {
-  const file = c.req.param('file');
-  // Path traversal would otherwise read anything on disk relative to the
-  // bundle. Only the flat asset names the client build emits are servable.
-  if (!/^[\w.-]+\.(js|css|map)$/.test(file)) return c.notFound();
-  try {
-    const body = await readFile(new URL(`assets/${file}`, uiRoot), 'utf8');
-    const type = file.endsWith('.css') ? 'text/css' : 'text/javascript';
-    return c.body(body, 200, { 'content-type': type });
-  } catch {
-    return c.notFound();
-  }
-});
+app.get('/assets/:file', assetHandler(uiRoot));
 
 export default app;

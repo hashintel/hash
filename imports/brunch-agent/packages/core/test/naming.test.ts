@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { OPERATIONS, PRODUCT_NAME, toolName, toolPrefix } from '../src/naming.ts';
+import { OPERATIONS, PRODUCT_NAME, toolName, toolPrefix, type Operation } from '../src/naming.ts';
 
 // Spec §12.3: architectural strings name identity, not function. The tool
 // prefix derives from the product name so the unresolved name-fog costs one
@@ -33,8 +33,21 @@ describe('tool namespacing', () => {
   });
 
   test('an operation name that is not an identifier is refused', () => {
-    expect(() => toolName('ask user!', 'Loom')).toThrow(/operation/i);
-    expect(() => toolName('', 'Loom')).toThrow(/operation/i);
+    // Cast on purpose: the parameter type already forbids these, and the
+    // runtime guard behind it is what this test pins for untyped callers.
+    expect(() => toolName('ask user!' as unknown as Operation, 'Loom')).toThrow(/operation/i);
+    expect(() => toolName('' as unknown as Operation, 'Loom')).toThrow(/operation/i);
+  });
+
+  test('an operation core never declared does not compile', () => {
+    // The FE-1361 review's verified finding: with a plain-string parameter,
+    // `toolName('aks')` compiled and shipped a misnamed model-facing tool.
+    // Never called — 'aks' is a well-formed identifier, so only the type
+    // rejects it. If the directive ever reports as unused, the parameter has
+    // widened back to string and the typo channel is open again.
+    // @ts-expect-error -- 'aks' is not an Operation
+    const misspelled = () => toolName('aks');
+    expect(misspelled).toBeInstanceOf(Function);
   });
 });
 
