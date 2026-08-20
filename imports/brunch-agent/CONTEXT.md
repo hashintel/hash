@@ -108,6 +108,16 @@ The narrow injected context through which a plugin receives harness capabilities
 **Storage port**:
 The harness-defined contract for the capture store (atomic sweep application, envelope invariants as store-level refusals), implemented by the binding for its deploy target. Plugins are storage-blind. Scope includes the **session-log archive** (archive-on-read; spec §9.6): session logs live with the target-document, retained indefinitely — the substrate's conversation store is the live transport copy, never the provenance record.
 
+### September demo
+
+**Demo shell**:
+The one-off application built for the 17–18 September demo: consumes the elicitation library (harness + plugin + binding) and the Petrinaut libraries, owns the UI, session persistence, and elicitor runtime. Explicitly disposable — not a product commitment; neither library consumes the other.
+_Avoid_: "the app", standalone brunch, demo app (unqualified)
+
+**Artifact boundary**:
+The decided integration posture between elicitor and Petrinaut (FE-1362): the elicitor emits a versioned net file plus scenario; Petrinaut consumes it through its published parser and import-with-autolayout path. The rejected alternative was library coupling (one library consuming the other).
+_Avoid_: file handoff (undersells it), integration (generic)
+
 **Walking skeleton**:
 A prototype that proves a transport or integration end-to-end on the real substrate (e.g. a real Flue agent + web UI) with stubbed internals.
 

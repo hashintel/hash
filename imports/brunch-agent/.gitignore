@@ -1,2 +1,6 @@
 .DS_Store
 node_modules/
+
+# Ephemeral working documents (outbound comment/message drafts, one-off prep) —
+# any directory named drafts/ is untracked; the delivered artifact is the record.
+drafts/
