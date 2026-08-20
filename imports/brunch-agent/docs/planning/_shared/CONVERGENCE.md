@@ -53,10 +53,10 @@ obligation) · **orphaned** (owned by no map or ticket — a finding) · **contr
 | Obligation | Spec | Status | Evidence |
 | --- | --- | --- | --- |
 | Shell separation: plugins→core only; core imports no substrate; binding imports both | §4, §12.2 | **discharged** | boundary gates (FE-1388/FE-1399, `test/boundaries.test.ts`); `workspacePackages()` derives groups from manifest; `plugin-gherkin` imports `@brunch/core` only |
-| Package topology | §12.2 | **partial** | `core` (+`testing` subpath), `binding-flue`, `plugin-gherkin`, `apps/dev` exist; `plugin-assurance` pending. Topology pin derives from §12.2 itself (FE-1400 `ef00201`) |
+| Package topology | §12.2 | **partial** | `core` (+`testing` subpath), `binding-flue`, `transport-aisdk`, `plugin-gherkin`, `apps/dev` exist; `plugin-assurance` pending. Topology pin derives from §12.2 itself (FE-1400 `ef00201`); FE-1436 adds the transport-only dependency gate. |
 | Core *is* the harness (mechanism lives in core) | §12.2, §14.2 | **discharged** | FE-1422 moved ask mechanism into `core/ask-protocol`; FE-1392 added range selection, trigger/repair decisions, quote-only prompting, and advisory semantics in `core/sweep-protocol`. `binding-flue` supplies substrate reading and orchestration wiring only |
 | Tool naming: identity not function | §12.3 | **superseded → discharged** | ADR-0001 replaces `bl_*` with `brunch_*`; `toolName('ask')` → `brunch_ask`; `elicit_*` ban enforced |
-| Valibot at every boundary | §12.4 | **discharged** | core + binding schemas throughout |
+| Valibot at every boundary | §12.4 | **discharged** | core + binding schemas throughout; `transport-aisdk` validates the external UI POST before typed request parsing |
 | SDK surface (anchoring, retries, tracing, arbitraries, simulation harness) | §12.4 | **pending** | none built; owned by FE-1393 (FE-1383 slice), export-surface ratification gated on the contract freeze (FE-1387) |
 | Host-authored thin agent calling `useElicitation(plugin, session)` | §12.1 | **discharged** | `apps/dev/src/agents/gherkin-elicitor.ts`; FE-1392 adds host-owned immutable session/document and transport wiring |
 | Dev app's three roles (dev loop, target gallery, probe surface) | §12.5 | **partial** | dev loop only (FE-1389 chat UI); gallery and probe surface owned by FE-1385 (FE-1383 slice, backlog) |

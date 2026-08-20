@@ -12,7 +12,8 @@ import { createAgentRouter } from '@flue/runtime/routing';
 import { Hono } from 'hono';
 import { GherkinElicitor } from './agents/gherkin-elicitor.ts';
 import { assetHandler } from './assets.ts';
-import { GHERKIN_AGENT_ROUTE } from './routes.ts';
+import { petrinautChatHandler } from './petrinaut-chat.ts';
+import { GHERKIN_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from './routes.ts';
 
 const app = new Hono();
 
@@ -21,6 +22,10 @@ const app = new Hono();
 // share the route constant; Flue still keys storage on the agent's independent,
 // pinned identity.
 app.route(`/agents/${GHERKIN_AGENT_ROUTE}`, createAgentRouter(GherkinElicitor));
+
+// The application owns the HTTP mount; transport-aisdk owns only request validation
+// and AI SDK stream encoding. No parallel conversation renderer is introduced.
+app.on(['POST', 'OPTIONS'], PETRINAUT_CHAT_ROUTE, (c) => petrinautChatHandler(c.req.raw));
 
 // The flue dev controller owns the whole request space — no fall-through to
 // vite's html serving — so the ui is app-served, in dev and in production

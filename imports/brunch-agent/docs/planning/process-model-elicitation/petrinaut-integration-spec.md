@@ -101,11 +101,15 @@ which the design needs anyway:
 - The elicitor server is a thin host-authored agent (spec §13) around the harness library,
   deployed remotely; the demo site addresses it cross-origin, bypassing the site's own
   `/api/chat` and Vercel function limits.
-- New package `transport-aisdk`: the server end of the ui shell's reply transport. Translates
+- Implemented by FE-1436 (the durable AI SDK transport): package `transport-aisdk` is the
+  server end of the ui shell's reply transport. It translates
   harness-level parts to AI SDK v6 UI-message-stream chunks, using the `ai` package for stream
-  encoding only (no provider use — inference stays on Pi's adapter layer). Depends on `core`
-  and `ai`; never on the binding or Flue. This adds a `transport-*` role prefix to the §12.2
-  vocabulary (the glossary's avoided terms `adapter-*`/`wrapper-*` stay avoided).
+  encoding only (no provider use — inference stays on Pi's adapter layer). Depends on `core`,
+  `ai`, and `valibot` for external request validation; never on the binding or Flue. This adds
+  a `transport-*` role prefix to the §12.2
+  vocabulary (the glossary's avoided terms `adapter-*`/`wrapper-*` stay avoided). The
+  implementation and real-panel evidence are recorded in
+  `transport-aisdk-implementation-2026-08-19.md`.
 - Kernel spec amendments applied with this work, not silently: §12.2 package list gains
   `transport-aisdk` and records the monorepo import (`@hashintel/brunch-agent`, hash
   toolchain replacing the Bun workspace at import time); §13's shipping shape and ADR-0002 N3
@@ -177,7 +181,8 @@ which the design needs anyway:
   1. *Suspension spike*: Flue carries terminate-with-pending; a resume dispatch delivers
      machine results as non-user entries; batch binding holds. Failure here selects the
      doc-handle fallback and is evidence toward a `binding-pi`, not against the harness.
-  2. *Adapter spike*: `transport-aisdk` output drives the real panel — text, reasoning, and
+  2. *Adapter spike* (discharged by FE-1435 and carried into the FE-1436 durable path):
+     `transport-aisdk` output drives the real panel — text, reasoning, and
      server-tool parts render; client tool calls execute; the diagnostics decorator fires.
      Its transcript becomes the golden fixtures.
 

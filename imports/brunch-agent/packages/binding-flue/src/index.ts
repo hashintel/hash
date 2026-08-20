@@ -61,6 +61,11 @@ export {
   projectFlueHistoryForSweep,
   type FlueHistoryReaderOptions,
 } from './history-reader.ts';
+export {
+  createFlueReplyProjector,
+  type FlueReplyProjector,
+  type FlueReplyProjectorOptions,
+} from './reply-projector.ts';
 export { createLocalCaptureStore } from './local-capture-store.ts';
 
 export interface ElicitationSession {

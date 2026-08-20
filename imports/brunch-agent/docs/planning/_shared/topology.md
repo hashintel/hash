@@ -44,6 +44,13 @@ packages/binding-flue              LANE 2 (translate harness ↔ Flue dialect)
                          archive, legacy provisioning, parse-on-read, tmp+rename, per-path
                          queue). One per deploy target per binding. Never: business rules.
 
+packages/transport-aisdk           UI REPLY WIRE (substrate-neutral)
+└─ index.ts            ✓ validates Petrinaut's POST, drives an application-supplied harness turn,
+                         and encodes
+                         harness reply events with `ai` only. Opt-in inspection emits metadata
+                         out-of-band. Never: binding/Flue imports, inference, conversation
+                         rendering, or diagnostics dispatched as user evidence.
+
 packages/plugin-gherkin            LANE 3 (target policy)
 └─ index.ts           ✓  identity + one `statement-noted` ConditionStated verbatim floor;
                          strict schema forbids parsed structure and silent hardening.
@@ -56,6 +63,8 @@ apps/dev                           LANE 1 SHELL (consume Flue directly) + thin h
 │                        the second agent (then per-agent folders, FE-1385)
 ├─ src/elicitation-session.ts, target-document-path.ts ✓ host-owned session/document binding,
 │                        full mount URL/transport, and opaque local target path
+├─ src/petrinaut-chat.ts ✓ thin Flue→harness-event→AI SDK composition; `/api/chat` mount and
+│                        opt-in JSONL inspection. No second conversation renderer.
 ├─ src/db.ts, db-path.ts ✓ convention entry + bun-testable path logic, deliberately split
 ├─ src/ui/chat.tsx    ~  hand-rolled client; tolerated ONLY until FE-1385 adopts @flue/react
 │                        (divergence risk 1). Never: growing new part-rendering features here.

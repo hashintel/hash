@@ -6,12 +6,14 @@
   "description": "The dev/demo vehicle: local dev loop, target gallery, diagnostic probe surface. Not the product.",
   "scripts": {
     "dev": "vite dev",
+    "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
     "build": "vite build && vite build --config vite.client.config.ts"
   },
   "dependencies": {
     "@brunch/binding-flue": "workspace:*",
     "@brunch/core": "workspace:*",
     "@brunch/plugin-gherkin": "workspace:*",
+    "@brunch/transport-aisdk": "workspace:*",
     "@flue/react": "^2.0.3",
     "@flue/runtime": "^2.0.3",
     "@flue/sdk": "^2.0.3",

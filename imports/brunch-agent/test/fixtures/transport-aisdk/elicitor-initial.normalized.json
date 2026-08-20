@@ -1,0 +1,36 @@
+[
+  { "type": "start", "messageId": "$message" },
+  { "type": "start-step" },
+  { "type": "reasoning-start", "id": "$message:reasoning:1" },
+  {
+    "type": "reasoning-delta",
+    "id": "$message:reasoning:1",
+    "delta": "I should establish the process outcome before proposing structure."
+  },
+  { "type": "reasoning-end", "id": "$message:reasoning:1" },
+  { "type": "text-start", "id": "$message:text:2" },
+  {
+    "type": "text-delta",
+    "id": "$message:text:2",
+    "delta": "What outcome should this process reliably produce?"
+  },
+  { "type": "text-end", "id": "$message:text:2" },
+  { "type": "finish-step" },
+  { "type": "start-step" },
+  { "type": "reasoning-start", "id": "$message:reasoning:3" },
+  {
+    "type": "reasoning-delta",
+    "id": "$message:reasoning:3",
+    "delta": "The settlement check does not add user evidence."
+  },
+  { "type": "reasoning-end", "id": "$message:reasoning:3" },
+  { "type": "text-start", "id": "$message:text:4" },
+  {
+    "type": "text-delta",
+    "id": "$message:text:4",
+    "delta": "We can start with the outcome and then work backward through the process."
+  },
+  { "type": "text-end", "id": "$message:text:4" },
+  { "type": "finish-step" },
+  { "type": "finish", "finishReason": "stop" }
+]

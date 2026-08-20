@@ -1,0 +1,15 @@
+{
+  "name": "@brunch/transport-aisdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AI SDK UI-message-stream transport for harness reply parts.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@brunch/core": "workspace:*",
+    "ai": "6.0.182",
+    "valibot": "^1.4.2"
+  }
+}
