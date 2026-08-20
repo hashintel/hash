@@ -18,7 +18,14 @@ import optuna
 from opentelemetry import context as otel_context
 from opentelemetry import trace
 from opentelemetry.trace import Span, Status, StatusCode
-from petrinaut import OptimizationSession, PetrinautRunError
+from petrinaut import (
+    OptimizationBooleanParameter,
+    OptimizationDescribeResult,
+    OptimizationFloatParameter,
+    OptimizationIntParameter,
+    OptimizationSession,
+    PetrinautRunError,
+)
 
 from src.utils import Phase, set_status
 
@@ -42,7 +49,9 @@ _WORKER_SHUTDOWN_TIMEOUT_SECONDS = 12
 _SENTINEL = object()
 
 Scalar: TypeAlias = int | float | bool
-ParameterDescriptor: TypeAlias = Mapping[str, Any]
+ParameterDescriptor: TypeAlias = (
+    OptimizationFloatParameter | OptimizationIntParameter | OptimizationBooleanParameter
+)
 
 
 def max_study_seconds_from_environment() -> float:
@@ -64,18 +73,8 @@ def max_study_seconds_from_environment() -> float:
     return value
 
 
-def _finite_number(value: Any, name: str) -> float:
-    if (
-        isinstance(value, bool)
-        or not isinstance(value, (int, float))
-        or not math.isfinite(value)
-    ):
-        raise ValueError(f"{name} must be a finite number")
-    return float(value)
-
-
 def _parse_description(
-    description: Mapping[str, Any],
+    description: OptimizationDescribeResult,
 ) -> tuple[
     Literal["maximize", "minimize"],
     str,
@@ -83,92 +82,55 @@ def _parse_description(
     int,
     tuple[ParameterDescriptor, ...],
 ]:
-    """Validate only the small, generic optimization protocol contract."""
-    direction = description.get("direction")
-    if direction not in {"maximize", "minimize"}:
-        raise ValueError("optimization.describe direction must be maximize or minimize")
+    """Check the semantic rules the protocol schema cannot express.
 
-    study = description.get("study")
-    if not isinstance(study, dict):
-        raise ValueError("optimization.describe omitted its study settings")
-    sampler = study.get("sampler")
+    The shape is already proven: the bindings validate every describe result
+    against the CLI's published schema before this sees it. What remains are
+    cross-field rules — bound ordering, log-scale domains, duplicates — and
+    this service's own study limits.
+    """
+    sampler = description.study.sampler.value
     if sampler not in SAMPLERS:
         raise ValueError(f"unsupported Optuna sampler: {sampler!r}")
-    n_trials = study.get("trials")
-    if isinstance(n_trials, bool) or not isinstance(n_trials, int) or n_trials < 1:
-        raise ValueError("optimization.describe study.trials must be positive")
+    n_trials = description.study.trials
     if n_trials > MAX_STUDY_TRIALS:
         raise ValueError(
             f"optimization.describe study.trials must not exceed {MAX_STUDY_TRIALS}"
         )
-    seed = study.get("seed")
-    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+    seed = description.study.seed
+    if seed < 0:
         raise ValueError(
             "optimization.describe study.seed must be a non-negative integer"
         )
 
-    raw_parameters = description.get("parameters")
-    if not isinstance(raw_parameters, list):
-        raise ValueError("optimization.describe parameters must be an array")
-
-    parameters: list[ParameterDescriptor] = []
     identifiers: set[str] = set()
-    for index, parameter in enumerate(raw_parameters):
-        if not isinstance(parameter, dict):
-            raise ValueError(f"optimization parameter {index} must be an object")
-        identifier = parameter.get("identifier")
-        if not isinstance(identifier, str) or not identifier:
-            raise ValueError(f"optimization parameter {index} has no valid identifier")
+    for parameter in description.parameters:
+        identifier = parameter.identifier
         if identifier in identifiers:
             raise ValueError(f'duplicate optimization parameter "{identifier}"')
         identifiers.add(identifier)
 
-        parameter_type = parameter.get("type")
-        if parameter_type == "float":
-            minimum = _finite_number(parameter.get("minimum"), f"{identifier}.minimum")
-            maximum = _finite_number(parameter.get("maximum"), f"{identifier}.maximum")
-            scale = parameter.get("scale")
-            if minimum >= maximum:
-                raise ValueError(f"{identifier}.maximum must exceed minimum")
-            if scale not in {"linear", "log"}:
-                raise ValueError(f"{identifier}.scale must be linear or log")
-            if scale == "log" and minimum <= 0:
-                raise ValueError(f"{identifier}.minimum must be positive for log scale")
-        elif parameter_type == "int":
-            minimum = parameter.get("minimum")
-            maximum = parameter.get("maximum")
-            step = parameter.get("step")
-            scale = parameter.get("scale")
-            if (
-                isinstance(minimum, bool)
-                or not isinstance(minimum, int)
-                or isinstance(maximum, bool)
-                or not isinstance(maximum, int)
-            ):
-                raise ValueError(f"{identifier} integer bounds must be integers")
-            if minimum >= maximum:
-                raise ValueError(f"{identifier}.maximum must exceed minimum")
-            if isinstance(step, bool) or not isinstance(step, int) or step < 1:
-                raise ValueError(f"{identifier}.step must be a positive integer")
-            if scale not in {"linear", "log"}:
-                raise ValueError(f"{identifier}.scale must be linear or log")
-            if scale == "log" and minimum <= 0:
-                raise ValueError(f"{identifier}.minimum must be positive for log scale")
-            if scale == "log" and step != 1:
-                raise ValueError(f"{identifier}.step must be 1 for log scale")
-        elif parameter_type != "boolean":
-            raise ValueError(
-                f"unsupported optimization parameter type: {parameter_type!r}"
-            )
-
-        parameters.append(parameter)
+        if isinstance(parameter, OptimizationBooleanParameter):
+            continue
+        if not math.isfinite(parameter.minimum) or not math.isfinite(parameter.maximum):
+            raise ValueError(f"{identifier} bounds must be finite numbers")
+        if parameter.minimum >= parameter.maximum:
+            raise ValueError(f"{identifier}.maximum must exceed minimum")
+        if parameter.scale.value == "log" and parameter.minimum <= 0:
+            raise ValueError(f"{identifier}.minimum must be positive for log scale")
+        if (
+            isinstance(parameter, OptimizationIntParameter)
+            and parameter.scale.value == "log"
+            and parameter.step != 1
+        ):
+            raise ValueError(f"{identifier}.step must be 1 for log scale")
 
     return (
-        cast(Literal["maximize", "minimize"], direction),
+        description.direction.value,
         sampler,
         n_trials,
         seed,
-        tuple(parameters),
+        tuple(description.parameters),
     )
 
 
@@ -179,14 +141,19 @@ class PetrinautOptimizer:
         self,
         pn_model: OptimizationSession,
         *,
-        description: Mapping[str, Any] | None = None,
+        description: OptimizationDescribeResult | Mapping[str, Any] | None = None,
         **sampler_options: Any,
     ) -> None:
-        raw_description = (
-            pn_model.describe_optimization() if description is None else description
+        raw = pn_model.describe_optimization() if description is None else description
+        # Test doubles and stored payloads hand over plain mappings; a real
+        # session already returns the validated model.
+        described = (
+            raw
+            if isinstance(raw, OptimizationDescribeResult)
+            else OptimizationDescribeResult.model_validate(raw)
         )
         direction, sampler_name, n_trials, seed, parameters = _parse_description(
-            raw_description
+            described
         )
 
         self.parameters = parameters
@@ -209,27 +176,25 @@ class PetrinautOptimizer:
         """Ask Optuna for each non-fixed scenario parameter the study describes."""
         values: dict[str, Scalar] = {}
         for parameter in self.parameters:
-            identifier = cast(str, parameter["identifier"])
-            parameter_type = parameter["type"]
-            if parameter_type == "float":
+            identifier = parameter.identifier
+            if isinstance(parameter, OptimizationFloatParameter):
                 values[identifier] = trial.suggest_float(
                     identifier,
-                    float(parameter["minimum"]),
-                    float(parameter["maximum"]),
-                    log=parameter["scale"] == "log",
+                    parameter.minimum,
+                    parameter.maximum,
+                    log=parameter.scale.value == "log",
                 )
-            elif parameter_type == "int":
+            elif isinstance(parameter, OptimizationIntParameter):
                 values[identifier] = trial.suggest_int(
                     identifier,
-                    cast(int, parameter["minimum"]),
-                    cast(int, parameter["maximum"]),
-                    step=cast(int, parameter["step"]),
-                    log=parameter["scale"] == "log",
+                    int(parameter.minimum),
+                    int(parameter.maximum),
+                    step=int(parameter.step),
+                    log=parameter.scale.value == "log",
                 )
             else:
-                values[identifier] = cast(
-                    bool,
-                    trial.suggest_categorical(identifier, [False, True]),
+                values[identifier] = trial.suggest_categorical(
+                    identifier, [False, True]
                 )
         return values
 
@@ -358,7 +323,11 @@ class PetrinautOptimizer:
     ) -> str:
         """Run a bounded detached study and append its frames to the event log."""
         log_context = {**(correlation or {}), "run_id": run_id}
-        record_outcome = on_outcome if on_outcome is not None else lambda _outcome: None
+
+        def record_nothing(_outcome: str) -> None:
+            return None
+
+        record_outcome = on_outcome if on_outcome is not None else record_nothing
         if not self.lock.acquire(blocking=False):
             on_event('event: error\ndata: {"message": "already running"}\n\n')
             record_outcome("failed")

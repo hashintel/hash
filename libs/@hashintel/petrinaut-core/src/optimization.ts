@@ -463,54 +463,88 @@ export const petrinautOptimizationEvaluateParamsSchema = z
     description: "Values suggested for every and only optimized parameter.",
   });
 
-export type PetrinautOptimizationDescribeParameter =
-  | {
-      identifier: string;
-      type: "float";
-      default: number;
-      minimum: number;
-      maximum: number;
-      scale: "linear" | "log";
-    }
-  | {
-      identifier: string;
-      type: "int";
-      default: number;
-      minimum: number;
-      maximum: number;
-      step: number;
-      scale: "linear" | "log";
-    }
-  | {
-      identifier: string;
-      type: "boolean";
-      default: boolean;
-    };
+/**
+ * The protocol's response shapes are schemas rather than plain types, so the
+ * CLI can publish them as JSON Schema and other languages can generate
+ * matching types from the one definition.
+ */
+export const petrinautOptimizationDescribeParameterSchema = z
+  .discriminatedUnion("type", [
+    z.strictObject({
+      identifier: z.string(),
+      type: z.literal("float"),
+      default: z.number(),
+      minimum: z.number(),
+      maximum: z.number(),
+      scale: z.enum(["linear", "log"]),
+    }),
+    z.strictObject({
+      identifier: z.string(),
+      type: z.literal("int"),
+      default: z.number(),
+      minimum: z.number(),
+      maximum: z.number(),
+      step: z.number(),
+      scale: z.enum(["linear", "log"]),
+    }),
+    z.strictObject({
+      identifier: z.string(),
+      type: z.literal("boolean"),
+      default: z.boolean(),
+    }),
+  ])
+  .meta({
+    description: "One optimized parameter of the study's flat search space.",
+  });
 
-export type PetrinautOptimizationDescribeResult = {
-  direction: "maximize" | "minimize";
-  study: PetrinautOptimizationStudy & {
-    seed: number;
-    /** Reported once the CLI runs seeded replicates; absent means 1. */
-    seedsPerTrial?: number;
-  };
-  parameters: PetrinautOptimizationDescribeParameter[];
-};
+export const petrinautOptimizationDescribeResultSchema = z
+  .strictObject({
+    direction: z.enum(["maximize", "minimize"]),
+    study: petrinautOptimizationStudySchema
+      .extend({
+        seed: z.number().int(),
+        seedsPerTrial: z.number().int().optional(),
+      })
+      .meta({
+        description:
+          "Study settings with the execution seed. `seedsPerTrial` is reported once the CLI runs seeded replicates; absent means 1.",
+      }),
+    parameters: z.array(petrinautOptimizationDescribeParameterSchema),
+  })
+  .meta({
+    description:
+      "The `optimization.describe` result: direction, study settings, and the parameters that are not fixed.",
+  });
 
+export const petrinautOptimizationReplicateSchema = z
+  .strictObject({
+    seed: z.number().int(),
+    objective: z.number(),
+  })
+  .meta({ description: "One seeded run's objective within a trial." });
+
+export const petrinautOptimizationEvaluateResultSchema = z
+  .strictObject({
+    objective: z.number(),
+    replicates: z.array(petrinautOptimizationReplicateSchema).optional(),
+  })
+  .meta({
+    description:
+      "The `optimization.evaluate` result. `objective` is the mean of the per-seed objectives (identical to the sole run's objective when the trial runs one seed); `replicates` reports the per-seed values whenever a trial runs more than one.",
+  });
+
+export type PetrinautOptimizationDescribeParameter = z.infer<
+  typeof petrinautOptimizationDescribeParameterSchema
+>;
+export type PetrinautOptimizationDescribeResult = z.infer<
+  typeof petrinautOptimizationDescribeResultSchema
+>;
 export type PetrinautOptimizationEvaluateParams = z.infer<
   typeof petrinautOptimizationEvaluateParamsSchema
 >;
-
-/**
- * One trial evaluation. `objective` is the mean of the per-seed objectives
- * (identical to the sole run's objective when the trial runs one seed).
- * `replicates` reports the per-seed values whenever a trial runs more than
- * one seed, so consumers can inspect the spread behind the aggregate.
- */
-export type PetrinautOptimizationEvaluateResult = {
-  objective: number;
-  replicates?: { seed: number; objective: number }[];
-};
+export type PetrinautOptimizationEvaluateResult = z.infer<
+  typeof petrinautOptimizationEvaluateResultSchema
+>;
 
 const optimizationBestSchema = z
   .strictObject({

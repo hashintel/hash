@@ -14,7 +14,12 @@ from pathlib import Path
 
 import pytest
 
-from petrinaut import OptimizationSession, PetrinautSession
+from petrinaut import (
+    OptimizationFloatParameter,
+    OptimizationIntParameter,
+    OptimizationSession,
+    PetrinautSession,
+)
 
 REPO_LIBS = Path(__file__).resolve().parents[3]
 CLI_BUNDLE = REPO_LIBS / "@hashintel/petrinaut-cli/dist/cli.js"
@@ -68,16 +73,16 @@ def test_evaluates_an_optimization_manifest_end_to_end() -> None:
         command=(str(NODE), str(CLI_BUNDLE)),
     ) as session:
         description = session.describe_optimization()
-        assert description["direction"] == "maximize"
+        assert description.direction.value == "maximize"
 
         parameters = {
-            parameter["identifier"]: parameter
-            for parameter in description["parameters"]
+            parameter.identifier: parameter for parameter in description.parameters
         }
-        assert parameters["production_rate"]["type"] == "float"
-        assert parameters["production_rate"]["minimum"] == 20
-        assert parameters["production_rate"]["maximum"] == 250
-        assert parameters["reorder_threshold"]["type"] == "int"
+        production_rate = parameters["production_rate"]
+        assert isinstance(production_rate, OptimizationFloatParameter)
+        assert production_rate.minimum == 20
+        assert production_rate.maximum == 250
+        assert isinstance(parameters["reorder_threshold"], OptimizationIntParameter)
 
         result = session.evaluate(
             {
@@ -89,4 +94,4 @@ def test_evaluates_an_optimization_manifest_end_to_end() -> None:
                 "marketing_spend": 40,
             }
         )
-        assert math.isfinite(result["objective"])
+        assert math.isfinite(result.objective)

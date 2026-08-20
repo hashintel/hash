@@ -20,7 +20,7 @@ import threading
 import time
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from .errors import (
     PetrinautClientError,
@@ -52,7 +52,7 @@ def _child_environment() -> dict[str, str]:
     return environment
 
 
-def _encode_bootstrap_line(payload: Mapping[str, Any], label: str) -> str:
+def encode_bootstrap_line(payload: Mapping[str, Any], label: str) -> str:
     """Serialize a stdin-provided model or manifest, enforcing the line cap."""
     try:
         line = json.dumps(dict(payload), ensure_ascii=False, separators=(",", ":"))
@@ -132,7 +132,7 @@ class PetrinautSession:
         """Serve a model object sent as the first stdin line (``--model-stdin``)."""
         return PetrinautSession(
             serve_arguments=("--model-stdin", "--stdio"),
-            bootstrap_line=_encode_bootstrap_line(model, "model"),
+            bootstrap_line=encode_bootstrap_line(model, "model"),
             **options,
         )
 
@@ -231,7 +231,8 @@ class PetrinautSession:
         if not isinstance(result, dict):
             self.close(graceful=False)
             raise PetrinautProtocolError(f"{method} returned a non-object result")
-        return result
+        # `json.loads` produced this, so the keys are strings.
+        return cast("dict[str, Any]", result)
 
     @staticmethod
     def _fallback_readline(stream: Any, maximum_bytes: int) -> bytes:
@@ -374,19 +375,22 @@ class PetrinautSession:
             raise PetrinautProtocolError(
                 "the Petrinaut CLI returned a non-object response"
             )
-        if response.get("id") != request_id:
+        frame = cast("dict[str, Any]", response)
+        if frame.get("id") != request_id:
             raise PetrinautProtocolError(
                 "the Petrinaut CLI returned a mismatched response id"
             )
-        if "error" in response:
-            error = response["error"]
-            message = error.get("message", error) if isinstance(error, dict) else error
+        if "error" in frame:
+            message: Any = frame["error"]
+            if isinstance(message, dict):
+                # `json.loads` produced this, so the keys are strings.
+                message = cast("dict[str, Any]", message).get("message", message)
             raise PetrinautRunError(str(message))
-        if "result" not in response:
+        if "result" not in frame:
             raise PetrinautProtocolError(
                 "the Petrinaut CLI response omitted its result"
             )
-        return response["result"]
+        return frame["result"]
 
     @staticmethod
     def _signal_process(process: Any, signal_number: signal.Signals) -> None:

@@ -13,6 +13,8 @@ import pytest
 from conftest import FakeProcess, spawn
 
 from petrinaut import (
+    OptimizationDescribeResult,
+    OptimizationEvaluateResult,
     OptimizationSession,
     PetrinautClientError,
     PetrinautProtocolError,
@@ -43,7 +45,9 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
     )
     model.start()
 
-    assert model.describe_optimization() == optimization_description
+    assert model.describe_optimization() == OptimizationDescribeResult.model_validate(
+        optimization_description
+    )
     assert model.objective({"rate": 1.25, "count": 6, "enabled": False}) == 12.5
     lines = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
 
@@ -89,7 +93,9 @@ def test_optimization_session_from_a_manifest_file(
     )
     session.start()
 
-    assert session.describe_optimization() == optimization_description
+    assert session.describe_optimization() == OptimizationDescribeResult.model_validate(
+        optimization_description
+    )
     assert invocation["command"] == [
         "petrinaut",
         "serve",
@@ -128,7 +134,9 @@ def test_evaluate_returns_the_full_result_including_replicates(
     )
     session.start()
 
-    assert session.evaluate({"rate": 1.25}) == full_result
+    result = session.evaluate({"rate": 1.25})
+    assert result == OptimizationEvaluateResult.model_validate(full_result)
+    assert result.replicates is not None and result.replicates[1].seed == 7
     session.close()
 
 
@@ -336,12 +344,30 @@ def test_cli_error_during_evaluation_is_recoverable(
     model.close()
 
 
-@pytest.mark.parametrize("objective", [True, None, float("inf")])
-def test_rejects_a_non_finite_numeric_objective(
+@pytest.mark.parametrize("objective", [True, None, "12.5"])
+def test_a_non_numeric_objective_is_a_protocol_error(
     optimization_manifest: dict,
     objective: Any,
 ) -> None:
+    """A result outside the protocol schema closes the session."""
     process = FakeProcess([{"id": 1, "result": {"objective": objective}}])
+    model = OptimizationSession(
+        optimization_manifest,
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+    model.start()
+
+    with pytest.raises(PetrinautProtocolError, match="protocol schema"):
+        model.objective({"rate": 1})
+    with pytest.raises(PetrinautClientError, match="not running"):
+        model.objective({"rate": 1})
+
+
+def test_rejects_a_non_finite_numeric_objective(
+    optimization_manifest: dict,
+) -> None:
+    """JSON cannot carry Infinity, but Python's parser admits it; refuse it."""
+    process = FakeProcess([{"id": 1, "result": {"objective": float("inf")}}])
     model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,

@@ -7,7 +7,7 @@ import asyncio
 import logging
 import os
 import threading
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Any
@@ -149,7 +149,7 @@ class RequestBodyLimitMiddleware:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Initialize the status registry and detached-run engine."""
     app.state.statuses = StatusStore()
     app.state.optimization_admission_lock = asyncio.Lock()

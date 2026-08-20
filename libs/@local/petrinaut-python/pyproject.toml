@@ -1,14 +1,17 @@
 [project]
-name            = "petrinaut-python"
-version         = "0.1.0"
-description     = "Python bindings for the Petrinaut CLI: run simulations and optimization studies from Python"
-readme          = "README.md"
+name = "petrinaut-python"
+version = "0.1.0"
+description = "Python bindings for the Petrinaut CLI: run simulations and optimization studies from Python"
+readme = "README.md"
 requires-python = ">=3.10"
-dependencies    = []
+dependencies = [
+    "pydantic>=2.13.4",
+]
 
 [dependency-groups]
 dev = [
     "basedpyright>=1.39.10",
+    "datamodel-code-generator>=0.74.0",
     "pytest>=8.3",
     "ruff>=0.16.4",
 ]
@@ -43,7 +46,7 @@ ignore = [
 # whose fields arrive through `extra=`, which a checker cannot see; typing those
 # is tracked separately.
 include          = ["src"]
-typeCheckingMode = "standard"
+typeCheckingMode = "strict"
 pythonVersion    = "3.10"
 venvPath         = "."
 venv             = ".venv"

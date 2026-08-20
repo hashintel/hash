@@ -5,8 +5,9 @@ simulations and drive optimization studies against a compiled Petrinaut model
 from Python, over the CLI's JSON-lines stdio protocol.
 
 The package is internal to this monorepo and is consumed as a uv path
-dependency (`apps/petrinaut-opt` is the reference consumer). It has no
-third-party runtime dependencies and is **POSIX-only**: it relies on process
+dependency (`apps/petrinaut-opt` is the reference consumer). Its one runtime
+dependency is pydantic, which validates optimization responses against the
+CLI's published protocol schema. It is **POSIX-only**: it relies on process
 groups and descriptor polling.
 
 Each session owns one long-lived `petrinaut serve` child process for one
@@ -67,7 +68,14 @@ with OptimizationSession(manifest) as session:
     # sets execution.seedsPerTrial above 1.
 ```
 
-The manifest is opaque to Python: the CLI owns scenario compilation,
+`describe_optimization()` and `evaluate()` return pydantic models
+(`OptimizationDescribeResult`, `OptimizationEvaluateResult`) generated from the
+CLI's protocol schema — `src/petrinaut/models.py` is written by `codegen` from
+`@hashintel/petrinaut-cli`'s `schemas/optimization-protocol.schema.json`, and CI
+fails when it drifts. A response outside the schema raises
+`PetrinautProtocolError` and closes the session.
+
+The manifest itself stays opaque to Python: the CLI owns scenario compilation,
 fixed-value injection, simulation, and metric evaluation. The manifest
 contract, protocol, and seeded-runs semantics are documented in the
 [CLI usage manual](../petrinaut-arch-docs/content/cli/usage-manual.mdx).
