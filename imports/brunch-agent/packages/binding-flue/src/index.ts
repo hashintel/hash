@@ -27,6 +27,7 @@ import {
 } from '@flue/runtime';
 
 export { CAPABILITIES, type Capability, type Provision } from './capabilities.ts';
+export { createLocalCaptureStore } from './local-capture-store.ts';
 
 /**
  * Mount the elicitation harness in a Flue agent.

@@ -17,3 +17,33 @@ export {
 } from './affordance.ts';
 export { OPERATIONS, PRODUCT_NAME, toolName, toolPrefix, type Operation } from './naming.ts';
 export { definePlugin, PluginDescriptor, type Plugin } from './plugin.ts';
+export {
+  ABSENCE_STATES,
+  applyCaptureStoreCommand,
+  captureDedupKey,
+  createEmptyCaptureStoreSnapshot,
+  deriveCaptureStatus,
+  deriveIssueStatus,
+  EPISTEMIC_STATUSES,
+  ISSUE_TYPES,
+  parseCaptureStoreSnapshot,
+  type AbsenceState,
+  type CaptureContent,
+  type CaptureAdvisory,
+  type CaptureEnvelope,
+  type CaptureIssue,
+  type CaptureProposal,
+  type CaptureStatus,
+  type CaptureStore,
+  type CaptureStoreCommand,
+  type CaptureStoreEvent,
+  type CaptureStoreRefusal,
+  type CaptureStoreResult,
+  type CaptureStoreSnapshot,
+  type EpistemicStatus,
+  type EvidenceSpan,
+  type IssueStatus,
+  type IssueOrigin,
+  type IssueType,
+  type JsonValue,
+} from './capture-store.ts';
