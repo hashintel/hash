@@ -77,7 +77,7 @@ const CERTIFICATE_ROWS: usize = 1024;
 
 /// One arrival's projection outcome.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) enum Projection {
+pub(crate) enum Projection {
     /// The world coordinate lies inside the fitted frame, normalized onto the wire.
     Placed {
         /// The projected coordinate in the wire frame.
@@ -93,7 +93,7 @@ pub(super) enum Projection {
 
 /// One projection batch failed on a non-finite coordinate.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) struct NonFiniteProjection {
+pub(crate) struct NonFiniteProjection {
     /// The failing row's position in the batch the caller handed over.
     pub row: usize,
 }
@@ -376,7 +376,7 @@ impl Placer {
     ///
     /// Returns [`NonFiniteProjection`] naming the first row whose forward produced a non-finite
     /// coordinate. Rows after it were not projected, and the caller retries them.
-    pub(super) fn project(
+    pub(crate) fn project(
         &self,
         embeddings: impl IntoIterator<Item: AsRef<AlignedVecN<PROJECTOR_DIMENSIONS>>>,
     ) -> Result<Vec<Projection>, NonFiniteProjection> {

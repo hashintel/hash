@@ -119,6 +119,12 @@ mod register;
 mod snapshot;
 pub(crate) mod staging;
 
+#[expect(
+    unused_imports,
+    reason = "published for the replay report's CLI adapter, which binds Placer::project's \
+              outcomes; its registration consumes them"
+)]
+pub(crate) use self::placement::{NonFiniteProjection, Projection};
 pub(crate) use self::{
     placement::{PlacementError, Placer},
     register::{DeltaRegister, Disposition},
