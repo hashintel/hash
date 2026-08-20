@@ -498,6 +498,8 @@ describe('the CI smoke is runnable without a model key or a network (spec §12.5
    * path enters here by review only.
    */
   const SUBSTRATE_INTEGRATION_ENTRY_POINTS: Readonly<Record<string, string>> = {
+    'apps/dev/test/petrinaut-ask.integration.ts':
+      "Boots the real Gherkin elicitor on Flue's node runtime with pi-ai's faux provider and drives the committed application route over app.fetch through a full ask suspend/return/resume cycle plus a refused duplicate — no provider key, no socket, no external checkout mutation.",
     'apps/dev/test/petrinaut-chat.integration.ts':
       "Boots the real Gherkin elicitor on Flue's node runtime with pi-ai's faux provider, drives the committed application AI SDK route over app.fetch, and proves live reasoning/text plus inspection events without a provider key, socket, or external checkout mutation.",
     'apps/dev/test/walking-skeleton.integration.ts':

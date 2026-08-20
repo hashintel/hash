@@ -78,7 +78,7 @@ do-not-weaken oracle.
 8. **Mount path ≠ agent identity.** `routes.ts` + `app.ts:23` mount at a route constant while
    storage keys on the pinned identity. Canon, verbatim: "The mount path is not the agent's
    identity… never by the URL." The FE-1389 deep-read defended this as a judgment call; it is
-   documented doctrine. (CONVERGENCE note: no row change needed, but the deep-read's
+   documented doctrine. (SPEC-LEDGER note: no row change needed, but the deep-read's
    "newcomer would misunderstand" entry can cite the routing guide.)
 9. **`app.ts` as the single fetch-compatible entry, Hono by convention, assets composed
    alongside agents, auth-by-middleware-not-framework.** All as the routing guide draws it.

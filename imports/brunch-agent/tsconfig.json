@@ -4,6 +4,7 @@
     "types": ["bun", "vite/client"]
   },
   "include": [
+    "scripts",
     "test",
     "packages/*/src",
     "packages/*/test",

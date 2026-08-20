@@ -9,7 +9,7 @@ to `issue-tracker.md` (which governs issues; this file governs documents).
 | --- | --- | --- |
 | `docs/inbox/` | Untriaged arrivals: PDFs, exports, transcripts, pasted research. Timestamped filenames where the arrival date matters. | Temporary — everything here is awaiting settlement |
 | `docs/planning/<effort>/` | All artifacts of an effort, active or complete: notes, research findings, maps, specs — nested by effort name. | Permanent (dispositioned at effort close) |
-| `docs/planning/_shared/` | Cross-effort **living** documents: the convergence trace, the topology, consolidations that outlive any one effort. | Permanent, always current |
+| `docs/planning/_shared/` | Cross-effort control documents: current coordination, obligation ledgers, topology, and consolidations that outlive any one effort. | Permanent; lifecycle declared by each document |
 | `docs/reference/` | Settled documents of lasting value: external reports, transcripts, digested research. | Permanent |
 | `docs/INDEX.md` | The TOC: one line per settled or in-flight document — title, date, one-line digest, provenance, where used. | Permanent, always current |
 | `CONTEXT.md` | Glossary only (see domain-modeling discipline). | Permanent |
@@ -21,14 +21,14 @@ drafts, one-off prep. Place one directly inside the effort it serves
 `drafts/` path from Linear or a committed document — once delivered, link the destination
 (the posted comment, the sent message) instead.
 
-**Living vs record.** Every planning document is one or the other. A *record* is arc-scoped,
-carries its date in the filename, and eventually stops changing — it lives inside the effort
-directory that produced it. A *living* document is cross-effort, never dated in the filename,
-and never stops changing — it lives in `docs/planning/_shared/`. The planning top level
-contains only directories; this rule and `INDEX.md` coverage (every file has a row, every
-row's path resolves) are enforced by `test/docs-index.test.ts`. Freshness — whether statuses
-and digests are still *true* — cannot be mechanized without building a dead gate; it belongs
-to the arc-close sweep (`arc-close.md`, step 2).
+**Control surface vs record.** A *record* is arc-scoped, carries its date in the filename, and
+eventually stops changing — it lives inside the effort directory that produced it. A
+cross-effort *control surface* is never dated in the filename and lives in
+`docs/planning/_shared/`. Most remain current; a bounded ledger may declare its own terminal
+condition and settle when that condition is met. The planning top level contains only
+directories; this rule and `INDEX.md` coverage (every file has a row, every row's path resolves)
+are enforced by `test/docs-index.test.ts`. Freshness — whether statuses and digests are still
+*true* — cannot be mechanized without building a dead gate; it belongs to the arc-close sweep.
 
 External stores (Linear, Notion) hold *pointers and mirrors*, never the only copy: Linear issue
 descriptions gist and link; Notion pages that originate content (e.g. team-facing question docs)
@@ -53,7 +53,7 @@ Long-lived documents outlive the trackers they cite. Three rules:
 - **Gloss at first mention**: an issue ID in a living document is introduced with its gist —
   "FE-1423 (the pre-remote gates)" — so the document degrades gracefully for a reader who
   cannot resolve Linear.
-- **Load-bearing only in the tracking layer**: the convergence trace and remediation ledgers
+- **Load-bearing only in the tracking layer**: coordination and obligation/remediation ledgers
   may depend on issue resolution — tracking is their job. Everywhere else an issue ID is a
   parenthetical citation the sentence must survive without.
 - **Tense repair at arc close**: prophecy becomes history when the issue lands ("will
