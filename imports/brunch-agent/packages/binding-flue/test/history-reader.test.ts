@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createFlueHistoryReader } from '../src/history-reader.ts';
+import { createFlueHistoryReader, projectFlueHistoryForSweep } from '../src/history-reader.ts';
 import { createLocalCaptureStore } from '../src/local-capture-store.ts';
 
 const directories: string[] = [];
@@ -69,6 +69,92 @@ const snapshot = {
 };
 
 describe('Flue materialized-history reader', () => {
+  test('projects Flue ask and reply-binding parts into substrate-neutral sweep facts', () => {
+    expect(projectFlueHistoryForSweep(snapshot)).toEqual([
+      {
+        id: 'kickoff',
+        kind: 'user',
+        text: 'Begin the interview.',
+      },
+      {
+        id: 'ask',
+        kind: 'assistant',
+        text: '',
+        affordances: [{ id: 'affordance-1', markdown: 'When?' }],
+      },
+      {
+        id: 'reply',
+        kind: 'user-affordance-payload',
+        text: 'June works.',
+        replyToAffordanceId: 'affordance-1',
+      },
+      {
+        id: 'reply-binding',
+        kind: 'non-user',
+        text: 'Reply binding.',
+      },
+    ]);
+  });
+
+  test('projects refused sweep results and repair signals as neutral lifecycle facts', () => {
+    const lifecycleSnapshot = {
+      ...snapshot,
+      messages: [
+        {
+          id: 'sweep-refusal',
+          role: 'assistant' as const,
+          purpose: 'assistant' as const,
+          display: 'visible' as const,
+          parts: [
+            {
+              type: 'dynamic-tool' as const,
+              toolName: 'brunch_sweep',
+              toolCallId: 'sweep-1',
+              state: 'output-available' as const,
+              input: {},
+              output: {
+                status: 'refused',
+                refusal: {
+                  code: 'evidence-quote-not-found',
+                  message: 'Use an exact quote.',
+                },
+              },
+            },
+          ],
+        },
+        {
+          id: 'repair-signal',
+          role: 'system' as const,
+          purpose: 'dispatch' as const,
+          display: 'hidden' as const,
+          signal: { tagName: 'sweep-repair', attributes: {} },
+          parts: [{ type: 'text' as const, text: 'Repair the sweep.', state: 'done' as const }],
+        },
+      ],
+    };
+
+    expect(projectFlueHistoryForSweep(lifecycleSnapshot)).toEqual([
+      {
+        id: 'sweep-refusal',
+        kind: 'assistant',
+        text: '',
+        sweepResult: {
+          status: 'refused',
+          refusal: {
+            code: 'evidence-quote-not-found',
+            message: 'Use an exact quote.',
+          },
+        },
+      },
+      {
+        id: 'repair-signal',
+        kind: 'non-user',
+        text: 'Repair the sweep.',
+        sweepRepairSignal: true,
+      },
+    ]);
+  });
+
   test('uses only the host-resolved URL and transport, then archives the public snapshot', async () => {
     const path = await storePath();
     const store = createLocalCaptureStore(path);
@@ -83,8 +169,14 @@ describe('Flue materialized-history reader', () => {
       archive: store,
     });
 
+    expect(await reader.peek('session-1')).toEqual(snapshot);
+    expect(await Bun.file(path).exists()).toBe(false);
+
     expect(await reader.read('session-1')).toEqual(snapshot);
-    expect(requested).toEqual(['http://host.test/custom-mount/session-1?view=history']);
+    expect(requested).toEqual([
+      'http://host.test/custom-mount/session-1?view=history',
+      'http://host.test/custom-mount/session-1?view=history',
+    ]);
 
     const entries = await store.readArchivedEntries({
       sessionId: 'session-1',
@@ -121,6 +213,32 @@ describe('Flue materialized-history reader', () => {
     if (!('evidence' in capture)) throw new Error('capture did not retain evidence');
     const pointer = capture.evidence[0]!.pointer;
     expect((await store.readArchivedEntries(pointer))[0]!.substrateEntryId).toBe('reply');
+
+    const repairedOmission = await store.execute(
+      {
+        type: 'apply-sweep',
+        proposals: [
+          {
+            evidence: [{ excerpt: 'June works.' }],
+            epistemicStatus: 'explicit',
+            confidence: 'high',
+            content: { value: 'June' },
+          },
+          {
+            evidence: [{ excerpt: 'June works.' }],
+            epistemicStatus: 'explicit',
+            confidence: 'high',
+            content: { value: 'schedule accepted' },
+          },
+        ],
+      },
+      { sessionId: 'session-1' },
+    );
+    expect(repairedOmission).toMatchObject({
+      ok: true,
+      value: { appliedCaptureIds: [expect.any(String)], skippedDedupKeys: [expect.any(String)] },
+      snapshot: { captures: [expect.any(Object), expect.any(Object)] },
+    });
 
     expect(
       await store.execute(

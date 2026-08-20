@@ -17,8 +17,25 @@ import { join } from 'node:path';
 import app from '../src/app.ts';
 import { GHERKIN_MODEL_ID, GherkinElicitor } from '../src/agents/gherkin-elicitor.ts';
 import { GHERKIN_AGENT_ROUTE } from '../src/routes.ts';
+import { targetDocumentPath } from '../src/target-document-path.ts';
 
 const ask = toolName('ask');
+const sweep = toolName('sweep');
+const omittedQuote = 'A shopper completes checkout.';
+const newlyCapturedQuote = 'Payment is authorized before fulfillment.';
+const repairedQuote = 'Refunds require approval.';
+const missingQuote = 'This quote is not in the conversation.';
+const statementNoted = (quote: string) => ({
+  evidence: [{ excerpt: quote }],
+  epistemicStatus: 'explicit' as const,
+  confidence: 'firm' as const,
+  content: {
+    value: {
+      type: 'statement-noted' as const,
+      interior: { verbatim: quote },
+    },
+  },
+});
 const faux = fauxProvider({
   provider: 'anthropic',
   models: [{ id: GHERKIN_MODEL_ID }],
@@ -44,6 +61,47 @@ faux.setResponses([
     { stopReason: 'toolUse' },
   ),
   fauxAssistantMessage('Waiting for the accepted question to be answered.'),
+  fauxAssistantMessage('That closes the payment topic.'),
+  fauxAssistantMessage([fauxToolCall(sweep, {})], { stopReason: 'toolUse' }),
+  fauxAssistantMessage(
+    [
+      fauxToolCall('finish', {
+        proposals: [statementNoted(newlyCapturedQuote)],
+      }),
+    ],
+    { stopReason: 'toolUse' },
+  ),
+  fauxAssistantMessage([fauxToolCall(sweep, {})], { stopReason: 'toolUse' }),
+  fauxAssistantMessage(
+    [
+      fauxToolCall('finish', {
+        proposals: [statementNoted(newlyCapturedQuote), statementNoted(omittedQuote)],
+      }),
+    ],
+    { stopReason: 'toolUse' },
+  ),
+  fauxAssistantMessage('The settled statements are captured.'),
+  fauxAssistantMessage('That closes the refund topic.'),
+  fauxAssistantMessage([fauxToolCall(sweep, {})], { stopReason: 'toolUse' }),
+  fauxAssistantMessage([fauxToolCall('finish', { proposals: [statementNoted(missingQuote)] })], {
+    stopReason: 'toolUse',
+  }),
+  fauxAssistantMessage('The refused sweep needs repair.'),
+  fauxAssistantMessage('I am stopping on the repair continuation.'),
+  fauxAssistantMessage([fauxToolCall(sweep, {})], { stopReason: 'toolUse' }),
+  fauxAssistantMessage(
+    [
+      fauxToolCall('finish', {
+        proposals: [
+          statementNoted(newlyCapturedQuote),
+          statementNoted(omittedQuote),
+          statementNoted(repairedQuote),
+        ],
+      }),
+    ],
+    { stopReason: 'toolUse' },
+  ),
+  fauxAssistantMessage('The repaired sweep is captured.'),
 ]);
 
 const flue = await start({
@@ -53,12 +111,14 @@ const flue = await start({
 const targetDirectory = await mkdtemp(join(tmpdir(), 'brunch-walking-skeleton-'));
 
 try {
+  process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR = targetDirectory;
   const fetchApp = ((input: RequestInfo | URL, init?: RequestInit) =>
     Promise.resolve(
       app.fetch(input instanceof Request ? input : new Request(input, init)),
     )) as typeof fetch;
   const conversationId = `walking-skeleton-${crypto.randomUUID()}`;
-  const captureStore = createLocalCaptureStore(join(targetDirectory, 'target-document.json'));
+  const targetDocumentId = 'walking-skeleton-test';
+  const captureStore = createLocalCaptureStore(targetDocumentPath(targetDocumentId));
   const historyReader = createFlueHistoryReader({
     resolveConversationUrl: (sessionId) =>
       `http://brunch.test/agents/${GHERKIN_AGENT_ROUTE}/${sessionId}`,
@@ -72,11 +132,18 @@ try {
 
   const kickoff = await client.send({
     message: { kind: 'user', body: 'Begin the interview.' },
-    initialData: { targetDocumentId: 'walking-skeleton-test' },
+    initialData: { targetDocumentId },
   });
   await client.wait(kickoff);
 
   const firstHistory = await historyReader.read(conversationId);
+  const previousArchive = await captureStore.readArchivedEntries({
+    sessionId: conversationId,
+    entryStart: 1,
+    entryEnd: firstHistory.messages.length,
+  });
+  const quoteAbsentFromPreviousArchive =
+    !JSON.stringify(previousArchive).includes(newlyCapturedQuote);
   const firstParts = firstHistory.messages.flatMap((message) => message.parts);
   const firstAsk = firstParts.find(
     (part) =>
@@ -88,7 +155,7 @@ try {
       : undefined;
 
   const answer = await client.send({
-    message: { kind: 'user', body: 'A shopper completes checkout.' },
+    message: { kind: 'user', body: omittedQuote },
   });
   await client.wait(answer);
 
@@ -97,42 +164,83 @@ try {
   });
   await client.wait(secondAnswer);
 
-  const history = await historyReader.read(conversationId);
-  const finalAssistant = [...history.messages]
+  const thirdAnswer = await client.send({
+    message: { kind: 'user', body: newlyCapturedQuote },
+  });
+  await client.wait(thirdAnswer);
+
+  const fourthAnswer = await client.send({
+    message: { kind: 'user', body: repairedQuote },
+  });
+  await client.wait(fourthAnswer);
+
+  const history = await historyReader.peek(conversationId);
+  const repeatedAskAssistant = [...history.messages]
     .reverse()
-    .find((message) => message.role === 'assistant');
+    .find(
+      (message) =>
+        message.role === 'assistant' &&
+        message.parts.filter((part) => part.type === 'dynamic-tool' && part.toolName === ask)
+          .length >= 2,
+    );
   const finalAskParts =
-    finalAssistant?.parts.filter((part) => part.type === 'dynamic-tool' && part.toolName === ask) ??
-    [];
-  const captured = await captureStore.execute(
-    {
-      type: 'apply-sweep',
-      proposals: [
-        {
-          evidence: [{ excerpt: 'A shopper completes checkout.' }],
-          epistemicStatus: 'explicit',
-          confidence: 'high',
-          content: { value: 'checkout completes' },
-        },
-      ],
-    },
-    { sessionId: conversationId },
-  );
+    repeatedAskAssistant?.parts.filter(
+      (part) => part.type === 'dynamic-tool' && part.toolName === ask,
+    ) ?? [];
+  const captured = await captureStore.read();
   let archivePointerResolved = false;
   let affordanceReplyClassified = false;
-  if (captured.ok) {
-    const capture = captured.snapshot.captures[0];
-    if (capture && 'evidence' in capture) {
-      affordanceReplyClassified = capture.evidence[0]?.source === 'user-affordance-payload';
-      const [archived] = await captureStore.readArchivedEntries(capture.evidence[0]!.pointer);
-      archivePointerResolved = archived?.versions.at(-1)?.text === 'A shopper completes checkout.';
-    }
+  const capture = captured.captures.find(
+    (candidate) =>
+      'evidence' in candidate &&
+      candidate.evidence.some((evidence) => evidence.excerpt === newlyCapturedQuote),
+  );
+  if (capture && 'evidence' in capture) {
+    affordanceReplyClassified = capture.evidence[0]?.source === 'user-affordance-payload';
+    const [archived] = await captureStore.readArchivedEntries(capture.evidence[0]!.pointer);
+    archivePointerResolved = archived?.versions.at(-1)?.text === newlyCapturedQuote;
   }
+  const settlementChecks = history.messages.filter(
+    (message) => message.signal?.tagName === 'settlement-check',
+  );
+  const repairSignals = history.messages.filter(
+    (message) => message.signal?.tagName === 'sweep-repair',
+  );
+  const sweepOutputs = history.messages
+    .flatMap((message) => message.parts)
+    .flatMap((part) =>
+      part.type === 'dynamic-tool' &&
+      part.toolName === sweep &&
+      part.state === 'output-available' &&
+      typeof part.output === 'object' &&
+      part.output !== null
+        ? [part.output]
+        : [],
+    );
+  const appliedSweepOutputs = sweepOutputs.filter(
+    (output): output is Record<string, unknown> =>
+      'status' in output && output.status === 'applied',
+  );
+  const replayOutput = appliedSweepOutputs[1];
+  const capturesStayAtVerbatimFloor = captured.captures.every((candidate) => {
+    if (!('evidence' in candidate) || !('value' in candidate.content)) return false;
+    const serializedValue = JSON.stringify(candidate.content.value);
+    return candidate.evidence.some(
+      (evidence) =>
+        serializedValue ===
+        JSON.stringify({
+          type: 'statement-noted',
+          interior: { verbatim: evidence.excerpt },
+        }),
+    );
+  });
 
   console.log(
     `WALKING_SKELETON_RESULT ${JSON.stringify({
       affordanceReplyClassified,
       archivePointerResolved,
+      captureStoredThroughSweep: captured.captures.length === 3,
+      capturesStayAtVerbatimFloor,
       boundReplyReachedModel:
         JSON.stringify(replyContext).includes('A shopper completes checkout.') &&
         JSON.stringify(replyContext).includes('affordance-reply-bound'),
@@ -147,6 +255,20 @@ try {
       noInstructionWake: !JSON.stringify(history.messages)
         .toLowerCase()
         .includes('instructions updated'),
+      pendingAskSuppressedSettlement: !firstHistory.messages.some(
+        (message) => message.signal?.tagName === 'settlement-check',
+      ),
+      quoteAbsentFromPreviousArchive,
+      refusalStopReopenedRange:
+        sweepOutputs.some((output) => 'status' in output && output.status === 'refused') &&
+        repairSignals.length === 1 &&
+        settlementChecks.length === 3,
+      replayRepairedOmission:
+        replayOutput !== undefined &&
+        Array.isArray(replayOutput.appliedCaptureIds) &&
+        replayOutput.appliedCaptureIds.length === 1 &&
+        Array.isArray(replayOutput.skippedDedupKeys) &&
+        replayOutput.skippedDedupKeys.length === 1,
       secondAskRejected:
         finalAskParts.filter(
           (part) => part.type === 'dynamic-tool' && part.state === 'output-available',
@@ -154,9 +276,14 @@ try {
         finalAskParts.filter(
           (part) => part.type === 'dynamic-tool' && part.state === 'output-error',
         ).length === 1,
+      settlementNudgedAtEachFrontier: settlementChecks.length >= 2,
+      unaccountedAskAdvisory: appliedSweepOutputs.some((output) =>
+        JSON.stringify(output.advisories).includes('unaccounted-ask'),
+      ),
     })}`,
   );
 } finally {
+  delete process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR;
   await flue.stop();
   await rm(targetDirectory, { recursive: true });
 }

@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import type { CaptureInputProposal } from './capture-store.ts';
 
 /**
  * The plugin descriptor — identity only, at this stage.
@@ -18,7 +19,16 @@ export const PluginDescriptor = v.object({
   targetDomain: v.pipe(v.string(), v.nonEmpty()),
 });
 
-export type Plugin = v.InferOutput<typeof PluginDescriptor>;
+export interface PluginProposalType {
+  readonly name: string;
+  readonly description: string;
+  readonly schema: v.GenericSchema<unknown, CaptureInputProposal>;
+}
+
+export type Plugin = v.InferOutput<typeof PluginDescriptor> & {
+  /** FE-1392's declared floor; FE-1393 grows the catalog and SDK around it. */
+  readonly proposalCatalog: readonly [PluginProposalType];
+};
 
 /**
  * Declare a plugin. Inversion of control (spec §4): the plugin declares and
@@ -27,5 +37,15 @@ export type Plugin = v.InferOutput<typeof PluginDescriptor>;
  * binding-implemented, and plugins are storage-blind (spec §9.6).
  */
 export function definePlugin(descriptor: Plugin): Plugin {
-  return v.parse(PluginDescriptor, descriptor);
+  const identity = v.parse(PluginDescriptor, descriptor);
+  const [proposal, ...extraProposals] = descriptor.proposalCatalog;
+  if (!proposal || extraProposals.length > 0) {
+    throw new TypeError('This slice requires exactly one declared proposal type.');
+  }
+  const name = v.parse(v.pipe(v.string(), v.nonEmpty()), proposal.name);
+  const description = v.parse(v.pipe(v.string(), v.nonEmpty()), proposal.description);
+  return {
+    ...identity,
+    proposalCatalog: [{ ...proposal, name, description }],
+  };
 }

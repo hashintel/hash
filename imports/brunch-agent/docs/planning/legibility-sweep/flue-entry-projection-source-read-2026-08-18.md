@@ -340,9 +340,10 @@ contract findings except for one identity distinction found by the real mounted-
 The custom-transport reader, evolving-message versioning, latest-match advisory, non-user refusal,
 and archive-pointer retrieval are behaviorally pinned under `packages/binding-flue/test`,
 `packages/core/test`, and the real mounted-router walking skeleton. The obsolete
-`history-projection-paging` gap was removed; the remaining orchestration uncertainty is recorded
-more narrowly under FE-1392 as `history-refresh-before-sweep`, because only the settlement caller
-can prove that it refreshes the archive immediately before applying sweep output.
+`history-projection-paging` gap was removed. FE-1392 then split non-writing public-history peeks
+from binding-private archive refresh: its mounted oracle starts with the quote absent from the
+archive, permits no intervening archive writes, and proves the refresh adjacent to apply makes
+that quote resolvable and storable.
 
 The FE-1386 behavioral pin did not fold into FE-1391. A genuine main-conversation compaction is not
 reachable from the new read/archive seam without additional test-agent and summarizer setup, which

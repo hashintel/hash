@@ -308,7 +308,7 @@ const captureProposalSchema = v.union([
   v.strictObject(defaultedCaptureFields),
   v.strictObject(externalCaptureFields),
 ]);
-const captureInputProposalSchema = v.union([
+export const CaptureInputProposalSchema = v.union([
   v.strictObject({
     ...captureCommonFields,
     evidence: v.pipe(v.array(evidenceQuoteSchema), v.minLength(1)),
@@ -562,7 +562,7 @@ const validateProposal = (input: CaptureProposal): CaptureStoreRefusal | undefin
 };
 
 const validateInputProposal = (input: CaptureInputProposal): CaptureStoreRefusal | undefined => {
-  const parsed = v.safeParse(captureInputProposalSchema, input);
+  const parsed = v.safeParse(CaptureInputProposalSchema, input);
   if (!parsed.success) {
     return {
       code: 'invalid-envelope',

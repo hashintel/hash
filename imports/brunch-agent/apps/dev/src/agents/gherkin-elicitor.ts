@@ -21,8 +21,9 @@
 
 import { useElicitation } from '@brunch/binding-flue';
 import { gherkin } from '@brunch/plugin-gherkin';
-import { useModel, type AgentProps } from '@flue/runtime';
+import { useInitialData, useModel, type AgentProps } from '@flue/runtime';
 import * as v from 'valibot';
+import { createGherkinElicitationSession } from '../elicitation-session.ts';
 
 /**
  * One definition for the agent and the faux provider alike: the two must name
@@ -31,9 +32,13 @@ import * as v from 'valibot';
  */
 export const GHERKIN_MODEL_ID = 'claude-haiku-4-5';
 
-export function GherkinElicitor(_props: AgentProps) {
+export function GherkinElicitor(props: AgentProps) {
   useModel(`anthropic/${GHERKIN_MODEL_ID}`);
-  return useElicitation(gherkin);
+  const initialData = useInitialData<{ targetDocumentId: string }>();
+  return useElicitation(
+    gherkin,
+    createGherkinElicitationSession(props.id, initialData.targetDocumentId),
+  );
 }
 
 /**
