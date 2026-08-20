@@ -45,10 +45,7 @@ export const KRATOS_PROXY_ALLOWLIST = [
   { path: "/self-service/registration/flows", methods: ["GET"] },
   { path: "/self-service/registration", methods: ["POST"] },
 
-  /**
-   * Email verification. Load-bearing rather than optional: HASH treats a
-   * verified email address as an authorization signal.
-   */
+  /** Email verification. */
   { path: "/self-service/verification/browser", methods: ["GET"] },
   { path: "/self-service/verification/flows", methods: ["GET"] },
   { path: "/self-service/verification", methods: ["POST"] },
@@ -66,8 +63,7 @@ export const KRATOS_PROXY_ALLOWLIST = [
   /** Logout: mints the logout token. */
   { path: "/self-service/logout/browser", methods: ["GET"] },
   /**
-   * Logout: spends the token. `GET` in the Ory API, despite being the
-   * state-changing half of the flow.
+   * Logout: spends the token.
    */
   { path: "/self-service/logout", methods: ["GET"] },
 
@@ -110,9 +106,6 @@ const pathnameOf = (url: string): string => {
  * the comparison, or let us match a different path than the one Kratos
  * ultimately resolves — we reject any URL carrying an escape sequence, a
  * backslash, an empty segment, or a relative (`.` / `..`) segment.
- *
- * The allow-list can then be compared byte-for-byte, leaving no parser
- * differential between what we check and what we forward.
  */
 export const canonicaliseKratosProxyPath = (
   url: string,
@@ -191,9 +184,7 @@ const logSafePath = (url: string): string =>
     .slice(0, 200);
 
 /**
- * Wrap the Kratos proxy in {@link KRATOS_PROXY_ALLOWLIST}: default deny,
- * responding `404` (rather than `403`, which would confirm that an endpoint
- * exists) and never invoking the proxy.
+ * Wrap the Kratos proxy in {@link KRATOS_PROXY_ALLOWLIST}.
  *
  * The check runs ahead of the proxy rather than inside its `proxyReq` hook,
  * because that hook fires from the outgoing request's `socket` event — by then

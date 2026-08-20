@@ -19,10 +19,7 @@ import type { AddressInfo } from "node:net";
 type ProxyRequest = [method: string, url: string];
 
 /**
- * A concrete example request for every entry in the allow-list, so the
- * "allowed" cases are asserted against real paths rather than re-derived from
- * the constant under test. The one `RegExp` entry is represented by the two
- * configured SSO provider ids.
+ * Concrete example requests for every entry in the allow-list.
  */
 const allowedRequests: ProxyRequest[] = [
   ["GET", "/sessions/whoami"],
