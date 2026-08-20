@@ -16,7 +16,7 @@ _Avoid_: host, host-interface, frontend, client
 
 **Harness**:
 The middle shell and the essence of the effort: the generic capability layer of the elicitation system — mechanism and orchestration (the conversation loop, the `ask` API, capture envelope, issue queue, sweep bookkeeping). Injected into plugins as a narrow context; never owned by them.
-_Avoid_: kernel, core, elicitor (as a shell name — "elicitor" may name the whole system). Exempt compound: **kernel card** (below). "Kernel invariants" renamed **harness invariants** (spec §14.1).
+_Avoid_: kernel, core, elicitor (as a shell name — "elicitor" may name the whole system). Exempt compound: **kernel card** (below). Exempt name: the package `packages/core` (spec §12.2) — the avoidance applies to "core" as a prose shell name, not to the package path. "Kernel invariants" renamed **harness invariants** (spec §14.1).
 
 **Plugin**:
 The innermost shell: target-defining policy. Declares packs, forms, and validators; composes at authoring time; receives harness capabilities by injection. Mostly policy — mechanism stays in the harness.
@@ -58,7 +58,7 @@ Extraction of structured evidence — envelope plus plugin-typed payload — fro
 _Avoid_: extraction, harvest
 
 **Sweep**:
-An idempotent pass over a settled range of session entries that produces captures. Re-sweeping a range never double-captures.
+An idempotent pass over a settled range of session entries that produces captures. Re-sweeping a range never double-captures. Disambiguation: the capture store's `apply-sweep` command names only the storage half — atomically applying a sweep's proposals; the sweep proper is the capture-producing pass, which does not exist yet (FE-1392).
 
 **Settlement**:
 The agent-judged event marking a range of conversation (a vein closing) ready to sweep. Always range-level, never per-question.
@@ -81,7 +81,11 @@ The harness-defined, domain-free wrapper around an opaque plugin payload: harnes
 A capture's provenance link: a **quoted excerpt** (primary, the model-facing citation currency) plus a **pointer** (session id + entry range, harness-derived — entry identity is harness-side vocabulary only). Anchors only on true user and user-affordance-payload entries.
 
 **Epistemic status**:
-`explicit | inferred | tentative | defaulted | external-lookup` — how a capture's content relates to what the user actually said. Distinct from confidence; excluded from capture identity.
+`explicit | inferred | tentative | defaulted | external-lookup` — how a capture's content relates to what the user actually said. Distinct from confidence; excluded from capture identity. One status per capture, coupled structurally to the provenance shape (see Basis) — per-field status is unrepresentable by design (FE-1390; FE-1405's central input).
+
+**Basis**:
+The provenance carrier for non-user-grounded captures: `declared-default` or `documented-transformation`, required exactly when epistemic status is `defaulted` / `external-lookup` and structurally exclusive with evidence spans (FE-1390 coined the field for what spec §5/C5 states in prose).
+_Avoid_: evidence (for these two statuses — evidence spans cite the user)
 
 **Absence state**:
 A first-class capture value where an answer would be: `unknown-to-user | not-yet-decided | not-applicable | explicitly-absent | declined | deferred` (`not-mentioned` is a computed fact, not a sweepable capture). Never collapses to null.
@@ -110,7 +114,7 @@ The pack-content unit of elicitation guidance: Detects / Goal / contrastive Ques
 The narrow injected context through which a plugin receives harness capabilities (the ask API, envelope, issue queue, sweep bookkeeping). The plugin's entire world at runtime; the four operations remain pure (snapshot-in/deltas-out) regardless.
 
 **Storage port**:
-The harness-defined contract for the capture store (atomic sweep application, envelope invariants as store-level refusals), implemented by the binding for its deploy target. Plugins are storage-blind. Scope includes the **session-log archive** (archive-on-read; spec §9.6): session logs live with the target-document, retained indefinitely — the substrate's conversation store is the live transport copy, never the provenance record.
+The harness-defined contract for the capture store (atomic sweep application, envelope invariants as store-level refusals), implemented by the binding for its deploy target. Plugins are storage-blind. In code the port's type is `CaptureStore` (`packages/core/src/capture-store.ts`) — grep for that, not for "storage port". Scope includes the **session-log archive** (archive-on-read; spec §9.6): session logs live with the target-document, retained indefinitely — the substrate's conversation store is the live transport copy, never the provenance record.
 
 ### September demo
 
@@ -137,7 +141,7 @@ The modeller-side list of facts the reference net needs, derived from the refere
 _Avoid_: fact list (ambiguous with situation-pack content)
 
 **Walking skeleton**:
-A prototype that proves a transport or integration end-to-end on the real substrate (e.g. a real Flue agent + web UI) with stubbed internals.
+A build that proves a transport or integration end-to-end on the real substrate (e.g. a real Flue agent + web UI) with stubbed internals. The term names the proof shape, not a disposal policy: the FE-1389 skeleton is retained as a durable CI gate, and its integration test pins runtime semantics nothing else does (do-not-weaken; see the Flue patterns audit).
 
 **Logic-prototype**:
 A prototype that locks down mechanism semantics (e.g. capture sweeps, settlement) in isolation, without the full host substrate.

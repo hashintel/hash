@@ -160,12 +160,29 @@ describe('the direction is physical, not merely declared', () => {
   // forbidden import cannot even resolve. This asserts that property holds
   // rather than assuming it — a hoisted node_modules would quietly restore
   // every forbidden path.
+  /**
+   * Whether `specifier` resolves from `pkg`'s directory.
+   *
+   * Only a module-not-found result answers "no". Every other resolver failure
+   * is rethrown, because `false` is the answer these tests assert: the broad
+   * `catch` this replaces turned any error at all — including one raised
+   * before the resolver reached the question — into a satisfied dependency ban.
+   *
+   * Bun raises `ResolveMessage`, which is not an `Error` subclass, so the
+   * `instanceof Error` shape the capture store's ENOENT guard uses would
+   * rethrow every failure here, not only the unexpected ones. And Bun reports
+   * a corrupt manifest and an unexported subpath with the same code as a
+   * missing package, so `false` means "the resolver cannot get there" rather
+   * than "nothing is installed" — which is why each test below also probes a
+   * specifier that must resolve.
+   */
   const resolvesFrom = (pkg: WorkspacePackage, specifier: string): boolean => {
     try {
       Bun.resolveSync(specifier, pkg.path);
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      if (error instanceof ResolveMessage && error.code === 'ERR_MODULE_NOT_FOUND') return false;
+      throw error;
     }
   };
 
@@ -199,6 +216,17 @@ describe('the direction is physical, not merely declared', () => {
       expect({ specifier, resolves: resolvesFrom(core, specifier) }).toEqual({
         specifier,
         resolves: false,
+      });
+    }
+    // Positive control, derived from core's own manifest: the linker must
+    // supply everything core declares. Without it, a probe that resolves
+    // nothing at all from this directory reads as a satisfied ban.
+    const declared = allDependencies(core);
+    expect(declared.length).toBeGreaterThan(0);
+    for (const specifier of declared) {
+      expect({ specifier, resolves: resolvesFrom(core, specifier) }).toEqual({
+        specifier,
+        resolves: true,
       });
     }
   });
@@ -373,21 +401,36 @@ describe('the CI smoke is runnable without a model key or a network (spec §12.5
     readFileSync(join(REPO_ROOT, '.github/workflows/ci.yml'), 'utf8'),
   ) as { jobs?: Record<string, { steps?: Array<{ run?: string; if?: unknown }> }> };
   const disabled = new Set<unknown>([false, 'false', '${{ false }}']);
+  // Split per line, because a multi-line `run:` block declares several
+  // commands and only whole lines are commands.
   const activeRunCommands = Object.values(workflow.jobs ?? {})
     .flatMap((job) => job.steps ?? [])
     .filter((step) => !disabled.has(step.if))
-    .flatMap((step) => (step.run ? [step.run] : []));
+    .flatMap((step) => (step.run ?? '').split('\n'))
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
 
-  test('CI runs every gate', () => {
+  test('CI runs every gate as its exact declared command', () => {
     // Asserted against the workflow rather than against a convenience script,
     // because the workflow is what actually gates a merge. The build gate is
     // deliberately absent from this list: `bun test` builds the app itself
     // (build-artifact's beforeAll), so a separate build step would run the
     // build twice per CI run for no additional coverage.
-    for (const gate of ['lint:check', 'fmt:check', 'typecheck', 'bun test']) {
-      expect({ gate, inWorkflow: activeRunCommands.some((run) => run.includes(gate)) }).toEqual({
+    //
+    // Exact equality, not `includes`: a substring accepted commands that are
+    // not the gate. `bun test test/boundaries.test.ts` contains `bun test`
+    // while running one file, and `bun run typecheck:fast` contains
+    // `typecheck` while checking whatever that script happens to check — both
+    // would have read as a merge gate that no longer exists.
+    for (const gate of [
+      'bun run lint:check',
+      'bun run fmt:check',
+      'bun run typecheck',
+      'bun test',
+    ]) {
+      expect({ gate, declaredInWorkflow: activeRunCommands.includes(gate) }).toEqual({
         gate,
-        inWorkflow: true,
+        declaredInWorkflow: true,
       });
     }
   });
@@ -401,14 +444,28 @@ describe('the CI smoke is runnable without a model key or a network (spec §12.5
     expect(rootManifest.scripts?.['lint:check']).toContain('--deny-warnings');
   });
 
-  test('tests use neither live model credentials nor unmarked substrate integration', () => {
-    // Keeps the suite hermetic by construction. The spec names an optional
-    // secret-gated real-model `flue run` smoke; it is deliberately not part of
-    // this run, and this check is what stops it drifting in unnoticed.
-    const suite = [
-      ...PACKAGES.flatMap((pkg) => testFiles(pkg)),
-      ...filesIn(join(REPO_ROOT, 'test')),
-    ];
+  /** Every file the suite runs: package tests at any depth, plus the root ones. */
+  const suite = [...PACKAGES.flatMap((pkg) => testFiles(pkg)), ...filesIn(join(REPO_ROOT, 'test'))];
+
+  /**
+   * The test files permitted to import a substrate package, each reviewed once
+   * and recorded here with what makes it hermetic.
+   *
+   * Declared data, not a claim a file makes about itself. The previous gate
+   * admitted any `*.integration.ts` containing the string
+   * `hermetic-substrate-test: faux-provider`, so any new file granted itself
+   * substrate access by copying a comment — the FE-1389 deep read's finding. A
+   * path enters here by review only.
+   */
+  const SUBSTRATE_INTEGRATION_ENTRY_POINTS: Readonly<Record<string, string>> = {
+    'apps/dev/test/walking-skeleton.integration.ts':
+      "Boots the dev app on Flue's node runtime with pi-ai's faux provider and drives it over app.fetch — no provider key, no socket, no model call. Run as a child process by walking-skeleton.test.ts, which is what makes the node runtime drivable from this suite at all.",
+  };
+
+  test('no test file carries a live model credential', () => {
+    // The spec names an optional secret-gated real-model `flue run` smoke; it
+    // is deliberately not part of this run, and this is what stops it drifting
+    // in unnoticed.
     expect(suite.length).toBeGreaterThan(0);
     // Composed in workspace.ts rather than written literally, so this check
     // does not flag its own source or the pattern's.
@@ -421,15 +478,24 @@ describe('the CI smoke is runnable without a model key or a network (spec §12.5
         file: file.relPath,
         keys: [],
       });
-      const substrateImports = importedPackages(file).filter((s) => isSubstrate(packageOf(s)));
-      if (substrateImports.length === 0) continue;
+    }
+  });
 
-      expect({
-        file: file.relPath,
-        hermeticSubstrateTest:
-          file.relPath.endsWith('.integration.ts') &&
-          file.text.includes('hermetic-substrate-test: faux-provider'),
-      }).toEqual({ file: file.relPath, hermeticSubstrateTest: true });
+  test('the substrate is imported by exactly the reviewed entry points', () => {
+    // Set equality in both directions. An unlisted importer is substrate
+    // access nobody reviewed; a listed file that no longer imports the
+    // substrate is a permission standing for nothing, which is how an
+    // inventory stops describing the tree it governs.
+    const importers = suite
+      .filter((file) => importedPackages(file).some((s) => isSubstrate(packageOf(s))))
+      .map((file) => file.relPath)
+      .sort();
+    expect(importers).toEqual(Object.keys(SUBSTRATE_INTEGRATION_ENTRY_POINTS).sort());
+  });
+
+  test('every reviewed entry point records what makes it hermetic', () => {
+    for (const [path, review] of Object.entries(SUBSTRATE_INTEGRATION_ENTRY_POINTS)) {
+      expect({ path, reviewed: review.trim().length > 0 }).toEqual({ path, reviewed: true });
     }
   });
 });

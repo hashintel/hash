@@ -29,3 +29,7 @@ Prototype posture, high stakes (persisted data and merge gates fail loudly, neve
 ### Legibility protocol
 
 Work arcs close by re-rendering their central artifact into another register and reading the strain; capture channels reconcile before landing; work deposits its own description at authoring time. See `docs/agents/legibility.md`.
+
+### Flue routing
+
+At design moments — before adding state, a layer, a loop, a route, or a test harness — route the symptom to the Flue affordance to rely on, the divergence to avoid, and the escalation point. See `docs/agents/flue-routing.md`.

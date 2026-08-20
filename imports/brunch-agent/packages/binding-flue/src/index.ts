@@ -2,7 +2,8 @@
  * `@brunch/binding-flue` — the Flue binding.
  *
  * One binding per substrate. It implements the substrate-capability list
- * (spec §10), owns the storage-port implementation (spec §9.6), and is the
+ * (spec §10), owns the capture-store half of the storage-port implementation
+ * (spec §9.6 — the session-log archive half is unbuilt; FE-1391), and is the
  * only shell allowed to know Flue's dialect: **the harness imports no
  * substrate; a binding imports both** (spec §4).
  *

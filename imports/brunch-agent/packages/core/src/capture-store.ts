@@ -174,6 +174,12 @@ export type CaptureStoreRefusal =
   | { readonly code: 'invalid-resolution'; readonly message: string; readonly issueId: string }
   | { readonly code: 'invalid-retraction'; readonly message: string; readonly captureId: string }
   | {
+      readonly code: 'blocked-by-open-conflict';
+      readonly message: string;
+      readonly captureId: string;
+      readonly blockingIssueIds: readonly string[];
+    }
+  | {
       readonly code: 'superseded-target-not-active';
       readonly message: string;
       readonly targetCaptureId: string;
@@ -197,13 +203,23 @@ export type CaptureStoreResult =
 
 const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
 const positiveInteger = v.pipe(v.number(), v.integer(), v.minValue(1));
+// Range ordering belongs to this schema rather than to any one caller: every
+// surface that accepts evidence — proposals, resolution and retraction
+// commands, persisted snapshots — reaches it through here, so all of them
+// refuse the same spans.
 const evidenceSpanSchema = v.strictObject({
   excerpt: nonEmptyString,
-  pointer: v.strictObject({
-    sessionId: nonEmptyString,
-    entryStart: positiveInteger,
-    entryEnd: positiveInteger,
-  }),
+  pointer: v.pipe(
+    v.strictObject({
+      sessionId: nonEmptyString,
+      entryStart: positiveInteger,
+      entryEnd: positiveInteger,
+    }),
+    v.check(
+      (pointer) => pointer.entryEnd >= pointer.entryStart,
+      'An evidence range cannot end before it starts.',
+    ),
+  ),
   source: v.picklist(['user', 'user-affordance-payload']),
 });
 const contentSchema = v.union([
@@ -251,16 +267,35 @@ const captureEnvelopeSchema = v.union([
   v.strictObject({ ...defaultedCaptureFields, ...envelopeIdentityFields }),
   v.strictObject({ ...externalCaptureFields, ...envelopeIdentityFields }),
 ]);
-const issueSchema = v.strictObject({
-  id: nonEmptyString,
-  type: v.picklist(ISSUE_TYPES),
-  origin: v.variant('type', [
-    v.strictObject({ type: v.literal('harness') }),
-    v.strictObject({ type: v.literal('plugin'), namespace: nonEmptyString }),
-  ]),
-  references: v.pipe(v.array(nonEmptyString), v.minLength(1)),
-  canDefault: v.boolean(),
-});
+const issueSchema = v.pipe(
+  v.strictObject({
+    id: nonEmptyString,
+    type: v.picklist(ISSUE_TYPES),
+    origin: v.variant('type', [
+      v.strictObject({ type: v.literal('harness') }),
+      v.strictObject({ type: v.literal('plugin'), namespace: nonEmptyString }),
+    ]),
+    // A set, not a list: the resolution rule below compares reference sets, and
+    // a repeated reference makes an issue's population ambiguous — two captures
+    // in conflict or one, cited twice.
+    references: v.pipe(
+      v.array(nonEmptyString),
+      v.minLength(1),
+      v.check(
+        (references) => new Set(references).size === references.length,
+        'Issue references must be distinct capture ids.',
+      ),
+    ),
+    canDefault: v.boolean(),
+  }),
+  // A conflict between one capture is not a conflict, and it can never close:
+  // closing one takes a resolution, a resolution cites a winner and at least
+  // one loser, and that cited set can never equal a single reference.
+  v.check(
+    (issue) => issue.type !== 'conflicting' || issue.references.length >= 2,
+    'A conflicting issue must reference at least two captures.',
+  ),
+);
 const resolutionSchema = v.strictObject({
   type: v.literal('resolution'),
   id: nonEmptyString,
@@ -286,6 +321,22 @@ const snapshotSchema = v.strictObject({
   issues: v.array(issueSchema),
   events: v.array(v.variant('type', [resolutionSchema, retractionSchema, issueClosedSchema])),
 });
+
+/**
+ * Whether two id lists denote the same set, neither repeating. The rule a
+ * resolution has to satisfy is set equality; the length-plus-membership pair
+ * this replaces agreed with it only while references happened to be distinct.
+ */
+const denotesSameCaptureSet = (left: readonly string[], right: readonly string[]): boolean => {
+  const leftIds = new Set(left);
+  const rightIds = new Set(right);
+  return (
+    leftIds.size === left.length &&
+    rightIds.size === right.length &&
+    leftIds.size === rightIds.size &&
+    [...leftIds].every((captureId) => rightIds.has(captureId))
+  );
+};
 
 export const createEmptyCaptureStoreSnapshot = (): CaptureStoreSnapshot => ({
   captures: [],
@@ -319,7 +370,9 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
       (event.type === 'resolution' || event.type === 'retraction') &&
       !event.evidence.every((span) => span.source === 'user')
     ) {
-      throw new TypeError(`${event.type} events must cite the true user's utterance.`);
+      throw new TypeError(
+        `${event.type} events must cite evidence whose declared source is the user.`,
+      );
     }
     if (event.type === 'retraction') {
       if (!snapshot.captures.some((capture) => capture.id === event.captureId)) {
@@ -336,12 +389,7 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
       continue;
     }
     const citedCaptureIds = [event.winnerCaptureId, ...event.loserCaptureIds];
-    if (
-      issue.type !== 'conflicting' ||
-      citedCaptureIds.length !== issue.references.length ||
-      new Set(citedCaptureIds).size !== citedCaptureIds.length ||
-      issue.references.some((captureId) => !citedCaptureIds.includes(captureId))
-    ) {
+    if (issue.type !== 'conflicting' || !denotesSameCaptureSet(issue.references, citedCaptureIds)) {
       throw new TypeError(`Resolution ${event.id} does not account for its conflict's captures.`);
     }
   }
@@ -389,7 +437,9 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
 
 const isJsonValue = (value: unknown): value is JsonValue => {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
-  if (typeof value === 'number') return Number.isFinite(value);
+  // Negative zero is refused alongside the non-finite numbers: JSON.stringify
+  // writes it as "0", so the read path could never reproduce what was accepted.
+  if (typeof value === 'number') return Number.isFinite(value) && !Object.is(value, -0);
   if (Array.isArray(value)) return value.every(isJsonValue);
   if (typeof value !== 'object') return false;
   const prototype = Object.getPrototypeOf(value);
@@ -439,14 +489,12 @@ const validateProposal = (input: CaptureProposal): CaptureStoreRefusal | undefin
   if (!parsed.success) {
     return {
       code: 'invalid-envelope',
-      message: 'A capture must have valid provenance and exactly one value or absence.',
+      // States what the schema checked, and no more: the spans are structurally
+      // well formed and declare a source, which is not the same as provenance
+      // having been resolved against an entry projection.
+      message:
+        'A capture must carry the provenance shape its epistemic status names, exactly one of value or absence, and evidence ranges that do not end before they start.',
     };
-  }
-  if (
-    'evidence' in parsed.output &&
-    parsed.output.evidence.some((span) => span.pointer.entryEnd < span.pointer.entryStart)
-  ) {
-    return { code: 'invalid-envelope', message: 'An evidence range cannot end before it starts.' };
   }
   if ('value' in parsed.output.content && !isJsonValue(parsed.output.content.value)) {
     return { code: 'invalid-envelope', message: 'A capture value must be JSON-compatible.' };
@@ -481,6 +529,24 @@ export const deriveIssueStatus = (snapshot: CaptureStoreSnapshot, issueId: strin
   )
     ? 'closed'
     : 'open';
+
+/**
+ * The unresolved conflicts a capture is named by, which pin it: while one is
+ * open, superseding or retracting the capture would settle the contradiction by
+ * correction and leave the issue as litter — invariant 2's letter kept (no
+ * conflict closed without a user-cited record) and its point lost. Together with
+ * a conflict's two-active-reference minimum, this is what keeps every open
+ * conflict resolvable: its captures cannot leave the active set behind its back.
+ */
+const openConflictsNaming = (snapshot: CaptureStoreSnapshot, captureId: string): string[] =>
+  snapshot.issues
+    .filter(
+      (issue) =>
+        issue.type === 'conflicting' &&
+        issue.references.includes(captureId) &&
+        deriveIssueStatus(snapshot, issue.id) === 'open',
+    )
+    .map((issue) => issue.id);
 
 const currentHeads = (snapshot: CaptureStoreSnapshot, captureId: string): string[] => {
   const reachable = new Set([captureId]);
@@ -567,6 +633,18 @@ const applySweep = (
           captureId: proposal.supersedes,
         });
       }
+      // Before the head check, because a pinned capture's blocker is the
+      // conflict rather than its position in the supersession chain: the caller
+      // has to resolve the issue, not retarget the head.
+      const blockingIssueIds = openConflictsNaming(snapshot, target.id);
+      if (blockingIssueIds.length > 0) {
+        return refusal({
+          code: 'blocked-by-open-conflict',
+          message: `Capture ${target.id} cannot be superseded while an unresolved conflict names it; resolve the conflict first.`,
+          captureId: target.id,
+          blockingIssueIds,
+        });
+      }
       if (
         deriveCaptureStatus(snapshot, target.id) !== 'active' ||
         targetedCaptures.has(target.id)
@@ -634,34 +712,50 @@ export const applyCaptureStoreCommand = (
       return applySweep(snapshot, command.proposals);
 
     case 'open-issue': {
-      if (
-        command.references.length === 0 ||
-        command.references.some(
-          (captureId) => !snapshot.captures.some((capture) => capture.id === captureId),
-        )
-      ) {
+      const candidateIssue: CaptureIssue = {
+        id: `issue-${randomUUID()}`,
+        type: command.issueType,
+        origin: command.origin,
+        references: structuredClone(command.references),
+        canDefault: command.canDefault,
+      };
+      // Through the same schema a persisted issue is read with, so a command
+      // cannot mint an issue the next read rejects.
+      if (!v.safeParse(issueSchema, candidateIssue).success) {
         return refusal({
           code: 'invalid-envelope',
-          message: 'An issue must reference at least one existing capture.',
+          message:
+            'An issue must carry a known type, an origin naming its producer, and at least one distinct reference.',
         });
       }
-      const id = `issue-${randomUUID()}`;
+      const unknownReference = candidateIssue.references.find(
+        (captureId) => !snapshot.captures.some((capture) => capture.id === captureId),
+      );
+      if (unknownReference !== undefined) {
+        return refusal({
+          code: 'invalid-envelope',
+          message: `An issue must reference existing captures; no capture exists with id ${unknownReference}.`,
+        });
+      }
+      // Activity is a fact about this snapshot, so it is checked here rather
+      // than in the schema: a closed conflict's captures are legitimately
+      // superseded afterwards, and a persisted issue must still parse.
+      const inactiveReference =
+        candidateIssue.type === 'conflicting'
+          ? candidateIssue.references.find(
+              (captureId) => deriveCaptureStatus(snapshot, captureId) !== 'active',
+            )
+          : undefined;
+      if (inactiveReference !== undefined) {
+        return refusal({
+          code: 'invalid-envelope',
+          message: `A new conflicting issue must reference active captures; capture ${inactiveReference} is ${deriveCaptureStatus(snapshot, inactiveReference)}.`,
+        });
+      }
       return {
         ok: true,
-        snapshot: {
-          ...snapshot,
-          issues: [
-            ...snapshot.issues,
-            {
-              id,
-              type: command.issueType,
-              origin: command.origin,
-              references: [...command.references],
-              canDefault: command.canDefault,
-            },
-          ],
-        },
-        value: { issueId: id },
+        snapshot: { ...snapshot, issues: [...snapshot.issues, candidateIssue] },
+        value: { issueId: candidateIssue.id },
       };
     }
 
@@ -714,9 +808,11 @@ export const applyCaptureStoreCommand = (
         id: `event-${randomUUID()}`,
         issueId: command.issueId,
         decision: command.decision,
-        evidence: command.evidence,
+        // Cloned, not aliased: the snapshot is the store's record, and a caller
+        // that keeps its evidence array must not be able to edit it afterwards.
+        evidence: structuredClone(command.evidence),
         winnerCaptureId: command.winnerCaptureId,
-        loserCaptureIds: command.loserCaptureIds,
+        loserCaptureIds: structuredClone(command.loserCaptureIds),
       };
       const citedCaptureIds = [command.winnerCaptureId, ...command.loserCaptureIds];
       const invalid =
@@ -724,15 +820,13 @@ export const applyCaptureStoreCommand = (
         deriveIssueStatus(snapshot, issue.id) === 'closed' ||
         !v.safeParse(resolutionSchema, candidateRecord).success ||
         !command.evidence.every((span) => span.source === 'user') ||
-        citedCaptureIds.length !== issue.references.length ||
-        issue.references.some((captureId) => !citedCaptureIds.includes(captureId)) ||
-        new Set(citedCaptureIds).size !== citedCaptureIds.length ||
+        !denotesSameCaptureSet(issue.references, citedCaptureIds) ||
         citedCaptureIds.some((captureId) => deriveCaptureStatus(snapshot, captureId) !== 'active');
       if (invalid) {
         return refusal({
           code: 'invalid-resolution',
           message:
-            'A conflict resolution must cite the true user and resolve active captures from that issue.',
+            'A conflict resolution must name an open conflicting issue, declare the user as its evidence source, and account for exactly that issue’s captures, each still active.',
           issueId: issue.id,
         });
       }
@@ -752,11 +846,22 @@ export const applyCaptureStoreCommand = (
           captureId: command.captureId,
         });
       }
+      const blockingIssueIds = openConflictsNaming(snapshot, capture.id);
+      if (blockingIssueIds.length > 0) {
+        return refusal({
+          code: 'blocked-by-open-conflict',
+          message: `Capture ${capture.id} cannot be retracted while an unresolved conflict names it; resolve the conflict first.`,
+          captureId: capture.id,
+          blockingIssueIds,
+        });
+      }
       const event: RetractionEvent = {
         type: 'retraction',
         id: `event-${randomUUID()}`,
         captureId: command.captureId,
-        evidence: [...command.evidence],
+        // Cloned for the same reason as a resolution's: a shallow array copy
+        // still shares every span object with the caller.
+        evidence: structuredClone(command.evidence),
       };
       if (
         deriveCaptureStatus(snapshot, capture.id) !== 'active' ||
@@ -765,7 +870,8 @@ export const applyCaptureStoreCommand = (
       ) {
         return refusal({
           code: 'invalid-retraction',
-          message: 'Only an active capture can be retracted, citing the true user.',
+          message:
+            'Only an active capture can be retracted, and its evidence must declare the user as its source.',
           captureId: capture.id,
         });
       }

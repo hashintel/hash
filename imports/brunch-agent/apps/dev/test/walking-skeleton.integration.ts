@@ -1,4 +1,6 @@
-// hermetic-substrate-test: faux-provider
+// One of the substrate integration entry points reviewed in
+// test/boundaries.test.ts, which is where the permission lives — this comment
+// does not grant it.
 import {
   fauxAssistantMessage,
   fauxProvider,
@@ -9,13 +11,13 @@ import { toolName } from '@brunch/core';
 import { createFlueClient } from '@flue/sdk';
 import { start } from '@flue/runtime/node';
 import app from '../src/app.ts';
-import { GherkinElicitor } from '../src/agents/gherkin-elicitor.ts';
+import { GHERKIN_MODEL_ID, GherkinElicitor } from '../src/agents/gherkin-elicitor.ts';
 import { GHERKIN_AGENT_ROUTE } from '../src/routes.ts';
 
 const ask = toolName('ask');
 const faux = fauxProvider({
   provider: 'anthropic',
-  models: [{ id: 'claude-haiku-4-5' }],
+  models: [{ id: GHERKIN_MODEL_ID }],
 });
 
 let replyContext: Context | undefined;

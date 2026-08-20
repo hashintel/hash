@@ -54,6 +54,26 @@ Used by `/wayfinder`. The **map** is a Linear issue with one **child** sub-issue
   ticket that validates a product issue links to it and records its verdict in the resolution
   comment.
 
+## The registry rule
+
+Every issue this project creates is **reachable from a root**: either it is a sub-issue
+(directly or transitively) of a root map — currently FE-1383 (build) and FE-1357 (demo +
+plugin spec) — or a sub-issue of a named sweep ticket (FE-1401-style), or it *is* a root and
+`docs/planning/CONVERGENCE.md`'s seam/sequencing sections name it. The `lite` label and the
+`brunch` project are filters, not ownership — an issue carrying both but reachable from no
+root is captured-then-orphaned, the failure mode this rule exists to stop. Set the parent at
+creation (`--parent FE-XXXX`), not in a later sweep.
+
+Audit (run at arc close, alongside the legibility protocol's consolidation step):
+
+```
+linear issue mine --team FE --project brunch --label lite \
+  -s triage -s backlog -s unstarted -s started --limit 0 --no-pager
+```
+
+then check each row without a parent or relation against the roots above. An orphan gets a
+parent or an explicit root listing in CONVERGENCE.md — silence is not an option it has.
+
 ## Historical note
 
 Before 2026-08-11 this repo tracked issues as local markdown under `.scratch/<feature-slug>/`

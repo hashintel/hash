@@ -2,7 +2,8 @@ import { expect, test } from 'bun:test';
 import { join } from 'node:path';
 
 test('the dev app suspends for free-text replies without instruction wakes', async () => {
-  // closes-gap: wake-wart-residue
+  // Spec §7.4 and §14.5's wake-wart item: the one instruction-state write path
+  // that exists must not re-trigger an advisory wake.
   const child = Bun.spawn({
     cmd: [
       Bun.which('node') ?? 'node',
