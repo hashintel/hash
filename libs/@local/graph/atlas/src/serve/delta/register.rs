@@ -631,6 +631,15 @@ impl DeltaRegister {
             }
         }
 
+        // Locate's link-label pass consumes this containment as an `unreachable!` arm: the
+        // edge insert and the legend insert above share one `if let` block, so a published
+        // edge always carries a legend. The check lives here, where the walk establishes the
+        // invariant, rather than at the consumer.
+        debug_assert!(
+            edges.keys().all(|entity| legends.contains_key(entity)),
+            "every published edge carries its captured legend",
+        );
+
         DeltaSnapshot {
             revision,
             watermark,

@@ -457,7 +457,7 @@ async fn hidden_link_row_leaves_the_locate_partner_delivered() {
         masked
             .edges
             .iter()
-            .map(|&(edge, _)| narrow_usize(edge.row.get().as_usize()))
+            .map(|&(edge, _)| narrow_usize(super::fitted(edge).row.get().as_usize()))
             .collect::<Vec<u32>>(),
         [4],
         "exactly the withheld link row leaves"
@@ -840,7 +840,7 @@ fn assert_locate_delivers_the_visible_ego_graph(
         let delivered: Vec<u32> = masked
             .edges
             .iter()
-            .map(|&(edge, _)| narrow_usize(edge.row.get().as_usize()))
+            .map(|&(edge, _)| narrow_usize(super::fitted(edge).row.get().as_usize()))
             .collect();
         assert_eq!(delivered, expected_edges, "ego({source_row}) edges");
 
@@ -897,7 +897,7 @@ fn assert_locate_delivers_the_visible_ego_graph(
             let capped_edges: Vec<u32> = capped
                 .edges
                 .iter()
-                .map(|&(edge, _)| narrow_usize(edge.row.get().as_usize()))
+                .map(|&(edge, _)| narrow_usize(super::fitted(edge).row.get().as_usize()))
                 .collect();
             assert_eq!(
                 capped_edges, expected_edges,

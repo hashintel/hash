@@ -1,12 +1,13 @@
 //! Edge sets over delivered or resolved rows.
 //!
-//! Serving delivers two edge-set shapes. [`Neighbourhood::incident`] answers a source's ego graph,
-//! which is every edge at the source whose other endpoint is visible. [`EdgeSet`] answers the
-//! edges response's delivered set, which folds the delivered rows' induced fitted edges and the
-//! entry cohort's admitted post-fit links into one capped, identity-ordered selection. Both walk
-//! the adjacency's outgoing runs for fitted candidates, and both collect each qualifying edge
-//! exactly once, because an edge occupies exactly one outgoing slot and a self-loop's one endpoint
-//! is both its source and its target.
+//! Serving delivers two edge-set shapes. The ego graph is every edge at a source whose other
+//! endpoint is visible: [`Neighbourhood::incident`] walks its fitted half and
+//! [`Neighbourhood::incident_links`] folds the entry cohort's post-fit half. [`EdgeSet`] answers
+//! the edges response's delivered set, which folds the delivered rows' induced fitted edges and
+//! the entry cohort's admitted post-fit links into one capped, identity-ordered selection. The
+//! fitted gathers walk the adjacency's outgoing runs and collect each qualifying edge exactly
+//! once, because an edge occupies exactly one outgoing slot and a self-loop's one endpoint is
+//! both its source and its target.
 //!
 //! An edge delivers only when the proof admits the edge's link row and both of its endpoints, and
 //! when the ingress withdrawal snapshot withdraws none of the three. Both shapes reach their
@@ -83,7 +84,7 @@ pub(crate) enum DeltaEndpoint {
 
 impl DeltaEndpoint {
     /// Returns the row id the endpoint column encodes.
-    const fn row(self) -> NodeRowId {
+    pub(super) const fn row(self) -> NodeRowId {
         match self {
             Self::Fitted(row) => row,
             Self::Arrival { slot, .. } => slot,
@@ -136,6 +137,33 @@ impl ServedEdge {
         match self {
             Self::Fitted(edge) => EdgeOrigin::Fitted(edge.row.get()),
             Self::Delta(_) => EdgeOrigin::Delta,
+        }
+    }
+
+    /// Views a delivered edge's endpoints in the vocabulary both serving domains share.
+    pub(crate) const fn endpoints(self) -> [DeltaEndpoint; 2] {
+        match self {
+            Self::Fitted(edge) => [
+                DeltaEndpoint::Fitted(edge.source),
+                DeltaEndpoint::Fitted(edge.target),
+            ],
+            Self::Delta(edge) => [edge.source, edge.target],
+        }
+    }
+
+    /// Returns the endpoint opposite the source, in the vocabulary both serving domains share.
+    ///
+    /// A self-loop's partner is the source itself, in either domain.
+    pub(crate) fn opposite_endpoint(self, source: NodeRowId) -> DeltaEndpoint {
+        match self {
+            Self::Fitted(edge) => DeltaEndpoint::Fitted(edge.partner_of(source)),
+            Self::Delta(edge) => {
+                if edge.source.row() == source {
+                    edge.target
+                } else {
+                    edge.source
+                }
+            }
         }
     }
 }
@@ -348,6 +376,59 @@ impl<'atlas> Neighbourhood<'atlas> {
             let delivered = self.edge(edge)?;
             Some((delivered, self.edge_identity(delivered.row)))
         })
+    }
+
+    /// Collects the cohort links incident to `source` that the request delivers, paired with
+    /// their link-entity identities, in no particular order.
+    ///
+    /// The ego graph's post-fit half, under the same partner rule as the fitted walk: the other
+    /// endpoint must be visible, never delivered-in-tiles. A link qualifies when the proof's
+    /// identity set admits it and the ingress capture does not withdraw it, with each endpoint
+    /// filtered under the same capture. Fitted endpoints serve while the proof admits their
+    /// rows, and an arrival endpoint while the view's arrival table holds its identity, which
+    /// carries the proof's slot admission and the cohort's retention together.
+    pub(super) fn incident_links(
+        &self,
+        view: &View<'_>,
+        source: NodeRowId,
+    ) -> Vec<(DeltaEdge, ArchivedEntityId)> {
+        let cohort = view.cohort();
+        let ingress = self.delta;
+
+        let endpoint = |row: NodeRowId| {
+            if self.node_universe.contains(row) {
+                (self.proof.contains(row)
+                    && !ingress.is_some_and(|delta| delta.withdraws_node(row)))
+                .then_some(DeltaEndpoint::Fitted(row))
+            } else {
+                let (identity, _) = cohort.node_at(row)?;
+                if ingress.is_some_and(|delta| delta.withdraws(identity)) {
+                    return None;
+                }
+
+                let arrivals = view.arrivals();
+                let index = arrivals.partition_point(|entry| entry.identity < identity);
+                (arrivals.get(index)?.identity == identity).then_some(DeltaEndpoint::Arrival {
+                    slot: row,
+                    identity,
+                })
+            }
+        };
+
+        cohort
+            .edges()
+            .filter(|&(_, link)| link.source == source || link.target == source)
+            .filter_map(|(identity, link)| {
+                if !self.proof.admits_delta_link(identity)
+                    || ingress.is_some_and(|delta| delta.withdraws(identity))
+                {
+                    return None;
+                }
+                let (source, target) = (endpoint(link.source)?, endpoint(link.target)?);
+
+                Some((DeltaEdge { source, target }, identity))
+            })
+            .collect()
     }
 
     /// Offers every induced fitted edge over `delivered` to the cap.

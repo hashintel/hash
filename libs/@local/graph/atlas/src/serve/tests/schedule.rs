@@ -1056,7 +1056,8 @@ fn assert_scoped_caps(
             .first_zoom(position_of(row).as_u32())
             .expect("an authorized partner is in the view")
     };
-    let partner_of = |edge: &crate::serve::neighbourhood::DeliveredEdge| {
+    let partner_of = |edge: crate::serve::neighbourhood::ServedEdge| {
+        let edge = super::fitted(edge);
         if edge.source.as_u32() == source_row {
             edge.target.as_u32()
         } else {
@@ -1080,7 +1081,7 @@ fn assert_scoped_caps(
         let survivors = |zoom: &dyn Fn(u32) -> u8| {
             let mut ordered = full.edges.clone();
             ordered.sort_unstable_by_key(|&(edge, id)| {
-                let partner = partner_of(&edge);
+                let partner = partner_of(edge);
                 (distance_of(source_row, partner), zoom(partner), id)
             });
             ordered.truncate(cap);
@@ -1108,7 +1109,7 @@ fn assert_scoped_caps(
         let mut expected_rows: Vec<u32> = vec![source_row];
         let mut partners: Vec<u32> = expected
             .iter()
-            .map(|&(edge, _)| partner_of(&edge))
+            .map(|&(edge, _)| partner_of(edge))
             .filter(|&row| row != source_row)
             .collect();
         partners.sort_unstable();
@@ -1124,7 +1125,7 @@ fn assert_scoped_caps(
 
         counts.discriminated += usize::from(survivors(&corpus_zoom) != expected);
         counts.parted_inputs += usize::from(full.edges.iter().any(|&(edge, _)| {
-            let partner = partner_of(&edge);
+            let partner = partner_of(edge);
             scope_zoom(partner) != corpus_zoom(partner)
         }));
     }

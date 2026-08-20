@@ -1,12 +1,15 @@
-//! Delta-edge witnesses: the entry cohort's published links serve through the edges route.
+//! Delta-edge witnesses: the entry cohort's published links serve through the edges,
+//! translate, and locate routes.
 //!
-//! Every case runs the served edges assembly with a real published snapshot, folded, classified,
+//! Every case runs the route's own assembly with a real published snapshot, folded, classified,
 //! and placed exactly as the consumer records them, so the witnesses cover the seam rather than
 //! the map lookups alone. A delta link serves when the proof's identity set admits it, the
 //! ingress capture does not withdraw it, and the response's delivered sets hold both of its
 //! endpoints, and it merges into the same ascending identity order the fitted edges answer in.
-//! Each refusal case runs beside a same-path control whose delta touches nothing the request
-//! names.
+//! Translate reads the same publication keyed by identity, its endpoints qualified through the
+//! proof and the cohort's retention rather than a delivered bound, and the locate fold takes
+//! the same endpoint rule around one source. Each refusal case runs beside a same-path control
+//! whose delta touches nothing the request names.
 
 use core::num::NonZero;
 
@@ -14,7 +17,7 @@ use hash_graph_postgres_store::store::{EntityEnd, EntityEvent, EntityUpdate};
 use hash_graph_temporal_versioning::Timestamp;
 use hashql_core::{
     collections::FastHashMap,
-    id::{Id as _, IdSlice, IdVec},
+    id::{Id as _, IdSlice, IdVec, bit_vec::DenseBitSet},
 };
 use type_system::{
     knowledge::entity::{
@@ -27,12 +30,12 @@ use uuid::Uuid;
 
 use super::{
     Atlas, Bound, CutOffset, EDGE_IDS, FIXTURE_LOD, FULL, Generation, UntouchedStore,
-    arrival::vacant_cell, coordinate_of, edge_identity_of, edges_request, expected_edges_bytes,
-    fixture_type_url, full_grid, open_edge_artifacts, publish, section, test_codec,
-    type_expectations,
+    arrival::vacant_cell, coordinate_of, edge_identity_of, edges_request, entity_string_of,
+    expected_edges_bytes, fixture_type_url, full_grid, locate_request, open_edge_artifacts,
+    publish, section, test_codec, type_expectations,
 };
 use crate::{
-    bitset::CompressedBitSet,
+    bitset::{CompressedBitSet, DenseBitSlice},
     dataset::auxiliary::{Icon, Label, OwnedIcon, OwnedLabel},
     identity::{BasePosition, EdgeRowId, NodeRowId},
     math::Vec2,
@@ -43,16 +46,25 @@ use crate::{
         id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedOntologyTypeUuid},
     },
     random::{keyed_rng, uniform_below},
-    salt::wire::edges::{EdgesResponse, EdgesTrailer},
+    salt::wire::{
+        edges::{EdgesResponse, EdgesTrailer},
+        locate::{LocateResponse, LocateTrailer, PropertyMap},
+    },
     serve::{
-        EdgesLimits, VisibilityProof,
+        EdgesLimits, ServeLimits, VisibilityProof,
         delta::{
             DeltaEvent, DeltaRegister, DeltaRevision, DeltaSnapshot, PlacementCohort,
             ProjectedArrival,
         },
         edges::EdgesDetail,
-        hydrate::{DetailError, EdgesStore, TypeSlot},
-        neighbourhood::EdgeColumns,
+        hydrate::{
+            DetailError, EdgesStore, LocateHydration, LocateLinkHydration, LocateNodeHydration,
+            LocateOrder, LocateStore, TypeSlot,
+        },
+        locate::LocateLimits,
+        neighbourhood::{DeltaEdge, DeltaEndpoint, EdgeColumns, ServedEdge},
+        schedule::{ArrivalIndex, ViewRow},
+        translate::{TranslateLimits, TranslateRequest, TranslatedEdge},
     },
 };
 
@@ -1512,5 +1524,920 @@ async fn rank_tie_admits_better_identity() {
         "{} mismatches ({ties} rank ties):\n{}",
         mismatches.len(),
         mismatches.join("\n")
+    );
+}
+
+/// The translate request naming both published links.
+fn link_ask() -> TranslateRequest {
+    TranslateRequest {
+        entity_ids: vec![entity_string_of(LOW_LINK), entity_string_of(HIGH_LINK)],
+    }
+}
+
+/// Translate answers a published link's endpoint rows from the cohort, in both endpoint domains.
+///
+/// One link joins two fitted rows and one joins a fitted row to a placed arrival, so the case
+/// pins the domain split: fitted endpoints encode their generation rows and the arrival endpoint
+/// its cohort slot, all under the snapshot's own universe. The empty-cohort control runs the
+/// same request and must answer absent keys, which is the resolution that read no publication.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn translate_answers_published_link_endpoints() {
+    let (_generation, atlas) = publish("delta-translate").await;
+    let (vacant, _) = vacant_cell(&atlas);
+    let snapshot = publishing(
+        &atlas,
+        &[(ARRIVAL, vacant)],
+        &[(LOW_LINK, 0, 1), (HIGH_LINK, 0, ARRIVAL)],
+    );
+    let cohort = PlacementCohort::of(Some(&snapshot));
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
+    let codec = test_codec(&atlas);
+    let wire = |row: NodeRowId| codec.encode(row, snapshot.universe());
+
+    let response = atlas
+        .translate(link_ask(), TranslateLimits::default(), &FULL, None, cohort)
+        .expect("the request is under the cap");
+
+    assert_eq!(
+        response.edges.get(&entity_string_of(LOW_LINK)),
+        Some(&TranslatedEdge {
+            source: wire(NodeRowId::from_u32(0)),
+            target: wire(NodeRowId::from_u32(1)),
+        }),
+        "the fitted-endpoint link answers its generation rows"
+    );
+    assert_eq!(
+        response.edges.get(&entity_string_of(HIGH_LINK)),
+        Some(&TranslatedEdge {
+            source: wire(NodeRowId::from_u32(0)),
+            target: wire(slot),
+        }),
+        "the arrival-endpoint link answers the cohort slot"
+    );
+    assert!(
+        response.nodes.is_empty(),
+        "link-classified identities answer in the edges map alone"
+    );
+
+    let unresolved = atlas
+        .translate(
+            link_ask(),
+            TranslateLimits::default(),
+            &FULL,
+            None,
+            PlacementCohort::EMPTY,
+        )
+        .expect("the request is under the cap");
+    assert!(
+        unresolved.nodes.is_empty() && unresolved.edges.is_empty(),
+        "an empty cohort answers absent keys"
+    );
+}
+
+/// The ingress capture's withdrawn identity set filters translated links, per direction.
+///
+/// The entry keeps its cohort while three later captures withdraw the link itself, a fitted
+/// endpoint, and the arrival endpoint, each answering an absent key for exactly its own link at
+/// the next request. The control capture withdraws an identity the request never names and must
+/// leave the response equal to the baseline.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn withdrawal_answers_absent_key_for_translated_link() {
+    let (_generation, atlas) = publish("delta-translate-ingress").await;
+    let (vacant, _) = vacant_cell(&atlas);
+    let snapshot = publishing(
+        &atlas,
+        &[(ARRIVAL, vacant)],
+        &[(LOW_LINK, 0, 1), (HIGH_LINK, 0, ARRIVAL)],
+    );
+    let cohort = PlacementCohort::of(Some(&snapshot));
+
+    let translate = |ingress: Option<&DeltaSnapshot>| {
+        atlas
+            .translate(
+                link_ask(),
+                TranslateLimits::default(),
+                &FULL,
+                ingress,
+                cohort,
+            )
+            .expect("the request is under the cap")
+    };
+
+    let baseline = translate(None);
+    assert!(
+        baseline.edges.contains_key(&entity_string_of(LOW_LINK))
+            && baseline.edges.contains_key(&entity_string_of(HIGH_LINK)),
+        "the retained cohort answers both links before any withdrawal"
+    );
+
+    let link_withdrawn = translate(Some(&withdrawing(&atlas, &[LOW_LINK])));
+    assert!(
+        !link_withdrawn
+            .edges
+            .contains_key(&entity_string_of(LOW_LINK)),
+        "withdrawing the link itself answers its absent key"
+    );
+    assert!(
+        link_withdrawn
+            .edges
+            .contains_key(&entity_string_of(HIGH_LINK)),
+        "the unrelated link survives the link withdrawal"
+    );
+
+    let endpoint_withdrawn = translate(Some(&withdrawing(&atlas, &[1])));
+    assert!(
+        !endpoint_withdrawn
+            .edges
+            .contains_key(&entity_string_of(LOW_LINK)),
+        "withdrawing a fitted endpoint kills the translated link"
+    );
+    assert!(
+        endpoint_withdrawn
+            .edges
+            .contains_key(&entity_string_of(HIGH_LINK)),
+        "the unrelated link survives the endpoint withdrawal"
+    );
+
+    let arrival_withdrawn = translate(Some(&withdrawing(&atlas, &[ARRIVAL])));
+    assert!(
+        !arrival_withdrawn
+            .edges
+            .contains_key(&entity_string_of(HIGH_LINK)),
+        "withdrawing the arrival endpoint kills its incident link"
+    );
+    assert!(
+        arrival_withdrawn
+            .edges
+            .contains_key(&entity_string_of(LOW_LINK)),
+        "the fitted-endpoint link survives the arrival withdrawal"
+    );
+
+    assert_eq!(
+        translate(Some(&withdrawing(&atlas, &[60]))),
+        baseline,
+        "a capture withdrawing nothing the request names moves no key"
+    );
+}
+
+/// A scoped proof answers exactly the links its own resolution admitted, endpoint mask included.
+///
+/// The identity set decides the link itself. Admitting one link answers it alone, and widening
+/// the set adds exactly the second. The node mask decides the arrival endpoint. A proof
+/// admitting both links while hiding the slot refuses the arrival-endpoint link whole, and the
+/// fitted-endpoint link survives as the same-path control.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn scoped_translate_admits_links_through_identity_set_and_mask() {
+    let (_generation, atlas) = publish("delta-translate-scope").await;
+    let (vacant, _) = vacant_cell(&atlas);
+    let snapshot = publishing(
+        &atlas,
+        &[(ARRIVAL, vacant)],
+        &[(LOW_LINK, 0, 1), (HIGH_LINK, 0, ARRIVAL)],
+    );
+    let cohort = PlacementCohort::of(Some(&snapshot));
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
+
+    let translate = |proof: &VisibilityProof| {
+        atlas
+            .translate(link_ask(), TranslateLimits::default(), proof, None, cohort)
+            .expect("the request is under the cap")
+    };
+
+    let one = translate(&admitting(&atlas, &[slot], &[LOW_LINK]));
+    assert!(
+        one.edges.contains_key(&entity_string_of(LOW_LINK)),
+        "the admitted link answers"
+    );
+    assert!(
+        !one.edges.contains_key(&entity_string_of(HIGH_LINK)),
+        "an unadmitted link answers an absent key, whatever the cohort publishes"
+    );
+
+    let both = translate(&admitting(&atlas, &[slot], &[LOW_LINK, HIGH_LINK]));
+    assert!(
+        both.edges.contains_key(&entity_string_of(LOW_LINK))
+            && both.edges.contains_key(&entity_string_of(HIGH_LINK)),
+        "widening the identity set adds exactly the second link"
+    );
+
+    let slotless = translate(&admitting(&atlas, &[], &[LOW_LINK, HIGH_LINK]));
+    assert!(
+        !slotless.edges.contains_key(&entity_string_of(HIGH_LINK)),
+        "a hidden slot refuses the arrival-endpoint link whole"
+    );
+    assert!(
+        slotless.edges.contains_key(&entity_string_of(LOW_LINK)),
+        "the fitted-endpoint link survives the hidden slot"
+    );
+}
+
+/// The bound view over `proof` and `cohort`, with `ingress` as the request's capture.
+fn viewing_delta<'scope>(
+    atlas: &'scope Atlas,
+    proof: &'scope VisibilityProof,
+    cohort: PlacementCohort<'scope>,
+    ingress: Option<&'scope DeltaSnapshot>,
+) -> Bound<'scope> {
+    let mut bound = Bound::resolved(atlas, proof, cohort, CutOffset::ZERO);
+    if let Some(ingress) = ingress {
+        bound = bound.withdrawing(ingress);
+    }
+
+    bound
+}
+
+/// The locate ego-graph folds the cohort's incident links into both endpoint domains.
+///
+/// Fitted row 0 carries one fitted edge, one published link to fitted row 1, and one published
+/// link to a placed arrival. The subgraph merges all three ascending by identity, delivers the
+/// arrival partner as its table vessel, and the empty-cohort control answers the fitted edge
+/// alone on the same path.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_ego_graph_folds_cohort_links() {
+    let (_generation, atlas) = publish("delta-locate-fold").await;
+    let (vacant, _) = vacant_cell(&atlas);
+    let snapshot = publishing(
+        &atlas,
+        &[(ARRIVAL, vacant)],
+        &[(LOW_LINK, 0, 1), (HIGH_LINK, 0, ARRIVAL)],
+    );
+    let cohort = PlacementCohort::of(Some(&snapshot));
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
+    let bound = viewing_delta(&atlas, &FULL, cohort, None);
+    let view = bound.view(&atlas);
+
+    let source = atlas
+        .resolve_source(&view, &entity_string_of(0))
+        .expect("fixture node ids resolve");
+    let subgraph = atlas.locate_subgraph(source, LocateLimits::default(), &view);
+
+    assert!(subgraph.complete, "three edges sit under the default cap");
+    let ids: Vec<ArchivedEntityId> = subgraph.edges.iter().map(|&(_, id)| id).collect();
+    assert_eq!(
+        ids,
+        [
+            archived_id(LOW_LINK),
+            edge_identity_of(0),
+            archived_id(HIGH_LINK)
+        ],
+        "both links merge into the identity order around the fitted edge"
+    );
+    assert_eq!(
+        subgraph.edges[0].0,
+        ServedEdge::Delta(DeltaEdge {
+            source: DeltaEndpoint::Fitted(NodeRowId::from_u32(0)),
+            target: DeltaEndpoint::Fitted(NodeRowId::from_u32(1)),
+        }),
+        "the fitted-endpoint link resolves both rows"
+    );
+    assert_eq!(
+        subgraph.edges[2].0,
+        ServedEdge::Delta(DeltaEdge {
+            source: DeltaEndpoint::Fitted(NodeRowId::from_u32(0)),
+            target: DeltaEndpoint::Arrival {
+                slot,
+                identity: archived_id(ARRIVAL),
+            },
+        }),
+        "the arrival-endpoint link resolves the cohort slot"
+    );
+
+    // The delivered partners follow ascending wire id, whichever domain each encodes from.
+    let positions_of_row = atlas.positions_of_row();
+    let codec = test_codec(&atlas);
+    let mut expected_partners = [
+        (
+            codec.encode(NodeRowId::from_u32(1), snapshot.universe()),
+            ViewRow::Base(positions_of_row[NodeRowId::from_u32(1)]),
+        ),
+        (
+            view.arrivals()[ArrivalIndex::from_u32(0)].wire,
+            ViewRow::Arrival(ArrivalIndex::from_u32(0)),
+        ),
+    ];
+    expected_partners.sort_unstable_by_key(|&(wire, _)| wire);
+    let mut expected = vec![ViewRow::Base(positions_of_row[NodeRowId::from_u32(0)])];
+    expected.extend(expected_partners.iter().map(|&(_, vessel)| vessel));
+    assert_eq!(
+        subgraph.delivered.as_raw(),
+        expected,
+        "partners deliver in their own vessels, ascending wire id"
+    );
+
+    // Same-path control: the empty cohort serves the fitted ego-graph alone.
+    let bare = viewing_delta(&atlas, &FULL, PlacementCohort::EMPTY, None);
+    let control = atlas.locate_subgraph(source, LocateLimits::default(), &bare.view(&atlas));
+    assert_eq!(
+        control.edges.iter().map(|&(_, id)| id).collect::<Vec<_>>(),
+        [edge_identity_of(0)],
+        "an empty cohort serves the fitted edge alone"
+    );
+}
+
+/// An arrival source's ego-graph serves its cohort links instead of a lone node.
+///
+/// The link's fitted partner delivers beside the arrival source, and the no-links control keeps
+/// the lone-node answer on the same path, so the fold widens the arrival source without moving
+/// the linkless case.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn arrival_source_ego_graph_serves_cohort_links() {
+    let (_generation, atlas) = publish("delta-locate-arrival-source").await;
+    let (vacant, _) = vacant_cell(&atlas);
+    let snapshot = publishing(&atlas, &[(ARRIVAL, vacant)], &[(HIGH_LINK, 0, ARRIVAL)]);
+    let cohort = PlacementCohort::of(Some(&snapshot));
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
+    let bound = viewing_delta(&atlas, &FULL, cohort, None);
+    let view = bound.view(&atlas);
+
+    let source = atlas
+        .resolve_source(&view, &entity_string_of(ARRIVAL))
+        .expect("the cohort resolves the arrival");
+    let subgraph = atlas.locate_subgraph(source, LocateLimits::default(), &view);
+
+    assert!(subgraph.complete, "one edge sits under the default cap");
+    assert_eq!(
+        subgraph.edges,
+        vec![(
+            ServedEdge::Delta(DeltaEdge {
+                source: DeltaEndpoint::Fitted(NodeRowId::from_u32(0)),
+                target: DeltaEndpoint::Arrival {
+                    slot,
+                    identity: archived_id(ARRIVAL),
+                },
+            }),
+            archived_id(HIGH_LINK),
+        )],
+        "the arrival source serves its incident link"
+    );
+    assert_eq!(
+        subgraph.delivered.as_raw(),
+        [
+            ViewRow::Arrival(ArrivalIndex::from_u32(0)),
+            ViewRow::Base(atlas.positions_of_row()[NodeRowId::from_u32(0)]),
+        ],
+        "the fitted partner delivers beside the arrival source"
+    );
+
+    // Same-path control: a cohort publishing no link keeps the lone-node answer.
+    let bare_snapshot = publishing(&atlas, &[(ARRIVAL, vacant)], &[]);
+    let bare_cohort = PlacementCohort::of(Some(&bare_snapshot));
+    let bare = viewing_delta(&atlas, &FULL, bare_cohort, None);
+    let bare_view = bare.view(&atlas);
+    let bare_source = atlas
+        .resolve_source(&bare_view, &entity_string_of(ARRIVAL))
+        .expect("the cohort resolves the arrival");
+    let control = atlas.locate_subgraph(bare_source, LocateLimits::default(), &bare_view);
+    assert!(control.complete, "no edge qualifies");
+    assert!(control.edges.is_empty(), "no link publishes at the source");
+    assert_eq!(
+        control.delivered.as_raw(),
+        [ViewRow::Arrival(ArrivalIndex::from_u32(0))],
+        "the linkless arrival delivers alone"
+    );
+}
+
+/// The ingress capture's withdrawn identity set filters the locate fold, per direction.
+///
+/// Withdrawing the link kills its edge alone. Withdrawing fitted row 1 kills the published link
+/// and the fitted edge through one rule. Withdrawing the arrival kills its incident link alone,
+/// and the unrelated control moves nothing.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn withdrawal_subtracts_from_locate_fold() {
+    let (_generation, atlas) = publish("delta-locate-ingress").await;
+    let (vacant, _) = vacant_cell(&atlas);
+    let snapshot = publishing(
+        &atlas,
+        &[(ARRIVAL, vacant)],
+        &[(LOW_LINK, 0, 1), (HIGH_LINK, 0, ARRIVAL)],
+    );
+    let cohort = PlacementCohort::of(Some(&snapshot));
+
+    let ids = |ingress: Option<&DeltaSnapshot>| -> Vec<ArchivedEntityId> {
+        let bound = viewing_delta(&atlas, &FULL, cohort, ingress);
+        let view = bound.view(&atlas);
+        let source = atlas
+            .resolve_source(&view, &entity_string_of(0))
+            .expect("fixture node ids resolve");
+
+        atlas
+            .locate_subgraph(source, LocateLimits::default(), &view)
+            .edges
+            .iter()
+            .map(|&(_, id)| id)
+            .collect()
+    };
+
+    let baseline = ids(None);
+    assert_eq!(
+        baseline,
+        [
+            archived_id(LOW_LINK),
+            edge_identity_of(0),
+            archived_id(HIGH_LINK)
+        ],
+        "the retained cohort serves the whole fold before any withdrawal"
+    );
+
+    assert_eq!(
+        ids(Some(&withdrawing(&atlas, &[LOW_LINK]))),
+        [edge_identity_of(0), archived_id(HIGH_LINK)],
+        "withdrawing the link kills its edge alone"
+    );
+    assert_eq!(
+        ids(Some(&withdrawing(&atlas, &[1]))),
+        [archived_id(HIGH_LINK)],
+        "withdrawing the shared partner kills the published link and the fitted edge"
+    );
+    assert_eq!(
+        ids(Some(&withdrawing(&atlas, &[ARRIVAL]))),
+        [archived_id(LOW_LINK), edge_identity_of(0)],
+        "withdrawing the arrival kills its incident link alone"
+    );
+    assert_eq!(
+        ids(Some(&withdrawing(&atlas, &[60]))),
+        baseline,
+        "a withdrawal the fold never names moves nothing"
+    );
+}
+
+/// A scoped locate serves exactly the links its own resolution admitted, slot mask included.
+///
+/// The identity set decides each link, and hiding the slot empties the view's arrival table, so
+/// the arrival-endpoint link refuses whole while the fitted-endpoint link and the fitted edge
+/// survive as the same-path controls.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn scoped_locate_admits_links_through_identity_set_and_mask() {
+    let (_generation, atlas) = publish("delta-locate-scope").await;
+    let (vacant, _) = vacant_cell(&atlas);
+    let snapshot = publishing(
+        &atlas,
+        &[(ARRIVAL, vacant)],
+        &[(LOW_LINK, 0, 1), (HIGH_LINK, 0, ARRIVAL)],
+    );
+    let cohort = PlacementCohort::of(Some(&snapshot));
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
+
+    let ids = |proof: &VisibilityProof| -> Vec<ArchivedEntityId> {
+        let bound = viewing_delta(&atlas, proof, cohort, None);
+        let view = bound.view(&atlas);
+        let source = atlas
+            .resolve_source(&view, &entity_string_of(0))
+            .expect("fixture node ids resolve");
+
+        atlas
+            .locate_subgraph(source, LocateLimits::default(), &view)
+            .edges
+            .iter()
+            .map(|&(_, id)| id)
+            .collect()
+    };
+
+    assert_eq!(
+        ids(&admitting(&atlas, &[slot], &[LOW_LINK])),
+        [archived_id(LOW_LINK), edge_identity_of(0)],
+        "the admitted link serves and the unadmitted one refuses"
+    );
+    assert_eq!(
+        ids(&admitting(&atlas, &[slot], &[LOW_LINK, HIGH_LINK])),
+        [
+            archived_id(LOW_LINK),
+            edge_identity_of(0),
+            archived_id(HIGH_LINK)
+        ],
+        "widening the identity set adds exactly the second link"
+    );
+    assert_eq!(
+        ids(&admitting(&atlas, &[], &[LOW_LINK, HIGH_LINK])),
+        [archived_id(LOW_LINK), edge_identity_of(0)],
+        "a hidden slot refuses the arrival-endpoint link whole"
+    );
+}
+
+/// The nearest-partner truncation prices arrival partners on their recorded coordinates.
+///
+/// The arrival places at the wire corner opposite the source, strictly farther than fitted row
+/// 1, so a cap of two keeps both row-1 edges and drops the arrival-endpoint link with its
+/// partner. One more slot serves the whole fold complete.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn truncation_prices_arrival_partners() {
+    let (_generation, atlas) = publish("delta-locate-truncation").await;
+    let positions = atlas.positions();
+    let positions_of_row = atlas.positions_of_row();
+    let origin = positions[positions_of_row[NodeRowId::from_u32(0)]];
+    let near = positions[positions_of_row[NodeRowId::from_u32(1)]];
+    let far = Vec2::new(
+        0.99_f32.copysign(-origin.x()),
+        0.99_f32.copysign(-origin.y()),
+    );
+    let distance = |point: Vec2| {
+        let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
+        #[expect(
+            clippy::suboptimal_flops,
+            reason = "unfused arithmetic mirrors the selection key exactly"
+        )]
+        (dx * dx + dy * dy).to_bits()
+    };
+    assert!(
+        distance(near) < distance(far),
+        "the charter needs the arrival strictly farther than fitted row 1"
+    );
+
+    let snapshot = publishing(
+        &atlas,
+        &[(ARRIVAL, far)],
+        &[(LOW_LINK, 0, 1), (HIGH_LINK, 0, ARRIVAL)],
+    );
+    let cohort = PlacementCohort::of(Some(&snapshot));
+    let bound = viewing_delta(&atlas, &FULL, cohort, None);
+    let view = bound.view(&atlas);
+    let source = atlas
+        .resolve_source(&view, &entity_string_of(0))
+        .expect("fixture node ids resolve");
+
+    let capped = |edges: u32| {
+        atlas.locate_subgraph(
+            source,
+            LocateLimits {
+                edges,
+                ..LocateLimits::default()
+            },
+            &view,
+        )
+    };
+
+    let two = capped(2);
+    assert!(!two.complete, "the cap truncated the farthest partner");
+    assert_eq!(
+        two.edges.iter().map(|&(_, id)| id).collect::<Vec<_>>(),
+        [archived_id(LOW_LINK), edge_identity_of(0)],
+        "both row-1 edges outrank the arrival-endpoint link"
+    );
+    assert_eq!(
+        two.delivered.as_raw(),
+        [
+            ViewRow::Base(positions_of_row[NodeRowId::from_u32(0)]),
+            ViewRow::Base(positions_of_row[NodeRowId::from_u32(1)]),
+        ],
+        "the truncated arrival partner leaves with its edge"
+    );
+
+    let whole = capped(3);
+    assert!(whole.complete, "one more slot serves the whole fold");
+    assert_eq!(
+        whole.edges.iter().map(|&(_, id)| id).collect::<Vec<_>>(),
+        [
+            archived_id(LOW_LINK),
+            edge_identity_of(0),
+            archived_id(HIGH_LINK)
+        ],
+    );
+}
+
+/// A store answering every delivered node and link as resolved with no recorded detail.
+///
+/// The resolution flags open and every store-derived column stays empty, so an expectation
+/// built over it pins the in-process label columns - the captured displays among them -
+/// without store-derived content.
+struct ResolvedEmptyDetails;
+
+impl LocateStore for ResolvedEmptyDetails {
+    fn hydrate(self, order: LocateOrder<'_>) -> Result<LocateHydration, DetailError> {
+        Ok(LocateHydration {
+            nodes: LocateNodeHydration {
+                resolved: DenseBitSet::new_filled(order.nodes.count()),
+                type_urls: IdVec::from_elem(Vec::new(), order.nodes.count()),
+                source_properties: Some(Vec::new()),
+                source_properties_complete: true,
+            },
+            links: LocateLinkHydration {
+                type_urls: IdVec::from_elem(Vec::new(), order.links.len()),
+                type_urls_complete: DenseBitSlice::new_empty(order.links.len()),
+                properties: IdVec::from_elem(Some(Vec::new()), order.links.len()),
+                properties_complete: DenseBitSlice::new_empty(order.links.len()),
+            },
+        })
+    }
+}
+
+/// Captured displays reach the locate trailer's node and link labels, byte-exact.
+///
+/// The register captures a revised display for fitted node 3 and for its one incident fitted
+/// link, and the locate response serves both captured labels while the unrevised partner keeps
+/// its payload label. The control cohort captures an identity the response never delivers and
+/// must answer the all-payload baseline byte-exactly.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the capture fixture and the directly built envelope share one publish"
+)]
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn captured_displays_reach_locate_labels() {
+    let (generation, atlas) = publish("delta-locate-labels").await;
+
+    // Fixture edge row 5 joins rows 3 and 7, the only edge at either row.
+    let source_row = NodeRowId::from_u32(3);
+    let partner_row = NodeRowId::from_u32(7);
+    let link_seed = 64 + 5;
+    assert_eq!(
+        archived_id(link_seed),
+        edge_identity_of(5),
+        "the witness revises fitted edge row 5"
+    );
+
+    let renamed = OwnedLabel::from("renamed");
+    let rewired = OwnedLabel::from("rewired");
+    let capturing = |captures: &[(u8, &OwnedLabel)]| -> DeltaSnapshot {
+        let mut register = DeltaRegister::new(
+            atlas.node_universe(),
+            atlas.edge_universe(),
+            atlas.ontology_universe(),
+        );
+        for &(seed, label) in captures {
+            let event = EntityEvent::Updated(EntityUpdate {
+                entity: store_id(seed),
+                edition: EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
+                archived: false,
+                changed_at: Timestamp::from_unix_timestamp(1),
+            });
+            register.apply(DeltaEvent::from(&event));
+            register
+                .capture_display(
+                    archived_id(seed),
+                    EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
+                    label,
+                    Icon::new("revised-icon"),
+                    fixture_type(),
+                    &atlas,
+                )
+                .expect("the fixture ontology domain has room");
+        }
+
+        register.snapshot(
+            &atlas,
+            DeltaRevision::FIRST,
+            Timestamp::from_unix_timestamp(2),
+        )
+    };
+
+    let locate = |snapshot: Option<&DeltaSnapshot>| -> Vec<u8> {
+        let bound = viewing_delta(&atlas, &FULL, PlacementCohort::of(snapshot), None);
+        atlas
+            .locate(
+                &locate_request(entity_string_of(3)),
+                ServeLimits::default(),
+                bound.view(&atlas),
+                ResolvedEmptyDetails,
+            )
+            .expect("the locate request serves")
+    };
+
+    // The expected envelope, built directly: only the two captured labels separate it from
+    // the baseline.
+    let expected = |source_label: &Label, link_label: &Label| -> Vec<u8> {
+        let bound = viewing_delta(&atlas, &FULL, PlacementCohort::EMPTY, None);
+        let view = bound.view(&atlas);
+        let cell = atlas
+            .resolve_source(&view, &entity_string_of(3))
+            .expect("fixture node ids resolve")
+            .cell;
+        let positions_of_row = atlas.positions_of_row();
+        let codec = test_codec(&atlas);
+        let wire = |row: NodeRowId| codec.encode(row, atlas.node_universe());
+        let columns = EdgeColumns::pinned([(
+            wire(source_row).get(),
+            wire(partner_row).get(),
+            archived_id(link_seed),
+        )]);
+        let empty_map = PropertyMap::new_unchecked(Vec::new());
+        let link_flags: Box<DenseBitSlice<crate::serve::hydrate::EdgeSlot>> =
+            DenseBitSlice::new_empty(1);
+
+        LocateResponse {
+            generation: generation.id().digest(),
+            variant: 0,
+            cell,
+            complete: true,
+            entity_id: archived_id(3),
+            type_ids_complete: false,
+            properties_complete: true,
+            delivered: IdSlice::from_raw(&[
+                ViewRow::Base(positions_of_row[source_row]),
+                ViewRow::Base(positions_of_row[partner_row]),
+            ]),
+            arrivals: IdSlice::from_raw(&[]),
+            positions: atlas.positions(),
+            rows: atlas.wire_rows(),
+            masks: None,
+            edges: &columns,
+            trailer: LocateTrailer {
+                type_table: IdSlice::from_raw(&[]),
+                property_table: IdSlice::from_raw(&[]),
+                labels: IdSlice::from_raw(&[source_label, Label::EMPTY]),
+                type_ids: IdSlice::from_raw(&[None, None]),
+                properties: Some(&empty_map),
+                link_labels: IdSlice::from_raw(&[link_label]),
+                link_type_ids: IdSlice::from_raw(&[Vec::new()]),
+                link_type_ids_complete: &link_flags,
+                link_properties: IdSlice::from_raw(&[Some(&empty_map)]),
+                link_properties_complete: &link_flags,
+            },
+        }
+        .encode()
+    };
+
+    let captured = capturing(&[(3, &renamed), (link_seed, &rewired)]);
+    assert_eq!(
+        locate(Some(&captured)),
+        expected(&renamed, &rewired),
+        "both captured labels serve at their own slots"
+    );
+
+    let baseline = locate(None);
+    assert_eq!(
+        baseline,
+        expected(Label::EMPTY, Label::EMPTY),
+        "the baseline serves the payload labels"
+    );
+
+    // Same-path control: a capture the response never delivers moves no byte.
+    let unrelated = capturing(&[(60, &renamed)]);
+    assert_eq!(
+        locate(Some(&unrelated)),
+        baseline,
+        "a capture the response never names moves nothing"
+    );
+}
+
+/// A published link whose arrival endpoint's holder stands withdrawn at publication.
+///
+/// The register places the arrival, classifies and captures the link, and only then folds the
+/// arrival's own end. The slot stays allocated, so the link still resolves both endpoint rows
+/// and publishes, while the `nodes` map drops the dormant holder. Every read must refuse the
+/// link through `node_at`'s absent answer instead of resolving a slot no arrival table holds.
+/// At locate that wrong path panics on the request path or serves a mis-indexed partner.
+#[expect(
+    clippy::too_many_lines,
+    reason = "one register walks the feed order whose three route refusals share its premises"
+)]
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn dormant_arrival_endpoint_refuses_its_link() {
+    let (_generation, atlas) = publish("probe-dormant-arrival").await;
+    let (vacant, _) = vacant_cell(&atlas);
+
+    let mut register = DeltaRegister::new(
+        atlas.node_universe(),
+        atlas.edge_universe(),
+        atlas.ontology_universe(),
+    );
+
+    // The arrival arrives live, classifies, and places: the slot allocates here and stands for
+    // the register's life.
+    let arrival_live = EntityEvent::Updated(EntityUpdate {
+        entity: store_id(ARRIVAL),
+        edition: EntityEditionId::new(Uuid::from_u128(u128::from(ARRIVAL))),
+        archived: false,
+        changed_at: Timestamp::from_unix_timestamp(1),
+    });
+    register.apply(DeltaEvent::from(&arrival_live));
+    register
+        .classify(archived_id(ARRIVAL), Classification::Node)
+        .expect("the fixture stays inside the edge universe");
+    register
+        .place(
+            archived_id(ARRIVAL),
+            &ProjectedArrival {
+                edition: EntityEditionId::new(Uuid::from_u128(u128::from(ARRIVAL))),
+                position: vacant,
+                label: OwnedLabel::from("arrival"),
+                icon: OwnedIcon::from("arrival-icon"),
+                representative: fixture_type(),
+            },
+            &atlas,
+        )
+        .expect("the fixture universe is far from the wire's row domain");
+
+    // The link attaches fitted row 0 to that arrival, live and captured.
+    let link_live = EntityEvent::Updated(EntityUpdate {
+        entity: store_id(HIGH_LINK),
+        edition: EntityEditionId::new(Uuid::from_u128(u128::from(HIGH_LINK))),
+        archived: false,
+        changed_at: Timestamp::from_unix_timestamp(1),
+    });
+    register.apply(DeltaEvent::from(&link_live));
+    register
+        .classify(
+            archived_id(HIGH_LINK),
+            Classification::Edge {
+                source: Some(archived_id(0)),
+                target: Some(archived_id(ARRIVAL)),
+            },
+        )
+        .expect("the fixture stays inside the edge universe");
+    register
+        .capture_display(
+            archived_id(HIGH_LINK),
+            EntityEditionId::new(Uuid::from_u128(u128::from(HIGH_LINK))),
+            &OwnedLabel::from("link"),
+            &OwnedIcon::from("link-icon"),
+            fixture_type(),
+            &atlas,
+        )
+        .expect("the fixture ontology domain has room");
+
+    // The arrival's end lands after the link's classification, the feed order the register
+    // cannot forbid. The link keeps standing live.
+    let arrival_end = EntityEvent::Ended(EntityEnd {
+        entity: store_id(ARRIVAL),
+        ended_at: Timestamp::from_unix_timestamp(3),
+    });
+    register.apply(DeltaEvent::from(&arrival_end));
+
+    let snapshot = register.snapshot(
+        &atlas,
+        DeltaRevision::FIRST,
+        Timestamp::from_unix_timestamp(3),
+    );
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
+
+    // The publication is the shape the dormancy arm exists for.
+    assert!(
+        snapshot.edge(archived_id(HIGH_LINK)).is_some(),
+        "the link publishes even though its arrival endpoint stands withdrawn",
+    );
+    assert!(
+        snapshot.node_at(slot).is_none(),
+        "the dormant holder leaves the nodes map, so the slot resolves to no arrival",
+    );
+    assert!(
+        snapshot.withdraws(archived_id(ARRIVAL)),
+        "the same publication withdraws the arrival identity",
+    );
+
+    let cohort = PlacementCohort::of(Some(&snapshot));
+    let bound = viewing_delta(&atlas, &FULL, cohort, None);
+    let view = bound.view(&atlas);
+
+    assert!(
+        view.arrivals().is_empty(),
+        "the view's arrival table holds no dormant holder",
+    );
+
+    // Locate: the fold must refuse the link rather than mint an arrival endpoint whose identity
+    // the arrival table cannot index.
+    let source = atlas
+        .resolve_source(&view, &entity_string_of(0))
+        .expect("fixture node ids resolve");
+    let subgraph = atlas.locate_subgraph(source, LocateLimits::default(), &view);
+    assert!(
+        !subgraph
+            .edges
+            .iter()
+            .any(|&(_, id)| id == archived_id(HIGH_LINK)),
+        "the dormant-endpoint link never reaches the locate ego graph",
+    );
+    assert_eq!(
+        subgraph.delivered.len(),
+        2,
+        "the fitted ego graph delivers the source and its one fitted partner alone",
+    );
+
+    // Translate: the same refusal keyed by identity.
+    let response = atlas
+        .translate(
+            TranslateRequest {
+                entity_ids: vec![entity_string_of(HIGH_LINK)],
+            },
+            TranslateLimits::default(),
+            &FULL,
+            None,
+            cohort,
+        )
+        .expect("the request is under the cap");
+    assert!(
+        response.edges.is_empty() && response.nodes.is_empty(),
+        "translate answers an absent key for the dormant-endpoint link",
+    );
+
+    // Edges: the delivered set must not hold it either.
+    let served = edges_with(
+        &atlas,
+        &FULL,
+        cohort,
+        None,
+        full_grid(),
+        EdgesLimits::default(),
+    );
+    assert!(
+        !edge_ids_of(&served).contains(&archived_id(HIGH_LINK)),
+        "the edges route refuses the dormant-endpoint link",
     );
 }

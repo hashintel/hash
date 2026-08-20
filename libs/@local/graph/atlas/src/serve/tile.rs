@@ -189,8 +189,8 @@ impl Atlas {
     /// Answers one tile request over its bound delivery view.
     ///
     /// `SALTILET` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`. A
-    /// request asking for the detail trailer resolves per-point labels and icons in process from
-    /// the generation's own payloads and the arrivals' captured displays, so every section of
+    /// request asking for the detail trailer resolves per-point labels and icons in process,
+    /// captured display first and the generation's own payloads second, so every section of
     /// the envelope assembles from the opened artifacts and the view's own cohort alone.
     ///
     /// # Errors
@@ -212,14 +212,32 @@ impl Atlas {
                 let mut labels = Vec::with_capacity(document.delivered.count());
                 let mut icons = Vec::with_capacity(document.delivered.count());
 
+                // Hoisted once per response: a captureless cohort answers no overlay read,
+                // so the per-row identity lookup below runs only when a capture could answer
+                // it, and a base tile under no cohort keeps its pre-overlay path exactly.
+                let cohort = view.cohort();
+                let overlaid = cohort.captures_any();
+
                 for row in document.delivered.iter() {
                     match row {
                         ViewRow::Base(position) => {
-                            let id = self.rows.view()[position];
-                            let label = self
-                                .node_ids
-                                .payload_of(id)
-                                .map_or(Label::EMPTY, |legend| legend.label());
+                            let row = self.rows.view()[position];
+                            // Captured display first, generation payload second (the
+                            // register's own precedence), so a revised fitted identity serves
+                            // its freshest label.
+                            let label = if overlaid {
+                                self.node_ids.id(row).and_then(|id| cohort.legend_of(id))
+                            } else {
+                                None
+                            }
+                            .map_or_else(
+                                || {
+                                    self.node_ids
+                                        .payload_of(row)
+                                        .map_or(Label::EMPTY, |legend| legend.label())
+                                },
+                                Legend::label,
+                            );
 
                             labels.push(label);
 
@@ -260,7 +278,7 @@ impl Atlas {
                                     })
                                     .unwrap_or(Icon::empty())
                             } else {
-                                view.cohort().allocated_icon_of(representative).expect(
+                                cohort.allocated_icon_of(representative).expect(
                                     "the arrival table and the cohort derive from one snapshot, \
                                      which recorded an icon at every row it allocated",
                                 )
@@ -564,19 +582,32 @@ impl Atlas {
 
 #[cfg(test)]
 mod tests {
+    use hash_graph_postgres_store::store::{EntityEvent, EntityUpdate};
+    use hash_graph_temporal_versioning::Timestamp;
     use hashql_core::id::{Id as _, IdSlice};
+    use type_system::{
+        knowledge::entity::{
+            EntityId,
+            id::{EntityEditionId, EntityUuid},
+        },
+        principal::actor_group::WebId,
+    };
+    use uuid::Uuid;
 
     use super::{Mode, TileCoordinate, TileDetail, TileLimits};
     use crate::{
-        dataset::auxiliary::{Icon, Label},
+        dataset::auxiliary::{Icon, Label, OwnedLabel},
         identity::{BasePosition, NodeRowId},
         math::{Bounds2, Vec2},
+        postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedOntologyTypeUuid},
         salt::wire::tile::{DeliveredSet, GlobalHead, TileHead, TileResponse, TileTrailer},
         serve::{
+            CutOffset,
+            delta::{DeltaEvent, DeltaRegister, DeltaRevision, DeltaSnapshot, PlacementCohort},
             hydrate::NodeDetails,
             tests::{
-                Artifacts, FIXTURE_LOD, FULL, fixture_row_ids, open_artifacts, publish, request,
-                test_codec, viewing,
+                Artifacts, Bound, FIXTURE_LOD, FULL, fixture_row_ids, open_artifacts, publish,
+                request, test_codec, viewing,
             },
         },
     };
@@ -682,5 +713,128 @@ mod tests {
         }
         .encode();
         assert_eq!(bytes, expected, "the trailer path is byte-exact");
+    }
+
+    /// A captured display reaches the tile trailer's node labels.
+    ///
+    /// The register captures a revised display for the fitted identity at the root delta
+    /// tile's first delivered slot, and the route's bytes must equal the same assembly encoded
+    /// with the captured label at that slot alone. The control capture names an undelivered
+    /// identity and must answer the baseline bytes.
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+    async fn captured_display_reaches_tile_labels() {
+        let (generation, atlas) = publish("revised-tile-labels").await;
+        let Artifacts { morton, rows, .. } = open_artifacts(&generation);
+        let row_ids = fixture_row_ids(&rows);
+        let delivered: u64 = morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
+            .iter()
+            .sum();
+        let delivered = usize::try_from(delivered).expect("fixture counts fit usize");
+        assert!(
+            delivered < row_ids.len(),
+            "the charter needs a row the root delta tile does not deliver"
+        );
+
+        // The fixture rewrite keys each row's identity by the row id itself.
+        let identity = |seed: u8| ArchivedEntityId {
+            web_id: Uuid::from_bytes([seed; 16]).into(),
+            entity_uuid: ArchivedEntityUuid::from_bytes(
+                Uuid::from_bytes([seed ^ 0xFF; 16]).into_bytes(),
+            ),
+        };
+        let revised_seed = u8::try_from(row_ids[0]).expect("fixture rows fit u8");
+        let undelivered_seed = u8::try_from(row_ids[delivered]).expect("fixture rows fit u8");
+
+        let renamed = OwnedLabel::from("renamed");
+        let capturing = |seed: u8| -> DeltaSnapshot {
+            let mut register = DeltaRegister::new(
+                atlas.node_universe(),
+                atlas.edge_universe(),
+                atlas.ontology_universe(),
+            );
+            let event = EntityEvent::Updated(EntityUpdate {
+                entity: EntityId {
+                    web_id: WebId::new(Uuid::from_bytes([seed; 16])),
+                    entity_uuid: EntityUuid::new(Uuid::from_bytes([seed ^ 0xFF; 16])),
+                    draft_id: None,
+                },
+                edition: EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
+                archived: false,
+                changed_at: Timestamp::from_unix_timestamp(1),
+            });
+            register.apply(DeltaEvent::from(&event));
+            register
+                .capture_display(
+                    identity(seed),
+                    EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
+                    &renamed,
+                    Icon::new("revised-icon"),
+                    ArchivedOntologyTypeUuid::from(Uuid::from_u128(0x117C)),
+                    &atlas,
+                )
+                .expect("the fixture ontology domain has room");
+
+            register.snapshot(
+                &atlas,
+                DeltaRevision::FIRST,
+                Timestamp::from_unix_timestamp(2),
+            )
+        };
+
+        let mut detailed = request(0, 0, 0, Mode::Delta);
+        detailed.query.detail = TileDetail::Auxiliary;
+
+        let serve = |snapshot: Option<&DeltaSnapshot>| {
+            let bound = Bound::resolved(
+                &atlas,
+                &FULL,
+                PlacementCohort::of(snapshot),
+                CutOffset::ZERO,
+            );
+            atlas
+                .tile(&detailed, TileLimits::default(), bound.view(&atlas))
+                .expect("the tile request is on the served grid")
+        };
+
+        // The expected envelope is the same assembly, encoded with the captured label at the
+        // first delivered slot alone.
+        let expected = |label: &Label| {
+            let document = viewing(&atlas, &FULL, |view| {
+                atlas
+                    .assemble_tile(&detailed, TileLimits::default(), view)
+                    .expect("assembly serves every detail mode")
+            });
+            let mut labels: Vec<&Label> = vec![Label::EMPTY; delivered];
+            labels[0] = label;
+            let icons: Vec<&Icon> = vec![Icon::empty(); delivered];
+
+            atlas.encode_tile(
+                &document,
+                IdSlice::from_raw(&[]),
+                Some(&NodeDetails::new(labels, icons)),
+            )
+        };
+
+        let captured = capturing(revised_seed);
+        assert_eq!(
+            serve(Some(&captured)),
+            expected(&renamed),
+            "the captured label serves at its own slot alone"
+        );
+
+        let baseline = serve(None);
+        assert_eq!(
+            baseline,
+            expected(Label::EMPTY),
+            "the baseline serves the payload labels"
+        );
+
+        let unrelated = capturing(undelivered_seed);
+        assert_eq!(
+            serve(Some(&unrelated)),
+            baseline,
+            "a capture the tile never delivers moves nothing"
+        );
     }
 }

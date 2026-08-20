@@ -20,7 +20,7 @@ use super::{
         LocateStore, NodeSlot, ScalarValue,
     },
     intern::{Table, TableIndex},
-    neighbourhood::{DeliveredEdge, EdgeColumns, EdgeOrigin, Neighbourhood, ServedEdge},
+    neighbourhood::{DeltaEndpoint, EdgeColumns, EdgeOrigin, Neighbourhood, ServedEdge},
     schedule::{ArrivalIndex, ArrivalRow, ViewRow, cut::ScheduleCut},
     view::{View, ViewError},
     visibility::{ResolvedRow, VisibleRow},
@@ -28,6 +28,7 @@ use super::{
 use crate::{
     dataset::auxiliary::{Label, Legend},
     identity::{BasePosition, NodeRowId},
+    math::Vec2,
     morton::MortonKey,
     postgres::id::ArchivedEntityId,
     salt::{
@@ -238,69 +239,103 @@ impl Atlas {
     /// Assembles the locate ego-graph around a resolved source.
     ///
     /// Every edge incident to the source whose other endpoint is visible, and the partners those
-    /// edges connect.
+    /// edges connect. Fitted edges arrive through the generation's adjacency and post-fit links
+    /// through the entry cohort, so the graph spans both serving domains whatever domain the
+    /// source resolves in.
     ///
     /// Delivered order is the wire's pin: the source first, then the delivered edges' partners
     /// ascending by wire row id. Partners derive from the post-cap edge set - a partner whose
     /// every edge truncated is not delivered. Edges ride ascending by link-entity identity bytes
     /// after the cap - the order is client-verifiable from the `EDGE_IDS` column alone.
     ///
-    /// A placed arrival delivers alone and complete: the generation's adjacency never names a
-    /// cohort slot, and post-fit links serve through the delta-edge read rather than this probe.
+    /// # Panics
+    ///
+    /// This panics when the view's arrival table does not hold an arrival source's identity,
+    /// which source resolution rules out.
     pub(crate) fn locate_subgraph(
         &self,
         source: SourcePoint,
         limits: LocateLimits,
         view: &View<'_>,
     ) -> LocateSubgraph {
-        let (source_row, source_position) = match source.subject {
-            SourceSubject::Base { row, position } => (row, position),
+        let arrivals = view.arrivals();
+        let cohort = view.cohort();
+
+        // The source's row in the entry universe, its wire-frame origin, and its delivered
+        // vessel, each in the domain that publishes it. An arrival's row is the cohort slot its
+        // placement took.
+        let (source_row, origin, source_vessel) = match source.subject {
+            SourceSubject::Base { row, position } => (
+                row.get(),
+                self.positions()[position],
+                ViewRow::Base(position),
+            ),
             SourceSubject::Arrival(index) => {
-                return LocateSubgraph {
-                    delivered: core::iter::once(ViewRow::Arrival(index)).collect(),
-                    edges: Vec::new(),
-                    complete: true,
-                };
+                let row = &arrivals[index];
+                let slot = cohort
+                    .node(row.identity)
+                    .expect("the view's arrival table holds the cohort's admitted arrivals")
+                    .id;
+
+                (slot, row.position, ViewRow::Arrival(index))
             }
         };
 
+        let neighbourhood = Neighbourhood::of(self, view.proof(), view.delta());
+
         // Hidden partners drop before selection: the cap selects among visible edges alone, and a
-        // response's cardinality is a function of the masked view.
-        let mut edges: Vec<_> = Neighbourhood::of(self, view.proof(), view.delta())
-            .incident(source_row.get())
-            .into_iter()
-            .collect();
+        // response's cardinality is a function of the masked view. The generation's adjacency
+        // never names a cohort slot, so an arrival source's fitted half is empty by construction.
+        let mut edges: Vec<_> = match source.subject {
+            SourceSubject::Base { row, .. } => neighbourhood
+                .incident(row.get())
+                .into_iter()
+                .map(|(edge, id)| (ServedEdge::Fitted(edge), id))
+                .collect(),
+            SourceSubject::Arrival(_) => Vec::new(),
+        };
+        edges.extend(
+            neighbourhood
+                .incident_links(view, source_row)
+                .into_iter()
+                .map(|(edge, id)| (ServedEdge::Delta(edge), id)),
+        );
 
         let complete = edges.len() <= limits.edges as usize;
         if !complete {
-            self.truncate_nearest(
-                &mut edges,
-                limits.edges as usize,
-                source_row,
-                source_position,
-                view.cut(),
-            );
+            self.truncate_nearest(&mut edges, limits.edges as usize, source_row, origin, view);
         }
 
         edges.sort_unstable_by_key(|&(_, id)| id);
 
         // Partners derive from the delivered edge set. Distinct rows
-        // carry distinct wire ids (the codec is a bijection), so
-        // adjacent dedup after the wire-keyed sort is exact.
+        // carry distinct wire ids under the entry universe (the codec
+        // is a bijection), so adjacent dedup after the wire-keyed
+        // sort is exact.
         let positions_of_row = self.positions_of_row();
+        let universe = cohort.universe(self.node_universe);
         let mut partners: Vec<_> = edges
             .iter()
-            .flat_map(|&(edge, _)| [edge.source, edge.target])
-            .filter(|&row| row != source_row.get())
-            .map(|row| (self.node_codec.encode(row, self.node_universe), row))
+            .flat_map(|&(edge, _)| edge.endpoints())
+            .filter(|endpoint| endpoint.row() != source_row)
+            .map(|endpoint| match endpoint {
+                DeltaEndpoint::Fitted(row) => (
+                    self.node_codec.encode(row, universe),
+                    ViewRow::Base(positions_of_row[row]),
+                ),
+                DeltaEndpoint::Arrival { identity, .. } => {
+                    let index = arrival_index_of(arrivals, identity);
+                    (arrivals[index].wire, ViewRow::Arrival(index))
+                }
+            })
             .collect();
-        partners.sort_unstable();
-        partners.dedup();
+        partners.sort_unstable_by_key(|&(wire, _)| wire);
+        partners.dedup_by_key(|&mut (wire, _)| wire);
 
         let mut delivered = IdVec::with_capacity(partners.len() + 1);
-        delivered.push(ViewRow::Base(source_position));
-        for &(_, row) in &partners {
-            delivered.push(ViewRow::Base(positions_of_row[row]));
+        delivered.push(source_vessel);
+        for &(_, vessel) in &partners {
+            delivered.push(vessel);
         }
 
         LocateSubgraph {
@@ -317,16 +352,17 @@ impl Atlas {
     /// distinct identities make the key a total order. The key only selects - presentation order
     /// stays ascending identity bytes.
     ///
-    /// The zoom reads `cut`, so under a scoped view the tie-break ranks partners by that view's
-    /// own cascade and which authorized partners survive the cap is a function of the visible
-    /// rows alone.
+    /// The zoom reads the view's own cut, so under a scoped view the tie-break ranks partners by
+    /// that view's own cascade and which authorized partners survive the cap is a function of the
+    /// visible rows alone. An arrival partner reads its position from the view's arrival table
+    /// and its zoom through the same inversion an arrival source resolves with.
     fn truncate_nearest(
         &self,
-        edges: &mut Vec<(DeliveredEdge, ArchivedEntityId)>,
+        edges: &mut Vec<(ServedEdge, ArchivedEntityId)>,
         cap: usize,
-        source_row: VisibleRow,
-        source_position: BasePosition,
-        cut: Option<ScheduleCut<'_>>,
+        source_row: NodeRowId,
+        origin: Vec2,
+        view: &View<'_>,
     ) {
         if cap == 0 {
             edges.clear();
@@ -335,15 +371,38 @@ impl Atlas {
 
         let positions = self.positions();
         let positions_of_row = self.positions_of_row();
-        let origin = positions[source_position];
+        let arrivals = view.arrivals();
+        let cut = view.cut();
 
-        let mut ranked: Vec<(NearestKey, (DeliveredEdge, ArchivedEntityId))> = edges
+        let mut ranked: Vec<(NearestKey, (ServedEdge, ArchivedEntityId))> = edges
             .drain(..)
             .map(|(edge, id)| {
-                let partner = edge.partner_of(source_row.get());
+                let (point, zoom) = match edge.opposite_endpoint(source_row) {
+                    DeltaEndpoint::Fitted(row) => {
+                        let position = positions_of_row[row];
+                        (
+                            positions[position],
+                            // A partner the view's schedule does not hold cedes to every
+                            // partner it does. The proof admitted each of these rows, so the
+                            // schedule built over that proof holds them and the fallback never
+                            // selects.
+                            self.first_visible_zoom(cut, position).unwrap_or(u8::MAX),
+                        )
+                    }
+                    DeltaEndpoint::Arrival { identity, .. } => {
+                        let index = arrival_index_of(arrivals, identity);
+                        let zoom = cut.map_or_else(
+                            || {
+                                self.grid.first_zoom(
+                                    view.overlay().bucket_of(index).min(self.grid.deepest()),
+                                )
+                            },
+                            |cut| cut.arrival_first_zoom(index),
+                        );
 
-                let position = positions_of_row[partner];
-                let point = positions[position];
+                        (arrivals[index].position, zoom)
+                    }
+                };
                 let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
                 // Unfused f32 arithmetic pins the selection key, so
                 // independent derivations from the wire coordinates
@@ -359,10 +418,7 @@ impl Atlas {
                 (
                     NearestKey {
                         distance,
-                        // A partner the view's schedule does not hold cedes to every partner it
-                        // does. The proof admitted each of these rows, so the schedule built over
-                        // that proof holds them and the fallback never selects.
-                        zoom: self.first_visible_zoom(cut, position).unwrap_or(u8::MAX),
+                        zoom,
                         identity: id,
                     },
                     (edge, id),
@@ -395,6 +451,28 @@ struct NearestKey {
     identity: ArchivedEntityId,
 }
 
+/// Resolves a delivered arrival endpoint's index in the view's arrival table.
+///
+/// Caller requirement: `identity` resolved through this same table when its edge qualified, so
+/// the lookup answers.
+///
+/// # Panics
+///
+/// This panics when `identity` resolves to no row of the table, which the caller requirement
+/// rules out.
+fn arrival_index_of(
+    arrivals: &IdSlice<ArrivalIndex, ArrivalRow>,
+    identity: ArchivedEntityId,
+) -> ArrivalIndex {
+    let index = arrivals.partition_point(|row| row.identity < identity);
+    assert_eq!(
+        arrivals[index].identity, identity,
+        "a delivered arrival endpoint resolves in the view's arrival table",
+    );
+
+    index
+}
+
 /// One assembled locate ego-graph.
 ///
 /// The delivered rows (source first, then partners ascending wire row id) and the capped edge
@@ -404,7 +482,7 @@ pub(crate) struct LocateSubgraph {
     /// The delivered rows in delivered order, each in the domain that publishes it.
     pub delivered: IdVec<NodeSlot, ViewRow>,
     /// The delivered edges paired with their link-entity identities, ascending by those bytes.
-    pub edges: Vec<(DeliveredEdge, ArchivedEntityId)>,
+    pub edges: Vec<(ServedEdge, ArchivedEntityId)>,
     /// Whether the response delivers every qualifying edge. `false` iff the cap truncated.
     pub complete: bool,
 }
@@ -579,6 +657,11 @@ impl Atlas {
             .map_err(LocateError::Details)?;
 
         let row_ids = self.rows.view();
+
+        // Unlike tile's detail pass, no captures_any hoist guards the per-row overlay reads
+        // here: the edge cap bounds locate's delivered set (the source plus at most the cap's
+        // partners), so the reads stay bounded per response.
+        let cohort = view.cohort();
         let node_labels = document
             .delivered
             .iter_enumerated()
@@ -588,11 +671,27 @@ impl Atlas {
                 }
 
                 match vessel {
-                    ViewRow::Base(position) => self
-                        .node_ids
-                        .payload_of(row_ids[position])
-                        .expect("open validated the identity rows against the code column")
-                        .label(),
+                    // Captured display first, generation payload second (the register's own
+                    // precedence), so a revised fitted identity serves its freshest label.
+                    ViewRow::Base(position) => {
+                        let row = row_ids[position];
+                        let id = self
+                            .node_ids
+                            .id(row)
+                            .expect("open validated the identity rows against the code column");
+
+                        cohort.legend_of(id).map_or_else(
+                            || {
+                                self.node_ids
+                                    .payload_of(row)
+                                    .expect(
+                                        "open validated the identity rows against the code column",
+                                    )
+                                    .label()
+                            },
+                            Legend::label,
+                        )
+                    }
                     // The generation holds no payload for an entity placed after the fit: the
                     // label is the placement's captured legend, under the same store-resolution
                     // hold every fitted label takes.
@@ -613,19 +712,30 @@ impl Atlas {
             .edges
             .origins()
             .iter()
+            .zip(document.edges.ids())
             .zip(&hydration.links.properties)
-            .map(
-                |(&origin, properties)| match (origin, properties.is_some()) {
-                    (EdgeOrigin::Fitted(row), true) => self
-                        .edge_ids
-                        .payload_of(row)
-                        .expect("open validated the identity rows against the adjacency's edges")
-                        .label(),
-                    // The incident assembly is generation-structural, so no delta origin reaches
-                    // this pass, and an unresolved link reads the empty label either way.
-                    (EdgeOrigin::Fitted(_) | EdgeOrigin::Delta, _) => Label::EMPTY,
-                },
-            )
+            .map(|((&origin, &id), properties)| -> &Label {
+                // An unresolved link reads the empty label.
+                if properties.is_none() {
+                    return Label::EMPTY;
+                }
+
+                // Captured display first, generation payload second (the register's own
+                // precedence), so a revised fitted link serves its freshest label here exactly
+                // as it does on the edges trailer.
+                cohort
+                    .legend_of(id)
+                    .unwrap_or_else(|| match origin {
+                        EdgeOrigin::Fitted(row) => self.edge_ids.payload_of(row).expect(
+                            "open validated the identity rows against the adjacency's edges",
+                        ),
+                        EdgeOrigin::Delta => unreachable!(
+                            "publication withholds a link until its legend captures, and the \
+                             delivered set admits links from the cohort's own snapshot"
+                        ),
+                    })
+                    .label()
+            })
             .collect();
         let link_details = LocateLinkDetails::new(
             link_labels,
@@ -691,16 +801,15 @@ impl Atlas {
         let palette = Palette::of(&request.colored_type_ids);
         let mask_set = (!palette.is_empty()).then(|| self.resolve_masks(&palette));
 
-        let edges: Vec<(ServedEdge, ArchivedEntityId)> = edges
-            .into_iter()
-            .map(|(edge, id)| (ServedEdge::Fitted(edge), id))
-            .collect();
-
         Ok(LocateDocument {
             source,
             delivered,
             arrivals: view.arrivals(),
-            edges: EdgeColumns::of(&self.node_codec, self.node_universe, &edges),
+            edges: EdgeColumns::of(
+                &self.node_codec,
+                view.cohort().universe(self.node_universe),
+                &edges,
+            ),
             complete,
             mask_set,
             palette,

@@ -44,7 +44,7 @@ use super::{
         LocateNodeHydration, LocateOrder, LocateStore, TypeSlot,
     },
     locate::{LocateSubgraph, SourceSubject},
-    neighbourhood::EdgeColumns,
+    neighbourhood::{EdgeColumns, ServedEdge},
     schedule::{ViewRow, ViewSchedule},
     tile::TileDetail,
 };
@@ -569,7 +569,7 @@ async fn publish_dataset(name: &str, dataset: &MemoryDataset) -> (Generation, At
     clippy::min_ident_chars,
     reason = "`k` is the delivery-cut offset's name throughout the density contract"
 )]
-struct Bound<'proof> {
+pub(crate) struct Bound<'proof> {
     proof: &'proof VisibilityProof,
     census: ViewCensus,
     schedule: ViewSchedule,
@@ -594,7 +594,7 @@ impl<'proof> Bound<'proof> {
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
     )]
-    fn resolved(
+    pub(crate) fn resolved(
         atlas: &Atlas,
         proof: &'proof VisibilityProof,
         cohort: PlacementCohort<'proof>,
@@ -611,7 +611,7 @@ impl<'proof> Bound<'proof> {
     }
 
     /// Carries `delta` as the view's ingress capture, the way a data route would.
-    fn withdrawing(mut self, delta: &'proof DeltaSnapshot) -> Self {
+    pub(crate) fn withdrawing(mut self, delta: &'proof DeltaSnapshot) -> Self {
         self.delta = Some(delta);
         self
     }
@@ -622,7 +622,7 @@ impl<'proof> Bound<'proof> {
     }
 
     /// Binds the delivery view assembly reads.
-    fn view(&self, atlas: &Atlas) -> View<'_> {
+    pub(crate) fn view(&self, atlas: &Atlas) -> View<'_> {
         View::bind(
             atlas.grid,
             self.proof,
@@ -710,6 +710,17 @@ pub(crate) fn delivered_row_ids(atlas: &Atlas, subgraph: &LocateSubgraph) -> Vec
             }
         })
         .collect()
+}
+
+/// Unwraps a fitted delivered edge.
+///
+/// The subgraphs this resolves deliver fitted edges alone, so a delta vessel is a fixture
+/// defect rather than a case.
+pub(crate) fn fitted(edge: ServedEdge) -> crate::serve::neighbourhood::DeliveredEdge {
+    match edge {
+        ServedEdge::Fitted(edge) => edge,
+        ServedEdge::Delta(edge) => panic!("a fitted-only fixture delivered the delta {edge:?}"),
+    }
 }
 
 /// Decodes a `ROW_IDS` section into row ids.
@@ -2046,10 +2057,11 @@ async fn locate_ego_graph() {
         let delivered: Vec<u32> = subgraph
             .edges
             .iter()
-            .map(|&(edge, _)| narrow_usize(edge.row.get().as_usize()))
+            .map(|&(edge, _)| narrow_usize(fitted(edge).row.get().as_usize()))
             .collect();
         assert_eq!(delivered, edge_rows, "ego({source_row}) edges");
         for &(edge, id) in &subgraph.edges {
+            let edge = fitted(edge);
             let (_, edge_source, edge_target) = FIXTURE_EDGES[edge.row.get().as_usize()];
             assert_eq!(edge.source.as_u64(), edge_source);
             assert_eq!(edge.target.as_u64(), edge_target);
@@ -2117,7 +2129,7 @@ async fn locate_cap_nearest_partners() {
         capped
             .edges
             .iter()
-            .map(|&(edge, _)| narrow_usize(edge.row.get().as_usize()))
+            .map(|&(edge, _)| narrow_usize(fitted(edge).row.get().as_usize()))
             .collect::<Vec<u32>>(),
         [2],
         "the self-loop is the nearest edge",
@@ -2157,6 +2169,7 @@ async fn locate_cap_nearest_partners() {
             // bytes.
             let mut expected = full.edges.clone();
             expected.sort_unstable_by_key(|&(edge, id)| {
+                let edge = fitted(edge);
                 let partner = if edge.source.as_u32() == u32::from(source_row) {
                     edge.target.as_u32()
                 } else {
@@ -2177,7 +2190,11 @@ async fn locate_cap_nearest_partners() {
 
             let mut partner_keys: Vec<(u32, u32)> = expected
                 .iter()
-                .flat_map(|&(edge, _)| [edge.source.as_u32(), edge.target.as_u32()])
+                .flat_map(|&(edge, _)| {
+                    let edge = fitted(edge);
+
+                    [edge.source.as_u32(), edge.target.as_u32()]
+                })
                 .filter(|&row| row != u32::from(source_row))
                 .map(|row| {
                     (
@@ -2544,6 +2561,7 @@ fn translate_by_identity() {
             endpoints: IdSlice::from_raw(&endpoints),
             node_codec: &node_codec,
             universe,
+            fitted: universe,
         },
     )
     .expect("the request is under the cap");
@@ -2606,6 +2624,7 @@ fn translate_rejects_over_cap() {
                 endpoints: IdSlice::from_raw(&[]),
                 node_codec: &node_codec,
                 universe: codec::Universe::new(NodeRowId::new(1)),
+                fitted: codec::Universe::new(NodeRowId::new(1)),
             },
         ),
         Err(TranslateError::Ids {
@@ -2950,12 +2969,11 @@ async fn locate_pinned_envelope() {
     let subgraph = atlas.locate_subgraph(source, limits.locate, &view);
     let node_codec = test_codec(&atlas);
     let wire_of = |row: NodeRowId| node_codec.encode(row, atlas.node_universe());
-    let columns = EdgeColumns::pinned(
-        subgraph
-            .edges
-            .iter()
-            .map(|&(edge, id)| (wire_of(edge.source).get(), wire_of(edge.target).get(), id)),
-    );
+    let columns = EdgeColumns::pinned(subgraph.edges.iter().map(|&(edge, id)| {
+        let edge = fitted(edge);
+
+        (wire_of(edge.source).get(), wire_of(edge.target).get(), id)
+    }));
     let wire_rows: Vec<WireRow<NodeRowId>> =
         atlas.row_ids().iter().map(|&row| wire_of(row)).collect();
     let nodes = subgraph.delivered.len();

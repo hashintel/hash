@@ -124,6 +124,15 @@ impl DeltaSnapshot {
         !self.withdrawn.is_empty()
     }
 
+    /// Returns whether the snapshot captured any display at all, link or fitted.
+    ///
+    /// An empty capture map answers no overlay read, so a detail pass consults this once
+    /// instead of paying a per-row identity lookup that can never hit.
+    #[must_use]
+    pub(crate) fn captures_any(&self) -> bool {
+        !self.legends.is_empty()
+    }
+
     /// Returns whether the snapshot withdraws any fitted node at all.
     ///
     /// An empty projection lets the admission walk skip whole, so a snapshot subtracting no
@@ -269,6 +278,21 @@ impl<'scope> PlacementCohort<'scope> {
     /// answers [`None`], and the holder serves the generation's baked legend.
     pub(crate) fn legend_of(self, id: ArchivedEntityId) -> Option<&'scope Legend> {
         self.snapshot?.legend_of(id)
+    }
+
+    /// Returns whether this cohort captured any display at all.
+    ///
+    /// A cohort that read no publication answers `false`. Detail passes hoist this ahead of
+    /// their per-row overlay reads: a captureless cohort answers [`None`] from
+    /// [`Self::legend_of`] for every identity, so a pass checks once per response instead of
+    /// once per delivered row.
+    #[must_use]
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "false positive: the delegate reads a hash map's emptiness, which is not const"
+    )]
+    pub(crate) fn captures_any(self) -> bool {
+        self.snapshot.is_some_and(DeltaSnapshot::captures_any)
     }
 
     /// Returns the published node `id` names in this cohort, [`None`] for every other identity.

@@ -850,7 +850,8 @@ fn locate_by_row(wire: crate::serve::WireRow<NodeRowId>) -> LocateRequest {
 /// The entity-keyed and the wire-keyed resolutions must agree on one `SourcePoint`, whose zoom is
 /// the scope's own cut rule inverted over the arrival's bucket and whose cell is the projected
 /// coordinate's tile there. The ego-graph is the source alone and complete, because the
-/// generation's adjacency never names a cohort slot. The saturated shape must agree on the zoom
+/// generation's adjacency never names a cohort slot and this cohort publishes no link at it.
+/// The saturated shape must agree on the zoom
 /// through its overlay, which pins both scoped bucket sources against one law. A second assembly
 /// must produce identical bytes.
 #[expect(

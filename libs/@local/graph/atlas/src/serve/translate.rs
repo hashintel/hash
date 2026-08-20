@@ -25,9 +25,12 @@
 //! resolved stays an absent key until the scope refreshes, and a withdrawn identity in the
 //! ingress capture answers an absent key in every domain. A fitted edge dies with its
 //! endpoints, answering an absent key while the capture withdraws either endpoint's node row.
-//! The neighbourhood read applies the same next-request death. Translation reads
-//! the published identity artifacts, the fitted coordinate column, and the entry's retained
-//! cohort, never the store.
+//! The neighbourhood read applies the same next-request death. A cohort-published post-fit
+//! link answers its endpoint rows when the proof's identity set admits it and both endpoints
+//! serve. An endpoint serves in its own domain, a fitted row through the proof and a placed
+//! arrival through the cohort's retention, so a link attaching an unservable entity answers
+//! an absent key. Translation reads the published identity artifacts, the fitted coordinate
+//! column, and the entry's retained cohort, never the store.
 
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};
@@ -158,8 +161,10 @@ impl Atlas {
     /// id of neither domain receives. `delta` is the request's ingress withdrawal capture. A
     /// withdrawn identity answers an absent key in either domain, and a fitted edge answers the
     /// same while the capture withdraws either endpoint's node row - both indistinguishable
-    /// from every other absence. `cohort` is the entry's own, and a placed arrival it holds
-    /// answers as a node on its slot when the proof admits it.
+    /// from every other absence. `cohort` is the entry's own. A placed arrival it holds
+    /// answers as a node on its slot when the proof admits it, and a published post-fit link
+    /// answers as an edge on its endpoint rows when the proof's identity set admits the link
+    /// and both endpoints serve.
     ///
     /// # Errors
     ///
@@ -187,6 +192,7 @@ impl Atlas {
                 endpoints: self.endpoint_pairs(),
                 node_codec: &self.node_codec,
                 universe: cohort.universe(self.node_universe),
+                fitted: self.node_universe,
             },
         )
     }
@@ -210,6 +216,9 @@ pub(super) struct TranslateColumns<'generation> {
     pub node_codec: &'generation RowCodec<NodeRowId>,
     /// The accepted row bound, the cohort's universe, read at every wire encode in one answer.
     pub universe: Universe<NodeRowId>,
+    /// The generation's own fitted row bound, which splits a published link's endpoint into
+    /// the domain that serves it.
+    pub fitted: Universe<NodeRowId>,
 }
 
 impl TranslateColumns<'_> {
@@ -234,6 +243,11 @@ pub(super) fn translate(
     cohort: PlacementCohort<'_>,
     columns: &TranslateColumns<'_>,
 ) -> Result<TranslateResponse, TranslateError> {
+    debug_assert!(
+        columns.fitted.size() <= columns.universe.size(),
+        "the fitted bound lies inside the accepted universe",
+    );
+
     if request.entity_ids.len() > limits.entity_ids as usize {
         return Err(TranslateError::Ids {
             count: request.entity_ids.len(),
@@ -309,6 +323,38 @@ pub(super) fn translate(
                     id: columns.node_codec.encode(arrival.id, columns.universe),
                     x: arrival.position.x(),
                     y: arrival.position.y(),
+                },
+            );
+        } else if let Some(link) = cohort.edge(key) {
+            if !proof.admits_delta_link(key) {
+                // Hidden: the scope's own resolution never admitted the link.
+                continue;
+            }
+
+            // Publication hands a link's endpoints as rows in the accepted universe. The
+            // fitted bound splits each into the domain that serves it, and either refused
+            // endpoint refuses the whole link.
+            let endpoint = |row: NodeRowId| {
+                if columns.fitted.contains(row) {
+                    (proof.contains(row) && !delta.is_some_and(|delta| delta.withdraws_node(row)))
+                        .then_some(row)
+                } else {
+                    let (identity, _) = cohort.node_at(row)?;
+
+                    (proof.contains(row) && !delta.is_some_and(|delta| delta.withdraws(identity)))
+                        .then_some(row)
+                }
+            };
+            let (Some(source), Some(target)) = (endpoint(link.source), endpoint(link.target))
+            else {
+                continue;
+            };
+
+            edges.insert(
+                id_string,
+                TranslatedEdge {
+                    source: columns.node_codec.encode(source, columns.universe),
+                    target: columns.node_codec.encode(target, columns.universe),
                 },
             );
         } else {
