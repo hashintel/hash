@@ -228,6 +228,18 @@ FE-1405 authorized the three-register proposal architecture; and FE-1392 uses on
 verbatim proposal floor to close the first settlement path. FE-1386 remains a separate narrow
 behavioral compatibility pin because a genuine main-conversation compaction requires
 test-agent/model setup outside this path.
+
+**Sixth evaluation, same day (after ADR-0004 and the FE-1433 breakdown).** The integration
+meeting pivoted the demo staging into demo.petrinaut.org and scheduled the monorepo import
+(`@hashintel/brunch-agent` into `hashintel/hash`); the integration sub-graph below
+(FE-1433 → FE-1434–FE-1442) joins the strategy without displacing the spine. Its two spikes
+are dependency-clear and join the now-band beside FE-1393 and FE-1422 — they are fog probes,
+not fog consumers, and the suspension verdict (FE-1434) feeds both FE-1438's round-trip
+protocol and FE-1395's questionnaire batching, which share the pending-slot ground (the one
+place the new graph touches modeled-but-unproven work; a coordination edge, not a blocker,
+keeps the two consumers from colliding). FE-1423 is re-scoped, not retired: the demo shell it
+named is gone, but its gates now guard the remote elicitor server — auth discharged by
+FE-1439, deployment gated behind it via FE-1441.
 Ledgers: [`remediation-plan-2026-08-17.md`](../legibility-sweep/remediation-plan-2026-08-17.md); placement rules:
 [`topology.md`](topology.md).
 
@@ -265,7 +277,7 @@ building** — every slice with a paraphrase-grade dependency runs its Ledger-B 
 | FE-1404 | Armed condition-3 rerun | Measures guidance+machinery against the baseline — the three-layer claim's validation | Agent-runnable experiment, after FE-1402/03 |
 | FE-1406 | Generic strategy quiver (root issue) | Envelope-vocabulary cards, harness-shipped (§11.5); the crack casualty, now owned | Desk; pairs naturally with FE-1403; same skills path + Vite-graph constraint; placement rule is topology N2 (plugin/harness packages export, hosts register) |
 | FE-1407 | Frontier-elicitor failure catalogue | FE-1404's scoring instrument; licensed-vs-evasive deferral; an open gap in the field | Desk/research |
-| FE-1423 | Pre-remote gates: auth + per-conversation authorization, runtime telemetry, state versioning/backup, restart durability (FE-1396 blocks) | Blocks remote exposure, not the demo; ratified as requirements 2026-08-17; the infra deployment conversation makes it current | Auth is the long pole (app middleware around the mounts); telemetry carries a dual charter — see watch items |
+| FE-1423 | Pre-remote gates: auth + per-conversation authorization, runtime telemetry, state versioning/backup, restart durability (FE-1396 blocks) | Blocks remote exposure, not the demo; ratified as requirements 2026-08-17; re-scoped 2026-08-18 (ADR-0004): the exposed thing is the remote elicitor server, not a demo shell | Auth gate → FE-1439 (principal + owner key); telemetry and state-versioning remain its own; FE-1441 (deployment) blocks on it. Telemetry's dual charter — see watch items |
 | Plugin-spec authoring | FE-1357's terminal deliverable (the process-model plugin as an instance of the contract) | FE-1405 need met; still wants the 18 Aug ratifications; the plugin-contract spec is now the structure (superseding the manifest sketch, penciled 2) | HITL, heavy; the FE-1431 ratification pass is its natural first movement |
 | Situation-pack authoring | Deliberately held for PRO-99 reaction | Dossier + authenticity traps ready | Desk, after the gate |
 | Answer key / reference net | Eval rubric; who builds nets is the open Dora/Yannis thread | Gated-on-external |
@@ -287,6 +299,41 @@ the spec settles confidence as `firm | hedged | speculative` and proposes a stor
 for numeric-parsing strings, whose store side remains pending. A6/A7/A9 remain FE-1393 design
 inputs. The pre-remote gates are FE-1423, filed 2026-08-17 under FE-1357 with the four gates as
 its checklist and FE-1396 blocking; Lu ratified them as requirements.
+
+### The integration sub-graph (FE-1433, published 2026-08-18)
+
+The delivery graph for the in-Petrinaut staging (ADR-0004), with its edges into both maps.
+Blocker on the left, blocked on the right; the same graph lives in FE-1433's execution record.
+
+```text
+legend:
+  -[hard]->      Linear blocking relation
+  -[coord]->     either order, never concurrent by different agents;
+                 whichever lands first writes the §7.3/§7.4 amendment
+  -[input]->     design dependency, not a blocker
+  -[state-gate]  precondition on the state of the world, not a ticket
+
+nodes:
+  FE-1434: spike [ready] #suspension        FE-1435: spike [ready] #adapter
+  FE-1436: slice #conversation-in-panel     FE-1438: slice #client-tool-round-trip
+  FE-1439: slice #private-sessions          FE-1437: move  #monorepo-import
+  FE-1440: wiring #website-elicitor-mode    FE-1441: deploy #infra
+  FE-1442: surface #interpretation-render
+
+edges:
+  FE-1435 -[hard]-> FE-1436
+  FE-1434, FE-1435 -[hard]-> FE-1437
+  FE-1434, FE-1436, FE-1422 -[hard]-> FE-1438
+  FE-1395 -[coord]-> FE-1438
+  FE-1436 -[hard]-> FE-1439
+  FE-1437, FE-1438, FE-1439 -[hard]-> FE-1440
+  FE-1437, FE-1439, FE-1423 -[hard]-> FE-1441
+  FE-1440 -[hard]-> FE-1442
+  FE-1364/FE-1387 plugin lattice -[input]-> FE-1440, FE-1442
+  open review stack (FE-1388/89/90/99) -[state-gate]-> FE-1437
+
+frontier: FE-1434, FE-1435 now, beside FE-1393 and FE-1422 on the build map
+```
 
 ### Strategic orderings
 
@@ -335,5 +382,7 @@ accounting, so those three should share span vocabulary rather than invent it th
 has sketched a **living-prototype charter for the demo deployment** (non-throwaway: layer and
 sometimes consolidate prototypes into an ongoing, deployed record of everything proven and
 not-yet-proven, in the exploded-view register) — pre-charter until the infra conversation
-lands, but it would reshape N3's `apps/demo` from "demo shell" into the standing proof
-surface, so watch for it to become a root-adjacent chartering decision rather than a ticket.
+lands — and ADR-0004 has since amended N3 (no demo shell exists; `apps/dev` remains the local
+harness), so the charter, if it lands, would now shape `apps/dev` or the deployed elicitor
+server rather than an `apps/demo`; still watch for it to become a root-adjacent chartering
+decision rather than a ticket.
