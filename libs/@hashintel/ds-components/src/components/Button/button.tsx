@@ -144,18 +144,12 @@ export const Button = (props: ButtonProps) => {
     ...rest
   } = props;
 
-  const iconElement = iconName ? (
-    <Icon name={iconName} size={iconSizeMap[size ?? "md"]} />
-  ) : null;
-  const prefixContent =
-    prefix ?? (iconPosition === "left" ? iconElement : null);
-  const suffixContent =
-    suffix ?? (iconPosition === "right" ? iconElement : null);
+  const prefixHasIcon = !!prefix || (iconPosition === "left" && !!iconName);
+  const suffixHasIcon = !!suffix || (iconPosition === "right" && !!iconName);
 
-  const hasIcon = !!suffixContent || !!prefixContent;
+  const hasIcon = prefixHasIcon || suffixHasIcon;
   const isIconOnly =
-    ((!!suffixContent && !prefixContent) ||
-      (!!prefixContent && !suffixContent)) &&
+    ((suffixHasIcon && !prefixHasIcon) || (prefixHasIcon && !suffixHasIcon)) &&
     !children;
   const isPressed = !!pressed || !!rest["aria-pressed"];
 
@@ -168,10 +162,22 @@ export const Button = (props: ButtonProps) => {
     isDisabled: disabled || loading,
     isPressed: isPressed || !!rest["aria-expanded"],
     hasIcon,
-    hasIconLeft: !!prefixContent,
-    hasIconRight: !!suffixContent,
+    hasIconLeft: prefixHasIcon,
+    hasIconRight: suffixHasIcon,
     isIconOnly,
   });
+
+  const iconElement = iconName ? (
+    <Icon
+      name={iconName}
+      size={iconSizeMap[size ?? "md"]}
+      className={classes.icon}
+    />
+  ) : null;
+  const prefixContent =
+    prefix ?? (iconPosition === "left" ? iconElement : null);
+  const suffixContent =
+    suffix ?? (iconPosition === "right" ? iconElement : null);
 
   let content = (
     // Adds a zero-width space before suffix/prefix content so that even when there is no text alignment and height stay consistent

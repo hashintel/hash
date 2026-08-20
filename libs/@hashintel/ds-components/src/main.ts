@@ -18,6 +18,14 @@ export type {
   Input as FilterInput,
   FilterValue,
 } from "./components/Filter/filter-util";
+export { SortMenu } from "./components/Filter/sort-menu";
+export {
+  readSavedSort,
+  type SortDirection,
+  type SortDirectionsAvailable,
+  type Sorter,
+  writeSavedSort,
+} from "./components/Filter/sort-menu-util";
 export { Form } from "./components/Form/form";
 export { HelpTooltip } from "./components/HelpTooltip/help-tooltip";
 export { Icon, type IconName, iconNames } from "./components/Icon/icon";

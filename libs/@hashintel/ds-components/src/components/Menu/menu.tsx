@@ -10,6 +10,7 @@ import {
   type ItemOrGroup,
 } from "./SelectableList/selectable-list";
 import {
+  getEventHighlightedId,
   getItemId,
   isGroup,
   useLoopSelection,
@@ -48,11 +49,19 @@ export const Menu = ({
   trigger,
   position = "bottom-start",
   className,
+  onOpen,
+  onKeyDown,
 }: {
   items: Array<ItemOrGroup<MenuItem>>;
   trigger: React.ReactElement;
   position?: Position;
   className?: string;
+  onOpen?: (open: boolean) => void;
+  /** Key events from the open menu */
+  onKeyDown?: (
+    event: React.KeyboardEvent,
+    highlightedValue: string | null,
+  ) => void;
 }) => {
   const portalContainerRef = usePortalContainerRef();
   const handleLoopKeyDown = useLoopSelection(items);
@@ -68,6 +77,7 @@ export const Menu = ({
       loopFocus={false}
       lazyMount
       unmountOnExit
+      onOpenChange={({ open }) => onOpen?.(open)}
     >
       <ArkMenu.Context>
         {(menu) => (
@@ -80,7 +90,10 @@ export const Menu = ({
             </ArkMenu.Trigger>
             <Portal container={portalContainerRef}>
               <ArkMenu.Positioner
-                onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
+                onKeyDownCapture={(event) => {
+                  handleLoopKeyDown(event, menu);
+                  onKeyDown?.(event, getEventHighlightedId(event, menu));
+                }}
               >
                 <SelectableList
                   items={items}
