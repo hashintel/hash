@@ -17,15 +17,19 @@
 
 use burn::backend::libtorch::LibTorchDevice;
 
-pub(super) use self::error::ComputeError;
 #[cfg(test)]
-pub(super) use self::projector::inputs::resolve_supplied;
+pub(super) use self::projector::error::ProjectorError;
 use self::{
     classifier::AcquiredClassifier,
+    landmark::{LandmarkSurvey, PriorMarks},
     lod::LevelOfDetail,
-    projector::{DistinctInputs, PlacementInputs, StagedPlacement, VerdictResolution},
+    neighbours::NeighbourAdmission,
+    policy::PolicyResolution,
+    projector::{DistinctInputs, PlacementInputs, PlacementPass},
     quotient::Quotient,
+    relation::{AdjacencyDerivation, RelationAssembly},
 };
+pub(super) use self::{error::ComputeError, projector::inputs::VerdictResolution};
 use super::{
     FitConfig, SuppliedVerdicts, ingest::Ingested, prepare::identity::IdentityTableArchive,
 };
@@ -37,15 +41,15 @@ use crate::{
         repository::{Artifact as _, Binding, RepositoryVersion},
         salt::{
             SaltFiles, SaltRepository, artifact,
-            metadata::{Evidence, RankingOrigin, Reproducibility, SaltMetadata, Snapshot},
+            metadata::{Evidence, RankingOrigin, SaltMetadata},
         },
     },
     identity::NodeRowId,
     integrity::Sha256Digest,
     progress::{Progress, Stage},
     salt::{
+        file::VectorFile,
         policy::{annotation::assembly::AssembledCorpus, classifier::Classifier},
-        vector::VectorFile,
     },
 };
 
@@ -59,7 +63,6 @@ mod policy;
 mod projector;
 mod quotient;
 mod relation;
-mod semantic;
 
 /// The relation-policy classifier supply.
 ///
@@ -182,73 +185,61 @@ impl Compute {
             .stage(artifact::Classifier, &acquired.model)?;
         progress.stage_completed(Stage::Classifier);
 
-        let policy = policy::resolve_table(&context, &acquired.model, &ingested.relations)?;
+        let policy = PolicyResolution::new(&context, &acquired.model, &ingested.relations).run()?;
         progress.stage_completed(Stage::Policy);
 
-        let adjacency = relation::adjacency(&context, corpus.len())?;
+        let adjacency = AdjacencyDerivation::new(&context, corpus.len()).run()?;
         progress.stage_completed(Stage::Adjacency);
 
-        let (relations, trainer_relations) = relation::indexes(
+        let (relations, trainer_relations) = RelationAssembly::new(
             &context,
             corpus.len(),
             &quotient,
             &policy.value,
             &ingested.instances,
             &ingested.multi_typed,
-        )?;
+        )
+        .run()?;
         progress.stage_completed(Stage::Relations);
 
-        let (admitted, recall) = neighbours::admit(&context, &quotient, progress)?;
-        // The published table covers the corpus row domain. Under a real quotient every row
-        // takes its representative's list, and under the identity the admitted table is already
-        // the corpus's own.
-        let expanded =
-            (!quotient.is_identity()).then(|| quotient.expand_neighbours(&admitted.view()));
-        let knn = Staged {
-            binding: match &expanded {
-                Some(table) => context.staging.stage(artifact::Knn, table)?,
-                None => context.staging.stage(artifact::Knn, &admitted)?,
-            },
-            value: admitted,
-            evidence: recall,
-        };
+        let (neighbourhood, expansion) =
+            NeighbourAdmission::new(&context, &quotient).run(progress)?;
         progress.stage_completed(Stage::Knn);
 
-        let semantic = semantic::smooth(&context, &knn.value, expanded.as_ref())?;
-        drop(expanded);
+        let semantic = neighbourhood.smooth(&context, expansion)?;
         progress.stage_completed(Stage::Semantic);
 
         let prior_marks = prior
             .as_ref()
-            .map(|generation| landmark::prior_marks::<I>(generation, &identities))
+            .map(|generation| PriorMarks::translated::<I>(generation, &identities))
             .transpose()?;
         let skeleton =
-            landmark::skeleton(&context, &quotient, &semantic.value, prior_marks.as_ref())?;
+            LandmarkSurvey::new(&context, &quotient, &semantic.value, prior_marks.as_ref())
+                .run()?;
         progress.stage_completed(Stage::Landmarks);
 
-        let (snapshot, reproducibility) =
-            input_sections(&context.config, prior.as_ref(), &ingested);
+        // Built ahead of placement: the paired-movement draw derives its salt from these exact
+        // values, and the seal serializes the same ones.
+        let snapshot = ingested.snapshot();
+        let reproducibility = ingested.reproducibility(context.config.clone(), prior.as_ref());
         let resolution = VerdictResolution::resolve::<O>(
             &context.staging,
             &ingested.cards.identities,
             verdicts.as_ref(),
         )?;
-        let placement = StagedPlacement::stage(
-            &context,
-            &PlacementInputs {
-                skeleton: &skeleton.value,
-                resolution: &resolution,
-                snapshot: &snapshot,
-                reproducibility: &reproducibility,
-                distinct: DistinctInputs {
-                    quotient: &quotient,
-                    knn: &knn.value,
-                    semantic: &semantic.value,
-                    indexes: &trainer_relations,
-                },
+        let placement_inputs = PlacementInputs {
+            skeleton: &skeleton.value,
+            resolution: &resolution,
+            snapshot: &snapshot,
+            reproducibility: &reproducibility,
+            distinct: DistinctInputs {
+                quotient: &quotient,
+                knn: &neighbourhood.admitted,
+                semantic: &semantic.value,
+                indexes: &trainer_relations,
             },
-            progress,
-        )?;
+        };
+        let placement = PlacementPass::new(&context, &placement_inputs)?.run(progress)?;
         progress.stage_completed(Stage::Projector);
 
         let lod = LevelOfDetail::new(
@@ -280,7 +271,7 @@ impl Compute {
                 representations: ingested.representations,
                 card_embeddings: ingested.cards.embeddings,
                 card_hashes: ingested.cards.hashes,
-                knn: knn.binding,
+                knn: neighbourhood.binding,
                 semantic: semantic.binding,
                 landmarks: skeleton.binding,
                 classifier: classifier_file,
@@ -310,12 +301,12 @@ impl Compute {
             metadata: SaltMetadata {
                 snapshot,
                 reproducibility,
-                placement: placement.placement,
+                placement: placement.kind,
                 ranking,
                 evidence: Evidence {
                     cards: ingested.cards.stats,
                     norm: ingested.norm,
-                    recall: knn.evidence,
+                    recall: neighbourhood.recall,
                     landmarks: skeleton.evidence,
                     policy: policy.evidence,
                     classifier: acquired.evidence,
@@ -334,28 +325,4 @@ impl Compute {
 
         Ok(published)
     }
-}
-
-/// Builds the metadata document's input sections.
-///
-/// Built ahead of placement: the paired-movement draw derives its salt from these exact values,
-/// and the seal serializes the same ones.
-fn input_sections(
-    config: &FitConfig,
-    prior: Option<&Generation>,
-    ingested: &Ingested,
-) -> (Snapshot, Reproducibility) {
-    (
-        Snapshot {
-            axes: ingested.axes,
-            nodes: ingested.nodes,
-            edges: ingested.edges,
-            ontology_types: ingested.cards.types,
-        },
-        Reproducibility {
-            config: config.clone(),
-            embedder: ingested.fingerprint,
-            prior: prior.map(Generation::id),
-        },
-    )
 }

@@ -79,7 +79,7 @@ impl AcquiredClassifier {
     }
 
     /// Fits the classifier from the assembled corpus and evaluates it on the holdout cards.
-    #[tracing::instrument(name = "classifier", skip_all)]
+    #[tracing::instrument(skip_all)]
     fn fit<P: Progress + Sync>(
         context: &Context,
         corpus: &AssembledCorpus,

@@ -12,22 +12,18 @@ use core::{error::Error, fmt};
 use std::io;
 
 use super::{
-    super::{
-        error::{PlacementError, PriorError},
-        prepare::identity::InvalidIdentityFile,
-    },
-    coordinates::OpenCoordinatesError,
+    super::{error::PriorError, prepare::identity::InvalidIdentityFile},
+    projector::error::ProjectorError,
 };
 use crate::{
     file::{
-        array::OpenArrayError, attraction::read::OpenAttractionError, generation::SealError,
-        identity::read::OpenIdentityError, sprs::write::WriteSprsError,
+        array::OpenArrayError, generation::SealError, identity::read::OpenIdentityError,
+        sprs::write::WriteSprsError,
     },
     identity::NodeRowId,
-    math::NonFinitePoint,
     salt::{
+        file::OpenVectorError,
         knn::{descent::NnDescentError, error::KnnError, hannoy::HannoyIndexError, recall},
-        ladder::{CanonicalError, LadderError, paired::EncodeError},
         landmark::{
             assignment::AssignmentError, layout::EdgelessGraphError, quotient::QuotientError,
             select::SelectionError,
@@ -38,12 +34,7 @@ use crate::{
             classifier::{FitError as ClassifierFitError, PredictError, TrainingSetError},
         },
         postings::build::PostingsError,
-        projector::{
-            artifact::CheckpointError,
-            train::{TrainError, refresh::RefreshError},
-        },
         relation::RelationIndexError,
-        vector::OpenVectorError,
     },
 };
 
@@ -58,7 +49,7 @@ pub(crate) enum ComputeError {
     /// The staged endpoint column failed to map in.
     OpenEndpoints(OpenArrayError),
     /// The staged card table failed to map in.
-    OpenCards(OpenArrayError),
+    OpenCards(OpenVectorError),
     /// The staged identity table failed to map in.
     OpenIdentities(OpenIdentityError),
     /// A staged identity table does not hold a valid table.
@@ -97,36 +88,8 @@ pub(crate) enum ComputeError {
     Layout(EdgelessGraphError),
     /// The prior generation offered for reuse could not serve it.
     Prior(PriorError),
-    /// The projector placement failed to train, measure, or publish.
-    Placement(PlacementError),
-    /// A persisted coordinate column failed to map back for its measurement.
-    OpenCoordinates(OpenCoordinatesError),
-    /// A mapped step frame carries a non-finite coordinate.
-    ///
-    /// The refusal names the step and its first offending row, ahead of the alignment fits
-    /// that consume the frame as a proven-finite field.
-    NonFiniteStep {
-        /// The step's position in the condition schedule.
-        step: usize,
-        /// The first offending row.
-        source: NonFinitePoint<NodeRowId>,
-    },
-    /// The canonical step's aligned frame has a non-finite point.
-    ///
-    /// The alignment onto the baseline basis runs in `f32` and can overflow, so the aligned
-    /// frame is proven at its creation before it publishes, and the persisted coordinate
-    /// column re-proves the same frame at its own readback.
-    NonFiniteAligned {
-        /// The first offending row.
-        source: NonFinitePoint<NodeRowId>,
-    },
-    /// The staged attraction index failed to map back for the paired-movement replay.
-    OpenAttraction(OpenAttractionError),
-    /// The paired-movement salt preimage failed to serialize.
-    ///
-    /// The preimage is a strict subset of the metadata document, so the seal would refuse the
-    /// same generation.
-    SaltPreimage(EncodeError),
+    /// The placement stage failed to bind, train, measure, or publish.
+    Projector(ProjectorError),
     /// The corpus exceeds the `u32` wire position encoding.
     WireEncoding { rows: u64 },
     /// The level-of-detail derivation rejected its input.
@@ -246,57 +209,9 @@ impl From<PriorError> for ComputeError {
     }
 }
 
-impl From<PlacementError> for ComputeError {
-    fn from(error: PlacementError) -> Self {
-        Self::Placement(error)
-    }
-}
-
-impl From<TrainError<NodeRowId>> for ComputeError {
-    fn from(error: TrainError<NodeRowId>) -> Self {
-        Self::Placement(error.into())
-    }
-}
-
-impl From<CheckpointError> for ComputeError {
-    fn from(error: CheckpointError) -> Self {
-        Self::Placement(error.into())
-    }
-}
-
-impl From<RefreshError<NodeRowId>> for ComputeError {
-    fn from(error: RefreshError<NodeRowId>) -> Self {
-        Self::Placement(error.into())
-    }
-}
-
-impl From<LadderError> for ComputeError {
-    fn from(error: LadderError) -> Self {
-        Self::Placement(error.into())
-    }
-}
-
-impl From<CanonicalError> for ComputeError {
-    fn from(error: CanonicalError) -> Self {
-        Self::Placement(error.into())
-    }
-}
-
-impl From<OpenCoordinatesError> for ComputeError {
-    fn from(error: OpenCoordinatesError) -> Self {
-        Self::OpenCoordinates(error)
-    }
-}
-
-impl From<OpenAttractionError> for ComputeError {
-    fn from(error: OpenAttractionError) -> Self {
-        Self::OpenAttraction(error)
-    }
-}
-
-impl From<EncodeError> for ComputeError {
-    fn from(error: EncodeError) -> Self {
-        Self::SaltPreimage(error)
+impl From<ProjectorError> for ComputeError {
+    fn from(error: ProjectorError) -> Self {
+        Self::Projector(error)
     }
 }
 
@@ -378,28 +293,9 @@ impl fmt::Display for ComputeError {
             Self::Prior(error) => {
                 write!(fmt, "the prior generation could not serve reuse: {error}")
             }
-            Self::Placement(error) => {
+            Self::Projector(error) => {
                 write!(fmt, "the placement stage failed: {error}")
             }
-            Self::OpenCoordinates(error) => {
-                write!(fmt, "a coordinate column failed to map back: {error}")
-            }
-            Self::NonFiniteStep { step, source } => {
-                write!(fmt, "step {step}'s mapped frame is not finite: {source}")
-            }
-            Self::NonFiniteAligned { source } => {
-                write!(fmt, "the aligned canonical frame is not finite: {source}")
-            }
-            Self::OpenAttraction(error) => {
-                write!(
-                    fmt,
-                    "the staged attraction index failed to map back: {error}"
-                )
-            }
-            Self::SaltPreimage(error) => write!(
-                fmt,
-                "the paired-movement salt preimage failed to serialize: {error}"
-            ),
             Self::WireEncoding { rows } => write!(
                 fmt,
                 "the corpus holds {rows} rows, beyond the u32 wire position encoding"
@@ -422,9 +318,8 @@ impl fmt::Display for ComputeError {
 impl Error for ComputeError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::OpenRepresentations(error) => Some(error),
-            Self::OpenCoordinates(error) => Some(error),
-            Self::OpenEndpoints(error) | Self::OpenCards(error) => Some(error),
+            Self::OpenRepresentations(error) | Self::OpenCards(error) => Some(error),
+            Self::OpenEndpoints(error) => Some(error),
             Self::OpenIdentities(error) => Some(error),
             Self::InvalidIdentities(error) => Some(error),
             Self::PersistQuotient(error) | Self::Io(error) => Some(error),
@@ -442,14 +337,11 @@ impl Error for ComputeError {
             Self::Quotient(error) => Some(error),
             Self::Layout(error) => Some(error),
             Self::Prior(error) => Some(error),
-            Self::Placement(error) => Some(error),
-            Self::OpenAttraction(error) => Some(error),
-            Self::SaltPreimage(error) => Some(error),
+            Self::Projector(error) => Some(error),
             Self::Lod(error) => Some(error),
             Self::Quad(error) => Some(error),
             Self::Postings(error) => Some(error),
             Self::Seal(error) => Some(error),
-            Self::NonFiniteStep { source, .. } | Self::NonFiniteAligned { source } => Some(source),
             Self::RecallBelowMinimum(_) | Self::WireEncoding { .. } | Self::Panicked { .. } => None,
         }
     }

@@ -117,42 +117,42 @@ impl VerdictResolution {
             return Ok(Self::default());
         };
 
-        resolve_supplied::<O>(&staging.path_of(&identities.name()), supplied)
+        Self::resolve_at::<O>(&staging.path_of(&identities.name()), supplied)
     }
-}
 
-/// Resolves supplied verdicts against the ontology identity column at `path`.
-///
-/// Read under the dataset's ontology id type `O`.
-///
-/// Each verdict's reviewed versioned URL derives the id naming it in the corpus's own id space
-/// ([`OntologyIdentity`]). Verdicts whose identity derives no id there record as unresolved. A
-/// column file keyed by any other id type fails the open.
-///
-/// # Errors
-///
-/// Returns an I/O error when the identity column does not open, and the open's admission error
-/// when the column is not keyed by `O`.
-pub(crate) fn resolve_supplied<O>(
-    path: &Utf8Path,
-    supplied: &SuppliedVerdicts,
-) -> Result<VerdictResolution, ComputeError>
-where
-    O: Key + OntologyIdentity + Eq + core::hash::Hash,
-{
-    let table =
-        IdentityTableArchive::<O, OntologyRowId>::new(IdentityFile::open(path.as_std_path())?)?;
+    /// Resolves supplied verdicts against the ontology identity column at `path`.
+    ///
+    /// Read under the dataset's ontology id type `O`.
+    ///
+    /// Each verdict's reviewed versioned URL derives the id naming it in the corpus's own id
+    /// space ([`OntologyIdentity`]). Verdicts whose identity derives no id there record as
+    /// unresolved. A column file keyed by any other id type fails the open.
+    ///
+    /// # Errors
+    ///
+    /// Returns an I/O error when the identity column does not open, and the open's admission
+    /// error when the column is not keyed by `O`.
+    pub(crate) fn resolve_at<O>(
+        path: &Utf8Path,
+        supplied: &SuppliedVerdicts,
+    ) -> Result<Self, ComputeError>
+    where
+        O: Key + OntologyIdentity + Eq + core::hash::Hash,
+    {
+        let table =
+            IdentityTableArchive::<O, OntologyRowId>::new(IdentityFile::open(path.as_std_path())?)?;
 
-    let resolution = supplied.document().resolve(table.ids());
-    let unresolved = resolution.unresolved().len();
-    tracing::info!(
-        resolved = resolution.resolved().len(),
-        unresolved,
-        "resolved the supplied verdicts"
-    );
+        let resolution = supplied.document().resolve(table.ids());
+        let unresolved = resolution.unresolved().len();
+        tracing::info!(
+            resolved = resolution.resolved().len(),
+            unresolved,
+            "resolved the supplied verdicts"
+        );
 
-    Ok(VerdictResolution {
-        resolved: resolution.into_resolved(),
-        unresolved,
-    })
+        Ok(Self {
+            resolved: resolution.into_resolved(),
+            unresolved,
+        })
+    }
 }

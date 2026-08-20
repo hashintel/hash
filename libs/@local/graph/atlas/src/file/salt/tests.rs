@@ -22,8 +22,8 @@ use crate::{
     identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{
-        AffinityCurve, Bounds2, Rotation, Similarity, UnitFraction, Vec2, d_non_negative,
-        d_positive, non_negative, open_unit_fraction, positive, unit_fraction,
+        AffinityCurve, Bounds2, PositiveUnitFraction, Rotation, Similarity, UnitFraction, Vec2,
+        d_non_negative, d_positive, non_negative, open_unit_fraction, positive, unit_fraction,
     },
     morton::Depth,
     salt::{
@@ -68,7 +68,10 @@ fn placement() -> PlacementOptions {
         NonZero::new(12).expect("the fixture step count is nonzero"),
         6,
         NonZero::new(4).expect("the fixture cadence is nonzero"),
-        const { UnitFraction::new(1.0e-3).expect("the fixture initial rate is a unit fraction") },
+        const {
+            PositiveUnitFraction::new(1.0e-3)
+                .expect("the fixture initial rate is a positive unit fraction")
+        },
         const { UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction") },
     )
     .expect("the fixture schedule is valid");

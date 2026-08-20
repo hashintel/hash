@@ -11,14 +11,12 @@
 //! measurement, so the stage's owned working set stays one frame regardless of the schedule
 //! length. Only the canonical aligned column publishes - version 1 publishes one variant.
 
-use std::io;
-
 use burn::module::AutodiffModule as _;
 use hashql_core::id::IdVec;
 
-pub(super) use self::inputs::{DistinctInputs, PlacementInputs, VerdictResolution};
-use self::{evidence::calibration_evidence, inputs::PublishInputs, report::LadderPass};
-use super::{Context, coordinates::Coordinates, error::ComputeError, quotient::DistinctRowId};
+pub(super) use self::inputs::{DistinctInputs, PlacementInputs};
+use self::{error::ProjectorError, inputs::PublishInputs, report::LadderPass};
+use super::{Context, coordinates::Coordinates, quotient::DistinctRowId};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     device::Training,
@@ -27,36 +25,36 @@ use crate::{
         repository::Binding,
         salt::{
             artifact,
-            metadata::{FrozenRadiusEvidence, Placement, ProjectorEvidence},
+            metadata::{
+                self, FrozenRadiusEvidence, ProjectorEvidence, ProximalCalibrationEvidence,
+            },
         },
     },
     identity::{EdgeRowId, NodeRowId},
     math::NonNegative,
     progress::Progress,
     salt::{
-        fit::{PlacementOptions, ProjectorOptions, Stage, error::PlacementError, stage_rng},
-        landmark::artifact::LandmarkSkeleton,
+        fit::{PlacementOptions, ProjectorOptions, Stage, stage_rng},
         projector::{
             artifact as checkpoint,
             loss::AffinityEnergy,
             model::{NodeRole, Projector},
             train::{
-                self, BoundaryEvidence, NodeColumns, RefreshFraction, SupportAnchor, TrainOptions,
-                TrainerInputs, refresh,
+                self, Model, NodeColumns, SupportAnchor, TrainOptions, TrainerInputs, refresh,
             },
         },
         relation::attraction::AttractionIndex,
     },
 };
 
-mod evidence;
+pub(super) mod error;
 pub(super) mod inputs;
 mod report;
 #[cfg(test)]
 mod tests;
 
-/// The staged placement of one fit: the coordinates with the record of how they were placed.
-pub(super) struct StagedPlacement {
+/// One fit's coordinates, with the record of which placement produced them.
+pub(super) struct Placement {
     /// The staged canonical coordinate column.
     pub coordinates: Coordinates,
     /// The staged projector checkpoint.
@@ -64,13 +62,85 @@ pub(super) struct StagedPlacement {
     /// Present exactly for a trained placement.
     pub checkpoint: Option<Binding<artifact::Projector>>,
     /// Which placement ran.
-    pub placement: Placement,
+    pub kind: metadata::Placement,
     /// The training and ladder measurements of a trained placement.
     pub evidence: Option<ProjectorEvidence>,
 }
 
-impl StagedPlacement {
-    /// Stages the canonical coordinates under the configured placement.
+/// The placement plan [`PlacementPass::new`] resolves from the fit's configuration.
+#[derive(Debug, Clone, Copy)]
+enum Plan<'fit> {
+    /// Every row takes its assigned landmark's layout coordinate.
+    Baseline,
+    /// Train the conditioned projector and publish the canonical level's aligned field.
+    Projector {
+        /// The validated projector configuration.
+        options: &'fit ProjectorOptions,
+        /// The composed affinity energy.
+        affinity: AffinityEnergy,
+    },
+}
+
+/// The placement process of one fit.
+///
+/// Construction resolves the configured plan and owns every configuration refusal, so a
+/// contradictory configuration refuses before any placement span opens. [`run`](Self::run)
+/// executes the resolved plan and stages the [`Placement`] coordinates.
+pub(super) struct PlacementPass<'fit> {
+    /// The stage's staging, scratch, configuration, and device.
+    context: &'fit Context,
+    /// The staged inputs the placement reads.
+    inputs: &'fit PlacementInputs<'fit>,
+    /// The resolved plan.
+    plan: Plan<'fit>,
+}
+
+impl<'fit> PlacementPass<'fit> {
+    /// Resolves the configured placement plan.
+    ///
+    /// Owns every configuration refusal. Each fires before the first placement span opens; a
+    /// run that could not start never reaches a span.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ProjectorError`] when the projector configuration refuses.
+    pub(super) fn new(
+        context: &'fit Context,
+        inputs: &'fit PlacementInputs<'fit>,
+    ) -> Result<Self, ProjectorError> {
+        let PlacementOptions::Projector(options) = &context.config.placement else {
+            return Ok(Self {
+                context,
+                inputs,
+                plan: Plan::Baseline,
+            });
+        };
+
+        let configured = options.architecture.representation_dimensions.get();
+        if configured != PROJECTOR_DIMENSIONS {
+            return Err(ProjectorError::RepresentationWidth { configured });
+        }
+
+        // The canonical level's membership in the schedule is decidable from the options alone,
+        // so a contradictory configuration refuses here rather than after training runs the
+        // schedule and every level projects.
+        options.ladder.canonical_index()?;
+
+        let Some(affinity) = AffinityEnergy::new(context.config.curve, options.affinity_offset)
+        else {
+            return Err(ProjectorError::ObjectiveCurve {
+                exponent: context.config.curve.b(),
+            });
+        };
+
+        Ok(Self {
+            context,
+            inputs,
+            plan: Plan::Projector { options, affinity },
+        })
+    }
+
+    /// Places the corpus under the resolved plan, staging the canonical coordinates.
     ///
     /// The trained placement is the run's only long loop with a per-iteration reading, so it
     /// reports every training step to `progress`, while the baseline places in one pass and
@@ -78,56 +148,56 @@ impl StagedPlacement {
     ///
     /// # Errors
     ///
-    /// Returns [`ComputeError::Placement`] when the projector configuration refuses, an error of
-    /// the training loop translated onto corpus rows when training fails, and an I/O error when
-    /// a staged output does not write or map back.
-    pub(super) fn stage<P: Progress>(
-        context: &Context,
-        inputs: &PlacementInputs<'_>,
-        progress: &P,
-    ) -> Result<Self, ComputeError> {
-        let PlacementOptions::Projector(options) = &context.config.placement else {
-            let binding = place_at_landmarks(context, inputs.skeleton)?;
-            let coordinates = Coordinates::open(&context.staging, binding)?;
-            tracing::info!("staged the baseline coordinates");
-            return Ok(Self {
-                coordinates,
-                checkpoint: None,
-                placement: Placement::LandmarkBaseline,
-                evidence: None,
-            });
-        };
+    /// Returns an error of the training loop translated onto corpus rows when training fails,
+    /// and an I/O error when a staged output does not write or map back.
+    pub(super) fn run<P: Progress>(self, progress: &P) -> Result<Placement, ProjectorError> {
+        match self.plan {
+            Plan::Baseline => self.baseline(),
+            Plan::Projector { options, affinity } => self.projector(options, affinity, progress),
+        }
+    }
 
-        let _span = tracing::info_span!("projector").entered();
-        Self::projector(context, options, inputs, progress)
+    /// Stages every row's assigned landmark coordinate as the canonical column.
+    ///
+    /// Every corpus row takes its assigned landmark's layout coordinate as the baseline
+    /// placement, gathered into one owned column and staged as the `f32[N, 2]` coordinate
+    /// artifact.
+    #[tracing::instrument(skip_all)]
+    fn baseline(self) -> Result<Placement, ProjectorError> {
+        let skeleton = self.inputs.skeleton;
+        let layout = skeleton.coordinates();
+        let column: IdVec<NodeRowId, _> = skeleton
+            .assignment()
+            .iter()
+            .map(|&ordinal| layout[ordinal])
+            .collect();
+
+        let binding = self
+            .context
+            .staging
+            .stage(artifact::Coordinates, SizedColumn::new(&column))?;
+        let coordinates = Coordinates::open(&self.context.staging, binding)?;
+        tracing::info!("staged the baseline coordinates");
+
+        Ok(Placement {
+            coordinates,
+            checkpoint: None,
+            kind: metadata::Placement::LandmarkBaseline,
+            evidence: None,
+        })
     }
 
     /// Trains the projector and publishes the canonical level's aligned field.
     ///
     /// The checkpoint stages beside it.
+    #[tracing::instrument(skip_all)]
     fn projector<P: Progress>(
-        context: &Context,
+        self,
         options: &ProjectorOptions,
-        inputs: &PlacementInputs<'_>,
+        affinity: AffinityEnergy,
         progress: &P,
-    ) -> Result<Self, ComputeError> {
-        let configured = options.architecture.representation_dimensions.get();
-        if configured != PROJECTOR_DIMENSIONS {
-            return Err(PlacementError::RepresentationWidth { configured }.into());
-        }
-
-        // The canonical level's membership in the schedule is decidable from the options alone,
-        // so a contradictory configuration refuses here rather than after training runs the
-        // schedule and every level projects.
-        options.ladder.canonical_index()?;
-        let affinity = AffinityEnergy::new(context.config.curve, options.affinity_offset)
-            .ok_or_else(|| {
-                ComputeError::from(PlacementError::ObjectiveCurve {
-                    exponent: context.config.curve.b(),
-                })
-            })?;
-
-        let distinct = &inputs.distinct;
+    ) -> Result<Placement, ProjectorError> {
+        let distinct = &self.inputs.distinct;
         // The corpus matrix is the publication domain: ladder frames and the canonical column
         // cover it, while training runs over the distinct rows. Both matrices live in the
         // quotient.
@@ -140,7 +210,7 @@ impl StagedPlacement {
         let corpus_roles = IdVec::from_elem(NodeRole::KnowledgeEntity, corpus.len());
         let training_roles = IdVec::from_elem(NodeRole::KnowledgeEntity, training.len());
         let landmarks = SupportAnchor::at_landmarks(
-            inputs.skeleton,
+            self.inputs.skeleton,
             options.landmark_support.weight(),
             |row| distinct.quotient.class_of(row),
         );
@@ -154,13 +224,12 @@ impl StagedPlacement {
             roles: &training_roles,
         };
 
-        // A vacuous placement withholds the relation evidence. The
-        // trainer sees no force at all, so no radius freezes and the
-        // trainer demands no reviewed verdicts, while the published
+        // A vacuous placement withholds the relation evidence. The trainer sees no force at all, so
+        // no radius freezes and the trainer demands no reviewed verdicts, while the published
         // relation artifacts stay real for serving.
         let vacuous = AttractionIndex::vacuous();
         let attraction = if options.vacuous {
-            tracing::info!("the placement is vacuous: the relation term stays absent");
+            tracing::info!("vacuous attraction select. no attraction term will be used");
             &vacuous
         } else {
             &distinct.indexes.attraction
@@ -176,7 +245,7 @@ impl StagedPlacement {
             landmarks: &landmarks,
             // No stage supplies temporal anchors, so the pool is empty.
             anchors: &[],
-            verdicts: &inputs.resolution.resolved,
+            verdicts: &self.inputs.resolution.resolved,
             // The released configuration trains no target objective: neither the declared
             // constants nor the draws exist here.
             target: None,
@@ -196,102 +265,104 @@ impl StagedPlacement {
             trainer_inputs.landmarks.len(),
         );
 
-        let train_options = TrainOptions {
-            schedule: options.schedule,
-            plan: options.plan,
-            affinity,
-            support: options.support,
-            budget: options.budget,
-            coefficients,
-            miner: options.miner,
-            lens: options.lens,
-            forward_rows: options.forward_rows,
-        };
-
-        let fitted = Self::train(
-            context,
+        let model = self.train(
             options,
             &trainer_inputs,
             distinct,
-            &train_options,
+            &TrainOptions {
+                schedule: options.schedule,
+                plan: options.plan,
+                affinity,
+                support: options.support,
+                budget: options.budget,
+                coefficients,
+                miner: options.miner,
+                lens: options.lens,
+                forward_rows: options.forward_rows,
+            },
             progress,
         )?;
 
-        Self::publish(
-            context,
-            options,
-            &PublishInputs {
-                quotient: distinct.quotient,
-                knn: distinct.knn.view(),
-                attraction: &distinct.indexes.attraction,
-                unresolved_verdicts: inputs.resolution.unresolved,
-                snapshot: inputs.snapshot,
-                reproducibility: inputs.reproducibility,
-            },
-            columns,
-            &fitted.model,
-            fitted.evidence.boundary.as_ref(),
-            &fitted.evidence.fractions,
-        )
+        self.publish(options, model, columns)
     }
 
     /// Stages everything the projector placement publishes.
     ///
-    /// The publish half of the placement: it reads a model and its frozen boundary evidence, and
-    /// it stages the checkpoint, the canonical coordinate column, and the placement's evidence. A
-    /// boundary whose radius composes a relation energy opens the ladder, and the canonical
-    /// level's aligned field publishes ([`LadderPass::measure_conditions`]).
+    /// The publish half of the placement reads a model and its frozen boundary evidence. It
+    /// stages the checkpoint and the canonical coordinate column beside the placement's evidence. A
+    /// boundary whose radius composes a relation energy opens the ladder, and the canonical level's
+    /// aligned field publishes ([`LadderPass::measure_conditions`]).
     fn publish(
-        context: &Context,
+        &self,
         options: &ProjectorOptions,
-        inputs: &PublishInputs<'_>,
+        model: Model<DistinctRowId, Training>,
         columns: NodeColumns<'_, NodeRowId>,
-        model: &Projector<Training>,
-        boundary: Option<&BoundaryEvidence>,
-        fractions: &[RefreshFraction],
-    ) -> Result<Self, ComputeError> {
-        let checkpoint = Self::checkpoint(context, model)?;
+    ) -> Result<Placement, ProjectorError> {
+        let projector = model.projector.valid();
+        let checkpoint = self.checkpoint(model.projector)?;
 
-        // Inference runs on the inner backend. The trainer fits the lens
-        // exactly when the boundary froze a radius. Without one the
-        // condition column received zero gradient at every step, every
-        // level provably projects the identical field, and the baseline
-        // publishes directly with no ladder to measure.
-        let model = model.valid();
-        let energy = boundary.and_then(|boundary| boundary.radius.energy(&options.lens));
+        let energy = model
+            .evidence
+            .boundary
+            .as_ref()
+            .and_then(|boundary| boundary.radius.energy(&options.lens));
 
         let (ladder, binding) = if let Some(energy) = energy {
-            let _span = tracing::info_span!("ladder").entered();
-            let (evidence, binding) =
-                LadderPass::new(&context.staging, &context.scratch, context.device)
-                    .measure_conditions(options, &model, columns, inputs, energy)?;
+            let (evidence, binding) = LadderPass::new(
+                &self.context.staging,
+                &self.context.scratch,
+                self.context.device,
+            )
+            .measure_conditions(
+                options,
+                &projector,
+                columns,
+                &PublishInputs {
+                    quotient: self.inputs.distinct.quotient,
+                    knn: self.inputs.distinct.knn.view(),
+                    attraction: &self.inputs.distinct.indexes.attraction,
+                    unresolved_verdicts: self.inputs.resolution.unresolved,
+                    snapshot: self.inputs.snapshot,
+                    reproducibility: self.inputs.reproducibility,
+                },
+                energy,
+            )?;
+
             (Some(evidence), binding)
         } else {
             let frame = refresh::forward(
-                &model,
+                &projector,
                 columns,
                 NonNegative::ZERO,
                 options.forward_rows,
-                &context.device,
+                &self.context.device,
             )?;
-            let binding = context
+
+            let binding = self
+                .context
                 .staging
                 .stage(artifact::Coordinates, SizedColumn::new(frame.as_slice()))?;
             (None, binding)
         };
-        let coordinates = Coordinates::open(&context.staging, binding)?;
+
+        let coordinates = Coordinates::open(&self.context.staging, binding)?;
         tracing::info!("staged the canonical coordinates");
 
-        Ok(Self {
+        Ok(Placement {
             coordinates,
             checkpoint: Some(checkpoint),
-            placement: Placement::Projector,
+            kind: metadata::Placement::Projector,
             evidence: Some(ProjectorEvidence {
                 steps: options.schedule.steps().get(),
-                boundary: boundary.map(|boundary| FrozenRadiusEvidence::from(boundary.radius)),
-                proximal_calibration: boundary
-                    .and_then(|boundary| calibration_evidence(boundary, fractions)),
-                unresolved_verdicts: inputs.unresolved_verdicts,
+                boundary: model
+                    .evidence
+                    .boundary
+                    .as_ref()
+                    .map(|boundary| FrozenRadiusEvidence::from(boundary.radius)),
+                proximal_calibration: model.evidence.boundary.as_ref().and_then(|boundary| {
+                    ProximalCalibrationEvidence::measured(boundary, &model.evidence.fractions)
+                }),
+                unresolved_verdicts: self.inputs.resolution.unresolved,
                 ladder,
             }),
         })
@@ -301,33 +372,35 @@ impl StagedPlacement {
     ///
     /// Training speaks distinct rows, and its errors translate through the quotient onto
     /// corpus rows.
+    #[tracing::instrument(skip_all)]
     fn train<P: Progress>(
-        context: &Context,
+        &self,
         options: &ProjectorOptions,
         inputs: &TrainerInputs<'_, DistinctRowId, EdgeRowId>,
         distinct: &DistinctInputs<'_>,
         train_options: &TrainOptions,
         progress: &P,
-    ) -> Result<train::Fitted<DistinctRowId, Training>, ComputeError> {
-        let _span = tracing::info_span!("train").entered();
-        let model = Projector::<Training>::new(
+    ) -> Result<train::Model<DistinctRowId, Training>, ProjectorError> {
+        let projector = Projector::<Training>::new(
             options.architecture,
-            &context.device,
-            stage_rng(context.config.seed, Stage::ProjectorInit),
+            &self.context.device,
+            stage_rng(self.context.config.seed, Stage::ProjectorInit),
         );
+
         let outcome = train::fit(
-            model,
+            projector,
             inputs,
             train_options,
-            &mut stage_rng(context.config.seed, Stage::ProjectorDraws),
-            &context.device,
+            &mut stage_rng(self.context.config.seed, Stage::ProjectorDraws),
+            &self.context.device,
             progress,
         )
         .map_err(|error| error.map_rows(|row| distinct.quotient.representative(row)))?;
-        let fitted = match outcome {
-            train::FitOutcome::Trained(fitted) => fitted,
-            // This stage constructs no target inputs, and only a declared target objective
-            // can refuse.
+
+        let model = match outcome {
+            train::FitOutcome::Trained(model) => model,
+            // This stage constructs no target inputs, and only a declared target objective can
+            // refuse.
             train::FitOutcome::TargetRefused(refusal) => {
                 unreachable!("no target objective is declared, yet training refused: {refusal}")
             }
@@ -337,43 +410,23 @@ impl StagedPlacement {
             "trained the projector"
         );
 
-        Ok(fitted)
+        Ok(model)
     }
 
     /// Stages the published model checkpoint.
     ///
     /// Recording moves a clone of the parameters into the record, so the model still projects
     /// the ladder after its checkpoint stages.
+    #[tracing::instrument(skip_all, ret)]
     fn checkpoint(
-        context: &Context,
-        model: &Projector<Training>,
-    ) -> Result<Binding<artifact::Projector>, ComputeError> {
-        let recorded = checkpoint::RecordedModel::record(model.clone())?;
-        let binding = context.staging.stage(artifact::Projector, &recorded)?;
-        tracing::info!("staged the projector checkpoint");
+        &self,
+        model: Projector<Training>,
+    ) -> Result<Binding<artifact::Projector>, ProjectorError> {
+        let recorded = checkpoint::RecordedModel::record(model)?;
 
-        Ok(binding)
+        self.context
+            .staging
+            .stage(artifact::Projector, &recorded)
+            .map_err(From::from)
     }
-}
-
-/// Stages every row's assigned landmark coordinate as the canonical column.
-///
-/// Every corpus row takes its assigned landmark's layout coordinate as the baseline placement,
-/// gathered into one owned column and staged as the `f32[N, 2]` coordinate artifact. Returns the
-/// typed binding the staging boundary mints.
-#[tracing::instrument(name = "coordinates", skip_all)]
-fn place_at_landmarks(
-    context: &Context,
-    skeleton: &LandmarkSkeleton<NodeRowId>,
-) -> Result<Binding<artifact::Coordinates>, io::Error> {
-    let coordinates = skeleton.coordinates();
-    let column: IdVec<NodeRowId, _> = skeleton
-        .assignment()
-        .iter()
-        .map(|&ordinal| coordinates[ordinal])
-        .collect();
-
-    context
-        .staging
-        .stage(artifact::Coordinates, SizedColumn::new(&column))
 }

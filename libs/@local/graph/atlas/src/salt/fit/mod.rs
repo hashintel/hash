@@ -54,7 +54,10 @@ use crate::{
         salt::artifact,
     },
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AffinityCurve, NonNegative, Positive, non_negative, nz, positive, unit_fraction},
+    math::{
+        AffinityCurve, NonNegative, Positive, non_negative, nz, positive, positive_unit_fraction,
+        unit_fraction,
+    },
     progress::{self, Progress},
     salt::{
         embedding::CardEmbedder,
@@ -244,7 +247,7 @@ impl ProjectorOptions {
                 nz!(20_000),
                 5_000,
                 nz!(250),
-                unit_fraction!(1.0e-3),
+                positive_unit_fraction!(1.0e-3),
                 unit_fraction!(1.0e-5),
             )
             .expect("the ratified schedule is valid"),

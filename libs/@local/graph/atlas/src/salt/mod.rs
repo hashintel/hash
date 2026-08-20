@@ -8,26 +8,18 @@
 
 pub(crate) mod adjacency;
 pub(crate) mod embedding;
-// Crate-visible for the root `bench` facade's re-exports.
+mod file;
 pub(crate) mod fit;
 pub(crate) mod importance;
-// Crate-visible for the root `bench` facade's re-exports.
 pub(crate) mod knn;
-// Crate-visible for the metadata document's ladder evidence.
 pub(crate) mod ladder;
 pub(crate) mod landmark;
-// Crate-visible for the serving surface's schedule reads.
 pub(crate) mod lod;
 pub(crate) mod policy;
-// Crate-visible for the serving surface's TYPE_MASK reads.
 pub(crate) mod postings;
-// Crate-visible for the root `bench` facade's re-exports.
 pub(crate) mod projector;
 pub(crate) mod quality;
 pub(crate) mod relation;
-// Crate-visible for the root `bench` facade's re-exports.
 pub(crate) mod runner;
 pub(crate) mod semantic;
-// Crate-visible for the serving surface's response assembly.
-mod vector;
 pub(crate) mod wire;

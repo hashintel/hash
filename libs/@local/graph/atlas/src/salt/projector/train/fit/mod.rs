@@ -58,9 +58,9 @@ use crate::{progress::Progress, salt::projector::model::Projector};
 
 /// A trained projector and the evidence of its training.
 #[derive(Debug)]
-pub(crate) struct Fitted<N, B: AutodiffBackend> {
+pub(crate) struct Model<N, B: AutodiffBackend> {
     /// The trained model.
-    pub model: Projector<B>,
+    pub projector: Projector<B>,
     /// The run's evidence.
     pub evidence: TrainingEvidence<N>,
 }
@@ -80,7 +80,7 @@ pub(crate) struct Fitted<N, B: AutodiffBackend> {
 )]
 pub(crate) enum FitOutcome<N, B: AutodiffBackend> {
     /// A completed run's trained model beside its evidence.
-    Trained(Fitted<N, B>),
+    Trained(Model<N, B>),
     /// The target objective refused, with the run record preserved through the refusing step.
     TargetRefused(TargetRefusal<N>),
 }
@@ -330,8 +330,8 @@ pub(crate) fn fit_from_boundary<
     )?;
 
     Ok(match outcome {
-        RunOutcome::Completed(training) => FitOutcome::Trained(Fitted {
-            model: training.model,
+        RunOutcome::Completed(training) => FitOutcome::Trained(Model {
+            projector: training.model,
             evidence: training.evidence,
         }),
         RunOutcome::Refused(refusal) => FitOutcome::TargetRefused(refusal),

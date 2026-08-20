@@ -23,9 +23,9 @@ use crate::{
     identity::{EdgeRowId, NodeRowId},
     math::{AlignedVecN, FinitePointField, NonNegative},
     salt::{
+        file::VectorFile,
         knn::table::{Knn, KnnMatrix, KnnView},
         relation::RelationInstance,
-        vector::VectorFile,
     },
 };
 
@@ -84,7 +84,7 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
     /// refuses before any stage spends time on it. The call also panics when the matrix it just
     /// wrote does not map back as aligned `f32` rows, which is a defect of the writer rather
     /// than of the input.
-    #[tracing::instrument(name = "quotient", skip_all)]
+    #[tracing::instrument(skip_all)]
     pub(super) fn build(
         corpus: &'corpus IdSlice<NodeRowId, AlignedVecN<N>>,
         scratch: &ScratchDirectory,
@@ -206,7 +206,17 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
     /// first corpus row. The gather preserves every table invariant: `representatives` ascends
     /// strictly, so row entries stay strictly ascending, and no entry names its own row - a
     /// distinct list excludes its own index, and expanded entries name first rows only.
-    pub(super) fn expand_neighbours(&self, table: &KnnView<'_, DistinctRowId>) -> Knn<NodeRowId> {
+    ///
+    /// Under the identity quotient the two domains are the same rows in the same order, so the
+    /// table is already the corpus's own and no expansion materializes: the call returns `None`.
+    pub(super) fn expand_neighbours(
+        &self,
+        table: &KnnView<'_, DistinctRowId>,
+    ) -> Option<Knn<NodeRowId>> {
+        if self.is_identity() {
+            return None;
+        }
+
         let rows = self.len();
         let neighbours = table.neighbours();
 
@@ -243,7 +253,10 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
                 "the gather of a validated table through the ascending first rows stays compressed",
             );
 
-        Knn::new(matrix).expect("the gather of a validated table preserves every table invariant")
+        Some(
+            Knn::new(matrix)
+                .expect("the gather of a validated table preserves every table invariant"),
+        )
     }
 
     /// Maps relation instances onto the distinct row domain and collapses duplicate readings.
@@ -399,6 +412,20 @@ mod tests {
         let (classes, representatives) = maps(&quotient);
         assert_eq!(classes, [0, 1, 2]);
         assert_eq!(representatives, [0, 1, 2]);
+
+        // Under the identity quotient the distinct table is already the corpus's own, so no
+        // expansion materializes.
+        let table_matrix = KnnMatrix::try_new(
+            (3, 3),
+            vec![0, 1, 2, 3],
+            vec![1, 0, 1],
+            vec![non_negative!(0.5), non_negative!(0.5), non_negative!(0.25)],
+        )
+        .map_err(|(_, _, _, error)| error)
+        .expect("the fixture matrix is compressed");
+        let table: Knn<super::DistinctRowId> =
+            Knn::new(table_matrix).expect("the fixture table is valid");
+        assert!(quotient.expand_neighbours(&table.view()).is_none());
     }
 
     #[test]
@@ -475,7 +502,9 @@ mod tests {
         let table: Knn<super::DistinctRowId> =
             Knn::new(table_matrix).expect("the fixture table is valid");
 
-        let expanded = quotient.expand_neighbours(&table.view());
+        let expanded = quotient
+            .expand_neighbours(&table.view())
+            .expect("a real quotient expands");
 
         assert_eq!(expanded.rows(), 5);
         assert_eq!(expanded.neighbours(), 1);

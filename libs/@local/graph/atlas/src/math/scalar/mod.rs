@@ -92,19 +92,17 @@ pub(crate) use negative::Negative;
 pub(crate) use non_negative::{NonNegative, non_negative};
 pub(crate) use open_unit_fraction::{OpenUnitFraction, open_unit_fraction};
 pub(crate) use positive::{Positive, positive};
-pub(crate) use positive_unit_fraction::PositiveUnitFraction;
-#[cfg(test)]
-pub(crate) use positive_unit_fraction::positive_unit_fraction;
+pub(crate) use positive_unit_fraction::{PositiveUnitFraction, positive_unit_fraction};
 pub(crate) use unit_fraction::{UnitFraction, unit_fraction};
 
 /// Validates a nonzero literal at compile time.
 ///
 /// The expansion is a `const` block over [`NonZero::new`](core::num::NonZero::new), so a zero
-/// literal fails the build instead of a test run. The expansion names `NonZero` unqualified, and
-/// the calling scope imports it.
+/// literal fails the build instead of a test run. The expansion names the type by its full path,
+/// so the calling scope imports nothing.
 macro_rules! nz {
     ($value:expr) => {
-        const { NonZero::new($value).expect("the literal is nonzero") }
+        const { ::core::num::NonZero::new($value).expect("the literal is nonzero") }
     };
 }
 pub(crate) use nz;

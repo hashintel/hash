@@ -183,7 +183,7 @@ where
     /// [`KnnError::TooManyEntries`] when the requested shape overflows the entry count,
     /// [`KnnError::NeighbourOutOfBounds`] when a list references a row outside the row domain, and
     /// [`KnnError::DuplicateNeighbour`] when a list stores the same neighbour twice.
-    #[tracing::instrument(name = "knn-table", skip_all)]
+    #[tracing::instrument(skip_all)]
     pub(crate) fn from_lists<E: Send>(
         lists: &NeighbourLists<N>,
         neighbours: NonZero<usize>,

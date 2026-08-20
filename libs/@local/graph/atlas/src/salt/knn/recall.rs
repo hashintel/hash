@@ -672,7 +672,7 @@ where
 ///
 /// Returns an error when the corpus holds fewer than two rows or the confidence is degenerate
 /// ([`SampleConfidence`](KnnError::SampleConfidence)).
-#[tracing::instrument(name = "recall-check", skip_all)]
+#[tracing::instrument(skip_all)]
 pub(crate) fn spot_check_lists<N, E>(
     lists: &NeighbourLists<N>,
     embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,

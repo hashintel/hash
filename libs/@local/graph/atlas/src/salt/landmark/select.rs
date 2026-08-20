@@ -515,7 +515,7 @@ pub(crate) const PARALLEL_CHUNK: NonZero<usize> = const { NonZero::new(4096).unw
 ///
 /// Returns an error for an empty corpus, unordered candidate rows, duplicate minimums, or minimums
 /// the corpus or capacity cannot satisfy.
-#[tracing::instrument(name = "landmark-selection", skip_all)]
+#[tracing::instrument(skip_all)]
 pub(crate) fn select_landmarks<N, R>(
     candidates: &IdSlice<CandidateId, LandmarkCandidate<N>>,
     minimums: &IdSlice<MinimumId, SubgroupMinimum>,

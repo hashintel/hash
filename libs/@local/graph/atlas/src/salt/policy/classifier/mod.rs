@@ -90,19 +90,6 @@ pub(crate) struct Applicability {
     distances: Box<[DNonNegative]>,
 }
 
-/// The fitted policy classifier.
-///
-/// Coefficient rows follow class order. All parameters are finite and the temperature is positive;
-/// [`fit()`] and validated artifact reads are the construction sites.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Classifier {
-    coefficients: [BoxedDVecN<CANONICAL_DIMENSIONS>; GeometryClass::COUNT],
-    intercepts: [f64; GeometryClass::COUNT],
-    temperature: f64,
-
-    applicability: Applicability,
-}
-
 /// One classified relation-card embedding.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct Prediction {
@@ -116,6 +103,19 @@ pub(crate) struct Prediction {
     pub distance: DNonNegative,
     /// Upper-tail rank of `distance` among the training distances, in `[0, 1]`.
     pub applicability: UnitFraction,
+}
+
+/// The fitted policy classifier.
+///
+/// Coefficient rows follow class order. All parameters are finite and the temperature is positive;
+/// [`fit()`] and validated artifact reads are the construction sites.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Classifier {
+    coefficients: [BoxedDVecN<CANONICAL_DIMENSIONS>; GeometryClass::COUNT],
+    intercepts: [f64; GeometryClass::COUNT],
+    temperature: f64,
+
+    applicability: Applicability,
 }
 
 impl Classifier {

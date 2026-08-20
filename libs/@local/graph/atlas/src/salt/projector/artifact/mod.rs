@@ -31,7 +31,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use crate::{
     file::{WriteAs, WriteInto, salt::artifact},
     integrity::{Sha256, Sha256Digest, Writer},
-    math::UnitFraction,
+    math::{PositiveUnitFraction, UnitFraction},
     salt::projector::{
         model::{Architecture, ArchitectureMismatch, Projector, ProjectorRecord},
         train::{BoundaryState, TrainerOptimizerRecord, TrainingSchedule},
@@ -235,8 +235,8 @@ pub(crate) fn write_resume<N, B: AutodiffBackend<FloatElem = f32>>(
         steps: schedule.steps().get(),
         boundary: schedule.boundary(),
         refresh_interval: schedule.refresh_interval().get(),
-        initial_learning_rate: schedule.initial_learning_rate(),
-        minimum_learning_rate: schedule.minimum_learning_rate(),
+        initial_learning_rate: schedule.initial_learning_rate().get(),
+        minimum_learning_rate: schedule.minimum_learning_rate().get(),
         generator: generator.state(),
     };
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
@@ -274,7 +274,7 @@ pub(crate) fn open_resume<N, B: AutodiffBackend<FloatElem = f32>>(
     let schedule = NonZero::new(record.steps)
         .zip(NonZero::new(record.refresh_interval))
         .zip(
-            UnitFraction::new(record.initial_learning_rate)
+            PositiveUnitFraction::new(record.initial_learning_rate)
                 .zip(UnitFraction::new(record.minimum_learning_rate)),
         )
         .and_then(|((steps, refresh_interval), (initial, minimum))| {

@@ -312,6 +312,22 @@ const impl Ord for UnitFraction {
     }
 }
 
+const impl PartialEq<PositiveUnitFraction> for UnitFraction {
+    #[inline]
+    fn eq(&self, other: &PositiveUnitFraction) -> bool {
+        // one bit pattern per value, so bit equality is numeric equality
+        self.get().to_bits() == other.get().to_bits()
+    }
+}
+
+const impl PartialOrd<PositiveUnitFraction> for UnitFraction {
+    #[inline]
+    fn partial_cmp(&self, other: &PositiveUnitFraction) -> Option<Ordering> {
+        // For canonical non-negative floats the bit pattern is monotone in the value.
+        Some(self.get().to_bits().cmp(&other.get().to_bits()))
+    }
+}
+
 impl Hash for UnitFraction {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {

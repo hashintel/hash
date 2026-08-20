@@ -995,3 +995,24 @@ fn try_from_bytes_accepts_only_canonical_bit_patterns() {
         .expect_err("one is excluded, an endpoint");
     OpenUnitFraction::try_read_from_bytes(&f64::NAN.to_ne_bytes()).expect_err("NaN is refused");
 }
+
+#[test]
+fn serde_doors_validate_the_domain() {
+    // A published record's wire form reads through `Deserialize`, so the door refuses
+    // exactly the values the constructors refuse.
+    let admitted: PositiveUnitFraction =
+        serde_json::from_str("1.0e-3").expect("1.0e-3 lies inside (0, 1]");
+    assert_eq!(admitted.get(), 1.0e-3);
+
+    serde_json::from_str::<PositiveUnitFraction>("0.0")
+        .expect_err("zero is excluded, the domain's open endpoint");
+    serde_json::from_str::<PositiveUnitFraction>("-0.5").expect_err("negatives are refused");
+    serde_json::from_str::<PositiveUnitFraction>("1.5").expect_err("1.5 is out of range");
+
+    let closed: UnitFraction = serde_json::from_str("0.0").expect("zero lies inside [0, 1]");
+    assert_eq!(closed.get(), 0.0);
+    serde_json::from_str::<UnitFraction>("1.5").expect_err("1.5 is out of range");
+
+    let wire = serde_json::to_string(&PositiveUnitFraction::ONE).expect("a fraction serializes");
+    assert_eq!(wire, "1.0");
+}

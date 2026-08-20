@@ -286,7 +286,7 @@ mod placement {
 
     use super::super::{LandmarkSupport, PlacementOptions, ProjectorOptions};
     use crate::{
-        math::{NonNegative, Positive, UnitFraction},
+        math::{NonNegative, Positive, PositiveUnitFraction, UnitFraction},
         salt::{
             ladder::{Conditions, LadderOptions},
             projector::{
@@ -356,8 +356,8 @@ mod placement {
         steps: NonZero<usize>,
         boundary: usize,
         refresh_interval: NonZero<usize>,
-        initial_learning_rate: f64,
-        minimum_learning_rate: f64,
+        initial_learning_rate: PositiveUnitFraction,
+        minimum_learning_rate: UnitFraction,
     }
 
     /// The sampling plan's wire form.
@@ -525,19 +525,13 @@ mod placement {
         /// Field by field through the constructors.
         fn into_options<E: serde::de::Error>(self) -> Result<ProjectorOptions, E> {
             let record = self;
-            let rate = |value: f64, name| {
-                UnitFraction::new(value).ok_or_else(|| {
-                    E::custom(format_args!(
-                        "the {name} learning rate is not a unit fraction"
-                    ))
-                })
-            };
+
             let schedule = TrainingSchedule::new(
                 record.schedule.steps,
                 record.schedule.boundary,
                 record.schedule.refresh_interval,
-                rate(record.schedule.initial_learning_rate, "initial")?,
-                rate(record.schedule.minimum_learning_rate, "minimum")?,
+                record.schedule.initial_learning_rate,
+                record.schedule.minimum_learning_rate,
             )
             .ok_or_else(|| E::custom("the schedule fields do not form a training schedule"))?;
 

@@ -13,7 +13,6 @@ use super::{UnitFraction, raw_interop, unsafe_impl_try_from_bytes};
 ///
 /// The expansion is a `const` block over [`PositiveUnitFraction::new`], so a literal outside the
 /// domain fails the build instead of a test run. Runtime values keep the checked constructor.
-#[cfg(test)]
 macro_rules! positive_unit_fraction {
     ($value:expr) => {
         const {
@@ -22,7 +21,6 @@ macro_rules! positive_unit_fraction {
         }
     };
 }
-#[cfg(test)]
 pub(crate) use positive_unit_fraction;
 
 /// A finite fraction in `(0, 1]`, valid by construction.
@@ -134,6 +132,22 @@ const impl Ord for PositiveUnitFraction {
     }
 }
 
+const impl PartialEq<UnitFraction> for PositiveUnitFraction {
+    #[inline]
+    fn eq(&self, other: &UnitFraction) -> bool {
+        // one bit pattern per value, so bit equality is numeric equality
+        self.get().to_bits() == other.get().to_bits()
+    }
+}
+
+const impl PartialOrd<UnitFraction> for PositiveUnitFraction {
+    #[inline]
+    fn partial_cmp(&self, other: &UnitFraction) -> Option<Ordering> {
+        // strictly positive finite floats: the bit pattern is monotone in the value
+        Some(self.get().to_bits().cmp(&other.get().to_bits()))
+    }
+}
+
 impl Hash for PositiveUnitFraction {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -145,6 +159,26 @@ impl Hash for PositiveUnitFraction {
 impl fmt::Display for PositiveUnitFraction {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl serde::Serialize for PositiveUnitFraction {
+    /// Serializes as the plain number.
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_f64(self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for PositiveUnitFraction {
+    /// Deserializes a plain number, refusing values outside the half-open unit interval.
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = f64::deserialize(deserializer)?;
+        Self::new(value).ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Float(value),
+                &"a fraction in the half-open unit interval",
+            )
+        })
     }
 }
 

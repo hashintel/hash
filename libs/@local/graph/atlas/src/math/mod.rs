@@ -108,7 +108,7 @@ mod test_alloc;
 mod tests;
 
 #[cfg(test)]
-pub(crate) use self::scalar::{d_non_negative, finite, greater_than_one, positive_unit_fraction};
+pub(crate) use self::scalar::{d_non_negative, finite, greater_than_one};
 #[cfg(test)]
 pub(crate) use self::translation::Translation;
 pub(crate) use self::{
@@ -126,7 +126,8 @@ pub(crate) use self::{
     scalar::{
         DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, Negative, NonNegative,
         OpenUnitFraction, Positive, PositiveUnitFraction, UnitFraction, d_finite, d_positive,
-        narrow_f32, non_negative, nz, open_unit_fraction, positive, softplus, unit_fraction,
+        narrow_f32, non_negative, nz, open_unit_fraction, positive, positive_unit_fraction,
+        softplus, unit_fraction,
     },
     similarity::Similarity,
     transform::Transform,

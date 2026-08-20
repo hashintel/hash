@@ -203,7 +203,7 @@ impl<N: fmt::Debug + fmt::Display, E: Error + 'static> Error for AssignmentError
 ///
 /// Returns an error when a selected row lies outside the corpus, the backend fails, or a search
 /// returns nothing or a non-landmark row.
-#[tracing::instrument(name = "landmark-assignment", skip_all)]
+#[tracing::instrument(skip_all)]
 pub(crate) fn assign_landmarks<N, I>(
     index: &mut I,
     rng: impl Rng + SeedableRng,

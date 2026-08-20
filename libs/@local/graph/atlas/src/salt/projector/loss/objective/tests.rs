@@ -10,8 +10,6 @@
               constants are exact contracts"
 )]
 
-use core::num::NonZero;
-
 use hashql_core::id::{Id as _, IdSlice};
 
 use super::{

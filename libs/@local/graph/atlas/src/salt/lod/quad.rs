@@ -124,7 +124,7 @@ impl QuadTree {
     /// [`QuadError::Bucket`] when the lod holds points beyond the configuration's deepest grid,
     /// [`QuadError::TypeOrdinal`] when a direct type escapes the file's `u32` ordinals, and
     /// [`QuadError::Nodes`] when the tree escapes `u32` node indexes.
-    #[tracing::instrument(name = "quad", skip_all)]
+    #[tracing::instrument(skip_all)]
     pub(crate) fn build(
         lod: &Lod,
         types: &IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,

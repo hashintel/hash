@@ -20,7 +20,7 @@ use crate::{
     integrity::Sha256Digest,
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, PositiveUnitFraction, Vec2,
-        non_negative, positive, unit_fraction,
+        non_negative, nz, positive, positive_unit_fraction, unit_fraction,
     },
     salt::{
         knn::table::{Knn, KnnMatrix},
@@ -260,15 +260,15 @@ pub(super) fn corpus_with(
 }
 
 pub(super) const fn schedule(
-    steps: usize,
+    steps: NonZero<usize>,
     boundary: usize,
-    refresh_interval: usize,
+    refresh_interval: NonZero<usize>,
 ) -> TrainingSchedule {
     TrainingSchedule::new(
-        nonzero(steps),
+        steps,
         boundary,
-        nonzero(refresh_interval),
-        unit_fraction!(0.05),
+        refresh_interval,
+        positive_unit_fraction!(0.05),
         unit_fraction!(0.001),
     )
     .expect("the fixture schedule is valid")
@@ -278,10 +278,10 @@ pub(super) fn options(schedule: TrainingSchedule) -> TrainOptions {
     TrainOptions {
         schedule,
         plan: BatchPlan {
-            semantic_pairs: nonzero(8),
+            semantic_pairs: nz!(8),
             ordinary_pairs: 4,
             relation_types: 1,
-            relation_cap: nonzero(4),
+            relation_cap: nz!(4),
             hard_queries: 2,
             landmark_anchors: 2,
             temporal_anchors: 0,
@@ -303,13 +303,13 @@ pub(super) fn options(schedule: TrainingSchedule) -> TrainOptions {
             NonNegative::ZERO,
             NonNegative::ONE,
         ),
-        miner: MinerOptions::new(nonzero(2), nonzero(2), positive!(1.0), positive!(1.0)),
+        miner: MinerOptions::new(nz!(2), nz!(2), positive!(1.0), positive!(1.0)),
         lens: RelationLens::new(
             CoincidentEnergy::new(non_negative!(0.0), positive!(1.0)),
             positive!(0.25),
             positive!(0.5),
         ),
-        forward_rows: nonzero(3),
+        forward_rows: nz!(3),
     }
 }
 
@@ -375,7 +375,7 @@ pub(super) fn target_inputs<'run>(
 
 pub(super) const fn target_options(activation: f32) -> TargetOptions {
     TargetOptions {
-        canonical_step: nonzero(2),
+        canonical_step: nz!(2),
         activation: NonNegative::new(activation).expect("fixture activations are non-negative"),
         dimensionless_radius: positive!(0.5),
         epsilon_rel: positive!(0.001),

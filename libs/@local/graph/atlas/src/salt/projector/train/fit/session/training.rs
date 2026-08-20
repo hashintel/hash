@@ -42,10 +42,13 @@ pub(crate) fn optimizer<B: AutodiffBackend<FloatElem = f32>>() -> TrainerOptimiz
 
 /// Builds the cosine scheduler a validated schedule describes.
 pub(crate) fn scheduler(schedule: TrainingSchedule) -> CosineAnnealingLrScheduler {
-    CosineAnnealingLrSchedulerConfig::new(schedule.initial_learning_rate(), schedule.steps().get())
-        .with_min_lr(schedule.minimum_learning_rate())
-        .init()
-        .expect("a validated schedule satisfies the scheduler's domain")
+    CosineAnnealingLrSchedulerConfig::new(
+        schedule.initial_learning_rate().get(),
+        schedule.steps().get(),
+    )
+    .with_min_lr(schedule.minimum_learning_rate().get())
+    .init()
+    .expect("a validated schedule satisfies the scheduler's domain")
 }
 
 /// The terminal state of one run segment.

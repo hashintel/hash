@@ -161,6 +161,12 @@ pub(crate) struct LadderOptions {
     pub canonical: NonNegative = NonNegative::ONE,
 }
 
+const impl Default for LadderOptions {
+    fn default() -> Self {
+        Self { .. }
+    }
+}
+
 impl LadderOptions {
     /// Returns the canonical step's position in the schedule.
     ///
@@ -179,12 +185,6 @@ impl LadderOptions {
             .ok_or(CanonicalError::UnknownStep {
                 value: self.canonical,
             })
-    }
-}
-
-const impl Default for LadderOptions {
-    fn default() -> Self {
-        Self { .. }
     }
 }
 

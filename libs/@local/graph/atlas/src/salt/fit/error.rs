@@ -3,9 +3,8 @@
 //! The failure surface mirrors the pipeline's thread boundary. [`FitError`] is the async side's:
 //! it holds the failures only ingest produces - the dataset, the card stream, the embedding
 //! provider, and the norm admission check - and wraps the compute side's
-//! [`ComputeError`] whole. [`PriorError`] and [`PlacementError`]
-//! are shared vocabularies: the prior generation's artifacts are read on both sides of the
-//! boundary, and the placement's refusals live with the projector stage that produces them.
+//! [`ComputeError`] whole. [`PriorError`] is a shared vocabulary: the prior generation's
+//! artifacts are read on both sides of the boundary.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -18,116 +17,15 @@ use super::{
     },
 };
 use crate::{
-    dataset::PROJECTOR_DIMENSIONS,
     file::{
         array::OpenArrayError, identity::read::OpenIdentityError, landmark::read::OpenLandmarkError,
     },
-    identity::{NodeRowId, OntologyRowId},
+    identity::OntologyRowId,
     salt::{
-        embedding::CardEmbeddingError,
-        ladder::{CanonicalError, LadderError},
-        landmark::artifact::InvalidLandmarkFile,
-        policy::annotation::assembly::AssemblyError,
-        projector::{
-            artifact::CheckpointError,
-            train::{TrainError, refresh::RefreshError},
-        },
-        vector::OpenVectorError,
+        embedding::CardEmbeddingError, file::OpenVectorError,
+        landmark::artifact::InvalidLandmarkFile, policy::annotation::assembly::AssemblyError,
     },
 };
-
-/// The projector placement could not produce its canonical field.
-///
-/// Every variant aborts the fit: a generation whose coordinates the configured placement could not
-/// produce publishes nothing.
-#[derive(Debug)]
-pub(crate) enum PlacementError {
-    /// The projector objective rejects the fit's low-dimensional kernel.
-    ObjectiveCurve { exponent: f32 },
-    /// The configured architecture disagrees with the dataset's representation width.
-    RepresentationWidth { configured: usize },
-    /// Projector training failed.
-    Train(TrainError<NodeRowId>),
-    /// Encoding or staging the projector checkpoint failed.
-    Checkpoint(CheckpointError),
-    /// A whole-corpus inference pass failed.
-    Projection(RefreshError<NodeRowId>),
-    /// The ladder measurement rejected its fields.
-    Ladder(LadderError),
-    /// The ladder rejects the configured canonical condition.
-    Canonical(CanonicalError),
-}
-
-impl fmt::Display for PlacementError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ObjectiveCurve { exponent } => write!(
-                fmt,
-                "the projector objective rejects the configuration: the curve exponent {exponent} \
-                 must be at least 0.5",
-            ),
-            Self::RepresentationWidth { configured } => write!(
-                fmt,
-                "the architecture's representation width {configured} does not match the \
-                 dataset's {PROJECTOR_DIMENSIONS}-dimensional projector contract",
-            ),
-            Self::Train(error) => write!(fmt, "projector training failed: {error}"),
-            Self::Checkpoint(error) => {
-                write!(fmt, "the projector checkpoint failed to stage: {error}")
-            }
-            Self::Projection(error) => {
-                write!(fmt, "a whole-corpus inference pass failed: {error}")
-            }
-            Self::Ladder(error) => write!(fmt, "the ladder measurement failed: {error}"),
-            Self::Canonical(error) => {
-                write!(fmt, "the canonical condition was refused: {error}")
-            }
-        }
-    }
-}
-
-impl Error for PlacementError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Train(error) => Some(error),
-            Self::Checkpoint(error) => Some(error),
-            Self::Projection(error) => Some(error),
-            Self::Ladder(error) => Some(error),
-            Self::Canonical(error) => Some(error),
-            Self::ObjectiveCurve { .. } | Self::RepresentationWidth { .. } => None,
-        }
-    }
-}
-
-impl From<TrainError<NodeRowId>> for PlacementError {
-    fn from(error: TrainError<NodeRowId>) -> Self {
-        Self::Train(error)
-    }
-}
-
-impl From<CheckpointError> for PlacementError {
-    fn from(error: CheckpointError) -> Self {
-        Self::Checkpoint(error)
-    }
-}
-
-impl From<RefreshError<NodeRowId>> for PlacementError {
-    fn from(error: RefreshError<NodeRowId>) -> Self {
-        Self::Projection(error)
-    }
-}
-
-impl From<LadderError> for PlacementError {
-    fn from(error: LadderError) -> Self {
-        Self::Ladder(error)
-    }
-}
-
-impl From<CanonicalError> for PlacementError {
-    fn from(error: CanonicalError) -> Self {
-        Self::Canonical(error)
-    }
-}
 
 /// A prior generation offered for reuse cannot serve it.
 ///

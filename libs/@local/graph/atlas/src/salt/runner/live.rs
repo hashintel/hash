@@ -31,7 +31,7 @@ use crate::{
     },
     device::PinnedDevice,
     file::generation::GenerationRoot,
-    math::{AffinityCurve, UnitFraction, positive},
+    math::{AffinityCurve, positive, positive_unit_fraction, unit_fraction},
     progress::Progress,
     salt::{
         embedding::external::{ExternalEmbeddingError, ExternalEmbeddingProvider},
@@ -263,8 +263,8 @@ const fn shortened_schedule(steps: NonZero<usize>) -> TrainingSchedule {
         steps,
         steps.get().div_euclid(2),
         REFRESH,
-        const { UnitFraction::new(1.0e-3).expect("the ratified initial rate is a unit fraction") },
-        const { UnitFraction::new(1.0e-5).expect("the ratified minimum rate is a unit fraction") },
+        positive_unit_fraction!(1.0e-3),
+        unit_fraction!(1.0e-5),
     )
     .expect("the ratified schedule domain admits any step count")
 }

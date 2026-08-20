@@ -22,7 +22,7 @@ use burn::{
 use hashql_core::id::{Id, IdSlice, IdVec};
 
 use super::{
-    FitOutcome, Fitted, FrozenRadius, TargetRefusalCause, TrainError, TrainOptions, TrainerInputs,
+    FitOutcome, FrozenRadius, Model, TargetRefusalCause, TrainError, TrainOptions, TrainerInputs,
     TrainingSchedule, fit, fit_from_boundary, fit_to_boundary,
     fixture::{
         Corpus, HALF, RELATION, ROWS, TargetDraws, corpus_with, instance, nonzero, options,
@@ -37,7 +37,7 @@ use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
         FinitePointField, NonNegative, Positive, Vec2, d_non_negative, d_positive, non_negative,
-        open_unit_fraction, positive, unit_fraction,
+        nz, open_unit_fraction, positive, positive_unit_fraction, unit_fraction,
     },
     progress::{NoProgress, Progress},
     salt::{
@@ -66,7 +66,7 @@ type TestBackend = Autodiff<NdArray>;
 impl<N: Id> FitOutcome<N, TestBackend> {
     /// Unwraps a completed run. The refusal fixtures assert on the refusal arm directly.
     #[track_caller]
-    fn trained(self) -> Fitted<N, TestBackend> {
+    fn trained(self) -> Model<N, TestBackend> {
         match self {
             Self::Trained(fitted) => fitted,
             Self::TargetRefused(refusal) => panic!("the run refused: {refusal:?}"),
@@ -155,7 +155,7 @@ where
 fn training_separates_the_semantic_clusters() {
     let corpus = semantic_corpus();
     // Boundary at the end: a pure semantic run records no boundary.
-    let options = options(schedule(25, 25, 10));
+    let options = options(schedule(nz!(25), 25, nz!(10)));
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -170,7 +170,7 @@ fn training_separates_the_semantic_clusters() {
     assert_eq!(fitted.evidence.losses.len(), 25);
     assert!(fitted.evidence.boundary.is_none());
 
-    let layout = project(&fitted.model, &corpus, non_negative!(0.0));
+    let layout = project(&fitted.projector, &corpus, non_negative!(0.0));
     let within = mean_distance(
         &layout,
         (0..HALF)
@@ -190,7 +190,7 @@ fn training_separates_the_semantic_clusters() {
 #[test]
 fn landmark_support_keeps_the_frame() {
     let corpus = semantic_corpus();
-    let mut options = options(schedule(25, 25, 10));
+    let mut options = options(schedule(nz!(25), 25, nz!(10)));
     // A dominant landmark coefficient pins the anchored rows.
     options.coefficients = Coefficients::new(
         Positive::ONE,
@@ -211,7 +211,7 @@ fn landmark_support_keeps_the_frame() {
     .expect("the semantic fixture trains")
     .trained();
 
-    let layout = project(&fitted.model, &corpus, non_negative!(0.0));
+    let layout = project(&fitted.projector, &corpus, non_negative!(0.0));
     for anchor in &corpus.landmarks {
         let distance = layout.as_slice()[anchor.row].distance(anchor.target);
         assert!(
@@ -232,7 +232,7 @@ fn landmark_support_keeps_the_frame() {
 fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
     let corpus = semantic_corpus();
     let before = project(&model(), &corpus, non_negative!(0.0));
-    let mut options = options(schedule(10, 10, 2));
+    let mut options = options(schedule(nz!(10), 10, nz!(2)));
     // The default fixture carries other non-zero coefficients (both repulsion terms, the landmark
     // term, and the evidence-less relation term). Zeroing every force but the semantic one isolates
     // the mechanism the certificate names. Rows in one cluster share almost the same input
@@ -256,7 +256,7 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
     )
     .expect("the semantic fixture trains")
     .trained();
-    let after = project(&fitted.model, &corpus, non_negative!(0.0));
+    let after = project(&fitted.projector, &corpus, non_negative!(0.0));
 
     let within_pairs = || {
         (0..HALF)
@@ -282,7 +282,7 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
 fn few_steps_landmark_force_points_anchors_at_their_targets() {
     let corpus = semantic_corpus();
     let before = project(&model(), &corpus, non_negative!(0.0));
-    let mut options = options(schedule(10, 10, 2));
+    let mut options = options(schedule(nz!(10), 10, nz!(2)));
     // A dominant landmark coefficient pins the anchored rows. Neither repulsion term aims at a
     // fixed target point, so zeroing them keeps their sampling noise from swinging the one row this
     // certificate reads. The relation term has no evidence in this corpus and goes to zero with
@@ -306,7 +306,7 @@ fn few_steps_landmark_force_points_anchors_at_their_targets() {
     )
     .expect("the semantic fixture trains")
     .trained();
-    let after = project(&fitted.model, &corpus, non_negative!(0.0));
+    let after = project(&fitted.projector, &corpus, non_negative!(0.0));
 
     let before = before.as_slice();
     let after = after.as_slice();
@@ -332,7 +332,7 @@ fn few_steps_landmark_force_points_anchors_at_their_targets() {
 #[test]
 fn equal_seeds_train_equal_frames() {
     let corpus = semantic_corpus();
-    let options = options(schedule(24, 24, 8));
+    let options = options(schedule(nz!(24), 24, nz!(8)));
     let one = fit(
         model(),
         &corpus.inputs(),
@@ -356,8 +356,8 @@ fn equal_seeds_train_equal_frames() {
 
     assert_eq!(one.evidence.losses, two.evidence.losses);
     assert_eq!(
-        project(&one.model, &corpus, non_negative!(0.0)),
-        project(&two.model, &corpus, non_negative!(0.0)),
+        project(&one.projector, &corpus, non_negative!(0.0)),
+        project(&two.projector, &corpus, non_negative!(0.0)),
         "equal seeds should train bit-equal frames on the deterministic backend"
     );
 }
@@ -365,7 +365,7 @@ fn equal_seeds_train_equal_frames() {
 #[test]
 fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -454,7 +454,7 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
 #[test]
 fn missing_reviewed_radius_names_the_fix() {
     let corpus = proximal_corpus(Vec::new());
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
     let error = fit(
         model(),
         &corpus.inputs(),
@@ -473,7 +473,7 @@ fn missing_reviewed_radius_names_the_fix() {
 #[test]
 fn forceless_corpus_trains_vacuously() {
     let corpus = semantic_corpus();
-    let options = options(schedule(9, 3, 4));
+    let options = options(schedule(nz!(9), 3, nz!(4)));
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -514,7 +514,7 @@ fn vacuous_run_trains_a_flat_ladder() {
     // The ladder opens at step 3, but a forceless corpus pins the
     // zero step through it: the condition weights never receive
     // gradient, so every step projects the identical map.
-    let options = options(schedule(9, 3, 4));
+    let options = options(schedule(nz!(9), 3, nz!(4)));
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -526,15 +526,15 @@ fn vacuous_run_trains_a_flat_ladder() {
     .expect("a forceless corpus trains vacuously")
     .trained();
 
-    let low = project(&fitted.model, &corpus, non_negative!(0.0));
+    let low = project(&fitted.projector, &corpus, non_negative!(0.0));
     assert_eq!(
         low,
-        project(&fitted.model, &corpus, non_negative!(1.0)),
+        project(&fitted.projector, &corpus, non_negative!(1.0)),
         "the lens extremes should project bit-identical maps"
     );
     assert_eq!(
         low,
-        project(&fitted.model, &corpus, non_negative!(0.5)),
+        project(&fitted.projector, &corpus, non_negative!(0.5)),
         "the middle step should project the same map as the extremes"
     );
     assert!(
@@ -554,7 +554,7 @@ fn measured_radius_requires_an_opening_segment() {
     let error = fit(
         model(),
         &corpus.inputs(),
-        &options(schedule(8, 0, 4)),
+        &options(schedule(nz!(8), 0, nz!(4))),
         &mut rng(23),
         &device(),
         &NoProgress,
@@ -588,7 +588,7 @@ fn coincident_without_proximal_force_refuses() {
     let error = fit(
         model(),
         &corpus.inputs(),
-        &options(schedule(8, 4, 4)),
+        &options(schedule(nz!(8), 4, nz!(4))),
         &mut rng(23),
         &device(),
         &NoProgress,
@@ -605,7 +605,7 @@ fn phase_a_ticks_measure_a_frozen_lens() {
     // produce bit-identical frames: the measured displacement is
     // exactly zero, not approximately.
     let corpus = semantic_corpus();
-    let options = options(schedule(4, 4, 2));
+    let options = options(schedule(nz!(4), 4, nz!(2)));
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -633,7 +633,7 @@ fn phase_a_ticks_measure_a_frozen_lens() {
 fn non_finite_representation_fails_the_first_tick() {
     let mut corpus = semantic_corpus();
     corpus.storage.as_array_mut()[3 * PROJECTOR_DIMENSIONS + 9] = f32::INFINITY;
-    let options = options(schedule(4, 4, 2));
+    let options = options(schedule(nz!(4), 4, nz!(2)));
     let error = fit(
         model(),
         &corpus.inputs(),
@@ -679,13 +679,13 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
 
 #[test]
 fn schedule_validates_its_domain() {
-    // Out-of-range rates (negative, above one, non-finite) are unconstructible as `UnitFraction`s.
-    // The residual domain here is positivity and ordering.
+    // Out-of-range rates are unconstructible: the initial rate as a `PositiveUnitFraction`, the
+    // minimum as a `UnitFraction`. The residual domain here is the boundary and the rate ordering.
     let valid = TrainingSchedule::new(
         nonzero(10),
         5,
         nonzero(2),
-        unit_fraction!(0.05),
+        positive_unit_fraction!(0.05),
         unit_fraction!(0.001),
     );
     assert!(valid.is_some());
@@ -694,7 +694,7 @@ fn schedule_validates_its_domain() {
             nonzero(10),
             11,
             nonzero(2),
-            unit_fraction!(0.05),
+            positive_unit_fraction!(0.05),
             unit_fraction!(0.001)
         )
         .is_none(),
@@ -705,18 +705,18 @@ fn schedule_validates_its_domain() {
             nonzero(10),
             5,
             nonzero(2),
-            unit_fraction!(0.0),
+            positive_unit_fraction!(0.05),
             unit_fraction!(0.0)
         )
-        .is_none(),
-        "the initial rate is strictly positive"
+        .is_some(),
+        "a zero minimum decays the rate to nothing and is lawful"
     );
     assert!(
         TrainingSchedule::new(
             nonzero(10),
             5,
             nonzero(2),
-            unit_fraction!(0.05),
+            positive_unit_fraction!(0.05),
             unit_fraction!(0.1)
         )
         .is_none(),
@@ -727,7 +727,7 @@ fn schedule_validates_its_domain() {
 #[test]
 fn checkpointed_resume_matches_the_straight_run() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
 
     let straight = fit(
         model(),
@@ -781,12 +781,12 @@ fn checkpointed_resume_matches_the_straight_run() {
         "the resumed boundary should freeze the bit-equal radius"
     );
     assert_eq!(
-        project(&resumed.model, &corpus, non_negative!(0.0)),
-        project(&straight.model, &corpus, non_negative!(0.0)),
+        project(&resumed.projector, &corpus, non_negative!(0.0)),
+        project(&straight.projector, &corpus, non_negative!(0.0)),
     );
     assert_eq!(
-        project(&resumed.model, &corpus, non_negative!(1.0)),
-        project(&straight.model, &corpus, non_negative!(1.0)),
+        project(&resumed.projector, &corpus, non_negative!(1.0)),
+        project(&straight.projector, &corpus, non_negative!(1.0)),
         "the straight and resumed runs should train bit-equal frames"
     );
 }
@@ -794,7 +794,7 @@ fn checkpointed_resume_matches_the_straight_run() {
 #[test]
 fn forked_ladders_share_the_frozen_radius() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let opening = options(schedule(12, 6, 4));
+    let opening = options(schedule(nz!(12), 6, nz!(4)));
 
     let mut stream = rng(17);
     let state = fit_to_boundary(
@@ -845,8 +845,8 @@ fn forked_ladders_share_the_frozen_radius() {
         "fork cells should freeze the bit-equal radius from the shared opening"
     );
     assert_ne!(
-        project(&one.model, &corpus, non_negative!(1.0)),
-        project(&two.model, &corpus, non_negative!(1.0)),
+        project(&one.projector, &corpus, non_negative!(1.0)),
+        project(&two.projector, &corpus, non_negative!(1.0)),
         "the forked relation coefficient should change the trained ladder"
     );
 }
@@ -854,7 +854,7 @@ fn forked_ladders_share_the_frozen_radius() {
 #[test]
 fn resumed_ladder_rejects_a_changed_schedule() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let opening = options(schedule(12, 6, 4));
+    let opening = options(schedule(nz!(12), 6, nz!(4)));
     let state = fit_to_boundary(
         model(),
         &corpus.inputs(),
@@ -865,7 +865,7 @@ fn resumed_ladder_rejects_a_changed_schedule() {
     )
     .expect("the opening segment trains");
 
-    let changed = options(schedule(16, 6, 4));
+    let changed = options(schedule(nz!(16), 6, nz!(4)));
     let error = fit_from_boundary(
         state,
         &corpus.inputs(),
@@ -878,8 +878,8 @@ fn resumed_ladder_rejects_a_changed_schedule() {
     assert_eq!(
         error,
         TrainError::ScheduleChanged {
-            opening: schedule(12, 6, 4),
-            resumed: schedule(16, 6, 4),
+            opening: schedule(nz!(12), 6, nz!(4)),
+            resumed: schedule(nz!(16), 6, nz!(4)),
         }
     );
 }
@@ -946,7 +946,7 @@ impl Progress for RecordingProgress {
 #[test]
 fn every_training_step_reports_the_loss_it_records() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
     let progress = RecordingProgress::default();
 
     let fitted = fit(
@@ -981,7 +981,7 @@ fn every_training_step_reports_the_loss_it_records() {
 #[test]
 fn phases_report_against_the_whole_schedule() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
 
     let forked = RecordingProgress::default();
     let mut stream = rng(17);
@@ -1021,7 +1021,7 @@ fn phases_report_against_the_whole_schedule() {
 #[test]
 fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
 
     let observer = RecordingProgress::watching(4);
     let watched = fit(
@@ -1199,7 +1199,7 @@ fn a_passing_certificate_with_a_tight_spread_warns_nothing() {
 fn the_identity_constants_re_derive_from_the_recorded_boundary_field() {
     let corpus = target_corpus();
     let draws = target_draws();
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
 
     let fitted = fit(
         model(),
@@ -1307,7 +1307,7 @@ fn the_identity_constants_re_derive_from_the_recorded_boundary_field() {
 fn gauge_fit_refusal_keeps_the_recorded_evidence() {
     let corpus = target_corpus();
     let draws = target_draws();
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
     let mut declared = target_options(1.0);
     // At the boundary step no relation gradient has flowed, the steps read bit-identical
     // coordinates, and the residual is exactly zero, so a bar below any real deformation
@@ -1377,7 +1377,7 @@ fn gauge_fit_refusal_keeps_the_recorded_evidence() {
 fn tick_step_refusal_records_telemetry_and_no_evaluation() {
     let corpus = target_corpus();
     let draws = target_draws();
-    let options = options(schedule(12, 7, 4));
+    let options = options(schedule(nz!(12), 7, nz!(4)));
     let mut declared = target_options(1.0);
     // The same bar as the plain gauge fit refusal: exactly zero at the boundary step's fit,
     // above any real deformation at the first fit after an update.
@@ -1431,7 +1431,7 @@ fn tick_step_refusal_records_telemetry_and_no_evaluation() {
 fn boundary_freeze_refusal_carries_the_boundary_evidence() {
     let corpus = target_corpus();
     let draws = target_draws();
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
     let mut declared = target_options(1.0);
     // A spread floor no healthy constellation reaches, so the gauge freeze refuses at the
     // boundary - a data-dependent refusal admission cannot see.
@@ -1482,7 +1482,7 @@ fn boundary_freeze_refusal_carries_the_boundary_evidence() {
 fn the_ruler_re_freezes_from_the_recorded_boundary_field() {
     let corpus = target_corpus();
     let draws = target_draws();
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
     let declared = target_options(1.0);
 
     let fitted = fit(
@@ -1553,7 +1553,7 @@ fn zero_activation_reads_the_estimand_and_adds_no_force() {
     let draws = target_draws();
 
     let run = |activation: f32, penalty: Penalty| {
-        let options = options(schedule(12, 6, 4));
+        let options = options(schedule(nz!(12), 6, nz!(4)));
         let mut declared = target_options(activation);
         declared.penalty = penalty;
         fit(
@@ -1602,13 +1602,13 @@ fn zero_activation_reads_the_estimand_and_adds_no_force() {
         "the two penalties should read different estimands"
     );
     assert_eq!(
-        project(&inert.model, &corpus, non_negative!(0.0)),
-        project(&swapped.model, &corpus, non_negative!(0.0)),
+        project(&inert.projector, &corpus, non_negative!(0.0)),
+        project(&swapped.projector, &corpus, non_negative!(0.0)),
         "zero activation should train the identical model under either penalty"
     );
     assert_eq!(
-        project(&inert.model, &corpus, non_negative!(1.0)),
-        project(&swapped.model, &corpus, non_negative!(1.0)),
+        project(&inert.projector, &corpus, non_negative!(1.0)),
+        project(&swapped.projector, &corpus, non_negative!(1.0)),
     );
 }
 
@@ -1631,7 +1631,7 @@ fn every_target_misconfiguration_refuses_at_admission() {
 
     // A forceless corpus declares no unit population.
     let vacuous = semantic_corpus();
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
     assert_eq!(
         refusal(
             &target_inputs(&vacuous, &draws, target_options(1.0)),
@@ -1653,7 +1653,7 @@ fn every_target_misconfiguration_refuses_at_admission() {
 
     // A schedule whose boundary equals the run length never freezes a reference.
     let mut unopened = options;
-    unopened.schedule = schedule(12, 12, 4);
+    unopened.schedule = schedule(nz!(12), 12, nz!(4));
     assert_matches!(refusal(&inputs, &unopened), TrainError::Ruler(_));
 
     // A canonical step outside the curriculum names itself.
@@ -1695,7 +1695,7 @@ fn every_target_misconfiguration_refuses_at_admission() {
 #[test]
 fn every_split_population_overlap_refuses_at_admission() {
     let corpus = target_corpus();
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
 
     let refusal = |inputs: &TrainerInputs<'_, NodeRowId, EdgeRowId>| {
         fit(
@@ -1765,7 +1765,7 @@ fn resumed_target_ladder_freezes_the_bit_equal_references() {
     let corpus = target_corpus();
     let draws = target_draws();
     let inputs = target_inputs(&corpus, &draws, target_options(1.0));
-    let options = options(schedule(12, 6, 4));
+    let options = options(schedule(nz!(12), 6, nz!(4)));
 
     let straight = fit(
         model(),
@@ -1826,8 +1826,8 @@ fn resumed_target_ladder_freezes_the_bit_equal_references() {
     assert_eq!(straight_target.estimands, resumed_target.estimands);
     assert_eq!(straight_target.evaluations, resumed_target.evaluations);
     assert_eq!(
-        project(&resumed.model, &corpus, non_negative!(1.0)),
-        project(&straight.model, &corpus, non_negative!(1.0)),
+        project(&resumed.projector, &corpus, non_negative!(1.0)),
+        project(&straight.projector, &corpus, non_negative!(1.0)),
         "the straight and resumed target runs should train bit-equal frames"
     );
 }

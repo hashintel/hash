@@ -11,10 +11,10 @@ use core::{borrow::Borrow, pin::pin};
 use std::io::{BufWriter, Write as _};
 
 use futures::TryStreamExt as _;
-use hashql_core::id::{Id as _, IdVec};
+use hashql_core::id::IdVec;
 use smallvec::SmallVec;
 use tracing::Instrument as _;
-use zerocopy::{IntoBytes as _, LE, U64};
+use zerocopy::IntoBytes as _;
 
 use super::{
     FitConfig, Stage,
@@ -34,7 +34,10 @@ use crate::{
         digest_file,
         generation::{Generation, ScratchDirectory, StagedGeneration},
         repository::{Artifact as _, Binding},
-        salt::artifact,
+        salt::{
+            artifact,
+            metadata::{Reproducibility, Snapshot},
+        },
     },
     identity::{NodeRowId, OntologyRowId},
     math::AlignedVecN,
@@ -46,6 +49,7 @@ use crate::{
         relation::RelationConfidence,
     },
 };
+
 /// Everything one fit's ingest produced.
 ///
 /// The staged stream artifacts, the snapshot the metadata records, and the passed admission
@@ -82,6 +86,35 @@ pub(super) struct Ingested {
     pub cards: CardArtifacts,
     /// The passed representation-contract spot check.
     pub norm: norm::NormSpotCheck,
+}
+
+impl Ingested {
+    /// The metadata document's `snapshot` section: the corpus this ingest observed.
+    pub(super) const fn snapshot(&self) -> Snapshot {
+        Snapshot {
+            axes: self.axes,
+            nodes: self.nodes,
+            edges: self.edges,
+            ontology_types: self.cards.types,
+        }
+    }
+
+    /// The metadata document's `reproducibility` section: the configuration and provenance the
+    /// fit ran under.
+    ///
+    /// With [`snapshot`](Self::snapshot) it forms the paired-movement salt preimage, so the
+    /// readout's draw replays from the published document's input sections alone.
+    pub(super) const fn reproducibility(
+        &self,
+        config: FitConfig,
+        prior: Option<&Generation>,
+    ) -> Reproducibility {
+        Reproducibility {
+            config,
+            embedder: self.fingerprint,
+            prior: prior.map(Generation::id),
+        }
+    }
 }
 
 /// Drains the dataset into the staged stream artifacts.
@@ -305,13 +338,7 @@ where
     let mut stream = pin!(dataset.edges());
     while let Some(edge) = stream.try_next().await.map_err(FitError::Dataset)? {
         let row = ids.push(edge.id);
-        endpoints.write_row(
-            [
-                U64::<LE>::new(edge.source.as_u64()),
-                U64::<LE>::new(edge.target.as_u64()),
-            ]
-            .as_bytes(),
-        )?;
+        endpoints.write_row([edge.source, edge.target].as_bytes())?;
 
         let confidence = RelationConfidence {
             link: edge.confidence,
@@ -329,8 +356,9 @@ where
             }
             multi_typed[slot] += 1;
         }
+
         for &relation in &edge.ontology {
-            relations.insert(relation.as_u64());
+            relations.insert(relation);
             spool.push(InstanceRecord::new(
                 row,
                 relation,
@@ -358,7 +386,7 @@ where
 
     Ok(EdgeArtifacts {
         edges: ids.len(),
-        relations: relations.into_iter().map(OntologyRowId::new).collect(),
+        relations: relations.into_iter().collect(),
         identities,
         endpoints: Binding::new(digest),
         instances,

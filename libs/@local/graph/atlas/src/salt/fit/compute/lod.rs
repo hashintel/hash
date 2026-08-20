@@ -77,7 +77,7 @@ where
     /// Returns [`ComputeError::WireEncoding`] when the rank inputs refuse their domains, and
     /// [`ComputeError::Lod`], [`ComputeError::Quad`] or [`ComputeError::Postings`] when a build
     /// rejects its input.
-    #[tracing::instrument(name = "lod", skip_all)]
+    #[tracing::instrument(skip_all)]
     pub(super) fn run(self, config: &FitConfig) -> Result<Delivery, ComputeError> {
         let rows = self.coordinates.len();
         let importance = match config.ranking {
@@ -141,7 +141,7 @@ impl Delivery {
     /// # Errors
     ///
     /// Returns an error when a staged column does not write.
-    #[tracing::instrument(name = "lod-artifacts", skip_all)]
+    #[tracing::instrument(skip_all)]
     pub(super) fn stage(self, staging: &StagedGeneration) -> Result<StagedDelivery, ComputeError> {
         let Self {
             lod,

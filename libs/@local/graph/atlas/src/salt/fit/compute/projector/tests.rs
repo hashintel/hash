@@ -14,11 +14,12 @@ use super::{
     super::{
         super::{ProjectorOptions, Stage, stage_rng},
         Context,
+        landmark::LandmarkSurvey,
         quotient::{DistinctRowId, Quotient},
     },
-    StagedPlacement,
-    inputs::PublishInputs,
-    report::{loss_regressions, relation_loss},
+    PlacementPass,
+    inputs::{DistinctInputs, PlacementInputs, VerdictResolution},
+    report::{LossSeries, RelationLossReadout},
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
@@ -40,6 +41,7 @@ use crate::{
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, FinitePointField, NonNegative, Positive, Similarity,
         UnitFraction, Vec2, d_non_negative, d_positive, non_negative, open_unit_fraction, positive,
+        positive_unit_fraction,
     },
     salt::{
         embedding::EmbedderFingerprint,
@@ -54,8 +56,8 @@ use crate::{
             model::{Architecture, NodeRole, Projector},
             scale::LocalScales,
             train::{
-                BoundaryEvidence, FrozenRadius, NodeColumns, RefreshFraction, RelationLens,
-                TrainingSchedule, refresh,
+                BoundaryEvidence, BudgetBreakdown, FrozenRadius, Model, NodeColumns,
+                RefreshFraction, RelationLens, TrainingEvidence, TrainingSchedule, refresh,
             },
             verdict::calibrate::{
                 ProximalCalibration,
@@ -66,6 +68,7 @@ use crate::{
             Policies, RelationConfidence, RelationIndexes, RelationInstance, RelationPolicy,
             attraction::AttractionOptions,
         },
+        semantic::SemanticGraph,
     },
 };
 
@@ -86,7 +89,9 @@ fn loss_regression_even_odd_transition() {
         d_non_negative!(0.5),
     ];
 
-    let regressions: Vec<_> = loss_regressions(&conditions, &losses).collect();
+    let regressions: Vec<_> = LossSeries::new(&conditions, losses.to_vec())
+        .regressions()
+        .collect();
 
     assert_eq!(regressions.len(), 1);
     let regression = &regressions[0];
@@ -115,7 +120,9 @@ fn loss_regression_final_odd_transition() {
         d_non_negative!(0.5),
     ];
 
-    let regressions: Vec<_> = loss_regressions(&conditions, &losses).collect();
+    let regressions: Vec<_> = LossSeries::new(&conditions, losses.to_vec())
+        .regressions()
+        .collect();
 
     assert_eq!(regressions.len(), 1);
     let regression = &regressions[0];
@@ -130,7 +137,9 @@ fn loss_regression_zero_predecessor() {
     let conditions = [non_negative!(0.0), non_negative!(1.0)];
     let losses = [d_non_negative!(0.0), d_non_negative!(1.0)];
 
-    let regressions: Vec<_> = loss_regressions(&conditions, &losses).collect();
+    let regressions: Vec<_> = LossSeries::new(&conditions, losses.to_vec())
+        .regressions()
+        .collect();
 
     assert_eq!(regressions.len(), 1);
     assert_eq!(regressions[0].delta, d_positive!(1.0));
@@ -299,7 +308,7 @@ fn skinny_options() -> ProjectorOptions {
         nonzero(1),
         0,
         nonzero(1),
-        UnitFraction::new(1.0e-3).expect("the fixture initial rate is a unit fraction"),
+        positive_unit_fraction!(1.0e-3),
         UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction"),
     )
     .expect("the fixture schedule is valid");
@@ -501,8 +510,10 @@ fn capped_estimand_draw_probability() {
     .energy(&skinny_options().lens)
     .expect("a measured radius composes an energy");
 
-    let biting = relation_loss(frame, &scales, &indexes.attraction, energy, nonzero(1));
-    let covering = relation_loss(frame, &scales, &indexes.attraction, energy, nonzero(2));
+    let biting =
+        RelationLossReadout::measure(frame, &scales, &indexes.attraction, energy, nonzero(1));
+    let covering =
+        RelationLossReadout::measure(frame, &scales, &indexes.attraction, energy, nonzero(2));
 
     // Neither the shares nor the uncapped total depend on the cap.
     assert_eq!(biting.per_type, covering.per_type);
@@ -665,14 +676,6 @@ fn publish_vacuous_baseline() {
     let indexes = distinct_indexes();
     let snapshot = snapshot();
     let reproducibility = reproducibility();
-    let inputs = PublishInputs {
-        quotient: &quotient,
-        knn: knn.view(),
-        attraction: &indexes.attraction,
-        unresolved_verdicts: 3,
-        snapshot: &snapshot,
-        reproducibility: &reproducibility,
-    };
     let roles = vec![NodeRole::KnowledgeEntity; ROWS];
     let columns = || NodeColumns {
         representations: rows,
@@ -694,19 +697,47 @@ fn publish_vacuous_baseline() {
         device,
     };
 
-    let boundary = vacuous_boundary();
-    let artifacts = StagedPlacement::publish(
-        &context,
-        &options,
-        &inputs,
-        columns(),
-        &model,
-        Some(&boundary),
-        &[],
-    )
-    .expect("the publish half should stage");
+    let semantic = SemanticGraph::build(&knn.view(), context.config.smoothing);
+    let skeleton = LandmarkSurvey::new(&context, &quotient, &semantic, None)
+        .run()
+        .expect("the fixture corpus builds a skeleton")
+        .value;
+    let resolution = VerdictResolution {
+        resolved: Vec::new(),
+        unresolved: 3,
+    };
+    let placement_inputs = PlacementInputs {
+        skeleton: &skeleton,
+        resolution: &resolution,
+        snapshot: &snapshot,
+        reproducibility: &reproducibility,
+        distinct: DistinctInputs {
+            quotient: &quotient,
+            knn: &knn,
+            semantic: &semantic,
+            indexes: &indexes,
+        },
+    };
+    let artifacts = PlacementPass::new(&context, &placement_inputs)
+        .expect("the ratified placement configuration resolves")
+        .publish(
+            &options,
+            Model {
+                projector: model.clone(),
+                evidence: TrainingEvidence {
+                    boundary: Some(vacuous_boundary()),
+                    budget: BudgetBreakdown::default(),
+                    losses: Vec::new(),
+                    telemetry: Vec::new(),
+                    fractions: Vec::new(),
+                    target: None,
+                },
+            },
+            columns(),
+        )
+        .expect("the publish half should stage");
 
-    assert_eq!(artifacts.placement, Placement::Projector);
+    assert_eq!(artifacts.kind, Placement::Projector);
     assert!(artifacts.checkpoint.is_some());
     let evidence = artifacts
         .evidence
@@ -770,14 +801,6 @@ fn publish_measured_aligned_canonical() {
     let indexes = distinct_indexes();
     let snapshot = snapshot();
     let reproducibility = reproducibility();
-    let inputs = PublishInputs {
-        quotient: &quotient,
-        knn: knn.view(),
-        attraction: &indexes.attraction,
-        unresolved_verdicts: 0,
-        snapshot: &snapshot,
-        reproducibility: &reproducibility,
-    };
     let roles = vec![NodeRole::KnowledgeEntity; ROWS];
     let columns = || NodeColumns {
         representations: rows,
@@ -799,17 +822,46 @@ fn publish_measured_aligned_canonical() {
         device,
     };
 
+    let semantic = SemanticGraph::build(&knn.view(), context.config.smoothing);
+    let skeleton = LandmarkSurvey::new(&context, &quotient, &semantic, None)
+        .run()
+        .expect("the fixture corpus builds a skeleton")
+        .value;
+    let resolution = VerdictResolution {
+        resolved: Vec::new(),
+        unresolved: 0,
+    };
+    let placement_inputs = PlacementInputs {
+        skeleton: &skeleton,
+        resolution: &resolution,
+        snapshot: &snapshot,
+        reproducibility: &reproducibility,
+        distinct: DistinctInputs {
+            quotient: &quotient,
+            knn: &knn,
+            semantic: &semantic,
+            indexes: &indexes,
+        },
+    };
     let boundary = measured_boundary();
-    let artifacts = StagedPlacement::publish(
-        &context,
-        &options,
-        &inputs,
-        columns(),
-        &model,
-        Some(&boundary),
-        &tick_fractions(),
-    )
-    .expect("the publish half should stage");
+    let artifacts = PlacementPass::new(&context, &placement_inputs)
+        .expect("the ratified placement configuration resolves")
+        .publish(
+            &options,
+            Model {
+                projector: model,
+                evidence: TrainingEvidence {
+                    boundary: Some(measured_boundary()),
+                    budget: BudgetBreakdown::default(),
+                    losses: Vec::new(),
+                    telemetry: Vec::new(),
+                    fractions: tick_fractions().to_vec(),
+                    target: None,
+                },
+            },
+            columns(),
+        )
+        .expect("the publish half should stage");
 
     let evidence = artifacts
         .evidence

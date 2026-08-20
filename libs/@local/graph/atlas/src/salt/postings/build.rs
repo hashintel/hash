@@ -104,7 +104,7 @@ impl Postings {
         reason = "the Result carries domain errors; mismatched columns and unsorted streams are \
                   caller contract violations, documented under Panics"
     )]
-    #[tracing::instrument(name = "postings", skip_all)]
+    #[tracing::instrument(skip_all)]
     pub(crate) fn build(
         types: &IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
         row_of_position: &IdSlice<BasePosition, NodeRowId>,

@@ -7,7 +7,7 @@
 use core::num::NonZero;
 
 use crate::{
-    math::{NonNegative, Positive, UnitFraction},
+    math::{NonNegative, Positive, PositiveUnitFraction, UnitFraction},
     salt::projector::{
         budget::Budget,
         loss::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy, SupportOptions},
@@ -24,7 +24,7 @@ pub(crate) struct TrainingSchedule {
     steps: NonZero<usize>,
     boundary: usize,
     refresh_interval: NonZero<usize>,
-    initial_learning_rate: UnitFraction,
+    initial_learning_rate: PositiveUnitFraction,
     minimum_learning_rate: UnitFraction,
 }
 
@@ -44,14 +44,15 @@ impl TrainingSchedule {
         steps: NonZero<usize>,
         boundary: usize,
         refresh_interval: NonZero<usize>,
-        initial_learning_rate: UnitFraction,
+        initial_learning_rate: PositiveUnitFraction,
         minimum_learning_rate: UnitFraction,
     ) -> Option<Self> {
-        let rates = initial_learning_rate > 0.0 && minimum_learning_rate <= initial_learning_rate;
+        let rates = minimum_learning_rate <= initial_learning_rate;
 
         if !(boundary <= steps.get() && rates) {
             return None;
         }
+
         Some(Self {
             steps,
             boundary,
@@ -85,15 +86,15 @@ impl TrainingSchedule {
     /// Returns the cosine schedule's opening learning rate.
     #[inline]
     #[must_use]
-    pub(crate) const fn initial_learning_rate(self) -> f64 {
-        self.initial_learning_rate.get()
+    pub(crate) const fn initial_learning_rate(self) -> PositiveUnitFraction {
+        self.initial_learning_rate
     }
 
     /// Returns the cosine schedule's floor learning rate.
     #[inline]
     #[must_use]
-    pub(crate) const fn minimum_learning_rate(self) -> f64 {
-        self.minimum_learning_rate.get()
+    pub(crate) const fn minimum_learning_rate(self) -> UnitFraction {
+        self.minimum_learning_rate
     }
 }
 

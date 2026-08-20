@@ -48,7 +48,7 @@ use core::{error::Error, fmt, num::NonZero};
 pub(crate) use self::{
     batch::{NodeColumns, SupportAnchor},
     fit::{
-        BoundaryEvidence, BoundaryState, FitOutcome, Fitted, FrozenRadius, RefreshFraction,
+        BoundaryEvidence, BoundaryState, FitOutcome, FrozenRadius, Model, RefreshFraction,
         RelationLens, TrainError, TrainOptions, TrainerInputs, TrainerOptimizerRecord,
         TrainingSchedule, fit,
     },

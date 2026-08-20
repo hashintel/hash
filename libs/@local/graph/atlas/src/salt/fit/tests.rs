@@ -13,8 +13,7 @@ use zerocopy::{LE, TryFromBytes as _, U64};
 use super::{
     ClassifierInput, FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions,
     SuppliedAnnotations, SuppliedVerdicts, Supplies,
-    compute::{ComputeError, resolve_supplied},
-    error::PlacementError,
+    compute::{ComputeError, ProjectorError, VerdictResolution},
     fit,
     prepare::identity::{IdentityTable, IdentityTableArchive},
 };
@@ -47,7 +46,7 @@ use crate::{
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN,
         d_non_negative, d_positive, greater_than_one, non_negative, open_unit_fraction, positive,
-        unit_fraction,
+        positive_unit_fraction, unit_fraction,
     },
     postgres::id::ArchivedOntologyTypeUuid,
     progress::NoProgress,
@@ -1455,8 +1454,8 @@ fn minimal_schedule() -> TrainingSchedule {
         NonZero::new(1).expect("the fixture step count is nonzero"),
         0,
         NonZero::new(1).expect("the fixture cadence is nonzero"),
-        UnitFraction::new(1.0e-3).expect("the fixture initial rate is a unit fraction"),
-        UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction"),
+        positive_unit_fraction!(1.0e-3),
+        unit_fraction!(1.0e-5),
     )
     .expect("the fixture schedule is valid")
 }
@@ -1482,8 +1481,8 @@ fn projector_options() -> ProjectorOptions {
         NonZero::new(12).expect("the fixture step count is nonzero"),
         6,
         NonZero::new(4).expect("the fixture cadence is nonzero"),
-        UnitFraction::new(1.0e-3).expect("the fixture initial rate is a unit fraction"),
-        UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction"),
+        positive_unit_fraction!(1.0e-3),
+        unit_fraction!(1.0e-5),
     )
     .expect("the fixture schedule is valid");
     options.plan = BatchPlan {
@@ -2082,8 +2081,8 @@ async fn vacuous_placement_trains_without_reviews() {
     assert!(
         matches!(
             result,
-            Err(FitError::Compute(ComputeError::Placement(
-                PlacementError::Train(TrainError::MissingProximalReviews)
+            Err(FitError::Compute(ComputeError::Projector(
+                ProjectorError::Train(TrainError::MissingProximalReviews)
             ))),
         ),
         "proximal force without reviews should refuse",
@@ -2210,8 +2209,8 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
     assert!(
         matches!(
             result,
-            Err(FitError::Compute(ComputeError::Placement(
-                PlacementError::Canonical(CanonicalError::UnknownStep { .. })
+            Err(FitError::Compute(ComputeError::Projector(
+                ProjectorError::Canonical(CanonicalError::UnknownStep { .. })
             ))),
         ),
         "an off-schedule canonical condition should abort the fit",
@@ -2577,7 +2576,7 @@ fn store_identity_verdicts_resolve_by_reviewed_version() {
     let supplied = SuppliedVerdicts::from_bytes(document.as_bytes())
         .expect("a contract-conforming document admits");
 
-    let resolution = resolve_supplied::<ArchivedOntologyTypeUuid>(&path, &supplied)
+    let resolution = VerdictResolution::resolve_at::<ArchivedOntologyTypeUuid>(&path, &supplied)
         .expect("a store-identity column resolves");
 
     assert_eq!(resolution.unresolved, 2);
@@ -2609,7 +2608,7 @@ fn plain_number_corpus_resolves_the_memory_scheme() {
     let supplied = SuppliedVerdicts::from_bytes(document.as_bytes())
         .expect("a contract-conforming document admits");
 
-    let resolution = resolve_supplied::<MemoryOntologyId>(&path, &supplied)
+    let resolution = VerdictResolution::resolve_at::<MemoryOntologyId>(&path, &supplied)
         .expect("a plain-number corpus resolves the memory scheme");
 
     assert_eq!(resolution.resolved.len(), 1);
