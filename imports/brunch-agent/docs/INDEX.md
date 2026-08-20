@@ -2,8 +2,9 @@
 
 One line per document: what it is, where it lives, where it's used. Protocol:
 [`docs/agents/documentation.md`](agents/documentation.md). Statuses: `inbox` (awaiting
-settlement) · `active` (artifact of a live effort) · `settled` (permanent home) · `external`
-(canonical copy lives outside the repo).
+settlement) · `active` (artifact of a live effort) · `settled` (permanent home) · `superseded`
+(retained history replaced by newer canon) · `accepted` (ratified ADR) · `external` (canonical
+copy lives outside the repo).
 
 ## Inbox (awaiting settlement)
 
@@ -37,7 +38,8 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 
 | Document | Status | Linear | Digest |
 | --- | --- | --- | --- |
-| [recommendation-demo-vehicle](planning/process-model-elicitation/recommendation-demo-vehicle.md) | active | linked from FE-1362/1328/1329/1331/1333 | Demo-vehicle recommendation: demo shell + artifact boundary; evidence for 18 Aug discussion |
+| [recommendation-demo-vehicle](planning/process-model-elicitation/recommendation-demo-vehicle.md) | superseded | linked from FE-1362/1328/1329/1331/1333 | Demo-vehicle recommendation: demo shell + artifact boundary; superseded by ADR-0004 (18 Aug meeting chose in-Petrinaut staging) |
+| [petrinaut-integration-spec](planning/process-model-elicitation/petrinaut-integration-spec.md) | active | FE-1433 | Integration spec: elicitor as remote server behind the `aiAssistant` transport; suspension-borne client tools; `transport-aisdk`; principal + owner key; two gating spikes |
 | [notes/grilling-inputs-2026-08-12](planning/process-model-elicitation/notes/grilling-inputs-2026-08-12.md) | active | referenced from map | Session carryover: destination trend, facets/motions, Dora-checklist validate table |
 | [notes/expert-meeting-prep](planning/process-model-elicitation/notes/expert-meeting-prep-2026-08-11.md) | active | referenced from map | Prep brief for the Yannis meeting |
 | [notes/expert-meeting-findings](planning/process-model-elicitation/notes/expert-meeting-findings-2026-08-11.md) | active | referenced from map | Meeting findings: 5 facts, 7 idea seeds, 2 commitments |
@@ -86,6 +88,7 @@ of what was decided in August, and the ADR is how a later change is recorded.
 | [0001-brunch-is-the-product-name](adr/0001-brunch-is-the-product-name.md) | accepted | FE-1388 | `brunch` settles as the product name and may appear in structure: `brunch_*` tools, `@brunch/*` scope, `brunch-gherkin-elicitor` agent identity. Supersedes spec §12.3's `bl_*` provisional; the ban on function-naming (`elicit_*`) survives |
 | [0002-topology-and-placement-rules](adr/0002-topology-and-placement-rules.md) | accepted | FE-1401; FE-1422 is its one code change | The three-lane topology and placement rules N1–N6 ratified (topology.md stays the living reference); N2/N5 to become boundary gates |
 | [0003-three-register-ir](adr/0003-three-register-ir.md) | accepted | FE-1405 | The IR is the elicited conceptual model, derived by a pure fold — three registers (assertions / model / projections); write-time-only semantics; promotion never refusal; amends ir-design.md Layer A's definition sentence; full FE-1397-style pass is a stated condition |
+| [0004-in-petrinaut-staging-and-the-monorepo-import](adr/0004-in-petrinaut-staging-and-the-monorepo-import.md) | accepted | FE-1433 | September demo stages inside demo.petrinaut.org; library becomes `@hashintel/brunch-agent` in `hashintel/hash`; boundary discipline (apps are the only meeting point); ui-shell principal; amends N3, supersedes the demo-shell recommendation |
 
 ## External canonical documents
 
