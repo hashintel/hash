@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { formInputSizes, type FormInputSize } from "../../util/form-shared";
 import { SortMenu } from "./sort-menu";
 import { type SortDirection, type Sorter } from "./sort-menu-util";
 
@@ -40,6 +41,7 @@ const Example = ({
   containerMaxWidth,
   searchable,
   renderTrigger,
+  size,
 }: {
   /** Shown above the menu; used for columns within a multi-example row */
   columnLabel?: string;
@@ -54,6 +56,7 @@ const Example = ({
         sorter: Sorter<Key> | undefined,
         direction: SortDirection | undefined,
       ) => React.ReactElement);
+  size?: FormInputSize;
 }) => {
   const [value, setValue] = useState<Value | undefined>(initialValue);
 
@@ -64,6 +67,7 @@ const Example = ({
       onChange={(sortKey, direction) => setValue({ sortKey, direction })}
       searchable={searchable}
       renderTrigger={renderTrigger}
+      size={size}
     />
   );
 
@@ -114,7 +118,7 @@ const Row = ({
   </>
 );
 
-export const Default: Story = () => (
+const Grid = ({ children }: { children: React.ReactNode }) => (
   <div
     style={{
       display: "grid",
@@ -124,6 +128,12 @@ export const Default: Story = () => (
       alignItems: "end",
     }}
   >
+    {children}
+  </div>
+);
+
+export const Default: Story = () => (
+  <Grid>
     <Row label="Default trigger">
       <Example columnLabel="No value selected" />
       <Example
@@ -180,5 +190,20 @@ export const Default: Story = () => (
         containerMaxWidth={200}
       />
     </Row>
-  </div>
+  </Grid>
+);
+
+export const Sizes: Story = () => (
+  <Grid>
+    <Row label="Default variant">
+      {formInputSizes.map((size) => (
+        <Example
+          key={size}
+          columnLabel={size}
+          size={size}
+          initialValue={{ sortKey: "name", direction: "ASCENDING" }}
+        />
+      ))}
+    </Row>
+  </Grid>
 );
