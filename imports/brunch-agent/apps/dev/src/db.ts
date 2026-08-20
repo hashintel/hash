@@ -13,5 +13,6 @@
  */
 
 import { sqlite } from '@flue/runtime/node';
+import { conversationDbPath } from './db-path.ts';
 
-export default sqlite(process.env.BRUNCH_DEV_DB_PATH ?? './.data-wipe-me/conversations.db');
+export default sqlite(conversationDbPath());

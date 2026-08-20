@@ -138,6 +138,25 @@ export function filesIn(dir: string, skip: readonly string[] = SKIP_DIRECTORIES)
 }
 
 /**
+ * Every file of a package, partitioned into source and test — totally: a file
+ * under a test directory at any depth is a test file, and every other file is
+ * source. One walk feeding both sides is what makes the partition total by
+ * construction. The previous pair of independent walks left a hole (pruning
+ * test dirs at any depth on one side, collecting only top-level test dirs on
+ * the other), so a file in e.g. `src/test/` was governed by neither the
+ * source invariants nor the test-hermeticity rules.
+ */
+function partitionedFiles(pkg: WorkspacePackage): { source: SourceFile[]; test: SourceFile[] } {
+  const source: SourceFile[] = [];
+  const test: SourceFile[] = [];
+  for (const file of filesIn(pkg.path)) {
+    const segments = relative(pkg.path, file.path).split(/[/\\]/);
+    (segments.some((segment) => TEST_DIRECTORIES.includes(segment)) ? test : source).push(file);
+  }
+  return { source, test };
+}
+
+/**
  * A package's own source files — everything it ships, wherever it puts them.
  *
  * Deliberately not `src/`-only: keying the scan off a directory convention
@@ -146,12 +165,12 @@ export function filesIn(dir: string, skip: readonly string[] = SKIP_DIRECTORIES)
  * Tests are excluded because they are governed by their own rules.
  */
 export function sourceFiles(pkg: WorkspacePackage): SourceFile[] {
-  return filesIn(pkg.path, [...SKIP_DIRECTORIES, ...TEST_DIRECTORIES]);
+  return partitionedFiles(pkg).source;
 }
 
-/** Every test file belonging to a package. */
+/** Every test file belonging to a package, at any depth. */
 export function testFiles(pkg: WorkspacePackage): SourceFile[] {
-  return TEST_DIRECTORIES.flatMap((dir) => filesIn(join(pkg.path, dir)));
+  return partitionedFiles(pkg).test;
 }
 
 /**
@@ -165,12 +184,30 @@ export function testFiles(pkg: WorkspacePackage): SourceFile[] {
  * must still be detected, so the first-statement invariant in
  * `test/boundaries.test.ts` can fail it loudly instead of never seeing it.
  */
-const AGENT_DIRECTIVE_STATEMENT = /^\s*(['"])use agent\1;?\s*(?:$|\/\/|\/\*)/m;
+export const AGENT_DIRECTIVE_STATEMENT = /^\s*(['"])use agent\1;?\s*(?:$|\/\/|\/\*)/m;
 
 /** Whether a file declares itself an agent module (well-placed or not). */
 export function isAgentModule(file: SourceFile): boolean {
   return AGENT_DIRECTIVE_STATEMENT.test(file.text);
 }
+
+/**
+ * The pinned identities a file assigns, extracted by the one pattern both
+ * suites share: `test/boundaries.test.ts` checks each identity is never
+ * duplicated in source, `test/build-artifact.test.ts` checks each is bound in
+ * the emitted bundle. Two hand-copies of the regex would let the two checks
+ * silently diverge on what counts as an identity.
+ */
+export function pinnedIdentities(file: SourceFile): string[] {
+  return [...file.text.matchAll(/\w+\.agentName\s*=\s*'([^']+)'/g)].map((match) => match[1]!);
+}
+
+/**
+ * A model-key environment variable name, as a pattern source for callers to
+ * anchor or extend. Composed rather than written literally, so the hermeticity
+ * check that reuses it does not flag this file's own source.
+ */
+export const MODEL_KEY_NAME = `[A-Z_]*${'API'}_${'KEY'}`;
 
 /** Every agent module a package ships. */
 export function agentModules(pkg: WorkspacePackage): SourceFile[] {

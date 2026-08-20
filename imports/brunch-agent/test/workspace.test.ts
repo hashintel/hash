@@ -11,8 +11,17 @@
  * of escaping it.
  */
 
-import { describe, expect, test } from 'bun:test';
-import { isAgentModule, type SourceFile } from './workspace.ts';
+import { afterAll, describe, expect, test } from 'bun:test';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, join, relative } from 'node:path';
+import {
+  isAgentModule,
+  sourceFiles,
+  testFiles,
+  type SourceFile,
+  type WorkspacePackage,
+} from './workspace.ts';
 
 const file = (text: string): SourceFile => ({
   path: '/fake/module.ts',
@@ -58,5 +67,39 @@ describe('isAgentModule', () => {
 
   test('quotes must match', () => {
     expect(isAgentModule(file('\'use agent";\nexport {};\n'))).toBe(false);
+  });
+});
+
+describe('the source/test partition is total', () => {
+  // A real directory rather than fakes, because the property under test is the
+  // walk itself: the FE-1400 review's verified escape was a file in a *nested*
+  // test directory (`src/test/`), pruned by the source walk but never collected
+  // by the old top-level-only test walk — governed by nothing.
+  const dir = mkdtempSync(join(tmpdir(), 'brunch-partition-'));
+  mkdirSync(join(dir, 'src/test'), { recursive: true });
+  mkdirSync(join(dir, '__tests__'));
+  writeFileSync(join(dir, 'src/index.ts'), 'export {};\n');
+  writeFileSync(join(dir, 'src/test/nested.ts'), 'export {};\n');
+  writeFileSync(join(dir, '__tests__/top.test.ts'), 'export {};\n');
+  const pkg: WorkspacePackage = {
+    name: '@brunch/fixture',
+    dir: basename(dir),
+    path: dir,
+    relPath: `packages/${basename(dir)}`,
+    kind: 'package',
+    manifest: { name: '@brunch/fixture' },
+  };
+
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  test('every file is exactly one of source or test — nested test dirs included', () => {
+    const source = sourceFiles(pkg)
+      .map((f) => relative(dir, f.path))
+      .sort();
+    const test = testFiles(pkg)
+      .map((f) => relative(dir, f.path))
+      .sort();
+    expect(source).toEqual(['src/index.ts']);
+    expect(test).toEqual(['__tests__/top.test.ts', 'src/test/nested.ts']);
   });
 });

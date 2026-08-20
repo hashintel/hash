@@ -1,3 +1,188 @@
+# COATINGS PLANT SCHEDULING MODEL — FINAL DELIVERABLE
+
+Complete and self-contained. Hand Section A to your modelling person; keep Section B for yourself.
+
+---
+
+# A. THE MODEL
+
+A **coloured, timed Petri net with priority-resolved conflicts**. Tokens are *batches*; token colours carry order attributes; transitions are timed; shared resources and calendars are capacity-limited places.
+
+## A.0 Experiment switches
+
+| Switch | Values | Default | Purpose |
+|---|---|---|---|
+| `TIME_BASIS` | `SHEET` / `GUT` | `GUT` | Matrix standard times vs your padding |
+| `CO_GRANULARITY` | `WHOLE_LINE` / `CASCADE` / `SPLIT_BY_SIZE` | `SPLIT_BY_SIZE` | Whole-line for washdowns ≥2 h, cascade for rinses <1 h *(unresolved)* |
+| `CREW_MODE` | `ONE_SERVER` / `SPLIT_ON_RINSE` | `ONE_SERVER` | Can the two techs run two rinses at once *(unresolved)* |
+| `RELEASE_POLICY` | `TRUCK_CONFIRMED` / `STANDING_MERIDIAN` | `TRUCK_CONFIRMED` | The logistics lever |
+| `SAT_LAB_COVER` | `OFF` / `ON` | `OFF` | Does Saturday OT include a lab analyst |
+| `SEQ_RULE` | `CAMPAIGN_FIRST` / `DUE_DATE_FIRST` / `CAMPAIGN_WITH_MERIDIAN_OVERRIDE` | `CAMPAIGN_FIRST` | Your current policy is default |
+| `EOW_CHARGE` | `ON` / `OFF` | `ON` | End-of-week dirty-line charge; OFF lets the model cheat |
+
+## A.1 Colour sets
+
+```
+FAMILY  = { WHITE, TINT, SPECIALTY }
+DEPTH   = { NA, LIGHT, DARK }
+ACCOUNT = { MERIDIAN, OTHER }
+LINE    = { L1, L2, L3 }
+
+SKU     = { skuId, family, depth, meridianQual, l3Qual }
+ORDER   = { oid, account, sku, qty, bookTime, releaseTime, promiseTime,
+            wholeWeek, line, nBatches }
+BATCH   = { oid, idx, of, units, sku, account, promiseTime, testFlag, startedAt }
+SETUP   = { line, sku, family, depth }
+TECH, ANALYST = unit tokens
+```
+
+## A.2 Places
+
+**Order level:** `P_Book` → `P_Allocated` → `P_Releasable` → `P_OrderDone` → `P_Shipped` (all ∞).
+
+**Per line L ∈ {L1,L2,L3}:**
+
+| Place | Cap |
+|---|---|
+| `P_MixQueue_L` | ∞ |
+| `P_Mixing_L` | 1 |
+| `P_Tank_MixMill_L` | TANKCAP |
+| `P_Milling_L` | 1 |
+| `P_Tank_MillFill_L` | **L1 = 1** (your backup), L2/L3 = 2 |
+| `P_Tinting_L` | 1 |
+| `P_Tank_TintFill_L` | TANKCAP |
+| `P_Filling_L` | 1 |
+| `P_SetupState_L` | 1 (what the line is dressed for) |
+| `P_LineIdleClean_L` | 1 iff all stages empty |
+| `P_LineUp_L` | 1 iff not broken down |
+| `P_ShiftOpen_L` | 1 iff shift manned |
+| `P_COinProgress_L` | 1 during whole-line changeover |
+
+**Shared:** `P_CrewPool` (2 TECH), `P_CrewShift` (1 — its *absence* is the 2 a.m. black hole), `P_QAHold` (∞), `P_LabAnalysts` (2), `P_LabShift` (1 — its absence is the Friday-evening trap), `P_Testing` (2), `P_QAReleased` (∞), `P_JumpBudget` (0.6 tokens/wk).
+
+## A.3 Transitions
+
+### Arrival and release
+
+| Transition | Trigger | Effect |
+|---|---|---|
+| `T_BookLands` | Sun 23:00 weekly | ~40 ORDERs → `P_Book` |
+| `T_Allocate` | Mon 07:00 | Sets `line` (guards below), `nBatches = ceil(qty/VESSEL(line))` → `P_Allocated` |
+| `T_ERPRelease` | at `releaseTime` | → `P_Releasable`. **This transition is what creates your idle-vs-washdown dilemma.** Under `STANDING_MERIDIAN`, Meridian releases at allocation instead |
+| `T_Explode` | line queue accepts | Emits `nBatches` BATCH tokens; sets `testFlag` |
+
+**Hard allocation guards:**
+```
+account = MERIDIAN      ⇒ line = L2        (audit qualification)
+family  = SPECIALTY     ⇒ line = L1        (L2 not piped for clears)
+line    = L3            ⇒ sku.l3Qual       (validated-SKU list)
+```
+
+### Production (per line, per batch)
+
+Paired `T_Start_<stage>_L` / `T_End_<stage>_L`. Start requires: batch available (per `SEQ_RULE`), stage free, `P_SetupState_L` matches SKU, `P_ShiftOpen_L`, `P_LineUp_L`, no `P_COinProgress_L`.
+`T_EndMill_L` **blocks if `P_Tank_MillFill_L` is full** — this reproduces Line 1's mill backup.
+
+**Rates (units/hour):**
+
+| Stage | WHITE | TINT | SPECIALTY |
+|---|---|---|---|
+| Mix (all) | 3600 | 3600 | 3600 |
+| Mill (all) | 2900 | 1450 | 480 (L1) |
+| Tint/letdown | 12000 | 1450 | 2400 |
+| **Fill L1** | **700** | 700 | 650 |
+| **Fill L2** | **950** | 800 | n/a |
+| **Fill L3** | **900** | 800 | n/a |
+
+This reproduces: whites fill-bound, L2 ~35% faster than L1 on whites, **L1 ≈ L2 on tints** (the thing you noticed and couldn't explain), specialty mill-bound.
+
+**Vessels (units/batch):** L1 = 1,100 · L2 = 1,650 · L3 = 1,350 *(the one you said not to quote)*.
+
+**Fill disruption — fat right tail, thin left:**
+```
+Noise      ~ LogNormal(median 1.00, σ 0.06)
+JamAdder   = 0 w.p. .90 ; U(0.33, 0.50) h w.p. .10     (filler jam)
+StallAdder = 0 w.p. .95 ; U(0.25, 1.00) h w.p. .05     (packaging/labels)
+```
+Jams and stalls kept separate — the warehouse restock may be the cheaper fix.
+
+### Changeover
+
+`T_Changeover_L` fires when the next selected batch's SKU ≠ `P_SetupState_L`.
+
+- **WHOLE_LINE** (≥2 h washdowns): requires `P_LineIdleClean_L` (line fully drained) + 2 TECH + `P_CrewShift`.
+- **CASCADE** (<1 h rinses): four sub-transitions `T_CO_{Mix,Mill,Tint,Fill}_L`, each needing only its own stage empty and 1–2 TECH per `CREW_MODE`; the new order follows the cleaning down the line.
+
+**Matrix (hours):**
+
+| From → To | SHEET | GUT |
+|---|---|---|
+| WHITE → WHITE same SKU | 0.25 | 0.25 |
+| WHITE → WHITE diff SKU | 0.42 | 0.42 |
+| WHITE → TINT | 0.75 | 0.75 |
+| TINT → TINT (light→light, dark→dark) | 0.58 | 0.58 |
+| TINT → TINT **dark→light** | 0.58 | **1.25** |
+| **TINT → WHITE** | **3.00** | **3.50** (3.75 after dark) |
+| any ↔ SPECIALTY | 2.00 | 2.00 |
+| L1 multiplier, changeovers ≥2 h | 1.00 | **1.15** |
+
+**The punitive mechanism:** because changeover needs `P_CrewShift`, a line that misses the crew window waits for the crew's **next shift start**, not for the crew to free up. Your Scenario-A Line 1 loses the whole overnight, not two hours. This emerges from the net structure — no special rule.
+
+### QA
+
+| Transition | Requires | Duration |
+|---|---|---|
+| `T_Sample` | batch in `P_QAHold`, ANALYST, `P_LabShift` | WHITE 3.5 h / TINT 4.0 / SPECIALTY 5.0, LogNormal σ 0.25 |
+| `T_Release` | test done | instant |
+| `T_Jump` | Meridian-critical + jump token | Front of queue, **non-preemptive**; `P(refuse) = min(0.8, 0.15 × jumps_this_month)` |
+
+**Sampling:** first batch always, every 3rd thereafter, **last batch always** — this is what makes an order hostage to its last batch.
+
+### Ship, score, break
+
+`T_OrderComplete` (all batches released) → `T_Ship` (at truck departure) → `T_ScoreOrder`.
+`T_EndOfWeekCharge` fires Fri 22:00, charging each line for the changeover Monday's first job would need.
+
+| Breakdown | Rate | Duration |
+|---|---|---|
+| Major outage (mill-motor class), removes `P_LineUp_L` | 0.038/line-week | LogNormal median 48 h, P90 120 h |
+| Bad filler jam, blocks `P_Filling_L` | 0.5/line-week | LogNormal median 3 h, P90 6 h |
+
+Repair progresses only during manned hours.
+
+## A.4 Calendars
+
+| Gate | Pattern |
+|---|---|
+| `P_ShiftOpen_L1/L2` | Mon–Fri 06:00–22:00 (handover mid-batch allowed) |
+| `P_ShiftOpen_L3` | Mon–Fri 06:00–14:00 |
+| `P_CrewShift` | Mon–Fri 07:00–15:30; extends 05:00–19:00 if changeover pre-arranged ≥8 h ahead |
+| `P_LabShift` | Mon–Fri 07:00–17:00 |
+| Saturday OT | Adds L1 or L2 Sat 06:00–18:00; requires trigger by Wed 17:00; **adds no lab, no crew** unless `SAT_LAB_COVER = ON` |
+| Trucks | Depart 06:00, Mon–Fri |
+
+## A.5 Policy layer (every rule swappable)
+
+**1 — Crew contention.** Key: `(Meridian-enabling DESC, earliest promise-at-risk ASC)`. **Non-preemptive.** Loser waits for crew *and* shift.
+
+**2 — Batch sequencing (`SEQ_RULE`).** `CAMPAIGN_FIRST` (yours): group by family; within campaign, earliest promise; break campaign only if a due date would actually be missed. Alternatives: pure due-date; campaign with Meridian override.
+
+**3 — Idle vs washdown** *(your headline decision, implemented literally from Q10)*:
+```
+IF (wash_away + wash_back) touches ANY Meridian ship window
+   THEN idle                                       (* the cliff *)
+ELSE IF gap_hours ≥ (wash_away + gap_job_runtime + wash_back)
+   THEN take the gap job
+ELSE idle
+```
+
+**4 — Lab queue.** FIFO, except jump tokens. Displaced work waits, and near week's end may hit the Friday trap — that is the true cost of a jump.
+
+**5 — Saturday ask.** Wed 17:00: if a Meridian order's projected completion misses its window by ≥1 shift, request OT on L1/L2. Non-Meridian shortfalls trigger nothing (your Coastal case).
+
+## A.6 Scoring — unit is one line-hour
+
+```
 Changeover      = 1.0 × changeover_hours
 Idle            = 0                        (invisible on paper; bites only via the clock)
 
@@ -9,3 +194,103 @@ Whole-week req. = ×2 on the above
 
 End-of-week     = expected changeover hours from each line's Friday state
                   into Monday's likely first job
+```
+
+**Board metric reported separately:** binary on-time % vs promise date — so you can tell your boss what the board will say.
+
+*Calibration against your own bets:* Meridian 6 h late = 206 ≫ 4 changeover-hours → you idle. Coastal 6 h late = 1.0 < 4 → you take the tint job. Coastal 48 h late = 106 ≫ 4 → you don't. Cliff and slope, reproduced.
+
+## A.7 Experiments → your three questions
+
+| Question | Run |
+|---|---|
+| *"Line 1's mill motor takes four days — what slips?"* | Inject 96 h `P_LineUp_L1` outage at various points; compare re-allocation policies. **Watch specialty: it has nowhere to go** (guard: specialty ⇒ L1), so it appears as a hard block, not a delay |
+| *"Idle an hour or wash down?"* | Sweep Conflict-3 rule × `RELEASE_POLICY`. **Run `STANDING_MERIDIAN` first** — hypothesis is that most of these dilemmas are manufactured by release timing, not by your scheduling |
+| *"Where are my changeover hours going?"* | Changeover-hours ledger by line × transition × cause; then `SEQ_RULE` sweep; cross with `TIME_BASIS` — if your gut padding changes no decision, don't bother timing changeovers |
+| *(bonus)* | `SAT_LAB_COVER` OFF vs ON — tests whether this year's Saturdays bought you anything given a shut Monday-ward lab |
+
+**Validation when data lands:** replay 26 weeks; target (a) ~75% utilisation, (b) **30–40 changeover-hours/month** — your ops director's number, the best anchor you gave me — (c) board on-time % matching history. Low changeover-hours ⇒ `CO_GRANULARITY` or sequencing is wrong.
+
+---
+
+# B. ASSUMPTION LEDGER
+
+Mine, not yours. **Bold = load-bearing.**
+
+**Scoring**
+1. Lateness in hours vs promise date (board is binary but can't express your cliff/slope). *Check: ERP promise vs ship dates.*
+2. **Meridian = 200-hour step at "misses the truck", +1.0/h after. I defined the window as truck departure 06:00, not end-of-promise-day.** *Check: one sentence from you — several tight cases flip.*
+3. Non-Meridian: free <4 h, 0.5/h to 24 h, 4.0/h beyond. Invented shape from your Coastal answer. *Sensitivity-test the kink.*
+4. Whole-week multiplier ×2. Pure invention.
+5. Idle costs zero (your Q8). Makes arrival/due-date realism load-bearing.
+6. Changeover = pure lost line time, no wage/solvent. *Check with finance what the 40-hours line item contains.*
+7. **The 200:4 ratio was reverse-engineered from your two bets, not elicited.** *Check by putting three more of your own bets to it.*
+
+**Structure**
+8. Four stages, identical topology on all three lines (you walked me through L2 only).
+9. **Tank caps: L1 mill→fill = 1 batch, others = 2.** *Check: nameplate ÷ batch size.*
+10. Vessels 1,100 / 1,650 / 1,350 — **L3 is the one you said not to quote.** *Check: 30 seconds at the vessel.*
+11. 14 SKUs as 4 white / 8 tint / 2 specialty, tint depths assigned arbitrarily. *Check: SKU master — also tells me which tints are dark.*
+12. L3's two unqualified tint SKUs — your count, my choice of which. *Check: quality's validation list.*
+13. **Specialty on L1 only. I never asked whether L3 can run specialty — if it can, the mill-motor answer changes materially.**
+14. Meridian ⇒ L2 is absolute, no emergency override. *Check: has it ever been broken?*
+
+**Durations**
+15. **Stage rates reconstructed from your estimates. The pattern is yours; the numbers are mine.** *Check: the sheet's units/hour per product per line — direct calibration, you already have it.*
+16. Mix time identical across families/lines. Never asked; probably wrong for specialty.
+17. **The jam/stall split is entirely my decomposition** (you described both, never separated them); stall frequency invented. *Check: whether CMMS distinguishes faults from material starvation — it probably doesn't.*
+18. QA 3.5/4.0/5.0 h by family, σ 0.25 — only "about four hours for whites" is yours. *Check: lab lead, 5 min.*
+19. Sampling = first, every 3rd, **always last** (my inference from "held up by its last batch").
+20. SHEET matrix = your recollection of a spreadsheet neither of us has opened. *Check: open it.*
+21. GUT layer quantified by me from your instincts. *Check: time six changeovers — but run `TIME_BASIS` both ways first; if nothing changes, don't bother.*
+22. **`CO_GRANULARITY` unresolved — you were going to watch a rinse. This materially changes the split-across-lines answer.**
+23. **`CREW_MODE` unresolved — you'd half-noticed the techs working opposite ends. If rinses split, crew contention drops significantly.**
+
+**Policies**
+24. Crew key = Meridian-enabling, then earliest at risk; non-preemptive. *Check: has an in-progress changeover ever been abandoned?*
+25. **A line missing the crew window waits for next shift start. Most punitive mechanism in the model — it turns a 2 h changeover into a lost overnight.**
+26. **Crew flex needs ≥8 h notice — invented. Directly governs whether an evening washdown happens or waits for morning, i.e. the core of your headline decision.** *Check: ask the techs.*
+27. Jump budget 0.6/wk with rising refusal — 2–3/month is yours, the refusal curve is invented to reproduce the one time you backed off.
+28. **Saturday OT adds line hours only, no lab, no crew. The assumption I most expect to be wrong in a useful direction.** *Check: the ops director question.*
+29. **End-of-week charge is my accounting construct** for behaviour you described. *Check: compare Friday's finishing family to Monday's first job over recent weeks.* Without it the model cheats by leaving every line filthy on Friday.
+
+**Boundary conditions**
+30. **40 orders arrive Sunday 23:00 in one batch; nothing arrives mid-week.** Never asked. If urgent mid-week orders exist, that's a major missing disturbance.
+31. Order sizes: Meridian median 7,000 units, others 2,500 — derived from your one-third-of-volume figure. *Check: ERP directly.*
+32. **Promise dates 4–9 days after book date, uniform — pure invention, and the single most load-bearing unknown.** Because idle is only penalised via due-date pressure, too much padding makes the model idle happily and tell you nothing. *Check: ERP book-date vs promise-date.*
+33. **ERP release lag 24 h ± 12 h before promise, same for all accounts — invented, and it's the mechanism that creates your headline dilemma.** *Check: the release-timestamp field you added to the ask.*
+34. **Breakdown rates entirely invented**, anchored only to "the motor took four days once" and "a bad one every couple of weeks." *Check: the CMMS export — this is what it's for.*
+35. Repairs progress only in manned hours. Never asked; could be wrong for a contracted rebuild.
+36. Starts Monday 06:00, all lines empty, clean, dressed for white. *Use a one-week warm-up before scoring regardless.*
+37. No materials constraint (you only watch for red flags). *Check: if red flags stop runs more than quarterly, this needs modelling.*
+
+---
+
+# C. WHAT THE MODEL LEAVES OUT
+
+**Gaps from stopping early — real, not simplifications:**
+
+1. **Batch contiguity / order splitting.** The model assumes an order's batches run **contiguously** on a line. It can compare "whole order on L1" vs "split across L1 and L2" and will correctly charge the extra changeover on both — but it can't represent interleaving. **If interleaving is possible in reality, the model overstates the cost of splitting, which is exactly your run-size question.** *Fix this first — it's one sentence from you.*
+
+2. **The unwritten rules.** Never covered. Expect the model to propose schedules that make you say "we'd never do that." **Treat each of those as a finding, not a bug** — that's an unwritten rule surfacing.
+
+3. **All historical data.** Neither export arrived. Every arrival, promise date, release lag and breakdown figure is invented (30–34). **Don't make decisions on the model until at least the order book is loaded** — assumption 32 can make it tell you a comfortable lie.
+
+**Deliberate exclusions:**
+
+4. **Materials/supply chain** — you don't schedule around them; modelling them adds noise you can't act on.
+5. **Individual operators, skills, absence** — except where you named them as constraints (crew, lab, L3's qualified operator). Modelling the labour pool would double the size to answer a question you didn't ask.
+6. **Quality failures and rework** — you never mentioned a batch *failing* QA, only waiting for it. If they do fail, that's a missing feedback loop and a significant one.
+7. **Warehouse and truck capacity** — trucks are a fixed daily departure. The one place logistics bites, the release gate, *is* modelled, because it's your headline lever.
+8. **Commercial's promise-date behaviour** — exogenous. "Should commercial pad more or less" is a different model with this one inside it.
+9. **Dollars** — everything is in line-hours, because nobody could give a dollar figure and a fake conversion adds only false precision. One line converts it if finance produces a rate.
+
+---
+
+**Three things before your first real run:**
+
+1. **Load the ERP order book** — kills assumptions 31–33, the ones that can make the model lie comfortably.
+2. **Answer batch contiguity in one sentence** — unblocks the run-size question.
+3. **Run `RELEASE_POLICY = STANDING_MERIDIAN` against the default** — tests whether your headline dilemma is manufactured upstream of you. It's the cheapest finding available and needs no data at all.
+
+Send the exports and the flagged answers whenever you have them and I'll revise. Good luck with it.

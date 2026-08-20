@@ -23,29 +23,39 @@ import { assetHandler } from '../src/assets.ts';
 const uiRoot = mkdtempSync(join(tmpdir(), 'brunch-assets-'));
 const BINARY_BYTES = Uint8Array.from({ length: 256 }, (_, i) => i);
 
-mkdirSync(join(uiRoot, 'assets'));
+mkdirSync(join(uiRoot, 'assets/fonts'), { recursive: true });
 writeFileSync(join(uiRoot, 'assets/index.js'), 'export {};\n');
 writeFileSync(join(uiRoot, 'assets/index.css'), 'body {}\n');
 writeFileSync(join(uiRoot, 'assets/brand.woff2'), BINARY_BYTES);
 writeFileSync(join(uiRoot, 'assets/Logo.PNG'), BINARY_BYTES);
 writeFileSync(join(uiRoot, 'assets/blob.dat'), BINARY_BYTES);
+writeFileSync(join(uiRoot, 'assets/fonts/nested.woff2'), BINARY_BYTES);
 
 afterAll(() => rmSync(uiRoot, { recursive: true, force: true }));
 
 const app = new Hono();
-app.get('/assets/:file', assetHandler(pathToFileURL(`${uiRoot}/`)));
+app.get('/assets/*', assetHandler(pathToFileURL(`${uiRoot}/`)));
 
 describe('the production asset route', () => {
   test('serves the build outputs with their types', async () => {
     for (const [file, type] of [
-      ['index.js', 'text/javascript'],
-      ['index.css', 'text/css'],
+      ['index.js', 'text/javascript; charset=utf-8'],
+      ['index.css', 'text/css; charset=utf-8'],
     ] as const) {
       const response = await app.request(`/assets/${file}`);
       expect({ file, status: response.status, type: response.headers.get('content-type') }).toEqual(
         { file, status: 200, type },
       );
     }
+  });
+
+  test('serves a nested asset path', async () => {
+    // Bundlers emit nested paths (assets/fonts/…); the old `:file` param
+    // could never match one, so nesting was a production-only 404.
+    const response = await app.request('/assets/fonts/nested.woff2');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('font/woff2');
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(BINARY_BYTES);
   });
 
   test('serves a binary asset byte-for-byte', async () => {
@@ -78,7 +88,10 @@ describe('the production asset route', () => {
     for (const path of [
       '/assets/..%2Fsecret.js',
       '/assets/%2e%2e%2fsecret.js',
+      '/assets/../secret.js',
+      '/assets/fonts/../../secret.js',
       '/assets/.env',
+      '/assets/fonts/.hidden.js',
       '/assets/noextension',
     ]) {
       const response = await app.request(path);

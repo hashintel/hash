@@ -16,7 +16,13 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { agentModules, REPO_ROOT, workspacePackages } from './workspace.ts';
+import {
+  agentModules,
+  MODEL_KEY_NAME,
+  pinnedIdentities,
+  REPO_ROOT,
+  workspacePackages,
+} from './workspace.ts';
 
 const DEV_APP = join(REPO_ROOT, 'apps/dev');
 const DIST = join(DEV_APP, 'dist');
@@ -27,13 +33,19 @@ let bundle = '';
 
 beforeAll(async () => {
   // Build here rather than depending on a prior `bun run build`, so `bun test`
-  // alone is a complete signal and CI ordering cannot make this vacuous.
+  // alone is a complete signal and CI ordering cannot make this vacuous. The
+  // *root* build, not the dev app's own: CI has no separate Build step, so
+  // this is where every workspace package's build script gets exercised —
+  // building only apps/dev would let the next package's broken build merge
+  // green.
   const built = Bun.spawnSync(['bun', 'run', 'build'], {
-    cwd: DEV_APP,
+    cwd: REPO_ROOT,
     env: { ...process.env, NODE_ENV: 'production' },
   });
   if (built.exitCode !== 0) {
-    throw new Error(`vite build failed:\n${built.stderr.toString()}`);
+    throw new Error(
+      `workspace build failed:\n${built.stdout.toString()}\n${built.stderr.toString()}`,
+    );
   }
   bundle = readdirSync(DIST)
     .filter((entry) => entry.endsWith('.mjs'))
@@ -44,9 +56,7 @@ beforeAll(async () => {
 /** The pinned identity of every agent module in the dev app, read from source. */
 function declaredAgentIdentities(): string[] {
   const dev = workspacePackages().find((pkg) => pkg.relPath === 'apps/dev')!;
-  return agentModules(dev)
-    .flatMap((file) => [...file.text.matchAll(/\w+\.agentName\s*=\s*'([^']+)'/g)])
-    .map((match) => match[1]!);
+  return agentModules(dev).flatMap(pinnedIdentities);
 }
 
 describe('the emitted server bundle', () => {
@@ -79,12 +89,20 @@ describe('the emitted server bundle', () => {
   test('mounts the agent router and wires the conversation store', () => {
     // Without db.ts reaching the bundle, conversations are process-memory and a
     // restart loses them — a difference invisible until something restarts.
-    expect(bundle).toContain('createAgentRouter');
-    expect(bundle).toContain('sqlite');
+    //
+    // Witnessed by strings that exist only in the app's own modules. The
+    // obvious witnesses are vacuous: `createAgentRouter` survives in a
+    // bootstrap JSDoc comment and `sqlite` in the bootstrap's unconditional
+    // default-adapter fallback, so both match even when the mount or db.ts
+    // never reach the bundle. (Bare `/agents/` is no better — a bundler
+    // region comment for `src/agents/` carries it.)
+    expect(bundle).toContain('route(`/agents/'); // app.ts's mount call
+    expect(bundle).toContain('BRUNCH_DEV_DB_PATH'); // db.ts's env override
+    expect(bundle).toContain('.data-wipe-me'); // db.ts's default store path
   });
 
   test('carries no model key', () => {
-    const modelKey = new RegExp(`[A-Z_]*${'API'}_${'KEY'}\\s*[:=]\\s*['"][^'"]+['"]`);
+    const modelKey = new RegExp(`${MODEL_KEY_NAME}\\s*[:=]\\s*['"][^'"]+['"]`);
     expect(bundle).not.toMatch(modelKey);
   });
 });
