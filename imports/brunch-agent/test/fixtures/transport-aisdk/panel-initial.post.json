@@ -1,0 +1,16 @@
+{
+  "id": "m5z0GU9KJPzhOTlx",
+  "messages": [
+    {
+      "parts": [
+        {
+          "type": "text",
+          "text": "Run the FE-1435 transport probe."
+        }
+      ],
+      "id": "6ddgGkjhSxGjOtiv",
+      "role": "user"
+    }
+  ],
+  "trigger": "submit-message"
+}
