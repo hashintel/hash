@@ -222,13 +222,19 @@ export interface NetworkGraphProps {
    */
   graphBounds: { minX: number; maxX: number; minY: number; maxY: number };
   /**
-   * The camera's maximum zoom, as an absolute orthographic zoom (`2 ** zoom` =
-   * pixels per world unit). Floored at the framing-out zoom so the range is never
-   * inverted. Omit (or pass `null`) to fall back to a fixed offset above the
-   * framed-in zoom — e.g. when node spacing is unknown. Non-tiled callers derive
-   * it from node spacing via {@link maxZoomForNodeMinDistance}.
+   * The camera's maximum zoom. A bare number is the zoom range above the
+   * framed-out view, in zoom levels (doublings): the maximum sits that many
+   * levels past the framing-normalised zero, wherever the dataset's framing
+   * puts it — the tiled consumer passes its deepest tile depth here, making one
+   * zoom level correspond to one tile depth. `{ orthographic }` pins the
+   * maximum absolutely instead (`2 ** zoom` = pixels per world unit), for a
+   * caller that knows a world-space answer rather than a framing-relative one —
+   * derived from node spacing via {@link maxZoomForNodeMinDistance}. Either
+   * form is floored at the framing-out zoom so the range is never inverted.
+   * Omit (or pass `null`) to fall back to a fixed offset above the framed-in
+   * zoom, e.g. when node spacing is unknown.
    */
-  maxZoom?: number | null;
+  maxZoom?: number | { orthographic: number } | null;
   /** Extra class name applied to the chart container. */
   className?: string;
   /**
@@ -329,6 +335,13 @@ const ZOOM_OUT_MARGIN = 0.05;
  * spacing is unknown). Otherwise `maxZoom` comes from the caller.
  */
 const MAX_ZOOM_OFFSET = 9;
+/**
+ * How far (zoom levels) below the latched high-water mark the zoom must drop
+ * before the detail-view latch re-evaluates — deep enough that a pinch
+ * gesture's frame-to-frame wobble never counts as a zoom-out, shallow enough
+ * that any deliberate one does.
+ */
+const DETAIL_LATCH_ZOOM_OUT_TOLERANCE = 0.05;
 /**
  * Screen-space margin (px) reserved when framing, so nodes near the edge aren't
  * clipped by their radius — the bounds cover node centres only, and a disc extends
@@ -1114,6 +1127,14 @@ export const NetworkGraph = ({
     [neighbourhoodOf, activeNode],
   );
 
+  // The `maxZoom` union split into primitives, so the fit effect's deps stay
+  // value-stable when a caller passes an inline `{ orthographic }` object.
+  const maxZoomLevels = typeof maxZoomProp === "number" ? maxZoomProp : null;
+  const maxZoomOrthographic =
+    typeof maxZoomProp === "object"
+      ? (maxZoomProp?.orthographic ?? null)
+      : null;
+
   /** Frame the graph to fit the container on mount and on resize. */
   useEffect(() => {
     const element = containerRef.current;
@@ -1150,20 +1171,29 @@ export const NetworkGraph = ({
       // `framingBaseZoom`), so the framing-normalised zoom starts at 0 for any dataset
       // regardless of its world extent.
       const minZoom = fitZoom(outPadding);
-      // Furthest zoom-in comes from the caller (see the `maxZoom` prop), floored at
-      // `minZoom` so a sparse graph never yields an inverted range, and falling back
-      // to a fixed offset above the framed-in zoom when unspecified. The normalised
-      // range the view exposes is `maxZoom − minZoom`: min fits the graph's extent,
-      // max the node spacing, so it's the node-spacing↔extent ratio, independent of
-      // the absolute world size.
+      // Furthest zoom-in comes from the caller — a range above the framed-out
+      // zoom (a bare `maxZoom` number, so the normalised axis spans exactly
+      // that many levels) or pinned absolutely (`{ orthographic }`) — floored
+      // at `minZoom` so a sparse graph never yields an inverted range, and
+      // falling back to a fixed offset above the framed-in zoom when
+      // unspecified.
       const maxZoom = Math.max(
         minZoom,
-        maxZoomProp ?? framingZoom + MAX_ZOOM_OFFSET,
+        maxZoomOrthographic ??
+          (maxZoomLevels != null
+            ? minZoom + maxZoomLevels
+            : framingZoom + MAX_ZOOM_OFFSET),
       );
-      // Only auto-frame until the user takes control of the view.
-      setViewState(
-        (previous) =>
-          previous ?? {
+      // Only auto-frame until the user takes control of the view. After that,
+      // the one field a later run may move is `maxZoom`: a tiled caller
+      // extends its limit as denser data arrives. The levels form re-resolves
+      // against the framing base the normalised axis actually uses
+      // (`previous.minZoom`, fixed at mount) rather than this run's remeasured
+      // fit, and the limit is floored at the current zoom so a shrinking one
+      // binds on the next zoom-out instead of yanking the camera.
+      setViewState((previous) => {
+        if (!previous) {
+          return {
             target: [
               (graphBounds.minX + graphBounds.maxX) / 2,
               (graphBounds.minY + graphBounds.maxY) / 2,
@@ -1173,14 +1203,29 @@ export const NetworkGraph = ({
             zoom: minZoom,
             minZoom,
             maxZoom,
-          },
-      );
+          };
+        }
+        if (maxZoomLevels == null && maxZoomOrthographic == null) {
+          return previous;
+        }
+        const base = previous.minZoom ?? minZoom;
+        const limit = Math.max(
+          base,
+          maxZoomOrthographic ?? base + (maxZoomLevels ?? 0),
+        );
+        const current =
+          typeof previous.zoom === "number" ? previous.zoom : null;
+        const next = current === null ? limit : Math.max(limit, current);
+        return next === previous.maxZoom
+          ? previous
+          : { ...previous, maxZoom: next };
+      });
     };
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [graphBounds, maxZoomProp]);
+  }, [graphBounds, maxZoomLevels, maxZoomOrthographic]);
 
   // Distinct icons used by the graph (points + overlay points), keyed by their
   // atlas key (a ds icon name, or an SVG icon's URL) -> the icon itself. Deduped
@@ -1330,21 +1375,72 @@ export const NetworkGraph = ({
   // presentation attributes are normalised, so they frame every dataset alike.
   const framingBaseZoom = viewState?.minZoom ?? null;
 
+  const normalisedZoom =
+    currentZoom != null && framingBaseZoom != null
+      ? currentZoom - framingBaseZoom
+      : null;
+
+  // Detail view shows in the top 0.5 zoom levels, just below the max zoom —
+  // expressed on the normalised axis (`maxZoom − framingBase − 0.5`). It can
+  // sit at or below 0 (the framed-out zoom) when the zoom range is degenerate:
+  // a still-loading session that reports no depth yet, or a tiny dataset whose
+  // whole range is one zoom level.
+  const detailZoomThreshold =
+    viewState?.maxZoom != null && framingBaseZoom != null
+      ? viewState.maxZoom - framingBaseZoom - 0.5
+      : null;
+
   // Everything the view derives from the current zoom, computed together by {@link deriveZoomAttributes}.
-  const { radiusScale, arrowGapPx, isDetailZoom } = useMemo(
-    () =>
-      deriveZoomAttributes(
-        currentZoom != null && framingBaseZoom != null
-          ? currentZoom - framingBaseZoom
-          : null,
-        // Detail view shows in the top 0.5 zoom levels, just below the max zoom —
-        // expressed here on the normalised axis (`maxZoom − framingBase − 0.5`).
-        viewState?.maxZoom != null && framingBaseZoom != null
-          ? viewState.maxZoom - framingBaseZoom - 0.5
-          : null,
-      ),
-    [currentZoom, viewState?.maxZoom, framingBaseZoom],
+  const {
+    radiusScale,
+    arrowGapPx,
+    isDetailZoom: rawIsDetailZoom,
+  } = useMemo(
+    () => deriveZoomAttributes(normalisedZoom, detailZoomThreshold),
+    [normalisedZoom, detailZoomThreshold],
   );
+
+  // The detail threshold tracks `maxZoom`, which can move while the user is
+  // mid-gesture (a caller extending its limit as denser data arrives — see the
+  // `maxZoom` prop), so the raw `zoom >= threshold` verdict can flap
+  // detail → summary → detail during one zoom-in. Latch it: once the detailed
+  // view is on it stays on through further zoom-in (and through threshold
+  // movement at a standstill); only zooming out re-evaluates, against the
+  // latest threshold. The state is the high-water zoom while latched (`null`
+  // when the detailed view is off), adjusted during render — the sanctioned
+  // previous-render pattern — and ratcheted in tolerance-sized steps so the
+  // extra render it costs is occasional rather than per zoom frame. The
+  // tolerance also absorbs sub-perceptual dips (a pinch gesture's zoom is not
+  // strictly monotonic), so only a deliberate zoom-out unlatches.
+  const [detailLatchZoom, setDetailLatchZoom] = useState<number | null>(null);
+  let nextDetailLatchZoom: number | null;
+  if (normalisedZoom === null) {
+    nextDetailLatchZoom = null;
+  } else if (
+    detailLatchZoom === null ||
+    normalisedZoom < detailLatchZoom - DETAIL_LATCH_ZOOM_OUT_TOLERANCE
+  ) {
+    // Not latched, or deliberately zoomed out: the latest threshold decides.
+    // Only a *real* threshold — one above the framed-out zoom — may latch. A
+    // degenerate threshold classifies the whole range as detail, and holding
+    // that sticky would trap the view once a still-loading session's real
+    // threshold lands; detail still *shows* below (the raw verdict), live
+    // rather than latched, so a later threshold correction undoes it cleanly.
+    nextDetailLatchZoom =
+      rawIsDetailZoom && detailZoomThreshold !== null && detailZoomThreshold > 0
+        ? normalisedZoom
+        : null;
+  } else {
+    nextDetailLatchZoom =
+      normalisedZoom >= detailLatchZoom + DETAIL_LATCH_ZOOM_OUT_TOLERANCE
+        ? normalisedZoom
+        : detailLatchZoom;
+  }
+  if (nextDetailLatchZoom !== detailLatchZoom) {
+    setDetailLatchZoom(nextDetailLatchZoom);
+  }
+  // Latched, or live off the raw verdict (the degenerate-threshold case).
+  const isDetailZoom = nextDetailLatchZoom !== null || rawIsDetailZoom;
 
   // Density sizing measured as a world-space inter-node spacing, later multiplied by
   // the live world→pixel scale so plain zooming stays smooth. Two measures are

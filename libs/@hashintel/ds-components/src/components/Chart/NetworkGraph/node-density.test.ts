@@ -14,6 +14,7 @@ import {
   densityPointRadiusPx,
   maxDensityOpacity,
   medianNearestNeighbourWorld,
+  minimumNearestNeighbourWorld,
 } from "./node-density";
 
 import type { NetworkGraphPoint } from "./network-graph-util";
@@ -66,6 +67,48 @@ describe("medianNearestNeighbourWorld", () => {
     expect(dense).not.toBeNull();
     expect(sparse).not.toBeNull();
     expect(sparse!).toBeGreaterThan(dense!);
+  });
+});
+
+describe("minimumNearestNeighbourWorld", () => {
+  it("returns null with fewer than two nodes", () => {
+    expect(minimumNearestNeighbourWorld([])).toBeNull();
+    expect(minimumNearestNeighbourWorld([point(0, 0, 0)])).toBeNull();
+  });
+
+  it("returns null when every node is coincident", () => {
+    // Zoom can never separate a coincident stack, so there is no resolvable
+    // pair to measure.
+    expect(
+      minimumNearestNeighbourWorld([point(5, 5, 0), point(5, 5, 1)]),
+    ).toBeNull();
+  });
+
+  it("ignores coincident pairs: the minimum is the closest resolvable pair", () => {
+    // The coincident stack at (15, 15) collapses to one representative; the
+    // minimum is its √50 gap to the nearest lattice node, not 0.
+    const points = [...lattice(4, 10), point(15, 15, 100), point(15, 15, 101)];
+    expect(minimumNearestNeighbourWorld(points)).toBeCloseTo(Math.sqrt(50), 10);
+  });
+
+  it("recovers the spacing of a regular lattice", () => {
+    expect(minimumNearestNeighbourWorld(lattice(4, 10))).toBe(10);
+    expect(minimumNearestNeighbourWorld(lattice(6, 3))).toBe(3);
+  });
+
+  it("finds one tight pair hidden in a sparse lattice", () => {
+    // The median barely moves, but the minimum is the tight pair's distance —
+    // the pair a strided sample could miss.
+    const points = [...lattice(8, 50), point(201, 201, 200)];
+    // (201, 201) sits √2 from the lattice node at (200, 200).
+    expect(minimumNearestNeighbourWorld(points)).toBeCloseTo(Math.SQRT2, 10);
+  });
+
+  it("is at most the median spacing", () => {
+    const points = [point(0, 0, 0), point(0, 3, 1), point(10, 10, 2)];
+    expect(minimumNearestNeighbourWorld(points)!).toBeLessThanOrEqual(
+      medianNearestNeighbourWorld(points)!,
+    );
   });
 });
 

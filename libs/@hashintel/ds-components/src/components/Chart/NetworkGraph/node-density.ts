@@ -203,6 +203,137 @@ export const medianNearestNeighbourWorld = (
   return distances.length > 0 ? median(distances) : null;
 };
 
+/**
+ * The distance between the closest *resolvable* pair of `points`, in world
+ * units. Coincident points — exactly the same position — are collapsed to one
+ * representative first: no zoom ever separates them, so they must not drive
+ * the minimum. Same uniform grid as {@link medianNearestNeighbourWorld}, but
+ * exact rather than sampled — the closest pair can hide anywhere, so a strided
+ * sample could miss it — with the running global best threaded into every ring
+ * search, so once a tight pair is found later queries terminate on their first
+ * ring. Returns `null` when fewer than two distinct positions remain.
+ */
+export const minimumNearestNeighbourWorld = (
+  points: readonly NetworkGraphPoint[],
+): number | null => {
+  // One representative per exact position; a coincident stack contributes its
+  // location to the measure but no zero-distance pairs.
+  const byPosition = new Map<string, NetworkGraphPoint>();
+  for (const point of points) {
+    const key = `${point.x},${point.y}`;
+    if (!byPosition.has(key)) {
+      byPosition.set(key, point);
+    }
+  }
+  const distinct = [...byPosition.values()];
+  const count = distinct.length;
+  if (count < 2) {
+    return null;
+  }
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const point of distinct) {
+    if (point.x < minX) {
+      minX = point.x;
+    }
+    if (point.x > maxX) {
+      maxX = point.x;
+    }
+    if (point.y < minY) {
+      minY = point.y;
+    }
+    if (point.y > maxY) {
+      maxY = point.y;
+    }
+  }
+
+  // Two distinct positions guarantee a nonzero extent on at least one axis.
+  const width = maxX - minX;
+  const height = maxY - minY;
+
+  const area =
+    Math.max(width, Number.EPSILON) * Math.max(height, Number.EPSILON);
+  const cell = Math.max(Math.sqrt(area / count), Number.MIN_VALUE);
+  const cols = Math.ceil(width / cell) + 1;
+  const rows = Math.ceil(height / cell) + 1;
+
+  const columnOf = (x: number): number =>
+    Math.min(cols - 1, Math.max(0, Math.floor((x - minX) / cell)));
+  const rowOf = (y: number): number =>
+    Math.min(rows - 1, Math.max(0, Math.floor((y - minY) / cell)));
+
+  const grid = new Map<number, number[]>();
+  for (let index = 0; index < count; index += 1) {
+    const point = distinct[index];
+    if (!point) {
+      continue;
+    }
+    const key = rowOf(point.y) * cols + columnOf(point.x);
+    const bucket = grid.get(key);
+    if (bucket) {
+      bucket.push(index);
+    } else {
+      grid.set(key, [index]);
+    }
+  }
+
+  const maxRing = Math.max(cols, rows);
+  let best = Infinity;
+  for (let index = 0; index < count; index += 1) {
+    const point = distinct[index];
+    if (!point) {
+      continue;
+    }
+    const cx = columnOf(point.x);
+    const cy = rowOf(point.y);
+    for (let ring = 0; ring <= maxRing; ring += 1) {
+      // The nearest possible pair in ring `ring` is at least `(ring - 1)·cell`
+      // away, so once that reaches the global best there is nothing to gain.
+      if ((ring - 1) * cell >= best) {
+        break;
+      }
+      for (let dx = -ring; dx <= ring; dx += 1) {
+        for (let dy = -ring; dy <= ring; dy += 1) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) {
+            continue;
+          }
+          const gx = cx + dx;
+          const gy = cy + dy;
+          if (gx < 0 || gy < 0 || gx >= cols || gy >= rows) {
+            continue;
+          }
+          const bucket = grid.get(gy * cols + gx);
+          if (!bucket) {
+            continue;
+          }
+          for (const other of bucket) {
+            // Each unordered pair once; the sweep visits both endpoints anyway.
+            if (other <= index) {
+              continue;
+            }
+            const neighbour = distinct[other];
+            if (!neighbour) {
+              continue;
+            }
+            const distance = Math.hypot(
+              neighbour.x - point.x,
+              neighbour.y - point.y,
+            );
+            if (distance < best) {
+              best = distance;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return Number.isFinite(best) ? best : null;
+};
+
 /** Counts the points whose `(x, y)` fall inside the given world rectangle. */
 export const countPointsInRect = (
   points: readonly NetworkGraphPoint[],

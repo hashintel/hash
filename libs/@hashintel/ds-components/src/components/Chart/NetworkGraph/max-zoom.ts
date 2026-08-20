@@ -2,12 +2,12 @@
  * Consumer-facing derivation of the network graph's camera max-zoom from the
  * closest node spacing.
  *
- * {@link NetworkGraph} takes `maxZoom` as an absolute orthographic zoom
- * (`2 ** zoom` = pixels per world unit) rather than deriving it itself, so a
- * caller can choose how far in the camera may go from whatever it knows about its
- * data. This is the derivation the non-tiled consumers use, factored out so the
- * component no longer needs the global minimum node distance — a value a tiled
- * consumer can't cheaply obtain.
+ * {@link NetworkGraph}'s `maxZoom` prop accepts an absolute orthographic zoom
+ * as `{ orthographic }` (`2 ** zoom` = pixels per world unit) rather than
+ * deriving it itself, so a caller can choose how far in the camera may go from
+ * whatever it knows about its data. This is the derivation the non-tiled
+ * consumers use, factored out so the component no longer needs the global
+ * minimum node distance — a value a tiled consumer can't cheaply obtain.
  */
 
 /**
@@ -20,7 +20,9 @@ const MAX_ZOOM_TARGET_CLOSEST_PX = 1;
  * The absolute orthographic max-zoom at which the closest pair of nodes,
  * `nodeMinDistance` world units apart, sit {@link MAX_ZOOM_TARGET_CLOSEST_PX} px
  * apart on screen — solving `nodeMinDistance · 2 ** zoom = target`. Pass the
- * result as {@link NetworkGraph}'s `maxZoom`.
+ * result as {@link NetworkGraph}'s `maxZoom`; it is returned in that prop's
+ * `{ orthographic }` form, the absolute arm of the union (a bare number there
+ * means a framing-relative zoom range instead).
  *
  * Returns `null` when `nodeMinDistance` is unusable (`0` or non-finite, as for an
  * empty or single-node graph), letting the graph fall back to its framing-based
@@ -28,7 +30,7 @@ const MAX_ZOOM_TARGET_CLOSEST_PX = 1;
  */
 export const maxZoomForNodeMinDistance = (
   nodeMinDistance: number,
-): number | null =>
+): { orthographic: number } | null =>
   Number.isFinite(nodeMinDistance) && nodeMinDistance > 0
-    ? Math.log2(MAX_ZOOM_TARGET_CLOSEST_PX / nodeMinDistance)
+    ? { orthographic: Math.log2(MAX_ZOOM_TARGET_CLOSEST_PX / nodeMinDistance) }
     : null;

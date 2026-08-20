@@ -145,13 +145,13 @@ describe("getViewportNodes", () => {
     fetcher = countingFetcher();
   });
 
-  it("returns the depth-0 root plus four depth-1 tiles for a null viewport", async () => {
+  it("returns only the depth-0 root for a null viewport", async () => {
     const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
     const { nodes } = await getViewportNodes(null, cache);
 
-    expect(fetcher.total()).toBe(5);
+    expect(fetcher.total()).toBe(1);
     expect(fetcher.calls.has("0/0")).toBe(true);
-    expect(nodes).toHaveLength(15);
+    expect(nodes).toHaveLength(3);
   });
 
   it("serves a repeated viewport entirely from cache", async () => {
@@ -178,7 +178,7 @@ describe("getViewportNodes", () => {
     const constant: TileFetcher = () =>
       Promise.resolve({ nodes: [{ id: 42, x: 5, y: 5 }], complete: false });
     const { nodes } = await getViewportNodes(
-      null,
+      viewportAt(32_768, 32_768, 30_000, 1),
       new TileCache({ fetcher: constant, edgesFetcher: noEdges }),
     );
     expect(nodes).toEqual([{ id: 42, x: 5, y: 5 }]);
@@ -186,13 +186,16 @@ describe("getViewportNodes", () => {
 
   it("stops the descent at a tile that reports its subtree complete", async () => {
     // The root delivers its whole subtree (complete), so its children are never
-    // requested even though the null viewport's target depth is 1.
+    // requested even though the viewport's target depth is 1.
     const rootComplete = countingFetcher((zoom) => zoom === 0);
     const cache = new TileCache({
       fetcher: rootComplete,
       edgesFetcher: noEdges,
     });
-    const { nodes } = await getViewportNodes(null, cache);
+    const { nodes } = await getViewportNodes(
+      viewportAt(32_768, 32_768, 30_000, 1),
+      cache,
+    );
 
     expect(rootComplete.total()).toBe(1);
     expect(rootComplete.calls.has("0/0")).toBe(true);
@@ -244,7 +247,7 @@ describe("getViewportNodes", () => {
         ? Promise.reject(new Error("gap"))
         : base(zoom, tileIndex, controls);
     const { nodes } = await getViewportNodes(
-      null,
+      viewportAt(32_768, 32_768, 30_000, 1),
       new TileCache({ fetcher: partial, edgesFetcher: noEdges }),
     );
     // Root (3 nodes) plus three of the four depth-1 tiles (3 each).
@@ -405,8 +408,8 @@ describe("getViewportNodes", () => {
 describe("getViewportNodes edges", () => {
   it("fetches all delivered tiles' edges in one request and buckets them", async () => {
     const fetcher = countingFetcher();
-    // Null viewport delivers the root (ids 0..2) and four depth-1 tiles
-    // ({ z:1 } base = 1_000_000 + tileIndex * 10).
+    // A world-covering depth-1 viewport delivers the root (ids 0..2) and four
+    // depth-1 tiles ({ z:1 } base = 1_000_000 + tileIndex * 10).
     const edgesFetcher = stubEdges([
       { id: "id-500" as EntityId, source: 0, target: 1 }, // within the root tile
       { id: "id-501" as EntityId, source: 1_000_000, target: 1_000_001 }, // within tile z1/0
@@ -414,7 +417,10 @@ describe("getViewportNodes edges", () => {
     ]);
     const cache = new TileCache({ fetcher, edgesFetcher });
 
-    const { edges } = await getViewportNodes(null, cache);
+    const { edges } = await getViewportNodes(
+      viewportAt(32_768, 32_768, 30_000, 1),
+      cache,
+    );
 
     // One request carried every delivered tile (root + four depth-1 tiles).
     expect(edgesFetcher.calls).toHaveLength(1);
@@ -441,14 +447,15 @@ describe("getViewportNodes edges", () => {
       return Promise.resolve({ edges: [edge], complete: true });
     };
     const cache = new TileCache({ fetcher, edgesFetcher });
+    const viewport = viewportAt(32_768, 32_768, 30_000, 1);
 
-    const first = await getViewportNodes(null, cache);
-    const second = await getViewportNodes(null, cache);
+    const first = await getViewportNodes(viewport, cache);
+    const second = await getViewportNodes(viewport, cache);
     expect(controls).toEqual(["minimal"]);
     expect(second.edges).toEqual(first.edges);
 
-    await getViewportNodes(null, cache, { detail: "auxiliary" });
-    await getViewportNodes(null, cache, { detail: "auxiliary" });
+    await getViewportNodes(viewport, cache, { detail: "auxiliary" });
+    await getViewportNodes(viewport, cache, { detail: "auxiliary" });
     expect(controls).toEqual(["minimal", "auxiliary", "auxiliary"]);
   });
 

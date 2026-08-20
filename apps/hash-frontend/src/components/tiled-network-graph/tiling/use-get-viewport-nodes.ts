@@ -153,11 +153,12 @@ import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 export { tileZoomForViewport, WORLD_SIZE } from "./tile-geometry";
 
 /**
- * Tile depth used for a `null` (freshly loaded) viewport: the first level that
- * subdivides the map. Walking its ancestor stack yields the four depth-1
- * quadrant tiles plus their shared depth-0 root — the initial overview.
+ * Tile depth used for a `null` (freshly loaded) viewport: the depth-0 root
+ * tile alone, the cheapest possible first paint. The camera reports in right
+ * after and drives the depth from its zoom (opening a couple of levels deeper
+ * — see the consumer's depth derivation), enriching the overview.
  */
-const INITIAL_TILE_ZOOM = 1;
+const INITIAL_TILE_ZOOM = 0;
 
 /**
  * Safety bound on the tiles fetched at one descent depth. Curve-driven viewports
@@ -1371,11 +1372,12 @@ export interface UseGetViewportNodesResult extends AtlasQueryState<ViewportGraph
    */
   readonly sessionRevision: number;
   /**
-   * The deepest quadtree depth the active generation tiles, from its manifest's
-   * `bucketSchedule.maxZoom` (the transport's {@link getAtlasTileMaxZoom}).
-   * `null` until the first session bootstraps. A consumer driving the tiling
-   * camera clamps its requested tile depth to this rather than assuming the wire
-   * ceiling — a given generation may tile shallower.
+   * The deepest tile zoom at which this session's view still delivers new
+   * points, from its manifest's `scopeSchedule.maxZoom` (the transport's
+   * {@link getAtlasTileMaxZoom}) — past it every tile repeats accumulated
+   * content. `null` until the first session bootstraps. A consumer driving the
+   * tiling camera bounds its zoom range and requested tile depth by this
+   * rather than assuming the wire ceiling.
    */
   readonly tileMaxZoom: number | null;
   /** Tiles resident in the cache after the latest load. */
@@ -1462,10 +1464,10 @@ export const useGetViewportNodes = (
     getAtlasSessionRevision,
   );
 
-  // The deepest depth this generation's manifest tiles (its
-  // `bucketSchedule.maxZoom`), so a consumer can clamp its requested tile depth
-  // to what the server serves rather than the wire ceiling. `null` until the
-  // first bootstrap resolves it.
+  // The deepest depth this session's view still delivers new points at (its
+  // manifest's `scopeSchedule.maxZoom`), so a consumer can bound its camera and
+  // requested tile depth by what is worth fetching. `null` until the first
+  // bootstrap resolves it.
   const tileMaxZoom = useSyncExternalStore(
     subscribeToAtlasTileMaxZoom,
     getAtlasTileMaxZoom,
