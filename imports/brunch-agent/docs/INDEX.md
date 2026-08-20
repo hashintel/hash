@@ -67,7 +67,7 @@ copy lives outside the repo).
 
 | Document | Status | Linear | Digest |
 | --- | --- | --- | --- |
-| [CONVERGENCE](planning/_shared/CONVERGENCE.md) | active | FE-1401 (created); maintained per legibility.md | The convergence record between the two root maps (FE-1383 build, FE-1357 demo/plugin-spec): fifth evaluation records FE-1405's decision, FE-1392's implementation evidence, and FE-1393 as the next dependency-clear spine edge |
+| [CONVERGENCE](planning/_shared/CONVERGENCE.md) | active | FE-1401 (created); maintained per legibility.md | The convergence record between the two root maps (FE-1383 build, FE-1357 demo/plugin-spec): seventh evaluation keeps FE-1393 as the next dependency-clear spine edge; FE-1451 changes reporting, not dependencies |
 | [flue-architecture-cheatsheet](planning/_shared/flue-architecture-cheatsheet.md) | active | commented on FE-1383; feeds docs/agents/flue-routing.md | Architect's consolidation of all 21 Flue guide pages: direct structured generation uses `harness.prompt`; model-delegated work uses `useSubagent`; three-lane boundary summary and ranked divergence risks; reconciled against installed Flue 2.0.3 source |
 | [topology](planning/_shared/topology.md) | active | ratified → ADR-0002; N1 discharged by FE-1422 + FE-1392; local N5 implemented by FE-1391 | Pseudo-style verification of the package/app tree against the three-lane model and spec §12.2: portable ask/sweep protocols and the plugin proposal floor in core-facing contracts, Flue read/orchestration wiring in the binding, and normative placement rules N1–N6 |
 
@@ -80,6 +80,7 @@ copy lives outside the repo).
 | [flue-entry-projection-source-read-2026-08-18](planning/legibility-sweep/flue-entry-projection-source-read-2026-08-18.md) | active | FE-1391 source gate + FE-1392 refresh oracle; reshapes FE-1386 | Installed Flue 2.0.3 evidence followed through to the public reader/archive and a causal refresh-before-apply oracle; FE-1386 remains one behavioral pin |
 | [remediation-plan-2026-08-17](planning/legibility-sweep/remediation-plan-2026-08-17.md) | active | A1 discharged by FE-1422; A3/B1 by FE-1391; B2/B3 by source read + FE-1392 | Two ledgers from the consolidated sweep. FE-1392 resolves the private-model-call seam with direct `harness.prompt`, while keeping free-text/abandoned accounting in FE-1420 and the compaction pin in FE-1386 |
 | [review-remediation-2026-08-18](planning/legibility-sweep/review-remediation-2026-08-18.md) | settled | FE-1432 | Executed queue from the cross-stack review: six lens-backed findings fixed, all 15 residual threads adjudicated and resolved, below-gate findings owned or refused, and three graduation proposals routed to FE-1401's tooling lane |
+| [issue-pr-migration-2026-08-20/](planning/legibility-sweep/issue-pr-migration-2026-08-20/) | settled | FE-1451 | Completed legibility migration: byte-exact snapshots of 73 Linear issues and 25 GitHub PRs, reviewed proposals, canonical stored-target hashes, rollback data, a drift-gated validator, and an append-only apply log |
 
 ## Decision records (`docs/adr/`)
 

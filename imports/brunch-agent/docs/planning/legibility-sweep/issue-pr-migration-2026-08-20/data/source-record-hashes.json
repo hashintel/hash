@@ -1,0 +1,696 @@
+{
+  "generatedFrom": {
+    "linearSourceSha256": "1a7200ac6a8fe466615c8d963ee29922e9e9d258e07411ce9edcdd400d10a808",
+    "githubSourceSha256": "2d00d591a91c349b81a645907825aab8640831e4682be164eb905900698ae6f5"
+  },
+  "linear": [
+    {
+      "identifier": "FE-1328",
+      "url": "https://linear.app/hash/issue/FE-1328/extract-the-elicitation-core-into-an-importable-package",
+      "updatedAt": "2026-08-19T16:26:24.521Z",
+      "titleSha256": "ae56ea6d4965234e46182510962e1d62da8a046dcc5837d7f0791f6ced557d6b",
+      "bodySha256": "4acfcc5b15e313b84921fc6396e6fd9c52b2765dfff81025a125325b733e6cb3"
+    },
+    {
+      "identifier": "FE-1329",
+      "url": "https://linear.app/hash/issue/FE-1329/make-the-brunch-elicitor-generic-for-cyber-physical-domains",
+      "updatedAt": "2026-08-19T16:26:25.558Z",
+      "titleSha256": "1e3899052502bfe561049a9091e4c52aded916dc7b8115b7139eef12f356a695",
+      "bodySha256": "408094b6d63b760d7fdf3780d197b31b5167d20fc099083f61d67466e6299879"
+    },
+    {
+      "identifier": "FE-1330",
+      "url": "https://linear.app/hash/issue/FE-1330/generate-a-petri-net-in-petrinaut-from-an-elicitation-session",
+      "updatedAt": "2026-08-19T16:26:27.012Z",
+      "titleSha256": "3850227fe63e0cd77cdae1b68ee783d17ef0a8798d9c55f9def6349270ed2d41",
+      "bodySha256": "7150e58a2762fd9a02cfd7aae88c9e06edee2af01ddfb4830850c282a2126521"
+    },
+    {
+      "identifier": "FE-1331",
+      "url": "https://linear.app/hash/issue/FE-1331/start-elicitation-from-petrinauts-create-new-net-flow",
+      "updatedAt": "2026-08-19T16:26:28.828Z",
+      "titleSha256": "3b62c2c8fc45fdb1e67b716d61f7a2f2a1de593bd3246b2a46587276da7e003c",
+      "bodySha256": "8958060e3a87c73e7bda3a0de82c7c44d27c5b47b9c113fd76fe194e0c63d8ee"
+    },
+    {
+      "identifier": "FE-1333",
+      "url": "https://linear.app/hash/issue/FE-1333/define-how-brunch-and-petrinaut-will-integrate",
+      "updatedAt": "2026-08-19T16:26:28.423Z",
+      "titleSha256": "aaccf73ec7dd40ce962ee4cd10a2ffe90a49b71c3d8d1a623668a5b1ce9beb6b",
+      "bodySha256": "6a11bc30e736307cd61277080042f0198000de588d2443a220c69a4252bb7567"
+    },
+    {
+      "identifier": "FE-1334",
+      "url": "https://linear.app/hash/issue/FE-1334/offer-user-a-surprising-scenario-of-their-model",
+      "updatedAt": "2026-08-19T16:26:29.176Z",
+      "titleSha256": "df1dc72aacf44420caf1ede7a463d613e15084a1f0d56670119722a8d85b543a",
+      "bodySha256": "2cfce75eed19d8bfd9a0fe4efc27fa6788f650d4c3ab5fb96c27042af8de6a01"
+    },
+    {
+      "identifier": "FE-1357",
+      "url": "https://linear.app/hash/issue/FE-1357/plan-the-september-elicitation-demo-and-the-plugin-spec-behind-it",
+      "updatedAt": "2026-08-19T16:26:28.291Z",
+      "titleSha256": "83601abba5441bd6090bce3ea1dcf9568ec80844a9bb19dcdbb1284df7608a84",
+      "bodySha256": "70c31f029f6aa53ce7fa10701436754ed06140024841d6f451db9e7e5771a525"
+    },
+    {
+      "identifier": "FE-1358",
+      "url": "https://linear.app/hash/issue/FE-1358/survey-petrinaut-architecture-dependencies-assistant-implementation",
+      "updatedAt": "2026-08-19T16:20:27.268Z",
+      "titleSha256": "f0ba585b8182ae752cbf2efffaabe8e3e805dedd6e0c9fe4712c01dda18c2366",
+      "bodySha256": "db2735d101439db145bdceb1a38b8e290487853806a91464677bfb650d4d4b5d"
+    },
+    {
+      "identifier": "FE-1359",
+      "url": "https://linear.app/hash/issue/FE-1359/voice-interviewing-bolt-on-adapter-or-architectural-rewrite",
+      "updatedAt": "2026-08-19T16:20:27.307Z",
+      "titleSha256": "90f6a9c3c8a4623f3635441de84273aab1c8639d9630ecef4b98d16d0623ffcd",
+      "bodySha256": "2bfe24356304af451f85f6518453b9b202a67d301b76f9c42fc50fead0b7776b"
+    },
+    {
+      "identifier": "FE-1360",
+      "url": "https://linear.app/hash/issue/FE-1360/ground-elicitation-strategy-in-the-literature",
+      "updatedAt": "2026-08-19T16:20:27.656Z",
+      "titleSha256": "f9b6d463b4fbd91c31446559b1cb91cb27a2f6080e416c5758e20c81040ea6f9",
+      "bodySha256": "25c76c4fe5da56fbfd6fbd123e84e8c544fcb09e3e455ae0924f3924aadebca9"
+    },
+    {
+      "identifier": "FE-1361",
+      "url": "https://linear.app/hash/issue/FE-1361/baseline-control-what-does-one-shot-ai-elicitation-already-achieve",
+      "updatedAt": "2026-08-19T16:20:28.021Z",
+      "titleSha256": "89252bf7368aae36924c6a2fb34ace7477a76199a34255b373bda2440a4e9010",
+      "bodySha256": "95f7163a475614b062c16230b0ef576e624ead0280d702b97dcac9deb8d575f0"
+    },
+    {
+      "identifier": "FE-1362",
+      "url": "https://linear.app/hash/issue/FE-1362/decide-the-september-demo-vehicle",
+      "updatedAt": "2026-08-19T16:26:28.338Z",
+      "titleSha256": "cdb93df46f8071efeb92a153b4eadcae8d65a4c301e9ab8c5985a2da0576886a",
+      "bodySha256": "b7a1b6eea883a9151ce69a93149934c588deeb33fcaf97f19bdc97957d45c230"
+    },
+    {
+      "identifier": "FE-1363",
+      "url": "https://linear.app/hash/issue/FE-1363/choose-the-reference-use-case-settle-the-sdcpn-showcase-criterion",
+      "updatedAt": "2026-08-19T16:20:28.274Z",
+      "titleSha256": "5a20ee169ead5fc437c962db1ff0db13adc0d1c46776cb8862b5f3a25830c0a7",
+      "bodySha256": "ffa0d06dc4022dd33a5921e8c3e2e741f8f9599b632bc6734e051256a5140509"
+    },
+    {
+      "identifier": "FE-1364",
+      "url": "https://linear.app/hash/issue/FE-1364/define-the-intermediate-representation-for-process-model-elicitation",
+      "updatedAt": "2026-08-19T16:26:27.321Z",
+      "titleSha256": "aa12482b696cc600940045a86c3fdfc36df84ff3e463c29bc2184fbefde75d1e",
+      "bodySha256": "a468c2c80f6e27f387ae7cb76493f6cba7f974099060b2617a105535244de04b"
+    },
+    {
+      "identifier": "FE-1366",
+      "url": "https://linear.app/hash/issue/FE-1366/spec-the-elicitation-harness-architecture-archived-wayfinder-map",
+      "updatedAt": "2026-08-19T16:26:24.440Z",
+      "titleSha256": "3cd9b3e42040c5bd4f19c7ccb505e838266683b4098bb7d02934b03c8df8f6b5",
+      "bodySha256": "991af4e8570535aa208f829fd81107ebcf5163186d25837f78746cee7ed77015"
+    },
+    {
+      "identifier": "FE-1367",
+      "url": "https://linear.app/hash/issue/FE-1367/flue-architecture-deep-read-archive",
+      "updatedAt": "2026-08-19T16:20:27.414Z",
+      "titleSha256": "d56adb14bff1dbfe03cac1c1c2a312d5fc3ac3693b36a8324c59c080ef5aea2a",
+      "bodySha256": "5f6506ff45d1964c8545e824d2c5b8f989410ac176bfa5fef6b9cfe150109239"
+    },
+    {
+      "identifier": "FE-1368",
+      "url": "https://linear.app/hash/issue/FE-1368/zil-lean-survey-archive",
+      "updatedAt": "2026-08-19T16:20:27.450Z",
+      "titleSha256": "aa2bdea3725452e09651b2a77e90deef72ab518995b82968d256935035bf1dad",
+      "bodySha256": "a34174377a2da0548781191d7cbb33e606fb329065a5f14afe4d22454917596f"
+    },
+    {
+      "identifier": "FE-1369",
+      "url": "https://linear.app/hash/issue/FE-1369/brunch-exchange-schema-audit-archive",
+      "updatedAt": "2026-08-19T16:20:27.340Z",
+      "titleSha256": "dfdef0d5ba4e9548fd25e728e40fb8685c0bd6e0daa4432d3793d8d5d6cb85e6",
+      "bodySha256": "1fd94e7b433040097a806d169e9cd702bb67db2dcbf906a5e197e678ed4249c2"
+    },
+    {
+      "identifier": "FE-1370",
+      "url": "https://linear.app/hash/issue/FE-1370/contract-decomposition-kernel-host-plugin-pack-boundary-archive",
+      "updatedAt": "2026-08-19T16:20:27.501Z",
+      "titleSha256": "e26e5d7d5c992fae3d3148ce48e892d0f0246c65aace5cb2f76f686181b778a8",
+      "bodySha256": "2234383db65ad51aafd0ef50877851b0449988ebd0e1c57173120549a6f95c11"
+    },
+    {
+      "identifier": "FE-1371",
+      "url": "https://linear.app/hash/issue/FE-1371/questioning-ux-contract-archive",
+      "updatedAt": "2026-08-19T16:20:27.539Z",
+      "titleSha256": "9c5bb4c0020f39dc129390162dbb882bf463fa6e089c5000047f64924d49f497",
+      "bodySha256": "7ec025083f39f180878790e096ec19c369a7d4120c839730dacc7fe7980cc9fb"
+    },
+    {
+      "identifier": "FE-1372",
+      "url": "https://linear.app/hash/issue/FE-1372/shipping-shape-kernel-library-vs-flue-agent-archive",
+      "updatedAt": "2026-08-19T16:20:27.583Z",
+      "titleSha256": "1dab9baee26c9752955fa86d601f08aed2a362b5cf4c721084b6f2259ab68b68",
+      "bodySha256": "b0f7c959583b663416d505a36c08f6db34f037d1bf8842b950cddce5797462c5"
+    },
+    {
+      "identifier": "FE-1373",
+      "url": "https://linear.app/hash/issue/FE-1373/dev-target-portfolio-confirmation-archive",
+      "updatedAt": "2026-08-19T16:20:27.618Z",
+      "titleSha256": "f716acc84bd7e8b18c26d9f5020804c103bd5a28cd5f957f643d47885903a973",
+      "bodySha256": "a1a499c06b23735a1b16cabcc6c787f35c1e3fda3af30f09c87927173b54f426"
+    },
+    {
+      "identifier": "FE-1374",
+      "url": "https://linear.app/hash/issue/FE-1374/assemble-the-spec-archive",
+      "updatedAt": "2026-08-19T16:20:26.406Z",
+      "titleSha256": "e0ef68909d31cd8e17da3910dd6beb59c3fd02068b82f7a8179a35a498f40f44",
+      "bodySha256": "a61865e7695eb3e3170612f0101ffd8bf4dd97c8322fc08c4bd129d2ea0828c1"
+    },
+    {
+      "identifier": "FE-1375",
+      "url": "https://linear.app/hash/issue/FE-1375/formal-verification-canon-survey-archive",
+      "updatedAt": "2026-08-19T16:20:27.379Z",
+      "titleSha256": "686845995b96dbb4605c51d32a3db23e65fe13afab1b3d29fb71ac0f3aa751f5",
+      "bodySha256": "da21a9ce028674fd3a68be0b7b6401585fa9af23cd013781a53c1d1a8a1a787c"
+    },
+    {
+      "identifier": "FE-1376",
+      "url": "https://linear.app/hash/issue/FE-1376/walking-skeleton-flue-question-round-trip-archive",
+      "updatedAt": "2026-08-19T16:20:26.447Z",
+      "titleSha256": "b44606046ef4f88db1c99ea98b64ca1c22da4d2dbe757268232851b775131f77",
+      "bodySha256": "ed9a8f3a2277d2bbb6122af8c449793c65672faa235173b5d51d657f8e5dc3c6"
+    },
+    {
+      "identifier": "FE-1377",
+      "url": "https://linear.app/hash/issue/FE-1377/logic-prototype-capture-sweep-and-settlement-archive",
+      "updatedAt": "2026-08-19T16:20:26.491Z",
+      "titleSha256": "37acb34d281af002054f9c0cecaececb353463f7bd3f37b592c050efcb5076f7",
+      "bodySha256": "1f7efed2a48a98b6b9ddb02cce3aef6afedb49aeb7ba33415ca5a32dfc38b908"
+    },
+    {
+      "identifier": "FE-1378",
+      "url": "https://linear.app/hash/issue/FE-1378/multi-session-elicitation-and-durable-target-state-archive",
+      "updatedAt": "2026-08-19T16:20:26.948Z",
+      "titleSha256": "a0a6d108d755c05072d5afcc84ed4ebddb1d01b3b55c339dbfb22662c6bad90a",
+      "bodySha256": "4a2e6fa5bc9e664bf7fed660d561ed2a843aa2f99509734de0773e29b169c8ca"
+    },
+    {
+      "identifier": "FE-1379",
+      "url": "https://linear.app/hash/issue/FE-1379/walking-skeleton-sweep-seam-on-flue-archive",
+      "updatedAt": "2026-08-19T16:20:26.560Z",
+      "titleSha256": "4508ec17020f4110e54e4fd9bb6409653fa6051f503485280387d982b90eae6f",
+      "bodySha256": "77ba77f249d1d1e88dda09de03554a2672f52d91e2e75261cfdbe0520f3c4cb7"
+    },
+    {
+      "identifier": "FE-1382",
+      "url": "https://linear.app/hash/issue/FE-1382/source-dossier-published-fleet-maintenance-models-operational-data-for",
+      "updatedAt": "2026-08-19T16:20:26.109Z",
+      "titleSha256": "8789e5d3309cda42c6acf9fc2fb9ed8f3fd7f223fd4c9a5b31475a5f39510bca",
+      "bodySha256": "98a2f626e1fc039a1f81b0d0fa6ecdf6a39c1fa525a4494097e78c3fb3688c34"
+    },
+    {
+      "identifier": "FE-1383",
+      "url": "https://linear.app/hash/issue/FE-1383/build-the-elicitation-harness-to-milestone-one-an-interview-that",
+      "updatedAt": "2026-08-19T16:26:28.251Z",
+      "titleSha256": "d5fbe781b6392a20e99ebbcd938e2556a3591b1eec6b089aa46e450fc54abd2b",
+      "bodySha256": "6ffa6c3bd7e56e39402e2b9b3c4a6dca3a3d926202fcfa19b6d41feecdadf78d"
+    },
+    {
+      "identifier": "FE-1384",
+      "url": "https://linear.app/hash/issue/FE-1384/generative-test-corpus-over-the-replay-driver",
+      "updatedAt": "2026-08-19T16:20:26.528Z",
+      "titleSha256": "34fd893cbe8f38105a28d034e986b36d093d2bb616f11fd3705d9a89ca11a606",
+      "bodySha256": "dc23151710c724730fd5e28460cf1e18ad96ee9b6faf63acf4c4385c7b963ab8"
+    },
+    {
+      "identifier": "FE-1385",
+      "url": "https://linear.app/hash/issue/FE-1385/dev-app-target-gallery-and-diagnostic-probe-surface",
+      "updatedAt": "2026-08-19T16:20:26.147Z",
+      "titleSha256": "7e4a538631309c52c61b4d6d4e1d405aa54ba435c20f18e8684b3f2a020ceedb",
+      "bodySha256": "1bd36079855c694a19c2c16781b8fe79cb03ea9ed3cd3bbce9b31f3ba0993cb4"
+    },
+    {
+      "identifier": "FE-1386",
+      "url": "https://linear.app/hash/issue/FE-1386/verify-compaction-leaves-the-durable-entry-projection-intact",
+      "updatedAt": "2026-08-19T16:20:26.302Z",
+      "titleSha256": "e290d7dbfc6823fb2391b9835c7851aac4dcfd7266cbcca1076a83916a843bc0",
+      "bodySha256": "b032d11e90f77e094632a0437a00a3b19ba43f3b74d851fda5f9983d7059a675"
+    },
+    {
+      "identifier": "FE-1387",
+      "url": "https://linear.app/hash/issue/FE-1387/author-the-second-pack-and-freeze-the-plugin-contract",
+      "updatedAt": "2026-08-19T16:20:26.344Z",
+      "titleSha256": "1e34347c94852da08269de757dd7c58086a76b740fcff0e69c8104de4853eff7",
+      "bodySha256": "0e246edd61bf61e1ca4ca67103d4f396f0d7b1d11611474727197431788ca94b"
+    },
+    {
+      "identifier": "FE-1388",
+      "url": "https://linear.app/hash/issue/FE-1388/scaffold-the-bun-workspace-and-prove-the-ci-smoke",
+      "updatedAt": "2026-08-19T16:20:27.054Z",
+      "titleSha256": "1f553d53fd1c4493bf1808505a85c8275a908f377cc646c3d822d7ee9cc4a4b7",
+      "bodySha256": "5b79a1a15bf83d384bc11b114188db2252eeec734c0299f196f56f83c59a4d94"
+    },
+    {
+      "identifier": "FE-1389",
+      "url": "https://linear.app/hash/issue/FE-1389/walking-skeleton-the-harness-asks-a-free-text-question-and-binds-the",
+      "updatedAt": "2026-08-19T16:20:28.046Z",
+      "titleSha256": "02a0530dca8c589424e2bc9a4813afe1a1cf33887212424ba50fdeba8cb20a49",
+      "bodySha256": "3623852992eec05f9567c745d0d253773713feb486dbef929fc28db16f7a317c"
+    },
+    {
+      "identifier": "FE-1390",
+      "url": "https://linear.app/hash/issue/FE-1390/capture-envelope-storage-port-and-the-local-capture-store",
+      "updatedAt": "2026-08-19T16:20:27.947Z",
+      "titleSha256": "79014f58a3fcbcbe710117e024203f408d2c85b31178827f4e2a1f2f7c50d74b",
+      "bodySha256": "dce103e6c13f999a39d866e51e61826185cc97f34dd221baa2a8b8f55bf77826"
+    },
+    {
+      "identifier": "FE-1391",
+      "url": "https://linear.app/hash/issue/FE-1391/durable-entry-projection-harness-resolved-anchoring-and-the-session",
+      "updatedAt": "2026-08-20T08:02:56.636Z",
+      "titleSha256": "64ec7826e8f32ec6ab84c8a8b36879fb5b9b6c7153d9f5ff3fca2616a42ff230",
+      "bodySha256": "464a7faf1c52aa7bbc16b542aee5d1085fff78cd671575e61dd832e2ec6295d0"
+    },
+    {
+      "identifier": "FE-1392",
+      "url": "https://linear.app/hash/issue/FE-1392/settlement-trigger-and-sweep-the-first-captured-statement",
+      "updatedAt": "2026-08-20T08:02:56.825Z",
+      "titleSha256": "dc560fe9d1bf4ae882310eb8563baa90c49375e0ab8009a2069bddb5877fe98f",
+      "bodySha256": "7a58e8a4d7e8960c3b41b0b0a91396e7c14f002f3fbf68ec63aa3dfdc8e46b3b"
+    },
+    {
+      "identifier": "FE-1393",
+      "url": "https://linear.app/hash/issue/FE-1393/plugin-sdk-and-the-gherkin-plugin-the-first-projected-artifact",
+      "updatedAt": "2026-08-19T16:20:25.951Z",
+      "titleSha256": "c19a8e89dc13b6eb7cf8b1e023e20a8f82ef1d254ab865caf2fdea5e2a463a3a",
+      "bodySha256": "eb4be2fba6a05bdbcdace930230c21ca24be097e2d707bcbf8441cebeb1367c8"
+    },
+    {
+      "identifier": "FE-1394",
+      "url": "https://linear.app/hash/issue/FE-1394/conflict-supersession-and-the-interpretation-render",
+      "updatedAt": "2026-08-19T16:20:26.378Z",
+      "titleSha256": "300684bbdff69dcc7f9ee11eb17102a826a7e24bfd5cc9b47d7c2cc6fa5c6693",
+      "bodySha256": "59342c6a55a213c528d8566c757ac6a85af9a08819e19af57664798e93b8d2ef"
+    },
+    {
+      "identifier": "FE-1395",
+      "url": "https://linear.app/hash/issue/FE-1395/the-full-affordance-set-choices-questionnaire-chaining-and-the-absence",
+      "updatedAt": "2026-08-19T16:20:26.675Z",
+      "titleSha256": "3c8ed19b489983343fae2ea6dcbced4c87330e476f984fb75fa9937fb1974f67",
+      "bodySha256": "2a5426c3cda4bfd5d3b5e7451880acfb2000efd8f906ae9512651fa23aa94d01"
+    },
+    {
+      "identifier": "FE-1396",
+      "url": "https://linear.app/hash/issue/FE-1396/re-entry-briefing-resume-reconciliation-and-restart-durability",
+      "updatedAt": "2026-08-19T16:20:25.918Z",
+      "titleSha256": "81da9d71280d7fa1fd21ba19d101e1cd02d113fd2e626f425d50ea302efe93f8",
+      "bodySha256": "a107fcbcc646a6054c66bd208141252bda7298308546c689e1fcf9d0ff79d797"
+    },
+    {
+      "identifier": "FE-1397",
+      "url": "https://linear.app/hash/issue/FE-1397/validate-the-generic-ir-definition-against-worked-payload-designs",
+      "updatedAt": "2026-08-19T16:19:46.091Z",
+      "titleSha256": "57101af27a029ed36c454595d43f1a63d722dc7fecde14313f61c122f3ff195b",
+      "bodySha256": "676e3faa8b8d4801db351f8c82bdf8899036df30c8a5b2789d9a3f3e2b2ca534"
+    },
+    {
+      "identifier": "FE-1399",
+      "url": "https://linear.app/hash/issue/FE-1399/make-the-ci-gates-and-dev-app-fail-loudly-where-review-found-they-fail",
+      "updatedAt": "2026-08-19T16:20:26.590Z",
+      "titleSha256": "2dccdd3bedc0bb7b28b086c4a1c0c8da6c68a894767abe0713ba8b3550a581d7",
+      "bodySha256": "6b0a691af9b858b532b0ac30b62f352fcf19afc87071534e5f6ea25b13cc6379"
+    },
+    {
+      "identifier": "FE-1400",
+      "url": "https://linear.app/hash/issue/FE-1400/close-the-review-found-gaps-where-the-gates-dev-app-and-baseline",
+      "updatedAt": "2026-08-19T16:20:26.709Z",
+      "titleSha256": "4e4a7a42972cd87205b806f4c89d7ba44e0ab2ddb6efa1abbab18de34022ed39",
+      "bodySha256": "ea04928499443681cda2c797a268fe7c62b970dacb49d787ada0a84d2e516257"
+    },
+    {
+      "identifier": "FE-1401",
+      "url": "https://linear.app/hash/issue/FE-1401/resolve-the-follow-ups-from-the-stack-legibility-session",
+      "updatedAt": "2026-08-19T16:20:28.561Z",
+      "titleSha256": "3eb163af50263452be68f66950600c587100fa854645791d88be95fddb53e306",
+      "bodySha256": "add5a3da06b366dbc9fe4cdc44b9ce161d2775c8b43fb18af380b2fe2c9c9d5e"
+    },
+    {
+      "identifier": "FE-1402",
+      "url": "https://linear.app/hash/issue/FE-1402/decide-when-an-elicitation-is-complete-or-should-stop",
+      "updatedAt": "2026-08-19T16:19:47.912Z",
+      "titleSha256": "518f7d5cf52ba2195138f03237f8cebbff16622631fd34f3d96e68e9066fc5db",
+      "bodySha256": "0443796ebe3de81af985a3621799610618b8f020b26ee7e4558e237ea1752df1"
+    },
+    {
+      "identifier": "FE-1403",
+      "url": "https://linear.app/hash/issue/FE-1403/assemble-the-cps-packs-interviewing-guidance-and-desk-test-it-where",
+      "updatedAt": "2026-08-19T16:19:48.641Z",
+      "titleSha256": "76a2a8c3c3f4070aa4979a9414bd2d22eca8e87303966a2377bf17fc8a417196",
+      "bodySha256": "0f8b52a00cb0756e5a5175f053ee2911bca209347466334d61f9f7607f78ccdc"
+    },
+    {
+      "identifier": "FE-1404",
+      "url": "https://linear.app/hash/issue/FE-1404/run-the-armed-baseline-condition-3-completion-contract-and-pack",
+      "updatedAt": "2026-08-19T16:19:48.957Z",
+      "titleSha256": "dc85e7886b6e6ba00a4848394abc5de81f7592f16cfdd8db8291d6586675e22f",
+      "bodySha256": "f88abfbaa37d65613194b26c3c52b12356af84b1bd39e5b8b062b86d03fefd85"
+    },
+    {
+      "identifier": "FE-1405",
+      "url": "https://linear.app/hash/issue/FE-1405/draft-the-cps-payload-interiors-annotated-shapes-for-the-ten-kinds",
+      "updatedAt": "2026-08-20T08:02:56.864Z",
+      "titleSha256": "6684fe28ff26349efddef701756334dbc89e05ad594c401f49a8b0f575f0845a",
+      "bodySha256": "42b2be3331cc53b8d4f319769fc410edee6afe23b96111e1f79cc3adf9c59785"
+    },
+    {
+      "identifier": "FE-1406",
+      "url": "https://linear.app/hash/issue/FE-1406/design-reusable-elicitation-strategies",
+      "updatedAt": "2026-08-19T16:20:27.749Z",
+      "titleSha256": "9e9eb8ab449ad16c522398efabb98d5eff616e2e1e7cd8c81b99ff2b54d86ba2",
+      "bodySha256": "c5698449d7a48b8b4f4f1b3f9dead3407ae1a737b26c62c6034528c809b993f9"
+    },
+    {
+      "identifier": "FE-1407",
+      "url": "https://linear.app/hash/issue/FE-1407/catalogue-the-frontier-elicitor-failure-modes-the-published",
+      "updatedAt": "2026-08-19T16:19:49.974Z",
+      "titleSha256": "20bc9b033919f9de69d2601587094279f30a7542246f0b91a234fc77247e5500",
+      "bodySha256": "147f3f51d5bb84c4d365fcbeb62793a602f48218bcfa36358fb2179f38e737cd"
+    },
+    {
+      "identifier": "FE-1419",
+      "url": "https://linear.app/hash/issue/FE-1419/close-the-seams-where-the-capture-store-and-verification-gates-claim",
+      "updatedAt": "2026-08-19T16:20:27.978Z",
+      "titleSha256": "c7839e241c62f56c68fa6c425f55035423c76bda7a42bdbb9916214a3d0ffdca",
+      "bodySha256": "8943da27bdc24725789f0721adc47978caad9bc3dc841c5086d8bd7860c07b59"
+    },
+    {
+      "identifier": "FE-1420",
+      "url": "https://linear.app/hash/issue/FE-1420/the-affordance-protocol-survives-retries-unknown-forms-and-abandoned",
+      "updatedAt": "2026-08-19T16:20:26.642Z",
+      "titleSha256": "3bfff13eaf86dd08b581c3c256de11384d3a0322712bec45e72909d23488c045",
+      "bodySha256": "81b2a078103ec981c418c6d8583f31e301dd47b5025e06e967b13f9143b7123c"
+    },
+    {
+      "identifier": "FE-1422",
+      "url": "https://linear.app/hash/issue/FE-1422/the-ask-protocol-is-substrate-portable-mechanism-moves-from-the-flue",
+      "updatedAt": "2026-08-20T08:02:56.900Z",
+      "titleSha256": "2f1e7a4a1dc36d322f689117372148fc36b8b32010e7c5a83ad8b5164882edd3",
+      "bodySha256": "896c07b62ab8f586a5b0a3e91d47dd2227e5e69ab4b76c60e2ee33afea3de43d"
+    },
+    {
+      "identifier": "FE-1423",
+      "url": "https://linear.app/hash/issue/FE-1423/the-demo-shell-is-safe-to-expose-beyond-localhost",
+      "updatedAt": "2026-08-19T16:20:27.185Z",
+      "titleSha256": "20bfcf5adb6266e8a21935a7059acb2f2b3a72b6a45328d5a666febdbd322a07",
+      "bodySha256": "5a59b5eb9a3ef99c1232b3833764309a3a4523371cc3d50f17b733daf28e9cde"
+    },
+    {
+      "identifier": "FE-1424",
+      "url": "https://linear.app/hash/issue/FE-1424/the-documentation-protocol-runs-end-to-end-inbox-settled-planning",
+      "updatedAt": "2026-08-20T08:02:56.935Z",
+      "titleSha256": "4ba41dff52f65d73eb3a91251a5f2f5593dd20f33ee17b935bd4f4fa0a53f03c",
+      "bodySha256": "25338da8862bddb99fe1703004fd71da6f90c544df8a3026c5ac2db39bdc8451"
+    },
+    {
+      "identifier": "FE-1431",
+      "url": "https://linear.app/hash/issue/FE-1431/plugin-authoring-becomes-declarative-a-domain-is-two-schemas-and-two",
+      "updatedAt": "2026-08-19T16:20:27.703Z",
+      "titleSha256": "9a7bf9004f09c283ea30033b983064c6ad1e6bf7b90b688aacce0a9b641271f6",
+      "bodySha256": "5d4914829c96abbd9cb90a8868e87372ae837b5ac05404f6824b4c7d97e6c381"
+    },
+    {
+      "identifier": "FE-1432",
+      "url": "https://linear.app/hash/issue/FE-1432/the-stacks-open-review-threads-are-adjudicated-fixed-owned-or-refused",
+      "updatedAt": "2026-08-20T08:02:56.984Z",
+      "titleSha256": "87232791cdfbe95bb69b3bcb846ca1a9b0057306d8b5c372fcd11b3336da9a43",
+      "bodySha256": "4280899d06e4ac85fef832eaaaa5f9bb08c388105125b5369808b5c7354d0688"
+    },
+    {
+      "identifier": "FE-1433",
+      "url": "https://linear.app/hash/issue/FE-1433/the-elicitor-serves-demopetrinautorgs-chat-panel-from-a-remote-brunch",
+      "updatedAt": "2026-08-20T08:02:57.029Z",
+      "titleSha256": "281967069fd5f9b5bfe6d27dabf982004c1f5b8286312ca546001f8466c87c7e",
+      "bodySha256": "327f6f24386c6636bd8b52e557f1164e6483a8bd4804355cdca32d1f612d1b1d"
+    },
+    {
+      "identifier": "FE-1434",
+      "url": "https://linear.app/hash/issue/FE-1434/spike-does-flue-turn-suspension-carry-batched-client-tool-round-trips",
+      "updatedAt": "2026-08-20T08:02:57.068Z",
+      "titleSha256": "c10af0cac7faccaeac3f161ec242d94fc92549f164b8e885a6305159115d58c8",
+      "bodySha256": "fac188333116b05f6764814ccb6ed97bd003e182bc45132c2d39c932440b5bb2"
+    },
+    {
+      "identifier": "FE-1435",
+      "url": "https://linear.app/hash/issue/FE-1435/spike-does-a-harness-driven-stream-drive-petrinauts-real-chat-panel",
+      "updatedAt": "2026-08-20T08:02:57.126Z",
+      "titleSha256": "2c301f3965071e2bfb773497b119bfe4e616ef41902a611005f2061854523f84",
+      "bodySha256": "a157fa152e18f4783339cc49e56ac61a608e57ce097cac34502e7a3acec17698"
+    },
+    {
+      "identifier": "FE-1436",
+      "url": "https://linear.app/hash/issue/FE-1436/the-elicitor-answers-conversation-turns-in-petrinauts-real-chat-panel",
+      "updatedAt": "2026-08-20T08:02:57.380Z",
+      "titleSha256": "a5958e22310b6c5fa71520b3c9e0c5e27b41bf557cbcf54c0d423297a0a9a6b4",
+      "bodySha256": "b07965244f137a1844adffb0b30dce5130cd4e8555f2e139579a6bc8456d0e69"
+    },
+    {
+      "identifier": "FE-1437",
+      "url": "https://linear.app/hash/issue/FE-1437/hashintelbrunch-agent-lives-in-hashintelhash-with-its-history",
+      "updatedAt": "2026-08-19T16:20:27.220Z",
+      "titleSha256": "75970ac9d4456f223830b137b2f74eab7999fb8e35f2216057966b99c9bc03ce",
+      "bodySha256": "cbe7b6d050e3486f8e1649848516b240c282e85f601a56f693f095059902a476"
+    },
+    {
+      "identifier": "FE-1438",
+      "url": "https://linear.app/hash/issue/FE-1438/the-elicitor-builds-and-repairs-the-net-through-petrinauts-client",
+      "updatedAt": "2026-08-19T16:26:26.410Z",
+      "titleSha256": "fab2a16c55c83622257f80bc3c8d2bafe38e778c7618766f473a51fbbdbfde5c",
+      "bodySha256": "4b1de406e41f3b22fd6fa75888723caa04bceb2fd97bf01d359a4f52cb9a8c0f"
+    },
+    {
+      "identifier": "FE-1439",
+      "url": "https://linear.app/hash/issue/FE-1439/elicitation-sessions-are-private-per-browser-and-survive-a-reload",
+      "updatedAt": "2026-08-19T16:20:26.834Z",
+      "titleSha256": "a52fa9f76201b88dac7f36951eb5cf70a0fbe75b77812e21ebc5ef0f904747bc",
+      "bodySha256": "c98a5d0620887f1d30a07eb63f16d2d76d7dace03784a3b3d11e63f3874a8d5f"
+    },
+    {
+      "identifier": "FE-1440",
+      "url": "https://linear.app/hash/issue/FE-1440/demopetrinautorg-ships-the-elicitor-behind-its-chat-panel",
+      "updatedAt": "2026-08-19T16:20:26.864Z",
+      "titleSha256": "c963a4b6c2fd98029b5e8c57e30e341a983769da62cec64af0236ba081293204",
+      "bodySha256": "697595134f5edfbfb98ca3046f039abca72047f4bf214916d4abcff9d41f04e5"
+    },
+    {
+      "identifier": "FE-1441",
+      "url": "https://linear.app/hash/issue/FE-1441/the-elicitor-server-runs-on-hash-infrastructure-behind-the-pre-remote",
+      "updatedAt": "2026-08-19T16:20:26.907Z",
+      "titleSha256": "7857490e95bf278812b8552e2ed55d21146842212873364d9369fb83a55afeb2",
+      "bodySha256": "2ddc691ac9f44ccc31fab6071cefa9c67942c94a358e3f4805da80d61fc19eb0"
+    },
+    {
+      "identifier": "FE-1442",
+      "url": "https://linear.app/hash/issue/FE-1442/captures-and-completion-accounting-render-live-in-the-demo-site",
+      "updatedAt": "2026-08-19T16:20:27.003Z",
+      "titleSha256": "aed7b19ffd731679630103fc8bee5d7cc962a5e2a54f6fb0d7336651c883bc1a",
+      "bodySha256": "864ae481d518556b75611b62baf28fb2de7df4d8db340d87de86942ccea9130f"
+    },
+    {
+      "identifier": "FE-1448",
+      "url": "https://linear.app/hash/issue/FE-1448/petrinaut-hosts-render-their-own-interactive-chat-tools",
+      "updatedAt": "2026-08-19T16:20:27.813Z",
+      "titleSha256": "675c39fa590ebda855c128a3837f13a98d557cce9fda8da734e5e4efe36d9b18",
+      "bodySha256": "d3722991fd835760a4d8a24c5822e68439a3860fb2308a354812cfafea0bf73e"
+    },
+    {
+      "identifier": "FE-1449",
+      "url": "https://linear.app/hash/issue/FE-1449/a-structured-brunch-question-suspends-and-resumes-visibly-in-petrinaut",
+      "updatedAt": "2026-08-19T16:20:28.606Z",
+      "titleSha256": "2b666da1c16c40eefa3542811dce3f24da1d9e005261fba747aace65a9fdb67c",
+      "bodySha256": "acd7ce7b5b6bf664d57404bd478ac63a98039fa232ad5832d2706f11a3a4dbd0"
+    },
+    {
+      "identifier": "FE-1451",
+      "url": "https://linear.app/hash/issue/FE-1451/keep-issues-comments-and-prs-easy-to-scan",
+      "updatedAt": "2026-08-19T16:20:28.510Z",
+      "titleSha256": "37219df7e036b6c5e63477976107b2c2a704596cc7fe084757fa42d906e26c5c",
+      "bodySha256": "91b3b7773b3f664b22ace816a7d85d631020f9bf80348966cc6294c461dc8bcb"
+    }
+  ],
+  "github": [
+    {
+      "number": 1,
+      "url": "https://github.com/hashintel/brunch-lite/pull/1",
+      "updatedAt": "2026-08-19T13:59:58Z",
+      "titleSha256": "2349400d04eb80fe6d4f1253ea64eecc37cc01df5cc71141a92dbc1839396dbc",
+      "bodySha256": "b034992e70ad0e9a8ab26ba321aaa87f91365d563c4bb4a021dd8c5cee3aed51"
+    },
+    {
+      "number": 2,
+      "url": "https://github.com/hashintel/brunch-lite/pull/2",
+      "updatedAt": "2026-08-19T14:00:01Z",
+      "titleSha256": "213035e657b4ee4135ccdf4f4781e3b7a94d4a42d404ced75c5f821df9c4b371",
+      "bodySha256": "def66364b5c84aaf3357de5f03701eea169d84972dceb6f35284fa16e281f6ce"
+    },
+    {
+      "number": 3,
+      "url": "https://github.com/hashintel/brunch-lite/pull/3",
+      "updatedAt": "2026-08-19T14:00:02Z",
+      "titleSha256": "479fc988f738df20272d535d4cdec59affba9e2c782f716ba8b2c1077966ece0",
+      "bodySha256": "c11ea0f55f34cf925c4c4dd02834521dc97c1f1b2575c18b5b48e087b027fb00"
+    },
+    {
+      "number": 4,
+      "url": "https://github.com/hashintel/brunch-lite/pull/4",
+      "updatedAt": "2026-08-19T14:00:04Z",
+      "titleSha256": "d1e15580b5ebf90f1be401019c3b33876f59f9aabe23a0424ee5b0688b15a628",
+      "bodySha256": "b14b6372d8340e427843903ecd013bdf356c3adc8d00a4cec6f664672b67817d"
+    },
+    {
+      "number": 5,
+      "url": "https://github.com/hashintel/brunch-lite/pull/5",
+      "updatedAt": "2026-08-19T14:00:05Z",
+      "titleSha256": "229ac27a91eab0e70254f9a283f3ef6a9f8d375bbf17fffdb8f7d04d2ac59603",
+      "bodySha256": "e6f28eca8b261bb837c955a6a243db8b74fbb2b31d4033a230b131ffef570cbc"
+    },
+    {
+      "number": 6,
+      "url": "https://github.com/hashintel/brunch-lite/pull/6",
+      "updatedAt": "2026-08-19T14:00:06Z",
+      "titleSha256": "49a7e617a4276a193a7ac78578d95fb09586d2fd660232472afb83eaa2c81739",
+      "bodySha256": "a504f8f2a3ac48ec0599e2f1bf0a8d9968e94dbbd04eb6d8b23d200966e8bbb6"
+    },
+    {
+      "number": 7,
+      "url": "https://github.com/hashintel/brunch-lite/pull/7",
+      "updatedAt": "2026-08-19T14:00:08Z",
+      "titleSha256": "09929e03f4a76113a051454c63fd0fdad8466e536a83e0e3f13e4a817672c64c",
+      "bodySha256": "23f9bc92607a7d5be6b55ee742f4669bf684245ce7a5c126d92f5fd65807c119"
+    },
+    {
+      "number": 8,
+      "url": "https://github.com/hashintel/brunch-lite/pull/8",
+      "updatedAt": "2026-08-19T14:00:10Z",
+      "titleSha256": "bb81d98a6ecb4ad55e7dddaf963f52da31c86a14e7cb652ee63e46396ee2867e",
+      "bodySha256": "e8ed6d96887037c79160976cbc45078edc4c452c456ef50783cead160602a7f0"
+    },
+    {
+      "number": 9,
+      "url": "https://github.com/hashintel/brunch-lite/pull/9",
+      "updatedAt": "2026-08-19T14:00:12Z",
+      "titleSha256": "438c3f68d2d61c5975585c864f38610d5e0899e9f6d1aea28d3091b82f63bb71",
+      "bodySha256": "3e7d50eae5e60d3152d16e1ecefb3de27934ea2f73e2e9f26d995921a67cc869"
+    },
+    {
+      "number": 10,
+      "url": "https://github.com/hashintel/brunch-lite/pull/10",
+      "updatedAt": "2026-08-19T14:00:14Z",
+      "titleSha256": "9aa634521196bc66ad8a36254eb995aee3b484177468d0bb0e007fb358ffb8b7",
+      "bodySha256": "f5249295ba3564783719e2d9e870e7659b074482d3c86d20803c118308d26a69"
+    },
+    {
+      "number": 11,
+      "url": "https://github.com/hashintel/brunch-lite/pull/11",
+      "updatedAt": "2026-08-19T14:00:15Z",
+      "titleSha256": "710989fa7a8870a91ba1e36447c52327068378fbb13bc879314f367363dc3f6c",
+      "bodySha256": "a58c82980be648e3b01142e3c0d0087a3c49b893c9547055bde27b98bf0bc5e0"
+    },
+    {
+      "number": 12,
+      "url": "https://github.com/hashintel/brunch-lite/pull/12",
+      "updatedAt": "2026-08-19T14:00:17Z",
+      "titleSha256": "0451f66a36602e806df9c2112c1121521b94245613ec8efffb621bb83695c9d0",
+      "bodySha256": "cca722394c59d6fc2431b1d6619f0991782d6d1969121d2d9193b4bbe84af0c3"
+    },
+    {
+      "number": 13,
+      "url": "https://github.com/hashintel/brunch-lite/pull/13",
+      "updatedAt": "2026-08-19T14:00:18Z",
+      "titleSha256": "fb7a8ac27ea24f41a79d749ca20733e2c25c4b1cee170719bc02ce0d241ad260",
+      "bodySha256": "f9ab772a065145e23ed733c85c63888b8319ec31e8b04db7b281917372d796d4"
+    },
+    {
+      "number": 14,
+      "url": "https://github.com/hashintel/brunch-lite/pull/14",
+      "updatedAt": "2026-08-19T14:00:20Z",
+      "titleSha256": "23fbf383a72d5bb528910b8067ebd01c3aef2aad088e7404b1c19f5a196b894e",
+      "bodySha256": "c3cec4fdb4fe1de796714e121acf420b6d2da0d14d743c2e9b147d705f2ac8a1"
+    },
+    {
+      "number": 15,
+      "url": "https://github.com/hashintel/brunch-lite/pull/15",
+      "updatedAt": "2026-08-19T14:00:22Z",
+      "titleSha256": "9b957cd8c760d786142e94469da03e59648c0835a5a54a7ec59204f86372f2dd",
+      "bodySha256": "105a9f8da172e7bd653130a30dcbe55ae828672de2469449a8c3e8e2d99901fa"
+    },
+    {
+      "number": 16,
+      "url": "https://github.com/hashintel/brunch-lite/pull/16",
+      "updatedAt": "2026-08-19T14:00:24Z",
+      "titleSha256": "57533df404cf90eb95676d0223056011c73aa2ab89bacfeb6ebc12e5e91d1703",
+      "bodySha256": "1fc9f55dcaded9b23be43b01e2fe6961b26a0bf5556f802ddfc7d1066846c05d"
+    },
+    {
+      "number": 17,
+      "url": "https://github.com/hashintel/brunch-lite/pull/17",
+      "updatedAt": "2026-08-19T14:00:26Z",
+      "titleSha256": "8df88b0ce1d3b89975c44cc7efb9d680d2cbda6518cf08c0af135ab15e663dae",
+      "bodySha256": "08e75c781979efa46ebd3537f207e71dc89e95cd002bf534696690d6eea06a84"
+    },
+    {
+      "number": 18,
+      "url": "https://github.com/hashintel/brunch-lite/pull/18",
+      "updatedAt": "2026-08-19T14:00:27Z",
+      "titleSha256": "e2af4a86d0444c15a7135f477591b390b36fff479e0915de853efc36b4e36ec9",
+      "bodySha256": "74deff20a1a55625cb86f64d8a867194c23f04df9057556314683a9420c14062"
+    },
+    {
+      "number": 19,
+      "url": "https://github.com/hashintel/brunch-lite/pull/19",
+      "updatedAt": "2026-08-19T14:00:29Z",
+      "titleSha256": "8baa3f7952c774fe17d2c91f5700063fa8e11047b193813df55b11766fee8eab",
+      "bodySha256": "ae7d1b251d8e1f3547dc5b55930a4e1372bd97f9af952c7e8d3e2319d46c0172"
+    },
+    {
+      "number": 20,
+      "url": "https://github.com/hashintel/brunch-lite/pull/20",
+      "updatedAt": "2026-08-19T14:00:30Z",
+      "titleSha256": "f994067680a1d677c1289baa403f1b2db4452f64845198006fd1c337648d7e81",
+      "bodySha256": "c3efa637340c6fb14916825e3303b27da6733d7a9528c5bc10cdf065722c9b64"
+    },
+    {
+      "number": 21,
+      "url": "https://github.com/hashintel/brunch-lite/pull/21",
+      "updatedAt": "2026-08-19T14:00:32Z",
+      "titleSha256": "c47a125d640ac02cb20d9907f82c7d3612121c3ba6b574f4fa7560dc2d4e30d7",
+      "bodySha256": "037a322196d9f97ed586af85f637e9ea51eb4f9a2e19911b5285b5ea7dddfac4"
+    },
+    {
+      "number": 22,
+      "url": "https://github.com/hashintel/brunch-lite/pull/22",
+      "updatedAt": "2026-08-19T14:00:35Z",
+      "titleSha256": "ea8d78aaeef51c451235b2dcd2e5aef2459dfa218dae80928968f5499c0408ea",
+      "bodySha256": "985fc49182ce7429b93462cb72bd5124b6f77a2c66a3f554e63ebd1c5a3a44b5"
+    },
+    {
+      "number": 23,
+      "url": "https://github.com/hashintel/brunch-lite/pull/23",
+      "updatedAt": "2026-08-19T14:00:37Z",
+      "titleSha256": "51da4c3d51152014c2866fb0114f20a4ae2f32653b7a64a20149ee0cd63fa59e",
+      "bodySha256": "c0634fcf88f0fb7c9428da627183b68b53d13023a55153fb1649230f5717ede3"
+    },
+    {
+      "number": 24,
+      "url": "https://github.com/hashintel/brunch-lite/pull/24",
+      "updatedAt": "2026-08-19T14:00:38Z",
+      "titleSha256": "bd9e156289c48be8bc090b55ed791baa949ca60fa375428e1ce44cefdee10367",
+      "bodySha256": "e1027892dd6c1a87afc8f7922fc51a997066da09baf710a15c05aa24a9c5c283"
+    },
+    {
+      "number": 25,
+      "url": "https://github.com/hashintel/brunch-lite/pull/25",
+      "updatedAt": "2026-08-20T08:46:31Z",
+      "titleSha256": "92298a4ff0ba866ac7de95fa5ae22a2be4d911f4e3ef9db4a562987660d684bb",
+      "bodySha256": "37dedf722f51fb6dd12e5e690a1f843040a5c84edf5d8ed8187ee386980d3851"
+    }
+  ]
+}

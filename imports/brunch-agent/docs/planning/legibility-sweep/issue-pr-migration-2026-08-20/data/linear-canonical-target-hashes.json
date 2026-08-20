@@ -1,0 +1,281 @@
+{
+  "format": "linear-canonical-fold-v1",
+  "issues": [
+    {
+      "identifier": "FE-1357",
+      "bodySha256": "af21a19b276419b7f351b3edb6c48bf3f598dd25934f835e971cc7a908d60f98"
+    },
+    {
+      "identifier": "FE-1358",
+      "bodySha256": "08c91e46efd7697eb722cc04373be6680de6591dc6ad4ed9c35f971f6ca55899"
+    },
+    {
+      "identifier": "FE-1359",
+      "bodySha256": "5229603b3d41374e36d31d761c83528f7ba5291963ac84c843d60a138d56652b"
+    },
+    {
+      "identifier": "FE-1360",
+      "bodySha256": "a6d7709d6fad560785f2c4d8d5d4d93731ff5d6c8e2b16dcf2bc384ac5daae19"
+    },
+    {
+      "identifier": "FE-1361",
+      "bodySha256": "5bd4de3670bdb15872c5826c6d053fcf0e4bbc17542313a21640b6732ae941e8"
+    },
+    {
+      "identifier": "FE-1362",
+      "bodySha256": "9576d5d00ff1e5cc3e8d8ee8d61c762e297bb63889aaea2469a7a778418d9993"
+    },
+    {
+      "identifier": "FE-1363",
+      "bodySha256": "4cc749b9cfdeeec3960bba78110fe36874827ca888085991a97f232009e89d97"
+    },
+    {
+      "identifier": "FE-1364",
+      "bodySha256": "454e2287159c78a31d09cbdea9402be4594916e53106026ec42944445d768a24"
+    },
+    {
+      "identifier": "FE-1366",
+      "bodySha256": "d07ec0b6e6bfdb01e9dbcc57de35dbfeeae65c80d5c688a0fb4b0f855c05739d"
+    },
+    {
+      "identifier": "FE-1367",
+      "bodySha256": "0d564e0427b73c79440b31b09c85a11d83bdada98759c0c0571531e1b7eacdc2"
+    },
+    {
+      "identifier": "FE-1368",
+      "bodySha256": "58eac8c7f4da2110cff73432764c20d71576fbedbed167d88a7c0ccaacfe8b70"
+    },
+    {
+      "identifier": "FE-1369",
+      "bodySha256": "f9acc9c49a910e07ea12eee26f5156578029354e5b695d3b6f679744a4d30d3d"
+    },
+    {
+      "identifier": "FE-1370",
+      "bodySha256": "586900fec359fdea19b40355ce70ada6f4dc6cc1a4b318a5266fd04925e9330b"
+    },
+    {
+      "identifier": "FE-1371",
+      "bodySha256": "8e34e41697c46c46a81ea4c5ab48edcb49de55973b2b11732bcf451b8191a17f"
+    },
+    {
+      "identifier": "FE-1372",
+      "bodySha256": "4ceed9ff828af36baeb0d9fe3be38f70f48b89310c8f6eb86afb98ba9ea34d1e"
+    },
+    {
+      "identifier": "FE-1373",
+      "bodySha256": "3427cd321d38c72b7abb00985cdc8eb1d4de70b2b1cf4be1bad6537edf468d03"
+    },
+    {
+      "identifier": "FE-1374",
+      "bodySha256": "cb0436794a3e2c782938939475a1fa2a0b68e3969b1e1ff03eb8fa4306d4abc0"
+    },
+    {
+      "identifier": "FE-1375",
+      "bodySha256": "f1e803bca9e75caf52ea4346c7d8fe2c859523a1de616367c56b1dc58da2d82c"
+    },
+    {
+      "identifier": "FE-1376",
+      "bodySha256": "3a752cf0d3362718f9364083a2469b501e3d5037dbfd8fde747216b4e53e36ec"
+    },
+    {
+      "identifier": "FE-1377",
+      "bodySha256": "fac78c76da54522de3bfa0777b4f048279581c51300c3fc74bcf80548c0d8cba"
+    },
+    {
+      "identifier": "FE-1378",
+      "bodySha256": "77648b3f761ba84c2837ad23b418104e13c2182772006d3e175f63b0066cf065"
+    },
+    {
+      "identifier": "FE-1379",
+      "bodySha256": "3b61f9e6a64f171a18eb0482da780e41dab67f44bfd7c7568acca05f5b39c85c"
+    },
+    {
+      "identifier": "FE-1382",
+      "bodySha256": "dcbee28f52b04684d16de429518666c033f3d5dc2ace992d55b5fe49f5180e7f"
+    },
+    {
+      "identifier": "FE-1383",
+      "bodySha256": "3e7b2d47ea437880f995a53d223fb9380873e02ae5adac83ceafd9d38a6f55cb"
+    },
+    {
+      "identifier": "FE-1384",
+      "bodySha256": "bf5b66bf1a18287a64f583e0f7df1761c1d3e13278ff349998410d5aa425156c"
+    },
+    {
+      "identifier": "FE-1385",
+      "bodySha256": "9a9849fe884a4047d00b0d673f085c3ca401643df2647eb3a9da07e1530991c6"
+    },
+    {
+      "identifier": "FE-1386",
+      "bodySha256": "6714044cb3c8c5e5f5a511ec8339ec15f8d639b78814cd2f430d068265c4443f"
+    },
+    {
+      "identifier": "FE-1387",
+      "bodySha256": "e02aff72a2640dbe03ff1027ec7ec203c67be06796834148e5ff7b577cbfd66a"
+    },
+    {
+      "identifier": "FE-1388",
+      "bodySha256": "09f30e8f38b786bb7d9645dec9b45137931774e2dbe8d033acabf410fac84a7b"
+    },
+    {
+      "identifier": "FE-1389",
+      "bodySha256": "61d11a095b9ca88dfcd274a2d50e1d1e337713abfce81dc75cf29cbd1dad3c80"
+    },
+    {
+      "identifier": "FE-1390",
+      "bodySha256": "6cf8d9572068580ce883faeed54d1ef0ac20d8c60666d32d810c1ff45b56a0ad"
+    },
+    {
+      "identifier": "FE-1391",
+      "bodySha256": "a10cd59d9b58e0903965106cfc42cace3aa01a8366c414a76196c867c46c5683"
+    },
+    {
+      "identifier": "FE-1392",
+      "bodySha256": "71902c740537f89d9251bcdab39d0569d59e2445e9198305e578100b9eafe77d"
+    },
+    {
+      "identifier": "FE-1393",
+      "bodySha256": "9cc7f0cedf11c039e9e6c55f9904fd35340c2cb329d275cdefa77e022695fffe"
+    },
+    {
+      "identifier": "FE-1394",
+      "bodySha256": "3a738a9370e3a1698e0c0d0fd6c966d15e7635f9be498470ac8c8ef37e8297b1"
+    },
+    {
+      "identifier": "FE-1395",
+      "bodySha256": "325fb0866d84fc3386d7dadd18e1fc5140e0f02bc64508826dada5a514c79318"
+    },
+    {
+      "identifier": "FE-1396",
+      "bodySha256": "60a1aa6eb6aacbb63940637435b2ecd8dcbc8d38ab4e8057976301ba89665b59"
+    },
+    {
+      "identifier": "FE-1397",
+      "bodySha256": "728d19cef7d300fa63be05be9ba870290863be42072f08e865cee254f2ec9cbf"
+    },
+    {
+      "identifier": "FE-1399",
+      "bodySha256": "93f520f9c2e08c999d5105fdd07a770dbe8a20b6f8bea6c1995067bcd44cf221"
+    },
+    {
+      "identifier": "FE-1400",
+      "bodySha256": "096ccde21fd800d9c0cbb751b580ad160b998666313b43702030a78056471204"
+    },
+    {
+      "identifier": "FE-1401",
+      "bodySha256": "9e51a20089190e2e34e70e0a4b6faa35b73c8818a11eb8dce1fcd5402c652a20"
+    },
+    {
+      "identifier": "FE-1402",
+      "bodySha256": "b2abd827fdba53895fdccc6d227d8981e7615a103564a8b5955108faf44a49fa"
+    },
+    {
+      "identifier": "FE-1403",
+      "bodySha256": "d4f1804674241c2b523f122d3a510d4730eabaa564dc2a589e63886e48b94240"
+    },
+    {
+      "identifier": "FE-1404",
+      "bodySha256": "0f61b1baed5eb374bd7366fc51344fd21a65f900ce7a4fc273241ef919819b9d"
+    },
+    {
+      "identifier": "FE-1405",
+      "bodySha256": "cf4bbd9f6c5f81cac7a38ae614a1a87011efdf7ca19020c95e7e14f177fc6517"
+    },
+    {
+      "identifier": "FE-1406",
+      "bodySha256": "25af8c35ff021b508612a58d96316c4ec10415e9abed4f2e32e0ccb1fe4100c4"
+    },
+    {
+      "identifier": "FE-1407",
+      "bodySha256": "58bff2297ba46cb4a223217bb178784550174cb0d72b951d0a4b631e97bffe9f"
+    },
+    {
+      "identifier": "FE-1419",
+      "bodySha256": "cb43c18d19933fb4d41b43b6ba6ebf2a0bbb2ee0bf57a1837ea7cb6045bccc8e"
+    },
+    {
+      "identifier": "FE-1420",
+      "bodySha256": "316d82c70192905999f13c7cb3a972faeca36f024e8e87de11ddd7ed3822536f"
+    },
+    {
+      "identifier": "FE-1422",
+      "bodySha256": "e12e25753221ac1b0052d013d53da4cdb98ed42d2b4d2bfbbc0cc3c7725c4029"
+    },
+    {
+      "identifier": "FE-1423",
+      "bodySha256": "7007aa7a3cf88c13c6d8712425b5ef60a16e648f0339551fcafc3cc79ce6cd68"
+    },
+    {
+      "identifier": "FE-1424",
+      "bodySha256": "de8465621d99b972d89f6685ad71a166b68dec925cea24bf093a1b22938feec3"
+    },
+    {
+      "identifier": "FE-1431",
+      "bodySha256": "99871599b344a53e1a214bc3c1079e074d02cca22299fd8af4a6b19c0cb4cfef"
+    },
+    {
+      "identifier": "FE-1432",
+      "bodySha256": "f482b84dd957b5b765c4890f0414c8026a1d973c2dd1fbd0736cf905394057fb"
+    },
+    {
+      "identifier": "FE-1433",
+      "bodySha256": "7ae7b7bace6b2c93833b7c71c5dbf7625d409543b73f451cbeaf52d995e727f0",
+      "outerReplacement": {
+        "from": "demo.petrinaut.org",
+        "to": "[demo.petrinaut.org](<http://demo.petrinaut.org>)"
+      }
+    },
+    {
+      "identifier": "FE-1434",
+      "bodySha256": "f997a348580b20b35f3c843b022988b459306c159d91a012fce1170a2ae80a6f"
+    },
+    {
+      "identifier": "FE-1435",
+      "bodySha256": "14076be75535ff5dbf12d8f68bb41a8292fed3a98bb41f1eb65eea02de3cf524"
+    },
+    {
+      "identifier": "FE-1436",
+      "bodySha256": "8f8e69c34fc30483f729716e87f695f62bfcf63cb383250b0635a809ef478103"
+    },
+    {
+      "identifier": "FE-1437",
+      "bodySha256": "ca9ca144d3aa18223c7141542955d1c39b805323030bce4a25b948a854de5bbf"
+    },
+    {
+      "identifier": "FE-1438",
+      "bodySha256": "47857e1be8bc182f3954b31aac4e7cd10265e00458549bf0bcc47484cf2d6410"
+    },
+    {
+      "identifier": "FE-1439",
+      "bodySha256": "98c4a00fd0ed5d31948361198b25bdc575fd637e9f2553049511f9b5c7ddcc9a"
+    },
+    {
+      "identifier": "FE-1440",
+      "bodySha256": "1770a1db71c34b2e7f1de875342f58b3212cdcd7d8c386653675f87b80f34622",
+      "outerReplacement": {
+        "from": "demo.petrinaut.org",
+        "to": "[demo.petrinaut.org](<http://demo.petrinaut.org>)"
+      }
+    },
+    {
+      "identifier": "FE-1441",
+      "bodySha256": "56da85ce45688f08c3c9bcc75a1feb6c66c33c364d7d956ab864b4dc6ac7e09c"
+    },
+    {
+      "identifier": "FE-1442",
+      "bodySha256": "e9c8f5050856192989f953358829fce6ace7b563471ee3e2661d9f2fd80b050e"
+    },
+    {
+      "identifier": "FE-1448",
+      "bodySha256": "95b45fea18fcca04ab562f60798aed01189c4b3010184d8eb011bd026c701d37"
+    },
+    {
+      "identifier": "FE-1449",
+      "bodySha256": "1981c5120550d60e77ee6d16355b06cf7eeaacaeee9e7e16432422dfcb4606e3"
+    },
+    {
+      "identifier": "FE-1451",
+      "bodySha256": "91b3b7773b3f664b22ace816a7d85d631020f9bf80348966cc6294c461dc8bcb"
+    }
+  ]
+}

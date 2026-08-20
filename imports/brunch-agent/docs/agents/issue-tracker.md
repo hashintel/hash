@@ -6,34 +6,67 @@ repo under `docs/planning/<effort>/` (see `documentation.md`); Linear issues lin
 docs by URL). The issue is the tracker record; the repo file is the document.
 
 How issue titles and bodies are written — the contract/execution-record split, outcome-shaped
-titles, plain-prose context — is covered in `issue-writing.md`; it applies to every issue
-created for this repo.
+titles, plain-prose context — is covered in `issue-writing.md`; it applies to every issue an
+agent authors from this repo.
 
 ## Conventions
 
-- **Default team**: `FE`. **Project**: `brunch`. Create issues with
-  `linear issue create --team FE --project brunch`.
+- **Default team**: `FE`. **Project**: `brunch-agent`. Create issues with
+  `linear issue create --team FE --project brunch-agent`.
 - Related work also lives on teams `PRO` (product) and `H` (HASH) — read/reference those freely;
   create there only when asked.
 - Use `--description-file` / `--body-file` for any multi-line markdown (shell-escaping otherwise
   mangles it).
 - Triage state is expressed through Linear workflow states and labels (see `triage-labels.md`).
-- Comments and conversation history go on the issue as Linear comments.
+- Comments and conversation history go on the issue as Linear comments, shaped per
+  `issue-writing.md`'s comment rules: the decision or change in one or two sentences, with
+  detail in `🏗️ Agent notes`.
 
 ## When a skill says "publish to the issue tracker"
 
-Create a Linear issue on team `FE`, project `brunch`. If the content is long-form, commit it
-under `docs/planning/<effort>/` and link the repo path from the issue description.
+Create a Linear issue on team `FE`, project `brunch-agent`. If the content is long-form, commit
+it under `docs/planning/<effort>/` and link the repo path from the issue description.
 
 ## When a skill says "fetch the relevant ticket"
 
 `linear issue view <ID>` (e.g. `FE-1333`). The user will normally pass the identifier directly.
 
+## Editing issue bodies from the CLI
+
+Bodies carry collapsed `🏗️ Agent notes` sections (`issue-writing.md`), and agents maintain
+them by fetching, editing, and pushing the raw description. Fetch immediately before every
+write, preserve the human-owned summary, and apply the smallest material change; never push a
+stale local copy. Three more facts keep that process safe:
+
+- **Read the raw description via GraphQL**, never via `issue view` — view prepends a
+  title/state header that would be pushed back into the body:
+
+  ```bash
+  linear api --variable id=FE-XXXX <<'GRAPHQL' | jq -r '.data.issue.description'
+  query($id: String!) { issue(id: $id) { description } }
+  GRAPHQL
+  ```
+
+- **Linear normalizes markdown on save** (collapsed-section spacing, `-` → `*` bullets). A diff
+  against your draft is not drift; don't "fix" it.
+- **Issue references in Linear bodies and comments are full URLs**
+  (`https://linear.app/hash/issue/FE-XXXX`), which Linear renders as issue chips — a bare ID
+  stays dead text. In repo documents the opposite holds: bare IDs with a gloss, per
+  `documentation.md`.
+
+## Project updates
+
+Linear project updates (`linear project-update`) reach a wider audience than issue comments.
+They give a plain-prose summary of decisions, confidence changes, risks, and opportunities
+since the last update, using the native health field. They contain no working detail, and empty
+sections are omitted. Draft one from the changes recorded in issue comments since the last
+update. Publish it to the `brunch-agent` project.
+
 ## Wayfinding operations
 
 Used by `/wayfinder`. The **map** is a Linear issue with one **child** sub-issue per ticket.
 
-- **Map**: an FE issue in project `brunch`, labeled `wayfinder → map` (label group `wayfinder`,
+- **Map**: an FE issue in project `brunch-agent`, labeled `wayfinder → map` (label group `wayfinder`,
   children `map` / `research` / `prototype` / `grilling` / `manual-task` — created 2026-08-11;
   `manual-task` stands in for the skills' `task` type because the workspace already has an
   unrelated "Task" label). The issue description holds the map body: Destination / Notes /
@@ -59,15 +92,15 @@ Used by `/wayfinder`. The **map** is a Linear issue with one **child** sub-issue
 Every issue this project creates is **reachable from a root**: either it is a sub-issue
 (directly or transitively) of a root map — currently FE-1383 (build) and FE-1357 (demo +
 plugin spec) — or a sub-issue of a named sweep ticket (FE-1401-style), or it *is* a root and
-`docs/planning/_shared/CONVERGENCE.md`'s seam/sequencing sections name it. The `lite` label and the
-`brunch` project are filters, not ownership — an issue carrying both but reachable from no
-root is captured-then-orphaned, the failure mode this rule exists to stop. Set the parent at
-creation (`--parent FE-XXXX`), not in a later sweep.
+`docs/planning/_shared/CONVERGENCE.md`'s seam/sequencing sections name it. The `brunch-agent`
+project is a filter, not ownership — an issue in the project but reachable from no root is
+captured-then-orphaned, the failure mode this rule exists to stop. Set the parent at creation
+(`--parent FE-XXXX`), not in a later sweep.
 
 Audit (run at arc close, alongside the legibility protocol's consolidation step):
 
 ```
-linear issue mine --team FE --project brunch --label lite \
+linear issue mine --team FE --project brunch-agent \
   -s triage -s backlog -s unstarted -s started --limit 0 --no-pager
 ```
 
