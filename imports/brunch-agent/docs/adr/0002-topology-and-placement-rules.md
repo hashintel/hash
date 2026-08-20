@@ -2,6 +2,7 @@
 
 Date: 2026-08-17
 Status: accepted
+Amended: 2026-08-20 by ADR-0004 / FE-1437 (N3 application placement)
 Refines: spec [§12.2](../planning/elicitation-kernel/spec.md) (package topology) with placement
 rules the spec did not state
 Decided on: FE-1401 (remediation sweep); ratified by Lu, 2026-08-17
@@ -28,8 +29,10 @@ The three-lane model and placement rules N1–N6, as specified in
 - **N2**: plugin-owned content (packs, cards) ships as plugin-package exports registered by
   hosts — never per-agent `skills/` directories holding plugin content inside an app. Quiver
   content is harness-shipped under the same rule.
-- **N3**: the demo shell is `apps/demo`, canonical layout, consuming lane-1 affordances
-  directly and `@brunch/*` public surfaces only.
+- **N3**: there is no dedicated demo shell. Applications are the only composition boundary:
+  imported `apps/brunch-agent` owns the remote Brunch server, target gallery, and diagnostics;
+  `apps/petrinaut-website` owns the September user-facing integration. Reusable Brunch and
+  Petrinaut libraries remain mutually unaware.
 - **N4**: experiment runners live beside their planning docs, JS-API pattern, `observe()`
   accounting — never in `packages/`.
 - **N5**: storage-port implementations live one per (binding × deploy target), always in the

@@ -123,11 +123,16 @@ The harness-defined contract for the capture store (atomic sweep application, en
 ### September demo
 
 **Demo shell**:
-The one-off application proposed for the 17–18 September demo (FE-1362; recommended to PM alongside the artifact boundary, not ratified): consumes the elicitation library (harness + plugin + binding) and the Petrinaut libraries, owns the UI, session persistence, and elicitor runtime. Explicitly disposable — not a product commitment; neither library consumes the other.
-_Avoid_: "the app", standalone brunch, demo app (unqualified)
+A retired proposal for a one-off September application (FE-1362). ADR-0004 replaced it with two
+application-owned surfaces in `hashintel/hash`: `apps/brunch-agent` runs the remote Brunch server,
+while `apps/petrinaut-website` owns the user-facing integration. Reusable Brunch and Petrinaut
+libraries remain mutually unaware.
+_Avoid_: using "demo shell" for the accepted topology
 
 **Artifact boundary**:
-The integration posture between elicitor and Petrinaut recommended to PM (FE-1362; not ratified): the elicitor emits a versioned net file plus scenario; Petrinaut consumes it through its published parser and import-with-autolayout path. The alternative recommended against was library coupling (one library consuming the other).
+The inter-library contract retained by ADR-0004: the elicitor emits a versioned net file plus
+scenario; Petrinaut consumes it through its published parser and import-with-autolayout path.
+Applications may compose both libraries, but neither reusable library consumes the other.
 _Avoid_: file handoff (undersells it), integration (generic)
 
 **Revision story**:

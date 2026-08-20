@@ -2,6 +2,7 @@
 
 Date: 2026-08-18
 Status: accepted
+Amended: 2026-08-20 by FE-1437 (package family and imported application charter)
 Supersedes: the demo-shell recommendation in
 [recommendation-demo-vehicle](../planning/process-model-elicitation/recommendation-demo-vehicle.md)
 (FE-1362's resolution); amends ADR-0002's rule N3
@@ -23,16 +24,18 @@ executes tool calls client-side against the live editor. What Petrinaut lacks �
 home for a stateful agent loop with durable persistence — is exactly what the elicitor server
 is. The meeting also settled the library's name and destination: `@hashintel/brunch-agent`,
 imported with git history into the `hashintel/hash` monorepo as a sibling of
-`@hashintel/petrinaut`, once currently open PRs merge.
+`@hashintel/petrinaut`. The review and spike gates for that import are now satisfied.
 
 ## Decision
 
 1. **Staging**: the September demo runs inside demo.petrinaut.org. The elicitor is a **remote
    server** the site's chat panel addresses through the `aiAssistant` transport; the site's
    stock `/api/chat` proxy and `petrinautAiPrompt` are bypassed entirely for brunch sessions.
-2. **Identity of the library**: `@hashintel/brunch-agent`, imported into `hashintel/hash` with
-   git history preserved, sibling to `@hashintel/petrinaut`. `apps/petrinaut-website` is an
-   application and may know about both libraries; this is not a mixing of concerns.
+2. **Identity of the package family**: `@hashintel/brunch-agent` is the harness package, imported
+   into `hashintel/hash` with git history preserved and accompanied by the independently installable
+   `@hashintel/brunch-agent-binding-flue`, `@hashintel/brunch-agent-transport-aisdk`, and
+   `@hashintel/brunch-agent-plugin-gherkin` packages. All four are private through the import and
+   live as siblings of `@hashintel/petrinaut`; the harness does not re-export its extensions.
 3. **Boundary discipline** (the rule the monorepo makes easy to erode): `@hashintel/petrinaut`
    stays elicitor-agnostic; `@hashintel/brunch-agent` stays renderer-agnostic; **applications
    are the only place the two may know about each other** (petrinaut-website now, the HASH app
@@ -45,8 +48,10 @@ imported with git history into the `hashintel/hash` monorepo as a sibling of
    principal-free (keyed by session id), with an opaque owner key at the storage port for
    store-level refusal of cross-principal access.
 5. **N3 amended**: ADR-0002's "the demo shell is `apps/demo`" is retired — there is no demo
-   shell. `apps/dev` remains the local development harness; the September demo host is
-   `apps/petrinaut-website` in `hashintel/hash`.
+   shell. The imported `apps/brunch-agent` re-charters `apps/dev` as the remote Brunch server,
+   carrying forward its target-gallery and diagnostics charter as internal operational roles. The
+   September user-facing application is `apps/petrinaut-website`; applications are the only place
+   Brunch and Petrinaut meet.
 
 The artifact boundary (versioned net file + scenario through `parseSDCPNFile`) remains the
 inter-library contract and the "it's just a file" demo beat; what this ADR changes is where the
@@ -57,16 +62,13 @@ elicitor is staged, not what it emits.
 - FE-1362 re-resolves to this decision; FE-1333 (the integration-definition ticket) closes on
   this ADR; FE-1331 (start elicitation from create-new-net) is un-deferred — in-Petrinaut
   initiation is now the September topology, not the post-September one.
-- The integration build is specified on FE-1433
+- The integration build was specified on FE-1433
   ([petrinaut-integration-spec](../planning/process-model-elicitation/petrinaut-integration-spec.md)),
-  gated by two spikes: Flue turn suspension carrying client-tool round-trips, and the
-  Pi-to-AI-SDK stream adapter.
-- The monorepo import happens after the currently open PRs merge and after the spikes report —
-  harness-internal work continues in this repo and travels with the history import; only
-  petrinaut-website wiring, Petrinaut-library extensions, and deployment integration wait for
-  the move.
+  and both gating spikes reported: Flue turn suspension carries client-tool round-trips, and the
+  Pi-to-AI-SDK stream adapter drives Petrinaut's panel.
+- The review stack and spikes have landed. FE-1437 records the final standalone SHA and imports
+  that history; from that point unfinished work continues only in `hashintel/hash`.
 - The Flue server's deployment home is an open question owned with infra (Postgres exists;
   deployment is unblocked by the import decision — the code will live in `hashintel/hash`).
-- The kernel spec amendments this decision implies (§12.2 package list, §9.6 owner key,
-  §7.3/§7.4 batch-affordance question, §13 shipping shape) are applied as part of executing
-  FE-1433, not silently.
+- FE-1433 applied the transport and suspension amendments. FE-1437 explicitly amends §12.2 and
+  §12.5 for the imported package family and application charter.

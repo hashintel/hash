@@ -2,6 +2,7 @@
 
 Date: 2026-08-13
 Status: accepted
+Amended: 2026-08-20 by ADR-0004 / FE-1437 (HASH package namespace)
 Supersedes: spec [§12.3](../planning/elicitation-kernel/spec.md#123-naming--tool-namespacing) in part
 Decided on: FE-1388
 
@@ -37,8 +38,11 @@ Adopt `brunch` as the product name and let it appear in structure.
   source every model-facing string derives from.
 - **Tool prefix**: `brunch_*` — so `brunch_ask`, computed via `toolName()`,
   never written as a literal.
-- **npm scope**: `@brunch/*`, keeping the spec's role-prefixed basenames
-  (`@brunch/core`, `@brunch/binding-flue`, `@brunch/plugin-gherkin`).
+- **Package names**: the standalone prototype uses `@brunch/*`. FE-1437 moves the private package
+  family into HASH's organizational scope as `@hashintel/brunch-agent` and role-suffixed companions
+  (`@hashintel/brunch-agent-binding-flue`, `@hashintel/brunch-agent-transport-aisdk`,
+  `@hashintel/brunch-agent-plugin-gherkin`). This amends package placement only; `brunch` remains
+  the product identity.
 - **Agent identity**: a **noun compound, target first**, product-prefixed:
   `brunch-gherkin-elicitor`. The next target reads `brunch-assurance-elicitor`,
   so the family sorts together.
@@ -65,9 +69,10 @@ identity and source-level name can differ.
 ## Consequences
 
 - Spec §12.3's `bl_*` provisional and its "nothing bakes in `brunch`" clause
-  are **superseded by this ADR**. The spec file is left unedited: it is the
-  settled record of what was decided in August, and ADRs are how this repo
-  records decisions taken after it.
+  are **superseded by this ADR**. The original spec text remains the settled August record; dated
+  amendments carry later operating truth when an accepted execution contract requires it.
+- FE-1437 supersedes this ADR's standalone `@brunch/*` scope and role-prefixed basename rule with
+  the HASH package names above. The tool prefix and durable agent identity are unchanged.
 - A future rename is still one edit for everything model-facing, because the
   derivation stayed. It is **not** one edit for `agentName` — that string is
   durable-storage-keyed, and changing it orphans existing conversations. Treat
