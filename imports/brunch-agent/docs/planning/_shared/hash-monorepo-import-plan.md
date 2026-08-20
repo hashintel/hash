@@ -28,7 +28,7 @@ brunch-agent-binding-flue  brunch-agent-             brunch-agent-plugin-gherkin
                                  v
 apps/brunch-agent
   package: @apps/brunch-agent
-  role: remote server, host wiring, local diagnostics
+  role: remote server, application wiring, local diagnostics
                                  |
                          HTTP / AI SDK stream
                                  |
@@ -68,7 +68,7 @@ This placement follows the intended portability:
 - Binding and transport packages are part of how Brunch supports different substrates and UI
   shells; treating them as `@local` would falsely describe them as HASH-only wiring.
 - FE-1437 moves the existing local-file store with the Flue binding. FE-1441 separately decides and
-  adds the Postgres implementation behind the unchanged storage port. A host-neutral
+  adds the Postgres implementation behind the unchanged storage port. An environment-neutral
   implementation belongs to the binding; HASH credentials, deployment manifests, and
   environment-specific composition stay in `@apps/brunch-agent`.
 - No `@local` Brunch package is created during the import merely to defer a publication decision.
@@ -95,16 +95,16 @@ publication must not force another namespace or directory migration.
 
 ## Application disposition
 
-The recommended end state re-charters the current `apps/dev` as `apps/brunch-agent`: the remote
-host with its local target gallery and diagnostic UI retained as internal operational surfaces.
+The accepted end state re-charters the current `apps/dev` as `apps/brunch-agent`: the remote server
+application carrying forward the target-gallery and diagnostic-surface charter as internal
+operational roles.
 The current [route map](../../../apps/dev/src/app.ts) already mounts the Flue agent router, the
-Petrinaut chat transport, and the production diagnostic assets. Re-chartering that host avoids a
+Petrinaut chat transport, and the production diagnostic assets. Re-chartering that application avoids a
 second app around those same routes.
 
-ADR-0004 and FE-1437 currently say that `apps/dev` remains only a local harness. Before the import,
-amend those contracts explicitly to record the re-charter; do not let a path rename silently make
-the decision. If the deployed server later proves to require a materially different runtime, that
-evidence can justify a second app then.
+ADR-0004, ADR-0002 N3, the kernel spec, and FE-1437 record that re-charter explicitly as of the
+cutover preparation. If the deployed server later proves to require a materially different
+runtime, that evidence can justify a second app then.
 
 ## Authority threshold
 
@@ -180,6 +180,34 @@ relationship.
 - The disposition is complete only when every inventory row resolves to its recorded destination
   or removal commit. Removing a file after the mechanical import does not remove its Git history.
 
+#### Repository-level disposition inventory
+
+Paths below are relative to the repository root. A directory pattern covers every indexed child;
+the import review checks the expanded tracked-file list against these rows before removal.
+
+| Standalone material | Disposition in `hashintel/hash` |
+| --- | --- |
+| `CONTEXT.md` | Move to `libs/@hashintel/brunch-agent/docs/CONTEXT.md`; remains the package domain glossary. |
+| `docs/adr/*.md` | Move to `libs/@hashintel/brunch-agent/docs/adr/`; all four decisions still govern imported code. |
+| `docs/planning/elicitation-kernel/spec.md` | Move to `libs/@hashintel/brunch-agent/docs/spec.md`; remains the package contract. |
+| Other `docs/planning/elicitation-kernel/**` | Retain under `libs/@hashintel/brunch-agent/docs/history/planning/elicitation-kernel/` as the settled design record. |
+| `docs/planning/process-model-elicitation/**` | Move to the same relative path under `libs/@hashintel/brunch-agent/docs/`; the FE-1357 effort and its open issues remain live after import. |
+| `docs/planning/_shared/**` | Move to the same relative path under `libs/@hashintel/brunch-agent/docs/`; settle this import plan after FE-1437 lands, while the other control documents keep their declared lifetimes. |
+| `docs/planning/legibility-sweep/**` | Move to the same relative path under `libs/@hashintel/brunch-agent/docs/`; preserve each indexed document's active or settled status until its owning issue closes. |
+| `docs/reference/**` | Move to `libs/@hashintel/brunch-agent/docs/reference/`; preserve provenance and existing consumers. |
+| `docs/INDEX.md` | Re-author as `libs/@hashintel/brunch-agent/docs/INDEX.md` over the moved living and historical set. |
+| External canonical entries in `docs/INDEX.md` | Preserve their URLs and `external` status in the re-authored INDEX; no external document is copied into HASH. |
+| `docs/agents/**` | Re-author under `libs/@hashintel/brunch-agent/docs/agents/` for HASH paths and `gh stack`; preserve the issue-writing, triage, documentation, domain, posture, legibility, arc-close, and Flue-routing disciplines. |
+| `AGENTS.md`, `CLAUDE.md` | Re-author as package-local guidance at `libs/@hashintel/brunch-agent/`; defer to HASH root guidance and link the re-homed agent protocols. |
+| `.agents/skills/arc-close/SKILL.md` | Retire the standalone wrapper; package-local guidance and the re-authored `docs/agents/arc-close.md` carry the required checks. |
+| `test/docs-index.test.ts` | Port to the imported package test suite and point it at the re-authored package index. |
+| `scripts/linear-project-graph.ts` | Move to `libs/@hashintel/brunch-agent/scripts/linear-project-graph.ts`; retain project-registry auditing while `brunch-agent` remains the Linear ownership boundary. |
+| `.github/workflows/ci.yml` | Remove after HASH tasks and CI gates cover the imported workspaces; do not nest standalone CI. |
+| `bun.lock`, `bunfig.toml`, root `package.json` | Remove after HASH manifests and lockfile install successfully; do not retain a nested workspace root. |
+| `.oxfmtrc.json`, `tsconfig.base.json`, `tsconfig.json` | Remove after each workspace adopts HASH's formatter and TypeScript conventions. |
+| `.gitignore` | Remove after any still-relevant package-local patterns are represented by HASH's ignore rules. |
+| `docs/inbox/.gitkeep` | Remove; HASH already supplies the repository root and an empty standalone inbox has no content to preserve. |
+
 ### 4. Adopt the HASH toolchain
 
 - Convert manifests to native HASH workspaces and the package names above.
@@ -222,7 +250,7 @@ Port the current [boundary suite](../../../test/boundaries.test.ts) and its
 ### 6. Complete FE-1437 before integrating the applications
 
 FE-1437 is complete when the imported package family builds and tests natively in HASH, history is
-traceable, and the architectural gates hold. The host runtime proof ports
+traceable, and the architectural gates hold. The application runtime proof ports
 `apps/dev/test/petrinaut-chat.test.ts`: POST the existing conversation fixture through the mounted
 application route with the faux provider and assert the AI SDK stream, without a Petrinaut website
 checkout. Keep the following in later issues:
@@ -247,7 +275,7 @@ These are shared-state actions and require explicit approval when FE-1437 execut
 | Workspace | HASH install and constraints pass with no Brunch-specific exemption |
 | Packages | Each Brunch workspace exposes and passes `build`, `lint:eslint`, `lint:tsc`, and `test:unit` |
 | Boundaries | A temporary Gherkin-plugin → Flue import fails the targeted gate; the restored tree passes |
-| Runtime | The host builds both bundles and the faux-provider POST passes through its mounted conversation route |
+| Runtime | The application builds both bundles and the faux-provider POST passes through its mounted conversation route |
 | History | One source and one test file from every moved workspace reach pre-import commits by blame and follow-log |
 | Removal | No Bun lockfile, nested workspace root, or Bun runtime/test import remains |
 | Integration | FE-1440 separately proves the real Petrinaut website against the imported server |

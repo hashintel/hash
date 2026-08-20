@@ -27,7 +27,7 @@ copy lives outside the repo).
 
 | Document | Status | Linear | Digest |
 | --- | --- | --- | --- |
-| [spec.md](planning/elicitation-kernel/spec.md) | settled | linked from FE-1366 (repo-canonical) | The elicitation-kernel spec: 14 sections + adjudications |
+| [spec.md](planning/elicitation-kernel/spec.md) | settled | linked from FE-1366 (repo-canonical) | The elicitation-kernel spec: 14 sections + adjudications; FE-1437 import amendment records the native HASH package family and remote-server application charter |
 | [product-description.md](planning/elicitation-kernel/product-description.md) | settled | none | STE-style product description |
 | [product-description-plain.md](planning/elicitation-kernel/product-description-plain.md) | settled | none | Plain-prose product description |
 | [map.md](planning/elicitation-kernel/map.md) | settled | **mirrored in full**: FE-1366 | Completed wayfinder map |
@@ -69,10 +69,10 @@ copy lives outside the repo).
 | Document | Status | Linear | Digest |
 | --- | --- | --- | --- |
 | [COORDINATION](planning/_shared/COORDINATION.md) | active | cross-project; maintained by arc-close | Current sequencing recommendation, soft cross-map edges, unresolved seams, and exceptional roots; hard blockers, state, and hierarchy remain in Linear |
-| [hash-monorepo-import-plan](planning/_shared/hash-monorepo-import-plan.md) | active until FE-1437 lands | FE-1437 | Native HASH workspace assimilation plan: preserved package boundaries and history, reusable `@hashintel` package family, explicit authority cutover, toolchain port, boundary gates, and verification |
+| [hash-monorepo-import-plan](planning/_shared/hash-monorepo-import-plan.md) | active until FE-1437 lands | FE-1437 | Native HASH workspace assimilation plan: preserved package boundaries and history, reusable `@hashintel` package family, explicit authority cutover, exhaustive repository-material disposition, toolchain port, boundary gates, and verification |
 | [SPEC-LEDGER](planning/_shared/SPEC-LEDGER.md) | active until milestone-one closure | FE-1383 | Obligation-level status and evidence ledger for the elicitation-kernel specification; settles when the milestone closes |
 | [flue-architecture-cheatsheet](planning/_shared/flue-architecture-cheatsheet.md) | active | commented on FE-1383; feeds docs/agents/flue-routing.md | Architect's consolidation of all 21 Flue guide pages: direct structured generation uses `harness.prompt`; model-delegated work uses `useSubagent`; three-lane boundary summary and ranked divergence risks; reconciled against installed Flue 2.0.3 source |
-| [topology](planning/_shared/topology.md) | active | ratified → ADR-0002; N1 discharged by FE-1422 + FE-1392; local N5 implemented by FE-1391 | Pseudo-style verification of the package/app tree against the three-lane model and spec §12.2: portable ask/sweep protocols and the plugin proposal floor in core-facing contracts, Flue read/orchestration wiring in the binding, and normative placement rules N1–N6 |
+| [topology](planning/_shared/topology.md) | active | ratified → ADR-0002; N1 discharged by FE-1422 + FE-1392; local N5 implemented by FE-1391; N3 amended by FE-1437 | Pseudo-style verification of the package/app tree against the three-lane model and spec §12.2: portable ask/sweep protocols, Flue binding wiring, package boundaries, and application-only Brunch–Petrinaut composition |
 
 ## planning/legibility-sweep (FE-1401 arc records)
 
@@ -87,16 +87,16 @@ copy lives outside the repo).
 
 ## Decision records (`docs/adr/`)
 
-Decisions taken *after* the elicitation-kernel spec settled. Where an ADR
-supersedes part of the spec, the spec file is left unedited — it is the record
-of what was decided in August, and the ADR is how a later change is recorded.
+Decisions taken *after* the elicitation-kernel spec settled. The original spec text remains the
+record of what was decided in August; later changes live in ADRs and, when an accepted execution
+contract requires the spec to carry the new operating truth, in explicitly dated amendments.
 
 | Document | Status | Linear | Digest |
 | --- | --- | --- | --- |
-| [0001-brunch-is-the-product-name](adr/0001-brunch-is-the-product-name.md) | accepted | FE-1388 | `brunch` settles as the product name and may appear in structure: `brunch_*` tools, `@brunch/*` scope, `brunch-gherkin-elicitor` agent identity. Supersedes spec §12.3's `bl_*` provisional; the ban on function-naming (`elicit_*`) survives |
-| [0002-topology-and-placement-rules](adr/0002-topology-and-placement-rules.md) | accepted | FE-1401; FE-1422 is its one code change | The three-lane topology and placement rules N1–N6 ratified (topology.md stays the living reference); N2/N5 to become boundary gates |
+| [0001-brunch-is-the-product-name](adr/0001-brunch-is-the-product-name.md) | accepted | FE-1388; package naming amended by FE-1437 | `brunch` remains the product and durable-agent identity: `brunch_*` tools and `brunch-gherkin-elicitor`; FE-1437 replaces the standalone `@brunch/*` scope with HASH's `@hashintel/brunch-agent*` package family |
+| [0002-topology-and-placement-rules](adr/0002-topology-and-placement-rules.md) | accepted | FE-1401; FE-1422 is its one code change | The three-lane topology and placement rules N1–N6 ratified; N3 now places remote Brunch and Petrinaut composition only in applications; N2/N5 become boundary gates |
 | [0003-three-register-ir](adr/0003-three-register-ir.md) | accepted | FE-1405 | The IR is the elicited conceptual model, derived by a pure fold — three registers (assertions / model / projections); write-time-only semantics; promotion never refusal; amends ir-design.md Layer A's definition sentence; full FE-1397-style pass is a stated condition |
-| [0004-in-petrinaut-staging-and-the-monorepo-import](adr/0004-in-petrinaut-staging-and-the-monorepo-import.md) | accepted | FE-1433 | September demo stages inside demo.petrinaut.org; library becomes `@hashintel/brunch-agent` in `hashintel/hash`; boundary discipline (apps are the only meeting point); ui-shell principal; amends N3, supersedes the demo-shell recommendation |
+| [0004-in-petrinaut-staging-and-the-monorepo-import](adr/0004-in-petrinaut-staging-and-the-monorepo-import.md) | accepted | FE-1433; amended by FE-1437 | September demo stages inside demo.petrinaut.org; the private `@hashintel/brunch-agent*` package family moves into `hashintel/hash`; `apps/brunch-agent` is the remote server application; applications remain the only Brunch–Petrinaut meeting point |
 
 ## External canonical documents
 

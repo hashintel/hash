@@ -610,6 +610,13 @@ packages/plugin-assurance  # renamed 2026-08-10 from plugin-proof-obligations (ย
 apps/dev                   # owns 'use agent' module, app.ts, db.ts, Vite build
 ```
 
+**FE-1437 import amendment (2026-08-20):** the repository topology above is the standalone
+prototype record. In `hashintel/hash`, the same boundaries become private native workspaces:
+`@hashintel/brunch-agent`, `@hashintel/brunch-agent-binding-flue`,
+`@hashintel/brunch-agent-transport-aisdk`, and `@hashintel/brunch-agent-plugin-gherkin` under
+`libs/@hashintel/`, with `apps/dev` re-chartered as `apps/brunch-agent`. HASH's Yarn/Turbo
+workspace replaces the Bun root; it does not wrap or flatten these package boundaries.
+
 **Dependency invariants (spec invariants):** plugins depend on `core` only โ€” never on the binding,
 never on Flue; the harness imports no substrate; a binding imports both. A transport consumes
 harness-level reply parts plus its wire encoder and ingress validator only: `transport-aisdk`
@@ -624,6 +631,10 @@ per-substrate binding packages (`binding-flue`, `binding-pi`, `binding-codex`) โ
 the second-binding test keeps passing. **Publishing posture: workspace-internal**; the publishable
 shape is exactly the package boundaries above, but publishing waits on the real name and an
 external consumer.
+
+**FE-1437 naming amendment (2026-08-20):** HASH's organizational npm scope owns placement, so
+`brunch-agent` moves into the package basename as shown in ยง12.2. ADR-0001's `brunch_*` tool prefix,
+durable agent identity, and ban on function-shaped `elicit_*` names remain unchanged.
 
 ### 12.3 Naming & tool namespacing
 
@@ -660,6 +671,12 @@ operators, fixture freeze/replay format).
   Deploy-target choice waits on an infra conversation and blocks nothing here.
 - **CI smoke** = `vite build` + the simulation suite (no model key, no flake); an optional
   secret-gated real-model `flue run` smoke once a provider key exists.
+
+**FE-1437 application amendment (2026-08-20):** the imported `apps/brunch-agent` adds the remote
+server role while carrying forward the local-loop, target-gallery, and diagnostic-surface charter.
+`apps/petrinaut-website` is the September user-facing application; there is no dedicated demo shell.
+The harness remains deploy-target-neutral, and deployment, authentication, and environment policy
+remain application concerns.
 
 ### 12.6 Version axes (named, none implemented)
 

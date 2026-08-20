@@ -122,9 +122,12 @@ the issue, only moved into `🏗️ Agent notes`.
 
 A pull request uses the same two layers. Its title is `{ISSUE-ID}: {current Linear issue title}`
 as required by `git-workflow.md`. The visible body is one short account in plain technical prose
-of what the branch establishes and any material limit on that claim. Do not turn it into `What`,
-`Why`, `Testing`, or other labeled sections. Put rationale, implementation detail,
-verification, and stack context inside the GitHub `🏗️ Agent notes` wrapper shown above.
+that stands alone for a reader arriving from the repository feed: name the larger change this work
+belongs to, why that change is happening, what this branch establishes within it, and any material
+limit on that claim. Spell out project-local shorthand on first use; a phrase such as "import
+gates" is not context until the body says what is being imported and what the gates protect. Do not
+turn the visible layer into `What`, `Why`, `Testing`, or other labeled sections. Put implementation
+detail, verification, and stack mechanics inside the GitHub `🏗️ Agent notes` wrapper shown above.
 
 When reshaping an existing pull request, preserve its detailed record byte-for-byte inside the
 wrapper. A title or outer summary may change only to improve the scan layer without changing the
@@ -196,6 +199,8 @@ reader can resolve them without a lookup.
 - **Commitment test** — does the title avoid committing to an approach that is still undecided?
 - **Prose test** — does the context explain causality, or list fragments?
 - **Containment test** — are code-level details inside `🏗️ Agent notes`?
+- **Standalone-context test** — can a reader arriving from a feed recover the larger change, its
+  purpose, and this work's place in it without opening the issue?
 - **Word test** — has all prose been searched against the technical-writing banned list, and
   does every term of art in the visible summary pass the glossary test?
 - **List test** — does every list hold parallel or ordered items?

@@ -56,7 +56,7 @@ packages/plugin-gherkin            LANE 3 (target policy)
                          strict schema forbids parsed structure and silent hardening.
                          Never: harness mechanism, substrate imports, storage.
 
-apps/dev                           LANE 1 SHELL (consume Flue directly) + thin host
+apps/dev                           LANE 1 SHELL + remote server (imports as apps/brunch-agent)
 ├─ src/app.ts         ✓  single fetch entry; explicit mounts; assets beside agents
 ├─ src/routes.ts      ✓  the one shared mount constant (doctrine per routing guide)
 ├─ src/agents/gherkin-elicitor.ts ✓ thin directive-marked host (§12.1); flat file OK until
@@ -90,10 +90,11 @@ docs/planning/**/baseline/run.ts   EXPERIMENT (JS-API workflow pattern, independ
   harness-shipped: same rule, exported from core (or a `packages/quiver`), registered by hosts.
   Card content stays assertable outside the Vite graph (fixture-grade copies; B4's probe
   decides the exact shape).
-- **N3 (the demo shell).** `apps/demo`, sibling of `apps/dev`, same canonical layout; consumes
-  `@flue/react` + `createFlueClient` directly (lane 1), imports `@brunch/*` public surfaces
-  only. Never: reaching into binding internals, custom servers (`dist/app.mjs` exists for the
-  embed case if it ever really arises).
+- **N3 (application composition; amended by ADR-0004 / FE-1437).** There is no dedicated demo
+  shell. The current `apps/dev` imports as `apps/brunch-agent`, owning the remote Brunch server,
+  target gallery, and diagnostics. `apps/petrinaut-website` owns the user-facing integration.
+  Applications may compose Brunch and Petrinaut public surfaces; reusable libraries may not know
+  about one another.
 - **N4 (experiments).** Experiment runners (FE-1404, future condition reruns) stay beside their
   planning docs (`docs/planning/**/`), JS-API pattern, `observe()` accounting — never in
   `packages/` (they are instruments, not product) and never a bespoke daemon.
