@@ -236,8 +236,8 @@ where
 ///
 /// # Panics
 ///
-/// Panics when a record endpoint lies outside the `rows` domain, which the dataset row contract
-/// excludes.
+/// This panics when a record endpoint lies outside the `rows` domain, which the dataset row
+/// contract excludes.
 pub(super) fn assemble_protection<N>(
     rows: usize,
     records: &mut [ProtectionRecord<N>],

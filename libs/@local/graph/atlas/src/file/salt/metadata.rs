@@ -237,7 +237,7 @@ impl ProximalCalibrationEvidence {
     ///
     /// # Panics
     ///
-    /// Panics when a measured boundary carries no evaluated stability certificate: the trainer
+    /// This panics when a measured boundary carries no evaluated stability certificate: the trainer
     /// evaluates the certificate at every measured freeze, so its absence is a pipeline defect
     /// rather than a data condition.
     pub(crate) fn measured(

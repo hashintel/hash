@@ -144,8 +144,8 @@ where
     ///
     /// # Panics
     ///
-    /// Panics unless the labels are dense in first-row order: each new label is exactly one past
-    /// the largest seen so far.
+    /// This panics unless the labels are dense in first-row order: each new label is exactly one
+    /// past the largest seen so far.
     #[cfg(test)]
     pub(crate) fn from_labels(labels: IdVec<N, u32>, epsilon: f32) -> Self {
         let mut next = 0_u32;
@@ -167,7 +167,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when `row` is outside the labelled domain.
+    /// This panics when `row` is outside the labelled domain.
     #[inline]
     #[must_use]
     pub(crate) const fn clump(&self, row: N) -> u32
@@ -251,7 +251,7 @@ impl ClumpAggregate {
     ///
     /// # Panics
     ///
-    /// Panics when either slice's length differs from `k`.
+    /// This panics when either slice's length differs from `k`.
     pub(crate) fn observe(&mut self, reference: &mut [u32], map: &mut [u32]) {
         assert_eq!(
             reference.len(),
