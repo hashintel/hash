@@ -118,6 +118,20 @@ _Avoid_: "the app", standalone brunch, demo app (unqualified)
 The decided integration posture between elicitor and Petrinaut (FE-1362): the elicitor emits a versioned net file plus scenario; Petrinaut consumes it through its published parser and import-with-autolayout path. The rejected alternative was library coupling (one library consuming the other).
 _Avoid_: file handoff (undersells it), integration (generic)
 
+**Revision story**:
+The working-hypothesis demo spine (FE-1363; recommended to PM, not ratified): a sped-up recorded elicitation (conversation, interpretation surface, and growing net visible together) plus a bounded live segment in which a few turns elicit a fact forcing a structural revision of the net, run before/after in Petrinaut.
+_Avoid_: live demo (unqualified — the live part is one bounded segment, not the format)
+
+### Simulation & evaluation
+
+**Situation pack**:
+The interviewee-side bundle defining a user-to-be-simulated: situation, scenario, and persona — knowledge and motivations, some facts deliberately coloured by the persona's perspective. Private to the agent (or human) playing the user. Invariant: never authored from, or shaped to mirror, the IR — the elicitor's job is to excavate across that wall.
+_Avoid_: fact pack (undersells the persona; collides with the answer key), persona pack (too narrow)
+
+**Answer key**:
+The modeller-side list of facts the reference net needs, derived from the reference model — the evaluation rubric for what an elicitation should have excavated from a situation pack. Satisfies PRO-99's "written list of all facts necessary to make the net". Sits on the elicitor-team side of the wall; never part of the situation pack.
+_Avoid_: fact list (ambiguous with situation-pack content)
+
 **Walking skeleton**:
 A prototype that proves a transport or integration end-to-end on the real substrate (e.g. a real Flue agent + web UI) with stubbed internals.
 
