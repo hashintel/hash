@@ -13,10 +13,11 @@
 // Outputs, under transcripts/:
 //   condition-<n>.md        readable transcript with run metadata
 //   condition-<n>.raw.json  full message arrays + per-call token usage (also the checkpoint)
-//   condition-<n>-model.txt largest fenced code block of the final message, if any
+//   condition-<n>-model.txt the final delivery message, verbatim (delivered runs only)
 
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import Anthropic from '@anthropic-ai/sdk';
 
 const INTERVIEWER_MODEL = 'claude-opus-5';
 const EXPERT_MODEL = 'claude-sonnet-5';
@@ -44,13 +45,9 @@ interface ChatMessage {
 interface Usage {
   input_tokens: number;
   output_tokens: number;
-}
-
-interface ApiResponse {
-  content: Array<{ type: string; text?: string }>;
-  usage: Usage;
-  model: string;
-  stop_reason: string;
+  // Absent in checkpoints written before the SDK migration; treated as 0.
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
 }
 
 interface CallRecord {
@@ -68,7 +65,6 @@ interface RawCheckpoint {
   startedAt: string;
   condition: string;
   stopReason: string;
-  interviewerTurns: number;
   calls: CallRecord[];
   interviewerMessages: ChatMessage[];
 }
@@ -78,6 +74,16 @@ if (!apiKey) {
   console.error('ANTHROPIC_API_KEY is not set');
   process.exit(1);
 }
+
+// The SDK owns transport robustness the hand-rolled fetch client got wrong:
+// network-level failures (TCP reset, DNS blip) are retried rather than
+// crashing the run hours in, backoff honours retry-after, and the typed
+// usage carries the cache-token fields the hand-typed response omitted.
+// The timeout is explicit because without one the SDK refuses non-streaming
+// requests whose max_tokens imply more than 10 minutes — which the
+// empty-text retry's doubled budget does, so the retry path would crash
+// instead of retrying.
+const anthropic = new Anthropic({ apiKey, maxRetries: 5, timeout: 30 * 60 * 1000 });
 
 function usage(): never {
   console.error('usage: bun run.ts <1|2> [--resume|--continue-final]');
@@ -106,58 +112,53 @@ async function callClaude(
   // The interviewer keeps the model's default (adaptive) thinking — that is part of "vanilla
   // Claude". The expert and classifier have it disabled: a thinking block that consumes the
   // whole token budget yields an empty text message, which the API then rejects on re-send.
+  // Transport-level retries (429/5xx/network, retry-after) live in the SDK; this loop only
+  // handles the empty-text case, which is a budget problem rather than a transport one.
   let tokenBudget = maxTokens;
   for (let attempt = 1; attempt <= 5; attempt++) {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey as string,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: tokenBudget,
-        ...(options.allowThinking ? {} : { thinking: { type: 'disabled' } }),
-        ...(system ? { system } : {}),
-        messages,
-      }),
+    const response = await anthropic.messages.create({
+      model,
+      max_tokens: tokenBudget,
+      ...(options.allowThinking ? {} : { thinking: { type: 'disabled' as const } }),
+      ...(system ? { system } : {}),
+      messages,
     });
-    if (response.status === 429 || response.status >= 500) {
-      const waitMs = attempt * 15_000;
-      console.error(`  ${agent}: HTTP ${response.status}, retrying in ${waitMs / 1000}s`);
-      await new Promise((resolve) => setTimeout(resolve, waitMs));
-      continue;
-    }
-    if (!response.ok) {
-      throw new Error(`${agent}: HTTP ${response.status}: ${await response.text()}`);
-    }
-    const data = (await response.json()) as ApiResponse;
-    calls.push({ agent, model: data.model, usage: data.usage });
-    const text = data.content
+    calls.push({
+      agent,
+      model: response.model,
+      usage: {
+        input_tokens: response.usage.input_tokens,
+        output_tokens: response.usage.output_tokens,
+        cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
+        cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
+      },
+    });
+    const text = response.content
       .filter((block) => block.type === 'text')
-      .map((block) => block.text ?? '')
+      .map((block) => block.text)
       .join('\n');
     if (text.trim() === '') {
       // Adaptive thinking can consume the entire budget before any text is emitted.
       tokenBudget *= 2;
       console.error(
-        `  ${agent}: empty text (blocks: ${data.content.map((block) => block.type).join(',')}), ` +
+        `  ${agent}: empty text (blocks: ${response.content.map((block) => block.type).join(',')}), ` +
           `retrying with max_tokens=${tokenBudget}`,
       );
       continue;
     }
-    return { text, truncated: data.stop_reason === 'max_tokens' };
+    return { text, truncated: response.stop_reason === 'max_tokens' };
   }
   throw new Error(`${agent}: exhausted retries`);
 }
 
 // The interviewer's final delivery can exceed one response budget; stitch continuations into
-// a single message so the transcript holds the complete deliverable.
+// a single message so the transcript holds the complete deliverable. The truncation flag of
+// the *last* piece survives the stitching: a message still cut off after the piece cap must
+// be reported as incomplete, not silently written as if it were whole.
 async function callInterviewer(
   system: string | undefined,
   messages: ChatMessage[],
-): Promise<string> {
+): Promise<CallResult> {
   let result = await callClaude('interviewer', INTERVIEWER_MODEL, system, messages, 16_000, {
     allowThinking: true,
   });
@@ -176,9 +177,12 @@ async function callInterviewer(
       16_000,
       { allowThinking: true },
     );
-    text += `\n${result.text}`;
+    // No separator at the seam: the cut usually lands mid-line or mid-token
+    // and the model is instructed to continue exactly from where it stopped,
+    // so an injected newline would corrupt the merged document.
+    text += result.text;
   }
-  return text;
+  return { text, truncated: result.truncated };
 }
 
 async function loadSection(file: string): Promise<string> {
@@ -209,22 +213,35 @@ async function isFinalModel(message: string): Promise<boolean> {
   return verdict.text.trim().toUpperCase().startsWith('YES');
 }
 
-function largestCodeBlock(message: string): string | undefined {
-  const blocks = [...message.matchAll(/```[a-z]*\n([\s\S]*?)```/g)].map((match) => match[1] ?? '');
-  blocks.sort((a, b) => b.length - a.length);
-  return blocks[0];
-}
-
 const openingMessage = await loadSection('opening-message.md');
 const v0Prompt = condition === '2' ? await loadSection('v0-prompt.md') : undefined;
 const situationPack = await Bun.file(baseDir + 'situation-pack.md').text();
 await mkdir(transcriptDir, { recursive: true });
 
 let interviewerMessages: ChatMessage[] = [{ role: 'user', content: openingMessage }];
-const expertMessages: ChatMessage[] = [];
 let stopReason = 'hard-stop';
+
+// The expert sees the same conversation from the other side: everything after
+// the opening message, roles flipped. Derived on demand rather than kept as a
+// parallel array every push had to maintain and resume had to rebuild.
+function expertView(): ChatMessage[] {
+  return interviewerMessages.slice(1).map((message) => ({
+    role: message.role === 'assistant' ? ('user' as const) : ('assistant' as const),
+    content: message.content,
+  }));
+}
 let interviewerTurns = 0;
 let startedAt = new Date().toISOString();
+
+if (mode === 'fresh' && (await Bun.file(rawPath).exists())) {
+  // The checkpoint is also the run's only record; an unguarded fresh run
+  // overwrites hours of paid transcript on its first in-progress write.
+  console.error(
+    `${rawPath} already exists — a fresh run would overwrite it. ` +
+      'Use --resume (or --continue-final), or move the transcripts for this condition aside first.',
+  );
+  process.exit(1);
+}
 
 if (mode !== 'fresh') {
   const checkpoint = (await Bun.file(rawPath).json()) as RawCheckpoint;
@@ -240,7 +257,6 @@ function writeCheckpoint(reason: string): Promise<number> {
     startedAt,
     condition,
     stopReason: reason,
-    interviewerTurns,
     calls,
     interviewerMessages,
   };
@@ -248,13 +264,17 @@ function writeCheckpoint(reason: string): Promise<number> {
 }
 
 async function writeArtifacts(): Promise<void> {
+  // input_tokens excludes cache reads and writes, so summing it alone
+  // undercounts what the run actually paid for. Count all three.
   const totals = calls.reduce(
     (accumulator, call) => {
       accumulator.input += call.usage.input_tokens;
+      accumulator.cacheWrite += call.usage.cache_creation_input_tokens ?? 0;
+      accumulator.cacheRead += call.usage.cache_read_input_tokens ?? 0;
       accumulator.output += call.usage.output_tokens;
       return accumulator;
     },
-    { input: 0, output: 0 },
+    { input: 0, cacheWrite: 0, cacheRead: 0, output: 0 },
   );
 
   const header = [
@@ -267,7 +287,7 @@ async function writeArtifacts(): Promise<void> {
     `- Simulated expert: ${EXPERT_MODEL} + situation-pack.md`,
     `- Interviewer turns: ${interviewerTurns} (impatience probe at ${IMPATIENCE_AT}, forced wrap at ${FORCE_WRAP_AT})`,
     `- Stop reason: ${stopReason}`,
-    `- Tokens: ${totals.input} in / ${totals.output} out across ${calls.length} calls`,
+    `- Tokens: ${totals.input} in (+${totals.cacheWrite} cache write, +${totals.cacheRead} cache read) / ${totals.output} out across ${calls.length} calls`,
     '',
     '---',
     '',
@@ -288,16 +308,30 @@ async function writeArtifacts(): Promise<void> {
   await Bun.write(`${transcriptDir}/condition-${condition}.md`, header + body + '\n');
   await writeCheckpoint(stopReason);
 
+  // The model artifact is the interviewer's final delivery message, verbatim.
+  // Extracting "the model" out of it (the old largest-fenced-block heuristic)
+  // depended on the delivery's formatting whims — one run fenced its whole
+  // model, the other delivered structured markdown with small illustrative
+  // fences, and the heuristic shipped a 517-byte fragment as that run's
+  // artifact. The delivery document is self-describing; readers compare the
+  // two conditions' documents directly.
   const finalMessage = interviewerMessages.at(-1);
-  const modelBlock =
-    finalMessage?.role === 'assistant' ? largestCodeBlock(finalMessage.content) : undefined;
-  if (modelBlock) {
-    await Bun.write(`${transcriptDir}/condition-${condition}-model.txt`, modelBlock);
+  if (stopReason.startsWith('delivered') && finalMessage?.role === 'assistant') {
+    await Bun.write(`${transcriptDir}/condition-${condition}-model.txt`, finalMessage.content);
+  } else if (stopReason.startsWith('delivered')) {
+    // The transcript header claims a delivery, so a missing artifact must be
+    // loud — hours of paid run otherwise end with the main deliverable
+    // silently absent.
+    console.error(
+      `⚠ stop reason is '${stopReason}' but the transcript does not end with an interviewer ` +
+        `message — condition-${condition}-model.txt was NOT written`,
+    );
   }
 
   console.error(
     `done: ${stopReason} after ${interviewerTurns} interviewer turns; ` +
-      `${totals.input} in / ${totals.output} out`,
+      `${totals.input} in (+${totals.cacheWrite} cache write, +${totals.cacheRead} cache read) / ` +
+      `${totals.output} out`,
   );
 }
 
@@ -313,23 +347,35 @@ if (mode === '--continue-final') {
     final,
     { role: 'user', content: CONTINUE_MESSAGE },
   ]);
-  final.content += `\n${continued}`;
+  // Same rule as the stitching loop: no separator at a truncation seam.
+  final.content += continued.text;
+  if (continued.truncated) {
+    console.error('⚠ still truncated after this continuation — run --continue-final again');
+  } else if (stopReason.endsWith('-incomplete')) {
+    stopReason = stopReason.slice(0, -'-incomplete'.length);
+  }
   await writeArtifacts();
   process.exit(0);
 }
 
 if (mode === '--resume') {
+  // A checkpoint that ends in an assistant message is a *delivered* run —
+  // in-loop checkpoints always end with the expert's user message. Resuming
+  // one would pop and regenerate the paid final deliverable, then overwrite
+  // the transcript with the result. Refuse rather than destroy.
+  if (stopReason.startsWith('delivered')) {
+    console.error(
+      `condition ${condition} already ended '${stopReason}' — resuming would regenerate and ` +
+        'overwrite its final delivery. Use --continue-final to finish a truncated delivery, ' +
+        'or move the transcripts aside to rerun from scratch.',
+    );
+    process.exit(1);
+  }
   // Checkpoints are written after complete exchanges only, but tolerate a trailing
   // assistant message by regenerating that turn.
   stopReason = 'hard-stop';
   const last = interviewerMessages.at(-1);
   if (last?.role === 'assistant') interviewerMessages.pop();
-  for (const message of interviewerMessages.slice(1)) {
-    expertMessages.push({
-      role: message.role === 'assistant' ? 'user' : 'assistant',
-      content: message.content,
-    });
-  }
   interviewerTurns = interviewerMessages.filter((message) => message.role === 'assistant').length;
   console.error(`resuming condition ${condition} at interviewer turn ${interviewerTurns + 1}`);
 }
@@ -337,12 +383,18 @@ if (mode === '--resume') {
 while (interviewerTurns < HARD_STOP_AT) {
   interviewerTurns++;
   console.error(`turn ${interviewerTurns} (interviewer)`);
-  const interviewerText = await callInterviewer(v0Prompt, interviewerMessages);
-  interviewerMessages.push({ role: 'assistant', content: interviewerText });
-  expertMessages.push({ role: 'user', content: interviewerText });
+  const interviewer = await callInterviewer(v0Prompt, interviewerMessages);
+  interviewerMessages.push({ role: 'assistant', content: interviewer.text });
 
-  if (await isFinalModel(interviewerText)) {
+  if (await isFinalModel(interviewer.text)) {
     stopReason = interviewerTurns > FORCE_WRAP_AT ? 'delivered-after-forced-wrap' : 'delivered';
+    if (interviewer.truncated) {
+      stopReason += '-incomplete';
+      console.error(
+        '⚠ the final delivery is still truncated after stitching — ' +
+          'rerun with --continue-final to finish it',
+      );
+    }
     break;
   }
 
@@ -355,7 +407,7 @@ while (interviewerTurns < HARD_STOP_AT) {
       'expert',
       EXPERT_MODEL,
       situationPack,
-      expertMessages,
+      expertView(),
       1_500,
     );
     expertText = expertResult.text;
@@ -364,7 +416,6 @@ while (interviewerTurns < HARD_STOP_AT) {
     }
   }
   interviewerMessages.push({ role: 'user', content: expertText });
-  expertMessages.push({ role: 'assistant', content: expertText });
   await writeCheckpoint('in-progress');
 }
 

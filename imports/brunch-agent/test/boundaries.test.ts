@@ -14,11 +14,14 @@ import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  AGENT_DIRECTIVE_STATEMENT,
   agentModules,
   allDependencies,
   filesIn,
   importedPackages,
+  MODEL_KEY_NAME,
   packageOf,
+  pinnedIdentities,
   REPO_ROOT,
   sourceFiles,
   testFiles,
@@ -37,14 +40,26 @@ const isSubstrate = (name: string): boolean =>
 const byRole = (role: string): WorkspacePackage[] =>
   PACKAGES.filter((pkg) => pkg.dir.startsWith(`${role}-`));
 
-test('the workspace has the packages the spec topology names', () => {
-  const dirs = PACKAGES.map((pkg) => pkg.relPath).sort();
-  expect(dirs).toEqual([
-    'apps/dev',
-    'packages/binding-flue',
-    'packages/core',
-    'packages/plugin-gherkin',
-  ]);
+test('every workspace package is one the spec topology names', () => {
+  // Derived from the spec's own §12.2 topology block instead of a second
+  // hand-written list here. The spec names *intended* structure — some
+  // entries are not scaffolded yet — so the direction checked is disk ⊆
+  // spec: a package the spec does not name is loud, while an
+  // intended-but-unbuilt one is not a failure. (The old hardcoded equality
+  // would have failed the next legitimate package instead of governing it.)
+  const spec = readFileSync(join(REPO_ROOT, 'docs/planning/elicitation-kernel/spec.md'), 'utf8');
+  const topology = /### 12\.2[^\n]*\n[\s\S]*?```\n([\s\S]*?)```/.exec(spec)?.[1];
+  expect(topology).toBeDefined();
+  const named = new Set(
+    [...topology!.matchAll(/^((?:packages|apps)\/[\w-]+)(?=\s|$)/gm)].map((match) => match[1]!),
+  );
+  expect(named.size).toBeGreaterThan(0);
+  for (const pkg of PACKAGES) {
+    expect({ pkg: pkg.relPath, inSpec: named.has(pkg.relPath) }).toEqual({
+      pkg: pkg.relPath,
+      inSpec: true,
+    });
+  }
 });
 
 test('every package is actually scanned', () => {
@@ -154,17 +169,38 @@ describe('the direction is physical, not merely declared', () => {
     }
   };
 
-  test('a plugin cannot resolve the substrate or the binding', () => {
+  // Probed with the substrate packages the bindings actually declare, and
+  // with every binding by name — derived from the tree, so a new substrate
+  // dependency or a second binding is probed without opting in.
+  const substratePackages = [
+    ...new Set(byRole('binding').flatMap((b) => allDependencies(b).filter(isSubstrate))),
+  ];
+
+  test('a plugin cannot resolve the substrate or a binding', () => {
+    expect(substratePackages.length).toBeGreaterThan(0);
     for (const plugin of byRole('plugin')) {
-      expect(resolvesFrom(plugin, '@flue/runtime')).toBe(false);
-      expect(resolvesFrom(plugin, '@brunch/binding-flue')).toBe(false);
+      for (const specifier of substratePackages) {
+        expect({
+          plugin: plugin.dir,
+          specifier,
+          resolves: resolvesFrom(plugin, specifier),
+        }).toEqual({ plugin: plugin.dir, specifier, resolves: false });
+      }
+      for (const binding of byRole('binding')) {
+        expect(resolvesFrom(plugin, binding.name)).toBe(false);
+      }
       expect(resolvesFrom(plugin, CORE)).toBe(true);
     }
   });
 
   test('core cannot resolve the substrate', () => {
     const core = PACKAGES.find((pkg) => pkg.name === CORE)!;
-    expect(resolvesFrom(core, '@flue/runtime')).toBe(false);
+    for (const specifier of substratePackages) {
+      expect({ specifier, resolves: resolvesFrom(core, specifier) }).toEqual({
+        specifier,
+        resolves: false,
+      });
+    }
   });
 });
 
@@ -235,16 +271,34 @@ describe('recorded Flue constraints hold by construction (spec §10)', () => {
       const withoutLeadingComments = file.text
         .replace(/^﻿/, '')
         .replace(/^(?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*/, '');
-      const firstStatement = withoutLeadingComments.split('\n')[0]?.trim();
-      expect(`${file.relPath}: ${firstStatement}`).toBe(`${file.relPath}: 'use agent';`);
+      // Judged by the same pattern that detects the directive at all
+      // (workspace.ts), so every form the lexicon declares legal — either
+      // quote style, optional semicolon, trailing comment — passes and only
+      // placement can fail. The old literal comparison spuriously failed
+      // forms this suite's own fixtures assert are legal.
+      const firstStatement = withoutLeadingComments.split('\n')[0] ?? '';
+      expect({
+        file: file.relPath,
+        firstStatementIsDirective: AGENT_DIRECTIVE_STATEMENT.test(firstStatement),
+      }).toEqual({ file: file.relPath, firstStatementIsDirective: true });
     }
   });
 
   test('agentName is a pinned string literal', () => {
     // Conversation storage keys on it, so a computed value is unsupportable
-    // and a changed value orphans every existing conversation.
+    // and a changed value orphans every existing conversation. Extraction
+    // goes through the shared pinnedIdentities pattern — a third hand-copied
+    // regex here could silently disagree with the other suites on what
+    // counts as an identity — and this test adds the shape constraint.
     for (const file of devAgentModules) {
-      expect(file.text).toMatch(/^\s*\w+\.agentName\s*=\s*'[a-z][a-z0-9-]*';\s*$/m);
+      const identities = pinnedIdentities(file);
+      expect({ file: file.relPath, pinned: identities.length > 0 }).toEqual({
+        file: file.relPath,
+        pinned: true,
+      });
+      for (const identity of identities) {
+        expect(identity).toMatch(/^[a-z][a-z0-9-]*$/);
+      }
     }
   });
 
@@ -254,10 +308,7 @@ describe('recorded Flue constraints hold by construction (spec §10)', () => {
     // review verified — a copy-pasted second agent shadows the mount while
     // every test stays green, because nothing ties the copies together.
     const identities = devAgentModules.flatMap((file) =>
-      [...file.text.matchAll(/\w+\.agentName\s*=\s*'([^']+)'/g)].map((match) => ({
-        identity: match[1]!,
-        pinnedIn: file.relPath,
-      })),
+      pinnedIdentities(file).map((identity) => ({ identity, pinnedIn: file.relPath })),
     );
     expect(identities.length).toBeGreaterThan(0);
     // Quoted occurrences only: prose in a comment may *name* the agent without
@@ -314,13 +365,30 @@ describe('the testing subpath stays off production paths (spec §12.2)', () => {
 });
 
 describe('the CI smoke is runnable without a model key or a network (spec §12.5)', () => {
-  const workflow = readFileSync(join(REPO_ROOT, '.github/workflows/ci.yml'), 'utf8');
+  // Parsed rather than substring-matched: a commented-out step vanishes at
+  // parse time, and a step disabled with `if: false` is visibly not a gate.
+  // Raw-text `includes()` was satisfied by both — a disabled gate read as
+  // present, which is this suite's own silent-pass failure mode.
+  const workflow = Bun.YAML.parse(
+    readFileSync(join(REPO_ROOT, '.github/workflows/ci.yml'), 'utf8'),
+  ) as { jobs?: Record<string, { steps?: Array<{ run?: string; if?: unknown }> }> };
+  const disabled = new Set<unknown>([false, 'false', '${{ false }}']);
+  const activeRunCommands = Object.values(workflow.jobs ?? {})
+    .flatMap((job) => job.steps ?? [])
+    .filter((step) => !disabled.has(step.if))
+    .flatMap((step) => (step.run ? [step.run] : []));
 
   test('CI runs every gate', () => {
     // Asserted against the workflow rather than against a convenience script,
-    // because the workflow is what actually gates a merge.
-    for (const gate of ['lint:check', 'fmt:check', 'typecheck', 'bun test', 'bun run build']) {
-      expect({ gate, inWorkflow: workflow.includes(gate) }).toEqual({ gate, inWorkflow: true });
+    // because the workflow is what actually gates a merge. The build gate is
+    // deliberately absent from this list: `bun test` builds the app itself
+    // (build-artifact's beforeAll), so a separate build step would run the
+    // build twice per CI run for no additional coverage.
+    for (const gate of ['lint:check', 'fmt:check', 'typecheck', 'bun test']) {
+      expect({ gate, inWorkflow: activeRunCommands.some((run) => run.includes(gate)) }).toEqual({
+        gate,
+        inWorkflow: true,
+      });
     }
   });
 
@@ -342,9 +410,9 @@ describe('the CI smoke is runnable without a model key or a network (spec §12.5
       ...filesIn(join(REPO_ROOT, 'test')),
     ];
     expect(suite.length).toBeGreaterThan(0);
-    // Composed rather than written literally, so this check does not flag its
-    // own source.
-    const modelKey = new RegExp(`[A-Z_]*${'API'}_${'KEY'}`, 'g');
+    // Composed in workspace.ts rather than written literally, so this check
+    // does not flag its own source or the pattern's.
+    const modelKey = new RegExp(MODEL_KEY_NAME, 'g');
     for (const file of suite) {
       expect({
         file: file.relPath,

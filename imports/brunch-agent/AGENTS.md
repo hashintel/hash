@@ -16,7 +16,7 @@ Root issues carry a human-readable contract (outcome title + plain-prose context
 
 ### Triage labels
 
-The five canonical triage roles, used verbatim as their own label strings. See `docs/agents/triage-labels.md`.
+The five canonical triage roles, mapped onto Linear workflow states where a state fits (`needs-triage`, `wontfix`) and labels for the other three. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

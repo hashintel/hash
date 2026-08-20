@@ -35,7 +35,8 @@ const uiRoot = new URL(import.meta.env.DEV ? '../' : './client/', import.meta.ur
 
 app.get('/', async (c) => c.html(await readFile(new URL('index.html', uiRoot), 'utf8')));
 
-// Production only: in dev, vite serves the module graph under /src.
-app.get('/assets/:file', assetHandler(uiRoot));
+// Production only: in dev, vite serves the module graph under /src. A
+// wildcard, not `:file` — bundlers may emit nested asset paths.
+app.get('/assets/*', assetHandler(uiRoot));
 
 export default app;
