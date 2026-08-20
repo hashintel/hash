@@ -21,3 +21,11 @@ The five canonical triage roles, mapped onto Linear workflow states where a stat
 ### Domain docs
 
 Single-context — `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Operating posture
+
+Prototype posture, high stakes (persisted data and merge gates fail loudly, never silently), current-milestone horizon. See `docs/agents/posture.md`.
+
+### Legibility protocol
+
+Work arcs close by re-rendering their central artifact into another register and reading the strain; capture channels reconcile before landing; work deposits its own description at authoring time. See `docs/agents/legibility.md`.

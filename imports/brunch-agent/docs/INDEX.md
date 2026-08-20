@@ -15,6 +15,7 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 | [hash-sails-public-report.pdf](inbox/hash-sails-public-report.pdf) | 2026-08-11 (pub. 2026-01) | SAILS/ARIA public report: Safeguarded AI gatekeeper (world model + safety spec + verifier), biopharma supply-chain research, tacit knowledge as adoption barrier | FE-1357 map (the "why"); FE-1363 cold-chain anchor |
 | [voice-implementation-recommendation-pplx](inbox/voice-implementation-recommendation-pplx.md) | 2026-08-11 | Perplexity research: voice-adapter options (ElevenLabs/OpenAI/Gemini/xAI) | FE-1359 (superseded in part by its findings) |
 | [yannis-dora-lu-transcript](inbox/yannis-dora-lu-transcript-2026-08-11.md) | 2026-08-11 | Meeting transcript: no in-house interviewing practice; SDCPN-as-hypothesis aired; baseline-control and priming ideas | expert-meeting-findings note; FE-1360, FE-1361 |
+| [amp-analysis-flue-vs-tilde](inbox/amp-analysis-flue-vs-tilde.md) | 2026-08-14 | Amp thread export: comparative assessment of the Flue and tilde agent frameworks (development and deployment stories) and its import for this project | substrate/binding decisions (unprocessed) |
 
 ## planning/elicitation-kernel (effort complete 2026-08-10; settled 2026-08-12)
 
@@ -41,6 +42,21 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 | [research/elicitation-strategy-literature](planning/process-model-elicitation/research/elicitation-strategy-literature.md) | active | gisted in FE-1360 resolution | Literature synthesis, 9 sections, verification-labeled |
 | [research/re-interviewing-literature-worker-report](planning/process-model-elicitation/research/re-interviewing-literature-worker-report.md) | active | noted on FE-1361 | Verbatim instruments: 34-mistake taxonomy, question typologies, LLM-interviewer results |
 | [baseline/](planning/process-model-elicitation/baseline/) | active | gisted in FE-1361 resolution | Baseline-control experiment: protocol, situation pack, v0 prompt, runner, both transcripts, scored read-out |
+| [ir-design](planning/process-model-elicitation/ir-design.md) | active | gisted in FE-1364 resolution | The IR design: Layer A (ratified on worked examples, FE-1397) + the CPS plugin's ten-kind payload (Layer B) |
+| [ir-worked-examples](planning/process-model-elicitation/ir-worked-examples.md) | active | gisted in FE-1397 | Layer-A validation across Gherkin/CPS/BPMN + assurance: property verdicts, amendments, sublimation findings |
+| [ir-design-plain](planning/process-model-elicitation/ir-design-plain.md) | active | strain findings on FE-1401 | Plain-prose rendering of the IR design; the rendering pass doubled as review (7 strain findings, one load-bearing) |
+| [notes/research-patterns-audit](planning/process-model-elicitation/notes/research-patterns-audit.md) | active | FE-1401 / card inputs on FE-1403 | Plain-language audit of ~30 research imports in 7 families, evidence-graded, with an 8-point strain appendix |
+| [notes/penciled-directions-2026-08-14](planning/process-model-elicitation/notes/penciled-directions-2026-08-14.md) | active | FE-1401 | Penciled directions from the legibility session: 8 items with firming actions + editorial reflections |
+| [capture-store-plain](planning/process-model-elicitation/capture-store-plain.md) | active | strain findings on FE-1401 | STE-leaning rendering of the capture-store semantics (FE-1390/FE-1389) with a load-bearing not-guaranteed section; 8-point strain report incl. two command-reachable unclosable-conflict paths (confirms FE-1419 commits 7/8) and the FE-1405 status-arity answer |
+| [notes/deep-read-fe-1389](planning/process-model-elicitation/notes/deep-read-fe-1389.md) | active | FE-1401 / findings in FE-1420 | Deep-read of the walking skeleton: builder's account, spec-discharge table (issues 10/13 capabilities discharged; markdown floor contradicted in the UI), 12 findings; source of PR #10's backfilled record |
+| [notes/deep-read-fe-1390](planning/process-model-elicitation/notes/deep-read-fe-1390.md) | active | FE-1401 / probes on FE-1419 | Deep-read of the capture store: spec-discharge table, write-time tiering assessment (penciled item 7), the FE-1405 status-arity answer, and live-probed confirmation of FE-1419's capture-store claims plus one new aliasing hole; source of PR #11's backfilled record |
+
+## planning — repo implementation (cross-effort)
+
+| Document | Status | Linear | Digest |
+| --- | --- | --- | --- |
+| [CONVERGENCE](planning/CONVERGENCE.md) | active | FE-1401 (created); maintained per legibility.md | The convergence trace: backward mapping from kernel-spec obligation to implementation status (~73 rows: 20 discharged, 18 partial, 27 pending, 7 contradicted, 1 superseded); vocabulary-drift table; frontier pointer to FE-1357. Rows update as branches land |
+| [refactor-queue-2026-08-14](planning/refactor-queue-2026-08-14.md) | active | FE-1419 | Nine-commit refactor queue from an inductive review of open PR comments: capture-store contract closure + verification-oracle integrity; second-order review of the FE-1400 sweep's own countermeasures |
 
 ## Decision records (`docs/adr/`)
 

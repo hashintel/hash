@@ -71,8 +71,10 @@ checked property by property — is discharged in
 [`ir-worked-examples.md`](./ir-worked-examples.md): Gherkin (thin), CPS (thick, this document's
 Layer B), BPMN/process-mining (mid), with the assurance plugin (spec §13.2) as a fourth free
 corroborant. All five MUST properties survive — 2 and 3 amended as worded above — and the
-expected sublimation pressure materialized as pattern promotion (source-regime moving Layer-B →
-Layer-A) rather than any kind moving into the envelope. Everything remains **desk-validated
+expected sublimation pressure — a payload-level concept proving so universal it rises out of
+plugin space, in the strongest case into the harness envelope itself — materialized as pattern
+promotion (source-regime moving Layer-B → Layer-A) rather than any kind moving into the
+envelope. Everything remains **desk-validated
 only**: Layer-A claims stay provisional until real examples run through a working harness — the
 September build exercises that.
 
@@ -94,7 +96,7 @@ a Layer-A pattern — but the harness still gets its turn.
 | 6 | **dynamics** | continuous evolution laws (wear accumulation) | differential equations on real-valued colour elements |
 | 7 | **objective** | questions the model must answer; goals; penalty weights | metrics where expressible as scalars over simulation state; weights IR-only |
 | 8 | **constraint** | regulatory/business rules, conservation laws | guards partially; references IR-only |
-| 9 | **data-binding** | model variable ↔ data feed | nothing today (Live Mode unimplemented) |
+| 9 | **data-binding** | model variable ↔ data feed | nothing today (Live Mode — Petrinaut's named-but-unimplemented mode for driving a running simulation from external data feeds — is the surface this kind would project to) |
 | 10 | **validation-criterion** | how we would know the model is right | nothing today |
 
 Kinds 1–6 are **net-bearing**; 7–10 are partly or wholly **IR-only**. That split is the demo's
@@ -107,7 +109,12 @@ simulation/experiment layer — i.e. metrics.)
 **Attribute patterns** (cross-kind, deliberately not kinds):
 
 - **quantity** — durations, rates, probabilities, capacities; quantile-elicited (never
-  min/mode/max), attachable to any kind; shared/tunable quantities project to `parameters`.
+  min/mode/max — per FE-1360's literature verdict: the TU Delft/EFSA quantile line, plus one
+  published comparison in which the min/mode/max triangular habit overstated a measured mean by
+  ~69%; a single study, but the quantile prescription stands on the protocol line independently),
+  attachable to any kind; shared/tunable quantities project to `parameters` (which quantities
+  earn a named parameter rather than an inline value is undefined here — the plugin spec's
+  binding table owns that criterion).
 - **rationale** — available on every kind, never only under objective.
 - **source-regime** — `prescribed | practiced` on every kind (manuals vs. how it actually
   runs). One model, not parallel models; a prescribed/practiced divergence surfaces as an
@@ -138,7 +145,11 @@ The CPS plugin commits to **question-relative completion**: `objective` captures
 completion contract — every objective has its supporting kinds covered — over a small static
 floor (at least one objective; entities; a happy-path flow). The interview therefore opens on
 objectives. This operationalizes the earning test (stochasticity and colour only where an
-objective demands them) and is the corrected form of a static category ordering.
+objective demands them — the open-questions doc's criterion for model complexity) and is the
+corrected form of a static category ordering: Dora's PRO-98 strategy outline prescribes a fixed
+category sequence for the interview; question-relative completion keeps its coverage intent but
+replaces the fixed sequence with objective-driven coverage, so ordering emerges from what the
+objectives demand rather than from the ontology's own layout.
 
 ### Projection to Petrinaut
 
@@ -162,10 +173,12 @@ objective demands them) and is the corrected form of a static category ordering.
   diverge unresolved, practiced wins and the prescribed reading lands as `omitted` in the
   report.
 - **Naming discipline**: IR payloads keep expert-language names verbatim (evidence-faithful).
-  The ProjectionPack owns a deterministic name→PascalCase identifier scheme — place names are
-  identifiers inside every code surface (guards, kernels, ODEs, metrics), and import does not
-  validate them — emits the name-map as projection metadata for the demo shell to display, and
-  records collision renames as `normalized`.
+  The ProjectionPack owns a deterministic name→PascalCase identifier scheme, emits the name-map
+  as projection metadata for the demo shell to display, and records collision renames as
+  `normalized`. The failure mode this prevents: place names are identifiers inside every code
+  surface (guards, kernels, ODEs, metrics) and import does not validate them, so an
+  inconsistent rename leaves code referencing identifiers that no longer resolve — nothing
+  catches it at import time; it surfaces only when simulation misbehaves.
 - **Provenance stays outside the file.** The Petrinaut format has no provenance, rationale,
   confidence, or draft-ness fields anywhere, and unknown keys are stripped on import (inline
   annotation is explicitly not round-trippable). Everything IR-only is honestly

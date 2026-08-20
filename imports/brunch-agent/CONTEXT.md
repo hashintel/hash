@@ -1,6 +1,6 @@
-# Elicitation Kernel
+# Brunch — domain language
 
-Vocabulary for the elicitation-kernel effort: a standalone architecture generalizing brunch's elicitor into agentic interviewing against pluggable elicitation targets.
+Vocabulary for the brunch elicitation system: an architecture generalizing agentic interviewing against pluggable elicitation targets. Hardened during the elicitation-kernel effort (whose spec settled 2026-08-10) and now governing this repo's implementation and the live process-model-elicitation effort alike. (The old title "Elicitation Kernel" fell to the glossary's own rule: "kernel" is a retired shell name.)
 
 ## Language
 
@@ -115,11 +115,11 @@ The harness-defined contract for the capture store (atomic sweep application, en
 ### September demo
 
 **Demo shell**:
-The one-off application built for the 17–18 September demo: consumes the elicitation library (harness + plugin + binding) and the Petrinaut libraries, owns the UI, session persistence, and elicitor runtime. Explicitly disposable — not a product commitment; neither library consumes the other.
+The one-off application proposed for the 17–18 September demo (FE-1362; recommended to PM alongside the artifact boundary, not ratified): consumes the elicitation library (harness + plugin + binding) and the Petrinaut libraries, owns the UI, session persistence, and elicitor runtime. Explicitly disposable — not a product commitment; neither library consumes the other.
 _Avoid_: "the app", standalone brunch, demo app (unqualified)
 
 **Artifact boundary**:
-The decided integration posture between elicitor and Petrinaut (FE-1362): the elicitor emits a versioned net file plus scenario; Petrinaut consumes it through its published parser and import-with-autolayout path. The rejected alternative was library coupling (one library consuming the other).
+The integration posture between elicitor and Petrinaut recommended to PM (FE-1362; not ratified): the elicitor emits a versioned net file plus scenario; Petrinaut consumes it through its published parser and import-with-autolayout path. The alternative recommended against was library coupling (one library consuming the other).
 _Avoid_: file handoff (undersells it), integration (generic)
 
 **Revision story**:
