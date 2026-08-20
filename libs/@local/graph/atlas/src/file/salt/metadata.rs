@@ -31,7 +31,7 @@ use crate::{
         },
         postings::build::PostingsMeasurements,
         projector::{
-            train::FrozenRadius,
+            train::{BoundaryEvidence, FrozenRadius, RefreshFraction},
             verdict::calibrate::{
                 TypeCalibration,
                 stability::{StabilityBound, StabilityCertificate},
@@ -227,6 +227,46 @@ pub(crate) struct ProximalCalibrationEvidence {
     pub fractions: Vec<RefreshFractionEvidence>,
     /// The reviews arm's evaluated stability certificate.
     pub stability: StabilityCertificateEvidence,
+}
+
+impl ProximalCalibrationEvidence {
+    /// Assembles the persisted calibration body of a measured boundary.
+    ///
+    /// A vacuous boundary persists nothing. Its measurement holds no population, so a reader's
+    /// `None` means nothing was measured rather than a zero-valued body.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a measured boundary carries no evaluated stability certificate: the trainer
+    /// evaluates the certificate at every measured freeze, so its absence is a pipeline defect
+    /// rather than a data condition.
+    pub(crate) fn measured(
+        boundary: &BoundaryEvidence,
+        fractions: &[RefreshFraction],
+    ) -> Option<Self> {
+        let FrozenRadius::Measured { radius } = boundary.radius else {
+            return None;
+        };
+
+        let stability = boundary
+            .calibration
+            .stability
+            .as_ref()
+            .expect("a measured boundary carries its evaluated certificate");
+
+        Some(Self {
+            radius,
+            types: boundary.calibration.types.iter().map(From::from).collect(),
+            fractions: fractions
+                .iter()
+                .map(|reading| RefreshFractionEvidence {
+                    step: reading.step as u64,
+                    fraction: reading.fraction,
+                })
+                .collect(),
+            stability: StabilityCertificateEvidence::from(stability),
+        })
+    }
 }
 
 /// One reviewed type's persisted share of the boundary measurement.
