@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 
-import { getIconForDataType } from "./data-type-selector/icons";
+import { getIconForDataType } from "./data-type-icons";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 import { IconButton } from "./icon-button";
 import { CaretDownSolidIcon } from "./icon-caret-down-solid";
@@ -25,12 +25,6 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { MouseEventHandler, ReactNode, RefObject } from "react";
-
-export {
-  getIconForDataType,
-  identifierTypeTitles,
-  measurementTypeTitles,
-} from "./data-type-selector/icons";
 
 /**
  * Keep synced with the DataTypeForSelector type in @local/hash-isomorphic-utils/data-types.ts
