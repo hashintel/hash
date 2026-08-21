@@ -11,7 +11,8 @@
 //! The artifacts come from a published generation ([`Frozen::load`]) or from a directory of
 //! supplied artifact files ([`Frozen::from_supplied`]). The supplied form exists for a fit that
 //! cannot publish. A failing fit stages no generation for probing, but its input artifacts exist on
-//! disk, and the byte certification holds either way.
+//! disk, and the table certification holds either way; only a published generation records a
+//! document digest for the replay to check.
 //!
 //! Failures panic with the failing step's error. A replay has no recovery path, and the error is
 //! the diagnosis.
@@ -25,9 +26,11 @@ use crate::{
     file::{
         array::ArrayFile,
         generation::{GenerationId, GenerationRoot},
+        repository::Artifact as _,
+        salt::artifact,
     },
     identity::CardRow,
-    integrity::{Sha256, Sha256Digest, Update as _},
+    integrity::Sha256Digest,
     math::{AlignedVecN, BoxedVecN, VecN},
     progress::NoProgress,
     salt::{
@@ -109,7 +112,9 @@ impl CardEmbedder for TableEmbedder {
 pub(crate) struct Frozen {
     supplied: SuppliedAnnotations,
     embedder: TableEmbedder,
-    staged_document_digest: Sha256Digest,
+    /// The manifest-recorded corpus document digest; a supplied-artifact corpus has no manifest
+    /// and records none.
+    staged_document_digest: Option<Sha256Digest>,
     document_digest: Sha256Digest,
     staged_embeddings_digest: Sha256Digest,
     staged_hashes_digest: Sha256Digest,
@@ -160,9 +165,6 @@ impl Frozen {
 
         let supplied = SuppliedAnnotations::open(generation.path_of(&corpus_file.name()))
             .expect("the staged corpus document parses");
-        let mut hasher = Sha256::new();
-        hasher.update(supplied.bytes());
-        let corpus_digest = hasher.finalize();
 
         let embedder = TableEmbedder::load(
             repository.metadata.reproducibility.embedder,
@@ -175,10 +177,10 @@ impl Frozen {
         let config = &repository.metadata.reproducibility.config;
 
         Self {
+            document_digest: supplied.hash(),
+            staged_document_digest: Some(corpus_file.hash()),
             supplied,
             embedder,
-            staged_document_digest: corpus_file.hash(),
-            document_digest: corpus_digest,
             staged_embeddings_digest: embeddings_file.hash(),
             staged_hashes_digest: hashes_file.hash(),
             staged_classifier_digest: Some(files.classifier.hash()),
@@ -202,11 +204,12 @@ impl Frozen {
     /// This panics when reading an artifact file fails or when the corpus document fails
     /// validation.
     pub(crate) fn from_supplied(directory: &Utf8Path) -> Self {
-        let embeddings_path = directory.join("annotation-embeddings.arr");
-        let hashes_path = directory.join("annotation-hashes.arr");
+        let embeddings_path = directory.join(artifact::AnnotationEmbeddings::NAME.as_str());
+        let hashes_path = directory.join(artifact::AnnotationHashes::NAME.as_str());
 
-        let supplied = SuppliedAnnotations::open(directory.join("annotation-corpus.json"))
-            .expect("the supplied corpus document parses");
+        let supplied =
+            SuppliedAnnotations::open(directory.join(artifact::AnnotationCorpus::NAME.as_str()))
+                .expect("the supplied corpus document parses");
 
         let embeddings_digest = Sha256Digest::of(
             std::fs::read(embeddings_path.as_std_path())
@@ -227,7 +230,7 @@ impl Frozen {
 
         Self {
             document_digest: supplied.hash(),
-            staged_document_digest: supplied.hash(),
+            staged_document_digest: None,
             supplied,
             embedder,
             staged_embeddings_digest: embeddings_digest,
@@ -242,15 +245,19 @@ impl Frozen {
     ///
     /// # Panics
     ///
-    /// This panics when the staged document does not reproduce its recorded digest, when it fails
-    /// assembly, or when the reassembled table does not reproduce the staged bytes.
+    /// This panics when a recorded document digest exists and the staged document does not
+    /// reproduce it, when the document fails assembly, or when the reassembled table does not
+    /// reproduce the staged bytes.
     pub(crate) async fn reconstruct(&self) -> Reconstructed {
-        assert!(
-            self.document_digest == self.staged_document_digest,
-            "the staged corpus document reproduces its recorded digest (recorded {}, loaded {})",
-            self.staged_document_digest,
-            self.document_digest,
-        );
+        if let Some(staged) = self.staged_document_digest {
+            assert!(
+                self.document_digest == staged,
+                "the staged corpus document reproduces its recorded digest (recorded {}, loaded \
+                 {})",
+                staged,
+                self.document_digest,
+            );
+        }
 
         let corpus = assemble(
             self.supplied.document(),
@@ -312,5 +319,167 @@ impl Reconstructed {
     /// The card identities, row-aligned with [`rows`](Self::rows).
     pub(crate) const fn identities(&self) -> &IdSlice<CardRow, CardIdentity> {
         self.corpus.identities()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use camino::Utf8PathBuf;
+    use serde_json::json;
+    use zerocopy::IntoBytes as _;
+
+    use super::Frozen;
+    use crate::{
+        dataset::CANONICAL_DIMENSIONS,
+        file::array::{ArrayVariant, Dim, SizedArrayWriter},
+        integrity::Sha256Digest,
+        salt::embedding::EmbedderFingerprint,
+    };
+
+    const DIGEST: &str = "2a9934acae8bf210b6a3428e553b1bcc0e220a4de113940782cd573da1ea4f4b";
+    const EMPLOYED_BY: &str = "https://hash.ai/@h/types/entity-type/employed-by/v/1";
+
+    /// Composes a minimal contract-conforming corpus document: one hash card carrying one
+    /// geometry vote.
+    fn document() -> String {
+        json!({
+            "cards": [{
+                "axes": {
+                    "base_url": "https://hash.ai/@h/types/entity-type/employed-by/",
+                    "family": "f-0007",
+                    "inverse_of": [],
+                    "publisher": "hash.ai/@h",
+                },
+                "content": {
+                    "aliases": [],
+                    "ancestors": [],
+                    "constraints": {
+                        "direction": "source -> target",
+                        "distinct_values": null,
+                        "single_value": null,
+                        "symmetric": null,
+                        "transitive": null,
+                    },
+                    "description": "The subject is employed by the object.",
+                    "endpoint_constraints": [],
+                    "examples": [],
+                    "inverse": null,
+                    "language": "en",
+                    "slug": "employed-by",
+                    "source_types": [{"description": null, "label": "Person"}],
+                    "target_types": [{"description": null, "label": "Organization"}],
+                    "title": "Employed By",
+                },
+                "flags": {"holdout": null, "prescreen_stratum": null, "shot_excluded": false},
+                "identity": EMPLOYED_BY,
+                "retrieved_at": null,
+                "source": "hash",
+                "source_record_hash": null,
+                "votes": [{
+                    "card_hash": DIGEST,
+                    "effort": "high",
+                    "framing": "S1xF1",
+                    "model_pinned": "gpt-5.2",
+                    "model_returned": "gpt-5.2-2026-05-01",
+                    "prompt_pack_hash": DIGEST,
+                    "provider": "amazon-bedrock",
+                    "quantization": null,
+                    "repeat_index": 0,
+                    "rubric_version": "v2",
+                    "seed": 7,
+                    "temperature": 0.2,
+                    "verdict": "proximal",
+                }],
+            }],
+            "schema": "atlas-annotation-corpus/1",
+            "sources": {"cards.jsonl": DIGEST},
+        })
+        .to_string()
+    }
+
+    /// A fresh scratch directory for one test's supplied artifacts.
+    fn scratch(name: &str) -> Utf8PathBuf {
+        let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
+            .expect("the temp directory is UTF-8")
+            .join(format!(
+                "hash-graph-atlas-classifier-replay-{}-{name}",
+                std::process::id(),
+            ));
+        let _: Result<(), std::io::Error> = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("the scratch directory should create");
+        dir
+    }
+
+    /// The constructor reads the three artifact files under exactly the staged names its
+    /// documentation promises, and binds the supplied bytes' digests as the staged identities.
+    #[test]
+    fn from_supplied_reads_the_staged_artifact_names() {
+        let dir = scratch("staged-names");
+
+        // The literals spell the constructor's documented human contract; the constructor joins
+        // the pinned artifact names, so either side drifting fails this witness.
+        let document = document();
+        fs::write(dir.join("annotation-corpus.json"), &document)
+            .expect("the corpus document should write");
+
+        let row_hash = Sha256Digest::of("Employed By");
+        let hashes_file = fs::File::create(dir.join("annotation-hashes.arr"))
+            .expect("the hash column should create");
+        let mut writer =
+            SizedArrayWriter::new(hashes_file, ArrayVariant::U8, &[Dim::new(1), Dim::new(32)])
+                .expect("the hash header should write");
+        writer
+            .write_rows(1, [row_hash].as_bytes())
+            .expect("the digest row should write");
+        writer.finish().expect("the hash column should seal");
+
+        let embeddings_file = fs::File::create(dir.join("annotation-embeddings.arr"))
+            .expect("the embedding array should create");
+        let mut writer = SizedArrayWriter::new(
+            embeddings_file,
+            ArrayVariant::F32,
+            &[Dim::new(1), Dim::new(CANONICAL_DIMENSIONS as u64)],
+        )
+        .expect("the embedding header should write");
+        writer
+            .write_rows(1, vec![0.5_f32; CANONICAL_DIMENSIONS].as_bytes())
+            .expect("the embedding row should write");
+        writer.finish().expect("the embedding array should seal");
+
+        let frozen = Frozen::from_supplied(&dir);
+
+        // A supplied corpus records no manifest digest, so the recorded-digest check has no
+        // second opinion to forge.
+        assert_eq!(frozen.document_digest, Sha256Digest::of(&document));
+        assert!(frozen.staged_document_digest.is_none());
+
+        // The staged array identities are the raw file bytes' digests.
+        assert_eq!(
+            frozen.staged_hashes_digest,
+            Sha256Digest::of(
+                fs::read(dir.join("annotation-hashes.arr")).expect("the hash column should read"),
+            ),
+        );
+        assert_eq!(
+            frozen.staged_embeddings_digest,
+            Sha256Digest::of(
+                fs::read(dir.join("annotation-embeddings.arr"))
+                    .expect("the embedding array should read"),
+            ),
+        );
+
+        // Supplied artifacts stage no classifier and name no embedder: the fingerprint derives
+        // from the supplied table's own digest.
+        assert!(frozen.staged_classifier_digest().is_none());
+        assert_eq!(
+            frozen.embedder.fingerprint,
+            EmbedderFingerprint::new(frozen.staged_embeddings_digest),
+        );
+
+        // The answer table holds exactly the staged row under its digest.
+        assert_eq!(frozen.embedder.rows.len(), 1);
+        assert!(frozen.embedder.rows.contains_key(&row_hash));
     }
 }
