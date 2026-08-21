@@ -52,13 +52,19 @@ def _child_environment() -> dict[str, str]:
 
 
 def _encode_bootstrap_line(payload: Mapping[str, Any], label: str) -> str:
-    """Serialize a stdin-provided model or manifest, enforcing the line cap."""
+    """Serialize a stdin-provided model or manifest, enforcing the line cap.
+
+    Raises ``TypeError`` for a payload that will not serialize to JSON and
+    ``ValueError`` for one over the line cap: both are caller input, found
+    before any process exists, so they are not ``PetrinautClientError``,
+    which means a session's process or transport is gone.
+    """
     try:
         line = json.dumps(dict(payload), ensure_ascii=False, separators=(",", ":"))
     except (TypeError, ValueError) as error:
-        raise PetrinautClientError(f"the {label} is not valid JSON: {error}") from error
+        raise TypeError(f"the {label} is not JSON-serializable: {error}") from error
     if len(line.encode("utf-8")) > MAX_BOOTSTRAP_LINE_BYTES:
-        raise PetrinautClientError(
+        raise ValueError(
             f"the {label} exceeds the {MAX_BOOTSTRAP_LINE_BYTES // _MIB} MiB limit"
         )
     return line
@@ -207,7 +213,9 @@ class PetrinautSession:
         Raises :class:`PetrinautRunError` when the CLI answers with an error
         frame (the session stays usable), and :class:`PetrinautClientError` /
         :class:`PetrinautProtocolError` when the transport or protocol breaks
-        (the session is closed).
+        (the session is closed). ``params`` that will not serialize to JSON
+        raise :class:`TypeError` before anything is written, leaving the
+        session usable.
         """
         return self._exchange(method, params)
 
@@ -316,19 +324,22 @@ class PetrinautSession:
             )
 
         request_id = self._next_id
-        self._next_id += 1
         request: dict[str, Any] = {"id": request_id, "method": method}
         if params is not None:
             request["params"] = dict(params)
 
         # Encoded before anything is sent: a params value that cannot be
-        # serialized is the caller's bug, and must not close a healthy session.
+        # serialized is the caller's bug, so it is a TypeError — not a
+        # PetrinautClientError, which would claim a healthy session is gone.
+        # The id is consumed only once encoding succeeds, so a request that
+        # was never written leaves no gap in the id sequence.
         try:
             payload = (json.dumps(request, separators=(",", ":")) + "\n").encode()
         except (TypeError, ValueError) as error:
-            raise PetrinautClientError(
+            raise TypeError(
                 f"{method} params are not JSON-serializable: {error}"
             ) from error
+        self._next_id += 1
 
         try:
             process.stdin.write(payload)

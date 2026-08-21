@@ -122,3 +122,31 @@ def test_request_reaches_any_protocol_method() -> None:
         "params": {"key": "value"},
     }
     session.close()
+
+
+def test_unserializable_params_raise_type_error_and_leave_the_session_usable() -> None:
+    process = FakeProcess([{"id": 1, "result": {"ok": True}}])
+    invocation = spawn(process)
+    session = PetrinautSession.from_model_file(
+        "./model.json",
+        command=("node", "/cli.js"),
+        popen_factory=invocation["popen_factory"],
+    )
+    session.start()
+
+    with pytest.raises(TypeError, match="not JSON-serializable"):
+        session.request("run", {"bad": object()})
+
+    # The caller's bug must not have closed the healthy session.
+    assert session.healthz() == {"ok": True}
+    session.close()
+
+
+def test_unserializable_model_raises_type_error_before_spawning() -> None:
+    with pytest.raises(TypeError, match="not JSON-serializable"):
+        PetrinautSession.from_model({"bad": object()})
+
+
+def test_oversized_model_raises_value_error_before_spawning() -> None:
+    with pytest.raises(ValueError, match="MiB limit"):
+        PetrinautSession.from_model({"blob": "x" * (9 * 1024 * 1024)})
