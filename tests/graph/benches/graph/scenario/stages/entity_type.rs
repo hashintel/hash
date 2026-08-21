@@ -556,20 +556,14 @@ impl BuildEntityTypeRegistryStage {
             .await
             .change_context(BuildEntityTypeRegistryError::ReadEntityTypes)?;
 
-        let mut store = pool
+        let store = pool
             .acquire(None)
-            .await
-            .change_context(BuildEntityTypeRegistryError::ReadEntityTypes)?;
-
-        // The registry reads as the system machine, the one actor guaranteed to exist here.
-        let machine_id = store
-            .get_or_create_system_machine("h")
             .await
             .change_context(BuildEntityTypeRegistryError::ReadEntityTypes)?;
 
         let get_entity_types_response = store
             .query_entity_types(
-                Some(ActorId::from(machine_id)),
+                None,
                 QueryEntityTypesParams {
                     request: CommonQueryEntityTypesParams {
                         filter: Filter::for_entity_type_uuids(&all_entity_types),
