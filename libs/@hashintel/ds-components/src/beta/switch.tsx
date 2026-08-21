@@ -15,13 +15,15 @@ export const Root = withProvider(Switch.Root, "root");
 export const RootProvider = withProvider(Switch.RootProvider, "root");
 export const Label = withContext(Switch.Label, "label");
 export const Thumb = withContext(Switch.Thumb, "thumb");
-export const HiddenInput = Switch.HiddenInput;
 
 export const Control = withContext(Switch.Control, "control", {
   defaultProps: { children: <Thumb /> },
 });
 
-export { SwitchContext as Context } from "@ark-ui/react/switch";
+export {
+  SwitchContext as Context,
+  SwitchHiddenInput as HiddenInput,
+} from "@ark-ui/react/switch";
 
 interface IndicatorProps extends ComponentProps<typeof StyledIndicator> {
   fallback?: ReactNode | undefined;

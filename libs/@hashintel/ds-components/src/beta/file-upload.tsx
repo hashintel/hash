@@ -27,7 +27,6 @@ export const ClearTrigger = withContext(
   "clearTrigger",
 );
 export const Dropzone = withContext(FileUpload.Dropzone, "dropzone");
-export const HiddenInput = FileUpload.HiddenInput;
 export const Item = withContext(FileUpload.Item, "item");
 export const ItemDeleteTrigger = withContext(
   FileUpload.ItemDeleteTrigger,
@@ -54,7 +53,10 @@ export const ItemSizeText = withContext(
 export const Label = withContext(FileUpload.Label, "label");
 export const Trigger = withContext(FileUpload.Trigger, "trigger");
 
-export { FileUploadContext as Context } from "@ark-ui/react/file-upload";
+export {
+  FileUploadContext as Context,
+  FileUploadHiddenInput as HiddenInput,
+} from "@ark-ui/react/file-upload";
 
 interface ItemsBaseProps {
   showSize?: boolean | undefined;

@@ -28,7 +28,8 @@ export {
 } from "./components/Filter/sort-menu-util";
 export { Form } from "./components/Form/form";
 export { HelpTooltip } from "./components/HelpTooltip/help-tooltip";
-export { Icon, type IconName, iconNames } from "./components/Icon/icon";
+export { Icon, type IconName } from "./components/Icon/icon";
+export { iconNames } from "./components/Icon/icon-map";
 export {
   LoadingSpinner,
   type LoadingSpinnerVariant,

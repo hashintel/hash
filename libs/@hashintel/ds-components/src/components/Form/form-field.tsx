@@ -4,7 +4,7 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { Description } from "./description";
 import { Errors } from "./errors";
-import { FieldIdProvider } from "./field-id-context";
+import { FieldIdProvider } from "./field-id-provider";
 import { styles } from "./form-field.recipe";
 import { Label } from "./label";
 

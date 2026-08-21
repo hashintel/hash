@@ -31,10 +31,9 @@ export const RootProvider = withProvider(RatingGroup.RootProvider, "root");
 export const Item = withContext(RatingGroup.Item, "item");
 export const Label = withContext(RatingGroup.Label, "label");
 
-export const HiddenInput = RatingGroup.HiddenInput;
-
 export {
   RatingGroupContext as Context,
+  RatingGroupHiddenInput as HiddenInput,
   RatingGroupItemContext as ItemContext,
 } from "@ark-ui/react/rating-group";
 

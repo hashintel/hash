@@ -19,4 +19,4 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>((props, ref) => {
   );
 });
 
-export const RadioGroup = StyledRadioGroup.Root;
+export { Root as RadioGroup } from "../radio-group";

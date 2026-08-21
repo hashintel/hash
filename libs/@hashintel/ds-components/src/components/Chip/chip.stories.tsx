@@ -1,6 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import { Chip, chipSizes, type ChipColor, type ChipProps } from "./chip";
+import { Chip, type ChipColor, type ChipProps } from "./chip";
+import { chipSizes } from "./chip-sizes";
 
 import type { Story, StoryDefault } from "@ladle/react";
 

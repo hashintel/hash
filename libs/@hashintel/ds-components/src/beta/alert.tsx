@@ -30,11 +30,3 @@ export const Indicator = forwardRef<HTMLSpanElement, IndicatorProps>(
     );
   },
 );
-
-export const Alert = {
-  Root,
-  Title,
-  Description,
-  Content,
-  Indicator,
-};

@@ -4,7 +4,6 @@
 
 import { Portal } from "@ark-ui/react/portal";
 import {
-  createToaster,
   Toast,
   Toaster as ArkToaster,
   useToastContext,
@@ -18,6 +17,7 @@ import { CloseButton } from "./close-button";
 import { Icon, type IconProps } from "./icon";
 import { Spinner } from "./spinner";
 import { toastSlotRecipe } from "./toast.recipe";
+import { toaster } from "./toaster";
 
 const { withProvider, withContext } = createStyleContext(toastSlotRecipe);
 
@@ -47,13 +47,6 @@ const Indicator = forwardRef<SVGSVGElement, IconProps>((props, ref) => {
       <StatusIcon />
     </Icon>
   );
-});
-
-export const toaster = createToaster({
-  placement: "bottom-end",
-  pauseOnPageIdle: true,
-  overlap: true,
-  max: 5,
 });
 
 export const Toaster = () => {

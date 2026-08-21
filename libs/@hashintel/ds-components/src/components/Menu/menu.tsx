@@ -4,6 +4,7 @@ import { cloneElement, useMemo } from "react";
 
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { type Position } from "../Tooltip/tooltip";
+import { collectSelectedIds } from "./collect-selected-ids";
 import {
   SelectableList,
   type Item,
@@ -11,38 +12,10 @@ import {
 } from "./SelectableList/selectable-list";
 import {
   getEventHighlightedId,
-  getItemId,
-  isGroup,
   useLoopSelection,
 } from "./SelectableList/selectable-list-util";
 
 export type MenuItem = Item & { selected?: boolean };
-
-export const collectSelectedIds = (
-  entries: Array<ItemOrGroup<MenuItem>>,
-): string[] => {
-  const result: string[] = [];
-  const visit = (entry: ItemOrGroup<MenuItem>) => {
-    if (isGroup(entry)) {
-      for (const child of entry.items) {
-        visit(child);
-      }
-      return;
-    }
-    if (entry.selected) {
-      result.push(getItemId(entry));
-    }
-    if (entry.subItems) {
-      for (const child of entry.subItems) {
-        visit(child);
-      }
-    }
-  };
-  for (const entry of entries) {
-    visit(entry);
-  }
-  return result;
-};
 
 export const Menu = ({
   items,

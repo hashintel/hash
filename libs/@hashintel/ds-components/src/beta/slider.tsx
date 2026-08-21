@@ -26,9 +26,11 @@ export const Range = withContext(Slider.Range, "range");
 export const Thumb = withContext(Slider.Thumb, "thumb");
 export const Track = withContext(Slider.Track, "track");
 export const ValueText = withContext(Slider.ValueText, "valueText");
-export const HiddenInput = Slider.HiddenInput;
 
-export { SliderContext as Context } from "@ark-ui/react/slider";
+export {
+  SliderContext as Context,
+  SliderHiddenInput as HiddenInput,
+} from "@ark-ui/react/slider";
 
 export type RootProps = ComponentProps<typeof Root>;
 export type MarkerGroupProps = ComponentProps<typeof MarkerGroup>;
@@ -64,7 +66,7 @@ export const Thumbs = (props: Omit<ThumbProps, "index">) => {
   const sliderSlotRecipe = useSliderContext();
   return sliderSlotRecipe.value.map((_, index) => (
     <Thumb key={index} index={index} {...props}>
-      <HiddenInput />
+      <Slider.HiddenInput />
     </Thumb>
   ));
 };

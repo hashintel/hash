@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "../button";
-import { toaster } from "../toast";
+import { toaster } from "../toaster";
 
 export const App = () => {
   return (

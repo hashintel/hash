@@ -1,4 +1,4 @@
-import { Alert } from "../alert";
+import * as Alert from "../alert";
 
 export const App = () => {
   return (

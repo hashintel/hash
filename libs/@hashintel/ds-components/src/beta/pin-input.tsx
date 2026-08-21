@@ -16,8 +16,10 @@ export const Root = withProvider(PinInput.Root, "root", {
 });
 export const RootProvider = withProvider(PinInput.RootProvider, "root");
 export const Control = withContext(PinInput.Control, "control");
-export const HiddenInput = PinInput.HiddenInput;
 export const Input = withContext(PinInput.Input, "input");
 export const Label = withContext(PinInput.Label, "label");
 
-export { PinInputContext as Context } from "@ark-ui/react/pin-input";
+export {
+  PinInputContext as Context,
+  PinInputHiddenInput as HiddenInput,
+} from "@ark-ui/react/pin-input";

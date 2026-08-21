@@ -23,11 +23,13 @@ export const RootProvider = withProvider(SegmentGroup.RootProvider, "root");
 export const Indicator = withContext(SegmentGroup.Indicator, "indicator");
 export const Item = withContext(SegmentGroup.Item, "item");
 export const ItemControl = withContext(SegmentGroup.ItemControl, "itemControl");
-export const ItemHiddenInput = SegmentGroup.ItemHiddenInput;
 export const ItemText = withContext(SegmentGroup.ItemText, "itemText");
 export const Label = withContext(SegmentGroup.Label, "label");
 
-export { SegmentGroupContext as Context } from "@ark-ui/react/segment-group";
+export {
+  SegmentGroupContext as Context,
+  SegmentGroupItemHiddenInput as ItemHiddenInput,
+} from "@ark-ui/react/segment-group";
 
 interface Item {
   value: string;
@@ -53,7 +55,7 @@ export const Items = (props: ItemsProps) => {
       {...itemProps}
     >
       <ItemText>{item.label}</ItemText>
-      <ItemHiddenInput />
+      <SegmentGroup.ItemHiddenInput />
     </Item>
   ));
 };

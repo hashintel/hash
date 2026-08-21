@@ -26,7 +26,7 @@ import { contentPaddingPx, styles } from "./selectable-list.recipe";
 
 import type { FormInputSize } from "../../../util/form-shared";
 
-export { type CustomItem, isCustomItem, isGroup, type Item, type ItemOrGroup };
+export type { CustomItem, Item, ItemOrGroup };
 
 export type SelectableListAs = "Menu" | "Select";
 

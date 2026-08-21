@@ -6,6 +6,7 @@ import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { Tooltip } from "../Tooltip/tooltip";
 import { styles } from "./button.recipe";
+import { iconSizeMap } from "./icon-size-map";
 
 import type { FormInputSize, Tone } from "../../util/form-shared";
 import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";
@@ -94,14 +95,6 @@ export type AnchorElementProps = AnchorElementOnlyProps &
   SharedButtonProps<HTMLAnchorElement> &
   ButtonIconProps;
 export type ButtonProps = ButtonElementProps | AnchorElementProps;
-
-export const iconSizeMap: Record<FormInputSize, FormInputSize> = {
-  xxs: "xs",
-  xs: "xs",
-  sm: "sm",
-  md: "sm",
-  lg: "md",
-};
 
 const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xs",

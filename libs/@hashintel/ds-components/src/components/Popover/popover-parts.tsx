@@ -1,7 +1,7 @@
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { useOverlayContext } from "../../util/overlay-context";
 import {
-  useOverlayContext,
   type OverlayBodyProps,
   type OverlayBody,
   type OverlayFooter,

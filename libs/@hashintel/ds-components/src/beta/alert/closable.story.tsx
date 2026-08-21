@@ -1,4 +1,4 @@
-import { Alert } from "../alert";
+import * as Alert from "../alert";
 import { CloseButton } from "../close-button";
 
 export const App = () => {

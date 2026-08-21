@@ -2,11 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import {
-  Button,
-  type ButtonElementProps,
-  iconSizeMap as buttonIconSizeMap,
-} from "../Button/button";
+import { Button, type ButtonElementProps } from "../Button/button";
+import { iconSizeMap as buttonIconSizeMap } from "../Button/icon-size-map";
 import { Icon } from "../Icon/icon";
 import { Menu, type MenuItem } from "../Menu/menu";
 import {

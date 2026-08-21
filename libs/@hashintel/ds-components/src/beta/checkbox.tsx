@@ -14,18 +14,18 @@ import type { HTMLStyledProps } from "@hashintel/ds-helpers/types";
 const { withProvider, withContext } = createStyleContext(checkboxSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
-export type HiddenInputProps = ComponentProps<typeof HiddenInput>;
+export type HiddenInputProps = ComponentProps<typeof Checkbox.HiddenInput>;
 
 export const Root = withProvider(Checkbox.Root, "root");
 export const RootProvider = withProvider(Checkbox.RootProvider, "root");
 export const Control = withContext(Checkbox.Control, "control");
 export const Group = withProvider(Checkbox.Group, "group");
 export const Label = withContext(Checkbox.Label, "label");
-export const HiddenInput = Checkbox.HiddenInput;
 
 export {
   type CheckboxCheckedState as CheckedState,
   CheckboxGroupProvider as GroupProvider,
+  CheckboxHiddenInput as HiddenInput,
 } from "@ark-ui/react/checkbox";
 
 // styled.svg is typed too broadly to satisfy strict TS in this context

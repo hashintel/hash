@@ -3,7 +3,8 @@ import { Portal } from "@ark-ui/react/portal";
 import { useMemo } from "react";
 
 import { usePortalContainerRef } from "../../util/portal-container-context";
-import { collectSelectedIds, type MenuItem } from "../Menu/menu";
+import { collectSelectedIds } from "../Menu/collect-selected-ids";
+import { type MenuItem } from "../Menu/menu";
 import {
   SelectableList,
   type ItemOrGroup,

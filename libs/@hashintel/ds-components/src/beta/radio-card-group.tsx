@@ -20,6 +20,8 @@ export const Item = withContext(RadioGroup.Item, "item");
 export const ItemControl = withContext(RadioGroup.ItemControl, "itemControl");
 export const ItemText = withContext(RadioGroup.ItemText, "itemText");
 export const Label = withContext(RadioGroup.Label, "label");
-export const ItemHiddenInput = RadioGroup.ItemHiddenInput;
 
-export { RadioGroupContext as Context } from "@ark-ui/react/radio-group";
+export {
+  RadioGroupContext as Context,
+  RadioGroupItemHiddenInput as ItemHiddenInput,
+} from "@ark-ui/react/radio-group";

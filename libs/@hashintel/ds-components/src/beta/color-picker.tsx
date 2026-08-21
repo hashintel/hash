@@ -57,7 +57,6 @@ export const FormatTrigger = withContext(
   ColorPicker.FormatTrigger,
   "formatTrigger",
 );
-export const HiddenInput = ColorPicker.HiddenInput;
 export const Label = withContext(ColorPicker.Label, "label");
 export const Positioner = withContext(ColorPicker.Positioner, "positioner");
 export const Swatch = withContext(ColorPicker.Swatch, "swatch");
@@ -75,8 +74,11 @@ export const TransparencyGrid = withContext(
   "transparencyGrid",
 );
 export const Trigger = withContext(ColorPicker.Trigger, "trigger");
-export const ValueSwatch = ColorPicker.ValueSwatch;
 export const ValueText = withContext(ColorPicker.ValueText, "valueText");
 export const View = withContext(ColorPicker.View, "view");
 
-export { ColorPickerContext as Context } from "@ark-ui/react/color-picker";
+export {
+  ColorPickerContext as Context,
+  ColorPickerHiddenInput as HiddenInput,
+  ColorPickerValueSwatch as ValueSwatch,
+} from "@ark-ui/react/color-picker";

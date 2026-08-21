@@ -49,10 +49,10 @@ export const ValueText = withContext(Select.ValueText, "valueText");
 export const Indicator = withContext(Select.Indicator, "indicator", {
   defaultProps: { children: <ChevronsUpDownIcon /> },
 });
-export const HiddenSelect = Select.HiddenSelect;
 
 export {
   SelectContext as Context,
+  SelectHiddenSelect as HiddenSelect,
   SelectItemContext as ItemContext,
   type SelectValueChangeDetails as ValueChangeDetails,
 } from "@ark-ui/react/select";
