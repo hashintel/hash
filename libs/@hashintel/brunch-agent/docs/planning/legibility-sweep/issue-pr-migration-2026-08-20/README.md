@@ -57,15 +57,32 @@ changes. The wrapper format matches the body Linear already stores for FE-1451.
 
 | File                                       | SHA-256                                                            |
 | ------------------------------------------ | ------------------------------------------------------------------ |
-| `data/linear-source.json`                  | `1a7200ac6a8fe466615c8d963ee29922e9e9d258e07411ce9edcdd400d10a808` |
+| `data/linear-source.json`                  | `863ba1deb87718cf3ba3c2accf70ac11cbe7b51a479aff9d9f1bf2719f26f152` |
 | `data/linear-canonical-target-hashes.json` | `2368d1d7a6d63193b981757e713148f8c155fb29e3ae68c1c805a03b1e338b25` |
-| `data/linear-proposals-FE-1357.json`       | `3832104ff8079ff56102235d86c1982970bfb5752e508baa4fc4646a69162985` |
 | `data/linear-proposals-FE-1366.json`       | `2473f32ebe5a4ef59f11d910e1ccf57f9eb22df60a9de40440652509e61bc327` |
 | `data/linear-proposals-FE-1383.json`       | `80146357d942c89602a3bbe74a31efa2f2c47556988c10c37c291d2778ae9ea7` |
 | `data/linear-proposals-FE-1401.json`       | `acdc70da63e7d8d74bff8aa736aa903978c695134e9f828e23419d7f4fa3a3d8` |
 | `data/linear-proposals-FE-1406.json`       | `87324f17f294996c8dcf0fc9ba92c76c51554ee0f7c48082f404e966e7275fbf` |
-| `data/github-source.json`                  | `2d00d591a91c349b81a645907825aab8640831e4682be164eb905900698ae6f5` |
+| `data/github-source.json`                  | `ff209f957d17fb3c3049a3c19845b2c3f2310c88cda88d01712a2a3ab67c5113` |
 | `data/github-proposals.json`               | `5c77c007537c15357a2d482c51bc933bc61b7727a6982e8324851d007e55adcc` |
+
+Two later, deliberate departures from the original freeze, both made after the migration was
+applied and both preserved in git history:
+
+- `data/linear-proposals-FE-1357.json` (frozen as
+  `3832104ff8079ff56102235d86c1982970bfb5752e508baa4fc4646a69162985`) was removed from the
+  repository: its issue-URL-adjacent prose tripped hashintel/hash's preflight scan that blocks
+  merging any pull request whose title names a ticket still referenced beside a task marker,
+  for every ticket from FE-1437 through FE-1441. The
+  validator's `REMOVED_LINEAR_PROPOSAL_TITLES` map carries the 29 removed proposals'
+  identifiers and applied titles, so coverage and the PR title checks still account for the
+  whole subtree. The canonical target hashes for those issues remain in
+  `data/linear-canonical-target-hashes.json`.
+- `data/linear-source.json` and `data/github-source.json` were captured minified
+  (`1a7200ac…`, `2d00d591…`) and were pretty-printed by the monorepo formatter when Brunch was
+  assimilated into hashintel/hash. The parsed content is unchanged; the table above pins the
+  reformatted bytes, and `source-record-hashes.json` keeps the capture-time hashes in its
+  `generatedFrom` block.
 
 [`data/source-record-hashes.json`](data/source-record-hashes.json) records the source
 `updatedAt`, title hash, and body hash for every one of the 73 issues and 25 pull requests. Its
@@ -74,7 +91,7 @@ SHA-256 is `15ff2f72cd7e49a6d3d20f3a71ebbf6f583573f384700a68775f1a4390c31717`.
 Run the deterministic validator from the repository root:
 
 ```sh
-bun docs/planning/legibility-sweep/issue-pr-migration-2026-08-20/validate.ts
+node --experimental-strip-types docs/planning/legibility-sweep/issue-pr-migration-2026-08-20/validate.ts
 ```
 
 It checks the frozen file hashes, source coverage, authorship exclusions, per-record source and
