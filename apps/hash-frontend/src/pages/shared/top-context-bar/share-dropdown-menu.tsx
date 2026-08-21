@@ -16,10 +16,8 @@ import { EntityAuthorizationRelation } from "../../../graphql/api-types.gen";
 import { getEntityAuthorizationRelationshipsQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { Button } from "../../../shared/ui";
 import { useUserPermissionsOnEntity } from "../../../shared/use-user-permissions-on-entity";
-import {
-  EditAuthorizationStatusMenu,
-  entityAuthorizationStatusIcons,
-} from "./share-dropdown-menu/edit-authorization-status-menu";
+import { EditAuthorizationStatusMenu } from "./share-dropdown-menu/edit-authorization-status-menu";
+import { entityAuthorizationStatusIcons } from "./share-dropdown-menu/entity-authorization-status-icons";
 import { ShareEntitySection } from "./share-dropdown-menu/share-entity-section";
 
 import type {

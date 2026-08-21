@@ -22,13 +22,13 @@ import {
 } from "@local/hash-isomorphic-utils/text";
 
 import { WorkspaceContext } from "../../workspace-context";
-import { usePortals } from "../block-portals";
 import { createFormatPlugins } from "../create-format-plugins";
 import {
   createSuggester,
   suggesterPluginKey,
 } from "../create-suggester/create-suggester";
 import { createTextEditorView } from "../create-text-editor-view";
+import { usePortals } from "../use-portals";
 import {
   commentPlaceholderPlugin,
   commentPlaceholderPluginkey,

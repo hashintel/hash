@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 
 import { ClaimsSection } from "./entity-editor/claims-section";
-import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
+import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context-provider";
 import { FilePreviewSection } from "./entity-editor/file-preview-section";
 import { HistorySection } from "./entity-editor/history-section";
 import { LinkSection } from "./entity-editor/link-section";
@@ -12,7 +12,7 @@ import { IncomingLinksSection } from "./entity-editor/links-section/incoming-lin
 import { OutgoingLinksSection } from "./entity-editor/links-section/outgoing-links-section";
 import { PropertiesSection } from "./entity-editor/properties-section";
 import { TypesSection } from "./entity-editor/types-section";
-import { useEntityEditorTab } from "./shared/entity-editor-tabs";
+import { useEntityEditorTab } from "./shared/entity-editor-tab-context";
 
 import type { MinimalEntityValidationReport } from "../use-validate-entity";
 import type { OutgoingLinksFilterValues } from "./entity-editor/links-section/outgoing-links-section/readonly-outgoing-links-table";

@@ -11,24 +11,16 @@ import {
 
 import { useDefaultState } from "../components/hooks/use-default-state";
 import { EmojiPicker } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+import { iconVariantSizes } from "./icon-variant-sizes";
 
 import type {
   EmojiData,
   EmojiPickerPopoverProps,
 } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+import type { SizeVariant } from "./icon-variant-sizes";
 import type { SxProps, Theme } from "@mui/material";
 import type { SystemStyleObject } from "@mui/system";
 import type { FunctionComponent, MouseEventHandler, ReactNode } from "react";
-
-export type SizeVariant = "small" | "medium";
-
-export const iconVariantSizes: Record<
-  SizeVariant,
-  { container: number; font: number }
-> = {
-  small: { container: 20, font: 14 },
-  medium: { container: 44, font: 36 },
-};
 
 interface EditEmojiIconButtonProps {
   icon?: string | null;
