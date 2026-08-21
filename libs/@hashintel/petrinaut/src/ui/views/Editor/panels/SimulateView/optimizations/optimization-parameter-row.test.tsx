@@ -11,27 +11,33 @@ import {
 
 import type { ScenarioParameter } from "@hashintel/petrinaut-core";
 
-vi.mock("../../../../../components/segment-group", () => ({
-  SegmentGroup: ({
-    onChange,
-    options,
-  }: {
-    onChange: (value: string) => void;
-    options: readonly { value: string; label: string }[];
-  }) => (
-    <div>
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  ),
-}));
+vi.mock("@hashintel/ds-components", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@hashintel/ds-components")>();
+
+  return {
+    ...actual,
+    SegmentedControl: ({
+      onChange,
+      items,
+    }: {
+      onChange: (value: string) => void;
+      items: readonly { value: string; label?: string }[];
+    }) => (
+      <div>
+        {items.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => onChange(item.value)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    ),
+  };
+});
 
 afterEach(cleanup);
 

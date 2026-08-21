@@ -8,6 +8,7 @@ import {
   Icon,
   LoadingSpinner,
   NumberInput,
+  SegmentedControl,
   Select,
   TextInput,
 } from "@hashintel/ds-components";
@@ -25,7 +26,6 @@ import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Section, SectionList } from "../../../../../components/section";
-import { SegmentGroup } from "../../../../../components/segment-group";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import {
@@ -900,10 +900,10 @@ export const CreateOptimizationDrawer = ({
                     className={gridFieldStyle}
                   >
                     <div className={segmentControlStyle}>
-                      <SegmentGroup
+                      <SegmentedControl
                         size="sm"
                         value={direction ?? ""}
-                        options={directionOptions}
+                        items={directionOptions}
                         onChange={(value) => setDirection(value as Direction)}
                       />
                     </div>

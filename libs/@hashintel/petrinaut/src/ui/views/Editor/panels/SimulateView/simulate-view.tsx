@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
@@ -8,13 +8,12 @@ import {
   EditorContext,
   type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
-import { SegmentGroup } from "../../../../components/segment-group";
 import { ExperimentsView } from "./experiments/experiments-view";
 import { MetricsView } from "./metrics/metrics-view";
 import { OptimizationsView } from "./optimizations/optimizations-view";
 import { ScenariosView } from "./scenarios/scenarios-view";
 
-import type { SegmentOption } from "../../../../components/segment-group";
+import type { SegmentedControlItem } from "@hashintel/ds-components";
 import type { ComponentType } from "react";
 
 // -- Layout styles -------------------------------------------------------------
@@ -41,36 +40,28 @@ const sidebarStyle = css({
 
 // -- Mode options --------------------------------------------------------------
 
-const modeOptions: SegmentOption[] = [
+const modeOptions: SegmentedControlItem<SimulateViewMode>[] = [
   {
     value: "experiments",
-    label: "Experiments",
-    icon: <Icon name="flask" size="sm" />,
-    hideLabel: true,
+    iconName: "flask",
     tooltip: "Experiments",
     tooltipOptions: { position: "right" },
   },
   {
     value: "scenarios",
-    label: "Scenarios",
-    icon: <Icon name="layer" size="sm" />,
-    hideLabel: true,
+    iconName: "layer",
     tooltip: "Scenarios",
     tooltipOptions: { position: "right" },
   },
   {
     value: "optimizations",
-    label: "Optimizations",
-    icon: <Icon name="sliders" size="sm" />,
-    hideLabel: true,
+    iconName: "sliders",
     tooltip: "Optimizations",
     tooltipOptions: { position: "right" },
   },
   {
     value: "metrics",
-    label: "Metrics",
-    icon: <Icon name="chartBarSimple" size="sm" />,
-    hideLabel: true,
+    iconName: "chartBarSimple",
     tooltip: "Metrics",
     tooltipOptions: { position: "right" },
   },
@@ -103,11 +94,11 @@ export const SimulateView = () => {
   return (
     <div className={containerStyle}>
       <div className={sidebarStyle}>
-        <SegmentGroup
+        <SegmentedControl
           value={visibleMode}
-          options={visibleModeOptions}
-          onChange={(value) => setMode(value as SimulateViewMode)}
-          orientation="vertical"
+          items={visibleModeOptions}
+          onChange={setMode}
+          layout="vertical"
           size="sm"
         />
       </div>

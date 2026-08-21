@@ -1,6 +1,6 @@
 import { use, useEffect, useState } from "react";
 
-import { Button, Select } from "@hashintel/ds-components";
+import { Button, SegmentedControl, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
@@ -9,7 +9,6 @@ import {
   type TimelineView,
 } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { SegmentGroup } from "../../../../../../components/segment-group";
 import { CreateMetricDrawer } from "../../../SimulateView/metrics/create-metric-drawer";
 import { ViewMetricDrawer } from "../../../SimulateView/metrics/view-metric-drawer";
 
@@ -74,9 +73,9 @@ const TimelineChartTypeSelector: React.FC = () => {
     use(EditorContext);
 
   return (
-    <SegmentGroup
+    <SegmentedControl
       value={chartType}
-      options={CHART_TYPE_OPTIONS}
+      items={CHART_TYPE_OPTIONS}
       onChange={(value) => setChartType(value as TimelineChartType)}
       size="xs"
     />

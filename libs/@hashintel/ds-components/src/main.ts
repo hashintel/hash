@@ -46,6 +46,7 @@ export { RadioGroup } from "./components/RadioGroup/radio-group";
 export { RightClickMenu } from "./components/RightClickMenu/right-click-menu";
 export {
   SegmentedControl,
+  type SegmentedControlItem,
   type SegmentedControlProps,
 } from "./components/SegmentedControl/segmented-control";
 export { Select, type SelectItem } from "./components/Select/select";
