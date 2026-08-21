@@ -8,5 +8,10 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "test:unit": "mise run test:unit @rust/hash-graph-authentication"
+  },
+  "dependencies": {
+    "@blockprotocol/type-system-rs": "workspace:*",
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-status": "workspace:*"
   }
 }

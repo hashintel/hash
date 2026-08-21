@@ -24,7 +24,7 @@ pub use self::request::{
     QueryEntitiesRequest, QueryEntitySubgraphError, QueryEntitySubgraphRequest,
 };
 use crate::rest::{
-    ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger,
+    ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger,
     json::Json,
     resolve_limit,
     status::{BoxedResponse, report_to_response},
@@ -51,7 +51,7 @@ use crate::rest::{
     )
 )]
 pub(super) async fn query_entities<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -129,7 +129,7 @@ pub(super) struct QueryEntitySubgraphResponse<'r> {
     )
 )]
 pub(super) async fn query_entity_subgraph<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -196,7 +196,7 @@ where
     )
 )]
 pub(super) async fn summarize_entities<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
@@ -250,7 +250,7 @@ where
     )
 )]
 pub(super) async fn query_entities_table<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     Extension(api_config): Extension<ApiConfig>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,

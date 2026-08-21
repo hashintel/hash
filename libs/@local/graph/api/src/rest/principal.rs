@@ -27,7 +27,7 @@ use type_system::principal::{
 use utoipa::OpenApi;
 
 use super::status::BoxedResponse;
-use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_response};
+use crate::rest::{AuthenticatedActorId, json::Json, status::report_to_response};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -213,7 +213,7 @@ where
     )
 )]
 async fn get_machine_by_identifier<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     Path(identifier): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -247,7 +247,7 @@ where
     )
 )]
 async fn create_user_actor<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<CreateUserActorParams>,
@@ -280,7 +280,7 @@ where
     )
 )]
 async fn create_ai_actor<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<CreateAiActorParams>,
@@ -313,7 +313,7 @@ where
     )
 )]
 async fn get_ai_by_identifier<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     Path(identifier): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -347,7 +347,7 @@ where
     )
 )]
 async fn create_org_web<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<CreateOrgWebParams>,
@@ -383,7 +383,7 @@ where
     )
 )]
 async fn get_web_by_id<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     Path(web_id): Path<WebId>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -424,7 +424,7 @@ struct UpdateWebShortnameParams {
     )
 )]
 async fn update_web_shortname<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     Path(web_id): Path<WebId>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -458,7 +458,7 @@ where
     )
 )]
 async fn get_web_by_shortname<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     Path(shortname): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -492,7 +492,7 @@ where
     )
 )]
 async fn get_web_roles<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     Path(web_id): Path<WebId>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -526,7 +526,7 @@ where
     )
 )]
 async fn get_team_by_name<S>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor): AuthenticatedActorId,
     Path(name): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -560,7 +560,7 @@ where
     )
 )]
 async fn get_team_roles<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     Path(team_id): Path<TeamId>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -596,7 +596,7 @@ where
     )
 )]
 async fn get_actor_group_role_assignments<S>(
-    AuthenticatedUserHeader(_actor): AuthenticatedUserHeader,
+    AuthenticatedActorId(_actor): AuthenticatedActorId,
     Path((actor_group_id, role_name)): Path<(ActorGroupEntityUuid, RoleName)>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -634,7 +634,7 @@ where
     )
 )]
 async fn get_actor_group_role<S>(
-    AuthenticatedUserHeader(_actor): AuthenticatedUserHeader,
+    AuthenticatedActorId(_actor): AuthenticatedActorId,
     Path((actor_group_id, actor_id)): Path<(ActorGroupEntityUuid, ActorEntityUuid)>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -673,7 +673,7 @@ where
     )
 )]
 async fn assign_actor_group_role<S>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor): AuthenticatedActorId,
     Path((actor_group_id, role_name, actor_id)): Path<(
         ActorGroupEntityUuid,
         RoleName,
@@ -714,7 +714,7 @@ where
     )
 )]
 async fn unassign_actor_group_role<S>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor): AuthenticatedActorId,
     Path((actor_group_id, role_name, actor_id)): Path<(
         ActorGroupEntityUuid,
         RoleName,
