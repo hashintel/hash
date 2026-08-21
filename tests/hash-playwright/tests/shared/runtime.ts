@@ -9,6 +9,11 @@ const tolerableConsoleMessageMatches: RegExp[] = [
   /^\[LATE_SETUP_CALL\] \{\}/, // Tailwind (to be removed)
   /^Build: commit-.*-local-dev$/, // Sentry build id
 
+  // The notifications context intentionally skips notifications whose link
+  // targets cannot be resolved (e.g. lost permissions), warning for
+  // observability – see notifications-with-links-context.tsx
+  /^Skipping (mention|comment) notification .+ because the target of the following link\(s\) could not be resolved: /,
+
   // You can add temporarily add more RegExps, but please track their removal
   /No validator provided for shape type bpBlock/, // canvas page warning from TLDraw
 ];

@@ -1,222 +1,167 @@
 #!/usr/bin/env python3
-"""Black-box optimization of a CLI Petrinaut execution via Optuna.
-
-ASSUMPTION: Petri-net used is ../libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json
-
-Wraps a command-line program that prints a single numeric objective to stdout.
-`PetrinautOptimizer` proposes inputs, invokes the CLI, parses the result, and
-reports it back to Optuna — maximising (or minimising) the output.
-
-Configure the DEFAULT_* constants below (or pass overrides to the constructor),
-then either run this file directly for a one-off run, or instantiate
-`PetrinautOptimizer` from another module (see optimization_api.py).
-"""
+"""Optuna study orchestration backed by the Petrinaut optimization protocol."""
 
 from __future__ import annotations
 
-import logging
-import sys
-import queue
-import json
-import threading
 import asyncio
-
-from enum import Enum
-from datetime import datetime
-from dataclasses import dataclass
-from typing import Generic, TypeVar, Literal, Any
-from pydantic import BaseModel, Field, model_validator
-from fastapi import Request
+import json
+import logging
+import math
+import os
+import threading
+from collections.abc import Callable, Mapping
+from contextlib import suppress
+from datetime import datetime, timezone
+from typing import Any, Literal, TypeAlias, cast
 
 import optuna
-
-optuna.logging.set_verbosity(optuna.logging.WARNING)
+from opentelemetry import context as otel_context
+from opentelemetry import trace
+from opentelemetry.trace import Span, Status, StatusCode
+from petrinaut import (
+    OptimizationBooleanParameter,
+    OptimizationDescribeResult,
+    OptimizationFloatParameter,
+    OptimizationIntParameter,
+    OptimizationSession,
+    PetrinautRunError,
+)
 
 from src.utils import Phase, set_status
-from src.petrinaut_client import PetrinautModel,PetrinautModelSpec
 
 log = logging.getLogger("pn_optimize")
+tracer = trace.get_tracer("pn_optimize")
+optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# CONFIG — defaults for the optimizer specification; override via constructor args.
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Search space comprising of parameters and initial state. One entry per optimizable input.
-#   name : Optuna param name and (by default) flag name; 
-#   type : "float" | "int" 
-#   float/int: low, high (+ optional step, log=True); categorical: choices=[...]
-
-# Specification of all parameters
-T = TypeVar("T", int, float)
-BoundKind = Literal["int", "float"]
-
-@dataclass(frozen=True)
-class Bounds(Generic[T]):
-    low: T
-    high: T
-    kind: BoundKind
-    log: bool = False
-
-def IntBounds(low: int, high: int, *, log: bool = False) -> Bounds[int]:
-    """Construct integer-valued search bounds.
-
-    Args:
-        low (int): Inclusive lower bound.
-        high (int): Inclusive upper bound.
-        log (bool): Sample on a log scale. Defaults to False.
-
-    Returns:
-        Bounds[int]: Integer bounds descriptor.
-    """
-    return Bounds(low, high, "int", log)
-
-def FloatBounds(
-    low: float,
-    high: float,
-    *,
-    log: bool = False,
-) -> Bounds[float]:
-    """Construct float-valued search bounds.
-
-    Args:
-        low (float): Inclusive lower bound.
-        high (float): Inclusive upper bound.
-        log (bool): Sample on a log scale. Defaults to False.
-
-    Returns:
-        Bounds[float]: Float bounds descriptor.
-    """
-    return Bounds(low, high, "float", log)
-
-BOUNDS: dict[str, dict[str, Bounds[int] | Bounds[float]]] = {
-    "parameters": {
-        "production_rate": FloatBounds(20.0, 250.0, log=True),
-        "reorder_threshold": IntBounds(100, 1000, log=True),
-        "batch_size": IntBounds(50, 800, log=True),
-        "selling_price": FloatBounds(22.0, 60.0, log=True),
-        "expedite_fraction": FloatBounds(0.0, 1.0),
-        "marketing_spend": FloatBounds(0.01, 100.0, log=True),
-        "demand_multiplier": FloatBounds(0.5, 2.0),
-    },
-    "initial_state": {
-        "RawInventory": IntBounds(0, 400),
-        "FinishedGoods": IntBounds(0, 400),
-        "CustomerDemand": IntBounds(0, 400),
-        "SoldOrders": IntBounds(0, 400),
-        "LostSales": IntBounds(0, 400),
-    },
-}
-
-class Parameters(BaseModel):
-    production_rate: float | None = None # default 100.0
-    reorder_threshold: int | None = None # default 160
-    batch_size: int | None = None # default 180
-    selling_price: float | None = None # default 34.0
-    expedite_fraction: float | None = None # default 0.25
-    marketing_spend: float | None = None # default 20.0
-    demand_multiplier: float | None = None # default 1.0
-
-class InitialStates(BaseModel):
-    RawInventory: int | None = None # default 220
-    FinishedGoods: int | None = None # default 120
-    CustomerDemand: int | None = None # default 0
-    SoldOrders: int | None = None # default 0
-    LostSales: int | None = None # default 0
-    # FinancialData: Any | None = None # default is created upon initialisation of PetrinautModel class
-
-
-# Hard-coded allowable optuna samplers 
 SAMPLERS = {
     "tpe": optuna.samplers.TPESampler,
     "random": optuna.samplers.RandomSampler,
 }
-# Enum for optuna sampler name
-SamplerName = Enum(
-    "SamplerName",
-    {name.upper(): name for name in SAMPLERS},
-    type=str,
-)
-# optuna study name prefix
 DEFAULT_STUDY_NAME = "opt_study"
-# input space sampling algorithm - default: Tree-structured Parzen Estimator
-DEFAULT_SAMPLER = "tpe"
-# maximise the CLI's output
-DEFAULT_DIRECTION = "maximize"
-# evaluations per run
-DEFAULT_N_TRIALS = 100
-
-
-class OptimizationSpec(BaseModel):
-    parameters: Parameters = Parameters()
-    initial_state: InitialStates = InitialStates()
-    study_name: str = Field(default=DEFAULT_STUDY_NAME, description="Name of optimization study")
-    sampler: SamplerName = Field(default=DEFAULT_SAMPLER, description="input sampling algorithm")
-    direction: Literal["maximize", "minimize"] = Field(default=DEFAULT_DIRECTION, description="optimization direction")
-    n_trials: int = Field(default=DEFAULT_N_TRIALS, description="number of evals to run")
-
-    def fixed(self) -> dict[str, dict[str, float]]:
-        """Collect the inputs pinned to a value (those left `None` are optimized).
-
-        Returns:
-            dict[str, dict[str, float]]: Fixed values keyed by group ("parameters", "initial_state").
-        """
-        out: dict[str, dict[str, float]] = {}
-        for group_name in ("parameters", "initial_state"):
-            group = getattr(self, group_name)
-            out[group_name] = {
-                name: value for name, value in group if value is not None
-            }
-        return out
-
-    @model_validator(mode="after")
-    def _check_bounds(self):
-        """Validate that every fixed input falls within its allowed `BOUNDS` range.
-
-        Raises:
-            ValueError: A fixed value lies outside its bound.
-
-        Returns:
-            OptimizationSpec: The validated spec.
-        """
-        for group_name, fields in self.fixed().items():
-            for name, value in fields.items():
-                b = BOUNDS[group_name][name]
-                if not (b.low <= value <= b.high):
-                    raise ValueError(
-                        f"{group_name}.{name}={value} outside "
-                        f"allowed range [{b.low}, {b.high}]"
-                    )
-        return self
-
-# ─────────────────────────────────────────────────────────────────────────────
-# OptimizationModel
-# ─────────────────────────────────────────────────────────────────────────────
+# The service-side mirror of the optimization manifest's trial cap; it also
+# bounds every run's in-memory event log to one frame per trial plus a
+# handful of control frames, even against a study reporting a huge trial count.
+MAX_STUDY_TRIALS = 1000
+MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE = "HASH_PETRINAUT_OPT_MAX_STUDY_SECONDS"
+DEFAULT_MAX_STUDY_SECONDS = 900.0
+_DISCONNECT_POLL_SECONDS = 0.1
+_WORKER_SHUTDOWN_TIMEOUT_SECONDS = 12
 _SENTINEL = object()
+
+Scalar: TypeAlias = int | float | bool
+ParameterDescriptor: TypeAlias = (
+    OptimizationFloatParameter | OptimizationIntParameter | OptimizationBooleanParameter
+)
+
+
+def max_study_seconds_from_environment() -> float:
+    """Read the detached-study wall-clock ceiling in seconds.
+
+    Defaults to ``DEFAULT_MAX_STUDY_SECONDS``; a value of zero or below
+    disables the ceiling. Invalid and non-finite values (``inf``, ``nan``,
+    overflowing literals) fall back to the default.
+    """
+    raw = os.environ.get(MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE, "").strip()
+    if not raw:
+        return DEFAULT_MAX_STUDY_SECONDS
+    try:
+        value = float(raw)
+    except ValueError:
+        return DEFAULT_MAX_STUDY_SECONDS
+    if not math.isfinite(value):
+        return DEFAULT_MAX_STUDY_SECONDS
+    return value
+
+
+def _parse_description(
+    description: OptimizationDescribeResult,
+) -> tuple[
+    Literal["maximize", "minimize"],
+    str,
+    int,
+    int,
+    tuple[ParameterDescriptor, ...],
+]:
+    """Check the semantic rules the protocol schema cannot express.
+
+    The shape is already proven: the bindings validate every describe result
+    against the CLI's published schema before this sees it. What remains are
+    cross-field rules — bound ordering, log-scale domains, duplicates — and
+    this service's own study limits.
+    """
+    sampler = description.study.sampler.value
+    if sampler not in SAMPLERS:
+        raise ValueError(f"unsupported Optuna sampler: {sampler!r}")
+    n_trials = description.study.trials
+    if n_trials > MAX_STUDY_TRIALS:
+        raise ValueError(
+            f"optimization.describe study.trials must not exceed {MAX_STUDY_TRIALS}"
+        )
+    seed = description.study.seed
+    if seed < 0:
+        raise ValueError(
+            "optimization.describe study.seed must be a non-negative integer"
+        )
+
+    identifiers: set[str] = set()
+    for parameter in description.parameters:
+        identifier = parameter.identifier
+        if identifier in identifiers:
+            raise ValueError(f'duplicate optimization parameter "{identifier}"')
+        identifiers.add(identifier)
+
+        if isinstance(parameter, OptimizationBooleanParameter):
+            continue
+        if not math.isfinite(parameter.minimum) or not math.isfinite(parameter.maximum):
+            raise ValueError(f"{identifier} bounds must be finite numbers")
+        if parameter.minimum >= parameter.maximum:
+            raise ValueError(f"{identifier}.maximum must exceed minimum")
+        if parameter.scale.value == "log" and parameter.minimum <= 0:
+            raise ValueError(f"{identifier}.minimum must be positive for log scale")
+        if (
+            isinstance(parameter, OptimizationIntParameter)
+            and parameter.scale.value == "log"
+            and parameter.step != 1
+        ):
+            raise ValueError(f"{identifier}.step must be 1 for log scale")
+
+    return (
+        description.direction.value,
+        sampler,
+        n_trials,
+        seed,
+        tuple(description.parameters),
+    )
 
 
 class PetrinautOptimizer:
-    """Optimize a Petrinaut CLI's stdout objective over a mixed input space."""
+    """Optimize the flat parameter descriptors the bindings report."""
 
     def __init__(
         self,
-        opt_spec: OptimizationSpec,
-        pn_model: PetrinautModel,
-        **kwargs
+        pn_model: OptimizationSession,
+        *,
+        description: OptimizationDescribeResult | Mapping[str, Any] | None = None,
+        **sampler_options: Any,
     ) -> None:
-        """Build the Optuna study and bind the Petrinaut model for this run.
+        raw = pn_model.describe() if description is None else description
+        # Test doubles and stored payloads hand over plain mappings; a real
+        # session already returns the validated model.
+        described = (
+            raw
+            if isinstance(raw, OptimizationDescribeResult)
+            else OptimizationDescribeResult.model_validate(raw)
+        )
+        direction, sampler_name, n_trials, seed, parameters = _parse_description(
+            described
+        )
 
-        Args:
-            opt_spec (OptimizationSpec): Which inputs to optimize/fix, sampler, direction, and trial count.
-            pn_model (PetrinautModel): Wrapper that executes the Petri net per trial.
-            **kwargs: Forwarded to the selected Optuna sampler constructor.
-        """
-        self.fixed = opt_spec.fixed()
-        self.params = opt_spec.parameters
-        self.init_state = opt_spec.initial_state
-        self.study_name = f"{opt_spec.study_name}_{datetime.now().strftime('%m/%d/%Y-%H:%M:%S')}"
-        self.sampler = SAMPLERS[opt_spec.sampler.lower()](seed=pn_model.seed,**kwargs)
-        self.direction = opt_spec.direction
-        self.n_trials = opt_spec.n_trials
+        self.parameters = parameters
+        self.study_name = f"{DEFAULT_STUDY_NAME}_{datetime.now(tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')}"
+        sampler_options.setdefault("seed", seed)
+        self.sampler = SAMPLERS[sampler_name](**sampler_options)
+        self.direction = direction
+        self.n_trials = n_trials
         self.study = optuna.create_study(
             study_name=self.study_name,
             storage=None,
@@ -224,395 +169,275 @@ class PetrinautOptimizer:
             direction=self.direction,
             sampler=self.sampler,
         )
-        # Petrinaut model (Python wrapper)
         self.pn_model = pn_model
-        # A lock so the same instance is never driven by two concurrent streams.
         self.lock = threading.Lock()
 
-    # ── search space ─────────────────────────────────────────────────────────
-    def suggest(self, trial: optuna.Trial) -> dict[str, dict[str, float]]:
-        """Assemble one trial's inputs, asking Optuna for each non-fixed value.
-
-        Args:
-            trial (optuna.Trial): The Optuna trial proposing new values.
-
-        Raises:
-            Exception: A bound is neither an int nor a float kind.
-
-        Returns:
-            dict[str, dict[str, float]]: Suggested values keyed by group ("parameters", "initial_state").
-        """
-        values: dict[str, dict[str, float]] = {}
-        for group_name, fields in BOUNDS.items():
-            values[group_name] = {}
-            for name, b in fields.items():
-                if name in self.fixed[group_name]:
-                    values[group_name][name] = self.fixed[group_name][name]
-                else:
-                    b = BOUNDS[group_name][name]
-                    if b.kind == "int":
-                        values[group_name][name] = trial.suggest_int(
-                            f"{group_name}.{name}", b.low, b.high, log=b.log
-                        )
-                    elif b.kind == "float":
-                        values[group_name][name] = trial.suggest_float(
-                            f"{group_name}.{name}", b.low, b.high, log=b.log
-                        )
-                    else:
-                        raise Exception(f"{group_name}.{name} is not of type IntBounds or FloatBounds")
+    def suggest(self, trial: optuna.Trial) -> dict[str, Scalar]:
+        """Ask Optuna for each non-fixed scenario parameter the study describes."""
+        values: dict[str, Scalar] = {}
+        for parameter in self.parameters:
+            identifier = parameter.identifier
+            if isinstance(parameter, OptimizationFloatParameter):
+                values[identifier] = trial.suggest_float(
+                    identifier,
+                    parameter.minimum,
+                    parameter.maximum,
+                    log=parameter.scale.value == "log",
+                )
+            elif isinstance(parameter, OptimizationIntParameter):
+                values[identifier] = trial.suggest_int(
+                    identifier,
+                    int(parameter.minimum),
+                    int(parameter.maximum),
+                    step=int(parameter.step),
+                    log=parameter.scale.value == "log",
+                )
+            else:
+                values[identifier] = trial.suggest_categorical(
+                    identifier, [False, True]
+                )
         return values
 
-
     def objective(self, trial: optuna.Trial) -> float:
-        """One evaluation: suggest inputs, run the Petrinaut CLI, parse the result.
-
-        Args:
-            trial (optuna.Trial): Single evaluation of objective function
-
-        Raises:
-            optuna.TrialPruned: Early stopping optimization due to timeout
-            optuna.TrialPruned: Early stopping optimization due to process error
-
-        Returns:
-            float: Evaluation of metric from Petrinaut execution
-        """
-        # Suggest new set of params and init states
-        # while keeping fixed parameters fixed
-        params_and_init_state = self.suggest(trial)
-        params = params_and_init_state["parameters"]
-        init_state = params_and_init_state["initial_state"]
-
-        try:
-            # Build and invoke the Petrinaut CLI command 
-            value = self.pn_model.objective(
-                parameters=params,
-                initial_state=init_state
-            )
-        except RuntimeError as r:
-            # This happens in case the Petrinaut execution takes too long to run 
-            # as defined by the eval_timeout parameter in the PetrinautModelSpec
-            log.warning("trial %d runtime error %s — pruned", trial.number, str(r))
-            raise optuna.TrialPruned()
-        except Exception as e:
-            # If Petrinaut execution fails for whatever other reason
-            # optuna prunes that run and continues the optimization
-            log.warning(
-                "trial %d failed — pruned\nstderr: %s",
-                trial.number, str(e),
-            )
-            raise optuna.TrialPruned()
-
-        # Log results
-        log.info("trial %d  value=%.6g  params=%s  init_state=%s", trial.number, value, params, init_state)
-
-        return value
-
-    # ── runs for API ─────────────────────────────────────────────────────────────────
-    async def stream_all(self, request: Request, run_id: str, n_trials: int):
-        """Async generator yielding Server-side event frames, one per finished trial.
-
-        Args:
-            request (Request): Optimization API generic request
-            run_id (str): Identifier of the optimization run being streamed.
-            n_trials (int): number of optimization steps
-
-        Yields:
-            str: An SSE frame — a `data:` line per finished trial, then a final `event: done` frame.
-        """
-        app = request.app
-        if not self.lock.acquire(blocking=False):
-            yield 'event: error\ndata: {"message": "already running"}\n\n'
-            return
-        
-        set_status(app, run_id, phase=Phase.running, detail="optimization running")
-    
-        loop = asyncio.get_running_loop()
-        q: asyncio.Queue = asyncio.Queue()
-        stop_flag = threading.Event()
-
-        # Callback for generating the payload from optuna optimize worker
-        def callback(study, trial):
-            """Queue the finished trial's SSE payload; honour a pending stop request."""
-            params_and_init_state = {}
-            for k, v in trial.params.items():
-                outer, inner = k.split('.', 1)
-                params_and_init_state.setdefault(outer, {})[inner] = v
-            payload = {
-                "step": trial.number,
-                "params": params_and_init_state.get("parameters",dict()),
-                "init_state": params_and_init_state.get("initial_state",dict()),
-                "metric": trial.value,
-                "state": trial.state.name,
-            }
-            # Pass payload to streamer
-            loop.call_soon_threadsafe(q.put_nowait, payload)
-            if stop_flag.is_set():
-                study.stop()
-
-        # Running the optuna optimize worker
-        def run():
-            """Run the Optuna study on a worker thread, funnelling results/errors to the queue."""
+        """Propose one flat parameter set and ask Petrinaut to evaluate it."""
+        prune_cause: PetrinautRunError | None = None
+        with tracer.start_as_current_span("optimization.trial") as span:
+            span.set_attribute("optuna.trial.number", trial.number)
+            parameter_values = self.suggest(trial)
             try:
-                self.study.optimize(
-                    self.objective, n_trials=n_trials, callbacks=[callback]
+                value = self.pn_model.objective(parameter_values)
+            except PetrinautRunError as error:
+                # Pruning is expected Optuna control flow, not a span failure.
+                # Record it as an attribute and re-raise *after* the span closes
+                # so it does not trip the default ERROR status / exception event.
+                # Genuinely unexpected exceptions still propagate through the
+                # `with` block and are recorded as errors as usual.
+                span.set_attribute("optuna.trial.pruned", True)
+                log.warning(
+                    "trial %d failed — pruned",
+                    trial.number,
+                    extra={"error_type": type(error).__name__},
                 )
-            except Exception as exc:
-                # Pass error to streamer
-                loop.call_soon_threadsafe(
-                    q.put_nowait, {"state": "ERROR", "message": str(exc)}
-                )
-            finally:
-                # Pass error to streamer
-                loop.call_soon_threadsafe(q.put_nowait, _SENTINEL)
+                prune_cause = error
+            else:
+                span.set_attribute("optuna.trial.value", value)
+                return value
 
-        worker = threading.Thread(target=run, daemon=True)
-        worker.start()
+        raise optuna.TrialPruned() from prune_cause
 
-        try:
-            while True:
-                item = await q.get()
-                if item is _SENTINEL:
-                    set_status(
-                        app,
-                        run_id,
-                        phase=Phase.done,
-                        detail="optimization completed",
-                    )
-                    yield "event: done\ndata: {}\n\n"
-                    break
-                if item.get("state") == "ERROR":
-                    set_status(app, run_id, phase=Phase.error, detail=item.get("message"))
-                    yield f"data: {json.dumps(item)}\n\n"
-                    continue
-                yield f"data: {json.dumps(item)}\n\n"
-                if await request.is_disconnected():
-                    stop_flag.set()
-                    set_status(
-                        app,
-                        run_id,
-                        phase=Phase.idle,
-                        detail="client disconnected, stopped",
-                    )
-                    break
-        finally:
-            # Signal the study to stop, then wait for the worker to actually exit before
-            # closing the CLI — otherwise close() can tear down the subprocess while a
-            # trial is still mid-request. Join off the event loop so other requests keep
-            # serving. stop_flag only takes effect at the next trial boundary, so this
-            # waits out at most one in-flight evaluation.
-            stop_flag.set()
-            try:
-                if self.pn_model.eval_timeout:
-                    await loop.run_in_executor(None, worker.join(self.pn_model.eval_timeout))
-                else:
-                    await loop.run_in_executor(None, worker.join)
-            finally:
-                self.lock.release()
-                self.pn_model.close()
+    def _start_study_worker(
+        self,
+        loop: asyncio.AbstractEventLoop,
+        events: asyncio.Queue[dict[str, Any] | object],
+        stop_flag: threading.Event | None = None,
+        n_trials: int | None = None,
+        payload_builder: (
+            Callable[[optuna.Study, optuna.trial.FrozenTrial], dict[str, Any] | None]
+            | None
+        ) = None,
+        *,
+        callback: Callable[[optuna.Study, optuna.trial.FrozenTrial], None]
+        | None = None,
+    ) -> tuple[threading.Thread, Span]:
+        """Run the study on a worker thread that inherits the request's context.
 
-    async def stream_best(self, request: Request, run_id: str, n_trials: int):
-        """Async generator yielding Server-side event frames, one per finished trial.
-
-        Args:
-            request (Request): Optimization API generic request
-            run_id (str): Identifier of the optimization run being streamed.
-            n_trials (int): number of optimization steps
-
-        Yields:
-            str: An SSE frame — a `data:` line per finished trial, then a final `event: done` frame.
+        A raw ``threading.Thread`` does not inherit the caller's ``contextvars``,
+        so without re-attaching the captured context every ``optimization.trial``
+        span would start as a disconnected root instead of a child of the request
+        span. The returned ``optimization.study`` span is the parent of those
+        trial spans; the caller must ``end()`` it once the stream is torn down.
         """
-        app = request.app
-        if not self.lock.acquire(blocking=False):
-            yield 'event: error\ndata: {"message": "already running"}\n\n'
-            return
+        if n_trials is None:
+            raise ValueError("n_trials is required")
+        study_callback = callback
+        if study_callback is None:
+            if stop_flag is None or payload_builder is None:
+                raise ValueError(
+                    "callback or detached-run callback inputs are required"
+                )
 
-        set_status(app, run_id, phase=Phase.running, detail="optimization running")
-
-        loop = asyncio.get_running_loop()
-        q: asyncio.Queue = asyncio.Queue()
-        stop_flag = threading.Event()
-
-        # Callback for generating the payload from optuna optimize worker
-        def callback(study, trial):
-            """Queue the best-so-far SSE payload once a trial completes; honour a pending stop."""
-            # `best_params`/`best_value` raise if no trial has completed yet (e.g.
-            # the opening trials were all pruned). Skip emitting until there is a
-            # best to report, but still honour a pending stop request.
-            has_completed = any(
-                t.state == optuna.trial.TrialState.COMPLETE
-                for t in study.get_trials(deepcopy=False)
-            )
-            if not has_completed:
+            def emit_trial_payload(
+                study: optuna.Study, trial: optuna.trial.FrozenTrial
+            ) -> None:
+                payload = payload_builder(study, trial)
+                if payload is not None:
+                    loop.call_soon_threadsafe(events.put_nowait, payload)
                 if stop_flag.is_set():
                     study.stop()
-                return
 
-            best_params_and_init_state = {}
-            for k, v in study.best_params.items():
-                outer, inner = k.split('.', 1)
-                best_params_and_init_state.setdefault(outer, {})[inner] = v
-            payload = {
-                "step": trial.number,
-                "params": best_params_and_init_state.get("parameters",dict()),
-                "init_state": best_params_and_init_state.get("initial_state",dict()),
-                "metric": study.best_value,
-                "state": "COMPLETE",
-            }
-            # Pass payload to streamer
-            loop.call_soon_threadsafe(q.put_nowait, payload)
-            if stop_flag.is_set():
-                study.stop()
+            study_callback = emit_trial_payload
 
-        # Running the optuna optimize worker
-        def run():
-            """Run the Optuna study on a worker thread, funnelling results/errors to the queue."""
+        study_span = tracer.start_span("optimization.study")
+        study_span.set_attribute("optuna.study.trials", n_trials)
+        study_span.set_attribute("optuna.study.direction", self.direction)
+        run_ctx = trace.set_span_in_context(study_span)
+
+        def run() -> None:
+            # Optuna runs trials sequentially (n_jobs=1) on this single thread,
+            # so one attach covers every objective() call. If n_jobs ever exceeds
+            # 1, each Optuna worker thread would need the context attached too.
+            token = otel_context.attach(run_ctx)
             try:
                 self.study.optimize(
-                    self.objective, n_trials=n_trials, callbacks=[callback]
+                    self.objective,
+                    n_trials=n_trials,
+                    callbacks=[study_callback],
                 )
-            except Exception as exc:
-                # Pass error to streamer
+            except Exception as error:
+                study_span.record_exception(error)
+                study_span.set_status(Status(StatusCode.ERROR))
                 loop.call_soon_threadsafe(
-                    q.put_nowait, {"state": "ERROR", "message": str(exc)}
+                    events.put_nowait,
+                    {"state": "ERROR", "message": str(error)},
                 )
             finally:
-                # Pass error to streamer
-                loop.call_soon_threadsafe(q.put_nowait, _SENTINEL)
+                otel_context.detach(token)
+                loop.call_soon_threadsafe(events.put_nowait, _SENTINEL)
 
         worker = threading.Thread(target=run, daemon=True)
         worker.start()
- 
+        return worker, study_span
+
+    @staticmethod
+    def _trial_payload(
+        _study: optuna.Study, trial: optuna.trial.FrozenTrial
+    ) -> dict[str, Any]:
+        return {
+            "step": trial.number,
+            "params": dict(trial.params),
+            "init_state": {},
+            "metric": trial.value,
+            "state": trial.state.name,
+        }
+
+    async def pump_events(
+        self,
+        app: Any,
+        run_id: str,
+        n_trials: int,
+        *,
+        on_event: Callable[[str], Any],
+        cancel_event: asyncio.Event,
+        on_outcome: Callable[[str], Any] | None = None,
+        correlation: Mapping[str, str | None] | None = None,
+    ) -> str:
+        """Run a bounded detached study and append its frames to the event log."""
+        log_context = {**(correlation or {}), "run_id": run_id}
+
+        def record_nothing(_outcome: str) -> None:
+            return None
+
+        record_outcome = on_outcome if on_outcome is not None else record_nothing
+        if not self.lock.acquire(blocking=False):
+            on_event('event: error\ndata: {"message": "already running"}\n\n')
+            record_outcome("failed")
+            return "failed"
+
+        set_status(app, run_id, phase=Phase.running, detail="optimization running")
+        log.info(
+            "optimization study started",
+            extra={"event": "study_started", "trials": n_trials, **log_context},
+        )
+        loop = asyncio.get_running_loop()
+        events: asyncio.Queue[dict[str, Any] | object] = asyncio.Queue()
+        stop_flag = threading.Event()
+
+        worker, study_span = self._start_study_worker(
+            loop, events, stop_flag, n_trials, self._trial_payload
+        )
+        max_study_seconds = max_study_seconds_from_environment()
+        study_deadline = (
+            loop.time() + max_study_seconds if max_study_seconds > 0 else None
+        )
+        completed = False
         try:
             while True:
-                item = await q.get()
+                if cancel_event.is_set():
+                    stop_flag.set()
+                    log.info(
+                        "optimization run cancelled, stopping study",
+                        extra={"event": "study_cancelled", **log_context},
+                    )
+                    record_outcome("cancelled")
+                    return "cancelled"
+                if study_deadline is not None and loop.time() >= study_deadline:
+                    stop_flag.set()
+                    if events.empty() and worker.is_alive():
+                        message = (
+                            "optimization study exceeded its "
+                            f"{max_study_seconds:g} second execution limit"
+                        )
+                        set_status(app, run_id, phase=Phase.error, detail=message)
+                        log.warning(
+                            "optimization study timed out",
+                            extra={
+                                "event": "study_timeout",
+                                "max_study_seconds": max_study_seconds,
+                                "trials": n_trials,
+                                **log_context,
+                            },
+                        )
+                        payload = {"state": "ERROR", "message": message}
+                        on_event(f"data: {json.dumps(payload)}\n\n")
+                        record_outcome("failed")
+                        return "failed"
+                    # Items are still queued — or the worker already
+                    # finished and its completion sentinel is in flight — so
+                    # keep draining: a study that actually finished within
+                    # the limit is reported as completed.
+                try:
+                    item = await asyncio.wait_for(
+                        events.get(), timeout=_DISCONNECT_POLL_SECONDS
+                    )
+                except asyncio.TimeoutError:
+                    continue
                 if item is _SENTINEL:
                     set_status(
-                        app,
-                        run_id,
-                        phase=Phase.done,
-                        detail="optimization completed",
+                        app, run_id, phase=Phase.done, detail="optimization completed"
                     )
-                    yield "event: done\ndata: {}\n\n"
-                    break
-                if item.get("state") == "ERROR":
-                    set_status(app, run_id, phase=Phase.error, detail=item.get("message"))
-                    yield f"data: {json.dumps(item)}\n\n"
-                    continue
-                yield f"data: {json.dumps(item)}\n\n"
-                if await request.is_disconnected():
-                    stop_flag.set()
+                    completed = True
+                    log.info(
+                        "optimization study completed",
+                        extra={
+                            "event": "study_completed",
+                            "trials": n_trials,
+                            **log_context,
+                        },
+                    )
+                    on_event("event: done\ndata: {}\n\n")
+                    record_outcome("completed")
+                    return "completed"
+                event = cast(dict[str, Any], item)
+                if event.get("state") == "ERROR":
                     set_status(
                         app,
                         run_id,
-                        phase=Phase.idle,
-                        detail="client disconnected, stopped",
+                        phase=Phase.error,
+                        detail=cast(str, event.get("message")),
                     )
-                    break
+                    log.warning(
+                        "optimization study failed",
+                        extra={"event": "study_failed", **log_context},
+                    )
+                    on_event(f"data: {json.dumps(event)}\n\n")
+                    record_outcome("failed")
+                    return "failed"
+                on_event(f"data: {json.dumps(event)}\n\n")
         finally:
-            # Signal the study to stop, then wait for the worker to actually exit before
-            # closing the CLI — otherwise close() can tear down the subprocess while a
-            # trial is still mid-request. Join off the event loop so other requests keep
-            # serving. stop_flag only takes effect at the next trial boundary, so this
-            # waits out at most one in-flight evaluation.
             stop_flag.set()
             try:
-                if self.pn_model.eval_timeout:
-                    await loop.run_in_executor(None, worker.join(self.pn_model.eval_timeout))
-                else:
-                    await loop.run_in_executor(None, worker.join)
+                await asyncio.to_thread(self.pn_model.close, graceful=completed)
+                await asyncio.to_thread(worker.join, _WORKER_SHUTDOWN_TIMEOUT_SECONDS)
+                if worker.is_alive():
+                    log.error(
+                        "Petrinaut optimizer worker did not stop after session shutdown",
+                        extra={"event": "worker_join_timeout", **log_context},
+                    )
             finally:
                 self.lock.release()
-                self.pn_model.close()
-    
-    # ── run for local testing /printing ─────────────────────────────────────────────────────────────────
-    def run_stream(self, study, objective, n_trials):
-        """Run a study synchronously, yielding each finished trial (for local testing).
-
-        Args:
-            study (optuna.Study): The Optuna study to optimize.
-            objective (Callable): The objective callable evaluated per trial.
-            n_trials (int): Number of trials to run.
-
-        Yields:
-            tuple: (state, trial number, parameters, initial state, metric value) per trial.
-        """
-        q = queue.Queue()
-        _DONE = object()
-
-        def callback(study, trial):
-            """Enqueue a tuple describing each finished trial."""
-            params_and_init_state = {}
-            for k, v in trial.params.items():
-                outer, inner = k.split('.', 1)
-                params_and_init_state.setdefault(outer, {})[inner] = v
-            q.put((
-                str(trial.state),
-                trial.number,
-                params_and_init_state.get("parameters", dict()),
-                params_and_init_state.get("initial_state", dict()),
-                trial.value
-            ))
-
-        def run():
-            """Optimize the study then enqueue the completion sentinel."""
-            study.optimize(objective, n_trials=n_trials, callbacks=[callback])
-            q.put(_DONE)
-
-        threading.Thread(target=run, daemon=True).start()
-        while (item := q.get()) is not _DONE:
-            yield item
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Main function for testing the script
-# ─────────────────────────────────────────────────────────────────────────────
-
-def main() -> None:
-    """Main method for testing the optimizer
-    """
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s  %(message)s",
-        datefmt="%H:%M:%S",
-    )
-        
-    pn_spec = PetrinautModelSpec()
-    opt_spec = OptimizationSpec(
-        n_trials = 1000,
-        parameters = {
-            "selling_price":34.0,
-            "expedite_fraction":0.25,
-            "marketing_spend":20.0,
-            "demand_multiplier":1.0,
-        },
-        initial_state = {
-            "RawInventory": 220,
-            "FinishedGoods": 120,
-            "CustomerDemand": 0,
-            "SoldOrders": 0,
-            "LostSales": 0,
-        }
-    )
-    # Create the petrinaut execution specification
-    pn_spec = PetrinautModelSpec()
-    # Build the Petri net from the client spec in a context manager
-    with PetrinautModel(pn_spec) as petrinet_model:
-        # Instantiate Petrinaut optimization class
-        optimizer = PetrinautOptimizer(
-            opt_spec = opt_spec,
-            pn_model = petrinet_model
-        )
-        # Run optimization steps
-        for state, step, params, init_state, metric_value in optimizer.run_stream(
-            optimizer.study, 
-            optimizer.objective, 
-            optimizer.n_trials
-        ):
-            a = 0
-            # log.info(json.dumps({"state":state,"step":step,"params":params,"init_state":init_state,"metric":metric_value},indent=2))
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\ninterrupted", file=sys.stderr)
-        sys.exit(130)
+                # No completed trial means no best value to report.
+                with suppress(ValueError):
+                    study_span.set_attribute(
+                        "optuna.study.best_value", self.study.best_value
+                    )
+                study_span.end()

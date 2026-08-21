@@ -2,4 +2,4 @@
 "@hashintel/ds-components": patch
 ---
 
-Added CheckboxGroup and RadioGroup components
+Add CheckboxGroup and RadioGroup components

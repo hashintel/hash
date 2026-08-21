@@ -1,6 +1,7 @@
-import { useMemo, type CSSProperties } from "react";
+import { Portal, Tooltip as ArkTooltip } from "@ark-ui/react";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
 
-import { Tooltip } from "@hashintel/ds-components";
+import { Tooltip, usePortalContainerRef } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
@@ -28,9 +29,7 @@ import {
   planSourceLabel,
   pctChangeTooltip,
 } from "../../../shared/planning-param";
-// Local portal tooltip retained for the box-plot popover only: it renders rich
-// content `bare` (no dark-pill chrome), which the ds `Tooltip` can't express.
-import { Tooltip as RichTooltip } from "../../../shared/tooltip";
+import { sampleTier } from "../../../shared/sample-confidence";
 import { CategoryIcon } from "./category-icon";
 
 import type { GraphNode } from "../../../shared/types";
@@ -301,6 +300,16 @@ const tipMuted = css({
   color: "[#8d8d8d]",
   letterSpacing: "[0.12px]",
 });
+const boxPlotTooltipTrigger = css({
+  display: "block",
+  borderRadius: "sm",
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "fg.heading",
+    outlineOffset: "[2px]",
+  },
+});
+const boxPlotTooltipPositioner = css({ zIndex: "tooltip !important" });
 
 function hexToRgb(hex: string) {
   const height = hex.replace("#", "");
@@ -322,7 +331,7 @@ interface StepCardProps {
   timeRange?: string;
 }
 
-const BoxPlotTooltip = ({
+const BoxPlotTooltipContent = ({
   median,
   mean,
   min,
@@ -362,6 +371,55 @@ const BoxPlotTooltip = ({
     </div>
   );
 };
+const BoxPlotTooltip = ({
+  median,
+  mean,
+  min,
+  max,
+  children,
+}: {
+  median: number;
+  mean: number;
+  min: number;
+  max: number;
+  children: ReactNode;
+}) => {
+  const portalContainerRef = usePortalContainerRef();
+
+  return (
+    <ArkTooltip.Root
+      openDelay={0}
+      closeDelay={0}
+      positioning={{ placement: "top", offset: { mainAxis: 6 } }}
+      unmountOnExit
+      lazyMount
+    >
+      <ArkTooltip.Trigger asChild>
+        <div
+          className={boxPlotTooltipTrigger}
+          aria-label="Show distribution statistics"
+          // Tooltip triggers must receive focus to expose their content to keyboard users.
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
+        >
+          {children}
+        </div>
+      </ArkTooltip.Trigger>
+      <Portal container={portalContainerRef}>
+        <ArkTooltip.Positioner className={boxPlotTooltipPositioner}>
+          <ArkTooltip.Content>
+            <BoxPlotTooltipContent
+              median={median}
+              mean={mean}
+              min={min}
+              max={max}
+            />
+          </ArkTooltip.Content>
+        </ArkTooltip.Positioner>
+      </Portal>
+    </ArkTooltip.Root>
+  );
+};
 const MiniBoxPlot = ({ stats }: { stats: GraphNode["stats"] }) => {
   const min = stats.min;
   const max = stats.max;
@@ -385,14 +443,7 @@ const MiniBoxPlot = ({ stats }: { stats: GraphNode["stats"] }) => {
   const iqrLeft = pct(p25);
   const iqrWidth = pct(p75) - iqrLeft;
   return (
-    <RichTooltip
-      delayMs={0}
-      bare
-      wrapperClassName={css({ display: "block" })}
-      content={
-        <BoxPlotTooltip median={median} mean={mean} min={min} max={max} />
-      }
-    >
+    <BoxPlotTooltip median={median} mean={mean} min={min} max={max}>
       <div className={boxPlotRow}>
         <div className={whiskerCap} style={{ left: `${pct(min)}%` }} />
         <div
@@ -422,7 +473,7 @@ const MiniBoxPlot = ({ stats }: { stats: GraphNode["stats"] }) => {
           style={{ left: `${pct(mean)}%`, boxShadow: "0 0 0 2px white" }}
         />
       </div>
-    </RichTooltip>
+    </BoxPlotTooltip>
   );
 };
 
@@ -515,7 +566,8 @@ export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {
     return (diff / plan) * 100;
   }, [plan, hasData, measureValue]);
   const eventCount = node.observations?.length ?? node.stats.n;
-  const isLowSample = node.stats.n > 0 && node.stats.n < 10;
+  const sampleLevel = sampleTier(node.stats.n);
+  const hasSampleWarning = sampleLevel === "low" || sampleLevel === "limited";
   return (
     <button
       type="button"
@@ -675,27 +727,30 @@ export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {
             <Tooltip
               openDelay="fast"
               content={
-                isLowSample
-                  ? "Low sample count"
+                hasSampleWarning
+                  ? `${sampleLevel === "low" ? "Low" : "Limited"} sample count`
                   : node.source
-                    ? `${countTooltip({ id: node.id, label: node.label, type: node.type, count: eventCount, rangeLabel: timeRange, nBatches: node.n_batches, nMovements: node.n_movements })}\nSource: ${node.source.label}${node.source.filter ? ` (filter ${node.source.filter})` : ""}`
+                    ? `${countTooltip({ id: node.id, label: node.label, type: node.type, timingGrain: node.timing_grain, count: eventCount, rangeLabel: timeRange, nBatches: node.n_batches, nCampaigns: node.n_campaigns, nMovements: node.n_movements })}\nSource: ${node.source.label}${node.source.filter ? ` (filter ${node.source.filter})` : ""}`
                     : countTooltip({
                         id: node.id,
                         label: node.label,
                         type: node.type,
+                        timingGrain: node.timing_grain,
                         count: eventCount,
                         rangeLabel: timeRange,
                         nBatches: node.n_batches,
+                        nCampaigns: node.n_campaigns,
                         nMovements: node.n_movements,
                       })
               }
             >
               <span className={countLabel}>
-                {isLowSample && <WarningTriangleIcon />}
+                {hasSampleWarning && <WarningTriangleIcon />}
                 {shortCountLabel(eventCount, {
                   id: node.id,
                   label: node.label,
                   type: node.type,
+                  timingGrain: node.timing_grain,
                 })}
               </span>
             </Tooltip>

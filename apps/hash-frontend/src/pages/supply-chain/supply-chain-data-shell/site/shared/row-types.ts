@@ -1,12 +1,13 @@
 import type { SiteNode } from "../../../shared/types";
 
-export const LOW_SAMPLE_N = 10;
-
 export type Tab = "dwell" | "planning" | "trends" | "suppliers";
 
 export type SortKey =
   | "median"
   | "cost"
+  | "materialValue"
+  | "moq"
+  | "safetyStock"
   | "material"
   | "deviation"
   | "exceeding"
@@ -16,6 +17,8 @@ export type SortKey =
   | "previous"
   | "sample"
   | "status"
+  | "supplier"
+  | "basis"
   | "impact"
   | "opportunity"
   | "vendor"
@@ -42,7 +45,9 @@ export type DwellRow = SiteNode & {
 };
 
 export type PlanningRow = SiteNode & {
-  deviationPct: number;
+  periodMaterialValue: number | null;
+  /** Null when the applicable plan is zero: the row remains visible but no percentage is meaningful. */
+  deviationPct: number | null;
   trendPct: number | null;
   previousValue: number | null;
   previousTrendN: number;

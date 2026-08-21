@@ -2,7 +2,7 @@ import { Fragment, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes, type Tone } from "../../util/form-shared";
+import { formInputSizes } from "../../util/form-shared";
 import { Icon, iconNames } from "../Icon/icon";
 import {
   Button as ButtonComponent,
@@ -14,59 +14,21 @@ import {
 import type { Story, StoryDefault } from "@ladle/react";
 
 const variants: Variant[] = ["solid", "subtle", "ghost", "link", "linkSubtle"];
-const tones: Tone[] = ["neutral", "brand", "error"];
+const tones: NonNullable<ButtonElementProps["tone"]>[] = [
+  "neutral",
+  "brand",
+  "error",
+];
 
 export default {
   title: "Components/Button",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
-    variant: {
-      control: {
-        type: "select",
-        options: variants,
-      },
-    },
-    tone: {
-      control: {
-        type: "select",
-        options: [undefined, ...tones],
-      },
-    },
-    size: {
-      control: {
-        type: "select",
-        options: formInputSizes,
-      },
-    },
-    iconName: {
-      control: {
-        type: "select",
-        options: [undefined, ...iconNames],
-      },
-    },
-    iconPosition: {
-      control: {
-        type: "select",
-        options: ["left", "right"],
-      },
-    },
-    loading: {
-      control: { type: "boolean" },
-    },
-    disabled: {
-      control: { type: "boolean" },
-    },
-    pressed: {
-      control: { type: "boolean" },
-    },
-    shape: {
-      control: {
-        type: "select",
-        options: ["default", "round"],
-      },
-    },
+    variant: { control: { type: "select" }, options: variants },
+    tone: { control: { type: "select" }, options: tones },
+    size: { control: { type: "select" }, options: formInputSizes },
+    shape: { control: { type: "select" }, options: ["default", "round"] },
+    iconName: { control: { type: "select" }, options: iconNames },
+    iconPosition: { control: { type: "select" }, options: ["left", "right"] },
   },
   args: {
     children: "Button",
@@ -92,14 +54,21 @@ export const Default: Story<ButtonElementProps> = (args) => {
           key={tone}
           className={css({
             display: "flex",
-            gap: "[16px]",
+            gap: "[32px]",
             alignItems: "flex-end",
             flexWrap: "wrap",
             marginBottom: "4",
           })}
         >
           {variants.map((variant) => (
-            <Fragment key={variant}>
+            <div
+              key={variant}
+              className={css({
+                display: "flex",
+                gap: "[8px]",
+                alignItems: "flex-end",
+              })}
+            >
               <Button
                 {...args}
                 variant={variant}
@@ -121,16 +90,12 @@ export const Default: Story<ButtonElementProps> = (args) => {
               <Button {...args} variant={variant} tone={tone} pressed>
                 pressed
               </Button>
-            </Fragment>
+            </div>
           ))}
         </div>
       ))}
     </>
   );
-};
-
-Default.parameters = {
-  controls: { exclude: ["variant", "tone", "loading", "pressed", "disabled"] },
 };
 
 export const Sizes: Story<ButtonElementProps> = (args) => (
@@ -179,10 +144,6 @@ export const Sizes: Story<ButtonElementProps> = (args) => (
     ))}
   </>
 );
-
-Sizes.parameters = {
-  controls: { exclude: ["size", "loading", "variant"] },
-};
 
 export const WithIcon: Story<ButtonElementProps> = (args) => (
   <>
@@ -264,10 +225,6 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
     ))}
   </>
 );
-
-WithIcon.parameters = {
-  controls: { exclude: ["iconName", "iconPosition", "variant", "loading"] },
-};
 
 export const Shape: Story<ButtonElementProps> = (args) => (
   <>

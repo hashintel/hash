@@ -1,13 +1,21 @@
-import { type Span, trace } from "@opentelemetry/api";
+import {
+  type Span,
+  type SpanStatus,
+  SpanStatusCode,
+  trace,
+} from "@opentelemetry/api";
 import { describe, expect, it } from "vitest";
 
 import {
   createHttpInstrumentation,
+  EXPECTED_CLIENT_STATUS_ATTRIBUTE,
+  httpExpectedClientStatusHook,
   httpRequestSpanNameHook,
+  isExpectedClientStatus,
   resolvePeerService,
 } from "./opentelemetry.js";
 
-import type { ClientRequest, IncomingMessage } from "node:http";
+import type { ClientRequest, IncomingMessage, ServerResponse } from "node:http";
 
 describe("resolvePeerService", () => {
   it("matches exact hosts to their service label", () => {
@@ -130,6 +138,113 @@ describe("httpRequestSpanNameHook", () => {
     httpRequestSpanNameHook(span, { method: "GET" } as IncomingMessage);
 
     expect(updates).toEqual([]);
+  });
+});
+
+describe("isExpectedClientStatus", () => {
+  it("matches the Kratos session lookup on its expected outcomes", () => {
+    for (const statusCode of [401, 403]) {
+      expect(
+        isExpectedClientStatus({
+          method: "GET",
+          path: "/sessions/whoami",
+          statusCode,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  it("requires method, path and status to line up", () => {
+    for (const args of [
+      { method: "GET", path: "/sessions/whoami", statusCode: 500 },
+      { method: "GET", path: "/v1/chat/completions", statusCode: 401 },
+      { method: "DELETE", path: "/sessions/whoami", statusCode: 401 },
+      { method: undefined, path: "/sessions/whoami", statusCode: 401 },
+      { method: "GET", path: "/sessions/whoami", statusCode: undefined },
+    ]) {
+      expect(isExpectedClientStatus(args)).toBe(false);
+    }
+  });
+});
+
+describe("httpExpectedClientStatusHook", () => {
+  const makeSpan = (): {
+    span: Span;
+    statuses: SpanStatus[];
+    attributes: Record<string, unknown>;
+  } => {
+    const statuses: SpanStatus[] = [];
+    const attributes: Record<string, unknown> = {};
+    const noopSpan = trace.getTracer("test").startSpan("noop");
+    const span: Span = Object.assign(noopSpan, {
+      setStatus: (status: SpanStatus) => {
+        statuses.push(status);
+        return span;
+      },
+      setAttribute: (key: string, value: unknown) => {
+        attributes[key] = value;
+        return span;
+      },
+    });
+    return { span, statuses, attributes };
+  };
+
+  const outgoing = (path: string) => ({ method: "GET", path }) as ClientRequest;
+
+  const answeredWith = (statusCode: number) =>
+    ({ statusCode }) as IncomingMessage;
+
+  it("marks an expected client-side failure as successful", () => {
+    const { span, statuses, attributes } = makeSpan();
+    httpExpectedClientStatusHook(
+      span,
+      outgoing("/sessions/whoami?tokenize=true"),
+      answeredWith(401),
+    );
+    expect(statuses).toStrictEqual([{ code: SpanStatusCode.OK }]);
+    expect(attributes).toStrictEqual({
+      [EXPECTED_CLIENT_STATUS_ATTRIBUTE]: true,
+    });
+  });
+
+  it("leaves genuine client-side failures erroring", () => {
+    const { span, statuses } = makeSpan();
+    httpExpectedClientStatusHook(
+      span,
+      outgoing("/sessions/whoami"),
+      answeredWith(500),
+    );
+    expect(statuses).toStrictEqual([]);
+  });
+
+  // The fixture carries `path` because Express defines it as a getter on the
+  // request — without the direction guard the rule would match here.
+  it("does not touch server spans", () => {
+    const { span, statuses } = makeSpan();
+    httpExpectedClientStatusHook(
+      span,
+      {
+        method: "GET",
+        url: "/sessions/whoami",
+        path: "/sessions/whoami",
+      } as IncomingMessage & { path: string },
+      { statusCode: 401, setHeader: () => {} } as unknown as ServerResponse,
+    );
+    expect(statuses).toStrictEqual([]);
+  });
+});
+
+// Dropping either line from the factory would leave every hook test above green
+// while the behaviour disappeared in all three services.
+describe("createHttpInstrumentation hook wiring", () => {
+  it("ships both hooks", () => {
+    const config = createHttpInstrumentation(
+      "http://localhost:4317",
+    ).getConfig();
+    expect(config.requestHook).toBe(httpRequestSpanNameHook);
+    expect(config.applyCustomAttributesOnSpan).toBe(
+      httpExpectedClientStatusHook,
+    );
   });
 });
 

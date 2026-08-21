@@ -1,3 +1,4 @@
+import type { JsonObject } from "@blockprotocol/core";
 import type { WebId } from "@blockprotocol/type-system";
 
 /**
@@ -45,6 +46,12 @@ export interface ArtifactRef {
 }
 
 export type AnalysisResultStatus = "ready" | "computing" | "error";
+export type AnalysisErrorCode =
+  | "INVALID_ARGS"
+  | "NOT_FOUND"
+  | "EXECUTION_FAILED"
+  | "DATASET_UNAVAILABLE"
+  | "OPTIONAL_ARTIFACT_UNAVAILABLE";
 
 /** The result of a single {@link AnalysisInvocation}. */
 export interface AnalysisResult {
@@ -55,8 +62,12 @@ export interface AnalysisResult {
   artifacts?: ArtifactRef[];
   /** Present when `status === "computing"`: hint for the client poll interval. */
   retryAfterMs?: number;
+  /** Analysis-specific JSON metadata which does not require artifact access. */
+  metadata?: JsonObject;
   /** Present when `status === "error"`: human-readable reason. */
   error?: string;
+  /** Stable machine-readable reason for errors with defined client handling. */
+  errorCode?: AnalysisErrorCode;
 }
 
 /** Response body for `POST /api/analysis`. */

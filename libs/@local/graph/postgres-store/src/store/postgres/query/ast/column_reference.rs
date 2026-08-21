@@ -111,7 +111,6 @@ mod tests {
             correlation: Some(TableReference {
                 schema: None,
                 name: TableName::from("users"),
-                alias: None,
             }),
             name: ColumnName::from(Identifier::from("username")),
         };
@@ -127,7 +126,6 @@ mod tests {
                     name: Identifier::from("public"),
                 }),
                 name: TableName::from("users"),
-                alias: None,
             }),
             name: ColumnName::from(Identifier::from("username")),
         };
@@ -143,7 +141,6 @@ mod tests {
             correlation: Some(TableReference {
                 schema: None,
                 name: TableName::from("user-table"),
-                alias: None,
             }),
             name: ColumnName::from(Identifier::from("user name")),
         };
@@ -156,7 +153,6 @@ mod tests {
             correlation: Some(TableReference {
                 schema: None,
                 name: TableName::from(r#"my"table"#),
-                alias: None,
             }),
             name: ColumnName::from(Identifier::from(r#"my"column"#)),
         };

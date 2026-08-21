@@ -1,10 +1,15 @@
+import { compileScenario } from "@hashintel/petrinaut-core";
+
 import type {
   InitialMarking,
   InitialPlaceMarking,
+  Scenario,
+  SDCPN,
 } from "@hashintel/petrinaut-core";
 import type {
   PetrinautCompiledModelMetadata,
   PetrinautRunConfig,
+  PetrinautRunResult,
 } from "@hashintel/petrinaut-core/compiled-model";
 
 type JsonRecord = Record<string, unknown>;
@@ -12,6 +17,7 @@ type JsonRecord = Record<string, unknown>;
 const RUN_REQUEST_KEYS = new Set([
   "parameters",
   "initialState",
+  "scenario",
   "metrics",
   "maxSteps",
   "dt",
@@ -24,6 +30,10 @@ const MAX_UNCOLORED_TOKEN_COUNT = 0xffff_ffff;
 export type ServerRunRequest = {
   parameters?: JsonRecord;
   initialState?: JsonRecord;
+  scenario?: {
+    id: string;
+    parameterValues: Record<string, number | boolean>;
+  };
   metrics?: string[];
   maxSteps?: number;
   dt?: number;
@@ -184,8 +194,26 @@ function normalizeInitialMarking(
   return marking;
 }
 
-function normalizeMetrics(request: ServerRunRequest): string[] {
-  return request.metrics ?? [];
+function resolveMetric(
+  metadata: PetrinautCompiledModelMetadata,
+  selector: string,
+): PetrinautCompiledModelMetadata["metrics"][number] {
+  const metric =
+    metadata.metrics.find((candidate) => candidate.id === selector) ??
+    metadata.metrics.find((candidate) => candidate.name === selector);
+  if (!metric) {
+    throw new Error(`Metric "${selector}" does not exist in the model`);
+  }
+  return metric;
+}
+
+function normalizeMetrics(
+  metadata: PetrinautCompiledModelMetadata,
+  request: ServerRunRequest,
+): string[] {
+  return (request.metrics ?? []).map(
+    (selector) => resolveMetric(metadata, selector).id,
+  );
 }
 
 function parseOptionalObject(
@@ -214,6 +242,139 @@ function parseOptionalMetrics(value: unknown): string[] | undefined {
   return value;
 }
 
+function parseScenario(value: unknown): ServerRunRequest["scenario"] {
+  if (!isObject(value)) {
+    throw new Error("scenario must be an object");
+  }
+  for (const key of Object.keys(value)) {
+    if (key !== "id" && key !== "parameterValues") {
+      throw new Error(`Unknown scenario field "${key}"`);
+    }
+  }
+  if (typeof value.id !== "string" || value.id.trim() === "") {
+    throw new Error("scenario.id must be a non-empty string");
+  }
+  if (!isObject(value.parameterValues)) {
+    throw new Error("scenario.parameterValues must be an object");
+  }
+
+  const parameterValues: Record<string, number | boolean> = Object.fromEntries(
+    Object.entries(value.parameterValues).map(
+      ([identifier, parameterValue]) => {
+        if (
+          typeof parameterValue !== "boolean" &&
+          (typeof parameterValue !== "number" ||
+            !Number.isFinite(parameterValue))
+        ) {
+          throw new Error(
+            `Scenario parameter "${identifier}" must be a finite number or boolean`,
+          );
+        }
+        return [identifier, parameterValue] as const;
+      },
+    ),
+  );
+
+  return { id: value.id, parameterValues };
+}
+
+function normalizeScenarioParameterValues(
+  scenario: Scenario,
+  values: Record<string, number | boolean>,
+): Record<string, number> {
+  const parametersByIdentifier = new Map(
+    scenario.scenarioParameters.map((parameter) => [
+      parameter.identifier,
+      parameter,
+    ]),
+  );
+
+  return Object.fromEntries(
+    Object.entries(values).map(([identifier, value]) => {
+      const parameter = parametersByIdentifier.get(identifier);
+      if (!parameter) {
+        throw new Error(
+          `Scenario "${scenario.name}" has no parameter "${identifier}"`,
+        );
+      }
+
+      let normalizedValue: number;
+      switch (parameter.type) {
+        case "boolean":
+          if (typeof value !== "boolean") {
+            throw new Error(
+              `Scenario parameter "${identifier}" must be boolean`,
+            );
+          }
+          normalizedValue = value ? 1 : 0;
+          break;
+        case "integer":
+          if (typeof value !== "number" || !Number.isInteger(value)) {
+            throw new Error(
+              `Scenario parameter "${identifier}" must be an integer`,
+            );
+          }
+          normalizedValue = value;
+          break;
+        case "ratio":
+          if (typeof value !== "number" || value < 0 || value > 1) {
+            throw new Error(
+              `Scenario parameter "${identifier}" must be between 0 and 1`,
+            );
+          }
+          normalizedValue = value;
+          break;
+        case "real":
+          if (typeof value !== "number") {
+            throw new Error(
+              `Scenario parameter "${identifier}" must be a number`,
+            );
+          }
+          normalizedValue = value;
+          break;
+      }
+      return [identifier, normalizedValue] as const;
+    }),
+  );
+}
+
+function compileRunScenario(
+  sdcpn: SDCPN,
+  request: NonNullable<ServerRunRequest["scenario"]>,
+): { initialMarking: InitialMarking; parameterValues: Record<string, string> } {
+  const scenario = (sdcpn.scenarios ?? []).find(
+    (candidate) => candidate.id === request.id,
+  );
+  if (!scenario) {
+    throw new Error(`Scenario "${request.id}" does not exist in the model`);
+  }
+
+  const outcome = compileScenario(
+    scenario,
+    sdcpn.parameters,
+    sdcpn.places,
+    sdcpn.types,
+    {
+      scenarioParameterValues: normalizeScenarioParameterValues(
+        scenario,
+        request.parameterValues,
+      ),
+    },
+  );
+  if (!outcome.ok) {
+    throw new Error(
+      `Scenario "${scenario.name}" could not be compiled: ${outcome.errors
+        .map(({ message }) => message)
+        .join("; ")}`,
+    );
+  }
+
+  return {
+    initialMarking: outcome.result.initialState,
+    parameterValues: outcome.result.parameterValues,
+  };
+}
+
 export function parseServerRunRequest(value: unknown): ServerRunRequest {
   const data = asRecord(value, "request body");
   for (const key of Object.keys(data)) {
@@ -238,9 +399,20 @@ export function parseServerRunRequest(value: unknown): ServerRunRequest {
     throw new Error("maxTime must be a non-negative number or null");
   }
 
+  if (
+    data.scenario !== undefined &&
+    (data.parameters !== undefined || data.initialState !== undefined)
+  ) {
+    throw new Error(
+      "scenario cannot be combined with parameters or initialState",
+    );
+  }
+
   return {
     parameters: parseOptionalObject(data.parameters, "parameters"),
     initialState: parseOptionalObject(data.initialState, "initialState"),
+    scenario:
+      data.scenario === undefined ? undefined : parseScenario(data.scenario),
     metrics: parseOptionalMetrics(data.metrics),
     maxSteps,
     dt,
@@ -252,13 +424,25 @@ export function parseServerRunRequest(value: unknown): ServerRunRequest {
 export function toPetrinautRunConfig(
   metadata: PetrinautCompiledModelMetadata,
   request: ServerRunRequest,
+  sdcpn?: SDCPN,
 ): PetrinautRunConfig {
+  if (request.scenario && !sdcpn) {
+    throw new Error("Scenario runs require the source model");
+  }
+  const scenarioConfig =
+    request.scenario && sdcpn
+      ? compileRunScenario(sdcpn, request.scenario)
+      : undefined;
   const common = {
-    initialMarking: normalizeInitialMarking(metadata, request),
-    parameterValues: normalizeParameterValues(metadata, request),
+    initialMarking:
+      scenarioConfig?.initialMarking ??
+      normalizeInitialMarking(metadata, request),
+    parameterValues:
+      scenarioConfig?.parameterValues ??
+      normalizeParameterValues(metadata, request),
     ...(request.seed !== undefined ? { seed: request.seed } : {}),
     ...(request.dt !== undefined ? { dt: request.dt } : {}),
-    metrics: normalizeMetrics(request),
+    metrics: normalizeMetrics(metadata, request),
   };
 
   if (request.maxTime !== undefined && request.maxTime !== null) {
@@ -277,5 +461,35 @@ export function toPetrinautRunConfig(
     ...common,
     maxSteps: request.maxSteps,
     ...(request.maxTime === null ? { maxTime: null } : {}),
+  };
+}
+
+/**
+ * The compiled model keys metric values by display name. The protocol instead
+ * keys each value by the selector supplied by the caller, so stable metric ids
+ * remain useful across renames while name-based callers keep their old shape.
+ */
+export function keyMetricsByRequestedSelector(
+  metadata: PetrinautCompiledModelMetadata,
+  request: ServerRunRequest,
+  result: PetrinautRunResult,
+): PetrinautRunResult {
+  const selectors = request.metrics ?? [];
+  if (selectors.length === 0) {
+    return result;
+  }
+
+  return {
+    ...result,
+    metrics: Object.fromEntries(
+      selectors.map((selector) => {
+        const metric = resolveMetric(metadata, selector);
+        const value = result.metrics[metric.name];
+        if (value === undefined) {
+          throw new Error(`Petrinaut result omitted metric "${metric.name}"`);
+        }
+        return [selector, value];
+      }),
+    ),
   };
 }

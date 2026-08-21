@@ -3,10 +3,9 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Box, Stack, useTheme } from "@mui/material";
 import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
-  extractBaseUrl,
   extractEntityUuidFromEntityId,
   isBaseUrl,
 } from "@blockprotocol/type-system";
@@ -55,7 +54,6 @@ import type {
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
 } from "./entities-table-data";
-import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 import type {
   ActorEntityUuid,
   BaseUrl,
@@ -82,6 +80,14 @@ export { toolbarHeight } from "./entities-table/table-toolbar";
 
 const firstColumnLeftPadding = 16;
 
+const sortableColumns: SortableEntitiesTableColumnKey[] = [
+  "archived",
+  "created",
+  "entityLabel",
+  "entityTypes",
+  "lastEdited",
+];
+
 const emptyTableData: EntitiesTableData = {
   columns: [],
   dataTypeDefinitions: {},
@@ -90,44 +96,38 @@ const emptyTableData: EntitiesTableData = {
   visibleDataTypeIdsByPropertyBaseUrl: {},
 };
 
-export const EntitiesTable: FunctionComponent<
-  Pick<EntitiesVisualizerData, "subgraph"> & {
-    activeConversions: {
-      [columnBaseUrl: BaseUrl]: {
-        dataTypeId: VersionedUrl;
-        title: string;
-      };
-    } | null;
-    csvFileTitle: string;
-    currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
-    currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
-    disableTypeClick?: boolean;
-    handleEntityClick: (entityId: EntityId) => void;
-    loading: boolean;
-    isViewingOnlyPages: boolean;
-    maxHeight: string | number;
-    hasMoreRowsAvailable: boolean;
-    loadMoreRows?: () => void;
-    selectedRows: EntitiesTableRow[];
-    setActiveConversions: Dispatch<
-      SetStateAction<{
-        [columnBaseUrl: BaseUrl]: VersionedUrl;
-      } | null>
-    >;
-    setSelectedRows: (rows: EntitiesTableRow[]) => void;
-    setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
-    setShowSearch: (showSearch: boolean) => void;
-    showSearch: boolean;
-    sort: GridSort<SortableEntitiesTableColumnKey>;
-    setSort: (
-      sort: GridSort<SortableEntitiesTableColumnKey> & {
-        convertTo?: BaseUrl;
-      },
-    ) => void;
-    tableData: EntitiesTableData | null;
-    totalResultCount: number | null;
-  }
-> = ({
+export const EntitiesTable: FunctionComponent<{
+  activeConversions: {
+    [columnBaseUrl: BaseUrl]: {
+      dataTypeId: VersionedUrl;
+      title: string;
+    };
+  } | null;
+  csvFileTitle: string;
+  currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
+  currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
+  disableTypeClick?: boolean;
+  handleEntityClick: (entityId: EntityId) => void;
+  loading: boolean;
+  isViewingOnlyPages: boolean;
+  maxHeight: string | number;
+  hasMoreRowsAvailable: boolean;
+  loadMoreRows?: () => void;
+  selectedRows: EntitiesTableRow[];
+  setActiveConversions: Dispatch<
+    SetStateAction<{
+      [columnBaseUrl: BaseUrl]: VersionedUrl;
+    } | null>
+  >;
+  setSelectedRows: (rows: EntitiesTableRow[]) => void;
+  setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
+  setShowSearch: (showSearch: boolean) => void;
+  showSearch: boolean;
+  sort: GridSort<SortableEntitiesTableColumnKey>;
+  setSort: (sort: GridSort<SortableEntitiesTableColumnKey>) => void;
+  tableData: EntitiesTableData | null;
+  totalResultCount: number | null;
+}> = ({
   activeConversions,
   csvFileTitle,
   currentlyDisplayedColumnsRef,
@@ -672,17 +672,6 @@ export const EntitiesTable: FunctionComponent<
     ],
   );
 
-  const sortableColumns: SortableEntitiesTableColumnKey[] = useMemo(() => {
-    return [
-      "archived",
-      "created",
-      "entityLabel",
-      "entityTypes",
-      "lastEdited",
-      ...columns.map((column) => column.id).filter((key) => isBaseUrl(key)),
-    ];
-  }, [columns]);
-
   const onConversionTargetSelected = useCallback(
     ({
       columnKey,
@@ -730,26 +719,6 @@ export const EntitiesTable: FunctionComponent<
     ];
   }, []);
 
-  const setSortWithConversion = useCallback(
-    (newSort: GridSort<SortableEntitiesTableColumnKey>) => {
-      const targetConversions = conversionTargetsByColumnKey[newSort.columnKey];
-
-      const canonical = targetConversions?.find(
-        (conversion) => conversion.guessedAsCanonical,
-      );
-
-      if (canonical) {
-        setSort({
-          ...newSort,
-          convertTo: extractBaseUrl(canonical.dataTypeId),
-        });
-      } else {
-        setSort(newSort);
-      }
-    },
-    [conversionTargetsByColumnKey, setSort],
-  );
-
   const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
     const csvColumns = currentlyDisplayedColumnsRef.current;
     const csvRows = currentlyDisplayedRowsRef.current;
@@ -788,43 +757,18 @@ export const EntitiesTable: FunctionComponent<
     webNameByWebId,
   ]);
 
-  const [
-    { horizontalScrollbarHeight, verticalScrollbarWidth },
-    setScrollbarSizes,
-  ] = useState({
-    horizontalScrollbarHeight: 0,
-    verticalScrollbarWidth: 0,
-  });
-
-  useEffect(() => {
-    const gridEl = document.querySelector<HTMLElement>(".dvn-scroller");
-
-    if (!gridEl) {
-      return;
-    }
-
-    const scrollbarHeight = gridEl.offsetHeight - gridEl.clientHeight;
-    const scrollbarWidth = gridEl.offsetWidth - gridEl.clientWidth;
-
-    setScrollbarSizes({
-      horizontalScrollbarHeight: scrollbarHeight,
-      verticalScrollbarWidth: scrollbarWidth,
-    });
-  }, [rows.length]);
-
   const loadMoreRowHeight = 60;
 
   return (
     <>
       <TableToolbar
         generateCsvFile={generateCsvFile}
-        displayedColumns={columns}
         showSearch={showSearch}
         setShowSearch={setShowSearch}
         sort={sort}
-        setSort={setSortWithConversion}
+        setSort={setSort}
       />
-      <Stack sx={{ gap: 1, position: "relative" }}>
+      <Stack>
         <Grid
           activeConversions={activeConversions}
           columns={columns}
@@ -834,12 +778,19 @@ export const EntitiesTable: FunctionComponent<
           customRenderers={customRenderers}
           dataLoading={false}
           enableCheckboxSelection
-          experimental={{
-            paddingBottom: hasMoreRowsAvailable ? loadMoreRowHeight : 0,
-          }}
           firstColumnLeftPadding={firstColumnLeftPadding}
           freezeColumns={1}
-          height={`min(${maxHeight}, 600px)`}
+          height={
+            /**
+             * When the 'Show more entities' bar is visible it takes up part of the
+             * available height, so the grid shrinks to leave room for it in the flow.
+             * The bar must not be overlaid on top of the grid, because it would cover
+             * the grid's horizontal scrollbar.
+             */
+            hasMoreRowsAvailable
+              ? `min(calc(${maxHeight} - ${loadMoreRowHeight}px), 600px)`
+              : `min(${maxHeight}, 600px)`
+          }
           onConversionTargetSelected={onConversionTargetSelected}
           onSearchClose={() => setShowSearch(false)}
           onSelectedRowsChange={(updatedSelectedRows) =>
@@ -850,7 +801,7 @@ export const EntitiesTable: FunctionComponent<
           showSearch={showSearch}
           sortableColumns={sortableColumns}
           sort={sort}
-          setSort={setSortWithConversion}
+          setSort={setSort}
         />
 
         {hasMoreRowsAvailable && (
@@ -861,10 +812,8 @@ export const EntitiesTable: FunctionComponent<
               background: palette.common.white,
               borderTop: `1px solid ${palette.gray[20]}`,
               height: loadMoreRowHeight,
-              position: "absolute",
-              bottom: horizontalScrollbarHeight,
               p: 1,
-              width: `calc(100% - ${verticalScrollbarWidth}px)`,
+              width: "100%",
             })}
           >
             <Button

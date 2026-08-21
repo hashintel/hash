@@ -1,7 +1,12 @@
-// Public surface for `@hashintel/petrinaut/react` — React bindings.
-//
-// Hooks, contexts, and bridge providers that synchronize a Core instance with
-// React. No visual widgets — `/ui` builds on top of this.
+/**
+ * Public surface for `@hashintel/petrinaut/react` — React bindings.
+ *
+ * Hooks, contexts, and bridge providers that synchronize a Core instance with
+ * React. No visual widgets — `/ui` builds on top of this.
+ *
+ * @layerRoot react
+ * @role Contexts, hooks and providers that mirror core state into React
+ */
 
 // --- Instance access + low-level adapters ---
 export { PetrinautInstanceContext } from "./instance-context";
@@ -17,6 +22,19 @@ export {
   NetManagementContext,
   type NetManagement,
 } from "./net-management-context";
+export { PetrinautOptimizationContext } from "./optimization-context";
+export type { PetrinautOptimization } from "./optimization-context";
+export {
+  isOptimizationActive,
+  OptimizationsContext,
+} from "./optimizations/context";
+export type {
+  OptimizationBest,
+  OptimizationConnectionState,
+  OptimizationRecord,
+  OptimizationStatus,
+  OptimizationsContextValue,
+} from "./optimizations/context";
 export { ExperimentsContext, isExperimentActive } from "./experiments/context";
 export type {
   CreateExperimentInput,

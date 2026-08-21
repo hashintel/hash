@@ -1,8 +1,13 @@
-// Public surface for `@hashintel/petrinaut/ui` — the opinionated visual editor.
-//
-// `<Petrinaut>` is the single editor entry: it takes a
-// `PetrinautDocHandle` and renders the full editor on top of
-// `<PetrinautProvider>` (`/react`).
+/**
+ * Public surface for `@hashintel/petrinaut/ui` — the opinionated visual editor.
+ *
+ * `<Petrinaut>` is the single editor entry: it takes a
+ * `PetrinautDocHandle` and renders the full editor on top of
+ * `<PetrinautProvider>` (`/react`).
+ *
+ * @layerRoot ui
+ * @role The visual editor: canvas, panels, dialogs and the Monaco integration
+ */
 
 export { Petrinaut } from "./petrinaut";
 export type { PetrinautAiMessage } from "./views/Editor/panels/ai-assistant-panel";

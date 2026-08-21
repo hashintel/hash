@@ -9,9 +9,7 @@ echo "updating certificates"
 yum update ca-certificates -y
 
 echo "installing mise"
-yum install -y yum-utils
-yum-config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
-yum install -y mise
+./.config/mise/install.sh
 eval "$(mise activate bash --shims)"
 
 echo "Installing Rust toolchain: $(yq '.toolchain.channel' rust-toolchain.toml)"
@@ -20,7 +18,7 @@ export RUSTUP_AUTO_INSTALL=0
 mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
 
 echo "Installing prerequisites"
-mise install --locked node npm:turbo java npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc
+mise install --locked node npm:turbo java npm:@redocly/cli cargo-binstall github:wasm-bindgen/wasm-pack github:WebAssembly/binaryen protoc
 
 echo "Rust installation completed. Checking versions:"
 mise list rust

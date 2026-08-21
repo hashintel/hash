@@ -11,11 +11,11 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "codegen": "tsx scripts/generate-protocol-schemas.ts && oxfmt --write --ignore-path /dev/null schemas/optimization-protocol.schema.json",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "serve": "node ./dist/cli.js serve",
-    "serve:example": "node ./dist/cli.js serve --model ./examples/sir-model.json --socket /tmp/petrinaut.sock",
     "test:unit": "vitest"
   },
   "dependencies": {
@@ -25,9 +25,11 @@
   "devDependencies": {
     "@types/node": "22.18.13",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "oxfmt": "0.50.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
+    "tsx": "4.20.6",
     "vite": "8.1.0",
-    "vitest": "4.1.8"
+    "vitest": "4.1.10"
   }
 }

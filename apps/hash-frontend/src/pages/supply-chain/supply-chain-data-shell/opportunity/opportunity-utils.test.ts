@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { applyOutlierSelectionToStep } from "../../shared/outlier-selection";
 import {
   buildDwellOpportunityBrief,
   buildPlanningOpportunityBrief,
@@ -34,7 +35,7 @@ function step(overrides: Partial<StepDetail>): StepDetail {
     type: "production",
     durations: [8, 10, 12],
     observations: [
-      { date: "2025-08-01", value: 9 },
+      { date: "2025-06-01", value: 9 },
       { date: "2026-02-01", value: 12 },
     ],
 
@@ -52,6 +53,12 @@ function step(overrides: Partial<StepDetail>): StepDetail {
 }
 
 describe("opportunity brief helpers", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-15T00:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
   it("adds trigger, confidence, and recommended actions to dwell briefs", () => {
     const brief = buildDwellOpportunityBrief(
       step({ type: "qa_hold" }),
@@ -144,10 +151,54 @@ describe("opportunity brief helpers", () => {
     expect(brief.calibrationDirection).toBe("increase");
     expect(brief.opportunityTrigger.primaryMetric).toContain("+50%");
     expect(brief.diagnosis[0]).toContain("below the observed high-percentile");
-    expect(brief.diagnosis.some((line) => line.includes("trend"))).toBe(true);
+    expect(brief.trend).toMatchObject({
+      currentN: 1,
+      currentValue: 12,
+      previousN: 1,
+      previousValue: 9,
+      direction: "worsening",
+    });
+    expect(brief.diagnosis.some((line) => /trend/i.test(line))).toBe(true);
     expect(brief.recommendedActions[0]?.text).toContain(
       "longest normalized durations",
     );
+  });
+
+  it("keeps the raw P95 opportunity invariant under mean-only Tukey filtering", () => {
+    const raw = step({
+      plan: 20,
+      durations: [10, 11, 12, 13, 14, 15, 16, 17, 100],
+      observations: [
+        { date: "2026-01-01", value: 10 },
+        { date: "2026-01-02", value: 11 },
+        { date: "2026-01-03", value: 12 },
+        { date: "2026-01-04", value: 13 },
+        { date: "2026-01-05", value: 14 },
+        { date: "2026-01-06", value: 15 },
+        { date: "2026-01-07", value: 16 },
+        { date: "2026-01-08", value: 17 },
+        { date: "2026-01-09", value: 100 },
+      ],
+      stats: {
+        ...baseStats,
+        n: 9,
+        mean: 22,
+        median: 14,
+        p95: 66.8,
+        max: 100,
+      },
+    });
+    const meanFiltered = applyOutlierSelectionToStep(raw, true);
+
+    const brief = buildPlanningOpportunityBrief(
+      meanFiltered,
+      meanFiltered,
+      "12m",
+    );
+
+    expect(meanFiltered.stats.mean).toBe(13.5);
+    expect(brief.p95Days).toBe(raw.stats.p95);
+    expect(brief.p95DeviationPct).toBeCloseTo(234, 6);
   });
 
   it("labels conservative planning candidates as tighten opportunities", () => {
@@ -169,9 +220,7 @@ describe("opportunity brief helpers", () => {
       step({
         excluded_pct: 35,
         stats: { ...baseStats, n: 60 },
-        observations: [
-          { date: new Date().toISOString().slice(0, 10), value: 9 },
-        ],
+        observations: [{ date: "2026-06-15", value: 9 }],
       }),
       step({ observations: [] }),
       "12m",
@@ -435,6 +484,16 @@ describe("end-to-end leverage and planning calibration", () => {
       type: "procurement",
       plan: 20,
       durations: [5, 10, 15, 25],
+      observations: [
+        {
+          date: "2026-01-01",
+          value: 5,
+        },
+        {
+          date: "2026-02-01",
+          value: 25,
+        },
+      ],
       stats: { ...baseStats, median: 10, p75: 15, p85: 18, p95: 22 },
     });
     const brief = buildPlanningOpportunityBrief(step2, step2, "12m");

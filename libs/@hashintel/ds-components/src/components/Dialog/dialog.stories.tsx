@@ -127,6 +127,7 @@ const buildExampleEntries = (variant: DialogVariant): ExampleProps[] => [
               size="sm"
               iconName="externalLink"
               tooltip="Open docs"
+              autoFocus="never"
             />
           }
         />
@@ -308,6 +309,7 @@ const renderKitchenSink = (
           size="sm"
           iconName="externalLink"
           tooltip="Open docs"
+          autoFocus="never"
         />
       }
     />
@@ -444,6 +446,7 @@ const renderOverflowKitchenSink = (
             size="sm"
             iconName="externalLink"
             tooltip="Open docs"
+            autoFocus="never"
           />
           <Button
             variant="ghost"
@@ -451,6 +454,7 @@ const renderOverflowKitchenSink = (
             size="sm"
             iconName="info"
             tooltip="More info"
+            autoFocus="never"
           />
         </>
       }

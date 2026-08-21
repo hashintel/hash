@@ -49,8 +49,7 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::status::BoxedResponse;
 use crate::rest::{
-    ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
-    SearchRequestError,
+    ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger, RestApiStore, SearchRequestError,
     json::Json,
     resolve_limit, resolve_search_embedding,
     status::{report_to_response, status_to_response},
@@ -155,7 +154,7 @@ impl EntityTypeResource {
     )
 )]
 async fn has_permission_for_entity_types<S>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor): AuthenticatedActorId,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<HasPermissionForEntityTypesParams<'static>>,
@@ -200,7 +199,7 @@ struct CreateEntityTypeRequest {
 )]
 #[expect(clippy::too_many_lines)]
 async fn create_entity_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
@@ -393,7 +392,7 @@ enum LoadExternalEntityTypeRequest {
     ),
 )]
 async fn load_external_entity_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
@@ -498,7 +497,7 @@ where
     )
 )]
 async fn query_entity_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -613,7 +612,7 @@ impl SearchEntityTypesRequest {
     )
 )]
 async fn search_entity_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     embedding_client: Extension<Option<Arc<OpenAiEmbeddingClient>>>,
@@ -661,7 +660,7 @@ where
     )
 )]
 async fn get_closed_multi_entity_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
@@ -740,7 +739,7 @@ struct QueryEntityTypeSubgraphResponse {
     )
 )]
 async fn query_entity_type_subgraph<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -819,7 +818,7 @@ struct UpdateEntityTypeRequest {
     request_body = UpdateEntityTypeRequest,
 )]
 async fn update_entity_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateEntityTypeRequest>,
@@ -872,7 +871,7 @@ where
     request_body = [UpdateEntityTypeRequest],
 )]
 async fn update_entity_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     bodies: Json<Vec<UpdateEntityTypeRequest>>,
@@ -927,7 +926,7 @@ where
     request_body = UpdateEntityTypeEmbeddingParams,
 )]
 async fn update_entity_type_embeddings<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -970,7 +969,7 @@ where
     request_body = ArchiveEntityTypeParams,
 )]
 async fn archive_entity_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -1022,7 +1021,7 @@ where
     request_body = UnarchiveEntityTypeParams,
 )]
 async fn unarchive_entity_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,

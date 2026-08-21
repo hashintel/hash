@@ -15,6 +15,7 @@ path = "src/bin/openapi-spec-generator.rs"
 # Public workspace dependencies
 harpc-client              = { workspace = true, public = true }
 harpc-server              = { workspace = true, public = true }
+hash-graph-authentication = { workspace = true, public = true }
 hash-graph-authorization  = { workspace = true, public = true }
 hash-graph-embeddings     = { workspace = true, public = true }
 hash-graph-postgres-store = { workspace = true, public = true, features = ["utoipa"] }
@@ -79,7 +80,13 @@ tokio-util                         = { workspace = true, features = ["codec", "i
 tower                              = { workspace = true }
 tracing-opentelemetry              = { workspace = true }
 utoipa                             = { workspace = true }
+utoipa-scalar                      = { workspace = true }
 uuid                               = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tower = { workspace = true, features = ["util"] }
+uuid  = { workspace = true, features = ["v4"] }
 
 [features]
 clap = ["dep:clap"]

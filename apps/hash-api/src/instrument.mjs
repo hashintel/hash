@@ -77,7 +77,6 @@ Sentry.init({
     process.env.ENVIRONMENT ||
     (isProdEnv ? "production" : "development"),
   sendDefaultPii: true,
-  tracesSampleRate: isProdEnv ? 1.0 : 0,
   // Skip Sentry's tracer setup only when our v2 provider actually
   // registered. Gating on `otlpEndpoint` instead would skip Sentry's
   // setup whenever the env var is set even if our bootstrap threw,

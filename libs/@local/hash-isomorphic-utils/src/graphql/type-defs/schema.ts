@@ -11,6 +11,7 @@ import { entityTypedef } from "./knowledge/entity.typedef.js";
 import { fileTypedef } from "./knowledge/file.typedef.js";
 import { flowTypedef } from "./knowledge/flow.typedef.js";
 import { hashInstanceTypedef } from "./knowledge/hash-instance.typedef.js";
+import { notificationTypedef } from "./knowledge/notification.typedef.js";
 import { orgTypedef } from "./knowledge/org.typedef.js";
 import { pageTypedef } from "./knowledge/page.typedef.js";
 import { userTypedef } from "./knowledge/user.typedef.js";
@@ -47,6 +48,7 @@ const knowledge = [
   fileTypedef,
   flowTypedef,
   hashInstanceTypedef,
+  notificationTypedef,
   orgTypedef,
   pageTypedef,
   userTypedef,

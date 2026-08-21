@@ -1,4 +1,5 @@
 import { computeIqrFences } from "../../shared/outlier-selection/iqr";
+import { nearestRankPercentile } from "../../shared/segment-stats";
 
 import type {
   BatchRow,
@@ -12,46 +13,48 @@ import type {
 /**
  * Summary statistics for one batch segment over a filtered batch set.
  * Uses nearest-rank percentiles (no interpolation/rounding) so the pipeline
- * waterfall matches the backend's batch-timeline numbers. When `excludeOutliers`
- * is set, the segment's per-batch values are first trimmed with the shared
- * Tukey 1.5x IQR rule (same definition as the node/step series) so the
- * waterfall + E2E totals honour the outlier toggle.
+ * waterfall matches the backend's batch-timeline numbers. When
+ * `excludeOutliers` is set, only the mean excludes values outside the shared
+ * Tukey 1.5x IQR fences; the sample size, median and percentiles continue to
+ * describe the full series.
  */
 function segStats(
   batches: BatchRow[],
   key: BatchSegmentKey,
   excludeOutliers: boolean,
 ): BatchTimelineSegment | null {
-  let vals = batches
+  const values = batches
     .map((batch) => batch[key])
     .filter(
       (value): value is number => value != null && value >= 0 && value <= 730,
     );
-  if (vals.length === 0) {
+  if (values.length === 0) {
     return null;
   }
+  let meanValues = values;
   if (excludeOutliers) {
-    const fences = computeIqrFences(vals);
+    const fences = computeIqrFences(values);
     if (fences) {
-      vals = vals.filter(
+      meanValues = values.filter(
         (value) => value >= fences.lower && value <= fences.upper,
       );
     }
-    if (vals.length === 0) {
+    if (meanValues.length === 0) {
       return null;
     }
   }
-  vals.sort((left, right) => left - right);
-  const mean = vals.reduce((sum, value) => sum + value, 0) / vals.length;
-  const midpoint = Math.floor(vals.length / 2);
-  const upper = vals[midpoint];
+  values.sort((left, right) => left - right);
+  const mean =
+    meanValues.reduce((sum, value) => sum + value, 0) / meanValues.length;
+  const midpoint = Math.floor(values.length / 2);
+  const upper = values[midpoint];
   if (upper === undefined) {
     throw new Error("Segment statistics were missing a midpoint value");
   }
   const median =
-    vals.length % 2 === 0
+    values.length % 2 === 0
       ? (() => {
-          const lower = vals[midpoint - 1];
+          const lower = values[midpoint - 1];
           if (lower === undefined) {
             throw new Error(
               "Segment statistics were missing a lower midpoint value",
@@ -60,12 +63,21 @@ function segStats(
           return (lower + upper) / 2;
         })()
       : upper;
-  const p25 = vals[Math.floor(vals.length * 0.25)];
-  const p75 = vals[Math.floor(vals.length * 0.75)];
-  if (p25 === undefined || p75 === undefined) {
+  const p25 = nearestRankPercentile(values, 0.25);
+  const p75 = nearestRankPercentile(values, 0.75);
+  const p95 = nearestRankPercentile(values, 0.95);
+  if (p25 === undefined || p75 === undefined || p95 === undefined) {
     throw new Error("Segment statistics percentile value missing");
   }
-  return { label: "", mean, median, p25, p75, n: vals.length };
+  return {
+    label: "",
+    mean,
+    median,
+    p25,
+    p75,
+    p95,
+    n: values.length,
+  };
 }
 
 /** Pipeline stages in display order: segment key, label, and step type. */
@@ -193,6 +205,8 @@ export function recomputeBatchTimelines(
       stages,
       total_mean: totalDays?.mean ?? stageMeanTotal,
       total_median: totalDays?.median ?? stageMedianTotal,
+      total_p75: totalDays?.p75,
+      total_p95: totalDays?.p95,
     };
   }
 

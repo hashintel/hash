@@ -44,6 +44,28 @@ An end-to-end manufacturing and distribution network (loaded from the **Supply C
 
 <img width="1439" height="747" alt="suppy-chain-with-disruption" src="https://github.com/user-attachments/assets/7ae913db-cfbd-4dd9-bd50-1672c17f2444" />
 
+## Supply Chain Profit
+
+A deliberately compact single-stage supply chain (loaded from the **Supply Chain Profit** menu item) framed as a profit-maximization problem. Raw inventory is replenished by a reorder policy, converted into finished goods by production, and sold to arriving customer demand; demand that arrives while finished-goods stock is empty is lost to a stockout. Unlike the disruption model, every place is untyped -- the model is about token counts, firing rates, and an economic objective rather than per-token attributes.
+
+**Demonstrates:**
+
+- **Untyped places throughout** -- `RawInventory`, `FinishedGoods`, `CustomerDemand`, `SoldOrders`, and `LostSales` are tracked purely by token count, so initial state is entered as plain numbers.
+- **Source transitions** -- "Replenish raw inventory" and "Customer demand arrives" have no input arcs, injecting raw materials and demand at [stochastic rates](petri-net-extensions.md#stochastic-rate) that depend on the decision parameters.
+- **Arc weight for batching** -- replenishment adds a batch of 10 raw tokens at once via an output arc of weight 10.
+- **Competing outcomes with an inhibitor arc** -- "Sell order" consumes a finished good plus a demand token, while "Demand lost to stockout" fires only when `FinishedGoods` is empty (inhibitor arc), so demand is either sold or lost.
+- **An economic objective encoded as a [metric](simulation.md)** -- the `Profit` metric reads decision parameters directly (selling price, production rate, marketing spend, expedited-shipping fraction) and nets revenue against fulfilment, holding, backlog, stockout, and policy costs; a `Service level` metric tracks the share of demand sold rather than lost.
+- **Six operational decision parameters** -- production rate, reorder threshold, batch size, selling price, expedited-shipping fraction, and marketing spend -- plus a market `demand_multiplier`, all exposed for tuning.
+- **Four built-in scenarios** -- _Baseline with enough stock_, _Demand surge with enough stock_, _Baseline without stock_, and _Demand surge without stock_ -- pairing baseline vs. surge demand with a stocked vs. empty start. Scenario defaults sit deliberately near, but not at, the profit optimum.
+
+**Suggested initial state:** pick a scenario from the scenario panel and press Play. _Baseline with enough stock_ seeds `RawInventory` **200** and `FinishedGoods` **100**; the _without stock_ variants start empty and let you watch stockouts and lost sales build before replenishment catches up. Select the `Profit` metric in the timeline to compare policies. Because the policy costs are charged per observation, compare runs at the same simulation horizon.
+
+**Optimization:** the profit objective and its decision parameters make this the model used to demonstrate parameter search -- the [Petrinaut CLI](../../../@local/petrinaut-arch-docs/content/cli/usage-manual.mdx) can maximize `Profit` over `production_rate`, `reorder_threshold`, and `batch_size` while holding the remaining levers fixed.
+
+**Key concepts:** [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [inhibitor arcs](petri-net-extensions.md#inhibitor-arcs), [competing transitions](useful-patterns.md#competing-transitions--routing), [optimization objectives](useful-patterns.md#optimization-objectives-metrics-that-read-parameters), [scenarios](scenarios.md).
+
+<!-- TODO: add a screenshot of the Supply Chain Profit Optimization example net. -->
+
 ## Deployment Pipeline
 
 A software release process with a safety gate and an incident feedback loop. Deployments and incidents arrive at stochastic rates; deployments may only start when no incident is open and no other deployment is running, and risky releases can themselves cause incidents that close the gate.
@@ -107,12 +129,12 @@ An orbital mechanics simulation: satellites are continuously launched into orbit
 - **`Distribution.map()` for coordinate conversion** -- a uniform launch angle is sampled once, then `.map()` derives both `x` (cosine) and `y` (sine) from the same underlying sample for a coherent polar-to-cartesian position.
 - **Predicate transitions based on geometry** -- "Collision" checks the distance between two satellites and "Crash" checks distance from the planet's surface, routing tokens to the Debris place.
 - **Arc weight 2** on the "Collision" transition -- it consumes two satellites from the Space place at once to evaluate pairwise proximity.
-- **Scenarios** -- _Moon Orbit_ (low gravity, gentle arcs) and _Earth Orbit_ (high orbital velocities, frequent launches) preconfigure the gravitational constant, planet radius, and launch parameters.
+- **Scenarios** -- _Moon Orbit_ (low gravity, gentle arcs) and _Earth Orbit_ (high orbital velocities, frequent launches) preconfigure the gravitational constant, planet radius, and launch parameters. _Pre-deployed Constellation_ defines its initial state [as code](scenarios.md#code-mode-define-as-code), building a ring of satellites with `range(...).map(...)` from two scenario parameters (`number_of_satellites`, `initial_altitude`). Each satellite starts tangentially at circular-orbit speed, so the whole ring stays in orbit from the first frame.
 - **[Metrics](simulation.md)** -- satellites in orbit, debris objects, average orbital radius, and average orbital speed.
 
 **Suggested initial state:** no initial tokens needed -- pick a scenario (e.g. _Earth Orbit_) and press Play. The "LaunchSatellite" source transition creates satellites with randomized orbital positions and velocities. Select the Space place and open the visualizer preview to watch the orbits fill up. The velocity for a roughly circular orbit at radius `r` is approximately `sqrt(gravitational_constant / r)`.
 
-**Bundled extras:** four scenarios -- **Moon Orbit**, **Earth Orbit**, **Mars Orbit**, and **Solar Orbit** -- that tune the physical constants for very different orbital regimes. Switch between them in Simulation Settings to compare.
+**Bundled extras:** five scenarios -- **Moon Orbit**, **Earth Orbit**, **Mars Orbit**, and **Solar Orbit** tune the physical constants for very different orbital regimes, and **Pre-deployed Constellation** starts with a configurable ring of satellites already in orbit (its initial state is authored in code mode). Switch between them in Simulation Settings to compare.
 
 **Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [visualizers](petri-net-extensions.md#visualizer), [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [distributions and `.map()`](petri-net-extensions.md#distributions), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md).
 

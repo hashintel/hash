@@ -2,6 +2,7 @@ import { useId } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { styles } from "./radio.recipe";
 
 import type { SharedInputProps, Tone } from "../../util/form-shared";
@@ -41,7 +42,7 @@ export const Radio = ({
   /** Vertical alignment of the circle against the label when it wraps over multiple lines */
   labelAlign?: "top" | "center";
   /** The tone applied when the radio is selected */
-  tone?: Exclude<Tone, "error"> | "success";
+  tone?: Exclude<Tone, "error" | "warning">;
   /** An optional value used for native form submissions */
   htmlValue?: string;
 } & SharedInputProps<HTMLInputElement, boolean> &
@@ -77,7 +78,7 @@ export const Radio = ({
         checked={value}
         disabled={disabled}
         required={required}
-        autoFocus={autoFocus}
+        {...resolveAutoFocusProps(autoFocus)}
         onChange={(event) => onChange(event.target.checked)}
         onFocus={onFocus}
         onBlur={onBlur}

@@ -10,8 +10,10 @@ env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
-
-  VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+  # The legacy Vault, still holding `aws/creds/dev-deploy`. Inline rather than a
+  # variable because it goes away once those credentials move; `vars.VAULT_ADDR`
+  # is the per-environment one and would resolve to the wrong instance here.
+  VAULT_ADDR: https://vault.blockprotocol.org
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -35,7 +37,7 @@ jobs:
     if: needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-24.04
     permissions:
-      id-token: write
+      contents: read
     outputs:
       unit: ${{ steps.packages.outputs.unit }}
       integration: ${{ steps.packages.outputs.integration }}
@@ -46,10 +48,9 @@ jobs:
           fetch-depth: 2
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ secrets.VAULT_ADDR }}
           rust: false
 
       - name: Determine changed packages
@@ -63,12 +64,34 @@ jobs:
           INTEGRATION_BENCH_PACKAGES=$(turbo query "$INTEGRATION_BENCH_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 
-          echo "unit=$UNIT_BENCH_PACKAGES" | tee -a $GITHUB_OUTPUT
-          echo "integration=$INTEGRATION_BENCH_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "unit=$UNIT_BENCH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
+          echo "integration=$INTEGRATION_BENCH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
+
+  sccache-credentials:
+    needs: [optimize-ci]
+    if: needs.optimize-ci.outputs.skip == 'false'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Mint sccache credentials
+        id: mint
+        uses: $/.github/actions/mint-sccache-credentials
+        with:
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   unit-benches:
     name: Unit
-    needs: [setup]
+    needs: [setup, sccache-credentials]
     permissions:
       id-token: write
       contents: read
@@ -86,18 +109,19 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ secrets.VAULT_ADDR }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
@@ -105,7 +129,7 @@ jobs:
 
       - name: Warm up repository
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Run base benches
         if: github.event_name == 'pull_request'
@@ -126,23 +150,24 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name != 'pull_request'
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ secrets.VAULT_ADDR }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
             @rust/hash-repo-chores
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Run head benches
         run: turbo run bench:unit --filter "${{ matrix.name }}"
@@ -151,7 +176,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')
-          echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
+          echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> "$GITHUB_ENV"
           echo '<details><summary><h2>${{ matrix.name }} – Units</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
@@ -163,7 +188,6 @@ jobs:
         if: github.event.pull_request.head.repo.full_name == github.repository
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
-          exportToken: true
           url: ${{ env.VAULT_ADDR }}
           method: jwt
           role: dev
@@ -185,7 +209,7 @@ jobs:
 
   integration-benches:
     name: Integration
-    needs: [setup]
+    needs: [setup, sccache-credentials]
     permissions:
       id-token: write
       contents: read
@@ -203,18 +227,19 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ secrets.VAULT_ADDR }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
@@ -222,7 +247,7 @@ jobs:
 
       - name: Warm up repository
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
@@ -256,7 +281,7 @@ jobs:
           mkdir -p logs
           turbo run start --env-mode=loose --log-order stream >var/logs/base-background-task.log 2>&1 &
           PID=$!
-          echo "pid=$PID" | tee -a $GITHUB_OUTPUT
+          echo "pid=$PID" | tee -a "$GITHUB_OUTPUT"
 
           turbo run start:healthcheck --env-mode=loose
 
@@ -302,24 +327,23 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name != 'pull_request'
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ secrets.VAULT_ADDR }}
           sccache: false # sccache is already running in the background
 
       - name: Prune repository
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
             @rust/hash-repo-chores
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
@@ -351,7 +375,7 @@ jobs:
           mkdir -p logs
           turbo run start --env-mode=loose --log-order stream >var/logs/head-background-task.log 2>&1 &
           PID=$!
-          echo "pid=$PID" | tee -a $GITHUB_OUTPUT
+          echo "pid=$PID" | tee -a "$GITHUB_OUTPUT"
 
           turbo run start:healthcheck --env-mode=loose
 
@@ -368,7 +392,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')
-          echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
+          echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> "$GITHUB_ENV"
           echo '<details><summary><h2>${{ matrix.name }} – Integrations</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
@@ -380,7 +404,6 @@ jobs:
         if: github.event.pull_request.head.repo.full_name == github.repository
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
-          exportToken: true
           url: ${{ env.VAULT_ADDR }}
           method: jwt
           role: dev
@@ -415,7 +438,14 @@ jobs:
 
   passed:
     name: Benches passed
-    needs: [setup, unit-benches, integration-benches, optimize-ci]
+    needs:
+      [
+        setup,
+        sccache-credentials,
+        unit-benches,
+        integration-benches,
+        optimize-ci,
+      ]
     if: always() && needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-latest
     permissions:
@@ -424,6 +454,9 @@ jobs:
       - name: Check setup script
         run: |
           [[ ${{ needs.setup.result }} = success ]]
+      - name: Check sccache credentials
+        run: |
+          [[ ${{ needs.sccache-credentials.result }} = success ]]
       - name: Check unit benches
         run: |
           [[ ${{ needs.unit-benches.result }} =~ success|skipped ]]

@@ -73,6 +73,67 @@ function recordsOnlyWireStep(
 }
 
 describe("deriveTimingFromRecords", () => {
+  it("uses campaign_rows as canonical QA observations while retaining batch evidence", () => {
+    const step = recordsOnlyStep({
+      type: "qa_hold",
+      timing_grain: "campaign",
+      n_campaigns: 2,
+      n_batches: 5,
+      campaign_rows: {
+        columns: detailRows.columns,
+        rows: [
+          { consumption_date: "2026-01-12", dwell_days: 4 },
+          { consumption_date: "2026-02-15", dwell_days: 8 },
+        ],
+      },
+      observations: [{ date: "2025-01-01", value: 999 }],
+    });
+
+    const out = ensureStepStats(step);
+    expect(out.observations).toEqual([
+      { date: "2026-01-12", value: 4 },
+      { date: "2026-02-15", value: 8 },
+    ]);
+    expect(out.stats.n).toBe(2);
+    expect(out.detail_rows).toBe(detailRows);
+    expect(out.n_campaigns).toBe(2);
+    expect(out.n_batches).toBe(5);
+  });
+
+  it("uses detail_rows as canonical observations for omitted-grain batch QA", () => {
+    const step = recordsOnlyStep({
+      type: "qa_hold",
+      timing_grain: undefined,
+      n_batches: 2,
+      campaign_rows: undefined,
+      detail_rows: {
+        columns: [],
+        rows: [
+          {
+            qa_decision_date: "2026-01-12",
+            prod_to_qa_decision_days: 4,
+          },
+          {
+            qa_decision_date: "2026-02-15",
+            prod_to_qa_decision_days: 8,
+          },
+        ],
+      },
+      ref_date_col: "qa_decision_date",
+      value_col: "prod_to_qa_decision_days",
+    });
+
+    const out = ensureStepStats(step);
+
+    expect(out.observations).toEqual([
+      { date: "2026-01-12", value: 4 },
+      { date: "2026-02-15", value: 8 },
+    ]);
+    expect(out.stats.n).toBe(2);
+    expect(out.n_batches).toBe(2);
+    expect(out.campaign_rows).toBeUndefined();
+  });
+
   it("rehydrates observations/durations/monthly/stats from detail_rows", () => {
     const derived = deriveTimingFromRecords(recordsOnlyStep());
     expect(
@@ -203,6 +264,32 @@ describe("deriveTimingFromRecords", () => {
     },
   );
 
+  it("uses detail_rows as the explicit v1.2 fallback for campaign timing", () => {
+    const step = recordsOnlyStep({
+      type: "qa_hold",
+      timing_grain: "campaign",
+      campaign_rows: null,
+      detail_rows: {
+        columns: [],
+        rows: [
+          { campaign_date: "2026-04-01", qa_days: 4 },
+          { campaign_date: "2026-05-01", qa_days: 8 },
+        ],
+      },
+      ref_date_col: "campaign_date",
+      value_col: "qa_days",
+    });
+
+    const out = ensureStepStats(step);
+
+    expect(out.observations).toEqual([
+      { date: "2026-04-01", value: 4 },
+      { date: "2026-05-01", value: 8 },
+    ]);
+    expect(out.durations).toEqual([4, 8]);
+    expect(out.stats.n).toBe(2);
+  });
+
   it("derives procurement timing as one first/full observation per PO", () => {
     const step = recordsOnlyStep({
       type: "procurement",
@@ -279,5 +366,43 @@ describe("deriveTimingFromRecords", () => {
     ]);
     expect(out.stats.n).toBe(2);
     expect(out.complete_timing?.stats.n).toBe(2);
+  });
+
+  it("derives plain procurement observations from evidence rows", () => {
+    const step = recordsOnlyStep({
+      type: "procurement",
+      plan: 14,
+      detail_rows: {
+        columns: [],
+        rows: [
+          {
+            po_number: "PO-1",
+            po_date: "2026-01-01",
+            first_gr_date: "2026-01-11",
+            last_gr_date: "2026-01-13",
+            po_item: "00010",
+          },
+          {
+            po_number: "PO-1",
+            po_item: "00020",
+            po_date: "2026-01-01",
+            first_gr_date: "2026-01-12",
+            last_gr_date: "2026-01-13",
+          },
+        ],
+      },
+      ref_date_col: "first_gr_date",
+      value_col: "lead_time_days",
+    });
+
+    const out = ensureStepStats(step);
+    expect(out.observations[0]).toEqual({
+      date: "2026-01-11",
+      value: 10,
+    });
+    expect(out.complete_timing?.observations[0]).toEqual({
+      date: "2026-01-13",
+      value: 12,
+    });
   });
 });

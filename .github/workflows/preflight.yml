@@ -2,41 +2,21 @@ name: Preflight
 
 on:
   pull_request:
-    paths:
-      - ".github/workflows/preflight.yml"
-  pull_request_target:
+    # `edited` matters: the todo-comments scan derives its ticket IDs from the PR title.
     types: [opened, synchronize, reopened, edited]
   merge_group:
 
+permissions: {}
+
 jobs:
-  dependencies:
-    name: Dependencies
-    permissions:
-      contents: read
-      pull-requests: write
-    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@d76c83934e25cd960dd0b8424f8909ce6b7ad939 # main
-
-  labeler:
-    name: Labeler
-    if: github.event_name != 'merge_group'
-    permissions:
-      contents: read
-      pull-requests: write
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Apply labels
-        uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
-        with:
-          sync-labels: true
-
   todo-comments:
     name: Todo comments
     permissions:
       contents: read
-    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@d76c83934e25cd960dd0b8424f8909ce6b7ad939 # main
+    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@69449a772a55c55a101d4fefdceb4024b6bc3107 # main
 
-  pr-title:
-    name: PR title
+  lint:
+    name: Lint
     permissions:
       contents: read
-    uses: hashintel/.github/.github/workflows/preflight-pr-title.yml@d76c83934e25cd960dd0b8424f8909ce6b7ad939 # main
+    uses: hashintel/.github/.github/workflows/preflight-actionlint.yml@69449a772a55c55a101d4fefdceb4024b6bc3107 # main

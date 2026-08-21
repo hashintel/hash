@@ -31,15 +31,19 @@ use type_system::knowledge::{Entity, PropertyValue};
 pub use self::{
     ast::{
         Aliased, AliasedCorrelation, BinaryExpression, BinaryOperator, Binder, BoundStatement,
-        ColumnName, ColumnReference, Constant, Correlation, Distinctness, EqualityOperator,
-        Expression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
-        FromItemSubqueryBuilder, FromItemTableBuilder, Function, GroupByExpression, Identifier,
-        JoinType, OnConflict, OrderByExpression, Placeholder, SelectExpression, SelectList,
-        SelectStatement, SetOperation, SetOperator, Statement, TableName, TableReference,
-        UnaryExpression, UnaryOperator, VariadicExpression, VariadicOperator, WhereExpression,
-        WindowStatement, WithExpression, bulk_insert,
+        ColumnName, ColumnReference, CommonTableExpression, Constant, Correlation, EmptyVecError,
+        EqualityOperator, Expression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
+        FromItemSubqueryBuilder, FromItemTableBuilder, Function, GroupByClause, GroupingElement,
+        Identifier, JoinType, Materialization, NonEmptyVec, NonFinitePercentage, NullsOrder,
+        OnConflict, OrderByClause, Placeholder, SamplePercentage, SamplingMethod, SelectClause,
+        SelectExpression, SelectList, SelectQuantifier, SelectStatement, SetOperator,
+        SetQuantifier, SimpleSelect, SortBy, SortDirection, Statement, TableName, TableReference,
+        TableSample, UnaryExpression, UnaryOperator, VariadicExpression, VariadicOperator,
+        WindowDefinition, WithClause, bulk_insert,
     },
-    compile::{SelectCompiler, SelectCompilerError},
+    compile::{
+        Distinctness, QUANTIZED_RANK_OVERFETCH, SelectCompiler, SelectCompilerError, StatementShape,
+    },
     postgres_type::PostgresType,
     table::{Alias, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation, Table},
 };
@@ -210,7 +214,7 @@ pub(crate) mod test_helper {
     use hash_graph_store::data_type::DataTypeQueryPath;
 
     use crate::store::postgres::query::{
-        Alias, Expression, Function, PostgresQueryPath as _, WindowStatement,
+        Alias, Expression, Function, PostgresQueryPath as _, WindowDefinition,
     };
 
     pub fn trim_whitespace(string: &str) -> String {
@@ -218,20 +222,18 @@ pub(crate) mod test_helper {
     }
 
     pub fn max_version_expression() -> Expression {
-        Expression::Window(
-            Box::new(Expression::Function(Function::Max(Box::new(
-                Expression::ColumnReference(
-                    DataTypeQueryPath::Version
-                        .terminating_column()
-                        .0
-                        .aliased(Alias {
-                            condition_index: 0,
-                            chain_depth: 0,
-                            number: 0,
-                        }),
-                ),
+        Expression::window(
+            Expression::Function(Function::Max(Box::new(Expression::ColumnReference(
+                DataTypeQueryPath::Version
+                    .terminating_column()
+                    .0
+                    .aliased(Alias {
+                        condition_index: 0,
+                        chain_depth: 0,
+                        number: 0,
+                    }),
             )))),
-            WindowStatement::partition_by(Expression::ColumnReference(
+            WindowDefinition::builder().partition_by(Expression::ColumnReference(
                 DataTypeQueryPath::BaseUrl
                     .terminating_column()
                     .0

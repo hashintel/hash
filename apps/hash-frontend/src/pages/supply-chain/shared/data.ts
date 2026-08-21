@@ -1,4 +1,10 @@
-import { fetchArtifactJson } from "../../../shared/analysis-client";
+import { parseProductionSchedule } from "@local/hash-isomorphic-utils/production-schedule";
+import { parseSiteProductionTimeline } from "@local/hash-isomorphic-utils/site-production-timeline";
+
+import {
+  AnalysisError,
+  fetchArtifactJson,
+} from "../../../shared/analysis-client";
 import { isDwellType } from "./categories";
 import {
   ensureGraphStats,
@@ -11,13 +17,16 @@ import {
 } from "./product-dwell-scope";
 import {
   fetchGraph as fetchAnalysisGraph,
+  fetchProductionSchedule as fetchAnalysisProductionSchedule,
   fetchProducts as fetchAnalysisProducts,
   fetchSiteSummary as fetchAnalysisSiteSummary,
+  fetchSiteProductionTimeline as fetchAnalysisSiteProductionTimeline,
   fetchSites as fetchAnalysisSites,
   fetchStepDetail as fetchAnalysisStepDetail,
   fetchSupplierPerformance as fetchAnalysisSupplierPerformance,
 } from "./supply-chain-analysis-requests";
 
+import type { ProductionSchedule } from "./production-schedule-types";
 import type {
   Product,
   GraphData,
@@ -29,6 +38,7 @@ import type {
   SiteSummary,
 } from "./types";
 import type { WebId } from "@blockprotocol/type-system";
+import type { SiteProductionTimeline } from "@local/hash-isomorphic-utils/site-production-timeline";
 
 /** A selectable site with its data slug and display name. */
 export interface SiteRef {
@@ -44,6 +54,34 @@ let productsCache: Promise<Product[]> | null = null;
  * rejected promise is evicted so a later mount can retry.
  */
 const siteDataCache = new Map<string, Promise<SiteData>>();
+const productionScheduleCache = new Map<string, Promise<ProductionSchedule>>();
+const siteProductionTimelineCache = new Map<
+  string,
+  Promise<SiteProductionTimeline>
+>();
+
+export class SiteProductionTimelineUnavailableError extends Error {
+  constructor(siteId: string) {
+    super(`Recorded line occupancy is not published for site "${siteId}"`);
+    this.name = "SiteProductionTimelineUnavailableError";
+  }
+}
+
+const isOptionalArtifactUnavailable = (error: unknown): boolean => {
+  let current = error;
+  const seen = new Set<unknown>();
+  while (current instanceof Error && !seen.has(current)) {
+    seen.add(current);
+    if (
+      current instanceof AnalysisError &&
+      current.code === "OPTIONAL_ARTIFACT_UNAVAILABLE"
+    ) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
+};
 
 /**
  * Site-wide supplier performance. Cached for the session; missing optional
@@ -65,6 +103,8 @@ export function configureDataSource({
   productsCache = null;
   supplierPerformanceCache = null;
   siteDataCache.clear();
+  productionScheduleCache.clear();
+  siteProductionTimelineCache.clear();
 }
 
 const getActiveWebId = (): WebId => {
@@ -140,6 +180,54 @@ export async function fetchGraph(productId: string): Promise<GraphData> {
   );
 
   return { ...graph, nodes: scopedNodes };
+}
+
+/**
+ * Lazily load and session-cache a product's optional schedule. Rejections are
+ * evicted so a transient gateway failure can be retried by remounting.
+ */
+export function fetchProductionSchedule(
+  productId: string,
+): Promise<ProductionSchedule> {
+  const key = `${getActiveWebId()}::${productId}`;
+  const cached = productionScheduleCache.get(key);
+  if (cached) {
+    return cached;
+  }
+  const pending = fetchAnalysisProductionSchedule<unknown>(
+    getActiveWebId(),
+    productId,
+  ).then((schedule) => parseProductionSchedule(schedule, productId));
+  productionScheduleCache.set(key, pending);
+  pending.catch(() => productionScheduleCache.delete(key));
+  return pending;
+}
+
+/**
+ * Load the optional, focus-neutral site occupancy artifact. The key includes
+ * the web and site; configureDataSource clears it on dataset lifecycle changes.
+ * Failed requests are evicted so the UI's Retry action performs a real fetch.
+ */
+export function fetchSiteProductionTimeline(
+  siteId: string,
+): Promise<SiteProductionTimeline> {
+  const webId = getActiveWebId();
+  const key = `${webId}::${siteId}::1.2`;
+  const cached = siteProductionTimelineCache.get(key);
+  if (cached) {
+    return cached;
+  }
+  const pending = fetchAnalysisSiteProductionTimeline<unknown>(webId, siteId)
+    .catch((error: unknown) => {
+      if (isOptionalArtifactUnavailable(error)) {
+        throw new SiteProductionTimelineUnavailableError(siteId);
+      }
+      throw error;
+    })
+    .then((timeline) => parseSiteProductionTimeline(timeline, siteId));
+  siteProductionTimelineCache.set(key, pending);
+  pending.catch(() => siteProductionTimelineCache.delete(key));
+  return pending;
 }
 
 export function fetchSupplierPerformance(): Promise<SiteSupplierPerformance | null> {

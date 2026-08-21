@@ -64,6 +64,64 @@ function siteNode(overrides: Partial<SiteNode>): SiteNode {
 }
 
 describe("deduplicateNodes", () => {
+  it("deduplicates procurement only at material, supplier, and basis grain", () => {
+    const productA: Product = { id: "pa", name: "Product A", material: "FG-A" };
+    const productB: Product = { id: "pb", name: "Product B", material: "FG-B" };
+    const supplierA = node({
+      id: "proc-mat-supplier-a-buy",
+      label: "Procurement: Material — Supplier A — Buy",
+      type: "procurement",
+      material: "MAT-1",
+      plant: "PL-A",
+      supplier_id: "A",
+      receipt_basis: "ordinary",
+      material_value: {
+        unit_cost: 2,
+        currency: "USD",
+        unit_cost_source: "Database",
+        uom: "KG",
+        monthly: [{ month: "2026-01", quantity: 100 }],
+      },
+    });
+    const supplierB = node({
+      ...supplierA,
+      id: "proc-mat-supplier-b-consignment",
+      label: "Procurement: Material — Supplier B — Consignment",
+      supplier_id: "B",
+      receipt_basis: "consignment",
+    });
+    const graph = (product: Product, nodes: GraphNode[]): GraphData => ({
+      product_id: product.id,
+      product_name: product.name,
+      nodes,
+      edges: [],
+      pipeline_summary: {},
+    });
+    const site: SiteData = {
+      graphs: [
+        { product: productA, graph: graph(productA, [supplierA, supplierB]) },
+        { product: productB, graph: graph(productB, [supplierA]) },
+      ],
+    };
+
+    const procurement = deduplicateNodes(site).filter(
+      (row) => row.type === "procurement",
+    );
+    expect(procurement).toHaveLength(2);
+    expect(
+      procurement
+        .find((row) => row.supplier_id === "A")
+        ?.products.map((product) => product.id)
+        .sort(),
+    ).toEqual(["pa", "pb"]);
+    expect(
+      procurement.find((row) => row.supplier_id === "B")?.products,
+    ).toHaveLength(1);
+    expect(
+      procurement.find((row) => row.supplier_id === "A")?.material_value,
+    ).toEqual(supplierA.material_value);
+  });
+
   it("merges shared raw-material nodes across products by material, plant, type, and series", () => {
     const shared = node({
       id: "rm",
@@ -117,9 +175,9 @@ describe("deduplicateNodes", () => {
     const monthly = [kgDayMonth("2026-01", 10000)];
     const sharedA = node({
       id: "im-a",
-      label: "Intermediate Dwell: MN-L Wet Cake",
+      label: "Intermediate Dwell: Intermediate Cake",
       type: "intermediate_dwell",
-      material: "MN-L Wet Cake",
+      material: "Intermediate Cake",
       plant: "PL-A",
       stats: stats(10, 23.5),
       cost: cost(100),
@@ -469,5 +527,26 @@ describe("site rollups", () => {
     expect(topMismatch).toBeDefined();
     expect(topMismatch!.id).toBe("o");
     expect(topMismatch!.deviationPct).toBeCloseTo(200, 6);
+  });
+
+  it("uses the procurement node plan for every observation", () => {
+    const procurement = siteNode({
+      id: "proc",
+      type: "procurement",
+      stats: stats(2, 15),
+      plan: 10,
+      observations: [
+        {
+          date: "2026-01-01",
+          value: 12,
+        },
+        {
+          date: "2026-02-01",
+          value: 18,
+        },
+      ],
+    });
+    const [result] = topPlanningMismatches([procurement], 5);
+    expect(result?.deviationPct).toBe(50);
   });
 });

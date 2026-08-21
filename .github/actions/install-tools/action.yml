@@ -5,9 +5,12 @@ inputs:
   token:
     description: GitHub token for authentication
     required: true
-  vault_address:
-    description: The URL of the Vault server. If empty, sccache installation is skipped.
-    required: true
+  encrypted_sccache_credentials:
+    description: Encrypted sccache credential bundle from mint-sccache-credentials. Empty on fork pull requests, which is what skips sccache there.
+    default: ""
+  sccache_encryption_key:
+    description: The symmetric key decrypting `encrypted_sccache_credentials`.
+    default: ""
   rust:
     description: Should Rust be installed? Can either be `"true"` or `true`
     default: "true"
@@ -19,16 +22,45 @@ runs:
   using: composite
 
   steps:
+    # `mise install` builds the Rust toolchain by shelling out to `rustup`, so mise's own
+    # `http_retries` does not cover that download. Non-fatal here, retried below.
     - name: Run `mise install` with `ci` environment
+      id: mise-install
       uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+      continue-on-error: true
       with:
+        # renovate: datasource=github-releases depName=jdx/mise
+        version: 2026.7.14
         install_args: --env ci --jobs 1 --locked
       env:
         MISE_VERBOSE: 1
         GITHUB_TOKEN: ${{ inputs.token }}
 
+    # Without `mise` on `PATH` there is no install to retry, only five minutes of `not found`.
+    - name: Fail fast if `mise` itself is missing
+      if: ${{ steps.mise-install.outcome != 'success' }}
+      shell: bash
+      run: |
+        command -v mise > /dev/null || {
+          echo "::error::mise is not on PATH: jdx/mise-action failed during its own setup, so there is no install to retry"
+          exit 1
+        }
+
+    # Skipped on the happy path; `!= 'success'` so an unresolved `outcome` retries too.
+    - name: Retry `mise install` if it failed
+      if: ${{ steps.mise-install.outcome != 'success' }}
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      with:
+        timeout_minutes: 20
+        max_attempts: 5
+        retry_wait_seconds: 60
+        command: mise install --env ci --jobs 1 --locked
+      env:
+        MISE_VERBOSE: 1
+        GITHUB_TOKEN: ${{ inputs.token }}
+
     - name: Install package manager via corepack
-      uses: ./.github/actions/install-corepack
+      uses: $/.github/actions/install-corepack
 
     - name: Setup environment
       shell: bash
@@ -47,7 +79,9 @@ runs:
         command: ${{ github.action_path }}/install-rust.sh
 
     - name: "Install sccache"
-      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.vault_address != '' }}
-      uses: ./.github/actions/install-sccache
+      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.encrypted_sccache_credentials != '' }}
+      continue-on-error: true
+      uses: $/.github/actions/install-sccache
       with:
-        vault_address: ${{ inputs.vault_address }}
+        encrypted_credentials: ${{ inputs.encrypted_sccache_credentials }}
+        encryption_key: ${{ inputs.sccache_encryption_key }}

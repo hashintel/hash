@@ -1,0 +1,39 @@
+{
+  "name": "@local/petrinaut-arch-docs",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Generates the Petrinaut architecture bundle from in-code annotations",
+  "license": "(MIT OR Apache-2.0)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "doc:architecture": "tsx src/cli.ts build",
+    "fix:eslint": "oxlint --fix --report-unused-disable-directives-severity=error .",
+    "lint:arch-docs": "tsx src/cli.ts check",
+    "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
+    "lint:tsc": "tsc --noEmit",
+    "test:unit": "vitest --run src"
+  },
+  "dependencies": {
+    "dependency-cruiser": "18.0.0",
+    "js-yaml": "4.3.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@hashintel/petrinaut": "workspace:*",
+    "@hashintel/petrinaut-cli": "workspace:*",
+    "@hashintel/petrinaut-core": "workspace:*",
+    "@local/tsconfig": "workspace:*",
+    "@types/js-yaml": "^4",
+    "@types/node": "22.18.13",
+    "oxlint": "1.63.0",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    // Copies the bundle into `src/content/`. Generating it is the generator's
+    // job, declared here as a dependency so Turborepo orders the two — the sync
+    // script used to shell out and run the generator itself, which put a
+    // cross-package build step outside the task graph.
+    "sync:bundle": {
+      "cache": false,
+      "dependsOn": ["@local/petrinaut-arch-docs#doc:architecture"]
+    },
+    // `build`, `lint:tsc` and `dev` all need the synced content. Depending on one
+    // shared `sync:bundle` rather than each running it keeps them from racing on
+    // the same directories when Turborepo runs them concurrently.
+    "build": {
+      "cache": false,
+      "dependsOn": ["sync:bundle"],
+      "outputs": ["dist/**"]
+    },
+    "lint:tsc": {
+      "cache": false,
+      "dependsOn": ["sync:bundle"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["sync:bundle"]
+    }
+  }
+}

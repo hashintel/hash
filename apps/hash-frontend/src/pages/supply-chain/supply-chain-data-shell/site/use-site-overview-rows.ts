@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { DWELL_TYPES } from "../../shared/categories";
-import { useCostParams, useOutlierSetting } from "../../shared/cost";
+import {
+  computePeriodMaterialValue,
+  useCostParams,
+  useOutlierSetting,
+} from "../../shared/cost";
 import { fetchSupplierPerformance } from "../../shared/data";
 import { selectStat, useBaseMeasure } from "../../shared/measure-context";
 import { applyOutlierSelectionToNode } from "../../shared/outlier-selection";
@@ -11,8 +15,12 @@ import {
 } from "../../shared/period-trends";
 import { useProcurementBasis } from "../../shared/procurement-basis-context";
 import {
-  windowGraphNodeToRange,
+  shouldShowProcurementPlanningRow,
+  summarizeProcurementPlanning,
+} from "../../shared/procurement-planning";
+import {
   applyProcurementBasisToNode,
+  filterGraphNodeByDateRange,
 } from "../../shared/range-filter";
 import {
   totalSiteDwellCost,
@@ -116,15 +124,24 @@ export function useSiteOverviewRows({
   }, [dedupedNodes, excludeOutliers, procurementBasis]);
 
   const filteredNodes = useMemo((): SiteNode[] => {
-    return historicalNodes.map((count) => ({
-      ...windowGraphNodeToRange(count, timeRange),
+    return dedupedNodes.map((count) => ({
+      ...filterGraphNodeByDateRange(
+        count,
+        timeRange,
+        excludeOutliers,
+        procurementBasis,
+      ),
       products: count.products,
     }));
-  }, [historicalNodes, timeRange]);
+  }, [dedupedNodes, excludeOutliers, procurementBasis, timeRange]);
 
   const historicalNodesByKey = useMemo(() => {
     return new Map(historicalNodes.map((count) => [siteNodeKey(count), count]));
   }, [historicalNodes]);
+
+  const sourceNodesByKey = useMemo(() => {
+    return new Map(dedupedNodes.map((count) => [siteNodeKey(count), count]));
+  }, [dedupedNodes]);
 
   const planningVisibleNodes = useMemo(() => {
     if (!excludeLowSamples) {
@@ -204,25 +221,53 @@ export function useSiteOverviewRows({
   ]);
 
   const planningRows = useMemo(() => {
-    return planningVisibleNodes
-      .filter(
-        (count) => count.plan != null && count.plan > 0 && count.stats.n > 0,
-      )
-      .map((count) => {
-        const plan = count.plan as number;
-        const historical =
-          historicalNodesByKey.get(siteNodeKey(count)) ?? count;
-        const trend = computeTimingTrend(historical, timeRange, measure);
-        return {
-          ...count,
-          deviationPct:
-            (((selectStat(count.stats, measure) ?? 0) - plan) / plan) * 100,
-          trendPct: trend.pctChange,
-          previousValue: trend.previousValue,
-          previousTrendN: trend.previousN,
-        };
-      });
-  }, [planningVisibleNodes, historicalNodesByKey, timeRange, measure]);
+    return planningVisibleNodes.flatMap((count) => {
+      const planningSummary =
+        count.type === "procurement"
+          ? summarizeProcurementPlanning(count.observations, count.plan)
+          : null;
+      const plan = count.plan;
+      const shouldShow =
+        count.type === "procurement"
+          ? shouldShowProcurementPlanningRow(plan, count.stats.n)
+          : plan != null && plan > 0 && count.stats.n > 0;
+      if (!shouldShow || plan == null) {
+        return [];
+      }
+      const historical = historicalNodesByKey.get(siteNodeKey(count)) ?? count;
+      const source = sourceNodesByKey.get(siteNodeKey(count)) ?? count;
+      const trend = computeTimingTrend(historical, timeRange, measure);
+      const deviationPct =
+        plan <= 0
+          ? null
+          : count.type === "procurement"
+            ? ((measure === "mean"
+                ? planningSummary?.meanVariancePct
+                : measure === "median"
+                  ? planningSummary?.medianVariancePct
+                  : null) ??
+              (((selectStat(count.stats, measure) ?? 0) - plan) / plan) * 100)
+            : (((selectStat(count.stats, measure) ?? 0) - plan) / plan) * 100;
+      return {
+        ...count,
+        plan,
+        periodMaterialValue: computePeriodMaterialValue(
+          source.material_value,
+          timeRange,
+        ),
+        deviationPct,
+        trendPct: trend.pctChange,
+        previousValue: trend.previousValue,
+        previousTrendN: trend.previousN,
+      };
+    });
+  }, [
+    planningVisibleNodes,
+    historicalNodesByKey,
+    sourceNodesByKey,
+    timeRange,
+    measure,
+  ]);
 
   const windowedSupplier = useMemo(() => {
     if (!supplierData) {
@@ -282,6 +327,7 @@ export function useSiteOverviewRows({
   return {
     loading,
     error,
+    historicalNodes,
     filteredNodes,
     summaryStats,
     siteCurrency,

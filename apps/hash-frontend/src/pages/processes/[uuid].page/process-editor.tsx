@@ -6,10 +6,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import { type SDCPN } from "@hashintel/petrinaut";
+import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import {
   type HostNetMode,
+  type HostToIframeMessage,
   type PetrinautAiMessage,
+  type PetrinautHostCapabilities,
   type RevisionSummary,
   type SavedSnapshot,
 } from "../shared/messages";
@@ -19,6 +23,7 @@ import {
   readAiMessages,
   writeAiMessages,
 } from "./process-editor/ai-messages-storage";
+import { getPetrinautHostCapabilities } from "./process-editor/get-petrinaut-host-capabilities";
 import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
 import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 
@@ -52,6 +57,162 @@ const PETRINAUT_EMBED_SRC = "/processes/draft/embed";
  * behalf — it only forwards the (still server-validated) request body.
  */
 const PETRINAUT_AI_CHAT_API = "/api/petrinaut-ai-chat";
+
+/**
+ * Authenticated NodeAPI endpoint for detached optimization runs, proxying
+ * the optimizer container. `POST` creates a run and replies
+ * `201 {"runId": ...}` without streaming.
+ */
+const PETRINAUT_OPTIMIZATION_RUNS_API = `${apiOrigin}/api/petrinaut-optimizer/optimize/runs`;
+
+/**
+ * NodeAPI validates the replay cursor against `^\d{1,15}$` (and 400s
+ * otherwise), so anything malformed or out of that range falls back to 0
+ * (replay everything) rather than letting iframe-supplied data shape the URL.
+ */
+const MAX_OPTIMIZATION_CURSOR = 999_999_999_999_999;
+
+/**
+ * Cursor-resumable NDJSON event stream of a detached optimization run.
+ * Replays events with `seq` greater than `cursor`, then tails live events.
+ */
+const petrinautOptimizationEventsUrl = (
+  runId: string,
+  cursor: number,
+): string =>
+  `${PETRINAUT_OPTIMIZATION_RUNS_API}/${encodeURIComponent(runId)}/events?cursor=${
+    Number.isSafeInteger(cursor) &&
+    cursor >= 0 &&
+    cursor <= MAX_OPTIMIZATION_CURSOR
+      ? cursor
+      : 0
+  }`;
+
+/** A single detached optimization run; `DELETE` cancels it idempotently. */
+const petrinautOptimizationRunUrl = (runId: string): string =>
+  `${PETRINAUT_OPTIMIZATION_RUNS_API}/${encodeURIComponent(runId)}`;
+
+/**
+ * Fire-and-forget cancellation. Idempotent server-side, and every caller has
+ * already given up on the run, so a failure is only logged for debugging.
+ */
+const cancelOptimizationRun = (runId: string): void => {
+  void fetch(petrinautOptimizationRunUrl(runId), {
+    method: "DELETE",
+    credentials: "include",
+  }).catch((error: unknown) => {
+    // eslint-disable-next-line no-console
+    console.error("Failed to cancel Petrinaut optimization run", error);
+  });
+};
+
+/** Authenticated NodeAPI endpoint reporting deployment configuration only. */
+const PETRINAUT_CAPABILITIES_API = `${apiOrigin}/api/petrinaut-optimizer/capabilities`;
+
+/** Parse a `Retry-After` header's delay-seconds form; `undefined` otherwise. */
+const parseRetryAfterSeconds = (header: string | null): number | undefined => {
+  if (header === null) {
+    return undefined;
+  }
+  const seconds = Number.parseInt(header, 10);
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined;
+};
+
+/**
+ * Extract NodeAPI's own error message from a failed optimizer response body.
+ * NodeAPI error bodies are server-authored (`{"error": ...}`), never user
+ * content, so they are safe to forward into the iframe; anything unparseable
+ * falls back to a generic status message.
+ */
+const readOptimizationErrorMessage = async (
+  response: Response,
+): Promise<string> => {
+  try {
+    const body = (await response.json()) as {
+      error?: unknown;
+      message?: unknown;
+    };
+    if (typeof body.error === "string" && body.error) {
+      return body.error;
+    }
+    if (typeof body.message === "string" && body.message) {
+      return body.message;
+    }
+  } catch {
+    // Non-JSON body; fall through to the generic message.
+  }
+  return `The optimization request failed with status ${response.status}`;
+};
+
+/**
+ * Relay an optimizer NDJSON response into the iframe byte-for-byte over the
+ * response-start/chunk/end/error message family, keyed by the iframe's
+ * request id.
+ *
+ * HTTP and protocol classification happen in the iframe bridge; the catch
+ * here only sees transport-level failures of the host's own fetch/read (a
+ * reset connection surfaces as a `TypeError`), which it classifies as
+ * `network`.
+ */
+const relayOptimizationStream = async ({
+  requestId,
+  controller,
+  send,
+  fetchResponse,
+}: {
+  requestId: string;
+  controller: AbortController;
+  send: (message: HostToIframeMessage) => void;
+  fetchResponse: () => Promise<Response>;
+}): Promise<void> => {
+  // Captured from the response headers so a transport failure that happens
+  // mid-stream stays traceable to the NodeAPI/optimizer logs.
+  let hashRequestId: string | null = null;
+  let optimizationRunId: string | null = null;
+  try {
+    const response = await fetchResponse();
+
+    hashRequestId = response.headers.get("x-hash-request-id");
+    optimizationRunId = response.headers.get("x-optimization-run-id");
+
+    send({
+      kind: "optimizationResponseStart",
+      requestId,
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      hashRequestId,
+      optimizationRunId,
+    });
+
+    if (response.body) {
+      const reader = response.body.getReader();
+      let result = await reader.read();
+      while (!result.done) {
+        send({
+          kind: "optimizationChunk",
+          requestId,
+          bytes: result.value,
+        });
+        result = await reader.read();
+      }
+    }
+
+    send({ kind: "optimizationEnd", requestId });
+  } catch {
+    // An iframe-initiated abort is expected control flow.
+    if (!controller.signal.aborted) {
+      send({
+        kind: "optimizationError",
+        requestId,
+        category: "network",
+        message: "The optimization service connection was interrupted",
+        hashRequestId,
+        optimizationRunId,
+      });
+    }
+  }
+};
 
 /**
  * URL-derived view that the editor renders. The host page resolves this from
@@ -140,9 +301,9 @@ const buildRevisionSummaries = (
 
 /**
  * Loading-state overlay rendered above the still-warming iframe. Mirrors
- * Petrinaut's broad layout (top bar with back / title / version-picker /
- * save, plus a left rail and the canvas) so the transition into the real
- * editor doesn't cause a visible reflow.
+ * Petrinaut's broad layout (top bar with menu buttons / breadcrumb / title /
+ * version-picker / save, plus a left rail and the canvas) so the transition
+ * into the real editor doesn't cause a visible reflow.
  */
 const ProcessEditorLoadingSkeleton = () => (
   <Stack
@@ -155,7 +316,7 @@ const ProcessEditorLoadingSkeleton = () => (
     })}
     aria-hidden
   >
-    {/* Top bar: back button + title + version picker + save button */}
+    {/* Top bar: menu buttons + breadcrumb + title + version picker + save */}
     <Stack
       direction="row"
       sx={{ height: 36, gap: 1, flexShrink: 0 }}
@@ -229,6 +390,42 @@ export const ProcessEditor = ({
    * generated. Lets `aiChatAbort` cancel the matching fetch.
    */
   const aiChatAbortControllersRef = useRef(new Map<string, AbortController>());
+
+  /** In-flight optimizer streams, keyed by the iframe request id. */
+  const optimizationAbortControllersRef = useRef(
+    new Map<string, AbortController>(),
+  );
+
+  const [petrinautHostCapabilities, setPetrinautHostCapabilities] =
+    useState<PetrinautHostCapabilities | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getPetrinautHostCapabilities({
+      endpoint: PETRINAUT_CAPABILITIES_API,
+      signal: controller.signal,
+    }).then((capabilities) => {
+      if (!controller.signal.aborted) {
+        setPetrinautHostCapabilities(capabilities);
+      }
+    });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(
+    () => () => {
+      for (const controller of aiChatAbortControllersRef.current.values()) {
+        controller.abort();
+      }
+      aiChatAbortControllersRef.current.clear();
+      for (const controller of optimizationAbortControllersRef.current.values()) {
+        controller.abort();
+      }
+      optimizationAbortControllersRef.current.clear();
+    },
+    [],
+  );
 
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
 
@@ -448,6 +645,150 @@ export const ProcessEditor = ({
         controller?.abort();
         aiChatAbortControllersRef.current.delete(requestId);
       },
+      onOptimizationCreate: ({ requestId, input }) => {
+        const parsedInput = petrinautOptimizationInputSchema.safeParse(input);
+        if (!parsedInput.success) {
+          bridge.send({
+            kind: "optimizationCreateResult",
+            requestId,
+            ok: false,
+            category: "protocol",
+            message: "The optimization request is invalid",
+          });
+          return;
+        }
+
+        /**
+         * Create a detached run against the hard-coded NodeAPI runs route. A
+         * short-lived POST (the `201` reply carries only the run id, no
+         * stream), so there is no abort tracking — the iframe times the
+         * round-trip out on its side.
+         */
+        void (async () => {
+          let response: Response;
+          try {
+            response = await fetch(PETRINAUT_OPTIMIZATION_RUNS_API, {
+              method: "POST",
+              credentials: "include",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify(parsedInput.data),
+            });
+          } catch {
+            bridge.send({
+              kind: "optimizationCreateResult",
+              requestId,
+              ok: false,
+              category: "network",
+              message: "The optimization service could not be reached",
+            });
+            return;
+          }
+
+          /**
+           * NodeAPI echoes its request id, and forwards the optimizer's run id
+           * even when creation fails upstream. Carry both back to the iframe so
+           * a failure the user reports can be found in the logs.
+           */
+          const correlation = {
+            hashRequestId: response.headers.get("x-hash-request-id"),
+            optimizationRunId: response.headers.get("x-optimization-run-id"),
+          };
+
+          if (!response.ok) {
+            bridge.send({
+              kind: "optimizationCreateResult",
+              requestId,
+              ok: false,
+              category: "http",
+              status: response.status,
+              retryAfter: parseRetryAfterSeconds(
+                response.headers.get("retry-after"),
+              ),
+              message: await readOptimizationErrorMessage(response),
+              ...correlation,
+            });
+            return;
+          }
+
+          const body = (await response.json().catch(() => null)) as {
+            runId?: unknown;
+          } | null;
+          if (typeof body?.runId !== "string" || body.runId === "") {
+            /**
+             * The run was created — the status said so — but its id never
+             * reached us in the body. When the correlation header carries it,
+             * cancel the run nobody can now own; otherwise it holds the
+             * account's single-flight slot until the reaper takes it.
+             */
+            if (correlation.optimizationRunId !== null) {
+              cancelOptimizationRun(correlation.optimizationRunId);
+            }
+            bridge.send({
+              kind: "optimizationCreateResult",
+              requestId,
+              ok: false,
+              category: "protocol",
+              message:
+                "The optimization service returned an unexpected response",
+              ...correlation,
+            });
+            return;
+          }
+
+          bridge.send({
+            kind: "optimizationCreateResult",
+            requestId,
+            ok: true,
+            runId: body.runId,
+            ...correlation,
+          });
+        })();
+      },
+      onOptimizationAttach: ({ requestId, runId, cursor }) => {
+        if (optimizationAbortControllersRef.current.has(requestId)) {
+          bridge.send({
+            kind: "optimizationError",
+            requestId,
+            category: "protocol",
+            message: "An optimization with this request id is already running",
+          });
+          return;
+        }
+
+        const controller = new AbortController();
+        optimizationAbortControllersRef.current.set(requestId, controller);
+
+        /**
+         * The iframe only names a run id and cursor; the URL is built here
+         * against the one hard-coded NodeAPI route, so the sandboxed iframe
+         * can never make the host fetch an arbitrary target.
+         */
+        void relayOptimizationStream({
+          requestId,
+          controller,
+          send: bridge.send,
+          fetchResponse: () =>
+            fetch(petrinautOptimizationEventsUrl(runId, cursor), {
+              credentials: "include",
+              signal: controller.signal,
+            }),
+        }).finally(() => {
+          if (
+            optimizationAbortControllersRef.current.get(requestId) ===
+            controller
+          ) {
+            optimizationAbortControllersRef.current.delete(requestId);
+          }
+        });
+      },
+      onOptimizationAbort: ({ requestId }) => {
+        const controller =
+          optimizationAbortControllersRef.current.get(requestId);
+        controller?.abort();
+      },
+      onOptimizationCancel: ({ runId }) => {
+        cancelOptimizationRun(runId);
+      },
       onAiMessagesChanged: ({ messages }) => {
         if (!loadedView) {
           return;
@@ -518,6 +859,16 @@ export const ProcessEditor = ({
       },
     },
   });
+
+  useEffect(() => {
+    if (!bridge.isReady || petrinautHostCapabilities === null) {
+      return;
+    }
+    bridge.send({
+      kind: "setCapabilities",
+      capabilities: petrinautHostCapabilities,
+    });
+  }, [bridge, petrinautHostCapabilities]);
 
   /**
    * Apply a resolved view: mirror local host state used by the save flow,
@@ -788,7 +1139,7 @@ export const ProcessEditor = ({
            */
           sandbox="allow-scripts allow-forms"
           referrerPolicy="no-referrer"
-          title="Petrinaut editor"
+          title="Process editor"
           sx={{
             width: "100%",
             height: "100%",

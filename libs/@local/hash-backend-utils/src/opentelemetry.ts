@@ -8,7 +8,7 @@
  * Returns a teardown function that must run during graceful shutdown so
  * pending spans / log records / metric points are flushed before exit.
  */
-import { metrics } from "@opentelemetry/api";
+import { metrics, SpanStatusCode } from "@opentelemetry/api";
 import { logs } from "@opentelemetry/api-logs";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-grpc";
@@ -37,6 +37,7 @@ import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import type { Instrumentation } from "@opentelemetry/instrumentation";
 import type { Resource } from "@opentelemetry/resources";
 import type { SpanExporter } from "@opentelemetry/sdk-trace-base";
+import type { IncomingMessage, ServerResponse } from "node:http";
 
 const traceTimeoutMs = 5000;
 const metricExportIntervalMs = 30_000;
@@ -168,6 +169,89 @@ export const httpRequestSpanNameHook: NonNullable<
 };
 
 /**
+ * Outbound requests where a status is a defined outcome of the operation rather
+ * than a failed call. semconv marks every client-side 4xx as an error, which is
+ * wrong for a call whose purpose is to ask a question that may be answered with
+ * "no".
+ *
+ * Matching is host-independent, so any dependency answering that method and
+ * path with one of those statuses counts as expected.
+ */
+interface ExpectedClientStatusRule {
+  method: string;
+  path: string;
+  statuses: readonly number[];
+}
+
+const EXPECTED_CLIENT_STATUS_RULES: readonly ExpectedClientStatusRule[] = [
+  // Kratos session lookup: 401 is "no session", 403 is "AAL1 where AAL2 is
+  // required". Callers treat both as an anonymous request.
+  { method: "GET", path: "/sessions/whoami", statuses: [401, 403] },
+];
+
+export const isExpectedClientStatus = ({
+  method,
+  path,
+  statusCode,
+}: {
+  method: string | undefined;
+  path: string | undefined;
+  statusCode: number | undefined;
+}): boolean =>
+  EXPECTED_CLIENT_STATUS_RULES.some(
+    (rule) =>
+      rule.method === method &&
+      rule.path === path &&
+      statusCode !== undefined &&
+      rule.statuses.includes(statusCode),
+  );
+
+/** The hook is handed both directions and `SpanKind` is not passed to it. */
+const isServerResponse = (
+  response: IncomingMessage | ServerResponse,
+): response is ServerResponse => "setHeader" in response;
+
+/**
+ * Marks a span whose error status {@link httpExpectedClientStatusHook} rewrote.
+ * Needed because `parseResponseStatus` never yields `OK`, so without it `OK` on
+ * a client span silently selects exactly the suppressed failures.
+ */
+export const EXPECTED_CLIENT_STATUS_ATTRIBUTE = "hash.expected_client_status";
+
+/**
+ * `applyCustomAttributesOnSpan` marking {@link EXPECTED_CLIENT_STATUS_RULES} as
+ * successful, so Tempo's `service_graphs` processor stops counting them against
+ * the edge to that dependency.
+ *
+ * `OK` rather than clearing the status, because the SDK drops `setStatus` with
+ * `UNSET`.
+ */
+export const httpExpectedClientStatusHook: NonNullable<
+  HttpInstrumentationConfig["applyCustomAttributesOnSpan"]
+> = (span, request, response) => {
+  if (isServerResponse(response)) {
+    return;
+  }
+  const rawPath = "path" in request ? request.path : undefined;
+  const isExpected = isExpectedClientStatus({
+    method: "method" in request ? request.method : undefined,
+    path: typeof rawPath === "string" ? rawPath.split("?")[0] : undefined,
+    statusCode: response.statusCode,
+  });
+  if (isExpected) {
+    span.setAttribute(EXPECTED_CLIENT_STATUS_ATTRIBUTE, true);
+    span.setStatus({ code: SpanStatusCode.OK });
+  }
+};
+
+/**
+ * Path every HASH service answers health probes on. The HTTP instrumentation
+ * ignores it: a probe answered every few seconds per task carries no signal, and
+ * tracing it only inflates the RED metrics derived from spans.
+ */
+export const HEALTH_PATH = "/health";
+
+/**
  * Default OTLP/gRPC port. Used when the configured endpoint URL does not
  * carry an explicit port (e.g. `http://collector` resolves via gRPC default).
  */
@@ -194,17 +278,22 @@ const otlpPortFromEndpoint = (otlpEndpoint: string): number => {
  *   every batch. The port is derived from `otlpEndpoint` so a non-default
  *   collector port (e.g. `:4318` for OTLP/HTTP) still gets ignored.
  * - Names spans `METHOD /path` via {@link httpRequestSpanNameHook}.
+ * - Marks expected client-side failures as successful via
+ *   {@link httpExpectedClientStatusHook}.
+ * - Skips incoming requests to {@link HEALTH_PATH}.
  *
- * Pass `extra` to merge per-service options (e.g. `ignoreIncomingPaths`).
- * `ignoreOutgoingRequestHook` and `requestHook` are intentionally not
- * mergeable here — callers needing different shapes should construct
- * `HttpInstrumentation` directly.
+ * Pass `extra` to merge per-service options. The hooks configured here are
+ * intentionally not mergeable — callers needing different shapes should
+ * construct `HttpInstrumentation` directly.
  */
 export const createHttpInstrumentation = (
   otlpEndpoint: string,
   extra: Omit<
     HttpInstrumentationConfig,
-    "ignoreOutgoingRequestHook" | "requestHook"
+    | "applyCustomAttributesOnSpan"
+    | "ignoreIncomingRequestHook"
+    | "ignoreOutgoingRequestHook"
+    | "requestHook"
   > = {},
 ): HttpInstrumentation => {
   const otlpPort = otlpPortFromEndpoint(otlpEndpoint);
@@ -216,7 +305,10 @@ export const createHttpInstrumentation = (
       // to compare consistently — otherwise `"4317" === 4317` is false
       // and the exporter's own outbound traffic slips through.
       Number(options.port) === otlpPort,
+    ignoreIncomingRequestHook: (request) =>
+      request.url?.split("?")[0] === HEALTH_PATH,
     requestHook: httpRequestSpanNameHook,
+    applyCustomAttributesOnSpan: httpExpectedClientStatusHook,
   });
 };
 

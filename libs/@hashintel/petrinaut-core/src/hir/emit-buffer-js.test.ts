@@ -282,6 +282,33 @@ describe("emitBufferKernelJs (token format v2)", () => {
     expect(sinkCalls[2]!.payload).toBe("order-1");
   });
 
+  it("writes conditional scalar and distribution values through their selected paths", () => {
+    const code = `export default TransitionKernel((input) => {
+  const sampledWhenActive = input.Pool[0].alive ? Distribution.Uniform(10, 20) : 0;
+  const sampledWhenInactive = input.Pool[1].alive ? Distribution.Uniform(30, 40) : 0;
+  return {
+    Out: [
+      { a: sampledWhenActive, b: 1, label: "first", id: Uuid.from("first"), flag: true },
+      { a: sampledWhenInactive, b: 2, label: "second", id: Uuid.from("second"), flag: false },
+    ],
+  };
+});`;
+
+    const { stagingViews, sinkCalls } = runKernel(code, new StringPool());
+    const stride = outLayout.strideBytes;
+    expect(stagingViews.f64[fieldOffset("a") / 8]).toBe(0);
+    expect(stagingViews.f64[(stride + fieldOffset("a")) / 8]).toBe(0);
+    const distributions = sinkCalls.filter(({ kind }) => kind === "dist");
+    expect(distributions).toHaveLength(1);
+    const [distribution] = distributions;
+    expect(distribution?.index).toBe(fieldOffset("a") / 8);
+    expect(distribution?.payload as RuntimeDistribution).toMatchObject({
+      type: "uniform",
+      min: 10,
+      max: 20,
+    });
+  });
+
   it("forwards whole input tokens, deferring uuid copies through the sink", () => {
     const forwardContext: HirKernelContext = {
       ...kernelContext,

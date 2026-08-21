@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { handleProtocolLine } from "./protocol";
+import { parseServerRunRequest } from "./run-request";
 
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
@@ -77,9 +78,12 @@ function createModel(modelMetadata = metadata) {
   };
 }
 
-function send(model: PetrinautCompiledModel, request: unknown): unknown {
+async function send(
+  model: PetrinautCompiledModel,
+  request: unknown,
+): Promise<unknown> {
   const responses: unknown[] = [];
-  handleProtocolLine(model, JSON.stringify(request), (response) => {
+  await handleProtocolLine(model, JSON.stringify(request), (response) => {
     responses.push(response);
   });
   expect(responses).toHaveLength(1);
@@ -87,24 +91,24 @@ function send(model: PetrinautCompiledModel, request: unknown): unknown {
 }
 
 describe("handleProtocolLine", () => {
-  it("handles healthz and metadata requests", () => {
+  it("handles healthz and metadata requests", async () => {
     const model = createModel();
 
-    expect(send(model, { id: 1, method: "healthz" })).toEqual({
+    expect(await send(model, { id: 1, method: "healthz" })).toEqual({
       id: 1,
       result: { ok: true },
     });
-    expect(send(model, { id: 2, method: "metadata" })).toEqual({
+    expect(await send(model, { id: 2, method: "metadata" })).toEqual({
       id: 2,
       result: metadata,
     });
   });
 
-  it("normalizes a representative run request", () => {
+  it("normalizes a representative run request", async () => {
     const model = createModel();
 
     expect(
-      send(model, {
+      await send(model, {
         id: "run-1",
         method: "run",
         params: {
@@ -123,14 +127,45 @@ describe("handleProtocolLine", () => {
     expect(model.runMock).toHaveBeenCalledWith({
       parameterValues: { rate: "1.5", count: "3", enabled: "true" },
       initialMarking: { plain: 2, colored: [{ value: 4 }] },
-      metrics: ["Metric"],
+      metrics: ["metric-id"],
       maxSteps: 1,
       dt: 0.25,
       seed: 42,
     });
   });
 
-  it("prioritizes exact ids and uses last-wins name aliases", () => {
+  it("constructs scenario parameter records without prototype mutation", () => {
+    const request = parseServerRunRequest(
+      JSON.parse(
+        '{"scenario":{"id":"scenario","parameterValues":{"__proto__":1}},"maxSteps":0}',
+      ),
+    );
+
+    expect(request.scenario?.parameterValues).toHaveProperty("__proto__", 1);
+    expect(Object.getPrototypeOf(request.scenario?.parameterValues)).toBe(
+      Object.prototype,
+    );
+  });
+
+  it("returns metric values under the requested stable id", async () => {
+    const model = createModel();
+
+    expect(
+      await send(model, {
+        id: 4,
+        method: "run",
+        params: { metrics: ["metric-id"], maxSteps: 0 },
+      }),
+    ).toMatchObject({
+      id: 4,
+      result: { metrics: { "metric-id": 1 } },
+    });
+    expect(model.runMock).toHaveBeenCalledWith(
+      expect.objectContaining({ metrics: ["metric-id"] }),
+    );
+  });
+
+  it("prioritizes exact ids and uses last-wins name aliases", async () => {
     const model = createModel({
       ...metadata,
       parameters: [
@@ -168,7 +203,7 @@ describe("handleProtocolLine", () => {
     });
 
     expect(
-      send(model, {
+      await send(model, {
         id: 3,
         method: "run",
         params: {
@@ -197,19 +232,27 @@ describe("handleProtocolLine", () => {
     [{ maxTime: null }, "Run config requires either maxTime or maxSteps"],
     [{ parameters: [] }, "parameters must be an object"],
     [{ initialState: "invalid" }, "initialState must be an object"],
+    [
+      { scenario: { id: "scenario", parameterValues: {} }, parameters: {} },
+      "scenario cannot be combined with parameters or initialState",
+    ],
     [{ metrics: ["Metric", 1] }, "metrics must be an array of strings"],
     [{ seed: "42" }, "seed must be a finite number"],
     [{ dt: "0.1" }, "dt must be a finite number"],
     [{ maxSteps: 1.5 }, "maxSteps must be a non-negative integer"],
-  ])("rejects invalid run field %#", (params, message) => {
-    const response = send(createModel(), { id: 7, method: "run", params });
+  ])("rejects invalid run field %#", async (params, message) => {
+    const response = await send(createModel(), {
+      id: 7,
+      method: "run",
+      params,
+    });
 
     expect(response).toEqual({ id: 7, error: { message } });
   });
 
-  it("rejects markings incompatible with a place's color", () => {
+  it("rejects markings incompatible with a place's color", async () => {
     expect(
-      send(createModel(), {
+      await send(createModel(), {
         id: 8,
         method: "run",
         params: { initialState: { Colored: 1 }, maxSteps: 1 },
@@ -223,7 +266,7 @@ describe("handleProtocolLine", () => {
     });
 
     expect(
-      send(createModel(), {
+      await send(createModel(), {
         id: 9,
         method: "run",
         params: { initialState: { Plain: [{}] }, maxSteps: 1 },
@@ -237,9 +280,9 @@ describe("handleProtocolLine", () => {
     });
   });
 
-  it("rejects uncolored token counts that overflow engine storage", () => {
+  it("rejects uncolored token counts that overflow engine storage", async () => {
     expect(
-      send(createModel(), {
+      await send(createModel(), {
         id: 10,
         method: "run",
         params: { initialState: { Plain: 4_294_967_296 }, maxSteps: 1 },
@@ -253,10 +296,12 @@ describe("handleProtocolLine", () => {
     });
   });
 
-  it("preserves request ids on protocol errors", () => {
-    expect(send(createModel(), { id: "bad", method: "unknown" })).toEqual({
-      id: "bad",
-      error: { message: 'Unknown method "unknown"' },
-    });
+  it("preserves request ids on protocol errors", async () => {
+    expect(await send(createModel(), { id: "bad", method: "unknown" })).toEqual(
+      {
+        id: "bad",
+        error: { message: 'Unknown method "unknown"' },
+      },
+    );
   });
 });

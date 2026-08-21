@@ -26,6 +26,10 @@ export const getChartConfigProblems = (
   const problems: string[] = [];
   const typedConfig = config as ChartConfig;
 
+  if (typedConfig.series.length === 0) {
+    problems.push("series must contain at least one chart series");
+  }
+
   if (dataKeys.length > 0) {
     if (!dataKeys.includes(typedConfig.categoryKey)) {
       problems.push(

@@ -4,6 +4,7 @@ import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Button,
   Drawer,
+  Form,
   Icon,
   LoadingSpinner,
   NumberInput,
@@ -27,6 +28,12 @@ import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import { useMetricLspSession } from "../metrics/metric-form";
 import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
 import {
+  createMetricKindGroups,
+  getMetricKindIcon,
+  MODEL_METRIC_VALUE_PREFIX,
+  type MetricKindGroup,
+} from "../metrics/metric-picker-options";
+import {
   areMetricLspDiagnosticSummariesEqual,
   EMPTY_METRIC_LSP_DIAGNOSTICS,
   getExperimentMetricDiagnosticError,
@@ -42,22 +49,17 @@ import type {
 
 // -- Styles -------------------------------------------------------------------
 
+// metric rows use slightly lighter field labels than the default
+const metricFieldLabelStyle = css({
+  "& :is(label, legend)": {
+    fontWeight: "medium",
+  },
+});
+
 const fieldStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[6px]",
-});
-
-const labelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-});
-
-const gridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
-  gap: "3",
 });
 
 const paramRowStyle = css({
@@ -172,11 +174,12 @@ const metricKindTriggerLabelStyle = css({
   fontWeight: "medium",
 });
 
+// top padding separates the properties from the metric row's collapse header
 const metricExpandedContentStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "2",
-  padding: "[0 16px 16px]",
+  padding: "[1px 16px 16px]",
 });
 
 const metricCollapsibleContentStyle = css({
@@ -184,10 +187,10 @@ const metricCollapsibleContentStyle = css({
   animationDuration: "[200ms]",
   animationTimingFunction: "ease-in-out",
   "&[data-state=open]": {
-    animationName: "expand",
+    animationName: "[petrinautExpand]",
   },
   "&[data-state=closed]": {
-    animationName: "collapse",
+    animationName: "[petrinautCollapse]",
   },
 });
 
@@ -195,12 +198,6 @@ const metricSpecificFieldsStyle = css({
   display: "grid",
   gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
   gap: "2",
-});
-
-const codeDiagnosticStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
-  whiteSpace: "pre-wrap",
 });
 
 const emptyParamsStyle = css({
@@ -212,10 +209,7 @@ const emptyParamsStyle = css({
   color: "neutral.s80",
 });
 
-const errorStyle = css({
-  fontSize: "sm",
-  color: "red.s100",
-  marginRight: "auto",
+const errorsStyle = css({
   whiteSpace: "pre-wrap",
 });
 
@@ -225,7 +219,7 @@ const DEFAULT_EXPERIMENT_NAME = "Experiment";
 const NO_SCENARIO_VALUE = "__none__";
 const DEFAULT_RUN_COUNT = "1000";
 const DEFAULT_SEED = "1";
-const DEFAULT_DT = "1";
+const DEFAULT_DT = "0.1";
 const DEFAULT_MAX_TIME = "180";
 const DEFAULT_METRIC_CODE = `/**
 * Custom metric code that will be run on each frame.
@@ -297,8 +291,6 @@ type ExperimentMetricDraft = {
   lspDiagnostics: MetricLspDiagnosticSummary;
 };
 
-const MODEL_METRIC_VALUE_PREFIX = "model:";
-
 const transitionModeOptions: { value: TransitionFiringMode; text: string }[] = [
   { value: "firedInThisFrame", text: "Per frame" },
   { value: "cumulative", text: "Cumulative" },
@@ -363,60 +355,6 @@ function canReplaceMetricLabel(label: string, sdcpn: SDCPN): boolean {
     getDefaultMetricLabel("expression", sdcpn),
     ...(sdcpn.metrics ?? []).map((metric) => metric.name),
   ]).has(trimmed);
-}
-
-type MetricKindGroup = {
-  id: string;
-  label: string;
-  items: SelectItem<string>[];
-};
-
-function createMetricKindGroups(sdcpn: SDCPN): MetricKindGroup[] {
-  const groups: MetricKindGroup[] = [
-    {
-      id: "built-in",
-      label: "Built-in",
-      items: [
-        { value: "placeTokenCountMean", text: "Place tokens" },
-        { value: "transitionFiringCount", text: "Transition firing" },
-      ],
-    },
-  ];
-
-  const modelMetrics = sdcpn.metrics ?? [];
-  if (modelMetrics.length > 0) {
-    groups.push({
-      id: "model",
-      label: "Model metrics",
-      items: modelMetrics.map((metric) => ({
-        value: `${MODEL_METRIC_VALUE_PREFIX}${metric.id}`,
-        text: metric.name,
-      })),
-    });
-  }
-
-  groups.push({
-    id: "custom",
-    label: "Custom",
-    items: [{ value: "expression", text: "Custom code" }],
-  });
-
-  return groups;
-}
-
-const METRIC_KIND_ICONS: Record<string, "circle" | "lightning" | "code"> = {
-  placeTokenCountMean: "circle",
-  transitionFiringCount: "lightning",
-  expression: "code",
-};
-
-function getMetricKindIcon(
-  value: string,
-): "circle" | "lightning" | "code" | "function" | undefined {
-  if (value.startsWith(MODEL_METRIC_VALUE_PREFIX)) {
-    return "function";
-  }
-  return METRIC_KIND_ICONS[value];
 }
 
 function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
@@ -579,8 +517,19 @@ const ExperimentExpressionMetricEditor = ({
   const codeUri = getMetricDocumentUri(metricSessionId);
 
   return (
-    <div className={fieldStyle}>
-      <span className={labelStyle}>Code</span>
+    <Form.Field
+      label="Code"
+      size="sm"
+      className={metricFieldLabelStyle}
+      errors={
+        lspDiagnostics.count > 0
+          ? [
+              lspDiagnostics.firstMessage ??
+                `${lspDiagnostics.count} diagnostics`,
+            ]
+          : undefined
+      }
+    >
       <CodeEditor
         language="typescript"
         path={codeUri}
@@ -589,12 +538,7 @@ const ExperimentExpressionMetricEditor = ({
         height="260px"
         options={readOnly ? { readOnly: true } : undefined}
       />
-      {lspDiagnostics.count > 0 ? (
-        <span className={codeDiagnosticStyle}>
-          {lspDiagnostics.firstMessage ?? `${lspDiagnostics.count} diagnostics`}
-        </span>
-      ) : null}
-    </div>
+    </Form.Field>
   );
 };
 
@@ -787,8 +731,11 @@ const ExperimentMetricRow = ({
           metric.kind === "transitionFiringCount" ? (
             <div className={metricSpecificFieldsStyle}>
               {metric.kind === "placeTokenCountMean" ? (
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Place</span>
+                <Form.Field
+                  label="Place"
+                  size="sm"
+                  className={metricFieldLabelStyle}
+                >
                   <Select
                     required
                     value={metric.placeId}
@@ -796,12 +743,15 @@ const ExperimentMetricRow = ({
                     items={placeOptions}
                     size="sm"
                   />
-                </div>
+                </Form.Field>
               ) : null}
               {metric.kind === "transitionFiringCount" ? (
                 <>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Transition</span>
+                  <Form.Field
+                    label="Transition"
+                    size="sm"
+                    className={metricFieldLabelStyle}
+                  >
                     <Select
                       required
                       value={metric.transitionId}
@@ -811,9 +761,12 @@ const ExperimentMetricRow = ({
                       items={transitionOptions}
                       size="sm"
                     />
-                  </div>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Count</span>
+                  </Form.Field>
+                  <Form.Field
+                    label="Count"
+                    size="sm"
+                    className={metricFieldLabelStyle}
+                  >
                     <Select
                       required
                       value={metric.transitionMode}
@@ -823,7 +776,7 @@ const ExperimentMetricRow = ({
                       items={transitionModeOptions}
                       size="sm"
                     />
-                  </div>
+                  </Form.Field>
                 </>
               ) : null}
             </div>
@@ -1034,13 +987,11 @@ export const CreateExperimentDrawer = ({
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
           <Section title="Experiment" collapsible defaultOpen>
-            <div className={fieldStyle}>
-              <span className={labelStyle}>Name</span>
+            <Form.Field label="Name" size="sm">
               <TextInput size="sm" value={name} onChange={setName} />
-            </div>
-            <div className={gridStyle}>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Runs</span>
+            </Form.Field>
+            <Form.Row>
+              <Form.Field label="Runs" size="sm">
                 <NumberInput
                   size="sm"
                   min={1}
@@ -1051,9 +1002,8 @@ export const CreateExperimentDrawer = ({
                     )
                   }
                 />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Time step</span>
+              </Form.Field>
+              <Form.Field label="Time step" size="sm">
                 <NumberInput
                   size="sm"
                   min={0}
@@ -1063,9 +1013,8 @@ export const CreateExperimentDrawer = ({
                     setDt(nextDt === null ? "" : String(nextDt))
                   }
                 />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Max time (s)</span>
+              </Form.Field>
+              <Form.Field label="Max time (s)" size="sm">
                 <NumberInput
                   size="sm"
                   min={0}
@@ -1075,8 +1024,8 @@ export const CreateExperimentDrawer = ({
                     setMaxTime(nextMaxTime === null ? "" : String(nextMaxTime))
                   }
                 />
-              </div>
-            </div>
+              </Form.Field>
+            </Form.Row>
           </Section>
 
           <Section title="Scenario" collapsible defaultOpen>
@@ -1176,7 +1125,11 @@ export const CreateExperimentDrawer = ({
       <Drawer.Footer
         secondaryActions={
           footerError ? (
-            <span className={errorStyle}>{footerError}</span>
+            <Form.Field.Errors
+              className={errorsStyle}
+              errors={[footerError]}
+              size="sm"
+            />
           ) : undefined
         }
         actions={

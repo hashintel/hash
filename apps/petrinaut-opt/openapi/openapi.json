@@ -1,0 +1,395 @@
+{
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "OptimizationRunCreated": {
+        "description": "Response body of a successful detached-run creation.",
+        "properties": {
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id"
+        ],
+        "title": "OptimizationRunCreated",
+        "type": "object"
+      },
+      "Phase": {
+        "enum": [
+          "idle",
+          "running",
+          "done",
+          "error"
+        ],
+        "title": "Phase",
+        "type": "string"
+      },
+      "RunStatus": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/Phase",
+            "default": "idle"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "run_id"
+        ],
+        "title": "RunStatus",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Petrinaut optimization Python API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "description": "Return a welcome message for the API root.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Root  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Root"
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Report liveness, without checking any dependency.\n\nA probe that reaches through to a dependency takes every task out of\nrotation as soon as that dependency is slow.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/optimize/runs": {
+      "post": {
+        "description": "Start a detached run that remains available for later SSE attachment.\n\nWhen the caller stamps ``x-hash-account-id`` (the authenticated proxy\ndoes), the run is owned: the account is single-flight while it lives, and\nonly requests carrying the same tag may attach to or cancel it.",
+        "operationId": "post_optimize_runs_optimize_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Optimization Manifest",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptimizationRunCreated"
+                }
+              }
+            },
+            "description": "A detached optimization run was started"
+          },
+          "413": {
+            "description": "The optimization manifest exceeds 8 MiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "The service is already at its study limit",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying the study",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The session or optimization study could not initialize"
+          }
+        },
+        "summary": "Post Optimize Runs"
+      }
+    },
+    "/optimize/runs/{run_id}": {
+      "delete": {
+        "description": "Cancel a detached run and wait for its resources to be released.",
+        "operationId": "delete_optimize_run_optimize_runs__run_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The run was cancelled (or had already reached a terminal state); when this call stopped it, the event log's terminal frame is `event: cancelled`"
+          },
+          "404": {
+            "description": "No optimization run with this id is registered"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Optimize Run"
+      }
+    },
+    "/optimize/runs/{run_id}/events": {
+      "get": {
+        "description": "Attach to a detached run and replay events after the supplied cursor.\n\nThe route is excluded from ASGI auto-instrumentation (see\n``telemetry.py``): its response live-tails until the consumer detaches,\nand a SERVER span that long would read as worst-case latency in the RED\nSLIs and only export on disconnect. A short manual SERVER span covers\njust the attach itself \u2014 run lookup, cursor resolution, and attachment\nregistration \u2014 and ends when the tail starts, so the latency SLI\nmeasures \"was attaching fast\" while the client\u2192optimizer service-graph\nedge is preserved.",
+        "operationId": "get_optimize_run_events_optimize_runs__run_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Server-Sent Events attachment to a detached optimization run. Every frame carries an `id: <seq>` line (seq starts at 1); buffered frames with seq > cursor are replayed, then new frames are live-tailed with `: heartbeat` comments roughly every 30 seconds. The terminal frame is `event: done` (completed), an ERROR data frame (study failure), or `event: cancelled` (cancelled or reaped). If the run is already terminal the response closes after the replay. Disconnecting does not affect the run; a newer attachment supersedes this one.",
+            "headers": {
+              "X-Requested-Trials": {
+                "description": "Trial count requested by the run's manifest, for sizing synthesized summaries",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No optimization run with this id is registered"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Optimize Run Events"
+      }
+    },
+    "/status": {
+      "get": {
+        "description": "Return a snapshot of every optimization run's status.",
+        "operationId": "get_status_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RunStatus"
+                  },
+                  "title": "Response Get Status Status Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Status"
+      }
+    },
+    "/status/{run_id}": {
+      "get": {
+        "description": "Return the status of one optimization run.",
+        "operationId": "get_run_status_status__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Run Status"
+      }
+    }
+  }
+}

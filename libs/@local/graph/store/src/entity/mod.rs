@@ -14,6 +14,12 @@ pub use self::{
         SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
         ValidateEntityError, ValidateEntityParams,
     },
+    table::{
+        EntityTableCursor, EntityTableFilter, EntityTableLinkEndpoint, EntityTablePropertyFilter,
+        EntityTablePropertyValue, EntityTableRow, EntityTableSortKey, EntityTableSorting,
+        EntityTableSummary, EntityTableWebScope, QueryEntitiesTableParams,
+        QueryEntitiesTableResponse, TYPE_UNIVERSE_LIMIT,
+    },
     validation_report::{
         EmptyEntityTypes, EntityRetrieval, EntityTypeRetrieval, EntityTypesError,
         EntityValidationReport, LinkDataStateError, LinkDataValidationReport, LinkError,
@@ -25,6 +31,7 @@ pub use self::{
 
 mod query;
 mod store;
+mod table;
 mod validation_report;
 
 use type_system::knowledge::Entity;

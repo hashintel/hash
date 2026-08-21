@@ -122,4 +122,5 @@ export const chartConfigSchema = {
       description: "Supported chart types (aligned with Apache ECharts)",
     },
   },
+  $id: "https://hash.ai/schemas/chart-config.json",
 } as const;

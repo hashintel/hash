@@ -107,6 +107,30 @@ When you change UI or behaviour in the petrinaut packages (`libs/@hashintel/petr
 
 If a change ships without doc updates, call that out in your summary so the user can decide whether to follow up.
 
+### Petrinaut architecture docs
+
+Distinct from the user guide above: the **architecture** docs describe the shape of the code for the people (and agents) working on it. They are generated from annotations in the source by `@local/petrinaut-arch-docs`, and building the bundle fails when they drift.
+
+The architecture is declared **next to the code it describes** — never in a central mapping file. Two tags, and that is the whole vocabulary:
+
+- `@layerRoot <id>` plus `@role <one line>` in a doc comment on a folder's primary file declares a layer. Prefer this — it needs no new file.
+- A folder's `README.md` frontmatter (`layer` and `role`) does the same, and the prose below becomes that layer's page. Use it when the folder has real prose to carry, or when no single file is the obvious host.
+- Files with no annotation inherit from the nearest declaring ancestor, so 37 declarations cover 412 files. Do not annotate every file.
+
+Any other tag is ignored, so do not add one expecting it to appear in the docs. In a declaring README's frontmatter, `layer` and `role` are the only keys and anything else fails the build.
+
+The generated docs are **build output and are not committed** — there is nothing to regenerate before pushing. Only the annotations are versioned.
+
+When you change structure in `libs/@hashintel/petrinaut-core`, `libs/@hashintel/petrinaut`, or `libs/@hashintel/petrinaut-cli`, you MUST add a declaration if you introduce a folder that is a new architectural unit, meaning a new boundary or a distinct responsibility rather than only a new directory.
+
+Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, which fails on unannotated files, undeclared ancestors and rule violations. To read the docs, `turbo run doc:architecture --filter @local/petrinaut-arch-docs` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored); open `bundle/architecture.md` for the entire model in one file.
+
+Full reference: `libs/@local/petrinaut-arch-docs/README.md`. Browse the docs with `turbo run dev --filter @apps/petrinaut-docs`, which regenerates the bundle first — run it through Turborepo, since the package script alone skips that.
+
+Hand-written MDX in `libs/@local/petrinaut-arch-docs/content/` carries the reasoning an import graph cannot express — why a boundary sits where it does, what the alternatives were. It is optional; the system works with that directory absent.
+
+Give such a page `attachTo: <layer id>` in its frontmatter and it nests inside the generated tree beneath that layer, rather than sitting in a separate section — that is how the simulation deep-dives are wired. Link between pages with `[text](layer:core.simulation.engine)` or `[text](doc:simulation/memory-model)`; relative paths break when a page's `attachTo` changes, and unresolved targets fail CI.
+
 ## Contextual Rules
 
 CRITICAL: For the files referenced below, use your Read tool to load it on a need-to-know basis, ONLY when relevant to the SPECIFIC task at hand:

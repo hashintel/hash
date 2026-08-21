@@ -50,7 +50,11 @@ import type {
 import type { HasSpatiallyPositionedContent } from "./system-types/canvas.js";
 import type { Block, HasIndexedContent } from "./system-types/shared.js";
 import type { ApolloClient } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  LinkEntityAndRightEntity,
+  Subgraph,
+} from "@blockprotocol/graph";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Node } from "prosemirror-model";
 
@@ -203,6 +207,12 @@ const calculateSaveActions = (
   // Block entities are wrappers which point to (a) a component and (b) a child entity
   // First, gather the ids of the blocks as they appear in the db-persisted block collection
   // along with the link's id and position, to be able to (a) remove links and (b) assign new positions relative any retained ones
+  const fetchedBlockEntityIds = new Set<EntityId>(
+    blocksAndLinks.map(
+      ({ blockEntity }) => blockEntity.metadata.recordId.entityId,
+    ),
+  );
+
   const beforeBlockDraftIds: BeforeBlockDraftIdAndLink[] = [];
   for (const { blockEntity, contentLinkEntity } of blocksAndLinks) {
     const draftEntity = getDraftEntityByEntityId(
@@ -370,6 +380,24 @@ const calculateSaveActions = (
         });
       }
     } else {
+      /**
+       * The block is in the document but not in the persisted block list.
+       * If it has a persisted entityId it is not a locally-created block
+       * awaiting creation (those only receive an entityId once saved): it
+       * came from an earlier fetch of the collection, and its absence from
+       * the latest fetch means it can no longer be resolved – e.g. it was
+       * archived or hidden from the requester after the document was
+       * loaded. Inserting it as a new block would duplicate it in the
+       * collection, so fail the save instead: a failed save is
+       * recoverable, a corrupted collection is not.
+       */
+      const persistedEntityId = draftEntity.metadata.recordId.entityId;
+      if (persistedEntityId && !fetchedBlockEntityIds.has(persistedEntityId)) {
+        throw new Error(
+          `Invariant violation: block entity ${persistedEntityId} is in the document but was not among the blocks fetched for the collection – refusing to insert it again`,
+        );
+      }
+
       // We have a new block – insert it
       const blockChildEntityId =
         newChildEntityForBlock?.metadata.recordId.entityId ??
@@ -457,13 +485,13 @@ const mapEntityToGqlBlock = (
   const blockChildEntity = getOutgoingLinkAndTargetEntities(
     entitySubgraph,
     entity.metadata.recordId.entityId,
-  ).find(
-    ({ linkEntity: linkEntityRevisions }) =>
-      linkEntityRevisions[0] &&
-      linkEntityRevisions[0].metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.hasData.linkEntityTypeId,
-      ),
-  )?.rightEntity[0];
+  ).find(({ linkEntity: linkEntityRevisions }) => {
+    const linkEntityRevision = linkEntityRevisions[0];
+
+    return linkEntityRevision?.metadata.entityTypeIds.includes(
+      systemLinkEntityTypes.hasData.linkEntityTypeId,
+    );
+  })?.rightEntity?.[0];
 
   if (!blockChildEntity) {
     throw new Error(
@@ -536,38 +564,55 @@ export const save = async ({
       const [blockCollectionEntity] = getRoots(subgraph);
 
       const blocksAndLinks = getOutgoingLinkAndTargetEntities<
-        {
-          linkEntity: HashLinkEntity<
-            HasIndexedContent | HasSpatiallyPositionedContent
-          >[];
-          rightEntity: HashEntity<Block>[];
-        }[]
+        LinkEntityAndRightEntity<
+          HashEntity<Block>,
+          HashLinkEntity<HasIndexedContent | HasSpatiallyPositionedContent>
+        >[]
       >(subgraph, blockCollectionEntity!.metadata.recordId.entityId)
-        .filter(
+        .flatMap(
           ({
             linkEntity: linkEntityRevisions,
             rightEntity: rightEntityRevisions,
-          }) =>
-            linkEntityRevisions[0] &&
-            linkEntityRevisions[0].metadata.entityTypeIds.includes(
-              systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
-            ) &&
-            rightEntityRevisions[0] &&
-            rightEntityRevisions[0].metadata.entityTypeIds.includes(
+          }) => {
+            const contentLinkEntity = linkEntityRevisions[0];
+
+            if (
+              !contentLinkEntity?.metadata.entityTypeIds.includes(
+                systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+              )
+            ) {
+              return [];
+            }
+
+            const blockEntity = rightEntityRevisions?.[0];
+
+            /**
+             * The content link is present but no revision of the block it
+             * points at is visible in the queried interval, e.g. because
+             * the block has been archived or is not visible to the
+             * requester. Skip the link, mirroring the read path
+             * (`getBlockCollectionContents`): a block that was never
+             * visible never entered the document, and
+             * `calculateSaveActions` ignores blocks that are absent from
+             * both the document and this list, so the save proceeds and
+             * the link is left untouched. If the block IS in the document
+             * (it became unresolvable only after the document was loaded),
+             * `calculateSaveActions` fails the save rather than inserting
+             * a duplicate of it.
+             */
+            if (!blockEntity) {
+              return [];
+            }
+
+            return blockEntity.metadata.entityTypeIds.includes(
               systemEntityTypes.block.entityTypeId,
-            ),
+            )
+              ? [{ blockEntity, contentLinkEntity }]
+              : [];
+          },
         )
-        .sort(({ linkEntity: a }, { linkEntity: b }) =>
-          sortBlockCollectionLinks(a[0]!, b[0]!),
-        )
-        .map(
-          ({
-            rightEntity: rightEntityRevisions,
-            linkEntity: linkEntityRevisions,
-          }) => ({
-            blockEntity: rightEntityRevisions[0]!,
-            contentLinkEntity: linkEntityRevisions[0]!,
-          }),
+        .sort((a, b) =>
+          sortBlockCollectionLinks(a.contentLinkEntity, b.contentLinkEntity),
         );
 
       return blocksAndLinks.map(({ blockEntity, contentLinkEntity }) => ({

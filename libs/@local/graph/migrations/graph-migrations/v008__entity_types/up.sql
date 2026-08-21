@@ -36,5 +36,8 @@ CREATE TABLE entity_type_constrains_link_destinations_on (
 CREATE TABLE entity_type_embeddings (
     ontology_id UUID PRIMARY KEY REFERENCES entity_types,
     embedding VECTOR(3072) NOT NULL,
-    updated_at_transaction_time TIMESTAMP WITH TIME ZONE NOT NULL
+    updated_at_transaction_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    embedding_bits BIT(3072) NOT NULL GENERATED ALWAYS AS (
+        binary_quantize(embedding)::BIT(3072)
+    ) STORED
 );

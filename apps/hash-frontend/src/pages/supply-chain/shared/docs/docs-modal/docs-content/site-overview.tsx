@@ -69,9 +69,8 @@ export const siteOverviewSection: DocSectionDef = {
           </P>
           <P>
             Sort and filter the table from its column headers: <Term>Type</Term>{" "}
-            filters by opportunity kind (hiding a kind removes its whole
-            section), <Term>Opportunity</Term> sorts by title and filters by
-            product, and <Term>Status</Term> sorts and filters by the
+            filters by step type, <Term>Opportunity</Term> sorts by title and
+            filters by product, and <Term>Status</Term> sorts and filters by the
             investigation state.
           </P>
           <H4>Investigation workflow</H4>
@@ -88,6 +87,12 @@ export const siteOverviewSection: DocSectionDef = {
               All status updates for a given step are visible from the step
               detail panel, and viewable by anyone with access to the
               organisation.
+            </LI>
+            <LI>
+              Type <Term>@</Term> followed by a colleague&apos;s display name or
+              username to mention them in an update. Selecting them from the
+              suggestions sends an in-app notification and a best-effort email;
+              the notification opens the relevant step detail.
             </LI>
           </UL>
           <P>
@@ -138,7 +143,7 @@ export const siteOverviewSection: DocSectionDef = {
           <P>
             Dwell rows remain visible even when Exclude low samples is on,
             because a small number of high-value waits can still explain real
-            carrying cost. Low-sample dwell rows are labelled.
+            carrying cost. Low and limited-sample dwell rows are labelled.
           </P>
         </>
       ),
@@ -169,6 +174,14 @@ export const siteOverviewSection: DocSectionDef = {
               Settings
             </CrossRef>{" "}
             menu.
+          </P>
+          <P>
+            <Term>Value</Term> is the actual quantity that passed through the
+            step in the selected period, multiplied by its unit cost, to help in
+            understanding the scale of impact of miscalibrated parameters.
+            Depending on the step, quantity means material received, produced,
+            released from QA or transported. It is not carrying cost or
+            estimated savings, and outlier controls do not change it.
           </P>
         </>
       ),
@@ -233,6 +246,12 @@ export const siteOverviewSection: DocSectionDef = {
           </Lead>
           <UL>
             <LI>
+              <Term>Site search</Term> &mdash; type in the search box below the
+              settings and help buttons to filter opportunities and every detail
+              tab by step, product, material, location or supplier. Section and
+              tab counts update with the results.
+            </LI>
+            <LI>
               <Term>Column sort</Term> &mdash; click a sortable column header to
               sort by it, and click again to reverse the direction.
             </LI>
@@ -247,8 +266,8 @@ export const siteOverviewSection: DocSectionDef = {
             </LI>
             <LI>
               <Term>Exclude low samples</Term> &mdash; hide Planning and Trend
-              rows with fewer than 10 observations, so rankings are not
-              dominated by noisy single-event steps.
+              rows with fewer than 5 observations. Rows with 5&ndash;9
+              observations remain visible with a "limited" sample badge.
             </LI>
           </UL>
           <P>

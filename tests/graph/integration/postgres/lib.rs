@@ -19,7 +19,9 @@ mod partial_updates;
 mod property_metadata;
 mod property_type;
 mod read_only;
+mod semantic_search;
 mod sorting;
+mod table;
 mod transaction;
 
 use std::collections::{HashMap, HashSet};
@@ -50,10 +52,10 @@ use hash_graph_store::{
     entity::{
         CreateEntityParams, DeleteEntitiesParams, DeletionSummary, EntityStore,
         EntityValidationReport, HasPermissionForEntitiesParams, PatchEntityParams,
-        QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
-        QueryEntitySubgraphResponse, SearchEntitiesParams, SearchEntitiesResponse,
-        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
-        ValidateEntityParams,
+        QueryEntitiesParams, QueryEntitiesResponse, QueryEntitiesTableParams,
+        QueryEntitiesTableResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
+        SearchEntitiesParams, SearchEntitiesResponse, SummarizeEntitiesParams,
+        SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
@@ -850,6 +852,14 @@ impl EntityStore for DatabaseApi<'_> {
         params: SummarizeEntitiesParams<'_>,
     ) -> Result<SummarizeEntitiesResponse, Report<QueryError>> {
         self.store.summarize_entities(actor_id, params).await
+    }
+
+    async fn query_entities_table(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: QueryEntitiesTableParams,
+    ) -> Result<QueryEntitiesTableResponse, Report<QueryError>> {
+        self.store.query_entities_table(actor_id, params).await
     }
 
     async fn get_entity_by_id(

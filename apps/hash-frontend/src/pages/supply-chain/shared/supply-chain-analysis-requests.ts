@@ -46,6 +46,26 @@ export const fetchGraph = <Graph = unknown>(
     webId,
   });
 
+export const fetchProductionSchedule = <Schedule = unknown>(
+  webId: WebId,
+  productId: string,
+): Promise<Schedule> =>
+  fetchAnalysisArtifact<Schedule>({
+    analysis: "productionSchedule",
+    args: { productId },
+    webId,
+  });
+
+export const fetchSiteProductionTimeline = <Timeline = unknown>(
+  webId: WebId,
+  siteId: string,
+): Promise<Timeline> =>
+  fetchAnalysisArtifact<Timeline>({
+    analysis: "siteProductionTimeline",
+    args: { siteId },
+    webId,
+  });
+
 export const fetchStepDetail = <StepDetail = unknown>(
   webId: WebId,
   productId: string,

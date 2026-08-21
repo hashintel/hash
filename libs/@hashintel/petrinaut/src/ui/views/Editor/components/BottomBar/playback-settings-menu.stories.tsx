@@ -55,6 +55,7 @@ const PlaybackSettingsMenuStory = ({
         selectedScenarioId: null,
         scenarioParameterValues: {},
         compiledScenarioResult: null,
+        scenarioCompilationErrors: null,
         dt: 0.01,
         maxTime,
         totalFrames: simulationState === "NotRun" ? 0 : 100,

@@ -1229,10 +1229,6 @@ impl QueryRecordDecode for PropertyTypeWithMetadata {
             version: row.get(indices.version),
         };
 
-        if let Ok(distance) = row.try_get::<_, f64>("distance") {
-            tracing::trace!(%record_id, %distance, "Property type embedding was calculated");
-        }
-
         Self {
             schema: row.get::<_, Json<_>>(indices.schema).0,
             metadata: PropertyTypeMetadata {

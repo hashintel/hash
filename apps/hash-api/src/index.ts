@@ -30,6 +30,7 @@ import {
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
+import { HEALTH_PATH } from "@local/hash-backend-utils/opentelemetry";
 import { createRedisClient } from "@local/hash-backend-utils/redis";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
@@ -55,6 +56,7 @@ import {
 } from "./auth/create-auth-handlers";
 // import { createUnverifiedEmailCleanupJob } from "./auth/create-unverified-email-cleanup-job";
 import { getActorIdFromRequest } from "./auth/get-actor-id";
+import { guardKratosProxy } from "./auth/kratos-endpoint-allowlist";
 import {
   oauthConsentRequestHandler,
   oauthConsentSubmissionHandler,
@@ -89,6 +91,10 @@ import {
   port,
 } from "./lib/env-config";
 import { logger } from "./logger";
+import {
+  getPetrinautOptimizerOrigin,
+  setupPetrinautOptimizerHandler,
+} from "./petrinaut-optimizer/setup-petrinaut-optimizer-handler";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
   setupFileDownloadProxyHandler,
@@ -299,50 +305,58 @@ const kratosProxyLogger = {
   error: (...args: unknown[]) => forwardProxyLog("error", args),
 };
 
-const kratosProxy = createProxyMiddleware<Request, Response>({
-  target: kratosPublicUrl,
-  pathRewrite: {
-    /**
-     * Remove the `/auth` prefix from the request path, so the path is
-     * formatted correctly for the Ory Kratos API.
-     */
-    "^/auth": "",
-  },
-  logger: kratosProxyLogger,
-  selfHandleResponse: true,
-  on: {
-    proxyReq: fixRequestBody,
-    /**
-     * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
-     * by default, which is not permitted by browsers when including credentials
-     * in requests.
-     *
-     * When setting the value of the `Access-Control-Allow-Origin` header in
-     * the Ory Kratos configuration, the frontend URL is included twice in the
-     * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
-     * which is also not permitted by browsers when including credentials in requests.
-     *
-     * Therefore we manually set the `Access-Control-Allow-Origin` header to the
-     * expected value here before returning the response, to prevent CORS errors
-     * in modern browsers.
-     */
-    proxyRes: (proxyRes, req, res) => {
-      const expectedAccessControlAllowOriginHeader = res.getHeader(
-        "access-control-allow-origin",
-      );
-
-      return responseInterceptor((responseBuffer, _, __, inflightRes) => {
-        if (typeof expectedAccessControlAllowOriginHeader === "string") {
-          inflightRes.setHeader(
-            "access-control-allow-origin",
-            expectedAccessControlAllowOriginHeader,
-          );
-        }
-
-        return Promise.resolve(responseBuffer);
-      })(proxyRes, req, res);
+/**
+ * The `/auth` proxy to the Ory Kratos public API, guarded by a default-deny
+ * allow-list of the Kratos endpoints we actually use. See
+ * `./auth/kratos-endpoint-allowlist` for the list itself.
+ */
+const kratosProxy = guardKratosProxy({
+  logger,
+  proxy: createProxyMiddleware<Request, Response>({
+    target: kratosPublicUrl,
+    pathRewrite: {
+      /**
+       * Remove the `/auth` prefix from the request path, so the path is
+       * formatted correctly for the Ory Kratos API.
+       */
+      "^/auth": "",
     },
-  },
+    logger: kratosProxyLogger,
+    selfHandleResponse: true,
+    on: {
+      proxyReq: fixRequestBody,
+      /**
+       * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
+       * by default, which is not permitted by browsers when including credentials
+       * in requests.
+       *
+       * When setting the value of the `Access-Control-Allow-Origin` header in
+       * the Ory Kratos configuration, the frontend URL is included twice in the
+       * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
+       * which is also not permitted by browsers when including credentials in requests.
+       *
+       * Therefore we manually set the `Access-Control-Allow-Origin` header to the
+       * expected value here before returning the response, to prevent CORS errors
+       * in modern browsers.
+       */
+      proxyRes: (proxyRes, req, res) => {
+        const expectedAccessControlAllowOriginHeader = res.getHeader(
+          "access-control-allow-origin",
+        );
+
+        return responseInterceptor((responseBuffer, _, __, inflightRes) => {
+          if (typeof expectedAccessControlAllowOriginHeader === "string") {
+            inflightRes.setHeader(
+              "access-control-allow-origin",
+              expectedAccessControlAllowOriginHeader,
+            );
+          }
+
+          return Promise.resolve(responseBuffer);
+        })(proxyRes, req, res);
+      },
+    },
+  }),
 });
 
 const main = async () => {
@@ -376,6 +390,16 @@ const main = async () => {
   }
 
   app.use(cors(CORS_CONFIG));
+
+  /**
+   * Registered ahead of the request logger, the proxies, the rate limiters and
+   * `authMiddleware`, so a probe cannot be slowed down or rejected by any of
+   * them. `authMiddleware` in particular would otherwise resolve the session on
+   * every probe.
+   */
+  app.get(HEALTH_PATH, (_req, res) => {
+    res.type("application/health+json").status(200).send({ status: "pass" });
+  });
 
   if (isProdEnv && !isSelfHostedInstance) {
     /**
@@ -625,6 +649,11 @@ const main = async () => {
    *
    * Although the proxy would ideally come before the body parser, so that we're passing it through untouched,
    * we check the body in this process in order to rate limit requests based on the user attempting to log in.
+   *
+   * The proxy's own allow-list runs last, after `cors`, so that the `OPTIONS`
+   * preflight is already answered (`preflightContinue` is left at its default of
+   * `false`) and preflights never need to be allow-listed, and so that probing
+   * for non-allow-listed endpoints is still rate limited.
    */
   app.use(
     "/auth",
@@ -759,6 +788,11 @@ const main = async () => {
 
   setupAnalysisHandler(app, keyv);
 
+  setupPetrinautOptimizerHandler(app, {
+    logger,
+    origin: getPetrinautOptimizerOrigin(),
+  });
+
   setupTelemetryHandler(app);
   shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());
 
@@ -845,9 +879,6 @@ const main = async () => {
       });
     });
   }
-
-  // Used by AWS Application Load Balancer (ALB) for health checks
-  app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
 
   app.use((req, _res, next) => {
     if (req.path !== "/graphql") {

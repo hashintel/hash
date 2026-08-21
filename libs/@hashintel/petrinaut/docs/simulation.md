@@ -45,15 +45,11 @@ The time step in seconds per frame. Controls the resolution of ODE integration a
 
 Default: `0.01` seconds.
 
-### ODE solver
-
-The numerical method for integrating differential equations. Currently only **Euler** is available.
-
 ## Running a simulation
 
 Press **Play** in the bottom toolbar. The simulation:
 
-1. Initializes with a fresh random seed (single-run simulations re-seed each time you press Play, so two consecutive runs of the same stochastic model produce different trajectories), the current dt, and parameter values.
+1. Initializes with a fixed random seed, the current dt, and parameter values. The seed is the same one used by [optimization](optimization.md) trials, so pressing Play twice with the same configuration reproduces the same trajectory, and a single run can reproduce an optimization trial given the same scenario parameter values, dt, and max time.
 2. Computes frames in a background Web Worker.
 3. Streams frames to the UI for playback.
 
@@ -129,7 +125,7 @@ The **Timeline** tab appears in the bottom panel during and after simulation. It
 
 - **Chart type** -- toggle between **Run** (line chart) and **Stacked** (area chart) using the control in the tab header.
 - **Scrub** -- click or drag on the chart to jump to any frame. A playhead indicator shows the current position.
-- **Series selector** -- the strip below the chart lists the traces currently shown. Hover a trace and click the eye icon that replaces its colour swatch to hide it; the trace stays in place, struck through, until the pointer leaves the selector, so you can hide several traces in a row or click again to undo a change. Hidden traces are managed from the dropdown: a **+N more** chip opens the full list when there are more traces than fit, and clicking anywhere else in the selector opens it for searching. The badge shows how many traces are currently shown, and your selection is kept while you switch tabs. Use **Select All** or **Unselect All** for bulk changes, or choose **Only** on a trace row to focus the chart on that one series. Y axis is automatically scaled to the maximum value.
+- **Series selector** -- the strip below the chart lists the traces currently shown. Hover a trace and click the eye icon that replaces its colour swatch to hide it; the trace stays in place, struck through, until the pointer leaves the selector, so you can hide several traces in a row or click again to undo a change. Hidden traces are managed from the dropdown: click the **N/M shown** badge (or anywhere else in the selector) to open the full list for searching, which is also where traces that don't fit in the strip live. The badge shows how many traces are currently shown, and your selection is kept while you switch tabs. Use **Select All** or **Unselect All** for bulk changes, or choose **Only** on a trace row to focus the chart on that one series. Y axis is automatically scaled to the maximum value.
 
 ## Viewing state during simulation
 

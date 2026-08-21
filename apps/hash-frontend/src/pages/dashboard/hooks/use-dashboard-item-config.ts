@@ -1,8 +1,14 @@
 import { useApolloClient, useMutation } from "@apollo/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { normalizeStructuralQuery } from "@local/hash-isomorphic-utils/dashboard-types";
-import { configureDashboardItemFlowDefinition } from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
+import {
+  getPrimaryChartType,
+  normalizeStructuralQuery,
+} from "@local/hash-isomorphic-utils/dashboard-types";
+import {
+  configureDashboardItemFlowDefinition,
+  refineDashboardItemFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -64,6 +70,18 @@ const initialState: ConfigState = {
   flowRunId: null,
 };
 
+const configurationReadyPatch: PropertyPatchOperation = {
+  op: "add",
+  path: [systemPropertyTypes.configurationStatus.propertyTypeBaseUrl],
+  property: {
+    value: "ready",
+    metadata: {
+      dataTypeId:
+        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+    },
+  },
+};
+
 export type DashboardItemInitialValues = {
   structuralQuery: StructuralQueryDefinition | null;
   pythonScript: string | null;
@@ -94,7 +112,10 @@ type UseDashboardItemConfigParams = {
    */
   initialValues?: DashboardItemInitialValues;
   /** Called once the flow is running so the dashboard can show its card. */
-  onGenerationStarted?: () => void;
+  onGenerationStarted?: (generation: {
+    itemEntityId: EntityId;
+    flowRunId: string;
+  }) => void;
   onComplete?: () => void;
 };
 
@@ -147,6 +168,15 @@ export const useDashboardItemConfig = ({
   });
 
   const [state, setState] = useState<ConfigState>(seededStateRef.current);
+  const persistedConfigurationRef = useRef({
+    structuralQuery: seededStateRef.current.structuralQuery,
+    pythonScript: seededStateRef.current.pythonScript,
+    chartType:
+      (seededStateRef.current.chartConfig &&
+        getPrimaryChartType(seededStateRef.current.chartConfig)) ??
+      seededStateRef.current.chartType,
+    chartConfig: seededStateRef.current.chartConfig,
+  });
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const generationActiveRef = useRef(false);
   const generationFinalizingRef = useRef(false);
@@ -602,16 +632,25 @@ export const useDashboardItemConfig = ({
       });
 
       if (data?.startFlow) {
+        const resolvedItemEntityId = await ensureEntityId();
         setState((prev) => ({
           ...prev,
           flowRunId: data.startFlow,
           step: "query",
         }));
 
-        onGenerationStarted?.();
+        onGenerationStarted?.({
+          itemEntityId: resolvedItemEntityId,
+          flowRunId: data.startFlow,
+        });
 
-        // Start polling for flow completion
-        startPolling(data.startFlow);
+        /**
+         * Dashboard pages own generation polling so it survives closing the
+         * modal. Retain the local fallback for any standalone consumers.
+         */
+        if (!onGenerationStarted) {
+          startPolling(data.startFlow);
+        }
       } else {
         setError("Failed to start configuration flow");
         await markGenerationFailed();
@@ -636,6 +675,150 @@ export const useDashboardItemConfig = ({
     onComplete,
     markGenerationFailed,
   ]);
+
+  const refineConfiguration = useCallback(
+    async (refinementInstruction: string) => {
+      if (
+        !refinementInstruction.trim() ||
+        !initialGoal ||
+        !initialValues?.structuralQuery ||
+        !initialValues.pythonScript ||
+        !initialValues.chartType ||
+        !initialValues.chartConfig
+      ) {
+        setError(
+          "A refinement instruction and complete existing configuration are required",
+        );
+        return;
+      }
+
+      generationSettledRef.current = false;
+      generationFinalizingRef.current = false;
+      generationActiveRef.current = true;
+      setState((previousState) => ({
+        ...previousState,
+        step: "query",
+        isLoading: true,
+        error: null,
+      }));
+
+      try {
+        await updateEntity({
+          variables: {
+            entityUpdate: {
+              entityId: await ensureEntityId(),
+              propertyPatches: [
+                {
+                  op: "add",
+                  path: [
+                    systemPropertyTypes.configurationStatus.propertyTypeBaseUrl,
+                  ],
+                  property: {
+                    value: "configuring",
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        });
+
+        const { data } = await startFlow({
+          variables: {
+            flowDefinition: refineDashboardItemFlowDefinition,
+            flowTrigger: {
+              triggerDefinitionId: "userTrigger",
+              outputs: [
+                {
+                  outputName: "userGoal",
+                  payload: { kind: "Text", value: initialGoal },
+                },
+                {
+                  outputName: "refinementInstruction",
+                  payload: { kind: "Text", value: refinementInstruction },
+                },
+                {
+                  outputName: "existingStructuralQuery",
+                  payload: {
+                    kind: "Text",
+                    value: JSON.stringify(initialValues.structuralQuery),
+                  },
+                },
+                {
+                  outputName: "existingPythonScript",
+                  payload: { kind: "Text", value: initialValues.pythonScript },
+                },
+                {
+                  outputName: "existingChartType",
+                  payload: { kind: "Text", value: initialValues.chartType },
+                },
+                {
+                  outputName: "existingChartConfig",
+                  payload: {
+                    kind: "Text",
+                    value: JSON.stringify(initialValues.chartConfig),
+                  },
+                },
+              ],
+            },
+            flowType: "ai",
+            webId,
+            dataSources: {
+              files: { fileEntityIds: [] },
+              internetAccess: {
+                enabled: false,
+                browserPlugin: {
+                  enabled: false,
+                  domains: [],
+                },
+              },
+            },
+          },
+        });
+
+        if (!data?.startFlow) {
+          throw new Error("Failed to start refinement flow");
+        }
+
+        const resolvedItemEntityId = await ensureEntityId();
+        setState((previousState) => ({
+          ...previousState,
+          flowRunId: data.startFlow,
+          step: "query",
+        }));
+        onGenerationStarted?.({
+          itemEntityId: resolvedItemEntityId,
+          flowRunId: data.startFlow,
+        });
+        if (!onGenerationStarted) {
+          startPolling(data.startFlow);
+        }
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to refine configuration",
+        );
+        await markGenerationFailed();
+        generationActiveRef.current = false;
+      }
+    },
+    [
+      ensureEntityId,
+      initialGoal,
+      initialValues,
+      markGenerationFailed,
+      onGenerationStarted,
+      setError,
+      startFlow,
+      startPolling,
+      updateEntity,
+      webId,
+    ],
+  );
 
   const regenerateQuery = useCallback(async () => {
     await generateQuery();
@@ -683,6 +866,7 @@ export const useDashboardItemConfig = ({
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
+        const persistedConfiguration = persistedConfigurationRef.current;
         await updateEntity({
           variables: {
             entityUpdate: {
@@ -701,11 +885,17 @@ export const useDashboardItemConfig = ({
                     },
                   },
                 } as unknown as PropertyPatchOperation,
+                ...(persistedConfiguration.pythonScript !== null &&
+                persistedConfiguration.chartType &&
+                persistedConfiguration.chartConfig
+                  ? [configurationReadyPatch]
+                  : []),
               ],
             },
           },
         });
 
+        persistedConfiguration.structuralQuery = structuralQuery;
         setState((prev) => ({ ...prev, structuralQuery, isLoading: false }));
       } catch (err) {
         const error =
@@ -727,6 +917,7 @@ export const useDashboardItemConfig = ({
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
+        const persistedConfiguration = persistedConfigurationRef.current;
         await updateEntity({
           variables: {
             entityUpdate: {
@@ -743,11 +934,17 @@ export const useDashboardItemConfig = ({
                     },
                   },
                 },
+                ...(persistedConfiguration.structuralQuery &&
+                persistedConfiguration.chartType &&
+                persistedConfiguration.chartConfig
+                  ? [configurationReadyPatch]
+                  : []),
               ],
             },
           },
         });
 
+        persistedConfiguration.pythonScript = pythonScript;
         setState((prev) => ({ ...prev, pythonScript, isLoading: false }));
       } catch (err) {
         const error =
@@ -769,11 +966,30 @@ export const useDashboardItemConfig = ({
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
+        const chartType = getPrimaryChartType(chartConfig);
+        if (!chartType) {
+          throw new Error(
+            "Chart config must contain at least one series with a valid type",
+          );
+        }
+
+        const persistedConfiguration = persistedConfigurationRef.current;
         await updateEntity({
           variables: {
             entityUpdate: {
               entityId: await ensureEntityId(),
               propertyPatches: [
+                {
+                  op: "add" as const,
+                  path: [systemPropertyTypes.chartType.propertyTypeBaseUrl],
+                  property: {
+                    value: chartType,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  },
+                },
                 {
                   op: "add" as const,
                   path: [
@@ -787,12 +1003,23 @@ export const useDashboardItemConfig = ({
                     },
                   },
                 },
+                ...(persistedConfiguration.structuralQuery &&
+                persistedConfiguration.pythonScript !== null
+                  ? [configurationReadyPatch]
+                  : []),
               ],
             },
           },
         });
 
-        setState((prev) => ({ ...prev, chartConfig, isLoading: false }));
+        persistedConfiguration.chartType = chartType;
+        persistedConfiguration.chartConfig = chartConfig;
+        setState((prev) => ({
+          ...prev,
+          chartType,
+          chartConfig,
+          isLoading: false,
+        }));
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error("Failed to save chart config");
@@ -891,6 +1118,7 @@ export const useDashboardItemConfig = ({
     ensureItemEntity: ensureEntityId,
     setUserGoal,
     generateQuery,
+    refineConfiguration,
     regenerateQuery,
     confirmQuery,
     regenerateAnalysis,

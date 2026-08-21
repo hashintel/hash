@@ -8,6 +8,7 @@ import {
   selectStat,
   useBaseMeasure,
 } from "../../shared/measure-context";
+import { sampleTier } from "../../shared/sample-confidence";
 import { siteNodeKey } from "../../shared/site-node-key";
 import {
   deriveStatusActionState,
@@ -20,16 +21,22 @@ import { ColumnHeader } from "./shared/column-header";
 import { siteNodeDisplayLabel, sortRows } from "./shared/helpers";
 import { LowSampleBadge } from "./shared/low-sample-badge";
 import { ProductTags } from "./shared/product-tags";
-import {
-  LOW_SAMPLE_N,
-  type DwellRow,
-  type SortKey,
-  type SortDir,
-} from "./shared/row-types";
+import { type DwellRow, type SortKey, type SortDir } from "./shared/row-types";
 import * as threshold from "./shared/table-styles";
 import { useStepTableView } from "./shared/use-step-table-view";
 
 import type { SiteNode, StepType } from "../../shared/types";
+
+const formatPolicyQuantity = (
+  value: number | null | undefined,
+  uom: string | null | undefined,
+): string => {
+  if (value == null) {
+    return "–";
+  }
+  const quantity = formatNumber(value, { maximumFractionDigits: 3 });
+  return uom ? `${quantity} ${uom}` : quantity;
+};
 
 export const DwellTable = ({
   rows,
@@ -118,6 +125,26 @@ export const DwellTable = ({
             </th>
             <th className={threshold.thRight}>
               <ColumnHeader
+                label="MOQ"
+                sort={{
+                  active: sort.key === "moq",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("moq"),
+                }}
+              />
+            </th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
+                label="Safety stock"
+                sort={{
+                  active: sort.key === "safetyStock",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("safetyStock"),
+                }}
+              />
+            </th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
                 label={`Cost (${timeRange})`}
                 sort={{
                   active: sort.key === "cost",
@@ -165,7 +192,7 @@ export const DwellTable = ({
               <td className={threshold.td}>
                 <div className={threshold.cellFlex}>
                   <span
-                    className={threshold.catDot}
+                    className={cx(threshold.catDot, threshold.stepDot)}
                     style={{ backgroundColor: getCategoryColor(row.type) }}
                   />
 
@@ -175,7 +202,7 @@ export const DwellTable = ({
                 </div>
               </td>
               <td className={threshold.td}>
-                <ProductTags products={row.products} />
+                <ProductTags products={row.products} maxVisible={12} />
               </td>
               <td className={threshold.tdRight}>
                 <div className={threshold.stackedCell}>
@@ -192,6 +219,32 @@ export const DwellTable = ({
                 </div>
               </td>
               <td className={threshold.tdRight}>
+                <span
+                  className={cx(
+                    threshold.valueStrong,
+                    threshold.policyQuantity,
+                  )}
+                >
+                  {formatPolicyQuantity(
+                    row.inventory_policy?.minimum_order_qty,
+                    row.inventory_policy?.order_uom,
+                  )}
+                </span>
+              </td>
+              <td className={threshold.tdRight}>
+                <span
+                  className={cx(
+                    threshold.valueStrong,
+                    threshold.policyQuantity,
+                  )}
+                >
+                  {formatPolicyQuantity(
+                    row.inventory_policy?.safety_stock_qty,
+                    row.inventory_policy?.safety_stock_uom,
+                  )}
+                </span>
+              </td>
+              <td className={threshold.tdRight}>
                 <div className={threshold.stackedCell}>
                   <span className={threshold.valueDanger}>
                     {row.periodCost > 0
@@ -206,14 +259,15 @@ export const DwellTable = ({
               </td>
               <td className={cx(threshold.tdRight, threshold.valueMuted)}>
                 <span className={threshold.sampleCell}>
-                  {row.stats.n > 0 && row.stats.n < LOW_SAMPLE_N && (
-                    <span className={threshold.badgeWrap}>
-                      <LowSampleBadge
-                        label="low"
-                        title={`Current period has ${row.stats.n} observations`}
-                      />
-                    </span>
-                  )}
+                  {sampleTier(row.stats.n) !== "none" &&
+                    sampleTier(row.stats.n) !== "good" && (
+                      <span className={threshold.badgeWrap}>
+                        <LowSampleBadge
+                          label={sampleTier(row.stats.n)}
+                          title={`Current period has ${row.stats.n} observations`}
+                        />
+                      </span>
+                    )}
                   <span>{formatNumber(row.stats.n)}</span>
                 </span>
               </td>
@@ -236,7 +290,7 @@ export const DwellTable = ({
           ))}
           {displayedRows.length === 0 && (
             <tr>
-              <td colSpan={6} className={threshold.emptyCell}>
+              <td colSpan={8} className={threshold.emptyCell}>
                 {rows.length === 0
                   ? "No dwell steps for this site."
                   : "No dwell steps match the current filters."}

@@ -36,7 +36,9 @@ export const stepDetailDoc: DocEntry = {
         <LI>
           <Term>Distribution</Term> shows the spread of observations for the
           active time range and dimension. Use it to distinguish one-off tails
-          from broad shifts in the whole series.
+          from broad shifts in the whole series. On dwell steps, switch between
+          duration and event value using the standard dwell-cost calculation
+          (kg-days with WACC and storage-cost assumptions).
         </LI>
         <LI>
           <Term>Monthly trend</Term> shows change over time. Selecting a month
@@ -46,6 +48,12 @@ export const stepDetailDoc: DocEntry = {
           <Term>Planning comparison</Term> shows the planning parameter, the
           difference from observed timing and the source note where the plan is
           not the default planned-delivery-time field.
+        </LI>
+        <LI>
+          <Term>Value</Term>, when available, is the actual quantity received,
+          produced, released or transported during the selected period
+          multiplied by the unit cost, to help in understanding the scale of
+          impact of miscalibrated parameters.
         </LI>
       </UL>
 
@@ -63,7 +71,9 @@ export const stepDetailDoc: DocEntry = {
           record investigation progress, updates, conclusions or rejections.
           Status history is tied to the step/opportunity, reappears when the
           same target is opened again, and is viewable by anyone with access to
-          the supply-chain data web.
+          the supply-chain data web. To mention a colleague, type <Term>@</Term>{" "}
+          followed by their display name or username, then choose them from the
+          suggestions using the mouse, Enter or Tab.
         </LI>
         <LI>
           Use <Term>Data</Term> to open a table with the underlying records used
@@ -74,11 +84,11 @@ export const stepDetailDoc: DocEntry = {
           <Term>Time range</Term> buttons (3m, 6m, 12) filter the panel.
         </LI>
         <LI>
-          <Term>Outlier count</Term> appears in the header when the Exclude
-          outliers setting removes timing observations from the current step.
-          See{" "}
+          <Term>Outlier count</Term> appears in the header when values are
+          excluded from the mean. The raw observations and percentile statistics
+          remain unchanged. See{" "}
           <CrossRef to={{ section: "settings", sub: "outliers" }}>
-            Exclude outliers
+            Exclude outliers from mean
           </CrossRef>
           .
         </LI>

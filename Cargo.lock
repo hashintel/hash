@@ -2836,6 +2836,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cookie"
+version = "0.18.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a373e3602691c3cdea496d2f0ee5935151e6168fe87739483c463db1b2f2f87"
+dependencies = [
+ "time",
+ "version_check",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5851,6 +5861,7 @@ dependencies = [
  "harpc-tower",
  "harpc-types",
  "hash-codec",
+ "hash-graph-authentication",
  "hash-graph-authorization",
  "hash-graph-embeddings",
  "hash-graph-postgres-store",
@@ -5891,6 +5902,29 @@ dependencies = [
  "tracing-opentelemetry",
  "type-system",
  "utoipa",
+ "utoipa-scalar",
+ "uuid",
+]
+
+[[package]]
+name = "hash-graph-authentication"
+version = "0.0.0"
+dependencies = [
+ "axum",
+ "cookie",
+ "derive_more",
+ "error-stack",
+ "hash-graph-authorization",
+ "hash-graph-store",
+ "hash-status",
+ "http 1.4.2",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "simple-mermaid",
+ "tokio",
+ "tracing",
+ "type-system",
  "uuid",
 ]
 
@@ -6169,6 +6203,7 @@ dependencies = [
 name = "hash-graph-store"
 version = "0.0.0"
 dependencies = [
+ "base64",
  "bytes",
  "derive-where",
  "derive_more",
@@ -15049,6 +15084,17 @@ dependencies = [
  "syn 2.0.118",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "utoipa-scalar"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3ab4b7269d14d93626b0bfedf212f1b0995cb7d13d35daba21d579511e7fae8"
+dependencies = [
+ "serde",
+ "serde_json",
+ "utoipa",
 ]
 
 [[package]]

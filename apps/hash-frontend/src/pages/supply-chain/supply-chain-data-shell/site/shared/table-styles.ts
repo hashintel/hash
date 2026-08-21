@@ -60,17 +60,25 @@ export const bodyRow = css({
   transition: "colors",
   _hover: { bg: "bg.subtle" },
 });
-export const td = css({ px: "4", py: "2.5" });
+export const td = css({ px: "4", py: "2.5", verticalAlign: "top" });
 export const tdRight = css({
   px: "4",
   py: "2.5",
   textAlign: "right",
+  verticalAlign: "top",
   fontVariantNumeric: "tabular-nums",
 });
 export const cellFlex = css({
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-start",
   gap: "2",
+});
+export const stepMarker = css({
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "center",
+  flexShrink: 0,
+  gap: "1",
 });
 export const catDot = css({
   w: "2",
@@ -78,8 +86,11 @@ export const catDot = css({
   borderRadius: "full",
   flexShrink: 0,
 });
+/** Centres an 8px category dot within the first 20px text line. */
+export const stepDot = css({ mt: "1.5" });
 export const stepLabel = css({ fontWeight: "medium", color: "fg.heading" });
 export const valueStrong = css({ color: "fg.heading" });
+export const policyQuantity = css({ whiteSpace: "nowrap" });
 export const valueMuted = css({ color: "fg.subtle" });
 export const valueDim = css({ color: "fg.muted" });
 export const numMedium = css({ fontWeight: "medium" });

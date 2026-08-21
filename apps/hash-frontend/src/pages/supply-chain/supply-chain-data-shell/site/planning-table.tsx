@@ -1,13 +1,18 @@
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { useMemo } from "react";
+
+import { cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
 import { getCategoryColor } from "../../shared/categories";
-import { formatNumber } from "../../shared/cost";
+import { formatCost, formatNumber } from "../../shared/cost";
 import {
   MEASURE_LABELS,
   selectStat,
   useBaseMeasure,
 } from "../../shared/measure-context";
+import { PlanningWarningIndicator } from "../../shared/planning-warning-indicator";
+import { procurementStepDisplayLabel } from "../../shared/procurement-planning-ui";
+import { combinedSampleTier } from "../../shared/sample-confidence";
 import { siteNodeKey } from "../../shared/site-node-key";
 import {
   deriveStatusActionState,
@@ -16,12 +21,12 @@ import {
   type StatusStore,
 } from "../../shared/status";
 import { TrendIndicator } from "../../shared/trend-indicator";
+import { buildColumnFilter, countBy } from "./shared/column-filter";
 import { ColumnHeader } from "./shared/column-header";
 import { siteNodeDisplayLabel, sortPlanningRows } from "./shared/helpers";
 import { LowSampleBadge } from "./shared/low-sample-badge";
 import { ProductTags } from "./shared/product-tags";
 import {
-  LOW_SAMPLE_N,
   type PlanningRow,
   type SortKey,
   type SortDir,
@@ -31,13 +36,30 @@ import { useStepTableView } from "./shared/use-step-table-view";
 
 import type { SiteNode, StepType } from "../../shared/types";
 
-const planNote = css({ textStyle: "xxs", color: "fg.subtle", ml: "4" });
+function basisLabel(row: PlanningRow): string {
+  if (row.type !== "procurement") {
+    return "–";
+  }
+  return {
+    ordinary: "Buy",
+    consignment: "Consignment",
+    subcontract: "Subcontract",
+    mixed: "Mixed",
+    unknown: "Unknown",
+  }[row.receipt_basis ?? "unknown"];
+}
 
-function isLowSample(row: PlanningRow): boolean {
-  return (
-    (row.stats.n > 0 && row.stats.n < LOW_SAMPLE_N) ||
-    (row.previousTrendN > 0 && row.previousTrendN < LOW_SAMPLE_N)
-  );
+function supplierLabel(row: PlanningRow): string {
+  return row.type === "procurement"
+    ? (row.supplier_name ?? row.supplier_id ?? "Unknown")
+    : "–";
+}
+
+function planningStepLabel(row: PlanningRow): string {
+  const label = siteNodeDisplayLabel(row);
+  return row.type === "procurement"
+    ? procurementStepDisplayLabel(label, "compact")
+    : label;
 }
 
 const PlanningSampleTooltip = ({
@@ -49,17 +71,9 @@ const PlanningSampleTooltip = ({
 }) => {
   return (
     <span>
-      {currentN > 0 && currentN < LOW_SAMPLE_N
-        ? `Current period has ${currentN} observations`
-        : ""}
-      {currentN > 0 &&
-      currentN < LOW_SAMPLE_N &&
-      previousN > 0 &&
-      previousN < LOW_SAMPLE_N
-        ? "; "
-        : ""}
-      {previousN > 0 && previousN < LOW_SAMPLE_N
-        ? `Previous comparison period has ${previousN} observations`
+      Current period has {currentN} observations
+      {previousN > 0
+        ? `; previous comparison period has ${previousN} observations`
         : ""}
     </span>
   );
@@ -76,6 +90,10 @@ export const PlanningTable = ({
   onTypeHiddenChange,
   productHidden,
   onProductHiddenChange,
+  supplierHidden,
+  onSupplierHiddenChange,
+  basisHidden,
+  onBasisHiddenChange,
   statusHidden,
   onStatusHiddenChange,
 }: {
@@ -91,28 +109,76 @@ export const PlanningTable = ({
   onTypeHiddenChange: (next: Set<StepType>) => void;
   productHidden: Set<string>;
   onProductHiddenChange: (next: Set<string>) => void;
+  supplierHidden: Set<string>;
+  onSupplierHiddenChange: (next: Set<string>) => void;
+  basisHidden: Set<string>;
+  onBasisHiddenChange: (next: Set<string>) => void;
   statusHidden: Set<StatusActionLabel>;
   onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
 }) => {
   const { measure } = useBaseMeasure();
   const measureLabel = MEASURE_LABELS[measure];
 
-  const { typeFilter, productFilter, statusFilter, displayedRows, toggleSort } =
-    useStepTableView<PlanningRow>({
-      rows,
-      siteId,
-      sort,
-      onSort,
-      statusHistory,
-      typeHidden,
-      onTypeHiddenChange,
-      productHidden,
-      onProductHiddenChange,
-      statusHidden,
-      onStatusHiddenChange,
-      sortRows: sortPlanningRows,
-      source: "planning_table",
+  const {
+    typeFilter,
+    productFilter,
+    statusFilter,
+    displayedRows: stepFilteredRows,
+    toggleSort,
+  } = useStepTableView<PlanningRow>({
+    rows,
+    siteId,
+    sort,
+    onSort,
+    statusHistory,
+    typeHidden,
+    onTypeHiddenChange,
+    productHidden,
+    onProductHiddenChange,
+    statusHidden,
+    onStatusHiddenChange,
+    sortRows: sortPlanningRows,
+    source: "planning_table",
+  });
+
+  const supplierFilter = useMemo(() => {
+    const values = [...new Set(rows.map(supplierLabel))].sort((left, right) =>
+      left.localeCompare(right),
+    );
+    return buildColumnFilter<string>({
+      header: "Supplier",
+      values,
+      labelOf: (supplier) => supplier,
+      counts: countBy(rows, supplierLabel),
+      hidden: supplierHidden,
+      onHiddenChange: onSupplierHiddenChange,
     });
+  }, [rows, supplierHidden, onSupplierHiddenChange]);
+
+  const basisFilter = useMemo(() => {
+    const values = [...new Set(rows.map(basisLabel))].sort((left, right) =>
+      left.localeCompare(right),
+    );
+    return buildColumnFilter<string>({
+      header: "Basis",
+      values,
+      labelOf: (basis) => basis,
+      counts: countBy(rows, basisLabel),
+      hidden: basisHidden,
+      onHiddenChange: onBasisHiddenChange,
+      searchable: false,
+    });
+  }, [rows, basisHidden, onBasisHiddenChange]);
+
+  const displayedRows = useMemo(
+    () =>
+      stepFilteredRows.filter(
+        (row) =>
+          !supplierHidden.has(supplierLabel(row)) &&
+          !basisHidden.has(basisLabel(row)),
+      ),
+    [stepFilteredRows, supplierHidden, basisHidden],
+  );
 
   return (
     <div
@@ -134,7 +200,39 @@ export const PlanningTable = ({
               />
             </th>
             <th className={threshold.th}>
+              <ColumnHeader
+                label="Supplier"
+                sort={{
+                  active: sort.key === "supplier",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("supplier"),
+                }}
+                filter={supplierFilter}
+              />
+            </th>
+            <th className={threshold.th}>
+              <ColumnHeader
+                label="Basis"
+                sort={{
+                  active: sort.key === "basis",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("basis"),
+                }}
+                filter={basisFilter}
+              />
+            </th>
+            <th className={threshold.th}>
               <ColumnHeader label="Products" filter={productFilter} />
+            </th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
+                label="Value"
+                sort={{
+                  active: sort.key === "materialValue",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("materialValue"),
+                }}
+              />
             </th>
             <th className={threshold.thRight}>
               <ColumnHeader
@@ -201,7 +299,13 @@ export const PlanningTable = ({
         </thead>
         <tbody className={threshold.tbodyDivide}>
           {displayedRows.map((row) => {
-            const isOver = row.deviationPct > 0;
+            const deviationPct = row.deviationPct;
+            const hasDeviation = deviationPct != null;
+            const isOver = deviationPct != null && deviationPct > 0;
+            const sampleLevel = combinedSampleTier(
+              row.stats.n,
+              row.previousTrendN,
+            );
             return (
               <tr
                 key={siteNodeKey(row)}
@@ -216,22 +320,33 @@ export const PlanningTable = ({
               >
                 <td className={threshold.td}>
                   <div className={threshold.cellFlex}>
-                    <span
-                      className={threshold.catDot}
-                      style={{ backgroundColor: getCategoryColor(row.type) }}
-                    />
-
+                    <span className={threshold.stepMarker}>
+                      <span
+                        className={cx(threshold.catDot, threshold.stepDot)}
+                        style={{ backgroundColor: getCategoryColor(row.type) }}
+                      />
+                      {row.type === "procurement" && (
+                        <PlanningWarningIndicator
+                          warnings={row.planning_warnings}
+                        />
+                      )}
+                    </span>
                     <span className={threshold.stepLabel}>
-                      {siteNodeDisplayLabel(row)}
+                      {planningStepLabel(row)}
                     </span>
                   </div>
-                  {row.plan_note &&
-                    row.plan_note !== "No planning parameter set" && (
-                      <span className={planNote}>{row.plan_note}</span>
-                    )}
                 </td>
+                <td className={threshold.td}>{supplierLabel(row)}</td>
+                <td className={threshold.td}>{basisLabel(row)}</td>
                 <td className={threshold.td}>
-                  <ProductTags products={row.products} />
+                  <ProductTags products={row.products} maxVisible={12} />
+                </td>
+                <td className={cx(threshold.tdRight, threshold.valueStrong)}>
+                  {formatCost(
+                    row.periodMaterialValue,
+                    row.material_value?.currency ?? null,
+                    { compact: true },
+                  )}
                 </td>
                 <td className={cx(threshold.tdRight, threshold.valueMuted)}>
                   {formatNumber(row.plan, { maximumFractionDigits: 0 })}d
@@ -245,12 +360,24 @@ export const PlanningTable = ({
                 <td
                   className={cx(
                     threshold.tdRight,
-                    isOver ? threshold.trendDanger : threshold.trendSuccess,
+                    !hasDeviation
+                      ? threshold.valueMuted
+                      : isOver
+                        ? threshold.trendDanger
+                        : threshold.trendSuccess,
                   )}
                 >
-                  {isOver ? "+" : ""}
-                  {formatNumber(row.deviationPct, { maximumFractionDigits: 0 })}
-                  %
+                  {hasDeviation ? (
+                    <>
+                      {isOver ? "+" : ""}
+                      {formatNumber(deviationPct, {
+                        maximumFractionDigits: 0,
+                      })}
+                      %
+                    </>
+                  ) : (
+                    "–"
+                  )}
                 </td>
                 <td
                   className={threshold.tdRight}
@@ -263,11 +390,12 @@ export const PlanningTable = ({
                       : undefined
                   }
                 >
-                  <span className={threshold.sampleCell}>
-                    {isLowSample(row) && (
+                  <span className={threshold.stackedCell}>
+                    <TrendIndicator pctChange={row.trendPct} />
+                    {(sampleLevel === "low" || sampleLevel === "limited") && (
                       <span className={threshold.badgeWrap}>
                         <LowSampleBadge
-                          label="low sample"
+                          label={`${sampleLevel} sample`}
                           title={
                             <PlanningSampleTooltip
                               currentN={row.stats.n}
@@ -277,7 +405,6 @@ export const PlanningTable = ({
                         />
                       </span>
                     )}
-                    <TrendIndicator pctChange={row.trendPct} />
                   </span>
                 </td>
                 <td className={cx(threshold.tdRight, threshold.valueMuted)}>
@@ -307,7 +434,7 @@ export const PlanningTable = ({
           })}
           {displayedRows.length === 0 && (
             <tr>
-              <td colSpan={8} className={threshold.emptyCell}>
+              <td colSpan={11} className={threshold.emptyCell}>
                 {rows.length === 0
                   ? "No planning parameter data for this site."
                   : "No planning parameter data matches the current filters."}

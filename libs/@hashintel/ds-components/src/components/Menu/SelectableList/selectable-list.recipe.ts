@@ -3,12 +3,11 @@ import { sva } from "@hashintel/ds-helpers/css";
 import type { FormInputSize } from "../../../util/form-shared";
 
 export const styles = sva({
-  slots: ["content", "group", "groupLabel", "emptyContainer"],
+  slots: ["content", "group", "groupLabel", "emptyContainer", "customItem"],
   base: {
     content: {
       backgroundColor: "white",
-      border: "1px solid",
-      borderColor: "bd.subtle",
+      border: "1px solid {colors.bd.subtle}",
       borderRadius: "lg",
       boxShadow: "lg",
       outline: "0",
@@ -24,9 +23,8 @@ export const styles = sva({
       width: "full",
       paddingY: "1",
       marginY: "1",
-      borderTop: "1px solid",
-      borderBottom: "1px solid",
-      borderColor: "neutral.s30",
+      borderTop: "1px solid {colors.neutral.s30}",
+      borderBottom: "1px solid {colors.neutral.s30}",
       "&:first-child": {
         borderTopWidth: "0",
         marginTop: "0",
@@ -53,6 +51,11 @@ export const styles = sva({
       color: "neutral.s80",
       padding: "1",
     },
+    customItem: {
+      width: "full",
+      paddingX: "[var(--selectable-list-padding-x)]",
+      paddingY: "[var(--selectable-list-padding-y)]",
+    },
   },
   variants: {
     size: {
@@ -60,6 +63,7 @@ export const styles = sva({
         content: {
           padding: "0.5",
           "--selectable-list-padding-x": "var(--spacing-1\\.5)",
+          "--selectable-list-padding-y": "var(--spacing-0\\.5)",
         },
         groupLabel: {
           fontSize: "[9px]",
@@ -71,11 +75,15 @@ export const styles = sva({
           fontSize: "[9px]",
           lineHeight: "[10px]",
         },
+        customItem: {
+          textStyle: "xxs",
+        },
       },
       xs: {
         content: {
           padding: "0.5",
           "--selectable-list-padding-x": "var(--spacing-2)",
+          "--selectable-list-padding-y": "3px",
         },
         groupLabel: {
           textStyle: "xxs",
@@ -85,11 +93,15 @@ export const styles = sva({
         emptyContainer: {
           textStyle: "xxs",
         },
+        customItem: {
+          textStyle: "xs",
+        },
       },
       sm: {
         content: {
           padding: "1",
           "--selectable-list-padding-x": "var(--spacing-2)",
+          "--selectable-list-padding-y": "3px",
         },
         groupLabel: {
           textStyle: "xs",
@@ -99,11 +111,15 @@ export const styles = sva({
         emptyContainer: {
           textStyle: "xs",
         },
+        customItem: {
+          textStyle: "sm",
+        },
       },
       md: {
         content: {
           padding: "1",
           "--selectable-list-padding-x": "var(--spacing-2\\.5)",
+          "--selectable-list-padding-y": "4px",
         },
         groupLabel: {
           textStyle: "sm",
@@ -112,12 +128,16 @@ export const styles = sva({
         },
         emptyContainer: {
           textStyle: "sm",
+        },
+        customItem: {
+          textStyle: "base",
         },
       },
       lg: {
         content: {
           padding: "1.5",
           "--selectable-list-padding-x": "var(--spacing-2\\.5)",
+          "--selectable-list-padding-y": "4px",
         },
         groupLabel: {
           textStyle: "sm",
@@ -126,6 +146,9 @@ export const styles = sva({
         },
         emptyContainer: {
           textStyle: "sm",
+        },
+        customItem: {
+          textStyle: "base",
         },
       },
     },

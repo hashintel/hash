@@ -1,4 +1,3 @@
-import { Icon, type IconName, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import type {
@@ -28,13 +27,6 @@ type TableProps<Row> = {
   onRowSelect?: (row: Row) => void;
   renderActions?: (row: Row) => ReactNode;
   selectedRowId?: string | null;
-};
-
-type TableStatusBadgeProps = {
-  children: ReactNode;
-  iconName?: IconName;
-  loading?: boolean;
-  tone?: "active" | "error" | "neutral";
 };
 
 const tableStyle = css({
@@ -145,39 +137,6 @@ const tableEmptyStateStyle = css({
   fontSize: "sm",
 });
 
-const tableStatusBadgeStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  height: "[20px]",
-  paddingX: "1.5",
-  borderRadius: "md",
-  fontSize: "sm",
-  fontWeight: "medium",
-  lineHeight: "[14px]",
-  whiteSpace: "nowrap",
-});
-
-const tableStatusBadgeActiveStyle = css({
-  backgroundColor: "blue.s30",
-  color: "blue.s110",
-});
-
-const tableStatusBadgeNeutralStyle = css({
-  backgroundColor: "neutral.s30",
-  color: "neutral.s120",
-});
-
-const tableStatusBadgeErrorStyle = css({
-  backgroundColor: "red.s30",
-  color: "red.s110",
-});
-
-const tableStatusSpinnerStyle = css({
-  width: "[12px]",
-  height: "[12px]",
-});
-
 const getColumnStyle = <Row,>(column: TableColumn<Row>): CSSProperties => ({
   flex: column.flex ?? (column.width ? "0 0 auto" : "1 1 0"),
   minWidth: column.minWidth,
@@ -239,35 +198,6 @@ function handleSelectableRowClick<Row>(
 
   onRowSelect(row);
 }
-
-export const TableStatusBadge = ({
-  children,
-  iconName,
-  loading = false,
-  tone = "neutral",
-}: TableStatusBadgeProps) => (
-  <span
-    className={cx(
-      tableStatusBadgeStyle,
-      tone === "active"
-        ? tableStatusBadgeActiveStyle
-        : tone === "error"
-          ? tableStatusBadgeErrorStyle
-          : tableStatusBadgeNeutralStyle,
-    )}
-  >
-    {loading ? (
-      <LoadingSpinner
-        className={tableStatusSpinnerStyle}
-        size="xs"
-        variant="bars"
-      />
-    ) : iconName ? (
-      <Icon name={iconName} size="xs" />
-    ) : null}
-    {children}
-  </span>
-);
 
 export function Table<Row>({
   columns,

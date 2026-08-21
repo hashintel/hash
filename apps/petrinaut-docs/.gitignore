@@ -1,0 +1,11 @@
+# Copied from the architecture bundle by scripts/sync-bundle.mjs. The bundle in
+# libs/@local/petrinaut-arch-docs/bundle is the committed artefact; this is a
+# build input derived from it.
+src/content/docs/
+src/content/diagrams/
+src/content/components/
+public/architecture.md
+public/architecture.json
+
+dist/
+.astro/

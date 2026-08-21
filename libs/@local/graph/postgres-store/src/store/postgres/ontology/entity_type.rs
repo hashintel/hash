@@ -4,7 +4,6 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
-use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName, principal::actor::AuthenticatedActor,
@@ -23,7 +22,7 @@ use hash_graph_store::{
         UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
-    filter::{Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList},
+    filter::{Filter, FilterExpression, FilterExpressionList, ParameterList},
     property_type::{
         PropertyTypeStore as _, QueryPropertyTypeSubgraphParams, QueryPropertyTypesParams,
     },
@@ -75,7 +74,8 @@ use crate::store::{
         crud::{QueryIndices, QueryRecordDecode, TypedRow},
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{
-            Distinctness, PostgresRecord, PostgresSorting, ReferenceTable, SelectCompiler, Table,
+            Distinctness, PostgresRecord, PostgresSorting, QUANTIZED_RANK_OVERFETCH,
+            ReferenceTable, SelectCompiler, Table,
         },
     },
     validation::StoreProvider,
@@ -1211,6 +1211,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn search_entity_types(
         &self,
         actor_id: ActorEntityUuid,
@@ -1222,36 +1223,103 @@ where
             limit,
         } = params;
 
-        // TODO(BE-618): optimize the query — it scans embeddings without a vector index, which
-        //   needs an ANN-friendly query shape to be usable (the current `MIN(<=>) GROUP BY`
-        //   defeats it).
-        let maximum_distance =
-            Real::try_from(maximum_semantic_distance.into_inner()).change_context(QueryError)?;
-
-        let filter = Filter::CosineDistance(
-            FilterExpression::Path {
-                path: EntityTypeQueryPath::Embedding,
-            },
-            FilterExpression::Parameter {
-                parameter: Parameter::Vector(embedding),
-                convert: None,
-            },
-            FilterExpression::Parameter {
-                parameter: Parameter::Decimal(maximum_distance),
-                convert: None,
-            },
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
+            .await
+            .change_context(QueryError)?;
+        let policy_filter = Filter::<EntityTypeWithMetadata>::for_policies(
+            policy_components.extract_filter_policies(ActionName::ViewEntityType),
+            policy_components.optimization_data(ActionName::ViewEntityType),
         );
 
         // The search always runs against the current time.
+        let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
+
+        let ontology_id_path = EntityTypeQueryPath::OntologyId;
+        let embedding_path = EntityTypeQueryPath::Embedding;
+
+        let mut compiler =
+            SelectCompiler::<EntityTypeWithMetadata>::new(Some(&temporal_axes), false);
+        compiler
+            .add_filter(&policy_filter)
+            .change_context(QueryError)?;
+        compiler.add_selection_path(&ontology_id_path);
+        compiler
+            .rank_by_quantized_distance(&embedding_path, &embedding)
+            .change_context(QueryError)?;
+        let candidate_pool = limit.saturating_mul(QUANTIZED_RANK_OVERFETCH);
+        compiler.set_limit(candidate_pool);
+
+        // Same shape as the entity search: the candidate CTE ranks on the quantized embedding,
+        // the outer statement re-scores against the full vector, and `DISTINCT` collapses
+        // candidates duplicated by to-many filter joins.
+        let (candidate_statement, candidate_parameters) = compiler.compile();
+        let maximum_distance = maximum_semantic_distance.into_inner();
+
+        let mut parameters = candidate_parameters.to_vec();
+        let embedding_parameter = parameters.len() + 1;
+        parameters.push(&embedding);
+        let maximum_distance_parameter = parameters.len() + 1;
+        parameters.push(&maximum_distance);
+
+        let statement = format!(
+            "WITH candidates AS ({candidate_statement})
+             SELECT DISTINCT
+                    candidates.ontology_id,
+                    entity_type_embeddings.embedding <=> ${embedding_parameter}::vector AS distance
+               FROM candidates
+               JOIN entity_type_embeddings
+                 ON entity_type_embeddings.ontology_id = candidates.ontology_id
+              WHERE entity_type_embeddings.embedding <=> ${embedding_parameter}::vector <= \
+             ${maximum_distance_parameter}
+              ORDER BY distance
+              LIMIT {limit}"
+        );
+
+        let ranked = self
+            .as_client()
+            .query(&statement, &parameters)
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
+            .await
+            .change_context(QueryError)?
+            .into_iter()
+            .map(|row| row.get::<_, EntityTypeUuid>(0))
+            .collect::<Vec<_>>();
+
+        if ranked.len() < limit {
+            // Expected for actors whose filters pass few candidates. The event is what
+            // distinguishes that from a genuinely sparse result.
+            tracing::debug!(
+                limit,
+                candidates = ranked.len(),
+                candidate_pool,
+                "the search returned fewer candidates than requested"
+            );
+        }
+
+        if ranked.is_empty() {
+            return Ok(SearchEntityTypesResponse {
+                entity_types: Vec::new(),
+            });
+        }
+
         let response = self
             .query_entity_types(
                 actor_id,
                 QueryEntityTypesParams {
                     request: CommonQueryEntityTypesParams {
-                        filter,
+                        filter: Filter::for_entity_type_uuids(&ranked),
                         temporal_axes: QueryTemporalAxesUnresolved::live_only(),
                         after: None,
-                        limit: Some(limit),
+                        // The filter already names exactly the types to hydrate.
+                        limit: Some(ranked.len()),
                         include_count: false,
                         include_web_ids: false,
                         include_edition_created_by_ids: false,
@@ -1261,9 +1329,26 @@ where
             )
             .await?;
 
-        Ok(SearchEntityTypesResponse {
-            entity_types: response.entity_types,
-        })
+        // Hydration does not preserve the ranking, so restore it from the candidate order. The
+        // hydration filter names exactly the ranked ids, so a row without a rank cannot occur —
+        // dropping it beats `Option`'s None-first ordering, which would put it on top.
+        let ranks = ranked
+            .iter()
+            .enumerate()
+            .map(|(rank, &id)| (id, rank))
+            .collect::<HashMap<_, _>>();
+        let mut entity_types = response.entity_types;
+        entity_types.retain(|entity_type| {
+            ranks.contains_key(&EntityTypeUuid::from_url(&entity_type.schema.id))
+        });
+        entity_types.sort_by_key(|entity_type| {
+            ranks
+                .get(&EntityTypeUuid::from_url(&entity_type.schema.id))
+                .copied()
+                .expect("the retained entity types should all carry a rank")
+        });
+
+        Ok(SearchEntityTypesResponse { entity_types })
     }
 
     #[tracing::instrument(
@@ -2182,10 +2267,6 @@ impl QueryRecordDecode for EntityTypeWithMetadata {
             base_url: row.get(indices.base_url),
             version: row.get(indices.version),
         };
-
-        if let Ok(distance) = row.try_get::<_, f64>("distance") {
-            tracing::trace!(%record_id, %distance, "Entity type embedding was calculated");
-        }
 
         Self {
             schema: row.get::<_, Json<_>>(indices.schema).0,

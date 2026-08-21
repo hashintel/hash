@@ -2,6 +2,7 @@ import { Switch } from "@ark-ui/react/switch";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { useFieldId } from "../Form/field-id-context";
 import { styles } from "./toggle.recipe";
 
@@ -9,9 +10,9 @@ import type { SharedInputProps, Tone } from "../../util/form-shared";
 
 export type ToggleProps = {
   /** The tone applied when the toggle is on (checked) */
-  tone?: Exclude<Tone, "error"> | "success";
+  tone?: Exclude<Tone, "error" | "warning">;
   /** The tone applied when the toggle is off (unchecked) */
-  offTone?: "neutral" | "error";
+  offTone?: Extract<Tone, "neutral" | "error">;
   labelOnText?: string;
   labelOffText?: string;
 } & SharedInputProps<HTMLInputElement, boolean> &
@@ -68,7 +69,7 @@ export const Toggle = ({
       )}
       <Switch.HiddenInput
         ref={inputRef}
-        autoFocus={autoFocus}
+        {...resolveAutoFocusProps(autoFocus)}
         onFocus={onFocus}
         onBlur={onBlur}
       />

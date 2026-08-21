@@ -79,6 +79,70 @@ export const deleteKratosIdentity = async (params: {
   });
 };
 
+const graphActorIdMetadataKey = "graph_actor_id";
+
+/**
+ * Read the Graph actor identifier in a Kratos identity's public metadata, or
+ * `null` when it carries none.
+ */
+export const getGraphActorIdFromKratos = async (params: {
+  kratosIdentityId: string;
+}): Promise<string | null> => {
+  const { data: identity } = await kratosIdentityApi.getIdentity({
+    id: params.kratosIdentityId,
+  });
+
+  const metadataPublic = identity.metadata_public as
+    | Record<string, string>
+    | null
+    | undefined;
+
+  return metadataPublic?.[graphActorIdMetadataKey] ?? null;
+};
+
+/**
+ * Store the Graph actor identifier in Kratos public metadata, where it maps a
+ * Kratos identity to the Graph actor that authorizes its requests.
+ *
+ * Public metadata is part of the `/sessions/whoami` payload, so validating a
+ * session and learning the actor are one answer. Only Kratos's admin API can
+ * write it, which keeps the actor out of reach of a self-service flow.
+ *
+ * A write of the actor already stored is a no-op. A mismatch throws rather
+ * than overwriting.
+ */
+export const provisionGraphActorIdInKratos = async (params: {
+  graphActorId: string;
+  kratosIdentityId: string;
+}): Promise<void> => {
+  const { graphActorId, kratosIdentityId } = params;
+
+  const existingGraphActorId = await getGraphActorIdFromKratos({
+    kratosIdentityId,
+  });
+
+  if (existingGraphActorId === graphActorId) {
+    return;
+  }
+
+  if (existingGraphActorId !== null) {
+    throw new Error(
+      `Kratos identity "${kratosIdentityId}" is provisioned for Graph actor "${existingGraphActorId}", not "${graphActorId}".`,
+    );
+  }
+
+  await kratosIdentityApi.patchIdentity({
+    id: kratosIdentityId,
+    jsonPatch: [
+      {
+        op: "add",
+        path: `/metadata_public/${graphActorIdMetadataKey}`,
+        value: graphActorId,
+      },
+    ],
+  });
+};
+
 export const isUserEmailVerified = async (
   kratosIdentityId: string,
 ): Promise<boolean> => {

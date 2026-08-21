@@ -6,7 +6,7 @@ use core::{
     str::FromStr,
     time::Duration,
 };
-use std::{path::PathBuf, time::Instant};
+use std::path::PathBuf;
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
@@ -16,8 +16,8 @@ use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
     rest::{
-        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, entity::ClusteringContext,
-        hashql::CompilerContext, rest_api_router,
+        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, auth::KratosSessionConfig,
+        entity::ClusteringContext, hashql::CompilerContext, rest_api_router,
     },
     rpc::Dependencies,
 };
@@ -32,12 +32,7 @@ use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
 use regex::Regex;
 use reqwest::{Client, Url};
-use tokio::{
-    io,
-    net::TcpListener,
-    signal,
-    time::{sleep, timeout},
-};
+use tokio::{io, net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
 use tokio_util::{codec::FramedWrite, sync::CancellationToken};
 use type_system::ontology::json_schema::DomainValidator;
@@ -172,6 +167,50 @@ pub struct CompilerConfig {
     pub compiler_exec_pool_size: PoolSize,
 }
 
+/// Configuration for Kratos session authentication.
+#[derive(Debug, Clone, Parser)]
+pub struct KratosSessionAuthConfig {
+    /// Kratos public API URL for session verification.
+    ///
+    /// Requests can authenticate with a Kratos session, provided as an `X-Session-Token` header
+    /// or an `ory_kratos_session` cookie.
+    //
+    // Optional at parse time so `--healthcheck` does not require the environment variable. The
+    // server refuses to start without it.
+    #[clap(long, env = "HASH_KRATOS_PUBLIC_URL")]
+    pub kratos_public_url: Option<Url>,
+
+    /// HTTP client timeout for session verification requests (in seconds).
+    #[clap(
+        long,
+        env = "HASH_GRAPH_SESSION_HTTP_TIMEOUT",
+        default_value_t = 10,
+        value_parser = clap::value_parser!(u64).range(1..)
+    )]
+    pub session_http_timeout_secs: u64,
+}
+
+impl KratosSessionAuthConfig {
+    /// Converts the CLI configuration into the session provider configuration.
+    fn into_provider_config(self) -> Result<KratosSessionConfig, Report<GraphError>> {
+        let kratos_public_url = self.kratos_public_url.ok_or_else(|| {
+            Report::new(GraphError).attach(
+                "--kratos-public-url (HASH_KRATOS_PUBLIC_URL) is required when running the server",
+            )
+        })?;
+        if !matches!(kratos_public_url.scheme(), "http" | "https") {
+            return Err(Report::new(GraphError).attach(
+                "--kratos-public-url (HASH_KRATOS_PUBLIC_URL) must be an http or https URL",
+            ));
+        }
+
+        Ok(KratosSessionConfig {
+            kratos_public_url,
+            http_timeout: Duration::from_secs(self.session_http_timeout_secs),
+        })
+    }
+}
+
 /// Configuration for the main graph API server.
 ///
 /// Groups HTTP address, RPC address, temporal client, store behavior, and
@@ -244,6 +283,9 @@ pub struct ServerConfig {
     pub api_config: ApiConfig,
 
     #[clap(flatten)]
+    pub session_auth: KratosSessionAuthConfig,
+
+    #[clap(flatten)]
     pub compiler: CompilerConfig,
 
     /// Maximum number of entity-clustering requests processed at the same time.
@@ -256,6 +298,13 @@ pub struct ServerConfig {
     /// Outputs the queries made to the graph to the specified file.
     #[clap(long)]
     pub log_queries: Option<PathBuf>,
+
+    /// Serves an interactive rendering of the `OpenAPI` specification at `/openapi`.
+    ///
+    /// The raw specification remains available at `/openapi.json` regardless of this flag. The
+    /// rendered page loads its viewer from a public CDN, so the browser needs internet access.
+    #[clap(long, env = "HASH_GRAPH_SERVE_API_REFERENCE")]
+    pub serve_api_reference: bool,
 }
 
 /// CLI arguments for the `server` subcommand.
@@ -321,45 +370,30 @@ async fn run_rest_server(
 pub(crate) async fn create_temporal_client(
     config: &TemporalConfig,
 ) -> Result<Option<TemporalClient>, Report<GraphError>> {
-    let Some(host) = config
+    if let Some(host) = config
         .address
         .temporal_host
         .as_deref()
         .filter(|host| !host.is_empty())
-    else {
-        return Ok(None);
-    };
-
-    let url = Url::from_str(&format!("{host}:{}", config.address.temporal_port))
-        .change_context(GraphError)?;
-
-    let deadline = Instant::now() + REACHABILITY_WINDOW;
-    let mut delay = Duration::from_millis(500);
-
-    loop {
-        let report = match TemporalClientConfig::new(url.clone()).await {
-            Ok(client) => return Ok(Some(client)),
-            Err(report) => report,
-        };
-        if Instant::now() + delay > deadline {
-            let report = report.change_context(GraphError);
+    {
+        TemporalClientConfig::new(
+            Url::from_str(&format!("{host}:{}", config.address.temporal_port))
+                .change_context(GraphError)?,
+        )
+        .await
+        .change_context(GraphError)
+        .map_err(|report| {
             tracing::error!(
                 error = ?report,
                 temporal_host = host,
                 temporal_port = config.address.temporal_port,
                 "Failed to connect to the Temporal server"
             );
-            return Err(report);
-        }
-        tracing::warn!(
-            error = ?report,
-            temporal_host = host,
-            temporal_port = config.address.temporal_port,
-            remaining = ?deadline.saturating_duration_since(Instant::now()),
-            "Temporal server is not reachable yet, retrying in {delay:?}"
-        );
-        sleep(delay).await;
-        delay = (delay * 2).min(Duration::from_secs(5));
+            report
+        })
+        .map(Some)
+    } else {
+        Ok(None)
     }
 }
 
@@ -461,6 +495,7 @@ async fn start_server<S>(
     postgres: PostgresStorePool,
     compiler: Arc<CompilerContext>,
     config: ServerConfig,
+    session_auth: KratosSessionConfig,
     query_logger: Option<QueryLogger>,
     lifecycle: &ServerLifecycle,
 ) -> Result<(), Report<GraphError>>
@@ -496,8 +531,10 @@ where
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
+        session_auth,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
+        serve_api_reference: config.serve_api_reference,
     });
     start_rest_server(router, config.http_address, lifecycle);
 
@@ -525,6 +562,10 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
         .await
         .change_context(GraphError);
     }
+
+    // Validate the configuration before connecting anywhere, so a misconfigured server fails
+    // without tearing down established connections.
+    let session_auth = args.config.session_auth.clone().into_provider_config()?;
 
     let pool = PostgresStorePool::new(
         &args.db_info,
@@ -618,6 +659,7 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
         postgres,
         compiler,
         args.config,
+        session_auth,
         query_logger,
         &lifecycle,
     )

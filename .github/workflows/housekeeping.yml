@@ -40,16 +40,15 @@ on:
           - lookup
           - full
 
-permissions:
-  actions: read
-  contents: write
-  id-token: write
+permissions: {}
 
 jobs:
   validate:
     name: Validate
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -62,10 +61,16 @@ jobs:
 
   renovate:
     name: Dependencies
-    uses: hashintel/.github/.github/workflows/housekeeping-dependencies.yml@d76c83934e25cd960dd0b8424f8909ce6b7ad939 # main
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    uses: hashintel/.github/.github/workflows/housekeeping-dependencies.yml@69449a772a55c55a101d4fefdceb4024b6bc3107 # main
     with:
       repoCache: ${{ inputs.repoCache || 'enabled' }}
       logLevel: ${{ inputs.logLevel || 'info' }}
       overrideSchedule: ${{ inputs.overrideSchedule || false }}
       dryRun: ${{ inputs.dryRun || 'disabled' }}
-    secrets: inherit
+    secrets:
+      CF_ACCESS_STAGE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+      RENOVATE_TOKEN_ENC_KEY: ${{ secrets.RENOVATE_TOKEN_ENC_KEY }}

@@ -2,4 +2,4 @@
 "@hashintel/ds-components": patch
 ---
 
-Added Select component
+Add Select component

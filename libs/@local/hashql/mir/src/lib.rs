@@ -34,7 +34,6 @@
 #![cfg_attr(test, feature(
     // Library Features
     maybe_uninit_array_assume_init,
-    string_from_utf8_lossy_owned,
 ))]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;

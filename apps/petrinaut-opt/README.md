@@ -1,221 +1,203 @@
 # Petrinaut optimization
 
-Black-box optimization of a **Petri-net execution**. For each candidate the
-optimizer runs the Petri net — via the bundled
-[`petrinaut-cli`](../../libs/@hashintel/petrinaut-cli), which it spawns as a
-subprocess and drives over stdio — for a set of parameters and initial states,
-and reads back a single metric value per run.
-[Optuna](https://optuna.org/) searches the input space to maximise (or minimise)
-that metric. Results stream out one evaluation at a time over Server-Sent Events,
-so a UI can watch the optimization live.
+This service uses Optuna to optimize the flat, non-fixed parameters of one
+Petrinaut scenario. It owns the Server-Sent Events API and the study lifecycle,
+and delegates every Petrinaut-specific concern to the
+[`petrinaut` Python bindings](../../libs/@local/petrinaut-python/README.md).
+Which process the bindings run, and how, is theirs to decide.
 
-The search space is **continuous and discrete**, and evaluations are treated as
-expensive, so a sample-efficient sampler (TPE by default) is used.
+The Python service treats the optimization manifest as opaque JSON. It does not
+read Petrinaut models, scenario bindings, metrics, or the Petrinaut type system.
 
-> [!IMPORTANT]
-> **Demo model is hard-coded.** For demo purposes,
-> [petrinaut_optimizer.py](src/petrinaut_optimizer.py) is hard-coded to the
-> [`supply-chain-profit-model.json`](../../libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json)
-> Petri net. Its search space (`BOUNDS`) and the `Parameters` / `InitialStates`
-> shapes are all specific to that model — serve that same model from the CLI, or
-> the optimizer's inputs will not line up with the Petri net. Switching models
-> means editing these definitions in `petrinaut_optimizer.py` by hand.
+## API
 
-## How it connects to Petrinaut
+Run creation accepts the complete optimization manifest as its JSON request
+body. The manifest is produced by the Petrinaut UI/Node API and is forwarded
+unchanged to the bindings.
 
-This package does **not** execute the Petri net itself — it launches the
-[`petrinaut-cli`](../../libs/@hashintel/petrinaut-cli) as a subprocess
-(`serve --stdio`) and exchanges JSON-RPC lines with it. You must **build the CLI
-first** so its `dist/cli.js` exists — follow
-[its README](../../libs/@hashintel/petrinaut-cli/README.md). For demo purposes
-the optimizer is hard-coded to the CLI's
-[`supply-chain-profit-model.json`](../../libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json)
-example (see the note above).
+- `POST /optimize/runs` starts a detached run and returns its id. Attach or
+  reattach to its replayable event stream with
+  `GET /optimize/runs/{run_id}/events`; `DELETE /optimize/runs/{run_id}`
+  cancels it.
 
-## Components
+When run creation carries an `x-hash-account-id` header (the authenticated
+NodeAPI proxy stamps it), the run is owned: the account may drive only one
+live run at a time (429 otherwise), and attach/cancel answer 404 unless the
+same tag is presented — identical to an unknown run, so foreign run ids
+cannot be probed. Requests without the header (local development, the
+website demo) create ownerless, openly attachable runs.
 
-| File                                                 | Role                                                                                                                                                                                                                                                                                                                                                                 |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [petrinaut_client.py](src/petrinaut_client.py)       | `PetrinautModel` — spawns the Petrinaut CLI subprocess (stdio), builds each `run` request, and returns the metric. `PetrinautModelSpec` configures the execution.                                                                                                                                                                                                    |
-| [petrinaut_optimizer.py](src/petrinaut_optimizer.py) | `PetrinautOptimizer` — drives the Optuna study: proposes inputs, runs the model, and streams evaluations (`stream_all` / `stream_best`) as Server-Sent Events. `OptimizationSpec` configures a run; `BOUNDS` defines the search space. **Hard-coded for demo purposes to the `supply-chain-profit-model.json` Petri net** (`BOUNDS`, `Parameters`, `InitialStates`). |
-| [optimization_api.py](src/optimization_api.py)       | FastAPI service exposing the two streaming endpoints (`/optimize/all`, `/optimize/best`), `/status`, and `/`.                                                                                                                                                                                                                                                        |
+The response is `text/event-stream`. Existing frame bodies are preserved:
 
-## Setup
+```text
+data: {"step": 0, "params": {"rate": 1.2}, "init_state": {}, "metric": 14.5, "state": "COMPLETE"}
 
-This is a [uv](https://docs.astral.sh/uv/) project (Python ≥ 3.10.20):
+event: done
+data: {}
+
+```
+
+`params` contains the flat values proposed by Optuna. Fixed parameter values
+are applied behind the bindings and are not echoed by Python. `init_state` is
+retained as an empty object for response compatibility. Failed evaluations are
+reported with Optuna's existing state and a null metric. Study failures retain
+the existing error data frame and terminate the stream without a subsequent
+`done` frame. A second stream on the same optimizer retains the existing
+`event: error` frame.
+
+While waiting for a trial, the service sends an SSE comment heartbeat roughly
+every 30 seconds:
+
+```text
+: heartbeat
+
+```
+
+SSE clients ignore comment frames, while load balancers and proxies see traffic
+before their idle timeout.
+
+The streaming endpoints are not resumable: disconnecting stops that study and
+closes its session. Detached-run event streams are resumable: every frame has an
+event id, buffered frames can be replayed using `Last-Event-ID` (or `cursor`),
+and disconnecting an attachment does not stop the run.
+
+Each response has an `X-Optimization-Run-ID` header for status queries:
+
+- `GET /status` returns every run status.
+- `GET /status/{run_id}` returns one run status.
+- `GET /` returns a welcome message.
+
+### Correlation and logs
+
+One optimization can be followed across the HTTP service boundary:
+
+1. NodeAPI forwards its request id in `x-hash-request-id`; Python attaches it
+   to lifecycle log records as `request_id`.
+2. Python creates a `run_id`, returns it in `X-Optimization-Run-ID`, and
+   attaches it to lifecycle log records.
+
+This service emits normal Python log records with bounded structured fields
+such as `event`, `request_id`, and `run_id`. When OTLP is configured,
+`src/telemetry.py` exports those records and the service's traces and metrics.
+
+The bindings drain their child's diagnostics so it cannot block, and none of
+that output is copied into service logs. Lifecycle logs never intentionally include
+optimization manifests, user-authored code, or raw request bodies.
+
+The process admits at most four active optimizations. Additional requests
+receive HTTP 429, and slots are released after initialization failures, stream
+failures, completion, disconnect, or detached-run cancellation/reaping.
+`GET /status` retains the 100 most recent runs so process memory cannot grow
+without bound.
+
+Detached runs reject descriptions above 1,000 trials and, by default, stop
+after 900 seconds (`HASH_PETRINAUT_OPT_MAX_STUDY_SECONDS`); invalid values use
+the default and zero disables the wall-clock limit. Their event log is retained
+for the detach-grace period and an attachment cursor is clamped to the current
+log, so malformed resume requests cannot suppress later terminal events.
+
+Optimization request bodies are limited to 8 MiB, including chunked bodies.
+
+## Optimization backend
+
+Each run gets one session from the [`petrinaut` Python
+bindings](../../libs/@local/petrinaut-python/README.md), created with the
+manifest as opaque JSON. This service starts the session, describes the study,
+evaluates one trial at a time, and closes the session.
+
+`describe()` returns the direction, the study settings, and the
+flat parameters that are not fixed, each one a descriptor such as:
+
+```json
+{
+  "identifier": "rate",
+  "type": "float",
+  "minimum": 0.1,
+  "maximum": 10,
+  "scale": "log"
+}
+```
+
+`float`, `int`, and `boolean` map onto `suggest_float`, `suggest_int`, and
+`suggest_categorical`, and the study seed seeds the sampler. The bindings'
+[usage manual](../../libs/@local/petrinaut-python/README.md) documents the full
+response.
+
+`objective(parameter_values)` evaluates one trial and returns one finite number.
+Fixed-value injection, scenario compilation, initial-state materialization,
+simulation, and metric evaluation all happen behind that call, and fixed values
+are never echoed back through this service. When the manifest sets
+`execution.seedsPerTrial` above 1, one trial runs that many seeded simulations
+and the objective is their mean.
+
+`close()` ends the session. The bindings bound every wait and clean up after
+themselves: a startup deadline, a per-response deadline, a line-size limit, and
+termination of the process they started on timeout, failure, or client
+disconnect. Their README documents the current values.
+
+For an end-to-end local request, export an optimization manifest from the
+Petrinaut editor.
+
+## Observability
+
+The service is instrumented with OpenTelemetry. When `OTEL_EXPORTER_OTLP_ENDPOINT` is
+set it exports traces, metrics, and logs over OTLP to that collector — the
+same `otel-collector` target the rest of the HASH stack uses.
+When the variable is unset (a plain `uv run` with no collector) telemetry is
+skipped and the service runs normally, matching the Node workers.
+
+- Traces: incoming HTTP requests are auto-instrumented. Each study runs under an
+  `optimization.study` span (a child of the request span), and every Optuna trial
+  is an `optimization.trial` span beneath it, carrying the trial number, value,
+  and whether it was pruned. The study runs on a worker thread that inherits the
+  request's trace context, so the request → study → trial hierarchy is preserved.
+  The `/status` health probe is excluded from HTTP instrumentation.
+- Metrics and logs: the FastAPI/Optuna default metrics and stdlib log records are
+  exported to the collector (Mimir/Loki in the stack).
+
+Configuration (standard OTLP environment variables):
+
+- `OTEL_EXPORTER_OTLP_ENDPOINT` — collector URL, e.g.
+  `http://otel-collector:4317`. A `http://` scheme selects a plaintext
+  (insecure) channel.
+- Per-signal endpoint overrides and `OTEL_EXPORTER_OTLP_INSECURE` are read
+  directly by the standard OTLP exporters.
+- `OTEL_EXPORTER_OTLP_PROTOCOL` — `grpc` (default, the collector's `:4317`
+  port) or `http/protobuf` (its `:4318` port).
+- `OTEL_SERVICE_NAME` — service name shown in Tempo/Grafana. Defaults to
+  `Petrinaut Optimizer`.
+
+Bootstrap lives in `src/telemetry.py` and runs once when the app is created. A
+misconfigured collector is logged and swallowed so it never stops the API from
+serving.
+
+## Development
+
+From `apps/petrinaut-opt`:
 
 ```bash
 uv sync
-```
-
-Imports are package-qualified (`from src...`), so run everything from the package
-root using module syntax.
-
-## Run the optimizer directly
-
-`main()` runs a study end-to-end and logs each evaluation. It spawns the CLI
-itself, so you only need `petrinaut-cli` built (`dist/cli.js` present):
-
-```bash
-# from apps/petrinaut-opt:
-uv run python -m src.petrinaut_optimizer
-```
-
-## Run the API
-
-The service binds to `HASH_PETRINAUT_OPT_HOST` and `HASH_PETRINAUT_OPT_PORT`,
-loaded from the module's `.env` (defaults `localhost:4004`):
-
-```bash
-uv run python -m src.optimization_api
-```
-
-For autoreload during development, run uvicorn directly (this bypasses the
-`.env` host/port — pass `--host`/`--port` to override uvicorn's defaults):
-
-```bash
+uv run pytest
 uv run uvicorn src.optimization_api:app --reload
 ```
 
-### Request body (both `/optimize/*` endpoints)
+Outside the Docker image, the bindings need their executable on `PATH`; their
+[README](../../libs/@local/petrinaut-python/README.md) covers how to provide it.
+The production image installs it at `/usr/local/bin/petrinaut`.
 
-Both streaming endpoints take the same JSON body carrying **two** objects:
-`opt_spec` (what to optimize) and `pn_spec` (the Petri-net execution model). The
-stream starts immediately. Each response includes an `X-Optimization-Run-ID`
-header which identifies the run for status queries.
-
-### Stream every evaluation — `GET /optimize/all`
-
-Opens a Server-Sent Events stream: one frame per finished trial, then a final
-`event: done`. Disconnecting the client stops the underlying study. Each frame
-reports the inputs that were **searched** this trial (fixed inputs are constant
-and omitted) plus the resulting metric.
+Generate the checked-in OpenAPI document with:
 
 ```bash
-curl -N -X GET "http://localhost:4004/optimize/all" \
-  -H "Content-Type: application/json" \
-  -d '{
-  "opt_spec": {
-    "parameters": {
-      "demand_multiplier":1.0
-    },
-    "initial_state": {
-      "RawInventory": 220,
-      "FinishedGoods": 120,
-      "CustomerDemand": 0,
-      "SoldOrders": 0,
-      "LostSales": 0
-    },
-    "study_name": "param_opt",
-    "direction": "maximize",
-    "n_trials": 500
-  },
-  "pn_spec": {
-    "model_path": "/Users/yz/code/hash/libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json",
-    "cli_path": "/Users/yz/code/hash/libs/@hashintel/petrinaut-cli/dist/cli.js",
-    "metric": "Profit",
-    "dt":0.1,
-    "steps": 365,
-    "seed": 1234
-  }
-}'
-
-# data: {"step": 0, "params": {"production_rate": 137.2, ...}, "init_state": {"FinishedGoods": 88, ...}, "metric": 12530.4, "state": "COMPLETE"}
-# data: {"step": 1, ...}
-# event: done
-# data: {}
+uv run python -m scripts.generate_openapi
 ```
 
-Here `demand_multiplier`, `RawInventory`, `FinishedGoods`, `CustomerDemand`, `SoldOrders`, `LostSales` are **fixed** at the given values, and
-every other input in the search space is **optimized** — see
-[Configuring a run](#configuring-a-run). `state` is the Optuna trial state
-(`COMPLETE`, `PRUNED`, `FAIL`); `metric` is `null` for a pruned trial.
+Running `python -m src.optimization_api` reads
+`HASH_PETRINAUT_OPT_HOST`/`HASH_PETRINAUT_OPT_PORT`, defaulting to
+`localhost:4004`. The Docker image passes `0.0.0.0:4004` explicitly to Uvicorn.
 
-### Stream the running best — `GET /optimize/best`
+Build and run the image from the repository root:
 
-Same request body and frame shape, but each frame reports the **best-so-far**
-inputs and metric rather than the latest trial. Frames are suppressed until at
-least one trial has completed.
-
-### Other endpoints
-
-- `GET /status` — a snapshot of all run statuses (`run_id`, `phase`, `detail`,
-  `updated_at`).
-- `GET /status/{run_id}` — the status of the run identified by the streaming
-  response's `X-Optimization-Run-ID` header.
-- `GET /` — welcome message.
-
-## Configuring a run
-
-**Search space** — the universe of optimizable inputs is defined once in `BOUNDS`
-at the top of [petrinaut_optimizer.py](src/petrinaut_optimizer.py). It is
-hard-coded for demo purposes to the `supply-chain-profit-model.json` Petri net,
-so its keys mirror that model's parameters and places:
-
-```python
-BOUNDS = {
-    "parameters": {
-        "production_rate": FloatBounds(20.0, 250.0, log=True),
-        "reorder_threshold": IntBounds(100, 1000, log=True),
-        "batch_size": IntBounds(50, 800, log=True),
-        "selling_price": FloatBounds(22.0, 60.0, log=True),
-        "expedite_fraction": FloatBounds(0.0, 1.0),
-        "marketing_spend": FloatBounds(0.01, 100.0, log=True),
-        "demand_multiplier": FloatBounds(0.5, 2.0)
-    },
-    "initial_state": {
-        "RawInventory": IntBounds(0, 400),
-        "FinishedGoods": IntBounds(0, 400),
-        "CustomerDemand": IntBounds(0, 400),
-        "SoldOrders": IntBounds(0, 400),
-        "LostSales": IntBounds(0, 400)
-    }
-}
-
+```bash
+docker build --file apps/petrinaut-opt/docker/Dockerfile --tag petrinaut-opt:local .
+docker run --rm --read-only --publish 127.0.0.1:4004:4004 petrinaut-opt:local
 ```
-
-Changing the target Petri net means editing these `BOUNDS` and the matching
-`Parameters` / `InitialStates` models in
-[petrinaut_optimizer.py](src/petrinaut_optimizer.py) by hand.
-
-**`OptimizationSpec`** ([petrinaut_optimizer.py](src/petrinaut_optimizer.py))
-partitions those inputs per run:
-
-- `parameters` / `initial_state` — any input you give a value here is **held
-  fixed** at that value; any input you omit (leave `null`) is **optimized** over
-  its `BOUNDS` range. Provided values must fall within `BOUNDS` (validated when
-  the request is received).
-- `sampler` — `tpe` or `random`.
-- `direction` — `maximize` or `minimize`.
-- `n_trials` — number of evaluations (default `100`).
-- `study_name` — optional label for the Optuna study (default `opt_study`).
-
-**`PetrinautModelSpec`** ([petrinaut_client.py](src/petrinaut_client.py))
-configures the execution sent to the CLI:
-
-- `model_path` — path to the Petri-net JSON model (defaults to the CLI's
-  `supply-chain-profit-model.json`).
-- `cli_path` — path to the CLI bundle (defaults to `petrinaut-cli/dist/cli.js`).
-- `metric` — metric name computed at the end of a run and used as the objective
-  (default `Profit`); must match a metric defined in the loaded model.
-- `steps` — number of steps per run (sent as `maxSteps`; default `100`).
-- `dt` — timestep for the dynamics (default `0.1`).
-- `seed` — RNG seed (default `1234`; fixed → deterministic runs and optimisation steps).
-- `eval_timeout` - per-trial CLI execution timeout in seconds; a trial that exceeds it is pruned so a hung run can't block the optimization (default `None`; no timeout).
-- `store`, `outpath`, `command` — accepted but currently unused.
-
-## Notes
-
-- **Failures/timeouts**: any error returned by the CLI (or other exception during
-  a trial) marks that trial pruned; after a timeout the CLI process is restarted
-  before the study continues with the next trial.
-- **Streaming model**: evaluations run in a background thread and are pushed to
-  the SSE client through an `asyncio.Queue`. Each optimizer instance holds a lock,
-  so it can't be driven by two concurrent streams — a second stream on the same
-  instance receives `event: error` (`already running`).
-- **No shared state**: each request builds its own model, CLI subprocess, and
-  Optuna study and is fully independent; there is no session registry or global
-  run guard.
-- **Leave one input free per group**: each group (`parameters`, `initial_state`)
-  should leave at least one input unfixed so there is something to optimize.
-  </content>

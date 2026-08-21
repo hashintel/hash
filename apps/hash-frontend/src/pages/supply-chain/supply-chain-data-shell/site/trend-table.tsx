@@ -9,6 +9,10 @@ import {
   selectStat,
   useBaseMeasure,
 } from "../../shared/measure-context";
+import {
+  combinedSampleTier,
+  type SampleTier,
+} from "../../shared/sample-confidence";
 import { siteNodeKey } from "../../shared/site-node-key";
 import {
   deriveStatusActionState,
@@ -21,12 +25,7 @@ import { ColumnHeader } from "./shared/column-header";
 import { siteNodeDisplayLabel, sortTrendRows } from "./shared/helpers";
 import { LowSampleBadge } from "./shared/low-sample-badge";
 import { ProductTags } from "./shared/product-tags";
-import {
-  LOW_SAMPLE_N,
-  type SortDir,
-  type SortKey,
-  type TrendRow,
-} from "./shared/row-types";
+import { type SortDir, type SortKey, type TrendRow } from "./shared/row-types";
 import * as threshold from "./shared/table-styles";
 import { useStepTableView } from "./shared/use-step-table-view";
 
@@ -96,11 +95,8 @@ const TrendValue = ({
   );
 };
 
-function isLowSample(row: TrendRow): boolean {
-  return (
-    (row.stats.n > 0 && row.stats.n < LOW_SAMPLE_N) ||
-    (row.previousTrendN > 0 && row.previousTrendN < LOW_SAMPLE_N)
-  );
+function rowSampleTier(row: TrendRow): SampleTier {
+  return combinedSampleTier(row.stats.n, row.previousTrendN);
 }
 
 const TrendSampleTooltip = ({
@@ -258,7 +254,7 @@ export const TrendTable = ({
               <td className={threshold.td}>
                 <div className={threshold.cellFlex}>
                   <span
-                    className={threshold.catDot}
+                    className={cx(threshold.catDot, threshold.stepDot)}
                     style={{ backgroundColor: getCategoryColor(row.type) }}
                   />
 
@@ -268,7 +264,7 @@ export const TrendTable = ({
                 </div>
               </td>
               <td className={threshold.td}>
-                <ProductTags products={row.products} />
+                <ProductTags products={row.products} maxVisible={12} />
               </td>
               <td className={cx(threshold.tdRight, threshold.valueStrong)}>
                 {formatNumber(selectStat(row.stats, measure), {
@@ -288,10 +284,11 @@ export const TrendTable = ({
               </td>
               <td className={cx(threshold.tdRight, threshold.valueMuted)}>
                 <span className={threshold.sampleCell}>
-                  {isLowSample(row) && (
+                  {(rowSampleTier(row) === "low" ||
+                    rowSampleTier(row) === "limited") && (
                     <span className={threshold.badgeWrap}>
                       <LowSampleBadge
-                        label="low"
+                        label={rowSampleTier(row)}
                         title={
                           <TrendSampleTooltip
                             currentN={row.stats.n}

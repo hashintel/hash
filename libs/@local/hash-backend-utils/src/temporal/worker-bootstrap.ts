@@ -22,6 +22,8 @@ import {
   Worker,
 } from "@temporalio/worker";
 
+import { HEALTH_PATH } from "../opentelemetry.js";
+import { sleep } from "../utils.js";
 import {
   OpenTelemetryActivityInboundInterceptor,
   OpenTelemetryActivityOutboundInterceptor,
@@ -85,12 +87,53 @@ const getTemporalAddress = (): string => {
   return `${host}:${port}`;
 };
 
+const CONNECT_RETRY_WINDOW_MS = 30_000;
+
+/**
+ * Connects to the Temporal server, retrying with exponential backoff until
+ * {@link CONNECT_RETRY_WINDOW_MS} has elapsed. Mirrors the Graph server's
+ * `create_temporal_client` (BE-701): the worker may start before its ECS
+ * Service Connect sidecar has healthy upstream endpoints, in which case the
+ * eager `GetSystemInfo` call fails with "no healthy upstream".
+ */
+const connectToTemporal = async (
+  address: string,
+  logger: Logger,
+): Promise<NativeConnection> => {
+  const deadline = Date.now() + CONNECT_RETRY_WINDOW_MS;
+  let delayMs = 500;
+
+  for (;;) {
+    try {
+      return await NativeConnection.connect({ address });
+    } catch (error) {
+      if (Date.now() + delayMs > deadline) {
+        throw error;
+      }
+      logger.warn(
+        `Temporal server is not reachable yet, retrying in ${delayMs} ms`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          remainingWindowMs: deadline - Date.now(),
+        },
+      );
+      await sleep(delayMs);
+      delayMs = Math.min(delayMs * 2, 5_000);
+    }
+  }
+};
+
 const createHealthCheckServer = (): http.Server =>
   http.createServer((req, res) => {
-    if (req.method === "GET" && req.url === "/health") {
-      res.setHeader("Content-Type", "application/json");
+    // `HEAD` is what the `hash-graph` healthcheck subcommand issues, and Docker
+    // healthchecks using `wget --spider` send it too.
+    if (
+      (req.method === "GET" || req.method === "HEAD") &&
+      req.url === HEALTH_PATH
+    ) {
+      res.setHeader("Content-Type", "application/health+json");
       res.writeHead(200);
-      res.end(JSON.stringify({ msg: "worker healthy" }));
+      res.end(req.method === "HEAD" ? "" : JSON.stringify({ status: "pass" }));
       return;
     }
     res.writeHead(404);
@@ -236,9 +279,7 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
     });
   }
 
-  const connection = await NativeConnection.connect({
-    address: getTemporalAddress(),
-  });
+  const connection = await connectToTemporal(getTemporalAddress(), logger);
   logger.info("Created Temporal connection");
 
   // OTEL interceptor must precede Sentry: `composeInterceptors` builds

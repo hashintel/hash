@@ -1,10 +1,6 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "tasks": {
-    // Install commands
-    "postinstall": {
-      "cache": false
-    },
     // Development commands
     "dev": {
       "cache": false,
@@ -104,6 +100,10 @@
     "lint:tsc": {
       "dependsOn": ["codegen", "build:types"]
     },
+    // Python linting and type checking. `uv run` syncs the package's
+    // environment from its own lockfile, so neither needs a prior task.
+    "lint:ruff": {},
+    "lint:types": {},
     "fix:eslint": {
       "dependsOn": ["codegen", "@local/eslint#build"]
     },

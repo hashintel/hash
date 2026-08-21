@@ -6,6 +6,7 @@ import {
 import {
   COMPUTE_DASHBOARD_ITEM_DATA_WORKFLOW,
   generateDashboardItemConfigHash,
+  getDashboardItemDataMetadataStorageKey,
   getDashboardItemDataStorageKey,
 } from "@local/hash-backend-utils/dashboards";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
@@ -28,7 +29,9 @@ import type {
   AnalysisResolutionContext,
   NamedAnalysis,
 } from "../shared/analysis-registry";
+import type { JsonObject } from "@blockprotocol/core";
 import type { ComputeDashboardItemDataWorkflowParams } from "@local/hash-backend-utils/dashboards";
+import type { DashboardItemDataGenerationMetadata } from "@local/hash-isomorphic-utils/dashboard-types";
 
 /**
  * How long a computed chart data artifact is considered fresh. Older
@@ -55,28 +58,83 @@ const getRootErrorMessage = (error: unknown): string => {
   return rootCause instanceof Error ? rootCause.message : String(rootCause);
 };
 
+const loadGenerationMetadata = async (
+  ctx: AnalysisResolutionContext,
+  metadataStorageKey: string,
+): Promise<DashboardItemDataGenerationMetadata | null> => {
+  const artifact = await ctx.loadArtifact(metadataStorageKey);
+  if (!artifact) {
+    return null;
+  }
+
+  try {
+    const value = JSON.parse(
+      artifact.toString("utf8"),
+    ) as DashboardItemDataGenerationMetadata;
+    return {
+      ...(typeof value.generatedAt === "string"
+        ? { generatedAt: value.generatedAt }
+        : {}),
+      ...(typeof value.generationDurationMs === "number" &&
+      value.generationDurationMs >= 0
+        ? { generationDurationMs: value.generationDurationMs }
+        : {}),
+    };
+  } catch {
+    return null;
+  }
+};
+
+const createAnalysisMetadata = ({
+  generationMetadata,
+  lastModified,
+  isRefreshing,
+  refreshAfter,
+}: {
+  generationMetadata: DashboardItemDataGenerationMetadata | null;
+  lastModified: Date | null;
+  isRefreshing: boolean;
+  refreshAfter?: string;
+}): JsonObject => ({
+  ...(generationMetadata?.generatedAt || lastModified
+    ? {
+        generatedAt:
+          generationMetadata?.generatedAt ?? lastModified!.toISOString(),
+      }
+    : {}),
+  ...(generationMetadata?.generationDurationMs !== undefined
+    ? { generationDurationMs: generationMetadata.generationDurationMs }
+    : {}),
+  isRefreshing,
+  ...(refreshAfter ? { refreshAfter } : {}),
+});
+
 /**
  * Start the (idempotent) compute workflow for a dashboard item configuration.
- * The workflow id is derived from the config hash and source artifact version,
- * so concurrent requests for the same computation deduplicate. A terminal
- * execution is never silently replaced: its result is inspected and failures
- * are surfaced to the caller.
+ * The workflow id is derived from the config hash, source artifact version,
+ * so concurrent requests for the same computation deduplicate. Explicit user
+ * recomputations allow Temporal to create a new run under that stable workflow
+ * id; normal resolution never silently replaces a terminal execution.
  */
 const startComputeWorkflow = async (params: {
   ctx: AnalysisResolutionContext;
   configHash: string;
+  recompute: boolean;
   sourceArtifactLastModified: Date | null;
   structuralQuery: unknown;
   pythonScript: string;
   storageKey: string;
+  metadataStorageKey: string;
 }): Promise<ComputeWorkflowState> => {
   const {
     ctx,
     configHash,
+    recompute,
     sourceArtifactLastModified,
     structuralQuery,
     pythonScript,
     storageKey,
+    metadataStorageKey,
   } = params;
 
   const webMachineId = await getWebMachineId(
@@ -104,12 +162,15 @@ const startComputeWorkflow = async (params: {
             structuralQuery: JSON.stringify(structuralQuery),
             pythonScript,
             storageKey,
+            metadataStorageKey,
           } satisfies ComputeDashboardItemDataWorkflowParams,
         ],
         workflowId,
-        workflowIdReusePolicy: WorkflowIdReusePolicy.REJECT_DUPLICATE,
-        // A failed script must not repeatedly create paid sandboxes. Retrying
-        // requires a changed configuration or source artifact version.
+        workflowIdReusePolicy: recompute
+          ? WorkflowIdReusePolicy.ALLOW_DUPLICATE
+          : WorkflowIdReusePolicy.REJECT_DUPLICATE,
+        // A failed script must not automatically create more paid sandboxes.
+        // Only an explicit recompute may create a new Temporal run.
         retry: { maximumAttempts: 1 },
       },
     );
@@ -145,11 +206,11 @@ const startComputeWorkflow = async (params: {
 /**
  * Resolve a dashboard item's chart data: serve the cached artifact keyed by a
  * hash of the item's (query, script) configuration, computing it server-side
- * via a Temporal workflow when missing, forced, or stale.
+ * via a Temporal workflow when missing, explicitly recomputed, or stale.
  *
  * Args:
  * - `itemUuid` (required): entity uuid of the DashboardItem within the web
- * - `force` (optional boolean): recompute even if a fresh artifact exists
+ * - `recompute` (optional boolean): explicitly start a new computation
  */
 const dashboardItemData: NamedAnalysis = {
   name: "dashboardItemData",
@@ -160,7 +221,16 @@ const dashboardItemData: NamedAnalysis = {
         "Argument 'itemUuid' must be a valid entity uuid",
       );
     }
-    const force = ctx.args.force === true;
+    const recompute = ctx.args.recompute === true;
+    const refreshAfter =
+      typeof ctx.args.refreshAfter === "string"
+        ? new Date(ctx.args.refreshAfter)
+        : null;
+    if (refreshAfter && Number.isNaN(refreshAfter.getTime())) {
+      throw new AnalysisArgError(
+        "Argument 'refreshAfter' must be a valid ISO timestamp",
+      );
+    }
 
     const { entities } = await queryEntities(
       { graphApi: ctx.graphApi },
@@ -234,17 +304,32 @@ const dashboardItemData: NamedAnalysis = {
       webId: ctx.webId,
       configHash,
     });
+    const metadataStorageKey = getDashboardItemDataMetadataStorageKey({
+      webId: ctx.webId,
+      configHash,
+    });
 
     const lastModified = await ctx.getArtifactLastModified(storageKey);
+    const generationMetadata = await loadGenerationMetadata(
+      ctx,
+      metadataStorageKey,
+    );
 
-    if (!lastModified || force) {
+    const waitingForRecompute =
+      refreshAfter !== null &&
+      (!lastModified || lastModified.getTime() <= refreshAfter.getTime());
+
+    if (!lastModified || recompute || waitingForRecompute) {
+      const sourceArtifactLastModified = refreshAfter ?? lastModified;
       const workflowState = await startComputeWorkflow({
         ctx,
         configHash,
-        sourceArtifactLastModified: lastModified,
+        recompute,
+        sourceArtifactLastModified,
         structuralQuery,
         pythonScript,
         storageKey,
+        metadataStorageKey,
       });
 
       if (workflowState === "completed") {
@@ -256,25 +341,47 @@ const dashboardItemData: NamedAnalysis = {
             "Dashboard item computation completed without producing a chart data artifact",
           );
         }
+        const completedGenerationMetadata = await loadGenerationMetadata(
+          ctx,
+          metadataStorageKey,
+        );
 
         return {
           status: "ready",
           artifacts: [{ name: "chartData", key: storageKey }],
+          metadata: createAnalysisMetadata({
+            generationMetadata: completedGenerationMetadata,
+            lastModified: completedArtifactLastModified,
+            isRefreshing: false,
+          }),
         };
       }
 
-      return { status: "computing", retryAfterMs: COMPUTING_RETRY_AFTER_MS };
+      return {
+        status: "computing",
+        retryAfterMs: COMPUTING_RETRY_AFTER_MS,
+        metadata: createAnalysisMetadata({
+          generationMetadata,
+          lastModified,
+          isRefreshing: true,
+          refreshAfter: sourceArtifactLastModified?.toISOString(),
+        }),
+      };
     }
 
-    if (Date.now() - lastModified.getTime() > DASHBOARD_ITEM_DATA_TTL_MS) {
+    const isStale =
+      Date.now() - lastModified.getTime() > DASHBOARD_ITEM_DATA_TTL_MS;
+    if (isStale) {
       // Stale: serve the cached artifact but refresh it in the background.
       startComputeWorkflow({
         ctx,
         configHash,
+        recompute: false,
         sourceArtifactLastModified: lastModified,
         structuralQuery,
         pythonScript,
         storageKey,
+        metadataStorageKey,
       }).catch((error: unknown) => {
         logger.warn(
           `Failed to start background dashboard item recompute [itemUuid=${itemUuid}]: ${
@@ -287,6 +394,11 @@ const dashboardItemData: NamedAnalysis = {
     return {
       status: "ready",
       artifacts: [{ name: "chartData", key: storageKey }],
+      metadata: createAnalysisMetadata({
+        generationMetadata,
+        lastModified,
+        isRefreshing: isStale,
+      }),
     };
   },
 };

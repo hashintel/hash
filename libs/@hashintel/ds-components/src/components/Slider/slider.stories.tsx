@@ -4,9 +4,6 @@ import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
   title: "Legacy/Slider",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
     min: {
       name: "Min",
@@ -43,10 +40,6 @@ export default {
         type: "boolean",
       },
       description: "Whether to show the current value as text above the slider",
-    },
-    onChange: {
-      action: "changed",
-      description: "Callback function called when the slider value changes",
     },
   },
   args: {

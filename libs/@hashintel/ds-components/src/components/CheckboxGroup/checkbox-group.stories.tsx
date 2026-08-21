@@ -46,12 +46,9 @@ const ControlledCheckboxGroup = ({
 
 export default {
   title: "Components/CheckboxGroup",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
-    layout: { control: { type: "select", options: layouts } },
-    size: { control: { type: "select", options: formInputSizes } },
+    layout: { control: { type: "select" }, options: layouts },
+    size: { control: { type: "select" }, options: formInputSizes },
     disabled: { control: { type: "boolean" } },
   },
   args: {
@@ -87,12 +84,13 @@ const layoutRowClass = css({
   flexWrap: "wrap",
 });
 
-export const Layouts: Story = () => (
+export const Layouts: Story<Props> = (args) => (
   <div className={sectionClass}>
     {layouts.map((layout) => (
       <div key={layout}>
         <div className={headingClass}>layout={layout}</div>
         <ControlledCheckboxGroup
+          {...args}
           layout={layout}
           defaultValue={["apple", "cherry"]}
         />
@@ -103,22 +101,23 @@ export const Layouts: Story = () => (
         layout=blockWithBorder, labelPlacement=left
       </div>
       <ControlledCheckboxGroup
+        {...args}
         layout="blockWithBorder"
         items={leftLabelItems}
       />
     </div>
     <div>
       <div className={headingClass}>layout=block, labelPlacement=left</div>
-      <ControlledCheckboxGroup layout="block" items={leftLabelItems} />
+      <ControlledCheckboxGroup
+        {...args}
+        layout="block"
+        items={leftLabelItems}
+      />
     </div>
   </div>
 );
 
-Layouts.parameters = {
-  controls: { disable: true },
-};
-
-export const Sizes: Story = () => (
+export const Sizes: Story<Props> = (args) => (
   <div className={sectionClass}>
     {formInputSizes.map((size) => (
       <div key={size}>
@@ -127,7 +126,7 @@ export const Sizes: Story = () => (
           {layouts.map((layout) => (
             <div key={layout}>
               <div className={subHeadingClass}>{layout}</div>
-              <ControlledCheckboxGroup layout={layout} size={size} />
+              <ControlledCheckboxGroup {...args} layout={layout} size={size} />
             </div>
           ))}
         </div>
@@ -136,19 +135,16 @@ export const Sizes: Story = () => (
   </div>
 );
 
-Sizes.parameters = {
-  controls: { disable: true },
-};
-
-export const Disabled: Story = () => (
+export const Disabled: Story<Props> = (args) => (
   <div className={sectionClass}>
     <div>
       <div className={headingClass}>whole group disabled</div>
-      <ControlledCheckboxGroup disabled defaultValue={["apple"]} />
+      <ControlledCheckboxGroup {...args} disabled defaultValue={["apple"]} />
     </div>
     <div>
       <div className={headingClass}>single option disabled</div>
       <ControlledCheckboxGroup
+        {...args}
         items={[
           { value: "apple", label: "Apple" },
           { value: "banana", label: "Banana", disabled: true },
@@ -159,11 +155,7 @@ export const Disabled: Story = () => (
   </div>
 );
 
-Disabled.parameters = {
-  controls: { disable: true },
-};
-
-export const MaxSelectable: Story = () => (
+export const MaxSelectable: Story<Props> = (args) => (
   <div className={sectionClass}>
     <div>
       <div className={headingClass}>maxSelectable=2</div>
@@ -172,6 +164,7 @@ export const MaxSelectable: Story = () => (
         until one is unchecked.
       </div>
       <ControlledCheckboxGroup
+        {...args}
         maxSelectable={2}
         defaultValue={[]}
         items={[
@@ -184,7 +177,3 @@ export const MaxSelectable: Story = () => (
     </div>
   </div>
 );
-
-MaxSelectable.parameters = {
-  controls: { disable: true },
-};

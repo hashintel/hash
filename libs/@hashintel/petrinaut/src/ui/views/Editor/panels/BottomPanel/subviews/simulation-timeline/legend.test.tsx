@@ -101,7 +101,7 @@ describe("TimelineLegend", () => {
       />,
     );
 
-    fireEvent.click(screen.getByTitle("Hide Series 1"));
+    fireEvent.click(screen.getByRole("button", { name: "Hide Series 1" }));
 
     expect(onHiddenSeriesChange).toHaveBeenCalledWith(new Set(["series-1"]));
   });
@@ -113,9 +113,9 @@ describe("TimelineLegend", () => {
 
     // Several entries can be toggled in a row; leaving an individual entry
     // does not end the lingering window.
-    fireEvent.click(screen.getByTitle("Hide Series 1"));
-    fireEvent.pointerLeave(screen.getByTitle("Show Series 1").parentElement!);
-    fireEvent.click(screen.getByTitle("Hide Series 2"));
+    fireEvent.click(screen.getByRole("button", { name: "Hide Series 1" }));
+    fireEvent.pointerLeave(screen.getByTitle("Show Series 1"));
+    fireEvent.click(screen.getByRole("button", { name: "Hide Series 2" }));
 
     expect(screen.getByTitle("Show Series 1")).toBeDefined();
     expect(screen.getByTitle("Show Series 2")).toBeDefined();
@@ -130,8 +130,8 @@ describe("TimelineLegend", () => {
     elapseReleaseDelay();
     expect(screen.getByTitle("Show Series 1")).toBeDefined();
 
-    fireEvent.transitionEnd(screen.getByTitle("Show Series 1").parentElement!);
-    fireEvent.transitionEnd(screen.getByTitle("Show Series 2").parentElement!);
+    fireEvent.transitionEnd(screen.getByTitle("Show Series 1"));
+    fireEvent.transitionEnd(screen.getByTitle("Show Series 2"));
 
     expect(screen.queryByTitle("Show Series 1")).toBeNull();
     expect(screen.queryByTitle("Show Series 2")).toBeNull();
@@ -143,7 +143,7 @@ describe("TimelineLegend", () => {
     const { container } = render(<StatefulLegend series={createSeries(3)} />);
     const control = container.querySelector('[data-part="control"]')!;
 
-    fireEvent.click(screen.getByTitle("Hide Series 1"));
+    fireEvent.click(screen.getByRole("button", { name: "Hide Series 1" }));
     fireEvent.pointerLeave(control);
 
     act(() => {
@@ -161,8 +161,8 @@ describe("TimelineLegend", () => {
     const { container } = render(<StatefulLegend series={createSeries(3)} />);
     const control = container.querySelector('[data-part="control"]')!;
 
-    fireEvent.click(screen.getByTitle("Hide Series 1"));
-    fireEvent.click(screen.getByTitle("Show Series 1"));
+    fireEvent.click(screen.getByRole("button", { name: "Hide Series 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show Series 1" }));
 
     fireEvent.pointerLeave(control);
     elapseReleaseDelay();
@@ -171,7 +171,7 @@ describe("TimelineLegend", () => {
     expect(screen.getByTitle("Hide Series 1")).toBeDefined();
   });
 
-  it("summarizes series beyond the render cap with a +N more chip", () => {
+  it("caps the strip at the render limit, leaving the rest to the dropdown", () => {
     const series = createSeries(45);
 
     render(
@@ -182,8 +182,16 @@ describe("TimelineLegend", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "+5 more" })).toBeDefined();
+    // The strip renders up to the cap (40 entries: Series 0–39)...
+    expect(screen.getByTitle("Hide Series 39")).toBeDefined();
+    // ...and omits everything past it — those stay reachable through the
+    // dropdown, opened from the count chip.
+    expect(screen.queryByTitle("Hide Series 40")).toBeNull();
     expect(screen.queryByTitle("Hide Series 44")).toBeNull();
+
+    expect(
+      screen.getByRole("button", { name: /45 of 45 series shown/u }),
+    ).toBeDefined();
   });
 
   it("clears the search text without changing the selection", async () => {

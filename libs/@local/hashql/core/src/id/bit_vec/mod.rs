@@ -866,7 +866,7 @@ impl<T: Id> BitRelations<Self> for ChunkedBitSet<T> {
         debug_assert_eq!(last_chunk_size, other.last_chunk_size());
 
         let mut changed = false;
-        for (chunk_index, (mut self_chunk, other_chunk)) in
+        for (chunk_index, (self_chunk, other_chunk)) in
             self.chunks.iter_mut().zip(other.chunks.iter()).enumerate()
         {
             let chunk_domain_size = if chunk_index + 1 == num_chunks {
@@ -875,7 +875,7 @@ impl<T: Id> BitRelations<Self> for ChunkedBitSet<T> {
                 CHUNK_BITS as ChunkSize
             };
 
-            match (&mut self_chunk, &other_chunk) {
+            match (&mut *self_chunk, &other_chunk) {
                 (_, Chunk::Zeros) | (Chunk::Ones, _) => {}
                 (Chunk::Zeros, _) | (Chunk::Mixed(..), Chunk::Ones) => {
                     // `other_chunk` fully overwrites `self_chunk`
@@ -940,7 +940,7 @@ impl<T: Id> BitRelations<Self> for ChunkedBitSet<T> {
         debug_assert_eq!(last_chunk_size, other.last_chunk_size());
 
         let mut changed = false;
-        for (chunk_index, (mut self_chunk, other_chunk)) in
+        for (chunk_index, (self_chunk, other_chunk)) in
             self.chunks.iter_mut().zip(other.chunks.iter()).enumerate()
         {
             let chunk_domain_size = if chunk_index + 1 == num_chunks {
@@ -949,7 +949,7 @@ impl<T: Id> BitRelations<Self> for ChunkedBitSet<T> {
                 CHUNK_BITS as ChunkSize
             };
 
-            match (&mut self_chunk, &other_chunk) {
+            match (&mut *self_chunk, &other_chunk) {
                 (Chunk::Zeros, _) | (_, Chunk::Zeros) => {}
                 (Chunk::Ones | Chunk::Mixed(..), Chunk::Ones) => {
                     changed = true;
@@ -1016,7 +1016,7 @@ impl<T: Id> BitRelations<Self> for ChunkedBitSet<T> {
         debug_assert_eq!(last_chunk_size, other.last_chunk_size());
 
         let mut changed = false;
-        for (chunk_index, (mut self_chunk, other_chunk)) in
+        for (chunk_index, (self_chunk, other_chunk)) in
             self.chunks.iter_mut().zip(other.chunks.iter()).enumerate()
         {
             let chunk_domain_size = if chunk_index + 1 == num_chunks {
@@ -1025,7 +1025,7 @@ impl<T: Id> BitRelations<Self> for ChunkedBitSet<T> {
                 CHUNK_BITS as ChunkSize
             };
 
-            match (&mut self_chunk, &other_chunk) {
+            match (&mut *self_chunk, &other_chunk) {
                 (Chunk::Zeros, _) | (_, Chunk::Ones) => {}
                 (Chunk::Ones, Chunk::Zeros | Chunk::Mixed(..))
                 | (Chunk::Mixed(..), Chunk::Zeros) => {

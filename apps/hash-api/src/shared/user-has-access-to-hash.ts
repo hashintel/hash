@@ -2,6 +2,7 @@ import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 
 import {
   getUserPendingInvitations,
+  getUserVerifiedEmails,
   type User,
 } from "../graph/knowledge/system-types/user";
 
@@ -71,7 +72,11 @@ export const userHasAccessToHash = async (
     return { allowed: true };
   }
 
-  const allowedEmails = user.emails.filter((email) =>
+  const verifiedEmails = await getUserVerifiedEmails(context, authentication, {
+    user,
+  });
+
+  const allowedEmails = verifiedEmails.filter((email) =>
     userEmailAllowList.includes(email),
   );
 

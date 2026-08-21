@@ -137,9 +137,11 @@ LEFT OUTER JOIN LATERAL (
             "eec"."base_urls", ("eec"."versions"::text [])
         ) WITH ORDINALITY AS "u" ("b", "v", "ordinality")
     WHERE
-        "eec"."entity_edition_id"
-        = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-        AND "u"."ordinality" <= "eec"."direct_types"
+        (
+            "eec"."entity_edition_id"
+            = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        )
+        AND ("u"."ordinality" <= "eec"."direct_types")
 ) AS "entity_edition_cache_0_0_2"
     ON TRUE
 LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_0_4"
@@ -162,9 +164,9 @@ CROSS JOIN LATERAL
             ) AS "row"
     ) AS "continuation_0_0"
 WHERE
-    "entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange)
-    AND "entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange)
-    AND ("continuation_0_0"."row")."filter" IS NOT FALSE
+    ("entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange))
+    AND ("entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange))
+    AND (("continuation_0_0"."row")."filter" IS NOT FALSE)
 
 ================================== Parameters ==================================
 

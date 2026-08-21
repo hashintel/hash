@@ -94,6 +94,7 @@ export const WebSelector = ({
                   : undefined
               }
               title={name}
+              borderRadius="4px"
             />
           ),
           label: name,

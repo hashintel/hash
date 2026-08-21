@@ -68,4 +68,56 @@ describe("recomputeBatchTimelines", () => {
       50, 50, 0, 0,
     ]);
   });
+
+  it("uses one-based nearest ranks for even-sized samples", () => {
+    const batches = [1, 2, 3, 4].map((duration, index) =>
+      batch({
+        batch: `B${index + 1}`,
+        seg_proc_to_prodstart: duration,
+        total_days: duration,
+      }),
+    );
+
+    const { timelines } = recomputeBatchTimelines(
+      batches,
+      batchTimelines(batches),
+    );
+
+    expect(timelines.segments?.seg_proc_to_prodstart).toMatchObject({
+      p25: 1,
+      p75: 3,
+      p95: 4,
+    });
+  });
+
+  it("excludes outliers from means without changing other statistics", () => {
+    const durations = [10, 11, 12, 13, 14, 15, 16, 17, 100];
+    const batches = durations.map((duration, index) =>
+      batch({
+        batch: `B${index + 1}`,
+        seg_proc_to_prodstart: duration,
+        total_days: duration,
+      }),
+    );
+
+    const { timelines, pipeline } = recomputeBatchTimelines(
+      batches,
+      batchTimelines(batches),
+      true,
+    );
+
+    expect(timelines.segments?.seg_proc_to_prodstart).toMatchObject({
+      mean: 13.5,
+      median: 14,
+      p25: 12,
+      p75: 16,
+      n: 9,
+    });
+    expect(pipeline.direct?.stages[0]).toMatchObject({
+      mean: 13.5,
+      median: 14,
+    });
+    expect(pipeline.direct?.total_mean).toBe(13.5);
+    expect(pipeline.direct?.total_median).toBe(14);
+  });
 });

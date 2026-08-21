@@ -39,19 +39,19 @@ const iconButton = css({
   borderWidth: "1px",
   borderStyle: "solid",
   borderColor: "bd.subtle",
-  bg: "bgSolid.min",
-  color: "fg.subtle",
   cursor: "pointer",
   transition: "colors",
   _hover: { color: "fg.heading", bg: "bg.subtle" },
 });
 const iconButtonActive = css({ color: "fg.heading", bg: "bg.subtle" });
+const iconButtonInactive = css({ color: "fg.subtle", bg: "bgSolid.min" });
 const settingsWrap = css({
   mt: "3",
   borderTopWidth: "1px",
   borderColor: "bd.subtle",
   pt: "3",
   display: "flex",
+  flexWrap: "wrap",
   alignItems: "center",
   justifyContent: "flex-end",
   gap: "4",
@@ -94,6 +94,13 @@ const sharedFields = css({
   justifyContent: "flex-end",
   gap: "3",
 });
+const fieldGroup = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "3",
+  flexShrink: "0",
+  whiteSpace: "nowrap",
+});
 const fieldLabel = css({
   display: "flex",
   alignItems: "center",
@@ -115,24 +122,19 @@ const measureSelect = css({
   py: "0.5",
   cursor: "pointer",
 });
-const extraFields = css({
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  gap: "3",
-});
-
 export const HeaderActionButtons = ({
   settingsOpen,
   onSettingsToggle,
   docContext,
+  productView,
 }: {
   settingsOpen: boolean;
   onSettingsToggle: () => void;
   /** Which docs section the help button opens, based on the host view. */ docContext:
     | "site"
     | "product";
+  /** Active product view, used to open its contextual documentation. */
+  productView?: "category" | "canvas" | "timeline";
 }) => {
   const { openDocs } = useDocs();
 
@@ -140,7 +142,10 @@ export const HeaderActionButtons = ({
     <div className={actionRow}>
       <button
         type="button"
-        className={cx(iconButton, settingsOpen && iconButtonActive)}
+        className={cx(
+          iconButton,
+          settingsOpen ? iconButtonActive : iconButtonInactive,
+        )}
         aria-label={
           settingsOpen ? "Hide analysis settings" : "Show analysis settings"
         }
@@ -157,6 +162,9 @@ export const HeaderActionButtons = ({
           });
           openDocs(
             docContext === "site" ? "site-overview" : "product-overview",
+            docContext === "product" && productView
+              ? `${productView}-view`
+              : undefined,
           );
         }}
       />
@@ -196,92 +204,100 @@ export const AnalysisSettingsPanel = ({
         )}
       </div>
       <div className={sharedFields}>
-        <span className={fieldLabel}>
-          WACC
-          <NumberInput
-            value={Math.round(waccRate * 100)}
-            min={1}
-            max={50}
-            step={1}
-            size="xs"
-            align="center"
-            width="fitContent"
-            onChange={(value) => {
-              if (value != null && value > 0 && value <= 50) {
-                setWaccRate(value / 100);
+        <div className={fieldGroup}>
+          <span className={fieldLabel}>
+            WACC
+            <NumberInput
+              value={Math.round(waccRate * 100)}
+              min={1}
+              max={50}
+              step={1}
+              size="xs"
+              align="center"
+              width="fitContent"
+              onChange={(value) => {
+                if (value != null && value > 0 && value <= 50) {
+                  setWaccRate(value / 100);
+                }
+              }}
+              aria-label="WACC percent"
+            />
+            %
+          </span>
+          <span className={fieldLabel}>
+            Storage
+            <NumberInput
+              value={storageCost}
+              min={0.001}
+              max={10}
+              step={0.01}
+              size="xs"
+              align="center"
+              width="fitContent"
+              onChange={(value) => {
+                if (value != null && value > 0 && value <= 10) {
+                  setStorageCost(value);
+                }
+              }}
+              aria-label="Storage cost per tonne per day"
+            />
+            {currency}/t/d
+          </span>
+        </div>
+        <div className={fieldGroup}>
+          <label className={fieldLabel}>
+            Measure
+            <select
+              className={measureSelect}
+              value={measure}
+              onChange={(event) =>
+                setMeasure(event.target.value as BaseMeasure)
               }
-            }}
-            aria-label="WACC percent"
-          />
-          %
-        </span>
-        <span className={fieldLabel}>
-          Storage
-          <NumberInput
-            value={storageCost}
-            min={0.001}
-            max={10}
-            step={0.01}
-            size="xs"
-            align="center"
-            width="fitContent"
-            onChange={(value) => {
-              if (value != null && value > 0 && value <= 10) {
-                setStorageCost(value);
+              aria-label="Base timing measure"
+            >
+              {BASE_MEASURES.map((measureOption) => (
+                <option key={measureOption} value={measureOption}>
+                  {MEASURE_LABELS[measureOption]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={fieldLabel}>
+            Procurement
+            <select
+              className={measureSelect}
+              value={basis}
+              onChange={(event) =>
+                setBasis(event.target.value as ProcurementBasis)
               }
-            }}
-            aria-label="Storage cost per tonne per day"
-          />
-          {currency}/t/d
-        </span>
-        <label className={fieldLabel}>
-          Measure
-          <select
-            className={measureSelect}
-            value={measure}
-            onChange={(event) => setMeasure(event.target.value as BaseMeasure)}
-            aria-label="Base timing measure"
-          >
-            {BASE_MEASURES.map((month) => (
-              <option key={month} value={month}>
-                {MEASURE_LABELS[month]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={fieldLabel}>
-          Procurement
-          <select
-            className={measureSelect}
-            value={basis}
-            onChange={(event) =>
-              setBasis(event.target.value as ProcurementBasis)
-            }
-            aria-label="Procurement lead-time basis"
-          >
-            {PROCUREMENT_BASES.map((basisOption) => (
-              <option key={basisOption} value={basisOption}>
-                {PROCUREMENT_BASIS_LABELS[basisOption]}
-              </option>
-            ))}
-          </select>
-        </label>
+              aria-label="Procurement lead-time basis"
+            >
+              {PROCUREMENT_BASES.map((basisOption) => (
+                <option key={basisOption} value={basisOption}>
+                  {PROCUREMENT_BASIS_LABELS[basisOption]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <SegmentedControl
           value={timeRange}
           onChange={setTimeRange}
           options={TIME_RANGE_OPTIONS}
         />
 
-        <label className={fieldLabel}>
-          <input
-            type="checkbox"
-            checked={excludeOutliers}
-            onChange={(event) => setExcludeOutliers(event.target.checked)}
-          />
-          Exclude outliers
-        </label>
+        <div className={fieldGroup}>
+          <label className={fieldLabel}>
+            <input
+              type="checkbox"
+              checked={excludeOutliers}
+              onChange={(event) => setExcludeOutliers(event.target.checked)}
+            />
+            Exclude outliers from mean
+          </label>
+          {children}
+        </div>
       </div>
-      {children != null && <div className={extraFields}>{children}</div>}
     </div>
   );
 };

@@ -1,3 +1,8 @@
+---
+layer: core.simulation.monte-carlo
+role: Runs many independent simulations with bounded frame memory, reporting metric aggregates
+---
+
 # Monte Carlo Simulator
 
 ## Goal

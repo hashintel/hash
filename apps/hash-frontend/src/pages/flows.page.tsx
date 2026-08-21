@@ -70,6 +70,7 @@ type FlowSummary = Subtype<
       avatarUrl?: string;
       name: string;
       shortname: string;
+      isOrg: boolean;
     };
     name: string;
     uuid: string;
@@ -158,6 +159,7 @@ const FlowsPageContent = () => {
               avatarUrl: "/hash-logo-black.png",
               name: "HASH",
               shortname: "hash",
+              isOrg: true,
             },
             name: flowDefinition.name,
             /**

@@ -367,7 +367,9 @@ services:
     profiles:
       - dev
       - hash
-    image: quay.io/minio/minio
+    # Pinned by release timestamp — upstream ships no semver tags. Tag only, no
+    # digest: a Docker Hub digest isn't valid for the quay copy of the same tag.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     command: server /data --console-address ":9001"
     environment:
       MINIO_API_CORS_ALLOW_ORIGIN: ${FRONTEND_URL:-http://localhost:3000}
@@ -378,14 +380,28 @@ services:
       - 9001:9001
     volumes:
       - ../../var/uploads/s3:/data
+    healthcheck:
+      # `/minio/health/live` returns 200 once the S3 API is listening on :9000.
+      # `mc` ships inside the server image and is a fallback if `curl` is absent.
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:9000/minio/health/live || mc ready local",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 15
 
   minio-ensure-bucket-exists:
     profiles:
       - dev
       - hash
-    image: minio/mc
+    # `mc` versions by release timestamp — upstream ships no semver tags — and
+    # trails the server's series; pinned by digest too, as only that is immutable.
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     restart: "no"
     security_opt:
       - no-new-privileges:true
@@ -617,7 +633,9 @@ services:
       HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL:-info}"
       HASH_GRAPH_LOG_CONSOLE_FORMAT: "${HASH_GRAPH_LOG_CONSOLE_FORMAT:-full}"
       HASH_GRAPH_LOG_FOLDER: "/logs/graph-service"
+      HASH_GRAPH_SERVE_API_REFERENCE: "${HASH_GRAPH_SERVE_API_REFERENCE:-false}"
       HASH_GRAPH_SENTRY_DSN: "${HASH_GRAPH_SENTRY_DSN-}"
+      HASH_KRATOS_PUBLIC_URL: "http://kratos:4433"
       HASH_TEMPORAL_SERVER_HOST: "http://temporal"
       HASH_TEMPORAL_SERVER_PORT: "7233"
       HASH_GRAPH_OPENAI_API_KEY: "${OPENAI_API_KEY-}"
@@ -677,6 +695,19 @@ services:
       timeout: 2s
       retries: 10
 
+  petrinaut-opt:
+    profiles:
+      - hash
+    image: ghcr.io/hashintel/hash/petrinaut-opt
+    init: true
+    deploy:
+      restart_policy:
+        condition: on-failure
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${PETRINAUT_OPT_PORT:-4004}:4004"
+
   api-migrate:
     profiles:
       - hash
@@ -720,6 +751,8 @@ services:
       HASH_GRAPH_HTTP_PORT: "4000"
       HASH_GRAPH_ATLAS_HOST: "atlas"
       HASH_GRAPH_ATLAS_PORT: "4003"
+      HASH_PETRINAUT_OPT_HOST: "petrinaut-opt"
+      HASH_PETRINAUT_OPT_PORT: "4004"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
 
       HASH_REDIS_HOST: "redis"

@@ -58,18 +58,34 @@ const panelContainerStyle = css({
   flexDirection: "column",
 });
 
+/**
+ * The header is a size container (its width is imposed by the panel, so
+ * inline-size containment is safe): descendants use
+ * `@container bottom-panel-header (…)` to adapt to the panel width rather
+ * than the viewport.
+ */
 const headerStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
+  gap: "[8px]",
   padding: "[6px]",
   flexShrink: 0,
+  containerType: "inline-size",
+  containerName: "bottom-panel-header",
 });
 
+/**
+ * High flex-shrink so the header actions give up slack before the tabs do:
+ * in practice only the Timeline metric picker can shrink (down to its
+ * min-width) — every other control bottoms out at its content size — after
+ * which remaining deficit compresses the tabs.
+ */
 const headerRightStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[4px]",
+  flexShrink: "[10]",
 });
 
 const getBottomPanelSubViews = ({

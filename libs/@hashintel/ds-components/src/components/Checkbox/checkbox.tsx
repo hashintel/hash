@@ -2,6 +2,7 @@ import { Checkbox as BaseCheckbox } from "@ark-ui/react/checkbox";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { styles } from "./checkbox.recipe";
 
 import type { SharedInputProps, Tone } from "../../util/form-shared";
@@ -37,7 +38,7 @@ export const Checkbox = ({
   /** Vertical alignment of the box against the label when it wraps over multiple lines */
   labelAlign?: "top" | "center";
   /** The tone applied when the checkbox is checked */
-  tone?: Exclude<Tone, "error"> | "success";
+  tone?: Exclude<Tone, "error" | "warning">;
   /** Render the box in the indeterminate ("partially checked") state */
   indeterminate?: boolean;
   /** An optional value used for native form submissions */
@@ -97,7 +98,7 @@ export const Checkbox = ({
       )}
       <BaseCheckbox.HiddenInput
         ref={inputRef}
-        autoFocus={autoFocus}
+        {...resolveAutoFocusProps(autoFocus)}
         onFocus={onFocus}
         onBlur={onBlur}
       />

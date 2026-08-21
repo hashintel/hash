@@ -14,15 +14,11 @@ class StatusStoreTest(unittest.TestCase):
         first = self.app.state.statuses.create()
         second = self.app.state.statuses.create()
 
-        set_status(
-            self.app, first.run_id, phase=Phase.running, detail="first running"
-        )
+        set_status(self.app, first.run_id, phase=Phase.running, detail="first running")
         set_status(
             self.app, second.run_id, phase=Phase.running, detail="second running"
         )
-        set_status(
-            self.app, first.run_id, phase=Phase.done, detail="first completed"
-        )
+        set_status(self.app, first.run_id, phase=Phase.done, detail="first completed")
 
         first_status = self.app.state.statuses.get(first.run_id)
         second_status = self.app.state.statuses.get(second.run_id)
@@ -42,6 +38,31 @@ class StatusStoreTest(unittest.TestCase):
             [status.run_id for status in statuses],
             [first.run_id, second.run_id],
         )
+
+    def test_history_discards_the_oldest_runs_at_its_limit(self) -> None:
+        statuses = StatusStore(max_history=2)
+        first = statuses.create()
+        second = statuses.create()
+        third = statuses.create()
+
+        self.assertIsNone(statuses.get(first.run_id))
+        self.assertEqual(
+            [status.run_id for status in statuses.all()],
+            [second.run_id, third.run_id],
+        )
+
+    def test_history_does_not_evict_a_running_run(self) -> None:
+        statuses = StatusStore(max_history=2)
+        running = statuses.create()
+        statuses.update(running.run_id, phase=Phase.running)
+        finished = statuses.create()
+        statuses.update(finished.run_id, phase=Phase.done)
+
+        newest = statuses.create()
+
+        self.assertIsNotNone(statuses.get(running.run_id))
+        self.assertIsNone(statuses.get(finished.run_id))
+        self.assertIsNotNone(statuses.get(newest.run_id))
 
 
 if __name__ == "__main__":

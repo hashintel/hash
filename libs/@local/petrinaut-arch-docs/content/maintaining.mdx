@@ -1,0 +1,26 @@
+---
+title: Working on these docs
+description: How this site is produced, and the two things you need to change it.
+sidebar_order: 2
+---
+
+These pages are about the documentation system itself, not about using Petrinaut.
+
+Everything under [Architecture](architecture) is generated from annotations in
+`@hashintel/petrinaut-core`, `@hashintel/petrinaut`, and
+`@hashintel/petrinaut-cli`, joined against the real import graph. Editing a
+generated page does nothing: the next build replaces it.
+
+Two things follow from that, and they are what these pages cover.
+
+- **[Declaring layers](doc:maintaining/declaring-layers)** — the two annotations
+  that put a folder on the map, where to write them, and what the build refuses
+  to accept.
+- **[Running locally](doc:maintaining/running-locally)** — building the docs,
+  reading them without a server, and what to do when a page looks stale.
+
+Pages like this one are hand-written. They live in
+`libs/@local/petrinaut-arch-docs/content/` and are optional: the generator
+produces a complete bundle with that directory absent. They carry the reasoning
+an import graph cannot supply, and nothing checks them against the code, so they
+avoid restating facts the generated pages already own.

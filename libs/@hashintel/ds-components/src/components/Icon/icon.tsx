@@ -4,6 +4,7 @@ import { styles } from "./icon.recipe";
 import Bullseye from "./svgs/light/bullseye.svg";
 import Table from "./svgs/light/table.svg";
 import OneHundred from "./svgs/regular/100.svg";
+import ArrowDownAZ from "./svgs/regular/arrow-down-a-z.svg";
 import ArrowDownLeftAndArrowUpRightToCenter from "./svgs/regular/arrow-down-left-and-arrow-up-right-to-center.svg";
 import ArrowDownWideShort from "./svgs/regular/arrow-down-wide-short.svg";
 import ArrowDown from "./svgs/regular/arrow-down.svg";
@@ -19,6 +20,7 @@ import ArrowUpRightAndArrowDownLeftFromCenter from "./svgs/regular/arrow-up-righ
 import ArrowUpRightFromSquare from "./svgs/regular/arrow-up-right-from-square.svg";
 import ArrowUpRight from "./svgs/regular/arrow-up-right.svg";
 import ArrowUpWideShort from "./svgs/regular/arrow-up-wide-short.svg";
+import ArrowUpZA from "./svgs/regular/arrow-up-z-a.svg";
 import ArrowUp from "./svgs/regular/arrow-up.svg";
 import ArrowsRotate from "./svgs/regular/arrows-rotate.svg";
 import Asterisk from "./svgs/regular/asterisk.svg";
@@ -57,6 +59,7 @@ import Cubes from "./svgs/regular/cubes.svg";
 import DiagramNested from "./svgs/regular/diagram-nested.svg";
 import DiagramProject from "./svgs/regular/diagram-project.svg";
 import DiagramSubtask from "./svgs/regular/diagram-subtask.svg";
+import DiamondExclamation from "./svgs/regular/diamond-exclamation.svg";
 import Download from "./svgs/regular/download.svg";
 import EllipsisVertical from "./svgs/regular/ellipsis-vertical.svg";
 import Ellipsis from "./svgs/regular/ellipsis.svg";
@@ -130,6 +133,7 @@ import PauseSolid from "./svgs/solid/pause.svg";
 import PlaySolid from "./svgs/solid/play.svg";
 import StarSolid from "./svgs/solid/star.svg";
 import Stop from "./svgs/solid/stop.svg";
+import User from "./svgs/solid/user.svg";
 
 import type { DataAttributes } from "../../util/dom";
 import type { FormInputSize } from "../../util/form-shared";
@@ -184,6 +188,7 @@ const IconMap = {
   diagramProject: DiagramProject,
   diagramSubtask: DiagramSubtask,
   diagramNodes: CircleNodes,
+  diamondExclamation: DiamondExclamation,
   download: Download,
   edit: PenToSquare,
   ellipsis: Ellipsis,
@@ -245,7 +250,9 @@ const IconMap = {
   skipForwardFilled: ForwardStepSolid,
   sliders: Sliders,
   sortDown: ArrowDownWideShort,
+  sortDownAZ: ArrowDownAZ,
   sortUp: ArrowUpWideShort,
+  sortUpAZ: ArrowUpZA,
   sparkles: Sparkles,
   square: Square,
   squareFilled: Stop,
@@ -263,6 +270,7 @@ const IconMap = {
   trash: TrashCan,
   truck: Truck,
   undo: ArrowRotateLeft,
+  user: User,
   userPlus: UserPlus,
   warning: TriangleExclamation,
   zoomIn: MagnifyingGlassPlus,

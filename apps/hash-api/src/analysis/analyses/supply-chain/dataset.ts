@@ -24,6 +24,10 @@ export interface DatasetPointer {
 export interface SupplyChainManifest {
   datasetVersion: string;
   products: string[];
+  /** Products with a published production_schedule.json artifact. */
+  productionSchedules?: string[];
+  /** Sites with a validated production_timeline.json artifact. */
+  siteProductionTimelines?: string[];
   sites: string[];
   /** Map of productId -> the step ids available for that product. */
   steps: Record<string, string[]>;

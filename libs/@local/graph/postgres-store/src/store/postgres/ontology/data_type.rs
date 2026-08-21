@@ -1688,10 +1688,6 @@ impl QueryRecordDecode for DataTypeWithMetadata {
             version: row.get(indices.version),
         };
 
-        if let Ok(distance) = row.try_get::<_, f64>("distance") {
-            tracing::trace!(%record_id, %distance, "Data type embedding was calculated");
-        }
-
         let conversion_targets: Option<Vec<BaseUrl>> = row.get(indices.conversion_targets);
         let conversion_froms: Option<Vec<ConversionDefinition>> = row.get(indices.conversion_froms);
         let conversion_intos: Option<Vec<ConversionDefinition>> = row.get(indices.conversion_intos);

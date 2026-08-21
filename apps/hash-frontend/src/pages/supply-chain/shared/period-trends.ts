@@ -127,13 +127,24 @@ export function computeTimingTrend(
   timeRange: TimeRange,
   measure: BaseMeasure = "median",
 ): TimingTrend {
-  const trend = computeTrend(node.observations ?? [], timeRange, measure);
+  const observations = node.observations ?? [];
+  const trend = computeTrend(
+    measure === "mean"
+      ? (node.mean_observations ?? observations)
+      : observations,
+    timeRange,
+    measure,
+  );
+  const sampleTrend =
+    measure === "mean" && node.mean_observations != null
+      ? computeTrend(observations, timeRange, measure)
+      : trend;
   return {
     pctChange: trend.pctChange,
     currentValue: trend.currentValue,
     previousValue: trend.previousValue,
-    currentN: trend.currentN,
-    previousN: trend.previousN,
+    currentN: sampleTrend.currentN,
+    previousN: sampleTrend.previousN,
   };
 }
 
@@ -202,6 +213,7 @@ export interface PeriodComparison {
 export function computePeriodDeltas(
   observations: Observation[],
   range: TimeRange,
+  meanObservations: Observation[] = observations,
 ): PeriodComparison {
   const { currentFrom, previousFrom, previousTo } = periodCutoffs(range);
 
@@ -219,12 +231,34 @@ export function computePeriodDeltas(
   const prevStats = computeStats(
     prevObs.map((observation) => observation.value),
   );
+  const currentMeanValues = meanObservations
+    .filter((observation) => observation.date.slice(0, 7) >= currentFrom)
+    .map((observation) => observation.value);
+  const previousMeanValues = meanObservations
+    .filter((observation) => {
+      const month = observation.date.slice(0, 7);
+      return month >= previousFrom && month <= previousTo;
+    })
+    .map((observation) => observation.value);
+  currentStats.mean =
+    currentMeanValues.length > 0
+      ? currentMeanValues.reduce((sum, value) => sum + value, 0) /
+        currentMeanValues.length
+      : null;
+  prevStats.mean =
+    previousMeanValues.length > 0
+      ? previousMeanValues.reduce((sum, value) => sum + value, 0) /
+        previousMeanValues.length
+      : null;
 
-  const pctDelta = (curr: number, prev: number) => {
-    if (prev === 0) {
+  const pctDelta = (
+    currentValue: number | null,
+    previousValue: number | null,
+  ) => {
+    if (currentValue == null || previousValue == null || previousValue === 0) {
       return null;
     }
-    return ((curr - prev) / prev) * 100;
+    return ((currentValue - previousValue) / previousValue) * 100;
   };
 
   const hasPrev = prevStats.n > 0;
@@ -256,10 +290,7 @@ export function computePeriodDeltas(
 
   const statDeltas: Record<string, number | null> = {};
   for (const key of keys) {
-    statDeltas[key] = pctDelta(
-      currentStats[key] as number,
-      prevStats[key] as number,
-    );
+    statDeltas[key] = pctDelta(currentStats[key], prevStats[key]);
   }
 
   return {

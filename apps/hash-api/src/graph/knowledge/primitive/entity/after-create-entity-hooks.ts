@@ -18,11 +18,7 @@ import {
   getCommentFromEntity,
   getCommentParent,
 } from "../../system-types/comment";
-import {
-  createCommentNotification,
-  createMentionNotification,
-  getMentionNotification,
-} from "../../system-types/notification";
+import { createCommentNotification } from "../../system-types/notification";
 import { getPageFromEntity } from "../../system-types/page";
 import {
   getMentionedUsersInTextualContent,
@@ -30,6 +26,8 @@ import {
 } from "../../system-types/text";
 import { getUser } from "../../system-types/user";
 import { checkPermissionsOnEntity } from "../entity";
+import { opportunityStatusUpdateAfterCreateEntityHookCallback } from "./after-create-entity-hooks/opportunity-status-update-after-create-entity-hook";
+import { deliverMentionNotifications } from "./shared/mention-delivery";
 import { getTextUpdateOccurredIn } from "./shared/mention-notification";
 
 import type {
@@ -236,52 +234,19 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
     );
   }
 
-  await Promise.all([
-    ...mentionedUsers
-      .filter((user) => user.accountId !== triggeredByUser.accountId)
-      .map(async (mentionedUser) => {
-        const { view: mentionedUserCanViewPage } =
-          await checkPermissionsOnEntity(
-            context,
-            { actorId: mentionedUser.accountId },
-            { entity: occurredInEntity.entity },
-          );
-
-        if (!mentionedUserCanViewPage) {
-          return;
-        }
-
-        const existingNotification = await getMentionNotification(
-          context,
-          /** @todo: use authentication of machine user instead */
-          { actorId: mentionedUser.accountId },
-          {
-            recipient: mentionedUser,
-            triggeredByUser,
-            occurredInEntity,
-            occurredInComment,
-            occurredInBlock,
-            occurredInText: text,
-          },
-        );
-
-        if (!existingNotification) {
-          await createMentionNotification(
-            context,
-            /** @todo: use authentication of machine user instead */
-            { actorId: mentionedUser.accountId },
-            {
-              webId: mentionedUser.accountId,
-              occurredInEntity,
-              occurredInBlock,
-              occurredInComment,
-              occurredInText: text,
-              triggeredByUser,
-            },
-          );
-        }
-      }),
-  ]);
+  await deliverMentionNotifications({
+    authentication,
+    context,
+    mentionedUsers,
+    target: {
+      occurredInEntity,
+      occurredInComment,
+      occurredInBlock,
+      occurredInText: text,
+    },
+    textualContent,
+    triggeredByUser,
+  });
 };
 
 const userCreateHookCallback: AfterCreateEntityHookCallback = async ({
@@ -320,5 +285,9 @@ export const afterCreateEntityHooks: AfterCreateEntityHook[] = [
   {
     entityTypeId: systemEntityTypes.user.entityTypeId,
     callback: userCreateHookCallback,
+  },
+  {
+    entityTypeId: systemEntityTypes.opportunityStatusUpdate.entityTypeId,
+    callback: opportunityStatusUpdateAfterCreateEntityHookCallback,
   },
 ];

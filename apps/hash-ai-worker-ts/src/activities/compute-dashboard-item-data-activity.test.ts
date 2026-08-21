@@ -41,7 +41,7 @@ const mockedRunPythonCode = vi.mocked(runPythonCode);
 const WEB_ID = "00000000-0000-4000-8000-000000000001" as WebId;
 const ACTOR_ID = "00000000-0000-4000-8000-0000000000aa" as ActorEntityUuid;
 
-const uploadDirect = vi.fn();
+const uploadDirect = vi.fn<FileStorageProvider["uploadDirect"]>();
 const storageProvider = {
   uploadDirect,
 } as unknown as FileStorageProvider;
@@ -54,6 +54,7 @@ const baseParams = {
   structuralQuery: JSON.stringify({ all: [] }),
   pythonScript: "print('[]')",
   storageKey: `analysis/${WEB_ID}/dashboards/abc123.json`,
+  metadataStorageKey: `analysis/${WEB_ID}/dashboards/abc123.metadata.json`,
 };
 
 const run = (params: Partial<typeof baseParams> = {}) =>
@@ -121,6 +122,19 @@ describe("computeDashboardItemDataActivity", () => {
       body: JSON.stringify(chartData),
       contentType: "application/json",
     });
+    const metadataUpload = uploadDirect.mock.calls.find(
+      ([upload]) => upload.key === baseParams.metadataStorageKey,
+    )?.[0];
+    expect(metadataUpload).toMatchObject({
+      key: baseParams.metadataStorageKey,
+      contentType: "application/json",
+    });
+    const metadata = JSON.parse(metadataUpload?.body as string) as {
+      generatedAt: string;
+      generationDurationMs: number;
+    };
+    expect(metadata.generatedAt).toBeTruthy();
+    expect(metadata.generationDurationMs).toEqual(expect.any(Number));
   });
 
   it("tolerates warnings on stderr when stdout is valid JSON", async () => {

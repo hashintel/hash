@@ -2,4 +2,4 @@
 "@hashintel/ds-components": minor
 ---
 
-New UI and api for Checkbox component (breaking change)
+Breaking change: new UI and api for Checkbox component

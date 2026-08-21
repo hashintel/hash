@@ -1,8 +1,18 @@
+/**
+ * Petrinaut's stylesheet. Within this embed document its Panda-generated
+ * atomic utilities are intentionally shadowed by `ds-components-styles.gen.css`
+ * (imported in `_app.page.tsx`), which compiles Petrinaut's shipped Panda
+ * build info through the app's single Panda pipeline at a strictly higher
+ * polyfilled layer specificity — see `panda.config.ts` and FE-1228. This
+ * import still supplies everything Panda generation does not: vendor CSS
+ * (xyflow, uplot, Monaco, fonts) and the `.petrinaut-root`-scoped preflight,
+ * token variables and global styles.
+ */
 import "@hashintel/petrinaut/dist/main.css";
 import { Box } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import {
   createJsonDocHandle,
   isSDCPNEqual,
@@ -12,16 +22,19 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut";
 
+import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
 import { setIframeErrorReporterMode } from "../../shared/iframe-error-reporter";
 import {
   type HostNetMode,
   nextRequestId,
   type PetrinautAiMessage,
+  type PetrinautHostCapabilities,
   type RevisionSummary,
   type SavedSnapshot,
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
 import { createBridgeAiChatTransport } from "./create-bridge-ai-transport";
+import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
 import { VersionPicker } from "./version-picker";
 
 /**
@@ -31,6 +44,16 @@ import { VersionPicker } from "./version-picker";
  * remounts when switching nets).
  */
 const aiChatTransport = createBridgeAiChatTransport();
+
+/**
+ * The grays HASH's breadcrumbs use elsewhere in the app: crumb text (and
+ * the crumb's icon / the process title) in the darker grey-blue, the
+ * chevron separators lighter. Neither the MUI theme (closest:
+ * `palette.gray[70]` #64778C / `palette.gray[50]` #91A5BA) nor the
+ * ds-components palette has exact tokens for these, so they're pinned here.
+ */
+const BREADCRUMB_TEXT_COLOR = "#677789";
+const BREADCRUMB_CHEVRON_COLOR = "#95a5b8";
 
 const noNetSwitchingError = () => {
   throw new Error(
@@ -78,6 +101,8 @@ const computeIsDirty = (
 export const EmbedContent = () => {
   const [state, setState] = useState<EditorState | null>(null);
   const [revisions, setRevisions] = useState<RevisionSummary[]>([]);
+  const [hostCapabilities, setHostCapabilities] =
+    useState<PetrinautHostCapabilities | null>(null);
   const [pendingSaveRequestId, setPendingSaveRequestId] = useState<
     string | null
   >(null);
@@ -151,6 +176,7 @@ export const EmbedContent = () => {
     onSetReadonly: (readonly) => {
       setState((prev) => (prev ? { ...prev, readonly } : prev));
     },
+    onSetCapabilities: setHostCapabilities,
     onRevisionsList: (incoming) => {
       setRevisions(incoming);
     },
@@ -302,26 +328,57 @@ export const EmbedContent = () => {
   const persistPending = pendingSaveRequestId !== null;
 
   const slots = useMemo<PetrinautSlots>(() => {
-    const backButton = (
-      <Button
-        size="sm"
-        variant="ghost"
-        iconName="arrowLeft"
-        aria-label="Back to processes"
-        tooltip="Back to processes"
-        onClick={handleNavigateBack}
-      />
+    /**
+     * HASH-style breadcrumbs, integrated into Petrinaut's top bar via the
+     * `topBarStart` slot so the embed shows a single bar. The editor's own
+     * editable title renders directly after this slot and acts as the final
+     * crumb, keeping rename-in-place — `titleStyle` tints it to match.
+     */
+    const breadcrumbs = (
+      <Box
+        sx={{
+          alignItems: "center",
+          /** Inherited by the chevron separator's `currentColor` fill. */
+          color: BREADCRUMB_CHEVRON_COLOR,
+          display: "flex",
+          gap: 0.5,
+        }}
+      >
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleNavigateBack}
+          prefix={
+            <ChartNetworkRegularIcon
+              style={{ color: BREADCRUMB_TEXT_COLOR, fontSize: 14 }}
+            />
+          }
+        >
+          {/*
+           * The ds Button recipe sets its own text color, and the editor's
+           * layer-polyfilled Panda bundle compiles that rule to a
+           * specificity that beats host emotion classes (FE-1228) — inline
+           * styles are the only reliable channel, hence the styled span
+           * and the inline-styled icon above.
+           */}
+          <span style={{ color: BREADCRUMB_TEXT_COLOR }}>Processes</span>
+        </Button>
+        <Icon name="chevronRight" size="xs" />
+      </Box>
     );
 
+    const titleStyle = { color: BREADCRUMB_TEXT_COLOR };
+
     if (!state || state.readonly) {
-      return { topBarStart: backButton };
+      return { topBarStart: breadcrumbs, titleStyle };
     }
 
     const isSaved = state.mode.kind === "saved";
     const saveLabel = isSaved ? (isDirty ? "Save" : "Saved") : "Create";
 
     return {
-      topBarStart: backButton,
+      topBarStart: breadcrumbs,
+      titleStyle,
       topBarEnd: (
         <>
           <VersionPicker
@@ -365,23 +422,27 @@ export const EmbedContent = () => {
 
   return (
     <Box sx={{ height: "100vh", overflow: "hidden" }}>
-      <Petrinaut
-        aiAssistant={{
-          transport: aiChatTransport,
-          messages: state.aiMessages,
-          onMessages: handleAiMessages,
-          onClearMessages: handleClearAiMessages,
-        }}
-        handle={state.handle}
-        createNewNet={noNetSwitchingError}
-        existingNets={[]}
-        hideNetManagementControls="except-title"
-        loadPetriNet={noNetSwitchingError}
-        readonly={state.readonly}
-        setTitle={handleSetTitle}
-        slots={slots}
-        title={state.title}
-      />
+      <HASHPetrinautOptimizationProvider
+        enabled={hostCapabilities?.optimization === true}
+      >
+        <Petrinaut
+          aiAssistant={{
+            transport: aiChatTransport,
+            messages: state.aiMessages,
+            onMessages: handleAiMessages,
+            onClearMessages: handleClearAiMessages,
+          }}
+          handle={state.handle}
+          createNewNet={noNetSwitchingError}
+          existingNets={[]}
+          hideNetManagementControls="except-title"
+          loadPetriNet={noNetSwitchingError}
+          readonly={state.readonly}
+          setTitle={handleSetTitle}
+          slots={slots}
+          title={state.title}
+        />
+      </HASHPetrinautOptimizationProvider>
     </Box>
   );
 };

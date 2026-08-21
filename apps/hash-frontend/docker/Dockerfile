@@ -4,7 +4,6 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
-ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
 ENV PATH="/mise/shims:$PATH"
 
 COPY .config/mise /etc/mise
@@ -12,7 +11,7 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
-    export MISE_VERSION=2026.7.0 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
+    /etc/mise/install.sh && \
     mise --version && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -70,7 +69,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get install -y --no-install-recommends build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install --locked node npm:turbo java oxfmt npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc
+    mise install --locked node npm:turbo java oxfmt npm:@redocly/cli cargo-binstall github:wasm-bindgen/wasm-pack github:WebAssembly/binaryen protoc
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock

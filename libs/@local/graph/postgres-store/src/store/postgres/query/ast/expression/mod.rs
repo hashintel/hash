@@ -5,8 +5,11 @@ mod unary;
 mod variadic;
 mod window;
 
-use core::fmt::{
-    Display, Formatter, Write as _, {self},
+use core::{
+    fmt::{
+        Display, Formatter, Write as _, {self},
+    },
+    ops::ControlFlow,
 };
 
 pub use self::{
@@ -15,7 +18,7 @@ pub use self::{
     function::Function,
     unary::{UnaryExpression, UnaryOperator},
     variadic::{VariadicExpression, VariadicOperator},
-    window::WindowStatement,
+    window::WindowDefinition,
 };
 use super::{ColumnName, ColumnReference};
 use crate::store::postgres::query::{SelectStatement, Transpile, postgres_type::PostgresType};
@@ -40,7 +43,7 @@ pub enum Expression {
     /// prevent SQL injection and no user input should ever be used as a [`Constant`].
     Constant(Constant),
     Function(Function),
-    Window(Box<Self>, WindowStatement),
+    Window(Box<Self>, WindowDefinition),
     Cast(Box<Self>, PostgresType),
     /// Composite field access - extracts a named field from a composite/row type value.
     ///
@@ -132,6 +135,26 @@ impl Expression {
         })
     }
 
+    /// Folds conditions into one `AND` expression without wrapping a lone condition.
+    #[must_use]
+    pub fn conjunction(mut conditions: Vec<Self>) -> Option<Self> {
+        match conditions.len() {
+            0 => None,
+            1 => conditions.pop(),
+            _ => Some(Self::all(conditions)),
+        }
+    }
+
+    /// Folds conditions into one `OR` expression without wrapping a lone condition.
+    #[must_use]
+    pub fn disjunction(mut conditions: Vec<Self>) -> Option<Self> {
+        match conditions.len() {
+            0 => None,
+            1 => conditions.pop(),
+            _ => Some(Self::any(conditions)),
+        }
+    }
+
     #[must_use]
     #[expect(clippy::should_implement_trait)]
     pub fn not(self) -> Self {
@@ -213,6 +236,12 @@ impl Expression {
         })
     }
 
+    /// Creates an `expression OVER ( window_definition )` window function call.
+    #[must_use]
+    pub fn window(expression: Self, definition: impl Into<WindowDefinition>) -> Self {
+        Self::Window(Box::new(expression), definition.into())
+    }
+
     #[must_use]
     pub fn greater_or_equal(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
@@ -267,6 +296,7 @@ impl Expression {
         })
     }
 
+    /// Cosine distance between two `vector` expressions of equal dimension count.
     #[must_use]
     pub fn cosine_distance(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
@@ -274,6 +304,27 @@ impl Expression {
             left: Box::new(self),
             right: Box::new(rhs.into()),
         })
+    }
+
+    /// Hamming distance between two `bit` expressions of equal width.
+    #[must_use]
+    pub fn hamming_distance(lhs: Self, rhs: Self) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::HammingDistance,
+            left: Box::new(lhs),
+            right: Box::new(rhs),
+        })
+    }
+
+    /// Reduces a vector expression to one bit per dimension.
+    ///
+    /// The argument is pinned to `vector`: `binary_quantize` is overloaded per vector type, so an
+    /// untyped parameter fails Postgres' overload resolution.
+    #[must_use]
+    pub fn binary_quantize(expression: Self) -> Self {
+        Self::Function(Function::BinaryQuantize(Box::new(
+            expression.cast(PostgresType::Vector),
+        )))
     }
 
     #[must_use]
@@ -461,6 +512,149 @@ impl From<Constant> for Expression {
     }
 }
 
+/// Expression-tree traversal.
+///
+/// Both visitors run in pre-order (the expression itself before its children) and do not descend
+/// into [`Expression::Select`] subqueries: statement-level structures own their traversal. A
+/// visitor with no answer for the tables hiding inside a subquery matches on the variant and
+/// breaks.
+impl Expression {
+    /// Calls `visitor` for this expression and every nested sub-expression, stopping at the first
+    /// [`ControlFlow::Break`].
+    pub fn visit<B>(&self, visitor: &mut impl FnMut(&Self) -> ControlFlow<B>) -> ControlFlow<B> {
+        visitor(self)?;
+        self.for_each_child(&mut |child| child.visit(visitor))
+    }
+
+    /// Calls `visitor` mutably for this expression and every nested sub-expression, stopping at
+    /// the first [`ControlFlow::Break`].
+    pub fn visit_mut<B>(
+        &mut self,
+        visitor: &mut impl FnMut(&mut Self) -> ControlFlow<B>,
+    ) -> ControlFlow<B> {
+        visitor(self)?;
+        self.for_each_child_mut(&mut |child| child.visit_mut(visitor))
+    }
+
+    fn for_each_child<B>(
+        &self,
+        visitor: &mut impl FnMut(&Self) -> ControlFlow<B>,
+    ) -> ControlFlow<B> {
+        match self {
+            Self::ColumnReference(_) | Self::Parameter(_) | Self::Constant(_) | Self::Select(_) => {
+                ControlFlow::Continue(())
+            }
+            Self::Function(function) => function.for_each_child(visitor),
+            Self::Window(expr, window) => {
+                visitor(expr)?;
+                for partition in &*window.partition_by {
+                    visitor(partition)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::Cast(expr, _)
+            | Self::FieldAccess { expr, .. }
+            | Self::ArrayElement { expr, .. }
+            | Self::Grouped(expr) => visitor(expr),
+            Self::Row(exprs) => {
+                for expr in exprs {
+                    visitor(expr)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::CaseWhen {
+                conditions,
+                else_result,
+            } => {
+                for (condition, result) in conditions {
+                    visitor(condition)?;
+                    visitor(result)?;
+                }
+                if let Some(else_result) = else_result {
+                    visitor(else_result)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::Unary(unary) => visitor(&unary.expr),
+            Self::Binary(binary) => {
+                visitor(&binary.left)?;
+                visitor(&binary.right)
+            }
+            Self::Variadic(variadic) => {
+                for expr in &variadic.exprs {
+                    visitor(expr)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::StartsWith(lhs, rhs)
+            | Self::EndsWith(lhs, rhs)
+            | Self::ContainsSegment(lhs, rhs) => {
+                visitor(lhs)?;
+                visitor(rhs)
+            }
+        }
+    }
+
+    fn for_each_child_mut<B>(
+        &mut self,
+        visitor: &mut impl FnMut(&mut Self) -> ControlFlow<B>,
+    ) -> ControlFlow<B> {
+        match self {
+            Self::ColumnReference(_) | Self::Parameter(_) | Self::Constant(_) | Self::Select(_) => {
+                ControlFlow::Continue(())
+            }
+            Self::Function(function) => function.for_each_child_mut(visitor),
+            Self::Window(expr, window) => {
+                visitor(expr)?;
+                for partition in &mut *window.partition_by {
+                    visitor(partition)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::Cast(expr, _)
+            | Self::FieldAccess { expr, .. }
+            | Self::ArrayElement { expr, .. }
+            | Self::Grouped(expr) => visitor(expr),
+            Self::Row(exprs) => {
+                for expr in exprs {
+                    visitor(expr)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::CaseWhen {
+                conditions,
+                else_result,
+            } => {
+                for (condition, result) in conditions {
+                    visitor(condition)?;
+                    visitor(result)?;
+                }
+                if let Some(else_result) = else_result {
+                    visitor(else_result)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::Unary(unary) => visitor(&mut unary.expr),
+            Self::Binary(binary) => {
+                visitor(&mut binary.left)?;
+                visitor(&mut binary.right)
+            }
+            Self::Variadic(variadic) => {
+                for expr in &mut variadic.exprs {
+                    visitor(expr)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::StartsWith(lhs, rhs)
+            | Self::EndsWith(lhs, rhs)
+            | Self::ContainsSegment(lhs, rhs) => {
+                visitor(lhs)?;
+                visitor(rhs)
+            }
+        }
+    }
+}
+
 impl Transpile for Expression {
     #[expect(
         clippy::too_many_lines,
@@ -603,6 +797,37 @@ mod tests {
         Alias, FromItem, Identifier, OrderByExpression, PostgresQueryPath as _, SelectCompiler,
         SelectExpression, Table, test_helper::max_version_expression,
     };
+
+    #[test]
+    fn conjunction_folds_without_wrapping_lone_conditions() {
+        assert_eq!(Expression::conjunction(vec![]), None);
+        assert_eq!(Expression::disjunction(vec![]), None);
+
+        let condition = Expression::Parameter(1);
+        assert_eq!(
+            Expression::conjunction(vec![condition.clone()]),
+            Some(condition.clone())
+        );
+        assert_eq!(
+            Expression::disjunction(vec![condition.clone()])
+                .expect("a lone condition should fold to itself")
+                .transpile_to_string(),
+            "$1"
+        );
+
+        assert_eq!(
+            Expression::conjunction(vec![condition.clone(), Expression::Parameter(2)])
+                .expect("two conditions should fold to an `AND` expression")
+                .transpile_to_string(),
+            "($1) AND ($2)"
+        );
+        assert_eq!(
+            Expression::disjunction(vec![condition, Expression::Parameter(2)])
+                .expect("two conditions should fold to an `OR` expression")
+                .transpile_to_string(),
+            "(($1) OR ($2))"
+        );
+    }
 
     #[test]
     fn transpile_window_expression() {
@@ -1038,7 +1263,7 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let mut compiler = SelectCompiler::new(None, false);
+        let mut compiler = SelectCompiler::with_asterisk(None, false);
         let condition = compiler
             .compile_filter(filter)
             .expect("failed to compile filter");

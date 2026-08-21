@@ -1,3 +1,8 @@
+/**
+ * @layerRoot react.hooks
+ * @role Cross-cutting hooks over the providers — documents, parameters, window lifecycle
+ */
+
 // Public hook surface for `@hashintel/petrinaut/react`.
 //
 // Each hook reads from an existing React context (SDCPN, Simulation, Playback,

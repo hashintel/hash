@@ -204,6 +204,11 @@ impl<C> GenericClientIter for C where C: GenericClient + Sync {}
 impl AsClient for Object {
     type Client = Client;
 
+    // Deref-coercing to the raw `tokio_postgres::Client` bypasses deadpool's statement cache,
+    // so every query is re-prepared and Postgres plans it with the actual parameter values.
+    // The statement-shape strategy in the query compiler relies on that per-execution custom
+    // planning: a cached prepared statement would switch to a generic plan after a few
+    // executions and pick its plan blind to the parameters.
     fn as_client(&self) -> &Self::Client {
         self
     }

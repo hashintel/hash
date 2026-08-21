@@ -197,7 +197,6 @@ const ViewScenarioContent = ({
           }
           places={petriNetDefinition.places}
           typesById={typesById}
-          idPrefix="view-"
         />
       </Drawer.Body>
       <ViewScenarioFooter form={form} onClose={onClose} />

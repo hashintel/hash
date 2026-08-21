@@ -1,7 +1,12 @@
-// Public surface for `@hashintel/petrinaut-core` — the headless engine.
-//
-// No React, no DOM, no Monaco. Stateful handles, streams, and pure logic for
-// SDCPN documents, simulation, LSP, and playback.
+/**
+ * Public surface for `@hashintel/petrinaut-core` — the headless engine.
+ *
+ * No React, no DOM, no Monaco. Stateful handles, streams, and pure logic for
+ * SDCPN documents, simulation, LSP, and playback.
+ *
+ * @layerRoot core
+ * @role SDCPN document model, compiler, simulation runtimes and LSP, with no UI framework
+ */
 
 // --- Document ---
 export {
@@ -78,6 +83,55 @@ export type {
   PetrinautCommands,
   PetrinautMutations,
 } from "./instance";
+export {
+  PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
+  PETRINAUT_OPTIMIZATION_MAX_SEED,
+  PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL,
+  PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
+  PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
+  PETRINAUT_OPTIMIZATION_MAX_TRIALS,
+  petrinautBooleanOptimizationDomainSchema,
+  petrinautContinuousOptimizationDomainSchema,
+  petrinautIntegerOptimizationDomainSchema,
+  petrinautOptimizationCompleteEventSchema,
+  petrinautOptimizationDescribeParameterSchema,
+  petrinautOptimizationDescribeResultSchema,
+  petrinautOptimizationDomainSchema,
+  petrinautOptimizationErrorEventSchema,
+  petrinautOptimizationEvaluateParamsSchema,
+  petrinautOptimizationExecutionSchema,
+  petrinautOptimizationFixedBindingSchema,
+  petrinautOptimizationEventSchema,
+  petrinautOptimizationInputSchema,
+  petrinautOptimizationManifestSchema,
+  petrinautOptimizationObjectiveSchema,
+  petrinautOptimizationParameterBindingSchema,
+  petrinautOptimizationReplicateSchema,
+  petrinautOptimizationEvaluateResultSchema,
+  petrinautOptimizationStartedEventSchema,
+  petrinautOptimizationStudySchema,
+  petrinautOptimizationTrialEventSchema,
+  petrinautOptimizationVariableBindingSchema,
+} from "./optimization";
+export type {
+  PetrinautOptimization,
+  PetrinautBooleanOptimizationDomain,
+  PetrinautContinuousOptimizationDomain,
+  PetrinautOptimizationDomain,
+  PetrinautOptimizationEvaluateParams,
+  PetrinautOptimizationEvaluateResult,
+  PetrinautOptimizationEvent,
+  PetrinautOptimizationExecution,
+  PetrinautOptimizationInput,
+  PetrinautOptimizationManifest,
+  PetrinautOptimizationObjective,
+  PetrinautOptimizationParameterBinding,
+  PetrinautOptimizationDescribeParameter,
+  PetrinautOptimizationDescribeResult,
+  PetrinautOptimizationStudy,
+  PetrinautOptimizationTrialEvent,
+  PetrinautIntegerOptimizationDomain,
+} from "./optimization";
 export { createPetrinautActions } from "./actions";
 export type {
   CreatePetrinautActionsOptions,
@@ -147,6 +201,7 @@ export type {
 
 // --- Simulation ---
 export {
+  PETRINAUT_DEFAULT_SEED,
   addAllMonteCarloMetricValues,
   createMonteCarloExperiment,
   createMonteCarloMetricHistogramAccumulator,
@@ -156,6 +211,7 @@ export {
   createMonteCarloUserDefinedMetric,
   createSimulation,
   createWorkerTransport,
+  deriveRunSeed,
 } from "./simulation";
 export type {
   BackpressureConfig,

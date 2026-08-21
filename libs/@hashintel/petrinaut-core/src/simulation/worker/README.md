@@ -1,3 +1,8 @@
+---
+layer: core.simulation.worker
+role: Computes simulation frames off the main thread under host backpressure
+---
+
 # Simulation Worker
 
 Worker runtime for off-main-thread SDCPN simulation computation.

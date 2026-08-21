@@ -5,6 +5,7 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import {
   deserializeQueryEntitySubgraphResponse,
@@ -19,6 +20,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
@@ -48,7 +50,9 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import type { GraphChangeNotification as GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { MentionNotification as MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
+import type { OpportunityStatusUpdate } from "@local/hash-isomorphic-utils/system-types/opportunitystatusupdate";
 import type { User as UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { FunctionComponent, PropsWithChildren } from "react";
 
 export type PageMentionNotification = {
@@ -79,6 +83,19 @@ export type CommentReplyNotification = {
   repliedToComment: HashEntity<CommentProperties>;
 } & Omit<NewCommentNotification, "kind">;
 
+export type EntityMentionNotification = {
+  entity: HashEntity<MentionNotificationProperties>;
+  occurredInEntity: HashEntity;
+  occurredInEntityLabel: string;
+  opportunityLabel?: string;
+  triggeredByUser: MinimalUser;
+} & SimpleProperties<MentionNotificationProperties["properties"]> &
+  (
+    | { kind: "entity-mention" }
+    | { kind: "opportunity-status-mention" }
+    | { kind: "opportunity-status-participation" }
+  );
+
 export type PageRelatedNotification =
   | PageMentionNotification
   | CommentMentionNotification
@@ -94,7 +111,10 @@ export type GraphChangeNotification = {
   operation: string;
 } & SimpleProperties<NotificationProperties["properties"]>;
 
-export type Notification = PageRelatedNotification | GraphChangeNotification;
+export type Notification =
+  | PageRelatedNotification
+  | EntityMentionNotification
+  | GraphChangeNotification;
 
 type NotificationsWithLinksContextValue = {
   notifications?: Notification[];
@@ -121,6 +141,70 @@ const isLinkAndRightEntityWithLinkType =
   ({ linkEntity }: LinkEntityAndRightEntity) =>
     linkEntity[0] &&
     linkEntity[0].metadata.entityTypeIds.includes(linkEntityTypeId);
+
+const entityHasTypeBaseUrl = (
+  entity: HashEntity,
+  entityTypeBaseUrl: string,
+): boolean =>
+  entity.metadata.entityTypeIds.some(
+    (entityTypeId) => extractBaseUrl(entityTypeId) === entityTypeBaseUrl,
+  );
+
+const entityMentionTargetHandlers: {
+  kind: EntityMentionNotification["kind"];
+  matches: (entity: HashEntity) => boolean;
+}[] = [
+  {
+    kind: "opportunity-status-mention",
+    matches: (entity) =>
+      entityHasTypeBaseUrl(
+        entity,
+        systemEntityTypes.opportunityStatusUpdate.entityTypeBaseUrl,
+      ),
+  },
+];
+
+export const getEntityMentionKind = (
+  occurredInEntity: HashEntity,
+  recipientEntityId: string,
+): EntityMentionNotification["kind"] => {
+  const targetKind = entityMentionTargetHandlers.find(({ matches }) =>
+    matches(occurredInEntity),
+  )?.kind;
+  if (targetKind !== "opportunity-status-mention") {
+    return "entity-mention";
+  }
+
+  const { textualContent } = simplifyProperties(
+    occurredInEntity.properties as OpportunityStatusUpdate["properties"],
+  );
+  const recipientWasMentioned =
+    Array.isArray(textualContent) &&
+    (textualContent as unknown as TextToken[]).some(
+      (token) =>
+        token.tokenType === "mention" &&
+        token.mentionType === "user" &&
+        token.entityId === recipientEntityId,
+    );
+
+  return recipientWasMentioned
+    ? "opportunity-status-mention"
+    : "opportunity-status-participation";
+};
+
+export const getOpportunityStatusNotificationContext = (
+  statusUpdate: HashEntity,
+): {
+  opportunityLabel?: string;
+} => {
+  const { title } = simplifyProperties(
+    statusUpdate.properties as OpportunityStatusUpdate["properties"],
+  );
+
+  return {
+    opportunityLabel: typeof title === "string" ? title : undefined,
+  };
+};
 
 export const useNotificationsWithLinksContextValue =
   (): NotificationsWithLinksContextValue => {
@@ -213,54 +297,105 @@ export const useNotificationsWithLinksContextValue =
           );
 
           if (
-            entityTypeIds.includes(
-              systemEntityTypes.mentionNotification.entityTypeId,
+            entityTypeIds.some(
+              (entityTypeId) =>
+                extractBaseUrl(entityTypeId) ===
+                systemEntityTypes.mentionNotification.entityTypeBaseUrl,
             )
           ) {
             const occurredInEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0] as HashEntity | undefined;
 
             const occurredInBlock = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const occurredInText = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInText.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const triggeredByUserEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
-            if (
-              !occurredInEntity ||
-              !occurredInBlock ||
-              !occurredInText ||
-              !triggeredByUserEntity
-            ) {
-              throw new Error(
-                `Mention notification "${entityId}" is missing required links`,
+            if (!occurredInEntity || !triggeredByUserEntity) {
+              /**
+               * The linked entities may be missing from the subgraph, e.g.
+               * because the user no longer has permission to view them –
+               * skip the notification rather than failing the whole list.
+               */
+              const missingLinks = Object.entries({
+                occurredInEntity,
+                triggeredByUser: triggeredByUserEntity,
+              })
+                .filter(([, linkedEntity]) => !linkedEntity)
+                .map(([linkName]) => linkName)
+                .join(", ");
+
+              // eslint-disable-next-line no-console -- TODO: consider using logger
+              console.warn(
+                `Skipping mention notification ${entityId} because the target of the following link(s) could not be resolved: ${missingLinks}`,
               );
+
+              return null;
             }
 
             const triggeredByUser = constructMinimalUser({
               userEntity: triggeredByUserEntity as HashEntity<UserProperties>,
             });
 
+            if (
+              !includesPageEntityTypeId(
+                occurredInEntity.metadata.entityTypeIds as VersionedUrl[],
+              )
+            ) {
+              const kind = getEntityMentionKind(
+                occurredInEntity,
+                authenticatedUser?.entity.metadata.recordId.entityId ?? "",
+              );
+              const opportunityContext =
+                kind === "opportunity-status-mention" ||
+                kind === "opportunity-status-participation"
+                  ? getOpportunityStatusNotificationContext(occurredInEntity)
+                  : {};
+
+              return {
+                kind,
+                readAt,
+                entity:
+                  entity as unknown as HashEntity<MentionNotificationProperties>,
+                occurredInEntity,
+                occurredInEntityLabel: generateEntityLabel(
+                  notificationsSubgraph,
+                  occurredInEntity,
+                ),
+                ...opportunityContext,
+                triggeredByUser,
+              } satisfies EntityMentionNotification;
+            }
+
+            if (!occurredInBlock || !occurredInText) {
+              // eslint-disable-next-line no-console -- TODO: consider using logger
+              console.warn(
+                `Skipping page mention notification ${entityId} because its block or text context could not be resolved.`,
+              );
+              return null;
+            }
+
             const occurredInComment = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             if (occurredInComment) {
               return {
@@ -297,25 +432,25 @@ export const useNotificationsWithLinksContextValue =
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const occurredInBlock = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const triggeredByComment = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const triggeredByUserEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             if (
               !occurredInEntity ||
@@ -323,9 +458,27 @@ export const useNotificationsWithLinksContextValue =
               !triggeredByComment ||
               !triggeredByUserEntity
             ) {
-              throw new Error(
-                `Comment notification "${entityId}" is missing required links`,
+              /**
+               * The linked entities may be missing from the subgraph, e.g.
+               * because the user no longer has permission to view them –
+               * skip the notification rather than failing the whole list.
+               */
+              const missingLinks = Object.entries({
+                occurredInEntity,
+                occurredInBlock,
+                triggeredByComment,
+                triggeredByUser: triggeredByUserEntity,
+              })
+                .filter(([, linkedEntity]) => !linkedEntity)
+                .map(([linkName]) => linkName)
+                .join(", ");
+
+              // eslint-disable-next-line no-console -- TODO: consider using logger
+              console.warn(
+                `Skipping comment notification ${entityId} because the target of the following link(s) could not be resolved: ${missingLinks}`,
               );
+
+              return null;
             }
 
             const triggeredByUser = constructMinimalUser({
@@ -336,7 +489,7 @@ export const useNotificationsWithLinksContextValue =
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             if (repliedToComment) {
               return {
@@ -512,7 +665,10 @@ export const useNotificationsWithLinksContextValue =
       previouslyFetchedNotificationsRef.current = derivedNotifications;
 
       return derivedNotifications;
-    }, [notificationsSubgraph]);
+    }, [
+      authenticatedUser?.entity.metadata.recordId.entityId,
+      notificationsSubgraph,
+    ]);
 
     return { notifications, refetch };
   };

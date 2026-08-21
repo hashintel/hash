@@ -3,13 +3,7 @@ import {
   usePopoverContext,
 } from "@ark-ui/react/popover";
 import { Portal } from "@ark-ui/react/portal";
-import {
-  addDomEvent,
-  contains,
-  getTabbableEdges,
-  getTabbables,
-  isActiveElement,
-} from "@zag-js/dom-query";
+import { proxyTabFocus } from "@zag-js/dom-query";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
@@ -29,89 +23,11 @@ import { contentStyles, positionerStyles } from "./popover.recipe";
 const resolveRef = (ref: React.Ref<Element>): Element | null =>
   ref && typeof ref === "object" && "current" in ref ? ref.current : null;
 
-/**
- * Proxies Tab focus around an external trigger so the portalled content behaves
- * as if it were inline right after the trigger: tabbing off the last item lands
- * on the next tabbable after the trigger, and Shift+Tab from there returns into
- * the content.
- *
- * This mirrors `proxyTabFocus` from `@zag-js/dom-query`, except the "next
- * tabbable after the trigger" is resolved over the tabbables that live *outside*
- * the content. The content is portalled to the end of the DOM, so when the
- * trigger is the last tabbable on the page the library's own search returns the
- * content's own first item - looping focus back in and trapping it.
- */
-const proxyTabAroundTrigger = ({
-  getContent,
-  getTrigger,
-  onFocus,
-}: {
-  getContent: () => HTMLElement | null;
-  getTrigger: () => HTMLElement | null;
-  onFocus: (element: HTMLElement) => void;
-}): (() => void) => {
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key !== "Tab") {
-      return;
-    }
-
-    // Resolve the content and trigger on every keypress rather than capturing
-    // them once: either may still be unmounted on the frame the popover opens,
-    // and re-reading here keeps routing correct for as long as it stays open.
-    const content = getContent();
-    const trigger = getTrigger();
-    const doc = content?.ownerDocument ?? document;
-
-    const [firstTabbable, lastTabbable] = getTabbableEdges(content, {
-      includeContainer: true,
-      getShadowRoot: true,
-    });
-
-    const outsideContent = getTabbables(doc.body, {
-      getShadowRoot: true,
-    }).filter((element) => !contains(content, element));
-    const triggerIndex = trigger ? outsideContent.indexOf(trigger) : -1;
-    const nextTabbableAfterTrigger =
-      triggerIndex === -1 ? null : (outsideContent[triggerIndex + 1] ?? null);
-
-    const noTabbableElements = !firstTabbable && !lastTabbable;
-
-    let elementToFocus: HTMLElement | null = null;
-    if (event.shiftKey && isActiveElement(nextTabbableAfterTrigger)) {
-      elementToFocus = lastTabbable;
-    } else if (
-      event.shiftKey &&
-      (isActiveElement(firstTabbable) || noTabbableElements)
-    ) {
-      elementToFocus = trigger;
-    } else if (!event.shiftKey && isActiveElement(trigger)) {
-      elementToFocus = firstTabbable;
-    } else if (
-      !event.shiftKey &&
-      (isActiveElement(lastTabbable) || noTabbableElements)
-    ) {
-      elementToFocus = nextTabbableAfterTrigger;
-    }
-
-    if (!elementToFocus) {
-      return;
-    }
-
-    event.preventDefault();
-    onFocus(elementToFocus);
-  };
-
-  // The listener resolves the DOM lazily on each keypress, so it can attach
-  // immediately - no need to defer a frame for mount.
-  return addDomEvent(document, "keydown", onKeyDown, true);
-};
-
 export type PopoverProps = {
   className?: string;
   /**
    * Applied to the portalled positioner — the popover's outermost element, which
-   * owns its placement and z-index. Use it to override the layer (e.g. a
-   * `z-index` utility to sit a particular popover below an app overlay); style
+   * owns its placement and z-index. Use it to override the layer. Style
    * the panel itself via `className`, `Popover.Container`, or the children.
    */
   positionerClassName?: string;
@@ -254,20 +170,24 @@ const PopoverRoot = ({
   // When no explicit `returnFocusRef` is given, take over tab-focus proxying so
   // that tabbing out of the portalled content moves to the next/previous
   // focusable around the trigger (as if the popover were inline after it). Ark's
-  // own proxy is anchored to its trigger - which we don't render - so we disable
-  // it (via `portalled` below) and run our own against the external trigger.
+  // own popover-level proxy resolves its trigger by DOM id via
+  // `getActiveTriggerEl` - and we render the trigger externally, so it can't
+  // find it. We disable it (via `portalled` below) and instead drive the
+  // underlying `proxyTabFocus` ourselves, handing it the trigger by element from
+  // our ref. Its fix for skipping tabbables inside the portalled content is what
+  // keeps focus from looping back in when the trigger is the last on the page.
   const proxyTabToTrigger = !returnFocusRef;
   useEffect(() => {
     if (!open || !proxyTabToTrigger) {
       return undefined;
     }
 
-    return proxyTabAroundTrigger({
-      getContent: () => contentRef.current,
-      getTrigger: () => {
+    return proxyTabFocus(() => contentRef.current, {
+      triggerElement: () => {
         const el = resolveRef(triggerRef);
         return el instanceof HTMLElement ? el : null;
       },
+      getShadowRoot: true,
       onFocus: (el) => {
         el.focus({ preventScroll: true });
       },
@@ -285,8 +205,9 @@ const PopoverRoot = ({
       Title: "h2" as const,
       Description: "p" as const,
       componentName: "Popover" as const,
+      closeOnInteractOutside,
     }),
-    [onClose],
+    [onClose, closeOnInteractOutside],
   );
 
   return (
@@ -334,11 +255,6 @@ const PopoverRoot = ({
         // (see `RepositionOnGapChange`); a point anchor's cross-axis gap is baked
         // into the anchor rect instead (see `getAnchorRect`).
         offset: { mainAxis: isVertical ? gapY : gapX },
-        // Flip to the opposite side, and slide along the cross axis, to stay on
-        // screen when the preferred placement doesn't fit - for every anchor kind
-        // (these are also Ark's defaults).
-        flip: true,
-        slide: true,
         // When anchored to a point, the trigger element itself doesn't move as
         // the point changes, so floating-ui's default scroll/resize listeners
         // never fire and the popover would stay put. Poll on each animation
@@ -384,7 +300,6 @@ const PopoverRoot = ({
       }}
     >
       <RepositionOnGapChange gapX={gapX} gapY={gapY} isVertical={isVertical} />
-
       <Portal container={portalContainerRef}>
         <ArkPopover.Positioner
           className={cx(positionerStyles, positionerClassName)}

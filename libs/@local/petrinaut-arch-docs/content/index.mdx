@@ -1,0 +1,81 @@
+---
+title: Petrinaut architecture
+description: How the Petrinaut packages fit together, and where to start reading.
+sidebar_order: 0
+---
+
+Petrinaut is a visual editor and simulation runtime for Stochastic Dynamic
+Coloured Petri Nets (SDCPN). This documentation is in two halves that are
+maintained differently, and it is worth knowing which you are reading.
+
+## The diagrams
+
+Every box is a layer and every arrow is real imports, counted from the
+dependency graph rather than drawn by hand. There are three kinds, each showing
+a different slice:
+
+- The [Architecture](architecture) page opens with the **top-level layers** —
+  the whole system at a glance, with everything below the first level folded
+  into its parent.
+- Every layer page opens with its **neighbourhood**: what that layer depends on,
+  and what depends on it. This is usually the one you want.
+- A layer that has sub-layers also gets a **drill-down** of its direct children.
+
+Where a layer has more neighbours than fit legibly, the remainder is drawn as a
+single "further layers" node rather than omitted, and the full list is always in
+the tables on the page.
+
+**Generated pages** — everything under [Architecture](architecture) — are
+extracted from annotations in the source on every build, and CI fails if they
+drift. Layer sizes and dependency counts all come from the code. If a generated page disagrees with the code, that is a bug in the
+annotations, not in the page.
+
+**Authored pages** — this one, and its siblings — carry the reasoning that no
+import graph can supply: why a boundary sits where it does, what the alternatives
+were, which mistakes are easy to make. They are hand-written and can go stale, so
+they avoid restating facts the generated pages already own.
+
+## Where to start
+
+- [Two execution paths](two-execution-paths) — the single most important thing to
+  understand before changing anything in the simulation layers.
+- [Architecture](architecture) — the generated map: layers, dependencies,
+  boundaries.
+- [Working on these docs](doc:maintaining) — how to declare a layer, and how to
+  build and read this site.
+
+## Simulation internals
+
+Detail that the generated pages do not carry — binary formats, message
+protocols, and the costs behind each design choice.
+
+- [Memory model](doc:simulation/memory-model) — which buffer lives on which thread,
+  and the frame format.
+- [How a step is computed](doc:simulation/stepping) — the fixed stage order, and
+  determinism.
+- [Compiling user code](doc:simulation/user-code) — the HIR pipeline, scenarios, and
+  what the sandbox does not protect against.
+- [Worker protocol and backpressure](doc:simulation/protocol) — messages, and
+  the ack contract.
+- [Monte Carlo experiments](doc:simulation/experiments) — bounded memory, and why
+  only aggregates reach the UI.
+
+## The packages at a glance
+
+`@hashintel/petrinaut-core` is the headless half: the document model, the HIR
+compiler for user-authored code, the simulation runtimes, and the language
+server. It has no React, no DOM and no Monaco, which is what lets it run
+unchanged in Node and inside workers.
+
+`@hashintel/petrinaut` is the editor built on top. It splits into a React layer
+that owns state and a UI layer that renders it — and the dependency only goes one
+way, which is enforced rather than merely intended.
+
+`@hashintel/petrinaut-cli` is the headless JSON-lines CLI that scripts and the
+Python optimizer service drive; its [usage manual](doc:cli/usage-manual) covers
+the transports, the protocol, and optimization studies.
+
+Two further packages are not yet covered by the generated model:
+`@apps/petrinaut-website` and `apps/petrinaut-opt` (the Python Optuna service).
+Adding them is a matter of declaring layers in their source; see
+[Declaring layers](doc:maintaining/declaring-layers).

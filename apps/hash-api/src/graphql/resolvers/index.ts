@@ -41,6 +41,7 @@ import {
   createEntityResolver,
   isEntityPublicResolver,
   queryEntitiesResolver,
+  queryEntitiesTableResolver,
   searchEntitiesResolver,
   queryEntitySubgraphResolver,
   removeEntityViewerResolver,
@@ -52,6 +53,10 @@ import { getEntityDiffsResolver } from "./knowledge/entity/get-entity-diffs";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
 import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { hashInstanceSettingsResolver } from "./knowledge/hash-instance/hash-instance";
+import {
+  archiveNotificationsResolver,
+  markNotificationsAsReadResolver,
+} from "./knowledge/notification/update-notifications";
 import { acceptOrgInvitationResolver } from "./knowledge/org/accept-org-invitation";
 import { createOrgResolver } from "./knowledge/org/create-org";
 import { declineOrgInvitationResolver } from "./knowledge/org/decline-org-invitation";
@@ -165,6 +170,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     }),
     summarizeEntities: loggedInAndSignedUpMiddleware(summarizeEntitiesResolver),
     queryEntities: loggedInAndSignedUpMiddleware(queryEntitiesResolver),
+    queryEntitiesTable: loggedInAndSignedUpMiddleware(
+      queryEntitiesTableResolver,
+    ),
     searchEntities: loggedInAndSignedUpMiddleware(searchEntitiesResolver),
     queryEntitySubgraph: loggedInAndSignedUpMiddleware(
       queryEntitySubgraphResolver,
@@ -228,6 +236,12 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     // Knowledge
     createEntity: loggedInAndSignedUpMiddleware(createEntityResolver),
     updateEntities: loggedInAndSignedUpMiddleware(updateEntitiesResolver),
+    markNotificationsAsRead: loggedInAndSignedUpMiddleware(
+      markNotificationsAsReadResolver,
+    ),
+    archiveNotifications: loggedInAndSignedUpMiddleware(
+      archiveNotificationsResolver,
+    ),
     archiveEntity: loggedInAndSignedUpMiddleware(archiveEntityResolver),
     archiveEntities: loggedInAndSignedUpMiddleware(archiveEntitiesResolver),
     createPage: loggedInAndSignedUpMiddleware(createPageResolver),

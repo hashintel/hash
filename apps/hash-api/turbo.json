@@ -4,7 +4,13 @@
     "codegen": {
       // Outputs of GraphQL generation
       "outputs": ["./src/**/*.gen.*"],
-      "dependsOn": ["^codegen"]
+      // The optimizer handler imports runtime modules whose workspace exports
+      // resolve from dist.
+      "dependsOn": [
+        "^codegen",
+        "@hashintel/petrinaut-core#build",
+        "@local/petrinaut-optimizer-client#build"
+      ]
     }
   }
 }

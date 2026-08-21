@@ -66,6 +66,7 @@ function planning(overrides: Partial<PlanningRow>): PlanningRow {
     pct_exceeding_plan: 30,
     cost: null,
     products: [{ id: "p1", name: "Product 1" }],
+    periodMaterialValue: null,
     deviationPct: 20,
     trendPct: null,
     previousValue: null,
@@ -158,6 +159,64 @@ describe("buildSiteOpportunities", () => {
     ).toBe(20);
   });
 
+  it("treats ambiguous, wrong-basis, and fallback procurement parameters like exact matches", () => {
+    const opportunities = build({
+      planningRows: [
+        planning({
+          id: "mat-a-buy",
+          label: "Material — Supplier A — Buy",
+          type: "procurement",
+          material: "MAT",
+          supplier_id: "A",
+          receipt_basis: "ordinary",
+          plan_match_status: "matched",
+          plan: 10,
+          stats: stats({ n: 20, median: 12, p95: 16 }),
+        }),
+        planning({
+          id: "mat-b-consignment",
+          label: "Material — Supplier B — Consignment",
+          type: "procurement",
+          material: "MAT",
+          supplier_id: "B",
+          receipt_basis: "consignment",
+          plan_match_status: "ambiguous",
+          plan: 10,
+          stats: stats({ n: 20, median: 20, p95: 30 }),
+        }),
+        planning({
+          id: "mat-c-wrong-basis",
+          type: "procurement",
+          plan_match_status: "matched_wrong_basis",
+          plan: 10,
+          stats: stats({ n: 20, median: 15, p95: 20 }),
+        }),
+        planning({
+          id: "mat-d-fallback",
+          type: "procurement",
+          plan_match_status: "missing_profile",
+          plan: 10,
+          stats: stats({ n: 20, median: 14, p95: 18 }),
+        }),
+      ],
+    });
+
+    expect(opportunities.map(({ stepId }) => stepId).sort()).toEqual([
+      "mat-a-buy",
+      "mat-b-consignment",
+      "mat-c-wrong-basis",
+      "mat-d-fallback",
+    ]);
+    expect(
+      opportunities.every(
+        ({ confidenceLabel }) => confidenceLabel === "Good sample",
+      ),
+    ).toBe(true);
+    expect(
+      opportunities.find(({ stepId }) => stepId === "mat-a-buy")?.title,
+    ).toBe("Material / Supplier A / Buy");
+  });
+
   it("uses current sample size for planning confidence", () => {
     const opportunities = build({
       planningRows: [
@@ -174,6 +233,55 @@ describe("buildSiteOpportunities", () => {
       opportunities.find((opportunity) => opportunity.kind === "planning_over")
         ?.confidenceLabel,
     ).toBe("Good sample");
+  });
+
+  it("labels QA opportunity samples by effective timing grain", () => {
+    const opportunities = build({
+      planningRows: [
+        planning({
+          id: "qa-campaign",
+          type: "qa_hold",
+          timing_grain: "campaign",
+          stats: stats({ n: 12, median: 8, p95: 13 }),
+        }),
+        planning({
+          id: "qa-batch",
+          type: "qa_hold",
+          timing_grain: undefined,
+          stats: stats({ n: 20, median: 8, p95: 13 }),
+        }),
+      ],
+    });
+
+    expect(
+      opportunities.find(({ stepId }) => stepId === "qa-campaign")?.sampleLabel,
+    ).toBe("Campaigns 12");
+    expect(
+      opportunities.find(({ stepId }) => stepId === "qa-batch")?.sampleLabel,
+    ).toBe("Batches 20");
+  });
+
+  it("distinguishes low and limited current samples", () => {
+    const opportunities = build({
+      planningRows: [
+        planning({
+          id: "low",
+          stats: stats({ n: 4, median: 8, p95: 13 }),
+        }),
+        planning({
+          id: "limited",
+          stats: stats({ n: 5, median: 8, p95: 13 }),
+        }),
+        planning({
+          id: "good",
+          stats: stats({ n: 10, median: 8, p95: 13 }),
+        }),
+      ],
+    });
+
+    expect(opportunities.map(({ confidenceLabel }) => confidenceLabel)).toEqual(
+      ["Low sample", "Limited sample", "Good sample"],
+    );
   });
 });
 

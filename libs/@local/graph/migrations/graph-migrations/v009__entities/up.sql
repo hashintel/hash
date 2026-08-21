@@ -199,8 +199,15 @@ CREATE TABLE entity_embeddings (
     embedding VECTOR(3072) NOT NULL,
     updated_at_decision_time TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at_transaction_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    embedding_bits BIT(3072) NOT NULL GENERATED ALWAYS AS (
+        binary_quantize(embedding)::BIT(3072)
+    ) STORED,
     FOREIGN KEY (web_id, entity_uuid) REFERENCES entity_ids
 );
 
 CREATE UNIQUE INDEX entity_embeddings_idx
 ON entity_embeddings (web_id, entity_uuid, property) NULLS NOT DISTINCT;
+
+-- Only the combined per-entity embedding: the per-property rows are a different space.
+CREATE INDEX entity_embeddings_hnsw
+ON entity_embeddings USING hnsw (embedding_bits bit_hamming_ops) WHERE property IS NULL;

@@ -63,7 +63,7 @@ runs:
   steps:
     - name: Login to ECR
       if: inputs.PUSH == 'true' && inputs.ECR_TAGS != ''
-      uses: ./.github/actions/docker-ecr-login
+      uses: $/.github/actions/docker-ecr-login
 
     # Log in to GHCR for the build cache (and the by-digest push). Skipped for
     # fork PRs: their token can't read the private cache package, and a failed

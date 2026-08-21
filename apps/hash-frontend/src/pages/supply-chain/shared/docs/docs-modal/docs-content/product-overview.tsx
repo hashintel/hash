@@ -149,6 +149,90 @@ export const productOverviewSection: DocSectionDef = {
       ),
     },
     {
+      id: "timeline-view",
+      title: "Production timeline",
+      render: () => (
+        <>
+          <Lead>
+            The Timeline view shows consumption, production and dispatch events
+            on a timeline.
+          </Lead>
+          <H4>Timeline controls</H4>
+          <UL>
+            <LI>
+              <Term>Range and Zoom</Term> choose the time period shown and zoom
+              in/out.
+            </LI>
+            <LI>
+              <Term>Raw material &mdash; Show</Term> includes or removes raw
+              material inventory dwell and consumption events.
+            </LI>
+            <LI>
+              <Term>Line use &mdash; Show</Term> adds recorded production-line
+              occupancy beneath each material. These rows show when the material
+              and other products used the same line, making overlaps and
+              competing line demand visible.
+            </LI>
+            <LI>
+              <Term>Display &mdash; Continuous</Term> places every batch for a
+              material on one line. This will mean some batches overlap. This
+              view is suitable for getting an overview of production sequencing,
+              without detailed consumption or dwell information.
+            </LI>
+            <LI>
+              <Term>Display &mdash; Lane</Term> separates overlapping batches
+              into separate tracks. Enabling this reveals two further options:{" "}
+              <Term>Show inventory dwell</Term>, which shows the inventory dwell
+              time for each batch as a white section of the bar, and{" "}
+              <Term>Show event markers</Term>, which adds the consumption and
+              dispatch events for each batch as red and blue circles
+              respectively. You can click on these markers to see the further
+              batches they are linked to.
+            </LI>
+          </UL>
+          <H4>Reading the key</H4>
+          <UL>
+            <LI>
+              <Term>Blue bar</Term> is the recorded or estimated production
+              window. If 'inventory dwell' is enabled, the white section of the
+              bar shows dwell time after production finish.
+            </LI>
+            <LI>
+              <Term>Recorded occupancy rows</Term> appear directly beneath a
+              material when <Term>Line use</Term> is enabled. Blue bars are
+              production windows for that material; grey bars provide context
+              from other materials using the same line. Expand a busy row to
+              reveal hidden overlapping tracks, and hover a bar for its line,
+              batch, order and timing evidence.
+            </LI>
+            <LI>
+              <Term>Uncertain line assignment</Term> means production was
+              recorded but the source data could not resolve it to one line.
+              Expand the message to inspect candidate lines and evidence
+              sources.
+            </LI>
+            <LI>
+              <Term>Diagonal grey lines</Term> mean some quantity from the batch
+              was also used for products outside the selected hierarchy. Hover
+              over the batch or consumption markers to see details.
+            </LI>
+            <LI>
+              <Term>Red and blue circles</Term> mark consumption and dispatch
+              events (if enabled, in 'Lane' view). A white background circle
+              shows that an intermediate was dispatched as a finished good in
+              its own right (for goods which can be both sold as-is or
+              repackaged for selling under another name).
+            </LI>
+            <LI>
+              <Term>Dashed red border</Term> shows batches where the recorded
+              consumption is greater than the known received quantity, as a data
+              quality warning.
+            </LI>
+          </UL>
+        </>
+      ),
+    },
+    {
       id: "e2e-pipeline",
       title: "End-to-end pipeline",
       render: () => (
@@ -193,6 +277,21 @@ export const productOverviewSection: DocSectionDef = {
             route endpoint date, so its population can differ from the step
             cards, which each anchor to their own event date.
           </P>
+          <Note>
+            For a direct-to-customer route, the endpoint must be a recorded
+            actual customer arrival. A goods issue or dispatch alone is not
+            enough, and a planned arrival date is not treated as an actual
+            arrival. A dispatched order can therefore appear in the Production
+            timeline and Customer Order Pipeline while being absent from the
+            End-to-End Pipeline. For a route via a hub, the endpoint is the
+            recorded hub dispatch unless measured hub-to-customer transport is
+            available.
+          </Note>
+          <P>
+            Diamond markers place the mean and median customer-order creation
+            point on the selected route. Their lead time runs from order
+            creation to the same route endpoint used by the E2E pipeline.
+          </P>
           <P>
             Shipment step cards can count more than one delivery for the same
             batch. The pipeline keeps one route per batch, so observation counts
@@ -205,6 +304,58 @@ export const productOverviewSection: DocSectionDef = {
             waterfall, KPIs and simulator on the remaining portion of the
             journey. Procurement is off by default in the view.
           </P>
+        </>
+      ),
+    },
+    {
+      id: "customer-order-pipeline",
+      title: "Customer order pipeline",
+      render: () => (
+        <>
+          <Lead>
+            The Customer Order Pipeline measures sales-order timing from order
+            creation to actual goods issue. Goods issue is the dispatch
+            milestone; it does not confirm that the shipment reached the
+            customer.
+          </Lead>
+          <P>
+            An order line is included when it has a recorded goods-issue date in
+            the selected time range. The waterfall divides its duration into
+            order creation to delivery-document creation, then delivery-document
+            creation to goods issue. Mean, median, P75 and P95 summarise the
+            dispatched order lines in scope.
+          </P>
+          <P>
+            P75 and P95 row totals are calculated from complete order durations.
+            Their coloured segment widths show each segment&apos;s corresponding
+            marginal percentile, normalized to fit the row. Segment percentiles
+            are not additive, so their displayed values need not sum to the row
+            total.
+          </P>
+          <P>
+            The fulfilment indicators classify dispatched order lines by whether
+            all linked batches were already available when the order was
+            created, became available afterwards, or could not be traced to a
+            known batch origin. MTO identifies lines with a formal
+            sales-order-to-production-order link.
+          </P>
+          <P>
+            Selecting an order shows that order&apos;s actual segment durations
+            and total rather than an aggregate statistic. The destination filter
+            scopes the pipeline and its statistics to deliveries on the selected
+            route.
+          </P>
+          <Note>
+            This pipeline and the End-to-End Pipeline answer different
+            questions. Customer Orders ends at goods issue, so it can include a
+            dispatched order even when no actual customer arrival has been
+            recorded. The End-to-End Pipeline requires the route endpoint
+            described in the{" "}
+            <CrossRef to={{ section: "product-overview", sub: "e2e-pipeline" }}>
+              end-to-end pipeline
+            </CrossRef>{" "}
+            section.
+          </Note>
         </>
       ),
     },

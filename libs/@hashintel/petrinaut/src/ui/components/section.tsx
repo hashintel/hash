@@ -1,11 +1,10 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { type ReactNode, use } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, HelpTooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../react/state/user-settings-context";
-import { InfoIconTooltip } from "./info-icon-tooltip";
 
 // -- SectionList (wrapper) --------------------------------------------------
 
@@ -97,18 +96,8 @@ const titleStyle = css({
   color: "neutral.fg.body",
 });
 
+// only the chevron rotation — the button itself is a stock ghost Button
 const triggerButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[20px]",
-  height: "[20px]",
-  borderRadius: "md",
-  cursor: "pointer",
-  background: "[transparent]",
-  border: "[none]",
-  color: "neutral.s110",
-  padding: "[0]",
   "& svg": {
     transition: "[transform 150ms ease-out]",
   },
@@ -117,16 +106,25 @@ const triggerButtonStyle = css({
   },
 });
 
+// Collapsible.Trigger injects aria-expanded, which the ds Button renders as
+// pressed — strip it so the trigger keeps the resting ghost look. data-state
+// still carries open/closed for the chevron rotation.
+const TriggerButton = ({
+  "aria-expanded": _ariaExpanded,
+  ...props
+}: React.ComponentProps<typeof Button>) => <Button {...props} />;
+
 const collapsibleContentStyle = css({
   overflow: "hidden",
   animationDuration: "[200ms]",
   animationTimingFunction: "ease-in-out",
+  paddingLeft: "2",
 
   "&[data-state=open]": {
-    animationName: "expand",
+    animationName: "[petrinautExpand]",
   },
   "&[data-state=closed]": {
-    animationName: "collapse",
+    animationName: "[petrinautCollapse]",
   },
 });
 
@@ -134,14 +132,12 @@ const contentStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "3",
-  pl: "2",
 });
 
 const collapsibleContentInnerStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "3",
-  pl: "2",
   pt: "2",
 });
 
@@ -177,7 +173,7 @@ export const Section = ({
     <div className={headerLeftStyle}>
       {renderHeaderLeading?.()}
       <span className={titleStyle}>{title}</span>
-      {tooltip && <InfoIconTooltip tooltip={tooltip} />}
+      {tooltip && <HelpTooltip content={tooltip} />}
     </div>
   );
 
@@ -193,7 +189,7 @@ export const Section = ({
           {headerLeft}
           {renderHeaderAction && <div>{renderHeaderAction()}</div>}
           <Collapsible.Trigger className={triggerButtonStyle} asChild>
-            <Button
+            <TriggerButton
               size="xs"
               variant="ghost"
               aria-label="Toggle section"
@@ -208,7 +204,7 @@ export const Section = ({
             contentPaddingStyle,
           )}
         >
-          <div className={collapsibleContentInnerStyle}>{children}</div>
+          <div className={cx(collapsibleContentInnerStyle)}>{children}</div>
         </Collapsible.Content>
       </Collapsible.Root>
     );

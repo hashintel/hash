@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
-import { getCellHorizontalPadding } from "./utils";
+import { getCellHorizontalPadding, gridHeaderBaseFont } from "./utils";
 import { ColumnFilterMenu } from "./utils/column-filter-menu";
 import {
   ConversionMenu,
@@ -135,8 +135,6 @@ const emptyRect: ReturnType<VirtualElement["getBoundingClientRect"]> = {
 const gridHeaderHeight = 42;
 
 export const gridHeaderHeightWithBorder = gridHeaderHeight + 1;
-
-export const gridHeaderBaseFont = "600 14px Inter";
 
 export const gridHorizontalScrollbarHeight = 17;
 

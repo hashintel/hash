@@ -1,3 +1,8 @@
+/**
+ * @layerRoot core.schemas
+ * @role Zod schemas for document entities, metrics and scenarios, and the descriptions the AI tools read
+ */
+
 import { z } from "zod";
 
 import { getParameterValueError } from "../parameter-values";

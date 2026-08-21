@@ -15,6 +15,9 @@ export default defineConfig(({ command }) => ({
         main: "src/main.ts",
         react: "src/react/index.ts",
         ui: "src/ui/index.ts",
+        // Panda preset consumed by hosts that compile Petrinaut's styles
+        // through their own Panda pipeline (see panda.ship.config.ts).
+        "panda-preset": "src/panda-preset.ts",
       },
       fileName: (_format, entryName) => `${entryName}.js`,
       // Emit the bundled CSS as `main.css` so the package.json `style` field

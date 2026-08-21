@@ -55,20 +55,20 @@ describe("node R:/C: badge recompute from shipped series", () => {
     expect(windowed.yield_summary?.median).toBe(88);
   });
 
-  it("drops outliers from the yield series under the outlier rule", () => {
+  it("does not apply the timing mean rule to yield observations", () => {
     const withOutlier: NodeYieldSeries = {
       reference: 95,
       observations: [...yieldSeries.observations, obs("2026-05", 5)],
     };
     const node = makeNode({ type: "production", yield_series: withOutlier });
     const selected = applyOutlierSelectionToNode(node, true);
-    // The 5% point is far below the others' IQR fence and is dropped.
+    // Yield remains raw: the setting applies only to timing means.
     expect(
       selected.yield_series?.observations.some(
         (observation) => observation.value === 5,
       ),
-    ).toBe(false);
+    ).toBe(true);
     const windowed = windowGraphNodeToRange(selected, "12m");
-    expect(windowed.yield_summary?.n).toBe(4);
+    expect(windowed.yield_summary?.n).toBe(5);
   });
 });

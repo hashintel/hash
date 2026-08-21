@@ -1,3 +1,8 @@
+/**
+ * @layerRoot react.simulation
+ * @role Owns the run configuration and mirrors the core simulation handle into React
+ */
+
 import { use, useEffect, useRef, useState } from "react";
 
 import {
@@ -5,6 +10,7 @@ import {
   compileScenario,
   type ReadableStore,
   type Scenario,
+  type ScenarioCompilationError,
   type Simulation,
   type SimulationState as CoreSimulationState,
   type WorkerFactory,
@@ -538,6 +544,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Compile scenario when one is selected — computed during render.
   // React Compiler will memoize based on inputs.
   let compiledScenarioResult: CompiledScenarioResult | null = null;
+  let scenarioCompilationErrors: ScenarioCompilationError[] | null = null;
   if (effectiveSelectedScenarioId) {
     const selectedScenario = petriNetDefinition.scenarios?.find(
       (s) => s.id === effectiveSelectedScenarioId,
@@ -561,6 +568,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       );
       if (outcome.ok) {
         compiledScenarioResult = outcome.result;
+      } else {
+        // Keep the errors visible: a failing scenario must not look like an
+        // applied one (the marking silently falls back to manual values).
+        scenarioCompilationErrors = outcome.errors;
       }
     }
   }
@@ -596,6 +607,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     selectedScenarioId: effectiveSelectedScenarioId,
     scenarioParameterValues: effectiveScenarioParameterValues,
     compiledScenarioResult,
+    scenarioCompilationErrors,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
     totalFrames,

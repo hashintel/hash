@@ -602,6 +602,26 @@ pub(super) fn expand_struct(
                         .checked_sub(count)
                         .and_then(|value| Self::try_from(value).ok())
                 }
+
+                #[inline]
+                fn forward_overflowing(start: Self, count: usize) -> (Self, bool) {
+                    // On overflow the returned value is unspecified, but it must still be a
+                    // valid instance of `Self`, so `start` is returned unchanged.
+                    match <Self as ::core::iter::Step>::forward_checked(start, count) {
+                        ::core::option::Option::Some(value) => (value, false),
+                        ::core::option::Option::None => (start, true),
+                    }
+                }
+
+                #[inline]
+                fn backward_overflowing(start: Self, count: usize) -> (Self, bool) {
+                    // On overflow the returned value is unspecified, but it must still be a
+                    // valid instance of `Self`, so `start` is returned unchanged.
+                    match <Self as ::core::iter::Step>::backward_checked(start, count) {
+                        ::core::option::Option::Some(value) => (value, false),
+                        ::core::option::Option::None => (start, true),
+                    }
+                }
             }
         });
     }

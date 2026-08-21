@@ -1,14 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
-import {
-  formatCost,
-  formatNumber,
-  useCostParams,
-  useOutlierSetting,
-} from "../../shared/cost";
+import { formatCost, formatNumber, useCostParams } from "../../shared/cost";
 import { BindingLever } from "./e2e-what-if/binding-lever";
 import { KpiTile } from "./e2e-what-if/what-if-kpis";
 import { PipelineHeader } from "./shared/pipeline-header";
@@ -21,12 +16,14 @@ import {
 } from "./whatif";
 
 import type { TimeRange } from "../../shared/time-range";
-import type { GraphData } from "../../shared/types";
+import type { GraphData, PipelineOrderMarkers } from "../../shared/types";
 
 interface E2EWhatIfProps {
   graph: GraphData;
   timeRange: TimeRange;
-  onCollapse: () => void;
+  excludeOutliers: boolean;
+  onExitSimulator: () => void;
+  onFullyCollapse: () => void;
   onStepDrill: (stepId: string) => void;
   /** Segments currently included in totals, KPIs and the lever list. */
   activeSegments: Set<SegmentId>;
@@ -36,26 +33,31 @@ interface E2EWhatIfProps {
    * doesn't reset the selection). */
   activeRoute: string;
   onActiveRouteChange: (route: string) => void;
+  orderArrivalMarkers?: PipelineOrderMarkers;
 }
 
 const MAX_VISIBLE_LEVERS = 5;
 
 const root = css({
-  h: "full",
   display: "flex",
   flexDirection: "column",
   px: "6",
   py: "3",
-  minH: "0",
-  overflow: "hidden",
 });
 const headerMb = css({ mb: "3" });
 // `gridTemplateColumns` is set inline: Panda's arbitrary-value codegen drops a
 // space-separated track list like `[1fr_360px_280px]` (it only emits function
 // forms such as `repeat(...)`), which silently collapsed this to one column.
-const grid = css({ display: "grid", gap: "4", flex: "1", minH: "0" });
+const grid = css({
+  display: "grid",
+  gap: "4",
+  alignItems: "stretch",
+});
 const gridCols = "1fr 360px 220px";
-const leftCol = css({ minW: "0", overflow: "auto", pr: "2" });
+const leftCol = css({
+  minW: "0",
+  pr: "2",
+});
 const callout = css({
   mt: "4",
   borderRadius: "md",
@@ -75,6 +77,16 @@ const sideCol = css({
   display: "flex",
   flexDirection: "column",
   minH: "0",
+});
+const leverColSlot = css({
+  position: "relative",
+  minW: "0",
+  minH: "0",
+});
+const leverColContent = css({
+  position: "absolute",
+  inset: "0",
+  overflow: "hidden",
 });
 const sideHeaderRow = css({
   display: "flex",
@@ -115,15 +127,17 @@ const kpiGrid = css({
 export const E2EWhatIf = ({
   graph,
   timeRange,
-  onCollapse,
+  excludeOutliers,
+  onExitSimulator,
+  onFullyCollapse,
   onStepDrill,
   activeSegments,
   onSegmentToggle,
   activeRoute,
   onActiveRouteChange,
+  orderArrivalMarkers,
 }: E2EWhatIfProps) => {
   const { waccRate, storageCost } = useCostParams();
-  const { excludeOutliers } = useOutlierSetting();
 
   const setActiveRoute = onActiveRouteChange;
   // Levers store CAP days: missing entries or caps at the step's max mean
@@ -201,7 +215,9 @@ export const E2EWhatIf = ({
           activeRoute={activeRoute}
           onActiveRouteChange={setActiveRoute}
           expanded
-          onCollapse={onCollapse}
+          onContentToggle={onFullyCollapse}
+          onSimulatorToggle={onExitSimulator}
+          simulatorActive
         />
       </div>
 
@@ -210,12 +226,27 @@ export const E2EWhatIf = ({
         <div className={leftCol}>
           <PipelineWaterfall
             summaries={graph.pipeline_summary}
+            baselineStagesMean={
+              simulation.baselineMean != null
+                ? simulation.baselineStagesMean
+                : undefined
+            }
+            baselineStagesMedian={
+              simulation.baselineMedian != null
+                ? simulation.baselineStagesMedian
+                : undefined
+            }
             simulatedStagesMean={simulation.simulatedStagesMean}
             simulatedStagesMedian={simulation.simulatedStagesMedian}
+            baselineTotalMean={simulation.baselineMean}
+            baselineTotalMedian={simulation.baselineMedian}
+            simulatedTotalMean={simulation.simulatedMean}
+            simulatedTotalMedian={simulation.simulatedMedian}
             expanded
             activeRoute={activeRoute}
             activeSegments={activeSegments}
             onSegmentToggle={onSegmentToggle}
+            orderArrivalMarkers={orderArrivalMarkers}
           />
 
           <div className={callout}>
@@ -227,59 +258,61 @@ export const E2EWhatIf = ({
         </div>
 
         {/* Middle: levers */}
-        <div className={sideCol}>
-          <div className={sideHeaderRow}>
-            <h4 className={sectionTitle}>Simulation levers</h4>
-            <Button
-              variant="ghost"
-              tone="neutral"
-              size="xs"
-              iconName="rotateLeft"
-              onClick={handleReset}
-              disabled={!hasActiveLevers}
-            >
-              Reset
-            </Button>
-          </div>
-          <div className={leverList}>
-            {leverDefs.length === 0 && (
-              <div className={leverEmpty}>
-                No ranked step data available for this route. Try regenerating
-                data or selecting a different route.
-              </div>
-            )}
-            {leverDefs.map((lever) => (
-              <BindingLever
-                key={lever.stepId}
-                lever={lever}
-                capDays={capLevers[lever.stepId]}
-                onChange={(value) => handleLeverChange(lever.stepId, value)}
-                onDrill={() => onStepDrill(lever.stepId)}
-                nodes={graph.nodes}
-              />
-            ))}
-            {leverDefs.length >= MAX_VISIBLE_LEVERS && !showAll && (
+        <div className={leverColSlot}>
+          <div className={cx(sideCol, leverColContent)}>
+            <div className={sideHeaderRow}>
+              <h4 className={sectionTitle}>Simulation levers</h4>
               <Button
-                variant="linkSubtle"
+                variant="ghost"
                 tone="neutral"
                 size="xs"
-                onClick={() => setShowAll(true)}
-                className={showToggle}
+                iconName="rotateLeft"
+                onClick={handleReset}
+                disabled={!hasActiveLevers}
               >
-                Show more steps
+                Reset
               </Button>
-            )}
-            {showAll && (
-              <Button
-                variant="linkSubtle"
-                tone="neutral"
-                size="xs"
-                onClick={() => setShowAll(false)}
-                className={showToggle}
-              >
-                Show fewer
-              </Button>
-            )}
+            </div>
+            <div className={leverList}>
+              {leverDefs.length === 0 && (
+                <div className={leverEmpty}>
+                  No ranked step data available for this route. Try regenerating
+                  data or selecting a different route.
+                </div>
+              )}
+              {leverDefs.map((lever) => (
+                <BindingLever
+                  key={lever.stepId}
+                  lever={lever}
+                  capDays={capLevers[lever.stepId]}
+                  onChange={(value) => handleLeverChange(lever.stepId, value)}
+                  onDrill={() => onStepDrill(lever.stepId)}
+                  nodes={graph.nodes}
+                />
+              ))}
+              {leverDefs.length >= MAX_VISIBLE_LEVERS && !showAll && (
+                <Button
+                  variant="linkSubtle"
+                  tone="neutral"
+                  size="xs"
+                  onClick={() => setShowAll(true)}
+                  className={showToggle}
+                >
+                  Show more steps
+                </Button>
+              )}
+              {showAll && (
+                <Button
+                  variant="linkSubtle"
+                  tone="neutral"
+                  size="xs"
+                  onClick={() => setShowAll(false)}
+                  className={showToggle}
+                >
+                  Show fewer
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

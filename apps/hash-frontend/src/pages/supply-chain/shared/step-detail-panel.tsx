@@ -7,9 +7,12 @@ import {
   type ReactNode,
 } from "react";
 
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { useUsers } from "../../../components/hooks/use-users";
+import { useNotificationCount } from "../../../shared/notification-count-context";
 import { Link } from "../../../shared/ui/link";
 import {
   BriefLink,
@@ -29,6 +32,10 @@ import { applyOutlierSelectionToStep } from "./outlier-selection";
 import { computePeriodDeltas } from "./period-trends";
 import { useProcurementBasis } from "./procurement-basis-context";
 import {
+  planningWarningTexts,
+  procurementStepDisplayLabel,
+} from "./procurement-planning-ui";
+import {
   dwellStepScopesOpenCarryOnProduct,
   scopeDwellStepToProduct,
 } from "./product-dwell-scope";
@@ -39,6 +46,7 @@ import {
 import { useRegistry } from "./registry-context";
 import { SlideOver, SlideOverClose } from "./slide-over";
 import { deriveStatusActionState, type StatusEntry } from "./status";
+import { StatusBody } from "./status-body";
 import { ConsumptionMetricsRow } from "./step-detail-panel/consumption-metrics";
 import {
   DataTableSection,
@@ -52,11 +60,18 @@ import {
 import { MonthlyCostChart } from "./step-detail-panel/monthly-cost-chart";
 import { SavingsCalculator } from "./step-detail-panel/savings-calculator";
 import {
+  statusUpdateDomId,
+  useStatusUpdateFocus,
+} from "./step-detail-panel/status-focus";
+import {
   StatsRow,
   ObservationCount,
 } from "./step-detail-panel/step-detail-primitives";
 import { TimeSeriesChart } from "./step-detail-panel/time-series-chart";
-import { KeyMetricsRow } from "./step-detail-panel/timing-metrics";
+import {
+  InventoryPolicyRow,
+  KeyMetricsRow,
+} from "./step-detail-panel/timing-metrics";
 import { YieldMetricsRow } from "./step-detail-panel/yield-metrics";
 import { SupplierDimensionView } from "./supplier-dimension-view";
 import { recomputeSupplierBlock } from "./supplier-otif";
@@ -139,6 +154,20 @@ const metaItem = css({
   whiteSpace: "nowrap",
 });
 const metaDivider = css({ width: "[1px]", height: "3", bg: "bd.subtle" });
+const procurementMetaStack = css({
+  display: "inline-grid",
+  gridTemplateColumns: "[auto auto]",
+  columnGap: "2",
+  rowGap: "0.5",
+  alignItems: "baseline",
+});
+const metaLabel = css({ color: "fg.subtle" });
+const lastUpdatedStack = css({
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "0.5",
+});
 const strongText = css({ fontWeight: "medium", color: "fg.max" });
 const headerActions = css({
   display: "flex",
@@ -157,6 +186,12 @@ const statusSection = css({
   flexDirection: "column",
   gap: "3",
 });
+const statusSectionHeader = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "3",
+});
 const statusSectionTitle = css({
   textStyle: "base",
   fontWeight: "semibold",
@@ -173,6 +208,10 @@ const statusItem = css({
   display: "flex",
   flexDirection: "column",
   gap: "1",
+});
+const focusedStatusItem = css({
+  borderColor: "bd.strong",
+  bg: "bg.subtle",
 });
 const statusMeta = css({
   display: "flex",
@@ -199,6 +238,21 @@ const metricsSection = css({
   flexDirection: "column",
   gap: "3",
 });
+const planningWarnings = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1.5",
+  mb: "2",
+});
+const planningWarning = css({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "2",
+  textStyle: "xs",
+  lineHeight: "relaxed",
+  color: "status.warning.fg.body",
+});
+const planningWarningIcon = css({ mt: "0.5", flexShrink: "0" });
 const chartsRow = css({ display: "flex" });
 const chartCellLeft = css({
   flex: "1",
@@ -230,7 +284,6 @@ const segButton = css({
   cursor: "pointer",
   borderWidth: "1px",
   borderStyle: "solid",
-  borderColor: "[transparent]",
 });
 const segButtonActive = css({
   bg: "bgSolid.min",
@@ -239,6 +292,7 @@ const segButtonActive = css({
   boxShadow: "sm",
 });
 const segButtonInactive = css({
+  borderColor: "[transparent]",
   color: "fg.subtle",
   _hover: { color: "fg.muted" },
 });
@@ -318,6 +372,8 @@ interface StepDetailPanelProps {
   measureOverride?: BaseMeasure;
   /** All status updates left against this step/node (any order; rendered newest-first). */
   statusEntries?: StatusEntry[];
+  /** Status update entity UUID to focus after opening from a notification. */
+  focusedStatusUpdateUuid?: string | null;
   /** Opens the shared status dialog for this step. */
   onStatus?: () => void;
   /** Inline modal content opened from inside the slide-over. */
@@ -355,10 +411,22 @@ export const StepDetailPanel = ({
   briefHref,
   measureOverride,
   statusEntries = [],
+  focusedStatusUpdateUuid,
   onStatus,
   statusDialog,
 }: StepDetailPanelProps) => {
   const { timeRange, setTimeRange } = useTimeRange();
+  const { users } = useUsers();
+  const statusUsersByEntityId = useMemo(
+    () =>
+      new Map(
+        (users ?? []).map((user) => [
+          user.entity.metadata.recordId.entityId,
+          user,
+        ]),
+      ),
+    [users],
+  );
   const [step, setStep] = useState<StepDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -567,8 +635,14 @@ export const StepDetailPanel = ({
     return comparisonStep.observations;
   }, [comparisonStep, dimension, selectedComponent]);
   const periodComparison = useMemo(() => {
-    return computePeriodDeltas(comparisonObservations, timeRange);
-  }, [comparisonObservations, timeRange]);
+    return computePeriodDeltas(
+      comparisonObservations,
+      timeRange,
+      dimension === "timing"
+        ? (comparisonStep?.mean_observations ?? comparisonObservations)
+        : comparisonObservations,
+    );
+  }, [comparisonObservations, comparisonStep, dimension, timeRange]);
   const selectedComponentReconciliationCount = useMemo(() => {
     if (
       dimension !== "consumption" ||
@@ -616,8 +690,12 @@ export const StepDetailPanel = ({
     if (!step?.label) {
       return undefined;
     }
-    return productName ? `${step.label}: ${productName}` : step.label;
-  }, [step?.label, productName]);
+    const label =
+      step.type === "procurement"
+        ? procurementStepDisplayLabel(step.label, "qualified")
+        : step.label;
+    return productName ? `${label}: ${productName}` : label;
+  }, [step, productName]);
   const defaultTableFilters = useMemo(
     (): DataTableFilters => ({ periodRange: timeRange }),
     [timeRange],
@@ -669,6 +747,52 @@ export const StepDetailPanel = ({
     () => deriveStatusActionState(statusEntries),
     [statusEntries],
   );
+  const {
+    focusedStatusUpdateRef,
+    highlightedStatusUpdateUuid,
+    statusSectionRef,
+  } = useStatusUpdateFocus({
+    focusedStatusUpdateUuid,
+    statusSectionReady: !loading && Boolean(step),
+    statusEntries,
+  });
+  const { markNotificationsAsReadForEntity } = useNotificationCount();
+  const notificationsMarkedReadRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (
+      !focusedStatusUpdateUuid ||
+      loading ||
+      !step ||
+      notificationsMarkedReadRef.current.has(focusedStatusUpdateUuid)
+    ) {
+      return;
+    }
+
+    const focusedStatusEntry = statusEntries.find(
+      (statusEntry) =>
+        extractEntityUuidFromEntityId(statusEntry.entityId) ===
+        focusedStatusUpdateUuid,
+    );
+
+    if (!focusedStatusEntry) {
+      return;
+    }
+
+    notificationsMarkedReadRef.current.add(focusedStatusUpdateUuid);
+    void markNotificationsAsReadForEntity({
+      targetEntityId: focusedStatusEntry.entityId,
+    }).catch(() => {
+      notificationsMarkedReadRef.current.delete(focusedStatusUpdateUuid);
+    });
+  }, [
+    focusedStatusUpdateUuid,
+    loading,
+    markNotificationsAsReadForEntity,
+    step,
+    statusEntries,
+  ]);
+
   return (
     <SlideOver onClose={onClose} label={step?.label ?? "Step detail"}>
       {/* Header */}
@@ -722,7 +846,11 @@ export const StepDetailPanel = ({
             <div className={titleRow}>
               <h2 className={titleStyles}>
                 <MaterialTag material={stepMaterial}>
-                  {step?.label ?? "Loading..."}
+                  {step
+                    ? step.type === "procurement"
+                      ? procurementStepDisplayLabel(step.label, "qualified")
+                      : step.label
+                    : "Loading..."}
                 </MaterialTag>
               </h2>
               <div className={titleActions}>
@@ -762,6 +890,31 @@ export const StepDetailPanel = ({
                   countOverride={selectedComponentReconciliationCount}
                   previousCount={periodComparison.previousStats?.n ?? 0}
                 />
+                {filteredStep.type === "procurement" && (
+                  <span className={metaItem}>
+                    <span className={metaDivider} />
+                    <span className={procurementMetaStack}>
+                      <span className={metaLabel}>Supplier</span>
+                      <span className={strongText}>
+                        {filteredStep.supplier_name ??
+                          filteredStep.supplier_id ??
+                          "Unknown"}
+                      </span>
+                      <span className={metaLabel}>Basis</span>
+                      <span className={strongText}>
+                        {
+                          {
+                            ordinary: "Buy",
+                            consignment: "Consignment",
+                            subcontract: "Subcontract",
+                            mixed: "Mixed",
+                            unknown: "Unknown",
+                          }[filteredStep.receipt_basis ?? "unknown"]
+                        }
+                      </span>
+                    </span>
+                  </span>
+                )}
 
                 {excludeOutliers && (filteredStep.excluded_count ?? 0) > 0 && (
                   <span className={metaItem}>
@@ -770,18 +923,16 @@ export const StepDetailPanel = ({
                       <span className={strongText}>
                         {filteredStep.excluded_count}
                       </span>{" "}
-                      outliers excluded
+                      excluded from mean
                     </span>
                   </span>
                 )}
                 {lastObsDate && (
                   <span className={metaItem}>
                     <span className={metaDivider} />
-                    <span>
-                      <span className={strongText}>{lastObsDate}</span>{" "}
-                      <span className={css({ color: "fg.subtle" })}>
-                        Last updated
-                      </span>
+                    <span className={lastUpdatedStack}>
+                      <span className={strongText}>{lastObsDate}</span>
+                      <span className={metaLabel}>Last updated</span>
                     </span>
                   </span>
                 )}
@@ -892,6 +1043,26 @@ export const StepDetailPanel = ({
                       measureOverride={measureOverride}
                     />
 
+                    <InventoryPolicyRow step={filteredStep} />
+
+                    {planningWarningTexts(filteredStep.planning_warnings)
+                      .length > 0 && (
+                      <div className={planningWarnings}>
+                        {planningWarningTexts(
+                          filteredStep.planning_warnings,
+                        ).map((warning) => (
+                          <div key={warning} className={planningWarning}>
+                            <Icon
+                              name="warning"
+                              size="xs"
+                              className={planningWarningIcon}
+                            />
+                            <span>{warning}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <StatsRow
                       step={filteredStep}
                       deltas={periodComparison.statDeltas}
@@ -999,8 +1170,15 @@ export const StepDetailPanel = ({
 
       {/* Status updates received for this step (newest first) */}
       {!loading && step && (
-        <div className={statusSection}>
-          <h3 className={statusSectionTitle}>Status</h3>
+        <div className={statusSection} ref={statusSectionRef}>
+          <div className={statusSectionHeader}>
+            <h3 className={statusSectionTitle}>Status</h3>
+            {onStatus && (
+              <Button size="sm" variant="subtle" onClick={onStatus}>
+                Post update
+              </Button>
+            )}
+          </div>
           {statusEntries.length === 0 ? (
             <p className={statusEmpty}>
               No status updates yet. Use the Status button above to add the
@@ -1008,21 +1186,48 @@ export const StepDetailPanel = ({
             </p>
           ) : (
             <div className={statusList}>
-              {[...statusEntries].reverse().map((entry) => (
-                <div
-                  key={`${entry.at}-${entry.user}-${entry.category}-${entry.text}`}
-                  className={statusItem}
-                >
-                  <div className={statusMeta}>
-                    <span className={statusCategory}>{entry.category}</span>
-                    <span className={statusDot}>·</span>
-                    <span>{entry.user}</span>
-                    <span className={statusDot}>·</span>
-                    <span>{formatStatusDate(entry.at)}</span>
+              {[...statusEntries].reverse().map((entry) => {
+                const isFocused =
+                  focusedStatusUpdateUuid ===
+                  extractEntityUuidFromEntityId(entry.entityId);
+                const isHighlighted =
+                  highlightedStatusUpdateUuid ===
+                  extractEntityUuidFromEntityId(entry.entityId);
+
+                return (
+                  <div
+                    id={statusUpdateDomId(entry)}
+                    key={entry.entityId}
+                    ref={isFocused ? focusedStatusUpdateRef : undefined}
+                    className={cx(
+                      statusItem,
+                      isHighlighted && focusedStatusItem,
+                    )}
+                  >
+                    <div className={statusMeta}>
+                      <span className={statusCategory}>{entry.category}</span>
+                      {entry.user ? (
+                        <>
+                          <span className={statusDot}>·</span>
+                          <span>{entry.user}</span>
+                        </>
+                      ) : null}
+                      <span className={statusDot}>·</span>
+                      <span>{formatStatusDate(entry.at)}</span>
+                    </div>
+                    <p className={statusBody}>
+                      {entry.tokens.length > 0 ? (
+                        <StatusBody
+                          mentionedUsersByEntityId={statusUsersByEntityId}
+                          tokens={entry.tokens}
+                        />
+                      ) : (
+                        statusEntryText(entry)
+                      )}
+                    </p>
                   </div>
-                  <p className={statusBody}>{statusEntryText(entry)}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -1,0 +1,133 @@
+---
+title: Declaring layers
+description: How to declare a layer, refine one, and what CI holds you to.
+sidebar_order: 1
+---
+
+The generated pages come from annotations in the Petrinaut source. This page is
+the short version of how to change them; the full reference lives in
+[`libs/@local/petrinaut-arch-docs/README.md`](https://github.com/hashintel/hash/blob/main/libs/@local/petrinaut-arch-docs/README.md).
+
+## Declaring a layer
+
+Add frontmatter to the folder's `README.md`:
+
+```yaml
+---
+layer: core.simulation.monte-carlo
+role: Runs many simulations with bounded frame memory
+---
+```
+
+The prose below the frontmatter becomes the layer's page body, so an existing
+folder README needs only the frontmatter added.
+
+For a folder with a barrel entry file and no README, annotate the entry file
+instead:
+
+```ts
+/**
+ * @layerRoot core.simulation.monte-carlo
+ * @role Runs many simulations with bounded frame memory
+ */
+```
+
+Use one mechanism or the other, never both on the same folder. `layer` and
+`role` are the only frontmatter keys, and `@layerRoot` and `@role` the only
+tags; anything else is either an error or ignored.
+
+## You do not need to annotate every file
+
+A file with no annotation belongs to the nearest ancestor folder that declares a
+layer. Thirty-seven declarations cover four hundred and thirteen files. Declare a layer where
+the architecture genuinely changes — a new boundary, a different responsibility —
+not on every directory that exists.
+
+## Moving or renaming a folder
+
+Nothing to update, provided the folder keeps its declaration with it. That is the
+main practical gain over the old path-matching script, where a move silently
+re-bucketed files into a fallback group.
+
+Renaming a _layer id_ is a real change: it moves the layer's page and invalidates
+inbound links, and every descendant id has to move with it.
+
+## Adding a new package
+
+Add it to `packages` in
+[`architecture.config.ts`](https://github.com/hashintel/hash/blob/main/libs/@local/petrinaut-arch-docs/architecture.config.ts),
+declare a root layer in its source, and rebuild. Build configuration outside the
+package's source directory is deliberately excluded — it configures the build, it
+is not part of the design.
+
+## What CI will hold you to
+
+Run the check before pushing:
+
+```bash
+yarn workspace @local/petrinaut-arch-docs lint:arch-docs
+```
+
+It fails when a source file no layer covers appears, when a layer id implies an
+ancestor nothing declares, when a dependency violates a declared rule, and when
+the import graph reaches a source file no layer claims.
+
+The bundle itself is build output and is git-ignored, so there is nothing to
+regenerate before pushing. Only the annotations are versioned. To read the docs
+locally:
+
+```bash
+yarn workspace @local/petrinaut-arch-docs doc:architecture
+```
+
+## Adding a hand-written guide
+
+Authored pages live in `libs/@local/petrinaut-arch-docs/content/` and are
+optional. To have one sit _inside_ the architecture tree rather than beside it,
+name the layer it explains:
+
+```yaml
+---
+title: Memory model
+attachTo: core.simulation
+sidebar_order: 10
+---
+```
+
+The page then appears beneath that layer, and the layer's page links to it under
+"Guides".
+
+Because `attachTo` decides where the page ends up, link to other pages by name
+rather than by path — `[text](layer:core.simulation.engine)` for a generated
+page, `[text](doc:simulation/memory-model)` for another authored one. A target
+that does not resolve fails the check.
+
+## Adding a hand-written diagram
+
+Put a D2 file in `content/diagrams/` and reference it from an authored page as
+an image:
+
+```mdx
+![One request through the CLI](@diagrams/cli-request-flow.svg)
+```
+
+The build renders it to SVG next to the generated diagrams and rewrites the
+path. A name that does not exist, or that collides with a generated diagram,
+fails the check.
+
+## Declaring a rule
+
+Rules live in `architecture.config.ts` and are checked against the real import
+graph:
+
+```ts
+{
+  from: "react",
+  to: "ui",
+  reason: "state providers must not depend on the components that render them",
+}
+```
+
+Add one only when the code already satisfies it — a rule is a statement of fact
+that CI keeps true, not an aspiration. Check first with a build; if there are
+existing violations, either fix them in the same change or leave the rule out.

@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Modal as BaseModal } from "@hashintel/design-system";
 import {
@@ -11,6 +11,11 @@ import { getChartConfigProblems } from "@local/hash-isomorphic-utils/chart-confi
 import { normalizeStructuralQuery } from "@local/hash-isomorphic-utils/dashboard-types";
 
 import { useDashboardItemConfig } from "../hooks/use-dashboard-item-config";
+import {
+  dashboardItemGenerationPhaseLabel,
+  type DashboardItemGeneration,
+  type DashboardItemGenerationPhase,
+} from "../hooks/use-dashboard-item-generations";
 import { ChartConfigBuilder } from "./item-config-modal/chart-config-builder";
 import { ConfigAccordion } from "./item-config-modal/config-accordion";
 import { StructuralQueryBuilder } from "./item-config-modal/structural-query-builder";
@@ -26,7 +31,11 @@ import type { ChartConfig } from "@local/hash-isomorphic-utils/dashboard-types";
 type ItemConfigModalProps = {
   open: boolean;
   onClose: () => void;
-  onGenerationStarted?: () => void;
+  onGenerationStarted?: (generation: {
+    itemEntityId: EntityId;
+    flowRunId: string;
+  }) => void;
+  generation?: DashboardItemGeneration;
   /** `null` when configuring a new item whose entity is created lazily */
   itemEntityId: EntityId | null;
   /** Creates the item entity (and dashboard link) on first save/generate */
@@ -58,10 +67,33 @@ const modalOuterShadow =
 const modalInnerShadow =
   "0px 0px 0px 1px rgba(0,0,0,0.08), 0px 12px 32px 0px rgba(0,0,0,0.02)";
 
+const generationProgressByPhase: Record<
+  DashboardItemGenerationPhase,
+  { section: ConfigSectionKey; text: string }
+> = {
+  "building-query": {
+    section: "query",
+    text: "Building data query…",
+  },
+  "analyzing-data": {
+    section: "analysis",
+    text: "Writing analysis code…",
+  },
+  "creating-chart-configuration": {
+    section: "config",
+    text: "Creating chart configuration…",
+  },
+  "saving-configuration": {
+    section: "config",
+    text: "Saving configuration…",
+  },
+};
+
 export const ItemConfigModal = ({
   open,
   onClose,
   onGenerationStarted,
+  generation,
   itemEntityId,
   createItemEntity,
   webId,
@@ -72,6 +104,7 @@ export const ItemConfigModal = ({
     state,
     setUserGoal,
     generateQuery,
+    refineConfiguration,
     saveStructuralQuery,
     savePythonScript,
     saveChartConfig,
@@ -99,6 +132,24 @@ export const ItemConfigModal = ({
     Partial<Record<ConfigSectionKey, SectionControls>>
   >({});
   const [isSaving, setIsSaving] = useState(false);
+  const [refinementInstruction, setRefinementInstruction] = useState("");
+  const hadGenerationRef = useRef(false);
+  const isRefinement =
+    itemEntityId !== null &&
+    !!initialValues?.structuralQuery &&
+    !!initialValues.pythonScript &&
+    !!initialValues.chartType &&
+    !!initialValues.chartConfig;
+
+  useEffect(() => {
+    if (generation) {
+      hadGenerationRef.current = true;
+    } else if (hadGenerationRef.current) {
+      hadGenerationRef.current = false;
+      onClose();
+      reset();
+    }
+  }, [generation, onClose, reset]);
 
   const handleSectionControlsChange = useCallback(
     (section: ConfigSectionKey, controls: SectionControls) => {
@@ -146,25 +197,44 @@ export const ItemConfigModal = ({
   }, [ensureItemEntity, handleClose]);
 
   const isConfiguring =
-    state.step !== "goal" &&
-    state.step !== "chart" &&
-    state.step !== "complete";
+    !!generation || (state.isLoading && state.step !== "goal");
+  const generationLabel = generation
+    ? dashboardItemGenerationPhaseLabel(generation.phase)
+    : "Generating…";
+  const generationProgress = generation
+    ? generationProgressByPhase[generation.phase]
+    : isConfiguring
+      ? generationProgressByPhase[
+          state.step === "analysis"
+            ? "analyzing-data"
+            : state.step === "chart"
+              ? "creating-chart-configuration"
+              : "building-query"
+        ]
+      : undefined;
 
   // Convert state values to strings for the editors
-  const structuralQueryString = state.structuralQuery
-    ? JSON.stringify(state.structuralQuery, null, 2)
+  const displayedStructuralQuery =
+    generation?.structuralQuery ?? state.structuralQuery;
+  const displayedPythonScript =
+    generation?.pythonScript ?? state.pythonScript ?? "";
+  const displayedChartData = generation?.chartData ?? state.chartData;
+  const displayedChartConfig = generation?.chartConfig ?? state.chartConfig;
+
+  const structuralQueryString = displayedStructuralQuery
+    ? JSON.stringify(displayedStructuralQuery, null, 2)
     : "";
 
-  const chartConfigString = state.chartConfig
-    ? JSON.stringify(state.chartConfig, null, 2)
+  const chartConfigString = displayedChartConfig
+    ? JSON.stringify(displayedChartConfig, null, 2)
     : "";
 
   const chartDataKeys = useMemo(
     () =>
-      state.chartData && state.chartData.length > 0
-        ? Object.keys(state.chartData[0] as Record<string, unknown>)
+      displayedChartData && displayedChartData.length > 0
+        ? Object.keys(displayedChartData[0] as Record<string, unknown>)
         : [],
-    [state.chartData],
+    [displayedChartData],
   );
 
   const handleSaveStructuralQuery = useCallback(
@@ -330,21 +400,33 @@ export const ItemConfigModal = ({
                 component="form"
                 onSubmit={(evt: React.FormEvent) => {
                   evt.preventDefault();
-                  void generateQuery();
+                  if (isRefinement) {
+                    void refineConfiguration(refinementInstruction);
+                  } else {
+                    void generateQuery();
+                  }
                 }}
                 sx={{
                   display: "flex",
-                  gap: 0.5,
+                  gap: 1,
                   alignItems: "center",
                   flexShrink: 0,
                 }}
               >
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <TextInput
-                    value={state.userGoal}
-                    onChange={(value) => setUserGoal(value)}
-                    placeholder="Describe what you want to visualize..."
-                    disabled={state.isLoading}
+                    value={
+                      isRefinement ? refinementInstruction : state.userGoal
+                    }
+                    onChange={
+                      isRefinement ? setRefinementInstruction : setUserGoal
+                    }
+                    placeholder={
+                      isRefinement
+                        ? "Describe what you want to change..."
+                        : "Describe what you want to visualize..."
+                    }
+                    disabled={isConfiguring}
                     size="md"
                     width="fullWidth"
                   />
@@ -352,21 +434,30 @@ export const ItemConfigModal = ({
                 <Button
                   variant="solid"
                   tone="neutral"
-                  size="md"
+                  size="sm"
                   type="submit"
                   iconName="sparkles"
-                  loading={state.isLoading && isConfiguring}
-                  disabled={!state.userGoal.trim() || state.isLoading}
+                  loading={isConfiguring}
+                  disabled={
+                    !(
+                      isRefinement ? refinementInstruction : state.userGoal
+                    ).trim() || isConfiguring
+                  }
                 >
-                  {isConfiguring ? "Generating..." : "Generate"}
+                  {isConfiguring
+                    ? generationLabel
+                    : isRefinement
+                      ? "Refine"
+                      : "Generate"}
                 </Button>
               </Box>
 
               {/* Configuration accordion sections */}
               <ConfigAccordion
                 structuralQuery={structuralQueryString}
-                pythonScript={state.pythonScript ?? ""}
+                pythonScript={displayedPythonScript}
                 chartConfig={chartConfigString}
+                inProgress={generationProgress}
                 onSaveStructuralQuery={handleSaveStructuralQuery}
                 onSavePythonScript={handleSavePythonScript}
                 onSaveChartConfig={handleSaveChartConfig}

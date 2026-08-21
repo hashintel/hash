@@ -22,7 +22,6 @@ import {
   type WebId,
 } from "@blockprotocol/type-system";
 import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
-import { isEntity } from "@local/hash-isomorphic-utils/entity-store";
 
 import { useArchivePage } from "../../components/hooks/use-archive-page";
 import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
@@ -60,12 +59,12 @@ import type {
   UnarchivePropertyTypeMutation,
   UnarchivePropertyTypeMutationVariables,
 } from "../../graphql/api-types.gen";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { ArchivableEntity } from "../is-archived";
 import type { FunctionComponent } from "react";
 
 export const BulkActionsDropdown: FunctionComponent<{
   selectedItems: (
-    | HashEntity
+    | ArchivableEntity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
@@ -139,7 +138,7 @@ export const BulkActionsDropdown: FunctionComponent<{
           return false;
         }
 
-        if (isEntity(item)) {
+        if (!isType(item)) {
           return true;
         }
 

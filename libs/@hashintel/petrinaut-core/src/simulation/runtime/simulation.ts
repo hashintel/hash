@@ -1,3 +1,8 @@
+/**
+ * @layerRoot core.simulation.runtime
+ * @role Host-side controller for a run — owns the transport, the frame store and the status streams
+ */
+
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,

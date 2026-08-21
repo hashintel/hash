@@ -407,26 +407,48 @@ const cloneComponentInstances = (
 
 const cloneSubnet = (
   subnet: NonNullable<SDCPN["subnets"]>[number],
-): NonNullable<SDCPN["subnets"]>[number] => ({
-  id: subnet.id,
-  name: subnet.name,
-  places: subnet.places.map((place) => ({ ...place })),
-  transitions: subnet.transitions.map((transition) => ({
-    ...transition,
-    inputArcs: transition.inputArcs.map((arc) => ({ ...arc })),
-    outputArcs: transition.outputArcs.map((arc) => ({ ...arc })),
-  })),
-  types: subnet.types.map((type) => ({
-    ...type,
-    elements: type.elements.map((element) => ({ ...element })),
-  })),
-  differentialEquations: subnet.differentialEquations.map((equation) => ({
-    ...equation,
-  })),
-  parameters: subnet.parameters.map((parameter) => ({ ...parameter })),
-  componentInstances: cloneComponentInstances(subnet.componentInstances),
-});
+): NonNullable<SDCPN["subnets"]>[number] => {
+  const next: NonNullable<SDCPN["subnets"]>[number] = {
+    id: subnet.id,
+    name: subnet.name,
+    places: subnet.places.map((place) => ({ ...place })),
+    transitions: subnet.transitions.map((transition) => ({
+      ...transition,
+      inputArcs: transition.inputArcs.map((arc) => ({ ...arc })),
+      outputArcs: transition.outputArcs.map((arc) => ({ ...arc })),
+    })),
+    types: subnet.types.map((type) => ({
+      ...type,
+      elements: type.elements.map((element) => ({ ...element })),
+    })),
+    differentialEquations: subnet.differentialEquations.map((equation) => ({
+      ...equation,
+    })),
+    parameters: subnet.parameters.map((parameter) => ({ ...parameter })),
+  };
 
+  // Only set optional keys that are present on the source — see
+  // `sanitizeSDCPNForExtensions` below for why absent must stay absent.
+  if (subnet.componentInstances) {
+    next.componentInstances = cloneComponentInstances(
+      subnet.componentInstances,
+    );
+  }
+
+  return next;
+};
+
+/**
+ * Produce a sanitized deep copy of an SDCPN with data for disabled extensions
+ * stripped out.
+ *
+ * The optional keys (`scenarios`, `metrics`, `subnets`, `componentInstances`)
+ * are only set when they are present on the source. Writing them
+ * unconditionally would leave them present with a value of `undefined`, which
+ * is not the same shape as a definition loaded back from JSON — where absent
+ * keys stay absent — and would make `isSDCPNEqual` report an untouched net as
+ * changed.
+ */
 export const sanitizeSDCPNForExtensions = (
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
@@ -446,7 +468,10 @@ export const sanitizeSDCPNForExtensions = (
       ...equation,
     })),
     parameters: sdcpn.parameters.map((parameter) => ({ ...parameter })),
-    scenarios: sdcpn.scenarios?.map((scenario) => ({
+  };
+
+  if (sdcpn.scenarios) {
+    next.scenarios = sdcpn.scenarios.map((scenario) => ({
       ...scenario,
       scenarioParameters: scenario.scenarioParameters.map((parameter) => ({
         ...parameter,
@@ -466,17 +491,26 @@ export const sanitizeSDCPNForExtensions = (
                 ),
               ),
             },
-    })),
-    metrics: sdcpn.metrics?.map((metric) => ({ ...metric })),
-    subnets: sdcpn.subnets?.map(cloneSubnet),
-    componentInstances: cloneComponentInstances(sdcpn.componentInstances),
-  };
+    }));
+  }
+
+  if (sdcpn.metrics) {
+    next.metrics = sdcpn.metrics.map((metric) => ({ ...metric }));
+  }
+
+  if (sdcpn.subnets) {
+    next.subnets = sdcpn.subnets.map(cloneSubnet);
+  }
+
+  if (sdcpn.componentInstances) {
+    next.componentInstances = cloneComponentInstances(sdcpn.componentInstances);
+  }
 
   stripDisabledExtensionData(next, extensions);
 
   if (!extensions.subnets) {
-    next.subnets = undefined;
-    next.componentInstances = undefined;
+    delete next.subnets;
+    delete next.componentInstances;
   }
 
   return next;

@@ -282,16 +282,16 @@ pub(crate) mod color {
                 let rgb = if v.len() == 4 {
                     // For 3-digit hex colors (#RGB), each digit is duplicated to get the 6-digit
                     // form (#RRGGBB) For example, #F00 becomes #FF0000
-                    let r = u8::from_ascii_radix(&bytes[1..2], 16).map_err(E::custom)?;
-                    let g = u8::from_ascii_radix(&bytes[2..3], 16).map_err(E::custom)?;
-                    let b = u8::from_ascii_radix(&bytes[3..4], 16).map_err(E::custom)?;
+                    let r = u8::from_ascii_bytes_radix(&bytes[1..2], 16).map_err(E::custom)?;
+                    let g = u8::from_ascii_bytes_radix(&bytes[2..3], 16).map_err(E::custom)?;
+                    let b = u8::from_ascii_bytes_radix(&bytes[3..4], 16).map_err(E::custom)?;
 
                     // Duplicate each digit
                     RgbColor((r << 4) | r, (g << 4) | g, (b << 4) | b)
                 } else {
-                    let r = u8::from_ascii_radix(&bytes[1..3], 16).map_err(E::custom)?;
-                    let g = u8::from_ascii_radix(&bytes[3..5], 16).map_err(E::custom)?;
-                    let b = u8::from_ascii_radix(&bytes[5..7], 16).map_err(E::custom)?;
+                    let r = u8::from_ascii_bytes_radix(&bytes[1..3], 16).map_err(E::custom)?;
+                    let g = u8::from_ascii_bytes_radix(&bytes[3..5], 16).map_err(E::custom)?;
+                    let b = u8::from_ascii_bytes_radix(&bytes[5..7], 16).map_err(E::custom)?;
 
                     RgbColor(r, g, b)
                 };

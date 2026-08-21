@@ -2,6 +2,8 @@ export interface Product {
   id: string;
   name: string;
   material: string;
+  /** Site artifact slug used to load site-scoped analysis data. */
+  site_id?: string;
 }
 
 export interface AnalysisSettings {
@@ -39,10 +41,26 @@ export type StepType =
   | "transit"
   | "destination_dwell";
 
+export type TimingGrain = "campaign" | "batch";
+
+/** Customer-order-only waterfall segments; never used by graph nodes. */
+export type CustomerSegmentType = "order_wait" | "fulfilment";
+
 export interface CostData {
   unit_price: number | null;
   currency: string | null;
   unit_price_source?: string | null;
+}
+
+export interface MaterialValueData {
+  unit_cost: number;
+  currency: string;
+  unit_cost_source: string | null;
+  uom: string | null;
+  monthly: Array<{
+    month: string;
+    quantity: number;
+  }>;
 }
 
 /**
@@ -59,6 +77,100 @@ export interface StepSource {
   label: string;
   n: number;
   filter?: string | null;
+}
+
+export interface PlanningWarning {
+  code: string;
+  level: "info" | "warning";
+  text: string;
+}
+
+export interface ProcurementPlanningSource {
+  label: string;
+  system: string;
+  table: string;
+  source_id: string | null;
+  material: string;
+  site: string;
+  supplier_id: string | null;
+  basis: string | null;
+  plan_days: number | null;
+  dock_to_stock_days: number | null;
+  match_level: string;
+  priority?: number | null;
+  effective_in_date?: string | null;
+  effective_out_date?: string | null;
+  contract_valid_to?: string | null;
+}
+
+export interface InventoryPolicySource {
+  system: string;
+  table: string;
+  field?: string;
+  minimum_field?: string;
+  multiple_field?: string;
+}
+
+export interface InventoryPolicy {
+  material: string;
+  plant: string;
+  minimum_order_qty: number | null;
+  order_multiple_qty: number | null;
+  order_uom: string | null;
+  minimum_order_source: InventoryPolicySource | null;
+  safety_stock_qty: number | null;
+  safety_stock_uom: string | null;
+  safety_stock_source: InventoryPolicySource | null;
+  warnings: PlanningWarning[];
+}
+
+export type ProcurementPlanningAlternative = Record<string, unknown> & {
+  label: string;
+  plan_days: number | null;
+};
+
+export type ProcurementReceiptBasis =
+  | "ordinary"
+  | "consignment"
+  | "subcontract"
+  | "mixed"
+  | "unknown";
+
+export type ProcurementPlanMatchStatus =
+  | "matched"
+  | "matched_wrong_basis"
+  | "missing_profile"
+  | "missing_supplier"
+  | "mixed_basis"
+  | "ambiguous";
+
+export interface ProcurementPlanningCandidate {
+  candidate_id: string;
+  supplier_id: string | null;
+  basis: string | null;
+  plan_days: number | null;
+  dock_to_stock_days?: number | null;
+  priority?: number | null;
+  effective_in_date?: string | null;
+  effective_out_date?: string | null;
+}
+
+export interface ProcurementPlanningProfile {
+  id: string;
+  material: string;
+  plant: string;
+  supplier_id: string | null;
+  supplier_name: string | null;
+  receipt_basis: ProcurementReceiptBasis;
+  plan_days: number | null;
+  /** Retained for future use but intentionally not presented as a UI metric. */
+  dock_to_stock_days?: number | null;
+  provenance: "profile" | "fallback";
+  match_status: ProcurementPlanMatchStatus;
+  planning_warnings?: PlanningWarning[];
+  planning_source?: ProcurementPlanningSource | null;
+  planning_alternatives?: ProcurementPlanningAlternative[];
+  candidate_ids?: string[];
 }
 
 /**
@@ -87,6 +199,8 @@ export interface GraphNode {
   label: string;
   type: StepType;
   material: string | null;
+  /** Human-readable material description; optional only for legacy artifacts. */
+  material_name?: string | null;
   plant: string;
   stats: StepStats;
   plan: number | null;
@@ -94,7 +208,12 @@ export interface GraphNode {
   /** Client-derived from the active timing series and `plan`; omitted on the wire. */
   pct_exceeding_plan?: number | null;
   cost: CostData | null;
+  material_value?: MaterialValueData | null;
   observations?: Observation[];
+  /** Client-derived Tukey-kept timing points used only for mean trends. */
+  mean_observations?: Observation[];
+  /** QA timing grain; omitted interpreted as batch. */
+  timing_grain?: TimingGrain | null;
   /** Client-side cache of combined procurement node observations from the wire. */
   procurement_observations?: ProcurementNodeObservation[];
   monthly?: MonthlyBucket[];
@@ -103,6 +222,7 @@ export interface GraphNode {
   /** Client-computed exclusion rate (%) under the current outlier setting. */
   excluded_pct?: number;
   n_batches?: number;
+  n_campaigns?: number;
   n_movements?: number;
   /** Recomputed client-side from `yield_series` under window + outlier; not shipped by the generator. */
   yield_summary?: YieldSummary | null;
@@ -135,6 +255,22 @@ export interface GraphNode {
    * future batches.
    */
   in_current_recipe?: boolean | null;
+  supplier_id?: string | null;
+  supplier_name?: string | null;
+  receipt_basis?: ProcurementReceiptBasis | null;
+  planning_profile_id?: string | null;
+  plan_match_status?: ProcurementPlanMatchStatus | null;
+  planning_source?: ProcurementPlanningSource | null;
+  planning_alternatives?: ProcurementPlanningAlternative[];
+  planning_warnings?: PlanningWarning[];
+  inventory_policy?: InventoryPolicy | null;
+  observation_grain?: string | null;
+  po_item_count?: number | null;
+  po_item_ids?: string[];
+  planning_profile?: ProcurementPlanningProfile | null;
+  planning_profiles?: ProcurementPlanningCandidate[];
+  /** Retained for a future receiving-process comparison; not rendered directly. */
+  dock_to_stock_days?: number | null;
 }
 
 export interface GraphEdge {
@@ -146,9 +282,12 @@ export interface GraphEdge {
 export interface PipelineStage {
   id: string;
   label: string;
-  type: StepType;
+  type: StepType | CustomerSegmentType;
   mean: number;
   median: number;
+  /** Optional percentile values used by raw-row-derived pipelines. */
+  p75?: number;
+  p95?: number;
   pct_of_total: number;
   n?: number;
 }
@@ -158,6 +297,32 @@ export interface PipelineSummary {
   stages: PipelineStage[];
   total_mean: number;
   total_median: number;
+  /** Quantiles of complete end-to-end observations, not sums of stage quantiles. */
+  total_p75?: number;
+  total_p95?: number;
+}
+
+/** Aggregate customer-order arrival point over a production pipeline row. */
+export interface PipelineOrderMarker {
+  /** Position along the traced production pipeline, clamped to 0..100. */
+  positionPct: number;
+  /** Typical order-created to route-endpoint lead time for these order lines. */
+  daysBeforeRouteEndpoint: number;
+  n: number;
+  routeLabel: string;
+  /** Eligible order lines across all routes under the active window/outliers. */
+  totalOrderLines: number;
+  /** Observations whose order predates the first currently visible anchor. */
+  beforeVisibleCount: number;
+  /** Aggregate marker falls before the first visible pipeline segment. */
+  beforeTrace: boolean;
+  /** Aggregate marker falls at or after the last visible pipeline segment. */
+  afterTrace: boolean;
+}
+
+export interface PipelineOrderMarkers {
+  mean?: PipelineOrderMarker;
+  median?: PipelineOrderMarker;
 }
 
 export interface BatchTimelineSegment {
@@ -166,6 +331,7 @@ export interface BatchTimelineSegment {
   median: number;
   p25: number;
   p75: number;
+  p95: number;
   n: number;
 }
 
@@ -251,6 +417,55 @@ export interface BatchTimelines {
   detail_columns?: DetailColumn[];
 }
 
+/** Segment keys carried on each customer-order line (durations in days). */
+export type OrderSegmentKey =
+  | "seg_order_to_delivery"
+  | "seg_delivery_to_dispatch"
+  | "total_days";
+
+export type FulfilmentSource = "from_stock" | "awaited_production" | "unknown";
+
+/** Raw customer sales-order line emitted by the analysis generator. */
+export interface OrderLineRow {
+  sales_order: string;
+  so_item: string;
+  /** Destination route for this delivered portion of the sales-order line. */
+  route?: string | null;
+  /** Observed endpoint for this delivery route (customer arrival or hub exit). */
+  route_endpoint_date?: string | null;
+  customer: string | null;
+  country: string | null;
+  order_created: string;
+  delivery_created: string | null;
+  /** Last actual goods issue; the client-side analysis-window anchor. */
+  dispatch_date: string;
+  n_deliveries: number;
+  order_qty: number | null;
+  delivered_qty: number | null;
+  /** SAP sales unit (LIPS.VRKME) for `delivered_qty`. */
+  delivered_qty_uom?: string | null;
+  /** Distinct delivered batches; links the line to batch_timelines. */
+  batches: string[];
+  batch_available: string | null;
+  fulfilment: FulfilmentSource;
+  /** Sales order appears in MSEG.KDAUF (formal make-to-order pegging). */
+  mto_pegged: boolean;
+  seg_order_to_delivery: number | null;
+  seg_delivery_to_dispatch: number | null;
+  total_days: number | null;
+}
+
+export interface OrderTimelines {
+  lines: OrderLineRow[];
+  /** Non-rejected order lines with no goods issue. */
+  open_lines?: number;
+  /** Non-identifying creation dates used to calculate open-order age. */
+  open_order_created_dates?: string[];
+  /** Latest order or goods-issue date in the static extract. */
+  observed_as_of?: string | null;
+  detail_columns?: DetailColumn[];
+}
+
 /** One candidate "next-binding chain" entry. The chain is identified by
  * its leaf step (chains are leaf-first); `label` is the leaf step's
  * human-readable name; `share` is the fraction of binding batches where
@@ -286,8 +501,8 @@ export interface BindingScore {
 }
 
 export interface GraphData {
-  /** Data contract version (e.g. "1.0"). */
-  schema_version?: string;
+  /** Procurement planning data contract version. */
+  schema_version?: "1.2" | "1.3";
   analysis_settings?: AnalysisSettings | null;
   product_id: string;
   product_name: string;
@@ -295,6 +510,7 @@ export interface GraphData {
   edges: GraphEdge[];
   pipeline_summary: Record<string, PipelineSummary>;
   batch_timelines?: BatchTimelines;
+  order_timelines?: OrderTimelines;
 }
 
 export type RawGraphData = Omit<GraphData, "pipeline_summary"> & {
@@ -350,6 +566,8 @@ export interface ProcurementNodeObservation {
 export interface TimingSeries {
   label?: string;
   observations: Observation[];
+  /** Client-derived Tukey-kept timing points used only for mean calculations. */
+  mean_observations?: Observation[];
   monthly: MonthlyBucket[];
   stats: StepStats;
 }
@@ -485,13 +703,15 @@ export interface SiteData {
 }
 
 export interface StepDetail {
-  /** Data contract version (e.g. "1.0"). */
-  schema_version?: string;
+  /** Procurement planning data contract version. */
+  schema_version?: "1.2" | "1.3";
   id: string;
   label: string;
   type: StepType;
   durations: number[];
   observations: Observation[];
+  /** Client-derived Tukey-kept timing points used only for mean trends. */
+  mean_observations?: Observation[];
   monthly: MonthlyBucket[];
   stats: StepStats;
   /** Client-computed by the Tukey IQR outlier selection (lib/utils); not shipped by the generator. */
@@ -503,12 +723,22 @@ export interface StepDetail {
   /** Client-derived from the active timing series and `plan`; omitted on the wire. */
   pct_exceeding_plan?: number | null;
   cost: CostData | null;
+  material_value?: MaterialValueData | null;
+  /**
+   * QA observation grain. Campaign timing is one observation per
+   * campaign; omitted is interpreted as batch.
+   */
+  timing_grain?: TimingGrain | null;
+  /**
+   * Canonical campaign-level timing records. When present these take precedence
+   * over `detail_rows`, which remains the underlying batch evidence.
+   */
+  campaign_rows?: DetailRows | null;
   detail_rows?: DetailRows | null;
   ref_date_col?: string | null;
   /**
-   * Canonical value column within `detail_rows.rows`. With `ref_date_col`, the
-   * timing series (observations/durations/monthly/stats) is fully derivable from
-   * `detail_rows` on load.
+   * Canonical value column within the selected timing rows. Campaign timing
+   * derives from `campaign_rows`; legacy timing derives from `detail_rows`.
    */
   value_col?: string | null;
   /**
@@ -523,6 +753,7 @@ export interface StepDetail {
    * the inactive first/last receipt basis after deriving both from detail rows.
    */
   complete_timing?: TimingSeries | null;
+  n_campaigns?: number;
   n_batches?: number;
   n_movements?: number;
   yield_data?: YieldData | null;
@@ -534,6 +765,22 @@ export interface StepDetail {
    * `normalized_days` value column is scaled to. Null/absent otherwise.
    */
   normalization?: StepNormalization | null;
+  supplier_id?: string | null;
+  supplier_name?: string | null;
+  receipt_basis?: ProcurementReceiptBasis | null;
+  planning_profile_id?: string | null;
+  plan_match_status?: ProcurementPlanMatchStatus | null;
+  planning_source?: ProcurementPlanningSource | null;
+  planning_alternatives?: ProcurementPlanningAlternative[];
+  planning_warnings?: PlanningWarning[];
+  inventory_policy?: InventoryPolicy | null;
+  observation_grain?: string | null;
+  po_item_count?: number | null;
+  po_item_ids?: string[];
+  planning_profile?: ProcurementPlanningProfile | null;
+  planning_profiles?: ProcurementPlanningCandidate[];
+  /** Retained for a future receiving-process comparison; not rendered directly. */
+  dock_to_stock_days?: number | null;
 }
 
 /**
@@ -649,8 +896,8 @@ export interface ProcurementSupplierBlock {
  * every plant. Drives the SiteOverview leaderboard and vendor slideover.
  */
 export interface SiteSupplierPerformance {
-  /** Data contract version (e.g. "1.0"). */
-  schema_version?: string;
+  /** Procurement planning data contract version. */
+  schema_version?: "1.2" | "1.3";
   generated_at: string;
   overall: {
     n_lines: number;
@@ -704,7 +951,7 @@ export interface SiteSummaryRollups {
 
 /** `site/{siteId}/summary.json` — the precomputed site overview artifact. */
 export interface SiteSummary {
-  schema_version?: string;
+  schema_version?: "1.2" | "1.3";
   analysis_settings?: AnalysisSettings | null;
   site_id: string;
   generated_at: string;

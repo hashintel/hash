@@ -4,6 +4,8 @@ import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
+import { STEP_TYPE_LABELS, STEP_TYPE_ORDER } from "../../shared/categories";
+import { PlanningWarningIndicator } from "../../shared/planning-warning-indicator";
 import {
   compareStatusLabels,
   deriveStatusActionState,
@@ -19,7 +21,7 @@ import { ColumnHeader } from "./shared/column-header";
 import { ProductTags } from "./shared/product-tags";
 import * as threshold from "./shared/table-styles";
 
-import type { SiteNode } from "../../shared/types";
+import type { SiteNode, StepType } from "../../shared/types";
 import type { OpportunityKind, SiteOpportunity } from "./opportunities";
 import type { SortDir, SortKey } from "./shared/row-types";
 
@@ -80,6 +82,7 @@ const pillGood = css({
   bg: "status.success.bg.subtle",
 });
 const titleCell = css({ display: "flex", flexDirection: "column", gap: "1" });
+const titleLine = css({ display: "flex", alignItems: "center", gap: "1.5" });
 const titleText = css({ fontWeight: "medium", color: "fg.heading" });
 const impactBase = css({
   display: "inline-flex",
@@ -125,6 +128,10 @@ const sampleBadge = css({
 const sampleGood = css({
   color: "status.success.fg.body",
   bg: "status.success.bg.subtle",
+});
+const sampleLimited = css({
+  color: "status.warning.fg.body",
+  bg: "status.warning.bg.subtle",
 });
 const sampleBad = css({
   color: "status.error.fg.body",
@@ -208,9 +215,6 @@ const OPPORTUNITY_SECTIONS: OpportunitySection[] = [
   { id: "planning_under", label: "Under plan", kinds: ["planning_under"] },
 ];
 
-const kindLabel = (kind: OpportunityKind): string =>
-  OPPORTUNITY_SECTIONS.find((section) => section.id === kind)?.label ?? kind;
-
 interface OpportunitiesTableProps {
   opportunities: SiteOpportunity[];
   /** Route site slug; scopes status keys to the global store. */
@@ -220,8 +224,8 @@ interface OpportunitiesTableProps {
   onStatus: (node: SiteNode, title: string) => void;
   sort: { key: SortKey; dir: SortDir } | null;
   onSort: (next: { key: SortKey; dir: SortDir }) => void;
-  typeHidden: Set<OpportunityKind>;
-  onTypeHiddenChange: (next: Set<OpportunityKind>) => void;
+  typeHidden: Set<StepType>;
+  onTypeHiddenChange: (next: Set<StepType>) => void;
   productHidden: Set<string>;
   onProductHiddenChange: (next: Set<string>) => void;
   statusHidden: Set<StatusActionLabel>;
@@ -300,6 +304,9 @@ function sampleTooltip(opportunity: SiteOpportunity) {
 function sampleClass(label: string): string {
   if (label === "Good sample") {
     return sampleGood;
+  }
+  if (label === "Limited sample") {
+    return sampleLimited;
   }
   return sampleBad;
 }
@@ -387,14 +394,14 @@ export const OpportunitiesTable = ({
   );
 
   const typeFilter = useMemo(() => {
-    const values = OPPORTUNITY_SECTIONS.map((section) => section.id).filter(
-      (kind) => opportunities.some((opportunity) => opportunity.kind === kind),
+    const values = STEP_TYPE_ORDER.filter((stepType) =>
+      opportunities.some((opportunity) => opportunity.node.type === stepType),
     );
-    return buildColumnFilter<OpportunityKind>({
-      header: "Type",
+    return buildColumnFilter<StepType>({
+      header: "Step type",
       values,
-      labelOf: kindLabel,
-      counts: countBy(opportunities, (opportunity) => opportunity.kind),
+      labelOf: (stepType) => STEP_TYPE_LABELS[stepType],
+      counts: countBy(opportunities, (opportunity) => opportunity.node.type),
       hidden: typeHidden,
       onHiddenChange: onTypeHiddenChange,
       searchable: false,
@@ -445,12 +452,11 @@ export const OpportunitiesTable = ({
     const passesStatus = (opportunity: SiteOpportunity) =>
       !statusHidden.has(statusOf(opportunity));
 
-    return OPPORTUNITY_SECTIONS.filter(
-      (section) => !typeHidden.has(section.id),
-    ).map((section) => {
+    return OPPORTUNITY_SECTIONS.map((section) => {
       const items = opportunities.filter(
         (opportunity) =>
           section.kinds.includes(opportunity.kind) &&
+          !typeHidden.has(opportunity.node.type) &&
           passesProduct(opportunity) &&
           passesStatus(opportunity),
       );
@@ -614,7 +620,16 @@ export const OpportunitiesTable = ({
                       </td>
                       <td className={threshold.td}>
                         <div className={titleCell}>
-                          <span className={titleText}>{opportunity.title}</span>
+                          <div className={titleLine}>
+                            <span className={titleText}>
+                              {opportunity.title}
+                            </span>
+                            {opportunity.node.type === "procurement" && (
+                              <PlanningWarningIndicator
+                                warnings={opportunity.node.planning_warnings}
+                              />
+                            )}
+                          </div>
                           <ProductTags products={opportunity.products} />
                         </div>
                       </td>
@@ -651,7 +666,13 @@ export const OpportunitiesTable = ({
                               sampleClass(opportunity.confidenceLabel),
                             )}
                           >
-                            {opportunity.confidenceLabel}
+                            {opportunity.confidenceLabel === "Low sample"
+                              ? "low"
+                              : opportunity.confidenceLabel === "Limited sample"
+                                ? "limited"
+                                : opportunity.confidenceLabel === "Good sample"
+                                  ? "good"
+                                  : opportunity.confidenceLabel}
                           </span>
                         </Tooltip>
                       </td>

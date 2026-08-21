@@ -8,12 +8,12 @@ use crate::store::postgres::query::{Expression, Identifier, TableReference, Tran
 /// or the special `*` wildcard to select all columns from a table or all tables.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SelectExpression {
-    /// A regular expression with an optional alias.
+    /// A regular expression with an optional output name.
     ///
-    /// Transpiles to: `expression` or `expression AS "alias"`.
+    /// Transpiles to: `expression` or `expression AS "output_name"`.
     Expression {
         expression: Expression,
-        alias: Option<Identifier<'static>>,
+        output_name: Option<Identifier<'static>>,
     },
     /// Asterisk wildcard selecting all columns.
     ///
@@ -48,11 +48,14 @@ impl SelectExpression {
 impl Transpile for SelectExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Expression { expression, alias } => {
+            Self::Expression {
+                expression,
+                output_name,
+            } => {
                 expression.transpile(fmt)?;
-                if let Some(alias) = alias {
+                if let Some(output_name) = output_name {
                     fmt.write_str(" AS ")?;
-                    alias.transpile(fmt)?;
+                    output_name.transpile(fmt)?;
                 }
                 Ok(())
             }
@@ -71,7 +74,7 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, Function, PostgresQueryPath as _, Table, TableName, WindowStatement,
+        Alias, Function, PostgresQueryPath as _, Table, TableName, WindowDefinition,
     };
 
     #[test]
@@ -88,7 +91,7 @@ mod tests {
                             number: 3,
                         })
                 ),
-                alias: None
+                output_name: None
             }
             .transpile_to_string(),
             r#""ontology_ids_1_2_3"."base_url""#
@@ -96,20 +99,18 @@ mod tests {
 
         assert_eq!(
             SelectExpression::Expression {
-                expression: Expression::Window(
-                    Box::new(Expression::Function(Function::Max(Box::new(
-                        Expression::ColumnReference(
-                            DataTypeQueryPath::Version
-                                .terminating_column()
-                                .0
-                                .aliased(Alias {
-                                    condition_index: 1,
-                                    chain_depth: 2,
-                                    number: 3,
-                                })
-                        ),
+                expression: Expression::window(
+                    Expression::Function(Function::Max(Box::new(Expression::ColumnReference(
+                        DataTypeQueryPath::Version
+                            .terminating_column()
+                            .0
+                            .aliased(Alias {
+                                condition_index: 1,
+                                chain_depth: 2,
+                                number: 3,
+                            })
                     )))),
-                    WindowStatement::partition_by(Expression::ColumnReference(
+                    WindowDefinition::builder().partition_by(Expression::ColumnReference(
                         DataTypeQueryPath::BaseUrl
                             .terminating_column()
                             .0
@@ -120,7 +121,7 @@ mod tests {
                             })
                     ))
                 ),
-                alias: Some(Identifier::from("latest_version"))
+                output_name: Some(Identifier::from("latest_version"))
             }
             .transpile_to_string(),
             r#"MAX("ontology_ids_1_2_3"."version") OVER (PARTITION BY "ontology_ids_1_2_3"."base_url") AS "latest_version""#
@@ -137,7 +138,6 @@ mod tests {
         let table_ref = TableReference {
             schema: None,
             name: TableName::from(Table::DataTypes),
-            alias: None,
         };
 
         assert_eq!(

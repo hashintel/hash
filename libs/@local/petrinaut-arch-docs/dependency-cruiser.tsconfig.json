@@ -1,0 +1,42 @@
+{
+  "//": "Used only by the architecture generator, to give dependency-cruiser's TypeScript resolver the workspace path mappings. Moved here from petrinaut-core when the hand-written diagram script was retired, so the config lives with its only consumer.",
+  "compilerOptions": {
+    "baseUrl": "../../..",
+    "paths": {
+      "@hashintel/petrinaut-core": [
+        "libs/@hashintel/petrinaut-core/src/index.ts"
+      ],
+      "@hashintel/petrinaut-core/examples": [
+        "libs/@hashintel/petrinaut-core/src/examples/index.ts"
+      ],
+      "@hashintel/petrinaut-core/hir": [
+        "libs/@hashintel/petrinaut-core/src/hir.ts"
+      ],
+      "@hashintel/petrinaut-core/hir-runtime": [
+        "libs/@hashintel/petrinaut-core/src/hir-runtime.ts"
+      ],
+      "@hashintel/petrinaut-core/ai": [
+        "libs/@hashintel/petrinaut-core/src/ai.ts"
+      ],
+      "@hashintel/petrinaut-core/compiled-model": [
+        "libs/@hashintel/petrinaut-core/src/compiled-model.ts"
+      ],
+      "@hashintel/petrinaut-core/optimization": [
+        "libs/@hashintel/petrinaut-core/src/optimization.ts"
+      ],
+      "@hashintel/petrinaut-core/workers/lsp": [
+        "libs/@hashintel/petrinaut-core/src/workers/lsp.ts"
+      ],
+      "@hashintel/petrinaut-core/workers/monte-carlo": [
+        "libs/@hashintel/petrinaut-core/src/workers/monte-carlo.ts"
+      ],
+      "@hashintel/petrinaut-core/workers/simulation": [
+        "libs/@hashintel/petrinaut-core/src/workers/simulation.ts"
+      ]
+    }
+  },
+  "include": [
+    "../../@hashintel/petrinaut-core/src",
+    "../../@hashintel/petrinaut/src"
+  ]
+}

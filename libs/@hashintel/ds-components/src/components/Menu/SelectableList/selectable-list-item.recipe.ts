@@ -70,7 +70,8 @@ export const styles = sva({
     },
     tick: {},
     checkbox: {
-      border: "1px solid",
+      borderWidth: "1px",
+      borderStyle: "solid",
       borderColor: "bd.solid",
       borderRadius: "sm",
       backgroundColor: "white",
@@ -191,7 +192,7 @@ export const styles = sva({
         item: {
           color: "blue.s90",
           "&[data-highlighted]": {
-            backgroundColor: "blue.a30",
+            backgroundColor: "blue.a25",
           },
         },
       },
@@ -199,13 +200,20 @@ export const styles = sva({
         item: {
           color: "red.s90",
           "&[data-highlighted]": {
-            backgroundColor: "red.a30",
+            backgroundColor: "red.a25",
           },
         },
       },
     },
-    highlighted: {
-      true: {},
+    selectedTone: {
+      neutral: {},
+      brand: {},
+      error: {},
+    },
+    selectedStyle: {
+      tick: {},
+      checkbox: {},
+      highlight: {},
     },
     selected: {
       true: {
@@ -219,8 +227,42 @@ export const styles = sva({
   },
   compoundVariants: [
     {
-      tone: "neutral",
-      highlighted: true,
+      selectedTone: "neutral",
+      selectedStyle: "highlight",
+      css: {
+        item: {
+          "&[data-highlighted]": {
+            backgroundColor: "neutral.a25",
+          },
+        },
+      },
+    },
+    {
+      selectedTone: "brand",
+      selectedStyle: "highlight",
+      css: {
+        item: {
+          "&[data-highlighted]": {
+            backgroundColor: "blue.a25",
+          },
+        },
+      },
+    },
+    {
+      selectedTone: "error",
+      selectedStyle: "highlight",
+      css: {
+        item: {
+          "&[data-highlighted]": {
+            backgroundColor: "red.a25",
+          },
+        },
+      },
+    },
+    {
+      selectedTone: "neutral",
+      selectedStyle: "highlight",
+      selected: true,
       css: {
         item: {
           backgroundColor: "neutral.a35",
@@ -228,20 +270,57 @@ export const styles = sva({
       },
     },
     {
-      tone: "brand",
-      highlighted: true,
+      selectedTone: "brand",
+      selectedStyle: "highlight",
+      selected: true,
       css: {
         item: {
           backgroundColor: "blue.a40",
+          "&[data-selected][data-highlighted]": {
+            backgroundColor: "blue.a30",
+          },
         },
       },
     },
     {
-      tone: "error",
-      highlighted: true,
+      selectedTone: "error",
+      selectedStyle: "highlight",
+      selected: true,
       css: {
         item: {
           backgroundColor: "red.a40",
+          "&[data-selected][data-highlighted]": {
+            backgroundColor: "red.a30",
+          },
+        },
+      },
+    },
+    {
+      selectedTone: "neutral",
+      selected: true,
+      css: {
+        tick: { color: "fg.heading" },
+      },
+    },
+    {
+      selectedTone: "brand",
+      selected: true,
+      css: {
+        tick: { color: "blue.s90" },
+        checkbox: {
+          backgroundColor: "blue.s90",
+          borderColor: "blue.s90",
+        },
+      },
+    },
+    {
+      selectedTone: "error",
+      selected: true,
+      css: {
+        tick: { color: "red.s90" },
+        checkbox: {
+          backgroundColor: "red.s90",
+          borderColor: "red.s90",
         },
       },
     },
@@ -250,7 +329,8 @@ export const styles = sva({
     as: "Menu",
     size: "md",
     tone: "neutral",
-    highlighted: false,
+    selectedTone: "neutral",
+    selectedStyle: "highlight",
     selected: false,
   },
 });

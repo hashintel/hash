@@ -19,6 +19,7 @@ import {
   joinOrg,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
+import { userHasAccessToHash } from "@apps/hash-api/src/shared/user-has-access-to-hash";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -57,6 +58,7 @@ const logger = new Logger({
 const graphContext = createTestImpureGraphContext();
 
 const shortname = generateRandomShortname("userTest");
+const incompleteUserShortname = generateRandomShortname("incomplete");
 
 /**
  * Email addresses that are permitted to sign up in a test environment.
@@ -92,6 +94,14 @@ describe("User model class", () => {
       kratosIdentityId: identity.id,
       shortname,
       displayName: "Alice",
+    });
+
+    const { data: provisionedIdentity } = await kratosIdentityApi.getIdentity({
+      id: identity.id,
+    });
+
+    expect(provisionedIdentity.metadata_public).toStrictEqual({
+      graph_actor_id: createdUser.accountId,
     });
 
     expect(
@@ -276,6 +286,88 @@ describe("User model class", () => {
     }
   });
 
+  it("rejects registration when more than one email is submitted", async () => {
+    const email = `${generateRandomShortname("kratosRegister")}@example.com`;
+    const injectedEmail = `${generateRandomShortname("kratosInjected")}@example.com`;
+    const password = "password";
+
+    const { data: registrationFlow } =
+      await kratosFrontendApi.createNativeRegistrationFlow({});
+
+    try {
+      await expect(
+        kratosFrontendApi.updateRegistrationFlow({
+          flow: registrationFlow.id,
+          updateRegistrationFlowBody: {
+            method: "password",
+            password,
+            traits: {
+              emails: [email, injectedEmail],
+            },
+          },
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          status: 400,
+        },
+      });
+    } finally {
+      const [{ data: ownedIdentities }, { data: injectedIdentities }] =
+        await Promise.all([
+          kratosIdentityApi.listIdentities({
+            credentialsIdentifier: email,
+          }),
+          kratosIdentityApi.listIdentities({
+            credentialsIdentifier: injectedEmail,
+          }),
+        ]);
+
+      try {
+        expect(ownedIdentities).toHaveLength(0);
+        expect(injectedIdentities).toHaveLength(0);
+      } finally {
+        await Promise.all(
+          [...ownedIdentities, ...injectedIdentities].map((identity) =>
+            deleteKratosIdentity({ kratosIdentityId: identity.id }),
+          ),
+        );
+      }
+    }
+  });
+
+  it("does not grant access for an unverified allowlisted trait email", async () => {
+    const authentication = { actorId: systemAccountId };
+    const verifiedEmail = `${generateRandomShortname("access")}@example.com`;
+    const identity = await createKratosIdentity({
+      traits: {
+        emails: [verifiedEmail],
+      },
+      verifyEmails: true,
+    });
+
+    let user: User | undefined;
+
+    try {
+      user = await createUser(graphContext, authentication, {
+        emails: [verifiedEmail],
+        kratosIdentityId: identity.id,
+      });
+
+      await expect(
+        userHasAccessToHash(graphContext, authentication, {
+          ...user,
+          emails: [verifiedEmail, allowListedEmail],
+        }),
+      ).resolves.toEqual({ allowed: false });
+    } finally {
+      if (user) {
+        await deleteUser({ userId: user.accountId });
+      } else {
+        await deleteKratosIdentity({ kratosIdentityId: identity.id });
+      }
+    }
+  });
+
   it("can join an org", async () => {
     const authentication = { actorId: systemAccountId };
     const testOrg = await createTestOrg(
@@ -430,7 +522,7 @@ describe("User model class", () => {
           op: "add",
           path: [systemPropertyTypes.shortname.propertyTypeBaseUrl],
           property: {
-            value: "incomplete",
+            value: incompleteUserShortname,
             metadata: {
               dataTypeId: blockProtocolDataTypes.text.dataTypeId,
             },

@@ -7,25 +7,10 @@ import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
   title: "Components/Icon",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
-    name: {
-      control: {
-        type: "select",
-        options: iconNames,
-      },
-    },
-    size: {
-      control: {
-        type: "select",
-        options: formInputSizes,
-      },
-    },
-    alt: {
-      control: { type: "text" },
-    },
+    name: { control: { type: "select" }, options: iconNames },
+    size: { control: { type: "select" }, options: formInputSizes },
+    alt: { control: { type: "text" } },
   },
   args: {
     name: "star",
@@ -59,10 +44,6 @@ export const Sizes: Story<React.ComponentProps<typeof Icon>> = (args) => (
     ))}
   </div>
 );
-
-Sizes.parameters = {
-  controls: { exclude: ["size"] },
-};
 
 const iconGrid = (args: React.ComponentProps<typeof Icon>, styles?: Styles) => (
   <div
@@ -106,12 +87,6 @@ const iconGrid = (args: React.ComponentProps<typeof Icon>, styles?: Styles) => (
 
 export const Default: Story<React.ComponentProps<typeof Icon>> = (args) =>
   iconGrid(args);
-Default.parameters = {
-  controls: { exclude: ["name"], disabled: true },
-};
 
 export const ColoredIcons: Story<React.ComponentProps<typeof Icon>> = (args) =>
   iconGrid(args, { color: "red.s80" });
-ColoredIcons.parameters = {
-  controls: { exclude: ["name"], disabled: true },
-};

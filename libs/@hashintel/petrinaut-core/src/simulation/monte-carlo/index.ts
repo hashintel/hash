@@ -1,4 +1,5 @@
 export { createMonteCarloSimulator } from "./monte-carlo-simulator";
+export { deriveRunSeed } from "./run-state";
 export {
   addAllMonteCarloMetricValues,
   createMonteCarloMetricHistogramAccumulator,

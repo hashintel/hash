@@ -30,19 +30,12 @@ const ControlledRadio = ({
 
 export default {
   title: "Components/Radio",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
-    tone: {
-      control: { type: "select", options: tones },
-    },
-    size: {
-      control: { type: "select", options: formInputSizes },
-    },
+    tone: { control: { type: "select" }, options: tones },
+    size: { control: { type: "select" }, options: formInputSizes },
     disabled: { control: { type: "boolean" } },
     invalid: { control: { type: "boolean" } },
-    labelPlacement: { control: { type: "select", options: labelPlacements } },
+    labelPlacement: { control: { type: "select" }, options: labelPlacements },
     label: { control: { type: "text" } },
   },
   args: {
@@ -114,7 +107,7 @@ const labelClass = css({
   color: "neutral.s80",
 });
 
-export const Default: Story<RadioProps> = () => (
+export const Default: Story<RadioProps> = (args) => (
   <div
     className={css({
       display: "grid",
@@ -130,9 +123,14 @@ export const Default: Story<RadioProps> = () => (
     {examples.map(({ label, props, defaultValue, withDisabled }) => (
       <Fragment key={label}>
         <span className={labelClass}>{label}</span>
-        <ControlledRadio {...props} defaultValue={defaultValue} />
+        <ControlledRadio {...args} {...props} defaultValue={defaultValue} />
         {withDisabled ? (
-          <ControlledRadio {...props} disabled defaultValue={defaultValue} />
+          <ControlledRadio
+            {...args}
+            {...props}
+            disabled
+            defaultValue={defaultValue}
+          />
         ) : (
           <span />
         )}
@@ -141,13 +139,7 @@ export const Default: Story<RadioProps> = () => (
   </div>
 );
 
-Default.parameters = {
-  actions: { disable: true },
-  interactions: { disable: true },
-  controls: { disable: true },
-};
-
-export const Sizes: Story<RadioProps> = () => (
+export const Sizes: Story<RadioProps> = (args) => (
   <div
     className={css({
       display: "flex",
@@ -173,9 +165,10 @@ export const Sizes: Story<RadioProps> = () => (
         >
           {size}
         </span>
-        <ControlledRadio size={size} defaultValue />
-        <ControlledRadio size={size} label="Label" defaultValue />
+        <ControlledRadio {...args} size={size} defaultValue />
+        <ControlledRadio {...args} size={size} label="Label" defaultValue />
         <ControlledRadio
+          {...args}
           size={size}
           label="I agree to the terms of service and privacy policy"
           className={wrappingLabelClass}
@@ -185,9 +178,3 @@ export const Sizes: Story<RadioProps> = () => (
     ))}
   </div>
 );
-
-Sizes.parameters = {
-  actions: { disable: true },
-  interactions: { disable: true },
-  controls: { disable: true },
-};

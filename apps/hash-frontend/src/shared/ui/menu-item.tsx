@@ -25,7 +25,7 @@ export const MenuItem = forwardRef<HTMLLIElement | null, MenuItemProps>(
 
     if (href) {
       return (
-        <Link noLinkStyle href={href}>
+        <Link noLinkStyle href={href} draggable={false}>
           {Component}
         </Link>
       );

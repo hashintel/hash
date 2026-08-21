@@ -1,16 +1,39 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { createPortal } from "react-dom";
 
-import { usePortalContainerRef } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import {
+  Button,
+  Select,
+  usePortalContainerRef,
+  type SelectItem,
+} from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
+import { useUsers } from "../../../components/hooks/use-users";
+import { useAuthInfo } from "../../shared/auth-info-context";
+import { useScope } from "./scope-context";
 import {
   STATUS_OPTIONS,
   statusCommentRequired,
+  statusTokensToPlainText,
+  type StatusEntry,
   type StatusOption,
 } from "./status";
+import { StatusBody } from "./status-body";
+import {
+  StatusEditor,
+  type StatusEditorHandle,
+} from "./status-dialog/status-editor";
 import { trackSupplyChainInteraction } from "./telemetry";
 
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 // `popover` sits above the slide-over (`modal`), so the dialog appears over an
 // open step detail panel rather than behind it.
 const backdrop = css({
@@ -48,39 +71,68 @@ const headerRow = css({
   gap: "3",
 });
 const titleStyle = css({
-  textStyle: "lg",
+  textStyle: "base",
   fontWeight: "semibold",
   color: "fg.heading",
 });
-const subtitle = css({ textStyle: "xs", color: "fg.subtle" });
 const body = css({
+  display: "flex",
+  flexDirection: "column",
+});
+const historySection = css({
+  px: "5",
+  py: "4",
+  borderBottomWidth: "1px",
+  borderColor: "bd.subtle",
+});
+const statusFields = css({
   px: "5",
   py: "4",
   display: "flex",
   flexDirection: "column",
   gap: "4",
 });
-const radioStack = css({ display: "flex", flexDirection: "column", gap: "2" });
-const radioLabel = css({
+const history = css({
   display: "flex",
-  alignItems: "center",
+  flexDirection: "column",
   gap: "2",
-  textStyle: "sm",
-  color: "fg.heading",
-  cursor: "pointer",
+  minH: "0",
+  maxH: "[min(240px,35dvh)]",
+  flexShrink: "1",
+  overflowY: "auto",
 });
-const textarea = css({
-  minH: "28",
-  resize: "vertical",
+const historyEntry = css({
   borderWidth: "1px",
   borderStyle: "solid",
   borderColor: "bd.subtle",
   borderRadius: "md",
   px: "3",
   py: "2",
-  textStyle: "sm",
+});
+const historyMeta = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "3",
+  textStyle: "xs",
+  color: "fg.subtle",
+});
+const historyCategory = css({
+  fontWeight: "medium",
   color: "fg.heading",
-  bg: "bgSolid.min",
+});
+const historyComment = css({
+  mt: "1",
+  textStyle: "sm",
+  color: "fg.muted",
+  whiteSpace: "pre-wrap",
+});
+const fieldLabel = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  textStyle: "xs",
+  color: "fg.subtle",
 });
 const errorText = css({ textStyle: "xs", color: "status.error.fg.body" });
 const footer = css({
@@ -92,42 +144,43 @@ const footer = css({
   justifyContent: "flex-end",
   gap: "2",
 });
+
 // Save is first in DOM (so it's the first tab stop after the textarea) but
 // rendered on the right via flex order; Cancel keeps the left slot.
 const saveOrder = css({ order: "1" });
 const cancelOrder = css({ order: "0" });
-const button = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  borderRadius: "sm",
-  borderWidth: "1px",
-  borderStyle: "solid",
-  borderColor: "bd.subtle",
-  px: "2.5",
-  py: "1",
-  textStyle: "xs",
-  lineHeight: "none",
-  fontWeight: "medium",
-  color: "fg.muted",
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-  _hover: { borderColor: "bd.strong", color: "fg.heading" },
-});
-const primaryButton = css({
-  bg: "fg.heading",
-  color: "bgSolid.min",
-  borderColor: "fg.heading",
-  _hover: { bg: "fg.muted", color: "bgSolid.min" },
-});
 
 const DEFAULT_STATUS: StatusOption = "Investigation started";
+const latestStatusCategory = (
+  entries: readonly StatusEntry[],
+): StatusOption => {
+  const latestCategory = entries.reduce<StatusEntry | undefined>(
+    (latestEntry, entry) =>
+      !latestEntry || entry.at > latestEntry.at ? entry : latestEntry,
+    undefined,
+  )?.category;
+
+  return latestCategory === "Investigation started"
+    ? "Investigation update"
+    : (latestCategory ?? DEFAULT_STATUS);
+};
+const statusItems: SelectItem<StatusOption>[] = STATUS_OPTIONS.map(
+  (option) => ({
+    value: option,
+    text: option,
+  }),
+);
 
 export interface StatusDialogProps {
   /** Subtitle shown under the heading (e.g. the step / opportunity title). */
   title: string;
+  entries?: readonly StatusEntry[];
   onClose: () => void;
-  onSave: (status: { category: StatusOption; text: string }) => void;
+  onSave: (status: {
+    category: StatusOption;
+    text: string;
+    tokens: TextToken[];
+  }) => void;
   /**
    * Render in-place instead of portaling to the layout root. Use when the dialog
    * is opened from inside another modal, such as the step detail slide-over.
@@ -142,22 +195,68 @@ export interface StatusDialogProps {
  */
 export const StatusDialog = ({
   title,
+  entries = [],
   onClose,
   onSave,
   inline = false,
 }: StatusDialogProps) => {
-  const [category, setCategory] = useState<StatusOption>(DEFAULT_STATUS);
-  const [text, setText] = useState("");
+  const [category, setCategory] = useState<StatusOption>(() =>
+    latestStatusCategory(entries),
+  );
+  const [tokens, setTokens] = useState<TextToken[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const statusSelectId = useId();
+  const editorRef = useRef<StatusEditorHandle>(null);
   const portalRef = usePortalContainerRef();
+  const scope = useScope();
+  const { users } = useUsers();
+  const statusUsersByEntityId = useMemo(
+    () =>
+      new Map(
+        (users ?? []).map((user) => [
+          user.entity.metadata.recordId.entityId,
+          user,
+        ]),
+      ),
+    [users],
+  );
+  const { authenticatedUser } = useAuthInfo();
+  const members = useMemo(() => {
+    if (!authenticatedUser) {
+      return [];
+    }
+
+    const activeOrg = authenticatedUser.memberOf.find(
+      ({ org }) => org.webId === scope,
+    )?.org;
+    const scopeUsers =
+      activeOrg?.memberships.map(({ user }) => user) ??
+      (authenticatedUser.accountId === scope ? [authenticatedUser] : []);
+
+    return scopeUsers.flatMap((user) =>
+      user.accountId !== authenticatedUser.accountId &&
+      user.displayName &&
+      user.shortname
+        ? [
+            {
+              displayName: user.displayName,
+              entityId: user.entity.metadata.recordId.entityId,
+              shortname: user.shortname,
+            },
+          ]
+        : [],
+    );
+  }, [authenticatedUser, scope]);
+  const memberShortnamesByEntityId = useMemo(
+    () => new Map(members.map((member) => [member.entityId, member.shortname])),
+    [members],
+  );
 
   useEffect(() => {
-    setCategory(DEFAULT_STATUS);
-    setText("");
+    setTokens([]);
     setError(null);
     const id = requestAnimationFrame(() => {
-      textareaRef.current?.focus({ preventScroll: true });
+      editorRef.current?.focus();
     });
     return () => cancelAnimationFrame(id);
   }, []);
@@ -167,7 +266,7 @@ export const StatusDialog = ({
     if (!statusCommentRequired(next)) {
       setError(null);
     }
-    textareaRef.current?.focus();
+    editorRef.current?.focus();
   };
   const handleCancel = () => {
     trackSupplyChainInteraction({
@@ -179,6 +278,10 @@ export const StatusDialog = ({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const text = statusTokensToPlainText(
+      tokens,
+      (entityId) => `@${memberShortnamesByEntityId.get(entityId) ?? "user"}`,
+    );
     const trimmedText = text.trim();
     if (statusCommentRequired(category) && trimmedText.length === 0) {
       trackSupplyChainInteraction({
@@ -186,10 +289,10 @@ export const StatusDialog = ({
         source: "status_dialog",
       });
       setError("Add a comment for this status.");
-      textareaRef.current?.focus();
+      editorRef.current?.focus();
       return;
     }
-    onSave({ category, text: trimmedText });
+    onSave({ category, text: trimmedText, tokens });
   };
 
   const dialog = (
@@ -216,71 +319,109 @@ export const StatusDialog = ({
         onSubmit={handleSubmit}
       >
         <div className={headerRow}>
-          <div>
-            <h2 id="status-dialog-title" className={titleStyle}>
-              Status
-            </h2>
-            <p className={subtitle}>{title}</p>
-          </div>
-          <button
-            type="button"
-            className={button}
-            aria-label="Close status"
+          <h2 id="status-dialog-title" className={titleStyle}>
+            {title}
+          </h2>
+          <Button
+            variant="ghost"
+            tone="neutral"
+            size="sm"
+            iconName="close"
+            aria-label="Close"
             onClick={handleCancel}
-          >
-            x
-          </button>
+          />
         </div>
         <div className={body}>
-          <div className={radioStack}>
-            {STATUS_OPTIONS.map((option) => (
-              <label key={option} className={radioLabel}>
-                <input
-                  type="radio"
-                  name="status-category"
-                  value={option}
-                  checked={category === option}
-                  onChange={() => selectCategory(option)}
-                />
-                {option}
-              </label>
-            ))}
-          </div>
-          <textarea
-            ref={textareaRef}
-            className={textarea}
-            value={text}
-            onChange={(event) => {
-              setText(event.target.value);
-              if (error && event.target.value.trim()) {
-                setError(null);
-              }
-            }}
-            placeholder="Add context, next actions, or why this is not feasible..."
-            required={statusCommentRequired(category)}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? "status-dialog-error" : undefined}
-          />
-          {error && (
-            <p id="status-dialog-error" className={errorText}>
-              {error}
-            </p>
+          {entries.length > 0 && (
+            <section className={historySection}>
+              <div
+                className={history}
+                role="region"
+                aria-label="Previous status updates"
+                // A bounded overflow region must be keyboard-focusable to scroll.
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                tabIndex={0}
+              >
+                {[...entries]
+                  .sort((left, right) => left.at.localeCompare(right.at))
+                  .map((entry) => (
+                    <article key={entry.entityId} className={historyEntry}>
+                      <div className={historyMeta}>
+                        <span>
+                          <span className={historyCategory}>
+                            {entry.category}
+                          </span>
+                          {entry.user ? <> · {entry.user}</> : null}
+                        </span>
+                        <time dateTime={entry.at}>
+                          {new Date(entry.at).toLocaleString()}
+                        </time>
+                      </div>
+                      <p className={historyComment}>
+                        {entry.tokens.length ? (
+                          <StatusBody
+                            mentionedUsersByEntityId={statusUsersByEntityId}
+                            tokens={entry.tokens}
+                          />
+                        ) : (
+                          entry.text.trim() || "(no comment)"
+                        )}
+                      </p>
+                    </article>
+                  ))}
+              </div>
+            </section>
           )}
+          <div className={statusFields}>
+            <div className={fieldLabel}>
+              <label htmlFor={statusSelectId}>Status</label>
+              <Select
+                items={statusItems}
+                value={category}
+                onChange={selectCategory}
+                required
+                size="sm"
+                htmlForId={statusSelectId}
+              />
+            </div>
+            <StatusEditor
+              ref={editorRef}
+              value={tokens}
+              members={members}
+              onChange={(nextTokens) => {
+                setTokens(nextTokens);
+                if (
+                  error &&
+                  statusTokensToPlainText(nextTokens).trim().length > 0
+                ) {
+                  setError(null);
+                }
+              }}
+              placeholder="Add context, next actions, or why this is not feasible..."
+              aria-required={statusCommentRequired(category)}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "status-dialog-error" : undefined}
+            />
+            {error && (
+              <p id="status-dialog-error" className={errorText}>
+                {error}
+              </p>
+            )}
+          </div>
         </div>
         <div className={footer}>
-          <button
-            type="submit"
-            className={cx(button, primaryButton, saveOrder)}
-          >
-            Save status
-          </button>
-          <button
+          <Button type="submit" variant="solid" size="sm" className={saveOrder}>
+            Post
+          </Button>
+          <Button
             type="button"
-            className={cx(button, cancelOrder)}
+            className={cancelOrder}
             onClick={handleCancel}
+            size="sm"
+            variant="subtle"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </div>

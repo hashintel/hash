@@ -6,6 +6,8 @@ import {
   formatNumber,
 } from "../../shared/cost";
 import { computeTrend, computePeriodDeltas } from "../../shared/period-trends";
+import { summarizeProcurementPlanning } from "../../shared/procurement-planning";
+import { sampleTier } from "../../shared/sample-confidence";
 import { percentileOf } from "../../shared/stats";
 import { recomputeSupplierBlock } from "../../shared/supplier-otif";
 import {
@@ -264,7 +266,6 @@ export interface PlanningOpportunityBrief {
   tailTrendNote: string | null;
 }
 
-const LOW_SAMPLE_N = 10;
 const WARNING_SAMPLE_N = 30;
 const STALE_OBSERVATION_DAYS = 60;
 
@@ -637,10 +638,11 @@ function buildEvidenceFlags(
   },
 ): EvidenceFlag[] {
   const flags: EvidenceFlag[] = [];
-  if (step.stats.n > 0 && step.stats.n < LOW_SAMPLE_N) {
+  const currentTier = sampleTier(step.stats.n);
+  if (currentTier === "low" || currentTier === "limited") {
     flags.push({
-      severity: "warning",
-      label: "Low sample",
+      severity: currentTier === "low" ? "warning" : "info",
+      label: currentTier === "low" ? "Low sample" : "Limited sample",
       detail: `Only ${formatNumber(step.stats.n)} observations are in the selected period.`,
     });
   }
@@ -659,11 +661,20 @@ function buildEvidenceFlags(
         "Potential cost impact cannot be calculated without a material unit cost.",
     });
   }
-  if (options.trend.previousN > 0 && options.trend.previousN < LOW_SAMPLE_N) {
+  const previousTier = sampleTier(options.trend.previousN);
+  if (previousTier === "low" || previousTier === "limited") {
     flags.push({
       severity: "info",
-      label: "Trend sample",
+      label:
+        previousTier === "low" ? "Low trend sample" : "Limited trend sample",
       detail: `Previous comparison period has ${formatNumber(options.trend.previousN)} observations.`,
+    });
+  }
+  for (const warning of step.planning_warnings ?? []) {
+    flags.push({
+      severity: warning.level,
+      label: "Planning parameter note",
+      detail: warning.text,
     });
   }
 
@@ -716,8 +727,9 @@ function buildDwellTrigger(
 function buildPlanningTrigger(
   step: StepDetail,
   p95DeviationPct: number | null,
+  applicablePlan: number | null = step.plan,
 ): OpportunityTrigger {
-  const plan = step.plan;
+  const plan = applicablePlan;
   const p95 = step.stats.p95;
   const direction =
     p95DeviationPct == null
@@ -749,7 +761,8 @@ function buildConfidence(
   const hasLowConfidenceWarning = flags.some(
     (flag) => flag.severity === "warning" && flag.label !== "Stale recent data",
   );
-  if (step.stats.n < LOW_SAMPLE_N || hasLowConfidenceWarning) {
+  const tier = sampleTier(step.stats.n);
+  if (tier === "low" || tier === "none" || hasLowConfidenceWarning) {
     return {
       label: "Low",
       caveats,
@@ -1321,6 +1334,7 @@ function planningRecommendationSummary(
   safePlanningDays: number | null,
   p95DeviationPct: number | null,
   ctx: PlaybookContext,
+  currentPlanDays: number | null = step.plan,
 ): string {
   if (safePlanningDays == null) {
     return "Review the planning assumption once more observations are available.";
@@ -1328,7 +1342,7 @@ function planningRecommendationSummary(
   const playbook = PLAYBOOKS[step.type];
   const lead = playbook.planningSummaryLead(ctx);
 
-  if (step.plan == null || step.plan <= 0) {
+  if (currentPlanDays == null || currentPlanDays <= 0) {
     return `${lead}; consider setting a planning assumption around ${safePlanningDays} days if this service level is appropriate.`;
   }
   if ((p95DeviationPct ?? 0) > 0) {
@@ -1432,18 +1446,24 @@ export function buildPlanningOpportunityBrief(
   sourceKind: OpportunityBriefSourceKind = null,
 ): PlanningOpportunityBrief {
   const trend = computeTrend(historicalStep.observations, range);
+  const procurementPlanning =
+    step.type === "procurement"
+      ? summarizeProcurementPlanning(step.observations, step.plan)
+      : null;
   const currentPlanDays = step.plan;
   // Observed P95 is shown raw (1 dp) across the brief; the rounded-up integer
   // is used only for prose recommendations ("around N days").
   const p95PlanDays = ceilOrNull(step.stats.p95);
   const medianDeviationPct =
-    currentPlanDays && currentPlanDays > 0
+    procurementPlanning?.medianVariancePct ??
+    (currentPlanDays && currentPlanDays > 0
       ? (((step.stats.median ?? 0) - currentPlanDays) / currentPlanDays) * 100
-      : null;
+      : null);
   const meanDeviationPct =
-    currentPlanDays && currentPlanDays > 0
+    procurementPlanning?.meanVariancePct ??
+    (currentPlanDays && currentPlanDays > 0
       ? (((step.stats.mean ?? 0) - currentPlanDays) / currentPlanDays) * 100
-      : null;
+      : null);
   const p95DeviationPct =
     currentPlanDays && currentPlanDays > 0 && step.stats.p95 != null
       ? ((step.stats.p95 - currentPlanDays) / currentPlanDays) * 100
@@ -1461,13 +1481,19 @@ export function buildPlanningOpportunityBrief(
   });
   const confidence = buildConfidence(step, evidenceFlags);
   const nExceedingPlan =
-    step.pct_exceeding_plan == null
+    (procurementPlanning?.pctExceedingPlan ?? step.pct_exceeding_plan) == null
       ? null
-      : Math.round(step.stats.n * (step.pct_exceeding_plan / 100));
+      : Math.round(
+          step.stats.n *
+            ((procurementPlanning?.pctExceedingPlan ??
+              step.pct_exceeding_plan ??
+              0) /
+              100),
+        );
   const playbookCtx: PlaybookContext = {
     stats: step.stats,
     trend,
-    plan: step.plan,
+    plan: currentPlanDays,
   };
   const tailTrendNote = buildTailTrendNote(historicalStep.observations, range);
   const diagnosis = buildPlanningDiagnosis(step, trend, range, {
@@ -1484,7 +1510,11 @@ export function buildPlanningOpportunityBrief(
   return {
     kind: "planning",
     stepType: step.type,
-    opportunityTrigger: buildPlanningTrigger(step, p95DeviationPct),
+    opportunityTrigger: buildPlanningTrigger(
+      step,
+      p95DeviationPct,
+      currentPlanDays,
+    ),
     confidence,
     currentPlanDays,
     p95Days: step.stats.p95,
@@ -1519,7 +1549,8 @@ export function buildPlanningOpportunityBrief(
     medianDeviationPct,
     meanDeviationPct,
     p95DeviationPct,
-    pctExceedingPlan: step.pct_exceeding_plan ?? null,
+    pctExceedingPlan:
+      procurementPlanning?.pctExceedingPlan ?? step.pct_exceeding_plan ?? null,
     nExceedingPlan,
     calibrationDirection,
     calibrationImpact: buildCalibrationImpact(step, currentPlanDays),
@@ -1531,6 +1562,7 @@ export function buildPlanningOpportunityBrief(
       p95PlanDays,
       p95DeviationPct,
       playbookCtx,
+      currentPlanDays,
     ),
     recommendedActions: PLAYBOOKS[step.type].recommendedActions,
 

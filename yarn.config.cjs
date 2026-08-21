@@ -18,6 +18,9 @@ const enforcedDevDependencies = {
 const allowedUnscriptedDevDependencies = {
   // Bundled into the LSP worker, not required by published package consumers.
   "@hashintel/petrinaut-core": new Set(["typescript"]),
+  // `astro check` type-checks the diagram components, and needs TypeScript
+  // even though no script invokes `tsc` directly.
+  "@apps/petrinaut-docs": new Set(["typescript"]),
 };
 
 const ignoredDependencies = [
@@ -36,6 +39,16 @@ const ignoredDependencies = [
 const ignoredWorkspaces = [];
 
 const allowedGitDependencies = [];
+
+/**
+ * Lifecycle scripts which Yarn runs as part of `yarn install`.
+ */
+const bannedInstallScripts = [
+  "preinstall",
+  "install",
+  "postinstall",
+  "prepare",
+];
 
 /**
  * Whether to ignore a dependency for consistency checks (version alignment).
@@ -288,11 +301,30 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
   }
 }
 
+/**
+ * Enforces that no workspace declares an install lifecycle script.
+ *
+ * Install scripts allow for arbitrary code execution on `yarn install` and are
+ * not allowed.
+ *
+ * @param {Context} context - The Yarn constraint context.
+ */
+function enforceNoInstallScripts({ Yarn }) {
+  for (const workspace of Yarn.workspaces()) {
+    for (const script of bannedInstallScripts) {
+      if (workspace.manifest.scripts?.[script] !== undefined) {
+        workspace.unset(`scripts.${script}`);
+      }
+    }
+  }
+}
+
 module.exports = defineConfig({
   async constraints(context) {
     enforceConsistentDependenciesAcrossTheProject(context);
     enforceNoDualTypeDependencies(context);
     enforceProtocols(context);
     enforceDevDependenciesAreProperlyDeclared(context);
+    enforceNoInstallScripts(context);
   },
 });

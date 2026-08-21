@@ -6,6 +6,7 @@ import {
   computeDailyCost,
   computeMonthlyCost,
   computePeriodCost,
+  computePeriodMaterialValue,
   costRatePerKgDay,
   formatCost,
   formatNumber,
@@ -91,6 +92,47 @@ describe("computePeriodCost", () => {
     // null unit price -> each bucket contributes null -> treated as 0
     expect(
       computePeriodCost(months, null, DEFAULT_WACC, DEFAULT_STORAGE_COST),
+    ).toBe(0);
+  });
+});
+
+describe("computePeriodMaterialValue", () => {
+  afterEach(() => vi.useRealTimers());
+
+  const materialValue = {
+    unit_cost: 2.5,
+    currency: "USD",
+    unit_cost_source: "Database",
+    uom: "KG",
+    monthly: [
+      { month: "2025-07", quantity: 10 },
+      { month: "2026-01", quantity: 20 },
+      { month: "2026-02", quantity: 30 },
+      { month: "2026-05", quantity: 40 },
+      { month: "2026-06", quantity: 50 },
+      { month: "2026-07", quantity: 60 },
+    ],
+  };
+
+  it("sums quantities in the selected whole-calendar-month range", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-27T12:00:00Z"));
+
+    expect(computePeriodMaterialValue(materialValue, "3m")).toBe(
+      (40 + 50 + 60) * 2.5,
+    );
+    expect(computePeriodMaterialValue(materialValue, "6m")).toBe(
+      (30 + 40 + 50 + 60) * 2.5,
+    );
+    expect(computePeriodMaterialValue(materialValue, "12m")).toBe(
+      (20 + 30 + 40 + 50 + 60) * 2.5,
+    );
+  });
+
+  it("returns null only when material-value data is unavailable", () => {
+    expect(computePeriodMaterialValue(null, "3m")).toBeNull();
+    expect(
+      computePeriodMaterialValue({ ...materialValue, monthly: [] }, "3m"),
     ).toBe(0);
   });
 });
