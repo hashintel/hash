@@ -81,6 +81,7 @@
     "oxfmt": "0.50.0"
   },
   "resolutions": {
+    "@anthropic-ai/bedrock-sdk/@anthropic-ai/sdk": "0.74.0",
     "@blockprotocol/core": "0.1.5",
     "@changesets/assemble-release-plan@npm:^6.0.9": "patch:@changesets/assemble-release-plan@npm%3A6.0.9#~/.yarn/patches/@changesets-assemble-release-plan-npm-6.0.9-e01af97ef4.patch",
     "@playwright/test": "1.58.2",
