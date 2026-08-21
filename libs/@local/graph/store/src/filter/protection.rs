@@ -1434,17 +1434,13 @@ mod tests {
             )
         }
 
-        /// Creates the `Uuid != ActorId` comparison for a request without an actor.
+        /// Creates the exclusion filter of `hash_default()` as it transforms without an actor.
         ///
-        /// Nothing equals an actor that is not there, so every record differs from it.
-        fn uuid_not_actor() -> Filter<'static, Entity> {
-            Filter::All(Vec::new())
-        }
-
-        /// Creates the full exclusion filter: `(type = User AND uuid != ActorId)`.
-        /// This matches the structure from `hash_default()`.
+        /// The rule is `type = User AND uuid != ActorId`. Nothing equals an actor that is not
+        /// there, so every record differs from it and the comparison drops out of the
+        /// conjunction.
         fn exclusion_filter() -> Filter<'static, Entity> {
-            all(vec![type_is_user(), uuid_not_actor()])
+            all(vec![type_is_user()])
         }
 
         /// Creates `NOT(type = User AND uuid != ActorId)` filter.
