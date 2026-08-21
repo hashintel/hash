@@ -1,19 +1,20 @@
-# Git workflow: GitHub stacks
+# Git workflow: Graphite stacks
 
-Branches are managed with **GitHub stacked PRs** (`gh stack`) under HASH's repository-wide Git
-guidance. The unit of branching is the **Linear issue**: one stacked branch per issue tackled,
+Branches are managed with **Graphite** (`gt`), matching HASH's repository-wide use of Graphite
+(its CI runs the Graphite optimizer). The standalone repository's late `gh stack` convention does
+not carry over. The unit of branching is the **Linear issue**: one stacked branch per issue tackled,
 created when work on that issue starts. Work discovered while
 resolving the issue (slices, refinements, side-fixes it requires) stays on its branch; only a
 different issue gets a new branch. Branches predating this convention (and the trunk) may mix
 multiple issues.
 
-## git vs gh stack boundary
+## git vs gt boundary
 
 Use **git** for local operations that don't touch the stack: `status` / `diff` / `log`,
-`add` / `commit`, `stash`. Use **`gh stack`** for stack-aware operations: `gh stack init`,
-`gh stack add`, `gh stack submit`, `gh stack rebase`, and `gh stack checkout`. Raw branch
-creation or rebasing bypasses stack parentage metadata; commits and reads are safe as plain git.
-Never use `gt` in `hashintel/hash`.
+`add` / `commit`, `stash`. Use **`gt`** for stack-aware operations: `gt create`, `gt submit`,
+`gt restack`, `gt sync`, and `gt checkout`. Raw branch creation or rebasing bypasses Graphite's
+stack parentage metadata; commits and reads are safe as plain git (run `gt restack` afterwards
+if upstack branches exist). Do not use `gh stack` in `hashintel/hash`.
 
 ## Naming
 
@@ -34,11 +35,12 @@ backfill is remediation, not workflow (see `legibility.md`).
 
 ## Lifecycle
 
-```
-gh stack add {prefix}/fe-XXXX-keywords # new branch on the active stack
+```text
+gt create {prefix}/fe-XXXX-keywords    # new branch stacked on the current one
 # ... work ...
 git add <files> && git commit          # plain git for commits
-gh stack submit                        # push + create/update the PR when ready
+gt submit                              # push + create/update the PR when ready
+gt sync                                # after merges: pull trunk, restack, prune
 ```
 
 Trunk is `main`. Link the PR from the Linear issue (or let Linear's GitHub integration attach
