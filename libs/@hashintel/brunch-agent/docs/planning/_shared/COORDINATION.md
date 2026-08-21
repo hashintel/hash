@@ -13,14 +13,19 @@ honest recommendation. Do not paste the generated graph here or mirror issue sta
 
 ## Current sequencing recommendation
 
-As of **2026-08-20**, the review range through FE-1464 and both import-gating spike verdicts
-(FE-1434 and FE-1435) have landed. Perform the FE-1437 authority cutover now; once its final
-standalone SHA is recorded, accept no further implementation work in this repository. After the
-cutover, advance FE-1438 (client-tool round-trip) beside
-FE-1393 (plugin SDK and first projection); FE-1439 (private durable sessions) can proceed in
-parallel. The integration stream joins at FE-1440, while the harness stream reaches its
-contract-freeze decision at FE-1387. FE-1402/FE-1403 form a parallel content/evaluation stream
-once FE-1405 lands, without displacing the cutover or the two convergence edges.
+As of **2026-08-21**, the FE-1437 authority cutover has been executed: the full brunch-lite
+history is imported on `ln/fe-1437-hash-monorepo-import` in `hashintel/hash` (frozen standalone
+SHA `43a0022918861846344b96a32cb94f92e2ee96ae`), every import gate re-verified. `hashintel/hash`
+is authoritative; the standalone repository accepts no further implementation work. FE-1437
+closes when the branch lands on `main` (squash merge, per convention). Part of FE-1440's website
+wiring (the Brunch interactive-tool panel in `apps/petrinaut-website`) already travelled with the
+import branch; before PR, either fold the remaining FE-1440 scope into the branch and close that
+issue, or trim FE-1440 to what remains. After landing, advance FE-1438 (client-tool round-trip)
+beside FE-1393 (plugin SDK and first projection); FE-1439 (private durable sessions) proceeds in
+parallel. The integration stream joins at FE-1440 and deployment follows at FE-1441 (which also
+waits on FE-1423's pre-exposure gates), while the harness stream reaches its contract-freeze
+decision at FE-1387. FE-1402/FE-1403 form a parallel content/evaluation stream, without
+displacing the two convergence edges.
 
 ```text
 legend:
@@ -30,15 +35,12 @@ legend:
   -[state-gate]-> condition in the world, not an issue edge
 
 nodes:
-  review-stack [landed]            # merged through FE-1464
-  FE-1434 [landed]                 # client-tool suspension spike
-  FE-1435 [landed]                 # real-panel stream spike
-  FE-1437 [now, cutover]           # import history; HASH becomes authoritative
-  FE-1438 [post-cutover]           # client-tool round-trip
-  FE-1439 [post-cutover, parallel] # private durable sessions
-  FE-1440 [join]                   # website elicitor mode
-  FE-1441 [post-import]            # HASH deployment
-  FE-1393 [post-cutover]           # plugin SDK + first projection
+  FE-1437 [executed, landing]      # history imported; HASH authoritative; PR pending
+  FE-1438 [next]                   # client-tool round-trip
+  FE-1439 [next, parallel]         # private durable sessions
+  FE-1440 [join, partly landed]    # website elicitor mode; panel wiring on import branch
+  FE-1441 [post-landing]           # HASH deployment
+  FE-1393 [next]                   # plugin SDK + first projection
   FE-1387 [after-FE-1393]          # second pack + contract freeze
   FE-1395 [coordination]           # full affordance set
   FE-1402 [parallel, content]      # completion contract
@@ -48,15 +50,14 @@ nodes:
 edges:
   FE-1449                 -[hard]->       FE-1438
   FE-1392                 -[hard]->       FE-1393
-  FE-1434, FE-1435        -[hard]->       FE-1437
   FE-1438, FE-1439,
   FE-1437                 -[hard]->       FE-1440
-  FE-1437, FE-1439        -[hard]->       FE-1441
+  FE-1437, FE-1439,
+  FE-1423                 -[hard]->       FE-1441
   FE-1393                 -[hard]->       FE-1387
-  FE-1405                 -[hard]->       FE-1402, FE-1403
   FE-1402, FE-1403        -[hard]->       FE-1404
   FE-1395                 -[coord]->      FE-1438
-  review-stack            -[state-gate, satisfied]-> FE-1437
+  FE-1437 branch on main  -[state-gate]-> FE-1438, FE-1439, FE-1393
   FE-1387                 -[input]->      FE-1440
 ```
 
@@ -65,25 +66,27 @@ not a second issue database.
 
 ## Repository handoff threshold
 
-FE-1437 (the monorepo import; [execution plan](./hash-monorepo-import-plan.md)) is the authority
-cutover, not a general freeze on harness work:
+FE-1437 (the monorepo import; [execution plan](./hash-monorepo-import-plan.md)) was the authority
+cutover, not a general freeze on harness work. It was crossed on 2026-08-21:
 
 ```text
-brunch-lite authoritative
+brunch-lite authoritative (until 2026-08-21)
   FE-1434 + FE-1435 verdicts landed
   FE-1388/1389/1390/1399 review stack merged
                     |
                     v
-          == FE-1437 import ==
+      == FE-1437 import (executed) ==
                     |
                     v
-hashintel/hash authoritative
+hashintel/hash authoritative (now)
   FE-1440 website wiring + FE-1441 deployment
 ```
 
-FE-1438 (client-tool round-trip) and FE-1439 (private durable sessions) are not import gates. They
-may land here and travel with the history import; if unfinished when FE-1437 starts, continue them
-only in `hashintel/hash`. Do not run both repositories as writable authorities after the cutover.
+The standalone repository is frozen at SHA `43a0022918861846344b96a32cb94f92e2ee96ae` and is
+read-only reference material. All further work — including FE-1438 and FE-1439, which were not
+import gates — happens in `hashintel/hash`. Do not run both repositories as writable authorities.
+Closing out the standalone repository's shared state (archival, access) is deferred and requires
+explicit approval from Lu.
 
 ## Open seams
 

@@ -38,7 +38,7 @@ Link form: every page has a markdown mirror at `<url>/index.md`.
 **Recommended pattern.** Let convention discover the entries; keep explicit config minimal;
 deploy `dist/server.mjs` with a real `db.ts` adapter (in-memory default loses everything).
 
-**For brunch-lite.** `apps/dev` matches: `src/app.ts`, `src/db.ts`, `flue.config.ts` with
+**For Brunch.** `apps/brunch-agent` matches: `src/app.ts`, `src/db.ts`, `flue.config.ts` with
 `target: 'node'` + `providers: ['anthropic']`. The multi-agent layout (`src/agents/`) is
 already our shape. _Do not rebuild_: the demo shell should be this same layout, not a custom
 server — `dist/app.mjs` exists precisely for embedding if the shell needs a custom host.
@@ -77,7 +77,7 @@ undocumented semantics pinned only by our integration test. The agent-hooks guid
 both: per-delivery firing, and the updater-not-snapshot rule. Downgrade both from
 "undocumented bet" to "documented, keep the test as a pin".
 
-**For brunch-lite.** Our binding is canonical in every hook it touches. Unused affordances
+**For Brunch.** Our binding is canonical in every hook it touches. Unused affordances
 that map directly onto roadmap items:
 
 - _FE-1392 (settlement trigger)_: `useAgentFinish`/`useResponseFinish` are the documented
@@ -119,7 +119,7 @@ that map directly onto roadmap items:
 - **MCP**: `useMcpConnection({ name, url, auth, tools?, optional? })`;
   `createMcpConnection()` returns raw `ToolDefinition`s for filtering/wrapping.
 
-**For brunch-lite.** The ask tool is canonical (validated output part + `terminate`). Three
+**For Brunch.** The ask tool is canonical (validated output part + `terminate`). Three
 do-not-rebuild warnings, one large:
 
 - **FE-1403/FE-1406 (guidance cards, quiver): Flue skills _are_ the card-delivery
@@ -159,7 +159,7 @@ do-not-rebuild warnings, one large:
 - Channels: inbound-only verified ingress → `dispatch` as `kind: 'signal'` with namespaced
   `type` and `attributes`; outbound stays in app code via provider SDKs.
 
-**For brunch-lite.** This section carries the single biggest do-not-rebuild finding:
+**For Brunch.** This section carries the single biggest do-not-rebuild finding:
 **`chat.tsx` is a hand-rolled fraction of `useFlueAgent()`.** Our custom fetch/parse loop,
 message filtering, and affordance extraction re-implement what the React package provides —
 including the part we got wrong (the markdown floor, FE-1420): the affordance _is_ the ask
@@ -197,7 +197,7 @@ the channels guide's signal shape — convergent with canon.
   public history projector still walks every message on the active path. Persistent-state
   reduction is independent. FE-1386 therefore narrows to a behavioral upgrade pin.
 
-**For brunch-lite.** Canon explicitly endorses the storage-port split: captures are business
+**For Brunch.** Canon explicitly endorses the storage-port split: captures are business
 data, Flue's store is the conversation record — the boundary we drew is the boundary the
 database guide draws. Two implications:
 
@@ -229,7 +229,7 @@ database guide draws. Two implications:
 - Sandboxes: virtual (in-memory bash emulation) / `local()` (no isolation; allowlisted env) /
   remote providers. Agents without one keep tools, skills, subagents.
 
-**For brunch-lite.** The baseline runner is the JS-API workflow pattern, independently
+**For Brunch.** The baseline runner is the JS-API workflow pattern, independently
 converged. FE-1404 (armed rerun) should be exactly that: a script over `start()` + `init()`
 (fresh ids per condition) + `read()`, with `observe()` doing the accounting (§7). No sandbox
 anywhere in our current or foreseeable surface — elicitation needs no file tools; keep it
@@ -251,8 +251,9 @@ that way (narrowest environment is the documented advice).
   `totalTokens`/`cost`**; `useResponseFinish` for in-agent aggregate usage;
   `@flue/opentelemetry` via `instrument(...)`; Sentry/Braintrust integrations.
 
-**For brunch-lite.** Our faux-provider + fetch-shim + child-process eval is a bun-forced
-composition of documented parts (audited). Adoptable affordances we currently ignore:
+**For Brunch.** Our faux-provider + fetch-shim + child-process eval is a composition of
+documented parts (audited; the child-process shape was originally forced by the Bun runtime and
+is retained under Node/Vitest). Adoptable affordances we currently ignore:
 `init()` without an id (simpler than UUID mounts for future in-process evals); `onEvent`
 tool capture (stronger than substring checks over stringified history — a direct upgrade
 path for the walking-skeleton's weaker oracles); `observe()` for _all_ token/cost accounting

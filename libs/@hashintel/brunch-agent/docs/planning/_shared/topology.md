@@ -9,7 +9,7 @@ next.
 
 ## Verification — the tree as it stands
 
-```
+```text
 packages/core                      LANE 3 (harness; substrate-free)
 ├─ capture-store.ts   ✓  the storage port's contract + pure command surface; owns envelope
 │                        invariants. Never: substrate imports, IO, per-substrate shapes.
@@ -56,7 +56,7 @@ packages/plugin-gherkin            LANE 3 (target policy)
                          strict schema forbids parsed structure and silent hardening.
                          Never: harness mechanism, substrate imports, storage.
 
-apps/dev                           LANE 1 SHELL + remote server (imports as apps/brunch-agent)
+apps/brunch-agent                  LANE 1 SHELL + remote server (imported from apps/dev)
 ├─ src/app.ts         ✓  single fetch entry; explicit mounts; assets beside agents
 ├─ src/routes.ts      ✓  the one shared mount constant (doctrine per routing guide)
 ├─ src/agents/gherkin-elicitor.ts ✓ thin directive-marked host (§12.1); flat file OK until
@@ -65,7 +65,7 @@ apps/dev                           LANE 1 SHELL + remote server (imports as apps
 │                        full mount URL/transport, and opaque local target path
 ├─ src/petrinaut-chat.ts ✓ thin Flue→harness-event→AI SDK composition; `/api/chat` mount and
 │                        opt-in JSONL inspection. No second conversation renderer.
-├─ src/db.ts, db-path.ts ✓ convention entry + bun-testable path logic, deliberately split
+├─ src/db.ts, db-path.ts ✓ convention entry + separately testable path logic, deliberately split
 ├─ src/ui/chat.tsx    ~  hand-rolled client; tolerated ONLY until FE-1385 adopts @flue/react
 │                        (divergence risk 1). Never: growing new part-rendering features here.
 └─ test/              ✓  reviewed substrate inventory; child-process eval (audited: composed
@@ -91,8 +91,9 @@ docs/planning/**/baseline/run.ts   EXPERIMENT (JS-API workflow pattern, independ
   Card content stays assertable outside the Vite graph (fixture-grade copies; B4's probe
   decides the exact shape).
 - **N3 (application composition; amended by ADR-0004 / FE-1437).** There is no dedicated demo
-  shell. The current `apps/dev` imports as `apps/brunch-agent`, owning the remote Brunch server,
-  target gallery, and diagnostics. `apps/petrinaut-website` owns the user-facing integration.
+  shell. The standalone `apps/dev` was imported as `apps/brunch-agent`, which owns the remote
+  Brunch server, target gallery, and diagnostics. `apps/petrinaut-website` owns the user-facing
+  integration.
   Applications may compose Brunch and Petrinaut public surfaces; reusable libraries may not know
   about one another.
 - **N4 (experiments).** Experiment runners (FE-1404, future condition reruns) stay beside their
