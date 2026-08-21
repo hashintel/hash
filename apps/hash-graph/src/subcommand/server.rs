@@ -493,6 +493,7 @@ async fn start_server<S>(
     postgres: PostgresStorePool,
     compiler: Arc<CompilerContext>,
     config: ServerConfig,
+    session_auth: KratosSessionConfig,
     query_logger: Option<QueryLogger>,
     lifecycle: &ServerLifecycle,
 ) -> Result<(), Report<GraphError>>
@@ -528,7 +529,7 @@ where
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
-        session_auth: config.session_auth.into_provider_config()?,
+        session_auth,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
         serve_api_reference: config.serve_api_reference,
@@ -559,6 +560,10 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
         .await
         .change_context(GraphError);
     }
+
+    // Validate the configuration before connecting anywhere, so a misconfigured server fails
+    // without tearing down established connections.
+    let session_auth = args.config.session_auth.clone().into_provider_config()?;
 
     let pool = PostgresStorePool::new(
         &args.db_info,
@@ -652,6 +657,7 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
         postgres,
         compiler,
         args.config,
+        session_auth,
         query_logger,
         &lifecycle,
     )
