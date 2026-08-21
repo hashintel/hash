@@ -65,7 +65,7 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 ### Admin API: the actor-ID header alone is rejected
 POST http://127.0.0.1:4001/users/delete
 Content-Type: application/json
-X-HASH-Service-Secret: <omit>
+Authorization: <omit>
 X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 {
@@ -87,7 +87,7 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 ### Admin API: a wrong service secret is rejected
 POST http://127.0.0.1:4001/users/delete
 Content-Type: application/json
-X-HASH-Service-Secret: hash-svc-wrong
+Authorization: HASH-Service hash-svc-wrong
 X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 {
@@ -108,7 +108,7 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 ### Admin API: the health route stays open
 GET http://127.0.0.1:4001/health
-X-HASH-Service-Secret: <omit>
+Authorization: <omit>
 
 > {%
   client.test("status", function() {
