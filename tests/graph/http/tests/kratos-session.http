@@ -128,7 +128,7 @@ X-Session-Token: {{session_token}}
 # an end-user session must not be a credential there.
 POST http://127.0.0.1:4001/users/delete
 Content-Type: application/json
-X-HASH-Service-Secret: <omit>
+Authorization: <omit>
 X-Session-Token: {{session_token}}
 
 {
