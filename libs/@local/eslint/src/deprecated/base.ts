@@ -11,6 +11,7 @@ import { ignores } from "eslint-config-sheriff";
 import canonical from "eslint-plugin-canonical";
 import importPlugin from "eslint-plugin-import";
 import reactHooks from "eslint-plugin-react-hooks";
+import reactRefreshPlugin from "eslint-plugin-react-refresh";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import unicorn from "eslint-plugin-unicorn";
 import globals from "globals";
@@ -56,6 +57,7 @@ export const create = (projectDirectory: string) =>
         "@typescript-eslint": typescriptEslint,
         canonical,
         "react-hooks": reactHooks,
+        "react-refresh": reactRefreshPlugin,
         "simple-import-sort": simpleImportSort,
         unicorn,
       },
@@ -200,6 +202,25 @@ export const create = (projectDirectory: string) =>
           {
             namedComponents: "arrow-function",
             unnamedComponents: "arrow-function",
+          },
+        ],
+
+        // Exporting anything other than components from a file containing a
+        // component opts that file out of fast refresh
+        "react-refresh/only-export-components": [
+          "error",
+          {
+            allowConstantExport: true,
+            // Wrappers that return a component. The rule matches an entry
+            // against the callee's property name as well as its object name,
+            // so "assign" covers `Object.assign(Root, { Item })`.
+            extraHOCs: [
+              "assign",
+              "styled",
+              "withContext",
+              "withProvider",
+              "withRootProvider",
+            ],
           },
         ],
 

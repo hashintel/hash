@@ -101,6 +101,34 @@ export default [
       },
     },
     {
+      // The Next.js pages router requires these exports to sit alongside the
+      // page component
+      files: ["**/src/pages/**/*.page.tsx"],
+      rules: {
+        "react-refresh/only-export-components": [
+          "error",
+          {
+            allowConstantExport: true,
+            extraHOCs: [
+              "assign",
+              "styled",
+              "withContext",
+              "withProvider",
+              "withRootProvider",
+            ],
+            allowExportNames: [
+              "config",
+              "getInitialProps",
+              "getServerSideProps",
+              "getStaticPaths",
+              "getStaticProps",
+              "reportWebVitals",
+            ],
+          },
+        ],
+      },
+    },
+    {
       ignores: [
         "buildstamp.js",
         "next.config.js",
