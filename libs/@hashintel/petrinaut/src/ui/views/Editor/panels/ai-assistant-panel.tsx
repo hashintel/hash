@@ -39,7 +39,11 @@ import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-d
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
 import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
 import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
-import { getInteractiveTool } from "./ai-assistant-panel/interactive-tools/registry";
+import {
+  findHostInteractiveTool,
+  getHostInteractiveTool,
+  getInteractiveTool,
+} from "./ai-assistant-panel/interactive-tools/registry";
 import { petrinautDocsContent } from "./ai-assistant-panel/petrinaut-docs-content";
 import {
   type AiToolOutput,
@@ -104,6 +108,22 @@ const safelyAddToolOutput = (
   // error message on hover), so we just swallow the rejection to avoid an
   // unhandled-promise warning.
   void Promise.resolve(addToolOutput(params)).catch(() => {});
+};
+
+const safelyAddDynamicToolOutput = (
+  addToolOutput: ReturnType<
+    typeof useChat<PetrinautAiMessage>
+  >["addToolOutput"],
+  params: {
+    tool: string;
+    toolCallId: string;
+    output: unknown;
+  },
+) => {
+  const addDynamicToolOutput = addToolOutput as (
+    toolOutput: typeof params,
+  ) => void | PromiseLike<void>;
+  void Promise.resolve(addDynamicToolOutput(params)).catch(() => {});
 };
 
 const waitForDiagnosticsRefresh = async ({
@@ -361,6 +381,18 @@ export const AiAssistantPanel = ({
         );
       }
 
+      if (
+        getHostInteractiveTool(
+          toolCall.toolName,
+          toolCall.input,
+          aiAssistant.interactiveTools,
+        )
+      ) {
+        // The host renders this tool inline and supplies its output when the
+        // person submits the widget.
+        return;
+      }
+
       if (toolCall.dynamic) {
         throw new Error(`Unknown AI tool: ${toolCall.toolName}`);
       }
@@ -585,6 +617,7 @@ export const AiAssistantPanel = ({
     <AiAssistantContents
       error={streamError ?? error}
       input={input}
+      interactiveTools={aiAssistant.interactiveTools}
       messages={messages}
       onClearMessages={() => {
         // Clearing aborts any in-flight response too, which fires `onFinish`
@@ -605,20 +638,31 @@ export const AiAssistantPanel = ({
       onClose={() => setAiAssistantOpen(false)}
       onInputChange={setInput}
       onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
+        if (findHostInteractiveTool(toolName, aiAssistant.interactiveTools)) {
+          safelyAddDynamicToolOutput(addToolOutput, {
+            tool: toolName,
+            toolCallId,
+            output,
+          });
+          return;
+        }
+
         if (!isPetrinautAiCommandToolName(toolName)) {
           // Defensive — the registry only exposes AI command tools today.
           return;
         }
 
+        const petrinautOutput = output as AiToolOutput;
+
         // applyAutoLayout is the only interactive command today. The widget
         // signals "apply" by passing `{ applied: true }`; we still need to
         // run the command to compute the real commitCount before reporting
         // the outcome to the AI. Decline outputs are forwarded verbatim.
-        if (output.applied !== true) {
+        if (petrinautOutput.applied !== true) {
           safelyAddToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
-            output,
+            output: petrinautOutput,
           });
           return;
         }

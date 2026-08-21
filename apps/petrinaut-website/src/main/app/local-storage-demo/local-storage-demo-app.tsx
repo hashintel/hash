@@ -17,6 +17,7 @@ import {
 } from "@hashintel/petrinaut/ui";
 
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
+import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import {
   type SDCPNInLocalStorage,
@@ -256,6 +257,7 @@ export const LocalStorageDemoApp = () => {
 
   const aiAssistant = useMemo(
     () => ({
+      interactiveTools: [brunchAskInteractiveTool],
       transport: petrinautAiChatTransport,
       messages: currentNetId ? aiMessagesByNetId[currentNetId] : undefined,
       onMessages: (messages: PetrinautAiMessage[]) => {

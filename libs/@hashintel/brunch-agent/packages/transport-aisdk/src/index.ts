@@ -14,17 +14,21 @@ import * as v from "valibot";
 
 import {
   AskSubmission,
-  toolName,
   type AskReplyAdmission,
   type HarnessReplyEvent,
 } from "@hashintel/brunch-agent";
+
+import { ASK_TOOL_NAME } from "./client-tools";
 
 export {
   type AskReplyAdmission,
   type HarnessReplyEvent,
 } from "@hashintel/brunch-agent";
-
-const ASK_TOOL_NAME = toolName("ask");
+export {
+  ASK_TOOL_NAME,
+  type BrunchAskInput,
+  type BrunchAskOutput,
+} from "./client-tools";
 
 export interface HarnessTurnInput {
   readonly conversationId: string;
@@ -42,6 +46,8 @@ export type HarnessTurnRunner = (
 
 export interface HarnessAskReplyInput {
   readonly conversationId: string;
+  /** Existing assistant UI message whose pending tool call this continues. */
+  readonly assistantMessageId: string;
   readonly idempotencyKey: string;
   readonly ask: {
     readonly toolCallId: string;
@@ -242,6 +248,13 @@ type ParsedTransportRequest =
   | { readonly kind: "ask-reply"; readonly value: HarnessAskReplyInput }
   | { readonly kind: "refused"; readonly refusal: TransportRequestRefusal };
 
+const isAnsweredAskPart = (
+  part: NonNullable<PanelMessage["parts"]>[number],
+): boolean =>
+  ((part.type === "dynamic-tool" && part.toolName === ASK_TOOL_NAME) ||
+    part.type === `tool-${ASK_TOOL_NAME}`) &&
+  part.state === "output-available";
+
 /**
  * Classify one tool-result follow-up POST. A human answer submitted through
  * the registered ask component travels tool-output-shaped but is not a
@@ -254,6 +267,8 @@ const parseAskReplyTurn = (body: PanelPostBody): ParsedTransportRequest => {
   if (
     typeof body.id !== "string" ||
     body.id.length === 0 ||
+    typeof body.messageId !== "string" ||
+    body.messageId.length === 0 ||
     body.trigger !== "submit-message" ||
     !Array.isArray(body.messages)
   ) {
@@ -267,12 +282,7 @@ const parseAskReplyTurn = (body: PanelPostBody): ParsedTransportRequest => {
     (candidate) =>
       candidate.id === body.messageId && candidate.role === "assistant",
   );
-  const askParts = (message?.parts ?? []).filter(
-    (part) =>
-      part.type === "dynamic-tool" &&
-      part.toolName === ASK_TOOL_NAME &&
-      part.state === "output-available",
-  );
+  const askParts = (message?.parts ?? []).filter(isAnsweredAskPart);
   if (askParts.length === 0) {
     return {
       kind: "refused",
@@ -297,6 +307,7 @@ const parseAskReplyTurn = (body: PanelPostBody): ParsedTransportRequest => {
     kind: "ask-reply",
     value: {
       conversationId: body.id,
+      assistantMessageId: body.messageId,
       // Keyed by the ask itself: concurrent duplicate submissions of the same
       // pending ask collapse to one dispatch at the substrate.
       idempotencyKey: `${body.id}:ask:${askPart.toolCallId}`,
@@ -566,6 +577,8 @@ export const createAiSdkChatHandler =
     }
 
     let messageId: string | undefined;
+    const continuationMessageId =
+      parsed.kind === "ask-reply" ? parsed.value.assistantMessageId : undefined;
     let terminalEventEmitted = false;
     const awaitingAskToolCallIds = new Set<string>();
     const stream = createUIMessageStream({
@@ -603,7 +616,12 @@ export const createAiSdkChatHandler =
               });
               return;
             }
-            writer.write(toUiChunk(event));
+            const wireEvent =
+              event.type === "response-start" &&
+              continuationMessageId !== undefined
+                ? { ...event, messageId: continuationMessageId }
+                : event;
+            writer.write(toUiChunk(wireEvent));
             if (event.type === "response-finish") terminalEventEmitted = true;
             const inspection = inspectionFor(event, requestId, messageId);
             if (inspection) options.inspect?.(inspection);

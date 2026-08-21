@@ -888,7 +888,7 @@ server.on("error", (err: Error & { code?: string }) => {
       `Port ${port} is already in use on ${host}. Stop the existing fixture or pass another port, for example:`,
     );
     console.error(
-      "  turbo run brunch:fixture --filter '@apps/petrinaut-website' -- --port=5185",
+      "  yarn workspace @apps/petrinaut-website brunch:fixture -- --port=5185",
     );
     process.exit(1);
   }

@@ -33,10 +33,16 @@ import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
 } from "./views/Editor/panels/ai-assistant-panel";
+import type { InteractiveToolDefinition } from "./views/Editor/panels/ai-assistant-panel/interactive-tools/types";
 
 export type PetrinautAiChatTransport = PetrinautAiTransport;
+export type PetrinautAiInteractiveTool = InteractiveToolDefinition<
+  unknown,
+  unknown
+>;
 
 export type PetrinautAiAssistant = {
+  interactiveTools?: readonly PetrinautAiInteractiveTool[];
   messages?: PetrinautAiMessage[];
   onClearMessages?: () => void;
   onMessages?: (messages: PetrinautAiMessage[]) => void;
