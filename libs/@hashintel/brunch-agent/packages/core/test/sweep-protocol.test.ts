@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import {
   advanceSweepHighWater,
@@ -15,7 +15,7 @@ import {
   sweepableRange,
   unsweptTail,
   type SweepSessionEntry,
-} from "../src/sweep-protocol.ts";
+} from "../src/sweep-protocol";
 
 const entries: readonly SweepSessionEntry[] = [
   {

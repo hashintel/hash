@@ -7,12 +7,10 @@
  * emitted, and its UTF-8 read would have corrupted the bytes had the
  * allowlist merely grown).
  *
- * Tested against the handler module rather than the emitted server bundle,
- * because that bundle targets node (`node:sqlite`) and cannot be imported
- * under `bun test`.
+ * Tested against the handler module rather than the emitted server bundle so
+ * this contract remains isolated from the Flue Node runtime and SQLite.
  */
 
-import { afterAll, describe, expect, test } from "bun:test";
 import {
   mkdirSync,
   mkdtempSync,
@@ -25,8 +23,9 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { Hono } from "hono";
+import { afterAll, describe, expect, test } from "vitest";
 
-import { assetHandler } from "../src/assets.ts";
+import { assetHandler } from "../src/assets";
 
 const uiRoot = mkdtempSync(join(tmpdir(), "brunch-assets-"));
 const BINARY_BYTES = Uint8Array.from({ length: 256 }, (_, i) => i);

@@ -1,15 +1,15 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import {
   applyCaptureStoreCommand,
   createEmptyCaptureStoreSnapshot,
   type CaptureInputProposal,
   type EvidenceSpan,
-} from "../src/capture-store.ts";
+} from "../src/capture-store";
 import {
   archiveSessionLogRead,
   createEmptySessionLogArchive,
-} from "../src/session-log.ts";
+} from "../src/session-log";
 
 type UserCaptureInput = Extract<
   CaptureInputProposal,
@@ -292,8 +292,8 @@ describe("capture anchoring", () => {
       pointer: { sessionId: "session-1", entryStart: 1, entryEnd: 1 },
       source: "user",
     };
-    // @ts-expect-error A stored span is not assignable to caller quote input.
     const callerQuotes: readonly UserCaptureInput["evidence"][number][] = [
+      // @ts-expect-error A stored span is not assignable to caller quote input.
       storedSpan,
     ];
     expect(callerQuotes).toHaveLength(1);

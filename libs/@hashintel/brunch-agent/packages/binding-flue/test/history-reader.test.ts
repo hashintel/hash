@@ -1,13 +1,15 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { afterEach, describe, expect, test } from "vitest";
+
 import {
   createFlueHistoryReader,
   projectFlueHistoryForSweep,
-} from "../src/history-reader.ts";
-import { createLocalCaptureStore } from "../src/local-capture-store.ts";
+} from "../src/history-reader";
+import { createLocalCaptureStore } from "../src/local-capture-store";
 
 const directories: string[] = [];
 
@@ -189,7 +191,7 @@ describe("Flue materialized-history reader", () => {
     const path = await storePath();
     const store = createLocalCaptureStore(path);
     const requested: string[] = [];
-    const transport = (async (input: RequestInfo | URL) => {
+    const transport = (async (input: Parameters<typeof fetch>[0]) => {
       requested.push(input instanceof Request ? input.url : input.toString());
       return Response.json(snapshot);
     }) as typeof fetch;
@@ -201,7 +203,7 @@ describe("Flue materialized-history reader", () => {
     });
 
     expect(await reader.peek("session-1")).toEqual(snapshot);
-    expect(await Bun.file(path).exists()).toBe(false);
+    expect(existsSync(path)).toBe(false);
 
     expect(await reader.read("session-1")).toEqual(snapshot);
     expect(requested).toEqual([

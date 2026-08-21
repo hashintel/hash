@@ -48,7 +48,7 @@ try {
   const { default: app } = await import("../src/app.ts");
   const fixturePath = fileURLToPath(
     new URL(
-      "../../../test/fixtures/transport-aisdk/panel-initial.post.json",
+      "../../../libs/@hashintel/brunch-agent/packages/transport-aisdk/test/fixtures/panel-initial.post.json",
       import.meta.url,
     ),
   );

@@ -1,16 +1,20 @@
 /** Application composition for Petrinaut's stock AI SDK chat transport. */
 
+import { init } from "@flue/runtime";
+
+import {
+  decideAskReplyAdmission,
+  pendingAskAffordanceId,
+} from "@hashintel/brunch-agent";
 import {
   createFlueReplyProjector,
   projectFlueHistoryForSweep,
-} from "@brunch/binding-flue";
-import { decideAskReplyAdmission, pendingAskAffordanceId } from "@brunch/core";
+} from "@hashintel/brunch-agent-binding-flue";
 import {
   createAiSdkChatHandler,
   type HarnessReplyEvent,
   type TransportInspectionEvent,
-} from "@brunch/transport-aisdk";
-import { init } from "@flue/runtime";
+} from "@hashintel/brunch-agent-transport-aisdk";
 
 import { GherkinElicitor } from "./agents/gherkin-elicitor.ts";
 import { createGherkinElicitationSession } from "./elicitation-session.ts";

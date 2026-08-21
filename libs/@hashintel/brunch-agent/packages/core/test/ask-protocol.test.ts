@@ -1,6 +1,5 @@
-import { describe, expect, test } from "bun:test";
-
 import * as v from "valibot";
+import { describe, expect, test } from "vitest";
 
 import {
   ASK_TOOL_DESCRIPTION,
@@ -11,9 +10,9 @@ import {
   decidePendingAffordance,
   mintAskAffordance,
   pendingAskAffordanceId,
-} from "../src/ask-protocol.ts";
+} from "../src/ask-protocol";
 
-import type { SweepSessionEntry } from "../src/sweep-protocol.ts";
+import type { SweepSessionEntry } from "../src/sweep-protocol";
 
 const firstAffordance = mintAskAffordance(
   "What outcome should the scenario describe?",

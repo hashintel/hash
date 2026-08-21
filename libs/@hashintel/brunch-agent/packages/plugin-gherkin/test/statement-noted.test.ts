@@ -1,9 +1,9 @@
-import { describe, expect, test } from "bun:test";
-
-import { createSweepExtractionResultSchema } from "@brunch/core";
 import * as v from "valibot";
+import { describe, expect, test } from "vitest";
 
-import { gherkin } from "../src/index.ts";
+import { createSweepExtractionResultSchema } from "@hashintel/brunch-agent";
+
+import { gherkin } from "../src/index";
 
 const quote = "Payment is authorized before fulfillment.";
 const statementNoted = {

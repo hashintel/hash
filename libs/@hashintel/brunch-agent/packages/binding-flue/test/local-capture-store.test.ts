@@ -1,17 +1,18 @@
-import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { archiveThroughBinding } from "../src/archive-capability.ts";
-import { createLocalCaptureStore as createLocalCaptureStoreAdapter } from "../src/local-capture-store.ts";
+import { afterEach, describe, expect, test } from "vitest";
+
+import { archiveThroughBinding } from "../src/archive-capability";
+import { createLocalCaptureStore as createLocalCaptureStoreAdapter } from "../src/local-capture-store";
 
 import type {
   CaptureInputProposal,
   CaptureStore,
   CaptureStoreCommand,
   EvidenceQuote,
-} from "@brunch/core";
+} from "@hashintel/brunch-agent";
 
 const directories: string[] = [];
 
@@ -280,6 +281,6 @@ describe("local capture store", () => {
       }),
     );
 
-    expect(createLocalCaptureStoreAdapter(path).read()).rejects.toThrow();
+    await expect(createLocalCaptureStoreAdapter(path).read()).rejects.toThrow();
   });
 });

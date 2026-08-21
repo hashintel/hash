@@ -1,13 +1,13 @@
 import * as v from "valibot";
 
-import { toolName } from "./naming.ts";
+import { toolName } from "./naming";
 
 import type {
   CaptureInputProposal,
   CaptureStoreRefusal,
-} from "./capture-store.ts";
-import type { Plugin } from "./plugin.ts";
-import type { SessionEntryKind } from "./session-log.ts";
+} from "./capture-store";
+import type { Plugin } from "./plugin";
+import type { SessionEntryKind } from "./session-log";
 
 const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
 

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import {
   archiveSessionLogRead,
@@ -6,7 +6,7 @@ import {
   readArchivedEntryRange,
   resolveEvidenceQuotes,
   type SessionLogRead,
-} from "../src/session-log.ts";
+} from "../src/session-log";
 
 const read = (
   offset: string,

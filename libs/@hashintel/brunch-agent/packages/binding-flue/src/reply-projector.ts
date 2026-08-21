@@ -1,7 +1,8 @@
 /** Translate Flue's public live conversation chunks into the harness reply protocol. */
 
-import { type HarnessReplyEvent } from "@brunch/core";
 import { type ConversationStreamChunk } from "@flue/sdk";
+
+import { type HarnessReplyEvent } from "@hashintel/brunch-agent";
 
 export interface FlueReplyProjectorOptions {
   readonly submissionId: string;

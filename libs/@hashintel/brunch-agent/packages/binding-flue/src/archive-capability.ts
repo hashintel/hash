@@ -1,5 +1,5 @@
-import type { CaptureStore } from "@brunch/core";
-import type { SessionLogRead } from "@brunch/core/storage";
+import type { CaptureStore } from "@hashintel/brunch-agent";
+import type { SessionLogRead } from "@hashintel/brunch-agent/storage";
 
 type ArchiveWriter = (read: SessionLogRead) => Promise<void>;
 

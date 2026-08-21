@@ -9,7 +9,7 @@ import {
   type MultipleEvidenceMatchesAdvisory,
   type ArchivedSessionEntry,
   type SessionLogArchive,
-} from "./session-log.ts";
+} from "./session-log";
 
 export const ABSENCE_STATES = [
   "unknown-to-user",

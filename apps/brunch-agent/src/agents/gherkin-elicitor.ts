@@ -19,10 +19,11 @@
  * swapping.
  */
 
-import { useElicitation } from "@brunch/binding-flue";
-import { gherkin } from "@brunch/plugin-gherkin";
 import { useInitialData, useModel, type AgentProps } from "@flue/runtime";
 import * as v from "valibot";
+
+import { useElicitation } from "@hashintel/brunch-agent-binding-flue";
+import { gherkin } from "@hashintel/brunch-agent-plugin-gherkin";
 
 import { createGherkinElicitationSession } from "../elicitation-session.ts";
 

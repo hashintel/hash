@@ -13,7 +13,7 @@ import {
   type CaptureStoreResult,
   type CaptureStoreSnapshot,
   type EvidenceSpan,
-} from "@brunch/core";
+} from "@hashintel/brunch-agent";
 import {
   archiveSessionLogRead,
   createEmptySessionLogArchive,
@@ -21,9 +21,9 @@ import {
   readArchivedEntryRange,
   type SessionLogArchive,
   type SessionLogRead,
-} from "@brunch/core/storage";
+} from "@hashintel/brunch-agent/storage";
 
-import { registerArchiveWriter } from "./archive-capability.ts";
+import { registerArchiveWriter } from "./archive-capability";
 
 const FORMAT_VERSION = 1 as const;
 

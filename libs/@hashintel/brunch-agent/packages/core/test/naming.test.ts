@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import {
   OPERATIONS,
@@ -6,7 +6,7 @@ import {
   toolName,
   toolPrefix,
   type Operation,
-} from "../src/naming.ts";
+} from "../src/naming";
 
 // Spec §12.3: architectural strings name identity, not function. The tool
 // prefix derives from the product name so the unresolved name-fog costs one
@@ -80,7 +80,9 @@ describe("the settled product name", () => {
     // its own; the prefix is what keeps this product's tools from colliding
     // with a co-mounted library's.
     for (const operation of OPERATIONS) {
-      expect(toolName(operation)).toStartWith(toolPrefix(PRODUCT_NAME));
+      expect(toolName(operation).startsWith(toolPrefix(PRODUCT_NAME))).toBe(
+        true,
+      );
     }
   });
 
