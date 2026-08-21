@@ -1,9 +1,10 @@
 import http from "node:http";
 
+import * as Sentry from "@sentry/node";
 import cors from "cors";
 import express from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   canonicaliseKratosProxyPath,
@@ -16,74 +17,180 @@ import type { Logger } from "@local/hash-backend-utils/logger";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import type { AddressInfo } from "node:net";
 
+vi.mock("@sentry/node", () => ({ captureMessage: vi.fn() }));
+
+const captureMessage = vi.mocked(Sentry.captureMessage);
+
+beforeEach(() => {
+  captureMessage.mockClear();
+});
+
 type ProxyRequest = [method: string, url: string];
 
 /**
- * Concrete example requests for every entry in the allow-list.
+ * Concrete example requests for every entry in the allow-list, paired with the
+ * entry's own `path`. Coverage is then asserted by identity against the
+ * constant instead of by re-deriving the match here, and every example goes
+ * through `isAllowedKratosProxyRequest` itself — so removing an entry, or
+ * narrowing the SSO callback pattern, fails the suite rather than the login
+ * page.
  */
-const allowedRequests: ProxyRequest[] = [
-  ["GET", "/sessions/whoami"],
+const examplesByAllowedPath: readonly (readonly [
+  path: string | RegExp,
+  requests: readonly ProxyRequest[],
+])[] = [
+  ["/sessions/whoami", [["GET", "/sessions/whoami"]]],
 
-  ["GET", "/self-service/login/browser?refresh=false"],
-  ["GET", "/self-service/login/flows?id=1d0b8a3e-flow"],
-  ["POST", "/self-service/login?flow=1d0b8a3e-flow"],
+  [
+    "/self-service/login/browser",
+    [["GET", "/self-service/login/browser?refresh=false"]],
+  ],
+  [
+    "/self-service/login/flows",
+    [["GET", "/self-service/login/flows?id=1d0b8a3e-flow"]],
+  ],
+  ["/self-service/login", [["POST", "/self-service/login?flow=1d0b8a3e-flow"]]],
 
-  ["GET", "/self-service/registration/browser"],
-  ["GET", "/self-service/registration/flows?id=1d0b8a3e-flow"],
-  ["POST", "/self-service/registration?flow=1d0b8a3e-flow"],
+  [
+    "/self-service/registration/browser",
+    [["GET", "/self-service/registration/browser"]],
+  ],
+  [
+    "/self-service/registration/flows",
+    [["GET", "/self-service/registration/flows?id=1d0b8a3e-flow"]],
+  ],
+  [
+    "/self-service/registration",
+    [["POST", "/self-service/registration?flow=1d0b8a3e-flow"]],
+  ],
 
-  ["GET", "/self-service/verification/browser"],
-  ["GET", "/self-service/verification/flows?id=1d0b8a3e-flow"],
-  ["POST", "/self-service/verification?flow=1d0b8a3e-flow"],
+  [
+    "/self-service/verification/browser",
+    [["GET", "/self-service/verification/browser"]],
+  ],
+  [
+    "/self-service/verification/flows",
+    [["GET", "/self-service/verification/flows?id=1d0b8a3e-flow"]],
+  ],
+  [
+    "/self-service/verification",
+    [["POST", "/self-service/verification?flow=1d0b8a3e-flow"]],
+  ],
 
-  ["GET", "/self-service/recovery/browser"],
-  ["GET", "/self-service/recovery/flows?id=1d0b8a3e-flow"],
-  ["POST", "/self-service/recovery?flow=1d0b8a3e-flow"],
+  [
+    "/self-service/recovery/browser",
+    [["GET", "/self-service/recovery/browser"]],
+  ],
+  [
+    "/self-service/recovery/flows",
+    [["GET", "/self-service/recovery/flows?id=1d0b8a3e-flow"]],
+  ],
+  [
+    "/self-service/recovery",
+    [["POST", "/self-service/recovery?flow=1d0b8a3e-flow"]],
+  ],
 
-  ["GET", "/self-service/settings/browser"],
-  ["GET", "/self-service/settings/flows?id=1d0b8a3e-flow"],
-  ["POST", "/self-service/settings?flow=1d0b8a3e-flow"],
+  [
+    "/self-service/settings/browser",
+    [["GET", "/self-service/settings/browser"]],
+  ],
+  [
+    "/self-service/settings/flows",
+    [["GET", "/self-service/settings/flows?id=1d0b8a3e-flow"]],
+  ],
+  [
+    "/self-service/settings",
+    [["POST", "/self-service/settings?flow=1d0b8a3e-flow"]],
+  ],
 
-  ["GET", "/self-service/logout/browser"],
-  ["GET", "/self-service/logout?token=a-logout-token"],
+  ["/self-service/logout/browser", [["GET", "/self-service/logout/browser"]]],
+  [
+    "/self-service/logout",
+    [["GET", "/self-service/logout?token=a-logout-token"]],
+  ],
 
-  ["GET", "/self-service/methods/oidc/callback/google?code=abc&state=def"],
-  ["POST", "/self-service/methods/oidc/callback/microsoft"],
+  [
+    /^\/self-service\/methods\/oidc\/callback\/[^/]{1,128}$/,
+    [
+      ["GET", "/self-service/methods/oidc/callback/google?code=abc&state=def"],
+      ["POST", "/self-service/methods/oidc/callback/microsoft"],
+    ],
+  ],
 ];
+
+const allowedRequests: ProxyRequest[] = examplesByAllowedPath.flatMap(
+  ([, requests]) =>
+    requests.map(([method, url]): ProxyRequest => [method, url]),
+);
 
 describe("isAllowedKratosProxyRequest — allowed endpoints", () => {
   it.each(allowedRequests)("allows %s %s", (method, url) => {
-    expect(isAllowedKratosProxyRequest(method, url)).toBe(true);
+    expect(isAllowedKratosProxyRequest({ method, url })).toBe(true);
   });
 
-  it("covers every entry in the allow-list with at least one example", () => {
-    const matchedRules = KRATOS_PROXY_ALLOWLIST.filter(({ path, methods }) =>
-      allowedRequests.some(([method, url]) => {
-        const pathname = canonicaliseKratosProxyPath(url);
-        return (
-          pathname !== undefined &&
-          (methods as readonly string[]).includes(method) &&
-          (typeof path === "string" ? path === pathname : path.test(pathname))
-        );
-      }),
+  it("pairs every allow-list entry with an example request, and nothing else", () => {
+    expect(examplesByAllowedPath.map(([path]) => path)).toStrictEqual(
+      KRATOS_PROXY_ALLOWLIST.map(({ path }) => path),
     );
-
-    expect(matchedRules).toHaveLength(KRATOS_PROXY_ALLOWLIST.length);
   });
 
   it("keeps working when a flow id arrives as a query string", () => {
     expect(
-      isAllowedKratosProxyRequest(
-        "POST",
-        "/self-service/verification?flow=8ae1c0d2-1234-4a5b-9c8d-0e1f2a3b4c5d",
-      ),
+      isAllowedKratosProxyRequest({
+        method: "POST",
+        url: "/self-service/verification?flow=8ae1c0d2-1234-4a5b-9c8d-0e1f2a3b4c5d",
+      }),
     ).toBe(true);
   });
 
   it("does not let a query string smuggle in an allowed path", () => {
     expect(
-      isAllowedKratosProxyRequest("GET", "/admin/identities?/sessions/whoami"),
+      isAllowedKratosProxyRequest({
+        method: "GET",
+        url: "/admin/identities?/sessions/whoami",
+      }),
     ).toBe(false);
+  });
+});
+
+/**
+ * The provider id is operator-chosen and Kratos's config schema puts no pattern
+ * on it, so anything Kratos accepts as an id has to survive here — otherwise
+ * SSO 404s on the way back from the identity provider.
+ */
+describe("isAllowedKratosProxyRequest — SSO provider ids", () => {
+  const callbackFor = (provider: string) =>
+    isAllowedKratosProxyRequest({
+      method: "GET",
+      url: `/self-service/methods/oidc/callback/${provider}`,
+    });
+
+  it.each([
+    "google",
+    "microsoft",
+    "Google",
+    "okta.acme.com",
+    "azure_ad",
+    "hash-enterprise",
+    "0",
+  ])("allows the provider id %s", (provider) => {
+    expect(callbackFor(provider)).toBe(true);
+  });
+
+  it("allows a provider id at exactly the length limit", () => {
+    expect(callbackFor("p".repeat(128))).toBe(true);
+  });
+
+  it("denies a provider id one character over the length limit", () => {
+    expect(callbackFor("p".repeat(129))).toBe(false);
+  });
+
+  it("denies a missing provider id", () => {
+    expect(callbackFor("")).toBe(false);
+  });
+
+  it("denies a provider id spanning more than one path segment", () => {
+    expect(callbackFor("google/extra")).toBe(false);
   });
 });
 
@@ -116,6 +223,8 @@ const unlistedRequests: ProxyRequest[] = [
   // Kratos operational endpoints.
   ["GET", "/health/ready"],
   ["GET", "/version"],
+  // Kratos's provider-less OIDC callback, which none of our providers use.
+  ["GET", "/self-service/methods/oidc/callback"],
   // Ory Network enterprise SSO, which we do not configure.
   ["GET", "/self-service/methods/oidc/organization/acme/callback/google"],
   // The mount root itself.
@@ -124,7 +233,7 @@ const unlistedRequests: ProxyRequest[] = [
 
 describe("isAllowedKratosProxyRequest — unlisted paths", () => {
   it.each(unlistedRequests)("denies %s %s", (method, url) => {
-    expect(isAllowedKratosProxyRequest(method, url)).toBe(false);
+    expect(isAllowedKratosProxyRequest({ method, url })).toBe(false);
   });
 });
 
@@ -150,11 +259,13 @@ const methodMismatches: ProxyRequest[] = [
 
 describe("isAllowedKratosProxyRequest — method mismatches", () => {
   it.each(methodMismatches)("denies %s %s", (method, url) => {
-    expect(isAllowedKratosProxyRequest(method, url)).toBe(false);
+    expect(isAllowedKratosProxyRequest({ method, url })).toBe(false);
   });
 
   it("is case-sensitive about the method", () => {
-    expect(isAllowedKratosProxyRequest("get", "/sessions/whoami")).toBe(false);
+    expect(
+      isAllowedKratosProxyRequest({ method: "get", url: "/sessions/whoami" }),
+    ).toBe(false);
   });
 });
 
@@ -185,14 +296,14 @@ const nonCanonicalPaths: string[] = [
 describe("canonicaliseKratosProxyPath — traversal and encoding", () => {
   it.each(nonCanonicalPaths)("rejects %s as non-canonical", (url) => {
     expect(canonicaliseKratosProxyPath(url)).toBeUndefined();
-    expect(isAllowedKratosProxyRequest("GET", url)).toBe(false);
+    expect(isAllowedKratosProxyRequest({ method: "GET", url })).toBe(false);
   });
 
   it("does not accept an encoded path that decodes to an allowed one", () => {
     // `%73` is `s`, so this decodes to `/sessions/whoami`.
-    expect(isAllowedKratosProxyRequest("GET", "/%73essions/whoami")).toBe(
-      false,
-    );
+    expect(
+      isAllowedKratosProxyRequest({ method: "GET", url: "/%73essions/whoami" }),
+    ).toBe(false);
   });
 
   it("returns the path unchanged for a canonical URL, dropping the query", () => {
@@ -207,35 +318,45 @@ describe("canonicaliseKratosProxyPath — traversal and encoding", () => {
 
 describe("guardKratosProxy", () => {
   const setup = () => {
-    const warn = vi.fn();
+    const error = vi.fn();
     const next = vi.fn();
     const sendStatus = vi.fn();
     const proxy = vi.fn();
 
     const guarded = guardKratosProxy({
-      logger: { warn } as unknown as Logger,
+      logger: { error } as unknown as Logger,
       proxy: proxy as unknown as RequestHandler,
     });
 
-    const call = (method: string, url: string) => {
+    const call = (
+      method: string,
+      url: string,
+      { origin, ip }: { origin?: string; ip?: string } = {},
+    ) => {
       guarded(
-        { method, url } as unknown as Request,
+        {
+          method,
+          url,
+          headers: origin === undefined ? {} : { origin },
+          ip,
+        } as unknown as Request,
         { sendStatus } as unknown as Response,
         next as unknown as NextFunction,
       );
     };
 
-    return { call, next, proxy, sendStatus, warn };
+    return { call, error, next, proxy, sendStatus };
   };
 
   it("calls through to the proxy for an allowed request", () => {
-    const { call, proxy, sendStatus, warn } = setup();
+    const { call, error, proxy, sendStatus } = setup();
 
     call("GET", "/self-service/login/browser?refresh=false");
 
     expect(proxy).toHaveBeenCalledTimes(1);
     expect(sendStatus).not.toHaveBeenCalled();
-    expect(warn).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    expect(captureMessage).not.toHaveBeenCalled();
   });
 
   it("responds 404 — not 403 — and does not invoke the proxy when denied", () => {
@@ -248,45 +369,115 @@ describe("guardKratosProxy", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("logs and counts denials so an omitted endpoint is discoverable", () => {
-    const { call, warn } = setup();
+  it("logs denials at error level, with the origin and IP that tell a missing entry from a probe", () => {
+    const { call, error } = setup();
 
-    call("GET", "/self-service/errors");
-    call("DELETE", "/sessions");
+    call("GET", "/self-service/errors", {
+      origin: "https://app.hash.ai",
+      ip: "203.0.113.7",
+    });
+    call("DELETE", "/sessions", { ip: "203.0.113.9" });
 
-    expect(warn).toHaveBeenCalledTimes(2);
-    expect(warn).toHaveBeenNthCalledWith(
+    expect(error).toHaveBeenCalledTimes(2);
+    expect(error).toHaveBeenNthCalledWith(
       1,
       "Blocked non-allow-listed Kratos proxy request",
-      { method: "GET", path: "/self-service/errors", deniedCount: 1 },
+      {
+        method: "GET",
+        path: "/self-service/errors",
+        origin: "https://app.hash.ai",
+        ip: "203.0.113.7",
+        deniedCount: 1,
+      },
     );
-    expect(warn).toHaveBeenNthCalledWith(
+    expect(error).toHaveBeenNthCalledWith(
       2,
       "Blocked non-allow-listed Kratos proxy request",
-      { method: "DELETE", path: "/sessions", deniedCount: 2 },
+      {
+        method: "DELETE",
+        path: "/sessions",
+        origin: undefined,
+        ip: "203.0.113.9",
+        deniedCount: 2,
+      },
     );
   });
 
-  it("never logs the query string, which carries flow ids and codes", () => {
-    const { call, warn } = setup();
+  it("never logs or reports the query string, which carries flow ids and codes", () => {
+    const { call, error } = setup();
 
     call("GET", "/self-service/errors?id=super-secret-code");
 
-    expect(warn).toHaveBeenCalledWith(
+    expect(error).toHaveBeenCalledWith(
       "Blocked non-allow-listed Kratos proxy request",
-      { method: "GET", path: "/self-service/errors", deniedCount: 1 },
+      expect.objectContaining({ path: "/self-service/errors" }),
+    );
+    expect(captureMessage).toHaveBeenCalledWith(
+      "Blocked non-allow-listed Kratos proxy request",
+      expect.objectContaining({
+        extra: expect.objectContaining({ path: "/self-service/errors" }),
+      }),
     );
   });
 
-  it("strips non-printable characters from the logged path", () => {
-    const { call, warn } = setup();
+  it("strips non-printable characters from the logged path and origin", () => {
+    const { call, error } = setup();
 
-    call("GET", "/self-service/er\nrors");
+    call("GET", "/self-service/er\nrors", {
+      origin: "https://ev\nil.example",
+    });
 
-    expect(warn).toHaveBeenCalledWith(
+    expect(error).toHaveBeenCalledWith(
       "Blocked non-allow-listed Kratos proxy request",
-      { method: "GET", path: "/self-service/errors", deniedCount: 1 },
+      expect.objectContaining({
+        path: "/self-service/errors",
+        origin: "https://evil.example",
+      }),
     );
+  });
+
+  it("reports a denial to Sentry, fingerprinted by endpoint", () => {
+    const { call } = setup();
+
+    call("GET", "/self-service/errors", { ip: "203.0.113.7" });
+
+    expect(captureMessage).toHaveBeenCalledTimes(1);
+    expect(captureMessage).toHaveBeenCalledWith(
+      "Blocked non-allow-listed Kratos proxy request",
+      {
+        level: "error",
+        fingerprint: ["kratos-proxy-denied", "GET", "/self-service/errors"],
+        extra: {
+          method: "GET",
+          path: "/self-service/errors",
+          origin: undefined,
+          ip: "203.0.113.7",
+          deniedCount: 1,
+        },
+      },
+    );
+  });
+
+  it("reports each denied endpoint once, while still logging every denial", () => {
+    const { call, error } = setup();
+
+    call("GET", "/self-service/errors");
+    call("GET", "/self-service/errors?attempt=2");
+    call("GET", "/version");
+
+    expect(captureMessage).toHaveBeenCalledTimes(2);
+    expect(error).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops reporting to Sentry once a caller is enumerating endpoints", () => {
+    const { call, error } = setup();
+
+    for (let index = 0; index < 25; index++) {
+      call("GET", `/probe-${index}`);
+    }
+
+    expect(captureMessage).toHaveBeenCalledTimes(20);
+    expect(error).toHaveBeenCalledTimes(25);
   });
 });
 
@@ -336,7 +527,7 @@ describe("guardKratosProxy — against a real Express and proxy stack", () => {
       "/auth",
       cors({ origin: "http://localhost:3000", credentials: true }),
       guardKratosProxy({
-        logger: { warn: vi.fn() } as unknown as Logger,
+        logger: { error: vi.fn() } as unknown as Logger,
         proxy: createProxyMiddleware({
           target: `http://127.0.0.1:${kratosPort}`,
           pathRewrite: { "^/auth": "" },
