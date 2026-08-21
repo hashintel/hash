@@ -4,7 +4,7 @@ import {
   faListOl,
   faListUl,
 } from "@fortawesome/free-solid-svg-icons";
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useContext } from "react";
 
 import {
   fa100,
@@ -21,8 +21,6 @@ import {
   faRulerRegular,
   faSquareCheck,
   faText,
-  identifierTypeTitles,
-  measurementTypeTitles,
 } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
 
@@ -34,7 +32,6 @@ import type {
   ValueConstraints,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { PropsWithChildren } from "react";
 
 const chipColors = {
   blue: {
@@ -54,7 +51,7 @@ const chipColors = {
   },
 };
 
-type ExpectedValueDisplay = {
+export type ExpectedValueDisplay = {
   icon: typeof faText;
   colors: typeof chipColors.blue;
   title: string;
@@ -62,7 +59,7 @@ type ExpectedValueDisplay = {
 };
 
 // @todo consolidate this with editor-specs.ts in the entity editor
-const expectedValuesDisplayMap = {
+export const expectedValuesDisplayMap = {
   string: {
     icon: faText,
     colors: chipColors.blue,
@@ -165,11 +162,11 @@ export const DataTypesOptionsContext =
 const isTupleConstraints = (schema: ArraySchema): schema is TupleConstraints =>
   schema.items === false;
 
-const isArrayItemsSchema = (
+export const isArrayItemsSchema = (
   schema: ValueConstraints,
 ): schema is ArrayItemsSchema => "type" in schema && schema.type === "array";
 
-const getArrayDataTypeDisplay = (
+export const getArrayDataTypeDisplay = (
   dataType: ArraySchema,
 ): Omit<ExpectedValueDisplay, "title"> => {
   // `items` are either the elements of a tuple or the items of a mixed anyOf-array
@@ -213,132 +210,6 @@ const getArrayDataTypeDisplay = (
    * @todo H-3373 support mixed data types with different types of values in each position
    */
   return expectedValuesDisplayMap.mixedArray;
-};
-
-export const DataTypesOptionsContextProvider = ({
-  children,
-  dataTypeOptions,
-}: PropsWithChildren<{ dataTypeOptions: DataTypesByVersionedUrl }>) => {
-  const getExpectedValueDisplay = useCallback(
-    (
-      expectedValue: CustomExpectedValueTypeId | CustomExpectedValueTypeId[],
-    ): ExpectedValueDisplay => {
-      if (expectedValue === "object") {
-        return {
-          title: "Property Object",
-          ...expectedValuesDisplayMap.propertyObject,
-        };
-      }
-
-      if (expectedValue === "array") {
-        return {
-          title: "Array",
-          ...expectedValuesDisplayMap.array,
-        };
-      }
-
-      if (typeof expectedValue === "string") {
-        const dataType = dataTypeOptions[expectedValue];
-        if (!dataType) {
-          throw new Error(`Could not find dataType for ${expectedValue}`);
-        }
-
-        if ("type" in dataType && dataType.type === "array") {
-          return {
-            $id: dataType.$id,
-            title: dataType.title,
-            ...getArrayDataTypeDisplay(dataType),
-          };
-        }
-
-        let displayType: keyof typeof expectedValuesDisplayMap =
-          /**
-           * @todo H-3373 support data types which can have multiple different single values
-           */
-          "anyOf" in dataType ? dataType.anyOf[0].type : dataType.type;
-
-        if (measurementTypeTitles.includes(dataType.title)) {
-          displayType = "measurement";
-        } else if (identifierTypeTitles.includes(dataType.title)) {
-          displayType = "identifier";
-        } else if ("format" in dataType) {
-          if (dataType.format === "date-time") {
-            displayType = "datetime";
-          } else if (dataType.format === "date") {
-            displayType = "date";
-          } else if (dataType.format === "time") {
-            displayType = "time";
-          } else if (dataType.format === "email") {
-            displayType = "email";
-          }
-        }
-
-        return {
-          $id: dataType.$id,
-          title: dataType.title,
-          ...expectedValuesDisplayMap[displayType],
-        };
-      }
-
-      if (Array.isArray(expectedValue)) {
-        if (new Set(expectedValue).size === 1) {
-          const type = expectedValue[0]!;
-          if (type === "object") {
-            return {
-              title: "Property Object Array",
-              ...expectedValuesDisplayMap.propertyObjectArray,
-            };
-          }
-          if (type === "array") {
-            return {
-              title: "Array of Arrays",
-              ...expectedValuesDisplayMap.arrayArray,
-            };
-          }
-          const dataType = dataTypeOptions[type];
-
-          if (dataType) {
-            if (isArrayItemsSchema(dataType)) {
-              return {
-                title: `${dataType.title} Array`,
-                ...getArrayDataTypeDisplay({
-                  items: dataType,
-                }),
-              };
-            }
-
-            return {
-              ...getExpectedValueDisplay(dataType.$id),
-              title: `${dataType.title} Array`,
-            };
-          }
-        }
-
-        return {
-          title: "Mixed Array",
-          ...expectedValuesDisplayMap.mixedArray,
-        };
-      }
-
-      throw new Error("Could not find expectedValueDisplay");
-    },
-    [dataTypeOptions],
-  );
-
-  const value = useMemo(() => {
-    return {
-      dataTypes: Object.values(dataTypeOptions).sort((a, b) =>
-        a.title.localeCompare(b.title),
-      ),
-      getExpectedValueDisplay,
-    };
-  }, [dataTypeOptions, getExpectedValueDisplay]);
-
-  return (
-    <DataTypesOptionsContext.Provider value={value}>
-      {children}
-    </DataTypesOptionsContext.Provider>
-  );
 };
 
 export const useDataTypesOptions = () => {

@@ -45,15 +45,15 @@ import {
   EntityTypeTableFooter,
   EntityTypeTableFooterButton,
   EntityTypeTableHeaderRow,
-  sortRows,
-  useFlashRow,
 } from "./shared/entity-type-table";
 import { InsertTypeField } from "./shared/insert-type-field";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
+import { sortRows } from "./shared/sort-rows";
 import { TypeFormModal } from "./shared/type-form";
 import { TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
+import { useFlashRow } from "./shared/use-flash-row";
 import { useInheritedValuesForCurrentDraft } from "./shared/use-inherited-values";
 import { useStateCallback } from "./shared/use-state-callback";
 import { useTypeVersions } from "./shared/use-type-versions";

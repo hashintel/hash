@@ -9,10 +9,10 @@ import { InheritanceRow } from "./entity-type-editor/inheritance-row";
 import { LinkListCard } from "./entity-type-editor/link-list-card";
 import { PropertyListCard } from "./entity-type-editor/property-list-card";
 import { CustomizationContext } from "./shared/customization-context";
-import { DataTypesOptionsContextProvider } from "./shared/data-types-options-context";
-import { EntityTypesOptionsContextProvider } from "./shared/entity-types-options-context";
+import { DataTypesOptionsContextProvider } from "./shared/data-types-options-context-provider";
+import { EntityTypesOptionsContextProvider } from "./shared/entity-types-options-context-provider";
 import { OntologyFunctionsContext } from "./shared/ontology-functions-context";
-import { PropertyTypesOptionsContextProvider } from "./shared/property-types-options-context";
+import { PropertyTypesOptionsContextProvider } from "./shared/property-types-options-context-provider";
 import { ReadonlyContext } from "./shared/read-only-context";
 
 import type { EditorOntologyFunctions } from "./shared/ontology-functions-context";
@@ -22,16 +22,6 @@ import type {
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-
-export {
-  Controller as EntityTypeFormController,
-  FormProvider as EntityTypeFormProvider,
-  useForm as useEntityTypeForm,
-  useFormContext as useEntityTypeFormContext,
-  useController as useEntityTypeFormController,
-  useFormState as useEntityTypeFormState,
-  useWatch as useEntityTypeFormWatch,
-} from "react-hook-form";
 
 export type CustomizationOptions = {
   /**
