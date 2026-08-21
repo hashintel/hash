@@ -2,6 +2,7 @@
 
 use core::time::Duration;
 
+use cookie::Cookie;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::store::error::DetermineActorError;
 use http::{HeaderMap, header};
@@ -32,9 +33,10 @@ enum SessionCredential<'h> {
 /// Extracts a session credential from request headers.
 ///
 /// A session token takes precedence over the session cookie. Returns `None` when neither an
-/// `X-Session-Token` header nor an `ory_kratos_session` cookie is present, and an error when a
-/// credential is present but not decodable. Cookies are matched by name, so unrelated cookies
-/// neither trigger session verification nor mask the session cookie.
+/// `X-Session-Token` header nor an `ory_kratos_session` cookie is present, and an error when the
+/// token is present but not decodable. Cookies are matched by name, and pairs that do not decode
+/// or parse are skipped, so unrelated cookies neither trigger session verification nor mask the
+/// session cookie.
 fn extract_session_credential(
     headers: &HeaderMap,
 ) -> Option<Result<SessionCredential<'_>, Report<AuthenticationError>>> {
@@ -48,13 +50,22 @@ fn extract_session_credential(
     }
 
     for cookie_header in headers.get_all(header::COOKIE) {
-        if let Some(value) = cookie_value(cookie_header.as_bytes(), SESSION_COOKIE_NAME.as_bytes())
-        {
-            return Some(
-                core::str::from_utf8(value)
-                    .map(SessionCredential::Cookie)
-                    .change_context(AuthenticationError::MalformedCredential),
-            );
+        // Pairs are split on the byte level so a cookie that does not decode leaves its
+        // neighbours readable.
+        let value = cookie_header
+            .as_bytes()
+            .split(|&byte| byte == b';')
+            .filter_map(|pair| core::str::from_utf8(pair).ok())
+            .filter_map(|pair| Cookie::parse(pair).ok())
+            .find_map(|cookie| {
+                if cookie.name() == SESSION_COOKIE_NAME {
+                    cookie.value_raw()
+                } else {
+                    None
+                }
+            });
+        if let Some(value) = value {
+            return Some(Ok(SessionCredential::Cookie(value)));
         }
     }
 
@@ -71,19 +82,6 @@ fn provider_response(status: reqwest::StatusCode, body: Result<String, reqwest::
         snippet.push('\u{2026}');
     }
     format!("provider response ({status}): {snippet}")
-}
-
-/// Returns the value of the named cookie within a raw `Cookie` header value.
-fn cookie_value<'h>(header: &'h [u8], name: &[u8]) -> Option<&'h [u8]> {
-    header.split(|&byte| byte == b';').find_map(|pair| {
-        let position = pair.iter().position(|&byte| byte == b'=')?;
-        let (pair_name, pair_value) = pair.split_at(position);
-        if pair_name.trim_ascii() == name {
-            pair_value.get(1..).map(<[u8]>::trim_ascii)
-        } else {
-            None
-        }
-    })
 }
 
 /// Deserialized subset of the Kratos whoami response.
