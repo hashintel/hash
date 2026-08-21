@@ -14,3 +14,5 @@ yarn reset-database -o none
 yarn httpyac send --all tests/hashql.http -o none
 yarn reset-database -o none
 yarn httpyac send --all tests/type-fetcher.http -o none
+yarn reset-database -o none
+yarn httpyac send --all tests/kratos-session.http -o none

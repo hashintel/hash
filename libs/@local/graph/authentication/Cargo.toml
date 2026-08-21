@@ -8,22 +8,29 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true }
-hash-status = { workspace = true, public = true }
-type-system = { workspace = true, public = true }
+error-stack              = { workspace = true, public = true }
+hash-graph-authorization = { workspace = true, public = true }
+hash-graph-store         = { workspace = true, public = true }
+hash-status              = { workspace = true, public = true }
+type-system              = { workspace = true, public = true }
 
 # Public third-party dependencies
-http = { workspace = true, public = true, features = ["std"] }
+http    = { workspace = true, public = true, features = ["std"] }
+reqwest = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
+cookie         = { workspace = true }
 derive_more    = { workspace = true, features = ["display"] }
+serde          = { workspace = true, features = ["derive"] }
+serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
 tracing        = { workspace = true }
 uuid           = { workspace = true }
 
 [dev-dependencies]
+axum  = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 uuid  = { workspace = true, features = ["v4"] }
 

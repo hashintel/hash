@@ -515,6 +515,7 @@ where
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
+    pub session_auth: auth::KratosSessionConfig,
     pub compiler: Arc<hashql::CompilerContext>,
     pub clustering: Arc<ClusteringContext>,
     /// Whether to serve an interactive rendering of the `OpenAPI` specification.
@@ -557,8 +558,10 @@ where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
 {
-    // TODO(BE-760): replace with the Kratos session provider
-    let session_provider = Arc::new(auth::StaticAuthenticationProvider::NotRecognized);
+    let session_provider = Arc::new(auth::KratosSessionProvider::new(
+        dependencies.session_auth,
+        auth::StorePoolActorResolver::new(Arc::clone(&dependencies.store)),
+    ));
 
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()
