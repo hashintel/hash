@@ -515,7 +515,7 @@ where
         let mut data_type_reference_ids = HashSet::new();
         let mut data_type_conversions_rows = Vec::new();
 
-        let mut policy_components_builder = PolicyComponents::builder(&transaction);
+        let mut policy_components_builder = PolicyComponents::builder(&transaction, Some(actor_id));
 
         for parameters in params {
             let provenance = OntologyProvenance {
@@ -569,7 +569,6 @@ where
         }
 
         let policy_components = policy_components_builder
-            .with_actor(Some(actor_id))
             .with_actions([ActionName::CreateDataType], MergePolicies::No)
             .await
             .change_context(InsertionError)?;
@@ -751,8 +750,7 @@ where
         actor_id: Option<ActorId>,
         mut params: QueryDataTypesParams<'_>,
     ) -> Result<QueryDataTypesResponse, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewDataType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -775,8 +773,7 @@ where
         actor_id: Option<ActorId>,
         mut params: CountDataTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewDataType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -805,8 +802,7 @@ where
         actor_id: Option<ActorId>,
         params: QueryDataTypeSubgraphParams<'_>,
     ) -> Result<QueryDataTypeSubgraphResponse, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewDataType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -1000,8 +996,7 @@ where
             });
         }
 
-        let policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(&transaction, Some(actor_id))
             .with_data_type_ids(&old_data_type_ids)
             .with_actions([ActionName::UpdateDataType], MergePolicies::No)
             .await
@@ -1188,8 +1183,7 @@ where
         actor_id: ActorId,
         params: ArchiveDataTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_data_type_id(&params.data_type_id)
             .with_actions([ActionName::ArchiveDataType], MergePolicies::No)
             .await
@@ -1230,8 +1224,7 @@ where
         actor_id: ActorId,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_data_type_id(&params.data_type_id)
             .with_actions([ActionName::ArchiveDataType], MergePolicies::No)
             .await
@@ -1363,8 +1356,7 @@ where
         actor_id: Option<ActorId>,
         params: FindDataTypeConversionTargetsParams,
     ) -> Result<FindDataTypeConversionTargetsResponse, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_actions([ActionName::ViewDataType], MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -1628,8 +1620,7 @@ where
             .add_filter(&data_type_filter)
             .change_context(CheckPermissionError::CompileFilter)?;
 
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(authenticated_actor))
+        let policy_components = PolicyComponents::builder(self, Some(authenticated_actor))
             .with_action(params.action, MergePolicies::Yes)
             .await
             .change_context(CheckPermissionError::BuildPolicyContext)?;

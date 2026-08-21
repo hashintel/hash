@@ -906,7 +906,7 @@ where
         let mut inserted_entity_types = Vec::new();
         let mut entity_type_reference_ids = Vec::new();
 
-        let mut policy_components_builder = PolicyComponents::builder(&transaction);
+        let mut policy_components_builder = PolicyComponents::builder(&transaction, Some(actor_id));
 
         for parameters in params {
             let provenance = OntologyProvenance {
@@ -952,7 +952,6 @@ where
         }
 
         let policy_components = policy_components_builder
-            .with_actor(Some(actor_id))
             .with_actions([ActionName::CreateEntityType], MergePolicies::No)
             .await
             .change_context(InsertionError)?;
@@ -1112,8 +1111,7 @@ where
         actor_id: Option<ActorId>,
         mut params: CountEntityTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -1161,8 +1159,7 @@ where
         actor_id: Option<ActorId>,
         mut params: QueryEntityTypesParams<'_>,
     ) -> Result<QueryEntityTypesResponse, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -1225,8 +1222,7 @@ where
             limit,
         } = params;
 
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -1491,8 +1487,7 @@ where
     ) -> Result<QueryEntityTypeSubgraphResponse, Report<QueryError>> {
         let actions = params.view_actions();
 
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_actions(actions, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -1684,8 +1679,7 @@ where
             });
         }
 
-        let policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(&transaction, Some(actor_id))
             .with_entity_type_ids(&old_entity_type_ids)
             .with_actions([ActionName::UpdateEntityType], MergePolicies::No)
             .await
@@ -1849,8 +1843,7 @@ where
         actor_id: ActorId,
         params: ArchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_entity_type_id(&params.entity_type_id)
             .with_actions([ActionName::ArchiveEntityType], MergePolicies::No)
             .await
@@ -1893,8 +1886,7 @@ where
         actor_id: ActorId,
         params: UnarchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_entity_type_id(&params.entity_type_id)
             .with_actions([ActionName::ArchiveEntityType], MergePolicies::No)
             .await
@@ -2125,8 +2117,7 @@ where
             // TODO: Remove this branch
             //   see https://linear.app/hash/issue/H-4956
 
-            let policy_components = PolicyComponents::builder(self)
-                .with_actor(Some(authenticated_actor))
+            let policy_components = PolicyComponents::builder(self, Some(authenticated_actor))
                 .with_action(ActionName::Instantiate, MergePolicies::No)
                 .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
                 .with_entity_type_ids(params.entity_type_ids.iter())
@@ -2213,8 +2204,7 @@ where
                 .add_filter(&entity_type_filter)
                 .change_context(CheckPermissionError::CompileFilter)?;
 
-            let policy_components = PolicyComponents::builder(self)
-                .with_actor(Some(authenticated_actor))
+            let policy_components = PolicyComponents::builder(self, Some(authenticated_actor))
                 .with_action(params.action, MergePolicies::Yes)
                 .await
                 .change_context(CheckPermissionError::BuildPolicyContext)?;
