@@ -2,9 +2,9 @@
 //!
 //! The report reconstructs the classifier training set from the generation's staged annotation
 //! artifacts (the [`replay`] facility), re-runs the full production fit under the echoed
-//! configuration - fold assignment seeded by the echo, so the refit is deterministic - and asserts
-//! that the recomputed model reproduces the staged `.clsf` artifact byte-for-byte. The bundle
-//! therefore provably describes the deployed model, not a lookalike.
+//! configuration - fold assignment seeded by the echo, so the refit is deterministic - and records
+//! whether the recomputed model reproduces the staged `.clsf` artifact byte-for-byte. A verified
+//! bundle provably describes the deployed model, not a lookalike.
 //!
 //! One JSON document carries everything a downstream renderer needs: the per-row records (identity,
 //! fold, soft target, weight, out-of-fold logits, raw and calibrated posteriors, and
@@ -13,7 +13,8 @@
 //! both digests.
 //!
 //! Failures panic with the failing step's error. A report run has no recovery path, and the error
-//! is the diagnosis.
+//! is the diagnosis. The byte certification is the exception: its verdict is the report's content,
+//! so a digest mismatch compiles and serializes with its per-row evidence instead of panicking.
 
 pub(crate) mod replay;
 
@@ -114,8 +115,7 @@ impl ClassifierReport {
     /// # Panics
     ///
     /// This panics when the report cannot open the generation, when its staged corpus fails
-    /// reconstruction, when the refit fails, or when the recomputed model does not reproduce the
-    /// staged artifact bytes.
+    /// reconstruction, or when the refit fails.
     pub(crate) async fn compile(root: &GenerationRoot, generation: GenerationId) -> Self {
         let frozen = Frozen::load(root, generation);
         let reconstructed = frozen.reconstruct().await;
@@ -135,17 +135,14 @@ impl ClassifierReport {
             .classifier
             .write_into(std::io::sink())
             .expect("writing to a sink performs no fallible IO");
-        assert!(
-            recomputed == staged,
-            "the refit model reproduces the staged classifier artifact bytes (staged {staged}, \
-             recomputed {recomputed})",
-        );
+        // A digest mismatch serializes with its per-row evidence: the divergence is the most
+        // valuable thing this instrument can show.
 
         let temperature = refit.classifier.temperature();
         let row_reports = rows
             .iter_enumerated()
-            .zip(identities)
-            .map(|((row, training_row), identity)| {
+            .map(|(row, training_row)| {
+                let identity = &identities[row];
                 let logits = refit.evidence.out_of_fold_logits[row];
                 let prediction = refit
                     .classifier
@@ -206,5 +203,10 @@ impl ClassifierReport {
     /// The reported training-row count.
     pub(crate) const fn row_count(&self) -> usize {
         self.rows.len()
+    }
+
+    /// Whether the refit model reproduced the staged artifact bytes.
+    pub(crate) const fn verified(&self) -> bool {
+        self.certification.verified
     }
 }

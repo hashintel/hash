@@ -23,12 +23,11 @@ pub(crate) struct ClassifierArgs {
     output: Utf8PathBuf,
 }
 
-/// One certified refit's verdict and where its bundle landed.
-///
-/// Reaching a verdict at all is the certification: a refit whose bytes diverge from the deployed
-/// artifact fails the compilation instead of reporting a mismatch.
+/// One refit's certification verdict and where its bundle landed.
 #[derive(Debug)]
 pub(crate) struct ClassifierVerdict {
+    /// Whether the refit model reproduced the staged artifact bytes.
+    verified: bool,
     /// The staged corpus's row count.
     rows: usize,
     /// The path the run wrote the report bundle to.
@@ -37,10 +36,18 @@ pub(crate) struct ClassifierVerdict {
 
 impl Display for ClassifierVerdict {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            fmt,
-            "certified: the refit model reproduces the staged artifact bytes"
-        )?;
+        if self.verified {
+            writeln!(
+                fmt,
+                "certified: the refit model reproduces the staged artifact bytes"
+            )?;
+        } else {
+            writeln!(
+                fmt,
+                "diverged: the refit model does not reproduce the staged artifact bytes; the \
+                 bundle carries the evidence"
+            )?;
+        }
         writeln!(fmt, "rows        {}", self.rows)?;
         write!(fmt, "report      {}", self.output)
     }
@@ -48,7 +55,8 @@ impl Display for ClassifierVerdict {
 
 impl ClassifierArgs {
     /// Refits the generation's classifier from its staged corpus and certifies the bytes against
-    /// the deployed artifact, then writes the report bundle.
+    /// the deployed artifact, then writes the report bundle. A digest mismatch is the bundle's
+    /// content, so it lands in the report and the verdict instead of failing the run.
     ///
     /// # Errors
     ///
@@ -57,8 +65,7 @@ impl ClassifierArgs {
     /// # Panics
     ///
     /// This panics when the run cannot open the generation, its staged corpus fails reconstruction,
-    /// the refit fails, or the recomputed model does not reproduce the staged artifact bytes. A
-    /// report run has no recovery path, and the error is the diagnosis.
+    /// or the refit fails. A report run has no recovery path, and the error is the diagnosis.
     pub(super) async fn run(self) -> Result<ClassifierVerdict, ReportError> {
         let report = ClassifierReport::compile(&self.root.root, self.generation).await;
 
@@ -67,6 +74,7 @@ impl ClassifierArgs {
         std::fs::write(&self.output, bundle).map_err(ReportError::Io)?;
 
         Ok(ClassifierVerdict {
+            verified: report.verified(),
             rows: report.row_count(),
             output: self.output,
         })
