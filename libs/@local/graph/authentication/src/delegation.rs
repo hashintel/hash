@@ -17,16 +17,15 @@ pub const SERVICE_AUTH_SCHEME: &str = "HASH-Service";
 
 /// Returns the service secret carried in the `Authorization` header.
 ///
-/// Returns [`None`] when the header is absent or names a different scheme, so credentials of
-/// other schemes pass through unrecognized. The scheme is matched case-insensitively.
+/// Returns [`None`] when the header is absent, does not decode, or names a different scheme, so
+/// credentials of other schemes pass through unrecognized. The scheme is matched
+/// case-insensitively.
 #[must_use]
-pub fn service_credential(headers: &HeaderMap) -> Option<&[u8]> {
-    let credentials = headers.get(header::AUTHORIZATION)?.as_bytes();
-    let mut parts = credentials.splitn(2, |&byte| byte == b' ');
-    let scheme = parts.next()?;
-    let token = parts.next().unwrap_or_default();
+pub fn service_credential(headers: &HeaderMap) -> Option<&str> {
+    let credentials = headers.get(header::AUTHORIZATION)?.to_str().ok()?;
+    let (scheme, token) = credentials.split_once(' ').unwrap_or((credentials, ""));
     scheme
-        .eq_ignore_ascii_case(SERVICE_AUTH_SCHEME.as_bytes())
+        .eq_ignore_ascii_case(SERVICE_AUTH_SCHEME)
         .then(|| token.trim_ascii())
 }
 
@@ -37,7 +36,8 @@ pub fn service_credential(headers: &HeaderMap) -> Option<&[u8]> {
 #[must_use]
 pub fn presents_service_secret(headers: &HeaderMap, secret: &str) -> bool {
     !secret.is_empty()
-        && service_credential(headers).is_some_and(|token| token.ct_eq(secret.as_bytes()).into())
+        && service_credential(headers)
+            .is_some_and(|token| token.as_bytes().ct_eq(secret.as_bytes()).into())
 }
 
 /// Authenticates internal services acting on behalf of an actor.
