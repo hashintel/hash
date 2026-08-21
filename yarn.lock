@@ -860,6 +860,8 @@ __metadata:
 "@apps/petrinaut-opt@workspace:*, @apps/petrinaut-opt@workspace:apps/petrinaut-opt":
   version: 0.0.0-use.local
   resolution: "@apps/petrinaut-opt@workspace:apps/petrinaut-opt"
+  dependencies:
+    "@local/petrinaut-python": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -9470,6 +9472,14 @@ __metadata:
     rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
     vitest: "npm:4.1.10"
+  languageName: unknown
+  linkType: soft
+
+"@local/petrinaut-python@workspace:*, @local/petrinaut-python@workspace:libs/@local/petrinaut-python":
+  version: 0.0.0-use.local
+  resolution: "@local/petrinaut-python@workspace:libs/@local/petrinaut-python"
+  dependencies:
+    "@hashintel/petrinaut-cli": "workspace:*"
   languageName: unknown
   linkType: soft
 

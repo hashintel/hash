@@ -10,5 +10,8 @@
     "start": "uv run uvicorn src.optimization_api:app",
     "start:dev": "uv run uvicorn src.optimization_api:app --reload",
     "test:unit": "uv run pytest && yarn codegen && git diff --exit-code -- openapi/openapi.json"
+  },
+  "dependencies": {
+    "@local/petrinaut-python": "workspace:*"
   }
 }

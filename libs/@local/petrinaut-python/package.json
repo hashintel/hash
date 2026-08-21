@@ -1,0 +1,14 @@
+{
+  "name": "@local/petrinaut-python",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Python bindings for the Petrinaut CLI",
+  "license": "(MIT OR Apache-2.0)",
+  "scripts": {
+    "install:deps": "uv sync",
+    "test:unit": "uv run pytest"
+  },
+  "dependencies": {
+    "@hashintel/petrinaut-cli": "workspace:*"
+  }
+}

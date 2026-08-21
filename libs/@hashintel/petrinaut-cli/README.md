@@ -10,6 +10,10 @@ studies — lives in the architecture docs'
 [usage manual](../../@local/petrinaut-arch-docs/content/cli/usage-manual.mdx)
 (browse it rendered with `turbo run dev --filter @apps/petrinaut-docs`).
 
+The [`@local/petrinaut-python`](../../@local/petrinaut-python/README.md)
+bindings drive this CLI from Python: sessions, run requests, and optimization
+studies.
+
 Build the CLI, then serve a model saved from the editor:
 
 ```bash

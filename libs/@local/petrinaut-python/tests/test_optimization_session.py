@@ -11,40 +11,14 @@ from typing import Any
 
 import pytest
 
-from src import petrinaut_client
-from src.petrinaut_client import (
+from conftest import FakeProcess, spawn
+from petrinaut import (
+    OptimizationSession,
     PetrinautClientError,
-    PetrinautModel,
     PetrinautProtocolError,
     PetrinautRunError,
 )
-
-
-class FakeProcess:
-    def __init__(self, responses: list[dict[str, Any]]) -> None:
-        self.stdin = io.BytesIO()
-        self.stdout = io.BytesIO(
-            "".join(json.dumps(response) + "\n" for response in responses).encode()
-        )
-        self.stderr = io.BytesIO(b"Petrinaut stdio ready for optimization\n")
-        self.returncode: int | None = None
-        self.terminated = False
-        self.killed = False
-
-    def poll(self) -> int | None:
-        return self.returncode
-
-    def wait(self, timeout: float | None = None) -> int:
-        self.returncode = 0
-        return 0
-
-    def terminate(self) -> None:
-        self.terminated = True
-        self.returncode = -15
-
-    def kill(self) -> None:
-        self.killed = True
-        self.returncode = -9
+from petrinaut import session as petrinaut_session
 
 
 def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
@@ -53,28 +27,25 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "must-not-leak")
-    monkeypatch.setenv("PETRINAUT_CLI_NODE_OPTIONS", "--max-old-space-size=768")
+    monkeypatch.setenv("PETRINAUT_CHILD_NODE_OPTIONS", "--max-old-space-size=768")
     process = FakeProcess(
         [
             {"id": 1, "result": optimization_description},
             {"id": 2, "result": {"objective": 12.5}},
         ]
     )
-    invocation: dict[str, Any] = {}
+    invocation = spawn(process)
 
-    def popen_factory(command: list[str], **kwargs: Any) -> FakeProcess:
-        invocation["command"] = command
-        invocation["kwargs"] = kwargs
-        return process
-
-    model = PetrinautModel(
+    model = OptimizationSession(
         optimization_manifest,
         command=("node", "/cli.js"),
-        popen_factory=popen_factory,
+        popen_factory=invocation["popen_factory"],
     )
     model.start()
 
-    assert model.describe_optimization() == optimization_description
+    assert model.describe() == optimization_description
+    # The previous name stays as an alias.
+    assert OptimizationSession.describe_optimization is OptimizationSession.describe
     assert model.objective({"rate": 1.25, "count": 6, "enabled": False}) == 12.5
     lines = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
 
@@ -109,22 +80,67 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
     assert process.returncode == 0
 
 
-def test_bootstrap_and_protocol_reads_use_bounded_defaults(
+def test_optimization_session_from_a_manifest_file(
+    optimization_description: dict,
+) -> None:
+    process = FakeProcess([{"id": 1, "result": optimization_description}])
+    invocation = spawn(process)
+    session = OptimizationSession(
+        manifest_path="./optimize.json",
+        popen_factory=invocation["popen_factory"],
+    )
+    session.start()
+
+    assert session.describe() == optimization_description
+    assert invocation["command"] == [
+        "petrinaut",
+        "serve",
+        "--optimization",
+        "./optimize.json",
+        "--stdio",
+    ]
+    lines = process.stdin.getvalue().splitlines()
+    assert json.loads(lines[0]) == {"id": 1, "method": "optimization.describe"}
+    session.close()
+
+
+def test_optimization_session_requires_exactly_one_source(
     optimization_manifest: dict,
 ) -> None:
-    model = PetrinautModel(optimization_manifest)
+    with pytest.raises(ValueError, match="exactly one"):
+        OptimizationSession(optimization_manifest, manifest_path="./optimize.json")
+    with pytest.raises(ValueError, match="exactly one"):
+        OptimizationSession()
 
-    assert model._bootstrap_timeout_seconds == 25
-    assert model._request_timeout_seconds == 240
+
+def test_evaluate_returns_the_full_result_including_replicates(
+    optimization_manifest: dict,
+) -> None:
+    full_result = {
+        "objective": 12.5,
+        "replicates": [
+            {"seed": 42, "objective": 12.0},
+            {"seed": 7, "objective": 13.0},
+        ],
+    }
+    process = FakeProcess([{"id": 1, "result": full_result}])
+    invocation = spawn(process)
+    session = OptimizationSession(
+        optimization_manifest, popen_factory=invocation["popen_factory"]
+    )
+    session.start()
+
+    assert session.evaluate({"rate": 1.25}) == full_result
+    session.close()
 
 
 def test_bootstrap_timeout_terminates_a_stuck_process(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(petrinaut_client, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(petrinaut_session, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
     script = "import sys, time; sys.stdin.readline(); time.sleep(60)"
-    model = PetrinautModel(
+    model = OptimizationSession(
         optimization_manifest,
         command=(sys.executable, "-c", script),
         bootstrap_timeout_seconds=0.05,
@@ -141,7 +157,7 @@ def test_protocol_timeout_terminates_a_stuck_process(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(petrinaut_client, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(petrinaut_session, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
     script = """
 import sys
 import time
@@ -151,7 +167,7 @@ sys.stderr.flush()
 sys.stdin.readline()
 time.sleep(60)
 """
-    model = PetrinautModel(
+    model = OptimizationSession(
         optimization_manifest,
         command=(sys.executable, "-c", script),
         request_timeout_seconds=0.05,
@@ -159,8 +175,10 @@ time.sleep(60)
     model.start()
 
     started_at = time.monotonic()
-    with pytest.raises(PetrinautClientError, match="failed to communicate"):
-        model.describe_optimization()
+    # The deadline names itself rather than collapsing into a generic
+    # transport failure, so an operator can tell a stall from a broken pipe.
+    with pytest.raises(PetrinautClientError, match="protocol response timed out"):
+        model.describe()
 
     assert time.monotonic() - started_at < 2
 
@@ -171,15 +189,15 @@ def test_rejects_an_oversized_protocol_line(
 ) -> None:
     process = FakeProcess([])
     process.stdout = io.BytesIO(b'{"id":1,"result":{}}\n')
-    model = PetrinautModel(
+    model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,
     )
     model.start()
-    monkeypatch.setattr(petrinaut_client, "MAX_PROTOCOL_LINE_BYTES", 8)
+    monkeypatch.setattr(petrinaut_session, "MAX_PROTOCOL_LINE_BYTES", 8)
 
     with pytest.raises(PetrinautProtocolError, match="line limit"):
-        model.describe_optimization()
+        model.describe()
 
     assert process.returncode == 0
     model.close()
@@ -199,7 +217,7 @@ def test_drains_stderr_after_the_ready_line(
     process.stderr = TrackingStream(
         b"Petrinaut stdio ready for optimization\ndiagnostic\n"
     )
-    model = PetrinautModel(
+    model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,
     )
@@ -223,11 +241,11 @@ def test_close_signals_the_isolated_process_group(
     process.wait = wait  # type: ignore[method-assign]
     signals: list[tuple[int, signal.Signals]] = []
     monkeypatch.setattr(
-        petrinaut_client.os,
+        petrinaut_session.os,
         "killpg",
         lambda pid, sent_signal: signals.append((pid, sent_signal)),
     )
-    model = PetrinautModel(
+    model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,
     )
@@ -256,13 +274,13 @@ def test_prompt_close_signals_the_group_before_any_shutdown_wait(
 
     process.wait = wait  # type: ignore[method-assign]
     monkeypatch.setattr(
-        petrinaut_client.os,
+        petrinaut_session.os,
         "killpg",
         lambda _pid, sent_signal: events.append(
             f"killpg:{signal.Signals(sent_signal).name}"
         ),
     )
-    model = PetrinautModel(
+    model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,
     )
@@ -286,7 +304,7 @@ sys.stderr.flush()
 while True:
     time.sleep(0.1)
 """
-    model = PetrinautModel(
+    model = OptimizationSession(
         optimization_manifest,
         command=(sys.executable, "-c", script),
     )
@@ -307,7 +325,7 @@ def test_cli_error_during_evaluation_is_recoverable(
             {"id": 2, "result": {"objective": 7}},
         ]
     )
-    model = PetrinautModel(
+    model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,
     )
@@ -326,7 +344,7 @@ def test_rejects_a_non_finite_numeric_objective(
     objective: Any,
 ) -> None:
     process = FakeProcess([{"id": 1, "result": {"objective": objective}}])
-    model = PetrinautModel(
+    model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,
     )
@@ -342,7 +360,7 @@ def test_rejects_a_mismatched_protocol_response(
     optimization_manifest: dict,
 ) -> None:
     process = FakeProcess([{"id": 99, "result": {"objective": 12.5}}])
-    model = PetrinautModel(
+    model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,
     )

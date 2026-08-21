@@ -16,8 +16,8 @@ from typing import Any, Literal, TypeAlias, cast
 import optuna
 from opentelemetry import context as otel_context, trace
 from opentelemetry.trace import Span, Status, StatusCode
+from petrinaut import OptimizationSession, PetrinautRunError
 
-from src.petrinaut_client import PetrinautModel, PetrinautRunError
 from src.utils import Phase, set_status
 
 
@@ -32,7 +32,7 @@ SAMPLERS = {
 DEFAULT_STUDY_NAME = "opt_study"
 # The service-side mirror of the optimization manifest's trial cap; it also
 # bounds every run's in-memory event log to one frame per trial plus a
-# handful of control frames, even against a CLI reporting a huge study.
+# handful of control frames, even against a study reporting a huge trial count.
 MAX_STUDY_TRIALS = 1000
 MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE = "HASH_PETRINAUT_OPT_MAX_STUDY_SECONDS"
 DEFAULT_MAX_STUDY_SECONDS = 900.0
@@ -172,18 +172,16 @@ def _parse_description(
 
 
 class PetrinautOptimizer:
-    """Optimize the flat parameter descriptors supplied by Petrinaut CLI."""
+    """Optimize the flat parameter descriptors the bindings report."""
 
     def __init__(
         self,
-        pn_model: PetrinautModel,
+        pn_model: OptimizationSession,
         *,
         description: Mapping[str, Any] | None = None,
         **sampler_options: Any,
     ) -> None:
-        raw_description = (
-            pn_model.describe_optimization() if description is None else description
-        )
+        raw_description = pn_model.describe() if description is None else description
         direction, sampler_name, n_trials, seed, parameters = _parse_description(
             raw_description
         )
@@ -207,7 +205,7 @@ class PetrinautOptimizer:
         self.lock = threading.Lock()
 
     def suggest(self, trial: optuna.Trial) -> dict[str, Scalar]:
-        """Ask Optuna for each non-fixed scenario parameter described by the CLI."""
+        """Ask Optuna for each non-fixed scenario parameter the study describes."""
         values: dict[str, Scalar] = {}
         for parameter in self.parameters:
             identifier = cast(str, parameter["identifier"])
@@ -450,7 +448,7 @@ class PetrinautOptimizer:
                 await asyncio.to_thread(worker.join, _WORKER_SHUTDOWN_TIMEOUT_SECONDS)
                 if worker.is_alive():
                     log.error(
-                        "Petrinaut optimizer worker did not stop after CLI shutdown",
+                        "Petrinaut optimizer worker did not stop after session shutdown",
                         extra={"event": "worker_join_timeout", **log_context},
                     )
             finally:

@@ -1,9 +1,10 @@
 # Petrinaut optimization
 
 This service uses Optuna to optimize the flat, non-fixed parameters of one
-Petrinaut scenario. It keeps Yannis's Server-Sent Events API and study
-lifecycle, while delegating all Petrinaut-specific interpretation to
-`petrinaut-cli`.
+Petrinaut scenario. It owns the Server-Sent Events API and the study lifecycle,
+and delegates every Petrinaut-specific concern to the
+[`petrinaut` Python bindings](../../libs/@local/petrinaut-python/README.md).
+Which process the bindings run, and how, is theirs to decide.
 
 The Python service treats the optimization manifest as opaque JSON. It does not
 read Petrinaut models, scenario bindings, metrics, or the Petrinaut type system.
@@ -12,7 +13,7 @@ read Petrinaut models, scenario bindings, metrics, or the Petrinaut type system.
 
 Run creation accepts the complete optimization manifest as its JSON request
 body. The manifest is produced by the Petrinaut UI/Node API and is forwarded
-unchanged to the CLI.
+unchanged to the bindings.
 
 - `POST /optimize/runs` starts a detached run and returns its id. Attach or
   reattach to its replayable event stream with
@@ -37,7 +38,7 @@ data: {}
 ```
 
 `params` contains the flat values proposed by Optuna. Fixed parameter values
-remain the CLI's responsibility and are not echoed by Python. `init_state` is
+are applied behind the bindings and are not echoed by Python. `init_state` is
 retained as an empty object for response compatibility. Failed evaluations are
 reported with Optuna's existing state and a null metric. Study failures retain
 the existing error data frame and terminate the stream without a subsequent
@@ -56,7 +57,7 @@ SSE clients ignore comment frames, while load balancers and proxies see traffic
 before their idle timeout.
 
 The streaming endpoints are not resumable: disconnecting stops that study and
-releases its CLI. Detached-run event streams are resumable: every frame has an
+closes its session. Detached-run event streams are resumable: every frame has an
 event id, buffered frames can be replayed using `Last-Event-ID` (or `cursor`),
 and disconnecting an attachment does not stop the run.
 
@@ -79,8 +80,8 @@ This service emits normal Python log records with bounded structured fields
 such as `event`, `request_id`, and `run_id`. When OTLP is configured,
 `src/telemetry.py` exports those records and the service's traces and metrics.
 
-The CLI stderr pipe is drained so the child cannot block, but its content is
-not copied into service logs. Lifecycle logs never intentionally include
+The bindings drain their child's diagnostics so it cannot block, and none of
+that output is copied into service logs. Lifecycle logs never intentionally include
 optimization manifests, user-authored code, or raw request bodies.
 
 The process admits at most four active optimizations. Additional requests
@@ -97,88 +98,45 @@ log, so malformed resume requests cannot suppress later terminal events.
 
 Optimization request bodies are limited to 8 MiB, including chunked bodies.
 
-## CLI protocol
+## Optimization backend
 
-For each request, Python starts one long-lived CLI process:
+Each run gets one session from the [`petrinaut` Python
+bindings](../../libs/@local/petrinaut-python/README.md), created with the
+manifest as opaque JSON. This service starts the session, describes the study,
+evaluates one trial at a time, and closes the session.
 
-```text
-petrinaut serve --optimization-stdin --stdio
-```
-
-It writes the manifest as the first JSON line. After the CLI reports readiness,
-Python asks it to describe the generic Optuna search space:
-
-```json
-{
-  "id": 1,
-  "method": "optimization.describe"
-}
-```
-
-The result supplies the direction, study settings, and only the non-fixed flat
-parameters:
+`describe()` returns the direction, the study settings, and the
+flat parameters that are not fixed, each one a descriptor such as:
 
 ```json
 {
-  "direction": "maximize",
-  "study": { "trials": 100, "sampler": "tpe", "seed": 42 },
-  "parameters": [
-    {
-      "identifier": "rate",
-      "type": "float",
-      "default": 1,
-      "minimum": 0.1,
-      "maximum": 10,
-      "scale": "log"
-    },
-    {
-      "identifier": "workers",
-      "type": "int",
-      "default": 4,
-      "minimum": 1,
-      "maximum": 16,
-      "step": 1,
-      "scale": "linear"
-    },
-    {
-      "identifier": "enabled",
-      "type": "boolean",
-      "default": true
-    }
-  ]
+  "identifier": "rate",
+  "type": "float",
+  "minimum": 0.1,
+  "maximum": 10,
+  "scale": "log"
 }
 ```
 
-Python maps those descriptors directly to `suggest_float`, `suggest_int`, and
-`suggest_categorical`, and seeds the sampler with the CLI-provided execution
-seed. For every trial it sends only the suggestions back:
+`float`, `int`, and `boolean` map onto `suggest_float`, `suggest_int`, and
+`suggest_categorical`, and the study seed seeds the sampler. The bindings'
+[usage manual](../../libs/@local/petrinaut-python/README.md) documents the full
+response.
 
-```json
-{
-  "id": 2,
-  "method": "optimization.evaluate",
-  "params": {
-    "parameterValues": {
-      "rate": 1.25,
-      "workers": 6,
-      "enabled": true
-    }
-  }
-}
-```
+`objective(parameter_values)` evaluates one trial and returns one finite number.
+Fixed-value injection, scenario compilation, initial-state materialization,
+simulation, and metric evaluation all happen behind that call, and fixed values
+are never echoed back through this service. When the manifest sets
+`execution.seedsPerTrial` above 1, one trial runs that many seeded simulations
+and the objective is their mean.
 
-The CLI owns fixed-value injection, scenario compilation, initial-state
-materialization, simulation, and metric evaluation. It returns one finite
-number as `{ "objective": 42.5 }`.
+`close()` ends the session. The bindings bound every wait and clean up after
+themselves: a startup deadline, a per-response deadline, a line-size limit, and
+termination of the process they started on timeout, failure, or client
+disconnect. Their README documents the current values.
 
 For an end-to-end local request, export an optimization manifest from the
-Petrinaut editor. The supply-chain `Profit` study used by the end-to-end tests
-lives in `libs/@hashintel/petrinaut-cli/test-fixtures/`.
-
-CLI startup is limited to 25 seconds and each protocol response to 240 seconds.
-Protocol lines are limited to 8 MiB. Python continuously drains CLI stderr once
-startup completes and terminates the CLI's isolated process group on timeout,
-failure, or client disconnect.
+Petrinaut editor.
 
 ## Observability
 
@@ -223,9 +181,9 @@ uv run pytest
 uv run uvicorn src.optimization_api:app --reload
 ```
 
-When running outside the Docker image, build Petrinaut CLI first and make a
-`petrinaut` executable available on `PATH`. The production image installs that
-command at `/usr/local/bin/petrinaut`.
+Outside the Docker image, the bindings need their executable on `PATH`; their
+[README](../../libs/@local/petrinaut-python/README.md) covers how to provide it.
+The production image installs it at `/usr/local/bin/petrinaut`.
 
 Generate the checked-in OpenAPI document with:
 
