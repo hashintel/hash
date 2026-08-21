@@ -30,7 +30,6 @@ use type_system::{
     },
     principal::actor::{ActorEntityUuid, ActorId},
 };
-use uuid::Uuid;
 
 pub use self::{
     parameter::{
@@ -1251,18 +1250,33 @@ impl<'p> Filter<'p, Entity> {
                     .map(|filter| Self::for_property_filter(filter, actor_id))
                     .collect(),
             ),
-            PropertyFilter::Equal(lhs, rhs) => Self::Equal(
-                FilterExpression::from_cell_filter_expression(lhs, actor_id),
-                FilterExpression::from_cell_filter_expression(rhs, actor_id),
-            ),
-            PropertyFilter::NotEqual(lhs, rhs) => Self::NotEqual(
-                FilterExpression::from_cell_filter_expression(lhs, actor_id),
-                FilterExpression::from_cell_filter_expression(rhs, actor_id),
-            ),
-            PropertyFilter::In(lhs, rhs) => Self::In(
-                FilterExpression::from_cell_filter_expression(lhs, actor_id),
-                FilterExpressionList::from(rhs),
-            ),
+            PropertyFilter::Equal(lhs, rhs) => {
+                match (
+                    FilterExpression::from_cell_filter_expression(lhs, actor_id),
+                    FilterExpression::from_cell_filter_expression(rhs, actor_id),
+                ) {
+                    (Some(lhs), Some(rhs)) => Self::Equal(lhs, rhs),
+                    // A request without an actor has no value to compare against, so nothing
+                    // equals it.
+                    _ => Self::Any(Vec::new()),
+                }
+            }
+            PropertyFilter::NotEqual(lhs, rhs) => {
+                match (
+                    FilterExpression::from_cell_filter_expression(lhs, actor_id),
+                    FilterExpression::from_cell_filter_expression(rhs, actor_id),
+                ) {
+                    (Some(lhs), Some(rhs)) => Self::NotEqual(lhs, rhs),
+                    // Everything differs from a value that is not there.
+                    _ => Self::All(Vec::new()),
+                }
+            }
+            PropertyFilter::In(lhs, rhs) => {
+                match FilterExpression::from_cell_filter_expression(lhs, actor_id) {
+                    Some(lhs) => Self::In(lhs, FilterExpressionList::from(rhs)),
+                    None => Self::Any(Vec::new()),
+                }
+            }
         }
     }
 }
@@ -1475,21 +1489,27 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
 }
 
 impl<'p> FilterExpression<'p, Entity> {
+    /// Converts a cell filter expression into a query filter expression.
+    ///
+    /// Returns [`None`] for [`ActorId`] when the request carries no actor, leaving it to the
+    /// caller to decide what a comparison against a missing actor means.
+    ///
+    /// [`ActorId`]: PropertyFilterExpression::ActorId
     #[must_use]
     pub fn from_cell_filter_expression(
         expression: PropertyFilterExpression<'p>,
         actor_id: Option<ActorId>,
-    ) -> Self {
+    ) -> Option<Self> {
         match expression {
-            PropertyFilterExpression::Path { path } => Self::Path { path },
-            PropertyFilterExpression::Parameter { parameter } => Self::Parameter {
+            PropertyFilterExpression::Path { path } => Some(Self::Path { path }),
+            PropertyFilterExpression::Parameter { parameter } => Some(Self::Parameter {
                 parameter,
                 convert: None,
-            },
-            PropertyFilterExpression::ActorId => Self::Parameter {
-                parameter: Parameter::Uuid(actor_id.map_or_else(Uuid::nil, Uuid::from)),
+            }),
+            PropertyFilterExpression::ActorId => actor_id.map(|actor_id| Self::Parameter {
+                parameter: Parameter::Uuid(actor_id.into()),
                 convert: None,
-            },
+            }),
         }
     }
 }

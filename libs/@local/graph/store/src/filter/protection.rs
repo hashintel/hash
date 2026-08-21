@@ -1412,6 +1412,7 @@ mod tests {
     // =========================================================================
 
     mod transform {
+        use type_system::principal::actor::{ActorEntityUuid, UserId};
         use uuid::Uuid;
 
         use super::*;
@@ -1433,18 +1434,11 @@ mod tests {
             )
         }
 
-        /// Creates `Uuid != ActorId` filter (entity UUID is not the actor's UUID).
-        /// When `actor_id` is `None`, uses `Uuid::nil()`.
+        /// Creates the `Uuid != ActorId` comparison for a request without an actor.
+        ///
+        /// Nothing equals an actor that is not there, so every record differs from it.
         fn uuid_not_actor() -> Filter<'static, Entity> {
-            Filter::NotEqual(
-                FilterExpression::Path {
-                    path: EntityQueryPath::Uuid,
-                },
-                FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(Uuid::nil()),
-                    convert: None,
-                },
-            )
+            Filter::All(Vec::new())
         }
 
         /// Creates the full exclusion filter: `(type = User AND uuid != ActorId)`.
@@ -1639,6 +1633,41 @@ mod tests {
             ]);
 
             assert_eq!(do_transform(input), expected);
+        }
+
+        // -----------------------------------------------------------------
+        // Extra: The actor comparison for a request that carries an actor
+        // -----------------------------------------------------------------
+
+        #[test]
+        fn actor_compares_against_its_own_uuid() {
+            let actor_uuid = Uuid::new_v4();
+            let actor_id = ActorId::User(UserId::new(ActorEntityUuid::new(actor_uuid)));
+
+            let transformed = transform_filter(
+                email_eq("test@example.com"),
+                &email_protection_config(),
+                0,
+                Some(actor_id),
+            );
+
+            let expected = all(vec![
+                email_eq("test@example.com"),
+                not(all(vec![
+                    type_is_user(),
+                    Filter::NotEqual(
+                        FilterExpression::Path {
+                            path: EntityQueryPath::Uuid,
+                        },
+                        FilterExpression::Parameter {
+                            parameter: Parameter::Uuid(actor_uuid),
+                            convert: None,
+                        },
+                    ),
+                ])),
+            ]);
+
+            assert_eq!(transformed, expected);
         }
     }
 }
