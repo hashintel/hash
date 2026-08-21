@@ -18,9 +18,9 @@ history is imported on `ln/fe-1437-hash-monorepo-import` in `hashintel/hash` (fr
 SHA `43a0022918861846344b96a32cb94f92e2ee96ae`), every import gate re-verified. `hashintel/hash`
 is authoritative; the standalone repository accepts no further implementation work. FE-1437
 closes when the branch lands on `main` (squash merge, per convention). Part of FE-1440's website
-wiring (the Brunch interactive-tool panel in `apps/petrinaut-website`) already travelled with the
-import branch; before PR, either fold the remaining FE-1440 scope into the branch and close that
-issue, or trim FE-1440 to what remains. After landing, advance FE-1438 (client-tool round-trip)
+wiring (the Brunch interactive-tool panel in `apps/petrinaut-website`) travelled with the import
+branch; FE-1440 was trimmed on 2026-08-21 to the remaining mode wiring (mode switch, browser
+identifier bootstrap, remote transport swap). After landing, advance FE-1438 (client-tool round-trip)
 beside FE-1393 (plugin SDK and first projection); FE-1439 (private durable sessions) proceeds in
 parallel. The integration stream joins at FE-1440 and deployment follows at FE-1441 (which also
 waits on FE-1423's pre-exposure gates), while the harness stream reaches its contract-freeze
