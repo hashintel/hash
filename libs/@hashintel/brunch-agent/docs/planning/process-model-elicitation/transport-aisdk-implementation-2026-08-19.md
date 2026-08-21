@@ -43,18 +43,17 @@ offered to evidence capture.
 
 Build the clean external hash checkout, then start the committed application server and real-panel launcher:
 
-```sh
+```shell
 cd /path/to/hash
-turbo run build --filter=@apps/petrinaut-website...
+turbo run build --filter '@apps/petrinaut-website'
 
-cd /path/to/brunch-lite
 BRUNCH_TRANSPORT_AISDK_INSPECT=1 \
 BRUNCH_PETRINAUT_ORIGINS=http://127.0.0.1:4915 \
-bun run --cwd apps/dev dev --host 127.0.0.1 --port 4321
+turbo run dev --filter '@apps/brunch-agent' -- --host 127.0.0.1 --port 4321
 
 PETRINAUT_WEBSITE_ROOT=/path/to/hash/apps/petrinaut-website \
 BRUNCH_CHAT_ORIGIN=http://127.0.0.1:4321 \
-bun run --cwd apps/dev petrinaut:dev --host 127.0.0.1 --port 4915
+turbo run petrinaut:dev --filter '@apps/brunch-agent' -- --host 127.0.0.1 --port 4915
 ```
 
 The launcher loads hash's own Vite configuration, removes only its incumbent development

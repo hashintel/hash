@@ -468,7 +468,7 @@ export const fetchProjectGraph = (
   };
 };
 
-const usage = `Usage: yarn workspace @hashintel/brunch-agent linear:graph [--project <name>] [--all]
+const usage = `Usage: turbo run linear:graph --filter '@hashintel/brunch-agent' -- [--project <name>] [--all]
 
 Print a compact, read-only hard-dependency projection for agent sequencing.
 Defaults to open issues in the brunch-agent project. The output is factual input;
@@ -524,7 +524,7 @@ if (isMain) {
       `linear:graph: ${error instanceof Error ? error.message : String(error)}`,
     );
     console.error(
-      "Run `yarn workspace @hashintel/brunch-agent linear:graph --help` for usage.",
+      "Run `turbo run linear:graph --filter '@hashintel/brunch-agent' -- --help` for usage.",
     );
     process.exitCode = 1;
   }

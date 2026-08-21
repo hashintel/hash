@@ -48,8 +48,8 @@ rather than fill).
   read-out claim as existence evidence, not a rate estimate.
 
 Rerun from the HASH root with
-`yarn workspace @hashintel/brunch-agent baseline:run 1` /
-`yarn workspace @hashintel/brunch-agent baseline:run 2` (needs `ANTHROPIC_API_KEY`).
+`turbo run baseline:run --filter '@hashintel/brunch-agent' -- 1` /
+`turbo run baseline:run --filter '@hashintel/brunch-agent' -- 2` (needs `ANTHROPIC_API_KEY`).
 Transcripts land in `transcripts/` and are committed as the experiment artifact.
 
 ## Instruments (scored in the read-out)

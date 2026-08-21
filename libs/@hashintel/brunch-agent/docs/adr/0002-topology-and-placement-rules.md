@@ -3,7 +3,7 @@
 Date: 2026-08-17
 Status: accepted
 Amended: 2026-08-20 by ADR-0004 / FE-1437 (N3 application placement)
-Refines: spec [§12.2](../planning/elicitation-kernel/spec.md) (package topology) with placement
+Refines: spec [§12.2](../spec.md) (package topology) with placement
 rules the spec did not state
 Decided on: FE-1401 (remediation sweep); ratified by Lu, 2026-08-17
 
@@ -47,7 +47,8 @@ records that its rules are decided, not proposed.
 - FE-1422 is the one code change the ratification demands; it blocks FE-1392 by design.
 - The enforceable rules become boundary gates: N2 (no plugin content in app skills
   directories) and N5 (port implementations only in bindings) get mechanical checks in
-  `test/boundaries.test.ts` — designed with red-proofs, not filename heuristics, per the
+  `packages/core/test/architecture/boundaries.test.ts` — designed with red-proofs, not filename
+  heuristics, per the
   FE-1419 queue's discipline.
 - The two tolerated-untils stand: `chat.tsx` until FE-1385 adopts `@flue/react`; the flat
   agent file until a second agent forces per-agent folders.

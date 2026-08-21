@@ -3,7 +3,7 @@
 Date: 2026-08-13
 Status: accepted
 Amended: 2026-08-20 by ADR-0004 / FE-1437 (HASH package namespace)
-Supersedes: spec [§12.3](../planning/elicitation-kernel/spec.md#123-naming--tool-namespacing) in part
+Supersedes: spec [§12.3](../spec.md#123-naming--tool-namespacing) in part
 Decided on: FE-1388
 
 ## Context
@@ -34,7 +34,7 @@ name stayed provisional was a day the eventual rename got dearer.
 
 Adopt `brunch` as the product name and let it appear in structure.
 
-- **Product name**: `PRODUCT_NAME = 'brunch'` in `@brunch/core`, the single
+- **Product name**: `PRODUCT_NAME = 'brunch'` in `@hashintel/brunch-agent`, the single
   source every model-facing string derives from.
 - **Tool prefix**: `brunch_*` — so `brunch_ask`, computed via `toolName()`,
   never written as a literal.
