@@ -52,6 +52,16 @@ export type DataTypeForSelector = {
   version: OntologyTypeVersion;
 };
 
+/**
+ * The menu is portalled to the end of the document, so aligning the selected option to the top of
+ * every scrollable ancestor would also drag the whole page down to it. `nearest` leaves ancestors
+ * which already show the option alone, confining the scroll to the menu's own list.
+ */
+const scrollSelectedIntoViewOptions: ScrollIntoViewOptions = {
+  behavior: "smooth",
+  block: "nearest",
+};
+
 const DataTypeLabel = (props: {
   dataType: DataTypeForSelector;
   isEarlierVersion: boolean;
@@ -143,7 +153,7 @@ const DataTypeFlatView = (props: {
   useEffect(() => {
     if (selectedDataTypeIds?.includes(dataType.$id)) {
       setTimeout(() => {
-        ref.current?.scrollIntoView({ behavior: "smooth" });
+        ref.current?.scrollIntoView(scrollSelectedIntoViewOptions);
       }, 100);
     }
   }, [selectedDataTypeIds, dataType.$id]);
@@ -230,7 +240,7 @@ const DataTypeTreeView = (props: {
   useEffect(() => {
     if (selected) {
       setTimeout(() => {
-        ref.current?.scrollIntoView({ behavior: "smooth" });
+        ref.current?.scrollIntoView(scrollSelectedIntoViewOptions);
       }, 100);
     }
   }, [selected]);
