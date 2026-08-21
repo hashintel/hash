@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getDependencyReleaseLine, getReleaseLine } from "./index.js";
+import { getDependencyReleaseLine, getReleaseLine } from "./main.cjs";
 
 const repo = "hashintel/hash";
 const options = { repo };

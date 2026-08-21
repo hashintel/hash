@@ -1,11 +1,11 @@
 "use strict";
 
-const { getInfoFromCommit, getInfoFromPullRequest } = require("./github.js");
+const { getInfoFromCommit, getInfoFromPullRequest } = require("./github.cjs");
 
 const assertRepo = (options) => {
   if (!options?.repo) {
     throw new Error(
-      'The `repo` option is unset. Set it in `.changeset/config.json` as "changelog": ["@local/changesets-changelog", { "repo": "org/repo" }]',
+      'The `repo` option is unset. Set it in `.changeset/config.json` as "changelog": ["@local/repo-chores/changesets-changelog", { "repo": "org/repo" }]',
     );
   }
 };
