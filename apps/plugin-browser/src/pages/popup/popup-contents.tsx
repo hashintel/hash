@@ -9,10 +9,8 @@ import { clearError } from "../../shared/badge";
 import { useStorageSync } from "../shared/use-storage-sync";
 import { ActionCenter } from "./popup-contents/action-center";
 import { NotEnabled } from "./popup-contents/not-enabled";
-import {
-  PopupUserContextProvider,
-  useUserContext,
-} from "./popup-contents/shared/user-context";
+import { useUserContext } from "./popup-contents/shared/user-context";
+import { PopupUserContextProvider } from "./popup-contents/shared/user-context-provider";
 import { SignIn } from "./popup-contents/sign-in";
 
 import type { Tabs } from "webextension-polyfill";
