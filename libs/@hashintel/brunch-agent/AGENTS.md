@@ -23,7 +23,7 @@ workspace.
 
 ## Working methods
 
-- Use `gh stack` for stack operations; never use `gt` in HASH.
+- Use Graphite (`gt`) for stack operations; do not use `gh stack` in HASH.
 - Issues live in Linear team `FE`, project `brunch-agent`.
 - Keep the human-owned issue contract separate from collapsed `🏗️ Agent notes`; see
   `docs/agents/issue-writing.md`.
