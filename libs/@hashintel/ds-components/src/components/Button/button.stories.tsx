@@ -3,13 +3,14 @@ import { Fragment, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
-import { Icon, iconNames } from "../Icon/icon";
+import { Icon } from "../Icon/icon";
+import { iconNames } from "../Icon/icon-map";
 import {
   Button as ButtonComponent,
   type ButtonElementProps,
-  iconSizeMap,
   type Variant,
 } from "./button";
+import { iconSizeMap } from "./icon-size-map";
 
 import type { Story, StoryDefault } from "@ladle/react";
 

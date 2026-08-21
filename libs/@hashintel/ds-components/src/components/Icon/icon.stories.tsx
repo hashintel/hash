@@ -1,7 +1,8 @@
 import { css, type Styles } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
-import { Icon, iconNames } from "./icon";
+import { Icon } from "./icon";
+import { iconNames } from "./icon-map";
 
 import type { Story, StoryDefault } from "@ladle/react";
 

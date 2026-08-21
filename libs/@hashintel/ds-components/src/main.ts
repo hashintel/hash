@@ -31,6 +31,7 @@ export { minimumNearestNeighbourWorld } from "./components/Chart/NetworkGraph/no
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Chip, type ChipColor } from "./components/Chip/chip";
+export type { ChipSize } from "./components/Chip/chip-sizes";
 export {
   Combobox,
   type ComboboxItem,
@@ -56,15 +57,16 @@ export {
   type SortIcon,
   writeSavedSort,
 } from "./components/Filter/sort-menu-util";
+export { useFieldId } from "./components/Form/field-id-context";
 export { Form } from "./components/Form/form";
 export { HelpTooltip } from "./components/HelpTooltip/help-tooltip";
 export {
   Icon,
   type IconName,
-  iconNames,
   type IconPack,
   IconProvider,
 } from "./components/Icon/icon";
+export { iconNames } from "./components/Icon/icon-map";
 export {
   LoadingSpinner,
   type LoadingSpinnerVariant,

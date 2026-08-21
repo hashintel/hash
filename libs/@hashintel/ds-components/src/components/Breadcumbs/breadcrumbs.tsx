@@ -5,17 +5,14 @@ import { cx } from "@hashintel/ds-helpers/css";
 import { useIsomorphicLayoutEffect } from "../../util/use-isomorphic-layout-effect";
 import { Icon } from "../Icon/icon";
 import { Menu } from "../Menu/menu";
+import { collectEntries, isCollapsible } from "./breadcrumbs-entries";
 import {
-  chevronIcons,
   type Classes,
-  collectEntries,
-  crumbStyle,
-  isCollapsible,
   Item,
   ItemContent,
-  toMenuItem,
   VisibleItem,
 } from "./breadcrumbs-item";
+import { chevronIcons, crumbStyle, toMenuItem } from "./breadcrumbs-item-util";
 import {
   computeCollapse,
   hiddenIndicesFor,

@@ -8,7 +8,8 @@ import {
   type ItemOrGroup,
 } from "../../util/SelectableList/selectable-list";
 import { useLoopSelection } from "../../util/SelectableList/selectable-list-util";
-import { collectSelectedIds, type MenuItem } from "../Menu/menu";
+import { collectSelectedIds } from "../Menu/collect-selected-ids";
+import { type MenuItem } from "../Menu/menu";
 import { type Position } from "../Tooltip/tooltip";
 
 export const RightClickMenu = ({

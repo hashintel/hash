@@ -5,6 +5,7 @@ import { LoadingSpinner } from "../Loading/loading-spinner";
 import { affixStyles, dotStyles, styles } from "./chip.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
+import type { ChipSize } from "./chip-sizes";
 import type { ExclusifyUnion, RequireAllOrNone } from "type-fest";
 
 /**
@@ -32,9 +33,6 @@ export type ChipColor =
   | "yellow"
   | "purple"
   | "pink";
-
-export const chipSizes = ["xxs", "xs", "sm", "md", "lg", "xl"] as const;
-export type ChipSize = (typeof chipSizes)[number];
 
 export type ChipProps = {
   className?: string;
