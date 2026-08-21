@@ -102,7 +102,7 @@ rule exists to stop. Set the parent at creation (`--parent FE-XXXX`), not in a l
 
 Audit (run at arc close, alongside the legibility protocol's consolidation step):
 
-```
+```shell
 turbo run linear:graph --filter '@hashintel/brunch-agent'
 ```
 
