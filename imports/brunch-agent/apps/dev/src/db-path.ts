@@ -12,7 +12,7 @@
  * adapter module pulls in `@flue/runtime/node`, which cannot be driven there.
  */
 
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath } from "node:url";
 
 export function conversationDbPath(): string {
   // Truthiness, not nullish, on purpose: a set-but-empty override would pass
@@ -21,5 +21,5 @@ export function conversationDbPath(): string {
   const override = process.env.BRUNCH_DEV_DB_PATH;
   return override
     ? override
-    : fileURLToPath(new URL('../.data-wipe-me/conversations.db', import.meta.url));
+    : fileURLToPath(new URL("../.data-wipe-me/conversations.db", import.meta.url));
 }

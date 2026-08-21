@@ -1,4 +1,4 @@
-'use agent';
+"use agent";
 /**
  * The gherkin elicitor (spec §12.5: one agent per target).
  *
@@ -19,18 +19,19 @@
  * swapping.
  */
 
-import { useElicitation } from '@brunch/binding-flue';
-import { gherkin } from '@brunch/plugin-gherkin';
-import { useInitialData, useModel, type AgentProps } from '@flue/runtime';
-import * as v from 'valibot';
-import { createGherkinElicitationSession } from '../elicitation-session.ts';
+import { useElicitation } from "@brunch/binding-flue";
+import { gherkin } from "@brunch/plugin-gherkin";
+import { useInitialData, useModel, type AgentProps } from "@flue/runtime";
+import * as v from "valibot";
+
+import { createGherkinElicitationSession } from "../elicitation-session.ts";
 
 /**
  * One definition for the agent and the faux provider alike: the two must name
  * the same model id, and drift fails at resolution only if both sides resolve
  * the same string (Flue patterns audit, 2026-08-17).
  */
-export const GHERKIN_MODEL_ID = 'claude-haiku-4-5';
+export const GHERKIN_MODEL_ID = "claude-haiku-4-5";
 
 export function GherkinElicitor(props: AgentProps) {
   useModel(`anthropic/${GHERKIN_MODEL_ID}`);
@@ -57,7 +58,7 @@ export function GherkinElicitor(props: AgentProps) {
  * better at the mount site; `agentName` exists precisely to let durable
  * identity and source-level name differ.
  */
-GherkinElicitor.agentName = 'brunch-gherkin-elicitor';
+GherkinElicitor.agentName = "brunch-gherkin-elicitor";
 
 /**
  * Session→document binding (spec §9.1, adjudication L4): a new session's

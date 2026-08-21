@@ -4,12 +4,13 @@ import {
   createFlueHistoryReader,
   createLocalCaptureStore,
   type ElicitationSession,
-} from '@brunch/binding-flue';
-import { GHERKIN_AGENT_ROUTE } from './routes.ts';
-import { targetDocumentPath } from './target-document-path.ts';
+} from "@brunch/binding-flue";
+
+import { GHERKIN_AGENT_ROUTE } from "./routes.ts";
+import { targetDocumentPath } from "./target-document-path.ts";
 
 const appTransport = (async (input: RequestInfo | URL, init?: RequestInit) => {
-  const { default: app } = await import('./app.ts');
+  const { default: app } = await import("./app.ts");
   return app.fetch(input instanceof Request ? input : new Request(input, init));
 }) as typeof fetch;
 

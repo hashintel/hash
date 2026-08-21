@@ -2,8 +2,8 @@
   "name": "@brunch/plugin-gherkin",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "description": "The gherkin target: the tracer plugin, wired end-to-end first as the cheap mechanism proof.",
+  "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },

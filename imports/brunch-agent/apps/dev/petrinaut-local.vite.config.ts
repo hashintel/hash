@@ -7,8 +7,9 @@
  * hash's tracked checkout stays clean.
  */
 
-import { join, resolve } from 'node:path';
-import { defineConfig, loadConfigFromFile, mergeConfig, type PluginOption } from 'vite';
+import { join, resolve } from "node:path";
+
+import { defineConfig, loadConfigFromFile, mergeConfig, type PluginOption } from "vite";
 
 const withoutIncumbentChatHandler = (plugins: readonly PluginOption[]): PluginOption[] =>
   plugins.filter((plugin) => {
@@ -17,19 +18,19 @@ const withoutIncumbentChatHandler = (plugins: readonly PluginOption[]): PluginOp
       plugin === null ||
       plugin === undefined ||
       Array.isArray(plugin) ||
-      typeof plugin !== 'object' ||
-      !('name' in plugin)
+      typeof plugin !== "object" ||
+      !("name" in plugin)
     ) {
       return true;
     }
-    return plugin.name !== 'petrinaut-api-dev';
+    return plugin.name !== "petrinaut-api-dev";
   });
 
 export default defineConfig(async (environment) => {
   const websiteRoot = process.env.PETRINAUT_WEBSITE_ROOT;
   if (!websiteRoot) {
     throw new Error(
-      'PETRINAUT_WEBSITE_ROOT must point at hash/apps/petrinaut-website for the real-panel run.',
+      "PETRINAUT_WEBSITE_ROOT must point at hash/apps/petrinaut-website for the real-panel run.",
     );
   }
   const root = resolve(websiteRoot);
@@ -37,10 +38,10 @@ export default defineConfig(async (environment) => {
   // not from the imported config file. Match a native hash launch before the
   // plugin begins transforming the real panel source.
   process.chdir(root);
-  const loaded = await loadConfigFromFile(environment, join(root, 'vite.config.ts'), root);
+  const loaded = await loadConfigFromFile(environment, join(root, "vite.config.ts"), root);
   if (!loaded) throw new Error(`Could not load Petrinaut's Vite config from ${root}.`);
 
-  const chatOrigin = process.env.BRUNCH_CHAT_ORIGIN ?? 'http://127.0.0.1:4321';
+  const chatOrigin = process.env.BRUNCH_CHAT_ORIGIN ?? "http://127.0.0.1:4321";
   return mergeConfig(
     {
       ...loaded.config,
@@ -50,7 +51,7 @@ export default defineConfig(async (environment) => {
       root,
       server: {
         proxy: {
-          '/api/chat': {
+          "/api/chat": {
             target: chatOrigin,
             changeOrigin: true,
           },

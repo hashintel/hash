@@ -1,3 +1,7 @@
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+
 import {
   applyCaptureStoreCommand,
   createEmptyCaptureStoreSnapshot,
@@ -9,7 +13,7 @@ import {
   type CaptureStoreResult,
   type CaptureStoreSnapshot,
   type EvidenceSpan,
-} from '@brunch/core';
+} from "@brunch/core";
 import {
   archiveSessionLogRead,
   createEmptySessionLogArchive,
@@ -17,11 +21,9 @@ import {
   readArchivedEntryRange,
   type SessionLogArchive,
   type SessionLogRead,
-} from '@brunch/core/storage';
-import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { registerArchiveWriter } from './archive-capability.ts';
+} from "@brunch/core/storage";
+
+import { registerArchiveWriter } from "./archive-capability.ts";
 
 const FORMAT_VERSION = 1 as const;
 
@@ -40,15 +42,15 @@ const createEmptyTargetDocument = (): TargetDocumentRecord => ({
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const parseTargetDocument = (input: unknown): TargetDocumentRecord => {
-  if (isRecord(input) && 'formatVersion' in input) {
+  if (isRecord(input) && "formatVersion" in input) {
     const fields = Object.keys(input).sort();
     if (
       input.formatVersion !== FORMAT_VERSION ||
       JSON.stringify(fields) !==
-        JSON.stringify(['captureStore', 'formatVersion', 'sessionLogArchive'])
+        JSON.stringify(["captureStore", "formatVersion", "sessionLogArchive"])
     ) {
       throw new TypeError(
         `Unsupported target-document format version ${String(input.formatVersion)}.`,
@@ -113,7 +115,7 @@ class LocalCaptureStore implements CaptureStore {
   }
 
   async readArchivedEntries(
-    pointer: EvidenceSpan['pointer'],
+    pointer: EvidenceSpan["pointer"],
   ): Promise<readonly ArchivedSessionEntry[]> {
     await writesByPath.get(this.#path);
     return readArchivedEntryRange((await this.#readFile()).sessionLogArchive, pointer);
@@ -147,12 +149,12 @@ class LocalCaptureStore implements CaptureStore {
 
   async #readFile(): Promise<TargetDocumentRecord> {
     try {
-      return parseTargetDocument(JSON.parse(await readFile(this.#path, 'utf8')));
+      return parseTargetDocument(JSON.parse(await readFile(this.#path, "utf8")));
     } catch (error) {
       if (
         error instanceof Error &&
-        'code' in error &&
-        (error as NodeJS.ErrnoException).code === 'ENOENT'
+        "code" in error &&
+        (error as NodeJS.ErrnoException).code === "ENOENT"
       ) {
         return createEmptyTargetDocument();
       }
@@ -165,8 +167,8 @@ class LocalCaptureStore implements CaptureStore {
     const temporaryPath = `${this.#path}.${randomUUID()}.tmp`;
     try {
       await writeFile(temporaryPath, `${JSON.stringify(document, null, 2)}\n`, {
-        encoding: 'utf8',
-        flag: 'wx',
+        encoding: "utf8",
+        flag: "wx",
       });
       await rename(temporaryPath, this.#path);
     } finally {

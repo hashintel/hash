@@ -1,5 +1,7 @@
-import { randomUUID } from 'node:crypto';
-import * as v from 'valibot';
+import { randomUUID } from "node:crypto";
+
+import * as v from "valibot";
+
 import {
   resolveEvidenceQuotes,
   type EvidenceQuote,
@@ -7,40 +9,40 @@ import {
   type MultipleEvidenceMatchesAdvisory,
   type ArchivedSessionEntry,
   type SessionLogArchive,
-} from './session-log.ts';
+} from "./session-log.ts";
 
 export const ABSENCE_STATES = [
-  'unknown-to-user',
-  'not-yet-decided',
-  'not-applicable',
-  'explicitly-absent',
-  'declined',
-  'deferred',
+  "unknown-to-user",
+  "not-yet-decided",
+  "not-applicable",
+  "explicitly-absent",
+  "declined",
+  "deferred",
 ] as const;
 
 export const EPISTEMIC_STATUSES = [
-  'explicit',
-  'inferred',
-  'tentative',
-  'defaulted',
-  'external-lookup',
+  "explicit",
+  "inferred",
+  "tentative",
+  "defaulted",
+  "external-lookup",
 ] as const;
 
 export const ISSUE_TYPES = [
-  'missing',
-  'ambiguous',
-  'conflicting',
-  'invalid',
-  'unsupported',
-  'unmapped',
-  'low-confidence',
+  "missing",
+  "ambiguous",
+  "conflicting",
+  "invalid",
+  "unsupported",
+  "unmapped",
+  "low-confidence",
 ] as const;
 
 export type AbsenceState = (typeof ABSENCE_STATES)[number];
 export type EpistemicStatus = (typeof EPISTEMIC_STATUSES)[number];
 export type IssueType = (typeof ISSUE_TYPES)[number];
-export type CaptureStatus = 'active' | 'superseded' | 'retracted';
-export type IssueStatus = 'open' | 'closed';
+export type CaptureStatus = "active" | "superseded" | "retracted";
+export type IssueStatus = "open" | "closed";
 export type JsonValue =
   | null
   | boolean
@@ -56,7 +58,7 @@ export interface EvidenceSpan {
     readonly entryStart: number;
     readonly entryEnd: number;
   };
-  readonly source: 'user' | 'user-affordance-payload';
+  readonly source: "user" | "user-affordance-payload";
 }
 
 export type CaptureContent = { readonly value: JsonValue } | { readonly absence: AbsenceState };
@@ -72,21 +74,21 @@ export type CaptureInputProposal = CaptureProposalCommon &
   (
     | {
         readonly evidence: readonly EvidenceQuote[];
-        readonly epistemicStatus: 'explicit' | 'inferred' | 'tentative';
+        readonly epistemicStatus: "explicit" | "inferred" | "tentative";
       }
     | {
         readonly basis: {
-          readonly type: 'declared-default';
+          readonly type: "declared-default";
           readonly description: string;
         };
-        readonly epistemicStatus: 'defaulted';
+        readonly epistemicStatus: "defaulted";
       }
     | {
         readonly basis: {
-          readonly type: 'documented-transformation';
+          readonly type: "documented-transformation";
           readonly description: string;
         };
-        readonly epistemicStatus: 'external-lookup';
+        readonly epistemicStatus: "external-lookup";
       }
   );
 
@@ -94,21 +96,21 @@ export type CaptureProposal = CaptureProposalCommon &
   (
     | {
         readonly evidence: readonly EvidenceSpan[];
-        readonly epistemicStatus: 'explicit' | 'inferred' | 'tentative';
+        readonly epistemicStatus: "explicit" | "inferred" | "tentative";
       }
     | {
         readonly basis: {
-          readonly type: 'declared-default';
+          readonly type: "declared-default";
           readonly description: string;
         };
-        readonly epistemicStatus: 'defaulted';
+        readonly epistemicStatus: "defaulted";
       }
     | {
         readonly basis: {
-          readonly type: 'documented-transformation';
+          readonly type: "documented-transformation";
           readonly description: string;
         };
-        readonly epistemicStatus: 'external-lookup';
+        readonly epistemicStatus: "external-lookup";
       }
   );
 
@@ -118,8 +120,8 @@ export type CaptureEnvelope = CaptureProposal & {
 };
 
 export type IssueOrigin =
-  | { readonly type: 'harness' }
-  | { readonly type: 'plugin'; readonly namespace: string };
+  | { readonly type: "harness" }
+  | { readonly type: "plugin"; readonly namespace: string };
 
 export interface CaptureIssue {
   readonly id: string;
@@ -131,14 +133,14 @@ export interface CaptureIssue {
 
 export type CaptureAdvisory =
   | {
-      readonly type: 'possibly-equivalent';
-      readonly reason: 'same-evidence' | 'near-identical-payload';
+      readonly type: "possibly-equivalent";
+      readonly reason: "same-evidence" | "near-identical-payload";
       readonly captureIds: readonly [string, string];
     }
   | MultipleEvidenceMatchesAdvisory;
 
 export interface ResolutionRecord {
-  readonly type: 'resolution';
+  readonly type: "resolution";
   readonly id: string;
   readonly issueId: string;
   readonly decision: string;
@@ -148,14 +150,14 @@ export interface ResolutionRecord {
 }
 
 export interface RetractionEvent {
-  readonly type: 'retraction';
+  readonly type: "retraction";
   readonly id: string;
   readonly captureId: string;
   readonly evidence: readonly EvidenceSpan[];
 }
 
 export interface IssueClosedEvent {
-  readonly type: 'issue-closed';
+  readonly type: "issue-closed";
   readonly id: string;
   readonly issueId: string;
 }
@@ -174,7 +176,7 @@ export interface CaptureStore {
     command: CaptureStoreCommand,
     context?: CaptureStoreEvidenceContext,
   ): Promise<CaptureStoreResult>;
-  readArchivedEntries(pointer: EvidenceSpan['pointer']): Promise<readonly ArchivedSessionEntry[]>;
+  readArchivedEntries(pointer: EvidenceSpan["pointer"]): Promise<readonly ArchivedSessionEntry[]>;
 }
 
 export interface CaptureStoreEvidenceContext {
@@ -186,17 +188,20 @@ export interface CaptureStoreCommandEvidenceContext extends CaptureStoreEvidence
 }
 
 export type CaptureStoreCommand =
-  | { readonly type: 'apply-sweep'; readonly proposals: readonly CaptureInputProposal[] }
   | {
-      readonly type: 'open-issue';
+      readonly type: "apply-sweep";
+      readonly proposals: readonly CaptureInputProposal[];
+    }
+  | {
+      readonly type: "open-issue";
       readonly issueType: IssueType;
       readonly origin: IssueOrigin;
       readonly references: readonly string[];
       readonly canDefault: boolean;
     }
-  | { readonly type: 'close-issue'; readonly issueId: string }
+  | { readonly type: "close-issue"; readonly issueId: string }
   | {
-      readonly type: 'resolve-conflict';
+      readonly type: "resolve-conflict";
       readonly issueId: string;
       readonly decision: string;
       readonly evidence: readonly EvidenceQuote[];
@@ -204,7 +209,7 @@ export type CaptureStoreCommand =
       readonly loserCaptureIds: readonly string[];
     }
   | {
-      readonly type: 'retract-capture';
+      readonly type: "retract-capture";
       readonly captureId: string;
       readonly evidence: readonly EvidenceQuote[];
     };
@@ -212,24 +217,48 @@ export type CaptureStoreCommand =
 export type CaptureStoreRefusal =
   | EvidenceResolutionRefusal
   | {
-      readonly code: 'evidence-session-required';
+      readonly code: "evidence-session-required";
       readonly message: string;
     }
-  | { readonly code: 'invalid-envelope'; readonly message: string }
-  | { readonly code: 'unknown-capture'; readonly message: string; readonly captureId: string }
-  | { readonly code: 'unknown-issue'; readonly message: string; readonly issueId: string }
-  | { readonly code: 'issue-already-closed'; readonly message: string; readonly issueId: string }
-  | { readonly code: 'resolution-required'; readonly message: string; readonly issueId: string }
-  | { readonly code: 'invalid-resolution'; readonly message: string; readonly issueId: string }
-  | { readonly code: 'invalid-retraction'; readonly message: string; readonly captureId: string }
+  | { readonly code: "invalid-envelope"; readonly message: string }
   | {
-      readonly code: 'blocked-by-open-conflict';
+      readonly code: "unknown-capture";
+      readonly message: string;
+      readonly captureId: string;
+    }
+  | {
+      readonly code: "unknown-issue";
+      readonly message: string;
+      readonly issueId: string;
+    }
+  | {
+      readonly code: "issue-already-closed";
+      readonly message: string;
+      readonly issueId: string;
+    }
+  | {
+      readonly code: "resolution-required";
+      readonly message: string;
+      readonly issueId: string;
+    }
+  | {
+      readonly code: "invalid-resolution";
+      readonly message: string;
+      readonly issueId: string;
+    }
+  | {
+      readonly code: "invalid-retraction";
+      readonly message: string;
+      readonly captureId: string;
+    }
+  | {
+      readonly code: "blocked-by-open-conflict";
       readonly message: string;
       readonly captureId: string;
       readonly blockingIssueIds: readonly string[];
     }
   | {
-      readonly code: 'superseded-target-not-active';
+      readonly code: "superseded-target-not-active";
       readonly message: string;
       readonly targetCaptureId: string;
       readonly currentHeadIds: readonly string[];
@@ -246,7 +275,10 @@ export type CaptureStoreResult =
             readonly advisories: readonly CaptureAdvisory[];
           }
         | { readonly issueId: string }
-        | { readonly eventId: string; readonly advisories: readonly CaptureAdvisory[] };
+        | {
+            readonly eventId: string;
+            readonly advisories: readonly CaptureAdvisory[];
+          };
     }
   | { readonly ok: false; readonly refusal: CaptureStoreRefusal };
 
@@ -266,10 +298,10 @@ const evidenceSpanSchema = v.strictObject({
     }),
     v.check(
       (pointer) => pointer.entryEnd >= pointer.entryStart,
-      'An evidence range cannot end before it starts.',
+      "An evidence range cannot end before it starts.",
     ),
   ),
-  source: v.picklist(['user', 'user-affordance-payload']),
+  source: v.picklist(["user", "user-affordance-payload"]),
 });
 const evidenceQuoteSchema = v.strictObject({ excerpt: nonEmptyString });
 const contentSchema = v.union([
@@ -285,23 +317,23 @@ const captureCommonFields = {
 const userCaptureFields = {
   ...captureCommonFields,
   evidence: v.pipe(v.array(evidenceSpanSchema), v.minLength(1)),
-  epistemicStatus: v.picklist(['explicit', 'inferred', 'tentative']),
+  epistemicStatus: v.picklist(["explicit", "inferred", "tentative"]),
 };
 const defaultedCaptureFields = {
   ...captureCommonFields,
   basis: v.strictObject({
-    type: v.literal('declared-default'),
+    type: v.literal("declared-default"),
     description: nonEmptyString,
   }),
-  epistemicStatus: v.literal('defaulted'),
+  epistemicStatus: v.literal("defaulted"),
 };
 const externalCaptureFields = {
   ...captureCommonFields,
   basis: v.strictObject({
-    type: v.literal('documented-transformation'),
+    type: v.literal("documented-transformation"),
     description: nonEmptyString,
   }),
-  epistemicStatus: v.literal('external-lookup'),
+  epistemicStatus: v.literal("external-lookup"),
 };
 const captureProposalSchema = v.union([
   v.strictObject(userCaptureFields),
@@ -312,7 +344,7 @@ export const CaptureInputProposalSchema = v.union([
   v.strictObject({
     ...captureCommonFields,
     evidence: v.pipe(v.array(evidenceQuoteSchema), v.minLength(1)),
-    epistemicStatus: v.picklist(['explicit', 'inferred', 'tentative']),
+    epistemicStatus: v.picklist(["explicit", "inferred", "tentative"]),
   }),
   v.strictObject(defaultedCaptureFields),
   v.strictObject(externalCaptureFields),
@@ -330,9 +362,9 @@ const issueSchema = v.pipe(
   v.strictObject({
     id: nonEmptyString,
     type: v.picklist(ISSUE_TYPES),
-    origin: v.variant('type', [
-      v.strictObject({ type: v.literal('harness') }),
-      v.strictObject({ type: v.literal('plugin'), namespace: nonEmptyString }),
+    origin: v.variant("type", [
+      v.strictObject({ type: v.literal("harness") }),
+      v.strictObject({ type: v.literal("plugin"), namespace: nonEmptyString }),
     ]),
     // A set, not a list: the resolution rule below compares reference sets, and
     // a repeated reference makes an issue's population ambiguous — two captures
@@ -342,7 +374,7 @@ const issueSchema = v.pipe(
       v.minLength(1),
       v.check(
         (references) => new Set(references).size === references.length,
-        'Issue references must be distinct capture ids.',
+        "Issue references must be distinct capture ids.",
       ),
     ),
     canDefault: v.boolean(),
@@ -351,12 +383,12 @@ const issueSchema = v.pipe(
   // closing one takes a resolution, a resolution cites a winner and at least
   // one loser, and that cited set can never equal a single reference.
   v.check(
-    (issue) => issue.type !== 'conflicting' || issue.references.length >= 2,
-    'A conflicting issue must reference at least two captures.',
+    (issue) => issue.type !== "conflicting" || issue.references.length >= 2,
+    "A conflicting issue must reference at least two captures.",
   ),
 );
 const resolutionSchema = v.strictObject({
-  type: v.literal('resolution'),
+  type: v.literal("resolution"),
   id: nonEmptyString,
   issueId: nonEmptyString,
   decision: nonEmptyString,
@@ -365,20 +397,20 @@ const resolutionSchema = v.strictObject({
   loserCaptureIds: v.pipe(v.array(nonEmptyString), v.minLength(1)),
 });
 const retractionSchema = v.strictObject({
-  type: v.literal('retraction'),
+  type: v.literal("retraction"),
   id: nonEmptyString,
   captureId: nonEmptyString,
   evidence: v.pipe(v.array(evidenceSpanSchema), v.minLength(1)),
 });
 const issueClosedSchema = v.strictObject({
-  type: v.literal('issue-closed'),
+  type: v.literal("issue-closed"),
   id: nonEmptyString,
   issueId: nonEmptyString,
 });
 const snapshotSchema = v.strictObject({
   captures: v.array(captureEnvelopeSchema),
   issues: v.array(issueSchema),
-  events: v.array(v.variant('type', [resolutionSchema, retractionSchema, issueClosedSchema])),
+  events: v.array(v.variant("type", [resolutionSchema, retractionSchema, issueClosedSchema])),
 });
 
 /**
@@ -407,11 +439,11 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
   const snapshot = v.parse(snapshotSchema, input) as CaptureStoreSnapshot;
   for (const records of [snapshot.captures, snapshot.issues, snapshot.events]) {
     if (new Set(records.map((record) => record.id)).size !== records.length) {
-      throw new TypeError('Capture-store record ids must be unique within their record family.');
+      throw new TypeError("Capture-store record ids must be unique within their record family.");
     }
   }
   for (const capture of snapshot.captures) {
-    if ('value' in capture.content && !isJsonValue(capture.content.value)) {
+    if ("value" in capture.content && !isJsonValue(capture.content.value)) {
       throw new TypeError(`Capture ${capture.id} contains a value that cannot be stored as JSON`);
     }
     if (capture.dedupKey !== captureDedupKey(capture)) {
@@ -427,14 +459,14 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
   const closingEventByIssue = new Map<string, string>();
   for (const event of snapshot.events) {
     if (
-      (event.type === 'resolution' || event.type === 'retraction') &&
-      !event.evidence.every((span) => span.source === 'user')
+      (event.type === "resolution" || event.type === "retraction") &&
+      !event.evidence.every((span) => span.source === "user")
     ) {
       throw new TypeError(
         `${event.type} events must cite evidence whose declared source is the user.`,
       );
     }
-    if (event.type === 'retraction') {
+    if (event.type === "retraction") {
       if (!snapshot.captures.some((capture) => capture.id === event.captureId)) {
         throw new TypeError(`Retraction ${event.id} references an unknown capture.`);
       }
@@ -449,14 +481,14 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
       );
     }
     closingEventByIssue.set(issue.id, event.id);
-    if (event.type === 'issue-closed') {
-      if (issue.type === 'conflicting') {
-        throw new TypeError('A conflicting issue cannot be closed without a resolution record.');
+    if (event.type === "issue-closed") {
+      if (issue.type === "conflicting") {
+        throw new TypeError("A conflicting issue cannot be closed without a resolution record.");
       }
       continue;
     }
     const citedCaptureIds = [event.winnerCaptureId, ...event.loserCaptureIds];
-    if (issue.type !== 'conflicting' || !denotesSameCaptureSet(issue.references, citedCaptureIds)) {
+    if (issue.type !== "conflicting" || !denotesSameCaptureSet(issue.references, citedCaptureIds)) {
       throw new TypeError(`Resolution ${event.id} does not account for its conflict's captures.`);
     }
   }
@@ -480,11 +512,11 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
     if (capture.supersedes) addSuccessor(capture.supersedes, capture.id);
   }
   for (const event of snapshot.events) {
-    if (event.type === 'resolution') {
+    if (event.type === "resolution") {
       for (const loserCaptureId of event.loserCaptureIds) {
         addSuccessor(loserCaptureId, event.winnerCaptureId);
       }
-    } else if (event.type === 'retraction') {
+    } else if (event.type === "retraction") {
       addSuccessor(event.captureId, event.id);
     }
   }
@@ -500,11 +532,11 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
     }
   }
   const openConflicts = snapshot.issues.filter(
-    (issue) => issue.type === 'conflicting' && !closingEventByIssue.has(issue.id),
+    (issue) => issue.type === "conflicting" && !closingEventByIssue.has(issue.id),
   );
   for (const [index, issue] of openConflicts.entries()) {
     const inactiveReference = issue.references.find(
-      (captureId) => deriveCaptureStatus(snapshot, captureId) !== 'active',
+      (captureId) => deriveCaptureStatus(snapshot, captureId) !== "active",
     );
     if (inactiveReference !== undefined) {
       throw new TypeError(
@@ -526,12 +558,12 @@ export const parseCaptureStoreSnapshot = (input: unknown): CaptureStoreSnapshot 
 };
 
 const isJsonValue = (value: unknown): value is JsonValue => {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
+  if (value === null || typeof value === "string" || typeof value === "boolean") return true;
   // Negative zero is refused alongside the non-finite numbers: JSON.stringify
   // writes it as "0", so the read path could never reproduce what was accepted.
-  if (typeof value === 'number') return Number.isFinite(value) && !Object.is(value, -0);
+  if (typeof value === "number") return Number.isFinite(value) && !Object.is(value, -0);
   if (Array.isArray(value)) return value.every(isJsonValue);
-  if (typeof value !== 'object') return false;
+  if (typeof value !== "object") return false;
   const prototype = Object.getPrototypeOf(value);
   return (
     (prototype === Object.prototype || prototype === null) &&
@@ -541,7 +573,7 @@ const isJsonValue = (value: unknown): value is JsonValue => {
 
 const canonicalize = (value: JsonValue): JsonValue => {
   if (Array.isArray(value)) return value.map(canonicalize);
-  if (value !== null && typeof value === 'object') {
+  if (value !== null && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value)
         .sort(([left], [right]) => left.localeCompare(right))
@@ -555,7 +587,7 @@ const canonicalString = (value: JsonValue): string => JSON.stringify(canonicaliz
 
 export const captureDedupKey = (proposal: CaptureProposal): string => {
   const provenance: JsonValue =
-    'evidence' in proposal
+    "evidence" in proposal
       ? {
           evidence: [...proposal.evidence]
             .map((span) => canonicalString(span as unknown as JsonValue))
@@ -563,7 +595,7 @@ export const captureDedupKey = (proposal: CaptureProposal): string => {
         }
       : { basis: proposal.basis as unknown as JsonValue };
   const content: JsonValue =
-    'absence' in proposal.content
+    "absence" in proposal.content
       ? { absence: proposal.content.absence }
       : { value: proposal.content.value };
   return canonicalString({
@@ -580,9 +612,9 @@ export const captureDedupKey = (proposal: CaptureProposal): string => {
 const captureOccurrenceKey = (
   proposal: CaptureInputProposal | CaptureEnvelope,
 ): string | undefined => {
-  if (!('evidence' in proposal)) return undefined;
+  if (!("evidence" in proposal)) return undefined;
   const content: JsonValue =
-    'absence' in proposal.content
+    "absence" in proposal.content
       ? { absence: proposal.content.absence }
       : { value: proposal.content.value };
   return canonicalString({
@@ -600,7 +632,7 @@ const captureOccurrenceKey = (
  */
 const captureRetryKey = (proposal: CaptureProposal): string => {
   const provenance: JsonValue =
-    'evidence' in proposal
+    "evidence" in proposal
       ? {
           evidence: [...proposal.evidence]
             .map((span) =>
@@ -613,7 +645,7 @@ const captureRetryKey = (proposal: CaptureProposal): string => {
         }
       : { basis: proposal.basis as unknown as JsonValue };
   const content: JsonValue =
-    'absence' in proposal.content
+    "absence" in proposal.content
       ? { absence: proposal.content.absence }
       : { value: proposal.content.value };
   return canonicalString({
@@ -635,29 +667,35 @@ const priorEvidenceForOccurrence = (
       (
         capture,
       ): capture is Extract<CaptureEnvelope, { readonly evidence: readonly EvidenceSpan[] }> =>
-        'evidence' in capture &&
+        "evidence" in capture &&
         capture.evidence.every((evidence) => evidence.pointer.sessionId === sessionId) &&
         captureOccurrenceKey(capture) === occurrenceKey,
     )
     .at(occurrence)?.evidence;
 };
 
-const refusal = (value: CaptureStoreRefusal): CaptureStoreResult => ({ ok: false, refusal: value });
+const refusal = (value: CaptureStoreRefusal): CaptureStoreResult => ({
+  ok: false,
+  refusal: value,
+});
 
 const validateProposal = (input: CaptureProposal): CaptureStoreRefusal | undefined => {
   const parsed = v.safeParse(captureProposalSchema, input);
   if (!parsed.success) {
     return {
-      code: 'invalid-envelope',
+      code: "invalid-envelope",
       // States what the schema checked, and no more: the spans are structurally
       // well formed and declare a source, which is not the same as provenance
       // having been resolved against an entry projection.
       message:
-        'A capture must carry the provenance shape its epistemic status names, exactly one of value or absence, and evidence ranges that do not end before they start.',
+        "A capture must carry the provenance shape its epistemic status names, exactly one of value or absence, and evidence ranges that do not end before they start.",
     };
   }
-  if ('value' in parsed.output.content && !isJsonValue(parsed.output.content.value)) {
-    return { code: 'invalid-envelope', message: 'A capture value must be JSON-compatible.' };
+  if ("value" in parsed.output.content && !isJsonValue(parsed.output.content.value)) {
+    return {
+      code: "invalid-envelope",
+      message: "A capture value must be JSON-compatible.",
+    };
   }
   return undefined;
 };
@@ -666,13 +704,16 @@ const validateInputProposal = (input: CaptureInputProposal): CaptureStoreRefusal
   const parsed = v.safeParse(CaptureInputProposalSchema, input);
   if (!parsed.success) {
     return {
-      code: 'invalid-envelope',
+      code: "invalid-envelope",
       message:
-        'A capture must carry the provenance shape its epistemic status names, exactly one of value or absence, and non-empty verbatim evidence quotes.',
+        "A capture must carry the provenance shape its epistemic status names, exactly one of value or absence, and non-empty verbatim evidence quotes.",
     };
   }
-  if ('value' in parsed.output.content && !isJsonValue(parsed.output.content.value)) {
-    return { code: 'invalid-envelope', message: 'A capture value must be JSON-compatible.' };
+  if ("value" in parsed.output.content && !isJsonValue(parsed.output.content.value)) {
+    return {
+      code: "invalid-envelope",
+      message: "A capture value must be JSON-compatible.",
+    };
   }
   return undefined;
 };
@@ -681,8 +722,8 @@ const requireEvidenceContext = (
   context: CaptureStoreCommandEvidenceContext | undefined,
 ): CaptureStoreCommandEvidenceContext | CaptureStoreRefusal =>
   context ?? {
-    code: 'evidence-session-required',
-    message: 'Evidence-bearing commands require the harness-owned session context.',
+    code: "evidence-session-required",
+    message: "Evidence-bearing commands require the harness-owned session context.",
   };
 
 export const deriveCaptureStatus = (
@@ -690,28 +731,28 @@ export const deriveCaptureStatus = (
   captureId: string,
 ): CaptureStatus => {
   if (
-    snapshot.events.some((event) => event.type === 'retraction' && event.captureId === captureId)
+    snapshot.events.some((event) => event.type === "retraction" && event.captureId === captureId)
   ) {
-    return 'retracted';
+    return "retracted";
   }
   if (
     snapshot.captures.some((capture) => capture.supersedes === captureId) ||
     snapshot.events.some(
-      (event) => event.type === 'resolution' && event.loserCaptureIds.includes(captureId),
+      (event) => event.type === "resolution" && event.loserCaptureIds.includes(captureId),
     )
   ) {
-    return 'superseded';
+    return "superseded";
   }
-  return 'active';
+  return "active";
 };
 
 export const deriveIssueStatus = (snapshot: CaptureStoreSnapshot, issueId: string): IssueStatus =>
   snapshot.events.some(
     (event) =>
-      (event.type === 'resolution' || event.type === 'issue-closed') && event.issueId === issueId,
+      (event.type === "resolution" || event.type === "issue-closed") && event.issueId === issueId,
   )
-    ? 'closed'
-    : 'open';
+    ? "closed"
+    : "open";
 
 /**
  * The unresolved conflicts a capture is named by, which pin it: while one is
@@ -725,9 +766,9 @@ const openConflictsNaming = (snapshot: CaptureStoreSnapshot, captureId: string):
   snapshot.issues
     .filter(
       (issue) =>
-        issue.type === 'conflicting' &&
+        issue.type === "conflicting" &&
         issue.references.includes(captureId) &&
-        deriveIssueStatus(snapshot, issue.id) === 'open',
+        deriveIssueStatus(snapshot, issue.id) === "open",
     )
     .map((issue) => issue.id);
 
@@ -744,7 +785,7 @@ const currentHeads = (snapshot: CaptureStoreSnapshot, captureId: string): string
     }
     for (const event of snapshot.events) {
       if (
-        event.type === 'resolution' &&
+        event.type === "resolution" &&
         event.loserCaptureIds.some((loserId) => reachable.has(loserId)) &&
         !reachable.has(event.winnerCaptureId)
       ) {
@@ -758,21 +799,21 @@ const currentHeads = (snapshot: CaptureStoreSnapshot, captureId: string): string
       (capture) =>
         capture.id !== captureId &&
         reachable.has(capture.id) &&
-        deriveCaptureStatus(snapshot, capture.id) === 'active',
+        deriveCaptureStatus(snapshot, capture.id) === "active",
     )
     .map((capture) => capture.id);
 };
 
 const evidenceIdentity = (capture: CaptureProposal | CaptureEnvelope): string | undefined =>
-  'evidence' in capture
+  "evidence" in capture
     ? canonicalString(
         [...capture.evidence].map((span) => canonicalString(span as unknown as JsonValue)).sort(),
       )
     : undefined;
 
 const normalizedPayloadText = (capture: CaptureProposal | CaptureEnvelope): string | undefined =>
-  'value' in capture.content && typeof capture.content.value === 'string'
-    ? capture.content.value.trim().replaceAll(/\s+/g, ' ').toLocaleLowerCase()
+  "value" in capture.content && typeof capture.content.value === "string"
+    ? capture.content.value.trim().replaceAll(/\s+/g, " ").toLocaleLowerCase()
     : undefined;
 
 const applySweep = (
@@ -813,7 +854,7 @@ const applySweep = (
       const target = snapshot.captures.find((capture) => capture.id === proposal.supersedes);
       if (!target) {
         return refusal({
-          code: 'unknown-capture',
+          code: "unknown-capture",
           message: `No capture exists with id ${proposal.supersedes}.`,
           captureId: proposal.supersedes,
         });
@@ -824,18 +865,18 @@ const applySweep = (
       const blockingIssueIds = openConflictsNaming(snapshot, target.id);
       if (blockingIssueIds.length > 0) {
         return refusal({
-          code: 'blocked-by-open-conflict',
+          code: "blocked-by-open-conflict",
           message: `Capture ${target.id} cannot be superseded while an unresolved conflict names it; resolve the conflict first.`,
           captureId: target.id,
           blockingIssueIds,
         });
       }
       if (
-        deriveCaptureStatus(snapshot, target.id) !== 'active' ||
+        deriveCaptureStatus(snapshot, target.id) !== "active" ||
         targetedCaptures.has(target.id)
       ) {
         return refusal({
-          code: 'superseded-target-not-active',
+          code: "superseded-target-not-active",
           message: `Capture ${target.id} is no longer an active head.`,
           targetCaptureId: target.id,
           currentHeadIds: currentHeads(snapshot, target.id),
@@ -850,7 +891,11 @@ const applySweep = (
   const appliedCaptureIds: string[] = [];
   for (const proposal of accepted) {
     const id = `capture-${randomUUID()}`;
-    captures.push({ ...structuredClone(proposal), id, dedupKey: captureDedupKey(proposal) });
+    captures.push({
+      ...structuredClone(proposal),
+      id,
+      dedupKey: captureDedupKey(proposal),
+    });
     appliedCaptureIds.push(id);
   }
   const nextSnapshot = { ...snapshot, captures };
@@ -861,8 +906,8 @@ const applySweep = (
       const right = captures[rightIndex]!;
       if (
         (!appliedCaptureIds.includes(left.id) && !appliedCaptureIds.includes(right.id)) ||
-        deriveCaptureStatus(nextSnapshot, left.id) !== 'active' ||
-        deriveCaptureStatus(nextSnapshot, right.id) !== 'active' ||
+        deriveCaptureStatus(nextSnapshot, left.id) !== "active" ||
+        deriveCaptureStatus(nextSnapshot, right.id) !== "active" ||
         left.dedupKey === right.dedupKey
       ) {
         continue;
@@ -874,8 +919,8 @@ const applySweep = (
         leftPayload !== undefined && leftPayload === normalizedPayloadText(right);
       if (sameEvidence || nearIdenticalPayload) {
         advisories.push({
-          type: 'possibly-equivalent',
-          reason: sameEvidence ? 'same-evidence' : 'near-identical-payload',
+          type: "possibly-equivalent",
+          reason: sameEvidence ? "same-evidence" : "near-identical-payload",
           captureIds: [left.id, right.id],
         });
       }
@@ -894,7 +939,7 @@ export const applyCaptureStoreCommand = (
   evidenceContext?: CaptureStoreCommandEvidenceContext,
 ): CaptureStoreResult => {
   switch (command.type) {
-    case 'apply-sweep': {
+    case "apply-sweep": {
       const invalidProposal = command.proposals
         .map(validateInputProposal)
         .find((candidate) => candidate !== undefined);
@@ -904,12 +949,12 @@ export const applyCaptureStoreCommand = (
       const anchoringAdvisories: MultipleEvidenceMatchesAdvisory[] = [];
       const occurrencesByKey = new Map<string, number>();
       for (const proposal of command.proposals) {
-        if (!('evidence' in proposal)) {
+        if (!("evidence" in proposal)) {
           proposals.push(structuredClone(proposal));
           continue;
         }
         const context = requireEvidenceContext(evidenceContext);
-        if ('code' in context) return refusal(context);
+        if ("code" in context) return refusal(context);
         const occurrenceKey = captureOccurrenceKey(proposal);
         if (occurrenceKey !== undefined) {
           const occurrence = occurrencesByKey.get(occurrenceKey) ?? 0;
@@ -934,11 +979,14 @@ export const applyCaptureStoreCommand = (
           proposal.evidence,
         );
         if (!resolved.ok) return refusal(resolved.refusal);
-        proposals.push({ ...structuredClone(proposal), evidence: resolved.evidence });
+        proposals.push({
+          ...structuredClone(proposal),
+          evidence: resolved.evidence,
+        });
         anchoringAdvisories.push(...resolved.advisories);
       }
       const result = applySweep(snapshot, proposals);
-      if (!result.ok || !('appliedCaptureIds' in result.value)) return result;
+      if (!result.ok || !("appliedCaptureIds" in result.value)) return result;
       return {
         ...result,
         value: {
@@ -948,7 +996,7 @@ export const applyCaptureStoreCommand = (
       };
     }
 
-    case 'open-issue': {
+    case "open-issue": {
       const candidateIssue: CaptureIssue = {
         id: `issue-${randomUUID()}`,
         type: command.issueType,
@@ -960,9 +1008,9 @@ export const applyCaptureStoreCommand = (
       // cannot mint an issue the next read rejects.
       if (!v.safeParse(issueSchema, candidateIssue).success) {
         return refusal({
-          code: 'invalid-envelope',
+          code: "invalid-envelope",
           message:
-            'An issue must carry a known type, an origin naming its producer, and distinct references to at least one capture; a conflicting issue needs at least two.',
+            "An issue must carry a known type, an origin naming its producer, and distinct references to at least one capture; a conflicting issue needs at least two.",
         });
       }
       const unknownReference = candidateIssue.references.find(
@@ -970,7 +1018,7 @@ export const applyCaptureStoreCommand = (
       );
       if (unknownReference !== undefined) {
         return refusal({
-          code: 'invalid-envelope',
+          code: "invalid-envelope",
           message: `An issue must reference existing captures; no capture exists with id ${unknownReference}.`,
         });
       }
@@ -978,29 +1026,29 @@ export const applyCaptureStoreCommand = (
       // than in the schema: a closed conflict's captures are legitimately
       // superseded afterwards, and a persisted issue must still parse.
       const inactiveReference =
-        candidateIssue.type === 'conflicting'
+        candidateIssue.type === "conflicting"
           ? candidateIssue.references.find(
-              (captureId) => deriveCaptureStatus(snapshot, captureId) !== 'active',
+              (captureId) => deriveCaptureStatus(snapshot, captureId) !== "active",
             )
           : undefined;
       if (inactiveReference !== undefined) {
         return refusal({
-          code: 'invalid-envelope',
+          code: "invalid-envelope",
           message: `A new conflicting issue must reference active captures; capture ${inactiveReference} is ${deriveCaptureStatus(snapshot, inactiveReference)}.`,
         });
       }
       const overlappingOpenConflict =
-        candidateIssue.type === 'conflicting'
+        candidateIssue.type === "conflicting"
           ? snapshot.issues.find(
               (issue) =>
-                issue.type === 'conflicting' &&
-                deriveIssueStatus(snapshot, issue.id) === 'open' &&
+                issue.type === "conflicting" &&
+                deriveIssueStatus(snapshot, issue.id) === "open" &&
                 issue.references.some((captureId) => candidateIssue.references.includes(captureId)),
             )
           : undefined;
       if (overlappingOpenConflict !== undefined) {
         return refusal({
-          code: 'invalid-envelope',
+          code: "invalid-envelope",
           message: `Open conflicts cannot share capture references; issue ${overlappingOpenConflict.id} already names one of them.`,
         });
       }
@@ -1011,31 +1059,31 @@ export const applyCaptureStoreCommand = (
       };
     }
 
-    case 'close-issue': {
+    case "close-issue": {
       const issue = snapshot.issues.find((candidate) => candidate.id === command.issueId);
       if (!issue) {
         return refusal({
-          code: 'unknown-issue',
+          code: "unknown-issue",
           message: `No issue exists with id ${command.issueId}.`,
           issueId: command.issueId,
         });
       }
-      if (deriveIssueStatus(snapshot, issue.id) === 'closed') {
+      if (deriveIssueStatus(snapshot, issue.id) === "closed") {
         return refusal({
-          code: 'issue-already-closed',
+          code: "issue-already-closed",
           message: `Issue ${issue.id} is already closed.`,
           issueId: issue.id,
         });
       }
-      if (issue.type === 'conflicting') {
+      if (issue.type === "conflicting") {
         return refusal({
-          code: 'resolution-required',
-          message: 'A conflicting issue closes only through a user-cited resolution record.',
+          code: "resolution-required",
+          message: "A conflicting issue closes only through a user-cited resolution record.",
           issueId: issue.id,
         });
       }
       const event: IssueClosedEvent = {
-        type: 'issue-closed',
+        type: "issue-closed",
         id: `event-${randomUUID()}`,
         issueId: issue.id,
       };
@@ -1046,11 +1094,11 @@ export const applyCaptureStoreCommand = (
       };
     }
 
-    case 'resolve-conflict': {
+    case "resolve-conflict": {
       const issue = snapshot.issues.find((candidate) => candidate.id === command.issueId);
       if (!issue) {
         return refusal({
-          code: 'unknown-issue',
+          code: "unknown-issue",
           message: `No issue exists with id ${command.issueId}.`,
           issueId: command.issueId,
         });
@@ -1059,17 +1107,17 @@ export const applyCaptureStoreCommand = (
         !v.safeParse(v.pipe(v.array(evidenceQuoteSchema), v.minLength(1)), command.evidence).success
       ) {
         return refusal({
-          code: 'invalid-resolution',
-          message: 'A conflict resolution must cite non-empty verbatim user quotes.',
+          code: "invalid-resolution",
+          message: "A conflict resolution must cite non-empty verbatim user quotes.",
           issueId: issue.id,
         });
       }
       const context = requireEvidenceContext(evidenceContext);
-      if ('code' in context) return refusal(context);
+      if ("code" in context) return refusal(context);
       const resolved = resolveEvidenceQuotes(context.archive, context.sessionId, command.evidence);
       if (!resolved.ok) return refusal(resolved.refusal);
       const candidateRecord: ResolutionRecord = {
-        type: 'resolution' as const,
+        type: "resolution" as const,
         id: `event-${randomUUID()}`,
         issueId: command.issueId,
         decision: command.decision,
@@ -1081,32 +1129,35 @@ export const applyCaptureStoreCommand = (
       };
       const citedCaptureIds = [command.winnerCaptureId, ...command.loserCaptureIds];
       const invalid =
-        issue.type !== 'conflicting' ||
-        deriveIssueStatus(snapshot, issue.id) === 'closed' ||
+        issue.type !== "conflicting" ||
+        deriveIssueStatus(snapshot, issue.id) === "closed" ||
         !v.safeParse(resolutionSchema, candidateRecord).success ||
-        !resolved.evidence.every((span) => span.source === 'user') ||
+        !resolved.evidence.every((span) => span.source === "user") ||
         !denotesSameCaptureSet(issue.references, citedCaptureIds) ||
-        citedCaptureIds.some((captureId) => deriveCaptureStatus(snapshot, captureId) !== 'active');
+        citedCaptureIds.some((captureId) => deriveCaptureStatus(snapshot, captureId) !== "active");
       if (invalid) {
         return refusal({
-          code: 'invalid-resolution',
+          code: "invalid-resolution",
           message:
-            'A conflict resolution must name an open conflicting issue, declare the user as its evidence source, and account for exactly that issue’s captures, each still active.',
+            "A conflict resolution must name an open conflicting issue, declare the user as its evidence source, and account for exactly that issue’s captures, each still active.",
           issueId: issue.id,
         });
       }
       return {
         ok: true,
-        snapshot: { ...snapshot, events: [...snapshot.events, candidateRecord] },
+        snapshot: {
+          ...snapshot,
+          events: [...snapshot.events, candidateRecord],
+        },
         value: { eventId: candidateRecord.id, advisories: resolved.advisories },
       };
     }
 
-    case 'retract-capture': {
+    case "retract-capture": {
       const capture = snapshot.captures.find((candidate) => candidate.id === command.captureId);
       if (!capture) {
         return refusal({
-          code: 'unknown-capture',
+          code: "unknown-capture",
           message: `No capture exists with id ${command.captureId}.`,
           captureId: command.captureId,
         });
@@ -1114,7 +1165,7 @@ export const applyCaptureStoreCommand = (
       const blockingIssueIds = openConflictsNaming(snapshot, capture.id);
       if (blockingIssueIds.length > 0) {
         return refusal({
-          code: 'blocked-by-open-conflict',
+          code: "blocked-by-open-conflict",
           message: `Capture ${capture.id} cannot be retracted while an unresolved conflict names it; resolve the conflict first.`,
           captureId: capture.id,
           blockingIssueIds,
@@ -1124,17 +1175,17 @@ export const applyCaptureStoreCommand = (
         !v.safeParse(v.pipe(v.array(evidenceQuoteSchema), v.minLength(1)), command.evidence).success
       ) {
         return refusal({
-          code: 'invalid-retraction',
-          message: 'A retraction must cite non-empty verbatim user quotes.',
+          code: "invalid-retraction",
+          message: "A retraction must cite non-empty verbatim user quotes.",
           captureId: capture.id,
         });
       }
       const context = requireEvidenceContext(evidenceContext);
-      if ('code' in context) return refusal(context);
+      if ("code" in context) return refusal(context);
       const resolved = resolveEvidenceQuotes(context.archive, context.sessionId, command.evidence);
       if (!resolved.ok) return refusal(resolved.refusal);
       const event: RetractionEvent = {
-        type: 'retraction',
+        type: "retraction",
         id: `event-${randomUUID()}`,
         captureId: command.captureId,
         // Cloned for the same reason as a resolution's: a shallow array copy
@@ -1142,14 +1193,14 @@ export const applyCaptureStoreCommand = (
         evidence: structuredClone(resolved.evidence),
       };
       if (
-        deriveCaptureStatus(snapshot, capture.id) !== 'active' ||
+        deriveCaptureStatus(snapshot, capture.id) !== "active" ||
         !v.safeParse(retractionSchema, event).success ||
-        !resolved.evidence.every((span) => span.source === 'user')
+        !resolved.evidence.every((span) => span.source === "user")
       ) {
         return refusal({
-          code: 'invalid-retraction',
+          code: "invalid-retraction",
           message:
-            'Only an active capture can be retracted, and its evidence must declare the user as its source.',
+            "Only an active capture can be retracted, and its evidence must declare the user as its source.",
           captureId: capture.id,
         });
       }

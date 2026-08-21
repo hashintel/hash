@@ -1,7 +1,7 @@
 :root {
   color: #29271f;
   background: #eee9dc;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-synthesis: none;
 }
 
@@ -45,7 +45,7 @@ textarea {
 .question__hint,
 .status,
 .composer label {
-  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
   font-size: 0.72rem;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -78,7 +78,7 @@ h1 {
   height: 0.55rem;
   border-radius: 50%;
   background: #ba5a36;
-  content: '';
+  content: "";
 }
 
 .status--streaming::before,

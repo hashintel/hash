@@ -1,5 +1,6 @@
-import * as v from 'valibot';
-import type { CaptureInputProposal } from './capture-store.ts';
+import * as v from "valibot";
+
+import type { CaptureInputProposal } from "./capture-store.ts";
 
 /**
  * The plugin descriptor — identity only, at this stage.
@@ -14,7 +15,7 @@ import type { CaptureInputProposal } from './capture-store.ts';
  */
 export const PluginDescriptor = v.object({
   /** Package-level identity, matching the `plugin-*` role prefix (spec §12.2). */
-  name: v.pipe(v.string(), v.regex(/^plugin-[a-z][a-z0-9-]*$/, 'expected a `plugin-<name>` name')),
+  name: v.pipe(v.string(), v.regex(/^plugin-[a-z][a-z0-9-]*$/, "expected a `plugin-<name>` name")),
   /** The artifact family this plugin elicits — gherkin scenarios, assurance arguments. */
   targetDomain: v.pipe(v.string(), v.nonEmpty()),
 });
@@ -40,7 +41,7 @@ export function definePlugin(descriptor: Plugin): Plugin {
   const identity = v.parse(PluginDescriptor, descriptor);
   const [proposal, ...extraProposals] = descriptor.proposalCatalog;
   if (!proposal || extraProposals.length > 0) {
-    throw new TypeError('This slice requires exactly one declared proposal type.');
+    throw new TypeError("This slice requires exactly one declared proposal type.");
   }
   const name = v.parse(v.pipe(v.string(), v.nonEmpty()), proposal.name);
   const description = v.parse(v.pipe(v.string(), v.nonEmpty()), proposal.description);

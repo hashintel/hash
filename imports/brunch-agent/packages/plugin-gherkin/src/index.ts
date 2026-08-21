@@ -11,8 +11,8 @@
  * running on, and it is storage-blind besides (spec §9.6).
  */
 
-import { definePlugin } from '@brunch/core';
-import * as v from 'valibot';
+import { definePlugin } from "@brunch/core";
+import * as v from "valibot";
 
 const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
 const evidenceQuote = v.strictObject({ excerpt: nonEmptyString });
@@ -20,11 +20,11 @@ const evidenceQuote = v.strictObject({ excerpt: nonEmptyString });
 const StatementNotedProposal = v.pipe(
   v.strictObject({
     evidence: v.pipe(v.array(evidenceQuote), v.minLength(1)),
-    epistemicStatus: v.literal('explicit'),
-    confidence: v.picklist(['firm', 'hedged', 'speculative']),
+    epistemicStatus: v.literal("explicit"),
+    confidence: v.picklist(["firm", "hedged", "speculative"]),
     content: v.strictObject({
       value: v.strictObject({
-        type: v.literal('statement-noted'),
+        type: v.literal("statement-noted"),
         interior: v.strictObject({ verbatim: nonEmptyString }),
       }),
     }),
@@ -34,18 +34,18 @@ const StatementNotedProposal = v.pipe(
       proposal.evidence.some(
         (evidence) => evidence.excerpt === proposal.content.value.interior.verbatim,
       ),
-    'The verbatim interior must equal one cited user quote.',
+    "The verbatim interior must equal one cited user quote.",
   ),
 );
 
 export const gherkin = definePlugin({
-  name: 'plugin-gherkin',
-  targetDomain: 'gherkin',
+  name: "plugin-gherkin",
+  targetDomain: "gherkin",
   proposalCatalog: [
     {
-      name: 'statement-noted',
+      name: "statement-noted",
       description:
-        'Record one condition-shaped statement at the verbatim grade floor, with no parsed structure.',
+        "Record one condition-shaped statement at the verbatim grade floor, with no parsed structure.",
       schema: StatementNotedProposal,
     },
   ],

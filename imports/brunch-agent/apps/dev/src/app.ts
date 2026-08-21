@@ -7,13 +7,15 @@
  * affordance renderers here rather than in a ui package.
  */
 
-import { readFile } from 'node:fs/promises';
-import { createAgentRouter } from '@flue/runtime/routing';
-import { Hono } from 'hono';
-import { GherkinElicitor } from './agents/gherkin-elicitor.ts';
-import { assetHandler } from './assets.ts';
-import { petrinautChatHandler } from './petrinaut-chat.ts';
-import { GHERKIN_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from './routes.ts';
+import { readFile } from "node:fs/promises";
+
+import { createAgentRouter } from "@flue/runtime/routing";
+import { Hono } from "hono";
+
+import { GherkinElicitor } from "./agents/gherkin-elicitor.ts";
+import { assetHandler } from "./assets.ts";
+import { petrinautChatHandler } from "./petrinaut-chat.ts";
+import { GHERKIN_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from "./routes.ts";
 
 const app = new Hono();
 
@@ -25,7 +27,7 @@ app.route(`/agents/${GHERKIN_AGENT_ROUTE}`, createAgentRouter(GherkinElicitor));
 
 // The application owns the HTTP mount; transport-aisdk owns only request validation
 // and AI SDK stream encoding. No parallel conversation renderer is introduced.
-app.on(['POST', 'OPTIONS'], PETRINAUT_CHAT_ROUTE, (c) => petrinautChatHandler(c.req.raw));
+app.on(["POST", "OPTIONS"], PETRINAUT_CHAT_ROUTE, (c) => petrinautChatHandler(c.req.raw));
 
 // The flue dev controller owns the whole request space — no fall-through to
 // vite's html serving — so the ui is app-served, in dev and in production
@@ -37,12 +39,12 @@ app.on(['POST', 'OPTIONS'], PETRINAUT_CHAT_ROUTE, (c) => petrinautChatHandler(c.
 // bundled asset. `@flue/vite` emits the server environment only, so that
 // client build is a second, plain vite build — without it the ui tree would
 // have no build coverage at all.
-const uiRoot = new URL(import.meta.env?.DEV === false ? './client/' : '../', import.meta.url);
+const uiRoot = new URL(import.meta.env?.DEV === false ? "./client/" : "../", import.meta.url);
 
-app.get('/', async (c) => c.html(await readFile(new URL('index.html', uiRoot), 'utf8')));
+app.get("/", async (c) => c.html(await readFile(new URL("index.html", uiRoot), "utf8")));
 
 // Production only: in dev, vite serves the module graph under /src. A
 // wildcard, not `:file` — bundlers may emit nested asset paths.
-app.get('/assets/*', assetHandler(uiRoot));
+app.get("/assets/*", assetHandler(uiRoot));
 
 export default app;

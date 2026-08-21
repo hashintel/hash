@@ -38,7 +38,7 @@ import {
   type FreeTextAffordanceValue,
   type Plugin,
   type SweepState,
-} from '@brunch/core';
+} from "@brunch/core";
 import {
   useAgentFinish,
   useAgentStart,
@@ -46,27 +46,28 @@ import {
   useDelivery,
   usePersistentState,
   useTool,
-} from '@flue/runtime';
-import * as v from 'valibot';
-import { capturedUserEntryIdsForSession } from './capture-accounting.ts';
-import { projectFlueHistoryForSweep, type FlueHistoryReader } from './history-reader.ts';
+} from "@flue/runtime";
+import * as v from "valibot";
+
+import { capturedUserEntryIdsForSession } from "./capture-accounting.ts";
+import { projectFlueHistoryForSweep, type FlueHistoryReader } from "./history-reader.ts";
 
 const SweepToolOutput = v.looseObject({
-  status: v.picklist(['no-settled-range', 'refused', 'applied']),
+  status: v.picklist(["no-settled-range", "refused", "applied"]),
 });
 
-export { CAPABILITIES, type Capability, type Provision } from './capabilities.ts';
+export { CAPABILITIES, type Capability, type Provision } from "./capabilities.ts";
 export {
   createFlueHistoryReader,
   projectFlueHistoryForSweep,
   type FlueHistoryReaderOptions,
-} from './history-reader.ts';
+} from "./history-reader.ts";
 export {
   createFlueReplyProjector,
   type FlueReplyProjector,
   type FlueReplyProjectorOptions,
-} from './reply-projector.ts';
-export { createLocalCaptureStore } from './local-capture-store.ts';
+} from "./reply-projector.ts";
+export { createLocalCaptureStore } from "./local-capture-store.ts";
 
 export interface ElicitationSession {
   readonly sessionId: string;
@@ -84,28 +85,30 @@ export interface ElicitationSession {
 export function useElicitation(plugin: Plugin, session: ElicitationSession): string {
   const delivery = useDelivery();
   const [pending, setPending] = usePersistentState<FreeTextAffordanceValue | null>(
-    'pendingAffordance',
+    "pendingAffordance",
     null,
   );
   const [storedSweepState, setSweepState] = usePersistentState<SweepState>(
-    'sweepHighWater',
+    "sweepHighWater",
     createInitialSweepState(),
   );
   let pendingAtFinish = pending;
   let sweepState = parseSweepState(storedSweepState);
   const extractionResult = createSweepExtractionResultSchema(plugin);
-  const writeAffordance = useDataWriter('affordance', { schema: FreeTextAffordance });
+  const writeAffordance = useDataWriter("affordance", {
+    schema: FreeTextAffordance,
+  });
 
   useAgentStart((ctx) => {
-    if (delivery.kind !== 'user' || pending === null) return;
+    if (delivery.kind !== "user" || pending === null) return;
 
     pendingAtFinish = null;
     setPending(null);
-    ctx.append({ kind: 'signal', ...buildReplyBindingSignalPayload(pending) });
+    ctx.append({ kind: "signal", ...buildReplyBindingSignalPayload(pending) });
   });
 
   useTool({
-    name: toolName('ask'),
+    name: toolName("ask"),
     description: ASK_TOOL_DESCRIPTION,
     input: AskInput,
     output: FreeTextAffordance,
@@ -125,25 +128,25 @@ export function useElicitation(plugin: Plugin, session: ElicitationSession): str
   });
 
   useTool({
-    name: toolName('sweep'),
+    name: toolName("sweep"),
     description:
-      'Apply or replay the settled conversation prefix. The harness privately extracts quote-anchored captures, refreshes durable history immediately before atomic application, and advances sweep state only on success.',
+      "Apply or replay the settled conversation prefix. The harness privately extracts quote-anchored captures, refreshes durable history immediately before atomic application, and advances sweep state only on success.",
     input: v.strictObject({}),
     output: SweepToolOutput,
     harness: true,
     durable: true,
     async run({ harness, signal, step }) {
-      const historyAtJudgment = await step.do('read-settled-range', async () =>
+      const historyAtJudgment = await step.do("read-settled-range", async () =>
         projectFlueHistoryForSweep(await session.historyReader.peek(session.sessionId)),
       );
       const range = sweepableRange(historyAtJudgment);
       const throughUserEntryId = range.at(-1)?.id;
       if (!throughUserEntryId) {
-        return { output: { status: 'no-settled-range' as const } };
+        return { output: { status: "no-settled-range" as const } };
       }
 
       const extraction = await step.do(
-        'extract-sweep-proposals',
+        "extract-sweep-proposals",
         async () =>
           (
             await harness.prompt(
@@ -161,13 +164,13 @@ export function useElicitation(plugin: Plugin, session: ElicitationSession): str
 
       // This read is intentionally adjacent to application: its binding-owned
       // archive write makes every quote resolvable before the store sees it.
-      await step.do('refresh-history-before-apply', async () =>
+      await step.do("refresh-history-before-apply", async () =>
         projectFlueHistoryForSweep(await session.historyReader.read(session.sessionId)),
       );
-      const applied = await step.do('apply-sweep', () =>
+      const applied = await step.do("apply-sweep", () =>
         session.captureStore.execute(
           {
-            type: 'apply-sweep',
+            type: "apply-sweep",
             // The plugin schema narrows the existing envelope here; the store
             // repeats envelope validation and owns anchoring at apply.
             proposals: extraction.proposals,
@@ -178,7 +181,9 @@ export function useElicitation(plugin: Plugin, session: ElicitationSession): str
       if (!applied.ok) {
         sweepState = reopenSweepAfterRefusal(sweepState);
         setSweepState(sweepState);
-        return { output: { status: 'refused' as const, refusal: applied.refusal } };
+        return {
+          output: { status: "refused" as const, refusal: applied.refusal },
+        };
       }
 
       sweepState = advanceSweepHighWater(sweepState, throughUserEntryId);
@@ -190,13 +195,13 @@ export function useElicitation(plugin: Plugin, session: ElicitationSession): str
       );
       return {
         output: {
-          status: 'applied' as const,
+          status: "applied" as const,
           appliedCaptureIds:
-            'appliedCaptureIds' in applied.value ? applied.value.appliedCaptureIds : [],
+            "appliedCaptureIds" in applied.value ? applied.value.appliedCaptureIds : [],
           skippedDedupKeys:
-            'skippedDedupKeys' in applied.value ? applied.value.skippedDedupKeys : [],
+            "skippedDedupKeys" in applied.value ? applied.value.skippedDedupKeys : [],
           advisories: [
-            ...('advisories' in applied.value ? applied.value.advisories : []),
+            ...("advisories" in applied.value ? applied.value.advisories : []),
             ...computeUnaccountedAskAdvisories(range, accountedEntryIds),
           ],
         },
@@ -213,7 +218,7 @@ export function useElicitation(plugin: Plugin, session: ElicitationSession): str
     const entries = projectFlueHistoryForSweep(await session.historyReader.peek(session.sessionId));
     const repair = pendingSweepRepair(entries);
     if (repair) {
-      ctx.append({ kind: 'signal', ...buildSweepRepairSignal(repair) });
+      ctx.append({ kind: "signal", ...buildSweepRepairSignal(repair) });
       return;
     }
     const decision = decideSettlementTrigger({
@@ -221,15 +226,18 @@ export function useElicitation(plugin: Plugin, session: ElicitationSession): str
       state: sweepState,
       pendingAffordance: false,
     });
-    if (decision.action !== 'nudge') return;
+    if (decision.action !== "nudge") return;
 
     sweepState = decision.nextState;
     setSweepState(sweepState);
-    ctx.append({ kind: 'signal', ...buildSettlementCheckSignal(decision.tail) });
+    ctx.append({
+      kind: "signal",
+      ...buildSettlementCheckSignal(decision.tail),
+    });
   });
 
   return [
     ...askProtocolInstructionFragments(plugin.targetDomain),
     ...settlementProtocolInstructionFragments(),
-  ].join('\n\n');
+  ].join("\n\n");
 }

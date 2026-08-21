@@ -11,11 +11,12 @@
  * safety net until a client build exists.
  */
 
-import { createRoot } from 'react-dom/client';
-import { Chat } from './chat.tsx';
-import './styles.css';
+import { createRoot } from "react-dom/client";
 
-const container = document.getElementById('root');
-if (!container) throw new Error('index.html is missing its #root container');
+import { Chat } from "./chat.tsx";
+import "./styles.css";
+
+const container = document.getElementById("root");
+if (!container) throw new Error("index.html is missing its #root container");
 
 createRoot(container).render(<Chat />);

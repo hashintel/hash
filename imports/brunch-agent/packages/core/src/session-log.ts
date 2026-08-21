@@ -1,7 +1,8 @@
-import * as v from 'valibot';
-import type { EvidenceSpan, JsonValue } from './capture-store.ts';
+import * as v from "valibot";
 
-export type SessionEntryKind = 'user' | 'user-affordance-payload' | 'assistant' | 'non-user';
+import type { EvidenceSpan, JsonValue } from "./capture-store.ts";
+
+export type SessionEntryKind = "user" | "user-affordance-payload" | "assistant" | "non-user";
 
 export interface SessionLogEntrySnapshot {
   /** Stable identity supplied by the substrate's public projection. */
@@ -45,7 +46,10 @@ export interface ArchivedSessionRead {
   readonly offset: string;
   readonly substrateConversationId?: string;
   readonly incarnation?: string;
-  readonly entries: readonly { readonly ordinal: number; readonly version: number }[];
+  readonly entries: readonly {
+    readonly ordinal: number;
+    readonly version: number;
+  }[];
   readonly settlements: readonly JsonValue[];
 }
 
@@ -68,7 +72,7 @@ export interface EvidenceQuote {
 }
 
 export interface MultipleEvidenceMatchesAdvisory {
-  readonly type: 'multiple-evidence-matches';
+  readonly type: "multiple-evidence-matches";
   readonly excerpt: string;
   readonly matchCount: number;
   readonly message: string;
@@ -76,12 +80,12 @@ export interface MultipleEvidenceMatchesAdvisory {
 
 export type EvidenceResolutionRefusal =
   | {
-      readonly code: 'evidence-quote-not-found';
+      readonly code: "evidence-quote-not-found";
       readonly excerpt: string;
       readonly message: string;
     }
   | {
-      readonly code: 'non-user-evidence';
+      readonly code: "non-user-evidence";
       readonly excerpt: string;
       readonly message: string;
     };
@@ -96,7 +100,7 @@ export type EvidenceResolutionResult =
 
 const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
 const positiveInteger = v.pipe(v.number(), v.integer(), v.minValue(1));
-const kindSchema = v.picklist(['user', 'user-affordance-payload', 'assistant', 'non-user']);
+const kindSchema = v.picklist(["user", "user-affordance-payload", "assistant", "non-user"]);
 const versionSchema = v.strictObject({
   version: positiveInteger,
   observedAtOffset: nonEmptyString,
@@ -130,10 +134,10 @@ const sessionSchema = v.strictObject({
 const archiveSchema = v.strictObject({ sessions: v.array(sessionSchema) });
 
 const isJsonValue = (value: unknown): value is JsonValue => {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
-  if (typeof value === 'number') return Number.isFinite(value) && !Object.is(value, -0);
+  if (value === null || typeof value === "string" || typeof value === "boolean") return true;
+  if (typeof value === "number") return Number.isFinite(value) && !Object.is(value, -0);
   if (Array.isArray(value)) return value.every(isJsonValue);
-  if (typeof value !== 'object') return false;
+  if (typeof value !== "object") return false;
   const prototype = Object.getPrototypeOf(value);
   return (
     (prototype === Object.prototype || prototype === null) &&
@@ -143,7 +147,7 @@ const isJsonValue = (value: unknown): value is JsonValue => {
 
 const canonicalize = (value: JsonValue): JsonValue => {
   if (Array.isArray(value)) return value.map(canonicalize);
-  if (value !== null && typeof value === 'object') {
+  if (value !== null && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value)
         .sort(([left], [right]) => left.localeCompare(right))
@@ -155,7 +159,9 @@ const canonicalize = (value: JsonValue): JsonValue => {
 
 const canonicalString = (value: JsonValue): string => JSON.stringify(canonicalize(value));
 
-export const createEmptySessionLogArchive = (): SessionLogArchive => ({ sessions: [] });
+export const createEmptySessionLogArchive = (): SessionLogArchive => ({
+  sessions: [],
+});
 
 export const parseSessionLogArchive = (input: unknown): SessionLogArchive => {
   const archive = v.parse(archiveSchema, input) as SessionLogArchive;
@@ -170,7 +176,7 @@ export const parseSessionLogArchive = (input: unknown): SessionLogArchive => {
       throw new TypeError(`Session log ${session.sessionId} entry ordinals must be contiguous.`);
     }
     const substrateIdentities = session.entries.map(
-      (entry) => `${entry.substrateIncarnation ?? ''}\u0000${entry.substrateEntryId}`,
+      (entry) => `${entry.substrateIncarnation ?? ""}\u0000${entry.substrateEntryId}`,
     );
     if (new Set(substrateIdentities).size !== substrateIdentities.length) {
       throw new TypeError(`Session log ${session.sessionId} repeats a substrate entry identity.`);
@@ -234,10 +240,10 @@ export const archiveSessionLogRead = (
     ) ||
     !read.settlements.every(isJsonValue)
   ) {
-    throw new TypeError('A session-log read must be non-empty and JSON-compatible.');
+    throw new TypeError("A session-log read must be non-empty and JSON-compatible.");
   }
   if (new Set(read.entries.map((entry) => entry.substrateEntryId)).size !== read.entries.length) {
-    throw new TypeError('A materialized session-log read cannot repeat a substrate entry id.');
+    throw new TypeError("A materialized session-log read cannot repeat a substrate entry id.");
   }
 
   const cloned = structuredClone(archive);
@@ -318,14 +324,14 @@ export const resolveEvidenceQuotes = (
     );
     const userMatches = allMatches.filter((entry) => {
       const kind = currentVersion(entry).kind;
-      return kind === 'user' || kind === 'user-affordance-payload';
+      return kind === "user" || kind === "user-affordance-payload";
     });
     if (userMatches.length === 0) {
       if (allMatches.length > 0) {
         return {
           ok: false,
           refusal: {
-            code: 'non-user-evidence',
+            code: "non-user-evidence",
             excerpt: quote.excerpt,
             message: `The quote "${quote.excerpt}" occurs only in injected non-user entries and cannot be cited as user evidence.`,
           },
@@ -334,7 +340,7 @@ export const resolveEvidenceQuotes = (
       return {
         ok: false,
         refusal: {
-          code: 'evidence-quote-not-found',
+          code: "evidence-quote-not-found",
           excerpt: quote.excerpt,
           message: `No user entry contains the verbatim quote "${quote.excerpt}". Repair the quote to match the user's words exactly.`,
         },
@@ -342,7 +348,7 @@ export const resolveEvidenceQuotes = (
     }
     const selected = userMatches.at(-1)!;
     const selectedKind = currentVersion(selected).kind;
-    const source = selectedKind === 'user-affordance-payload' ? 'user-affordance-payload' : 'user';
+    const source = selectedKind === "user-affordance-payload" ? "user-affordance-payload" : "user";
     evidence.push({
       excerpt: quote.excerpt,
       pointer: {
@@ -354,7 +360,7 @@ export const resolveEvidenceQuotes = (
     });
     if (userMatches.length > 1) {
       advisories.push({
-        type: 'multiple-evidence-matches',
+        type: "multiple-evidence-matches",
         excerpt: quote.excerpt,
         matchCount: userMatches.length,
         message: `The quote matched ${userMatches.length} user entries; the latest match was selected.`,
@@ -367,7 +373,7 @@ export const resolveEvidenceQuotes = (
 
 export const readArchivedEntryRange = (
   archive: SessionLogArchive,
-  pointer: EvidenceSpan['pointer'],
+  pointer: EvidenceSpan["pointer"],
 ): readonly ArchivedSessionEntry[] => {
   const session = archive.sessions.find((candidate) => candidate.sessionId === pointer.sessionId);
   const entries = session?.entries.filter(

@@ -1,18 +1,19 @@
 /** Application composition for Petrinaut's stock AI SDK chat transport. */
 
-import { createFlueReplyProjector, projectFlueHistoryForSweep } from '@brunch/binding-flue';
-import { decideAskReplyAdmission, pendingAskAffordanceId } from '@brunch/core';
+import { createFlueReplyProjector, projectFlueHistoryForSweep } from "@brunch/binding-flue";
+import { decideAskReplyAdmission, pendingAskAffordanceId } from "@brunch/core";
 import {
   createAiSdkChatHandler,
   type HarnessReplyEvent,
   type TransportInspectionEvent,
-} from '@brunch/transport-aisdk';
-import { init } from '@flue/runtime';
-import { GherkinElicitor } from './agents/gherkin-elicitor.ts';
-import { createGherkinElicitationSession } from './elicitation-session.ts';
+} from "@brunch/transport-aisdk";
+import { init } from "@flue/runtime";
+
+import { GherkinElicitor } from "./agents/gherkin-elicitor.ts";
+import { createGherkinElicitationSession } from "./elicitation-session.ts";
 
 const inspect =
-  process.env.BRUNCH_TRANSPORT_AISDK_INSPECT === '1'
+  process.env.BRUNCH_TRANSPORT_AISDK_INSPECT === "1"
     ? (event: TransportInspectionEvent): void => {
         // This is an opt-in shell diagnostic stream. It is never dispatched
         // into Flue and therefore cannot become elicitation evidence.
@@ -43,9 +44,9 @@ const streamElicitorTurn = async (
 
 export const petrinautChatHandler = createAiSdkChatHandler({
   allowedOrigins: (
-    process.env.BRUNCH_PETRINAUT_ORIGINS ?? 'http://127.0.0.1:4915,http://localhost:4915'
+    process.env.BRUNCH_PETRINAUT_ORIGINS ?? "http://127.0.0.1:4915,http://localhost:4915"
   )
-    .split(',')
+    .split(",")
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0),
   inspect,

@@ -1,32 +1,33 @@
-import { FreeTextAffordance } from '@brunch/core';
-import { useFlueAgent } from '@flue/react';
-import { createFlueClient, type FlueConversationMessage } from '@flue/sdk';
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import * as v from 'valibot';
-import { GHERKIN_AGENT_ROUTE } from '../routes.ts';
+import { FreeTextAffordance } from "@brunch/core";
+import { useFlueAgent } from "@flue/react";
+import { createFlueClient, type FlueConversationMessage } from "@flue/sdk";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import * as v from "valibot";
+
+import { GHERKIN_AGENT_ROUTE } from "../routes.ts";
 
 const conversationId = crypto.randomUUID();
 
 function VisibleMessage({ message }: { message: FlueConversationMessage }) {
   if (
-    message.display !== 'visible' ||
-    (message.purpose !== 'user' && message.purpose !== 'assistant')
+    message.display !== "visible" ||
+    (message.purpose !== "user" && message.purpose !== "assistant")
   ) {
     return null;
   }
 
   return (
     <article className={`message message--${message.role}`}>
-      <p className="message__role">{message.role === 'user' ? 'You' : 'Interviewer'}</p>
+      <p className="message__role">{message.role === "user" ? "You" : "Interviewer"}</p>
       {message.parts.map((part, index) => {
-        if (part.type === 'text') {
+        if (part.type === "text") {
           return (
             <p className="message__text" key={index}>
               {part.text}
             </p>
           );
         }
-        if (part.type === 'data-affordance') {
+        if (part.type === "data-affordance") {
           const affordance = v.safeParse(FreeTextAffordance, part.data);
           if (!affordance.success) return null;
           return (
@@ -44,7 +45,7 @@ function VisibleMessage({ message }: { message: FlueConversationMessage }) {
 }
 
 export function Chat() {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [bootstrapping, setBootstrapping] = useState(true);
   const [startupError, setStartupError] = useState<string>();
   const started = useRef(false);
@@ -64,13 +65,13 @@ export function Chat() {
     void (async () => {
       try {
         const admission = await client.send({
-          message: { kind: 'user', body: 'Begin the interview.' },
+          message: { kind: "user", body: "Begin the interview." },
           initialData: { targetDocumentId: `dev-${conversationId}` },
         });
         await client.wait(admission);
         await agent.refresh();
       } catch (error: unknown) {
-        setStartupError(error instanceof Error ? error.message : 'The interview could not start.');
+        setStartupError(error instanceof Error ? error.message : "The interview could not start.");
       } finally {
         setBootstrapping(false);
       }
@@ -79,15 +80,15 @@ export function Chat() {
 
   const busy =
     bootstrapping ||
-    agent.status === 'connecting' ||
-    agent.status === 'submitted' ||
-    agent.status === 'streaming';
+    agent.status === "connecting" ||
+    agent.status === "submitted" ||
+    agent.status === "streaming";
 
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     const reply = input.trim();
     if (!reply || busy) return;
-    setInput('');
+    setInput("");
     void agent.sendMessage(reply);
   }
 

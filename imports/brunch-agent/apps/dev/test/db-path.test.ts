@@ -10,16 +10,17 @@
  * seam as `assets.test.ts`).
  */
 
-import { afterEach, describe, expect, test } from 'bun:test';
-import { tmpdir } from 'node:os';
-import { dirname, isAbsolute, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { conversationDbPath } from '../src/db-path.ts';
-import { targetDocumentPath } from '../src/target-document-path.ts';
+import { afterEach, describe, expect, test } from "bun:test";
+import { tmpdir } from "node:os";
+import { dirname, isAbsolute, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const appDir = fileURLToPath(new URL('..', import.meta.url));
+import { conversationDbPath } from "../src/db-path.ts";
+import { targetDocumentPath } from "../src/target-document-path.ts";
 
-describe('the conversation store path', () => {
+const appDir = fileURLToPath(new URL("..", import.meta.url));
+
+describe("the conversation store path", () => {
   const originalCwd = process.cwd();
   const originalOverride = process.env.BRUNCH_DEV_DB_PATH;
 
@@ -29,7 +30,7 @@ describe('the conversation store path', () => {
     else process.env.BRUNCH_DEV_DB_PATH = originalOverride;
   });
 
-  test('is anchored to the package, wherever the process was launched from', () => {
+  test("is anchored to the package, wherever the process was launched from", () => {
     delete process.env.BRUNCH_DEV_DB_PATH;
     const fromRepo = conversationDbPath();
     process.chdir(tmpdir());
@@ -37,23 +38,23 @@ describe('the conversation store path', () => {
 
     expect(isAbsolute(fromRepo)).toBe(true);
     expect(fromElsewhere).toBe(fromRepo);
-    expect(fromRepo).toBe(join(appDir, '.data-wipe-me', 'conversations.db'));
+    expect(fromRepo).toBe(join(appDir, ".data-wipe-me", "conversations.db"));
   });
 
-  test('the env override wins untouched', () => {
-    process.env.BRUNCH_DEV_DB_PATH = './relative/on-purpose.db';
-    expect(conversationDbPath()).toBe('./relative/on-purpose.db');
+  test("the env override wins untouched", () => {
+    process.env.BRUNCH_DEV_DB_PATH = "./relative/on-purpose.db";
+    expect(conversationDbPath()).toBe("./relative/on-purpose.db");
   });
 
-  test('a set-but-empty override falls back to the anchored default', () => {
+  test("a set-but-empty override falls back to the anchored default", () => {
     // sqlite('') would open an anonymous temporary database deleted on close
     // — non-durable with no error, which is this module's one job to prevent.
-    process.env.BRUNCH_DEV_DB_PATH = '';
-    expect(conversationDbPath()).toBe(join(appDir, '.data-wipe-me', 'conversations.db'));
+    process.env.BRUNCH_DEV_DB_PATH = "";
+    expect(conversationDbPath()).toBe(join(appDir, ".data-wipe-me", "conversations.db"));
   });
 });
 
-describe('the target-document store path', () => {
+describe("the target-document store path", () => {
   const originalOverride = process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR;
 
   afterEach(() => {
@@ -61,16 +62,16 @@ describe('the target-document store path', () => {
     else process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR = originalOverride;
   });
 
-  test('uses a stable opaque filename below the host-selected directory', () => {
-    process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR = '/tmp/brunch-target-documents-test';
-    const first = targetDocumentPath('../shared-target');
+  test("uses a stable opaque filename below the host-selected directory", () => {
+    process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR = "/tmp/brunch-target-documents-test";
+    const first = targetDocumentPath("../shared-target");
 
-    expect(first).toBe(targetDocumentPath('../shared-target'));
-    expect(dirname(first)).toBe('/tmp/brunch-target-documents-test');
-    expect(first).not.toContain('shared-target');
+    expect(first).toBe(targetDocumentPath("../shared-target"));
+    expect(dirname(first)).toBe("/tmp/brunch-target-documents-test");
+    expect(first).not.toContain("shared-target");
   });
 
-  test('refuses an empty target-document identity', () => {
-    expect(() => targetDocumentPath('')).toThrow('cannot be empty');
+  test("refuses an empty target-document identity", () => {
+    expect(() => targetDocumentPath("")).toThrow("cannot be empty");
   });
 });
