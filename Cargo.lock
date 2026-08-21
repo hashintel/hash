@@ -5907,28 +5907,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hash-graph-authentication"
-version = "0.0.0"
-dependencies = [
- "axum",
- "cookie",
- "derive_more",
- "error-stack",
- "hash-graph-authorization",
- "hash-graph-store",
- "hash-status",
- "http 1.4.2",
- "reqwest",
- "serde",
- "serde_json",
- "simple-mermaid",
- "tokio",
- "tracing",
- "type-system",
- "uuid",
-]
-
-[[package]]
 name = "hash-graph-atlas"
 version = "0.0.0"
 dependencies = [
@@ -5998,6 +5976,28 @@ dependencies = [
  "uuid",
  "zerocopy",
  "zeroize",
+]
+
+[[package]]
+name = "hash-graph-authentication"
+version = "0.0.0"
+dependencies = [
+ "axum",
+ "cookie",
+ "derive_more",
+ "error-stack",
+ "hash-graph-authorization",
+ "hash-graph-store",
+ "hash-status",
+ "http 1.4.2",
+ "reqwest 0.13.4",
+ "serde",
+ "serde_json",
+ "simple-mermaid",
+ "tokio",
+ "tracing",
+ "type-system",
+ "uuid",
 ]
 
 [[package]]
@@ -6203,7 +6203,7 @@ dependencies = [
 name = "hash-graph-store"
 version = "0.0.0"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "bytes",
  "derive-where",
  "derive_more",
