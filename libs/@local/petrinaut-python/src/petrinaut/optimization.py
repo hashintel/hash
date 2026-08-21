@@ -10,9 +10,10 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
+from ._transport import encode_bootstrap_line
 from .errors import PetrinautProtocolError, PetrinautRunError
 from .models import OptimizationDescribeResult, OptimizationEvaluateResult
-from .session import PetrinautSession, encode_bootstrap_line
+from .session import PetrinautSession
 
 _ModelT = TypeVar("_ModelT", bound=BaseModel)
 
@@ -26,6 +27,11 @@ class OptimizationSession(PetrinautSession):
     CLI itself when ``manifest_path`` is given). The CLI owns every
     Petrinaut-specific concern: fixed-value injection, scenario compilation,
     simulation, and metric evaluation.
+
+    A manifest embeds a model, and the CLI serves both from one process, so
+    every :class:`~petrinaut.session.PetrinautSession` method works here too;
+    only this class can answer the `optimization.*` methods. Pick the class by
+    naming what the process serves: a model, or a manifest.
     """
 
     def __init__(
@@ -57,6 +63,27 @@ class OptimizationSession(PetrinautSession):
         )
         self._timeout_configured = False
 
+    @staticmethod
+    def from_manifest(
+        manifest: Mapping[str, Any], **options: Any
+    ) -> OptimizationSession:
+        """Serve a manifest object sent as the first stdin line.
+
+        The mirror of :meth:`PetrinautSession.from_model`, so both classes
+        construct the same way: name the source, get the session.
+        """
+        return OptimizationSession(manifest, **options)
+
+    @staticmethod
+    def from_manifest_file(
+        path: str | os.PathLike[str], **options: Any
+    ) -> OptimizationSession:
+        """Serve a manifest JSON file, read by the CLI itself.
+
+        The mirror of :meth:`PetrinautSession.from_model_file`.
+        """
+        return OptimizationSession(manifest_path=path, **options)
+
     def describe(self) -> OptimizationDescribeResult:
         """Return the CLI-owned Optuna study and parameter description."""
         # The generated model bounds seedsPerTrial to the CLI's 1-100 range,
@@ -67,8 +94,8 @@ class OptimizationSession(PetrinautSession):
         )
         # One evaluate may run this many seeded simulations, sequentially in
         # the worst case, so the per-response deadline scales with it.
-        self._request_timeout_seconds = (
-            self._base_request_timeout_seconds * seeds_per_trial
+        self._transport.request_timeout_seconds = (
+            self._transport.base_request_timeout_seconds * seeds_per_trial
         )
         self._timeout_configured = True
         return result
