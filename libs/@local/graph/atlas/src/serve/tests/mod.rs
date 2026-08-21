@@ -9,6 +9,7 @@
     reason = "the expectations spell out the wire contract's little-endian columns"
 )]
 
+use alloc::borrow::Cow;
 use core::{assert_matches, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
@@ -150,6 +151,9 @@ fn scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
+/// One fixture corpus row, owning its projector embedding under a plain integer id.
+type FixtureNode = CorpusNode<'static, U64<LE>>;
+
 /// The fit-scale corpus rows.
 ///
 /// Unit-norm pseudo-random representations whose canonical embeddings extend them with zeros,
@@ -158,7 +162,7 @@ fn scratch(name: &str) -> Utf8PathBuf {
 fn fixture_nodes(
     types: impl Fn(usize) -> SmallVec<OntologyRowId, 2>,
 ) -> (
-    Vec<CorpusNode<U64<LE>>>,
+    Vec<FixtureNode>,
     HashMap<u64, BoxedVecN<CANONICAL_DIMENSIONS>>,
 ) {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x5E4E);
@@ -191,7 +195,7 @@ fn fixture_nodes(
             CorpusNode {
                 id: U64::<LE>::new(row as u64),
                 ontology: types(row),
-                embedding: BoxedVecN::new(&VecN::new(components)),
+                embedding: Cow::Owned(BoxedVecN::new(&VecN::new(components))),
                 confidence: None,
             }
         })

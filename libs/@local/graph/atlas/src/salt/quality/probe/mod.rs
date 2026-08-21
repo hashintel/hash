@@ -33,6 +33,7 @@
     reason = "k is the canonical neighbourhood-size name across the metric literature"
 )]
 
+use alloc::borrow::Cow;
 use core::{mem, num::NonZero, pin::pin};
 
 use futures::{Stream, TryStreamExt as _};
@@ -59,7 +60,7 @@ use super::{
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, Dataset, PROJECTOR_DIMENSIONS},
     identity::NodeRowId,
-    math::{AlignedVecN, BoxedVecN, FinitePointField},
+    math::{AlignedVecN, FinitePointField},
     random::{sample_indices_vec, uniform_below},
 };
 

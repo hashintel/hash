@@ -102,7 +102,7 @@ pub(crate) async fn write_node_representations<D: Dataset>(
         ids.push(node.id);
         types.push(node.ontology);
         writer
-            .write_row(node.embedding.as_bytes())
+            .write_row(node.embedding.as_ref().as_bytes())
             .map_err(PrepareError::Io)?;
     }
 

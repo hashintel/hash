@@ -1,3 +1,4 @@
+use alloc::borrow::Cow;
 use std::collections::HashMap;
 
 use futures::TryStreamExt as _;
@@ -86,7 +87,7 @@ fn fixture() -> MemoryDataset {
     let unit = |component: usize| {
         let mut components = [0.0_f32; PROJECTOR_DIMENSIONS];
         components[component] = 1.0;
-        BoxedVecN::new(&VecN::new(components))
+        Cow::Owned(BoxedVecN::new(&VecN::new(components)))
     };
 
     let mut canonical_components = [0.0_f32; CANONICAL_DIMENSIONS];

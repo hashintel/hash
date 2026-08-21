@@ -2,6 +2,7 @@
 
 mod id;
 
+use alloc::borrow::Cow;
 use std::{collections::HashMap, io};
 
 use futures::{Stream, StreamExt as _, stream};
@@ -15,7 +16,7 @@ use super::{
     auxiliary::{Label, OwnedIcon, OwnedLegend},
     card::Card,
 };
-use crate::math::BoxedVecN;
+use crate::math::{AlignedVecN, BoxedVecN};
 
 /// The construction-time legend of a row: its representative type under the empty label.
 ///
@@ -37,8 +38,8 @@ fn default_legend(ontology: &[OntologyRowId]) -> OwnedLegend {
 /// Malformed lookups are programmer errors and panic, so the streams are infallible and
 /// [`Dataset::Error`] is `!`.
 pub(crate) struct MemoryDataset {
-    nodes: Vec<Node<MemoryNodeId>>,
-    edges: Vec<Edge<MemoryEdgeId>>,
+    nodes: Vec<Node<'static, MemoryNodeId>>,
+    edges: Vec<Edge<'static, MemoryEdgeId>>,
     ontology: Vec<Ontology<MemoryOntologyId>>,
     canonical: HashMap<u64, BoxedVecN<CANONICAL_DIMENSIONS>>,
     cards: HashMap<u64, Card>,
@@ -74,8 +75,8 @@ impl MemoryDataset {
     /// This panics when an edge endpoint or a type reference names a row outside its stream, or
     /// when a type list is not strictly ascending.
     pub(crate) fn new(
-        nodes: Vec<Node<U64<LE>>>,
-        edges: Vec<Edge<U64<LE>>>,
+        nodes: Vec<Node<'static, U64<LE>>>,
+        edges: Vec<Edge<'static, U64<LE>>>,
         ontology: Vec<Ontology<U64<LE>>>,
         canonical: HashMap<u64, BoxedVecN<CANONICAL_DIMENSIONS>>,
         cards: HashMap<u64, Card>,
@@ -178,13 +179,13 @@ impl Dataset for MemoryDataset {
     type NodeId = MemoryNodeId;
     type OntologyId = MemoryOntologyId;
 
-    type CanonicalNodeEmbeddingsStream<'this, I: Iterator<Item = Self::NodeId>> = impl Stream<Item = Result<(MemoryNodeId, BoxedVecN<CANONICAL_DIMENSIONS>), !>>
+    type CanonicalNodeEmbeddingsStream<'this, I: Iterator<Item = Self::NodeId>> = impl Stream<Item = Result<(MemoryNodeId, Cow<'this, AlignedVecN<CANONICAL_DIMENSIONS>>), !>>
         + use<'this, I>;
     type CardStream<'this> = impl Stream<Item = io::Result<(MemoryOntologyId, Card)>> + 'this;
     type EdgeAuxiliaryPayloadStream<'this> = impl Stream<Item = Result<OwnedLegend, !>> + 'this;
-    type EdgeStream<'this> = impl Stream<Item = Result<Edge<MemoryEdgeId>, !>> + 'this;
+    type EdgeStream<'this> = impl Stream<Item = Result<Edge<'this, MemoryEdgeId>, !>> + 'this;
     type NodeAuxiliaryPayloadStream<'this> = impl Stream<Item = Result<OwnedLegend, !>> + 'this;
-    type NodeStream<'this> = impl Stream<Item = Result<Node<MemoryNodeId>, !>> + 'this;
+    type NodeStream<'this> = impl Stream<Item = Result<Node<'this, MemoryNodeId>, !>> + 'this;
     type NodeTypesStream<'this, I: Iterator<Item = Self::NodeId>> =
         impl Stream<Item = Result<(MemoryNodeId, SmallVec<OntologyRowId, 2>), !>> + use<'this, I>;
     type OntologyAuxiliaryPayloadStream<'this> = impl Stream<Item = Result<OwnedIcon, !>> + 'this;
@@ -221,7 +222,7 @@ impl Dataset for MemoryDataset {
                 .get(&id.get())
                 .unwrap_or_else(|| panic!("node {} has no canonical embedding", id.get()));
 
-            Ok::<_, !>((id, embedding.clone()))
+            Ok::<_, !>((id, Cow::Borrowed(&**embedding)))
         })
     }
 

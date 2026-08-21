@@ -27,7 +27,7 @@
 // over distance and row rather than a plain float compare. Measure at
 // live shape (1M rows x 256 anchors) before acting.
 
-use alloc::collections::BinaryHeap;
+use alloc::{borrow::Cow, collections::BinaryHeap};
 use core::{cmp::Ordering, num::NonZero};
 use std::alloc::Allocator;
 
@@ -48,7 +48,7 @@ use super::{
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS},
     identity::NodeRowId,
-    math::{AlignedVecN, BoxedVecN, FinitePointField, NonNegative},
+    math::{AlignedVecN, FinitePointField, NonNegative},
 };
 
 /// One ranked row under the probe's total order.
@@ -349,15 +349,18 @@ pub(super) struct SampledReading {
 }
 
 /// Shared inputs for ranking every anchor against the comparison rows in all three spaces.
+///
+/// The canonical embeddings arrive as the dataset served them: borrowed straight out of a
+/// mapped dump, or owned where the source decodes rows.
 pub(super) struct SampledPass<'pass> {
     /// The representation matrix, in row order.
     pub representations: &'pass IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     /// The coordinate frame, in row order.
     pub coordinates: &'pass FinitePointField<NodeRowId>,
     /// The anchors' canonical embeddings, in anchor order.
-    pub anchor_canonical: &'pass [BoxedVecN<CANONICAL_DIMENSIONS>],
+    pub anchor_canonical: &'pass [Cow<'pass, AlignedVecN<CANONICAL_DIMENSIONS>>],
     /// The comparison rows' canonical embeddings, in comparison order.
-    pub comparison_canonical: &'pass [BoxedVecN<CANONICAL_DIMENSIONS>],
+    pub comparison_canonical: &'pass [Cow<'pass, AlignedVecN<CANONICAL_DIMENSIONS>>],
     /// The pass's shared universe of comparison rows.
     pub comparison_rows: &'pass [NodeRowId],
     /// Prevalidated empty aggregates, one per neighbourhood size.
@@ -395,7 +398,7 @@ impl SampledPass<'_> {
 
         let anchor_point = self.coordinates[anchor];
         let anchor_embedding = &self.representations[anchor];
-        let anchor_canonical = &self.anchor_canonical[index];
+        let anchor_canonical = self.anchor_canonical[index].as_ref();
 
         let mut map_distances = Vec::with_capacity_in(self.comparison_rows.len(), &*scratch);
         let mut representation_distances =
@@ -406,8 +409,9 @@ impl SampledPass<'_> {
             map_distances.push(anchor_point.distance_squared(self.coordinates[row]));
             representation_distances
                 .push(anchor_embedding.cosine_distance(&self.representations[row]));
-            canonical_distances
-                .push(anchor_canonical.cosine_distance(&self.comparison_canonical[universe]));
+            canonical_distances.push(
+                anchor_canonical.cosine_distance(self.comparison_canonical[universe].as_ref()),
+            );
         }
 
         let mut map_order = Vec::with_capacity_in(self.comparison_rows.len(), &*scratch);

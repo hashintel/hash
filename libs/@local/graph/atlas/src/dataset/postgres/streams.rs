@@ -5,6 +5,8 @@
 //! beside each builder consumes those indices, so the select list and the decode sites cannot
 //! disagree about positions.
 
+use alloc::borrow::Cow;
+
 use hash_graph_postgres_store::store::postgres::query::{
     Aliased, Binder, BoundStatement, Expression, FromItem, Function, OrderByExpression,
     PostgresType, SelectList, SelectStatement, Table, WithExpression,
@@ -172,7 +174,7 @@ pub(super) fn node_statement<'params>(
 pub(super) fn decode_node(
     row: &Row,
     columns: &NodeColumns,
-) -> Result<Node<ArchivedEntityId>, PostgresDatasetError> {
+) -> Result<Node<'static, ArchivedEntityId>, PostgresDatasetError> {
     let web_id: Uuid = row.try_get(columns.web_id)?;
     let entity_uuid: Uuid = row.try_get(columns.entity_uuid)?;
     let embedding: PgVector<PROJECTOR_DIMENSIONS> = row.try_get(columns.embedding)?;
@@ -185,7 +187,7 @@ pub(super) fn decode_node(
             entity_uuid: entity_uuid.into(),
         },
         ontology: ontology_rows(ordinals)?,
-        embedding: embedding.0,
+        embedding: Cow::Owned(embedding.0),
         confidence,
     })
 }
@@ -360,7 +362,7 @@ pub(super) fn decode_edge(
         source_confidence,
         target_confidence,
     }: &EdgeColumns,
-) -> Result<Edge<ArchivedEntityId>, PostgresDatasetError> {
+) -> Result<Edge<'static, ArchivedEntityId>, PostgresDatasetError> {
     let web_id: Uuid = row.try_get(web_id)?;
     let entity_uuid: Uuid = row.try_get(entity_uuid)?;
     let source: i64 = row.try_get(source)?;
@@ -385,7 +387,7 @@ pub(super) fn decode_edge(
         source: row_id(source)?,
         target: row_id(target)?,
         ontology: ontology_rows(ordinals)?,
-        embedding: embedding.map(|vector| vector.0),
+        embedding: embedding.map(|vector| Cow::Owned(vector.0)),
         confidence,
         source_confidence,
         target_confidence,

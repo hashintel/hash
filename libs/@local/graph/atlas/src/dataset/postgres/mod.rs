@@ -29,6 +29,7 @@
 mod error;
 mod streams;
 
+use alloc::borrow::Cow;
 use std::io;
 
 use futures::{FutureExt as _, Stream, TryStreamExt as _, stream};
@@ -45,7 +46,7 @@ use super::{
     card::Card,
 };
 use crate::{
-    math::BoxedVecN,
+    math::AlignedVecN,
     postgres::{
         CardParameters, card, corpus, embeddings,
         id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
@@ -140,7 +141,10 @@ impl Dataset for PostgresDataset<'_> {
     type CanonicalNodeEmbeddingsStream<'this, I: Iterator<Item = Self::NodeId>>
         = impl Stream<
             Item = Result<
-                (ArchivedEntityId, BoxedVecN<CANONICAL_DIMENSIONS>),
+                (
+                    ArchivedEntityId,
+                    Cow<'this, AlignedVecN<CANONICAL_DIMENSIONS>>,
+                ),
                 PostgresDatasetError,
             >,
         > + use<'this, I>
@@ -155,7 +159,7 @@ impl Dataset for PostgresDataset<'_> {
     where
         Self: 'this;
     type EdgeStream<'this>
-        = impl Stream<Item = Result<Edge<ArchivedEntityId>, PostgresDatasetError>> + 'this
+        = impl Stream<Item = Result<Edge<'this, ArchivedEntityId>, PostgresDatasetError>> + 'this
     where
         Self: 'this;
     type NodeAuxiliaryPayloadStream<'this>
@@ -163,7 +167,7 @@ impl Dataset for PostgresDataset<'_> {
     where
         Self: 'this;
     type NodeStream<'this>
-        = impl Stream<Item = Result<Node<ArchivedEntityId>, PostgresDatasetError>> + 'this
+        = impl Stream<Item = Result<Node<'this, ArchivedEntityId>, PostgresDatasetError>> + 'this
     where
         Self: 'this;
     type NodeTypesStream<'this, I: Iterator<Item = Self::NodeId>>
@@ -258,7 +262,10 @@ impl Dataset for PostgresDataset<'_> {
                 .await
                 .map(move |rows| {
                     rows.map_err(From::from).and_then(move |row| {
-                        core::future::ready(embeddings::decode_canonical_embedding(&row, &columns))
+                        core::future::ready(
+                            embeddings::decode_canonical_embedding(&row, &columns)
+                                .map(|(id, embedding)| (id, Cow::Owned(embedding))),
+                        )
                     })
                 })
                 .map_err(PostgresDatasetError::from)

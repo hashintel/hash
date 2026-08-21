@@ -1,3 +1,4 @@
+use alloc::borrow::Cow;
 use core::assert_matches;
 use std::{collections::HashMap, fs, io::Cursor};
 
@@ -70,7 +71,7 @@ fn nodes_only(embeddings: Vec<BoxedVecN<PROJECTOR_DIMENSIONS>>) -> MemoryDataset
         .map(|(row, embedding)| Node {
             id: U64::<LE>::new(row as u64),
             ontology: smallvec![],
-            embedding,
+            embedding: Cow::Owned(embedding),
             confidence: None,
         })
         .collect();

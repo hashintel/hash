@@ -66,6 +66,7 @@
 //! [`Icon`]: auxiliary::Icon
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
+use alloc::borrow::Cow;
 use std::io;
 
 use futures::Stream;
@@ -77,12 +78,13 @@ pub(crate) use self::ontology::OntologyIdentity;
 use crate::{
     file::identity::Key,
     identity::{NodeRowId, OntologyRowId},
-    math::{BoxedVecN, UnitFraction},
+    math::{AlignedVecN, UnitFraction},
 };
 
 pub(crate) mod auxiliary;
 pub(crate) mod card;
 pub(crate) mod memory;
+pub(crate) mod offline;
 pub(crate) mod ontology;
 pub(crate) mod postgres;
 #[cfg(test)]
@@ -137,8 +139,11 @@ pub(crate) struct Ontology<O> {
 }
 
 /// One entity of the graph, which the fit places as a point on the map.
+///
+/// `N` is the dataset's node identifier. `'data` is the source borrow behind the embedding's
+/// [`Cow`], so a node borrows or owns its vector as its source dictates.
 #[derive(Debug, Clone)]
-pub(crate) struct Node<N> {
+pub(crate) struct Node<'data, N> {
     /// The source identifier.
     ///
     /// Persisted so serving can translate node rows back to graph identities.
@@ -155,7 +160,7 @@ pub(crate) struct Node<N> {
     /// The norm is 1 up to `f32` rounding and every component is finite. The pipeline spot-checks
     /// this contract statistically. Every node carries an embedding: entities without one are
     /// outside every dataset's scope, and the row domain equals the placeable domain.
-    pub embedding: BoxedVecN<PROJECTOR_DIMENSIONS>,
+    pub embedding: Cow<'data, AlignedVecN<PROJECTOR_DIMENSIONS>>,
 
     /// The store's confidence in the entity, in `0.0..=1.0`.
     ///
@@ -167,9 +172,10 @@ pub(crate) struct Node<N> {
 /// One link between two nodes.
 ///
 /// Links are entities in the graph, so an edge has its own identity, its own types (which identify
-/// the relation), and, when the store holds one, own embedding.
+/// the relation), and, when the store holds one, own embedding. `E` is the dataset's edge
+/// identifier, and `'data` carries the embedding borrow, as for [`Node`].
 #[derive(Debug, Clone)]
-pub(crate) struct Edge<E> {
+pub(crate) struct Edge<'data, E> {
     /// The source identifier.
     ///
     /// Persisted so serving can translate edge rows back to graph identities.
@@ -187,7 +193,7 @@ pub(crate) struct Edge<E> {
     /// The link entity's own embedding prefix.
     ///
     /// Under the same contract as [`Node::embedding`], when the store holds one.
-    pub embedding: Option<BoxedVecN<PROJECTOR_DIMENSIONS>>,
+    pub embedding: Option<Cow<'data, AlignedVecN<PROJECTOR_DIMENSIONS>>>,
 
     /// The store's confidence in the link itself, in `0.0..=1.0`.
     ///
@@ -240,12 +246,12 @@ pub(crate) trait Dataset {
     type Error: core::error::Error + Send + Sync + 'static;
 
     /// The stream of nodes, in row order.
-    type NodeStream<'this>: Stream<Item = Result<Node<Self::NodeId>, Self::Error>>
+    type NodeStream<'this>: Stream<Item = Result<Node<'this, Self::NodeId>, Self::Error>>
     where
         Self: 'this;
 
     /// The stream of edges, in row order.
-    type EdgeStream<'this>: Stream<Item = Result<Edge<Self::EdgeId>, Self::Error>>
+    type EdgeStream<'this>: Stream<Item = Result<Edge<'this, Self::EdgeId>, Self::Error>>
     where
         Self: 'this;
 
@@ -256,7 +262,7 @@ pub(crate) trait Dataset {
 
     /// The stream of requested canonical embeddings.
     type CanonicalNodeEmbeddingsStream<'this, I: Iterator<Item = Self::NodeId>>: Stream<
-        Item = Result<(Self::NodeId, BoxedVecN<CANONICAL_DIMENSIONS>), Self::Error>,
+        Item = Result<(Self::NodeId, Cow<'this, AlignedVecN<CANONICAL_DIMENSIONS>>), Self::Error>,
     >
     where
         Self: 'this;

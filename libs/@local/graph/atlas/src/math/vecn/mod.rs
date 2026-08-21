@@ -9,6 +9,7 @@
 use alloc::alloc::Global;
 use core::{
     alloc::{AllocError, Allocator, Layout},
+    borrow::{Borrow, BorrowMut},
     ops::{Deref, DerefMut},
     ptr::{self, NonNull},
     simd::{f32x8, f64x8, num::SimdFloat as _},
@@ -265,6 +266,13 @@ impl<const N: usize> VecN<N> {
             .iter()
             .all(|lane| Simd::from_array(*lane).is_finite().all())
             && remainder.iter().all(|x| x.is_finite())
+    }
+}
+
+const impl<const N: usize> AsRef<Self> for VecN<N> {
+    #[inline]
+    fn as_ref(&self) -> &Self {
+        self
     }
 }
 
@@ -556,6 +564,14 @@ const impl<const N: usize> AsRef<Self> for AlignedVecN<N> {
     }
 }
 
+impl<const N: usize> ToOwned for AlignedVecN<N> {
+    type Owned = BoxedVecN<N>;
+
+    fn to_owned(&self) -> Self::Owned {
+        BoxedVecN::new(VecN::from_ref(&self.0))
+    }
+}
+
 /// An owned `N`-dimensional vector in a heap allocation aligned for [`f32x8`].
 ///
 /// The buffer is allocated with `align_of::<f32x8>()` alignment regardless of `N`, so dereferencing
@@ -576,7 +592,7 @@ const impl<const N: usize> AsRef<Self> for AlignedVecN<N> {
 /// let total: f32 = lanes.iter().map(|lane| lane.reduce_sum()).sum();
 /// assert_eq!(total, 16.0);
 /// ```
-pub(crate) struct BoxedVecN<const N: usize, A: Allocator = Global> {
+pub struct BoxedVecN<const N: usize, A: Allocator = Global> {
     ptr: NonNull<f32>,
     alloc: A,
 }
@@ -685,6 +701,18 @@ const impl<const N: usize, A: Allocator> DerefMut for BoxedVecN<N, A> {
     }
 }
 
+const impl<const N: usize, A: Allocator> Borrow<AlignedVecN<N>> for BoxedVecN<N, A> {
+    fn borrow(&self) -> &AlignedVecN<N> {
+        self
+    }
+}
+
+const impl<const N: usize, A: Allocator> BorrowMut<AlignedVecN<N>> for BoxedVecN<N, A> {
+    fn borrow_mut(&mut self) -> &mut AlignedVecN<N> {
+        &mut *self
+    }
+}
+
 impl<const N: usize, A: Allocator + Clone> Clone for BoxedVecN<N, A> {
     #[inline]
     fn clone(&self) -> Self {
@@ -721,6 +749,13 @@ const impl<const N: usize, A: Allocator> AsRef<AlignedVecN<N>> for BoxedVecN<N, 
     #[inline]
     fn as_ref(&self) -> &AlignedVecN<N> {
         self
+    }
+}
+
+const impl<const N: usize, A: Allocator> AsRef<VecN<N>> for BoxedVecN<N, A> {
+    #[inline]
+    fn as_ref(&self) -> &VecN<N> {
+        VecN::from_ref(self.as_array())
     }
 }
 

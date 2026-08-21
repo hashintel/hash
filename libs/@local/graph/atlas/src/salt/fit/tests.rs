@@ -1,3 +1,4 @@
+use alloc::borrow::Cow;
 use core::{future::ready, num::NonZero};
 use std::{collections::HashMap, fs};
 
@@ -142,7 +143,7 @@ fn dataset_with_edge_confidences(
         .map(|row| Node {
             id: U64::<LE>::new(row as u64),
             ontology: smallvec![OntologyRowId::from_usize(row & 1)],
-            embedding: representation(&mut rng),
+            embedding: Cow::Owned(representation(&mut rng)),
             confidence: None,
         })
         .collect();
@@ -1398,11 +1399,11 @@ async fn defective_corpus_publishes_nothing() {
         .map(|row| Node {
             id: U64::<LE>::new(row as u64),
             ontology: smallvec![OntologyRowId::new(0)],
-            embedding: if row == 17 {
+            embedding: Cow::Owned(if row == 17 {
                 BoxedVecN::zero()
             } else {
                 representation(&mut rng)
-            },
+            }),
             confidence: None,
         })
         .collect();
@@ -1829,7 +1830,7 @@ fn duplicate_dataset() -> MemoryDataset {
         .map(|(row, embedding)| Node {
             id: U64::<LE>::new(row as u64),
             ontology: smallvec![OntologyRowId::from_usize(row & 1)],
-            embedding,
+            embedding: Cow::Owned(embedding),
             confidence: None,
         })
         .collect();
@@ -2240,7 +2241,7 @@ fn relation_dataset() -> MemoryDataset {
         .map(|row| Node {
             id: U64::<LE>::new(row as u64),
             ontology: smallvec![OntologyRowId::from_usize(row & 1)],
-            embedding: representation(&mut rng),
+            embedding: Cow::Owned(representation(&mut rng)),
             confidence: None,
         })
         .collect();
