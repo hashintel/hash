@@ -78,8 +78,8 @@ impl ProbeArgs {
                 seed: self.seed,
                 fold: self.fold,
                 strength: self.strength,
-                census_outer: self.census_outer,
             },
+            self.census_outer,
         )
         .await;
     }

@@ -28,7 +28,7 @@ use super::{
 };
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{AlignedVecN, DNonNegative, Derivation, d_positive},
+    math::{AlignedVecN, DNonNegative, DPositive, Derivation, d_positive},
     salt::policy::GeometryClass,
 };
 
@@ -126,6 +126,28 @@ impl RowPrelude {
             gradient.intercepts[row_slot] += scaled;
         }
     }
+}
+
+/// One row's curvature reading beside the training weight that prices it.
+#[derive(Debug, Copy, Clone)]
+pub(super) struct CurvatureReading {
+    /// The row's data-Hessian curvature scale `max_c p_c(1−p_c)`.
+    pub scale: f64,
+    /// The row's training weight `w_i`.
+    pub weight: f64,
+}
+
+/// Every row's curvature reading at one parameter point.
+///
+/// The readings pair each scale with its weight at the source, and the total is the
+/// preparation-validated `S`, so a weight share computed from the census divides by a positive
+/// and finite total.
+#[derive(Debug)]
+pub(super) struct CurvatureCensus {
+    /// The per-row readings, in ascending original row order.
+    pub readings: Vec<CurvatureReading>,
+    /// The corpus's validated total weight `S`.
+    pub total_weight: DPositive,
 }
 
 impl Prepared<'_> {
@@ -377,25 +399,40 @@ impl Prepared<'_> {
         })
     }
 
-    /// Reports every row's data-Hessian curvature scale `max_c p_c(1−p_c)` at the parameters.
+    /// Takes the census of every row's data-Hessian curvature scale `max_c p_c(1−p_c)`.
     ///
-    /// The scale reads the same shared logits path as the objective, gradient, and
+    /// One traversal pairs each row's scale with that row's training weight, so the pairing
+    /// cannot drift, and the census carries the preparation-validated total weight for its weight
+    /// shares. The scale reads the same shared logits path as the objective, gradient, and
     /// Hessian-vector product, so the census cannot disagree with them about a row's
     /// probabilities. A diagnostic observer for the solver's report probe: it visits every row
     /// but charges no work counters, because it participates in no solve.
-    pub(super) fn row_curvature_scales(&self, parameters: &ContrastVector) -> Vec<f64> {
-        self.embeddings
+    pub(super) fn curvature_census(&self, parameters: &ContrastVector) -> CurvatureCensus {
+        // The zip is total: preparation refuses a corpus whose embedding and row counts differ,
+        // so the two slices share one validated row domain.
+        let readings = self
+            .embeddings
             .iter()
-            .map(|embedding| {
+            .zip(self.rows)
+            .map(|(embedding, row)| {
                 let prelude = RowPrelude::new(parameters, embedding);
-
-                prelude
+                let scale = prelude
                     .probabilities
                     .into_iter()
                     .map(|probability| probability * (1.0 - probability))
-                    .fold(0.0_f64, f64::max)
+                    .fold(0.0_f64, f64::max);
+
+                CurvatureReading {
+                    scale,
+                    weight: row.weight,
+                }
             })
-            .collect()
+            .collect();
+
+        CurvatureCensus {
+            readings,
+            total_weight: self.total_weight,
+        }
     }
 
     /// Adds the regularizer to the accumulated data loss and normalizes by the total weight.

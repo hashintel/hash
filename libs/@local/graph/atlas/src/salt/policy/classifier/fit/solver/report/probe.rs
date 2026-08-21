@@ -19,7 +19,9 @@ use camino::Utf8Path;
 
 use super::super::{
     super::grouped_folds,
-    SOLVER_DIMENSIONS, flat,
+    SOLVER_DIMENSIONS,
+    evaluate::CurvatureCensus,
+    flat,
     gram::{Gram, GramView},
     newton::newton_step,
     prepare::prepare,
@@ -31,7 +33,7 @@ use super::super::{
 use crate::{
     file::generation::{GenerationId, GenerationRoot},
     identity::CardRow,
-    math::{BoxedDVecN, DPositive, MatrixN, d_finite},
+    math::{BoxedDVecN, DNonNegative, DPositive, Derivation, MatrixN, d_finite},
     salt::policy::classifier::report::replay::Frozen,
 };
 
@@ -62,13 +64,13 @@ pub(crate) struct ProbeSettings {
     pub fold: usize,
     /// Regularization-strength override. A CV candidate's fold solve probes through this.
     pub strength: Option<f64>,
-    /// The outer iteration whose accepted state the probe replays for the curvature census.
-    pub census_outer: Option<u64>,
 }
 
 /// Solves one fold subset solo and dumps every receipt.
 ///
-/// This is the terminal-diagnosis probe over one frozen classifier corpus.
+/// This is the terminal-diagnosis probe over one frozen classifier corpus. A requested
+/// `census_outer` selects output rather than a solve input: the probe replays the production
+/// trajectory to that outer after the solve and prints the census there.
 ///
 /// # Panics
 ///
@@ -82,7 +84,11 @@ pub(crate) struct ProbeSettings {
     reason = "the probe's receipt dump is its whole output; terminals and outcomes format through \
               their debug forms, and the dump is one linear script"
 )]
-pub(crate) async fn probe_fold(corpus: ProbeCorpus<'_>, settings: ProbeSettings) {
+pub(crate) async fn probe_fold(
+    corpus: ProbeCorpus<'_>,
+    settings: ProbeSettings,
+    census_outer: Option<u64>,
+) {
     let frozen = match corpus {
         ProbeCorpus::Generation { root, generation } => Frozen::load(root, generation),
         ProbeCorpus::Supplied { directory } => Frozen::from_supplied(directory),
@@ -206,21 +212,18 @@ pub(crate) async fn probe_fold(corpus: ProbeCorpus<'_>, settings: ProbeSettings)
 
     // Curvature census at the origin (every row uniform) and at the final accepted point: the
     // pair exposes the saturation drift across the solve.
-    let weights: Vec<f64> = problem.prepared.rows.iter().map(|row| row.weight).collect();
     let origin_point = problem.point(&BoxedDVecN::<SOLVER_DIMENSIONS>::zero());
     print_curvature_census(
         "row curvature scales max_c p(1-p) at origin",
-        &problem.prepared.row_curvature_scales(&origin_point),
-        &weights,
+        &problem.prepared.curvature_census(&origin_point),
     );
     let final_point = problem.point(&run.accepted.zeta);
     print_curvature_census(
         "row curvature scales max_c p(1-p) at final accepted point",
-        &problem.prepared.row_curvature_scales(&final_point),
-        &weights,
+        &problem.prepared.curvature_census(&final_point),
     );
 
-    let Some(target) = settings.census_outer else {
+    let Some(target) = census_outer else {
         return;
     };
     assert!(
@@ -238,8 +241,7 @@ pub(crate) async fn probe_fold(corpus: ProbeCorpus<'_>, settings: ProbeSettings)
     );
     print_curvature_census(
         "row curvature scales max_c p(1-p) at replayed outer",
-        &problem.prepared.row_curvature_scales(&point),
-        &weights,
+        &problem.prepared.curvature_census(&point),
     );
 }
 
@@ -365,28 +367,36 @@ fn replay_to_outer(
     clippy::print_stdout,
     reason = "the probe's receipt dump is its whole output"
 )]
-fn print_curvature_census(label: &str, scales: &[f64], weights: &[f64]) {
-    let total_weight: f64 = weights.iter().sum();
-    let mut sorted = scales.to_vec();
+fn print_curvature_census(label: &str, census: &CurvatureCensus) {
+    let mut sorted: Vec<f64> = census
+        .readings
+        .iter()
+        .map(|reading| reading.scale)
+        .collect();
     sorted.sort_unstable_by(f64::total_cmp);
     let median = sorted[sorted.len() >> 1];
     println!(
         "{label}: rows {} min {:e} median {median:e} max {:e}",
-        scales.len(),
+        sorted.len(),
         sorted.first().copied().unwrap_or(f64::NAN),
         sorted.last().copied().unwrap_or(f64::NAN),
     );
     for threshold in [1e-14, 1e-12, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2] {
-        let below = scales.iter().filter(|scale| **scale < threshold).count();
-        let weight_below: f64 = scales
+        let below = census
+            .readings
             .iter()
-            .zip(weights)
-            .filter(|(scale, _)| **scale < threshold)
-            .map(|(_, weight)| *weight)
+            .filter(|reading| reading.scale < threshold)
+            .count();
+        let weight_below: f64 = census
+            .readings
+            .iter()
+            .filter(|reading| reading.scale < threshold)
+            .map(|reading| reading.weight)
             .sum();
-        println!(
-            "  < {threshold:>7.0e}: {below:>5} rows, weight share {:.4}",
-            weight_below / total_weight,
-        );
+        // The share divides in derivation terms by the validated positive total and exits once,
+        // at this display boundary.
+        let share =
+            (Derivation::<DNonNegative>::raw(weight_below) / census.total_weight).into_raw();
+        println!("  < {threshold:>7.0e}: {below:>5} rows, weight share {share:.4}");
     }
 }
