@@ -154,7 +154,14 @@ export const SortableRow = ({
         <BooleanInput
           showChange={shouldShowActions}
           value={!!draftValue}
-          onChange={setDraftValue}
+          onChange={(newValue) => {
+            /**
+             * Booleans have no edit mode, and therefore no save action to commit a draft with – toggling the value
+             * _is_ the edit, and has to be saved as it happens or it is lost when the editor closes.
+             */
+            setDraftValue(newValue);
+            onSaveChanges(index, newValue);
+          }}
         />
       );
     }
