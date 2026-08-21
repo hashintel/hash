@@ -6,6 +6,7 @@ import {
   toolName,
   toolPrefix,
   type Operation,
+  type ToolName,
 } from "../src/naming";
 
 // Spec §12.3: architectural strings name identity, not function. The tool
@@ -36,7 +37,8 @@ describe("tool namespacing", () => {
   });
 
   test("tool names default to the current product name", () => {
-    expect(toolName("ask")).toBe(`${toolPrefix(PRODUCT_NAME)}ask`);
+    const askToolName: ToolName<"ask"> = toolName("ask");
+    expect(askToolName).toBe(`${toolPrefix(PRODUCT_NAME)}ask`);
   });
 
   test("an operation name that is not an identifier is refused", () => {

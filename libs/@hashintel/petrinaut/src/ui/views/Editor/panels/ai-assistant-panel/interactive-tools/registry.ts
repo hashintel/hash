@@ -1,6 +1,14 @@
 import { applyAutoLayoutInteractiveTool } from "./apply-auto-layout-widget";
 
-import type { InteractiveToolDefinition } from "./types";
+import type {
+  ApplyAutoLayoutDecision,
+  ApplyAutoLayoutResult,
+} from "./apply-auto-layout-widget";
+import type {
+  InteractiveToolDefinition,
+  PetrinautAiInteractiveTool,
+} from "./types";
+import type { AiCommandActionName } from "@hashintel/petrinaut-core";
 
 /**
  * Registry of AI tools that require an inline chat widget for user input.
@@ -14,19 +22,41 @@ import type { InteractiveToolDefinition } from "./types";
  */
 export const interactiveTools: Record<
   string,
-  InteractiveToolDefinition<unknown, unknown>
+  InteractiveToolDefinition<
+    unknown,
+    ApplyAutoLayoutDecision,
+    ApplyAutoLayoutResult,
+    AiCommandActionName
+  >
 > = {
   [applyAutoLayoutInteractiveTool.toolName]:
     applyAutoLayoutInteractiveTool as InteractiveToolDefinition<
       unknown,
-      unknown
+      ApplyAutoLayoutDecision,
+      ApplyAutoLayoutResult,
+      AiCommandActionName
     >,
 };
 
+export type ResolvedInteractiveTool =
+  | {
+      readonly kind: "petrinaut";
+      readonly definition: InteractiveToolDefinition<
+        unknown,
+        ApplyAutoLayoutDecision,
+        ApplyAutoLayoutResult,
+        AiCommandActionName
+      >;
+    }
+  | {
+      readonly kind: "host";
+      readonly tool: PetrinautAiInteractiveTool;
+    };
+
 export const findHostInteractiveTool = (
   toolName: string,
-  hostTools: readonly InteractiveToolDefinition<unknown, unknown>[] = [],
-): InteractiveToolDefinition<unknown, unknown> | undefined => {
+  hostTools: readonly PetrinautAiInteractiveTool[] = [],
+): PetrinautAiInteractiveTool | undefined => {
   if (interactiveTools[toolName]) {
     return undefined;
   }
@@ -36,8 +66,8 @@ export const findHostInteractiveTool = (
 export const getHostInteractiveTool = (
   toolName: string,
   input: unknown,
-  hostTools: readonly InteractiveToolDefinition<unknown, unknown>[] = [],
-): InteractiveToolDefinition<unknown, unknown> | undefined => {
+  hostTools: readonly PetrinautAiInteractiveTool[] = [],
+): PetrinautAiInteractiveTool | undefined => {
   const descriptor = findHostInteractiveTool(toolName, hostTools);
   if (!descriptor) {
     return undefined;
@@ -48,13 +78,12 @@ export const getHostInteractiveTool = (
 export const getInteractiveTool = (
   toolName: string,
   input: unknown,
-  hostTools: readonly InteractiveToolDefinition<unknown, unknown>[] = [],
-): InteractiveToolDefinition<unknown, unknown> | undefined => {
-  const descriptor =
-    interactiveTools[toolName] ??
-    getHostInteractiveTool(toolName, input, hostTools);
-  if (!descriptor) {
-    return undefined;
+  hostTools: readonly PetrinautAiInteractiveTool[] = [],
+): ResolvedInteractiveTool | undefined => {
+  const petrinautDefinition = interactiveTools[toolName];
+  if (petrinautDefinition?.shouldHandle(input)) {
+    return { kind: "petrinaut", definition: petrinautDefinition };
   }
-  return descriptor.shouldHandle(input) ? descriptor : undefined;
+  const hostTool = getHostInteractiveTool(toolName, input, hostTools);
+  return hostTool ? { kind: "host", tool: hostTool } : undefined;
 };

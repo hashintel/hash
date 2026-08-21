@@ -10,6 +10,10 @@
       "types": "./src/index.ts",
       "import": "./dist/index.js"
     },
+    "./client-tools": {
+      "types": "./src/client-tools.ts",
+      "import": "./dist/client-tools.js"
+    },
     "./storage": {
       "types": "./src/storage.ts",
       "import": "./dist/storage.js"

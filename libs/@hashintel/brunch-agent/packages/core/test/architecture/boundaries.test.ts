@@ -389,10 +389,11 @@ describe("recorded Flue constraints hold by construction (spec §10)", () => {
 });
 
 describe("core auxiliary subpaths stay in their assigned lanes (spec §12.2)", () => {
-  test("core exposes binding storage support and testing as explicit subpaths", () => {
+  test("core exposes browser contracts, storage support and testing as explicit subpaths", () => {
     const core = PACKAGES.find((pkg) => pkg.name === CORE)!;
     expect(Object.keys(core.manifest.exports ?? {})).toEqual([
       ".",
+      "./client-tools",
       "./storage",
       "./testing",
     ]);

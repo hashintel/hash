@@ -11,6 +11,7 @@
 
 export { Petrinaut } from "./petrinaut";
 export { definePetrinautAiInteractiveTool } from "./views/Editor/panels/ai-assistant-panel/interactive-tools/types";
+export type { InteractiveToolWidgetProps } from "./views/Editor/panels/ai-assistant-panel/interactive-tools/types";
 export type { PetrinautAiMessage } from "./views/Editor/panels/ai-assistant-panel";
 export type {
   PetrinautAiAssistant,
