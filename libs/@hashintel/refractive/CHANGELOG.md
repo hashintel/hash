@@ -4,22 +4,22 @@
 
 ### Patch Changes
 
-- [#8724](https://github.com/hashintel/hash/pull/8724) [`d3ac60c`](https://github.com/hashintel/hash/commit/d3ac60c5509bd2d5a478f2e5a56433c59d353f7b) Thanks [@kube](https://github.com/kube)! - Fix SSR issues by only rendering browser-dependent Refractive filters on the client.
+- Fix SSR issues by only rendering browser-dependent Refractive filters on the client. ([@kube](https://github.com/kube), [#8724](https://github.com/hashintel/hash/pull/8724))
 
 ## 0.0.3
 
 ### Patch Changes
 
-- [#8581](https://github.com/hashintel/hash/pull/8581) [`efc1237`](https://github.com/hashintel/hash/commit/efc12379a84adbcf28db961bf6af8dd18e6b579d) Thanks [@CiaranMn](https://github.com/CiaranMn)! - change equation export casing, e.g. LIP -> lip
+- change equation export casing, e.g. LIP -> lip ([@CiaranMn](https://github.com/CiaranMn), [#8581](https://github.com/hashintel/hash/pull/8581))
 
 ## 0.0.2
 
 ### Patch Changes
 
-- [#8328](https://github.com/hashintel/hash/pull/8328) [`567b951`](https://github.com/hashintel/hash/commit/567b95178a429aa2c1c00050ca753250db0db094) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Build fix
+- Build fix ([@CiaranMn](https://github.com/CiaranMn), [#8328](https://github.com/hashintel/hash/pull/8328))
 
 ## 0.0.1
 
 ### Patch Changes
 
-- [#8137](https://github.com/hashintel/hash/pull/8137) [`658b9a4`](https://github.com/hashintel/hash/commit/658b9a4040029059099b43a77a757ff32e0b5c38) Thanks [@kube](https://github.com/kube)! - First version
+- First version ([@kube](https://github.com/kube), [#8137](https://github.com/hashintel/hash/pull/8137))
