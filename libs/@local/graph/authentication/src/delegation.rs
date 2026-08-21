@@ -22,12 +22,9 @@ pub const SERVICE_AUTH_SCHEME: &str = "HASH-Service";
 #[must_use]
 pub fn service_credential(headers: &HeaderMap) -> Option<&[u8]> {
     let credentials = headers.get(header::AUTHORIZATION)?.as_bytes();
-    let (scheme, token) = credentials
-        .iter()
-        .position(|&byte| byte == b' ')
-        .map_or((credentials, [].as_slice()), |position| {
-            (&credentials[..position], &credentials[position + 1..])
-        });
+    let mut parts = credentials.splitn(2, |&byte| byte == b' ');
+    let scheme = parts.next()?;
+    let token = parts.next().unwrap_or_default();
     scheme
         .eq_ignore_ascii_case(SERVICE_AUTH_SCHEME.as_bytes())
         .then(|| token.trim_ascii())
