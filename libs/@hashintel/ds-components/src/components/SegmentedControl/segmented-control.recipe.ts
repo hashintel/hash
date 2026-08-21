@@ -128,24 +128,48 @@ export const styles = sva({
   },
   variants: {
     size: {
+      // --sc-item-px scales with the size ladder (Button uses 8/8/8/12/16;
+      // segments run slightly tighter since they sit inside the 2px track and
+      // labels carry their own 2px). Icon-only segments zero it out on the
+      // item itself, which beats this inherited value, so they stay square.
       xxs: {
-        root: { ...formSizes.variants.sizes.xxs, "--sc-radius": "radii.md" },
+        root: {
+          ...formSizes.variants.sizes.xxs,
+          "--sc-radius": "radii.md",
+          "--sc-item-px": "[6px]",
+        },
         itemText: { fontSize: "[11px]" },
       },
       xs: {
-        root: { ...formSizes.variants.sizes.xs, "--sc-radius": "radii.md" },
+        root: {
+          ...formSizes.variants.sizes.xs,
+          "--sc-radius": "radii.md",
+          "--sc-item-px": "[8px]",
+        },
         itemText: { fontSize: "[12px]" },
       },
       sm: {
-        root: { ...formSizes.variants.sizes.sm, "--sc-radius": "radii.lg" },
+        root: {
+          ...formSizes.variants.sizes.sm,
+          "--sc-radius": "radii.lg",
+          "--sc-item-px": "[8px]",
+        },
         itemText: { fontSize: "[14px]" },
       },
       md: {
-        root: { ...formSizes.variants.sizes.md, "--sc-radius": "radii.lg" },
+        root: {
+          ...formSizes.variants.sizes.md,
+          "--sc-radius": "radii.lg",
+          "--sc-item-px": "[10px]",
+        },
         itemText: { fontSize: "[14px]" },
       },
       lg: {
-        root: { ...formSizes.variants.sizes.lg, "--sc-radius": "radii.xl" },
+        root: {
+          ...formSizes.variants.sizes.lg,
+          "--sc-radius": "radii.xl",
+          "--sc-item-px": "[12px]",
+        },
         itemText: { fontSize: "[15px]" },
         // Same clamp as Button: the md icon step (24px) reads oversized.
         icon: { "&&": { "--icon-size": "20px" } },
