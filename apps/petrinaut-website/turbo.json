@@ -1,6 +1,11 @@
 {
   "extends": ["//"],
   "tasks": {
+    "brunch:fixture": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["HOST", "INTERVAL", "PORT", "RECORDING", "RUN_ID"]
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
