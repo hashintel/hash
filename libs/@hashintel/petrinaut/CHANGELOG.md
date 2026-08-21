@@ -1,5 +1,57 @@
 # @hashintel/petrinaut
 
+## 0.0.17
+
+### Patch Changes
+
+- [#9074](https://github.com/hashintel/hash/pull/9074) [`9fa9452`](https://github.com/hashintel/hash/commit/9fa9452ddb5bde5a914fdb8bef7214a774e82eea) Thanks [@kube](https://github.com/kube)! - Improve narrow-panel layouts and scrolling in Simulation Settings, the timeline, bottom-panel tabs, and sidebar subviews.
+
+- [#9084](https://github.com/hashintel/hash/pull/9084) [`4dbbdf6`](https://github.com/hashintel/hash/commit/4dbbdf65434d065918b94af0d9b8b5f1ae74d23f) Thanks [@vilkinsons](https://github.com/vilkinsons)! - Rename the AI assistant tab to "AI", use neutral assistant copy, place `topBarStart` immediately before the net title, and add `slots.titleStyle` for host-defined title styling.
+
+- [#9066](https://github.com/hashintel/hash/pull/9066) [`30eaafa`](https://github.com/hashintel/hash/commit/30eaafa42e70bdffb5cdded1914c2894715ca9a4) Thanks [@kube](https://github.com/kube)! - Replace the `optimize` host capability with `createOptimizationRun`, `attachOptimizationRun`, and `cancelOptimizationRun`, enabling resumable runs and automatic reconnection.
+
+- [#8953](https://github.com/hashintel/hash/pull/8953) [`bfb99e7`](https://github.com/hashintel/hash/commit/bfb99e7570826d22feb949d35882dcd23d7d379b) Thanks [@kube](https://github.com/kube)! - Add `uuid` token attributes with automatic generation and `Uuid.generate()` / `Uuid.from()` helpers.
+
+- [#9092](https://github.com/hashintel/hash/pull/9092) [`4877809`](https://github.com/hashintel/hash/commit/4877809941040793f13497b73239b558bfa7cb80) Thanks [@kube](https://github.com/kube)! - Add `range()` to scenario code, fix common array methods in scenario expressions, and show scenario compilation errors in Simulation Settings.
+
+- [#9097](https://github.com/hashintel/hash/pull/9097) [`b13818b`](https://github.com/hashintel/hash/commit/b13818ba36c7297580f188d5222fc0467a71a1ef) Thanks [@YannisZa](https://github.com/YannisZa)! - Clarify that Predicate transitions fire immediately when their guard is true and input tokens are available.
+
+- [#8953](https://github.com/hashintel/hash/pull/8953) [`bfb99e7`](https://github.com/hashintel/hash/commit/bfb99e7570826d22feb949d35882dcd23d7d379b) Thanks [@kube](https://github.com/kube)! - Add the `string` token attribute type, stored via per-run interning. Editing a type's schema now migrates stored initial state (values convert, falling back to the new type's default).
+
+- [#9051](https://github.com/hashintel/hash/pull/9051) [`276e17d`](https://github.com/hashintel/hash/commit/276e17d7b0f80c8a80d5abe01849bbb67c6169d0) Thanks [@kube](https://github.com/kube)! - Add a scenario-first optimization interface with flat parameter search spaces, metric objectives, and progressive step results.
+
+- [#8764](https://github.com/hashintel/hash/pull/8764) [`c6cfee0`](https://github.com/hashintel/hash/commit/c6cfee00362a82d18cb24f920d8f207d57a1e56d) Thanks [@kube](https://github.com/kube)! - Add `integer` and `boolean` token attribute types.
+
+- [#8846](https://github.com/hashintel/hash/pull/8846) [`706981f`](https://github.com/hashintel/hash/commit/706981fe092d7373cf294ea47e9b038d4fb559ad) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Improve inhibitor arc styling.
+
+- [#9043](https://github.com/hashintel/hash/pull/9043) [`63a51e5`](https://github.com/hashintel/hash/commit/63a51e5df5b4550d4239e5d87354b236c03c2998) Thanks [@kube](https://github.com/kube)! - Allow metrics to read resolved net parameters through `parameters.<variableName>`; scenario parameters remain unavailable.
+
+- [#8829](https://github.com/hashintel/hash/pull/8829) [`4820e48`](https://github.com/hashintel/hash/commit/4820e48b10e9b01ee1f43e871533cc5c66c9d7df) Thanks [@kube](https://github.com/kube)! - Add Actual mode for read-only live execution, including host event streams, a timeline, an event log, and recording exports.
+
+- [#8981](https://github.com/hashintel/hash/pull/8981) [`03f6a30`](https://github.com/hashintel/hash/commit/03f6a301b2ff4e6b1fbdd211a7baf04830ba78fb) Thanks [@kube](https://github.com/kube)! - Replace Babel with the HIR compiler for user code. Unsupported TypeScript now produces diagnostics instead of running.
+
+- [#8763](https://github.com/hashintel/hash/pull/8763) [`faddfad`](https://github.com/hashintel/hash/commit/faddfad49bd8148dcfb94e55205b0ee65415b8aa) Thanks [@kube](https://github.com/kube)! - Allow hosts to disable SDCPN extensions and global parameters.
+
+- [#9078](https://github.com/hashintel/hash/pull/9078) [`aafb03b`](https://github.com/hashintel/hash/commit/aafb03b1ed55360b51bf9400ddfc3e9f5c8eefc4) Thanks [@kube](https://github.com/kube)! - Improve spacing for scenario and parameter controls in Simulation Settings.
+
+- [#8662](https://github.com/hashintel/hash/pull/8662) [`62f4e31`](https://github.com/hashintel/hash/commit/62f4e31a6bd9b30a4fe0c05f637415b1fea1a4af) Thanks [@kube](https://github.com/kube)! - Add subnet definitions, component instances, and wiring support to Petrinaut.
+
+- [#8774](https://github.com/hashintel/hash/pull/8774) [`f2d9df1`](https://github.com/hashintel/hash/commit/f2d9df18efa55728f78e4e7c86da14c452055c49) Thanks [@kube](https://github.com/kube)! - Add editor support for read input arcs, including arc controls and distinct canvas rendering.
+
+- [#9092](https://github.com/hashintel/hash/pull/9092) [`4877809`](https://github.com/hashintel/hash/commit/4877809941040793f13497b73239b558bfa7cb80) Thanks [@kube](https://github.com/kube)! - Add a "Pre-deployed Constellation" scenario to the Probabilistic Satellite Launcher example.
+
+- [#9073](https://github.com/hashintel/hash/pull/9073) [`9c043ef`](https://github.com/hashintel/hash/commit/9c043ef4d471dcbe59bf1062c956a2bb24c6df0f) Thanks [@kube](https://github.com/kube)! - Use a shared fixed seed (`PETRINAUT_DEFAULT_SEED`) for interactive simulation and optimization runs, so playing a simulation reproduces an optimization trial given the same configuration.
+
+- [#8943](https://github.com/hashintel/hash/pull/8943) [`2989ccd`](https://github.com/hashintel/hash/commit/2989ccdcedda33206f537bf2cf4a3470edc537b0) Thanks [@kube](https://github.com/kube)! - Export the token value codec and `compileUserCode` from `@hashintel/petrinaut-core`.
+
+- [#8944](https://github.com/hashintel/hash/pull/8944) [`2c1c089`](https://github.com/hashintel/hash/commit/2c1c089fea20c6788942bc59a2ac6d8382bf7559) Thanks [@kube](https://github.com/kube)! - Use a packed token frame layout and simplify the `getPlaceTokens(place)` and `buildMetricState(frame, places)` APIs.
+
+- [#9071](https://github.com/hashintel/hash/pull/9071) [`ff6b8f8`](https://github.com/hashintel/hash/commit/ff6b8f8fcc66e0c6760fdcf7c3264db240e99a4d) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add Panda build metadata and a shared preset for host style generation, and namespace Petrinaut keyframes to prevent theme collisions.
+
+- Updated dependencies [[`7931c7a`](https://github.com/hashintel/hash/commit/7931c7a9fe52c37d0be47bec1f9c3e391c55bdc0), [`30eaafa`](https://github.com/hashintel/hash/commit/30eaafa42e70bdffb5cdded1914c2894715ca9a4), [`5531c20`](https://github.com/hashintel/hash/commit/5531c2098358b544919441689728369e0b581ca0), [`bfb99e7`](https://github.com/hashintel/hash/commit/bfb99e7570826d22feb949d35882dcd23d7d379b), [`bfb99e7`](https://github.com/hashintel/hash/commit/bfb99e7570826d22feb949d35882dcd23d7d379b), [`5db8b5d`](https://github.com/hashintel/hash/commit/5db8b5d53b45bb08e5a6717a6a1cc2770f2bcadf), [`eee2547`](https://github.com/hashintel/hash/commit/eee25471609c0e5ac740320226ce6eb0c8647d31), [`4877809`](https://github.com/hashintel/hash/commit/4877809941040793f13497b73239b558bfa7cb80), [`54cc7eb`](https://github.com/hashintel/hash/commit/54cc7ebe119c13b5229d249891ec0302be559bbd), [`3ed1e48`](https://github.com/hashintel/hash/commit/3ed1e485d61a0838fc1d4fba8c84810488914167), [`bfb99e7`](https://github.com/hashintel/hash/commit/bfb99e7570826d22feb949d35882dcd23d7d379b), [`7cf76bb`](https://github.com/hashintel/hash/commit/7cf76bbd0ce1fc7179e1d4f9097c300a0856fc26), [`b00c6bd`](https://github.com/hashintel/hash/commit/b00c6bd83433556b6dbdf9381978ef1d5cece9ef), [`1017a67`](https://github.com/hashintel/hash/commit/1017a674ceec52da50423f5e0ad130d6e87667de), [`0cb749d`](https://github.com/hashintel/hash/commit/0cb749d4f8e257328c81ce2d722b6a2e203818bf), [`c6cfee0`](https://github.com/hashintel/hash/commit/c6cfee00362a82d18cb24f920d8f207d57a1e56d), [`8494d8a`](https://github.com/hashintel/hash/commit/8494d8a91782a68d5855f88aeaf1a975e0f3a2e4), [`46ddd67`](https://github.com/hashintel/hash/commit/46ddd67ee03bb30a64fab6de4bdcd26221be7752), [`63a51e5`](https://github.com/hashintel/hash/commit/63a51e5df5b4550d4239e5d87354b236c03c2998), [`1046b5c`](https://github.com/hashintel/hash/commit/1046b5c881cd00cf205b4895348b022934d66b4a), [`d0af60d`](https://github.com/hashintel/hash/commit/d0af60dfdb56a8052dbf2230d8e2a0a7584e56a8), [`4820e48`](https://github.com/hashintel/hash/commit/4820e48b10e9b01ee1f43e871533cc5c66c9d7df), [`03f6a30`](https://github.com/hashintel/hash/commit/03f6a301b2ff4e6b1fbdd211a7baf04830ba78fb), [`1b6c095`](https://github.com/hashintel/hash/commit/1b6c095d1cdef0995d77e37cff87a01b2f104cb3), [`faddfad`](https://github.com/hashintel/hash/commit/faddfad49bd8148dcfb94e55205b0ee65415b8aa), [`f82a980`](https://github.com/hashintel/hash/commit/f82a9809fcce407c4880a8a3420ca7d7a6db7048), [`4681616`](https://github.com/hashintel/hash/commit/468161636972a3352890445568c0ac062469631d), [`62f4e31`](https://github.com/hashintel/hash/commit/62f4e31a6bd9b30a4fe0c05f637415b1fea1a4af), [`741e772`](https://github.com/hashintel/hash/commit/741e772a8a48853761f6c1cd17936a07ac1a190b), [`f2d9df1`](https://github.com/hashintel/hash/commit/f2d9df18efa55728f78e4e7c86da14c452055c49), [`0144f9c`](https://github.com/hashintel/hash/commit/0144f9cfa4e55e3d6763140a0b29fa87b6c2c2fb), [`4877809`](https://github.com/hashintel/hash/commit/4877809941040793f13497b73239b558bfa7cb80), [`9c043ef`](https://github.com/hashintel/hash/commit/9c043ef4d471dcbe59bf1062c956a2bb24c6df0f), [`0aadff3`](https://github.com/hashintel/hash/commit/0aadff3546ac85767911589ac2fe6544e8a78ae5), [`340b649`](https://github.com/hashintel/hash/commit/340b6496d91337459aa1f51b19b642be7a91cb07), [`aaaddd6`](https://github.com/hashintel/hash/commit/aaaddd62ebce44795b16ffc172cd9a9c9a57ae7b), [`7d02529`](https://github.com/hashintel/hash/commit/7d02529464e7058023420494b36724c75b213758), [`343cc4a`](https://github.com/hashintel/hash/commit/343cc4aa57eac8e1bb44db1f165365d1d0cf23a2), [`2989ccd`](https://github.com/hashintel/hash/commit/2989ccdcedda33206f537bf2cf4a3470edc537b0), [`2c1c089`](https://github.com/hashintel/hash/commit/2c1c089fea20c6788942bc59a2ac6d8382bf7559), [`3e52d9a`](https://github.com/hashintel/hash/commit/3e52d9a23ab99522555d5bcf35fed536ee20b077), [`3735fc7`](https://github.com/hashintel/hash/commit/3735fc7bd919dc2ce5503f852182a897d9ee16b2)]:
+  - @hashintel/ds-components@0.3.0
+  - @hashintel/petrinaut-core@0.0.3
+
 ## 0.0.16
 
 ### Patch Changes
