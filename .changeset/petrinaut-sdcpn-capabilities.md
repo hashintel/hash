@@ -3,4 +3,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-Add handle capabilities for disabling SDCPN extensions and global parameters.
+Allow hosts to disable SDCPN extensions and global parameters.

@@ -42,7 +42,6 @@ use axum::{
     body::Body,
     extract::FromRequestParts,
     http::request::Parts,
-    response::IntoResponse as _,
     routing::{delete, post},
 };
 use error_stack::Report;
@@ -64,7 +63,7 @@ use type_system::principal::actor::{ActorEntityUuid, UserId};
 use uuid::Uuid;
 
 use super::{
-    AuthenticatedUserHeader, http_tracing_layer,
+    AuthenticatedActorId, auth, http_tracing_layer,
     jwt::{JwtValidator, OptionalJwtAuthentication},
     probe,
     status::{BoxedResponse, status_to_response},
@@ -124,6 +123,7 @@ pub fn routes(
                 vec![],
             ))
         })
+        .layer(axum::middleware::from_fn(auth::actor_id_header_middleware))
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(Arc::new(store_pool)))
         .layer(Extension(Arc::new(external_services)))
@@ -155,10 +155,8 @@ impl<S: Sync> FromRequestParts<S> for AdminActorId {
 
         let Some(claims) = jwt.0 else {
             // No JWT configured — fall back to header
-            let AuthenticatedUserHeader(actor_id) =
-                AuthenticatedUserHeader::from_request_parts(parts, state)
-                    .await
-                    .map_err(|rejection| BoxedResponse::from(rejection.into_response()))?;
+            let AuthenticatedActorId(actor_id) =
+                AuthenticatedActorId::from_request_parts(parts, state).await?;
             return Ok(Self(actor_id.into()));
         };
 

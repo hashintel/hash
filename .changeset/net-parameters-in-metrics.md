@@ -3,4 +3,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Metrics can now read net parameters ambiently as `parameters.<variableName>` (bound to the run's resolved values, including scenario overrides). Scenario parameters remain unavailable to metrics.
+Allow metrics to read resolved net parameters through `parameters.<variableName>`; scenario parameters remain unavailable.

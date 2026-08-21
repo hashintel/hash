@@ -17,6 +17,7 @@
     "@tests/*",
     "@hashintel/block-design-system",
     "@hashintel/design-system",
+    "@hashintel/petrinaut-cli",
     "@hashintel/query-editor",
     "@hashintel/type-editor"
   ],

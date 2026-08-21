@@ -35,6 +35,21 @@ function isDomFocusable(el: HTMLElement): boolean {
   return true;
 }
 
+// Whether the trigger itself, or anything inside it, is keyboard-reachable.
+// E.g. a label wrapping a hidden radio is not focusable itself, but focusing
+// the radio still opens the tooltip (focus events bubble to the trigger), so
+// the wrapper must not become an extra tab stop.
+function containsDomFocusable(el: HTMLElement): boolean {
+  if (isDomFocusable(el)) {
+    return true;
+  }
+  return Array.from(
+    el.querySelectorAll<HTMLElement>(
+      "input, button, select, textarea, a[href], [tabindex]",
+    ),
+  ).some(isDomFocusable);
+}
+
 function getPositioningOffset(position: Position, gapX: number, gapY: number) {
   const direction = position.split("-")[0] ?? "bottom";
   const isVertical = direction === "top" || direction === "bottom";
@@ -62,6 +77,13 @@ export type BaseTooltipProps = {
   gapX?: number;
   /** The Y distance the tooltip will be from the trigger in px */
   gapY?: number;
+  /**
+   * Whether clicking the trigger closes the tooltip (defaults to true).
+   * Disable for triggers whose keyboard activation dispatches a native click
+   * (e.g. radios checked via arrow keys), which would otherwise instantly
+   * dismiss the tooltip that just opened on focus.
+   */
+  closeOnClick?: boolean;
   onOpen?: () => void;
   onClose?: () => void;
 };
@@ -86,6 +108,7 @@ export const BaseTooltip = ({
   closeDelay = "medium",
   gapX = 8,
   gapY = 8,
+  closeOnClick = true,
   onOpen,
   onClose,
 }: BaseTooltipProps) => {
@@ -104,7 +127,7 @@ export const BaseTooltip = ({
     const needsFocus =
       !disableTooltip &&
       ((!triggerEl && wrapper.textContent) ||
-        (triggerEl && !isDomFocusable(triggerEl)));
+        (triggerEl && !containsDomFocusable(triggerEl)));
 
     if (needsFocus) {
       wrapper.tabIndex = 0;
@@ -131,6 +154,7 @@ export const BaseTooltip = ({
     <ArkTooltip.Root
       openDelay={openDelayMsMap[openDelay]}
       closeDelay={closeDelayMsMap[closeDelay]}
+      closeOnClick={closeOnClick}
       positioning={{ placement: position, offset }}
       onOpenChange={
         onOpen || onClose

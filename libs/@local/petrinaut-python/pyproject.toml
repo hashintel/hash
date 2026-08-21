@@ -1,0 +1,55 @@
+[project]
+name = "petrinaut-python"
+version = "0.1.0"
+description = "Python bindings for the Petrinaut CLI: run simulations and optimization studies from Python"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.13.4",
+]
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.39.10",
+    "datamodel-code-generator>=0.74.0",
+    "pytest>=8.3",
+    "ruff>=0.16.4",
+]
+
+[build-system]
+requires      = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/petrinaut"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "TRY", "DTZ", "PTH"]
+ignore = [
+    # Error messages name the value that failed: the metric, the seed, the limit.
+    # This rule asks for that detail to move into exception subclasses instead.
+    "TRY003",
+    # Protocol responses are data, and data that does not conform raises
+    # ValueError. This rule reads every isinstance check as an argument-type
+    # check and asks for TypeError.
+    "TRY004",
+    # `ruff format` owns line width. What it cannot split is a long string or an
+    # `@role` annotation, which the architecture-docs extractor reads as one line.
+    "E501",
+]
+
+[tool.basedpyright]
+# Production code only. The suites lean on duck-typed doubles and on log records
+# whose fields arrive through `extra=`, which a checker cannot see; typing those
+# is tracked separately.
+include          = ["src"]
+typeCheckingMode = "strict"
+pythonVersion    = "3.10"
+venvPath         = "."
+venv             = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

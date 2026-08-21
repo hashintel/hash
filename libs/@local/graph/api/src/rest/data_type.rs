@@ -48,7 +48,7 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::status::BoxedResponse;
 use crate::rest::{
-    ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
+    ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger, RestApiStore,
     json::Json,
     resolve_limit,
     status::{report_to_response, status_to_response},
@@ -166,7 +166,7 @@ struct CreateDataTypeRequest {
     ),
 )]
 async fn create_data_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
@@ -272,7 +272,7 @@ enum LoadExternalDataTypeRequest {
     ),
 )]
 async fn load_external_data_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
@@ -359,7 +359,7 @@ where
     )
 )]
 async fn query_data_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -429,7 +429,7 @@ struct QueryDataTypeSubgraphResponse {
     )
 )]
 async fn query_data_type_subgraph<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -498,7 +498,7 @@ where
     )
 )]
 async fn find_data_type_conversion_targets<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(request): Json<FindDataTypeConversionTargetsParams>,
@@ -543,7 +543,7 @@ struct UpdateDataTypeRequest {
     request_body = UpdateDataTypeRequest,
 )]
 async fn update_data_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateDataTypeRequest>,
@@ -598,7 +598,7 @@ where
     request_body = [UpdateDataTypeRequest],
 )]
 async fn update_data_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     bodies: Json<Vec<UpdateDataTypeRequest>>,
@@ -655,7 +655,7 @@ where
     request_body = UpdateDataTypeEmbeddingParams,
 )]
 async fn update_data_type_embeddings<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -698,7 +698,7 @@ where
     request_body = ArchiveDataTypeParams,
 )]
 async fn archive_data_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -750,7 +750,7 @@ where
     request_body = UnarchiveDataTypeParams,
 )]
 async fn unarchive_data_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -799,7 +799,7 @@ where
     )
 )]
 async fn has_permission_for_data_types<S>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor): AuthenticatedActorId,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<HasPermissionForDataTypesParams<'static>>,

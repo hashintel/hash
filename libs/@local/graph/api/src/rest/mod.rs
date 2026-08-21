@@ -13,6 +13,7 @@ pub mod property_type;
 pub mod status;
 
 pub mod admin;
+pub mod auth;
 pub mod http_tracing_layer;
 pub mod jwt;
 pub mod probe;
@@ -21,7 +22,7 @@ pub mod hashql;
 mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
-use core::{error::Error, str::FromStr as _};
+use core::error::Error;
 use std::{
     fs,
     io::{self, Write as _},
@@ -99,8 +100,8 @@ use utoipa::{
     },
 };
 use utoipa_scalar::Scalar;
-use uuid::Uuid;
 
+pub use self::auth::AuthenticatedActorId;
 use self::{
     entity::ClusteringContext,
     status::{BoxedResponse, report_to_response, status_to_response},
@@ -114,37 +115,6 @@ use self::{
         },
     },
 };
-
-pub struct AuthenticatedUserHeader(pub ActorEntityUuid);
-
-impl AuthenticatedUserHeader {
-    fn from_request_parts_impl(parts: &Parts) -> Result<Self, (StatusCode, Cow<'static, str>)> {
-        if let Some(header_value) = parts.headers.get("X-Authenticated-User-Actor-Id") {
-            let header_string = header_value
-                .to_str()
-                .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
-            let uuid = Uuid::from_str(header_string)
-                .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
-            Ok(Self(ActorEntityUuid::new(uuid)))
-        } else {
-            Err((
-                StatusCode::BAD_REQUEST,
-                Cow::Borrowed("`X-Authenticated-User-Actor-Id` header is missing"),
-            ))
-        }
-    }
-}
-
-impl<S: Sync> FromRequestParts<S> for AuthenticatedUserHeader {
-    type Rejection = (StatusCode, Cow<'static, str>);
-
-    fn from_request_parts(
-        parts: &mut Parts,
-        _state: &S,
-    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
-        core::future::ready(Self::from_request_parts_impl(parts))
-    }
-}
 
 pub struct InteractiveHeader(pub bool);
 
@@ -545,6 +515,7 @@ where
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
+    pub session_auth: auth::KratosSessionConfig,
     pub compiler: Arc<hashql::CompilerContext>,
     pub clustering: Arc<ClusteringContext>,
     /// Whether to serve an interactive rendering of the `OpenAPI` specification.
@@ -587,6 +558,11 @@ where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
 {
+    let session_provider = Arc::new(auth::KratosSessionProvider::new(
+        dependencies.session_auth,
+        auth::StorePoolActorResolver::new(Arc::clone(&dependencies.store)),
+    ));
+
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()
         .into_iter()
@@ -601,7 +577,15 @@ where
     // Make sure extensions are added at the end so they are made available to merged routers.
     // The `OpenAPI` endpoints are merged in afterwards as we don't want any layers or handlers to
     // apply to them. We use a `ServiceBuilder` to add the layers in the correct order.
+    //
+    // The authentication middleware is added first so it runs innermost: inside the HTTP tracing
+    // span, where its actor recording targets the request span. `route_layer` keeps the 404
+    // fallback outside the middleware, so unmatched paths return 404 instead of 401.
     let mut router = merged_routes
+        .route_layer(axum::middleware::from_fn(move |request, next| {
+            let provider = Arc::clone(&session_provider);
+            auth::authentication_middleware(provider, request, next)
+        }))
         .layer(
             ServiceBuilder::new()
                 .layer(NewSentryLayer::new_from_top())

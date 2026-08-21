@@ -7,27 +7,26 @@ import asyncio
 import logging
 import os
 import threading
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request, Response
-from pydantic import BaseModel
 from fastapi.responses import JSONResponse, StreamingResponse
 from opentelemetry import trace
 from opentelemetry.propagate import extract
 from opentelemetry.trace import SpanKind, Status, StatusCode
+from petrinaut import OptimizationSession
+from pydantic import BaseModel
 from starlette.background import BackgroundTask
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from src.optimization_runs import OptimizationRunRegistry, attachment_event_stream
-from src.petrinaut_client import PetrinautModel
 from src.petrinaut_optimizer import PetrinautOptimizer
 from src.telemetry import flush_telemetry, setup_telemetry
 from src.utils import Phase, RunStatus, StatusStore, set_status
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 load_dotenv(REPO_ROOT / ".env")
@@ -37,7 +36,7 @@ MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024
 MAX_ACTIVE_OPTIMIZATIONS = 4
 RETRY_AFTER_SECONDS = 30
 _OPTIMIZATION_PATHS = {"/optimize/runs"}
-_CREATE_RUN_RESPONSES = {
+_CREATE_RUN_RESPONSES: dict[int | str, dict[str, Any]] = {
     201: {"description": "A detached optimization run was started"},
     413: {"description": "The optimization manifest exceeds 8 MiB"},
     429: {
@@ -49,9 +48,9 @@ _CREATE_RUN_RESPONSES = {
             },
         },
     },
-    500: {"description": "The CLI or optimization study could not initialize"},
+    500: {"description": "The session or optimization study could not initialize"},
 }
-_RUN_EVENTS_RESPONSES = {
+_RUN_EVENTS_RESPONSES: dict[int | str, dict[str, Any]] = {
     200: {
         "description": (
             "Server-Sent Events attachment to a detached optimization run. "
@@ -77,7 +76,7 @@ _RUN_EVENTS_RESPONSES = {
     },
     404: {"description": "No optimization run with this id is registered"},
 }
-_DELETE_RUN_RESPONSES = {
+_DELETE_RUN_RESPONSES: dict[int | str, dict[str, Any]] = {
     204: {
         "description": (
             "The run was cancelled (or had already reached a terminal "
@@ -150,7 +149,7 @@ class RequestBodyLimitMiddleware:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Initialize the status registry and detached-run engine."""
     app.state.statuses = StatusStore()
     app.state.optimization_admission_lock = asyncio.Lock()
@@ -174,21 +173,18 @@ app.add_middleware(RequestBodyLimitMiddleware)
 setup_telemetry(app)
 
 
-def create_model(optimization_manifest: dict[str, Any]) -> PetrinautModel:
-    """Create the CLI adapter; retained as a narrow seam for API tests."""
-    return PetrinautModel(optimization_manifest)
-
-
 def initialize_optimizer(
     optimization_manifest: dict[str, Any],
 ) -> PetrinautOptimizer:
     """Start Petrinaut and build an Optuna study from its description."""
-    model = create_model(optimization_manifest)
+    model = OptimizationSession(optimization_manifest)
     try:
         model.start()
         return PetrinautOptimizer(model)
     except Exception:
-        model.close()
+        # A failure path, so signal rather than wait out the graceful EOF while
+        # still holding the admission slot.
+        model.close(graceful=False)
         raise
 
 
@@ -201,7 +197,7 @@ async def _acquire_optimization_slot(
     async with app.state.optimization_admission_lock:
         # One account drives at most one optimization at a time. Pending
         # creations are tracked separately because the run only appears in
-        # the registry once its CLI has initialized.
+        # the registry once its session has initialized.
         if account_id is not None and (
             account_id in app.state.optimization_pending_accounts
             or app.state.optimization_runs.has_live_run_for_account(account_id)
@@ -274,7 +270,7 @@ async def _initialize_admitted_optimizer(
         return await asyncio.shield(initializer)
     except asyncio.CancelledError:
         # Backstop for a second cancellation racing the recovery below: once
-        # the initializer finishes, close whatever CLI it started even if no
+        # the initializer finishes, close whatever session it started even if no
         # coroutine is left awaiting it. close() is idempotent, so the
         # awaited recovery close and this callback can coexist.
         def _close_abandoned_optimizer(task: asyncio.Task[PetrinautOptimizer]) -> None:
@@ -284,7 +280,7 @@ async def _initialize_admitted_optimizer(
                 target=task.result().pn_model.close,
                 kwargs={"graceful": False},
                 daemon=True,
-                name="petrinaut-abandoned-cli-close",
+                name="petrinaut-abandoned-session-close",
             ).start()
 
         initializer.add_done_callback(_close_abandoned_optimizer)
@@ -294,9 +290,7 @@ async def _initialize_admitted_optimizer(
                 optimizer = await asyncio.shield(initializer)
             if optimizer is not None:
                 with suppress(Exception):
-                    await asyncio.to_thread(
-                        optimizer.pn_model.close, graceful=False
-                    )
+                    await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
         finally:
             await asyncio.shield(_release_optimization_slot(app))
         raise
@@ -311,7 +305,7 @@ def _create_admitted_run_cleanup(
     stream, and again as the response's background task: when a client aborts
     before the response body is ever pulled, the never-started generators skip
     their ``finally`` blocks entirely, which would otherwise leak both the
-    admission slot and a live CLI process.
+    admission slot and a live session.
     """
     cleaned_up = False
 
@@ -321,7 +315,7 @@ def _create_admitted_run_cleanup(
             return
         cleaned_up = True
         try:
-            # No-op when the stream already closed the CLI; prompt when the
+            # No-op when the stream already closed the session; prompt when the
             # stream generators never ran at all.
             with suppress(Exception):
                 await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
@@ -342,9 +336,9 @@ def _initialization_error(
         app,
         run_id,
         phase=Phase.error,
-        detail="Petrinaut CLI and Optimization Model could NOT be initialized",
+        detail="Petrinaut session and Optimization Model could NOT be initialized",
     )
-    # The error string can embed the CLI's first stderr line, which may quote a
+    # The error string can embed the backend's first diagnostic line, which may quote a
     # user identifier or expression error, so log a stable classification only.
     # The full message still goes back to the requester in the 500 detail.
     log.error(
@@ -395,7 +389,7 @@ async def _admit_and_initialize_run(
             request.app,
             run_id,
             phase=Phase.running,
-            detail="Petrinaut CLI and Optimization Model initialized",
+            detail="Petrinaut session and Optimization Model initialized",
         )
     except Exception as error:
         if optimizer is not None:
@@ -542,16 +536,18 @@ async def get_optimize_run_events(
     )
 
 
-@app.delete(
-    "/optimize/runs/{run_id}", status_code=204, responses=_DELETE_RUN_RESPONSES
-)
+@app.delete("/optimize/runs/{run_id}", status_code=204, responses=_DELETE_RUN_RESPONSES)
 async def delete_optimize_run(run_id: str, request: Request) -> Response:
     """Cancel a detached run and wait for its resources to be released."""
     run = _resolve_owned_run(request, run_id)
     if run.request_cancel("cancelled by client request"):
         log.info(
             "optimization run cancellation requested",
-            extra={"event": "run_cancel_requested", "run_id": run_id, **_request_correlation(request)},
+            extra={
+                "event": "run_cancel_requested",
+                "run_id": run_id,
+                **_request_correlation(request),
+            },
         )
     await run.finished.wait()
     return Response(status_code=204)
