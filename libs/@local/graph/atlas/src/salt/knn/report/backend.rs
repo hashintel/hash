@@ -18,11 +18,11 @@ use core::{
 };
 use std::{io, time::Instant};
 
-use camino::Utf8Path;
+use camino::Utf8PathBuf;
 use hashql_core::id::IdSlice;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{REFERENCE_ROWS, Seconds, SetupError, open_representations, representation_rows};
+use super::{REFERENCE_ROWS, Representations, Seconds, SetupError};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::generation::{GenerationId, GenerationRoot},
@@ -59,7 +59,7 @@ pub(crate) struct Options {
     ///
     /// A repeated seed rebuilds the same configuration again, measuring build nondeterminism.
     pub seeds: Cow<'static, [u64]> = Cow::Borrowed(DEFAULT_SEEDS),
-    /// `ef_construction` values; one index build per (seed, value).
+    /// `ef_construction` values, with one index build per (seed, value).
     pub constructions: Cow<'static, [usize]> = Cow::Borrowed(DEFAULT_CONSTRUCTIONS),
     /// `ef_search` values, swept per built index.
     pub searches: Cow<'static, [usize]> = Cow::Borrowed(DEFAULT_SEARCHES),
@@ -261,22 +261,46 @@ impl Error for SweepError {
     }
 }
 
-/// Inserts every row and links the index, returning the wall clock.
+/// An index persisted into its scratch directory, bound to the breadth it was built at.
+///
+/// Scoring reopens the environment with this breadth, so the reopened options describe the index
+/// that exists on disk. [`Self::remove`] consumes the value together with the directory it names.
+struct BuiltIndex {
+    /// The scratch directory holding the persisted environment.
+    directory: Utf8PathBuf,
+    /// The breadth the index was built at.
+    ef_construction: usize,
+    /// The build's wall clock.
+    wall: Duration,
+}
+
+impl BuiltIndex {
+    /// Removes the persisted environment, consuming the value that names it.
+    ///
+    /// # Errors
+    ///
+    /// Returns the underlying I/O error when removing the directory fails.
+    fn remove(self) -> io::Result<()> {
+        std::fs::remove_dir_all(&self.directory)
+    }
+}
+
+/// Inserts every row and links the index, returning it bound to its directory and breadth.
 ///
 /// # Errors
 ///
 /// Returns the backend's error when the environment cannot open, a row cannot insert, or the link
 /// pass fails.
 fn build_index(
-    directory: &Utf8Path,
+    directory: Utf8PathBuf,
     embeddings: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     ef_construction: usize,
     rng: Xoshiro256PlusPlus,
-) -> Result<Duration, HannoyIndexError<NodeRowId>> {
+) -> Result<BuiltIndex, HannoyIndexError<NodeRowId>> {
     let started = Instant::now();
 
     let mut index = HannoyIndex::new(
-        directory,
+        &directory,
         HannoyIndexOptions {
             ef_construction,
             ..
@@ -293,28 +317,31 @@ fn build_index(
     )?;
     index.build(rng, &NoProgress)?;
 
-    Ok(started.elapsed())
+    Ok(BuiltIndex {
+        directory,
+        ef_construction,
+        wall: started.elapsed(),
+    })
 }
 
 /// Scores the built index at every (sample, `ef_search`) pair.
 ///
-/// Reopens the persisted environment per search breadth.
+/// Reopens the persisted environment per search breadth, at the build breadth the index carries.
 ///
 /// # Errors
 ///
 /// Returns a [`SweepError`] when the environment cannot reopen or a sampled query fails.
 fn score_grid(
-    directory: &Utf8Path,
+    built: &BuiltIndex,
     references: &[(u64, ExactReference<NodeRowId>)],
-    ef_construction: usize,
-    options: &Options,
+    searches: &[usize],
 ) -> Result<Vec<Point>, SweepError> {
     let mut points = Vec::new();
-    for &ef_search in &*options.searches {
+    for &ef_search in searches {
         let index = HannoyIndex::new(
-            directory,
+            &built.directory,
             HannoyIndexOptions {
-                ef_construction,
+                ef_construction: built.ef_construction,
                 ef_search,
                 ..
             },
@@ -326,7 +353,7 @@ fn score_grid(
             let reading = reference.score(&index).map_err(SweepError::Query)?;
             let query_wall = started.elapsed();
             tracing::info!(
-                ef_construction,
+                ef_construction = built.ef_construction,
                 ef_search,
                 sample_seed,
                 recall = reading.recall(),
@@ -355,8 +382,8 @@ fn score_grid(
 pub(crate) fn sweep(root: &GenerationRoot, options: &Options) -> Result<Sweep, SweepError> {
     let started = Instant::now();
 
-    let (id, file) = open_representations(root).map_err(SweepError::Setup)?;
-    let embeddings = representation_rows(&file).map_err(SweepError::Setup)?;
+    let representations = Representations::open(root).map_err(SweepError::Setup)?;
+    let embeddings = representations.rows().map_err(SweepError::Setup)?;
 
     let check = SpotCheckOptions::default();
     let scratch = root.scratch().map_err(SweepError::Scratch)?;
@@ -394,8 +421,8 @@ pub(crate) fn sweep(root: &GenerationRoot, options: &Options) -> Result<Sweep, S
                 .directory(&format!("knn-sweep-{ordinal}-{ef_construction}"))
                 .map_err(SweepError::Scratch)?;
 
-            let build_wall = build_index(
-                &directory,
+            let built = build_index(
+                directory,
                 embeddings,
                 ef_construction,
                 stage_rng(seed, Stage::KnnLink),
@@ -404,20 +431,21 @@ pub(crate) fn sweep(root: &GenerationRoot, options: &Options) -> Result<Sweep, S
             tracing::info!(
                 seed,
                 ef_construction,
-                wall_s = build_wall.as_secs_f64(),
+                wall_s = built.wall.as_secs_f64(),
                 "index built"
             );
 
-            let points = score_grid(&directory, &references, ef_construction, options)?;
+            let points = score_grid(&built, &references, &options.searches)?;
 
-            // Bounds peak disk to one environment; the scratch drop
-            // would also remove it at the end of the sweep.
-            std::fs::remove_dir_all(&directory).map_err(SweepError::Scratch)?;
+            let wall = built.wall;
+            // Bounds peak disk to one environment. The scratch drop would also remove the
+            // directory at the end of the sweep.
+            built.remove().map_err(SweepError::Scratch)?;
 
             builds.push(Build {
                 seed,
                 ef_construction,
-                wall: build_wall,
+                wall,
                 points,
             });
         }
@@ -432,7 +460,7 @@ pub(crate) fn sweep(root: &GenerationRoot, options: &Options) -> Result<Sweep, S
         .map_or(0, |(_, reference)| reference.neighbours_per_row());
 
     Ok(Sweep {
-        generation: id,
+        generation: representations.generation,
         rows: embeddings.len(),
         sampled_rows,
         neighbours,

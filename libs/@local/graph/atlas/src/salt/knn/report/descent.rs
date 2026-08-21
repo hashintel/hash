@@ -2,7 +2,7 @@
 //!
 //! Constructions run at the production width - the wider of the spot check's depth and the stored
 //! neighbour count - replaying the production fit's `knn-link` stream per seed, and one exact
-//! reference scores every reading. A repeated seed measures construction nondeterminism; a
+//! reference scores every reading. A repeated seed measures construction nondeterminism. A
 //! candidate cap is the knob the audit sweeps.
 
 use core::{
@@ -11,7 +11,7 @@ use core::{
 };
 use std::time::Instant;
 
-use super::{AuditError, REFERENCE_ROWS, Seconds, open_representations, representation_rows};
+use super::{AuditError, REFERENCE_ROWS, Representations, Seconds};
 use crate::{
     file::generation::{GenerationId, GenerationRoot},
     identity::NodeRowId,
@@ -107,8 +107,8 @@ pub(crate) fn audit(
     seeds: &[u64],
     candidates: &[usize],
 ) -> Result<Audit, AuditError<NodeRowId, NnDescentError>> {
-    let (id, file) = open_representations(root).map_err(AuditError::Setup)?;
-    let embeddings = representation_rows(&file).map_err(AuditError::Setup)?;
+    let representations = Representations::open(root).map_err(AuditError::Setup)?;
+    let embeddings = representations.rows().map_err(AuditError::Setup)?;
 
     let check = SpotCheckOptions::default();
     let width = check.neighbours.max(DEFAULT_NEIGHBOURS);
@@ -162,7 +162,7 @@ pub(crate) fn audit(
     }
 
     Ok(Audit {
-        generation: id,
+        generation: representations.generation,
         rows: embeddings.len(),
         sampled_rows: reference.sampled_rows(),
         neighbours: reference.neighbours_per_row(),

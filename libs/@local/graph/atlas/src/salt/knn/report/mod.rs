@@ -36,6 +36,8 @@ use crate::{
 
 pub(crate) mod backend;
 pub(crate) mod descent;
+#[cfg(test)]
+mod tests;
 
 // The reference size stays fixed because an instrument compares settings against each other. One
 // sizing of the samples yields SE ~0.007 at the measured per-row deviation and resolves the
@@ -137,39 +139,51 @@ impl Display for Seconds {
     }
 }
 
-/// Opens the root's active generation and maps its representation artifact.
+/// A published generation's identity together with its mapped representation artifact.
 ///
-/// The artifact stays mapped for as long as the returned file lives; [`representation_rows`] reads
-/// its rows.
-///
-/// # Errors
-///
-/// Returns a [`SetupError`] when the root holds no activated generation, when reading the
-/// current-generation pointer fails, or when the generation or its representation artifact fails to
-/// open.
-fn open_representations(root: &GenerationRoot) -> Result<(GenerationId, ArrayFile), SetupError> {
-    let id = root
-        .current()
-        .map_err(SetupError::Pointer)?
-        .ok_or(SetupError::Inactive)?;
-    let generation = root.open(id).map_err(SetupError::Generation)?;
-
-    let file =
-        ArrayFile::open(generation.path_of(&generation.repository().files.representations.name()))
-            .map_err(SetupError::Artifact)?;
-
-    Ok((id, file))
+/// The artifact stays mapped for as long as this value lives. [`Self::rows`] reads its rows.
+struct Representations {
+    /// The generation whose representations are mapped.
+    generation: GenerationId,
+    /// The mapped representation artifact.
+    file: ArrayFile,
 }
 
-/// Reads the mapped artifact's rows at the projector width.
-///
-/// # Errors
-///
-/// Returns [`SetupError::Width`] when the artifact holds another element type or width.
-fn representation_rows(
-    file: &ArrayFile,
-) -> Result<&IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>, SetupError> {
-    file.vectors()
-        .map(IdSlice::from_raw)
-        .ok_or(SetupError::Width)
+impl Representations {
+    /// Opens the root's active generation and maps its representation artifact.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`SetupError`] when reading the current-generation pointer fails, when the root
+    /// holds no activated generation, or when the generation or its representation artifact fails
+    /// to open.
+    fn open(root: &GenerationRoot) -> Result<Self, SetupError> {
+        let id = root
+            .current()
+            .map_err(SetupError::Pointer)?
+            .ok_or(SetupError::Inactive)?;
+        let generation = root.open(id).map_err(SetupError::Generation)?;
+
+        let file = ArrayFile::open(
+            generation.path_of(&generation.repository().files.representations.name()),
+        )
+        .map_err(SetupError::Artifact)?;
+
+        Ok(Self {
+            generation: id,
+            file,
+        })
+    }
+
+    /// Reads the mapped artifact's rows at the projector width.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SetupError::Width`] when the artifact holds another element type or width.
+    fn rows(&self) -> Result<&IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>, SetupError> {
+        self.file
+            .vectors()
+            .map(IdSlice::from_raw)
+            .ok_or(SetupError::Width)
+    }
 }
