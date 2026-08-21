@@ -1,12 +1,48 @@
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+
 import { describe, expect, test } from "vitest";
 
-import {
-  renderProjectGraph,
-  type ProjectGraph,
-} from "../../../../scripts/linear-project-graph";
+import { CONTEXT_ROOT, contextRootPresent } from "./workspace";
 
-describe("the compact Linear project graph", () => {
-  test("renders hard-dependency layers with enough issue context for agent inference", () => {
+/**
+ * The module under test lives at the context root, outside every workspace, so
+ * CI's pruned checkout lacks it. The specifier is computed so `lint:tsc` does
+ * not resolve it statically; the structural types below restate the contract
+ * the tests exercise.
+ */
+const SCRIPT_MODULE_URL = pathToFileURL(
+  join(CONTEXT_ROOT, "scripts/linear-project-graph.ts"),
+).href;
+
+interface ProjectIssue {
+  readonly identifier: string;
+  readonly title: string;
+  readonly stateName: string;
+  readonly parentIdentifier?: string;
+  readonly external: boolean;
+}
+
+interface ProjectGraph {
+  readonly projectName: string;
+  readonly issues: readonly ProjectIssue[];
+  readonly hardEdges: readonly { readonly from: string; readonly to: string }[];
+}
+
+interface LinearProjectGraphModule {
+  readonly renderProjectGraph: (graph: ProjectGraph) => string;
+}
+
+async function loadRenderProjectGraph(): Promise<
+  LinearProjectGraphModule["renderProjectGraph"]
+> {
+  const module = (await import(SCRIPT_MODULE_URL)) as LinearProjectGraphModule;
+  return module.renderProjectGraph;
+}
+
+describe.skipIf(!contextRootPresent)("the compact Linear project graph", () => {
+  test("renders hard-dependency layers with enough issue context for agent inference", async () => {
+    const renderProjectGraph = await loadRenderProjectGraph();
     const graph: ProjectGraph = {
       projectName: "brunch-agent",
       issues: [
@@ -54,7 +90,8 @@ L2 FE-103 [Todo p:FE-1] <=FE-101 | Ship the integration
 cycles: none`);
   });
 
-  test("makes a hard-dependency cycle explicit instead of inventing an order", () => {
+  test("makes a hard-dependency cycle explicit instead of inventing an order", async () => {
+    const renderProjectGraph = await loadRenderProjectGraph();
     const graph: ProjectGraph = {
       projectName: "brunch-agent",
       issues: [

@@ -21,6 +21,16 @@ export const HASH_ROOT = fileURLToPath(
 ).replace(/[/\\]$/, "");
 export const CONTEXT_ROOT = join(HASH_ROOT, "libs/@hashintel/brunch-agent");
 export const REPO_ROOT = CONTEXT_ROOT;
+
+/**
+ * CI's prune-repository action ships only the Brunch workspaces; the context
+ * root's `docs/` and `scripts/` belong to no workspace and are absent there.
+ * Tests that read the context root skip in that environment and run in every
+ * full checkout, where this is always true.
+ */
+export const contextRootPresent =
+  existsSync(join(CONTEXT_ROOT, "docs")) &&
+  existsSync(join(CONTEXT_ROOT, "scripts"));
 const PACKAGES_ROOT = join(CONTEXT_ROOT, "packages");
 const APP_ROOT = join(HASH_ROOT, "apps/brunch-agent");
 

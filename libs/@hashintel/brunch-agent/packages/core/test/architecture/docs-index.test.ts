@@ -19,7 +19,7 @@ import { dirname, join, relative, resolve } from "node:path";
 
 import { describe, expect, test } from "vitest";
 
-import { REPO_ROOT } from "./workspace";
+import { contextRootPresent, REPO_ROOT } from "./workspace";
 
 const DOCS_ROOT = join(REPO_ROOT, "docs");
 const INDEX_RELPATH = "INDEX.md";
@@ -71,7 +71,7 @@ function documentationFiles(): string[] {
   return found;
 }
 
-const FILES = documentationFiles();
+const FILES = contextRootPresent ? documentationFiles() : [];
 
 interface IndexRow {
   /** 1-based line in `docs/INDEX.md`, so a failure names where to look. */
@@ -114,7 +114,7 @@ function indexRows(): IndexRow[] {
   return rows;
 }
 
-const ROWS = indexRows();
+const ROWS = contextRootPresent ? indexRows() : [];
 
 /**
  * Whether a row's target accounts for a file. A target naming a directory covers
@@ -127,46 +127,49 @@ const covers = (target: string, file: string): boolean => {
   return file === base || file.startsWith(`${base}/`);
 };
 
-describe("every document is in the index, and the index is all documents", () => {
-  test("the walk actually finds documents", () => {
-    // Without this, a `docs/` the walker cannot read makes the coverage check
-    // below iterate an empty list and pass vacuously — a silent exemption for
-    // the entire tree, which is worse than having no gate.
-    expect(FILES.length).toBeGreaterThan(0);
-    expect(ROWS.length).toBeGreaterThan(0);
-  });
+describe.skipIf(!contextRootPresent)(
+  "every document is in the index, and the index is all documents",
+  () => {
+    test("the walk actually finds documents", () => {
+      // Without this, a `docs/` the walker cannot read makes the coverage check
+      // below iterate an empty list and pass vacuously — a silent exemption for
+      // the entire tree, which is worse than having no gate.
+      expect(FILES.length).toBeGreaterThan(0);
+      expect(ROWS.length).toBeGreaterThan(0);
+    });
 
-  test("every file under docs/ is covered by a row in docs/INDEX.md", () => {
-    for (const file of FILES) {
-      expect({
-        file,
-        indexed: ROWS.some((row) => covers(row.target, file)),
-      }).toEqual({
-        file,
-        indexed: true,
-      });
-    }
-  });
+    test("every file under docs/ is covered by a row in docs/INDEX.md", () => {
+      for (const file of FILES) {
+        expect({
+          file,
+          indexed: ROWS.some((row) => covers(row.target, file)),
+        }).toEqual({
+          file,
+          indexed: true,
+        });
+      }
+    });
 
-  test("every row in docs/INDEX.md points at something real", () => {
-    // A row standing for nothing is not tidiness: the index is what a reader
-    // consults instead of walking the tree, so a stale row is misinformation
-    // with the authority of a registry behind it.
-    for (const row of ROWS) {
-      const path = join(DOCS_ROOT, row.target.replace(/\/$/, ""));
-      const resolves =
-        existsSync(path) &&
-        (statSync(path).isDirectory()
-          ? FILES.some((file) => covers(row.target, file))
-          : true);
-      expect({ line: row.line, target: row.target, resolves }).toEqual({
-        line: row.line,
-        target: row.target,
-        resolves: true,
-      });
-    }
-  });
-});
+    test("every row in docs/INDEX.md points at something real", () => {
+      // A row standing for nothing is not tidiness: the index is what a reader
+      // consults instead of walking the tree, so a stale row is misinformation
+      // with the authority of a registry behind it.
+      for (const row of ROWS) {
+        const path = join(DOCS_ROOT, row.target.replace(/\/$/, ""));
+        const resolves =
+          existsSync(path) &&
+          (statSync(path).isDirectory()
+            ? FILES.some((file) => covers(row.target, file))
+            : true);
+        expect({ line: row.line, target: row.target, resolves }).toEqual({
+          line: row.line,
+          target: row.target,
+          resolves: true,
+        });
+      }
+    });
+  },
+);
 
 test("relative links in context documentation point at existing files", () => {
   for (const file of FILES) {
@@ -219,27 +222,30 @@ test("docs/planning/ holds only effort directories", () => {
   expect(loose).toEqual([]);
 });
 
-describe("every agent protocol doc is reachable from AGENTS.md", () => {
-  // `AGENTS.md` is the file an agent is given; a protocol it does not name is a
-  // protocol that will not be followed, however well written. The pointer form
-  // is established — the path in prose or backticks — so a substring check on
-  // the path is exactly as strict as the convention is.
-  const agentsText = readFileSync(join(REPO_ROOT, "AGENTS.md"), "utf8");
-  const protocols = readdirSync(join(DOCS_ROOT, "agents"))
-    .filter((entry) => entry.endsWith(".md"))
-    .sort();
+describe.skipIf(!contextRootPresent)(
+  "every agent protocol doc is reachable from AGENTS.md",
+  () => {
+    // `AGENTS.md` is the file an agent is given; a protocol it does not name is a
+    // protocol that will not be followed, however well written. The pointer form
+    // is established — the path in prose or backticks — so a substring check on
+    // the path is exactly as strict as the convention is.
+    const agentsText = readFileSync(join(REPO_ROOT, "AGENTS.md"), "utf8");
+    const protocols = readdirSync(join(DOCS_ROOT, "agents"))
+      .filter((entry) => entry.endsWith(".md"))
+      .sort();
 
-  test("there are protocol docs to govern", () => {
-    expect(protocols.length).toBeGreaterThan(0);
-  });
+    test("there are protocol docs to govern", () => {
+      expect(protocols.length).toBeGreaterThan(0);
+    });
 
-  test("AGENTS.md names each one by path", () => {
-    for (const protocol of protocols) {
-      const path = `docs/agents/${protocol}`;
-      expect({ path, namedInAgentsMd: agentsText.includes(path) }).toEqual({
-        path,
-        namedInAgentsMd: true,
-      });
-    }
-  });
-});
+    test("AGENTS.md names each one by path", () => {
+      for (const protocol of protocols) {
+        const path = `docs/agents/${protocol}`;
+        expect({ path, namedInAgentsMd: agentsText.includes(path) }).toEqual({
+          path,
+          namedInAgentsMd: true,
+        });
+      }
+    });
+  },
+);

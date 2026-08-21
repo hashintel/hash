@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 
 import { afterEach, describe, expect, test } from "vitest";
 
-import { CONTEXT_ROOT } from "./workspace";
+import { CONTEXT_ROOT, contextRootPresent } from "./workspace";
 
 const BASELINE_DIR = join(
   CONTEXT_ROOT,
@@ -97,109 +97,114 @@ afterEach(async () => {
   );
 });
 
-describe("baseline runner completion metadata", () => {
-  test("checkpoints a truncated expert reply and stops before another interviewer call", async () => {
-    const testDirectory = await createBaselineCopy();
-    const result = await runBaseline(testDirectory, [
-      { text: "What happens next?" },
-      { text: "NO" },
-      { text: "The operator begins to explain", truncated: true },
-    ]);
+describe.skipIf(!contextRootPresent)(
+  "baseline runner completion metadata",
+  () => {
+    test("checkpoints a truncated expert reply and stops before another interviewer call", async () => {
+      const testDirectory = await createBaselineCopy();
+      const result = await runBaseline(testDirectory, [
+        { text: "What happens next?" },
+        { text: "NO" },
+        { text: "The operator begins to explain", truncated: true },
+      ]);
 
-    expect(result.checkpoint.calls).toHaveLength(3);
-    expect(result.checkpoint.stopReason).toBe("expert-truncated");
-    expect(result.checkpoint.interviewerMessages.at(-1)).toEqual({
-      role: "user",
-      content: "The operator begins to explain",
-      truncated: true,
-    });
-    expect(result.stderr).toContain("expert reply is truncated");
-  });
-
-  test("resume regenerates a trailing truncated expert reply before continuing", async () => {
-    const testDirectory = await createBaselineCopy();
-    await runBaseline(testDirectory, [
-      { text: "What happens next?" },
-      { text: "NO" },
-      { text: "Partial expert reply", truncated: true },
-    ]);
-
-    const resumed = await runBaseline(
-      testDirectory,
-      [
-        { text: "Complete expert reply" },
-        { text: "Final model" },
-        { text: "YES" },
-      ],
-      "--resume",
-    );
-
-    expect(resumed.checkpoint.stopReason).toBe("delivered");
-    expect(resumed.checkpoint.interviewerMessages).toEqual([
-      expect.objectContaining({ role: "user" }),
-      { role: "assistant", content: "What happens next?" },
-      { role: "user", content: "Complete expert reply" },
-      { role: "assistant", content: "Final model" },
-    ]);
-    expect(resumed.stderr).toContain("regenerating truncated expert reply");
-  });
-
-  test("checkpoints a capped non-final interviewer reply and stops before calling the expert", async () => {
-    const testDirectory = await createBaselineCopy();
-    const result = await runBaseline(testDirectory, [
-      { text: "part-1", truncated: true },
-      { text: "part-2", truncated: true },
-      { text: "part-3", truncated: true },
-      { text: "part-4", truncated: true },
-      { text: "part-5", truncated: true },
-      { text: "NO" },
-    ]);
-
-    expect(result.checkpoint.calls).toHaveLength(6);
-    expect(result.checkpoint.stopReason).toBe("interviewer-truncated");
-    expect(result.checkpoint.interviewerMessages.at(-1)).toEqual({
-      role: "assistant",
-      content: "part-1part-2part-3part-4part-5",
-      truncated: true,
-    });
-    expect(result.stderr).toContain("non-final interviewer reply is truncated");
-  });
-
-  test("continues a truncated final delivery without sending checkpoint metadata", async () => {
-    const testDirectory = await createBaselineCopy();
-    await runBaseline(testDirectory, [
-      { text: "part-1", truncated: true },
-      { text: "part-2", truncated: true },
-      { text: "part-3", truncated: true },
-      { text: "part-4", truncated: true },
-      { text: "part-5", truncated: true },
-      { text: "YES" },
-    ]);
-    await rm(join(testDirectory, "requests.jsonl"));
-
-    const continued = await runBaseline(
-      testDirectory,
-      [{ text: " continued" }],
-      "--continue-final",
-    );
-
-    expect(continued.requests).toHaveLength(1);
-    expect(continued.requests[0]?.messages).toEqual([
-      expect.objectContaining({ role: "user" }),
-      { role: "assistant", content: "part-1part-2part-3part-4part-5" },
-      {
+      expect(result.checkpoint.calls).toHaveLength(3);
+      expect(result.checkpoint.stopReason).toBe("expert-truncated");
+      expect(result.checkpoint.interviewerMessages.at(-1)).toEqual({
         role: "user",
-        content:
-          "You were cut off mid-document. Continue exactly from where you stopped — no preamble, no repetition.",
-      },
-    ]);
-    for (const message of continued.requests[0]?.messages ?? []) {
-      expect(Object.keys(message).sort()).toEqual(["content", "role"]);
-    }
-    expect(continued.checkpoint.stopReason).toBe("delivered");
-    expect(continued.checkpoint.interviewerMessages.at(-1)).toEqual({
-      role: "assistant",
-      content: "part-1part-2part-3part-4part-5 continued",
+        content: "The operator begins to explain",
+        truncated: true,
+      });
+      expect(result.stderr).toContain("expert reply is truncated");
     });
-  });
-});
+
+    test("resume regenerates a trailing truncated expert reply before continuing", async () => {
+      const testDirectory = await createBaselineCopy();
+      await runBaseline(testDirectory, [
+        { text: "What happens next?" },
+        { text: "NO" },
+        { text: "Partial expert reply", truncated: true },
+      ]);
+
+      const resumed = await runBaseline(
+        testDirectory,
+        [
+          { text: "Complete expert reply" },
+          { text: "Final model" },
+          { text: "YES" },
+        ],
+        "--resume",
+      );
+
+      expect(resumed.checkpoint.stopReason).toBe("delivered");
+      expect(resumed.checkpoint.interviewerMessages).toEqual([
+        expect.objectContaining({ role: "user" }),
+        { role: "assistant", content: "What happens next?" },
+        { role: "user", content: "Complete expert reply" },
+        { role: "assistant", content: "Final model" },
+      ]);
+      expect(resumed.stderr).toContain("regenerating truncated expert reply");
+    });
+
+    test("checkpoints a capped non-final interviewer reply and stops before calling the expert", async () => {
+      const testDirectory = await createBaselineCopy();
+      const result = await runBaseline(testDirectory, [
+        { text: "part-1", truncated: true },
+        { text: "part-2", truncated: true },
+        { text: "part-3", truncated: true },
+        { text: "part-4", truncated: true },
+        { text: "part-5", truncated: true },
+        { text: "NO" },
+      ]);
+
+      expect(result.checkpoint.calls).toHaveLength(6);
+      expect(result.checkpoint.stopReason).toBe("interviewer-truncated");
+      expect(result.checkpoint.interviewerMessages.at(-1)).toEqual({
+        role: "assistant",
+        content: "part-1part-2part-3part-4part-5",
+        truncated: true,
+      });
+      expect(result.stderr).toContain(
+        "non-final interviewer reply is truncated",
+      );
+    });
+
+    test("continues a truncated final delivery without sending checkpoint metadata", async () => {
+      const testDirectory = await createBaselineCopy();
+      await runBaseline(testDirectory, [
+        { text: "part-1", truncated: true },
+        { text: "part-2", truncated: true },
+        { text: "part-3", truncated: true },
+        { text: "part-4", truncated: true },
+        { text: "part-5", truncated: true },
+        { text: "YES" },
+      ]);
+      await rm(join(testDirectory, "requests.jsonl"));
+
+      const continued = await runBaseline(
+        testDirectory,
+        [{ text: " continued" }],
+        "--continue-final",
+      );
+
+      expect(continued.requests).toHaveLength(1);
+      expect(continued.requests[0]?.messages).toEqual([
+        expect.objectContaining({ role: "user" }),
+        { role: "assistant", content: "part-1part-2part-3part-4part-5" },
+        {
+          role: "user",
+          content:
+            "You were cut off mid-document. Continue exactly from where you stopped — no preamble, no repetition.",
+        },
+      ]);
+      for (const message of continued.requests[0]?.messages ?? []) {
+        expect(Object.keys(message).sort()).toEqual(["content", "role"]);
+      }
+      expect(continued.checkpoint.stopReason).toBe("delivered");
+      expect(continued.checkpoint.interviewerMessages.at(-1)).toEqual({
+        role: "assistant",
+        content: "part-1part-2part-3part-4part-5 continued",
+      });
+    });
+  },
+);

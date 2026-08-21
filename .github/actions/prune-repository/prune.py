@@ -36,6 +36,9 @@ EXTRA_DEPENDENCIES: dict[str, list[str]] = {
     # Test data crates
     "@blockprotocol/type-system-rs": ["@rust/hash-graph-test-data"],
     "@rust/hash-graph-types": ["@rust/hash-graph-test-data"],
+    # Brunch architecture tests scan the whole package family via the app,
+    # which depends on every Brunch library
+    "@hashintel/brunch-agent": ["@apps/brunch-agent"],
 }
 
 TURBO_QUERY = """
