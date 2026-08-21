@@ -65,7 +65,7 @@ Two rulings on surviving "kernel" compounds (the glossary otherwise avoids the w
 
 ## 4. Architecture: four shells and a binding
 
-```
+```text
 substrate  (Pi family / Flue: deploy target, model/provider, conversation storage)
    ↑ implemented against by
 binding    (one per substrate; implements the capability list §10; absorbs what its substrate lacks)
@@ -601,7 +601,7 @@ pre-registered agent.)
 
 Bun-workspace monorepo in this repo:
 
-```
+```text
 packages/core              # the harness; plugin SDK is its public export surface
 packages/core/testing      # (subpath) fixtures, arbitraries, replay driver — prod bundles stay clean
 packages/binding-flue      # the Flue binding (implements §10; owns the storage port impl)
