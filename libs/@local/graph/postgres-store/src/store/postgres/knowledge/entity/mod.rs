@@ -747,8 +747,7 @@ where
         actor_id: Option<ActorId>,
         mut params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -821,8 +820,7 @@ where
     ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
         let actions = params.view_actions();
 
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_actions(actions, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -1133,8 +1131,7 @@ where
             .add_filter(&entity_filter)
             .change_context(CheckPermissionError::CompileFilter)?;
 
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
+        let policy_components = PolicyComponents::builder(self, authenticated_actor)
             .with_action(params.action, MergePolicies::Yes)
             .await
             .change_context(CheckPermissionError::BuildPolicyContext)?;
@@ -1224,7 +1221,7 @@ where
             .await
             .change_context(InsertionError)?;
 
-        let mut policy_components_builder = PolicyComponents::builder(&transaction);
+        let mut policy_components_builder = PolicyComponents::builder(&transaction, Some(actor_id));
 
         let mut entity_ids = Vec::with_capacity(params.len());
 
@@ -1253,7 +1250,6 @@ where
         // The policy components builder will make sure, that also parent entity types are added to
         // the set of entity type IDs. These are accessible via `tracked_entity_types` method.
         let policy_components = policy_components_builder
-            .with_actor(Some(actor_id))
             .with_entity_type_ids(entity_type_id_set)
             .with_actions(
                 [ActionName::Instantiate, ActionName::CreateEntity],
@@ -1718,8 +1714,7 @@ where
         actor_id: ActorId,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_actions(
                 [
                     ActionName::ViewEntity,
@@ -1909,8 +1904,7 @@ where
         actor_id: ActorId,
         mut params: SummarizeEntitiesParams<'_>,
     ) -> Result<SummarizeEntitiesResponse, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -2019,8 +2013,7 @@ where
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
     ) -> Result<Entity, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -2104,8 +2097,7 @@ where
         .attach_opaque(params.entity_id)
         .change_context(UpdateError)?;
 
-        let policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(&transaction, Some(actor_id))
             .with_entity_edition_id(previous_entity.metadata.record_id.edition_id)
             .with_entity_type_ids(&params.entity_type_ids)
             .with_actions(

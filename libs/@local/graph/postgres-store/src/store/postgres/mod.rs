@@ -841,8 +841,7 @@ where
         actor: ActorId,
         parameter: CreateWebParameter,
     ) -> Result<CreateWebResponse, Report<WebCreationError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(actor))
+        let policy_components = PolicyComponents::builder(self, Some(actor))
             .with_action(ActionName::CreateWeb, MergePolicies::No)
             .await
             .change_context(WebCreationError::BuildPolicyComponents)?;
@@ -1472,8 +1471,7 @@ where
             unreachable!("Expected exactly one policy ID");
         };
 
-        let policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(Some(authenticated_actor))
+        let policy_components = PolicyComponents::builder(&transaction, Some(authenticated_actor))
             .with_action(ActionName::CreatePolicy, MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource {
                 id: policy_id,
@@ -1573,9 +1571,9 @@ where
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         let policies = self.read_policies_from_database(filter).await?;
 
-        let mut policy_components_builder = PolicyComponents::builder(self)
-            .with_actor(Some(authenticated_actor))
-            .with_action(ActionName::ViewPolicy, MergePolicies::No);
+        let mut policy_components_builder =
+            PolicyComponents::builder(self, Some(authenticated_actor))
+                .with_action(ActionName::ViewPolicy, MergePolicies::No);
         for policy in &policies {
             policy_components_builder.add_policy_meta_resource(&PolicyMetaResource::from(policy));
         }
@@ -1776,12 +1774,12 @@ where
             .change_context(UpdatePolicyError::StoreError)?
             .ok_or(UpdatePolicyError::PolicyNotFound { id: policy_id })?;
 
-        let old_policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(Some(authenticated_actor))
-            .with_action(ActionName::UpdatePolicy, MergePolicies::No)
-            .with_policy_meta_resource(&PolicyMetaResource::from(&old_policy))
-            .await
-            .change_context(UpdatePolicyError::BuildPolicyComponents)?;
+        let old_policy_components =
+            PolicyComponents::builder(&transaction, Some(authenticated_actor))
+                .with_action(ActionName::UpdatePolicy, MergePolicies::No)
+                .with_policy_meta_resource(&PolicyMetaResource::from(&old_policy))
+                .await
+                .change_context(UpdatePolicyError::BuildPolicyComponents)?;
 
         match old_policy_components
             .build_policy_set([ActionName::UpdatePolicy])
@@ -1808,12 +1806,12 @@ where
             .update_policy_in_database(policy_id, operations)
             .await?;
 
-        let updated_policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(Some(authenticated_actor))
-            .with_actions([ActionName::UpdatePolicy], MergePolicies::No)
-            .with_policy_meta_resource(&PolicyMetaResource::from(&update_policy))
-            .await
-            .change_context(UpdatePolicyError::BuildPolicyComponents)?;
+        let updated_policy_components =
+            PolicyComponents::builder(&transaction, Some(authenticated_actor))
+                .with_actions([ActionName::UpdatePolicy], MergePolicies::No)
+                .with_policy_meta_resource(&PolicyMetaResource::from(&update_policy))
+                .await
+                .change_context(UpdatePolicyError::BuildPolicyComponents)?;
 
         match updated_policy_components
             .build_policy_set([ActionName::UpdatePolicy])
@@ -1858,8 +1856,7 @@ where
                     .attach(StatusCode::NotFound)
             })?;
 
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(authenticated_actor))
+        let policy_components = PolicyComponents::builder(self, Some(authenticated_actor))
             .with_action(ActionName::ArchivePolicy, MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource::from(&policy))
             .await
@@ -1904,8 +1901,7 @@ where
                     .attach(StatusCode::NotFound)
             })?;
 
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(authenticated_actor))
+        let policy_components = PolicyComponents::builder(self, Some(authenticated_actor))
             .with_action(ActionName::DeletePolicy, MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource::from(&policy))
             .await
