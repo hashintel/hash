@@ -77,8 +77,9 @@ fn provider_response(status: reqwest::StatusCode, body: Result<String, reqwest::
     let Ok(body) = body else {
         return format!("provider response ({status}): <body unavailable>");
     };
-    let mut snippet: String = body.chars().take(512).collect();
-    if body.chars().nth(512).is_some() {
+    let mut chars = body.chars();
+    let mut snippet: String = chars.by_ref().take(512).collect();
+    if !chars.as_str().is_empty() {
         snippet.push('\u{2026}');
     }
     format!("provider response ({status}): {snippet}")
