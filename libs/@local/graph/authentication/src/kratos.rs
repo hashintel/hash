@@ -273,7 +273,7 @@ mod tests {
     use super::{KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME};
     use crate::{
         actor::tests::FixedActorResolver,
-        delegation::{SERVICE_SECRET_HEADER, ServiceDelegationProvider},
+        delegation::{SERVICE_AUTH_SCHEME, ServiceDelegationProvider},
         provider::{Authentication, AuthenticationProvider as _},
         request::{ACTOR_ID_HEADER, AuthenticationError},
     };
@@ -755,10 +755,10 @@ mod tests {
 
     fn with_delegation_pair(mut headers: HeaderMap, actor_id: ActorEntityUuid) -> HeaderMap {
         headers.insert(
-            SERVICE_SECRET_HEADER,
-            CHAIN_SERVICE_SECRET
+            http::header::AUTHORIZATION,
+            format!("{SERVICE_AUTH_SCHEME} {CHAIN_SERVICE_SECRET}")
                 .parse()
-                .expect("the secret should be a valid header value"),
+                .expect("the credential should be a valid header value"),
         );
         headers.insert(
             ACTOR_ID_HEADER,

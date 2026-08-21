@@ -100,8 +100,8 @@ export const createGraphClient = (
     httpAgent,
     httpsAgent,
     headers: {
-      // The Graph only honors `X-Authenticated-User-Actor-Id` next to this secret.
-      "X-HASH-Service-Secret": getRequiredEnv("HASH_GRAPH_SERVICE_SECRET"),
+      // The Graph only honors `X-Authenticated-User-Actor-Id` next to this credential.
+      Authorization: `HASH-Service ${getRequiredEnv("HASH_GRAPH_SERVICE_SECRET")}`,
     },
   });
 

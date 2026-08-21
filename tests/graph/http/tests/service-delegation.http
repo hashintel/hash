@@ -7,7 +7,7 @@
 ### Wrong service secret is rejected despite an actor-ID header
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
-X-HASH-Service-Secret: hash-svc-wrong
+Authorization: HASH-Service hash-svc-wrong
 X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%
@@ -25,7 +25,7 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 ### Wrong service secret is rejected on bootstrap routes
 GET http://127.0.0.1:4000/actors/machine/identifier/system/h
 Content-Type: application/json
-X-HASH-Service-Secret: hash-svc-wrong
+Authorization: HASH-Service hash-svc-wrong
 
 > {%
   client.test("status", function() {
@@ -47,7 +47,7 @@ X-Authenticated-User-Actor-Id: not-a-uuid
 ### Actor-ID header without the service secret is rejected
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
-X-HASH-Service-Secret: <omit>
+Authorization: <omit>
 X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%

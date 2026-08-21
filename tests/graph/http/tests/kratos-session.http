@@ -125,7 +125,7 @@ X-Session-Token: {{session_token}}
 ### Session without the service secret does not reach bootstrap routes
 GET http://127.0.0.1:4000/actors/machine/identifier/system/h
 Content-Type: application/json
-X-HASH-Service-Secret: <omit>
+Authorization: <omit>
 X-Session-Token: {{session_token}}
 
 > {%

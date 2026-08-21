@@ -237,7 +237,7 @@ mod tests {
     fn request_with_secret(uri: &str, secret: &str) -> Request<Body> {
         Request::builder()
             .uri(uri)
-            .header("X-HASH-Service-Secret", secret)
+            .header("Authorization", format!("HASH-Service {secret}"))
             .body(Body::empty())
             .expect("the request should build")
     }
@@ -363,7 +363,7 @@ mod tests {
 
         let request = Request::builder()
             .uri("/policies/seed")
-            .header("X-HASH-Service-Secret", SERVICE_SECRET)
+            .header("Authorization", format!("HASH-Service {SERVICE_SECRET}"))
             .header("X-Authenticated-User-Actor-Id", "not-a-uuid")
             .body(Body::empty())
             .expect("the request should build");

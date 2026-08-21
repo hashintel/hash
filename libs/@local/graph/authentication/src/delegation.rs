@@ -4,7 +4,7 @@ use core::ops::ControlFlow;
 
 use error_stack::Report;
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
-use http::HeaderMap;
+use http::{HeaderMap, header};
 use subtle::ConstantTimeEq as _;
 
 use crate::{
@@ -12,19 +12,35 @@ use crate::{
     request::{ACTOR_ID_HEADER, AuthenticationError, actor_id_from_header},
 };
 
-/// Name of the header carrying the service secret.
-pub const SERVICE_SECRET_HEADER: &str = "X-HASH-Service-Secret";
+/// The `Authorization` scheme carrying the service secret.
+pub const SERVICE_AUTH_SCHEME: &str = "HASH-Service";
+
+/// Returns the service secret carried in the `Authorization` header.
+///
+/// Returns [`None`] when the header is absent or names a different scheme, so credentials of
+/// other schemes pass through unrecognized. The scheme is matched case-insensitively.
+#[must_use]
+pub fn service_credential(headers: &HeaderMap) -> Option<&[u8]> {
+    let credentials = headers.get(header::AUTHORIZATION)?.as_bytes();
+    let (scheme, token) = credentials
+        .iter()
+        .position(|&byte| byte == b' ')
+        .map_or((credentials, [].as_slice()), |position| {
+            (&credentials[..position], &credentials[position + 1..])
+        });
+    scheme
+        .eq_ignore_ascii_case(SERVICE_AUTH_SCHEME.as_bytes())
+        .then(|| token.trim_ascii())
+}
 
 /// Returns whether the request carries the expected service secret.
 ///
 /// Compares the value in constant time, the length is not hidden. An empty secret never
-/// matches, since empty header values are legal HTTP.
+/// matches, since an empty credential is legal HTTP.
 #[must_use]
 pub fn presents_service_secret(headers: &HeaderMap, secret: &str) -> bool {
     !secret.is_empty()
-        && headers
-            .get(SERVICE_SECRET_HEADER)
-            .is_some_and(|value| value.as_bytes().ct_eq(secret.as_bytes()).into())
+        && service_credential(headers).is_some_and(|token| token.ct_eq(secret.as_bytes()).into())
 }
 
 /// Authenticates internal services acting on behalf of an actor.
@@ -52,7 +68,7 @@ impl AuthenticationProvider for ServiceDelegationProvider {
         let decision = if headers.get(ACTOR_ID_HEADER).is_none() {
             // A secret without a named actor requests no delegation.
             ControlFlow::Continue(())
-        } else if headers.get(SERVICE_SECRET_HEADER).is_none() {
+        } else if service_credential(headers).is_none() {
             ControlFlow::Break(Authentication::Rejected(Report::new(
                 AuthenticationError::MissingServiceSecret,
             )))
@@ -80,7 +96,7 @@ mod tests {
     use type_system::principal::actor::ActorEntityUuid;
     use uuid::Uuid;
 
-    use super::{SERVICE_SECRET_HEADER, ServiceDelegationProvider};
+    use super::{SERVICE_AUTH_SCHEME, ServiceDelegationProvider};
     use crate::{
         provider::{Authentication, AuthenticationProvider as _},
         request::{ACTOR_ID_HEADER, AuthenticationError},
@@ -100,10 +116,10 @@ mod tests {
         let mut headers = HeaderMap::new();
         if let Some(secret) = secret {
             headers.insert(
-                SERVICE_SECRET_HEADER,
-                secret
+                http::header::AUTHORIZATION,
+                format!("{SERVICE_AUTH_SCHEME} {secret}")
                     .parse()
-                    .expect("the secret should be a valid header value"),
+                    .expect("the credential should be a valid header value"),
             );
         }
         if let Some(actor_id) = actor_id {
@@ -145,6 +161,46 @@ mod tests {
                     if resolved == actor_id
             ),
             "the service secret with an actor-ID header should delegate to the named actor"
+        );
+    }
+
+    #[tokio::test]
+    async fn bearer_credential_is_not_read_as_the_service_secret() {
+        // The token equals the configured secret, so only the scheme separates the two.
+        let mut request_headers = headers(None, Some(random_actor()));
+        request_headers.insert(
+            http::header::AUTHORIZATION,
+            format!("Bearer {SERVICE_SECRET}")
+                .parse()
+                .expect("the credential should be a valid header value"),
+        );
+
+        let error = expect_rejection(provider().authenticate(&request_headers).await);
+        assert!(
+            matches!(error, AuthenticationError::MissingServiceSecret),
+            "a credential of another scheme should not be read as the service secret"
+        );
+    }
+
+    #[tokio::test]
+    async fn service_scheme_matches_case_insensitively() {
+        let actor_id = random_actor();
+        let mut request_headers = headers(None, Some(actor_id));
+        request_headers.insert(
+            http::header::AUTHORIZATION,
+            format!("hash-service {SERVICE_SECRET}")
+                .parse()
+                .expect("the credential should be a valid header value"),
+        );
+
+        let decision = provider().authenticate(&request_headers).await;
+        assert!(
+            matches!(
+                decision,
+                ControlFlow::Break(Authentication::Verified(AuthenticatedActor::Uuid(resolved)))
+                    if resolved == actor_id
+            ),
+            "the authorization scheme should match case-insensitively"
         );
     }
 
