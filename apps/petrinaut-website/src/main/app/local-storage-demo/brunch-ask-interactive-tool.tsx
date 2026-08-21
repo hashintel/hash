@@ -1,24 +1,17 @@
 import { type FormEvent, useId, useState } from "react";
-import { z } from "zod";
 
 import {
   ASK_TOOL_NAME,
   type BrunchAskInput,
   type BrunchAskOutput,
+  parseBrunchAskInput,
+  parseBrunchAskOutput,
 } from "@hashintel/brunch-agent-transport-aisdk/client-tools";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   definePetrinautAiInteractiveTool,
-  type PetrinautAiInteractiveTool,
+  type InteractiveToolWidgetProps,
 } from "@hashintel/petrinaut/ui";
-
-const zBrunchAskInput = z.strictObject({
-  question: z.string().min(1),
-}) satisfies z.ZodType<BrunchAskInput>;
-
-const zBrunchAskOutput = z.strictObject({
-  answer: z.string().min(1),
-}) satisfies z.ZodType<BrunchAskOutput>;
 
 const containerStyle = css({
   display: "flex",
@@ -103,12 +96,7 @@ const BrunchAskWidget = ({
   state,
   submit,
   submittedOutput,
-}: {
-  input: z.infer<typeof zBrunchAskInput>;
-  state: "awaiting" | "submitted";
-  submit: (output: z.infer<typeof zBrunchAskOutput>) => void;
-  submittedOutput?: z.infer<typeof zBrunchAskOutput>;
-}) => {
+}: InteractiveToolWidgetProps<BrunchAskInput, BrunchAskOutput>) => {
   const answerId = useId();
   const [answer, setAnswer] = useState("");
 
@@ -152,10 +140,10 @@ const BrunchAskWidget = ({
   );
 };
 
-export const brunchAskInteractiveTool: PetrinautAiInteractiveTool =
-  definePetrinautAiInteractiveTool({
-    toolName: ASK_TOOL_NAME,
-    shouldHandle: () => true,
-    parseInput: (input) => zBrunchAskInput.parse(input),
-    Widget: BrunchAskWidget,
-  });
+export const brunchAskInteractiveTool = definePetrinautAiInteractiveTool({
+  toolName: ASK_TOOL_NAME,
+  shouldHandle: () => true,
+  parseInput: parseBrunchAskInput,
+  parseOutput: parseBrunchAskOutput,
+  Widget: BrunchAskWidget,
+});

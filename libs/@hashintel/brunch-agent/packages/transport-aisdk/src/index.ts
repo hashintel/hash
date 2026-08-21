@@ -28,6 +28,8 @@ export {
   ASK_TOOL_NAME,
   type BrunchAskInput,
   type BrunchAskOutput,
+  parseBrunchAskInput,
+  parseBrunchAskOutput,
 } from "./client-tools";
 
 export interface HarnessTurnInput {

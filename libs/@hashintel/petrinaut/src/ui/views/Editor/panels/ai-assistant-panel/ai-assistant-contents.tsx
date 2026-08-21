@@ -24,7 +24,7 @@ import {
   type OnInteractiveToolSubmit,
 } from "./ai-assistant-contents/tool-list";
 
-import type { InteractiveToolDefinition } from "./interactive-tools/types";
+import type { PetrinautAiInteractiveTool } from "./interactive-tools/types";
 import type { AiToolTarget } from "./tool-summaries";
 import type { PetrinautAiMessage } from "./types";
 
@@ -33,7 +33,7 @@ type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
 export type AiAssistantContentsProps = {
   error?: Error;
   input: string;
-  interactiveTools?: readonly InteractiveToolDefinition<unknown, unknown>[];
+  interactiveTools?: readonly PetrinautAiInteractiveTool[];
   messages: PetrinautAiMessage[];
   onClearMessages?: () => void;
   onClose: () => void;
@@ -346,7 +346,7 @@ const AiAssistantMessage = memo(
     message,
   }: {
     handlersRef: MessageHandlersRef;
-    interactiveTools?: readonly InteractiveToolDefinition<unknown, unknown>[];
+    interactiveTools?: readonly PetrinautAiInteractiveTool[];
     message: PetrinautAiMessage;
   }) => {
     const role = message.role === "user" ? "user" : "assistant";

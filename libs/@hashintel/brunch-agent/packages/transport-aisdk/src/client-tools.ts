@@ -2,12 +2,21 @@
  * Browser-safe wire contract for the Brunch tools a host UI executes.
  */
 
-export const ASK_TOOL_NAME = "brunch_ask";
+import * as v from "valibot";
 
-export interface BrunchAskInput {
-  readonly question: string;
-}
+import {
+  AskInput,
+  AskSubmission,
+  toolName,
+} from "@hashintel/brunch-agent/client-tools";
 
-export interface BrunchAskOutput {
-  readonly answer: string;
-}
+export const ASK_TOOL_NAME = toolName("ask");
+
+export type BrunchAskInput = v.InferOutput<typeof AskInput>;
+export type BrunchAskOutput = v.InferOutput<typeof AskSubmission>;
+
+export const parseBrunchAskInput = (input: unknown): BrunchAskInput =>
+  v.parse(AskInput, input);
+
+export const parseBrunchAskOutput = (output: unknown): BrunchAskOutput =>
+  v.parse(AskSubmission, output);

@@ -35,6 +35,8 @@ export const PRODUCT_NAME = "brunch";
 export const OPERATIONS = ["ask", "sweep"] as const;
 
 export type Operation = (typeof OPERATIONS)[number];
+export type ToolName<OperationName extends Operation = Operation> =
+  `${typeof PRODUCT_NAME}_${OperationName}`;
 
 const IDENTIFIER = /^[a-z][a-z0-9_]*$/;
 
@@ -62,6 +64,10 @@ export function toolPrefix(productName: string = PRODUCT_NAME): string {
  * operation is a compile error rather than a misnamed tool the model quietly
  * fails to find. The runtime guard stays for untyped callers.
  */
+export function toolName<OperationName extends Operation>(
+  operation: OperationName,
+): ToolName<OperationName>;
+export function toolName(operation: Operation, productName: string): string;
 export function toolName(
   operation: Operation,
   productName: string = PRODUCT_NAME,

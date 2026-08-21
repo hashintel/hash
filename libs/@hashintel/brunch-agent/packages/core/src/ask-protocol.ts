@@ -1,9 +1,9 @@
-import * as v from "valibot";
-
 import { toolName } from "./naming";
 
 import type { FreeTextAffordance } from "./affordance";
 import type { SweepSessionEntry } from "./sweep-protocol";
+
+export { AskSubmission } from "./ask-tool-contract";
 
 export const ASK_TOOL_DESCRIPTION =
   "Ask one free-text question and suspend this turn for the person’s reply. A second ask in the same tool batch is rejected.";
@@ -62,16 +62,6 @@ export function buildReplyBindingSignalPayload(
     attributes: { affordanceId: pending.id },
   };
 }
-
-/**
- * The submitted-output contract for one free-text ask answer returning over
- * a UI tool-output wire. The host component authors exactly this shape.
- */
-export const AskSubmission = v.object({
-  answer: v.pipe(v.string(), v.nonEmpty()),
-});
-
-export type AskSubmission = v.InferOutput<typeof AskSubmission>;
 
 export type AskReplyAdmission =
   | { readonly ok: true }

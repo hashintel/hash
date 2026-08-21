@@ -6,7 +6,8 @@ import { definePetrinautAiInteractiveTool } from "./types";
 const brunchAsk = definePetrinautAiInteractiveTool({
   toolName: "brunch_ask",
   shouldHandle: () => true,
-  parseInput: (input: unknown) => input as { question: string },
+  parseInput: String,
+  parseOutput: String,
   Widget: () => null,
 });
 
@@ -14,16 +15,19 @@ test("resolves a host-supplied interactive tool", () => {
   expect(
     getInteractiveTool(
       "brunch_ask",
-      { question: "What outcome should the process produce?" },
+      "What outcome should the process produce?",
       [brunchAsk],
     ),
-  ).toBe(brunchAsk);
+  ).toEqual({ kind: "host", tool: brunchAsk });
 });
 
 test("does not let a host shadow a Petrinaut-owned tool", () => {
   const shadow = definePetrinautAiInteractiveTool({
-    ...brunchAsk,
     toolName: "applyAutoLayout",
+    shouldHandle: () => true,
+    parseInput: String,
+    parseOutput: String,
+    Widget: () => null,
   });
 
   expect(
