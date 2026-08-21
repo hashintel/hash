@@ -105,7 +105,7 @@ bindings](../../libs/@local/petrinaut-python/README.md), created with the
 manifest as opaque JSON. This service starts the session, describes the study,
 evaluates one trial at a time, and closes the session.
 
-`describe_optimization()` returns the direction, the study settings, and the
+`describe()` returns the direction, the study settings, and the
 flat parameters that are not fixed, each one a descriptor such as:
 
 ```json

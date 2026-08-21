@@ -181,9 +181,7 @@ class PetrinautOptimizer:
         description: Mapping[str, Any] | None = None,
         **sampler_options: Any,
     ) -> None:
-        raw_description = (
-            pn_model.describe_optimization() if description is None else description
-        )
+        raw_description = pn_model.describe() if description is None else description
         direction, sampler_name, n_trials, seed, parameters = _parse_description(
             raw_description
         )

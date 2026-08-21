@@ -60,7 +60,7 @@ from petrinaut import OptimizationSession
 
 # `OptimizationSession(manifest_path=...)` reads the manifest from disk instead.
 with OptimizationSession(manifest) as session:
-    description = session.describe_optimization()
+    description = session.describe()
     value = session.objective({"production_rate": 112.5, "enabled": True})
     full = session.evaluate({"production_rate": 112.5, "enabled": True})
     # full["replicates"] carries per-seed objectives when the manifest

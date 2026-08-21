@@ -67,7 +67,7 @@ def test_evaluates_an_optimization_manifest_end_to_end() -> None:
         manifest_path=SUPPLY_CHAIN_OPTIMIZATION,
         command=(str(NODE), str(CLI_BUNDLE)),
     ) as session:
-        description = session.describe_optimization()
+        description = session.describe()
         assert description["direction"] == "maximize"
 
         parameters = {

@@ -43,7 +43,9 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
     )
     model.start()
 
-    assert model.describe_optimization() == optimization_description
+    assert model.describe() == optimization_description
+    # The previous name stays as an alias.
+    assert OptimizationSession.describe_optimization is OptimizationSession.describe
     assert model.objective({"rate": 1.25, "count": 6, "enabled": False}) == 12.5
     lines = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
 
@@ -89,7 +91,7 @@ def test_optimization_session_from_a_manifest_file(
     )
     session.start()
 
-    assert session.describe_optimization() == optimization_description
+    assert session.describe() == optimization_description
     assert invocation["command"] == [
         "petrinaut",
         "serve",
@@ -176,7 +178,7 @@ time.sleep(60)
     # The deadline names itself rather than collapsing into a generic
     # transport failure, so an operator can tell a stall from a broken pipe.
     with pytest.raises(PetrinautClientError, match="protocol response timed out"):
-        model.describe_optimization()
+        model.describe()
 
     assert time.monotonic() - started_at < 2
 
@@ -195,7 +197,7 @@ def test_rejects_an_oversized_protocol_line(
     monkeypatch.setattr(petrinaut_session, "MAX_PROTOCOL_LINE_BYTES", 8)
 
     with pytest.raises(PetrinautProtocolError, match="line limit"):
-        model.describe_optimization()
+        model.describe()
 
     assert process.returncode == 0
     model.close()

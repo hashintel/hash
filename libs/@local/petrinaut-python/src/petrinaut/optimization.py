@@ -46,9 +46,13 @@ class OptimizationSession(PetrinautSession):
             **options,
         )
 
-    def describe_optimization(self) -> dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         """Return the CLI-owned Optuna study and parameter description."""
         return self._request_object("optimization.describe")
+
+    # The previous name; prefer `describe()`, which maps 1:1 to the protocol's
+    # `optimization.describe` and reads without repeating the class name.
+    describe_optimization = describe
 
     def evaluate(self, parameter_values: Mapping[str, Any]) -> dict[str, Any]:
         """Evaluate one trial and return the whole result frame.

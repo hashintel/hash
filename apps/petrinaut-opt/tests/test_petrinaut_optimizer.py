@@ -26,7 +26,7 @@ class FakeModel:
         self.closed = False
         self.close_calls: list[bool] = []
 
-    def describe_optimization(self) -> dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return self.description
 
     def objective(self, parameter_values: dict[str, Any]) -> float:
