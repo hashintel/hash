@@ -1,6 +1,5 @@
 import { applyAutoLayoutInteractiveTool } from "./apply-auto-layout-widget";
 
-import type { AiToolOutput } from "../tool-summaries";
 import type { InteractiveToolDefinition } from "./types";
 
 /**
@@ -15,20 +14,45 @@ import type { InteractiveToolDefinition } from "./types";
  */
 export const interactiveTools: Record<
   string,
-  InteractiveToolDefinition<unknown, AiToolOutput>
+  InteractiveToolDefinition<unknown, unknown>
 > = {
   [applyAutoLayoutInteractiveTool.toolName]:
     applyAutoLayoutInteractiveTool as InteractiveToolDefinition<
       unknown,
-      AiToolOutput
+      unknown
     >,
+};
+
+export const findHostInteractiveTool = (
+  toolName: string,
+  hostTools: readonly InteractiveToolDefinition<unknown, unknown>[] = [],
+): InteractiveToolDefinition<unknown, unknown> | undefined => {
+  if (interactiveTools[toolName]) {
+    return undefined;
+  }
+  return hostTools.find((hostTool) => hostTool.toolName === toolName);
+};
+
+export const getHostInteractiveTool = (
+  toolName: string,
+  input: unknown,
+  hostTools: readonly InteractiveToolDefinition<unknown, unknown>[] = [],
+): InteractiveToolDefinition<unknown, unknown> | undefined => {
+  const descriptor = findHostInteractiveTool(toolName, hostTools);
+  if (!descriptor) {
+    return undefined;
+  }
+  return descriptor.shouldHandle(input) ? descriptor : undefined;
 };
 
 export const getInteractiveTool = (
   toolName: string,
   input: unknown,
-): InteractiveToolDefinition<unknown, AiToolOutput> | undefined => {
-  const descriptor = interactiveTools[toolName];
+  hostTools: readonly InteractiveToolDefinition<unknown, unknown>[] = [],
+): InteractiveToolDefinition<unknown, unknown> | undefined => {
+  const descriptor =
+    interactiveTools[toolName] ??
+    getHostInteractiveTool(toolName, input, hostTools);
   if (!descriptor) {
     return undefined;
   }

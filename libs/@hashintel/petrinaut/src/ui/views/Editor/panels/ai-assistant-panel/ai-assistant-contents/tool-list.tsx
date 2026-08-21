@@ -13,7 +13,6 @@ import {
 
 import { getInteractiveTool } from "../interactive-tools/registry";
 import {
-  type AiToolOutput,
   type AiToolTarget,
   type AiToolSummary,
   summarizePetrinautAiToolCall,
@@ -40,9 +39,9 @@ export type ToolRenderItem = {
   errorText?: string;
   /** Set when the tool requires an inline widget for human input. */
   interactive?: {
-    definition: InteractiveToolDefinition<unknown, AiToolOutput>;
+    definition: InteractiveToolDefinition<unknown, unknown>;
     input: unknown;
-    submittedOutput?: AiToolOutput;
+    submittedOutput?: unknown;
   };
 };
 
@@ -59,7 +58,7 @@ export type RenderableToolPart = PetrinautAiMessage["parts"][number] & {
 export type OnInteractiveToolSubmit = (params: {
   toolCallId: string;
   toolName: string;
-  output: AiToolOutput;
+  output: unknown;
 }) => void;
 
 const toolListStyle = cva({
@@ -454,20 +453,25 @@ const getToolTone = ({
 export const toToolRenderItem = (
   message: PetrinautAiMessage,
   part: RenderableToolPart,
+  hostInteractiveTools: readonly InteractiveToolDefinition<
+    unknown,
+    unknown
+  >[] = [],
 ): ToolRenderItem => {
   const state = part.state ?? "input-available";
   const summary = getToolSummaryFromPart(part);
   const toolName = getToolName(part);
 
-  const interactiveDefinition = getInteractiveTool(toolName, part.input);
+  const interactiveDefinition = getInteractiveTool(
+    toolName,
+    part.input,
+    hostInteractiveTools,
+  );
   const interactive = interactiveDefinition
     ? {
         definition: interactiveDefinition,
         input: part.input,
-        submittedOutput:
-          state === "output-available" && part.output
-            ? (part.output as AiToolOutput)
-            : undefined,
+        submittedOutput: state === "output-available" ? part.output : undefined,
       }
     : undefined;
 

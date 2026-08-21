@@ -39,3 +39,12 @@ export type InteractiveToolDefinition<Input = unknown, Output = unknown> = {
   parseInput: (raw: unknown) => Input;
   Widget: ComponentType<InteractiveToolWidgetProps<Input, Output>>;
 };
+
+/**
+ * Preserve a host tool's inferred input/output types while erasing them at the
+ * heterogeneous registry boundary.
+ */
+export const definePetrinautAiInteractiveTool = <Input, Output>(
+  definition: InteractiveToolDefinition<Input, Output>,
+): InteractiveToolDefinition<unknown, unknown> =>
+  definition as InteractiveToolDefinition<unknown, unknown>;

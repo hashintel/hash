@@ -7,8 +7,13 @@ const packageRoot = fileURLToPath(new URL(".", import.meta.url));
 export default defineConfig({
   build: {
     lib: {
-      entry: fileURLToPath(new URL("src/index.ts", import.meta.url)),
-      fileName: "index",
+      entry: {
+        "client-tools": fileURLToPath(
+          new URL("src/client-tools.ts", import.meta.url),
+        ),
+        index: fileURLToPath(new URL("src/index.ts", import.meta.url)),
+      },
+      fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],
     },
     rolldownOptions: {

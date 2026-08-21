@@ -1090,7 +1090,7 @@ firings (`docs/actual-mode.md:17`).
 
 **There is a reference producer in-repo**:
 `../hash/apps/petrinaut-website/scripts/brunch-sse-fixture.ts` (941 lines,
-`turbo run brunch:fixture --filter '@apps/petrinaut-website'`) — a Brunch-compatible SSE server that serves a net, an
+`yarn brunch:fixture`) — a Brunch-compatible SSE server that serves a net, an
 initial marking, historical firings, then streams new ones, and can replay a
 Petrinaut Actual-mode export. This is effectively a written-down contract test for
 the brunch side.

@@ -50,7 +50,7 @@ test("every workspace package is one the spec topology names", () => {
   // intended-but-unbuilt one is not a failure. (The old hardcoded equality
   // would have failed the next legitimate package instead of governing it.)
   const spec = readFileSync(join(CONTEXT_ROOT, "docs/spec.md"), "utf8");
-  const topology = /### 12\.2[^\n]*\n[\s\S]*?```\n([\s\S]*?)```/.exec(
+  const topology = /### 12\.2[^\n]*\n[\s\S]*?```text\n([\s\S]*?)```/.exec(
     spec,
   )?.[1];
   expect(topology).toBeDefined();

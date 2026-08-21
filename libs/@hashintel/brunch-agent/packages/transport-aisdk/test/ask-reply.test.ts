@@ -9,7 +9,10 @@ import { join } from "node:path";
 
 import { describe, expect, test } from "vitest";
 
+import { toolName } from "@hashintel/brunch-agent";
+
 import {
+  ASK_TOOL_NAME,
   createAiSdkChatHandler,
   type AskReplyHandler,
   type HarnessAskReplyInput,
@@ -20,6 +23,10 @@ import {
 type StreamChunk = Record<string, unknown> & { readonly type: string };
 
 const FIXTURES = join(import.meta.dirname, "fixtures");
+
+test("keeps the client ask tool name aligned with the Brunch product name", () => {
+  expect(ASK_TOOL_NAME).toBe(toolName("ask"));
+});
 
 const responseChunks = async (
   response: Response,
@@ -84,14 +91,23 @@ const askReturnPost = {
       parts: [
         { type: "step-start" },
         {
-          type: "dynamic-tool",
-          toolName: "brunch_ask",
+          type: "tool-brunch_ask",
           toolCallId: "tool-ask-fe1449",
           state: "output-available",
           input: {
             question: "What outcome should this process reliably produce?",
           },
           output: { answer: "A confirmed order with payment settled." },
+        },
+      ],
+    },
+    {
+      id: "petrinaut-diagnostics-context",
+      role: "user",
+      parts: [
+        {
+          type: "text",
+          text: "Petrinaut diagnostics context only; this is not a user request.",
         },
       ],
     },
@@ -192,6 +208,7 @@ describe("FE-1449 ask return POST", () => {
     expect(admitted).toEqual([
       {
         conversationId: "conversation-fe1449",
+        assistantMessageId: "assistant-fe1449-1",
         idempotencyKey: "conversation-fe1449:ask:tool-ask-fe1449",
         ask: {
           toolCallId: "tool-ask-fe1449",
@@ -200,6 +217,10 @@ describe("FE-1449 ask return POST", () => {
       },
     ]);
     const chunks = await responseChunks(response);
+    expect(chunks[0]).toEqual({
+      type: "start",
+      messageId: "assistant-fe1449-1",
+    });
     expect(chunks.find((chunk) => chunk.type === "text-delta")).toMatchObject({
       delta: "Payment settled — who initiates the checkout?",
     });

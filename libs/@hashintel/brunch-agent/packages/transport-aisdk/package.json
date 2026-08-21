@@ -9,6 +9,10 @@
     ".": {
       "types": "./src/index.ts",
       "import": "./dist/index.js"
+    },
+    "./client-tools": {
+      "types": "./src/client-tools.ts",
+      "import": "./dist/client-tools.js"
     }
   },
   "scripts": {
