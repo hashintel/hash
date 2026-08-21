@@ -120,14 +120,25 @@ the issue, only moved into `🏗️ Agent notes`.
 
 ## Pull requests
 
-A pull request uses the same two layers. Its title is `{ISSUE-ID}: {current Linear issue title}`
-as required by `git-workflow.md`. The visible body is one short account in plain technical prose
-that stands alone for a reader arriving from the repository feed: name the larger change this work
-belongs to, why that change is happening, what this branch establishes within it, and any material
-limit on that claim. Spell out project-local shorthand on first use; a phrase such as "import
-gates" is not context until the body says what is being imported and what the gates protect. Do not
-turn the visible layer into `What`, `Why`, `Testing`, or other labeled sections. Put implementation
-detail, verification, and stack mechanics inside the GitHub `🏗️ Agent notes` wrapper shown above.
+A pull request uses the same two layers, expressed through the repository's pull-request
+template. Its title is `{ISSUE-ID}: {current Linear issue title}` as required by
+`git-workflow.md`. Its body **fills `.github/pull_request_template.md`** rather than replacing
+it; the layer discipline applies inside the template's sections:
+
+- **`## 🌟 What is the purpose of this PR?`** is the scan layer: one or two sentences of plain
+  technical prose that stand alone for a reader arriving from the repository feed — the larger
+  change this work belongs to, why it is happening, and what this branch establishes within it.
+  Spell out project-local shorthand on first use; a phrase such as "import gates" is not context
+  until the body says what is being imported and what the gates protect.
+- **`## 🔍 What does this change?`** carries the remaining layers in order: first a
+  plain-language description of the change, then implementation detail, verification, and stack
+  mechanics inside the GitHub `🏗️ Agent notes` wrapper shown above.
+- Fill the template's other sections (related links, blockers, checklists, known issues, tests)
+  per their own inline comments; answer the checklists honestly and keep the sections the
+  template says not to delete.
+
+The prose rules govern throughout: within each section, write sentences, not `What` / `Why` /
+`Testing` label-fragments beyond the headings the template itself provides.
 
 When reshaping an existing pull request, preserve its detailed record byte-for-byte inside the
 wrapper. A title or outer summary may change only to improve the scan layer without changing the

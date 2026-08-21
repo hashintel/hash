@@ -20,8 +20,9 @@ Never use `gt` in `hashintel/hash`.
 - **Branch**: `{prefix}/{issue-id}-{keywords}` (e.g. `ln/fe-1362-demo-vehicle`).
 - **PR title**: `{ISSUE-ID}: {Linear issue title in sentence case}`
   (e.g. `FE-1362: Decide the September demo vehicle`).
-- PR descriptions are written when tying off a branch, not during active development, and use
-  the visible-summary / `🏗️ Agent notes` split in `issue-writing.md`.
+- PR descriptions are written when tying off a branch, not during active development. They fill
+  the repository template (`.github/pull_request_template.md`) with the visible-summary /
+  `🏗️ Agent notes` split applied inside its sections, per `issue-writing.md`.
 
 ## Deposit rule
 
