@@ -66,7 +66,8 @@ update. Publish it to the `brunch-agent` project.
 
 ## Wayfinding operations
 
-Used by `/wayfinder`. The **map** is a Linear issue with one **child** sub-issue per ticket.
+Used by the `ds-wayfind` skill. The **map** is a Linear issue with one **child** sub-issue per
+ticket.
 
 - **Map**: an FE issue in project `brunch-agent`, labeled `wayfinder → map` (label group `wayfinder`,
   children `map` / `research` / `prototype` / `grilling` / `manual-task` — created 2026-08-11;
@@ -115,8 +116,9 @@ candidate orphans continuously; its only legitimate rows are the roots themselve
 ## Historical note
 
 Before 2026-08-11 this repo tracked issues as local markdown under `.scratch/<feature-slug>/`
-(map at `map.md`, tickets at `issues/NN-<slug>.md`; that tree now lives under `docs/planning/`). The completed `elicitation-kernel` effort
-remains in that form as the canonical archive (now at `docs/planning/elicitation-kernel/`), and is **mirrored in Linear for team
+(map at `map.md`, tickets at `issues/NN-<slug>.md`; live trees moved under `docs/planning/`,
+completed ones under `docs/history/planning/`). The completed `elicitation-kernel` effort
+remains in that form as the canonical archive (now at `docs/history/planning/elicitation-kernel/`), and is **mirrored in Linear for team
 visibility** as FE-1366 (map) with sub-issues FE-1367–FE-1379, all Done, blocking relations
 preserved. New efforts go to Linear directly.
 

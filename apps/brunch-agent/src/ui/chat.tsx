@@ -75,7 +75,7 @@ export function Chat() {
           initialData: { targetDocumentId: `dev-${conversationId}` },
         });
         await client.wait(admission);
-        await agent.refresh();
+        agent.refresh();
       } catch (error: unknown) {
         setStartupError(
           error instanceof Error
