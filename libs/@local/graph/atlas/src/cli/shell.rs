@@ -1,8 +1,12 @@
 //! The standalone binary's command line and entry point.
 
-use clap::{Parser, Subcommand};
+use camino::Utf8PathBuf;
+use clap::{Parser, Subcommand, ValueHint};
 
-use super::{FitArgs, PostgresArgs, ReportCommand, RootArgs};
+#[cfg(feature = "cli")]
+use super::EmbedderArgs;
+use super::{DumpArgs, FitArgs, PostgresArgs, ReportCommand, RootArgs};
+use crate::integrity::SecretString;
 
 /// The standalone atlas binary's command line.
 ///
@@ -18,7 +22,7 @@ struct Cli {
 /// The standalone atlas binary's commands.
 #[derive(Debug, Subcommand)]
 enum Command {
-    /// Fits one generation over the live store and activates it on admission.
+    /// Fits one generation over the live store or a dump directory and activates it on admission.
     Fit {
         #[command(flatten)]
         root: RootArgs,
@@ -29,6 +33,24 @@ enum Command {
         // The fit flags dwarf the other variants, so the box keeps the enum small.
         #[command(flatten)]
         args: Box<FitArgs>,
+
+        /// The OpenAI API key the embedding provider authenticates with.
+        #[arg(
+            long,
+            env = "OPENAI_API_KEY",
+            hide_env_values = true,
+            required_unless_present = "offline"
+        )]
+        openai_api_key: Option<SecretString>,
+
+        /// Fit from the dump directory instead of the live store.
+        ///
+        /// The dump supplies the snapshot and every embedding, so the run reaches neither the
+        /// store nor the embedding provider. Typing a store flag or the provider key beside this
+        /// flag refuses the invocation, while values their environment variables supply stay
+        /// ambient configuration the offline fit ignores.
+        #[arg(long, value_name = "DUMP", value_hint = ValueHint::DirPath)]
+        offline: Option<Utf8PathBuf>,
 
         /// Watch the run on the live dashboard instead of a log stream.
         ///
@@ -44,6 +66,100 @@ enum Command {
         #[command(subcommand)]
         command: ReportCommand,
     },
+
+    /// Dumps the live store into a directory an offline fit reads in place of the store.
+    Dump {
+        #[command(flatten)]
+        store: PostgresArgs,
+
+        #[command(flatten)]
+        args: DumpArgs,
+    },
+}
+
+/// Where one shell fit reads from, resolved from the parsed flags.
+#[cfg(feature = "cli")]
+enum FitSource {
+    /// Dial the store and embed through the external provider.
+    Live {
+        /// The store connection flags.
+        store: PostgresArgs,
+        /// The embedding provider's credential.
+        credential: EmbedderArgs,
+    },
+    /// Read the dump directory in place of the store and the provider both.
+    Offline(Utf8PathBuf),
+}
+
+/// Resolves the fit flags into the run's source.
+#[cfg(feature = "cli")]
+fn fit_source(
+    store: PostgresArgs,
+    openai_api_key: Option<SecretString>,
+    offline: Option<Utf8PathBuf>,
+) -> FitSource {
+    match (offline, openai_api_key) {
+        // A typed key beside `--offline` was refused at parse, so a key here can only be
+        // environment-sourced ambient configuration, which the offline fit ignores.
+        (Some(dump), _) => FitSource::Offline(dump),
+        (None, Some(openai_api_key)) => FitSource::Live {
+            store,
+            credential: EmbedderArgs::new(openai_api_key),
+        },
+        (None, None) => unreachable!("clap requires the key when `--offline` is absent"),
+    }
+}
+
+/// The fit flags `--offline` contradicts when both sides are typed on one invocation: the
+/// provider key and the store connection flags.
+#[cfg(feature = "cli")]
+const OFFLINE_CONFLICTS: [&str; 6] = [
+    "openai_api_key",
+    "user",
+    "password",
+    "host",
+    "port",
+    "database",
+];
+
+/// Parses a command line, refusing a fit invocation that types `--offline` beside a live flag.
+///
+/// The live flags all ride environment variables (`OPENAI_API_KEY`, `HASH_GRAPH_PG_*`), and clap
+/// counts an environment-sourced value as present when it checks conflicts, so a declarative
+/// `conflicts_with` would refuse `fit --offline` on any machine whose standing environment
+/// carries the live configuration. The contradiction worth refusing is the typed one: this
+/// checks each flag's value source and refuses exactly what the operator put on this command
+/// line, while an exported variable stays ambient configuration the offline fit ignores.
+#[cfg(feature = "cli")]
+fn parse<I, T>(itr: I) -> Result<Cli, clap::Error>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<std::ffi::OsString> + Clone,
+{
+    let mut command = <Cli as clap::CommandFactory>::command();
+    let matches = command.clone().try_get_matches_from(itr)?;
+
+    if let Some(("fit", fit)) = matches.subcommand()
+        && fit.value_source("offline") == Some(clap::parser::ValueSource::CommandLine)
+        && let Some(conflict) = OFFLINE_CONFLICTS
+            .into_iter()
+            .find(|id| fit.value_source(id) == Some(clap::parser::ValueSource::CommandLine))
+    {
+        let fit_command = command
+            .find_subcommand_mut("fit")
+            .expect("the fit subcommand exists");
+        let long = fit_command
+            .get_arguments()
+            .find(|argument| argument.get_id().as_str() == conflict)
+            .and_then(clap::Arg::get_long)
+            .expect("every flag `--offline` contradicts is a long flag");
+        return Err(fit_command.error(
+            clap::error::ErrorKind::ArgumentConflict,
+            format!("the argument '--offline <DUMP>' cannot be used with '--{long}'"),
+        ));
+    }
+
+    <Cli as clap::FromArgMatches>::from_arg_matches(&matches)
 }
 
 /// One dashboard-hosted fit's failure, by step.
@@ -128,7 +244,7 @@ fn log_filter() -> tracing_subscriber::EnvFilter {
 #[cfg(feature = "cli")]
 async fn fit_on_dashboard(
     root: RootArgs,
-    store: PostgresArgs,
+    source: FitSource,
     args: FitArgs,
 ) -> Result<super::FitVerdict, DashboardError> {
     let dashboard = super::tui::Dashboard::start().map_err(DashboardError::Terminal)?;
@@ -144,13 +260,22 @@ async fn fit_on_dashboard(
 
     let observer = dashboard.observer();
     let outcome = async {
-        let mut client = store.connect().await.map_err(DashboardError::Connect)?;
+        let command = super::FitCommand::new(root, args).with_progress(observer);
 
-        super::FitCommand::new(root, args)
-            .with_progress(observer)
-            .run(&mut client)
-            .await
-            .map_err(DashboardError::Fit)
+        match source {
+            FitSource::Live { store, credential } => {
+                let mut client = store.connect().await.map_err(DashboardError::Connect)?;
+
+                command
+                    .run(&mut client, credential)
+                    .await
+                    .map_err(DashboardError::Fit)
+            }
+            FitSource::Offline(dump) => command
+                .run_offline(&dump)
+                .await
+                .map_err(DashboardError::Fit),
+        }
     }
     .await;
 
@@ -176,7 +301,7 @@ async fn fit_on_dashboard(
 #[must_use]
 #[tokio::main]
 pub async fn main() -> std::process::ExitCode {
-    let cli = Cli::parse();
+    let cli = parse(std::env::args_os()).unwrap_or_else(|error| error.exit());
 
     // Placed after parsing so the help and version flags work on an unsupported CPU.
     crate::math::kernel::verify_cpu_baseline();
@@ -194,27 +319,41 @@ pub async fn main() -> std::process::ExitCode {
             root,
             store,
             args,
+            openai_api_key,
+            offline,
             tui: true,
-        } => match fit_on_dashboard(root, store, *args).await {
-            Ok(verdict) => {
-                render_verdict(verdict);
-                std::process::ExitCode::SUCCESS
+        } => {
+            match fit_on_dashboard(root, fit_source(store, openai_api_key, offline), *args).await {
+                Ok(verdict) => {
+                    render_verdict(verdict);
+                    std::process::ExitCode::SUCCESS
+                }
+                Err(error) => render_failure(error),
             }
-            Err(error) => render_failure(error),
-        },
+        }
 
         Command::Fit {
             root,
             store,
             args,
+            openai_api_key,
+            offline,
             tui: false,
         } => {
-            let mut client = match store.connect().await {
-                Ok(client) => client,
-                Err(error) => return render_failure(error),
+            let command = super::FitCommand::new(root, *args);
+            let result = match fit_source(store, openai_api_key, offline) {
+                FitSource::Live { store, credential } => {
+                    let mut client = match store.connect().await {
+                        Ok(client) => client,
+                        Err(error) => return render_failure(error),
+                    };
+
+                    command.run(&mut client, credential).await
+                }
+                FitSource::Offline(dump) => command.run_offline(&dump).await,
             };
 
-            match super::FitCommand::new(root, *args).run(&mut client).await {
+            match result {
                 Ok(verdict) => {
                     render_verdict(verdict);
                     std::process::ExitCode::SUCCESS
@@ -233,5 +372,108 @@ pub async fn main() -> std::process::ExitCode {
             }
             Err(error) => render_failure(error),
         },
+
+        Command::Dump { store, args } => {
+            let mut client = match store.connect().await {
+                Ok(client) => client,
+                Err(error) => return render_failure(error),
+            };
+
+            match super::DumpCommand::new(args).run(&mut client).await {
+                Ok(verdict) => {
+                    render_verdict(verdict);
+                    std::process::ExitCode::SUCCESS
+                }
+                Err(error) => render_failure(error),
+            }
+        }
+    }
+}
+
+#[cfg(all(test, feature = "cli"))]
+mod tests {
+    use camino::Utf8PathBuf;
+
+    use super::{Cli, Command, parse};
+
+    /// A scratch generation root for one parse, keyed so libtest's shared process cannot collide.
+    ///
+    /// Parsing creates the root directory, so each test names its own and removes it afterwards.
+    fn scratch_root(name: &str) -> Utf8PathBuf {
+        Utf8PathBuf::from_path_buf(std::env::temp_dir())
+            .expect("the temp directory is UTF-8")
+            .join(format!("atlas-shell-{}-{name}", std::process::id()))
+    }
+
+    #[test]
+    fn cli_consistency() {
+        <Cli as clap::CommandFactory>::command().debug_assert();
+    }
+
+    #[test]
+    fn offline_with_typed_key() {
+        let root = scratch_root("offline_with_typed_key");
+        let error = parse([
+            "hash-graph-atlas",
+            "fit",
+            "--root",
+            root.as_str(),
+            "--annotations",
+            "corpus.json",
+            "--offline",
+            "dump",
+            "--openai-api-key",
+            "secret",
+        ])
+        .expect_err("a typed key beside `--offline` is a contradiction");
+        let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&root);
+
+        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn offline_with_typed_store_flag() {
+        let root = scratch_root("offline_with_typed_store_flag");
+        let error = parse([
+            "hash-graph-atlas",
+            "fit",
+            "--root",
+            root.as_str(),
+            "--annotations",
+            "corpus.json",
+            "--offline",
+            "dump",
+            "--host",
+            "elsewhere",
+        ])
+        .expect_err("a typed store flag beside `--offline` is a contradiction");
+        let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&root);
+
+        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn offline_without_live_flags() {
+        let root = scratch_root("offline_without_live_flags");
+        let cli = parse([
+            "hash-graph-atlas",
+            "fit",
+            "--root",
+            root.as_str(),
+            "--annotations",
+            "corpus.json",
+            "--offline",
+            "dump",
+        ])
+        .expect("an offline fit needs neither the key nor the store flags");
+        let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&root);
+
+        assert!(matches!(
+            cli.command,
+            Command::Fit {
+                offline: Some(_),
+                ..
+            }
+        ));
     }
 }

@@ -1,34 +1,25 @@
-//! The fit command that runs one production generation over the live store.
+//! The fit command that runs one production generation over the live store or a dump directory.
 
 use core::{error::Error, fmt, num::NonZero, time::Duration};
 use std::{io, time::Instant};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::{Args, ValueHint};
-use error_stack::Report;
-use hash_graph_embeddings::{EmbeddingError, OpenAiEmbeddingClient, OpenAiEmbeddingClientConfig};
 use tokio_postgres::Client;
 
+use super::embedder::{self, EmbedderArgs, EmbedderError};
 use crate::{
     dataset::TemporalAxes,
     device::PinnedDevice,
     file::generation::GenerationRoot,
-    integrity::SecretString,
     progress::{NoProgress, Progress},
     salt::{
-        embedding::external::{
-            EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, RequestLimits,
-        },
         knn::recall::RecallAdmission,
-        runner::live::{ClassifierSource, Options, Placement, RunError, Summary, live},
+        runner::operator::{
+            ClassifierSource, Options, Placement, RunError, Summary, live, offline,
+        },
     },
 };
-
-/// The embedding endpoint the fit dials.
-///
-/// One constant feeds both the client's base URL and the fingerprinted contract, so the recorded
-/// contract names the endpoint the requests actually hit.
-const EMBEDDING_ENDPOINT: &str = "https://api.openai.com/v1";
 
 /// Root and run settings of one fit.
 #[derive(Debug, Args)]
@@ -116,10 +107,6 @@ pub struct FitArgs {
     #[arg(long)]
     nn_descent: bool,
 
-    /// The OpenAI API key the embedding provider authenticates with.
-    #[arg(long, env = "OPENAI_API_KEY", hide_env_values = true)]
-    openai_api_key: SecretString,
-
     /// Where the admission report JSON lands.
     #[arg(long, default_value = "admission-report.json", value_hint = ValueHint::FilePath)]
     report: Utf8PathBuf,
@@ -127,14 +114,12 @@ pub struct FitArgs {
 
 /// One fit invocation's failure, by step.
 ///
-/// The run variant splices into the chain transparently (its display text and sources are the
-/// wrapped fault's, unchanged). The report variant names its own step.
+/// The embedder and run variants splice into the chain transparently (their display text and
+/// sources are the wrapped fault's, unchanged). The report variant names its own step.
 #[derive(Debug)]
 pub enum FitError {
-    /// Constructing the embedding provider failed.
-    Embedder(Report<EmbeddingError>),
-    /// The embedding provider failed its preflight request.
-    Preflight(ExternalEmbeddingError),
+    /// Producing the embedding provider failed.
+    Embedder(EmbedderError),
     /// The run failed.
     Run(RunError),
     /// Writing the admission report failed.
@@ -144,10 +129,7 @@ pub enum FitError {
 impl fmt::Display for FitError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Embedder(_) => fmt.write_str("the embedding provider could not be constructed"),
-            Self::Preflight(_) => {
-                fmt.write_str("the embedding provider failed its preflight request")
-            }
+            Self::Embedder(error) => fmt::Display::fmt(error, fmt),
             Self::Run(error) => fmt::Display::fmt(error, fmt),
             Self::Io(_) => fmt.write_str("the admission report could not be written"),
         }
@@ -157,8 +139,7 @@ impl fmt::Display for FitError {
 impl Error for FitError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Embedder(report) => Some(report.current_context()),
-            Self::Preflight(error) => Some(error),
+            Self::Embedder(error) => error.source(),
             Self::Run(error) => error.source(),
             Self::Io(error) => Some(error),
         }
@@ -253,7 +234,6 @@ pub struct FitCommand<P> {
     root: GenerationRoot,
     device: PinnedDevice,
     report: Utf8PathBuf,
-    openai_api_key: SecretString,
     options: Options<P>,
 }
 
@@ -265,7 +245,6 @@ impl<P> FitCommand<P> {
             root: self.root,
             device: self.device,
             report: self.report,
-            openai_api_key: self.openai_api_key,
             options: Options {
                 seed: self.options.seed,
                 landmarks: self.options.landmarks,
@@ -290,18 +269,23 @@ where
     /// Runs one production generation over the live store and returns its verdict.
     ///
     /// The hosting binary supplies the dialed store connection ([`PostgresArgs::connect`] in the
-    /// standalone shell, [`connect`] behind the graph binary's own store flags). This call pins the
-    /// snapshot, so the run reads the store as of the moment the command starts.
+    /// standalone shell, [`connect`] behind the graph binary's own store flags) and the embedding
+    /// provider's credential. This call pins the snapshot, so the run reads the store as of the
+    /// moment the command starts.
     ///
     /// # Errors
     ///
-    /// Returns a [`FitError`] naming the step that failed: constructing the embedding provider, its
-    /// preflight request, the run itself, or writing the admission report.
+    /// Returns a [`FitError`] naming the step that failed: producing the embedding provider, the
+    /// run itself, or writing the admission report.
     ///
     /// [`PostgresArgs::connect`]: super::PostgresArgs::connect
     /// [`connect`]: super::connect
-    pub async fn run(self, client: &mut Client) -> Result<FitVerdict, FitError> {
-        // Embedders reach this entry without passing through the shell's main.
+    pub async fn run(
+        self,
+        client: &mut Client,
+        credential: EmbedderArgs,
+    ) -> Result<FitVerdict, FitError> {
+        // The math kernels reach this entry without passing through the shell's main.
         crate::math::kernel::verify_cpu_baseline();
 
         tracing::info!(
@@ -319,28 +303,10 @@ where
             "starting the production run"
         );
 
-        let generator = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
-            // Zeroizing custody ends here: the embeddings client's config takes the key as a
-            // bare owned `String`.
-            api_key: self.openai_api_key.into_unguarded(),
-            base_url: Some(EMBEDDING_ENDPOINT.to_owned()),
-        })
-        .map_err(FitError::Embedder)?;
-        let embedder = ExternalEmbeddingProvider::new(
-            generator,
-            &EmbeddingContract {
-                provider: "openai",
-                endpoint: EMBEDDING_ENDPOINT,
-                model: "text-embedding-3-large",
-                encoding: "float",
-            },
-            RequestLimits { .. },
-            // The provider holds its observer across every request, so it takes the detached half.
-            self.options.progress.detach(),
-        );
-        // The preflight runs before the run reads the store, because a refused key costs minutes
-        // less here than at the first workload request.
-        embedder.preflight().await.map_err(FitError::Preflight)?;
+        // The provider holds its observer across every request, so it takes the detached half.
+        let embedder = embedder::openai(credential.into_key(), self.options.progress.detach())
+            .await
+            .map_err(FitError::Embedder)?;
 
         let started = Instant::now();
         let summary = live(
@@ -352,6 +318,51 @@ where
             &embedder,
         )
         .await?;
+        let elapsed = started.elapsed();
+
+        std::fs::write(&self.report, &summary.report).map_err(FitError::Io)?;
+
+        Ok(FitVerdict {
+            summary,
+            report: self.report,
+            elapsed,
+        })
+    }
+
+    /// Runs one production generation over the dump directory at `dump` and returns its verdict.
+    ///
+    /// The offline counterpart of [`run`](Self::run): the dump supplies the snapshot, its
+    /// temporal axes, and every embedding the run requests, so the command needs neither a store
+    /// connection nor a provider credential, and the generation publishes under the same root a
+    /// live fit's would.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`FitError`] naming the step that failed: the run itself, or writing the
+    /// admission report. A refused dump arrives in the run's own chain, exactly as a refused
+    /// supply document does.
+    pub async fn run_offline(self, dump: &Utf8Path) -> Result<FitVerdict, FitError> {
+        // The math kernels reach this entry without passing through the shell's main.
+        crate::math::kernel::verify_cpu_baseline();
+
+        tracing::info!(
+            root = %self.root.path(),
+            %dump,
+            seed = self.options.seed,
+            landmarks = self.options.landmarks.get(),
+            fresh = self.options.fresh,
+            anchors = self.options.anchors.get(),
+            comparisons = self.options.comparisons.get(),
+            verdicts = ?self.options.verdicts,
+            quality_thresholds = ?self.options.quality_thresholds,
+            classifier = ?self.options.classifier,
+            placement = ?self.options.placement,
+            nn_descent = self.options.nn_descent,
+            "starting the offline production run"
+        );
+
+        let started = Instant::now();
+        let summary = offline(dump, self.root, self.device, self.options).await?;
         let elapsed = started.elapsed();
 
         std::fs::write(&self.report, &summary.report).map_err(FitError::Io)?;
@@ -389,7 +400,6 @@ impl FitCommand<NoProgress> {
             root: root.root,
             device: root.device,
             report: args.report,
-            openai_api_key: args.openai_api_key,
             options: Options {
                 seed: args.seed,
                 landmarks: args.landmarks,

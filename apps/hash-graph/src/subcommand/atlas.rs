@@ -79,7 +79,13 @@ pub struct AtlasArgs {
 pub enum AtlasCommand {
     /// Fits one generation over the live store and activates it on
     /// admission.
-    Fit(cli::FitArgs),
+    Fit {
+        #[clap(flatten)]
+        args: cli::FitArgs,
+
+        #[clap(flatten)]
+        credential: cli::EmbedderArgs,
+    },
 }
 
 /// Runs the atlas server, shutting down when `shutdown` is cancelled.
@@ -170,13 +176,17 @@ fn print_verdict(verdict: &cli::FitVerdict) {
     reason = "Force shutdown on double ctrl-c is intentional"
 )]
 pub async fn atlas(mut args: AtlasArgs) -> Result<(), Report<GraphError>> {
-    if let Some(AtlasCommand::Fit(fit_args)) = args.command.take() {
+    if let Some(AtlasCommand::Fit {
+        args: fit_args,
+        credential,
+    }) = args.command.take()
+    {
         let mut client = cli::connect(&args.db_info.url())
             .await
             .map_err(Report::new)
             .change_context(GraphError)?;
         let verdict = cli::FitCommand::new(args.root, fit_args)
-            .run(&mut client)
+            .run(&mut client, credential)
             .await
             .map_err(Report::new)
             .change_context(GraphError)?;
