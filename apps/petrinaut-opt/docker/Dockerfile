@@ -54,10 +54,11 @@ RUN --mount=type=cache,target=/root/.yarn/berry/cache \
 
 COPY --from=bindings-pruner /repo/out/full/ ./
 
-# The bindings declare their executable as a dependency, so building and
-# focusing on them pulls in whatever provides it. This service does not name
-# that package anywhere.
-RUN turbo run build --filter '@local/petrinaut-python...' && \
+# The bindings declare their executable as a dependency, so building their
+# dependency closure pulls in whatever provides it; this service names no
+# package. `^...` selects the dependencies only: the bindings themselves have
+# nothing to build here, and their codegen needs uv, which this stage lacks.
+RUN turbo run build --filter '@local/petrinaut-python^...' && \
     yarn workspaces focus @local/petrinaut-python --production && \
     find libs -mindepth 3 -maxdepth 3 -type d \
       \( -name src -o -name tests -o -name test-fixtures \) \

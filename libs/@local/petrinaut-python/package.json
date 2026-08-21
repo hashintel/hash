@@ -5,6 +5,7 @@
   "description": "Python bindings for the Petrinaut CLI",
   "license": "(MIT OR Apache-2.0)",
   "scripts": {
+    "codegen": "./scripts/generate-models.sh",
     "fix:ruff": "uv run ruff check --fix . && uv run ruff format .",
     "install:deps": "uv sync",
     "lint:ruff": "uv run ruff check . && uv run ruff format --check .",

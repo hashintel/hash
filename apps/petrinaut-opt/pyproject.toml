@@ -12,6 +12,7 @@ dependencies = [
     "opentelemetry-sdk>=1.44.0",
     "optuna>=3.6",
     "petrinaut-python",
+    "pydantic>=2.13.4",
     "python-dotenv>=1.0.0",
     "uvicorn[standard]>=0.39.0",
 ]
@@ -50,7 +51,7 @@ ignore = [
 # whose fields arrive through `extra=`, which a checker cannot see; typing those
 # is tracked separately.
 include          = ["src"]
-typeCheckingMode = "standard"
+typeCheckingMode = "strict"
 pythonVersion    = "3.10"
 venvPath         = "."
 venv             = ".venv"

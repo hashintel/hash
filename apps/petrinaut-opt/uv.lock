@@ -997,6 +997,7 @@ dependencies = [
     { name = "opentelemetry-sdk" },
     { name = "optuna" },
     { name = "petrinaut-python" },
+    { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -1018,6 +1019,7 @@ requires-dist = [
     { name = "opentelemetry-sdk", specifier = ">=1.44.0" },
     { name = "optuna", specifier = ">=3.6" },
     { name = "petrinaut-python", editable = "../../libs/@local/petrinaut-python" },
+    { name = "pydantic", specifier = ">=2.13.4" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.39.0" },
 ]
@@ -1034,12 +1036,17 @@ dev = [
 name = "petrinaut-python"
 version = "0.1.0"
 source = { editable = "../../libs/@local/petrinaut-python" }
+dependencies = [
+    { name = "pydantic" },
+]
 
 [package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2.13.4" }]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "basedpyright", specifier = ">=1.39.10" },
+    { name = "datamodel-code-generator", specifier = ">=0.74.0" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "ruff", specifier = ">=0.16.4" },
 ]

@@ -28,7 +28,9 @@ from typing import Any
 
 from fastapi import FastAPI
 from opentelemetry import metrics, trace
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.fastapi import (  # pyright: ignore[reportMissingTypeStubs]
+    FastAPIInstrumentor,
+)
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import (
     BatchLogRecordProcessor,
