@@ -1,6 +1,6 @@
 import * as v from "valibot";
 
-import type { EvidenceSpan, JsonValue } from "./capture-store.ts";
+import type { EvidenceSpan, JsonValue } from "./capture-store";
 
 export type SessionEntryKind =
   | "user"

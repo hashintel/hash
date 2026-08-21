@@ -1,8 +1,8 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
-import { createFlueReplyProjector } from "../src/index.ts";
+import { createFlueReplyProjector } from "../src/index";
 
-import type { HarnessReplyEvent } from "@brunch/core";
+import type { HarnessReplyEvent } from "@hashintel/brunch-agent";
 
 const position = (batch: number, index: number) => ({ batch, index });
 

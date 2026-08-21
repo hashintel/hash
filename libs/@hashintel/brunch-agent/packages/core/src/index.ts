@@ -1,5 +1,5 @@
 /**
- * `@brunch/core` — the harness.
+ * `@hashintel/brunch-agent` — the harness.
  *
  * Mechanism and orchestration: the conversation loop, the ask API, the capture
  * envelope, the issue queue, sweep bookkeeping. Its public export surface *is*
@@ -14,7 +14,7 @@ export {
   AskInput,
   FreeTextAffordance,
   type FreeTextAffordance as FreeTextAffordanceValue,
-} from "./affordance.ts";
+} from "./affordance";
 export {
   ASK_TOOL_DESCRIPTION,
   askAffordanceId,
@@ -28,21 +28,21 @@ export {
   type AskReplyAdmission,
   type PendingAffordanceDecision,
   type ReplyBindingSignalPayload,
-} from "./ask-protocol.ts";
+} from "./ask-protocol";
 export {
   OPERATIONS,
   PRODUCT_NAME,
   toolName,
   toolPrefix,
   type Operation,
-} from "./naming.ts";
-export { type HarnessReplyEvent } from "./reply-protocol.ts";
+} from "./naming";
+export { type HarnessReplyEvent } from "./reply-protocol";
 export {
   definePlugin,
   PluginDescriptor,
   type Plugin,
   type PluginProposalType,
-} from "./plugin.ts";
+} from "./plugin";
 export {
   ABSENCE_STATES,
   CaptureInputProposalSchema,
@@ -76,7 +76,7 @@ export {
   type IssueOrigin,
   type IssueType,
   type JsonValue,
-} from "./capture-store.ts";
+} from "./capture-store";
 export {
   type ArchivedSessionEntry,
   type ArchivedSessionEntryVersion,
@@ -85,7 +85,7 @@ export {
   type EvidenceResolutionResult,
   type MultipleEvidenceMatchesAdvisory,
   type SessionEntryKind,
-} from "./session-log.ts";
+} from "./session-log";
 export {
   advanceSweepHighWater,
   buildSettlementCheckSignal,
@@ -111,4 +111,4 @@ export {
   type SweepSessionEntry,
   type SweepState,
   type UnaccountedAskAdvisory,
-} from "./sweep-protocol.ts";
+} from "./sweep-protocol";

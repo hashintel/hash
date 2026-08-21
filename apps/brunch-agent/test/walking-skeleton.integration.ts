@@ -2,11 +2,6 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import {
-  createFlueHistoryReader,
-  createLocalCaptureStore,
-} from "@brunch/binding-flue";
-import { toolName } from "@brunch/core";
 // One of the substrate integration entry points reviewed in
 // test/boundaries.test.ts, which is where the permission lives — this comment
 // does not grant it.
@@ -18,6 +13,12 @@ import {
 } from "@earendil-works/pi-ai";
 import { start } from "@flue/runtime/node";
 import { createFlueClient } from "@flue/sdk";
+
+import { toolName } from "@hashintel/brunch-agent";
+import {
+  createFlueHistoryReader,
+  createLocalCaptureStore,
+} from "@hashintel/brunch-agent-binding-flue";
 
 import {
   GHERKIN_MODEL_ID,

@@ -1,8 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
-import { capturedUserEntryIdsForSession } from "../src/capture-accounting.ts";
+import { capturedUserEntryIdsForSession } from "../src/capture-accounting";
 
-import type { CaptureStoreSnapshot, EvidenceSpan } from "@brunch/core";
+import type {
+  CaptureStoreSnapshot,
+  EvidenceSpan,
+} from "@hashintel/brunch-agent";
 
 const evidence = (sessionId: string): EvidenceSpan => ({
   excerpt: "A colliding quote.",

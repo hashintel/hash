@@ -1,4 +1,7 @@
-import type { CaptureStore, CaptureStoreSnapshot } from "@brunch/core";
+import type {
+  CaptureStore,
+  CaptureStoreSnapshot,
+} from "@hashintel/brunch-agent";
 
 /**
  * Recover only active-session Flue entry identities from already anchored

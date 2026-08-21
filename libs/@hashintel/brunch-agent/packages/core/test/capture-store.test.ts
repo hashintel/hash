@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "vitest";
 
 import {
   applyCaptureStoreCommand as applyCaptureStoreCommandWithArchive,
@@ -10,12 +10,12 @@ import {
   type CaptureStoreCommand,
   type CaptureStoreSnapshot,
   type EvidenceSpan,
-} from "../src/capture-store.ts";
+} from "../src/capture-store";
 import {
   archiveSessionLogRead,
   createEmptySessionLogArchive,
   type EvidenceQuote,
-} from "../src/session-log.ts";
+} from "../src/session-log";
 
 const excerptsByEntry = new Map<number, Set<string>>();
 

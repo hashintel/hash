@@ -1,6 +1,6 @@
 import * as v from "valibot";
 
-import type { CaptureInputProposal } from "./capture-store.ts";
+import type { CaptureInputProposal } from "./capture-store";
 
 /**
  * The plugin descriptor — identity only, at this stage.

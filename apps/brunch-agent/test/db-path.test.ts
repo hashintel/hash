@@ -5,18 +5,19 @@
  * a fresh empty database — the restart-durability failure the store exists
  * to prevent, invisible until something restarted.
  *
- * Tested against `db-path.ts` rather than `db.ts`, because the adapter module
- * imports `@flue/runtime/node` and cannot be driven under `bun test` (same
- * seam as `assets.test.ts`).
+ * Tested against `db-path.ts` rather than `db.ts` so path policy remains
+ * isolated from the Flue Node runtime and SQLite (the same seam as
+ * `assets.test.ts`).
  */
 
-import { afterEach, describe, expect, test } from "bun:test";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { conversationDbPath } from "../src/db-path.ts";
-import { targetDocumentPath } from "../src/target-document-path.ts";
+import { afterEach, describe, expect, test } from "vitest";
+
+import { conversationDbPath } from "../src/db-path";
+import { targetDocumentPath } from "../src/target-document-path";
 
 const appDir = fileURLToPath(new URL("..", import.meta.url));
 

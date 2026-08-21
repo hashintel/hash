@@ -4,7 +4,7 @@ import {
   createFlueHistoryReader,
   createLocalCaptureStore,
   type ElicitationSession,
-} from "@brunch/binding-flue";
+} from "@hashintel/brunch-agent-binding-flue";
 
 import { GHERKIN_AGENT_ROUTE } from "./routes.ts";
 import { targetDocumentPath } from "./target-document-path.ts";

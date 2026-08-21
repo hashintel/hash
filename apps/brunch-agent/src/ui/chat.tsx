@@ -1,8 +1,9 @@
-import { FreeTextAffordance } from "@brunch/core";
 import { useFlueAgent } from "@flue/react";
 import { createFlueClient, type FlueConversationMessage } from "@flue/sdk";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import * as v from "valibot";
+
+import { FreeTextAffordance } from "@hashintel/brunch-agent";
 
 import { GHERKIN_AGENT_ROUTE } from "../routes.ts";
 

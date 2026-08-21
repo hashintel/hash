@@ -1,5 +1,5 @@
 /**
- * `@brunch/core/testing` — fixtures, arbitraries, and the replay driver.
+ * `@hashintel/brunch-agent/testing` — fixtures, arbitraries, and the replay driver.
  *
  * A subpath rather than a package so production bundles stay clean (spec
  * §12.2): nothing on a deploy path may import it. That, too, is checked
@@ -12,7 +12,7 @@
 
 import * as v from "valibot";
 
-import { definePlugin, type Plugin } from "../plugin.ts";
+import { definePlugin, type Plugin } from "../plugin";
 
 const fixtureProposalSchema = v.strictObject({
   evidence: v.pipe(

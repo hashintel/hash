@@ -1,9 +1,9 @@
 import * as v from "valibot";
 
-import { toolName } from "./naming.ts";
+import { toolName } from "./naming";
 
-import type { FreeTextAffordance } from "./affordance.ts";
-import type { SweepSessionEntry } from "./sweep-protocol.ts";
+import type { FreeTextAffordance } from "./affordance";
+import type { SweepSessionEntry } from "./sweep-protocol";
 
 export const ASK_TOOL_DESCRIPTION =
   "Ask one free-text question and suspend this turn for the person’s reply. A second ask in the same tool batch is rejected.";

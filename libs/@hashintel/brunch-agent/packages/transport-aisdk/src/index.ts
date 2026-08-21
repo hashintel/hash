@@ -6,19 +6,23 @@
  */
 
 import {
-  AskSubmission,
-  toolName,
-  type AskReplyAdmission,
-  type HarnessReplyEvent,
-} from "@brunch/core";
-import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   type UIMessageChunk,
 } from "ai";
 import * as v from "valibot";
 
-export { type AskReplyAdmission, type HarnessReplyEvent } from "@brunch/core";
+import {
+  AskSubmission,
+  toolName,
+  type AskReplyAdmission,
+  type HarnessReplyEvent,
+} from "@hashintel/brunch-agent";
+
+export {
+  type AskReplyAdmission,
+  type HarnessReplyEvent,
+} from "@hashintel/brunch-agent";
 
 const ASK_TOOL_NAME = toolName("ask");
 

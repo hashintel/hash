@@ -3,7 +3,7 @@
  * it of the consuming app (spec §9.6, adjudication C1).
  *
  * Not to be confused with the capture store: that is the harness's storage
- * port, harness-defined and implemented in `@brunch/binding-flue`, and plugins are
+ * port, harness-defined and implemented in `@hashintel/brunch-agent-binding-flue`, and plugins are
  * blind to both. This file holds only the live transport copy of conversations.
  * The provenance record is the target-document's own session-log archive.
  *

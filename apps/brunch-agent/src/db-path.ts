@@ -8,8 +8,8 @@
  * and from the emitted `dist/` bundle alike, `../.data-wipe-me/` resolves to
  * the package directory.
  *
- * Kept apart from `db.ts` so it stays importable under `bun test`: the
- * adapter module pulls in `@flue/runtime/node`, which cannot be driven there.
+ * Kept apart from `db.ts` so path policy stays importable without loading the
+ * Flue Node runtime and SQLite adapter.
  */
 
 import { fileURLToPath } from "node:url";

@@ -1,5 +1,5 @@
 /**
- * `@brunch/binding-flue` — the Flue binding.
+ * `@hashintel/brunch-agent-binding-flue` — the Flue binding.
  *
  * One binding per substrate. It implements the substrate-capability list
  * (spec §10), owns the local capture-store/session-log storage-port
@@ -11,6 +11,16 @@
  * (spec §14.2): genuinely substrate-specific, or mechanism leaking into Flue's
  * dialect?
  */
+
+import {
+  useAgentFinish,
+  useAgentStart,
+  useDataWriter,
+  useDelivery,
+  usePersistentState,
+  useTool,
+} from "@flue/runtime";
+import * as v from "valibot";
 
 import {
   ASK_TOOL_DESCRIPTION,
@@ -38,43 +48,30 @@ import {
   type FreeTextAffordanceValue,
   type Plugin,
   type SweepState,
-} from "@brunch/core";
-import {
-  useAgentFinish,
-  useAgentStart,
-  useDataWriter,
-  useDelivery,
-  usePersistentState,
-  useTool,
-} from "@flue/runtime";
-import * as v from "valibot";
+} from "@hashintel/brunch-agent";
 
-import { capturedUserEntryIdsForSession } from "./capture-accounting.ts";
+import { capturedUserEntryIdsForSession } from "./capture-accounting";
 import {
   projectFlueHistoryForSweep,
   type FlueHistoryReader,
-} from "./history-reader.ts";
+} from "./history-reader";
 
 const SweepToolOutput = v.looseObject({
   status: v.picklist(["no-settled-range", "refused", "applied"]),
 });
 
-export {
-  CAPABILITIES,
-  type Capability,
-  type Provision,
-} from "./capabilities.ts";
+export { CAPABILITIES, type Capability, type Provision } from "./capabilities";
 export {
   createFlueHistoryReader,
   projectFlueHistoryForSweep,
   type FlueHistoryReaderOptions,
-} from "./history-reader.ts";
+} from "./history-reader";
 export {
   createFlueReplyProjector,
   type FlueReplyProjector,
   type FlueReplyProjectorOptions,
-} from "./reply-projector.ts";
-export { createLocalCaptureStore } from "./local-capture-store.ts";
+} from "./reply-projector";
+export { createLocalCaptureStore } from "./local-capture-store";
 
 export interface ElicitationSession {
   readonly sessionId: string;

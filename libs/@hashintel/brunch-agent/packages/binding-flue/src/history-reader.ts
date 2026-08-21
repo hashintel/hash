@@ -1,4 +1,10 @@
 import {
+  createFlueClient,
+  type FlueConversationMessage,
+  type FlueConversationSnapshot,
+} from "@flue/sdk";
+
+import {
   toolName,
   type CaptureStore,
   type JsonValue,
@@ -6,16 +12,11 @@ import {
   type SweepAffordance,
   type SweepResultFact,
   type SweepSessionEntry,
-} from "@brunch/core";
-import {
-  createFlueClient,
-  type FlueConversationMessage,
-  type FlueConversationSnapshot,
-} from "@flue/sdk";
+} from "@hashintel/brunch-agent";
 
-import { archiveThroughBinding } from "./archive-capability.ts";
+import { archiveThroughBinding } from "./archive-capability";
 
-import type { SessionLogRead } from "@brunch/core/storage";
+import type { SessionLogRead } from "@hashintel/brunch-agent/storage";
 
 export interface FlueHistoryReaderOptions {
   /** Host-owned full conversation URL; the binding never guesses the mount. */

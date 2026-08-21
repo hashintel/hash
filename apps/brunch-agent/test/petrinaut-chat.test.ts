@@ -1,8 +1,12 @@
-import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { expect, test } from "vitest";
+
+import { runNodeScript } from "./run-node-script";
+
 type StreamChunk = Record<string, unknown> & { readonly type: string };
+const testDirectory = import.meta.dirname;
 
 const normalizedChunk = (
   chunk: StreamChunk,
@@ -37,21 +41,10 @@ const normalizedChunks = (
   }, []);
 
 test("the committed application route drives the actual elicitor for reasoning and text", async () => {
-  const child = Bun.spawn({
-    cmd: [
-      Bun.which("node") ?? "node",
-      "--experimental-strip-types",
-      join(import.meta.dir, "petrinaut-chat.integration.ts"),
-    ],
-    cwd: join(import.meta.dir, "../../.."),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const [exitCode, stdout, stderr] = await Promise.all([
-    child.exited,
-    new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
-  ]);
+  const { exitCode, stdout, stderr } = await runNodeScript(
+    join(testDirectory, "petrinaut-chat.integration.ts"),
+    join(testDirectory, "../../.."),
+  );
 
   expect(exitCode, stderr || stdout).toBe(0);
   const inspectionLines = stdout
@@ -93,8 +86,8 @@ test("the committed application route drives the actual elicitor for reasoning a
   const golden = JSON.parse(
     readFileSync(
       join(
-        import.meta.dir,
-        "../../../test/fixtures/transport-aisdk/elicitor-initial.normalized.json",
+        testDirectory,
+        "../../../libs/@hashintel/brunch-agent/packages/transport-aisdk/test/fixtures/elicitor-initial.normalized.json",
       ),
       "utf8",
     ),

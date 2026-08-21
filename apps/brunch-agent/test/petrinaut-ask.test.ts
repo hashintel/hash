@@ -1,24 +1,17 @@
-import { expect, test } from "bun:test";
 import { join } from "node:path";
 
+import { expect, test } from "vitest";
+
+import { runNodeScript } from "./run-node-script";
+
 type StreamChunk = Record<string, unknown> & { readonly type: string };
+const testDirectory = import.meta.dirname;
 
 test("a structured ask suspends over the wire and its correlated submission resumes the conversation", async () => {
-  const child = Bun.spawn({
-    cmd: [
-      Bun.which("node") ?? "node",
-      "--experimental-strip-types",
-      join(import.meta.dir, "petrinaut-ask.integration.ts"),
-    ],
-    cwd: join(import.meta.dir, "../../.."),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const [exitCode, stdout, stderr] = await Promise.all([
-    child.exited,
-    new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
-  ]);
+  const { exitCode, stdout, stderr } = await runNodeScript(
+    join(testDirectory, "petrinaut-ask.integration.ts"),
+    join(testDirectory, "../../.."),
+  );
 
   expect(exitCode, stderr || stdout).toBe(0);
   const resultLine = stdout
@@ -56,9 +49,11 @@ test("a structured ask suspends over the wire and its correlated submission resu
   expect(result.resumedStatus).toBe(200);
   // The response carries the answer turn and then the settlement-check turn,
   // exactly as the FE-1436 application golden streams its second step.
-  expect(result.resumedText).toStartWith(
-    "Payment settled — who initiates the checkout?",
-  );
+  expect(
+    result.resumedText.startsWith(
+      "Payment settled — who initiates the checkout?",
+    ),
+  ).toBe(true);
   expect(result.resumedFinish).toEqual({
     type: "finish",
     finishReason: "stop",
