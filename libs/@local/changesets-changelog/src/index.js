@@ -42,7 +42,14 @@ const takeOverrides = (summary) => {
   return { pull, commit, logins, description };
 };
 
-const personLink = (login) => `[@${login}](https://github.com/${login})`;
+/**
+ * The GraphQL payload carries each person's own URL, which for an app author is
+ * `https://github.com/apps/<slug>` rather than a profile under its login. The
+ * frontmatter override keys give a bare login, so build the profile URL only
+ * for those.
+ */
+const personLink = ({ login, url }) =>
+  `[@${login}](${url ?? `https://github.com/${login}`})`;
 
 const getReleaseLine = async (changeset, _type, options) => {
   assertRepo(options);
@@ -64,12 +71,13 @@ const getReleaseLine = async (changeset, _type, options) => {
       : { person: null, pull: null };
   })();
 
-  const resolvedLogins = info.person ? [info.person.login] : [];
-  const attributedLogins = logins.length > 0 ? logins : resolvedLogins;
+  const resolvedPeople = info.person ? [info.person] : [];
+  const attributedPeople =
+    logins.length > 0 ? logins.map((login) => ({ login })) : resolvedPeople;
 
   const attribution = [
-    ...(attributedLogins.length > 0
-      ? [attributedLogins.map(personLink).join(", ")]
+    ...(attributedPeople.length > 0
+      ? [attributedPeople.map(personLink).join(", ")]
       : []),
     ...(info.pull ? [`[#${info.pull.number}](${info.pull.url})`] : []),
   ];

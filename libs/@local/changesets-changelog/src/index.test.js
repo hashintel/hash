@@ -5,14 +5,21 @@ import { getDependencyReleaseLine, getReleaseLine } from "./index.js";
 const repo = "hashintel/hash";
 const options = { repo };
 
-const person = (login) => ({ login, url: `https://github.com/${login}` });
+const person = (login, url = `https://github.com/${login}`) => ({
+  login,
+  url,
+});
+
+/** A test may pass either a bare login or an explicit `{ login, url }` pair. */
+const asPerson = (value) =>
+  typeof value === "string" ? person(value) : person(value.login, value.url);
 
 const pullRequest = ({ number, author, assignees = [], mergedAt = null }) => ({
   number,
   url: `https://github.com/${repo}/pull/${number}`,
   mergedAt,
-  author: author === null ? null : person(author),
-  assignees: { nodes: assignees.map(person) },
+  author: author === null ? null : asPerson(author),
+  assignees: { nodes: assignees.map(asPerson) },
 });
 
 /**
@@ -170,6 +177,83 @@ describe("getReleaseLine", () => {
 
     await expect(releaseLine("hotfix the build", "aaaaaa6")).resolves.toBe(
       "\n\n- hotfix the build\n",
+    );
+  });
+
+  it("links an app author to the URL the payload carries", async () => {
+    fetchMock.mockImplementation(
+      respondWith({
+        commits: {
+          aaaaab1: commitOf({
+            pulls: [
+              pullRequest({
+                number: 8568,
+                author: {
+                  login: "hash-worker",
+                  url: "https://github.com/apps/hash-worker",
+                },
+                mergedAt: "2026-08-01T00:00:00Z",
+              }),
+            ],
+          }),
+        },
+      }),
+    );
+
+    await expect(releaseLine("update dependencies", "aaaaab1")).resolves.toBe(
+      "\n\n- update dependencies ([@hash-worker](https://github.com/apps/hash-worker), [#8568](https://github.com/hashintel/hash/pull/8568))\n",
+    );
+  });
+
+  it("reads a person's URL from the payload rather than rebuilding it", async () => {
+    fetchMock.mockImplementation(
+      respondWith({
+        commits: {
+          aaaaab2: commitOf({
+            pulls: [
+              pullRequest({
+                number: 8569,
+                author: {
+                  login: "CiaranMn",
+                  url: "https://github.example.com/CiaranMn",
+                },
+                mergedAt: "2026-08-01T00:00:00Z",
+              }),
+            ],
+          }),
+        },
+      }),
+    );
+
+    await expect(releaseLine("tighten a return type", "aaaaab2")).resolves.toBe(
+      "\n\n- tighten a return type ([@CiaranMn](https://github.example.com/CiaranMn), [#8569](https://github.com/hashintel/hash/pull/8569))\n",
+    );
+  });
+
+  it("builds a profile URL for the author key, which carries none", async () => {
+    fetchMock.mockImplementation(
+      respondWith({
+        commits: {
+          aaaaab3: commitOf({
+            pulls: [
+              pullRequest({
+                number: 8570,
+                author: {
+                  login: "hash-worker",
+                  url: "https://github.com/apps/hash-worker",
+                },
+                mergedAt: "2026-08-01T00:00:00Z",
+              }),
+            ],
+          }),
+        },
+      }),
+    );
+
+    await expect(
+      releaseLine("author: @nonbinaryunicorn\n\nrename a field", "aaaaab3"),
+    ).resolves.toBe(
+      "\n\n- rename a field ([@nonbinaryunicorn](https://github.com/nonbinaryunicorn), [#8570](https://github.com/hashintel/hash/pull/8570))\n",
     );
   });
 
