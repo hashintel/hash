@@ -7,7 +7,6 @@ import type {
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { PropsWithChildren } from "react";
 
 export type EntityTypesByVersionedUrl = Record<
   VersionedUrl,
@@ -72,28 +71,6 @@ export const useEntityTypesOptionsContextValue = (
       linkTypes: linkEntityTypesRecord,
     };
   }, [entityTypes]);
-};
-
-export const EntityTypesOptionsContextProvider = ({
-  children,
-  entityTypeOptions,
-  entityTypePermissions,
-}: PropsWithChildren<{
-  entityTypeOptions: Record<VersionedUrl, EntityTypeWithMetadata>;
-  entityTypePermissions?: Record<VersionedUrl, EntityTypePermissions>;
-}>) => {
-  const typeValue = useEntityTypesOptionsContextValue(entityTypeOptions);
-
-  const value = useMemo(
-    () => ({ ...typeValue, entityTypePermissions }),
-    [typeValue, entityTypePermissions],
-  );
-
-  return (
-    <EntityTypesOptionsContext.Provider value={value}>
-      {children}
-    </EntityTypesOptionsContext.Provider>
-  );
 };
 
 export const useEntityTypesOptions = () => {
