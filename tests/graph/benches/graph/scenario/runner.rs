@@ -217,6 +217,7 @@ impl Runner {
                 validate_links: true,
                 skip_embedding_creation: true,
                 filter_protection: PropertyProtectionFilterConfig::new(), // Disabled for benchmarks
+                ..PostgresStoreSettings::default()
             },
         )
         .await

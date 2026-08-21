@@ -73,8 +73,7 @@ use crate::store::{
         crud::{QueryIndices, QueryRecordDecode, TypedRow},
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{
-            Distinctness, PostgresRecord, PostgresSorting, QUANTIZED_RANK_OVERFETCH,
-            ReferenceTable, SelectCompiler, Table,
+            Distinctness, PostgresRecord, PostgresSorting, ReferenceTable, SelectCompiler, Table,
         },
     },
     validation::StoreProvider,
@@ -1247,7 +1246,7 @@ where
         compiler
             .rank_by_quantized_distance(&embedding_path, &embedding)
             .change_context(QueryError)?;
-        let candidate_pool = limit.saturating_mul(QUANTIZED_RANK_OVERFETCH);
+        let candidate_pool = self.settings.semantic_search.candidate_pool(limit);
         compiler.set_limit(candidate_pool);
 
         // Same shape as the entity search: the candidate CTE ranks on the quantized embedding,

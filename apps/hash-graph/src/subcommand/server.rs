@@ -25,6 +25,7 @@ use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::{OpenAiEmbeddingClient, OpenAiEmbeddingClientConfig};
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
+    SemanticSearchSettings,
 };
 use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
 use hash_graph_type_fetcher::FetchingPool;
@@ -226,6 +227,28 @@ pub struct ServerConfig {
     /// Skips the creation of embeddings when creating/updating entities or types.
     #[clap(long, env = "HASH_GRAPH_SKIP_EMBEDDING_CREATION")]
     pub skip_embedding_creation: bool,
+
+    /// Candidates a semantic search ranks per requested result.
+    ///
+    /// Raising this recovers neighbours the quantized ranking misordered, at the cost of reading
+    /// more full vectors when re-scoring.
+    #[clap(
+        long,
+        default_value_t = SemanticSearchSettings::default().candidate_overfetch,
+        env = "HASH_GRAPH_SEMANTIC_SEARCH_CANDIDATE_OVERFETCH",
+    )]
+    pub semantic_search_candidate_overfetch: NonZero<usize>,
+
+    /// Lower bound for the size of a semantic search's vector-index walk.
+    ///
+    /// Searches asking for few results otherwise walk the index too shallowly to find the
+    /// neighbours their re-scoring could order.
+    #[clap(
+        long,
+        default_value_t = SemanticSearchSettings::default().minimum_ef_search,
+        env = "HASH_GRAPH_SEMANTIC_SEARCH_MINIMUM_EF_SEARCH",
+    )]
+    pub semantic_search_minimum_ef_search: usize,
 
     /// Disables filter protection that prevents enumeration attacks on protected properties.
     ///
@@ -523,6 +546,10 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
                 PropertyProtectionFilterConfig::new()
             } else {
                 PropertyProtectionFilterConfig::hash_default()
+            },
+            semantic_search: SemanticSearchSettings {
+                candidate_overfetch: args.config.semantic_search_candidate_overfetch,
+                minimum_ef_search: args.config.semantic_search_minimum_ef_search,
             },
         },
     )
