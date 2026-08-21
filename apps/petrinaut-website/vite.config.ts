@@ -1,7 +1,6 @@
 import { fileURLToPath } from "node:url";
 
-import babel from "@rolldown/plugin-babel";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react";
 import { createServerAdapter } from "@whatwg-node/server";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 
@@ -84,20 +83,19 @@ export default defineConfig(({ mode }) => {
 
     plugins: [
       petrinautApiDevPlugin(),
-      react(),
-      babel({
-        presets: [
-          reactCompilerPreset({
-            target: "19",
-            compilationMode: "infer",
-            // @hashintel/ds-components ships prebuilt jsx() calls; the compiler
-            // can't recognize ref forwarding in that form and bails with
-            // "Cannot access refs during render". Opt that package out.
-            sources: (filename: string) =>
-              !filename.includes("@hashintel/ds-components"),
-            panicThreshold: "critical_errors",
-          }),
+      react({
+        // @hashintel/ds-components ships prebuilt jsx() calls; the compiler
+        // can't recognize ref forwarding in that form and bails with
+        // "Cannot access refs during render". Opt that package out.
+        exclude: [
+          /[\\/]node_modules[\\/]/,
+          /[\\/]libs[\\/]@hashintel[\\/]ds-components[\\/]/,
         ],
+        compiler: {
+          target: "19",
+          compilationMode: "infer",
+          panicThreshold: "critical_errors",
+        },
       }),
     ],
   };
