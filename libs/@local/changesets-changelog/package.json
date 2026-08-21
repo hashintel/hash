@@ -1,0 +1,24 @@
+{
+  "name": "@local/changesets-changelog",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Changelog entry formatter for Changesets, attributing entries to the assignee of the associated pull request",
+  "license": "AGPL-3",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "fix:eslint": "oxlint --fix --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
+    "test:unit": "vitest --run src"
+  },
+  "dependencies": {
+    "dataloader": "2.2.3"
+  },
+  "devDependencies": {
+    "oxlint": "1.63.0",
+    "vitest": "4.1.10"
+  }
+}

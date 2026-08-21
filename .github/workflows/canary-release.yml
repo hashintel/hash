@@ -3,7 +3,7 @@ on: workflow_dispatch
 
 permissions:
   contents: write
-  pull-requests: read # `@changesets/changelog-github`
+  pull-requests: read # `@local/changesets-changelog`
 
 jobs:
   sccache-credentials:
@@ -30,7 +30,7 @@ jobs:
     needs: [sccache-credentials]
     permissions:
       contents: write
-      pull-requests: read # `@changesets/changelog-github`
+      pull-requests: read # `@local/changesets-changelog`
       id-token: write # npm trusted publishing
 
     steps:
