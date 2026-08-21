@@ -15,7 +15,7 @@
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 import { describe, expect, test } from "vitest";
 
@@ -35,6 +35,12 @@ const SKIP_FILES = [".DS_Store", ".gitkeep"];
  * registries disagree about what the protocol set is.
  */
 const INDEX_EXEMPT = ["agents", INDEX_RELPATH];
+/**
+ * Preserved external analysis containing links into its source checkout and
+ * embedded Markdown examples. Those links are evidence, not context-local
+ * navigation.
+ */
+const LINK_CHECK_EXEMPT = ["reference/amp-analysis-flue-vs-tilde.md"];
 
 /** Posix-shaped, because that is how a markdown link target is written. */
 const relPath = (path: string): string =>
@@ -160,6 +166,44 @@ describe("every document is in the index, and the index is all documents", () =>
       });
     }
   });
+});
+
+test("relative links in context documentation point at existing files", () => {
+  for (const file of FILES) {
+    if (!file.endsWith(".md") || LINK_CHECK_EXEMPT.includes(file)) continue;
+
+    const sourcePath = join(DOCS_ROOT, file);
+    const lines = readFileSync(sourcePath, "utf8").split("\n");
+    for (const [lineOffset, line] of lines.entries()) {
+      for (const match of line.matchAll(MARKDOWN_LINK)) {
+        const rawTarget = match[1]!
+          .trim()
+          .split(/\s+/, 1)[0]!
+          .replace(/^<|>$/g, "");
+        if (
+          rawTarget.startsWith("#") ||
+          rawTarget.startsWith("/") ||
+          /^(?:doc|file|https?|layer|mailto):/.test(rawTarget)
+        )
+          continue;
+
+        const target = decodeURIComponent(rawTarget.split("#", 1)[0]!);
+        if (!target) continue;
+
+        expect({
+          file,
+          line: lineOffset + 1,
+          target: rawTarget,
+          resolves: existsSync(resolve(dirname(sourcePath), target)),
+        }).toEqual({
+          file,
+          line: lineOffset + 1,
+          target: rawTarget,
+          resolves: true,
+        });
+      }
+    }
+  }
 });
 
 test("docs/planning/ holds only effort directories", () => {

@@ -13,7 +13,6 @@
  * moved, a config path changed, an entry dropped from the scan glob.
  */
 
-import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,10 +23,6 @@ const DEV_APP = fileURLToPath(new URL("..", import.meta.url)).replace(
   /[/\\]$/u,
   "",
 );
-const HASH_ROOT = fileURLToPath(new URL("../../..", import.meta.url)).replace(
-  /[/\\]$/u,
-  "",
-);
 const DIST = join(DEV_APP, "dist");
 const CLIENT = join(DIST, "client");
 
@@ -35,27 +30,13 @@ const CLIENT = join(DIST, "client");
 let bundle = "";
 
 beforeAll(() => {
-  // Build through Turbo so dependency tasks and HASH's workspace graph are
-  // exercised by the same command CI uses.
-  const built = spawnSync(
-    "turbo",
-    ["run", "build", "--filter", "@apps/brunch-agent"],
-    {
-      cwd: HASH_ROOT,
-      encoding: "utf8",
-      env: { ...process.env, NODE_ENV: "production" },
-    },
-  );
-  if (built.status !== 0) {
-    throw new Error(
-      `workspace build failed:\n${built.stdout}\n${built.stderr}`,
-    );
-  }
+  // `test:unit` depends on the app's build in `turbo.json`; the test inspects
+  // that graph-owned artifact rather than hiding a nested build invocation.
   bundle = readdirSync(DIST)
     .filter((entry) => entry.endsWith(".mjs"))
     .map((entry) => readFileSync(join(DIST, entry), "utf8"))
     .join("\n");
-}, 120_000);
+});
 
 /** The pinned identity of every agent module in the app, read from source. */
 function declaredAgentIdentities(): string[] {

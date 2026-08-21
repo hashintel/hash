@@ -1,11 +1,12 @@
 # Elicitation Kernel — Specification
 
 Status: draft for review
-Assembled: 2026-08-10, from the resolved [wayfinder map](map.md) (tickets 01–13), the two inbox
-references ([challenges](../../reference/agentic-elicitation-challenges-2026-08-06T10-02-41Z.md),
-[criteria](../../reference/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md)), and the
-[2026-08-10 consistency pre-pass](notes/consistency-prepass-2026-08-10.md). Contradiction
-adjudications are collected in [Appendix A](#appendix-a--adjudications).
+Assembled: 2026-08-10, from the resolved
+[wayfinder map](history/planning/elicitation-kernel/map.md) (tickets 01–13), the two inbox references
+([challenges](reference/agentic-elicitation-challenges-2026-08-06T10-02-41Z.md),
+[criteria](reference/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md)), and the
+[2026-08-10 consistency pre-pass](history/planning/elicitation-kernel/notes/consistency-prepass-2026-08-10.md).
+Contradiction adjudications are collected in [Appendix A](#appendix-a--adjudications).
 
 "Elicitation kernel" and "brunch-lite" are working labels; the real product name is unresolved
 fog. No architectural string bakes in either label (see [Naming](#123-naming--tool-namespacing)).
@@ -47,7 +48,7 @@ code. The system is fully decoupled from brunch's September MVP.
 
 ## 3. Vocabulary
 
-The canonical glossary is repo [`CONTEXT.md`](../../../CONTEXT.md) — shells (substrate / ui / harness
+The canonical glossary is context [`CONTEXT.md`](../CONTEXT.md) — shells (substrate / ui / harness
 / plugin / binding), sessions and durability (target-domain / target-document / session / capture
 store / re-entry briefing), and interaction terms (affordance / capture / sweep / settlement /
 interpretation render), now extended with the envelope vocabulary this spec relies on (capture

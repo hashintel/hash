@@ -19,7 +19,12 @@ Working hypotheses to prove or refute (delegated from the Questioning-UX contrac
 
 ## Answer
 
-> Resolved by logic-prototype + HITL reaction, 2026-08-07. Prototype on throwaway branch `prototype/11-capture-sweep` (commit d235258): single-file demo ([11-capture-sweep.html](../prototypes/11-capture-sweep.html), working-tree copy left untracked for double-clicking) + headless driver (32 checks passing) + browser walkthrough smoke (refusals land exactly on the deliberately-illegal steps, no console errors). The pure reducer module — the liftable part — is the demo's first script block.
+> Resolved by logic-prototype + HITL reaction, 2026-08-07. Prototype on throwaway branch
+> `prototype/11-capture-sweep` (commit d235258): single-file demo
+> (`11-capture-sweep.html`, an untracked historical artifact available from that branch) + headless
+> driver (32 checks passing) + browser walkthrough smoke (refusals land exactly on the
+> deliberately-illegal steps, no console errors). The pure reducer module — the liftable part — is
+> the demo's first script block.
 
 ### Verdict: all five hypotheses hold, each sharpened
 
@@ -45,7 +50,10 @@ The multi-session question raised in the reaction (target state durable beyond s
 
 **Assets** (throwaway branch `prototype/11-capture-sweep`, commit d235258):
 
-- [11-capture-sweep.html](../prototypes/11-capture-sweep.html) — single-file shareable demo; double-click to open. Also left untracked in the working tree at the same path. Five guided walkthroughs (one per hypothesis, including every deliberately-illegal move) plus a free-play console with evidence-ticking and a sweep-proposal builder. The pure reducer module (no DOM) is the first `<script>` block — the liftable part.
+- `11-capture-sweep.html` — single-file shareable demo retained only on the historical branch. Five
+  guided walkthroughs (one per hypothesis, including every deliberately-illegal move) plus a
+  free-play console with evidence-ticking and a sweep-proposal builder. The pure reducer module (no
+  DOM) is the first `<script>` block — the liftable part.
 - `prototypes/driver/` (branch only) — headless sanity driver; `node driver.js` re-runs all five walkthroughs plus edge probes (32 checks, all passing). Also smoke-driven in headless Chrome: every walkthrough completes, refusals land exactly on the three illegal steps, no console errors.
 
 **Per hypothesis:**

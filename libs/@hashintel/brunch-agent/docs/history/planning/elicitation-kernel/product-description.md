@@ -1,6 +1,6 @@
 # Elicitation Kernel — Product Description
 
-Status: companion document to [spec.md](spec.md)
+Status: companion document to [spec.md](../../../spec.md)
 Written: 2026-08-10
 
 This document tells you what the product does. It uses product terms, not architecture terms.

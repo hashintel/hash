@@ -1,6 +1,6 @@
 # Elicitation Kernel — Product Description (plain prose edition)
 
-Status: companion document to [spec.md](spec.md); an alternate rendering of
+Status: companion document to [spec.md](../../../spec.md); an alternate rendering of
 [product-description.md](product-description.md) in plain technical prose rather than
 Simplified Technical English.
 Written: 2026-08-10

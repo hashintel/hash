@@ -97,12 +97,12 @@ publication must not force another namespace or directory migration.
 
 ## Application disposition
 
-The accepted end state re-charters the current `apps/dev` as `apps/brunch-agent`: the remote server
-application carrying forward the target-gallery and diagnostic-surface charter as internal
-operational roles.
-The current [route map](../../../apps/dev/src/app.ts) already mounts the Flue agent router, the
-Petrinaut chat transport, and the production diagnostic assets. Re-chartering that application avoids a
-second app around those same routes.
+The accepted end state re-charters the standalone `apps/dev` as HASH's `apps/brunch-agent`: the
+remote server application carrying forward the target-gallery and diagnostic-surface charter as
+internal operational roles.
+The imported [route map](../../../../../../apps/brunch-agent/src/app.ts) mounts the Flue agent
+router, the Petrinaut chat transport, and the production diagnostic assets. Re-chartering that
+application avoids a second app around those same routes.
 
 ADR-0004, ADR-0002 N3, the kernel spec, and FE-1437 record that re-charter explicitly as of the
 cutover preparation. If the deployed server later proves to require a materially different
@@ -234,8 +234,10 @@ the import review checks the expanded tracked-file list against these rows befor
 
 ### 5. Preserve architectural enforcement
 
-Port the current [boundary suite](../../../test/boundaries.test.ts) and its
-[workspace scanner](../../../test/workspace.ts) instead of replacing them with prose:
+Port the current
+[boundary suite](../../../packages/core/test/architecture/boundaries.test.ts) and its
+[workspace scanner](../../../packages/core/test/architecture/workspace.ts) instead of replacing them
+with prose:
 
 - Keep the manifest and source-import checks that enforce plugin/core, binding/core/substrate, and
   transport/core/wire directions.
@@ -247,9 +249,10 @@ Port the current [boundary suite](../../../test/boundaries.test.ts) and its
   that portion with an honest gate over manifests and source imports rather than a green false
   equivalent.
 - Retain the fail-loud Flue entrypoint checks: directive placement, pinned agent identity, mount,
-  and storage entry. Port the [bundle assertions](../../../test/build-artifact.test.ts) that prove
-  the emitted server registers every agent, mounts the router and conversation store, carries no
-  model key, and that emitted HTML points to a built client asset.
+  and storage entry. Port the
+  [bundle assertions](../../../../../../apps/brunch-agent/test/build-artifact.test.ts) that prove the
+  emitted server registers every agent, mounts the router and conversation store, carries no model
+  key, and that emitted HTML points to a built client asset.
 - Prove the negative oracle once during the move by temporarily adding an `@flue/runtime` import to
   the Gherkin plugin in the disposable import worktree: the targeted boundary test must fail, then
   pass again after the mutation is removed.

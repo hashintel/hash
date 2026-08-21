@@ -6,9 +6,10 @@ Linear is canonical for issue state, parentage, and hard `blocks` relations. Thi
 only the judgment Linear cannot express: the current project-wide recommendation, soft edges,
 unresolved seams, and exceptional roots.
 
-Before revising the recommendation, run `bun run linear:graph`. Its compact projection supplies
-the factual open-issue DAG; read the relevant issue bodies for semantic content, then infer the
-smallest honest recommendation. Do not paste the generated graph here or mirror issue status.
+Before revising the recommendation, run
+`turbo run linear:graph --filter '@hashintel/brunch-agent'`. Its compact projection supplies the
+factual open-issue DAG; read the relevant issue bodies for semantic content, then infer the smallest
+honest recommendation. Do not paste the generated graph here or mirror issue status.
 
 ## Current sequencing recommendation
 

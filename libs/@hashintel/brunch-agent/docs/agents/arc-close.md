@@ -27,7 +27,8 @@ Always inspect `docs/inbox/` and `docs/INDEX.md` together.
 
 ### 2. Audit the Linear registry and touched references
 
-Always run `bun run linear:graph` and inspect every open project issue with no parent.
+Always run `turbo run linear:graph --filter '@hashintel/brunch-agent'` and inspect every open project
+issue with no parent.
 
 - Every non-root issue must have a parent.
 - Every intentional root must be a recognized map or sweep root under the registry rule, or be
@@ -55,11 +56,11 @@ Reassess `docs/planning/_shared/COORDINATION.md` when the arc changes:
 - an unresolved cross-map seam; or
 - issue semantics that could change the current project-wide sequencing recommendation.
 
-Use `bun run linear:graph` for deterministic facts, then read the relevant issue bodies and infer
-the recommendation. Linear remains canonical for hard blockers, state, and hierarchy. Keep one
-compact pseudo-style map of the current recommendation; do not paste the full generated graph or
-maintain alternative or historical orderings. If the judgment did not change, leave the document
-untouched.
+Use `turbo run linear:graph --filter '@hashintel/brunch-agent'` for deterministic facts, then read
+the relevant issue bodies and infer the recommendation. Linear remains canonical for hard blockers,
+state, and hierarchy. Keep one compact pseudo-style map of the current recommendation; do not paste
+the full generated graph or maintain alternative or historical orderings. If the judgment did not
+change, leave the document untouched.
 
 ### 5. Repair tense and report
 
