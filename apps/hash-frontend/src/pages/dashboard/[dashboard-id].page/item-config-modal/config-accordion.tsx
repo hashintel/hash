@@ -227,7 +227,7 @@ const ConfigAccordionSection = ({
           >
             {renderBuilder ? (
               <SegmentedControl
-                size="xs"
+                size="sm"
                 variant="embossed"
                 items={[
                   { label: "Builder", value: "builder" },

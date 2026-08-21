@@ -163,13 +163,14 @@ export const styles = sva({
       default: {},
       embossed: {
         root: {
-          backgroundColor: "[transparent]",
+          backgroundColor:
+            "[color-mix(in srgb, {colors.neutral.s10} 15%, transparent)]",
           boxShadow:
-            "[inset 0 1px 3px {colors.neutral.a50}, inset 0 0 1px {colors.neutral.a45}]",
+            "[inset 0 1px 2.5px {colors.neutral.a50}, inset 0 0 1px {colors.neutral.a45}]",
           "&[data-disabled]": {
             backgroundColor: "[transparent]",
             boxShadow:
-              "[inset 0 1px 3px {colors.neutral.a30}, inset 0 0 1px {colors.neutral.a25}]",
+              "[inset 0 1px 2.5px {colors.neutral.a30}, inset 0 0 1px {colors.neutral.a25}]",
           },
         },
       },
