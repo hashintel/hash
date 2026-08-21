@@ -4,14 +4,13 @@ import { IconButton } from "@hashintel/design-system";
 
 import { MagnifyingGlassRegularIcon } from "../../../../shared/icons/magnifying-glass-regular-icon";
 import { ExportToCsvButton } from "../../../../shared/table-header/export-to-csv-button";
+import { toolbarHeight } from "../shared/toolbar-height";
 import { SortControl } from "./sort-control";
 
 import type { GridSort } from "../../../../components/grid/grid";
 import type { GenerateCsvFileFunction } from "../../../../shared/table-header/export-to-csv-button";
 import type { SortableEntitiesTableColumnKey } from "../entities-table-data";
 import type { FunctionComponent } from "react";
-
-export const toolbarHeight = 44;
 
 const groupSx: SxProps = {
   display: "flex",

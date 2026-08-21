@@ -1,11 +1,4 @@
-import {
-  Box,
-  Stack,
-  type SxProps,
-  TableCell,
-  type Theme,
-  Typography,
-} from "@mui/material";
+import { Box, Stack, TableCell, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 
 import { IconButton } from "@hashintel/design-system";
@@ -15,25 +8,10 @@ import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-p
 import { CircleInfoIcon } from "../../../../../../../shared/icons/circle-info-icon";
 import { SourcesPopover } from "../../../../../../shared/sources-popover";
 import { ValueChip } from "../../../../../../shared/value-chip";
-import { defaultCellSx } from "../../../../../../shared/virtualized-table";
+import { cellSx, typographySx } from "./cell-styles";
 
 import type { EntityId, PropertyValue } from "@blockprotocol/type-system";
 import type { ValueMetadata } from "@local/hash-graph-client/api";
-
-export const typographySx = {
-  color: ({ palette }) => palette.common.black,
-  fontSize: 12,
-  fontWeight: 500,
-} as const satisfies SxProps<Theme>;
-
-export const cellSx = {
-  ...defaultCellSx,
-  ...typographySx,
-  background: "white",
-  "&:not(:last-child)": {
-    borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-  },
-} as const satisfies SxProps<Theme>;
 
 export const NoValueCell = ({
   columnId,

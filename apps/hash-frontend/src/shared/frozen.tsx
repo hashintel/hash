@@ -1,19 +1,6 @@
-import { useState } from "react";
+import { useFrozenValue } from "./use-frozen-value";
 
-import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
-
-export const useFrozenValue = <T extends ReactNode>(
-  value: T,
-  isFrozen: boolean,
-): T => {
-  const [frozen, setFrozen] = useState(value);
-
-  if (!isFrozen && frozen !== value) {
-    setFrozen(value);
-  }
-
-  return frozen;
-};
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 export const Frozen: FunctionComponent<
   PropsWithChildren<{

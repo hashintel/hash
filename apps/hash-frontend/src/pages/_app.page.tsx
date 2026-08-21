@@ -29,27 +29,28 @@ import { getHashInstanceSettings } from "../graphql/queries/knowledge/hash-insta
 import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
 import { constructMinimalUser } from "../lib/user-and-org";
-import { DraftEntitiesCountContextProvider } from "../shared/draft-entities-count-context";
+import { DraftEntitiesCountContextProvider } from "../shared/draft-entities-count-context-provider";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
-import { FileUploadsProvider } from "../shared/file-upload-context";
-import { InvitesContextProvider } from "../shared/invites-context";
-import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
+import { FileUploadsProvider } from "../shared/file-uploads-provider";
+import { InvitesContextProvider } from "../shared/invites-context-provider";
+import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context-provider";
 import { getLayoutWithSidebar, getPlainLayout } from "../shared/layout";
-import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
-import { NotificationCountContextProvider } from "../shared/notification-count-context";
-import { PropertyTypesContextProvider } from "../shared/property-types-context";
+import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context-provider";
+import { NotificationCountContextProvider } from "../shared/notification-count-context-provider";
+import { PropertyTypesContextProvider } from "../shared/property-types-context-provider";
 import { RoutePageInfoProvider } from "../shared/routing";
 import { trackPageView } from "../shared/telemetry-client";
 import { ErrorFallback } from "./_app.page/error-fallback";
 import { reportIframeReactError } from "./processes/shared/iframe-error-reporter";
 import { redirectInGetInitialProps } from "./shared/_app.util";
-import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
-import { DataTypesContextProvider } from "./shared/data-types-context";
+import { useAuthInfo } from "./shared/auth-info-context";
+import { AuthInfoProvider } from "./shared/auth-info-provider";
+import { DataTypesContextProvider } from "./shared/data-types-context-provider";
 import { maintenanceRoute } from "./shared/maintenance";
 import { type IdentityTraits, oryKratosClient } from "./shared/ory-kratos";
 import { setSentryUser } from "./shared/sentry";
 import { SlideStackProvider } from "./shared/slide-stack";
-import { WorkspaceContextProvider } from "./shared/workspace-context";
+import { WorkspaceContextProvider } from "./shared/workspace-context-provider";
 
 import type {
   GetHashInstanceSettingsQueryQuery,

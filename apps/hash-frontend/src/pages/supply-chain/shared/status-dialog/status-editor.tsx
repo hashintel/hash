@@ -27,9 +27,9 @@ import {
 import {
   filterStatusMentionUsers,
   nextStatusMentionIndex,
-  StatusUserSuggester,
   type StatusMentionUser,
-} from "./status-user-suggester";
+} from "./status-mention-users";
+import { StatusUserSuggester } from "./status-user-suggester";
 
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 

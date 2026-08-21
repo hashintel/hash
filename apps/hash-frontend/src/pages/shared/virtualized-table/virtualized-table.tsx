@@ -1,0 +1,229 @@
+import { Box, CircularProgress } from "@mui/material";
+/* eslint-disable no-restricted-imports */
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+/* eslint-enable no-restricted-imports */
+import { forwardRef, useCallback, useMemo } from "react";
+import { TableVirtuoso } from "react-virtuoso";
+
+import { defaultCellSx } from "./default-cell-sx";
+import { HeaderContent, virtualizedTableHeaderHeight } from "./header";
+
+import type { ColumnMetadata } from "./header";
+import type { TableFilterProps } from "./header/filter";
+import type { TableSortProps, VirtualizedTableSort } from "./header/sort";
+import type { SxProps, Theme } from "@mui/material";
+import type { ComponentPropsWithoutRef, ReactElement } from "react";
+import type { FollowOutput, ListRange, TableComponents } from "react-virtuoso";
+
+const borderRadius = "10px";
+
+type Data = Record<string, unknown>;
+
+export type VirtualizedTableRow<D extends Data> = {
+  id: string;
+  data: D;
+};
+
+type FieldId = string;
+
+export type VirtualizedTableColumn<
+  Id extends FieldId,
+  M extends ColumnMetadata = Record<string, never>,
+> = {
+  id: Id;
+  metadata?: M;
+  label: string;
+  sortable: boolean;
+  textSx?: SxProps<Theme>;
+  width: number | string;
+};
+
+export type VirtualizedTableContext<
+  Id extends string,
+  M extends ColumnMetadata = Record<string, never>,
+> = { columns: VirtualizedTableColumn<Id, M>[] };
+
+const VirtuosoTableComponents: TableComponents<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  VirtualizedTableRow<any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  VirtualizedTableContext<any, any>
+> = {
+  Scroller: forwardRef<HTMLDivElement>(
+    (props: ComponentPropsWithoutRef<"div">, ref) => (
+      <TableContainer
+        {...props}
+        ref={ref}
+        sx={{
+          background: "white",
+          borderRadius,
+          height: "100%",
+          border: ({ palette }) => `1px solid ${palette.gray[20]}`,
+        }}
+      />
+    ),
+  ),
+  Table: (props) => (
+    <Table
+      {...props}
+      sx={{
+        tableLayout: "fixed",
+        borderCollapse: "separate",
+        borderRadius,
+        borderSpacing: 0,
+        th: {
+          ...defaultCellSx,
+          height: virtualizedTableHeaderHeight,
+        },
+      }}
+    />
+  ),
+  TableHead: forwardRef((props: ComponentPropsWithoutRef<"thead">, ref) => (
+    <TableHead ref={ref} {...props} />
+  )),
+  TableRow,
+  TableBody: forwardRef<HTMLTableSectionElement>(
+    (props: ComponentPropsWithoutRef<"tbody">, ref) => (
+      <TableBody {...props} ref={ref} />
+    ),
+  ),
+};
+
+export type CreateVirtualizedRowContentFn<
+  D extends Data,
+  Id extends FieldId = string,
+  M extends ColumnMetadata = Record<string, never>,
+> = (
+  index: number,
+  row: VirtualizedTableRow<D>,
+  context: VirtualizedTableContext<Id, M>,
+) => ReactElement;
+
+type VirtualizedTableProps<
+  D extends Data,
+  S extends VirtualizedTableSort,
+  Id extends FieldId,
+  M extends ColumnMetadata,
+  FilteredIds extends FieldId,
+> = {
+  /**
+   * This function will be called many times when scrolling, ensure repeated calls do as little as possible
+   * @see https://virtuoso.dev/#performance
+   */
+  createRowContent: CreateVirtualizedRowContentFn<D, Id, M>;
+  columns?: VirtualizedTableColumn<Id, M>[];
+  fixedColumns?: number;
+  EmptyPlaceholder?: () => ReactElement;
+  onEndReached?: () => void;
+  onRangeChange?: (range: ListRange) => void;
+  onIsScrolling?: (isScrolling: boolean) => void;
+  followOutput?: FollowOutput;
+  loadingMore?: boolean;
+  rows: VirtualizedTableRow<D>[];
+} & TableSortProps<S> &
+  Partial<TableFilterProps<FilteredIds>>;
+
+const heightStyle = { height: "100%" };
+
+export const VirtualizedTable = <
+  D extends Data,
+  Sort extends VirtualizedTableSort,
+  Id extends FieldId,
+  Metadata extends ColumnMetadata,
+  FilteredIds extends Id,
+>({
+  createRowContent,
+  columns,
+  fixedColumns,
+  EmptyPlaceholder,
+  onEndReached,
+  onRangeChange,
+  onIsScrolling,
+  followOutput = "smooth",
+  loadingMore,
+  rows,
+  filterDefinitions,
+  filterValues,
+  setFilterValues,
+  sort,
+  setSort,
+}: VirtualizedTableProps<D, Sort, Id, Metadata, FilteredIds>) => {
+  const fixedHeaderContent = useCallback(
+    () =>
+      columns
+        ? HeaderContent({
+            columns,
+            fixedColumns,
+            filterDefinitions,
+            filterValues,
+            setFilterValues,
+            sort,
+            setSort,
+          })
+        : null,
+    [
+      columns,
+      fixedColumns,
+      filterDefinitions,
+      filterValues,
+      setFilterValues,
+      sort,
+      setSort,
+    ],
+  );
+
+  const components = useMemo(
+    () => ({
+      ...VirtuosoTableComponents,
+      EmptyPlaceholder,
+    }),
+    [EmptyPlaceholder],
+  );
+
+  const context = useMemo(() => ({ columns: columns ?? [] }), [columns]);
+
+  const fixedFooterContent = useMemo(() => {
+    if (!loadingMore) {
+      return undefined;
+    }
+
+    return () => (
+      <tr>
+        <td
+          colSpan={columns?.length ?? 1}
+          style={{
+            padding: "8px 14px",
+            textAlign: "center",
+            background: "linear-gradient(to top, #ffffff, transparent)",
+          }}
+        >
+          <CircularProgress size={16} />
+        </td>
+      </tr>
+    );
+  }, [columns?.length, loadingMore]);
+
+  return (
+    <Box style={{ borderRadius, width: "100%", ...heightStyle }}>
+      <TableVirtuoso
+        context={context}
+        data={rows}
+        components={components}
+        endReached={onEndReached}
+        rangeChanged={onRangeChange}
+        isScrolling={onIsScrolling}
+        fixedFooterContent={fixedFooterContent}
+        fixedHeaderContent={fixedHeaderContent}
+        followOutput={followOutput}
+        increaseViewportBy={2000}
+        itemContent={createRowContent}
+        overscan={{ main: 1000, reverse: 1000 }}
+        style={heightStyle}
+      />
+    </Box>
+  );
+};

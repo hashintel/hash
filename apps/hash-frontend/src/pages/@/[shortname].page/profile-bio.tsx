@@ -12,8 +12,8 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { BlockLoadedProvider } from "../../../blocks/on-block-loaded";
-import { UserBlocksProvider } from "../../../blocks/user-blocks";
+import { BlockLoadedProvider } from "../../../blocks/block-loaded-provider";
+import { UserBlocksProvider } from "../../../blocks/user-blocks-provider";
 import { useBlockProtocolCreateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { GlobeRegularIcon } from "../../../shared/icons/globe-regular-icon";
@@ -22,7 +22,7 @@ import {
   getBlockCollectionContents,
   isBlockCollectionContentsEmpty,
 } from "../../shared/block-collection-contents";
-import { BlockCollectionContextProvider } from "../../shared/block-collection-context";
+import { BlockCollectionContextProvider } from "../../shared/block-collection-context-provider";
 import { BlockCollection } from "../../shared/block-collection/block-collection";
 import { useCreateBlockCollection } from "../../shared/use-create-block-collection";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";

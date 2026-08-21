@@ -13,8 +13,8 @@ import { PathFinderControl } from "./graph-container/path-finder-control";
 import { SearchControl } from "./graph-container/search-control";
 import { ConfigControl } from "./graph-container/shared/config-control";
 import { FilterControl } from "./graph-container/shared/filter-control";
-import { FullScreenContextProvider } from "./graph-container/shared/full-screen-context";
-import { GraphContextProvider } from "./graph-container/shared/graph-context";
+import { FullScreenContextProvider } from "./graph-container/shared/full-screen-context-provider";
+import { GraphContextProvider } from "./graph-container/shared/graph-context-provider";
 import { ZoomControl } from "./graph-container/zoom-control";
 
 import type { GraphLoaderProps } from "./graph-container/graph-data-loader";

@@ -28,7 +28,7 @@ import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/
 import { startFlowMutation } from "../../../../graphql/queries/knowledge/flow.queries";
 import { ArrowRightToLineIcon } from "../../../../shared/icons/arrow-right-to-line-icon";
 import { HEADER_HEIGHT } from "../../../../shared/layout/layout-with-header/page-header";
-import { defaultBrowserPluginDomains } from "../../../goals/new.page/internet-settings";
+import { defaultBrowserPluginDomains } from "../../../goals/new.page/default-browser-plugin-domains";
 import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { NotFound } from "../../../shared/not-found";

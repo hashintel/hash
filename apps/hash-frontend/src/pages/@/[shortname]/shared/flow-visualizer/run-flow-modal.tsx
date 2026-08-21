@@ -11,7 +11,7 @@ import { Button } from "../../../../../shared/ui/button";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { Modal } from "../../../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
-import { GoogleAuthProvider } from "../../../../shared/integrations/google/google-auth-context";
+import { GoogleAuthProvider } from "../../../../shared/integrations/google/google-auth-provider";
 import { WebSelector } from "../../../../shared/web-selector";
 import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
 import { inputHeight } from "./run-flow-modal/shared/dimensions";

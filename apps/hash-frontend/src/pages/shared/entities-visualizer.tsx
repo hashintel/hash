@@ -18,10 +18,7 @@ import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-drop
 import { Button } from "../../shared/ui";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
-import {
-  EntitiesTable,
-  toolbarHeight,
-} from "./entities-visualizer/entities-table";
+import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/grid-view";
 import {
   FilterRibbon,
@@ -31,6 +28,7 @@ import {
 } from "./entities-visualizer/header";
 import { displaysFilesOnly } from "./entities-visualizer/shared/displays-files-only";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
+import { toolbarHeight } from "./entities-visualizer/shared/toolbar-height";
 import {
   type SummarySource,
   useAvailableTypes,

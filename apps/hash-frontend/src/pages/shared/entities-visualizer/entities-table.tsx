@@ -76,8 +76,6 @@ import type {
   SetStateAction,
 } from "react";
 
-export { toolbarHeight } from "./entities-table/table-toolbar";
-
 const firstColumnLeftPadding = 16;
 
 const sortableColumns: SortableEntitiesTableColumnKey[] = [

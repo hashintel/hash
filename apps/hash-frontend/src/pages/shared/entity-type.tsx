@@ -27,10 +27,10 @@ import { ConvertTypeMenuItem } from "./entity-type-page/convert-type-menu-item";
 import { DefinitionTab } from "./entity-type-page/definition-tab";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
 import { EntitiesTab } from "./entity-type-page/entities-tab";
+import { useEntityTypeTab } from "./entity-type-page/entity-type-tab-context";
 import {
   EntityTypeTabProvider,
   EntityTypeTabs,
-  useEntityTypeTab,
 } from "./entity-type-page/entity-type-tabs";
 import { FileUploadsTab } from "./entity-type-page/file-uploads-tab";
 import { EntityTypeContext } from "./entity-type-page/shared/entity-type-context";
@@ -45,10 +45,8 @@ import { NotFound } from "./not-found";
 import { largePageMaxWidthCss } from "./page-width";
 import { inSlideContainerStyles } from "./shared/slide-styles";
 import { TypeEditorSkeleton } from "./shared/type-editor-skeleton";
-import {
-  TypeDefinitionContainer,
-  typeHeaderContainerStyles,
-} from "./shared/type-editor-styling";
+import { TypeDefinitionContainer } from "./shared/type-editor-styling";
+import { typeHeaderContainerStyles } from "./shared/type-header-container-styles";
 import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 

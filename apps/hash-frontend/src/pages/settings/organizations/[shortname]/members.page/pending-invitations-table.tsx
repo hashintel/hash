@@ -20,7 +20,8 @@ import { isInvitationByShortname } from "@local/hash-isomorphic-utils/organizati
 import { archiveEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { Link } from "../../../../../shared/ui/link";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
-import { ContextButton, contextMenuProps } from "../../../shared/context-menu";
+import { ContextButton } from "../../../shared/context-menu";
+import { contextMenuProps } from "../../../shared/context-menu-props";
 import { SettingsTable } from "../../../shared/settings-table";
 import { SettingsTableCell } from "../../../shared/settings-table-cell";
 

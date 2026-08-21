@@ -1,11 +1,9 @@
 import { useRouter } from "next/router";
 
 import { getLayoutWithSidebar } from "../../../../shared/layout";
-import { FlowDefinitionsContextProvider } from "../../../shared/flow-definitions-context";
-import {
-  FlowRunsContextProvider,
-  useFlowRunsContext,
-} from "../../../shared/flow-runs-context";
+import { FlowDefinitionsContextProvider } from "../../../shared/flow-definitions-context-provider";
+import { useFlowRunsContext } from "../../../shared/flow-runs-context";
+import { FlowRunsContextProvider } from "../../../shared/flow-runs-context-provider";
 import {
   FlowRunVisualizerSkeleton,
   FlowVisualizer,

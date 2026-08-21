@@ -42,7 +42,6 @@ import {
 import type {
   // childMenu,
   CommandBarOption,
-  CommandBarOptionCommand,
 } from "./command-bar/command-bar-options";
 import type { KeyboardShortcut } from "./keyboard-shortcuts-context";
 import type {
@@ -78,19 +77,6 @@ import type {
 //     });
 //   },
 // });
-
-export const useCommandBarOption = (
-  option: CommandBarOption,
-  command?: CommandBarOptionCommand,
-) => {
-  useEffect(() => {
-    const deactivate = option.activate(command);
-
-    return () => {
-      deactivate();
-    };
-  }, [option, command]);
-};
 
 // The state of the command bar is not immediately reset when exited via the backdrop or command+K.
 // This is the number of milliseconds to wait before resetting the state when exited in this way.

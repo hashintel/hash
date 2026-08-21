@@ -52,15 +52,3 @@ export const StatusBody = ({
     );
   });
 };
-
-export const mentionedUserEntityIds = (
-  tokens: readonly TextToken[],
-): EntityId[] => [
-  ...new Set(
-    tokens.flatMap((token) =>
-      token.tokenType === "mention" && token.mentionType === "user"
-        ? [token.entityId]
-        : [],
-    ),
-  ),
-];

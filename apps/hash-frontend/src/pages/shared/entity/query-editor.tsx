@@ -13,7 +13,7 @@ import {
 } from "../../../shared/entity-types-context/hooks";
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { EntityEditorContainer } from "./entity-editor-container";
-import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
+import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context-provider";
 import { TypesSection } from "./entity-editor/types-section";
 import { EntityHeader } from "./entity-header";
 

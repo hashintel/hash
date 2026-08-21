@@ -7,9 +7,9 @@ import { useLayoutEffect, useRef } from "react";
 import { useUserBlocks } from "../../../blocks/user-blocks";
 import { useSnackbar } from "../../../components/hooks/use-snackbar";
 import { Button } from "../../../shared/ui";
-import { usePortals } from "./block-portals";
 import { createEditorView } from "./create-editor-view";
 import { usePageContextOptional } from "./page-context";
+import { usePortals } from "./use-portals";
 
 import type { EditorConnection } from "./collab/editor-connection";
 import type { EntityId, WebId } from "@blockprotocol/type-system";

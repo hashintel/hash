@@ -14,8 +14,8 @@ import {
   EditBarCollapse,
   EditBarContainer,
   EditBarContents,
-  useFreezeScrollWhileTransitioning,
 } from "../shared/edit-bar-contents";
+import { useFreezeScrollWhileTransitioning } from "../shared/use-freeze-scroll-while-transitioning";
 
 import type { ButtonProps } from "../../../shared/ui/button";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";

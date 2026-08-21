@@ -10,7 +10,7 @@ import { BellLightIcon } from "@hashintel/design-system";
 
 import { getLayoutWithSidebar } from "../shared/layout";
 import { NotificationsTable } from "./notifications.page/notifications-table";
-import { NotificationsWithLinksContextProvider } from "./notifications.page/notifications-with-links-context";
+import { NotificationsWithLinksContextProvider } from "./notifications.page/notifications-with-links-context-provider";
 import { TopContextBar } from "./shared/top-context-bar";
 
 import type { NextPageWithLayout } from "../shared/layout";

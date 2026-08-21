@@ -34,16 +34,14 @@ import {
 import { DataTypeHeader } from "./data-type/data-type-header";
 import { DataTypeLabels } from "./data-type/data-type-labels";
 import { DataTypesParents } from "./data-type/data-type-parents";
-import { InheritedConstraintsProvider } from "./data-type/shared/use-inherited-constraints";
+import { InheritedConstraintsProvider } from "./data-type/shared/inherited-constraints-provider";
 import { useDataTypesContext } from "./data-types-context";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
 import { NotFound } from "./not-found";
 import { inSlideContainerStyles } from "./shared/slide-styles";
 import { TypeEditorSkeleton } from "./shared/type-editor-skeleton";
-import {
-  TypeDefinitionContainer,
-  typeHeaderContainerStyles,
-} from "./shared/type-editor-styling";
+import { TypeDefinitionContainer } from "./shared/type-editor-styling";
+import { typeHeaderContainerStyles } from "./shared/type-header-container-styles";
 import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 

@@ -14,10 +14,8 @@ import { CircleInfoIcon } from "../../shared/icons/circle-info-icon";
 import { SourcesPopover } from "./sources-popover";
 import { ValueChip } from "./value-chip";
 import { defaultCellSx, VirtualizedTable } from "./virtualized-table";
-import {
-  isValueIncludedInFilter,
-  missingValueString,
-} from "./virtualized-table/header/filter";
+import { missingValueString } from "./virtualized-table/header/filter";
+import { isValueIncludedInFilter } from "./virtualized-table/header/is-value-included-in-filter";
 import { useVirtualizedTableFilterState } from "./virtualized-table/use-filter-state";
 
 import type {

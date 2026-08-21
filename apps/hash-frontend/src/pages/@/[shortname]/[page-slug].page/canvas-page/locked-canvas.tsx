@@ -1,7 +1,7 @@
 import { Matrix2d, toDomPrecision } from "@tldraw/primitives";
 
 import { BlockLoader } from "../../../../../components/block-loader/block-loader";
-import { BlockContextProvider } from "../../../../shared/block-collection/block-context";
+import { BlockContextProvider } from "../../../../shared/block-collection/block-context-provider";
 
 import type { CanvasProps } from "./shared";
 import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";

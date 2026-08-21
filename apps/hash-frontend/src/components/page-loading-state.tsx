@@ -1,12 +1,12 @@
 import { Box, Skeleton } from "@mui/material";
 
-import { pageContentWidth } from "../pages/@/[shortname]/[page-slug].page";
-import { ProsemirrorLoadingState } from "../pages/shared/block-collection/loading-view";
+import { pageContentWidth } from "../pages/@/[shortname]/[page-slug].page/page-section-container-styles";
 import {
   PAGE_TITLE_FONT_SIZE,
   PAGE_TITLE_LINE_HEIGHT,
 } from "../pages/shared/block-collection/page-title/page-title";
-import { iconVariantSizes } from "../shared/edit-emoji-icon-button";
+import { ProsemirrorLoadingState } from "../pages/shared/block-collection/prosemirror-loading-state";
+import { iconVariantSizes } from "../shared/icon-variant-sizes";
 
 export const PageLoadingState = () => {
   return (

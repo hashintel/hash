@@ -17,8 +17,8 @@ import {
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { BlockLoadedProvider } from "../blocks/on-block-loaded";
-import { UserBlocksProvider } from "../blocks/user-blocks";
+import { BlockLoadedProvider } from "../blocks/block-loaded-provider";
+import { UserBlocksProvider } from "../blocks/user-blocks-provider";
 import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { NoteIcon } from "../shared/icons/note-icon";
 import { getLayoutWithSidebar } from "../shared/layout";
@@ -26,7 +26,7 @@ import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
 import { blockCollectionContentsTraversalParams } from "./shared/block-collection-contents";
-import { BlockCollectionContextProvider } from "./shared/block-collection-context";
+import { BlockCollectionContextProvider } from "./shared/block-collection-context-provider";
 import { TopContextBar } from "./shared/top-context-bar";
 
 import type {

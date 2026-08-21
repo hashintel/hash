@@ -1,5 +1,4 @@
 import { Box, Fade, Typography } from "@mui/material";
-import { subDays, subHours } from "date-fns";
 import { useCallback, useMemo } from "react";
 
 import {
@@ -25,9 +24,21 @@ import { Button } from "../../../shared/ui";
 import { isAiMachineActor } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { FilterSection } from "./draft-entities-filters/filter-section";
+import {
+  draftEntityFilterKinds,
+  filterDraftEntities,
+  generateDefaultFilterState,
+  getDraftEntitySources,
+  getDraftEntityWebIds,
+  isDateWithinLastEditedTimeRange,
+} from "./filter-state";
 
 import type { MinimalActor } from "../../../shared/use-actors";
 import type { FilterSectionDefinition } from "./draft-entities-filters/types";
+import type {
+  DraftEntityFilterKind,
+  DraftEntityFilterState,
+} from "./filter-state";
 import type { EntityTypeDisplayInfoByBaseUrl } from "./types";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
@@ -69,174 +80,6 @@ const lastEditedTimeRangesToIcon: Record<LastEditedTimeRanges, ReactNode> = {
   "last-7-days": <CalendarWeekLightIcon />,
   "last-30-days": <CalendarDaysLightIcon />,
   "last-365-days": <CalendarsLightIcon />,
-};
-
-export type DraftEntityFilterState = {
-  entityTypeBaseUrls: BaseUrl[];
-  sourceAccountIds: ActorEntityUuid[];
-  webWebIds: WebId[];
-  lastEditedTimeRange: LastEditedTimeRanges;
-};
-
-export const getDraftEntityTypeBaseUrls = ({
-  draftEntities,
-}: {
-  draftEntities: HashEntity[];
-}): BaseUrl[] => {
-  const baseUrls = draftEntities.flatMap((draftEntity) =>
-    draftEntity.metadata.entityTypeIds.map((entityTypeId) =>
-      extractBaseUrl(entityTypeId),
-    ),
-  );
-
-  return Array.from(new Set(baseUrls));
-};
-
-const getDraftEntitySources = (params: {
-  draftEntitiesWithCreators: {
-    entity: HashEntity;
-    creator: MinimalActor;
-  }[];
-}): MinimalActor[] =>
-  params.draftEntitiesWithCreators
-    .map(({ creator }) => creator)
-    .filter(
-      (creator, index, all) =>
-        all.findIndex(({ accountId }) => accountId === creator.accountId) ===
-        index,
-    );
-
-const getDraftEntityWebIds = (params: {
-  draftEntities: HashEntity[];
-}): WebId[] =>
-  params.draftEntities
-    .map(({ metadata }) => extractWebIdFromEntityId(metadata.recordId.entityId))
-    .filter((webWebId, index, all) => all.indexOf(webWebId) === index);
-
-export const generateDefaultFilterState = (params: {
-  draftEntitiesWithCreators: {
-    entity: HashEntity;
-    creator: MinimalActor;
-  }[];
-}): DraftEntityFilterState => {
-  const { draftEntitiesWithCreators } = params;
-
-  const entityTypeBaseUrls = getDraftEntityTypeBaseUrls({
-    draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
-  });
-
-  const sources = getDraftEntitySources({
-    draftEntitiesWithCreators,
-  });
-
-  const webWebIds = getDraftEntityWebIds({
-    draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
-  });
-
-  return {
-    entityTypeBaseUrls,
-    sourceAccountIds: sources.map(({ accountId }) => accountId),
-    webWebIds,
-    lastEditedTimeRange: "anytime",
-  };
-};
-
-export const isFilerStateDefaultFilterState =
-  (params: {
-    draftEntitiesWithCreators: {
-      entity: HashEntity;
-      creator: MinimalActor;
-    }[];
-  }) =>
-  (filterState: DraftEntityFilterState): boolean => {
-    const { draftEntitiesWithCreators } = params;
-
-    if (filterState.lastEditedTimeRange !== "anytime") {
-      return false;
-    }
-
-    const entityTypeBaseUrls = getDraftEntityTypeBaseUrls({
-      draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
-    });
-
-    if (filterState.entityTypeBaseUrls.length !== entityTypeBaseUrls.length) {
-      return false;
-    }
-
-    const sources = getDraftEntitySources({
-      draftEntitiesWithCreators,
-    });
-
-    if (filterState.sourceAccountIds.length !== sources.length) {
-      return false;
-    }
-
-    return true;
-  };
-
-const isDateWithinLastEditedTimeRange = (params: {
-  date: Date;
-  lastEditedTimeRange: LastEditedTimeRanges;
-}) => {
-  const { date, lastEditedTimeRange } = params;
-  const now = new Date();
-  switch (lastEditedTimeRange) {
-    case "anytime":
-      return true;
-    case "last-24-hours":
-      return date >= subHours(now, 1);
-    case "last-7-days":
-      return date >= subDays(now, 7);
-    case "last-30-days":
-      return date >= subDays(now, 30);
-    case "last-365-days":
-      return date >= subDays(now, 365);
-    default:
-      return true;
-  }
-};
-
-const draftEntityFilterKinds = [
-  "type",
-  "source",
-  "web",
-  "lastEditedBy",
-] as const;
-
-type DraftEntityFilterKind = (typeof draftEntityFilterKinds)[number];
-
-export const filterDraftEntities = (params: {
-  draftEntitiesWithCreators: {
-    entity: HashEntity;
-    creator: MinimalActor;
-  }[];
-  filterState: DraftEntityFilterState;
-  omitFilters?: DraftEntityFilterKind[];
-}) => {
-  const { draftEntitiesWithCreators, filterState, omitFilters } = params;
-
-  return draftEntitiesWithCreators.filter(
-    ({ entity, creator }) =>
-      (omitFilters?.includes("type") ||
-        filterState.entityTypeBaseUrls.some((baseUrl) =>
-          entity.metadata.entityTypeIds.some(
-            (entityTypeId) => extractBaseUrl(entityTypeId) === baseUrl,
-          ),
-        )) &&
-      (omitFilters?.includes("source") ||
-        filterState.sourceAccountIds.includes(creator.accountId)) &&
-      (omitFilters?.includes("web") ||
-        filterState.webWebIds.includes(
-          extractWebIdFromEntityId(entity.metadata.recordId.entityId),
-        )) &&
-      (omitFilters?.includes("lastEditedBy") ||
-        isDateWithinLastEditedTimeRange({
-          date: new Date(
-            entity.metadata.temporalVersioning.decisionTime.start.limit,
-          ),
-          lastEditedTimeRange: filterState.lastEditedTimeRange,
-        })),
-  );
 };
 
 export const DraftEntitiesFilters: FunctionComponent<{

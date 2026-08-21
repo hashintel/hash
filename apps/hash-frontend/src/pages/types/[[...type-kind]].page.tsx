@@ -15,10 +15,8 @@ import { CreateButton } from "../shared/create-button";
 import { largePageMaxWidthCss } from "../shared/page-width";
 import { TopContextBar } from "../shared/top-context-bar";
 import { TypesTable } from "../shared/types-table";
-import {
-  tabTitles,
-  TypesPageTabs,
-} from "./[[...type-kind]].page/types-page-tabs";
+import { tabTitles } from "./[[...type-kind]].page/tab-titles";
+import { TypesPageTabs } from "./[[...type-kind]].page/types-page-tabs";
 
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { DataTypeRootType } from "@blockprotocol/graph";

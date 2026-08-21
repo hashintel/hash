@@ -2,82 +2,20 @@ import { Box } from "@mui/material";
 import { produce } from "immer";
 import { useMemo, useState } from "react";
 
-import {
-  currentTimestamp,
-  extractDraftIdFromEntityId,
-} from "@blockprotocol/type-system";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 
 import { getImageUrlFromEntityProperties } from "../../../../../../get-file-properties";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
+import { createDraftLinkEntity } from "./create-draft-link-entity";
 import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
 import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
 import { LinkedEntitySelector } from "./linked-entity-selector";
 
 import type { LinkedWithCell } from "../linked-with-cell";
-import type {
-  ActorEntityUuid,
-  EntityId,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-
-/**
- * @todo - This is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
- *   breaking invariants and constraints. Having a disjoint type will let us rely on `tsc` properly and avoid casts
- *   and empty placeholder values below
- *   see https://linear.app/hash/issue/H-1083/draft-entities
- */
-export const createDraftLinkEntity = ({
-  rightEntityId,
-  leftEntityId,
-  linkEntityTypeId,
-}: {
-  rightEntityId: EntityId;
-  leftEntityId: EntityId;
-  linkEntityTypeId: VersionedUrl;
-}): HashEntity =>
-  new HashEntity({
-    properties: {},
-    linkData: { rightEntityId, leftEntityId },
-    metadata: {
-      archived: false,
-      recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
-      entityTypeIds: [linkEntityTypeId],
-      provenance: {
-        createdById: "" as ActorEntityUuid,
-        createdAtTransactionTime: currentTimestamp(),
-        createdAtDecisionTime: currentTimestamp(),
-        edition: {
-          createdById: "" as ActorEntityUuid,
-          actorType: "user",
-          origin: { type: "api" },
-        },
-      },
-      temporalVersioning: {
-        decisionTime: {
-          start: {
-            kind: "inclusive",
-            limit: currentTimestamp(),
-          },
-          end: {
-            kind: "unbounded",
-          },
-        },
-        transactionTime: {
-          start: {
-            kind: "inclusive",
-            limit: currentTimestamp(),
-          },
-          end: {
-            kind: "unbounded",
-          },
-        },
-      },
-    },
-  });
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,

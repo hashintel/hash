@@ -4,10 +4,8 @@ import { useEffect, useMemo } from "react";
 import { FilterLightIcon } from "../../../../../shared/icons/filter-light-icon";
 import { GrayToBlueIconButton } from "../../../gray-to-blue-icon-button";
 import { ControlPanel, ItemLabel } from "./control-components";
-import {
-  filterButtonSx,
-  NodeTypeFilters,
-} from "./filter-control/node-type-filters";
+import { filterButtonSx } from "./filter-control/filter-button-sx";
+import { NodeTypeFilters } from "./filter-control/node-type-filters";
 import { useGraphContext } from "./graph-context";
 
 import type { GraphVizNode } from "./types";

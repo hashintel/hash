@@ -7,7 +7,7 @@ import { extractBaseUrl } from "@blockprotocol/type-system";
 import { ArrowUpRightIcon } from "@hashintel/design-system";
 
 import { useEntityTypesContextRequired } from "../../../../../entity-types-context/hooks/use-entity-types-context-required";
-import { useFrozenValue } from "../../../../../frozen";
+import { useFrozenValue } from "../../../../../use-frozen-value";
 import { FavoriteMenuItem } from "./shared/favorite-menu-item";
 import { SidebarMenuItem } from "./shared/sidebar-menu-item";
 
