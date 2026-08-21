@@ -271,7 +271,7 @@ pub struct AdminServerArgs {
 
     /// Shared secret internal services present to act on behalf of an actor.
     ///
-    /// Sent as the `X-HASH-Service-Secret` header, either next to
+    /// Sent as the `Authorization: HASH-Service <secret>` credential, either next to
     /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes.
     //
     // Optional at parse time so `--healthcheck` does not require the environment variable. The

@@ -22,8 +22,9 @@ const assertRunningInSnapshotGroup = (operation: string) => {
 const port = process.env.HASH_GRAPH_ADMIN_PORT || "4001";
 
 const serviceDelegationHeaders = {
-  "X-HASH-Service-Secret":
-    process.env.HASH_GRAPH_SERVICE_SECRET ?? "hash-svc-local-dev-secret",
+  Authorization: `HASH-Service ${
+    process.env.HASH_GRAPH_SERVICE_SECRET ?? "hash-svc-local-dev-secret"
+  }`,
   "X-Authenticated-User-Actor-Id": "00000000-0000-0000-0000-000000000000",
 };
 
