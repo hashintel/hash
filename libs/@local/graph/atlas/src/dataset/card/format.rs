@@ -87,6 +87,26 @@ impl Card {
         }
     }
 
+    /// Reassembles a card from its persisted fields.
+    ///
+    /// Every field is adopted unchanged, with nothing recomputed, so a card restored from
+    /// storage compares equal to the card that was stored, diagnostics included. Use
+    /// [`verbatim`](Self::verbatim) for fresh text, which computes its own token count.
+    #[must_use]
+    pub(crate) const fn from_parts(
+        card_text: String,
+        token_count: usize,
+        truncations: Vec<Cow<'static, str>>,
+        severely_truncated: bool,
+    ) -> Self {
+        Self {
+            card_text,
+            token_count,
+            truncations,
+            severely_truncated,
+        }
+    }
+
     /// Returns the canonical rendered text.
     ///
     /// Callers derive the persisted card hash from these UTF-8 bytes.

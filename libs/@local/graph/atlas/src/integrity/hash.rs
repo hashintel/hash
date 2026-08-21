@@ -43,6 +43,9 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
 #[repr(transparent)]
 pub struct Sha256Digest(HexBytes<DIGEST_BYTES>);
 
+// No multi-byte fields: the digest is a byte array, so no byte order arises.
+crate::dataset::offline::portable::self_archived!(Sha256Digest);
+
 impl Sha256Digest {
     /// The digest width, bytes.
     pub const BYTES: usize = DIGEST_BYTES;

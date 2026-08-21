@@ -72,7 +72,16 @@ impl Error for NotInUnitInterval {}
 /// ```
 // No `FromBytes` and no `FromZeros`: byte-level construction could produce NaN or a value
 // outside the interval in safe code, bypassing the validating constructors.
-#[derive(Debug, Copy, Clone, zerocopy::IntoBytes, zerocopy::Immutable, zerocopy::KnownLayout)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+    rkyv::bytecheck::CheckBytes,
+)]
+#[bytecheck(verify)]
 #[repr(transparent)]
 pub struct UnitFraction(f64);
 
@@ -508,3 +517,47 @@ const impl Mul<PositiveUnitFraction> for UnitFraction {
 
 raw_interop!(UnitFraction[f64]);
 unsafe_impl_try_from_bytes!(UnitFraction[f64]);
+
+// SAFETY: `repr(transparent)` over `f64` gives one stable layout - size 8, alignment 8, no
+// padding - on every target, and the type has no interior mutability. The stored bits are the
+// writer's native `f64`, so a reader on the other byte order computes a different value from
+// the same bytes: every format that maps this type stamps its writer's byte order and refuses
+// the other order at open, before any archived value is reached. This is also why `Archive`
+// below is hand-written as the identity: the derive would route the field through the
+// endian-tagged `Archived<f64>`, and native bits under a stamped manifest are the contract.
+unsafe impl rkyv::Portable for UnitFraction {}
+
+// SAFETY: `repr(transparent)` over `f64`, so every byte of a value is initialized.
+unsafe impl rkyv::traits::NoUndef for UnitFraction {}
+
+impl rkyv::Archive for UnitFraction {
+    type Archived = Self;
+    type Resolver = ();
+
+    fn resolve(&self, (): Self::Resolver, out: rkyv::Place<Self>) {
+        out.write(*self);
+    }
+}
+
+impl<S: rkyv::rancor::Fallible + ?Sized> rkyv::Serialize<S> for UnitFraction {
+    fn serialize(&self, _serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+        Ok(())
+    }
+}
+
+// SAFETY: a unit fraction imposes no bit-validity condition, since every `f64` bit pattern is
+// constructible. Its domain is instead a value condition, checked here after construction for the
+// same reason `unchecked` construction is safe. Running the check through `&self` is therefore
+// sound, and `verify` returning `Ok` is exactly [`UnitFraction::is_canonical`].
+unsafe impl<C> rkyv::bytecheck::Verify<C> for UnitFraction
+where
+    C: rkyv::rancor::Fallible<Error: rkyv::rancor::Source> + ?Sized,
+{
+    fn verify(&self, _: &mut C) -> Result<(), <C as rancor::Fallible>::Error> {
+        if Self::is_canonical(self.0) {
+            Ok(())
+        } else {
+            rkyv::rancor::fail!(NotInUnitInterval(self.0))
+        }
+    }
+}

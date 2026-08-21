@@ -19,6 +19,10 @@ hashql_core::id::newtype! {
     pub struct OntologyRowId(u64)
 }
 
+// Little-endian by construction: `endian = little` above pins the stored `u64`'s byte order,
+// the property the macro's structural bounds cannot state.
+crate::dataset::offline::portable::self_archived!(OntologyRowId);
+
 impl OntologyRowId {
     /// Returns the row as an index into a column of length `bound`.
     ///

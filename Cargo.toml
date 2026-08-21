@@ -126,6 +126,7 @@ bon                                = { version = "3.8.1", default-features = fal
 bstr                               = { version = "1.12.1" }
 bump-scope                         = { version = "2.0.0", default-features = false, features = ["alloc", "nightly-clone-to-uninit", "panic-on-alloc", "std"] }
 burn                               = { version = "0.21.0" }
+bytecheck                          = { version = "0.8.2", default-features = false }
 bytes                              = { version = "1.10.1" }
 bytes-utils                        = { version = "0.1.4", default-features = false }
 camino                             = { version = "1.1.12", default-features = false }
@@ -234,6 +235,7 @@ proc-macro2                        = { version = "1.0.103", default-features = f
 prometheus-client                  = { version = "0.24.0", default-features = false }
 proptest                           = { version = "1.7.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
 quote                              = { version = "1.0.41", default-features = false }
+rancor                             = { version = "0.1.2", default-features = false }
 rand                               = { version = "0.10.0", default-features = false }
 rand_core                          = { version = "0.10.0", default-features = false }
 rand_core_06                       = { version = "0.6", package = "rand_core" }

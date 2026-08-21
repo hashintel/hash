@@ -1,17 +1,21 @@
-//! The operator seam for one production run over a live store.
+//! The operator entry points for one production run.
 //!
-//! [`live`] drives the generation runner end to end over a pinned snapshot - prior resolution,
-//! fit, admission probe, and the activation decision - configured by [`Options`] and read back as
-//! a plain-number [`Summary`]. Failures return a [`RunError`] naming the failing step, the step's
-//! concrete fault chained beneath.
+//! [`live()`] drives the generation runner end to end over a pinned store snapshot, and
+//! [`offline()`] drives the same runner over a dump directory, so a fit runs where the store does
+//! not. Both
+//! cover prior resolution, fit, admission probe, and the activation decision, configured by
+//! [`Options`] and read back as a plain-number [`Summary`]. Failures return a [`RunError`] naming
+//! the failing step, the step's concrete fault chained beneath.
 //!
 //! Types carry the option vocabulary: [`ClassifierSource`] names the classifier supply every run
 //! carries, and [`Placement`] carries exactly the controls its placer consumes, so option
 //! combinations the pipeline cannot honor are unrepresentable.
 //!
-//! The run embeds cards through the external embedding provider the shell constructs and supplies;
-//! the embedder fingerprint recorded in the published artifacts names the provider contract, and
-//! fingerprint equality guards prior-generation reuse.
+//! A live run embeds cards through the external embedding provider the shell constructs and
+//! supplies; the embedder fingerprint recorded in the published artifacts names the provider
+//! contract, and fingerprint equality guards prior-generation reuse. An offline run embeds out of
+//! the dump's own embedding stream under the fingerprint the dump recorded, so the published
+//! artifacts name the provider whose vectors they carry either way.
 //!
 //! Nothing here is API for consumers of the crate; the module exists for the
 //! [`cli`](crate::cli) operator commands, which re-export its vocabulary.
@@ -20,21 +24,18 @@ use core::num::NonZero;
 use std::io;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use hash_graph_embeddings::OpenAiEmbeddingClient;
-use tokio_postgres::Client;
 
-use super::{Admission, PriorMode, RunnerError, RunnerOptions, run};
+pub(crate) use self::{live::live, offline::offline};
+use super::{Admission, Outcome, PriorMode, RunnerError, RunnerOptions};
 use crate::{
     dataset::{
-        TemporalAxes,
-        postgres::{PostgresDataset, PostgresDatasetError},
+        offline::{OfflineDatasetError, OpenDumpError, embedder::MissingCardText},
+        postgres::PostgresDatasetError,
     },
     device::PinnedDevice,
-    file::generation::GenerationRoot,
     math::{AffinityCurve, positive, positive_unit_fraction, unit_fraction},
-    progress::Progress,
     salt::{
-        embedding::external::{ExternalEmbeddingError, ExternalEmbeddingProvider},
+        embedding::external::ExternalEmbeddingError,
         fit::{
             ClassifierInput, ClassifierSupplyError, FitConfig, KnnConstructionChoice,
             PlacementOptions, ProjectorOptions, SuppliedAnnotations, SuppliedVerdicts,
@@ -47,6 +48,9 @@ use crate::{
         quality::report::{QualityThresholds, ThresholdDomainError, ThresholdOverrides},
     },
 };
+
+mod live;
+mod offline;
 
 /// The default landmark capacity of a production run.
 const DEFAULT_LANDMARKS: NonZero<u32> = const { NonZero::new(4_096).unwrap() };
@@ -212,6 +216,10 @@ impl core::error::Error for ThresholdSupplyError {
 pub enum RunError {
     /// The store could not open a snapshot transaction.
     Snapshot(PostgresDatasetError),
+    /// The dump directory was refused.
+    Dump(OpenDumpError),
+    /// The dump's embedding stream could not serve as the embedding provider.
+    DumpEmbedder(OfflineDatasetError),
     /// The run refused the supplied verdicts document.
     Verdicts(VerdictSupplyError),
     /// The run refused the supplied quality-thresholds document.
@@ -220,14 +228,20 @@ pub enum RunError {
     Annotations(AnnotationSupplyError),
     /// The run refused the supplied classifier artifact.
     Classifier(ClassifierSupplyError),
-    /// The run could not reach a verdict.
+    /// The live run could not reach a verdict.
     Run(RunnerError<PostgresDatasetError, ExternalEmbeddingError>),
+    /// The offline run could not reach a verdict.
+    OfflineRun(RunnerError<OfflineDatasetError, MissingCardText>),
 }
 
 impl core::fmt::Display for RunError {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Snapshot(_) => fmt.write_str("the store could not open a snapshot transaction"),
+            Self::Dump(_) => fmt.write_str("the dump directory was refused"),
+            Self::DumpEmbedder(_) => {
+                fmt.write_str("the dump's embedding stream was refused as the embedding provider")
+            }
             Self::Verdicts(_) => fmt.write_str("the supplied verdicts document was refused"),
             Self::Thresholds(_) => {
                 fmt.write_str("the supplied quality-thresholds document was refused")
@@ -236,7 +250,9 @@ impl core::fmt::Display for RunError {
                 fmt.write_str("the supplied annotation-corpus document was refused")
             }
             Self::Classifier(_) => fmt.write_str("the supplied classifier artifact was refused"),
-            Self::Run(_) => fmt.write_str("the run could not reach a verdict"),
+            Self::Run(_) | Self::OfflineRun(_) => {
+                fmt.write_str("the run could not reach a verdict")
+            }
         }
     }
 }
@@ -245,11 +261,14 @@ impl core::error::Error for RunError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::Snapshot(error) => Some(error),
+            Self::Dump(error) => Some(error),
+            Self::DumpEmbedder(error) => Some(error),
             Self::Verdicts(error) => Some(error),
             Self::Thresholds(error) => Some(error),
             Self::Annotations(error) => Some(error),
             Self::Classifier(error) => Some(error),
             Self::Run(error) => Some(error),
+            Self::OfflineRun(error) => Some(error),
         }
     }
 }
@@ -331,29 +350,27 @@ fn placement_options(placement: Placement, initial: PlacementOptions) -> Placeme
     PlacementOptions::Projector(projector)
 }
 
-/// Runs one production generation over the store's snapshot at `axes`.
+/// The dataset-independent half of one run, resolved from its options.
 ///
-/// The run publishes the generation under the generation root at `root`; the caller names the
-/// snapshot explicitly, so equal inputs describe the same run. Cards embed through `embedder`, the
-/// provider the shell constructed with its credentials.
+/// Everything here is decided by the operator options, the pinned device, and the documents the
+/// options name, before any dataset exists, so the live and offline entry points resolve it
+/// identically.
+struct ResolvedRun {
+    /// The runner options the entry point hands to the run.
+    runner: RunnerOptions,
+    /// The admitted reviewed-verdicts document, when one was supplied.
+    verdicts: Option<SuppliedVerdicts>,
+    /// The run's classifier input, opened from its source.
+    classifier: ClassifierInput,
+}
+
+/// Resolves the operator options into runner options and admitted supply documents.
 ///
 /// # Errors
 ///
-/// Returns a [`RunError`] naming the step that failed: opening the snapshot transaction, admitting
-/// the supplied verdicts, quality-thresholds, annotation-corpus, or classifier documents, or the
-/// run itself.
-pub(crate) async fn live<P: Progress + Sync>(
-    client: &mut Client,
-    root: GenerationRoot,
-    device: PinnedDevice,
-    axes: TemporalAxes,
-    options: Options<P>,
-    embedder: &ExternalEmbeddingProvider<OpenAiEmbeddingClient, P::Detached>,
-) -> Result<Summary, RunError> {
-    let dataset = PostgresDataset::new(client, axes)
-        .await
-        .map_err(RunError::Snapshot)?;
-
+/// Returns a [`RunError`] naming the refused document: the supplied quality-thresholds,
+/// verdicts, annotation-corpus, or classifier document, in that order.
+fn resolve<P>(options: &Options<P>, device: PinnedDevice) -> Result<ResolvedRun, RunError> {
     let mut runner_options = RunnerOptions {
         fit: FitConfig {
             seed: options.seed,
@@ -399,20 +416,17 @@ pub(crate) async fn live<P: Progress + Sync>(
 
     let classifier = classifier_input(&options.classifier)?;
 
-    let outcome = run(
-        &dataset,
-        embedder,
-        &classifier,
-        verdicts.as_ref(),
-        &root,
-        &runner_options,
-        &options.progress,
-    )
-    .await
-    .map_err(RunError::Run)?;
+    Ok(ResolvedRun {
+        runner: runner_options,
+        verdicts,
+        classifier,
+    })
+}
 
+/// Reads one finished run's outcome into the plain-number summary.
+fn summary(outcome: &Outcome) -> Summary {
     let metadata = &outcome.generation.repository().metadata;
-    Ok(Summary {
+    Summary {
         generation: outcome.generation.id().to_string(),
         nodes: metadata.snapshot.nodes,
         edges: metadata.snapshot.edges,
@@ -422,5 +436,5 @@ pub(crate) async fn live<P: Progress + Sync>(
         passes: outcome.report.passes(),
         activated: outcome.admission == Admission::Active,
         report: serde_json::to_string_pretty(&outcome.report).expect("the report serializes"),
-    })
+    }
 }

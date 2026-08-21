@@ -19,6 +19,10 @@ hashql_core::id::newtype! {
     pub struct NodeRowId(u64)
 }
 
+// Little-endian by construction: `endian = little` above pins the stored `u64`'s byte order,
+// the property the macro's structural bounds cannot state.
+crate::dataset::offline::portable::self_archived!(NodeRowId);
+
 impl TryFrom<NodeRowId> for u32 {
     type Error = core::num::TryFromIntError;
 

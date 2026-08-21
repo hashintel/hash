@@ -182,6 +182,9 @@ pub(crate) struct ArchivedEntityId {
     pub entity_uuid: ArchivedEntityUuid,
 }
 
+// No multi-byte fields: both components are byte arrays, so no byte order arises.
+crate::dataset::offline::portable::self_archived!(ArchivedEntityId);
+
 impl From<EntityId> for ArchivedEntityId {
     fn from(id: EntityId) -> Self {
         Self {
@@ -222,6 +225,9 @@ impl Key for ArchivedEntityId {
 )]
 #[repr(transparent)]
 pub(crate) struct ArchivedOntologyTypeUuid([u8; 16]);
+
+// No multi-byte fields: the identity is a byte array, so no byte order arises.
+crate::dataset::offline::portable::self_archived!(ArchivedOntologyTypeUuid);
 
 impl ArchivedOntologyTypeUuid {
     /// Derives the identity of the versioned type `url` names.

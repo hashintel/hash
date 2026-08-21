@@ -36,7 +36,7 @@ use crate::{
 };
 
 mod error;
-pub(crate) mod live;
+pub(crate) mod operator;
 
 #[cfg(test)]
 mod tests;
@@ -206,7 +206,7 @@ where
 ///
 /// The pinned name keeps the derivation disjoint from every fit stage's, so the probe samples
 /// independently of the fit's draws while the whole run replays from the one seed.
-fn probe_rng(seed: u64) -> Xoshiro256PlusPlus {
+pub(crate) fn probe_rng(seed: u64) -> Xoshiro256PlusPlus {
     let mut hasher = Sha256::new();
     #[expect(
         clippy::little_endian_bytes,

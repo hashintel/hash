@@ -200,12 +200,31 @@ where
         .collect())
 }
 
+/// Draws the probe's row sample: `anchors + comparisons` distinct rows in draw order.
+///
+/// The sample is its generator's first draw. The probe and the offline dump's coverage request
+/// both draw through this function from equally seeded generators
+/// ([`probe_rng`](crate::salt::runner::probe_rng)), so the two agree on the sampled rows by
+/// construction, and a draw inserted ahead of this one would make the probe request rows
+/// existing dumps never covered.
+pub(crate) fn probe_sample(
+    mut rng: impl Rng,
+    rows: usize,
+    anchors: usize,
+    comparisons: usize,
+) -> Vec<NodeRowId> {
+    sample_indices_vec(&mut rng, rows, anchors + comparisons)
+        .into_iter()
+        .map(NodeRowId::from_usize)
+        .collect()
+}
+
 /// Fetches the sampled rows' canonical embeddings, in sample order.
-async fn fetch_canonical<D: Dataset>(
-    dataset: &D,
+async fn fetch_canonical<'data, D: Dataset>(
+    dataset: &'data D,
     node_ids: &IdSlice<NodeRowId, D::NodeId>,
     sample: &[NodeRowId],
-) -> Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, ProbeError<D::Error>> {
+) -> Result<Vec<Cow<'data, AlignedVecN<CANONICAL_DIMENSIONS>>>, ProbeError<D::Error>> {
     match_deliveries(
         node_ids,
         sample,
@@ -257,10 +276,7 @@ pub(crate) async fn probe<D: Dataset>(
         .max()
         .expect("the options name at least one neighbourhood size");
 
-    let sample: Vec<_> = sample_indices_vec(&mut rng, rows, anchors + comparisons)
-        .into_iter()
-        .map(NodeRowId::from_usize)
-        .collect();
+    let sample = probe_sample(&mut rng, rows, anchors, comparisons);
     let (anchor_rows, comparison_rows) = sample.split_at(anchors);
     let pairs = sample_pairs(&mut rng, comparisons, options.triplet_pairs);
 

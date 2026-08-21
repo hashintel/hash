@@ -21,8 +21,8 @@
 //! - [`dataset`] - the [`Dataset`](dataset::Dataset) trait for the data one fit runs over, wherever
 //!   it lives, plus the relation-card format.
 //! - [`salt`] - the pipeline that runs graph construction, landmark layout, projector training,
-//!   evaluation, and materialization. `salt::runner::live` is the operator entry point the `cli`
-//!   commands drive.
+//!   evaluation, and materialization. `salt::runner::operator` holds the entry points the `cli`
+//!   commands drive, over the live store and over a dump directory.
 //! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
 //! # Using the crate

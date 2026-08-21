@@ -18,7 +18,8 @@
 use core::fmt;
 
 /// A writer byte order.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Architecture {
     /// Low-order byte first.
     LittleEndian,

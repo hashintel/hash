@@ -35,6 +35,7 @@ aide                      = { workspace = true, features = ["axum", "axum-json",
 arc-swap                  = { workspace = true }
 burn                      = { workspace = true, features = ["autodiff", "cuda", "dispatch", "metal", "ndarray", "tch"] }
 burn-dispatch             = { version = "0.21.0", features = ["tch"] }
+bytecheck                 = { workspace = true, public = true }
 chacha20poly1305          = { workspace = true }
 clap                      = { workspace = true, features = ["derive", "env"] }
 fst                       = { workspace = true, public = true }
@@ -51,12 +52,13 @@ memchr                    = { workspace = true }
 memmap2                   = { workspace = true }
 moka                      = { workspace = true, features = ["future"] }
 pin-project-lite          = { workspace = true }
+rancor                    = { workspace = true, public = true }
 rand_core_06              = { workspace = true }
 rand_xoshiro              = { workspace = true }
 ratatui                   = { workspace = true, optional = true }
 rayon                     = { workspace = true }
 regex                     = { workspace = true }
-rkyv                      = { workspace = true }
+rkyv                      = { workspace = true, public = true, features = ["pointer_width_64"] }
 roaring                   = { workspace = true, features = ["std"] }
 serde                     = { workspace = true, features = ["derive"] }
 serde_json                = { workspace = true, features = ["float_roundtrip"] }
