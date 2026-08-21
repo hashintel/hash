@@ -1242,12 +1242,17 @@ impl<'p> Filter<'p, Entity> {
                 filters
                     .into_iter()
                     .map(|filter| Self::for_property_filter(filter, actor_id))
+                    // A comparison that matches every record constrains nothing within a
+                    // conjunction.
+                    .filter(|filter| !matches!(filter, Self::All(inner) if inner.is_empty()))
                     .collect(),
             ),
             PropertyFilter::Any(filters) => Self::Any(
                 filters
                     .into_iter()
                     .map(|filter| Self::for_property_filter(filter, actor_id))
+                    // A comparison that matches no record adds nothing to a disjunction.
+                    .filter(|filter| !matches!(filter, Self::Any(inner) if inner.is_empty()))
                     .collect(),
             ),
             PropertyFilter::Equal(lhs, rhs) => {
@@ -1272,10 +1277,10 @@ impl<'p> Filter<'p, Entity> {
                 }
             }
             PropertyFilter::In(lhs, rhs) => {
-                match FilterExpression::from_cell_filter_expression(lhs, actor_id) {
-                    Some(lhs) => Self::In(lhs, FilterExpressionList::from(rhs)),
-                    None => Self::Any(Vec::new()),
-                }
+                FilterExpression::from_cell_filter_expression(lhs, actor_id).map_or_else(
+                    || Self::Any(Vec::new()),
+                    |lhs| Self::In(lhs, FilterExpressionList::from(rhs)),
+                )
             }
         }
     }
