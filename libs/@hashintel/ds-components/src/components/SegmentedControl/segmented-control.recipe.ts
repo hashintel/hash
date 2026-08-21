@@ -2,38 +2,6 @@ import { sva } from "@hashintel/ds-helpers/css";
 
 import { formSizes } from "../../util/form-size.recipe";
 
-/**
- * Styled per the Design System Figma (SegmentedControl/Text + /Icon,
- * node 17036:159702), with one systemic difference: every non-selected
- * surface (track bg, rings, hover wash) is "frosted" — 0.9-alpha colors
- * derived from the solid neutral palette via CSS relative color syntax, so
- * the control composites onto any surface while rendering the exact palette
- * value on the mode's canonical backdrop. Only the indicator pill fill is
- * opaque (neutral.s05), since it must occlude the track as it slides. The
- * pill is positioned by Ark UI via the `--left`/`--top`/`--width`/`--height`
- * variables it sets inline.
- *
- * The frost formula: an alpha color renders as a*C + (1-a)*B over backdrop
- * B, so C = (S - 0.1*B) / 0.9 makes it render exactly the solid step S at
- * a = 0.9. `--sc-frost-bg` holds the pre-multiplied 0.1*B term: 25.5 against
- * white in light mode, 0 against black (bg.min) in dark. Each source step is
- * the solid twin of the alpha token it replaces (a20=s20, a25=s25,
- * bd.subtle/a40=s40, bd.solid/a60=s60, and their `.disabled` slots one rung
- * down) — the alpha scale is constructed on that correspondence. Requires
- * relative-color-syntax support (baseline 2024); unsupported browsers drop
- * these declarations entirely.
- *
- * Disabled restates colors in the same system (faded ring/track, `.disabled`
- * fg slots) rather than Figma's opacity 0.5, which would break compositing
- * by fading the whole control against its backdrop.
- *
- * Sizing follows the shared form-size system (same as BaseInput/Button):
- * each size spreads `formSizes.variants.sizes.*`, so text scale and overall
- * control height match a TextInput of the same `size` — segments subtract
- * the track's 2px inset per side from the shared height formula. The track
- * radius follows BaseInput's per-size radius ladder (radii.md / lg / xl)
- * with the segment radius 2px inside it.
- */
 export const styles = sva({
   slots: [
     "root",
@@ -59,11 +27,6 @@ export const styles = sva({
       width: "[fit-content]",
       padding: "[2px]",
       gap: "[2px]",
-      // An inset ring rather than a border, for two reasons: Ark positions
-      // the indicator from the items' offsetLeft/offsetTop, which are
-      // relative to the padding edge — a border would shift that coordinate
-      // space by 1px. It also matches the Figma stroke, drawn inside and
-      // overlapping the 2px padding.
       boxShadow:
         "[inset 0 0 0 1px rgb(from {colors.neutral.s40} calc((r - var(--sc-frost-bg)) / 0.9) calc((g - var(--sc-frost-bg)) / 0.9) calc((b - var(--sc-frost-bg)) / 0.9) / 0.9)]",
       borderRadius: "[var(--sc-radius)]",
@@ -82,6 +45,10 @@ export const styles = sva({
       zIndex: "[1]",
       display: "inline-flex",
       flexGrow: "1",
+      // Allow segments to shrink below their content (labels ellipsize) when
+      // the control is width-constrained; icon-only segments override the var
+      // to stay square.
+      minWidth: "[var(--sc-item-min-w, 0px)]",
       alignItems: "center",
       justifyContent: "center",
       gap: "1",
@@ -117,15 +84,15 @@ export const styles = sva({
         outlineOffset: "[1px]",
       },
     },
-    // Figma icon-only segments are square (item width = item height).
-    // minWidth rather than width so vertical layouts can still stretch.
     iconOnlyItem: {
       "--sc-item-px": "[0px]",
-      minWidth: "var(--sc-item-height)",
+      "--sc-item-min-w": "var(--sc-item-height)",
     },
     itemText: {
-      display: "inline-flex",
-      alignItems: "center",
+      display: "block",
+      minWidth: "0",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
       paddingX: "0.5",
     },
     icon: {},
@@ -150,11 +117,10 @@ export const styles = sva({
           "[1px solid rgb(from {colors.neutral.s40} calc((r - var(--sc-frost-bg)) / 0.9) calc((g - var(--sc-frost-bg)) / 0.9) calc((b - var(--sc-frost-bg)) / 0.9) / 0.9)]",
       },
     },
-    // Applied to the Tooltip's trigger wrapper so a tooltip-wrapped segment
-    // participates in the track's flex layout exactly like a bare segment.
     tooltipTrigger: {
       display: "flex",
       flexGrow: "1",
+      minWidth: "0",
       "& > *": {
         flexGrow: "1",
       },
@@ -162,9 +128,6 @@ export const styles = sva({
   },
   variants: {
     size: {
-      // Label font sizes are the Figma segment typography, set on itemText
-      // only: the item keeps the form-size textStyle font so the em-based
-      // height formula (and the icon-only minWidth) resolve unchanged.
       xxs: {
         root: { ...formSizes.variants.sizes.xxs, "--sc-radius": "radii.md" },
         itemText: { fontSize: "[11px]" },
@@ -196,9 +159,41 @@ export const styles = sva({
         },
       },
     },
+    variant: {
+      default: {},
+      embossed: {
+        root: {
+          backgroundColor: "[transparent]",
+          boxShadow:
+            "[inset 0 1px 3px {colors.neutral.a50}, inset 0 0 1px {colors.neutral.a45}]",
+          "&[data-disabled]": {
+            backgroundColor: "[transparent]",
+            boxShadow:
+              "[inset 0 1px 3px {colors.neutral.a30}, inset 0 0 1px {colors.neutral.a25}]",
+          },
+        },
+      },
+    },
   },
+  compoundVariants: [
+    {
+      variant: "embossed",
+      size: ["xxs", "xs"],
+      css: {
+        root: {
+          boxShadow:
+            "[inset 0 1px 2px {colors.neutral.a50}, inset 0 0 1px {colors.neutral.a45}]",
+          "&[data-disabled]": {
+            boxShadow:
+              "[inset 0 1px 2px {colors.neutral.a30}, inset 0 0 1px {colors.neutral.a25}]",
+          },
+        },
+      },
+    },
+  ],
   defaultVariants: {
     size: "md",
     layout: "horizontal",
+    variant: "default",
   },
 });

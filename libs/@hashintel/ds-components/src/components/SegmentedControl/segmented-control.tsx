@@ -32,6 +32,12 @@ export type SegmentedControlItem<ValueType extends string = string> = (
 export type SegmentedControlProps<ValueType extends string = string> = {
   /** How the segments are arranged (defaults to `horizontal`) */
   layout?: "horizontal" | "vertical";
+  /**
+   * The track style: `default` is filled with a hairline ring; `embossed` has
+   * no fill or ring, just a recessed inset shadow. The selected segment looks
+   * identical in both.
+   */
+  variant?: "default" | "embossed";
   /** The size (height) of the control */
   size?: FormInputSize;
   /** The selectable segments */
@@ -44,6 +50,7 @@ export type SegmentedControlProps<ValueType extends string = string> = {
 
 export const SegmentedControl = <const ValueType extends string>({
   layout = "horizontal",
+  variant = "default",
   size = "md",
   items = [],
   className,
@@ -63,16 +70,13 @@ export const SegmentedControl = <const ValueType extends string>({
   const fieldIdFromContext = useFieldId();
   const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
 
-  // The checked segment's hidden radio is the group's single tab stop, so it
-  // carries the external id, `inputRef` and `autoFocus`. Falls back to the
-  // first enabled segment when nothing is selected.
   const selectedIndex = items.findIndex((item) => item.value === value);
   const firstEnabledIndex = items.findIndex((item) => item.disabled !== true);
   const primaryIndex =
     selectedIndex === -1 ? Math.max(0, firstEnabledIndex) : selectedIndex;
   const primaryValue = items[primaryIndex]?.value;
 
-  const classes = styles({ size, layout });
+  const classes = styles({ size, layout, variant });
 
   return (
     <SegmentGroup.Root
