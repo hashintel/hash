@@ -7,7 +7,6 @@ from pathlib import Path
 
 from src.optimization_api import app
 
-
 output_path = Path(__file__).resolve().parents[1] / "openapi" / "openapi.json"
 output_path.parent.mkdir(parents=True, exist_ok=True)
 output_path.write_text(

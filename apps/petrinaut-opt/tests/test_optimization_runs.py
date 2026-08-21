@@ -3,13 +3,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 from fastapi import FastAPI
 
 from src import optimization_runs
-from src.petrinaut_optimizer import PetrinautOptimizer
 from src.optimization_runs import (
     CANCELLED_FRAME,
     DETACH_GRACE_ENVIRONMENT_VARIABLE,
@@ -19,8 +18,8 @@ from src.optimization_runs import (
     attachment_event_stream,
     detach_grace_seconds_from_environment,
 )
+from src.petrinaut_optimizer import PetrinautOptimizer
 from src.utils import Phase, StatusStore
-
 
 FIRST_FRAME = (
     'data: {"step": 0, "params": {"rate": 1.0}, '
@@ -30,7 +29,7 @@ DONE_FRAME = "event: done\ndata: {}\n\n"
 
 
 class ConnectedRequest:
-    headers: dict[str, str] = {}
+    headers: ClassVar[dict[str, str]] = {}
 
     async def is_disconnected(self) -> bool:
         return False

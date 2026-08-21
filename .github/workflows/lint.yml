@@ -116,6 +116,14 @@ jobs:
             | jq '[.tasks[] | select(.task == "lint:clippy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "clippy=$CLIPPY" | tee -a "$GITHUB_OUTPUT"
 
+          RUFF=$(turbo run lint:ruff --filter '${{ matrix.name }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:ruff" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "ruff=$RUFF" | tee -a "$GITHUB_OUTPUT"
+
+          PYTHON_TYPES=$(turbo run lint:types --filter '${{ matrix.name }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:types" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "python-types=$PYTHON_TYPES" | tee -a "$GITHUB_OUTPUT"
+
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
@@ -147,6 +155,14 @@ jobs:
       - name: Run TSC
         if: always() && steps.lints.outputs.tsc == 'true'
         run: turbo run lint:tsc --filter "${{ matrix.name }}"
+
+      - name: Run Ruff
+        if: always() && steps.lints.outputs.ruff == 'true'
+        run: turbo run lint:ruff --filter "${{ matrix.name }}"
+
+      - name: Run basedpyright
+        if: always() && steps.lints.outputs.python-types == 'true'
+        run: turbo run lint:types --filter "${{ matrix.name }}"
 
       - name: Run rustfmt
         if: always() && steps.lints.outputs.has-rust == 'true'

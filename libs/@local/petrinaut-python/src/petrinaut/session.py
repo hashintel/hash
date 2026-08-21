@@ -19,7 +19,8 @@ import subprocess
 import threading
 import time
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from contextlib import suppress
+from typing import Any, TypeVar
 
 from .errors import (
     PetrinautClientError,
@@ -68,6 +69,11 @@ def _encode_bootstrap_line(payload: Mapping[str, Any], label: str) -> str:
             f"the {label} exceeds the {MAX_BOOTSTRAP_LINE_BYTES // _MIB} MiB limit"
         )
     return line
+
+
+# The self type for ``__enter__``: a subclass used as a context manager keeps
+# its own type. ``typing.Self`` needs Python 3.11, and this package runs on 3.10.
+_SessionT = TypeVar("_SessionT", bound="PetrinautSession")
 
 
 class PetrinautSession:
@@ -123,7 +129,7 @@ class PetrinautSession:
     @staticmethod
     def from_model_file(
         path: str | os.PathLike[str], **options: Any
-    ) -> "PetrinautSession":
+    ) -> PetrinautSession:
         """Serve a model JSON file (``petrinaut serve --model <path> --stdio``)."""
         return PetrinautSession(
             serve_arguments=("--model", os.fspath(path), "--stdio"),
@@ -131,9 +137,7 @@ class PetrinautSession:
         )
 
     @staticmethod
-    def from_model(
-        model: Mapping[str, Any], **options: Any
-    ) -> "PetrinautSession":
+    def from_model(model: Mapping[str, Any], **options: Any) -> PetrinautSession:
         """Serve a model object sent as the first stdin line (``--model-stdin``)."""
         return PetrinautSession(
             serve_arguments=("--model-stdin", "--stdio"),
@@ -141,7 +145,7 @@ class PetrinautSession:
             **options,
         )
 
-    def __enter__(self) -> "PetrinautSession":
+    def __enter__(self: _SessionT) -> _SessionT:
         self.start()
         return self
 
@@ -405,11 +409,12 @@ class PetrinautSession:
         if isinstance(process_id, int):
             try:
                 os.killpg(process_id, signal_number)
-                return
             except ProcessLookupError:
                 return
             except OSError:
                 pass
+            else:
+                return
         if signal_number is signal.SIGTERM:
             process.terminate()
         else:
@@ -431,31 +436,23 @@ class PetrinautSession:
             return
 
         if process.stdin is not None and not process.stdin.closed:
-            try:
+            with suppress(BrokenPipeError, OSError, ValueError):
                 process.stdin.close()
-            except (BrokenPipeError, OSError, ValueError):
-                pass
         if process.poll() is None and graceful:
-            try:
+            with suppress(subprocess.TimeoutExpired):
                 process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
-            except subprocess.TimeoutExpired:
-                pass
         if process.poll() is None:
             self._signal_process(process, signal.SIGTERM)
             try:
                 process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
             except subprocess.TimeoutExpired:
                 self._signal_process(process, signal.SIGKILL)
-                try:
+                with suppress(subprocess.TimeoutExpired):
                     process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
-                except subprocess.TimeoutExpired:
-                    pass
         for stream in (process.stdout, process.stderr):
             if stream is not None and not stream.closed:
-                try:
+                with suppress(OSError, ValueError):
                     stream.close()
-                except (OSError, ValueError):
-                    pass
 
         stderr_thread = self._stderr_thread
         self._stderr_thread = None
