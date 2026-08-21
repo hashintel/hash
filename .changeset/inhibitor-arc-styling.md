@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Update inhibitor arc styling
+Improve inhibitor arc styling.
