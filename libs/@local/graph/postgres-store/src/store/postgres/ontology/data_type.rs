@@ -796,7 +796,6 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    #[expect(clippy::too_many_lines)]
     async fn query_data_type_subgraph(
         &self,
         actor_id: Option<ActorId>,
