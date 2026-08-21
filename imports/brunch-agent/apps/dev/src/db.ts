@@ -12,7 +12,8 @@
  * open verification item (spec §14.5) that this file exists to make testable.
  */
 
-import { sqlite } from '@flue/runtime/node';
-import { conversationDbPath } from './db-path.ts';
+import { sqlite } from "@flue/runtime/node";
+
+import { conversationDbPath } from "./db-path.ts";
 
 export default sqlite(conversationDbPath());

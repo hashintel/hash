@@ -6,14 +6,16 @@ import {
   type SweepAffordance,
   type SweepResultFact,
   type SweepSessionEntry,
-} from '@brunch/core';
-import type { SessionLogRead } from '@brunch/core/storage';
+} from "@brunch/core";
 import {
   createFlueClient,
   type FlueConversationMessage,
   type FlueConversationSnapshot,
-} from '@flue/sdk';
-import { archiveThroughBinding } from './archive-capability.ts';
+} from "@flue/sdk";
+
+import { archiveThroughBinding } from "./archive-capability.ts";
+
+import type { SessionLogRead } from "@brunch/core/storage";
 
 export interface FlueHistoryReaderOptions {
   /** Host-owned full conversation URL; the binding never guesses the mount. */
@@ -35,47 +37,47 @@ const materializedJson = (value: unknown): JsonValue =>
 
 const messageText = (message: FlueConversationMessage): string =>
   message.parts
-    .filter((part): part is Extract<typeof part, { type: 'text' }> => part.type === 'text')
+    .filter((part): part is Extract<typeof part, { type: "text" }> => part.type === "text")
     .map((part) => part.text)
-    .join('');
+    .join("");
 
 const affordanceFrom = (value: unknown): SweepAffordance | undefined => {
-  if (typeof value !== 'object' || value === null || !('id' in value) || !('markdown' in value)) {
+  if (typeof value !== "object" || value === null || !("id" in value) || !("markdown" in value)) {
     return undefined;
   }
-  return typeof value.id === 'string' &&
+  return typeof value.id === "string" &&
     value.id.length > 0 &&
-    typeof value.markdown === 'string' &&
+    typeof value.markdown === "string" &&
     value.markdown.length > 0
     ? { id: value.id, markdown: value.markdown }
     : undefined;
 };
 
 const sweepResultFrom = (value: unknown): SweepResultFact | undefined => {
-  if (typeof value !== 'object' || value === null || !('status' in value)) return undefined;
-  if (value.status === 'applied' || value.status === 'no-settled-range') {
+  if (typeof value !== "object" || value === null || !("status" in value)) return undefined;
+  if (value.status === "applied" || value.status === "no-settled-range") {
     return { status: value.status };
   }
   if (
-    value.status !== 'refused' ||
-    !('refusal' in value) ||
-    typeof value.refusal !== 'object' ||
+    value.status !== "refused" ||
+    !("refusal" in value) ||
+    typeof value.refusal !== "object" ||
     value.refusal === null ||
-    !('code' in value.refusal) ||
-    typeof value.refusal.code !== 'string' ||
-    !('message' in value.refusal) ||
-    typeof value.refusal.message !== 'string'
+    !("code" in value.refusal) ||
+    typeof value.refusal.code !== "string" ||
+    !("message" in value.refusal) ||
+    typeof value.refusal.message !== "string"
   ) {
     return undefined;
   }
   return {
-    status: 'refused',
+    status: "refused",
     refusal: { code: value.refusal.code, message: value.refusal.message },
   };
 };
 
 export const projectFlueHistoryForSweep = (
-  snapshot: Pick<FlueConversationSnapshot, 'messages'>,
+  snapshot: Pick<FlueConversationSnapshot, "messages">,
 ): readonly SweepSessionEntry[] => {
   const { messages } = snapshot;
   const emittedAffordanceIds = new Set<string>();
@@ -84,9 +86,9 @@ export const projectFlueHistoryForSweep = (
     const affordances: SweepAffordance[] = [];
     for (const part of message.parts) {
       const affordance =
-        part.type === 'data-affordance'
+        part.type === "data-affordance"
           ? affordanceFrom(part.data)
-          : part.type === 'dynamic-tool' && part.state === 'output-available'
+          : part.type === "dynamic-tool" && part.state === "output-available"
             ? affordanceFrom(part.output)
             : undefined;
       if (affordance && !emittedAffordanceIds.has(affordance.id)) {
@@ -102,13 +104,13 @@ export const projectFlueHistoryForSweep = (
     const previous = messages[index - 1]!;
     const affordanceId = message.signal?.attributes?.affordanceId;
     if (
-      message.role === 'system' &&
-      message.purpose === 'dispatch' &&
-      message.signal?.tagName === 'affordance-reply-bound' &&
-      typeof affordanceId === 'string' &&
+      message.role === "system" &&
+      message.purpose === "dispatch" &&
+      message.signal?.tagName === "affordance-reply-bound" &&
+      typeof affordanceId === "string" &&
       emittedAffordanceIds.has(affordanceId) &&
-      previous.role === 'user' &&
-      previous.purpose === 'user'
+      previous.role === "user" &&
+      previous.purpose === "user"
     ) {
       replyAffordanceByMessageId.set(previous.id, affordanceId);
     }
@@ -116,20 +118,20 @@ export const projectFlueHistoryForSweep = (
 
   return messages.map((message) => {
     let kind: SessionEntryKind;
-    if (message.role === 'user' && message.purpose === 'user') {
-      kind = replyAffordanceByMessageId.has(message.id) ? 'user-affordance-payload' : 'user';
-    } else if (message.role === 'assistant' && message.purpose === 'assistant') {
-      kind = 'assistant';
+    if (message.role === "user" && message.purpose === "user") {
+      kind = replyAffordanceByMessageId.has(message.id) ? "user-affordance-payload" : "user";
+    } else if (message.role === "assistant" && message.purpose === "assistant") {
+      kind = "assistant";
     } else {
-      kind = 'non-user';
+      kind = "non-user";
     }
     const affordances = affordancesByMessageId.get(message.id);
     const replyToAffordanceId = replyAffordanceByMessageId.get(message.id);
     const sweepResult = message.parts.reduce<SweepResultFact | undefined>((latest, part) => {
       if (
-        part.type !== 'dynamic-tool' ||
-        part.toolName !== toolName('sweep') ||
-        part.state !== 'output-available'
+        part.type !== "dynamic-tool" ||
+        part.toolName !== toolName("sweep") ||
+        part.state !== "output-available"
       ) {
         return latest;
       }
@@ -142,14 +144,14 @@ export const projectFlueHistoryForSweep = (
       ...(affordances === undefined ? {} : { affordances }),
       ...(replyToAffordanceId === undefined ? {} : { replyToAffordanceId }),
       ...(sweepResult === undefined ? {} : { sweepResult }),
-      ...(message.signal?.tagName === 'sweep-repair' ? { sweepRepairSignal: true as const } : {}),
+      ...(message.signal?.tagName === "sweep-repair" ? { sweepRepairSignal: true as const } : {}),
     };
   });
 };
 
 const classifyMessages = (
   snapshot: FlueConversationSnapshot,
-): readonly SessionLogRead['entries'][number][] =>
+): readonly SessionLogRead["entries"][number][] =>
   projectFlueHistoryForSweep(snapshot).map((entry, index) => ({
     substrateEntryId: entry.id,
     kind: entry.kind,

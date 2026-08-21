@@ -1,5 +1,5 @@
-import type { CaptureStore } from '@brunch/core';
-import type { SessionLogRead } from '@brunch/core/storage';
+import type { CaptureStore } from "@brunch/core";
+import type { SessionLogRead } from "@brunch/core/storage";
 
 type ArchiveWriter = (read: SessionLogRead) => Promise<void>;
 
@@ -15,7 +15,7 @@ export const archiveThroughBinding = async (
 ): Promise<void> => {
   const writer = archiveWriters.get(store);
   if (!writer) {
-    throw new TypeError('The supplied capture store has no binding-owned session-log writer.');
+    throw new TypeError("The supplied capture store has no binding-owned session-log writer.");
   }
   await writer(read);
 };

@@ -20,9 +20,11 @@
  * param cannot match the nested paths bundlers emit (`assets/fonts/x.woff2`).
  */
 
-import { readFile } from 'node:fs/promises';
-import type { Context } from 'hono';
-import { getMimeType } from 'hono/utils/mime';
+import { readFile } from "node:fs/promises";
+
+import { getMimeType } from "hono/utils/mime";
+
+import type { Context } from "hono";
 
 /**
  * Read failures that mean "no file at this path, and none can be": absent,
@@ -31,12 +33,12 @@ import { getMimeType } from 'hono/utils/mime';
  * error — is a fault to surface, because a 404 would report a broken build tree
  * as an asset that was simply never emitted.
  */
-const ABSENT_PATH_CODES = new Set(['ENOENT', 'ENOTDIR', 'EISDIR', 'ENAMETOOLONG']);
+const ABSENT_PATH_CODES = new Set(["ENOENT", "ENOTDIR", "EISDIR", "ENAMETOOLONG"]);
 
 const isAbsentPath = (error: unknown): boolean =>
   error instanceof Error &&
-  'code' in error &&
-  ABSENT_PATH_CODES.has((error as NodeJS.ErrnoException).code ?? '');
+  "code" in error &&
+  ABSENT_PATH_CODES.has((error as NodeJS.ErrnoException).code ?? "");
 
 /**
  * Whether a decoded path is safe to look up under the asset root: at least one
@@ -45,11 +47,11 @@ const isAbsentPath = (error: unknown): boolean =>
  * rather than an errno, and an extension on the last segment.
  */
 const isSafeAssetPath = (file: string): boolean => {
-  if (file.includes('\0')) return false;
-  const segments = file.split('/');
+  if (file.includes("\0")) return false;
+  const segments = file.split("/");
   return (
-    segments.every((segment) => segment.length > 0 && !segment.startsWith('.')) &&
-    /\.[^./]+$/.test(segments.at(-1) ?? '')
+    segments.every((segment) => segment.length > 0 && !segment.startsWith(".")) &&
+    /\.[^./]+$/.test(segments.at(-1) ?? "")
   );
 };
 
@@ -60,7 +62,7 @@ export function assetHandler(uiRoot: URL): (c: Context) => Promise<Response> {
     // but not the path — an undecodable escape is a 404, not a crash.
     let file: string;
     try {
-      file = decodeURIComponent(c.req.path.replace(/^\/assets\//, ''));
+      file = decodeURIComponent(c.req.path.replace(/^\/assets\//, ""));
     } catch (error) {
       if (error instanceof URIError) return c.notFound();
       throw error;
@@ -72,9 +74,9 @@ export function assetHandler(uiRoot: URL): (c: Context) => Promise<Response> {
     // some other file — `..\` addresses one outside the asset root entirely.
     const path = new URL(
       `assets/${file
-        .split('/')
+        .split("/")
         .map((segment) => encodeURIComponent(segment))
-        .join('/')}`,
+        .join("/")}`,
       uiRoot,
     );
     // Served as read, with no intermediate copy. The cast is a type gap, not a
@@ -92,7 +94,7 @@ export function assetHandler(uiRoot: URL): (c: Context) => Promise<Response> {
     // table does not know degrades to a pickier content-type, not to a
     // production-only 404.
     return c.body(bytes, 200, {
-      'content-type': getMimeType(file) ?? 'application/octet-stream',
+      "content-type": getMimeType(file) ?? "application/octet-stream",
     });
   };
 }

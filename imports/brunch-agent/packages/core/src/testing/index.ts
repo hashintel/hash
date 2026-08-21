@@ -10,17 +10,18 @@
  * from.
  */
 
-import * as v from 'valibot';
-import { definePlugin, type Plugin } from '../plugin.ts';
+import * as v from "valibot";
+
+import { definePlugin, type Plugin } from "../plugin.ts";
 
 const fixtureProposalSchema = v.strictObject({
   evidence: v.pipe(
     v.array(v.strictObject({ excerpt: v.pipe(v.string(), v.nonEmpty()) })),
     v.minLength(1),
   ),
-  epistemicStatus: v.literal('explicit'),
+  epistemicStatus: v.literal("explicit"),
   confidence: v.pipe(v.string(), v.nonEmpty()),
-  content: v.strictObject({ value: v.literal('fixture') }),
+  content: v.strictObject({ value: v.literal("fixture") }),
 });
 
 /**
@@ -31,12 +32,12 @@ const fixtureProposalSchema = v.strictObject({
  */
 export function pluginFixture(overrides: Partial<Plugin> = {}): Plugin {
   return definePlugin({
-    name: 'plugin-fixture',
-    targetDomain: 'fixture',
+    name: "plugin-fixture",
+    targetDomain: "fixture",
     proposalCatalog: [
       {
-        name: 'fixture-proposal',
-        description: 'A fixture-only capture proposal.',
+        name: "fixture-proposal",
+        description: "A fixture-only capture proposal.",
         schema: fixtureProposalSchema,
       },
     ],

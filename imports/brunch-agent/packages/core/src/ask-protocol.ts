@@ -1,18 +1,20 @@
-import * as v from 'valibot';
-import type { FreeTextAffordance } from './affordance.ts';
-import { toolName } from './naming.ts';
-import type { SweepSessionEntry } from './sweep-protocol.ts';
+import * as v from "valibot";
+
+import { toolName } from "./naming.ts";
+
+import type { FreeTextAffordance } from "./affordance.ts";
+import type { SweepSessionEntry } from "./sweep-protocol.ts";
 
 export const ASK_TOOL_DESCRIPTION =
-  'Ask one free-text question and suspend this turn for the person’s reply. A second ask in the same tool batch is rejected.';
+  "Ask one free-text question and suspend this turn for the person’s reply. A second ask in the same tool batch is rejected.";
 
 export type PendingAffordanceDecision =
   | { readonly ok: true; readonly pending: FreeTextAffordance }
   | { readonly ok: false; readonly reason: string };
 
 export interface ReplyBindingSignalPayload {
-  readonly type: 'affordance-reply-bound';
-  readonly tagName: 'affordance-reply-bound';
+  readonly type: "affordance-reply-bound";
+  readonly tagName: "affordance-reply-bound";
   readonly body: string;
   readonly attributes: { readonly affordanceId: string };
 }
@@ -26,7 +28,7 @@ export function askAffordanceId(callId: string): string {
 export function mintAskAffordance(question: string, callId: string): FreeTextAffordance {
   return {
     id: askAffordanceId(callId),
-    form: 'free-text',
+    form: "free-text",
     markdown: question,
     payload: { question },
   };
@@ -51,8 +53,8 @@ export function buildReplyBindingSignalPayload(
   pending: FreeTextAffordance,
 ): ReplyBindingSignalPayload {
   return {
-    type: 'affordance-reply-bound',
-    tagName: 'affordance-reply-bound',
+    type: "affordance-reply-bound",
+    tagName: "affordance-reply-bound",
     body: `The immediately preceding user message is mechanically bound as the reply to this pending affordance:\n\n${pending.markdown}`,
     attributes: { affordanceId: pending.id },
   };
@@ -70,7 +72,10 @@ export type AskSubmission = v.InferOutput<typeof AskSubmission>;
 
 export type AskReplyAdmission =
   | { readonly ok: true }
-  | { readonly ok: false; readonly reason: 'no-pending-ask' | 'different-ask-pending' };
+  | {
+      readonly ok: false;
+      readonly reason: "no-pending-ask" | "different-ask-pending";
+    };
 
 /**
  * The affordance id of the one ask still awaiting its reply, from projected
@@ -99,9 +104,9 @@ export function decideAskReplyAdmission(
   pendingAffordanceId: string | undefined,
   submittedToolCallId: string,
 ): AskReplyAdmission {
-  if (pendingAffordanceId === undefined) return { ok: false, reason: 'no-pending-ask' };
+  if (pendingAffordanceId === undefined) return { ok: false, reason: "no-pending-ask" };
   if (pendingAffordanceId !== askAffordanceId(submittedToolCallId)) {
-    return { ok: false, reason: 'different-ask-pending' };
+    return { ok: false, reason: "different-ask-pending" };
   }
   return { ok: true };
 }
@@ -110,7 +115,7 @@ export function decideAskReplyAdmission(
 export function askProtocolInstructionFragments(targetDomain: string): readonly string[] {
   return [
     `You are interviewing someone to elicit ${targetDomain}.`,
-    `Ask one question at a time with ${toolName('ask')}.`,
-    'Continue the conversation after each reply, using the harness-provided reply binding as a mechanical fact.',
+    `Ask one question at a time with ${toolName("ask")}.`,
+    "Continue the conversation after each reply, using the harness-provided reply binding as a mechanical fact.",
   ];
 }

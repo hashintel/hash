@@ -10,13 +10,13 @@ import {
   toolName,
   type AskReplyAdmission,
   type HarnessReplyEvent,
-} from '@brunch/core';
-import { createUIMessageStream, createUIMessageStreamResponse, type UIMessageChunk } from 'ai';
-import * as v from 'valibot';
+} from "@brunch/core";
+import { createUIMessageStream, createUIMessageStreamResponse, type UIMessageChunk } from "ai";
+import * as v from "valibot";
 
-export { type AskReplyAdmission, type HarnessReplyEvent } from '@brunch/core';
+export { type AskReplyAdmission, type HarnessReplyEvent } from "@brunch/core";
 
-const ASK_TOOL_NAME = toolName('ask');
+const ASK_TOOL_NAME = toolName("ask");
 
 export interface HarnessTurnInput {
   readonly conversationId: string;
@@ -53,57 +53,57 @@ export interface AskReplyHandler {
 
 export type TransportInspectionEvent =
   | {
-      readonly type: 'request-start';
+      readonly type: "request-start";
       readonly requestId: string;
       readonly conversationId: string;
       readonly userMessageId: string;
     }
   | {
-      readonly type: 'response-start';
+      readonly type: "response-start";
       readonly requestId: string;
       readonly messageId: string;
     }
   | {
-      readonly type: 'turn-start';
+      readonly type: "turn-start";
       readonly requestId: string;
       readonly turnId: string;
       readonly messageId: string;
     }
   | {
-      readonly type: 'part-emitted';
+      readonly type: "part-emitted";
       readonly requestId: string;
-      readonly kind: 'text' | 'reasoning' | 'tool-input' | 'tool-output' | 'tool-output-error';
+      readonly kind: "text" | "reasoning" | "tool-input" | "tool-output" | "tool-output-error";
       readonly partId?: string;
       readonly toolCallId?: string;
     }
   | {
-      readonly type: 'turn-finish';
+      readonly type: "turn-finish";
       readonly requestId: string;
       readonly turnId: string;
     }
   | {
-      readonly type: 'request-finish';
+      readonly type: "request-finish";
       readonly requestId: string;
-      readonly terminalState: 'completed' | 'failed' | 'aborted';
-      readonly finishReason: 'stop' | 'tool-calls' | 'error';
+      readonly terminalState: "completed" | "failed" | "aborted";
+      readonly finishReason: "stop" | "tool-calls" | "error";
     }
   | {
-      readonly type: 'ask-await';
+      readonly type: "ask-await";
       readonly requestId: string;
       readonly toolCallId: string;
     }
   | {
-      readonly type: 'ask-reply-admitted';
+      readonly type: "ask-reply-admitted";
       readonly requestId: string;
       readonly conversationId: string;
       readonly toolCallId: string;
     }
   | {
-      readonly type: 'ask-reply-refused';
+      readonly type: "ask-reply-refused";
       readonly requestId: string;
       readonly conversationId: string;
       readonly toolCallId: string;
-      readonly reason: 'no-pending-ask' | 'different-ask-pending';
+      readonly reason: "no-pending-ask" | "different-ask-pending";
     };
 
 export interface AiSdkChatHandlerOptions {
@@ -147,42 +147,42 @@ type PanelPostBody = v.InferOutput<typeof panelPostBodySchema>;
 
 type TransportRequestRefusal =
   | {
-      readonly reason: 'invalid-chat-request';
+      readonly reason: "invalid-chat-request";
       readonly status: 400;
-      readonly error: 'invalid_chat_request';
+      readonly error: "invalid_chat_request";
     }
   | {
-      readonly reason: 'tool-result-follow-up-not-supported';
+      readonly reason: "tool-result-follow-up-not-supported";
       readonly status: 422;
-      readonly error: 'tool_result_follow_up_not_supported';
+      readonly error: "tool_result_follow_up_not_supported";
     }
   | {
-      readonly reason: 'invalid-ask-submission';
+      readonly reason: "invalid-ask-submission";
       readonly status: 400;
-      readonly error: 'invalid_ask_submission';
+      readonly error: "invalid_ask_submission";
     };
 
 const transportRequestRefusals = {
   invalidChatRequest: {
-    reason: 'invalid-chat-request',
+    reason: "invalid-chat-request",
     status: 400,
-    error: 'invalid_chat_request',
+    error: "invalid_chat_request",
   },
   toolResultFollowUpNotSupported: {
-    reason: 'tool-result-follow-up-not-supported',
+    reason: "tool-result-follow-up-not-supported",
     status: 422,
-    error: 'tool_result_follow_up_not_supported',
+    error: "tool_result_follow_up_not_supported",
   },
   invalidAskSubmission: {
-    reason: 'invalid-ask-submission',
+    reason: "invalid-ask-submission",
     status: 400,
-    error: 'invalid_ask_submission',
+    error: "invalid_ask_submission",
   },
 } as const satisfies Record<string, TransportRequestRefusal>;
 
 const askReplyRefusalErrors = {
-  'no-pending-ask': 'ask_not_pending',
-  'different-ask-pending': 'ask_mismatch',
+  "no-pending-ask": "ask_not_pending",
+  "different-ask-pending": "ask_mismatch",
 } as const;
 
 const jsonResponse = (body: unknown, status: number, headers?: Headers): Response =>
@@ -190,10 +190,10 @@ const jsonResponse = (body: unknown, status: number, headers?: Headers): Respons
 
 const corsHeaders = (origin: string): Headers =>
   new Headers({
-    'access-control-allow-origin': origin,
-    'access-control-allow-methods': 'POST, OPTIONS',
-    'access-control-allow-headers': 'content-type, x-request-id',
-    vary: 'Origin',
+    "access-control-allow-origin": origin,
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": "content-type, x-request-id",
+    vary: "Origin",
   });
 
 const withHeaders = (response: Response, headers: Headers): Response => {
@@ -205,23 +205,23 @@ const userTextFrom = (message: PanelMessage): string | undefined => {
   if (!Array.isArray(message.parts)) return undefined;
   const text = message.parts
     .filter(
-      (part): part is { readonly type: 'text'; readonly text: string } =>
-        typeof part === 'object' &&
+      (part): part is { readonly type: "text"; readonly text: string } =>
+        typeof part === "object" &&
         part !== null &&
-        'type' in part &&
-        part.type === 'text' &&
-        'text' in part &&
-        typeof part.text === 'string',
+        "type" in part &&
+        part.type === "text" &&
+        "text" in part &&
+        typeof part.text === "string",
     )
     .map((part) => part.text)
-    .join('');
+    .join("");
   return text.length > 0 ? text : undefined;
 };
 
 type ParsedTransportRequest =
-  | { readonly kind: 'initial'; readonly value: HarnessTurnInput }
-  | { readonly kind: 'ask-reply'; readonly value: HarnessAskReplyInput }
-  | { readonly kind: 'refused'; readonly refusal: TransportRequestRefusal };
+  | { readonly kind: "initial"; readonly value: HarnessTurnInput }
+  | { readonly kind: "ask-reply"; readonly value: HarnessAskReplyInput }
+  | { readonly kind: "refused"; readonly refusal: TransportRequestRefusal };
 
 /**
  * Classify one tool-result follow-up POST. A human answer submitted through
@@ -233,39 +233,48 @@ type ParsedTransportRequest =
  */
 const parseAskReplyTurn = (body: PanelPostBody): ParsedTransportRequest => {
   if (
-    typeof body.id !== 'string' ||
+    typeof body.id !== "string" ||
     body.id.length === 0 ||
-    body.trigger !== 'submit-message' ||
+    body.trigger !== "submit-message" ||
     !Array.isArray(body.messages)
   ) {
-    return { kind: 'refused', refusal: transportRequestRefusals.invalidChatRequest };
+    return {
+      kind: "refused",
+      refusal: transportRequestRefusals.invalidChatRequest,
+    };
   }
 
   const message = body.messages.find(
-    (candidate) => candidate.id === body.messageId && candidate.role === 'assistant',
+    (candidate) => candidate.id === body.messageId && candidate.role === "assistant",
   );
   const askParts = (message?.parts ?? []).filter(
     (part) =>
-      part.type === 'dynamic-tool' &&
+      part.type === "dynamic-tool" &&
       part.toolName === ASK_TOOL_NAME &&
-      part.state === 'output-available',
+      part.state === "output-available",
   );
   if (askParts.length === 0) {
-    return { kind: 'refused', refusal: transportRequestRefusals.toolResultFollowUpNotSupported };
+    return {
+      kind: "refused",
+      refusal: transportRequestRefusals.toolResultFollowUpNotSupported,
+    };
   }
   const askPart = askParts[0]!;
   const submission = v.safeParse(AskSubmission, askPart.output);
   if (
     askParts.length !== 1 ||
-    typeof askPart.toolCallId !== 'string' ||
+    typeof askPart.toolCallId !== "string" ||
     askPart.toolCallId.length === 0 ||
     !submission.success
   ) {
-    return { kind: 'refused', refusal: transportRequestRefusals.invalidAskSubmission };
+    return {
+      kind: "refused",
+      refusal: transportRequestRefusals.invalidAskSubmission,
+    };
   }
 
   return {
-    kind: 'ask-reply',
+    kind: "ask-reply",
     value: {
       conversationId: body.id,
       // Keyed by the ask itself: concurrent duplicate submissions of the same
@@ -277,29 +286,41 @@ const parseAskReplyTurn = (body: PanelPostBody): ParsedTransportRequest => {
 };
 
 const parseInitialTurn = (body: PanelPostBody): ParsedTransportRequest => {
-  if (typeof body.id !== 'string' || body.id.length === 0 || body.trigger !== 'submit-message') {
-    return { kind: 'refused', refusal: transportRequestRefusals.invalidChatRequest };
+  if (typeof body.id !== "string" || body.id.length === 0 || body.trigger !== "submit-message") {
+    return {
+      kind: "refused",
+      refusal: transportRequestRefusals.invalidChatRequest,
+    };
   }
   if (!Array.isArray(body.messages)) {
-    return { kind: 'refused', refusal: transportRequestRefusals.invalidChatRequest };
+    return {
+      kind: "refused",
+      refusal: transportRequestRefusals.invalidChatRequest,
+    };
   }
 
   const message = body.messages.at(-1) as PanelMessage | undefined;
   if (
-    message?.role !== 'user' ||
-    typeof message.id !== 'string' ||
+    message?.role !== "user" ||
+    typeof message.id !== "string" ||
     message.id.length === 0 ||
-    message.id === 'petrinaut-diagnostics-context'
+    message.id === "petrinaut-diagnostics-context"
   ) {
-    return { kind: 'refused', refusal: transportRequestRefusals.invalidChatRequest };
+    return {
+      kind: "refused",
+      refusal: transportRequestRefusals.invalidChatRequest,
+    };
   }
   const text = userTextFrom(message);
   if (text === undefined) {
-    return { kind: 'refused', refusal: transportRequestRefusals.invalidChatRequest };
+    return {
+      kind: "refused",
+      refusal: transportRequestRefusals.invalidChatRequest,
+    };
   }
 
   return {
-    kind: 'initial',
+    kind: "initial",
     value: {
       conversationId: body.id,
       idempotencyKey: `${body.id}:${message.id}`,
@@ -310,48 +331,52 @@ const parseInitialTurn = (body: PanelPostBody): ParsedTransportRequest => {
 
 const toUiChunk = (event: HarnessReplyEvent): UIMessageChunk => {
   switch (event.type) {
-    case 'response-start':
-      return { type: 'start', messageId: event.messageId };
-    case 'turn-start':
-      return { type: 'start-step' };
-    case 'part-start':
+    case "response-start":
+      return { type: "start", messageId: event.messageId };
+    case "turn-start":
+      return { type: "start-step" };
+    case "part-start":
       return { type: `${event.kind}-start`, id: event.partId };
-    case 'part-delta':
-      return { type: `${event.kind}-delta`, id: event.partId, delta: event.delta };
-    case 'part-end':
-      return { type: `${event.kind}-end`, id: event.partId };
-    case 'tool-input':
+    case "part-delta":
       return {
-        type: 'tool-input-available',
+        type: `${event.kind}-delta`,
+        id: event.partId,
+        delta: event.delta,
+      };
+    case "part-end":
+      return { type: `${event.kind}-end`, id: event.partId };
+    case "tool-input":
+      return {
+        type: "tool-input-available",
         toolCallId: event.toolCallId,
         toolName: event.toolName,
         input: event.input,
-        ...(event.execution === 'server' ? { providerExecuted: true } : {}),
+        ...(event.execution === "server" ? { providerExecuted: true } : {}),
       };
-    case 'tool-output':
+    case "tool-output":
       return {
-        type: 'tool-output-available',
+        type: "tool-output-available",
         toolCallId: event.toolCallId,
         output: event.output,
-        ...(event.execution === 'server' ? { providerExecuted: true } : {}),
+        ...(event.execution === "server" ? { providerExecuted: true } : {}),
       };
-    case 'tool-output-error':
+    case "tool-output-error":
       return {
-        type: 'tool-output-error',
+        type: "tool-output-error",
         toolCallId: event.toolCallId,
         errorText: event.errorText,
-        ...(event.execution === 'server' ? { providerExecuted: true } : {}),
+        ...(event.execution === "server" ? { providerExecuted: true } : {}),
       };
-    case 'turn-finish':
-      return { type: 'finish-step' };
-    case 'response-finish':
+    case "turn-finish":
+      return { type: "finish-step" };
+    case "response-finish":
       switch (event.terminalState) {
-        case 'completed':
-          return { type: 'finish', finishReason: event.finishReason };
-        case 'failed':
-          return { type: 'error', errorText: 'The elicitor turn failed.' };
-        case 'aborted':
-          return { type: 'abort', reason: 'Harness response aborted.' };
+        case "completed":
+          return { type: "finish", finishReason: event.finishReason };
+        case "failed":
+          return { type: "error", errorText: "The elicitor turn failed." };
+        case "aborted":
+          return { type: "abort", reason: "Harness response aborted." };
       }
   }
 };
@@ -362,50 +387,55 @@ const inspectionFor = (
   messageId: string | undefined,
 ): TransportInspectionEvent | undefined => {
   switch (event.type) {
-    case 'response-start':
-      return { type: 'response-start', requestId, messageId: event.messageId };
-    case 'turn-start':
+    case "response-start":
+      return { type: "response-start", requestId, messageId: event.messageId };
+    case "turn-start":
       return messageId === undefined
         ? undefined
-        : { type: 'turn-start', requestId, turnId: event.turnId, messageId };
-    case 'part-start':
-      return { type: 'part-emitted', requestId, kind: event.kind, partId: event.partId };
-    case 'tool-input':
+        : { type: "turn-start", requestId, turnId: event.turnId, messageId };
+    case "part-start":
       return {
-        type: 'part-emitted',
+        type: "part-emitted",
         requestId,
-        kind: 'tool-input',
+        kind: event.kind,
+        partId: event.partId,
+      };
+    case "tool-input":
+      return {
+        type: "part-emitted",
+        requestId,
+        kind: "tool-input",
         toolCallId: event.toolCallId,
       };
-    case 'tool-output':
+    case "tool-output":
       return {
-        type: 'part-emitted',
+        type: "part-emitted",
         requestId,
-        kind: 'tool-output',
+        kind: "tool-output",
         toolCallId: event.toolCallId,
       };
-    case 'tool-output-error':
+    case "tool-output-error":
       return {
-        type: 'part-emitted',
+        type: "part-emitted",
         requestId,
-        kind: 'tool-output-error',
+        kind: "tool-output-error",
         toolCallId: event.toolCallId,
       };
-    case 'turn-finish':
+    case "turn-finish":
       return {
-        type: 'turn-finish',
+        type: "turn-finish",
         requestId,
         turnId: event.turnId,
       };
-    case 'response-finish':
+    case "response-finish":
       return {
-        type: 'request-finish',
+        type: "request-finish",
         requestId,
         terminalState: event.terminalState,
         finishReason: event.finishReason,
       };
-    case 'part-delta':
-    case 'part-end':
+    case "part-delta":
+    case "part-end":
       return undefined;
   }
 };
@@ -413,26 +443,26 @@ const inspectionFor = (
 export const createAiSdkChatHandler =
   (options: AiSdkChatHandlerOptions) =>
   async (request: Request): Promise<Response> => {
-    const origin = request.headers.get('origin');
+    const origin = request.headers.get("origin");
     const crossOriginHeaders =
       origin !== null && options.allowedOrigins?.includes(origin) === true
         ? corsHeaders(origin)
         : undefined;
     if (origin !== null && crossOriginHeaders === undefined) {
-      return jsonResponse({ error: 'origin_not_allowed' }, 403);
+      return jsonResponse({ error: "origin_not_allowed" }, 403);
     }
-    if (request.method === 'OPTIONS') {
+    if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: crossOriginHeaders });
     }
-    if (request.method !== 'POST') {
-      return jsonResponse({ error: 'method_not_allowed' }, 405, crossOriginHeaders);
+    if (request.method !== "POST") {
+      return jsonResponse({ error: "method_not_allowed" }, 405, crossOriginHeaders);
     }
 
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return jsonResponse({ error: 'invalid_chat_request' }, 400, crossOriginHeaders);
+      return jsonResponse({ error: "invalid_chat_request" }, 400, crossOriginHeaders);
     }
     const validatedBody = v.safeParse(panelPostBodySchema, body);
     if (!validatedBody.success) {
@@ -447,11 +477,11 @@ export const createAiSdkChatHandler =
         ? parseAskReplyTurn(postBody)
         : postBody.messageId !== undefined
           ? ({
-              kind: 'refused',
+              kind: "refused",
               refusal: transportRequestRefusals.toolResultFollowUpNotSupported,
             } as const)
           : parseInitialTurn(postBody);
-    if (parsed.kind === 'refused') {
+    if (parsed.kind === "refused") {
       return jsonResponse(
         { error: parsed.refusal.error },
         parsed.refusal.status,
@@ -459,15 +489,15 @@ export const createAiSdkChatHandler =
       );
     }
 
-    const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
+    const requestId = request.headers.get("x-request-id") || crypto.randomUUID();
 
     let run: (emit: (event: HarnessReplyEvent) => void) => Promise<void>;
-    if (parsed.kind === 'ask-reply') {
+    if (parsed.kind === "ask-reply") {
       const askReply = options.askReply!;
       const admission = await askReply.admit(parsed.value);
       if (!admission.ok) {
         options.inspect?.({
-          type: 'ask-reply-refused',
+          type: "ask-reply-refused",
           requestId,
           conversationId: parsed.value.conversationId,
           toolCallId: parsed.value.ask.toolCallId,
@@ -480,7 +510,7 @@ export const createAiSdkChatHandler =
         );
       }
       options.inspect?.({
-        type: 'ask-reply-admitted',
+        type: "ask-reply-admitted",
         requestId,
         conversationId: parsed.value.conversationId,
         toolCallId: parsed.value.ask.toolCallId,
@@ -489,7 +519,7 @@ export const createAiSdkChatHandler =
       run = (emit) => askReply.run(input, emit);
     } else {
       options.inspect?.({
-        type: 'request-start',
+        type: "request-start",
         requestId,
         conversationId: parsed.value.conversationId,
         userMessageId: parsed.value.userMessage.id,
@@ -505,15 +535,15 @@ export const createAiSdkChatHandler =
       execute: async ({ writer }) => {
         try {
           await run((event) => {
-            if (event.type === 'response-start') messageId = event.messageId;
+            if (event.type === "response-start") messageId = event.messageId;
             // An ask suspends the turn for a human answer: its call goes to the
             // panel as an awaiting client tool, and the harness's own output
             // record (the minted affordance) never reaches the wire — the
             // registered component supplies the output when the person submits.
-            if (event.type === 'tool-input' && event.toolName === ASK_TOOL_NAME) {
+            if (event.type === "tool-input" && event.toolName === ASK_TOOL_NAME) {
               awaitingAskToolCallIds.add(event.toolCallId);
               writer.write({
-                type: 'tool-input-available',
+                type: "tool-input-available",
                 toolCallId: event.toolCallId,
                 toolName: event.toolName,
                 input: event.input,
@@ -522,12 +552,16 @@ export const createAiSdkChatHandler =
               if (inspection) options.inspect?.(inspection);
               return;
             }
-            if (event.type === 'tool-output' && awaitingAskToolCallIds.has(event.toolCallId)) {
-              options.inspect?.({ type: 'ask-await', requestId, toolCallId: event.toolCallId });
+            if (event.type === "tool-output" && awaitingAskToolCallIds.has(event.toolCallId)) {
+              options.inspect?.({
+                type: "ask-await",
+                requestId,
+                toolCallId: event.toolCallId,
+              });
               return;
             }
             writer.write(toUiChunk(event));
-            if (event.type === 'response-finish') terminalEventEmitted = true;
+            if (event.type === "response-finish") terminalEventEmitted = true;
             const inspection = inspectionFor(event, requestId, messageId);
             if (inspection) options.inspect?.(inspection);
           });
@@ -537,15 +571,15 @@ export const createAiSdkChatHandler =
           // rejection carries no new state and must not create a second ending.
           if (terminalEventEmitted) return;
           options.inspect?.({
-            type: 'request-finish',
+            type: "request-finish",
             requestId,
-            terminalState: 'failed',
-            finishReason: 'error',
+            terminalState: "failed",
+            finishReason: "error",
           });
           throw error;
         }
       },
-      onError: () => 'The elicitor turn failed.',
+      onError: () => "The elicitor turn failed.",
     });
 
     const response = createUIMessageStreamResponse({ stream });

@@ -15,9 +15,9 @@
 /** How a binding satisfies one capability. */
 export type Provision =
   /** The substrate offers it directly. */
-  | 'native'
+  | "native"
   /** The substrate lacks or forbids it; the binding supplies it itself. */
-  | 'absorbed';
+  | "absorbed";
 
 export interface Capability {
   readonly id: number;
@@ -30,65 +30,65 @@ export interface Capability {
 export const CAPABILITIES: readonly Capability[] = [
   {
     id: 1,
-    name: 'Register a tool',
-    provision: 'native',
-    mechanism: 'defineTool / useTool',
+    name: "Register a tool",
+    provision: "native",
+    mechanism: "defineTool / useTool",
   },
   {
     id: 2,
-    name: 'Contribute instructions',
-    provision: 'native',
-    mechanism: 'render return',
+    name: "Contribute instructions",
+    provision: "native",
+    mechanism: "render return",
   },
   {
     id: 3,
-    name: 'Persist per-conversation state',
-    provision: 'native',
-    mechanism: 'usePersistentState, atomic with its unit of work',
+    name: "Persist per-conversation state",
+    provision: "native",
+    mechanism: "usePersistentState, atomic with its unit of work",
   },
   {
     id: 4,
-    name: 'Emit an affordance payload',
-    provision: 'native',
-    mechanism: 'data channel + tool output parts',
+    name: "Emit an affordance payload",
+    provision: "native",
+    mechanism: "data channel + tool output parts",
   },
   {
     id: 5,
-    name: 'Suspend for reply',
-    provision: 'absorbed',
-    mechanism: 'no ask primitive: terminate:true + pending-affordance slot + fresh dispatch',
+    name: "Suspend for reply",
+    provision: "absorbed",
+    mechanism: "no ask primitive: terminate:true + pending-affordance slot + fresh dispatch",
   },
   {
     id: 6,
-    name: 'Private model call',
-    provision: 'native',
-    mechanism: 'harness.prompt scratch conversation',
+    name: "Private model call",
+    provision: "native",
+    mechanism: "harness.prompt scratch conversation",
   },
   {
     id: 7,
-    name: 'Subscribe to the would-stop lifecycle seam',
-    provision: 'native',
+    name: "Subscribe to the would-stop lifecycle seam",
+    provision: "native",
     mechanism:
-      'useAgentFinish + ctx.append; fires on suspensions, so the pending guard is load-bearing; loop-guarded',
+      "useAgentFinish + ctx.append; fires on suspensions, so the pending guard is load-bearing; loop-guarded",
   },
   {
     id: 8,
-    name: 'Read the durable entry projection with provenance-discriminating entry kinds',
-    provision: 'absorbed',
+    name: "Read the durable entry projection with provenance-discriminating entry kinds",
+    provision: "absorbed",
     mechanism:
-      'public materialized history snapshot over a host-injected conversation URL/transport; `role`/`purpose` discriminate provenance; no raw entry ranges',
+      "public materialized history snapshot over a host-injected conversation URL/transport; `role`/`purpose` discriminate provenance; no raw entry ranges",
   },
   {
     id: 9,
-    name: 'Inject typed non-user signal entries',
-    provision: 'native',
+    name: "Inject typed non-user signal entries",
+    provision: "native",
     mechanism: "ctx.append / dispatch({kind:'signal'}); projects structurally non-user",
   },
   {
     id: 10,
-    name: 'Provide a transactional durable store outside conversation state',
-    provision: 'absorbed',
+    name: "Provide a transactional durable store outside conversation state",
+    provision: "absorbed",
     mechanism:
-      'Flue neither provides nor forbids; the binding owns the storage-port implementation',
+      "Flue neither provides nor forbids; the binding owns the storage-port implementation",
   },
 ];

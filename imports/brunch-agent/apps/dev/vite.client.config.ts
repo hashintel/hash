@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from "vite";
 
 /**
  * The client build — a second, plain Vite build alongside the Flue one.
@@ -15,15 +15,15 @@ import { defineConfig } from 'vite';
  */
 export default defineConfig({
   build: {
-    outDir: 'dist/client',
+    outDir: "dist/client",
     emptyOutDir: true,
     // Referenced by app.ts when serving the built ui; a hashed filename would
     // have to be looked up through the manifest for no gain at this size.
     rollupOptions: {
       output: {
-        entryFileNames: 'assets/[name].js',
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name][extname]',
+        entryFileNames: "assets/[name].js",
+        chunkFileNames: "assets/[name].js",
+        assetFileNames: "assets/[name][extname]",
       },
     },
   },

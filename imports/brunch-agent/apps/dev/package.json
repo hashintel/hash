@@ -2,12 +2,12 @@
   "name": "@brunch/dev",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "description": "The dev/demo vehicle: local dev loop, target gallery, diagnostic probe surface. Not the product.",
+  "type": "module",
   "scripts": {
+    "build": "vite build && vite build --config vite.client.config.ts",
     "dev": "vite dev",
-    "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
-    "build": "vite build && vite build --config vite.client.config.ts"
+    "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts"
   },
   "dependencies": {
     "@brunch/binding-flue": "workspace:*",

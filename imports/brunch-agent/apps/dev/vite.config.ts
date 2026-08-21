@@ -1,5 +1,5 @@
-import { flue } from '@flue/vite';
-import { defineConfig } from 'vite';
+import { flue } from "@flue/vite";
+import { defineConfig } from "vite";
 
 // No @vitejs/plugin-react: the flue plugin's dev controller owns the whole
 // request space and hands every request to app.ts, with no fall-through to

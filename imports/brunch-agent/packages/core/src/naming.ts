@@ -23,7 +23,7 @@
  * Should the name ever move again, this constant is the only line that
  * changes; everything model-facing derives from it.
  */
-export const PRODUCT_NAME = 'brunch';
+export const PRODUCT_NAME = "brunch";
 
 /**
  * The abstract operations core names. The binding renders each into its
@@ -32,7 +32,7 @@ export const PRODUCT_NAME = 'brunch';
  * Milestone one grows this list one slice at a time. `ask` proves suspension;
  * `sweep` proves the first durable session-to-document transition.
  */
-export const OPERATIONS = ['ask', 'sweep'] as const;
+export const OPERATIONS = ["ask", "sweep"] as const;
 
 export type Operation = (typeof OPERATIONS)[number];
 
@@ -46,7 +46,7 @@ const IDENTIFIER = /^[a-z][a-z0-9_]*$/;
  * the substrate's reserved tool names (spec §10, recorded Flue facts).
  */
 export function toolPrefix(productName: string = PRODUCT_NAME): string {
-  const normalized = productName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normalized = productName.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (!/^[a-z][a-z0-9]*$/.test(normalized)) {
     throw new Error(
       `Unusable product name ${JSON.stringify(productName)}: a tool prefix must normalize to alphanumerics starting with a letter.`,

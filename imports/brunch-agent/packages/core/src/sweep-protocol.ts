@@ -1,8 +1,10 @@
-import * as v from 'valibot';
-import type { CaptureInputProposal, CaptureStoreRefusal } from './capture-store.ts';
-import { toolName } from './naming.ts';
-import type { Plugin } from './plugin.ts';
-import type { SessionEntryKind } from './session-log.ts';
+import * as v from "valibot";
+
+import { toolName } from "./naming.ts";
+
+import type { CaptureInputProposal, CaptureStoreRefusal } from "./capture-store.ts";
+import type { Plugin } from "./plugin.ts";
+import type { SessionEntryKind } from "./session-log.ts";
 
 const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
 
@@ -28,7 +30,7 @@ export interface SweepRefusalFact {
 }
 
 export interface SweepResultFact {
-  readonly status: 'no-settled-range' | 'refused' | 'applied';
+  readonly status: "no-settled-range" | "refused" | "applied";
   readonly refusal?: SweepRefusalFact;
 }
 
@@ -63,7 +65,7 @@ export const createInitialSweepState = (): SweepState => ({
 export const parseSweepState = (input: unknown): SweepState => v.parse(sweepStateSchema, input);
 
 const isTrueUserEntry = (entry: SweepSessionEntry): boolean =>
-  entry.kind === 'user' || entry.kind === 'user-affordance-payload';
+  entry.kind === "user" || entry.kind === "user-affordance-payload";
 
 /**
  * End at the latest true-user entry. Trailing assistant/tool material remains
@@ -113,11 +115,11 @@ export const sweepableRange = (
 
 export type SettlementTriggerDecision =
   | {
-      readonly action: 'skip';
-      readonly reason: 'pending-affordance' | 'no-unswept-user' | 'already-checked';
+      readonly action: "skip";
+      readonly reason: "pending-affordance" | "no-unswept-user" | "already-checked";
     }
   | {
-      readonly action: 'nudge';
+      readonly action: "nudge";
       readonly tail: readonly SweepSessionEntry[];
       readonly throughUserEntryId: string;
       readonly nextState: SweepState;
@@ -128,16 +130,16 @@ export const decideSettlementTrigger = (input: {
   readonly state: SweepState;
   readonly pendingAffordance: boolean;
 }): SettlementTriggerDecision => {
-  if (input.pendingAffordance) return { action: 'skip', reason: 'pending-affordance' };
+  if (input.pendingAffordance) return { action: "skip", reason: "pending-affordance" };
 
   const tail = unsweptTail(input.entries, input.state);
   const latestUser = tail.at(-1);
-  if (!latestUser) return { action: 'skip', reason: 'no-unswept-user' };
+  if (!latestUser) return { action: "skip", reason: "no-unswept-user" };
   if (input.state.lastCheckedUserEntryId === latestUser.id) {
-    return { action: 'skip', reason: 'already-checked' };
+    return { action: "skip", reason: "already-checked" };
   }
   return {
-    action: 'nudge',
+    action: "nudge",
     tail,
     throughUserEntryId: latestUser.id,
     nextState: parseSweepState({
@@ -175,57 +177,60 @@ const renderEntry = (entry: SweepSessionEntry): readonly string[] => {
     rendered.push(`[assistant ask] ${affordance.markdown}`);
   }
   if (entry.text.length > 0) {
-    const label = isTrueUserEntry(entry) ? 'user' : entry.kind;
+    const label = isTrueUserEntry(entry) ? "user" : entry.kind;
     rendered.push(`[${label}] ${entry.text}`);
   }
   return rendered;
 };
 
 const renderTail = (tail: readonly SweepSessionEntry[]): string =>
-  tail.flatMap(renderEntry).join('\n');
+  tail.flatMap(renderEntry).join("\n");
 
 export interface SettlementCheckSignal {
-  readonly type: 'settlement-check';
-  readonly tagName: 'settlement-check';
+  readonly type: "settlement-check";
+  readonly tagName: "settlement-check";
   readonly body: string;
 }
 
 export const buildSettlementCheckSignal = (
   tail: readonly SweepSessionEntry[],
 ): SettlementCheckSignal => ({
-  type: 'settlement-check',
-  tagName: 'settlement-check',
+  type: "settlement-check",
+  tagName: "settlement-check",
   body: [
-    'The harness computed this unswept conversation tail:',
+    "The harness computed this unswept conversation tail:",
     renderTail(tail),
-    `Judge whether this range has settled. If it has, call ${toolName('sweep')}. Declining is legal; continue the interview when the topic is still open.`,
-  ].join('\n\n'),
+    `Judge whether this range has settled. If it has, call ${toolName("sweep")}. Declining is legal; continue the interview when the topic is still open.`,
+  ].join("\n\n"),
 });
 
 export const buildSweepExtractionPrompt = (
-  plugin: { readonly targetDomain: string; readonly proposalNames: readonly string[] },
+  plugin: {
+    readonly targetDomain: string;
+    readonly proposalNames: readonly string[];
+  },
   tail: readonly SweepSessionEntry[],
 ): string =>
   [
     `Extract capture proposals for the ${plugin.targetDomain} target from this settled conversation range.`,
-    `Use only the declared proposal schema: ${plugin.proposalNames.join(', ')}. Do not add parsed structure or undeclared proposal types.`,
-    'Every user-grounded proposal must cite one or more exact verbatim quotes from the user lines below. Never supply entry ids, ranges, pointers, or evidence sources; the harness resolves those.',
-    'The declared verbatim interior must preserve what was said without paraphrase or normalization. Return an empty proposal list when no honest capture is available.',
+    `Use only the declared proposal schema: ${plugin.proposalNames.join(", ")}. Do not add parsed structure or undeclared proposal types.`,
+    "Every user-grounded proposal must cite one or more exact verbatim quotes from the user lines below. Never supply entry ids, ranges, pointers, or evidence sources; the harness resolves those.",
+    "The declared verbatim interior must preserve what was said without paraphrase or normalization. Return an empty proposal list when no honest capture is available.",
     renderTail(tail),
-  ].join('\n\n');
+  ].join("\n\n");
 
 export interface SweepRepairSignal {
-  readonly type: 'sweep-repair';
-  readonly tagName: 'sweep-repair';
+  readonly type: "sweep-repair";
+  readonly tagName: "sweep-repair";
   readonly body: string;
 }
 
 export const buildSweepRepairSignal = (
-  refusal: Pick<CaptureStoreRefusal, 'code' | 'message'> | SweepRefusalFact,
+  refusal: Pick<CaptureStoreRefusal, "code" | "message"> | SweepRefusalFact,
 ): SweepRepairSignal => ({
-  type: 'sweep-repair',
-  tagName: 'sweep-repair',
-  body: `The sweep was refused: ${refusal.message} Repair the proposal and call ${toolName('sweep')} again. Declining is legal.`,
+  type: "sweep-repair",
+  tagName: "sweep-repair",
+  body: `The sweep was refused: ${refusal.message} Repair the proposal and call ${toolName("sweep")} again. Declining is legal.`,
 });
 
 export const pendingSweepRepair = (
@@ -234,9 +239,9 @@ export const pendingSweepRepair = (
   let pending: SweepRefusalFact | null = null;
   for (const entry of entries) {
     if (entry.sweepRepairSignal) pending = null;
-    if (entry.sweepResult?.status === 'refused' && entry.sweepResult.refusal) {
+    if (entry.sweepResult?.status === "refused" && entry.sweepResult.refusal) {
       pending = entry.sweepResult.refusal;
-    } else if (entry.sweepResult && entry.sweepResult.status !== 'refused') {
+    } else if (entry.sweepResult && entry.sweepResult.status !== "refused") {
       pending = null;
     }
   }
@@ -244,7 +249,7 @@ export const pendingSweepRepair = (
 };
 
 export interface UnaccountedAskAdvisory {
-  readonly type: 'unaccounted-ask';
+  readonly type: "unaccounted-ask";
   readonly affordanceId: string;
   readonly question: string;
   readonly message: string;
@@ -265,16 +270,16 @@ export const computeUnaccountedAskAdvisories = (
     (entry.affordances ?? [])
       .filter((affordance) => !accountedAffordanceIds.has(affordance.id))
       .map((affordance) => ({
-        type: 'unaccounted-ask' as const,
+        type: "unaccounted-ask" as const,
         affordanceId: affordance.id,
         question: affordance.markdown,
-        message: 'The swept range contains an ask with no affordance-bound capture.',
+        message: "The swept range contains an ask with no affordance-bound capture.",
       })),
   );
 };
 
 export const settlementProtocolInstructionFragments = (): readonly string[] => [
-  'When the harness reports an unswept tail, judge whether that range has settled. Declining is legal.',
-  `When it has settled, call ${toolName('sweep')}. The harness privately extracts quote-anchored proposals, refreshes durable history, applies them atomically, and advances the swept high-water mark only on success.`,
-  'Projection and validation are read-time operations; do not treat sweep completion as a stored derived result.',
+  "When the harness reports an unswept tail, judge whether that range has settled. Declining is legal.",
+  `When it has settled, call ${toolName("sweep")}. The harness privately extracts quote-anchored proposals, refreshes durable history, applies them atomically, and advances the swept high-water mark only on success.`,
+  "Projection and validation are read-time operations; do not treat sweep completion as a stored derived result.",
 ];

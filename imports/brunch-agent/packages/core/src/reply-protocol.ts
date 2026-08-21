@@ -6,46 +6,46 @@
  * supplied by the binding and preserved by transports.
  */
 export type HarnessReplyEvent =
-  | { readonly type: 'response-start'; readonly messageId: string }
-  | { readonly type: 'turn-start'; readonly turnId: string }
+  | { readonly type: "response-start"; readonly messageId: string }
+  | { readonly type: "turn-start"; readonly turnId: string }
   | {
-      readonly type: 'part-start';
-      readonly kind: 'text' | 'reasoning';
+      readonly type: "part-start";
+      readonly kind: "text" | "reasoning";
       readonly partId: string;
     }
   | {
-      readonly type: 'part-delta';
-      readonly kind: 'text' | 'reasoning';
+      readonly type: "part-delta";
+      readonly kind: "text" | "reasoning";
       readonly partId: string;
       readonly delta: string;
     }
   | {
-      readonly type: 'part-end';
-      readonly kind: 'text' | 'reasoning';
+      readonly type: "part-end";
+      readonly kind: "text" | "reasoning";
       readonly partId: string;
     }
   | {
-      readonly type: 'tool-input';
+      readonly type: "tool-input";
       readonly toolCallId: string;
       readonly toolName: string;
       readonly input: unknown;
-      readonly execution: 'client' | 'server';
+      readonly execution: "client" | "server";
     }
   | {
-      readonly type: 'tool-output';
+      readonly type: "tool-output";
       readonly toolCallId: string;
       readonly output: unknown;
-      readonly execution: 'client' | 'server';
+      readonly execution: "client" | "server";
     }
   | {
-      readonly type: 'tool-output-error';
+      readonly type: "tool-output-error";
       readonly toolCallId: string;
       readonly errorText: string;
-      readonly execution: 'client' | 'server';
+      readonly execution: "client" | "server";
     }
-  | { readonly type: 'turn-finish'; readonly turnId: string }
+  | { readonly type: "turn-finish"; readonly turnId: string }
   | {
-      readonly type: 'response-finish';
-      readonly terminalState: 'completed' | 'failed' | 'aborted';
-      readonly finishReason: 'stop' | 'tool-calls' | 'error';
+      readonly type: "response-finish";
+      readonly terminalState: "completed" | "failed" | "aborted";
+      readonly finishReason: "stop" | "tool-calls" | "error";
     };

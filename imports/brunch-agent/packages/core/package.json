@@ -2,8 +2,8 @@
   "name": "@brunch/core",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "description": "The harness: mechanism and orchestration. Its public export surface is the plugin SDK.",
+  "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./storage": "./src/storage.ts",
