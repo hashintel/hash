@@ -65,15 +65,10 @@ const disabledSelected = defaultSelected.map((id) => `disabled-${id}`);
 
 export default {
   title: "Internal/SelectableList",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
     size: {
-      control: {
-        type: "select",
-        options: formInputSizes,
-      },
+      control: { type: "select" },
+      options: formInputSizes,
     },
   },
   args: {
@@ -199,6 +194,3 @@ export const Sizes: Story<SelectableListProps> = (args) => (
     ))}
   </div>
 );
-Sizes.parameters = {
-  controls: { exclude: ["size"] },
-};

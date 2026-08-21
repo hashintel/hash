@@ -113,25 +113,12 @@ const KitchenSinkChip = ({
 
 export default {
   title: "Components/Chip",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
-    color: {
-      control: { type: "select", options: colors },
-    },
-    variant: {
-      control: { type: "select", options: variants },
-    },
-    size: {
-      control: { type: "select", options: chipSizes },
-    },
-    shape: {
-      control: { type: "select", options: ["default", "round"] },
-    },
-    children: {
-      control: { type: "text" },
-    },
+    color: { control: { type: "select" }, options: colors },
+    variant: { control: { type: "select" }, options: variants },
+    size: { control: { type: "select" }, options: chipSizes },
+    shape: { control: { type: "select" }, options: shapes },
+    children: { control: { type: "text" } },
   },
   args: {
     children: "Chip",
@@ -153,6 +140,7 @@ export const Default: Story<ChipProps> = (args) => (
             color={color}
             variant={variant}
             size={args.size}
+            shape={args.shape}
           >
             {color}
           </KitchenSinkChip>
@@ -163,6 +151,7 @@ export const Default: Story<ChipProps> = (args) => (
             color={example.color}
             variant={variant}
             size={args.size}
+            shape={args.shape}
             prefixVariant={example.prefixVariant}
           >
             {example.label}
@@ -172,7 +161,6 @@ export const Default: Story<ChipProps> = (args) => (
     ))}
   </div>
 );
-
 export const Shape: Story<ChipProps> = (args) => (
   <div className={column}>
     <div className={row}>
@@ -213,8 +201,6 @@ export const Shape: Story<ChipProps> = (args) => (
     </div>
   </div>
 );
-Shape.parameters = { controls: { exclude: ["shape", "children"] } };
-
 export const Size: Story<ChipProps> = (args) => (
   <div className={column}>
     <div className={row}>
@@ -224,6 +210,7 @@ export const Size: Story<ChipProps> = (args) => (
           size={size}
           color={args.color}
           variant={args.variant}
+          shape={args.shape}
         >
           {size}
         </KitchenSinkChip>
@@ -237,6 +224,7 @@ export const Size: Story<ChipProps> = (args) => (
           size={size}
           color={args.color}
           variant={args.variant}
+          shape={args.shape}
           prefixVariant="badge"
         >
           {size}
@@ -251,6 +239,7 @@ export const Size: Story<ChipProps> = (args) => (
           size={size}
           color={args.color}
           variant={args.variant}
+          shape={args.shape}
           prefix={{ loading: true }}
           suffix={{ iconName: "check" }}
         >
@@ -262,30 +251,27 @@ export const Size: Story<ChipProps> = (args) => (
     {/* md edge cases: empty content, affixes with no label, and truncation of
         long content against a max-width. */}
     <div className={row}>
-      <Chip size="md" color={args.color} variant={args.variant}>
+      <Chip {...args} size="md">
         {emptyLabel}
       </Chip>
       <Chip
         size="md"
         color={args.color}
         variant={args.variant}
+        shape={args.shape}
         prefix={{ iconName: "sparkles" }}
         removeable={{ removeable: true, onRemove: noop }}
       >
         {emptyLabel}
       </Chip>
-      <Chip
-        size="md"
-        color={args.color}
-        variant={args.variant}
-        className={maxWidthChip}
-      >
+      <Chip {...args} size="md" className={maxWidthChip}>
         {longText}
       </Chip>
       <Chip
         size="md"
         color={args.color}
         variant={args.variant}
+        shape={args.shape}
         className={maxWidthChip}
         prefix={{ children: "long prefix" }}
         suffix={{ children: "long suffix" }}
@@ -295,8 +281,6 @@ export const Size: Story<ChipProps> = (args) => (
     </div>
   </div>
 );
-Size.parameters = { controls: { exclude: ["size", "children"] } };
-
 export const PrefixAndSuffix: Story<ChipProps> = (args) => {
   // `suffix` and `removeable` are mutually exclusive, so drop them from the
   // spread base before setting a suffix on the chips below.
@@ -433,4 +417,3 @@ export const PrefixAndSuffix: Story<ChipProps> = (args) => {
     </div>
   );
 };
-PrefixAndSuffix.parameters = { controls: { exclude: ["children"] } };

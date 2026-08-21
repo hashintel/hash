@@ -22,55 +22,13 @@ const tones: NonNullable<ButtonElementProps["tone"]>[] = [
 
 export default {
   title: "Components/Button",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
-    variant: {
-      control: {
-        type: "select",
-        options: variants,
-      },
-    },
-    tone: {
-      control: {
-        type: "select",
-        options: [undefined, ...tones],
-      },
-    },
-    size: {
-      control: {
-        type: "select",
-        options: formInputSizes,
-      },
-    },
-    iconName: {
-      control: {
-        type: "select",
-        options: [undefined, ...iconNames],
-      },
-    },
-    iconPosition: {
-      control: {
-        type: "select",
-        options: ["left", "right"],
-      },
-    },
-    loading: {
-      control: { type: "boolean" },
-    },
-    disabled: {
-      control: { type: "boolean" },
-    },
-    pressed: {
-      control: { type: "boolean" },
-    },
-    shape: {
-      control: {
-        type: "select",
-        options: ["default", "round"],
-      },
-    },
+    variant: { control: { type: "select" }, options: variants },
+    tone: { control: { type: "select" }, options: tones },
+    size: { control: { type: "select" }, options: formInputSizes },
+    shape: { control: { type: "select" }, options: ["default", "round"] },
+    iconName: { control: { type: "select" }, options: iconNames },
+    iconPosition: { control: { type: "select" }, options: ["left", "right"] },
   },
   args: {
     children: "Button",
@@ -140,10 +98,6 @@ export const Default: Story<ButtonElementProps> = (args) => {
   );
 };
 
-Default.parameters = {
-  controls: { exclude: ["variant", "tone", "loading", "pressed", "disabled"] },
-};
-
 export const Sizes: Story<ButtonElementProps> = (args) => (
   <>
     {variants.map((variant) => (
@@ -190,10 +144,6 @@ export const Sizes: Story<ButtonElementProps> = (args) => (
     ))}
   </>
 );
-
-Sizes.parameters = {
-  controls: { exclude: ["size", "loading", "variant"] },
-};
 
 export const WithIcon: Story<ButtonElementProps> = (args) => (
   <>
@@ -275,10 +225,6 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
     ))}
   </>
 );
-
-WithIcon.parameters = {
-  controls: { exclude: ["iconName", "iconPosition", "variant", "loading"] },
-};
 
 export const Shape: Story<ButtonElementProps> = (args) => (
   <>

@@ -8,9 +8,6 @@ import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
   title: "Components/CharacterCount",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
     charactersUsed: { control: { type: "number" } },
     maxLength: { control: { type: "number" } },
@@ -43,9 +40,9 @@ const states: { label: string; charactersUsed: number; maxLength: number }[] = [
   { label: "Over limit", charactersUsed: 112, maxLength: 100 },
 ];
 
-export const Default: Story<
-  React.ComponentProps<typeof CharacterCount>
-> = () => (
+export const Default: Story<React.ComponentProps<typeof CharacterCount>> = (
+  args,
+) => (
   <div
     className={css({
       display: "grid",
@@ -61,17 +58,11 @@ export const Default: Story<
       <Fragment key={label}>
         <span className={labelClass}>{label}</span>
         <CharacterCount
+          {...args}
           charactersUsed={charactersUsed}
           maxLength={maxLength}
-          takesHeight
         />
       </Fragment>
     ))}
   </div>
 );
-
-Default.parameters = {
-  actions: { disable: true },
-  interactions: { disable: true },
-  controls: { disable: true },
-};

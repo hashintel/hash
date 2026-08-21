@@ -27,19 +27,10 @@ const ControlledToggle = ({
 
 export default {
   title: "Components/Toggle",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
-    tone: {
-      control: { type: "select", options: tones },
-    },
-    offTone: {
-      control: { type: "select", options: offTones },
-    },
-    size: {
-      control: { type: "select", options: formInputSizes },
-    },
+    tone: { control: { type: "select" }, options: tones },
+    offTone: { control: { type: "select" }, options: offTones },
+    size: { control: { type: "select" }, options: formInputSizes },
     disabled: { control: { type: "boolean" } },
     invalid: { control: { type: "boolean" } },
     labelOnText: { control: { type: "text" } },
@@ -107,7 +98,7 @@ const labelClass = css({
   color: "neutral.s80",
 });
 
-export const Default: Story<ToggleProps> = () => (
+export const Default: Story<ToggleProps> = (args) => (
   <div
     className={css({
       display: "grid",
@@ -123,9 +114,14 @@ export const Default: Story<ToggleProps> = () => (
     {examples.map(({ label, props, defaultValue, withDisabled }) => (
       <Fragment key={label}>
         <span className={labelClass}>{label}</span>
-        <ControlledToggle {...props} defaultValue={defaultValue} />
+        <ControlledToggle {...args} {...props} defaultValue={defaultValue} />
         {withDisabled ? (
-          <ControlledToggle {...props} disabled defaultValue={defaultValue} />
+          <ControlledToggle
+            {...args}
+            {...props}
+            disabled
+            defaultValue={defaultValue}
+          />
         ) : (
           <span />
         )}
@@ -134,13 +130,7 @@ export const Default: Story<ToggleProps> = () => (
   </div>
 );
 
-Default.parameters = {
-  actions: { disable: true },
-  interactions: { disable: true },
-  controls: { disable: true },
-};
-
-export const Sizes: Story<ToggleProps> = () => (
+export const Sizes: Story<ToggleProps> = (args) => (
   <div
     className={css({
       display: "flex",
@@ -166,15 +156,14 @@ export const Sizes: Story<ToggleProps> = () => (
         >
           {size}
         </span>
-        <ControlledToggle size={size} />
-        <ControlledToggle size={size} labelOnText="On" labelOffText="Off" />
+        <ControlledToggle {...args} size={size} />
+        <ControlledToggle
+          {...args}
+          size={size}
+          labelOnText="On"
+          labelOffText="Off"
+        />
       </div>
     ))}
   </div>
 );
-
-Sizes.parameters = {
-  actions: { disable: true },
-  interactions: { disable: true },
-  controls: { disable: true },
-};
