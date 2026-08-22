@@ -1,3 +1,4 @@
+/* eslint-disable no-bitwise */
 import { Box, Popover } from "@mui/material";
 import {
   bindPopover,

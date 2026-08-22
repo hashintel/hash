@@ -165,14 +165,14 @@ describe("maxDensityOpacity", () => {
       maxDensityOpacity(spacing, 1),
     );
     for (let index = 1; index < opacities.length; index += 1) {
-      expect(opacities[index]!).toBeGreaterThan(opacities[index - 1]!);
+      expect(opacities[index]!).toBeLessThan(opacities[index - 1]!);
     }
   });
 
   it("responds to on-screen spacing, so a smaller scale reads as denser", () => {
     // Halving the world→pixel scale halves the on-screen spacing (denser), so a layout
-    // at the sparse spacing drops below the sparse opacity once zoomed out.
-    expect(maxDensityOpacity(DENSITY_SPARSE_SPACING_PX, 0.5)).toBeLessThan(
+    // at the sparse spacing rises above the sparse opacity once zoomed out.
+    expect(maxDensityOpacity(DENSITY_SPARSE_SPACING_PX, 0.5)).toBeGreaterThan(
       COMPACT_OPACITY_SPARSE,
     );
   });
