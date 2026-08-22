@@ -72,8 +72,8 @@ pub struct PolicyComponents {
 
 impl PolicyComponents {
     #[must_use]
-    pub fn builder<S>(store: &S) -> PolicyComponentsBuilder<'_, S> {
-        PolicyComponentsBuilder::new(store)
+    pub fn builder<S>(store: &S, actor: Option<ActorId>) -> PolicyComponentsBuilder<'_, S> {
+        PolicyComponentsBuilder::new(store, actor)
     }
 
     /// Returns the actor ID for this policy evaluation context.
@@ -327,10 +327,10 @@ pub struct PolicyComponentsBuilder<'a, S> {
 
 impl<'a, S> PolicyComponentsBuilder<'a, S> {
     #[must_use]
-    pub fn new(store: &'a S) -> Self {
+    pub fn new(store: &'a S, actor: Option<ActorId>) -> Self {
         Self {
             store,
-            actor: None,
+            actor,
             context: ContextBuilder::default(),
             entity_type_ids: HashSet::new(),
             property_type_ids: HashSet::new(),
@@ -338,16 +338,6 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
             entity_edition_ids: HashSet::new(),
             actions: HashMap::new(),
         }
-    }
-
-    pub const fn set_actor(&mut self, actor: Option<ActorId>) {
-        self.actor = actor;
-    }
-
-    #[must_use]
-    pub const fn with_actor(mut self, actor: Option<ActorId>) -> Self {
-        self.set_actor(actor);
-        self
     }
 
     pub fn add_entity_type_id(&mut self, entity_type: &'a VersionedUrl) {

@@ -512,7 +512,7 @@ where
         let mut inserted_property_types = Vec::new();
         let mut inserted_ontology_ids = Vec::new();
 
-        let mut policy_components_builder = PolicyComponents::builder(&transaction);
+        let mut policy_components_builder = PolicyComponents::builder(&transaction, Some(actor_id));
 
         let property_type_validator = PropertyTypeValidator;
 
@@ -567,7 +567,6 @@ where
         }
 
         let policy_components = policy_components_builder
-            .with_actor(Some(actor_id))
             .with_actions([ActionName::CreatePropertyType], MergePolicies::No)
             .await
             .change_context(InsertionError)?;
@@ -643,8 +642,7 @@ where
         actor_id: Option<ActorId>,
         mut params: CountPropertyTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewPropertyType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -692,8 +690,7 @@ where
         actor_id: Option<ActorId>,
         mut params: QueryPropertyTypesParams<'_>,
     ) -> Result<QueryPropertyTypesResponse, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewPropertyType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -718,8 +715,7 @@ where
     ) -> Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>> {
         let actions = params.view_actions();
 
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_actions(actions, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -914,8 +910,7 @@ where
             updated_property_type_metadata.push(metadata);
         }
 
-        let policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(&transaction, Some(actor_id))
             .with_property_type_ids(&old_property_type_ids)
             .with_actions([ActionName::UpdatePropertyType], MergePolicies::No)
             .await
@@ -990,8 +985,7 @@ where
         actor_id: ActorId,
         params: ArchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_property_type_id(&params.property_type_id)
             .with_actions([ActionName::ArchivePropertyType], MergePolicies::No)
             .await
@@ -1034,8 +1028,7 @@ where
         actor_id: ActorId,
         params: UnarchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(actor_id))
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_property_type_id(&params.property_type_id)
             .with_actions([ActionName::ArchivePropertyType], MergePolicies::No)
             .await
@@ -1179,8 +1172,7 @@ where
             .add_filter(&property_type_filter)
             .change_context(CheckPermissionError::CompileFilter)?;
 
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(Some(authenticated_actor))
+        let policy_components = PolicyComponents::builder(self, Some(authenticated_actor))
             .with_action(params.action, MergePolicies::Yes)
             .await
             .change_context(CheckPermissionError::BuildPolicyContext)?;
