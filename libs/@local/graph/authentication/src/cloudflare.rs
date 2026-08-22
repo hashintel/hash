@@ -332,7 +332,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
     }
 
     #[tokio::test]
-    async fn request_without_access_token_is_not_recognized() {
+    async fn request_without_access_token_carries_no_credential() {
         let provider = provider_for(HashMap::new()).await;
 
         assert!(
@@ -492,7 +492,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
     /// Cloudflare also sets an unsigned `Cf-Access-Authenticated-User-Email`. Honouring it would
     /// let a client name any address, so the provider must not recognize it at all.
     #[tokio::test]
-    async fn unsigned_email_header_is_not_recognized() {
+    async fn unsigned_email_header_carries_no_credential() {
         let (actors, _) = known_user(EMAIL);
         let provider = provider_for(actors).await;
 
