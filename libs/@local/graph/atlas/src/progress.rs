@@ -193,6 +193,9 @@ pub trait Progress {
     /// The landmark rows are `positions[..landmarks]`.
     fn projector_snapshot(&self, positions: &[Vec2], landmarks: usize) {}
 
+    /// The retrospective arrival replay projected another batch of sampled arrivals.
+    fn replay_projection(&self, batch: Batch) {}
+
     /// The classifier fit started over `folds` cross-validation folds.
     fn classifier_started(&self, folds: usize) {}
 
@@ -261,6 +264,10 @@ where
 
     fn projector_snapshot(&self, positions: &[Vec2], landmarks: usize) {
         T::projector_snapshot(self, positions, landmarks);
+    }
+
+    fn replay_projection(&self, batch: Batch) {
+        T::replay_projection(self, batch);
     }
 
     fn classifier_started(&self, folds: usize) {

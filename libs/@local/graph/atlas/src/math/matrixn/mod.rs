@@ -52,6 +52,22 @@ impl<const N: usize> MatrixN<N> {
     pub(crate) fn zeroed(rows: usize) -> Self {
         Self::zeroed_in(rows, Global)
     }
+
+    /// Creates the matrix whose rows copy the iterator's, in order, in the global allocator.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the iterator yields fewer rows than its exact length declares, so a short
+    /// iterator cannot leave silently zeroed rows behind, and when the declared length's matrix
+    /// layout cannot fit `isize`, since the matrix is allocated from that declared length before
+    /// any row is consumed.
+    #[inline]
+    #[must_use]
+    pub(crate) fn from_rows<'row>(
+        rows: impl ExactSizeIterator<Item = &'row AlignedVecN<N>>,
+    ) -> Self {
+        Self::from_rows_in(rows, Global)
+    }
 }
 
 impl<const N: usize, A: Allocator> MatrixN<N, A> {
@@ -99,6 +115,32 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
             rows,
             alloc,
         }
+    }
+
+    /// Creates the matrix whose rows copy the iterator's, in order, in `alloc`.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the iterator yields fewer rows than its exact length declares, so a short
+    /// iterator cannot leave silently zeroed rows behind, and when the declared length's matrix
+    /// layout cannot fit `isize`, since the matrix is allocated from that declared length before
+    /// any row is consumed.
+    #[inline]
+    #[must_use]
+    pub(crate) fn from_rows_in<'row>(
+        rows: impl ExactSizeIterator<Item = &'row AlignedVecN<N>>,
+        alloc: A,
+    ) -> Self {
+        let count = rows.len();
+        let mut matrix = Self::zeroed_in(count, alloc);
+        let mut consumed = 0_usize;
+        for (slot, row) in matrix.rows_mut().iter_mut().zip(rows) {
+            slot.copy_from(row);
+            consumed += 1;
+        }
+        assert_eq!(consumed, count, "every allocated row must be filled");
+
+        matrix
     }
 
     /// Returns the number of rows.

@@ -454,6 +454,12 @@ impl<const N: usize> AlignedVecN<N> {
         &mut self.0
     }
 
+    /// Copies the source's components into this vector.
+    #[inline]
+    pub const fn copy_from(&mut self, source: &Self) {
+        self.0 = source.0;
+    }
+
     /// Returns the components as aligned 8-lane SIMD groups plus a scalar remainder.
     ///
     /// The first slice reinterprets the storage in place as full [`f32x8`] groups, in order: group
