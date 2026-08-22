@@ -1,0 +1,51 @@
+---
+title: Backend selection
+description: How a compute backend is chosen, and why a refusal is a value rather than an error.
+sidebar_order: 10
+attachTo: core.experiments
+---
+
+The runtime half of swappability already existed: every backend produces a
+`MonteCarloExperiment`, and consumers drive one with no branching. This layer adds
+the part that was hardcoded: asking a backend whether it can run a net, and
+choosing between backends when one declines.
+
+## Two phases
+
+`assess` settles whether the _net and configuration_ are runnable, without
+acquiring a device or a worker pool. An eligible result carries an `instantiate()`
+closure, so work already done (a compiled shader, a shard plan) flows into the
+run and the verdict can never be about a different thing.
+
+Instantiation can still fail, but only for `environment` or `capacity` reasons. A
+device that will not allocate is not the net's fault.
+
+```text
+registrations (preference order)
+  -> load -> assess -> blockers?  -> record refusal, try next
+                    -> eligible   -> instantiate -> failed? -> record, try next
+                                                 -> handle  -> run
+```
+
+## Refusal is a value
+
+A backend may be a **subset** engine, so declining a net is ordinary operation,
+not an exception. Blockers carry a `code`, an optional `itemId`, and an `origin`:
+
+| origin          | Who acts                   | Example                                 |
+| --------------- | -------------------------- | --------------------------------------- |
+| `model`         | edit the net               | a typed place with no capacity          |
+| `configuration` | edit the experiment        | a metric shape the backend cannot serve |
+| `environment`   | nobody, so hide the option | no WebGPU in this browser               |
+| `capacity`      | retry, or use fewer runs   | device out of memory                    |
+
+`capacity` is separate from `environment` because it is transient: "use fewer
+runs" is right where "hide the option" would be wrong.
+
+## What stays out of the request
+
+`ExperimentRequest` is plain, serializable data. Anything describing _how_ to
+compute, such as a worker factory, an ODE method, an abort signal or a note
+callback, belongs to the backend's construction or to per-call options. That rule is what
+keeps the request from becoming a union of every backend's knobs, and what leaves
+room for a backend that runs out of process.

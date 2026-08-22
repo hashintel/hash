@@ -17,12 +17,15 @@ export default defineConfig(({ command }) => ({
         // Node/tooling-only reusable model compiler. This depends on the
         // TypeScript-powered HIR compiler and must stay out of the main entry.
         "compiled-model": resolve(packageRoot, "src/compiled-model.ts"),
-        // HIR compiler (bundles the TypeScript frontend — heavy; used by the
+        // HIR compiler (bundles the TypeScript frontend, heavy; used by the
         // LSP worker internally and by tooling/playgrounds).
         hir: resolve(packageRoot, "src/hir.ts"),
         // Dependency-free instantiation of compiled HIR artifacts.
         "hir-runtime": resolve(packageRoot, "src/hir-runtime.ts"),
         optimization: resolve(packageRoot, "src/optimization.ts"),
+        // Backend contract and selection. A separate entry so a heavy backend
+        // can be registered without dragging its implementation in with it.
+        experiments: resolve(packageRoot, "src/experiments.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(

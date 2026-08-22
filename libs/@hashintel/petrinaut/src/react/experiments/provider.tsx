@@ -7,7 +7,6 @@ import { use, useEffect, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
 import {
-  createMonteCarloExperiment,
   compileScenario,
   type InitialMarking,
   type MonteCarloExperiment,
@@ -16,6 +15,13 @@ import {
   type Scenario,
   type ScenarioParameter,
 } from "@hashintel/petrinaut-core";
+import {
+  createWorkerPoolExperimentBackend,
+  selectExperimentBackend,
+  WORKER_POOL_BACKEND_ID,
+  type ExperimentBackendRegistration,
+  type ExperimentRequest,
+} from "@hashintel/petrinaut-core/experiments";
 import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
 
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
@@ -426,7 +432,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           return { ...spec, artifact };
         });
 
-        const experimentConfigBase = {
+        const request: ExperimentRequest = {
           // Artifact fingerprints cover the complete sanitized SDCPN, including
           // its metric definitions. Run the worker against the exact snapshot
           // used above rather than the pre-substitution model.
@@ -437,24 +443,54 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           seed: input.seed,
           dt: input.dt,
           maxTime: input.maxTime,
-          hirArtifacts: artifacts,
           runCount: input.runCount,
+          metricSpecs,
+          hirArtifacts: artifacts,
         };
 
-        const handle = await createMonteCarloExperiment({
-          ...experimentConfigBase,
-          createWorker: workerFactoryRef.current,
-          ...(shardCountRef.current === undefined
-            ? {}
-            : { shardCount: shardCountRef.current }),
-          metricSpecs,
-          signal: abortController.signal,
+        // Preference order, best first. Only one backend today; the point of
+        // going through the registry is that adding another is a registration
+        // rather than an edit to this branch.
+        const registrations: ExperimentBackendRegistration[] = [
+          {
+            id: WORKER_POOL_BACKEND_ID,
+            label: "CPU (Web Workers)",
+            load: () =>
+              Promise.resolve(
+                createWorkerPoolExperimentBackend({
+                  createWorker: workerFactoryRef.current,
+                  ...(shardCountRef.current === undefined
+                    ? {}
+                    : { shardCount: shardCountRef.current }),
+                }),
+              ),
+          },
+        ];
+
+        const selection = await selectExperimentBackend({
+          registrations,
+          buildRequest: () => Promise.resolve(request),
+          instantiateOptions: { signal: abortController.signal },
         });
 
+        // Setup cannot be aborted mid-flight. A cancelled or removed experiment
+        // must stop here rather than turning a late result into a running handle.
         if (!pendingRegistrationsRef.current.has(experimentId)) {
-          handle.dispose();
+          if (selection.ok) {
+            selection.handle.dispose();
+          }
           return;
         }
+
+        if (!selection.ok) {
+          throw new Error(
+            selection.declined
+              .map((entry) => `${entry.backendId}: ${entry.reason}`)
+              .join("; ") || "No compute backend could run this experiment.",
+          );
+        }
+
+        const { handle } = selection;
 
         pendingRegistrationsRef.current.delete(experimentId);
         registerExperimentHandle(experiment, handle);
