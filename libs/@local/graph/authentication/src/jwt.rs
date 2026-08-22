@@ -301,7 +301,7 @@ mod tests {
         time::Duration,
     };
 
-    use axum::{Json, Router, routing::get};
+    use axum::{Json, Router, http::StatusCode, routing::get};
     use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
     use reqwest::Url;
     use serde_json::json;
@@ -353,6 +353,26 @@ mod tests {
 
         Url::parse(&format!("http://{address}/jwks"))
             .expect("the test server address should parse as a URL")
+    }
+
+    /// Counts attempts and answers every one with a server error, so no fetch ever succeeds.
+    async fn spawn_failing_jwks() -> CountingJwks {
+        let fetches = Arc::new(AtomicUsize::new(0));
+        let router = Router::new().route(
+            "/jwks",
+            get({
+                let fetches = Arc::clone(&fetches);
+                move || {
+                    fetches.fetch_add(1, Ordering::Relaxed);
+                    async { StatusCode::INTERNAL_SERVER_ERROR }
+                }
+            }),
+        );
+
+        CountingJwks {
+            url: spawn_jwks_router(router).await,
+            fetches,
+        }
     }
 
     /// Serves an empty key set, so every `kid` is unknown and forces a refresh.
@@ -409,7 +429,7 @@ mod tests {
     /// Ten unknown key IDs arrive; the cooldown outlives the test, so the endpoint may be asked
     /// only for the initial population of the cache.
     #[tokio::test]
-    async fn unknown_key_ids_cannot_drive_repeated_jwks_fetches() {
+    async fn unknown_key_ids_share_one_jwks_fetch() {
         let jwks = spawn_counting_jwks().await;
         let validator = validator_at(
             jwks.url.clone(),
@@ -461,35 +481,34 @@ mod tests {
     /// Nothing populates the cache during an outage, so only the failure cooldown bounds the
     /// attempts. Without it, each request mounts its own fetch and queues behind the fetch mutex.
     #[tokio::test]
-    async fn a_failing_endpoint_is_not_retried_within_the_cooldown() {
-        // Port 1 refuses immediately, so the failure is a connect error rather than a timeout.
-        let unreachable = Url::parse("http://127.0.0.1:1/jwks").expect("the URL should parse");
+    async fn failure_cooldown_suppresses_further_fetches() {
+        let jwks = spawn_failing_jwks().await;
         let validator = validator_at(
-            unreachable,
+            jwks.url.clone(),
             Duration::from_secs(600),
             Duration::from_secs(600),
         );
 
-        let mut failures = 0_u32;
         for attempt in 0..5 {
-            if validator
-                .validate(&token_with_key_id(&format!("crafted-{attempt}")))
-                .await
-                .is_err()
-            {
-                failures += 1;
-            }
+            drop(
+                validator
+                    .validate(&token_with_key_id(&format!("crafted-{attempt}")))
+                    .await
+                    .expect_err("a key set that never loads should not validate"),
+            );
         }
 
         assert_eq!(
-            failures, 5,
-            "every request should fail while the endpoint is unreachable"
+            jwks.fetches.load(Ordering::Relaxed),
+            1,
+            "the cooldown should hold the outage to one outbound fetch, got {} fetch(es)",
+            jwks.fetches.load(Ordering::Relaxed)
         );
     }
 
     /// A key that appears only after a refresh must be picked up, which is how a rotation lands.
     #[tokio::test]
-    async fn a_rotated_key_is_picked_up_by_the_forced_refresh() {
+    async fn forced_refresh_picks_up_rotated_keys() {
         let fetches = Arc::new(AtomicUsize::new(0));
         let router = Router::new().route(
             "/jwks",
@@ -530,7 +549,7 @@ mod tests {
     /// Once the TTL lapses the key set is fetched again, which is the other half of rotation
     /// pickup.
     #[tokio::test]
-    async fn a_lapsed_cache_is_refetched() {
+    async fn lapsed_cache_triggers_refetch() {
         let jwks = spawn_counting_jwks().await;
         // A cooldown of zero leaves the TTL as the only thing that could suppress a fetch.
         let validator = validator_at(jwks.url.clone(), Duration::ZERO, Duration::ZERO);
