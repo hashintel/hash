@@ -154,6 +154,24 @@ export const hirDistributionRuntime = {
   }),
 };
 
+/**
+ * Rebinds parameter values onto a frozen, prototype-free copy before they
+ * become `__params` in a compiled program. Emitted parameter reads are
+ * `__params["<name>"]`; without this, a name colliding with an
+ * `Object.prototype` member ("constructor", "valueOf", ...) whose own value
+ * was lost upstream would read the inherited member instead of `undefined`.
+ * Parameter names come from imported files, so they are untrusted.
+ */
+function bindParameterValues(
+  parameterValues: HirParameterValues,
+): HirParameterValues {
+  const bound: HirParameterValues = Object.create(null) as HirParameterValues;
+  for (const [key, value] of Object.entries(parameterValues)) {
+    bound[key] = value;
+  }
+  return Object.freeze(bound);
+}
+
 function instantiate(
   source: string,
   parameterValues: HirParameterValues,
@@ -165,7 +183,7 @@ function instantiate(
     "__params",
     "__pool",
     `"use strict"; return (${source});`,
-  )(hirDistributionRuntime, parameterValues, stringPool);
+  )(hirDistributionRuntime, bindParameterValues(parameterValues), stringPool);
 }
 
 export function instantiateHirBufferDynamics(

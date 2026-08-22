@@ -488,4 +488,50 @@ describe("parseSDCPNFile", () => {
       expect(result.error.length).toBeGreaterThan(0);
     });
   });
+
+  describe("reserved property names", () => {
+    it("rejects ids colliding with Object.prototype members", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        places: [{ ...minimalPlace, id: "__proto__" }],
+        transitions: [],
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toContain('place id "__proto__"');
+    });
+
+    it("rejects colour element names colliding with Object.prototype members", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        types: [
+          {
+            id: "c1",
+            name: "Colour 1",
+            elements: [{ elementId: "e1", name: "constructor", type: "real" }],
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toContain('colour element name "constructor"');
+    });
+
+    it("rejects reserved names in the legacy format too", () => {
+      const result = parseSDCPNFile({
+        ...minimalSDCPN,
+        transitions: [{ ...minimalTransition, id: "constructor" }],
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toContain('transition id "constructor"');
+    });
+  });
 });

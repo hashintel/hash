@@ -84,9 +84,20 @@ lookup, the sandbox additionally blocks the constructor-chain escape
 call, by swapping the `.constructor` descriptors on the built-in prototypes and
 restoring them afterwards.
 
+Place visualizers get the same treatment (`compile-visualizer.ts` in the UI
+package): the Babel-compiled module body runs in strict mode with the same
+globals shadowed, and both the module evaluation and each render are wrapped
+in the constructor masking. The shadowing is declared in the module scope, so
+it also covers the component body at render time.
+
 **Treat this as robustness hardening, not isolation.** User code executes with
 `new Function` in the same realm as the host. It protects against typos and
 accidental API use, not against an attacker.
+
+Identity strings (ids, parameter variable names, element names) are the other
+untrusted input: [Untrusted names](doc:simulation/untrusted-names) covers how
+they are rejected at the import and simulation boundaries and why records
+keyed by them have no prototype.
 
 ## Distributions are sampled once
 

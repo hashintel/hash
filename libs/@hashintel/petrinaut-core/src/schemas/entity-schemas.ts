@@ -9,6 +9,7 @@ import { getParameterValueError } from "../parameter-values";
 import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
 import { displayNameSchema } from "../validation/display-name";
 import { entityNameSchema } from "../validation/entity-name";
+import { isDangerousRecordKey } from "../validation/record-keys";
 import { variableNameSchema } from "../validation/variable-name";
 
 import type {
@@ -160,6 +161,11 @@ export const colorElementSchema = z
         z.refine((val) => /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(val), {
           message:
             "Element name must be a valid JavaScript identifier (start with a letter, `_`, or `$`; only letters, digits, `_`, `$` allowed).",
+        }),
+        // Element names key token records throughout the engine and UI.
+        z.refine((val) => !isDangerousRecordKey(val), {
+          message:
+            "Element name must not be a reserved JavaScript property name (e.g., `constructor`, `toString`, `__proto__`).",
         }),
       )
       .meta({

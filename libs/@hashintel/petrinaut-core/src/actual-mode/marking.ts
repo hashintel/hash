@@ -1,3 +1,5 @@
+import { createUserKeyedRecord } from "../validation/record-keys";
+
 import type {
   ActualModeMarking,
   ActualModeTokenColour,
@@ -33,13 +35,15 @@ const cloneMarkingValue = (
     ? markingValue.map((token) => cloneTokenColour(token))
     : markingValue;
 
-const cloneMarking = (marking: ActualModeMarking): ActualModeMarking =>
-  Object.fromEntries(
-    Object.entries(marking).map(([placeId, value]) => [
-      placeId,
-      cloneMarkingValue(value),
-    ]),
-  );
+// Keyed by place ids from recorded firings: no prototype, so the writes in
+// `applyActualModeTransitionFiring` stay ordinary own properties.
+const cloneMarking = (marking: ActualModeMarking): ActualModeMarking => {
+  const next: ActualModeMarking = createUserKeyedRecord();
+  for (const [placeId, value] of Object.entries(marking)) {
+    next[placeId] = cloneMarkingValue(value);
+  }
+  return next;
+};
 
 const emptyTokens = (count: number): ActualModeTokenColour[] =>
   Array.from(

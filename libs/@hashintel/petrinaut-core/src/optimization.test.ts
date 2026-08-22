@@ -149,7 +149,10 @@ describe("petrinautOptimizationManifestSchema", () => {
     expect(unknown.success).toBe(false);
   });
 
-  it("treats inherited object properties as missing bindings", () => {
+  // A binding named "constructor" previously exercised the binding check's
+  // own-property semantics; the model boundary now rejects the identifier
+  // before the binding check runs.
+  it("rejects reserved-name scenario parameters at the model boundary", () => {
     const parsed = petrinautOptimizationManifestSchema.safeParse({
       ...validManifest,
       model: {
@@ -176,8 +179,10 @@ describe("petrinautOptimizationManifestSchema", () => {
     if (!parsed.success) {
       expect(parsed.error.issues).toContainEqual(
         expect.objectContaining({
-          path: ["scenario", "parameterBindings", "constructor"],
-          message: "Every scenario parameter requires a binding",
+          path: ["model"],
+          message: expect.stringContaining(
+            'scenario parameter identifier "constructor"',
+          ) as string,
         }),
       );
     }
