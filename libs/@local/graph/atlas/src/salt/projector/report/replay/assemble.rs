@@ -7,8 +7,8 @@ use super::{
     design::NeighbourhoodDesign,
     draw::{ClassUniversePosition, DedupPosition, UniversePosition},
     metric::{MetricPass, PopulationCells},
-    path::{ProjectedOutcome, PublishPath},
     plan::EstimandData,
+    projection::{ProjectedOutcome, PublishedProjector},
     report::{
         ClassControlRow, ClassQueryRow, ControlRow, DedupBlock, NeighbourhoodBlock, QueryRow,
         ReplayReport,
@@ -188,7 +188,7 @@ impl EstimandRun<'_, ClassUniversePosition> {
 }
 
 impl ArrivalReplay {
-    /// Drives the publish path over the sampled rows and assembles the report.
+    /// Drives the published projector over the sampled rows and assembles the report.
     ///
     /// Projects each distinct sampled row once in bounded batches, recording placed,
     /// out-of-frame, and non-finite outcomes before computing any conditional metric. A
@@ -198,14 +198,14 @@ impl ArrivalReplay {
     ///
     /// # Panics
     ///
-    /// This panics when the publish path violates its contract: an outcome count differing
+    /// This panics when the projector violates its contract: an outcome count differing
     /// from the batch handed over, or a non-finite row named outside it.
     pub(crate) fn report<P: Progress>(
         self,
-        path: &mut impl PublishPath,
+        projector: &mut impl PublishedProjector,
         progress: &P,
     ) -> ReplayReport {
-        let projected = path.project_queries(self.plan.embeddings().rows(), progress);
+        let projected = projector.project_queries(self.plan.embeddings().rows(), progress);
 
         let mut entity_run =
             EstimandRun::new(&self.designs, &self.entity, Some(self.dedup.as_slice()));

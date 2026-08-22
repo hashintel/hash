@@ -97,7 +97,8 @@ pub(crate) fn sample_indices_vec(mut rng: impl Rng, population: usize, count: us
 /// without replacement, the yielded order is itself uniformly random, and both forms consume the
 /// identical generator stream, so a seeded draw is unchanged by adopting the typed form. Every
 /// yielded id is a position of the population, below its length by the draw and within the id's
-/// representation by the slice's own construction.
+/// representation by the slice's own construction. The iterator reports its exact length, which
+/// is `count`.
 ///
 /// # Panics
 ///
@@ -120,7 +121,7 @@ pub(crate) fn sample_ids<I: Id, T>(
     mut rng: impl Rng,
     population: &IdSlice<I, T>,
     count: usize,
-) -> impl Iterator<Item = I> {
+) -> impl ExactSizeIterator<Item = I> {
     sample(&mut rng, population.len(), count)
         .into_iter()
         .map(I::from_usize)

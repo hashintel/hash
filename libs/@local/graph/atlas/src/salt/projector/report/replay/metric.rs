@@ -8,8 +8,8 @@ use super::{
     Pair,
     design::NeighbourhoodDesign,
     draw::DedupPosition,
-    path::ProjectedOutcome,
     population::Novelty,
+    projection::ProjectedOutcome,
     report::{
         AggregateRow, ControlReading, DedupBlock, DifferenceRow, NeighbourhoodBlock, PairedSummary,
         QueryReadings, ReadingRow,

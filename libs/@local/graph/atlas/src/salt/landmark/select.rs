@@ -31,11 +31,8 @@ use std::collections::HashSet;
 use hashql_core::id::{Id, IdSlice, IdVec, bit_vec::DenseBitSet};
 use rand::{Rng, RngExt as _, SeedableRng};
 use rayon::{
-    iter::{
-        IndexedParallelIterator as _, IntoParallelIterator as _, IntoParallelRefIterator as _,
-        ParallelIterator as _,
-    },
-    slice::{ParallelSlice as _, ParallelSliceMut as _},
+    iter::{IndexedParallelIterator as _, IntoParallelIterator as _, ParallelIterator as _},
+    slice::ParallelSlice as _,
 };
 
 use crate::math::{DPositive, UnitFraction};
@@ -372,8 +369,8 @@ where
     let mut priorities = IdVec::from_elem(0.0_f64, candidates.len());
 
     (
-        priorities.as_raw_mut().par_chunks_mut(chunk.get()),
-        candidates.as_raw().par_chunks(chunk.get()),
+        priorities.par_chunks_mut(chunk),
+        candidates.par_chunks(chunk),
         seeds.into_par_iter(),
     )
         .into_par_iter()
@@ -458,10 +455,7 @@ fn best_indices<N>(
     }
 
     let mut ranked: Vec<RankedCandidate> = candidates
-        .as_raw()
-        .par_iter()
-        .enumerate()
-        .map(|(index, candidate)| (CandidateId::from_usize(index), candidate))
+        .par_iter_enumerated()
         .with_min_len(PARALLEL_CHUNK.get())
         .filter(|&(id, &candidate)| !selected.contains(id) && predicate(candidate))
         .map(|(id, _)| RankedCandidate {

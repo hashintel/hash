@@ -8,6 +8,7 @@
 
 use alloc::alloc::Allocator;
 use core::{
+    num::NonZero,
     ops::{Deref, Index},
     simd::{Simd, num::SimdFloat as _},
 };
@@ -22,7 +23,7 @@ use super::{
 };
 
 /// Points per parallel chunk in the point-statistics reductions.
-pub(super) const POINT_CHUNK: usize = 4096;
+pub(super) const POINT_CHUNK: NonZero<usize> = NonZero::new(4096).unwrap();
 
 /// Folds per-chunk partials over a midpoint-split tree, in a fixed combination order.
 ///
@@ -44,12 +45,12 @@ fn tree_fold<R>(
 where
     R: Send,
 {
-    let chunks = points.len().div_ceil(POINT_CHUNK);
+    let chunks = points.len().div_ceil(POINT_CHUNK.get());
     if chunks <= 1 {
         return leaf(points);
     }
 
-    let (left, right) = points.split_at((chunks / 2) * POINT_CHUNK);
+    let (left, right) = points.split_at((chunks / 2) * POINT_CHUNK.get());
     let (lhs, rhs) = rayon::join(
         || tree_fold(left, leaf, combine),
         || tree_fold(right, leaf, combine),

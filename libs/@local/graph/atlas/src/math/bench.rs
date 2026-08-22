@@ -460,7 +460,7 @@ pub fn finite_scan_per_point(field: &FiniteField) -> bool {
 #[must_use]
 pub fn finite_scan_chunked(field: &FiniteField) -> bool {
     black_box(&field.points)
-        .par_chunks(POINT_CHUNK)
+        .par_chunks(POINT_CHUNK.get())
         .all(|chunk| {
             let (prefix, batches, suffix) = Vec2x4::from_slice(chunk);
 

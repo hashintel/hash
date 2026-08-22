@@ -1,11 +1,12 @@
-//! Replays past arrivals to measure how the deployed publish path serves rows the fit never saw.
+//! Replays past arrivals to measure how the published projector serves rows the fit never saw.
 //!
 //! Every fitted row's quality reading is an in-sample reading, because the fit trains on every
 //! byte-distinct representation and the quality probe samples the generation it evaluates. The
 //! consumer, though, receives arrivals: rows a later store snapshot holds that the fitted
-//! generation never saw, projected online through the fitted generation's own publish path. This
-//! report replays that deployment retrospectively over two published generations. The arrivals of
-//! the later generation `G1` project through `G0`'s certified publish path, and each projected
+//! generation never saw, projected online through the fitted generation's own published
+//! projector. This report replays that deployment retrospectively over two published generations.
+//! The arrivals of the later generation `G1` project through `G0`'s certified projector, and each
+//! projected
 //! neighbourhood is read against the representation-space truth, beside the counterfactual
 //! reading the arrival's own `G1` fit produced and beside fitted controls that share every
 //! normalizer.
@@ -53,9 +54,9 @@
 //! able to carry the experiment. Everything below the artifact extraction - every data refusal,
 //! the partition, the class formation, the sampling, the incident scan - runs identically on
 //! extracted and on fabricated columns. [`ArrivalReplay::report`] then drives one
-//! [`PublishPath`](path::PublishPath),
-//! the trait standing where `G0`'s reopened publish path stands in production. The production
-//! adapter binds the real path and its construction-time certificate.
+//! [`PublishedProjector`](projection::PublishedProjector),
+//! the trait standing where `G0`'s reopened projector stands in production. The production
+//! adapter binds the real projector and its construction-time certificate.
 //!
 //! [`NeighbourhoodAggregate`]: crate::salt::quality::metric::NeighbourhoodAggregate
 
@@ -87,10 +88,10 @@ mod draw;
 pub(crate) mod error;
 mod extract;
 mod metric;
-pub(crate) mod path;
 mod plan;
 pub(crate) mod population;
 mod preflight;
+pub(crate) mod projection;
 pub(crate) mod report;
 #[cfg(test)]
 mod tests;
@@ -235,7 +236,7 @@ impl PopulationCounts {
     }
 }
 
-/// One replay, extracted and validated, ready to drive a publish path.
+/// One replay, extracted and validated, ready to drive a published projector.
 ///
 /// Construction copies everything the run reads, from sampled embeddings and wire coordinates to
 /// populations and designs, so the source generations' mappings are released before the run

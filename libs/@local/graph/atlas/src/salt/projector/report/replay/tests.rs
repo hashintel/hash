@@ -11,8 +11,8 @@ use super::{
     draw::{DrawSizes, DrawnSamples},
     error::ReplayError,
     extract::GenerationColumns,
-    path::{ArrivalPlacement, NonFinitePlacement, PublishPath},
     population::{ArrivalClassIndex, ArrivalIndex, Novelty, Populations, StableClassIndex},
+    projection::{ArrivalPlacement, NonFinitePlacement, PublishedProjector},
     report::{IncidentEdgeSummary, OutcomeCounts, PlacementOutcome, ReplayReport},
 };
 use crate::{
@@ -53,7 +53,7 @@ fn axes(seconds: i64) -> TemporalAxes {
 ///
 /// Each row's representation points at its angle and its wire coordinate is the same point,
 /// so representation-space and wire-space orderings agree exactly for angles within one
-/// half-turn of each other - the geometry every faithful-path certificate leans on. Equal
+/// half-turn of each other - the geometry every faithful-projector certificate leans on. Equal
 /// angles produce byte-equal representations.
 struct Corpus {
     ids: Vec<crate::postgres::id::ArchivedEntityId>,
@@ -169,13 +169,13 @@ fn standing_replay(seed: u64) -> Result<ArrivalReplay, ReplayError> {
     )
 }
 
-/// The faithful path, projecting each row to the wire point its own leading components name.
+/// The faithful projector, projecting each row to the wire point its own leading components name.
 ///
 /// On the aligned fixture geometry this reproduces every universe member's published wire
 /// coordinate exactly, so the deployed ordering equals the reference ordering.
-struct PlanarPath;
+struct PlanarProjector;
 
-impl PublishPath for PlanarPath {
+impl PublishedProjector for PlanarProjector {
     fn project(
         &mut self,
         embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
@@ -189,13 +189,13 @@ impl PublishPath for PlanarPath {
     }
 }
 
-/// A path answering from a script, recording each call's batch width.
-struct ScriptedPath {
+/// A projector answering from a script, recording each call's batch width.
+struct ScriptedProjector {
     script: VecDeque<Result<Vec<ArrivalPlacement>, NonFinitePlacement>>,
     calls: Vec<usize>,
 }
 
-impl PublishPath for ScriptedPath {
+impl PublishedProjector for ScriptedProjector {
     fn project(
         &mut self,
         embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
@@ -438,7 +438,7 @@ fn neighbourhood_oversized() {
 )]
 fn faithful_path_optimum() {
     let replay = standing_replay(7).expect("the standing pair carries the design");
-    let report = replay.report(&mut PlanarPath, &NoProgress);
+    let report = replay.report(&mut PlanarProjector, &NoProgress);
 
     assert_eq!(report.populations.arrivals_seen, 1);
     assert_eq!(report.populations.arrivals_novel, 1);
@@ -538,7 +538,7 @@ fn faithful_path_optimum() {
 #[test]
 fn incident_edges_once() {
     let replay = standing_replay(7).expect("the standing pair carries the design");
-    let report = replay.report(&mut PlanarPath, &NoProgress);
+    let report = replay.report(&mut PlanarProjector, &NoProgress);
 
     // Arrival 8 touches one stable and one revised row; arrival 9
     // carries only its self-referential edge, which counts once. The
@@ -566,7 +566,7 @@ fn incident_edges_once() {
 )]
 fn out_of_frame_keeps_refit() {
     struct Outside;
-    impl PublishPath for Outside {
+    impl PublishedProjector for Outside {
         fn project(
             &mut self,
             embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
@@ -609,18 +609,18 @@ fn non_finite_retry() {
 
     // Both estimands sample the same two arrival rows, so the plan
     // projects two distinct rows in one batch whose first row fails
-    // non-finitely, and the path is asked again for the remainder
+    // non-finitely, and the projector is asked again for the remainder
     // alone.
     let placed = ArrivalPlacement::Placed {
         wire: Vec2::new(0.5, 0.5),
     };
-    let mut path = ScriptedPath {
+    let mut projector = ScriptedProjector {
         script: VecDeque::from([Err(NonFinitePlacement { row: 0 }), Ok(vec![placed])]),
         calls: Vec::new(),
     };
-    let report = replay.report(&mut path, &NoProgress);
+    let report = replay.report(&mut projector, &NoProgress);
 
-    assert_eq!(path.calls, vec![2, 1]);
+    assert_eq!(projector.calls, vec![2, 1]);
     let split = OutcomeCounts {
         placed: 1,
         out_of_frame: 0,
@@ -674,7 +674,7 @@ fn non_finite_mid_batch_split() {
     let placed = ArrivalPlacement::Placed {
         wire: Vec2::new(0.5, 0.5),
     };
-    let mut path = ScriptedPath {
+    let mut projector = ScriptedProjector {
         script: VecDeque::from([
             Err(NonFinitePlacement { row: 1 }),
             Ok(vec![placed]),
@@ -682,9 +682,9 @@ fn non_finite_mid_batch_split() {
         ]),
         calls: Vec::new(),
     };
-    let report = replay.report(&mut path, &NoProgress);
+    let report = replay.report(&mut projector, &NoProgress);
 
-    assert_eq!(path.calls, vec![3, 1, 1]);
+    assert_eq!(projector.calls, vec![3, 1, 1]);
     assert_eq!(
         report.outcomes,
         OutcomeCounts {
@@ -736,7 +736,7 @@ fn duplicate_rows_dedup() {
     )
     .expect("the duplicated pair carries the design");
 
-    let report = replay.report(&mut PlanarPath, &NoProgress);
+    let report = replay.report(&mut PlanarProjector, &NoProgress);
 
     assert_eq!(report.populations.stable, 8);
     assert_eq!(report.populations.stable_classes, 6);
@@ -754,10 +754,10 @@ fn duplicate_rows_dedup() {
 fn seed_replay() {
     let one = standing_replay(42)
         .expect("the standing pair carries the design")
-        .report(&mut PlanarPath, &NoProgress);
+        .report(&mut PlanarProjector, &NoProgress);
     let two = standing_replay(42)
         .expect("the standing pair carries the design")
-        .report(&mut PlanarPath, &NoProgress);
+        .report(&mut PlanarProjector, &NoProgress);
 
     assert_eq!(one, two);
 }
@@ -766,7 +766,7 @@ fn seed_replay() {
 fn report_roundtrip() {
     let report = standing_replay(7)
         .expect("the standing pair carries the design")
-        .report(&mut PlanarPath, &NoProgress);
+        .report(&mut PlanarProjector, &NoProgress);
 
     let serialized = serde_json::to_string(&report).expect("the report serializes");
     let reopened: ReplayReport =
@@ -874,14 +874,14 @@ fn derivation_report(pair: (Corpus, Corpus), outcome: ArrivalPlacement) -> Repla
     )
     .expect("the derivation pair carries the design");
 
-    let mut path = ScriptedPath {
+    let mut projector = ScriptedProjector {
         script: VecDeque::from([Ok(vec![outcome])]),
         calls: Vec::new(),
     };
-    let report = replay.report(&mut path, &NoProgress);
+    let report = replay.report(&mut projector, &NoProgress);
 
     // Both estimands sample the same single arrival row, projected once.
-    assert_eq!(path.calls, vec![1]);
+    assert_eq!(projector.calls, vec![1]);
 
     report
 }
@@ -1020,7 +1020,7 @@ fn metric_orientation() {
     // rank 2 (trust 1/3, intrusion), reference-nearest cp3 sits last
     // (continuity 0, extrusion).
     //
-    // The scripted path places the arrival at the earlier-frame origin,
+    // The scripted projector places the arrival at the earlier-frame origin,
     // where the earlier wire column mirrors the reference order, so
     // every deployed reading is optimal and the paired differences are
     // recall +1, trust +2/3, continuity +1, intrusion -1, extrusion -1.

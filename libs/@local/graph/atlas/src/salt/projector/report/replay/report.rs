@@ -16,7 +16,7 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum PlacementOutcome {
-    /// The publish path placed the arrival onto the wire.
+    /// The published projector placed the arrival onto the wire.
     Placed,
     /// The projection fell outside the fitted world frame.
     OutOfFrame,
@@ -345,7 +345,7 @@ pub(crate) struct IncidentEdgeSummary {
 /// readings at one `k` compare within one estimand before across estimands.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ReplayReport {
-    /// The earlier generation `G0`, whose publish path placed the queries.
+    /// The earlier generation `G0`, whose published projector placed the queries.
     pub earlier: GenerationId,
     /// The later generation `G1`, whose arrivals were sampled.
     pub later: GenerationId,

@@ -14,14 +14,14 @@
 
 use core::{error::Error, fmt};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice};
 use rand::Rng;
 
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::NodeRowId,
     math::{AlignedVecN, DPositive, OpenUnitFraction, d_positive, open_unit_fraction},
-    random::{acceptance_sample_size, sample_indices_vec},
+    random::{acceptance_sample_size, sample_ids},
 };
 
 // The tolerance separates float noise from real defects by orders of magnitude on both sides.
@@ -146,7 +146,7 @@ impl Error for SpotCheckError {}
 ///
 /// Returns an error when the matrix is empty.
 pub(crate) fn spot_check(
-    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+    embeddings: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     options: SpotCheckOptions,
     rng: impl Rng,
 ) -> Result<NormSpotCheck, SpotCheckError> {
@@ -156,26 +156,22 @@ pub(crate) fn spot_check(
     }
     let sampled_rows = acceptance_sample_size(options.defect_rate, options.confidence).min(rows);
 
-    let mut sample = sample_indices_vec(rng, rows, sampled_rows).into_vec();
+    let mut sample: Vec<_> = sample_ids(rng, embeddings, sampled_rows).collect();
     sample.sort_unstable();
 
     let mut defects = Vec::new();
     for row in sample {
-        let id = NodeRowId::from_usize(row);
         let components = embeddings[row].as_array();
 
         // A non-finite component is one defect. Its norm adds nothing.
         if let Some(component) = components.iter().position(|value| !value.is_finite()) {
-            defects.push(RepresentationDefect::NonFinite { row: id, component });
+            defects.push(RepresentationDefect::NonFinite { row, component });
             continue;
         }
 
         let squared_norm = embeddings[row].norm_squared();
         if (f64::from(squared_norm) - 1.0).abs() > options.tolerance {
-            defects.push(RepresentationDefect::Norm {
-                row: id,
-                squared_norm,
-            });
+            defects.push(RepresentationDefect::Norm { row, squared_norm });
         }
     }
 

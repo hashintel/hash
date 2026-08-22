@@ -56,7 +56,7 @@ const impl Default for ReplaySizes {
 /// One replay's generation pair with the seeded sampling design it reads them under.
 #[derive(Debug)]
 pub(crate) struct ReplayInputs<'pair> {
-    /// The earlier generation `G0`, whose publish path the replay drives.
+    /// The earlier generation `G0`, whose published projector the replay drives.
     pub earlier: &'pair Generation,
     /// The later generation `G1`, whose arrivals the replay samples.
     pub later: &'pair Generation,

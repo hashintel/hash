@@ -61,7 +61,7 @@ use crate::{
     dataset::{CANONICAL_DIMENSIONS, Dataset, PROJECTOR_DIMENSIONS},
     identity::NodeRowId,
     math::{AlignedVecN, FinitePointField},
-    random::{sample_indices_vec, uniform_below},
+    random::{sample_ids, uniform_below},
 };
 
 mod error;
@@ -204,19 +204,16 @@ where
 ///
 /// The sample is its generator's first draw. The probe and the offline dump's coverage request
 /// both draw through this function from equally seeded generators
-/// ([`probe_rng`](crate::salt::runner::probe_rng)), so the two agree on the sampled rows by
-/// construction, and a draw inserted ahead of this one would make the probe request rows
-/// existing dumps never covered.
-pub(crate) fn probe_sample(
+/// ([`probe_rng`](crate::salt::runner::probe_rng)) over equal-length populations, so the two
+/// agree on the sampled rows by construction, and a draw inserted ahead of this one would make
+/// the probe request rows existing dumps never covered.
+pub(crate) fn probe_sample<T>(
     mut rng: impl Rng,
-    rows: usize,
+    population: &IdSlice<NodeRowId, T>,
     anchors: usize,
     comparisons: usize,
 ) -> Vec<NodeRowId> {
-    sample_indices_vec(&mut rng, rows, anchors + comparisons)
-        .into_iter()
-        .map(NodeRowId::from_usize)
-        .collect()
+    sample_ids(&mut rng, population, anchors + comparisons).collect()
 }
 
 /// Fetches the sampled rows' canonical embeddings, in sample order.
@@ -276,7 +273,7 @@ pub(crate) async fn probe<D: Dataset>(
         .max()
         .expect("the options name at least one neighbourhood size");
 
-    let sample = probe_sample(&mut rng, rows, anchors, comparisons);
+    let sample = probe_sample(&mut rng, corpus.node_ids, anchors, comparisons);
     let (anchor_rows, comparison_rows) = sample.split_at(anchors);
     let pairs = sample_pairs(&mut rng, comparisons, options.triplet_pairs);
 

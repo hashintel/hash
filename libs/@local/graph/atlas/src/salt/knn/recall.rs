@@ -50,7 +50,7 @@ use crate::{
         AlignedVecN, DNonNegative, DPositive, NonNegative, OpenUnitFraction, UnitFraction, nz,
         open_unit_fraction, unit_fraction,
     },
-    random::{mean_sample_size, normal_quantile, sample_indices_vec},
+    random::{mean_sample_size, normal_quantile, sample_ids},
 };
 
 // The defaults are the backend admission criterion, recall@50 ≥ 0.89:
@@ -317,11 +317,10 @@ where
         let neighbours_per_row = neighbours.get().min(rows - 1);
         let sampled_rows = sample_size.get().min(rows);
 
-        let sample = sample_indices_vec(rng, rows, sampled_rows).into_vec();
+        let sample: Vec<_> = sample_ids(rng, embeddings, sampled_rows).collect();
         let queries = sample
             .par_iter()
-            .map(|&row| {
-                let id = N::from_usize(row);
+            .map(|&id| {
                 let mut exact: Vec<_> = exact_neighbours(embeddings, id, neighbours_per_row)
                     .into_iter()
                     .collect();

@@ -353,15 +353,14 @@ where
     }
 
     pools
-        .into_par_iter()
-        .enumerate()
+        .into_par_iter_enumerated()
         .map(|(target, mut pool)| {
             // The domain flip keeps the reverse draw independent of the
             // forward sampling pass, which keys the same (row, iteration).
             sample_pool(
                 &mut pool,
                 cap,
-                keyed_rng(!seed, target as u64, iteration as u64),
+                keyed_rng(!seed, target.as_u64(), iteration as u64),
             );
 
             pool
@@ -496,12 +495,11 @@ where
         };
 
         let mut entries = vec![placeholder; rows * width].into_boxed_slice();
-        entries
-            .par_chunks_mut(width)
-            .enumerate()
-            .for_each(|(row, slots)| {
-                let row = N::from_usize(row);
-                let list = lists[row]
+        lists
+            .par_iter()
+            .zip(entries.par_chunks_mut(width))
+            .for_each(|(list, slots)| {
+                let list = list
                     .entries
                     .lock()
                     .expect("the join finished; no offer holds a lock");

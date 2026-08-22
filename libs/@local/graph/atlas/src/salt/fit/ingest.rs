@@ -11,7 +11,7 @@ use core::{borrow::Borrow, pin::pin};
 use std::io::{BufWriter, Write as _};
 
 use futures::TryStreamExt as _;
-use hashql_core::id::IdVec;
+use hashql_core::id::{IdSlice, IdVec};
 use smallvec::SmallVec;
 use tracing::Instrument as _;
 use zerocopy::IntoBytes as _;
@@ -278,7 +278,7 @@ fn certify_representations<D, E>(
         .expect("the representation matrix was sealed as f32 rows of the projector width");
 
     let norm = norm::spot_check(
-        rows,
+        IdSlice::from_raw(rows),
         config.norm_check,
         stage_rng(config.seed, Stage::NormCheck),
     )

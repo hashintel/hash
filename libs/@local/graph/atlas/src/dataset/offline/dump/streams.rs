@@ -12,7 +12,7 @@ use std::collections::HashSet;
 
 use camino::Utf8Path;
 use futures::{Stream, TryStreamExt as _};
-use hashql_core::id::{Id as _, IdVec};
+use hashql_core::id::IdVec;
 use rkyv::{munge::munge, ser::allocator::Arena, vec::ArchivedVec};
 
 use super::{
@@ -28,7 +28,7 @@ use super::{
 };
 use crate::{
     dataset::{Dataset, PROJECTOR_DIMENSIONS, card::Card},
-    identity::OntologyRowId,
+    identity::{NodeRowId, OntologyRowId},
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     progress::Progress,
     salt::{
@@ -73,23 +73,23 @@ where
 /// row.
 fn canonical_request(
     options: &DumpOptions<'_>,
-    node_ids: Vec<ArchivedEntityId>,
+    node_ids: IdVec<NodeRowId, ArchivedEntityId>,
 ) -> (CanonicalCoverage, Vec<ArchivedEntityId>) {
     let rows = node_ids.len();
     let sample = options.anchors.get() + options.comparisons.get();
 
     if options.all_canonicals || sample >= rows {
-        return (CanonicalCoverage::All, node_ids);
+        return (CanonicalCoverage::All, node_ids.into_raw());
     }
 
     let picked = probe_sample(
         probe_rng(options.seed),
-        rows,
+        &node_ids,
         options.anchors.get(),
         options.comparisons.get(),
     )
     .into_iter()
-    .map(|row| node_ids[row.as_usize()])
+    .map(|row| node_ids[row])
     .collect();
 
     (
@@ -109,7 +109,7 @@ fn canonical_request(
 pub(super) async fn write_nodes<D, E>(
     dataset: &D,
     directory: &Utf8Path,
-) -> Result<(WrittenStream, Vec<ArchivedEntityId>), DumpError<D::Error, E>>
+) -> Result<(WrittenStream, IdVec<NodeRowId, ArchivedEntityId>), DumpError<D::Error, E>>
 where
     D: Dataset<NodeId = ArchivedEntityId>,
 {
@@ -117,7 +117,7 @@ where
     let mut archive = StreamArchive::create(directory, StreamKind::Nodes, arena.acquire())?;
     let mut embeddings = archive.column::<Embedding<PROJECTOR_DIMENSIONS>, _, _>()?;
 
-    let mut node_ids = Vec::new();
+    let mut node_ids = IdVec::new();
     let mut records = Vec::new();
     drain(dataset.nodes(), DumpError::Dataset, |node| {
         node_ids.push(node.id);
@@ -300,7 +300,7 @@ pub(super) async fn write_canonicals<D, E>(
     dataset: &D,
     directory: &Utf8Path,
     options: &DumpOptions<'_>,
-    node_ids: Vec<ArchivedEntityId>,
+    node_ids: IdVec<NodeRowId, ArchivedEntityId>,
 ) -> Result<(CanonicalCoverage, WrittenStream), DumpError<D::Error, E>>
 where
     D: Dataset<NodeId = ArchivedEntityId>,

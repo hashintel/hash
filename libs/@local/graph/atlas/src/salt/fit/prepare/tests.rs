@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 use core::assert_matches;
 use std::{collections::HashMap, fs, io::Cursor};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
@@ -50,9 +50,11 @@ impl Matrix {
         &mut self.storage.as_array_mut()[row * PROJECTOR_DIMENSIONS..][..PROJECTOR_DIMENSIONS]
     }
 
-    fn view(&self) -> &[AlignedVecN<PROJECTOR_DIMENSIONS>] {
-        AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
-            .expect("boxed storage is aligned")
+    fn view(&self) -> &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> {
+        IdSlice::from_raw(
+            AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
+                .expect("boxed storage is aligned"),
+        )
     }
 }
 
@@ -239,7 +241,7 @@ fn spot_check_samples_large_matrices() {
 fn spot_check_rejects_an_empty_matrix() {
     assert_eq!(
         norm::spot_check(
-            &[],
+            IdSlice::from_raw(&[]),
             SpotCheckOptions { .. },
             Xoshiro256PlusPlus::seed_from_u64(42),
         ),

@@ -1,4 +1,4 @@
-//! The deployed publish path a replay drives, and the projection pass over it.
+//! The published projector a replay drives, and the projection pass over it.
 
 use super::report::{OutcomeCounts, PlacementOutcome};
 use crate::{
@@ -7,13 +7,13 @@ use crate::{
     progress::{Batch, Progress},
 };
 
-/// Rows handed to one [`PublishPath::project`] call.
+/// Rows handed to one [`PublishedProjector::project`] call.
 ///
 /// The bound keeps each call's staging copy small and gives the progress observation its cadence;
-/// the path itself batches however it likes.
+/// the projector itself batches however it likes.
 const PROJECTION_BATCH_ROWS: usize = 256;
 
-/// One arrival's projection outcome through the deployed publish path.
+/// One arrival's projection outcome through the published projector.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum ArrivalPlacement {
     /// The projected coordinate lies inside the fitted frame, normalized onto the wire.
@@ -37,14 +37,14 @@ pub(crate) struct NonFinitePlacement {
     pub row: usize,
 }
 
-/// The deployed publish path one replay drives.
+/// The published projector one replay drives.
 ///
 /// In production the implementor wraps the serving placer bound to `G0`, whose construction
 /// certifies the reopened checkpoint against the generation's own published coordinates. The
 /// trait mirrors that placer's projection contract; `&mut self` additionally admits stateful
 /// implementations.
-pub(crate) trait PublishPath {
-    /// Projects one batch of arrival representations through the publish path.
+pub(crate) trait PublishedProjector {
+    /// Projects one batch of arrival representations.
     ///
     /// Each outcome is its row's wire coordinate or out-of-frame world coordinate, one per row in
     /// the batch's own order.
@@ -84,13 +84,14 @@ pub(crate) trait PublishPath {
     /// Projects one row range, splitting around each non-finite row.
     ///
     /// A failing call reports its first non-finite row and drops the outcomes of the rows before
-    /// it, so those rows re-project in a narrower call. The path may be stateful, so no call's
-    /// outcome is assumed from another's.
+    /// it, so those rows re-project in a narrower call. The projector may be stateful, so no
+    /// call's outcome is assumed from another's.
     ///
     /// # Panics
     ///
-    /// This panics when the path's outcome count differs from the batch handed over, and when a
-    /// named non-finite row lies outside the batch. Both are contract violations of the path.
+    /// This panics when the projector's outcome count differs from the batch handed over, and
+    /// when a named non-finite row lies outside the batch. Both are contract violations of the
+    /// projector.
     fn project_range(
         &mut self,
         rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
@@ -114,7 +115,7 @@ pub(crate) trait PublishPath {
                 assert_eq!(
                     outcomes.len() - before,
                     rows.len(),
-                    "the publish path must produce one outcome per row",
+                    "the projector must produce one outcome per row",
                 );
                 return;
             }
@@ -123,7 +124,7 @@ pub(crate) trait PublishPath {
 
         assert!(
             row < rows.len(),
-            "the publish path must name a non-finite row inside the batch",
+            "the projector must name a non-finite row inside the batch",
         );
         self.project_range(&rows[..row], outcomes);
         outcomes.push(ProjectedOutcome::NonFinite);

@@ -3,6 +3,8 @@
     expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")
 )]
 
+#[cfg(feature = "rayon")]
+use core::num::NonZero;
 use core::{
     alloc::Allocator,
     cmp,
@@ -423,9 +425,9 @@ where
     #[inline]
     pub fn chunks(
         &self,
-        size: usize,
+        size: NonZero<usize>,
     ) -> impl DoubleEndedIterator<Item = &[T]> + ExactSizeIterator + Clone {
-        self.raw.chunks(size)
+        self.raw.chunks(size.get())
     }
 
     /// Returns a parallel iterator over chunks of size `size`.
@@ -433,13 +435,16 @@ where
     /// The parallel counterpart of [`Self::chunks`].
     #[cfg(feature = "rayon")]
     #[inline]
-    pub fn par_chunks(&self, size: usize) -> impl IndexedParallelIterator<Item = &[T]> + Clone
+    pub fn par_chunks(
+        &self,
+        size: NonZero<usize>,
+    ) -> impl IndexedParallelIterator<Item = &[T]> + Clone
     where
         T: Sync,
     {
         use rayon::slice::ParallelSlice as _;
 
-        self.raw.par_chunks(size)
+        self.raw.par_chunks(size.get())
     }
 
     /// Returns an iterator over chunks of size `size`, each with the ID of its first element.
@@ -450,26 +455,25 @@ where
     #[inline]
     pub fn chunks_enumerated(
         &self,
-        size: usize,
+        size: NonZero<usize>,
     ) -> impl DoubleEndedIterator<Item = (I, &[T])> + ExactSizeIterator + Clone {
         // Elide bound checks from subsequent calls to `I::from_usize`
         let _: I = I::from_usize(self.len());
 
         self.raw
-            .chunks(size)
+            .chunks(size.get())
             .enumerate()
-            .map(move |(index, chunk)| (I::from_usize(index * size), chunk))
+            .map(move |(index, chunk)| (I::from_usize(index * size.get()), chunk))
     }
 
-    /// Returns a parallel iterator over chunks of size `size`, each with the ID of its first
-    /// element.
+    /// Returns a parallel iterator over chunks, each with the ID of its first element.
     ///
     /// The parallel counterpart of [`Self::chunks_enumerated`].
     #[cfg(feature = "rayon")]
     #[inline]
     pub fn par_chunks_enumerated(
         &self,
-        size: usize,
+        size: NonZero<usize>,
     ) -> impl IndexedParallelIterator<Item = (I, &[T])> + Clone
     where
         T: Sync,
@@ -479,9 +483,77 @@ where
         let _: I = I::from_usize(self.len());
 
         self.raw
-            .par_chunks(size)
+            .par_chunks(size.get())
             .enumerate()
-            .map(move |(index, chunk)| (I::from_usize(index * size), chunk))
+            .map(move |(index, chunk)| (I::from_usize(index * size.get()), chunk))
+    }
+
+    /// Returns a mutable iterator over chunks of size `size`.
+    ///
+    /// Each chunk is a mutable slice of `size` elements, except the last chunk may be smaller.
+    ///
+    /// See [`slice::chunks_mut`](prim@slice#method.chunks_mut) for details.
+    #[inline]
+    pub fn chunks_mut(&mut self, size: NonZero<usize>) -> slice::ChunksMut<'_, T> {
+        self.raw.chunks_mut(size.get())
+    }
+
+    /// Returns a parallel mutable iterator over chunks of size `size`.
+    ///
+    /// The parallel counterpart of [`Self::chunks_mut`].
+    #[cfg(feature = "rayon")]
+    #[inline]
+    pub fn par_chunks_mut(
+        &mut self,
+        size: NonZero<usize>,
+    ) -> impl IndexedParallelIterator<Item = &mut [T]>
+    where
+        T: Send,
+    {
+        use rayon::slice::ParallelSliceMut as _;
+
+        self.raw.par_chunks_mut(size.get())
+    }
+
+    /// Returns a mutable iterator over chunks, each with the ID of its first element.
+    ///
+    /// Each chunk is a mutable slice of `size` elements, except the last chunk may be smaller. A
+    /// chunk at `(id, chunk)` spans `id` through `id.plus(chunk.len() - 1)`, mirroring
+    /// [`Self::chunks_enumerated`].
+    #[inline]
+    pub fn chunks_enumerated_mut(
+        &mut self,
+        size: NonZero<usize>,
+    ) -> impl DoubleEndedIterator<Item = (I, &mut [T])> + ExactSizeIterator {
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(self.len());
+
+        self.raw
+            .chunks_mut(size.get())
+            .enumerate()
+            .map(move |(index, chunk)| (I::from_usize(index * size.get()), chunk))
+    }
+
+    /// Returns a parallel mutable iterator over chunks, each with the ID of its first element.
+    ///
+    /// The parallel counterpart of [`Self::chunks_enumerated_mut`].
+    #[cfg(feature = "rayon")]
+    #[inline]
+    pub fn par_chunks_enumerated_mut(
+        &mut self,
+        size: NonZero<usize>,
+    ) -> impl IndexedParallelIterator<Item = (I, &mut [T])>
+    where
+        T: Send,
+    {
+        use rayon::slice::ParallelSliceMut as _;
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(self.len());
+
+        self.raw
+            .par_chunks_mut(size.get())
+            .enumerate()
+            .map(move |(index, chunk)| (I::from_usize(index * size.get()), chunk))
     }
 
     /// Sorts the slice in place with the given comparator, in unstable order.

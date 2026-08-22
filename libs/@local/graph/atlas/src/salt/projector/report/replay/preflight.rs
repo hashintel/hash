@@ -82,7 +82,7 @@ impl<'run> VerifiedPair<'run> {
         Ok(Self { earlier, later })
     }
 
-    /// The earlier generation `G0`, whose publish path the replay drives.
+    /// The earlier generation `G0`, whose published projector the replay drives.
     pub(super) const fn earlier(&self) -> &'run Generation {
         self.earlier
     }
