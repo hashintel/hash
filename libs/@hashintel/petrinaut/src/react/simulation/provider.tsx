@@ -8,6 +8,8 @@ import { use, useEffect, useRef, useState } from "react";
 import {
   createSimulation,
   compileScenario,
+  synthesizeAdHocScenario,
+  type AdHocScenarioState,
   type ReadableStore,
   type Scenario,
   type ScenarioCompilationError,
@@ -52,6 +54,8 @@ type SimulationStateValues = {
   selectedScenarioId: string | null | undefined;
   /** User-editable scenario parameter values (identifier → string value). */
   scenarioParameterValues: Record<string, string>;
+  /** Inline definition used when no scenario is selected; never persisted. */
+  adHocScenario: AdHocScenarioState | null;
   dt: number;
   maxTime: number | null;
 };
@@ -78,6 +82,7 @@ function createInitialStateValues(): SimulationStateValues {
     initialMarking: {},
     selectedScenarioId: undefined,
     scenarioParameterValues: {},
+    adHocScenario: null,
     dt: 0.01,
     maxTime: null,
   };
@@ -280,6 +285,15 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         };
       });
     };
+
+  const setAdHocScenario: SimulationContextValue["setAdHocScenario"] = (
+    adHocScenario,
+  ) => {
+    if (stateValuesRef.current.adHocScenario !== adHocScenario) {
+      invalidateSimulationForConfigurationChange();
+    }
+    setStateValues((prev) => ({ ...prev, adHocScenario }));
+  };
 
   const setScenarioParameterValue: SimulationContextValue["setScenarioParameterValue"] =
     (identifier, value) => {
@@ -574,6 +588,46 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         scenarioCompilationErrors = outcome.errors;
       }
     }
+  } else if (stateValues.adHocScenario) {
+    // No scenario selected: the ad-hoc definition compiles through a
+    // scenario generated here and never persisted. The panel's parameter
+    // inputs stay the owner of parameter values, so the net parameters are
+    // tweaked to the panel's values before expressions read them.
+    const netParameters = extensions.parameters
+      ? petriNetDefinition.parameters.map((parameter) => ({
+          ...parameter,
+          defaultValue:
+            stateValues.parameterValues[parameter.variableName] ??
+            parameter.defaultValue,
+        }))
+      : [];
+    const synthesized = synthesizeAdHocScenario(stateValues.adHocScenario, {
+      netParameters,
+      places: petriNetDefinition.places,
+      types: petriNetDefinition.types,
+    });
+    if (synthesized.ok) {
+      const outcome = compileScenario(
+        synthesized.scenario,
+        netParameters,
+        petriNetDefinition.places,
+        petriNetDefinition.types,
+      );
+      if (outcome.ok) {
+        compiledScenarioResult = outcome.result;
+      } else {
+        scenarioCompilationErrors = outcome.errors;
+      }
+    } else {
+      scenarioCompilationErrors = synthesized.errors.map((synthesisError) => ({
+        source:
+          synthesisError.source === "netParameter"
+            ? ("parameterOverride" as const)
+            : ("initialState" as const),
+        itemId: synthesisError.itemId,
+        message: synthesisError.message,
+      }));
+    }
   }
 
   // When a scenario is compiled, override parameterValues and initialMarking
@@ -608,6 +662,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     scenarioParameterValues: effectiveScenarioParameterValues,
     compiledScenarioResult,
     scenarioCompilationErrors,
+    adHocScenario: stateValues.adHocScenario,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
     totalFrames,
@@ -615,6 +670,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     getAllFrames: useStableCallback(getAllFrames),
     getFramesInRange: useStableCallback(getFramesInRange),
     setSelectedScenarioId: useStableCallback(setSelectedScenarioId),
+    setAdHocScenario: useStableCallback(setAdHocScenario),
     setScenarioParameterValue: useStableCallback(setScenarioParameterValue),
     setInitialMarking: useStableCallback(setInitialMarking),
     setParameterValue: useStableCallback(setParameterValue),

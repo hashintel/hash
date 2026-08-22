@@ -83,6 +83,8 @@ function createMockSimulationContext(
     scenarioParameterValues: {},
     compiledScenarioResult: null,
     scenarioCompilationErrors: null,
+    adHocScenario: null,
+    setAdHocScenario: () => {},
     dt: 0.01,
     maxTime: null,
     totalFrames: frameCount,
