@@ -1,4 +1,5 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
+import { useRef } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -13,13 +14,13 @@ import {
 
 import { getInteractiveTool } from "../interactive-tools/registry";
 import {
-  type AiToolOutput,
   type AiToolTarget,
   type AiToolSummary,
   summarizePetrinautAiToolCall,
 } from "../tool-summaries";
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
 
+import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import type { InteractiveToolDefinition } from "../interactive-tools/types";
 import type { PetrinautAiMessage } from "../types";
 
@@ -40,9 +41,9 @@ export type ToolRenderItem = {
   errorText?: string;
   /** Set when the tool requires an inline widget for human input. */
   interactive?: {
-    definition: InteractiveToolDefinition<unknown, AiToolOutput>;
+    definition: InteractiveToolDefinition<unknown, unknown>;
     input: unknown;
-    submittedOutput?: AiToolOutput;
+    submittedOutput?: unknown;
   };
 };
 
@@ -59,8 +60,8 @@ export type RenderableToolPart = PetrinautAiMessage["parts"][number] & {
 export type OnInteractiveToolSubmit = (params: {
   toolCallId: string;
   toolName: string;
-  output: AiToolOutput;
-}) => void;
+  output: unknown;
+}) => void | PromiseLike<void>;
 
 const toolListStyle = cva({
   base: {
@@ -454,20 +455,22 @@ const getToolTone = ({
 export const toToolRenderItem = (
   message: PetrinautAiMessage,
   part: RenderableToolPart,
+  interactiveTools: readonly PetrinautAiInteractiveTool[] = [],
 ): ToolRenderItem => {
   const state = part.state ?? "input-available";
   const summary = getToolSummaryFromPart(part);
   const toolName = getToolName(part);
 
-  const interactiveDefinition = getInteractiveTool(toolName, part.input);
+  const interactiveDefinition = getInteractiveTool(
+    toolName,
+    part.input,
+    interactiveTools,
+  );
   const interactive = interactiveDefinition
     ? {
         definition: interactiveDefinition,
         input: part.input,
-        submittedOutput:
-          state === "output-available" && part.output
-            ? (part.output as AiToolOutput)
-            : undefined,
+        submittedOutput: state === "output-available" ? part.output : undefined,
       }
     : undefined;
 
@@ -488,6 +491,66 @@ export const toToolRenderItem = (
   };
 };
 
+const InteractiveToolItem = ({
+  onInteractiveToolSubmit,
+  tool,
+}: {
+  onInteractiveToolSubmit?: OnInteractiveToolSubmit;
+  tool: ToolRenderItem;
+}) => {
+  const interactive = tool.interactive;
+  if (!interactive) {
+    throw new Error(`Missing interactive definition for ${tool.toolName}`);
+  }
+
+  const { definition, input, submittedOutput } = interactive;
+  const submitted = tool.state === "output-available";
+  const submittedOnceRef = useRef(submitted);
+  const Widget = definition.Widget;
+  const typedInput = definition.parseInput(input);
+
+  if (submitted) {
+    return (
+      <Widget
+        input={typedInput}
+        state="submitted"
+        submit={() => {}}
+        submittedOutput={definition.parseOutput(submittedOutput)}
+        toolCallId={tool.id}
+      />
+    );
+  }
+
+  return (
+    <Widget
+      input={typedInput}
+      state="awaiting"
+      submit={(output) => {
+        if (submittedOnceRef.current || !onInteractiveToolSubmit) {
+          return;
+        }
+
+        const parsedOutput = definition.parseOutput(output);
+        submittedOnceRef.current = true;
+        try {
+          const submission = onInteractiveToolSubmit({
+            toolCallId: tool.id,
+            toolName: tool.toolName,
+            output: parsedOutput,
+          });
+          void Promise.resolve(submission).catch(() => {
+            submittedOnceRef.current = false;
+          });
+        } catch (error) {
+          submittedOnceRef.current = false;
+          throw error;
+        }
+      }}
+      toolCallId={tool.id}
+    />
+  );
+};
+
 const ToolItem = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
@@ -498,27 +561,10 @@ const ToolItem = ({
   tool: ToolRenderItem;
 }) => {
   if (tool.interactive) {
-    const { definition, input, submittedOutput } = tool.interactive;
-    const submitted = tool.state === "output-available";
-    const Widget = definition.Widget;
-    let typedInput: unknown;
-    try {
-      typedInput = definition.parseInput(input);
-    } catch {
-      typedInput = input;
-    }
     return (
-      <Widget
-        input={typedInput}
-        submit={(output) => {
-          onInteractiveToolSubmit?.({
-            toolCallId: tool.id,
-            toolName: tool.toolName,
-            output,
-          });
-        }}
-        state={submitted ? "submitted" : "awaiting"}
-        submittedOutput={submittedOutput}
+      <InteractiveToolItem
+        onInteractiveToolSubmit={onInteractiveToolSubmit}
+        tool={tool}
       />
     );
   }
