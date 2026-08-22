@@ -7,6 +7,9 @@ A session is a client for one `petrinaut serve` child process that the session
 itself owns: it spawns the child for one model (or one optimization manifest),
 serializes requests to it, and shuts it down. "Session" rather than "client"
 because the object carries that lifecycle, not just the wire format.
+
+@layerRoot python-bindings
+@role Python sessions owning one CLI process each, translating protocol frames into methods and exceptions.
 """
 
 from .errors import (

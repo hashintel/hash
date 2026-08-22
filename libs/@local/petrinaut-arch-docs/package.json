@@ -25,9 +25,11 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@apps/petrinaut-opt": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",
     "@hashintel/petrinaut-cli": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
+    "@local/petrinaut-python": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@types/js-yaml": "^4",
     "@types/node": "22.18.13",

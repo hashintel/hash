@@ -9423,9 +9423,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/petrinaut-arch-docs@workspace:libs/@local/petrinaut-arch-docs"
   dependencies:
+    "@apps/petrinaut-opt": "workspace:*"
     "@hashintel/petrinaut": "workspace:*"
     "@hashintel/petrinaut-cli": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
+    "@local/petrinaut-python": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@types/js-yaml": "npm:^4"
     "@types/node": "npm:22.18.13"

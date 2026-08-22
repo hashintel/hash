@@ -11,14 +11,17 @@
  * claim the generator cannot check, and this version does not make claims it
  * cannot keep.
  *
- * Tags are recognised only at the start of a line inside a block comment, so a
- * tag named in running prose is not picked up.
+ * Tags are recognised only at the start of a line inside a doc comment — a
+ * `/** ... *​/` block in TypeScript, a triple-quoted docstring in Python — so a
+ * tag named in running prose is not picked up. Python `#` comments are
+ * deliberately not scanned: a layer declaration belongs in the module
+ * docstring, where the module already describes itself.
  *
- * Block comments are matched by pattern rather than by lexing the file, so a
- * string or template literal containing a whole comment block would be read as
- * one. Using the TypeScript scanner would remove that case, at the cost of
- * parsing every file. Worth revisiting if a package starts embedding annotated
- * code samples in string literals.
+ * Comments are matched by pattern rather than by lexing the file, so a string
+ * or template literal containing a whole comment block would be read as one.
+ * Using a real parser would remove that case, at the cost of parsing every
+ * file. Worth revisiting if a package starts embedding annotated code samples
+ * in string literals.
  */
 
 /** A tag occurrence, with the line it was found on for error reporting. */
@@ -60,7 +63,19 @@ type SingularTag = (typeof singularTags)[number];
 
 const knownTagNames = new Set<string>(singularTags);
 
+/** The language a file's doc comments are written for. */
+export type CommentLanguage = "typescript" | "python";
+
 const blockCommentPattern = /\/\*\*[\s\S]*?\*\//gu;
+
+/**
+ * The module docstring only: the first statement after blank and `#` lines.
+ * A triple-quoted string anywhere else is a value, not an annotation host.
+ * String prefixes (`r"""`, `b'''`, ...) still open a docstring, so a raw
+ * docstring cannot silently drop a package's `@layerRoot`.
+ */
+const pythonModuleDocstringPattern =
+  /^(?:[ \t]*(?:#[^\r\n]*)?\r?\n)*[ \t]*[rRbBuUfF]{0,2}("""[\s\S]*?"""|'''[\s\S]*?''')/u;
 
 /**
  * Byte offsets of the start of each line, so an offset can be turned into a
@@ -91,21 +106,25 @@ const lineNumberAt = (lineStarts: number[], offset: number): number => {
 };
 
 /**
- * Strips the comment delimiters and the leading `*` gutter, returning body
- * lines paired with their line number in the original file.
+ * Strips the comment delimiters and (for JSDoc) the leading `*` gutter,
+ * returning body lines paired with their line number in the original file.
+ * Python docstrings carry no gutter, so their lines only lose the quotes.
  */
 const commentBodyLines = (
   comment: string,
   startLine: number,
-): { text: string; line: number }[] =>
-  comment
-    .replace(/^\/\*\*/u, "")
-    .replace(/\*\/$/u, "")
-    .split("\n")
-    .map((rawLine, offset) => ({
-      text: rawLine.replace(/^\s*\*\s?/u, ""),
-      line: startLine + offset,
-    }));
+  language: CommentLanguage,
+): { text: string; line: number }[] => {
+  const body =
+    language === "python"
+      ? comment.replace(/^(?:"""|''')/u, "").replace(/(?:"""|''')$/u, "")
+      : comment.replace(/^\/\*\*/u, "").replace(/\*\/$/u, "");
+
+  return body.split("\n").map((rawLine, offset) => ({
+    text: language === "python" ? rawLine : rawLine.replace(/^\s*\*\s?/u, ""),
+    line: startLine + offset,
+  }));
+};
 
 interface RawTag {
   name: string;
@@ -152,8 +171,11 @@ const collectRawTags = (lines: { text: string; line: number }[]): RawTag[] => {
   return tags;
 };
 
-/** Reads every architecture tag out of a source file's block comments. */
-export const scanTags = (sourceText: string): TagScanResult => {
+/** Reads every architecture tag out of a source file's doc comments. */
+export const scanTags = (
+  sourceText: string,
+  language: CommentLanguage = "typescript",
+): TagScanResult => {
   const tags = emptyTags();
   const diagnostics: TagDiagnostic[] = [];
 
@@ -174,9 +196,26 @@ export const scanTags = (sourceText: string): TagScanResult => {
 
   const lineStarts = lineStartOffsets(sourceText);
 
-  for (const match of sourceText.matchAll(blockCommentPattern)) {
+  const comments: { text: string; index: number }[] = [];
+  if (language === "python") {
+    const match = pythonModuleDocstringPattern.exec(sourceText);
+    if (match?.[1] !== undefined) {
+      comments.push({
+        text: match[1],
+        index: match.index + match[0].length - match[1].length,
+      });
+    }
+  } else {
+    for (const match of sourceText.matchAll(blockCommentPattern)) {
+      comments.push({ text: match[0], index: match.index });
+    }
+  }
+
+  for (const match of comments) {
     const startLine = lineNumberAt(lineStarts, match.index);
-    const rawTags = collectRawTags(commentBodyLines(match[0], startLine));
+    const rawTags = collectRawTags(
+      commentBodyLines(match.text, startLine, language),
+    );
 
     for (const rawTag of rawTags) {
       const { name, line } = rawTag;
