@@ -84,7 +84,9 @@ contract, protocol, and seeded-runs semantics are documented in the
 
 - Bootstrap (spawn to readiness) and each protocol response have deadlines,
   `BOOTSTRAP_TIMEOUT_SECONDS` and `PROTOCOL_READ_TIMEOUT_SECONDS`. Both are
-  constructor options.
+  constructor options. For optimization sessions the per-response deadline is
+  multiplied by the `seedsPerTrial` the study reports, since one evaluate may
+  run that many simulations.
 - Bootstrap and protocol lines are capped at `MAX_BOOTSTRAP_LINE_BYTES` and
   `MAX_PROTOCOL_LINE_BYTES`.
 - A session serves one request at a time and is not synchronized: issue requests
