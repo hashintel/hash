@@ -1,5 +1,57 @@
 # @hashintel/petrinaut
 
+## 0.0.17
+
+### Patch Changes
+
+- Improve narrow-panel layouts and scrolling in Simulation Settings, the timeline, bottom-panel tabs, and sidebar subviews. ([@kube](https://github.com/kube), [#9074](https://github.com/hashintel/hash/pull/9074))
+
+- Rename the AI assistant tab to "AI", use neutral assistant copy, place `topBarStart` immediately before the net title, and add `slots.titleStyle` for host-defined title styling. ([@vilkinsons](https://github.com/vilkinsons), [#9084](https://github.com/hashintel/hash/pull/9084))
+
+- Replace the `optimize` host capability with `createOptimizationRun`, `attachOptimizationRun`, and `cancelOptimizationRun`, enabling resumable runs and automatic reconnection. ([@kube](https://github.com/kube), [#9066](https://github.com/hashintel/hash/pull/9066))
+
+- Add `uuid` token attributes with automatic generation and `Uuid.generate()` / `Uuid.from()` helpers. ([@kube](https://github.com/kube), [#8953](https://github.com/hashintel/hash/pull/8953))
+
+- Add `range()` to scenario code, fix common array methods in scenario expressions, and show scenario compilation errors in Simulation Settings. ([@kube](https://github.com/kube), [#9092](https://github.com/hashintel/hash/pull/9092))
+
+- Clarify that Predicate transitions fire immediately when their guard is true and input tokens are available. ([@YannisZa](https://github.com/YannisZa), [#9097](https://github.com/hashintel/hash/pull/9097))
+
+- Add the `string` token attribute type, stored via per-run interning. Editing a type's schema now migrates stored initial state (values convert, falling back to the new type's default). ([@kube](https://github.com/kube), [#8953](https://github.com/hashintel/hash/pull/8953))
+
+- Add a scenario-first optimization interface with flat parameter search spaces, metric objectives, and progressive step results. ([@kube](https://github.com/kube), [#9051](https://github.com/hashintel/hash/pull/9051))
+
+- Add `integer` and `boolean` token attribute types. ([@kube](https://github.com/kube), [#8764](https://github.com/hashintel/hash/pull/8764))
+
+- Improve inhibitor arc styling. ([@CiaranMn](https://github.com/CiaranMn), [#8846](https://github.com/hashintel/hash/pull/8846))
+
+- Allow metrics to read resolved net parameters through `parameters.<variableName>`; scenario parameters remain unavailable. ([@kube](https://github.com/kube), [#9043](https://github.com/hashintel/hash/pull/9043))
+
+- Add Actual mode for read-only live execution, including host event streams, a timeline, an event log, and recording exports. ([@kube](https://github.com/kube), [#8829](https://github.com/hashintel/hash/pull/8829))
+
+- Replace Babel with the HIR compiler for user code. Unsupported TypeScript now produces diagnostics instead of running. ([@kube](https://github.com/kube), [#8981](https://github.com/hashintel/hash/pull/8981))
+
+- Allow hosts to disable SDCPN extensions and global parameters. ([@kube](https://github.com/kube), [#8763](https://github.com/hashintel/hash/pull/8763))
+
+- Improve spacing for scenario and parameter controls in Simulation Settings. ([@kube](https://github.com/kube), [#9078](https://github.com/hashintel/hash/pull/9078))
+
+- Add subnet definitions, component instances, and wiring support to Petrinaut. ([@kube](https://github.com/kube), [#8662](https://github.com/hashintel/hash/pull/8662))
+
+- Add editor support for read input arcs, including arc controls and distinct canvas rendering. ([@kube](https://github.com/kube), [#8774](https://github.com/hashintel/hash/pull/8774))
+
+- Add a "Pre-deployed Constellation" scenario to the Probabilistic Satellite Launcher example. ([@kube](https://github.com/kube), [#9092](https://github.com/hashintel/hash/pull/9092))
+
+- Use a shared fixed seed (`PETRINAUT_DEFAULT_SEED`) for interactive simulation and optimization runs, so playing a simulation reproduces an optimization trial given the same configuration. ([@kube](https://github.com/kube), [#9073](https://github.com/hashintel/hash/pull/9073))
+
+- Export the token value codec and `compileUserCode` from `@hashintel/petrinaut-core`. ([@kube](https://github.com/kube), [#8943](https://github.com/hashintel/hash/pull/8943))
+
+- Use a packed token frame layout and simplify the `getPlaceTokens(place)` and `buildMetricState(frame, places)` APIs. ([@kube](https://github.com/kube), [#8944](https://github.com/hashintel/hash/pull/8944))
+
+- Add Panda build metadata and a shared preset for host style generation, and namespace Petrinaut keyframes to prevent theme collisions. ([@alex-e-leon](https://github.com/alex-e-leon), [#9071](https://github.com/hashintel/hash/pull/9071))
+
+- Updated dependencies:
+  - @hashintel/ds-components@0.3.0
+  - @hashintel/petrinaut-core@0.0.3
+
 ## 0.0.16
 
 ### Patch Changes

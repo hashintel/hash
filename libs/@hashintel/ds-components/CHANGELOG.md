@@ -1,5 +1,49 @@
 # @hashintel/ds-components
 
+## 0.3.0
+
+### Minor Changes
+
+- Breaking change: Refactor SegmentedControl api and ui ([@alex-e-leon](https://github.com/alex-e-leon), [#9275](https://github.com/hashintel/hash/pull/9275))
+
+- Breaking change: refactor Avatar component to new api + UI ([@alex-e-leon](https://github.com/alex-e-leon), [#9123](https://github.com/hashintel/hash/pull/9123))
+
+- Breaking change: new UI and api for Checkbox component ([@alex-e-leon](https://github.com/alex-e-leon), [#8912](https://github.com/hashintel/hash/pull/8912))
+
+- Breaking change: new Badge api + UI ([@alex-e-leon](https://github.com/alex-e-leon), [#9155](https://github.com/hashintel/hash/pull/9155))
+
+### Patch Changes
+
+- Add Popover component ([@alex-e-leon](https://github.com/alex-e-leon), [#9019](https://github.com/hashintel/hash/pull/9019))
+
+- Add AvatarGroup component ([@alex-e-leon](https://github.com/alex-e-leon), [#9156](https://github.com/hashintel/hash/pull/9156))
+
+- Add `useScrollLock` hook ([@alex-e-leon](https://github.com/alex-e-leon), [#8995](https://github.com/hashintel/hash/pull/8995))
+
+- Add SortMenu component ([@alex-e-leon](https://github.com/alex-e-leon), [#9251](https://github.com/hashintel/hash/pull/9251))
+
+- Added gripVertical icon ([@CiaranMn](https://github.com/CiaranMn), [#9026](https://github.com/hashintel/hash/pull/9026))
+
+- New icons: trend arrows, file lines, grid, print, puzzle piece, truck ([@CiaranMn](https://github.com/CiaranMn), [#8865](https://github.com/hashintel/hash/pull/8865))
+
+- Add Menu component ([@alex-e-leon](https://github.com/alex-e-leon), [#8833](https://github.com/hashintel/hash/pull/8833))
+
+- Add Banner component ([@alex-e-leon](https://github.com/alex-e-leon), [#9163](https://github.com/hashintel/hash/pull/9163))
+
+- Add Filter component ([@alex-e-leon](https://github.com/alex-e-leon), [#9238](https://github.com/hashintel/hash/pull/9238))
+
+- Add Select component ([@alex-e-leon](https://github.com/alex-e-leon), [#8842](https://github.com/hashintel/hash/pull/8842))
+
+- Add CheckboxGroup and RadioGroup components ([@alex-e-leon](https://github.com/alex-e-leon), [#8923](https://github.com/hashintel/hash/pull/8923))
+
+- Fix popover point positioning, improve autofocus for dialogs, drawers + tooltips, and export BaseTooltip ([@alex-e-leon](https://github.com/alex-e-leon), [#9189](https://github.com/hashintel/hash/pull/9189))
+
+- Add Toggle component ([@alex-e-leon](https://github.com/alex-e-leon), [#8871](https://github.com/hashintel/hash/pull/8871))
+
+- Add Chip component ([@alex-e-leon](https://github.com/alex-e-leon), [#9130](https://github.com/hashintel/hash/pull/9130))
+
+- Add ButtonGroup component ([@alex-e-leon](https://github.com/alex-e-leon), [#9164](https://github.com/hashintel/hash/pull/9164))
+
 ## 0.2.2
 
 ### Patch Changes
