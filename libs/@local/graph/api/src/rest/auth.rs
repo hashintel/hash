@@ -1,19 +1,15 @@
 //! Axum bindings for Graph authentication.
 //!
 //! Bridges [`hash_graph_authentication`] into the REST layer: [`authentication_middleware`]
-//! resolves the request's credentials once — a Kratos session or a service delegation pair —
-//! and rejects the request when they are missing or invalid, so every route behind it requires
-//! authentication by default. The resolved [`AuthenticationOutcome`] is stored as a private
-//! request extension; the [`AuthenticatedActorId`] extractor hands the acting actor to handlers
-//! that need it.
+//! resolves the request's credentials once — a Kratos session, a Cloudflare Access JWT, or a
+//! service delegation pair — and rejects the request when they are missing or invalid, so every
+//! route behind it requires authentication by default. The resolved [`AuthenticationOutcome`] is
+//! stored as a private request extension; the [`AuthenticatedActorId`] extractor hands the acting
+//! actor to handlers that need it.
 //!
 //! The only routes behind the middleware reachable without an actor are the bootstrap routes,
 //! which still require the service secret. The OpenAPI and probe routes are served outside the
 //! middleware.
-//!
-//! Routers whose callers are authenticated by other means and carry the acting actor only in the
-//! `X-Authenticated-User-Actor-Id` header use [`actor_id_header_middleware`] instead. The
-//! extractor rejects requests on routes without either middleware.
 
 use alloc::sync::Arc;
 
@@ -23,22 +19,93 @@ use axum::{
     middleware::Next,
     response::{IntoResponse as _, Response},
 };
-pub use hash_graph_authentication::{
-    actor::StorePoolActorResolver,
-    delegation::ServiceDelegationProvider,
-    kratos::{KratosSessionConfig, KratosSessionProvider},
-};
 use hash_graph_authentication::{
-    delegation::presents_service_secret,
+    actor::StorePoolActorResolver,
+    delegation::{ServiceDelegationProvider, presents_service_secret},
+    kratos::{KratosEmailActorResolver, KratosSessionProvider},
     provider::AuthenticationProvider,
-    request::{
-        AuthenticationError, AuthenticationOutcome, actor_id_from_header, resolve_request_actor,
-    },
+    request::{AuthenticationError, AuthenticationOutcome, resolve_request_actor},
 };
+pub use hash_graph_authentication::{
+    cloudflare::CloudflareAccessProvider,
+    jwt::{JwtValidator, JwtValidatorConfig},
+    kratos::{KratosAdminConfig, KratosSessionConfig},
+};
+use hash_graph_authorization::policies::store::PrincipalStore;
+use hash_graph_store::pool::StorePool;
 use hash_status::{Status, StatusCode};
 use type_system::principal::actor::ActorEntityUuid;
 
 use crate::rest::status::{BoxedResponse, status_to_response};
+
+/// Configuration for Cloudflare Access authentication.
+#[derive(Debug, Clone)]
+pub struct CloudflareAccessConfig {
+    /// JWT validation parameters for the Access team.
+    pub jwt: JwtValidatorConfig,
+    /// Kratos admin API access for resolving token emails to actors.
+    pub kratos_admin: KratosAdminConfig,
+}
+
+/// The operator-facing half of a provider chain: Cloudflare Access JWT (when configured), then
+/// service delegation.
+pub type OperatorChain<S> = (
+    Option<CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>>,
+    ServiceDelegationProvider,
+);
+
+/// The provider chain of the REST router.
+pub type ProviderChain<S> = (
+    KratosSessionProvider<StorePoolActorResolver<S>>,
+    OperatorChain<S>,
+);
+
+/// Builds the chain the admin API authenticates with: Cloudflare Access JWT (when configured),
+/// then service delegation.
+///
+/// Deliberately without the Kratos session provider. The admin API deletes users and erases
+/// entities, and its handlers do not authorize beyond "some actor", so an end-user session must
+/// not reach it — operators arrive through Access, internal services through the shared secret.
+pub fn build_operator_provider<S>(
+    cloudflare_access: Option<CloudflareAccessConfig>,
+    service_secret: String,
+    store: &Arc<S>,
+) -> OperatorChain<S>
+where
+    S: StorePool + Send + Sync,
+    for<'p> S::Store<'p>: PrincipalStore,
+{
+    (
+        cloudflare_access.map(|config| {
+            CloudflareAccessProvider::new(
+                JwtValidator::new(config.jwt),
+                KratosEmailActorResolver::new(
+                    config.kratos_admin,
+                    StorePoolActorResolver::new(Arc::clone(store)),
+                ),
+            )
+        }),
+        ServiceDelegationProvider::new(service_secret),
+    )
+}
+
+/// Builds the chain the REST router authenticates with: Kratos session, then the operator
+/// credentials.
+pub fn build_authentication_provider<S>(
+    session: KratosSessionConfig,
+    cloudflare_access: Option<CloudflareAccessConfig>,
+    service_secret: String,
+    store: &Arc<S>,
+) -> ProviderChain<S>
+where
+    S: StorePool + Send + Sync,
+    for<'p> S::Store<'p>: PrincipalStore,
+{
+    (
+        KratosSessionProvider::new(session, StorePoolActorResolver::new(Arc::clone(store))),
+        build_operator_provider(cloudflare_access, service_secret, store),
+    )
+}
 
 /// The resolved authentication of a request, stored as a request extension.
 #[derive(Clone)]
@@ -112,25 +179,9 @@ where
     next.run(request).await
 }
 
-/// Resolves the unverified `X-Authenticated-User-Actor-Id` header and stores the outcome as a
-/// request extension.
+/// Axum extractor providing the acting principal resolved by [`authentication_middleware`].
 ///
-/// Never rejects a request: handlers opt into the actor through the [`AuthenticatedActorId`]
-/// extractor.
-pub async fn actor_id_header_middleware(mut request: Request, next: Next) -> Response {
-    let outcome = match actor_id_from_header(request.headers()) {
-        Ok(actor_id) => AuthenticationOutcome::Authenticated(actor_id),
-        Err(error) => AuthenticationOutcome::Failed(error),
-    };
-
-    store_outcome(&mut request, outcome);
-    next.run(request).await
-}
-
-/// Axum extractor providing the acting principal resolved by [`authentication_middleware`] or
-/// [`actor_id_header_middleware`].
-///
-/// Rejects the request on routes without either middleware.
+/// Rejects the request on routes without the middleware.
 pub struct AuthenticatedActorId(pub ActorEntityUuid);
 
 impl<S: Sync> FromRequestParts<S> for AuthenticatedActorId {
@@ -166,17 +217,16 @@ mod tests {
     use alloc::sync::Arc;
 
     use axum::{Router, body::Body, middleware, routing::get};
-    use hash_graph_authentication::provider::StaticAuthenticationProvider;
+    use hash_graph_authentication::{
+        delegation::ServiceDelegationProvider, provider::StaticAuthenticationProvider,
+    };
     use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
     use http::{Request, StatusCode};
     use tower::ServiceExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
-    use super::{
-        AuthenticatedActorId, ServiceDelegationProvider, actor_id_header_middleware,
-        authentication_middleware, is_bootstrap_route,
-    };
+    use super::{AuthenticatedActorId, authentication_middleware, is_bootstrap_route};
 
     #[test]
     fn bootstrap_routes_match() {
@@ -402,41 +452,5 @@ mod tests {
             .expect("the router should respond");
 
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    }
-
-    #[tokio::test]
-    async fn header_middleware_resolves_actor_id_headers() {
-        let actor_id = Uuid::new_v4();
-        let router = Router::new()
-            .route("/protected", get(protected))
-            .layer(middleware::from_fn(actor_id_header_middleware));
-
-        let response = router
-            .oneshot(request_with_actor_header(
-                "/protected",
-                &actor_id.to_string(),
-            ))
-            .await
-            .expect("the router should respond");
-
-        assert_eq!(response.status(), StatusCode::OK);
-        let body = axum::body::to_bytes(response.into_body(), 1024)
-            .await
-            .expect("the response body should be readable");
-        assert_eq!(body, actor_id.to_string().as_bytes());
-    }
-
-    #[tokio::test]
-    async fn header_middleware_rejects_missing_headers_at_extraction() {
-        let router = Router::new()
-            .route("/protected", get(protected))
-            .layer(middleware::from_fn(actor_id_header_middleware));
-
-        let response = router
-            .oneshot(request("/protected"))
-            .await
-            .expect("the router should respond");
-
-        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 }

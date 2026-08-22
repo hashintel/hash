@@ -3,7 +3,9 @@ use core::{fmt, net::SocketAddr, str::FromStr as _, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::rest::jwt::{JwtValidator, JwtValidatorConfig};
+use hash_graph_api::rest::auth::{
+    CloudflareAccessConfig, JwtValidatorConfig, KratosAdminConfig, build_operator_provider,
+};
 use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings},
@@ -102,7 +104,8 @@ pub struct JwtConfig {
     #[clap(
         long = "jwt-jwks-cache-ttl",
         env = "HASH_GRAPH_JWT_JWKS_CACHE_TTL",
-        default_value_t = 600
+        default_value_t = 600,
+        value_parser = clap::value_parser!(u64).range(1..)
     )]
     pub jwks_cache_ttl_secs: u64,
 
@@ -112,7 +115,9 @@ pub struct JwtConfig {
     #[clap(
         long = "jwt-jwks-refresh-cooldown",
         env = "HASH_GRAPH_JWT_JWKS_REFRESH_COOLDOWN",
-        default_value_t = 30
+        default_value_t = 30,
+        // A zero cooldown removes the bound on outbound fetches that this flag exists to impose.
+        value_parser = clap::value_parser!(u64).range(1..)
     )]
     pub jwks_refresh_cooldown_secs: u64,
 
@@ -120,7 +125,8 @@ pub struct JwtConfig {
     #[clap(
         long = "jwt-http-timeout",
         env = "HASH_GRAPH_JWT_HTTP_TIMEOUT",
-        default_value_t = 10
+        default_value_t = 10,
+        value_parser = clap::value_parser!(u64).range(1..)
     )]
     pub http_timeout_secs: u64,
 
@@ -187,28 +193,71 @@ pub struct AdminConfig {
 
     #[clap(flatten)]
     pub external_services: ExternalServicesConfig,
+}
 
-    /// Allow header-based authentication and bulk destructive endpoints without JWT.
-    ///
-    /// When set, the admin server accepts the `X-Authenticated-User-Actor-Id` header for
-    /// authentication and registers bulk destructive endpoints (`/snapshot`, `/accounts`,
-    /// `/data-types`, `/property-types`, `/entity-types`).
-    ///
-    /// **This flag must never be used in production or staging.** Without JWT, any client that
-    /// can reach the admin port can execute destructive operations without authentication.
-    ///
-    /// If neither JWT nor this flag is configured, the server refuses to start.
-    #[clap(
-        long,
-        env = "HASH_GRAPH_UNSAFE_DEV_AUTH",
-        default_value_t = false,
-        conflicts_with = "jwks_url"
-    )]
-    pub unsafe_allow_dev_authentication: bool,
+/// Builds the Cloudflare Access configuration from the JWT arguments.
+///
+/// # Errors
+///
+/// Returns an error for a partial JWT configuration.
+pub(crate) fn cloudflare_access_config(
+    config: &AdminConfig,
+) -> Result<Option<CloudflareAccessConfig>, Report<GraphError>> {
+    match (
+        config.jwt.jwks_url.clone(),
+        config.jwt.audience.clone(),
+        config.jwt.issuer.clone(),
+    ) {
+        (Some(jwks_url), Some(audience), Some(issuer)) => {
+            let kratos_admin_url = config
+                .external_services
+                .kratos_admin_url
+                .clone()
+                .ok_or_else(|| {
+                    Report::new(GraphError).attach(
+                        "--kratos-admin-url (HASH_KRATOS_ADMIN_URL) is required for Cloudflare \
+                         Access authentication",
+                    )
+                })?;
+            // The resolver extends this URL with a path, which a cannot-be-a-base URL such as
+            // `mailto:` does not support. Rejecting it here turns a process abort into a startup
+            // error.
+            if !matches!(kratos_admin_url.scheme(), "http" | "https") {
+                return Err(Report::new(GraphError).attach(
+                    "--kratos-admin-url (HASH_KRATOS_ADMIN_URL) must be an http or https URL",
+                ));
+            }
+            Ok(Some(CloudflareAccessConfig {
+                jwt: JwtValidatorConfig {
+                    jwks_url,
+                    audience,
+                    issuer,
+                    jwks_cache_ttl: Duration::from_secs(config.jwt.jwks_cache_ttl_secs),
+                    jwks_refresh_cooldown: Duration::from_secs(
+                        config.jwt.jwks_refresh_cooldown_secs,
+                    ),
+                    http_timeout: Duration::from_secs(config.jwt.http_timeout_secs),
+                    allowed_algorithms: config.jwt.allowed_algorithms.clone(),
+                },
+                kratos_admin: KratosAdminConfig {
+                    kratos_admin_url,
+                    http_timeout: Duration::from_secs(config.jwt.http_timeout_secs),
+                },
+            }))
+        }
+        (None, None, None) => Ok(None),
+        _ => {
+            // Clap `requires` should prevent this, but guard against it anyway.
+            Err(Report::new(GraphError).attach(
+                "partial JWT configuration: --jwt-jwks-url, --jwt-audience, and --jwt-issuer must \
+                 all be provided together",
+            ))
+        }
+    }
 }
 
 /// CLI arguments for the standalone `admin-server` subcommand.
-#[derive(Debug, Parser)]
+#[derive(derive_more::Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
 pub struct AdminServerArgs {
     #[clap(flatten)]
@@ -220,6 +269,17 @@ pub struct AdminServerArgs {
     #[clap(flatten)]
     pub config: AdminConfig,
 
+    /// Shared secret internal services present to act on behalf of an actor.
+    ///
+    /// Sent as the `Authorization: HASH-Service <secret>` credential, either next to
+    /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes.
+    //
+    // Optional at parse time so `--healthcheck` does not require the environment variable. The
+    // server refuses to start without it.
+    #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
+    #[debug("***")]
+    pub service_secret: Option<String>,
+
     #[clap(flatten)]
     pub healthcheck: HealthcheckArgs,
 }
@@ -228,50 +288,13 @@ pub struct AdminServerArgs {
 pub(crate) async fn run_admin_server(
     pool: PostgresStorePool,
     config: AdminConfig,
+    service_secret: String,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
-    let jwt_validator = match (config.jwt.jwks_url, config.jwt.audience, config.jwt.issuer) {
-        (Some(jwks_url), Some(audience), Some(issuer)) => {
-            if config.unsafe_allow_dev_authentication {
-                // Clap `conflicts_with` should prevent this, but guard against it anyway.
-                return Err(Report::new(GraphError).attach(
-                    "--unsafe-allow-dev-authentication cannot be used with JWT authentication. \
-                     Remove the flag or the JWT configuration.",
-                ));
-            }
-            tracing::info!(%jwks_url, "JWT authentication enabled for admin API");
-            Some(Arc::new(JwtValidator::new(JwtValidatorConfig {
-                jwks_url,
-                audience,
-                issuer,
-                jwks_cache_ttl: Duration::from_secs(config.jwt.jwks_cache_ttl_secs),
-                jwks_refresh_cooldown: Duration::from_secs(config.jwt.jwks_refresh_cooldown_secs),
-                http_timeout: Duration::from_secs(config.jwt.http_timeout_secs),
-                allowed_algorithms: config.jwt.allowed_algorithms,
-            })))
-        }
-        (None, None, None) if config.unsafe_allow_dev_authentication => {
-            tracing::warn!(
-                "--unsafe-allow-dev-authentication is set -- header-based authentication is \
-                 enabled without verification. DO NOT use this in production."
-            );
-            None
-        }
-        (None, None, None) => {
-            return Err(Report::new(GraphError).attach(
-                "no JWT authentication configured and --unsafe-allow-dev-authentication is not \
-                 set. Either configure JWT (--jwt-jwks-url, --jwt-audience, --jwt-issuer) or pass \
-                 --unsafe-allow-dev-authentication for local development.",
-            ));
-        }
-        _ => {
-            // Clap `requires` should prevent this, but guard against it anyway.
-            return Err(Report::new(GraphError).attach(
-                "partial JWT configuration: --jwt-jwks-url, --jwt-audience, and --jwt-issuer must \
-                 all be provided together",
-            ));
-        }
-    };
+    let cloudflare_access = cloudflare_access_config(&config)?;
+    if let Some(access) = &cloudflare_access {
+        tracing::info!(jwks_url = %access.jwt.jwks_url, "Cloudflare Access authentication enabled for admin API");
+    }
 
     let kratos_admin_url = config.external_services.kratos_admin_url.ok_or_else(|| {
         Report::new(GraphError).attach(
@@ -284,9 +307,17 @@ pub(crate) async fn run_admin_server(
         )
     })?;
 
+    let pool = Arc::new(pool);
+    let authentication_provider = Arc::new(build_operator_provider(
+        cloudflare_access,
+        service_secret.clone(),
+        &pool,
+    ));
+
     let router = hash_graph_api::rest::admin::routes(
         pool,
-        jwt_validator,
+        authentication_provider,
+        Arc::from(service_secret),
         hash_graph_api::rest::admin::ExternalServicesConfig {
             kratos_admin_url,
             hydra_admin_url,
@@ -315,13 +346,14 @@ pub(crate) async fn run_admin_server(
 pub(crate) fn start_admin_server(
     pool: PostgresStorePool,
     config: AdminConfig,
+    service_secret: String,
     lifecycle: &ServerLifecycle,
 ) {
     SnapshotEntry::install_error_stack_hook();
 
     let shutdown = lifecycle.shutdown.clone();
     lifecycle.spawn("Admin server", async move {
-        run_admin_server(pool, config, shutdown).await
+        run_admin_server(pool, config, service_secret, shutdown).await
     });
 }
 
@@ -357,8 +389,21 @@ pub async fn admin_server(args: AdminServerArgs) -> Result<(), Report<GraphError
         report
     })?;
 
+    // HTTP strips surrounding whitespace from header values, so the senders' secret arrives
+    // trimmed. Trimming here keeps both sides comparing the same bytes.
+    let service_secret = args
+        .service_secret
+        .map(|secret| secret.trim().to_owned())
+        .filter(|secret| !secret.is_empty())
+        .ok_or_else(|| {
+            Report::new(GraphError).attach(
+                "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
+                 running the server",
+            )
+        })?;
+
     let lifecycle = ServerLifecycle::new();
-    start_admin_server(pool, args.config, &lifecycle);
+    start_admin_server(pool, args.config, service_secret, &lifecycle);
 
     // Wait for shutdown signal or unexpected server exit
     let aborted = tokio::select! {

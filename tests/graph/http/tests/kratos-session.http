@@ -122,6 +122,31 @@ X-Session-Token: {{session_token}}
   });
 %}
 
+### Session does not authenticate on the admin API
+# The admin API erases entities and deletes users, and its handlers do not authorize beyond
+# requiring some actor. Operators reach it through Cloudflare Access, services through the secret —
+# an end-user session must not be a credential there.
+POST http://127.0.0.1:4001/users/delete
+Content-Type: application/json
+Authorization: <omit>
+X-Session-Token: {{session_token}}
+
+{
+  "email": "must-not-be-reached@example.com"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("message", function() {
+    client.assert(
+      response.body.message === "no credentials provided",
+      `Unexpected message: ${response.body.message}`
+    );
+  });
+%}
+
 ### Session without the service secret does not reach bootstrap routes
 GET http://127.0.0.1:4000/actors/machine/identifier/system/h
 Content-Type: application/json

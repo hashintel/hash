@@ -6,6 +6,7 @@
 //!
 //! [`AuthenticationProvider`]: crate::provider::AuthenticationProvider
 
+mod identity;
 mod session;
 
 use error_stack::{Report, ResultExt as _};
@@ -13,8 +14,11 @@ use reqwest::Response;
 use serde::Deserialize;
 use type_system::principal::actor::UserId;
 
-pub use self::session::{
-    KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME, SESSION_TOKEN_HEADER,
+pub use self::{
+    identity::{KratosAdminConfig, KratosEmailActorResolver},
+    session::{
+        KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME, SESSION_TOKEN_HEADER,
+    },
 };
 use crate::request::AuthenticationError;
 
@@ -62,9 +66,12 @@ async fn read_response_body(response: Response) -> Result<String, Report<Authent
             .attach(provider_response(status, response.text().await)));
     }
 
+    // A `reqwest::Error` renders the URL it failed on, and a lookup URL can carry the address it
+    // was looking up. The instrumented span already records the base URL.
     response
         .text()
         .await
+        .map_err(reqwest::Error::without_url)
         .change_context(AuthenticationError::ProviderUnreachable)
 }
 
