@@ -309,6 +309,11 @@ impl ColumnScalar for NodeRowId {
     const VARIANT: ArrayVariant = ArrayVariant::U64Le;
 }
 
+impl ColumnScalar for [NodeRowId; 2] {
+    const TRAILING: &'static [Dim] = &[Dim::new(2)];
+    const VARIANT: ArrayVariant = ArrayVariant::U64Le;
+}
+
 /// One typed column as a sized array file: the value form of a column write.
 ///
 /// The wrapper is transparent over the rows, so a column wraps by reference with no copy. The

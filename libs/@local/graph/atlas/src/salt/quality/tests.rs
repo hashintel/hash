@@ -324,6 +324,53 @@ fn aggregate_rejects_invalid_shapes() {
     assert!(NeighbourhoodAggregate::new(10, k(5), 10).is_some());
 }
 
+/// The clamped constructor caps an overflowing horizon at the universe.
+#[test]
+fn clamped_horizon_overflow() {
+    // A factor-times-k product beyond `usize` exceeds every universe, so
+    // the mathematical horizon min(factor · k, universe) is the universe.
+    let k = |value: usize| NonZero::new(value).expect("nonzero");
+    let factor = k(usize::MAX);
+
+    assert_eq!(
+        NeighbourhoodAggregate::clamped(4, k(2), factor),
+        NeighbourhoodAggregate::new(4, k(2), 4),
+    );
+}
+
+/// The capacity proof refuses a load whose worst-case penalties overflow the carriers.
+#[test]
+fn capacity_refusal() {
+    // A valid aggregate whose total worst-case penalty q·k·(2m − 3k + 1)/2
+    // exceeds the carriers while keeping k ≤ m/2: m is the universe size,
+    // k the neighbourhood size, and q counts the observations.
+    let k = |value: usize| NonZero::new(value).expect("nonzero");
+    let aggregate = NeighbourhoodAggregate::new(10_000_000, k(3_333_333), 6_666_666)
+        .expect("3,333,333 <= 10,000,000 / 2 and the horizon is in domain");
+
+    assert!(!aggregate.supports(1_200_000));
+}
+
+/// The capacity proof admits exactly the loads whose products fit.
+#[test]
+#[expect(
+    clippy::integer_division,
+    clippy::integer_division_remainder_used,
+    reason = "the boundary load is the largest whose product with the worst-case penalty fits"
+)]
+fn capacity_boundary() {
+    // At universe size m = 100 and neighbourhood size k = 50 the worst
+    // per-query penalty is 50·(200 − 150 + 1)/2 = 1275, so the boundary
+    // is the largest load q whose normalizer product still fits.
+    let k = |value: usize| NonZero::new(value).expect("nonzero");
+    let aggregate =
+        NeighbourhoodAggregate::new(100, k(50), 100).expect("50 <= 100 / 2 and 50 <= 100 <= 100");
+    let heaviest = usize::MAX / 1275;
+
+    assert!(aggregate.supports(heaviest));
+    assert!(!aggregate.supports(heaviest + 1));
+}
+
 /// Sampled pairs are distinct and in bounds over every small universe.
 #[test]
 fn sampled_pairs_are_distinct_and_in_bounds() {
@@ -1387,7 +1434,7 @@ async fn probe_rejects_impossible_designs() {
             Xoshiro256PlusPlus::seed_from_u64(0),
         )
         .await,
-        Err(ProbeError::Neighbourhood { k: 3, universe: 4 }),
+        Err(ProbeError::Neighbourhood { k, universe: 4 }) if k.get() == 3,
     );
 
     // An empty neighbourhood ladder reads nothing.

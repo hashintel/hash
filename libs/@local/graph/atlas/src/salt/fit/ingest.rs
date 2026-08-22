@@ -30,7 +30,7 @@ use super::{
 use crate::{
     dataset::{Dataset, PROJECTOR_DIMENSIONS, TemporalAxes},
     file::{
-        array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
+        array::{ArrayFile, ArrayWriter, ColumnScalar as _},
         digest_file,
         generation::{Generation, ScratchDirectory, StagedGeneration},
         repository::{Artifact as _, Binding},
@@ -333,7 +333,11 @@ where
     let mut spool = InstanceSpoolWriter::create(scratch)?;
 
     let mut writer = BufWriter::new(staging.create(&artifact::EdgeEndpoints::NAME)?);
-    let mut endpoints = ArrayWriter::new(&mut writer, ArrayVariant::U64Le, &[Dim::new(2)])?;
+    let mut endpoints = ArrayWriter::new(
+        &mut writer,
+        <[NodeRowId; 2]>::VARIANT,
+        <[NodeRowId; 2]>::TRAILING,
+    )?;
 
     let mut stream = pin!(dataset.edges());
     while let Some(edge) = stream.try_next().await.map_err(FitError::Dataset)? {

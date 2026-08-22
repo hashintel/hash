@@ -538,9 +538,8 @@ const impl core::ops::Div<DPositive> for DFinite {
     ///
     /// The quotient's exponent is the numerator's minus the divisor's, so a finite value over
     /// a small positive one can overflow to either infinity, following the numerator's sign.
-    /// The fat exit enters the
-    /// derivation, which claims finiteness at its finish. It is never NaN: that would take a
-    /// zero or infinite operand, and both domains exclude them.
+    /// The fat exit enters the derivation, which claims finiteness at its finish. It is never NaN:
+    /// that would take a zero or infinite operand, and both domains exclude them.
     #[inline]
     fn div(self, rhs: DPositive) -> Derivation<DFinite> {
         Derivation::raw(self.0 / rhs.get())

@@ -115,6 +115,64 @@ impl NeighbourhoodAggregate {
         })
     }
 
+    /// Creates an empty aggregate at the clamped intrusion horizon.
+    ///
+    /// The mathematical horizon is `min(factor · k, universe)`. When the product exceeds
+    /// `usize`, it exceeds the universe as well, so the clamp is the universe.
+    #[must_use]
+    pub(crate) const fn clamped(
+        universe: usize,
+        k: NonZero<usize>,
+        factor: NonZero<usize>,
+    ) -> Option<Self> {
+        let product = k.get().saturating_mul(factor.get());
+        let horizon = if product < universe {
+            product
+        } else {
+            universe
+        };
+
+        Self::new(universe, k, horizon)
+    }
+
+    /// Proves the aggregate's integer carriers hold `observations` queries' worst-case penalties.
+    ///
+    /// Take `m` as the aggregate's universe and `k` its neighbourhood size. Penalties accumulate
+    /// into `u64` totals and read back through `usize` products. The recomputed products are the
+    /// doubled universe `2m` and the worst-case per-query penalty product `k·(2m − 3k + 1)`
+    /// before its exact halving into `worst`, then the pair count `q·k` and the normalizer
+    /// `q·worst` at `q = observations`. Each is checked with the carrier's own width, so an
+    /// accepted load cannot wrap on either target width. The checked normalizer also bounds the
+    /// `u64` penalty totals, and `usize` never exceeds `u64`. The worst case assumes each
+    /// observation ranks `k` distinct reference positions, which every observed ordering
+    /// satisfies: an ordering is a permutation, so one query's `k` opposite ranks are distinct.
+    #[expect(
+        clippy::integer_division,
+        clippy::integer_division_remainder_used,
+        reason = "k and (2m - 3k + 1) never share odd parity, so halving the worst-case penalty \
+                  is exact"
+    )]
+    #[must_use]
+    pub(crate) fn supports(&self, observations: usize) -> bool {
+        let Some(doubled) = self.universe.checked_mul(2) else {
+            return false;
+        };
+        let span = self
+            .k
+            .checked_mul(3)
+            .and_then(|tripled| doubled.checked_sub(tripled - 1))
+            .expect(
+                "construction bounds the neighbourhood within half the universe, so the span \
+                 arithmetic cannot overflow or underflow",
+            );
+        let Some(worst) = self.k.checked_mul(span) else {
+            return false;
+        };
+        let worst = worst / 2;
+
+        observations.checked_mul(self.k).is_some() && observations.checked_mul(worst).is_some()
+    }
+
     /// Accumulates one query's pair of orderings.
     ///
     /// Each slice lists the universe's points nearest-first in its space and must be a permutation

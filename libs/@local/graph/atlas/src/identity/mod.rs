@@ -18,13 +18,8 @@
 //! writes to and reads back from artifact files without conversion.
 
 pub(crate) use self::{
-    card::CardRow,
-    column::{Column, Element},
-    edge::EdgeRowId,
-    node::NodeRowId,
-    ontology::OntologyRowId,
-    position::BasePosition,
-    rank::ImportanceRank,
+    card::CardRow, column::Column, edge::EdgeRowId, node::NodeRowId, ontology::OntologyRowId,
+    position::BasePosition, rank::ImportanceRank,
 };
 
 /// Bench-only exports: the key-ordinal domain crosses typed into lod's bench module.

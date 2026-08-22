@@ -418,15 +418,8 @@ fn aggregate_template<E>(
         .neighbourhoods
         .iter()
         .map(|&k| {
-            let horizon = k
-                .get()
-                .saturating_mul(options.horizon_factor.get())
-                .min(universe);
-
-            NeighbourhoodAggregate::new(universe, k, horizon).ok_or(ProbeError::Neighbourhood {
-                k: k.get(),
-                universe,
-            })
+            NeighbourhoodAggregate::clamped(universe, k, options.horizon_factor)
+                .ok_or(ProbeError::Neighbourhood { k, universe })
         })
         .collect()
 }

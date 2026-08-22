@@ -8,10 +8,7 @@ use hashql_core::id::Id as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{Corpus, Profile};
-use crate::{
-    identity::{EdgeRowId, NodeRowId},
-    math::UnitFraction,
-};
+use crate::identity::{EdgeRowId, NodeRowId};
 
 const LINKS: usize = 4_096;
 const SEED: u64 = 42;
@@ -99,7 +96,7 @@ fn full_build_matches_composed_stages() {
     let mut scratch = live.scratch();
     let summary = live.build_in(&mut scratch, 0.0, 0.0);
     assert_eq!(summary.pruned_edges, 0);
-    assert_eq!(summary.omitted_mass_fraction, UnitFraction::ZERO);
+    assert_eq!(summary.omitted_mass_fraction.to_bits(), 0.0_f64.to_bits());
 
     // The isolated stages run over the same corpus without panicking
     // and the sorts agree with the full build's proper split.
@@ -118,7 +115,7 @@ fn pruning_sweep_is_monotone() {
     let live = corpus(Profile::Live);
 
     let mut previous_retained = usize::MAX;
-    let mut previous_omitted = UnitFraction::ZERO;
+    let mut previous_omitted = 0.0;
     for threshold in [0.0, 0.125, 0.5, 0.9] {
         let mut scratch = live.scratch();
         let summary = live.build_in(&mut scratch, 0.0, threshold);
@@ -136,7 +133,7 @@ fn pruning_sweep_is_monotone() {
     let mut scratch = live.scratch();
     let ceiling = live.build_in(&mut scratch, 0.0, 1.5);
     assert_eq!(ceiling.retained_edges, 0);
-    assert!((ceiling.omitted_mass_fraction.get() - 1.0).abs() < 1e-12);
+    assert!((ceiling.omitted_mass_fraction - 1.0).abs() < 1e-12);
 }
 
 /// Counts the corpus's self-referencing instances directly.

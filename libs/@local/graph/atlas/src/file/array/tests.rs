@@ -4,14 +4,20 @@ use core::{
 };
 use std::{io::Cursor, path::PathBuf};
 
+use hashql_core::id::IdSlice;
 use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
 use super::{
     ArrayShape, ArrayVariant, ArrayWriter, Dim, FileHeader, PaddedFileHeader, SizedArrayWriter,
+    SizedColumn,
     read::{ArrayFile, OpenArrayError},
 };
 use crate::{
-    file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
+    file::{
+        WriteInto as _,
+        region::{PAGE_BYTES, header::HeaderError, machine::Machine},
+    },
+    identity::{BasePosition, EdgeRowId, NodeRowId},
     integrity::{Sha256, Update as _},
 };
 
@@ -234,7 +240,7 @@ fn writer_and_file_round_trip_aligned_vectors() {
     assert_eq!(vectors.len(), 3);
     for (vector, row) in vectors.iter().zip(&rows) {
         // Bit-exact storage is the contract, so bytes compare exactly.
-        assert_eq!(vector.as_array().as_bytes(), row.as_bytes());
+        assert_eq!(vector.as_bytes(), row.as_bytes());
     }
 
     // A different width is a different file.
@@ -422,6 +428,30 @@ fn sized_writer_rejects_an_overlong_stream() {
         .write_row(row.as_bytes())
         .expect("writing to a vector should succeed");
     drop(writer.write_row(row.as_bytes()));
+}
+
+/// A typed column reads back under exactly its element's stamp.
+#[test]
+fn column_round_trips_the_element_stamp() {
+    let rows = [
+        [NodeRowId::new(0), NodeRowId::new(1)],
+        [NodeRowId::new(7), NodeRowId::new(7)],
+    ];
+    let mut bytes = Vec::new();
+    SizedColumn::<EdgeRowId, [NodeRowId; 2]>::new(IdSlice::from_raw(&rows))
+        .write_into(&mut bytes)
+        .expect("writing to a vector should succeed");
+    let file = TempFile::create(&bytes);
+    let opened = ArrayFile::open(&file.path).expect("a sealed file should open");
+
+    let pairs: &IdSlice<EdgeRowId, [NodeRowId; 2]> =
+        opened.column().expect("the stamped element type reads");
+    assert_eq!(pairs.as_raw(), &rows);
+
+    // Same variant, different trailing shape: the flat element refuses the pair file.
+    assert!(opened.column::<EdgeRowId, NodeRowId>().is_none());
+    // A different variant refuses outright.
+    assert!(opened.column::<EdgeRowId, BasePosition>().is_none());
 }
 
 /// Zero promised rows seal as the zero-element array immediately.

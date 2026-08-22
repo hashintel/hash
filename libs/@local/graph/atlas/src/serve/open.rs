@@ -9,6 +9,7 @@
 use std::sync::OnceLock;
 
 use hashql_core::id::Id;
+use zerocopy::{FromBytes, KnownLayout};
 
 use super::{
     Atlas,
@@ -19,7 +20,7 @@ use super::{
 };
 use crate::{
     file::{
-        array::ArrayFile,
+        array::{ArrayFile, ColumnScalar},
         generation::{Generation, GenerationId, GenerationRoot, OpenError},
         identity::{Key, Row, read::IdentityFile},
         morton::read::MortonFile,
@@ -28,9 +29,7 @@ use crate::{
         repository::{Artifact, Binding},
         sprs::read::SprsFile,
     },
-    identity::{
-        BasePosition, Column, EdgeRowId, Element, ImportanceRank, NodeRowId, OntologyRowId,
-    },
+    identity::{BasePosition, Column, EdgeRowId, ImportanceRank, NodeRowId, OntologyRowId},
     math::{Bounds2, Vec2},
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     salt::{
@@ -406,11 +405,16 @@ impl Atlas {
 /// Opens one array artifact as its serving role's typed column.
 ///
 /// Every failure names the role: the open error and the shape error alike carry `kind`.
-fn open_column<A: Artifact, I: Id, T: Element>(
+fn open_column<A, I, T>(
     generation: &Generation,
     binding: &Binding<A>,
     kind: ArrayKind,
-) -> Result<Column<I, T>, OpenAtlasError> {
+) -> Result<Column<I, T>, OpenAtlasError>
+where
+    A: Artifact,
+    I: Id,
+    T: ColumnScalar + FromBytes + KnownLayout,
+{
     let array = ArrayFile::open(generation.path_of(&binding.name()))
         .map_err(|error| OpenAtlasError::OpenArray { kind, error })?;
 

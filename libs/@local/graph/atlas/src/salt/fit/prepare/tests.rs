@@ -109,7 +109,7 @@ async fn representations_persist_row_aligned_with_the_node_stream() {
         let offset = PAGE_BYTES + row * row_bytes;
         assert_eq!(
             &bytes[offset..offset + row_bytes],
-            embedding.as_array().as_bytes(),
+            embedding.as_bytes(),
             "row {row} must hold its node's embedding",
         );
     }

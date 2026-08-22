@@ -31,7 +31,7 @@ use super::{
 };
 use crate::{
     identity::{EdgeRowId, NodeRowId},
-    math::{NonNegative, UnitFraction},
+    math::NonNegative,
 };
 
 mod fixture;
@@ -61,14 +61,14 @@ pub fn production_corpus(
 }
 
 /// Plain-number summary of one full build.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct BuildSummary {
     /// Attraction edges retained by the pruning predicate.
     pub retained_edges: usize,
     /// Attraction edges dropped by the pruning predicate.
     pub pruned_edges: usize,
-    /// The fraction of total force mass the pruning dropped.
-    pub omitted_mass_fraction: UnitFraction,
+    /// The fraction of total force mass the pruning dropped, read out at the hook boundary.
+    pub omitted_mass_fraction: f64,
     /// Stored protection entries.
     ///
     /// Each linked pair counts twice.
@@ -146,7 +146,7 @@ where
         BuildSummary {
             retained_edges: indexes.measurements.retained_edges,
             pruned_edges: indexes.measurements.pruned_edges,
-            omitted_mass_fraction: indexes.measurements.omitted_mass_fraction(),
+            omitted_mass_fraction: indexes.measurements.omitted_mass_fraction().get(),
             protection_entries: indexes.protection.matrix().nnz(),
         }
     }

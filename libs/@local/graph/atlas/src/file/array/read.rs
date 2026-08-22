@@ -3,9 +3,10 @@
 use core::{error::Error, fmt};
 use std::path::Path;
 
+use hashql_core::id::{Id, IdSlice};
 use zerocopy::{FromBytes as _, LE, U32, U64};
 
-use super::{Architecture, ArrayShape, ArrayVariant, FileHeader};
+use super::{Architecture, ArrayShape, ArrayVariant, FileHeader, write::ColumnScalar};
 use crate::{
     file::region::{
         PAGE_BYTES,
@@ -138,6 +139,33 @@ impl ArrayFile {
         &self.map.map().bytes()[PAGE_BYTES..]
     }
 
+    /// Views the data as one typed column: the read form of a [`SizedColumn`] write.
+    ///
+    /// The element type stamps the variant and the trailing row shape at the write, and this
+    /// view exists exactly when the file carries that stamp, so both directions read one law and
+    /// a view under the wrong element type cannot exist. The empty shape is the zero-row column.
+    ///
+    /// [`SizedColumn`]: super::SizedColumn
+    #[must_use]
+    pub(crate) fn column<I, T>(&self) -> Option<&IdSlice<I, T>>
+    where
+        I: Id,
+        T: ColumnScalar + zerocopy::FromBytes + zerocopy::KnownLayout,
+    {
+        if self.header().variant() != T::VARIANT {
+            return None;
+        }
+
+        match self.header().shape.dims() {
+            [] => {}
+            [_, trailing @ ..] if trailing == T::TRAILING => {}
+            _ => return None,
+        }
+
+        let elements = <[T]>::ref_from_bytes(self.data()).ok()?;
+        Some(IdSlice::from_raw(elements))
+    }
+
     /// Views the data as `N`-component SIMD-aligned vectors.
     ///
     /// The view exists exactly when the file holds `f32` elements shaped `[T, N]`; the returned
@@ -190,40 +218,6 @@ impl ArrayFile {
         }
 
         <[f32]>::ref_from_bytes(self.data()).ok()
-    }
-
-    /// Views the data as packed `u32` elements in row-major file order.
-    ///
-    /// The view exists exactly when the file holds `u32` elements, whatever its shape. The elements
-    /// are native: the open only admits files this host's byte order wrote.
-    #[must_use]
-    pub(crate) fn u32_elements(&self) -> Option<&[u32]> {
-        if self.header().variant() != ArrayVariant::U32 {
-            return None;
-        }
-
-        <[u32]>::ref_from_bytes(self.data()).ok()
-    }
-
-    /// Views the data as `u64` pairs in row order.
-    ///
-    /// The view exists exactly when the file holds `u64` elements shaped `[T, 2]`; the returned
-    /// slice holds the `T` pairs in order. A zero-element file is zero pairs, since its shape
-    /// records no row width. The elements are native: the open only admits files this host's byte
-    /// order wrote.
-    #[must_use]
-    pub(crate) fn u64_pairs(&self) -> Option<&[[u64; 2]]> {
-        if self.header().variant() != ArrayVariant::U64 {
-            return None;
-        }
-
-        match self.header().shape.dims() {
-            [] => {}
-            &[_, width] if width.get() == 2 => {}
-            _ => return None,
-        }
-
-        <[[u64; 2]]>::ref_from_bytes(self.data()).ok()
     }
 
     /// Views the data as little-endian `u32` elements.

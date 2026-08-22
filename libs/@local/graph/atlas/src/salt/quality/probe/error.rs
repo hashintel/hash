@@ -1,6 +1,6 @@
 //! Design, domain, and delivery failures that stop the probe.
 
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, num::NonZero};
 
 /// The probe could not run.
 #[derive(Debug)]
@@ -14,7 +14,7 @@ pub(crate) enum ProbeError<E> {
     /// The options name no neighbourhood size.
     NoNeighbourhoods,
     /// A neighbourhood size violates the aggregate domain over one of the probe's universes.
-    Neighbourhood { k: usize, universe: usize },
+    Neighbourhood { k: NonZero<usize>, universe: usize },
     /// The corpus row count exceeds the crate's `u32` row encoding.
     RowsExceedProbeDomain { rows: usize },
     /// The canonical stream failed.

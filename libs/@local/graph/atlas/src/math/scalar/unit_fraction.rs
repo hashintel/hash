@@ -8,7 +8,9 @@ use core::{
     ops::{Mul, MulAssign, Sub},
 };
 
-use super::{OpenUnitFraction, PositiveUnitFraction, raw_interop, unsafe_impl_try_from_bytes};
+use super::{
+    DFinite, OpenUnitFraction, PositiveUnitFraction, raw_interop, unsafe_impl_try_from_bytes,
+};
 
 /// Validates a unit-fraction literal at compile time.
 ///
@@ -26,7 +28,7 @@ pub(crate) use unit_fraction;
 /// outside `[0, 1]` or is NaN. The error carries the rejected value and displays it together with
 /// the expected interval.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct NotInUnitInterval(pub f64);
+pub(crate) struct NotInUnitInterval(pub f64);
 
 impl fmt::Display for NotInUnitInterval {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -83,15 +85,15 @@ impl Error for NotInUnitInterval {}
 )]
 #[bytecheck(verify)]
 #[repr(transparent)]
-pub struct UnitFraction(f64);
+pub(crate) struct UnitFraction(f64);
 
 impl UnitFraction {
     /// The fraction one half.
-    pub const HALF: Self = Self(0.5);
+    pub(crate) const HALF: Self = Self(0.5);
     /// The fraction one, the multiplicative identity and the empty product.
-    pub const ONE: Self = Self(1.0);
+    pub(crate) const ONE: Self = Self(1.0);
     /// The fraction zero.
-    pub const ZERO: Self = Self(0.0);
+    pub(crate) const ZERO: Self = Self(0.0);
 
     /// Validates a fraction.
     ///
@@ -101,7 +103,7 @@ impl UnitFraction {
     /// [`ratio`](Self::ratio).
     #[inline]
     #[must_use]
-    pub const fn new(value: f64) -> Option<Self> {
+    pub(crate) const fn new(value: f64) -> Option<Self> {
         if value >= 0.0 && value <= 1.0 {
             Some(Self::new_unchecked(value))
         } else {
@@ -128,7 +130,7 @@ impl UnitFraction {
     // rather than UB. Revisit if the value ever feeds an unchecked index.
     #[inline]
     #[must_use]
-    pub const fn new_unchecked(value: f64) -> Self {
+    pub(crate) const fn new_unchecked(value: f64) -> Self {
         debug_assert!(
             value >= 0.0 && value <= 1.0,
             "the caller promised a value inside [0, 1]",
@@ -163,7 +165,7 @@ impl UnitFraction {
     /// ```
     #[inline]
     #[must_use]
-    pub const fn new_clamped(value: f64) -> Option<Self> {
+    pub(crate) const fn new_clamped(value: f64) -> Option<Self> {
         if value >= 1.0 {
             Some(Self::ONE)
         } else if value >= 0.0 {
@@ -201,7 +203,7 @@ impl UnitFraction {
     )]
     #[inline]
     #[must_use]
-    pub const fn ratio(part: u64, total: u64) -> Option<Self> {
+    pub(crate) const fn ratio(part: u64, total: u64) -> Option<Self> {
         if total == 0 || part > total {
             return None;
         }
@@ -217,14 +219,14 @@ impl UnitFraction {
     /// Returns the fraction.
     #[inline]
     #[must_use]
-    pub const fn get(self) -> f64 {
+    pub(crate) const fn get(self) -> f64 {
         self.0
     }
 
     /// Returns `true` when the fraction is exactly zero.
     #[inline]
     #[must_use]
-    pub const fn is_zero(self) -> bool {
+    pub(crate) const fn is_zero(self) -> bool {
         self.0 == 0.0
     }
 
@@ -235,7 +237,7 @@ impl UnitFraction {
     )]
     #[inline]
     #[must_use]
-    pub const fn is_one(self) -> bool {
+    pub(crate) const fn is_one(self) -> bool {
         self.0 == 1.0
     }
 
@@ -246,7 +248,7 @@ impl UnitFraction {
     /// bit-exact pins.
     #[inline]
     #[must_use]
-    pub const fn to_bits(self) -> u64 {
+    pub(crate) const fn to_bits(self) -> u64 {
         self.0.to_bits()
     }
 
@@ -258,7 +260,7 @@ impl UnitFraction {
     /// hashing disagree with its numeric value.
     #[inline]
     #[must_use]
-    pub const fn is_canonical(value: f64) -> bool {
+    pub(crate) const fn is_canonical(value: f64) -> bool {
         match Self::new(value) {
             Some(fraction) => fraction.to_bits() == value.to_bits(),
             None => false,
@@ -274,7 +276,7 @@ impl UnitFraction {
     /// within `2⁻⁵⁴` of the start, so a fraction below `2⁻⁵⁴` can come back as zero.
     #[inline]
     #[must_use]
-    pub const fn complement(self) -> Self {
+    pub(crate) const fn complement(self) -> Self {
         // In range with no check: the real result lies in [0, 1] and rounding cannot escape an
         // interval whose endpoints are representable. Exact on [0.5, 1] by Sterbenz; the only
         // zero result is 1 - 1, whose sign is the canonical +0.0.
@@ -288,7 +290,7 @@ impl UnitFraction {
     /// below one can round to exactly one, which the closed interval admits.
     #[inline]
     #[must_use]
-    pub fn sqrt(self) -> Self {
+    pub(crate) fn sqrt(self) -> Self {
         // In range with no check: sqrt is monotone into [0, 1] over this domain, never NaN for
         // a non-negative operand, and sqrt(+0.0) is +0.0.
         Self(self.0.sqrt())
@@ -351,6 +353,21 @@ impl fmt::Display for UnitFraction {
     }
 }
 
+const impl Sub for UnitFraction {
+    type Output = DFinite;
+
+    /// The difference of two unit fractions.
+    ///
+    /// Both operands lie in [0, 1], so the difference lies in [−1, 1] and is always finite:
+    /// the landing is total and the unchecked constructor rides that theorem. The typed
+    /// carrier for the [−1, 1] landing itself does not exist yet, so the output claims
+    /// finiteness alone.
+    #[inline]
+    fn sub(self, rhs: Self) -> DFinite {
+        DFinite::new_unchecked(self.0 - rhs.0)
+    }
+}
+
 const impl Mul for UnitFraction {
     type Output = Self;
 
@@ -402,10 +419,6 @@ const impl TryFrom<f64> for UnitFraction {
 }
 
 #[cfg(test)]
-#[expect(
-    exported_private_dependencies,
-    reason = "the impl exists only in test builds, which no downstream consumer compiles"
-)]
 impl proptest::arbitrary::Arbitrary for UnitFraction {
     type Parameters = ();
     type Strategy = proptest::strategy::BoxedStrategy<Self>;

@@ -138,7 +138,7 @@ impl OpenUnitFraction {
     /// ```
     #[inline]
     #[must_use]
-    pub const fn complement(self) -> UnitFraction {
+    pub(crate) const fn complement(self) -> UnitFraction {
         // In range with no check: the real result lies in (0, 1) and rounding cannot escape
         // [0, 1]. Near one the subtraction is exact by Sterbenz, so the result is at least 2⁻⁵³;
         // a positive result needs no sign normalization.

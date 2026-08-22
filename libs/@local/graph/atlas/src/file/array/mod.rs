@@ -71,7 +71,7 @@ mod write;
 
 pub(crate) use self::{
     read::{ArrayFile, OpenArrayError},
-    write::{ArrayWriter, SizedArrayWriter, SizedColumn},
+    write::{ArrayWriter, ColumnScalar, SizedArrayWriter, SizedColumn},
 };
 use super::region::machine::{Architecture, Machine};
 use crate::file::region::{PAGE, header::header};

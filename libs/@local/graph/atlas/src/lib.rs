@@ -80,6 +80,7 @@
     impl_restriction,
     macro_metavar_expr_concat,
     never_type,
+    macro_metavar_expr,
 
     // Library Features
     allocator_api,
