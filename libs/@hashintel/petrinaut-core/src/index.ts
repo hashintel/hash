@@ -393,6 +393,29 @@ export {
   type ScenarioCompilationError,
   type ScenarioParameterValues,
 } from "./simulation/authoring/scenario/compile-scenario";
+export {
+  AD_HOC_DEFAULT_OPTIMIZE,
+  adHocParameterName,
+  adHocPlaceKey,
+  shareAdHocColumn,
+  synthesizeAdHocOptimization,
+  synthesizeAdHocScenario,
+  toggleAdHocOptimize,
+  unshareAdHocColumn,
+  type AdHocColouredPlace,
+  type AdHocRow,
+  type AdHocNetParameter,
+  type AdHocOptimizeSettings,
+  type AdHocPlaceState,
+  type AdHocScenarioState,
+  type AdHocSynthesisContext,
+  type AdHocSynthesisError,
+  type AdHocUncolouredPlace,
+  type AdHocValue,
+  type AdHocVariable,
+  type SynthesizeAdHocOptimizationOutcome,
+  type SynthesizeAdHocScenarioOutcome,
+} from "./simulation/authoring/scenario/ad-hoc-scenario";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
   coerceTokenAttributeValue,
