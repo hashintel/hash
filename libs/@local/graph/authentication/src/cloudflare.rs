@@ -3,13 +3,12 @@
 use core::ops::ControlFlow;
 
 use error_stack::Report;
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use http::HeaderMap;
 use type_system::principal::actor::{ActorId, UserId};
 
 use crate::{
     jwt::{JwtError, JwtValidator},
-    provider::AuthenticationProvider,
+    provider::{AuthenticationProvider, Caller},
     request::AuthenticationError,
 };
 
@@ -93,14 +92,15 @@ where
     }
 }
 
-impl<R> AuthenticationProvider for CloudflareAccessProvider<R>
+impl<C, R> AuthenticationProvider<C> for CloudflareAccessProvider<R>
 where
+    C: Caller,
     R: ResolveEmailActor,
 {
     async fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> ControlFlow<Result<AuthenticatedActor, Report<AuthenticationError>>> {
+    ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
         let Some(token) = headers.get(ACCESS_JWT_HEADER) else {
             return ControlFlow::Continue(());
         };
@@ -112,7 +112,7 @@ where
         ControlFlow::Break(
             self.verify_token(token)
                 .await
-                .map(|user_id| AuthenticatedActor::Id(ActorId::User(user_id))),
+                .map(|user_id| C::from_actor(ActorId::User(user_id))),
         )
     }
 }
@@ -127,7 +127,6 @@ mod tests {
 
     use axum::{Json, Router, routing::get};
     use error_stack::Report;
-    use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
     use http::{HeaderMap, HeaderValue, StatusCode};
     use jsonwebtoken::{Algorithm, EncodingKey, Header};
     use reqwest::Url;
@@ -316,16 +315,15 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
         let (actors, actor_id) = known_user(EMAIL);
         let provider = provider_for(actors).await;
 
-        let authentication = provider
+        let authentication: ControlFlow<Result<ActorId, _>> = provider
             .authenticate(&access_token_header(&mint_token(&valid_claims(EMAIL))))
             .await;
 
         assert!(
             matches!(
                 authentication,
-                ControlFlow::Break(Ok(AuthenticatedActor::Id(
-                    ActorId::User(user_id)
-                ))) if ActorEntityUuid::new(user_id) == actor_id
+                ControlFlow::Break(Ok(ActorId::User(user_id)))
+                    if ActorEntityUuid::new(user_id) == actor_id
             ),
             "a valid token should verify to the actor resolved from its email claim"
         );
@@ -335,11 +333,10 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
     async fn request_without_access_token_carries_no_credential() {
         let provider = provider_for(HashMap::new()).await;
 
+        let decision: ControlFlow<Result<ActorId, _>> =
+            provider.authenticate(&HeaderMap::new()).await;
         assert!(
-            matches!(
-                provider.authenticate(&HeaderMap::new()).await,
-                ControlFlow::Continue(())
-            ),
+            matches!(decision, ControlFlow::Continue(())),
             "a request without an Access token should not be recognized"
         );
     }
@@ -355,7 +352,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .expect("the token should be a valid header value"),
         );
 
-        let report = expect_rejection(provider.authenticate(&headers).await);
+        let report = expect_rejection::<ActorId>(provider.authenticate(&headers).await);
         assert!(
             matches!(
                 report.current_context(),
@@ -388,7 +385,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
         let mut claims = valid_claims(EMAIL);
         claims[claim] = value;
 
-        let report = expect_rejection(
+        let report = expect_rejection::<ActorId>(
             provider
                 .authenticate(&access_token_header(&mint_token(&claims)))
                 .await,
@@ -419,7 +416,8 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
         )
         .expect("the token should encode");
 
-        let report = expect_rejection(provider.authenticate(&access_token_header(&token)).await);
+        let report =
+            expect_rejection::<ActorId>(provider.authenticate(&access_token_header(&token)).await);
         assert!(
             matches!(
                 report.current_context(),
@@ -444,7 +442,8 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
             .expect("the token should contain a signature segment");
         let forged = format!("{target_message}.{victim_signature}");
 
-        let report = expect_rejection(provider.authenticate(&access_token_header(&forged)).await);
+        let report =
+            expect_rejection::<ActorId>(provider.authenticate(&access_token_header(&forged)).await);
         assert!(
             matches!(
                 report.current_context(),
@@ -474,7 +473,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
             .expect("the claims should be a JSON object")
             .remove(claim);
 
-        let report = expect_rejection(
+        let report = expect_rejection::<ActorId>(
             provider
                 .authenticate(&access_token_header(&mint_token(&claims)))
                 .await,
@@ -504,11 +503,9 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .expect("the email should be a valid header value"),
         );
 
+        let decision: ControlFlow<Result<ActorId, _>> = provider.authenticate(&headers).await;
         assert!(
-            matches!(
-                provider.authenticate(&headers).await,
-                ControlFlow::Continue(())
-            ),
+            matches!(decision, ControlFlow::Continue(())),
             "the unsigned email header should not be recognized as a credential"
         );
     }
@@ -524,7 +521,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
             .expect("the claims should be a JSON object")
             .remove("email");
 
-        let report = expect_rejection(
+        let report = expect_rejection::<ActorId>(
             provider
                 .authenticate(&access_token_header(&mint_token(&claims)))
                 .await,
@@ -542,7 +539,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
     async fn token_with_unknown_email_fails_authentication() {
         let provider = provider_for(HashMap::new()).await;
 
-        let report = expect_rejection(
+        let report = expect_rejection::<ActorId>(
             provider
                 .authenticate(&access_token_header(&mint_token(&valid_claims(EMAIL))))
                 .await,
@@ -569,7 +566,8 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
         header.kid = key_id.map(str::to_owned);
         let token = sign(&header, &valid_claims(EMAIL));
 
-        let report = expect_rejection(provider.authenticate(&access_token_header(&token)).await);
+        let report =
+            expect_rejection::<ActorId>(provider.authenticate(&access_token_header(&token)).await);
         assert!(
             matches!(
                 report.current_context(),
@@ -591,7 +589,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
             },
         );
 
-        let report = expect_rejection(
+        let report = expect_rejection::<ActorId>(
             provider
                 .authenticate(&access_token_header(&mint_token(&valid_claims(EMAIL))))
                 .await,

@@ -3,7 +3,6 @@ use core::str::FromStr as _;
 use criterion::{BenchmarkId, Criterion};
 use hash_graph_authorization::policies::{
     action::ActionName,
-    principal::actor::AuthenticatedActor,
     store::{PolicyStore as _, PrincipalStore as _, ResolvePoliciesParams},
 };
 use hash_graph_postgres_store::store::AsClient as _;
@@ -206,9 +205,9 @@ fn run_benchmark_seed_group(
     seed_level: SeedLevel,
     configs: Vec<BenchConfig>,
 ) {
-    let account_id = type_system::principal::actor::ActorEntityUuid::new(
+    let account_id = ActorId::User(type_system::principal::actor::UserId::new(
         uuid::Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    );
+    ));
 
     // Use seed level as DB name to share across configs
     let db_name = format!("bench_shared_{}", seed_level.as_str());
@@ -239,7 +238,7 @@ fn run_benchmark_seed_group(
             };
             store_wrapper
                 .store
-                .resolve_policies_for_actor(AuthenticatedActor::Id(test_actor), params)
+                .resolve_policies_for_actor(Some(test_actor), params)
                 .await
                 .expect("Policy resolution failed")
                 .len()
@@ -276,7 +275,7 @@ fn run_benchmark_seed_group(
 
                         store_wrapper
                             .store
-                            .resolve_policies_for_actor(AuthenticatedActor::Id(*test_actor), params)
+                            .resolve_policies_for_actor(Some(*test_actor), params)
                             .await
                             .expect("Policy resolution failed")
                     })

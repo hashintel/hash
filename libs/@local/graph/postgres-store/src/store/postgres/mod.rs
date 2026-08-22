@@ -17,7 +17,7 @@ use hash_graph_authorization::policies::{
     Authorized, ContextBuilder, Effect, MergePolicies, Policy, PolicyComponents, PolicyId, Request,
     RequestContext, ResolvedPolicy, ResourceId,
     action::ActionName,
-    principal::{PrincipalConstraint, actor::AuthenticatedActor},
+    principal::PrincipalConstraint,
     resource::{
         DataTypeId, DataTypeResource, EntityResource, EntityTypeId, EntityTypeResource,
         PolicyMetaResource, PropertyTypeId, PropertyTypeResource, ResourceConstraint,
@@ -842,7 +842,7 @@ where
         parameter: CreateWebParameter,
     ) -> Result<CreateWebResponse, Report<WebCreationError>> {
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor)
+            .with_actor(Some(actor))
             .with_action(ActionName::CreateWeb, MergePolicies::No)
             .await
             .change_context(WebCreationError::BuildPolicyComponents)?;
@@ -962,7 +962,7 @@ where
 
     async fn get_web_roles(
         &mut self,
-        _actor: ActorEntityUuid,
+        _actor: ActorId,
         web_id: WebId,
     ) -> Result<HashMap<WebRoleId, WebRole>, Report<WebRoleError>> {
         let roles = self
@@ -1001,7 +1001,7 @@ where
 
     async fn get_team_roles(
         &mut self,
-        _actor: ActorEntityUuid,
+        _actor: ActorId,
         team_id: TeamId,
     ) -> Result<HashMap<TeamRoleId, TeamRole>, Report<TeamRoleError>> {
         let roles = self
@@ -1040,13 +1040,13 @@ where
 
     async fn assign_role(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         actor_to_assign: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,
     ) -> Result<RoleAssignmentStatus, Report<RoleAssignmentError>> {
         if self
-            .get_actor_group_role(actor_id, actor_group_id)
+            .get_actor_group_role(ActorEntityUuid::from(actor_id), actor_group_id)
             .await
             .change_context(RoleAssignmentError::StoreError)?
             != Some(RoleName::Administrator)
@@ -1069,19 +1069,30 @@ where
 
         // We don't know what kind of actor and group we're dealing with, so we need to determine
         // the actor and group IDs.
-        let actor_to_assign_id = transaction
-            .determine_actor(actor_to_assign)
-            .await
-            .change_context(RoleAssignmentError::StoreError)?
-            .ok_or(RoleAssignmentError::ActorNotProvided)
-            .attach_opaque(StatusCode::InvalidArgument)?;
+        let actor_to_assign_id =
+            transaction
+                .determine_actor(actor_to_assign)
+                .await
+                .map_err(|report| match report.current_context() {
+                    DetermineActorError::ActorNotFound { .. } => report
+                        .change_context(RoleAssignmentError::ActorNotFound {
+                            actor_id: actor_to_assign,
+                        })
+                        .attach(StatusCode::InvalidArgument),
+                    DetermineActorError::StoreError => {
+                        report.change_context(RoleAssignmentError::StoreError)
+                    }
+                })?;
         let actor_group_id = transaction
             .determine_actor_group(actor_group_id)
             .await
             .change_context(RoleAssignmentError::StoreError)?;
 
         if let Some(already_assigned_role) = transaction
-            .get_actor_group_role(actor_to_assign_id.into(), actor_group_id.into())
+            .get_actor_group_role(
+                ActorEntityUuid::from(actor_to_assign_id),
+                actor_group_id.into(),
+            )
             .await?
         {
             if already_assigned_role == name {
@@ -1171,13 +1182,13 @@ where
 
     async fn unassign_role(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         actor_to_unassign: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,
     ) -> Result<RoleUnassignmentStatus, Report<RoleAssignmentError>> {
         if self
-            .get_actor_group_role(actor_id, actor_group_id)
+            .get_actor_group_role(ActorEntityUuid::from(actor_id), actor_group_id)
             .await
             .change_context(RoleAssignmentError::StoreError)?
             != Some(RoleName::Administrator)
@@ -1196,9 +1207,16 @@ where
         let actor_to_unassign_id = transaction
             .determine_actor(actor_to_unassign)
             .await
-            .change_context(RoleAssignmentError::StoreError)?
-            .ok_or(RoleAssignmentError::ActorNotProvided)
-            .attach_opaque(StatusCode::InvalidArgument)?;
+            .map_err(|report| match report.current_context() {
+                DetermineActorError::ActorNotFound { .. } => report
+                    .change_context(RoleAssignmentError::ActorNotFound {
+                        actor_id: actor_to_unassign,
+                    })
+                    .attach(StatusCode::InvalidArgument),
+                DetermineActorError::StoreError => {
+                    report.change_context(RoleAssignmentError::StoreError)
+                }
+            })?;
         let actor_group_id = transaction
             .determine_actor_group(actor_group_id)
             .await
@@ -1230,11 +1248,7 @@ where
     async fn determine_actor(
         &self,
         actor_entity_uuid: ActorEntityUuid,
-    ) -> Result<Option<ActorId>, Report<DetermineActorError>> {
-        if actor_entity_uuid.is_public_actor() {
-            return Ok(None);
-        }
-
+    ) -> Result<ActorId, Report<DetermineActorError>> {
         let row = self
             .as_client()
             .query_opt(
@@ -1251,7 +1265,7 @@ where
             .change_context(DetermineActorError::StoreError)?
             .ok_or(DetermineActorError::ActorNotFound { actor_entity_uuid })?;
 
-        Ok(Some(match row.get(0) {
+        Ok(match row.get(0) {
             PrincipalType::User => ActorId::User(UserId::new(actor_entity_uuid)),
             PrincipalType::Machine => ActorId::Machine(MachineId::new(actor_entity_uuid)),
             PrincipalType::Ai => ActorId::Ai(AiId::new(actor_entity_uuid)),
@@ -1261,7 +1275,7 @@ where
             | PrincipalType::TeamRole) => {
                 unreachable!("Unexpected actor type: {principal_type:?}")
             }
-        }))
+        })
     }
 
     #[tracing::instrument(level = "info", skip(self, context_builder))]
@@ -1278,7 +1292,7 @@ where
         //   - Prefetching contexts for related actors in batch operations
 
         let actor = self
-            .get_actor(actor_id.into(), actor_id)
+            .get_actor(actor_id, actor_id)
             .await
             .change_context(BuildPrincipalContextError::StoreError)?
             .ok_or(BuildPrincipalContextError::ActorNotFound { actor_id })?;
@@ -1445,7 +1459,7 @@ where
 {
     async fn create_policy(
         &mut self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         policy: PolicyCreationParams,
     ) -> Result<PolicyId, Report<CreatePolicyError>> {
         let transaction = self
@@ -1459,7 +1473,7 @@ where
         };
 
         let policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(authenticated_actor)
+            .with_actor(Some(authenticated_actor))
             .with_action(ActionName::CreatePolicy, MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource {
                 id: policy_id,
@@ -1500,7 +1514,7 @@ where
 
     async fn get_policy_by_id(
         &self,
-        _authenticated_actor: AuthenticatedActor,
+        _authenticated_actor: ActorId,
         id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>> {
         self.as_client()
@@ -1554,13 +1568,13 @@ where
 
     async fn query_policies(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         filter: &PolicyFilter,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         let policies = self.read_policies_from_database(filter).await?;
 
         let mut policy_components_builder = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
+            .with_actor(Some(authenticated_actor))
             .with_action(ActionName::ViewPolicy, MergePolicies::No);
         for policy in &policies {
             policy_components_builder.add_policy_meta_resource(&PolicyMetaResource::from(policy));
@@ -1600,18 +1614,10 @@ where
     #[tracing::instrument(level = "info", skip(self, params), fields(action_count = params.actions.len()))]
     async fn resolve_policies_for_actor(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: Option<ActorId>,
         params: ResolvePoliciesParams<'_>,
     ) -> Result<Vec<ResolvedPolicy>, Report<GetPoliciesError>> {
-        let actor_id = match authenticated_actor {
-            AuthenticatedActor::Uuid(actor_entity_uuid) => self
-                .determine_actor(actor_entity_uuid)
-                .await
-                .change_context(GetPoliciesError::ActorIdNotFound { actor_entity_uuid })?,
-            AuthenticatedActor::Id(actor_id) => Some(actor_id),
-        };
-
-        let Some(actor_id) = actor_id else {
+        let Some(actor_id) = authenticated_actor else {
             // If no actor is provided, only policies without principal constraints are returned.
             return Ok(self
                 .read_policies_from_database(&PolicyFilter {
@@ -1755,7 +1761,7 @@ where
 
     async fn update_policy_by_id(
         &mut self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         policy_id: PolicyId,
         operations: &[PolicyUpdateOperation],
     ) -> Result<Policy, Report<UpdatePolicyError>> {
@@ -1771,7 +1777,7 @@ where
             .ok_or(UpdatePolicyError::PolicyNotFound { id: policy_id })?;
 
         let old_policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(authenticated_actor)
+            .with_actor(Some(authenticated_actor))
             .with_action(ActionName::UpdatePolicy, MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource::from(&old_policy))
             .await
@@ -1803,7 +1809,7 @@ where
             .await?;
 
         let updated_policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(authenticated_actor)
+            .with_actor(Some(authenticated_actor))
             .with_actions([ActionName::UpdatePolicy], MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource::from(&update_policy))
             .await
@@ -1840,7 +1846,7 @@ where
 
     async fn archive_policy_by_id(
         &mut self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>> {
         let policy = self
@@ -1853,7 +1859,7 @@ where
             })?;
 
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
+            .with_actor(Some(authenticated_actor))
             .with_action(ActionName::ArchivePolicy, MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource::from(&policy))
             .await
@@ -1886,7 +1892,7 @@ where
 
     async fn delete_policy_by_id(
         &mut self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>> {
         let policy = self
@@ -1899,7 +1905,7 @@ where
             })?;
 
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
+            .with_actor(Some(authenticated_actor))
             .with_action(ActionName::DeletePolicy, MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource::from(&policy))
             .await
@@ -3538,20 +3544,13 @@ where
 impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
     async fn create_user_actor(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreateUserActorParams,
     ) -> Result<CreateUserActorResponse, Report<AccountInsertionError>> {
         let mut transaction = self
             .begin_transaction()
             .await
             .change_context(AccountInsertionError)?;
-
-        let actor_id = transaction
-            .determine_actor(actor_id)
-            .await
-            .change_context(AccountInsertionError)?
-            .ok_or(AccountInsertionError)
-            .attach_opaque(StatusCode::Unauthenticated)?;
 
         let user_id = transaction
             .create_user(params.user_id)
@@ -3585,7 +3584,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn create_machine_actor(
         &mut self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         params: CreateMachineActorParams,
     ) -> Result<MachineId, Report<AccountInsertionError>> {
         self.create_machine(None, &params.identifier)
@@ -3595,7 +3594,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn get_user_by_id(
         &self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         id: UserId,
     ) -> Result<Option<User>, Report<GetActorError>> {
         Ok(self
@@ -3685,7 +3684,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn get_machine_by_id(
         &self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         id: MachineId,
     ) -> Result<Option<Machine>, Report<GetActorError>> {
         Ok(self
@@ -3738,7 +3737,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn get_machine_by_identifier(
         &self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         identifier: &str,
     ) -> Result<Option<Machine>, Report<GetActorError>> {
         Ok(self
@@ -3791,7 +3790,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn get_ai_by_id(
         &self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         id: AiId,
     ) -> Result<Option<Ai>, Report<GetActorError>> {
         Ok(self
@@ -3844,7 +3843,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn get_ai_by_identifier(
         &self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         identifier: &str,
     ) -> Result<Option<Ai>, Report<GetActorError>> {
         Ok(self
@@ -3897,7 +3896,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn create_ai_actor(
         &mut self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         params: CreateAiActorParams,
     ) -> Result<AiId, Report<AccountInsertionError>> {
         self.create_ai(None, &params.identifier)
@@ -3908,7 +3907,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_org_web(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreateOrgWebParams,
     ) -> Result<CreateWebResponse, Report<WebInsertionError>> {
         let mut transaction = self
@@ -3916,20 +3915,16 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
             .await
             .change_context(WebInsertionError)?;
 
-        let actor_id = transaction
-            .determine_actor(actor_id)
-            .await
-            .change_context(WebInsertionError)?
-            .ok_or(WebInsertionError)
-            .attach_opaque(StatusCode::Unauthenticated)?;
-
         let administrator = if let Some(administrator) = params.administrator {
             transaction
                 .determine_actor(administrator)
                 .await
-                .change_context(WebInsertionError)?
-                .ok_or(WebInsertionError)
-                .attach_opaque(StatusCode::InvalidArgument)?
+                .map_err(|report| match report.current_context() {
+                    DetermineActorError::ActorNotFound { .. } => report
+                        .change_context(WebInsertionError)
+                        .attach(StatusCode::InvalidArgument),
+                    DetermineActorError::StoreError => report.change_context(WebInsertionError),
+                })?
         } else {
             actor_id
         };
@@ -3957,7 +3952,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn get_web_by_id(
         &self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         id: WebId,
     ) -> Result<Option<Web>, Report<WebRetrievalError>> {
         Ok(self
@@ -3994,7 +3989,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn update_web_shortname(
         &mut self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         id: WebId,
         shortname: &str,
     ) -> Result<(), Report<WebUpdateError>> {
@@ -4033,7 +4028,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn get_web_by_shortname(
         &self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         shortname: &str,
     ) -> Result<Option<Web>, Report<WebRetrievalError>> {
         Ok(self
@@ -4072,7 +4067,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_team(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreateTeamParams,
     ) -> Result<TeamId, Report<AccountGroupInsertionError>> {
         let mut transaction = self
@@ -4096,15 +4091,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
             .change_context(AccountGroupInsertionError)?;
 
         transaction
-            .assign_role_by_id(
-                transaction
-                    .determine_actor(actor_id)
-                    .await
-                    .change_context(AccountGroupInsertionError)?
-                    .ok_or(AccountGroupInsertionError)
-                    .attach_opaque(StatusCode::InvalidArgument)?,
-                admin_role,
-            )
+            .assign_role_by_id(actor_id, admin_role)
             .await
             .change_context(AccountGroupInsertionError)?;
 
@@ -4118,7 +4105,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn get_team_by_id(
         &self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         id: TeamId,
     ) -> Result<Option<Team>, Report<TeamRetrievalError>> {
         Ok(self
@@ -4169,7 +4156,7 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
 
     async fn get_team_by_name(
         &self,
-        _actor_id: ActorEntityUuid,
+        _actor_id: ActorId,
         name: &str,
     ) -> Result<Option<Team>, Report<TeamRetrievalError>> {
         Ok(self
@@ -4233,10 +4220,7 @@ where
     ///
     /// Returns [`DeletionError`] if any of the database deletion operations fail.
     #[tracing::instrument(level = "info", skip(self))]
-    pub async fn delete_principals(
-        &self,
-        actor_id: ActorEntityUuid,
-    ) -> Result<(), Report<DeletionError>> {
+    pub async fn delete_principals(&self) -> Result<(), Report<DeletionError>> {
         self.as_client()
             .client()
             .simple_query("DELETE FROM policy;")

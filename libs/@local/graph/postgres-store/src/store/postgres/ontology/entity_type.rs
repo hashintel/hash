@@ -6,7 +6,7 @@ use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
-    action::ActionName, principal::actor::AuthenticatedActor,
+    action::ActionName,
 };
 use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{
@@ -63,7 +63,10 @@ use type_system::{
         property_type::PropertyTypeUuid,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId},
+        actor_group::WebId,
+    },
 };
 
 use crate::store::{
@@ -165,7 +168,7 @@ where
     #[tracing::instrument(level = "info", skip(self, entity_types))]
     pub(crate) async fn get_entity_type_resolve_definitions(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         entity_types: &[EntityTypeUuid],
         include_data_type_children: bool,
     ) -> Result<EntityTypeResolveDefinitions, Report<QueryError>> {
@@ -888,7 +891,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn create_entity_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<InsertionError>>
     where
@@ -908,7 +911,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: actor_id,
+                    created_by_id: ActorEntityUuid::from(actor_id),
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -949,7 +952,7 @@ where
         }
 
         let policy_components = policy_components_builder
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_actions([ActionName::CreateEntityType], MergePolicies::No)
             .await
             .change_context(InsertionError)?;
@@ -1002,7 +1005,7 @@ where
 
         transaction
             .query_entity_types(
-                actor_id,
+                Some(actor_id),
                 QueryEntityTypesParams {
                     request: CommonQueryEntityTypesParams {
                         filter: Filter::In(
@@ -1087,7 +1090,7 @@ where
         {
             temporal_client
                 .start_update_entity_type_embeddings_workflow(
-                    actor_id,
+                    ActorEntityUuid::from(actor_id),
                     &inserted_entity_types
                         .iter()
                         .zip(&inserted_entity_type_metadata)
@@ -1106,7 +1109,7 @@ where
 
     async fn count_entity_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         mut params: CountEntityTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
@@ -1155,7 +1158,7 @@ where
 
     async fn query_entity_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         mut params: QueryEntityTypesParams<'_>,
     ) -> Result<QueryEntityTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
@@ -1213,7 +1216,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn search_entity_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: SearchEntityTypesParams,
     ) -> Result<SearchEntityTypesResponse, Report<QueryError>> {
         let SearchEntityTypesParams {
@@ -1223,7 +1226,7 @@ where
         } = params;
 
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -1311,7 +1314,7 @@ where
 
         let response = self
             .query_entity_types(
-                actor_id,
+                Some(actor_id),
                 QueryEntityTypesParams {
                     request: CommonQueryEntityTypesParams {
                         filter: Filter::for_entity_type_uuids(&ranked),
@@ -1356,7 +1359,7 @@ where
     )]
     async fn get_closed_multi_entity_types<I, J>(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         entity_type_ids: I,
         temporal_axes: QueryTemporalAxesUnresolved,
         include_resolved: Option<IncludeResolvedEntityTypeOption>,
@@ -1483,7 +1486,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn query_entity_type_subgraph(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryEntityTypeSubgraphParams<'_>,
     ) -> Result<QueryEntityTypeSubgraphResponse, Report<QueryError>> {
         let actions = params.view_actions();
@@ -1618,7 +1621,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn update_entity_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<UpdateError>>
     where
@@ -1635,7 +1638,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: actor_id,
+                    created_by_id: ActorEntityUuid::from(actor_id),
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -1682,7 +1685,7 @@ where
         }
 
         let policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_entity_type_ids(&old_entity_type_ids)
             .with_actions([ActionName::UpdateEntityType], MergePolicies::No)
             .await
@@ -1736,7 +1739,7 @@ where
 
         transaction
             .query_entity_types(
-                actor_id,
+                Some(actor_id),
                 QueryEntityTypesParams {
                     request: CommonQueryEntityTypesParams {
                         filter: Filter::In(
@@ -1823,7 +1826,7 @@ where
         {
             temporal_client
                 .start_update_entity_type_embeddings_workflow(
-                    actor_id,
+                    ActorEntityUuid::from(actor_id),
                     &inserted_entity_types
                         .iter()
                         .zip(&updated_entity_type_metadata)
@@ -1843,11 +1846,11 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn archive_entity_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: ArchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_entity_type_id(&params.entity_type_id)
             .with_actions([ActionName::ArchiveEntityType], MergePolicies::No)
             .await
@@ -1880,18 +1883,18 @@ where
             }
         }
 
-        self.archive_ontology_type(&params.entity_type_id, actor_id)
+        self.archive_ontology_type(&params.entity_type_id, ActorEntityUuid::from(actor_id))
             .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
     async fn unarchive_entity_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: UnarchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_entity_type_id(&params.entity_type_id)
             .with_actions([ActionName::ArchiveEntityType], MergePolicies::No)
             .await
@@ -1927,7 +1930,7 @@ where
         self.unarchive_ontology_type(
             &params.entity_type_id,
             &OntologyEditionProvenance {
-                created_by_id: actor_id,
+                created_by_id: ActorEntityUuid::from(actor_id),
                 archived_by_id: None,
                 user_defined: params.provenance,
             },
@@ -1938,7 +1941,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_entity_type_embeddings(
         &mut self,
-        _: ActorEntityUuid,
+        _: ActorId,
         params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         let ontology_id = OntologyTypeUuid::from(DataTypeUuid::from_url(&params.entity_type_id));
@@ -2113,7 +2116,7 @@ where
     )]
     async fn has_permission_for_entity_types(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         params: HasPermissionForEntityTypesParams<'_>,
     ) -> Result<HashSet<VersionedUrl>, Report<CheckPermissionError>> {
         if params.action == ActionName::Instantiate {
@@ -2123,7 +2126,7 @@ where
             //   see https://linear.app/hash/issue/H-4956
 
             let policy_components = PolicyComponents::builder(self)
-                .with_actor(authenticated_actor)
+                .with_actor(Some(authenticated_actor))
                 .with_action(ActionName::Instantiate, MergePolicies::No)
                 .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
                 .with_entity_type_ids(params.entity_type_ids.iter())
@@ -2211,7 +2214,7 @@ where
                 .change_context(CheckPermissionError::CompileFilter)?;
 
             let policy_components = PolicyComponents::builder(self)
-                .with_actor(authenticated_actor)
+                .with_actor(Some(authenticated_actor))
                 .with_action(params.action, MergePolicies::Yes)
                 .await
                 .change_context(CheckPermissionError::BuildPolicyContext)?;

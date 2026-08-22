@@ -37,7 +37,7 @@ use crate::{
     person_type_id, provenance, seed,
 };
 
-fn created_by_filter(actor_id: ActorEntityUuid) -> Filter<'static, Entity> {
+fn created_by_filter(actor_id: ActorId) -> Filter<'static, Entity> {
     Filter::Equal(
         FilterExpression::Path {
             path: EntityQueryPath::CreatedById,
@@ -83,7 +83,7 @@ async fn created_by_round_trips_through_columns() {
     let response = api
         .store
         .query_entities(
-            api.account_id,
+            Some(api.account_id),
             QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(created.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::all(),
@@ -109,7 +109,7 @@ async fn created_by_round_trips_through_columns() {
     };
     let read = &entity.metadata.provenance;
     let original = &created.metadata.provenance;
-    assert_eq!(read.created_by_id, api.account_id);
+    assert_eq!(read.created_by_id, ActorEntityUuid::from(api.account_id));
     assert_eq!(
         read.created_at_transaction_time,
         original.created_at_transaction_time
@@ -118,7 +118,10 @@ async fn created_by_round_trips_through_columns() {
         read.created_at_decision_time,
         original.created_at_decision_time
     );
-    assert_eq!(read.edition.created_by_id, api.account_id);
+    assert_eq!(
+        read.edition.created_by_id,
+        ActorEntityUuid::from(api.account_id)
+    );
 }
 
 /// The entity creator and the edition creator are independent columns.
@@ -134,7 +137,7 @@ async fn creator_columns_discriminate_actors() {
     let mut api = seed(&mut database).await;
 
     let user_b = create_second_user(&mut api).await;
-    let actor_b: ActorEntityUuid = user_b.into();
+    let actor_b: ActorId = user_b.into();
 
     let decision_time = Timestamp::<DecisionTime>::from_str("2020-01-01T00:00:00Z")
         .expect("timestamp should parse");
@@ -192,7 +195,7 @@ async fn creator_columns_discriminate_actors() {
     let response = api
         .store
         .query_entities(
-            api.account_id,
+            Some(api.account_id),
             QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::all(),
@@ -220,8 +223,8 @@ async fn creator_columns_discriminate_actors() {
         .expect("expected at least one entity revision");
 
     let read = &entity.metadata.provenance;
-    assert_eq!(read.created_by_id, api.account_id);
-    assert_eq!(read.edition.created_by_id, actor_b);
+    assert_eq!(read.created_by_id, ActorEntityUuid::from(api.account_id));
+    assert_eq!(read.edition.created_by_id, ActorEntityUuid::from(actor_b));
     assert_eq!(read.created_at_decision_time, decision_time);
     assert_ne!(
         read.created_at_transaction_time.cast::<DecisionTime>(),
@@ -239,13 +242,22 @@ async fn creator_columns_discriminate_actors() {
         .created_by_ids
         .as_ref()
         .expect("summary should include created-by ids");
-    assert_eq!(created_by_ids.get(&api.account_id), Some(&2));
+    assert_eq!(
+        created_by_ids.get(&ActorEntityUuid::from(api.account_id)),
+        Some(&2)
+    );
     let edition_created_by_ids = summary_a
         .edition_created_by_ids
         .as_ref()
         .expect("summary should include edition created-by ids");
-    assert_eq!(edition_created_by_ids.get(&api.account_id), Some(&1));
-    assert_eq!(edition_created_by_ids.get(&actor_b), Some(&1));
+    assert_eq!(
+        edition_created_by_ids.get(&ActorEntityUuid::from(api.account_id)),
+        Some(&1)
+    );
+    assert_eq!(
+        edition_created_by_ids.get(&ActorEntityUuid::from(actor_b)),
+        Some(&1)
+    );
 }
 
 /// The summary aggregation counts entities by creator through the column read path.
@@ -263,7 +275,7 @@ async fn created_by_summaries_use_columns() {
             .created_by_ids
             .as_ref()
             .expect("summary should include created-by ids")
-            .get(&api.account_id),
+            .get(&ActorEntityUuid::from(api.account_id)),
         Some(&2)
     );
     assert_eq!(
@@ -271,7 +283,7 @@ async fn created_by_summaries_use_columns() {
             .edition_created_by_ids
             .as_ref()
             .expect("summary should include edition created-by ids")
-            .get(&api.account_id),
+            .get(&ActorEntityUuid::from(api.account_id)),
         Some(&2)
     );
 }

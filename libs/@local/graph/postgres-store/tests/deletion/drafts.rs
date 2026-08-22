@@ -43,7 +43,7 @@ async fn draft_only_entity_promoted_to_full_delete() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(base_id),
                 include_drafts: true,
@@ -121,7 +121,7 @@ async fn draft_of_published_entity_preserves_published() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id),
                 include_drafts: true,
@@ -190,7 +190,7 @@ async fn include_drafts_false_skips_drafts() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(base_id),
                 include_drafts: false,
@@ -291,7 +291,7 @@ async fn partial_draft_match_not_promoted() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id_1),
                 include_drafts: true,
@@ -373,7 +373,7 @@ async fn published_and_draft_matched_becomes_full_delete() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: true,
@@ -449,7 +449,7 @@ async fn mixed_full_and_draft_targets() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -537,7 +537,7 @@ async fn empty_target_guards() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id),
                 include_drafts: true,
@@ -623,7 +623,7 @@ async fn draft_link_entity_edge_survives() {
     let summary1 = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_link_entity_id),
                 include_drafts: true,
@@ -656,7 +656,7 @@ async fn draft_link_entity_edge_survives() {
     let summary2 = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(link_entity_id),
                 include_drafts: false,
@@ -757,7 +757,7 @@ async fn summary_counts_draft_ids_not_entities() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(draft_entity_id_1),

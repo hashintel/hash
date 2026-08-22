@@ -89,7 +89,7 @@ use type_system::{
             OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
         },
     },
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{actor::ActorId, actor_group::WebId},
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,
@@ -183,7 +183,7 @@ pub trait RestApiStore:
 {
     fn load_external_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> impl Future<Output = Result<OntologyTypeMetadata, BoxedResponse>> + Send;
@@ -201,7 +201,7 @@ where
 {
     async fn load_external_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, BoxedResponse> {
@@ -280,13 +280,18 @@ impl QueryLogger {
     }
 
     #[expect(clippy::missing_panics_doc)]
-    pub fn capture(&mut self, actor: ActorEntityUuid, query: OpenApiQuery<'_>) {
+    pub fn capture(&mut self, actor: Option<ActorId>, query: OpenApiQuery<'_>) {
         let mut record = serde_json::to_value(query)
             .change_context(QueryLoggingError)
             .expect("query should be serializable");
-        record
-            .as_object_mut()
-            .map(|object| object.insert("actor".to_owned(), JsonValue::String(actor.to_string())));
+        record.as_object_mut().map(|object| {
+            object.insert(
+                "actor".to_owned(),
+                actor.map_or(JsonValue::Null, |actor| {
+                    JsonValue::String(actor.to_string())
+                }),
+            )
+        });
         self.value = Some(record);
         self.created_at = Instant::now();
     }
@@ -589,7 +594,12 @@ where
         .route_layer(axum::middleware::from_fn(move |request, next| {
             let provider = Arc::clone(&authentication_provider);
             let service_secret = Arc::clone(&service_secret);
-            auth::authentication_middleware(provider, service_secret, request, next)
+            auth::authentication_middleware::<_, Option<ActorId>>(
+                provider,
+                service_secret,
+                request,
+                next,
+            )
         }))
         .layer(
             ServiceBuilder::new()

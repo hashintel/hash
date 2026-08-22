@@ -10,7 +10,7 @@ use hash_graph_test_data::seeding::{
 };
 use type_system::{
     ontology::data_type::schema::DataTypeReference,
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{actor::ActorId, actor_group::WebId},
 };
 
 use super::{Runner, web_catalog::InMemoryWebCatalog};
@@ -165,7 +165,7 @@ impl PersistDataTypesStage {
             .change_context(DataTypeError::Persist)?;
 
         // Build web->user map from provided user resources
-        let mut web_actor_by_web: HashMap<WebId, ActorEntityUuid> = HashMap::new();
+        let mut web_actor_by_web: HashMap<WebId, ActorId> = HashMap::new();
         for user_key in &self.inputs.web_to_user {
             let Some(users) = runner.resources.users.get(user_key) else {
                 return Err(Report::new(DataTypeError::MissingConfig {

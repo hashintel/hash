@@ -100,7 +100,7 @@ async fn query() {
 
     let data_types = api
         .query_data_types(
-            api.account_id,
+            Some(api.account_id),
             QueryDataTypesParams {
                 filter: Filter::for_versioned_url(&list_v1.id),
                 temporal_axes: QueryTemporalAxesUnresolved::all(),
@@ -119,6 +119,29 @@ async fn query() {
         "expected one data type, got {data_types:?}"
     );
     assert_eq!(data_types[0].schema.id, list_v1.id);
+
+    // The seeded `public-view-ontology` policy has no principal constraint, so a request
+    // without an actor sees the type as well.
+    let data_types = api
+        .query_data_types(
+            None,
+            QueryDataTypesParams {
+                filter: Filter::for_versioned_url(&list_v1.id),
+                temporal_axes: QueryTemporalAxesUnresolved::all(),
+                after: None,
+                limit: None,
+                include_count: false,
+            },
+        )
+        .await
+        .expect("could not get data type as the public actor")
+        .data_types;
+
+    assert_eq!(
+        data_types.len(),
+        1,
+        "the public actor should see the data type, got {data_types:?}"
+    );
 }
 
 #[tokio::test]
@@ -181,7 +204,7 @@ async fn inheritance() {
 
     assert_eq!(
         api.query_data_types(
-            api.account_id,
+            Some(api.account_id),
             create_params(Filter::for_data_type_parents(&[centimeter_id], None))
         )
         .await
@@ -194,7 +217,7 @@ async fn inheritance() {
 
     assert_eq!(
         api.query_data_types(
-            api.account_id,
+            Some(api.account_id),
             create_params(Filter::for_data_type_parents(&[centimeter_id], Some(0)))
         )
         .await
@@ -207,7 +230,7 @@ async fn inheritance() {
 
     assert_eq!(
         api.query_data_types(
-            api.account_id,
+            Some(api.account_id),
             create_params(Filter::for_data_type_parents(&[centimeter_id], Some(1)))
         )
         .await
@@ -224,7 +247,7 @@ async fn inheritance() {
     .expect("could not parse versioned url");
     assert_eq!(
         api.query_data_types(
-            api.account_id,
+            Some(api.account_id),
             create_params(Filter::for_data_type_children(&number_url, None))
         )
         .await
@@ -237,7 +260,7 @@ async fn inheritance() {
 
     assert_eq!(
         api.query_data_types(
-            api.account_id,
+            Some(api.account_id),
             create_params(Filter::for_data_type_children(&number_url, Some(0)))
         )
         .await
@@ -250,7 +273,7 @@ async fn inheritance() {
 
     assert_eq!(
         api.query_data_types(
-            api.account_id,
+            Some(api.account_id),
             create_params(Filter::for_data_type_children(&number_url, Some(1)))
         )
         .await
@@ -470,7 +493,7 @@ async fn update() {
 
     let returned_object_dt_v1 = api
         .query_data_types(
-            api.account_id,
+            Some(api.account_id),
             QueryDataTypesParams {
                 filter: Filter::for_versioned_url(&object_dt_v1.id),
                 temporal_axes: QueryTemporalAxesUnresolved::all(),
@@ -487,7 +510,7 @@ async fn update() {
 
     let returned_object_dt_v2 = api
         .query_data_types(
-            api.account_id,
+            Some(api.account_id),
             QueryDataTypesParams {
                 filter: Filter::for_versioned_url(&object_dt_v2.id),
                 temporal_axes: QueryTemporalAxesUnresolved::all(),

@@ -4,7 +4,6 @@ import {
   getEntityTypes,
   getPropertyTypes,
 } from "@blockprotocol/graph/stdlib";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
   queryDataTypes,
   type QueryDataTypesParams,
@@ -30,7 +29,6 @@ import {
   type SerializedQueryEntityTypeSubgraphResponse,
   serializeQueryEntityTypeSubgraphResponse,
 } from "@local/hash-graph-sdk/entity-type";
-import * as actor from "@local/hash-graph-sdk/principal/actor";
 import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import {
   queryPropertyTypes,
@@ -53,6 +51,7 @@ import type {
   DataTypeWithMetadata,
   EntityId,
   EntityTypeWithMetadata,
+  MachineId,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import type {
@@ -79,11 +78,22 @@ export type EntityQueryResponse = {
   cursor?: EntityQueryCursor | null;
 };
 
+const fetchSystemMachineActorId = async (
+  graphApiClient: GraphApi,
+): Promise<MachineId> =>
+  await graphApiClient
+    .getOrCreateSystemMachine("h")
+    .then(({ data: machineId }) => machineId as MachineId);
+
 export const createGraphActivities = ({
   graphApiClient,
 }: {
   graphApiClient: GraphApi;
 }) => ({
+  async getSystemMachineActorId(): Promise<MachineId> {
+    return await fetchSystemMachineActorId(graphApiClient);
+  },
+
   async getSystemMachineIds(params: {
     cursor?: EntityQueryCursor;
     limit?: number;
@@ -91,18 +101,11 @@ export const createGraphActivities = ({
     machineIds: EntityId[];
     cursor?: EntityQueryCursor | null;
   }> {
-    const systemMachine = await actor.getMachineByIdentifier(
-      graphApiClient,
-      { actorId: publicUserAccountId },
-      "h",
-    );
-    if (!systemMachine) {
-      throw new Error("System machine not found");
-    }
+    const systemMachineId = await fetchSystemMachineActorId(graphApiClient);
 
     const { entities, cursor } = await queryEntities(
       { graphApi: graphApiClient },
-      { actorId: systemMachine.id },
+      { actorId: systemMachineId },
       {
         filter: {
           all: [

@@ -196,9 +196,14 @@ where
         role_name: RoleName,
         account_id: ActorEntityUuid,
     ) -> Result<RoleAssignmentStatus, Report<AccountError>> {
-        self.store()
-            .await?
-            .assign_role(Self::actor(&scope)?, account_id, actor_group_id, role_name)
+        let mut store = self.store().await?;
+        // The session carries the actor as a bare UUID, so its type comes from the store.
+        let actor_id = store
+            .determine_actor(Self::actor(&scope)?)
+            .await
+            .change_context(AccountError)?;
+        store
+            .assign_role(actor_id, account_id, actor_group_id, role_name)
             .await
             .inspect_err(|error| {
                 tracing::error!(?error, "Could not assign role to account group");
@@ -213,9 +218,14 @@ where
         role_name: RoleName,
         account_id: ActorEntityUuid,
     ) -> Result<RoleUnassignmentStatus, Report<AccountError>> {
-        self.store()
-            .await?
-            .unassign_role(Self::actor(&scope)?, account_id, actor_group_id, role_name)
+        let mut store = self.store().await?;
+        // The session carries the actor as a bare UUID, so its type comes from the store.
+        let actor_id = store
+            .determine_actor(Self::actor(&scope)?)
+            .await
+            .change_context(AccountError)?;
+        store
+            .unassign_role(actor_id, account_id, actor_group_id, role_name)
             .await
             .inspect_err(|error| {
                 tracing::error!(?error, "Could not unassign role from account group");

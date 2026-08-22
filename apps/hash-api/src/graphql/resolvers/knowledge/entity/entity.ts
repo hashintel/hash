@@ -2,7 +2,6 @@ import {
   extractEntityUuidFromEntityId,
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
   HashEntity,
   queryEntities,
@@ -24,7 +23,6 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import {
   canUserReadEntity,
-  checkEntityPermission,
   createEntityWithLinks,
   getLatestEntityById,
   updateEntity,
@@ -49,7 +47,6 @@ import type {
   Query,
   QueryQueryEntitiesTableArgs,
   QuerySummarizeEntitiesArgs,
-  QueryIsEntityPublicArgs,
   QueryQueryEntitiesArgs,
   QuerySearchEntitiesArgs,
   QueryQueryEntitySubgraphArgs,
@@ -413,15 +410,3 @@ export const removeEntityViewerResolver: ResolverFn<
 
   return true;
 };
-
-export const isEntityPublicResolver: ResolverFn<
-  Promise<boolean>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  QueryIsEntityPublicArgs
-> = async (_, { entityId }, graphQLContext) =>
-  checkEntityPermission(
-    graphQLContextToImpureGraphContext(graphQLContext),
-    { actorId: publicUserAccountId },
-    { entityId, permission: "viewEntity" },
-  );

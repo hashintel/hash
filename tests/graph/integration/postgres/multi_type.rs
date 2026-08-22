@@ -19,7 +19,10 @@ use type_system::{
         property::{PropertyObject, PropertyObjectWithMetadata},
     },
     ontology::VersionedUrl,
-    principal::{actor::ActorType, actor_group::WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::WebId,
+    },
     provenance::{OriginProvenance, OriginType},
 };
 
@@ -142,7 +145,7 @@ async fn initial_person() {
     );
 
     let entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -198,7 +201,7 @@ async fn initial_person() {
     );
 
     let updated_person_entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -218,7 +221,7 @@ async fn initial_person() {
     .entities;
 
     let updated_org_entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -293,7 +296,7 @@ async fn create_multi() {
     );
 
     let person_entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -313,7 +316,7 @@ async fn create_multi() {
     .entities;
 
     let org_entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -364,7 +367,7 @@ async fn create_multi() {
     );
 
     let updated_person_entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -465,11 +468,11 @@ async fn summary_aggregations() {
     );
     assert_eq!(
         response.created_by_ids,
-        Some(HashMap::from([(api.account_id, 2)]))
+        Some(HashMap::from([(ActorEntityUuid::from(api.account_id), 2)]))
     );
     assert_eq!(
         response.edition_created_by_ids,
-        Some(HashMap::from([(api.account_id, 2)]))
+        Some(HashMap::from([(ActorEntityUuid::from(api.account_id), 2)]))
     );
     assert_eq!(
         response.type_ids,

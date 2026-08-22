@@ -9,7 +9,6 @@ use std::collections::HashMap;
 use axum::{Extension, Router, routing::post};
 use error_stack::{Report, ResultExt as _};
 use futures::future::OptionFuture;
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
 use hash_graph_store::{
@@ -378,7 +377,7 @@ where
     S: StorePool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::ValidateEntity(&body));
+        query_logger.capture(Some(actor_id), OpenApiQuery::ValidateEntity(&body));
     }
 
     let params = ValidateEntityParams::deserialize(&body)
@@ -429,7 +428,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .has_permission_for_entities(AuthenticatedActor::from(actor), params)
+        .has_permission_for_entities(actor, params)
         .await
         .map(Json)
         .map_err(report_to_response)
@@ -708,7 +707,7 @@ where
     S: StorePool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::DiffEntity(&params));
+        query_logger.capture(Some(actor_id), OpenApiQuery::DiffEntity(&params));
     }
 
     let store = store_pool

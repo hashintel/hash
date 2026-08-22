@@ -8,7 +8,7 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_test_data::seeding::producer::ontology::WebCatalog as _;
-use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
+use type_system::principal::actor::{ActorId, UserId};
 
 use super::Runner;
 
@@ -95,7 +95,6 @@ impl QueryEntitiesByUserStage {
                 )))
             })
             .transpose()?;
-        let actor_uuid = actor.map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from);
 
         let pool = runner
             .ensure_db()
@@ -109,7 +108,7 @@ impl QueryEntitiesByUserStage {
 
         let entities = store
             .query_entities(
-                actor_uuid,
+                actor,
                 QueryEntitiesParams {
                     filter: Filter::All(Vec::new()),
                     temporal_axes: QueryTemporalAxesUnresolved::all(),

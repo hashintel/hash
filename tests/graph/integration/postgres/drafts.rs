@@ -76,7 +76,7 @@ fn charles() -> PropertyObject {
 
 #[must_use]
 async fn check_entity_exists(api: &DatabaseApi<'_>, id: EntityId) -> bool {
-    api.get_entity_by_id(api.account_id, id, None, None)
+    api.get_entity_by_id(Some(api.account_id), id, None, None)
         .await
         .is_ok()
 }

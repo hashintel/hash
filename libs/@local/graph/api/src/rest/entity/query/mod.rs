@@ -51,7 +51,7 @@ use crate::rest::{
     )
 )]
 pub(super) async fn query_entities<S>(
-    AuthenticatedActorId(actor_id): AuthenticatedActorId,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -61,6 +61,7 @@ pub(super) async fn query_entities<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetEntities(&request));
     }
@@ -129,7 +130,7 @@ pub(super) struct QueryEntitySubgraphResponse<'r> {
     )
 )]
 pub(super) async fn query_entity_subgraph<S>(
-    AuthenticatedActorId(actor_id): AuthenticatedActorId,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -139,6 +140,7 @@ pub(super) async fn query_entity_subgraph<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetEntitySubgraph(&request));
     }
@@ -206,7 +208,7 @@ where
     S: StorePool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::SummarizeEntities(&request));
+        query_logger.capture(Some(actor_id), OpenApiQuery::SummarizeEntities(&request));
     }
 
     let store = store_pool
