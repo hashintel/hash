@@ -12,6 +12,7 @@ import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
+import { synthesizeAdHocOptimization } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
@@ -23,6 +24,7 @@ import {
   MODEL_METRIC_VALUE_PREFIX,
 } from "../metrics/metric-picker-options";
 import {
+  buildAdHocPetrinautOptimizationInput,
   buildPetrinautOptimizationInput,
   CreateOptimizationDrawer,
   validateOptimizationParameterDraft,
@@ -34,6 +36,7 @@ import type { OptimizationsContextValue } from "../../../../../../react/optimiza
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { OptimizationParameterDraft } from "./optimization-parameter-row";
 import type {
+  AdHocScenarioState,
   Metric,
   PetrinautOptimizationInput,
   Scenario,
@@ -632,6 +635,102 @@ describe("CreateOptimizationDrawer", () => {
     });
     expect(input.execution).toEqual({ seed: 1234, dt: 0.5, maxTime: 100 });
     expect(input.study).toEqual({ trials: 20, sampler: "tpe" });
+  });
+
+  it("offers the ad-hoc option and requires an optimize selection", () => {
+    render(<TestProviders />);
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a scenario" }),
+      { target: { value: "__adhoc__" } },
+    );
+
+    expect(screen.getByText("Initial state and parameters")).toBeTruthy();
+    expect(
+      screen.getByText("Enable Optimize on at least one value"),
+    ).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: /Run/ }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  });
+
+  it("builds an ad-hoc manifest binding the generated parameters", () => {
+    const place = {
+      id: "place-queue",
+      name: "Queue",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    } satisfies SDCPN["places"][number];
+    const definition = {
+      ...sirSdcpnContextValue.petriNetDefinition,
+      places: [place],
+      scenarios: [],
+    };
+    const metric = {
+      id: "metric-inline-objective",
+      name: "Inline objective",
+      code: "return state.places.Queue.count;",
+    } satisfies Metric;
+    const state: AdHocScenarioState = {
+      variables: [],
+      netParameters: [],
+      places: {
+        "place-queue": {
+          kind: "uncoloured",
+          count: {
+            expression: "5",
+            optimize: { min: "1", max: "20", scale: "linear", step: "1" },
+          },
+        },
+      },
+    };
+
+    const outcome = synthesizeAdHocOptimization(state, {
+      netParameters: [],
+      places: [place],
+      types: [],
+    });
+    if (!outcome.ok) {
+      throw new Error(JSON.stringify(outcome.errors));
+    }
+
+    const input = buildAdHocPetrinautOptimizationInput({
+      name: "Ad-hoc study",
+      title: "Test model",
+      definition,
+      scenario: outcome.scenario,
+      parameterBindings: outcome.parameterBindings,
+      metric,
+      direction: "maximize",
+      optimizationSteps: 10,
+      dt: 0.5,
+      maxTime: 50,
+    });
+
+    expect(input.scenario.id).toBe(outcome.scenario.id);
+    expect(input.scenario.parameterBindings).toEqual({
+      "adhoc.count.Queue": {
+        kind: "optimize",
+        domain: {
+          kind: "integer",
+          minimum: 1,
+          maximum: 20,
+          step: 1,
+          scale: "linear",
+        },
+      },
+    });
+    expect(input.model.definition.scenarios).toEqual([outcome.scenario]);
+    expect(
+      outcome.scenario.scenarioParameters.map(
+        (parameter) => parameter.identifier,
+      ),
+    ).toEqual(["adhoc.count.Queue"]);
+    expect(input.model.definition.metrics).toEqual([metric]);
   });
 
   it("explains when an integer step cannot reach the maximum", () => {
