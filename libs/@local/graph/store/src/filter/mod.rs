@@ -1235,11 +1235,11 @@ impl<'p> Filter<'p, Entity> {
         }
     }
 
-    #[must_use]
     /// Transforms a property filter into a query filter for the given actor.
     ///
     /// A request without an actor leaves the actor comparison without a value: an equality then
     /// matches no record, an inequality every record.
+    #[must_use]
     fn for_property_filter(filter: PropertyFilter<'p>, actor_id: Option<ActorId>) -> Self {
         match filter {
             PropertyFilter::All(filters) => Self::All(
