@@ -4,6 +4,7 @@ import {
   fillPlaceBases,
   fillTokenIndices,
 } from "../engine/buffer-transition";
+import { hasCapacityHeadroom } from "../engine/capacity";
 import { enumerateWeightedMarkingIndicesGenerator } from "../engine/enumerate-weighted-markings";
 import { nextRandom } from "../engine/seeded-rng";
 import { getPlaceIndex, getTransitionIndex } from "./layout";
@@ -28,6 +29,12 @@ export function computeTransitionEffect(
   run: MonteCarloRunState,
   frame: MonteCarloFrameBuffer,
   transition: CompiledTransition,
+  /**
+   * Tokens produced by earlier transitions in this same frame, not yet written
+   * into the frame's counts. Required for capacity checks: without it, several
+   * transitions feeding one bounded place could each fit and jointly overflow.
+   */
+  pendingOutputCounts: Uint32Array | null,
 ): TransitionEffect | null {
   const { frameLayout } = run.simulation;
   const transitionIndex = getTransitionIndex(frameLayout, transition.id);
@@ -50,6 +57,19 @@ export function computeTransitionEffect(
       : inputPlace.count >= inputPlace.weight,
   );
   if (!enabled) {
+    return null;
+  }
+
+  // A full output place blocks its producers, mirroring an input arc that
+  // cannot be satisfied.
+  if (
+    transition.capacityConstraints.length > 0 &&
+    !hasCapacityHeadroom(
+      transition.capacityConstraints,
+      frame.placeCounts,
+      pendingOutputCounts,
+    )
+  ) {
     return null;
   }
 

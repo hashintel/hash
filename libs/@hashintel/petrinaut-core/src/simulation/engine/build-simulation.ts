@@ -21,7 +21,13 @@ import {
   createEngineFrame,
   createEngineFrameLayout,
   type EngineFrameSnapshot,
+  type EngineFrameLayout,
 } from "../frames/internal-frame";
+import {
+  PLACE_CAPACITY_UNBOUNDED,
+  computeTransitionCapacityConstraints,
+  normalizePlaceCapacity,
+} from "./capacity";
 import {
   flattenComponentInstancesForSimulation,
   getArcPlaceNameOverrideKey,
@@ -71,7 +77,9 @@ function validateHirArtifacts(
   const runtimeVersion: unknown = (artifacts as { version?: unknown }).version;
   if (runtimeVersion !== 4) {
     throw new Error(
-      `The compiled HIR artifacts use unsupported version ${String(runtimeVersion)}; expected version 4. Recompile them from the current net.`,
+      `The compiled HIR artifacts use unsupported version ${String(
+        runtimeVersion,
+      )}; expected version 4. Recompile them from the current net.`,
     );
   }
 
@@ -437,6 +445,7 @@ function createCompiledTransition({
   extensions,
   placesMap,
   typesMap,
+  frameLayout,
   arcPlaceNameOverrides,
   parameterValues,
   lambdaArtifact,
@@ -448,6 +457,7 @@ function createCompiledTransition({
   extensions: PetrinautExtensionSettings;
   placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>;
   typesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["types"][number]>;
+  frameLayout: EngineFrameLayout;
   arcPlaceNameOverrides: ReadonlyMap<string, string>;
   parameterValues: ParameterValues;
   lambdaArtifact: HirLambdaArtifact | undefined;
@@ -494,6 +504,11 @@ function createCompiledTransition({
   return {
     id: transition.id,
     name: transition.name,
+    capacityConstraints: computeTransitionCapacityConstraints({
+      transition,
+      placeIndexById: frameLayout.placeIndexById,
+      placeCapacities: frameLayout.placeCapacities,
+    }),
     inputPlaces: transition.inputArcs.map((arc) => {
       const placeId = getArcEndpointPlaceId(arc);
       if (!placeId) {
@@ -638,15 +653,29 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   const packedInitialMarking = new Map<string, PackedInitialPlaceMarking>();
   for (const place of sdcpn.places) {
-    packedInitialMarking.set(
-      place.id,
-      packInitialPlaceMarking(
-        place,
-        sdcpn,
-        getInitialMarkingValue(initialMarking, place.id),
-        stringPool,
-      ),
+    const packed = packInitialPlaceMarking(
+      place,
+      sdcpn,
+      getInitialMarkingValue(initialMarking, place.id),
+      stringPool,
     );
+
+    // Capacity blocks transitions, so it cannot repair a marking that already
+    // violates it. Rejecting here keeps the invariant true for every frame.
+    // Normalized so this check agrees with the runtime: a malformed capacity
+    // (negative, fractional) runs unbounded, so it must not reject a marking.
+    const normalizedCapacity = normalizePlaceCapacity(place.capacity);
+    if (
+      normalizedCapacity !== PLACE_CAPACITY_UNBOUNDED &&
+      packed.count > normalizedCapacity
+    ) {
+      throw new SDCPNItemError(
+        `The initial marking for place \`${place.name}\` has ${packed.count} tokens but its capacity is ${place.capacity}.`,
+        place.id,
+      );
+    }
+
+    packedInitialMarking.set(place.id, packed);
   }
 
   // Compile all differential equation functions
@@ -714,6 +743,8 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     }
   }
 
+  const frameLayout = createEngineFrameLayout(sdcpn);
+
   // Compile transitions into the shape used by the execution hot path.
   const compiledTransitions = new Map<string, CompiledTransition>();
   for (const transition of sdcpn.transitions) {
@@ -725,6 +756,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         extensions,
         placesMap,
         typesMap,
+        frameLayout,
         arcPlaceNameOverrides: flattened.arcPlaceNameOverrides,
         parameterValues:
           flattened.transitionParameterValues.get(transition.id) ??
@@ -740,7 +772,6 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   // Calculate buffer size and build place states
   let bufferByteSize = 0;
-  const frameLayout = createEngineFrameLayout(sdcpn);
   const placeStates: EngineFrameSnapshot["places"] = {};
 
   for (const [placeIndex, placeId] of frameLayout.placeIds.entries()) {

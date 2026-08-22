@@ -28,4 +28,13 @@ export type MonteCarloRunState = {
   completionReason: SimulationCompletionReason | null;
   error: string | null;
   reallocations: number;
+  /**
+   * Scratch tally of tokens produced so far in the current frame, per place
+   * index, used only by capacity checks.
+   *
+   * Output tokens are applied in one pass at the end of a frame, so the frame's
+   * counts lag during transition evaluation. `null` for nets without any place
+   * capacity, where the tally would never be read.
+   */
+  pendingOutputCounts: Uint32Array | null;
 };
