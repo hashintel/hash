@@ -1,13 +1,14 @@
 use alloc::collections::BTreeSet;
 use core::num::NonZero;
 
+use hashql_core::id::{Id as _, IdSlice};
 use proptest::{arbitrary::any, prop_assert, property_test};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
-    acceptance_sample_size, keyed_rng, mean_sample_size, normal_quantile, sample_indices_vec,
-    uniform_below,
+    acceptance_sample_size, keyed_rng, mean_sample_size, normal_quantile, sample_ids,
+    sample_indices_vec, uniform_below,
 };
 use crate::math::{OpenUnitFraction, d_non_negative, d_positive, open_unit_fraction};
 
@@ -16,7 +17,7 @@ fn rng(seed: u64) -> Xoshiro256PlusPlus {
 }
 
 #[test]
-fn uniform_below_one_is_always_zero() {
+fn uniform_below_bound_one() {
     let mut rng = rng(7);
     let bound = NonZero::new(1).expect("one is not zero");
 
@@ -26,7 +27,7 @@ fn uniform_below_one_is_always_zero() {
 }
 
 #[test]
-fn uniform_below_covers_every_residue_evenly() {
+fn uniform_below_residue_balance() {
     let mut rng = rng(42);
     let bound = NonZero::new(7).expect("seven is not zero");
 
@@ -48,7 +49,7 @@ fn uniform_below_covers_every_residue_evenly() {
 }
 
 #[test]
-fn uniform_below_is_deterministic_per_seed() {
+fn uniform_below_seed_determinism() {
     let bound = NonZero::new(1_000_003).expect("a prime is not zero");
 
     // One generator per sequence, advanced across draws: the comparison
@@ -73,7 +74,7 @@ fn uniform_below_is_deterministic_per_seed() {
 }
 
 #[test]
-fn acceptance_sample_size_matches_hand_checked_values() {
+fn acceptance_sample_size_hand_checked() {
     // ln(0.05) / ln(0.99) = 298.07..., which sits in the rule-of-three
     // neighbourhood.
     assert_eq!(
@@ -97,7 +98,7 @@ fn acceptance_sample_size_matches_hand_checked_values() {
 /// samples do not. This is the function's entire contract, certified over the whole in-domain
 /// parameter space.
 #[property_test]
-fn acceptance_sample_size_is_sufficient_and_minimal(
+fn acceptance_sample_size_sufficient_minimal(
     #[strategy = 1e-6_f64..0.5] defect_rate: f64,
     #[strategy = 0.5_f64..(1.0 - 1e-9)] confidence: f64,
 ) {
@@ -117,7 +118,7 @@ fn acceptance_sample_size_is_sufficient_and_minimal(
 
 /// Stricter requirements never shrink the sample.
 #[property_test]
-fn acceptance_sample_size_is_monotone(
+fn acceptance_sample_size_monotone(
     #[strategy = 1e-5_f64..0.4] defect_rate: f64,
     #[strategy = 0.5_f64..0.999] confidence: f64,
 ) {
@@ -133,10 +134,7 @@ fn acceptance_sample_size_is_monotone(
 
 /// Draws respect any bound, including awkward ones near overflow.
 #[property_test]
-fn uniform_below_stays_in_range(
-    #[strategy = any::<u64>()] seed: u64,
-    #[strategy = 1_u64..] bound: u64,
-) {
+fn uniform_below_in_range(#[strategy = any::<u64>()] seed: u64, #[strategy = 1_u64..] bound: u64) {
     let bound = NonZero::new(bound).expect("the strategy starts at one");
     let value = uniform_below(&mut Xoshiro256PlusPlus::seed_from_u64(seed), bound);
 
@@ -147,7 +145,7 @@ fn uniform_below_stays_in_range(
 ///
 /// The tabulated cases cover both rational-approximation regions.
 #[test]
-fn normal_quantile_matches_tabulated_values() {
+fn normal_quantile_tabulated() {
     // Central region.
     for (probability, expected) in [
         (0.5, 0.0),
@@ -182,7 +180,7 @@ fn normal_quantile_matches_tabulated_values() {
 
 /// The quantile is antisymmetric about the median.
 #[test]
-fn normal_quantile_is_antisymmetric() {
+fn normal_quantile_antisymmetry() {
     for probability in [0.001, 0.02425, 0.1, 0.3, 0.49] {
         let interior = |value: f64| OpenUnitFraction::new(value).expect("the case stays interior");
         let lower = normal_quantile(interior(probability));
@@ -198,7 +196,7 @@ fn normal_quantile_is_antisymmetric() {
 ///
 /// Tighter margins and higher confidence grow the sample, smaller deviations shrink it.
 #[test]
-fn mean_sample_size_follows_the_closed_form() {
+fn mean_sample_size_closed_form() {
     // ceil((2.326348 · 0.32 / 0.012)^2) = ceil(3848.4) hand-checked.
     assert_eq!(
         mean_sample_size(
@@ -257,7 +255,7 @@ fn mean_sample_size_follows_the_closed_form() {
 
 /// A sample carries the requested count of distinct indices, every one inside the population.
 #[test]
-fn sample_indices_vec_draws_the_requested_count_without_replacement() {
+fn sample_indices_vec_without_replacement() {
     let population = 1_000_000;
     let count = 688;
 
@@ -272,9 +270,49 @@ fn sample_indices_vec_draws_the_requested_count_without_replacement() {
     assert!(distinct.iter().all(|&index| index < population));
 }
 
+hashql_core::id::newtype! {
+    /// A position within the test population.
+    struct SampleId(u32)
+}
+
+/// A sample carries the requested count of distinct ids, every one inside the population.
+#[test]
+fn sample_ids_without_replacement() {
+    let population = IdSlice::<SampleId, ()>::from_raw(&[(); 4096]);
+    let count = 128;
+
+    let picked: Vec<SampleId> = sample_ids(rng(42), population, count).collect();
+
+    assert_eq!(picked.len(), count);
+
+    // Distinctness is the without-replacement contract, so the set size must
+    // equal the sample length rather than merely bound it.
+    let distinct: BTreeSet<SampleId> = picked.iter().copied().collect();
+    assert_eq!(distinct.len(), count);
+    assert!(distinct.iter().all(|id| id.as_usize() < population.len()));
+}
+
+/// One seed draws identical positions through the typed and untyped forms.
+#[test]
+fn sample_ids_stream_parity() {
+    let population = IdSlice::<SampleId, ()>::from_raw(&[(); 4096]);
+    let count = 128;
+
+    // Seeded draws are pinned wherever a replay consumes them, so adopting
+    // the typed form must not move a single drawn value.
+    let typed: Vec<usize> = sample_ids(rng(42), population, count)
+        .map(SampleId::as_usize)
+        .collect();
+    let raw: Vec<usize> = sample_indices_vec(rng(42), population.len(), count)
+        .iter()
+        .collect();
+
+    assert_eq!(typed, raw);
+}
+
 /// One key replays its own stream exactly.
 #[test]
-fn keyed_rng_replays_the_stream_for_a_repeated_key() {
+fn keyed_rng_replay() {
     let mut first = keyed_rng(42, 7, 0);
     let mut second = keyed_rng(42, 7, 0);
 
@@ -297,7 +335,7 @@ fn keyed_rng_replays_the_stream_for_a_repeated_key() {
 
 /// Each coordinate of `(seed, key, stream)` selects its own stream.
 #[test]
-fn keyed_rng_separates_streams_across_every_coordinate() {
+fn keyed_rng_stream_separation() {
     fn stream(seed: u64, key: u64, index: u64) -> Vec<u64> {
         let mut rng = keyed_rng(seed, key, index);
         core::iter::repeat_with(|| rng.random::<u64>())

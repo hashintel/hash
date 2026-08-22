@@ -59,17 +59,18 @@
 //!
 //! [`NeighbourhoodAggregate`]: crate::salt::quality::metric::NeighbourhoodAggregate
 
-use hashql_core::id::IdSlice;
+use hashql_core::id::{IdSlice, IdVec};
 use type_system::knowledge::entity::EntityId;
 
 use self::{
     design::{NeighbourhoodDesign, ReplayInputs, ReplaySizes},
-    draw::{DrawSizes, DrawnSamples},
+    draw::{DedupPosition, DrawSizes, DrawnSamples, UniversePosition},
     error::ReplayError,
     extract::{EndpointArtifact, GenerationArtifacts, GenerationColumns},
     plan::{ClassControlState, ClassQueryState, EstimandData, ProjectionPlan, QueryState},
     population::{
-        ArrivalClass, IncidentStats, Novelty, Populations, StableClass, StablePairPosition,
+        ArrivalClass, ArrivalClassIndex, IncidentStats, Novelty, Populations, StableClass,
+        StableClassIndex,
     },
     preflight::VerifiedPair,
     report::{IncidentEdgeSummary, PopulationCounts, RequestedDesign},
@@ -108,9 +109,9 @@ pub(super) struct Pair<T> {
 /// The byte-exact representation classes of both populations.
 struct ClassLists {
     /// The stable population's classes, ascending by representative row.
-    stable: Vec<StableClass>,
+    stable: IdVec<StableClassIndex, StableClass>,
     /// The arrival population's classes, ascending by representative row.
-    arrival: Vec<ArrivalClass>,
+    arrival: IdVec<ArrivalClassIndex, ArrivalClass>,
 }
 
 impl ClassLists {
@@ -255,7 +256,7 @@ pub(crate) struct ArrivalReplay {
     /// The entity estimand's universe and controls, ascending by later row.
     entity: EstimandData,
     /// Universe positions of the deduplication diagnostic's representatives, ascending.
-    dedup: Vec<StablePairPosition>,
+    dedup: IdVec<DedupPosition, UniversePosition>,
     /// The entity controls' identities, in control order.
     control_entities: Vec<EntityId>,
     /// Sampled arrival classes, ascending by representative row.
@@ -353,7 +354,7 @@ impl ArrivalReplay {
             },
         )?;
 
-        let dedup: Vec<_> = samples
+        let dedup: IdVec<DedupPosition, UniversePosition> = samples
             .dedup_representatives(columns.later.representations())
             .into_iter()
             .collect();

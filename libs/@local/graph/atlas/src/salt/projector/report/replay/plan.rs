@@ -8,7 +8,9 @@ use type_system::knowledge::entity::EntityId;
 use super::{
     Pair,
     extract::GenerationColumns,
-    population::{Arrival, ArrivalClass, IncidentStats, Novelty, StablePair},
+    population::{
+        Arrival, ArrivalClass, ArrivalClassIndex, ArrivalIndex, IncidentStats, Novelty, StablePair,
+    },
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
@@ -151,8 +153,8 @@ impl EstimandData {
 impl QueryState {
     /// Builds the sampled arrivals' states in draw order.
     pub(super) fn sampled(
-        query_draw: &[usize],
-        arrivals: &[Arrival],
+        query_draw: &[ArrivalIndex],
+        arrivals: &IdSlice<ArrivalIndex, Arrival>,
         later: &GenerationColumns<'_>,
         incident: &HashMap<NodeRowId, IncidentStats>,
         plan: &ProjectionPlan,
@@ -173,8 +175,8 @@ impl QueryState {
 impl ClassQueryState {
     /// Builds the sampled arrival classes' states in draw order.
     pub(super) fn sampled(
-        class_query_draw: &[usize],
-        classes: &[ArrivalClass],
+        class_query_draw: &[ArrivalClassIndex],
+        classes: &IdSlice<ArrivalClassIndex, ArrivalClass>,
         later: &GenerationColumns<'_>,
         incident: &HashMap<NodeRowId, IncidentStats>,
         plan: &ProjectionPlan,

@@ -2,11 +2,12 @@
 
 use core::num::NonZero;
 
-use hashql_core::id::{IdSlice, IdVec};
+use hashql_core::id::{Id, IdSlice, IdVec};
 
 use super::{
-    Pair, StablePairPosition,
+    Pair,
     design::NeighbourhoodDesign,
+    draw::DedupPosition,
     path::ProjectedOutcome,
     population::Novelty,
     report::{
@@ -24,6 +25,11 @@ use crate::{
 ///
 /// The tie order is one total order shared by every space: universe positions ascend with later
 /// rows, and deduplicated positions ascend with their representatives.
+///
+/// The returned row is raw `u32` because it feeds [`RankScratch`] and
+/// [`NeighbourhoodAggregate::observe`], whose rank vocabulary is raw, and it never leaves this
+/// module. Construction refuses a comparison universe beyond the `u32` rank domain, so the cast
+/// is total over admitted universes.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "construction refuses a comparison universe beyond the u32 rank domain"
@@ -192,21 +198,24 @@ impl PopulationCells {
 }
 
 /// The deduplication lens over one universe: representatives and their own scratch.
-struct DedupLens<'run> {
-    representatives: &'run [StablePairPosition],
+///
+/// The representative list maps each deduplication position to the universe position it
+/// restricts to, so the lens can only consume distances keyed by its own universe's domain.
+struct DedupLens<'run, I> {
+    representatives: &'run IdSlice<DedupPosition, I>,
     scratch: RankScratch,
 }
 
-impl DedupLens<'_> {
+impl<I: Id> DedupLens<'_, I> {
     /// Orders the restricted universe: each representative's distance, nearest-first.
-    fn order(&self, distances: &IdSlice<StablePairPosition, NonNegative>) -> Vec<u32> {
-        let restricted: Vec<NonNegative> = self
+    fn order(&self, distances: &IdSlice<I, NonNegative>) -> Vec<u32> {
+        let restricted: IdVec<DedupPosition, NonNegative> = self
             .representatives
             .iter()
             .map(|&position| distances[position])
             .collect();
 
-        order_by(&restricted)
+        order_by(restricted.as_raw())
     }
 }
 
@@ -214,26 +223,30 @@ impl DedupLens<'_> {
 ///
 /// Borrows the universe's embeddings, both wire framings, and the validated designs. The pass
 /// owns the reusable rank scratch, so it allocates two `u32` rows per universe regardless of
-/// query count.
-pub(super) struct MetricPass<'run> {
+/// query count. `I` is the universe's position domain, so one estimand's pass cannot consume
+/// another estimand's positions or representatives.
+pub(super) struct MetricPass<'run, I> {
     designs: &'run [NeighbourhoodDesign],
-    universe: &'run [AlignedVecN<PROJECTOR_DIMENSIONS>],
+    universe: &'run IdSlice<I, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     wire: &'run Pair<Vec<Vec2>>,
     scratch: RankScratch,
-    dedup: Option<DedupLens<'run>>,
+    dedup: Option<DedupLens<'run, I>>,
 }
 
-impl<'run> MetricPass<'run> {
+impl<'run, I: Id> MetricPass<'run, I> {
     /// A pass over one universe, with the deduplication lens where one is handed over.
+    ///
+    /// The embedding rows arrive in universe draw order, which is what binds them to the
+    /// position domain here.
     pub(super) fn new(
         designs: &'run [NeighbourhoodDesign],
         universe: &'run [AlignedVecN<PROJECTOR_DIMENSIONS>],
         wire: &'run Pair<Vec<Vec2>>,
-        dedup_representatives: Option<&'run [StablePairPosition]>,
+        dedup_representatives: Option<&'run IdSlice<DedupPosition, I>>,
     ) -> Self {
         Self {
             designs,
-            universe,
+            universe: IdSlice::from_raw(universe),
             wire,
             scratch: RankScratch::new(universe.len()),
             dedup: dedup_representatives.map(|representatives| DedupLens {
@@ -255,20 +268,20 @@ impl<'run> MetricPass<'run> {
         outcome: ProjectedOutcome,
         cells: &mut [PopulationCells],
     ) -> Vec<QueryReadings> {
-        let reference: IdVec<StablePairPosition, NonNegative> = self
+        let reference: IdVec<I, NonNegative> = self
             .universe
             .iter()
             .map(|member| embedding.cosine_distance(member))
             .collect();
 
-        let refit: IdVec<StablePairPosition, NonNegative> = self
+        let refit: IdVec<I, NonNegative> = self
             .wire
             .later
             .iter()
             .map(|&point| refit_wire.distance_squared(point))
             .collect();
 
-        let deployed: Option<IdVec<StablePairPosition, NonNegative>> = match outcome {
+        let deployed: Option<IdVec<I, NonNegative>> = match outcome {
             ProjectedOutcome::Placed(wire) => Some(
                 self.wire
                     .earlier
@@ -366,12 +379,12 @@ impl<'run> MetricPass<'run> {
         earlier_wire: Vec2,
         cells: &mut [PopulationCells],
     ) -> Vec<ControlReading> {
-        let reference: IdVec<StablePairPosition, NonNegative> = self
+        let reference: IdVec<I, NonNegative> = self
             .universe
             .iter()
             .map(|member| embedding.cosine_distance(member))
             .collect();
-        let map: IdVec<StablePairPosition, NonNegative> = self
+        let map: IdVec<I, NonNegative> = self
             .wire
             .earlier
             .iter()

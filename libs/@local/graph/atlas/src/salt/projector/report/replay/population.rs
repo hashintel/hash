@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use hashql_core::id::{IdSlice, bit_vec::DenseBitSet};
+use hashql_core::id::{IdSlice, IdVec, bit_vec::DenseBitSet};
 use zerocopy::IntoBytes as _;
 
 use super::{Pair, error::ReplayError, extract::GenerationColumns};
@@ -31,8 +31,27 @@ pub(super) struct Arrival {
 }
 
 hashql_core::id::newtype! {
+    /// An arrival's index within the arrival population.
     #[id(const)]
-    pub(super) struct StablePairPosition(u32)
+    pub(super) struct ArrivalIndex(u32)
+}
+
+hashql_core::id::newtype! {
+    /// A stable pair's index within the stable population.
+    #[id(const)]
+    pub(super) struct StablePairIndex(u32)
+}
+
+hashql_core::id::newtype! {
+    /// A class's index within the stable population's byte-exact classes.
+    #[id(const)]
+    pub(super) struct StableClassIndex(u32)
+}
+
+hashql_core::id::newtype! {
+    /// A class's index within the arrival population's byte-exact classes.
+    #[id(const)]
+    pub(super) struct ArrivalClassIndex(u32)
 }
 
 /// One stable identity's rows in both generations.
@@ -47,11 +66,11 @@ pub(super) struct StablePair {
 /// The joined rows, partitioned.
 pub(super) struct Populations {
     /// Arrivals, ascending by later row.
-    pub arrivals: Vec<Arrival>,
+    pub arrivals: IdVec<ArrivalIndex, Arrival>,
     /// Arrivals whose representation bytes occur in the earlier generation.
     pub arrivals_seen: usize,
     /// Stable pairs, ascending by later row.
-    pub stable: Vec<StablePair>,
+    pub stable: IdVec<StablePairIndex, StablePair>,
     /// Identities present in both generations with differing representation bytes.
     pub revised: usize,
 }
@@ -97,9 +116,9 @@ impl Populations {
         }
 
         let mut populations = Self {
-            arrivals: Vec::new(),
+            arrivals: IdVec::new(),
             arrivals_seen: 0,
-            stable: Vec::new(),
+            stable: IdVec::new(),
             revised: 0,
         };
 
@@ -135,9 +154,9 @@ impl Populations {
     pub(super) fn stable_classes(
         &self,
         representations: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
-    ) -> Vec<StableClass> {
-        let mut class_of_bytes: HashMap<&[u8], usize> = HashMap::new();
-        let mut classes: Vec<StableClass> = Vec::new();
+    ) -> IdVec<StableClassIndex, StableClass> {
+        let mut class_of_bytes: HashMap<&[u8], StableClassIndex> = HashMap::new();
+        let mut classes: IdVec<StableClassIndex, StableClass> = IdVec::new();
 
         for &pair in &self.stable {
             let bytes = representations[pair.later_row].as_bytes();
@@ -145,11 +164,11 @@ impl Populations {
             if let Some(&class) = class_of_bytes.get(bytes) {
                 classes[class].members += 1;
             } else {
-                class_of_bytes.insert(bytes, classes.len());
-                classes.push(StableClass {
+                let class = classes.push(StableClass {
                     representative: pair,
                     members: 1,
                 });
+                class_of_bytes.insert(bytes, class);
             }
         }
 
@@ -163,19 +182,19 @@ impl Populations {
     pub(super) fn arrival_classes(
         &self,
         representations: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
-    ) -> Vec<ArrivalClass> {
-        let mut class_of_bytes = HashMap::new();
-        let mut classes: Vec<ArrivalClass> = Vec::new();
+    ) -> IdVec<ArrivalClassIndex, ArrivalClass> {
+        let mut class_of_bytes: HashMap<&[u8], ArrivalClassIndex> = HashMap::new();
+        let mut classes: IdVec<ArrivalClassIndex, ArrivalClass> = IdVec::new();
         for arrival in &self.arrivals {
             let bytes = representations[arrival.later_row].as_bytes();
             match class_of_bytes.get(bytes) {
                 None => {
-                    class_of_bytes.insert(bytes, classes.len());
-                    classes.push(ArrivalClass {
+                    let class = classes.push(ArrivalClass {
                         representative_row: arrival.later_row,
                         novelty: arrival.novelty,
                         members: 1,
                     });
+                    class_of_bytes.insert(bytes, class);
                 }
                 Some(&class) => classes[class].members += 1,
             }
@@ -235,7 +254,7 @@ impl IncidentStats {
     pub(super) fn of_rows(
         rows_of_interest: impl IntoIterator<Item = NodeRowId>,
         edges: &IdSlice<EdgeRowId, [NodeRowId; 2]>,
-        stable: &[StablePair],
+        stable: &IdSlice<StablePairIndex, StablePair>,
         corpus_rows: usize,
     ) -> HashMap<NodeRowId, Self> {
         let mut stable_rows = DenseBitSet::new_empty(corpus_rows);

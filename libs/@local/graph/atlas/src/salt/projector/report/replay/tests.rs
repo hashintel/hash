@@ -12,7 +12,7 @@ use super::{
     error::ReplayError,
     extract::GenerationColumns,
     path::{ArrivalPlacement, NonFinitePlacement, PublishPath},
-    population::{Novelty, Populations},
+    population::{ArrivalClassIndex, ArrivalIndex, Novelty, Populations, StableClassIndex},
     report::{IncidentEdgeSummary, OutcomeCounts, PlacementOutcome, ReplayReport},
 };
 use crate::{
@@ -225,10 +225,16 @@ fn partition_standing_pair() {
     );
     assert_eq!(populations.revised, 1);
     assert_eq!(populations.arrivals.len(), 2);
-    assert_eq!(populations.arrivals[0].later_row, row(6));
-    assert_eq!(populations.arrivals[0].novelty, Novelty::Novel);
-    assert_eq!(populations.arrivals[1].later_row, row(7));
-    assert_eq!(populations.arrivals[1].novelty, Novelty::Seen);
+    assert_eq!(populations.arrivals[ArrivalIndex::new(0)].later_row, row(6));
+    assert_eq!(
+        populations.arrivals[ArrivalIndex::new(0)].novelty,
+        Novelty::Novel
+    );
+    assert_eq!(populations.arrivals[ArrivalIndex::new(1)].later_row, row(7));
+    assert_eq!(
+        populations.arrivals[ArrivalIndex::new(1)].novelty,
+        Novelty::Seen
+    );
     assert_eq!(populations.arrivals_seen, 1);
 }
 
@@ -254,22 +260,24 @@ fn class_formation() {
     });
 
     let stable = populations.stable_classes(IdSlice::from_raw(later.representations.rows()));
+    let stable_class = StableClassIndex::new;
     assert_eq!(stable.len(), 3);
-    assert_eq!(stable[0].representative.later_row, row(0));
-    assert_eq!(stable[0].members, 2);
-    assert_eq!(stable[1].representative.later_row, row(2));
-    assert_eq!(stable[1].members, 2);
-    assert_eq!(stable[2].representative.later_row, row(4));
-    assert_eq!(stable[2].members, 1);
+    assert_eq!(stable[stable_class(0)].representative.later_row, row(0));
+    assert_eq!(stable[stable_class(0)].members, 2);
+    assert_eq!(stable[stable_class(1)].representative.later_row, row(2));
+    assert_eq!(stable[stable_class(1)].members, 2);
+    assert_eq!(stable[stable_class(2)].representative.later_row, row(4));
+    assert_eq!(stable[stable_class(2)].members, 1);
 
     let arrivals = populations.arrival_classes(IdSlice::from_raw(later.representations.rows()));
+    let arrival_class = ArrivalClassIndex::new;
     assert_eq!(arrivals.len(), 2);
-    assert_eq!(arrivals[0].representative_row, row(5));
-    assert_eq!(arrivals[0].members, 2);
-    assert_eq!(arrivals[0].novelty, Novelty::Novel);
-    assert_eq!(arrivals[1].representative_row, row(7));
-    assert_eq!(arrivals[1].members, 1);
-    assert_eq!(arrivals[1].novelty, Novelty::Seen);
+    assert_eq!(arrivals[arrival_class(0)].representative_row, row(5));
+    assert_eq!(arrivals[arrival_class(0)].members, 2);
+    assert_eq!(arrivals[arrival_class(0)].novelty, Novelty::Novel);
+    assert_eq!(arrivals[arrival_class(1)].representative_row, row(7));
+    assert_eq!(arrivals[arrival_class(1)].members, 1);
+    assert_eq!(arrivals[arrival_class(1)].novelty, Novelty::Seen);
 }
 
 #[test]

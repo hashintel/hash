@@ -9,15 +9,36 @@ use zerocopy::IntoBytes as _;
 
 use super::{
     error::ReplayError,
-    population::{ArrivalClass, Populations, StableClass, StablePair, StablePairPosition},
+    population::{
+        ArrivalClass, ArrivalClassIndex, ArrivalIndex, Populations, StableClass, StableClassIndex,
+        StablePair,
+    },
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::NodeRowId,
     integrity::{Sha256, Update as _},
     math::AlignedVecN,
-    random::sample_indices_vec,
+    random::sample_ids,
 };
+
+hashql_core::id::newtype! {
+    /// A position within the entity estimand's sampled comparison universe.
+    #[id(const)]
+    pub(super) struct UniversePosition(u32)
+}
+
+hashql_core::id::newtype! {
+    /// A position within the class estimand's sampled comparison universe.
+    #[id(const)]
+    pub(super) struct ClassUniversePosition(u32)
+}
+
+hashql_core::id::newtype! {
+    /// A position within the deduplication diagnostic's representative list.
+    #[id(const)]
+    pub(super) struct DedupPosition(u32)
+}
 
 /// The sampling and neighbourhood settings one replay was asked for.
 pub(super) struct DrawSizes {
@@ -32,15 +53,15 @@ pub(super) struct DrawSizes {
 /// The seeded draws of both estimands.
 pub(super) struct DrawnSamples {
     /// Sampled arrival indices, ascending.
-    pub query_draw: Vec<usize>,
+    pub query_draw: Vec<ArrivalIndex>,
     /// The entity comparison universe, ascending by later row.
-    pub universe: IdVec<StablePairPosition, StablePair>,
+    pub universe: IdVec<UniversePosition, StablePair>,
     /// The entity controls, disjoint from the universe, ascending by later row.
     pub control_pairs: Vec<StablePair>,
     /// Sampled arrival-class indices, ascending.
-    pub class_query_draw: Vec<usize>,
+    pub class_query_draw: Vec<ArrivalClassIndex>,
     /// The class comparison universe, ascending by representative row.
-    pub class_universe: Vec<StableClass>,
+    pub class_universe: IdVec<ClassUniversePosition, StableClass>,
     /// The class controls, disjoint from the class universe, ascending by representative row.
     pub class_controls: Vec<StableClass>,
 }
@@ -80,8 +101,8 @@ impl DrawnSamples {
     pub(super) fn new(
         seed: u64,
         populations: &Populations,
-        classes: &[StableClass],
-        arrival_classes: &[ArrivalClass],
+        classes: &IdSlice<StableClassIndex, StableClass>,
+        arrival_classes: &IdSlice<ArrivalClassIndex, ArrivalClass>,
         &DrawSizes {
             queries,
             comparisons,
@@ -109,22 +130,21 @@ impl DrawnSamples {
         let mut rng = Self::replay_rng(seed);
 
         let query_count = queries.min(populations.arrivals.len());
-        let mut query_draw =
-            sample_indices_vec(&mut rng, populations.arrivals.len(), query_count).into_vec();
+        let mut query_draw: Vec<_> =
+            sample_ids(&mut rng, &populations.arrivals, query_count).collect();
         query_draw.sort_unstable();
 
-        let mut shared_draw =
-            sample_indices_vec(&mut rng, populations.stable.len(), joint).into_vec();
+        let mut shared_draw: Vec<_> = sample_ids(&mut rng, &populations.stable, joint).collect();
         let mut control_draw = shared_draw.split_off(comparisons);
         shared_draw.sort_unstable();
         control_draw.sort_unstable();
 
         let class_query_count = queries.min(arrival_classes.len());
-        let mut class_query_draw =
-            sample_indices_vec(&mut rng, arrival_classes.len(), class_query_count).into_vec();
+        let mut class_query_draw: Vec<_> =
+            sample_ids(&mut rng, arrival_classes, class_query_count).collect();
         class_query_draw.sort_unstable();
 
-        let mut class_shared_draw = sample_indices_vec(&mut rng, classes.len(), joint).into_vec();
+        let mut class_shared_draw: Vec<_> = sample_ids(&mut rng, classes, joint).collect();
         let mut class_control_draw = class_shared_draw.split_off(comparisons);
         class_shared_draw.sort_unstable();
         class_control_draw.sort_unstable();
@@ -159,7 +179,7 @@ impl DrawnSamples {
     pub(super) fn dedup_representatives(
         &self,
         representations: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
-    ) -> impl IntoIterator<Item = StablePairPosition> {
+    ) -> impl IntoIterator<Item = UniversePosition> {
         let mut seen_classes = HashSet::new();
 
         self.universe

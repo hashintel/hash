@@ -1,8 +1,11 @@
 //! Assembly of the evidence record from one validated replay and its projections.
 
+use hashql_core::id::{Id, IdSlice};
+
 use super::{
-    ArrivalReplay, StablePairPosition,
+    ArrivalReplay,
     design::NeighbourhoodDesign,
+    draw::{ClassUniversePosition, DedupPosition, UniversePosition},
     metric::{MetricPass, PopulationCells},
     path::{ProjectedOutcome, PublishPath},
     plan::EstimandData,
@@ -14,17 +17,21 @@ use super::{
 use crate::progress::Progress;
 
 /// One estimand's metric pass with its population cells.
-struct EstimandRun<'run> {
+///
+/// `I` is the estimand universe's position domain, so the entity and class runs cannot consume
+/// each other's representatives, and each estimand's row builder below is bound to its own
+/// domain.
+struct EstimandRun<'run, I> {
     cells: Vec<PopulationCells>,
-    pass: MetricPass<'run>,
+    pass: MetricPass<'run, I>,
 }
 
-impl<'run> EstimandRun<'run> {
+impl<'run, I: Id> EstimandRun<'run, I> {
     /// A run over one estimand's data, with the diagnostic lens where one is handed over.
     fn new(
         designs: &'run [NeighbourhoodDesign],
         data: &'run EstimandData,
-        dedup: Option<&'run [StablePairPosition]>,
+        dedup: Option<&'run IdSlice<DedupPosition, I>>,
     ) -> Self {
         // The designs were validated against the drawn universe cardinalities, so the data
         // arriving here must carry exactly those cardinalities.
@@ -66,7 +73,9 @@ impl<'run> EstimandRun<'run> {
             .zip(&self.cells)
             .map(|(design, cell)| cell.block(design.k()))
     }
+}
 
+impl EstimandRun<'_, UniversePosition> {
     /// Renders the deduplication diagnostic's blocks in design order.
     ///
     /// # Panics
@@ -127,7 +136,9 @@ impl<'run> EstimandRun<'run> {
 
         (queries, controls)
     }
+}
 
+impl EstimandRun<'_, ClassUniversePosition> {
     /// The class estimand's per-class and per-control rows.
     fn class_rows(
         &mut self,
@@ -196,8 +207,10 @@ impl ArrivalReplay {
     ) -> ReplayReport {
         let projected = path.project_queries(self.plan.embeddings().rows(), progress);
 
-        let mut entity_run = EstimandRun::new(&self.designs, &self.entity, Some(&self.dedup));
-        let mut class_run = EstimandRun::new(&self.designs, &self.class, None);
+        let mut entity_run =
+            EstimandRun::new(&self.designs, &self.entity, Some(self.dedup.as_slice()));
+        let mut class_run: EstimandRun<'_, ClassUniversePosition> =
+            EstimandRun::new(&self.designs, &self.class, None);
 
         let (query_rows, control_rows) = entity_run.entity_rows(&self, &projected);
         let (class_query_rows, class_control_rows) = class_run.class_rows(&self, &projected);

@@ -8,6 +8,8 @@
 //! - [`uniform_below`] draws one unbiased integer below a bound.
 //! - [`sample_indices_vec`] draws distinct indices without replacement, in memory proportional to
 //!   the sample rather than the population.
+//! - [`sample_ids`] draws distinct ids of an id-indexed population, typing the draw by the
+//!   population it came from.
 //! - [`keyed_rng`] builds an independent generator per `(seed, key, stream)`, which is what keeps
 //!   parallel draws deterministic.
 //! - [`acceptance_sample_size`] reports how many uniformly sampled items must all pass to certify a
@@ -22,6 +24,7 @@
 
 use core::num::NonZero;
 
+use hashql_core::id::{Id, IdSlice};
 use rand::{
     Rng, RngExt as _, SeedableRng as _,
     seq::index::{IndexVec, sample},
@@ -85,6 +88,42 @@ pub(crate) fn uniform_below(mut rng: impl Rng, bound: NonZero<u64>) -> u64 {
 #[must_use]
 pub(crate) fn sample_indices_vec(mut rng: impl Rng, population: usize, count: usize) -> IndexVec {
     sample(&mut rng, population, count)
+}
+
+/// Samples `count` distinct ids of an id-indexed population uniformly at random.
+///
+/// The typed form of [`sample_indices_vec`]: the id domain comes from the population itself, so a
+/// draw cannot pair one population's length with another population's id type. The sample draws
+/// without replacement, the yielded order is itself uniformly random, and both forms consume the
+/// identical generator stream, so a seeded draw is unchanged by adopting the typed form. Every
+/// yielded id is a position of the population, below its length by the draw and within the id's
+/// representation by the slice's own construction.
+///
+/// # Panics
+///
+/// This panics when `count` exceeds the population's length. No `count`-element sample exists to
+/// draw, and an oversized request is a caller bug rather than a runtime condition.
+///
+/// # Examples
+///
+/// ```ignore
+/// use rand::SeedableRng as _;
+/// use rand_xoshiro::Xoshiro256PlusPlus;
+///
+/// let mut rng = Xoshiro256PlusPlus::seed_from_u64(42);
+/// let population = IdSlice::<RowId, ()>::from_raw(&[(); 1_000_000]);
+/// let picked: Vec<RowId> = sample_ids(&mut rng, population, 688).collect();
+/// assert_eq!(picked.len(), 688);
+/// ```
+#[inline]
+pub(crate) fn sample_ids<I: Id, T>(
+    mut rng: impl Rng,
+    population: &IdSlice<I, T>,
+    count: usize,
+) -> impl Iterator<Item = I> {
+    sample(&mut rng, population.len(), count)
+        .into_iter()
+        .map(I::from_usize)
 }
 
 /// The golden-ratio increment of `SplitMix64`: `2^64 / phi`, odd and therefore coprime to the word,
