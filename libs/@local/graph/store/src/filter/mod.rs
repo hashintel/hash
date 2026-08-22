@@ -30,7 +30,6 @@ use type_system::{
     },
     principal::actor::{ActorEntityUuid, ActorId},
 };
-use uuid::Uuid;
 
 pub use self::{
     parameter::{
@@ -1236,6 +1235,10 @@ impl<'p> Filter<'p, Entity> {
         }
     }
 
+    /// Transforms a property filter into a query filter for the given actor.
+    ///
+    /// A request without an actor leaves the actor comparison without a value: an equality then
+    /// matches no record, an inequality every record.
     #[must_use]
     fn for_property_filter(filter: PropertyFilter<'p>, actor_id: Option<ActorId>) -> Self {
         match filter {
@@ -1243,26 +1246,40 @@ impl<'p> Filter<'p, Entity> {
                 filters
                     .into_iter()
                     .map(|filter| Self::for_property_filter(filter, actor_id))
+                    .filter(|filter| !matches!(filter, Self::All(inner) if inner.is_empty()))
                     .collect(),
             ),
             PropertyFilter::Any(filters) => Self::Any(
                 filters
                     .into_iter()
                     .map(|filter| Self::for_property_filter(filter, actor_id))
+                    .filter(|filter| !matches!(filter, Self::Any(inner) if inner.is_empty()))
                     .collect(),
             ),
-            PropertyFilter::Equal(lhs, rhs) => Self::Equal(
-                FilterExpression::from_cell_filter_expression(lhs, actor_id),
-                FilterExpression::from_cell_filter_expression(rhs, actor_id),
-            ),
-            PropertyFilter::NotEqual(lhs, rhs) => Self::NotEqual(
-                FilterExpression::from_cell_filter_expression(lhs, actor_id),
-                FilterExpression::from_cell_filter_expression(rhs, actor_id),
-            ),
-            PropertyFilter::In(lhs, rhs) => Self::In(
-                FilterExpression::from_cell_filter_expression(lhs, actor_id),
-                FilterExpressionList::from(rhs),
-            ),
+            PropertyFilter::Equal(lhs, rhs) => {
+                match (
+                    FilterExpression::from_cell_filter_expression(lhs, actor_id),
+                    FilterExpression::from_cell_filter_expression(rhs, actor_id),
+                ) {
+                    (Some(lhs), Some(rhs)) => Self::Equal(lhs, rhs),
+                    _ => Self::Any(Vec::new()),
+                }
+            }
+            PropertyFilter::NotEqual(lhs, rhs) => {
+                match (
+                    FilterExpression::from_cell_filter_expression(lhs, actor_id),
+                    FilterExpression::from_cell_filter_expression(rhs, actor_id),
+                ) {
+                    (Some(lhs), Some(rhs)) => Self::NotEqual(lhs, rhs),
+                    _ => Self::All(Vec::new()),
+                }
+            }
+            PropertyFilter::In(lhs, rhs) => {
+                FilterExpression::from_cell_filter_expression(lhs, actor_id).map_or_else(
+                    || Self::Any(Vec::new()),
+                    |lhs| Self::In(lhs, FilterExpressionList::from(rhs)),
+                )
+            }
         }
     }
 }
@@ -1475,21 +1492,26 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
 }
 
 impl<'p> FilterExpression<'p, Entity> {
+    /// Converts a cell filter expression into a query filter expression.
+    ///
+    /// Returns [`None`] for [`ActorId`] when the request carries no actor.
+    ///
+    /// [`ActorId`]: PropertyFilterExpression::ActorId
     #[must_use]
     pub fn from_cell_filter_expression(
         expression: PropertyFilterExpression<'p>,
         actor_id: Option<ActorId>,
-    ) -> Self {
+    ) -> Option<Self> {
         match expression {
-            PropertyFilterExpression::Path { path } => Self::Path { path },
-            PropertyFilterExpression::Parameter { parameter } => Self::Parameter {
+            PropertyFilterExpression::Path { path } => Some(Self::Path { path }),
+            PropertyFilterExpression::Parameter { parameter } => Some(Self::Parameter {
                 parameter,
                 convert: None,
-            },
-            PropertyFilterExpression::ActorId => Self::Parameter {
-                parameter: Parameter::Uuid(actor_id.map_or_else(Uuid::nil, Uuid::from)),
+            }),
+            PropertyFilterExpression::ActorId => actor_id.map(|actor_id| Self::Parameter {
+                parameter: Parameter::Uuid(actor_id.into()),
                 convert: None,
-            },
+            }),
         }
     }
 }
