@@ -42,17 +42,9 @@ export type PopoverProps = {
   position?: Position;
   /** Instead of positioning around the trigger, position from a specific point inside or outside the trigger where 0,0 is the top left of the trigger element. The popover repositions as this point changes. */
   positionFromPoint?: { x: number; y: number };
-  /**
-   * The horizontal distance the popover will be from the anchor in px. Applied
-   * when the placement is horizontal (`left`/`right`), or - with a
-   * `positionFromPoint` point anchor - always, alongside `gapY`.
-   */
+  /** The X distance the popover will be from the trigger in px */
   gapX?: number;
-  /**
-   * The vertical distance the popover will be from the anchor in px. Applied
-   * when the placement is vertical (`top`/`bottom`), or - with a
-   * `positionFromPoint` point anchor - always, alongside `gapX`.
-   */
+  /** The Y distance the popover will be from the trigger in px */
   gapY?: number;
   /** Called when the popover requests to close (e.g. Escape or an interaction outside it). Required for the popover to be dismissable. */
   onClose?: () => void;
@@ -248,24 +240,14 @@ const PopoverRoot = ({
       }}
       positioning={{
         placement: position,
-        // The gap along the placement direction (the main axis), for both anchor
-        // kinds. It rides Ark's offset middleware, which stays flip-aware, so the
-        // gap lands on whichever side a flip resolves to. Computed inline from the
-        // current gaps so a change is in the prop Ark reads on its next reposition
-        // (see `RepositionOnGapChange`); a point anchor's cross-axis gap is baked
-        // into the anchor rect instead (see `getAnchorRect`).
         offset: { mainAxis: isVertical ? gapY : gapX },
-        // When anchored to a point, the trigger element itself doesn't move as
-        // the point changes, so floating-ui's default scroll/resize listeners
-        // never fire and the popover would stay put. Poll on each animation
-        // frame instead so it tracks a moving point (e.g. an overlay following
-        // a node as a chart is panned/zoomed). The other auto-update listeners
-        // keep their defaults. Trigger-anchored popovers don't need this.
         listeners: hasPoint ? { animationFrame: true } : true,
+
         // Anchor to the external trigger (or a point relative to its top-left).
         // Reads the ref lazily so positioning tracks the trigger as it moves.
         getAnchorRect: () => {
           const rect = resolveRef(triggerRef)?.getBoundingClientRect();
+
           const point = pointRef.current;
 
           if (point) {
@@ -279,7 +261,6 @@ const PopoverRoot = ({
             const { x: gapXNow, y: gapYNow } = gapRef.current;
             const crossGap = isVertical ? gapXNow : gapYNow;
             const crossOffset = alignment === "end" ? -crossGap : crossGap;
-
             return {
               x: (rect?.left ?? 0) + point.x + (isVertical ? crossOffset : 0),
               y: (rect?.top ?? 0) + point.y + (isVertical ? 0 : crossOffset),
