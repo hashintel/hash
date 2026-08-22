@@ -5,7 +5,12 @@ import {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
 } from "../metrics";
+import { createMonteCarloMetricShardMerger } from "../metrics/merge";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
+import {
+  getDefaultMonteCarloShardCount,
+  planMonteCarloShards,
+} from "./shard-plan";
 
 import type { AbortSignalLike } from "../../../environment";
 import type { PetrinautExtensionSettings } from "../../../extensions";
@@ -29,6 +34,7 @@ import type {
   MonteCarloToMainMessage,
   MonteCarloWorkerProgress,
 } from "../worker/messages";
+import type { MonteCarloShardPlanEntry } from "./shard-plan";
 
 export type MonteCarloExperimentState =
   | "Initializing"
@@ -61,6 +67,16 @@ type CreateMonteCarloExperimentBaseConfig = {
   hirArtifacts?: HirArtifacts;
   runCount: number;
   batchSize?: number;
+  /**
+   * How many workers to split the runs across.
+   *
+   * Defaults to one per logical core minus one (capped at `runCount`). Runs are
+   * independent and seeds derive from the global run index, so shard count
+   * changes only how fast an experiment finishes, never what it reports. Only
+   * honoured for `createWorker` experiments — a caller-supplied `transport` is a
+   * single channel and always runs as one shard.
+   */
+  shardCount?: number;
   signal?: AbortSignalLike;
 };
 
@@ -485,11 +501,28 @@ export function createMonteCarloExperiment(
     });
   }
 
-  let transport: SimulationTransport;
+  // A caller-supplied transport is a single channel, so it cannot be sharded.
+  // `createWorker` can be called once per shard.
+  let shards: MonteCarloShardPlanEntry[];
+  let transports: SimulationTransport[];
   if ("transport" in config && config.transport !== undefined) {
-    transport = config.transport;
+    shards = [{ runIndexOffset: 0, runCount: config.runCount }];
+    transports = [config.transport];
   } else if ("createWorker" in config && config.createWorker !== undefined) {
-    transport = createWorkerTransport(config.createWorker);
+    const { createWorker } = config;
+    try {
+      shards = planMonteCarloShards(
+        config.runCount,
+        config.shardCount ?? getDefaultMonteCarloShardCount(config.runCount),
+      );
+    } catch (error) {
+      return Promise.reject(
+        error instanceof Error
+          ? error
+          : new Error("Failed to plan Monte Carlo experiment shards"),
+      );
+    }
+    transports = shards.map(() => createWorkerTransport(createWorker));
   } else {
     return Promise.reject(
       new Error(
@@ -497,6 +530,8 @@ export function createMonteCarloExperiment(
       ),
     );
   }
+
+  const shardCount = shards.length;
   const status = createReadableStore<MonteCarloExperimentState>("Initializing");
   const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
   const metrics = createReadableStore<MonteCarloExperimentMetrics>(
@@ -507,10 +542,98 @@ export function createMonteCarloExperiment(
 
   return new Promise<MonteCarloExperiment>((resolve, reject) => {
     let settled = false;
-    let off: (() => void) | null = null;
+    let offListeners: (() => void)[] = [];
     let abortListener: (() => void) | null = null;
 
-    const cleanupTransport = ({ sendCancel }: { sendCancel: boolean }) => {
+    const merger = createMonteCarloMetricShardMerger(shardCount);
+    const shardProgress = new Array<MonteCarloWorkerProgress | null>(
+      shardCount,
+    ).fill(null);
+    const shardReady = new Array<boolean>(shardCount).fill(false);
+    const shardSettled = new Array<boolean>(shardCount).fill(false);
+    /** Shards that will produce no further metric frames, for any reason. */
+    const shardFinished = new Array<boolean>(shardCount).fill(false);
+    /**
+     * Shards whose runs all reached a terminal state.
+     *
+     * Distinct from `shardFinished`: a cancelled shard stops reporting but its
+     * runs were abandoned, not finished, so it must not make the experiment
+     * claim `allFinished`.
+     */
+    const shardCompleted = new Array<boolean>(shardCount).fill(false);
+
+    const publishMetricFrames = (
+      frames: readonly MonteCarloUserDefinedMetricFrame[],
+    ) => {
+      if (frames.length > 0) {
+        metrics.set(appendMetricFrames(metrics.get(), frames));
+      }
+    };
+
+    /**
+     * Combines shard progress into one experiment-level view.
+     *
+     * Run tallies sum. Frame position reports the slowest shard still running,
+     * because that is how far the *merged* metric timeline actually extends —
+     * reporting the fastest shard would run the progress bar ahead of the data
+     * behind it.
+     */
+    const publishProgress = () => {
+      let advancedRuns = 0;
+      let completedRuns = 0;
+      let erroredRuns = 0;
+      let activeRuns = 0;
+      let slowestFrameNumber = Number.POSITIVE_INFINITY;
+      let slowestTime = Number.POSITIVE_INFINITY;
+      let furthestFrameNumber = 0;
+      let furthestTime = 0;
+      let reported = false;
+
+      for (let shard = 0; shard < shardCount; shard++) {
+        const current = shardProgress[shard];
+        if (!current) {
+          continue;
+        }
+
+        reported = true;
+        advancedRuns += current.advancedRuns;
+        completedRuns += current.completedRuns;
+        erroredRuns += current.erroredRuns;
+        activeRuns += current.activeRuns;
+        furthestFrameNumber = Math.max(
+          furthestFrameNumber,
+          current.frameNumber,
+        );
+        furthestTime = Math.max(furthestTime, current.time);
+
+        if (!shardFinished[shard]) {
+          slowestFrameNumber = Math.min(
+            slowestFrameNumber,
+            current.frameNumber,
+          );
+          slowestTime = Math.min(slowestTime, current.time);
+        }
+      }
+
+      if (!reported) {
+        return;
+      }
+
+      const stillReporting = !shardFinished.every(Boolean);
+
+      progress.set({
+        advancedRuns,
+        completedRuns,
+        erroredRuns,
+        activeRuns,
+        allFinished: shardCompleted.every(Boolean),
+        runCount: config.runCount,
+        frameNumber: stillReporting ? slowestFrameNumber : furthestFrameNumber,
+        time: stillReporting ? slowestTime : furthestTime,
+      });
+    };
+
+    const cleanupTransports = ({ sendCancel }: { sendCancel: boolean }) => {
       if (disposed) {
         return;
       }
@@ -520,18 +643,21 @@ export function createMonteCarloExperiment(
         config.signal?.removeEventListener("abort", abortListener);
         abortListener = null;
       }
-      off?.();
-      off = null;
-
-      if (sendCancel) {
-        try {
-          transport.send({ type: "cancel" });
-        } catch {
-          // Transport may already be torn down.
-        }
+      for (const off of offListeners) {
+        off();
       }
+      offListeners = [];
 
-      transport.terminate();
+      for (const transport of transports) {
+        if (sendCancel) {
+          try {
+            transport.send({ type: "cancel" });
+          } catch {
+            // Transport may already be torn down.
+          }
+        }
+        transport.terminate();
+      }
     };
 
     const rejectBeforeReady = (error: Error) => {
@@ -540,7 +666,7 @@ export function createMonteCarloExperiment(
       }
 
       settled = true;
-      cleanupTransport({ sendCancel: false });
+      cleanupTransports({ sendCancel: false });
       reject(error);
     };
 
@@ -551,7 +677,7 @@ export function createMonteCarloExperiment(
         error.name = "AbortError";
         reject(error);
       }
-      cleanupTransport({ sendCancel: true });
+      cleanupTransports({ sendCancel: true });
     };
 
     abortListener = onAbort;
@@ -566,61 +692,134 @@ export function createMonteCarloExperiment(
           return;
         }
         status.set("Running");
-        transport.send({ type: "start" });
+        for (const transport of transports) {
+          transport.send({ type: "start" });
+        }
       },
       cancel() {
         if (disposed) {
           return;
         }
-        transport.send({ type: "cancel" });
+        for (const transport of transports) {
+          transport.send({ type: "cancel" });
+        }
       },
       dispose() {
-        cleanupTransport({ sendCancel: true });
+        cleanupTransports({ sendCancel: true });
       },
     };
 
-    off = transport.onMessage((rawMessage) => {
-      const message = rawMessage as MonteCarloToMainMessage;
-
-      switch (message.type) {
-        case "ready": {
-          status.set("Ready");
-          if (!settled) {
-            settled = true;
-            resolve(handle);
-          }
-          break;
-        }
-        case "metricFrames": {
-          metrics.set(appendMetricFrames(metrics.get(), message.frames));
-          break;
-        }
-        case "progress":
-          progress.set(message.progress);
-          break;
-        case "complete":
-          progress.set(message.progress);
-          status.set("Complete");
-          events.emit({ type: "complete", progress: message.progress });
-          break;
-        case "cancelled":
-          progress.set(message.progress);
-          status.set("Cancelled");
-          events.emit({ type: "cancelled", progress: message.progress });
-          break;
-        case "error":
-          status.set("Error");
-          events.emit({
-            type: "error",
-            message: message.message,
-            itemId: message.itemId,
-          });
-          if (!settled) {
-            rejectBeforeReady(new Error(message.message));
-          }
-          break;
+    /**
+     * Marks a shard as done and, once every shard is, emits the terminal event.
+     *
+     * The experiment is only complete when all shards complete; a single
+     * cancellation or error is terminal for the whole experiment, matching the
+     * single-worker contract.
+     */
+    const settleShard = (
+      shardIndex: number,
+      outcome: "complete" | "cancelled",
+    ) => {
+      if (shardSettled[shardIndex]) {
+        return;
       }
-    });
+      shardSettled[shardIndex] = true;
+      shardFinished[shardIndex] = true;
+      shardCompleted[shardIndex] = outcome === "complete";
+      publishMetricFrames(merger.finishShard(shardIndex));
+
+      if (outcome === "cancelled") {
+        // One shard cancelling cancels the experiment; stop the rest so they
+        // do not keep burning cores on results nobody will read.
+        for (const transport of transports) {
+          try {
+            transport.send({ type: "cancel" });
+          } catch {
+            // Transport may already be torn down.
+          }
+        }
+        publishProgress();
+        status.set("Cancelled");
+        events.emit({ type: "cancelled", progress: progress.get() });
+        return;
+      }
+
+      publishProgress();
+
+      if (shardSettled.every(Boolean)) {
+        // Nothing should be left buffered, but flush so a shard that stopped
+        // mid-frame cannot silently strand its last frames.
+        publishMetricFrames(merger.flush());
+        const finalProgress = progress.get();
+        status.set("Complete");
+        events.emit({
+          type: "complete",
+          progress: finalProgress ?? {
+            advancedRuns: 0,
+            completedRuns: 0,
+            erroredRuns: 0,
+            activeRuns: 0,
+            allFinished: true,
+            runCount: config.runCount,
+            frameNumber: 0,
+            time: 0,
+          },
+        });
+      }
+    };
+
+    offListeners = transports.map((transport, shardIndex) =>
+      transport.onMessage((rawMessage) => {
+        const message = rawMessage as MonteCarloToMainMessage;
+
+        switch (message.type) {
+          case "ready": {
+            shardReady[shardIndex] = true;
+            if (shardReady.every(Boolean)) {
+              status.set("Ready");
+              if (!settled) {
+                settled = true;
+                resolve(handle);
+              }
+            }
+            break;
+          }
+          case "metricFrames": {
+            publishMetricFrames(merger.accept(shardIndex, message.frames));
+            break;
+          }
+          case "progress":
+            shardProgress[shardIndex] = message.progress;
+            publishProgress();
+            break;
+          case "complete":
+            shardProgress[shardIndex] = message.progress;
+            settleShard(shardIndex, "complete");
+            break;
+          case "cancelled":
+            if (message.progress) {
+              shardProgress[shardIndex] = message.progress;
+            }
+            settleShard(shardIndex, "cancelled");
+            break;
+          case "error":
+            status.set("Error");
+            events.emit({
+              type: "error",
+              message: message.message,
+              itemId: message.itemId,
+            });
+            if (settled) {
+              // Already handed the caller a handle, so surface the error as an
+              // event and tear the remaining shards down.
+              cleanupTransports({ sendCancel: true });
+            } else {
+              rejectBeforeReady(new Error(message.message));
+            }
+            break;
+        }
+      }),
+    );
 
     if (config.signal) {
       if (config.signal.aborted) {
@@ -631,20 +830,24 @@ export function createMonteCarloExperiment(
     }
 
     try {
-      transport.send({
-        type: "init",
-        sdcpn: config.sdcpn,
-        extensions: config.extensions,
-        initialMarking: config.initialMarking,
-        parameterValues: config.parameterValues,
-        seed: config.seed,
-        dt: config.dt,
-        maxTime: config.maxTime,
-        hirArtifacts: config.hirArtifacts,
-        runCount: config.runCount,
-        batchSize: config.batchSize,
-        metricSpecs: "metricSpecs" in config ? config.metricSpecs : undefined,
-      });
+      for (const [shardIndex, transport] of transports.entries()) {
+        const shard = shards[shardIndex]!;
+        transport.send({
+          type: "init",
+          sdcpn: config.sdcpn,
+          extensions: config.extensions,
+          initialMarking: config.initialMarking,
+          parameterValues: config.parameterValues,
+          seed: config.seed,
+          dt: config.dt,
+          maxTime: config.maxTime,
+          hirArtifacts: config.hirArtifacts,
+          runCount: shard.runCount,
+          runIndexOffset: shard.runIndexOffset,
+          batchSize: config.batchSize,
+          metricSpecs: "metricSpecs" in config ? config.metricSpecs : undefined,
+        });
+      }
     } catch (error) {
       rejectBeforeReady(
         error instanceof Error

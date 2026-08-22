@@ -35,6 +35,15 @@ import {
 
 type ExperimentsProviderProps = React.PropsWithChildren<{
   workerFactory?: WorkerFactory;
+  /**
+   * How many workers each experiment splits its runs across.
+   *
+   * Defaults to one per logical core minus one. Sharding never changes an
+   * experiment's results, only how quickly it finishes, so this exists for hosts
+   * that need to cap CPU use (or pin behaviour in tests) rather than to affect
+   * output.
+   */
+  experimentShardCount?: number;
 }>;
 
 type ExperimentHandleRegistration = {
@@ -163,6 +172,7 @@ function assertExperimentInput(input: CreateExperimentInput): void {
 export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   children,
   workerFactory,
+  experimentShardCount,
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
@@ -170,6 +180,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
+  const shardCountRef = useLatest(experimentShardCount);
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
   );
@@ -433,6 +444,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         const handle = await createMonteCarloExperiment({
           ...experimentConfigBase,
           createWorker: workerFactoryRef.current,
+          ...(shardCountRef.current === undefined
+            ? {}
+            : { shardCount: shardCountRef.current }),
           metricSpecs,
           signal: abortController.signal,
         });

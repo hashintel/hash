@@ -166,6 +166,7 @@ function initialize(message: MonteCarloInitMessage): void {
     maxTime: message.maxTime,
     hirArtifacts: message.hirArtifacts,
     runCount: message.runCount,
+    runIndexOffset: message.runIndexOffset,
     metrics: userMetrics,
   });
   batchSize = message.batchSize ?? DEFAULT_BATCH_SIZE;
