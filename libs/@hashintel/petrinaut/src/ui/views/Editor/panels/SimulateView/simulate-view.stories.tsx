@@ -29,6 +29,7 @@ import {
   FakeEditorProvider,
   FakeExperimentsProvider,
   makeExperiment,
+  makeParameterSweepExperiment,
   makeProgress,
   multipleExperiments,
   oneExperiment,
@@ -424,6 +425,13 @@ export const Complete: Story = {
     <SimulateViewStory
       experiments={[makeExperiment(1, { status: "complete" })]}
     />
+  ),
+};
+
+export const ParameterSweep: Story = {
+  name: "Parameter sweep",
+  render: () => (
+    <SimulateViewStory experiments={[makeParameterSweepExperiment()]} />
   ),
 };
 

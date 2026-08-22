@@ -17,6 +17,8 @@ function formatExperimentStatus(status: ExperimentRecord["status"]): string {
       return "Initializing";
     case "running":
       return "Running";
+    case "idle":
+      return "Idle";
     case "complete":
       return "Complete";
     case "error":
@@ -76,7 +78,10 @@ const experimentColumns = [
     header: "Runs",
     width: 156,
     tone: "subtle",
-    render: (experiment) => experiment.runCount,
+    render: (experiment) =>
+      experiment.cells.length > 1
+        ? `${experiment.runCount.toLocaleString()} × ${experiment.cells.length}`
+        : experiment.runCount,
   },
   {
     id: "status",
