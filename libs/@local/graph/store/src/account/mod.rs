@@ -146,16 +146,6 @@ pub trait AccountStore {
         user_id: UserId,
     ) -> impl Future<Output = Result<Option<String>, Report<GetActorError>>> + Send;
 
-    /// Returns the email addresses for a user, read from their entity properties.
-    ///
-    /// # Errors
-    ///
-    /// - [`GetActorError`] if the lookup failed.
-    fn get_user_emails(
-        &self,
-        user_id: UserId,
-    ) -> impl Future<Output = Result<Vec<String>, Report<GetActorError>>> + Send;
-
     /// Returns a [`Machine`] actor by its [`MachineId`].
     ///
     /// # Errors

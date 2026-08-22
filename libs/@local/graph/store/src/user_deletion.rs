@@ -75,7 +75,7 @@ pub struct UserDeletionOutcome {
 /// principal would break those references.
 ///
 /// Orchestrates the following operations in order:
-/// 1. Look up the user's Kratos identity ID and email addresses
+/// 1. Look up the user's Kratos identity ID, then its email addresses through the identity provider
 /// 2. Purge all entities owned by the user's personal web
 /// 3. Delete the Kratos identity (removes PII such as email)
 /// 4. Revoke Hydra login and consent sessions
@@ -128,8 +128,8 @@ where
     };
     tracing::info!(%user_id, %kratos_identity_id, "resolved Kratos identity");
 
-    let emails = store
-        .get_user_emails(user_id)
+    let emails = identity_provider
+        .get_identity_emails(&kratos_identity_id)
         .await
         .change_context(UserDeletionError::UserLookup)?;
     tracing::info!(%user_id, email_count = emails.len(), "resolved user emails");
