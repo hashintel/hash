@@ -19,13 +19,13 @@
 //!   dangling alias cannot be written.
 //! - [`Correlation`] is a derived relation's name - an unnest, subquery, lateral, or CTE output -
 //!   with the same column vocabulary and deliberately no FROM item. A derived FROM item takes it as
-//!   its alias, a CTE declares it through [`with_statement`] and stands under it through
+//!   its alias, a CTE declares it through [`CommonTableExpression`] and stands under it through
 //!   [`FromItem::table`], and joining one as if it were a base table fails compilation, which is
 //!   the defect this split removes.
 //!
 //! [`inner_join_on`]: FromItem::inner_join_on
 //! [`left_join_on`]: FromItem::left_join_on
-//! [`with_statement`]: super::WithExpression::with_statement
+//! [`CommonTableExpression`]: super::CommonTableExpression
 
 use core::marker::PhantomData;
 
@@ -233,11 +233,11 @@ impl<C: DatabaseColumn<'static>> Aliased<C> {
 /// The relations this names - an unnest, a subquery, a lateral, a CTE - exist only inside the
 /// statement that derives them, so the name introduces nothing on its own and there is
 /// deliberately no FROM item here. A derived FROM item takes one as its `alias`, a CTE declares
-/// one through [`WithExpression::with_statement`] and stands under it through
+/// one through [`CommonTableExpression`] and stands under it through
 /// [`FromItem::table`], and a base table travels as [`Aliased`] instead, so joining a bare name
 /// where a base table is required fails compilation.
 ///
-/// [`WithExpression::with_statement`]: super::WithExpression::with_statement
+/// [`CommonTableExpression`]: super::CommonTableExpression
 pub struct Correlation<C> {
     /// The name the derived relation stands under.
     name: &'static str,

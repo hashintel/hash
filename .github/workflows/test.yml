@@ -12,6 +12,9 @@ env:
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
   NEXTEST_PROFILE: ci
+  # Wire secret for the atlas service in infra/compose, which refuses to interpolate without
+  # one. The containers are ephemeral and CI-local, so a fixed dummy value is fine here.
+  HASH_GRAPH_ATLAS_SECRET: deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

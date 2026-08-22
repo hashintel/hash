@@ -1,19 +1,14 @@
 import { getActorIdFromRequest } from "../../../auth/get-actor-id";
 
-import type { ClusterEntitiesParams } from "@local/hash-graph-client";
+import type {
+  ClusterEntitiesParams,
+  ClusterEntitiesResponse,
+} from "@local/hash-graph-client";
 import type { RequestHandler } from "express";
 
 export const clusterEntitiesHandler: RequestHandler<
   Record<string, never>,
-  | {
-      clusters: {
-        clusterId: number;
-        entityIds: string[];
-        centroid: number[];
-      }[];
-      missingEmbeddings: string[];
-    }
-  | { error: string },
+  ClusterEntitiesResponse | { error: string },
   ClusterEntitiesParams
 > = async (req, res) => {
   const actorId = getActorIdFromRequest(req);

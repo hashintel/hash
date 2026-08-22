@@ -10,6 +10,9 @@ env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
+  # Wire secret for the atlas service in infra/compose, which refuses to interpolate without
+  # one. The containers are ephemeral and CI-local, so a fixed dummy value is fine here.
+  HASH_GRAPH_ATLAS_SECRET: deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
   # The legacy Vault, still holding `aws/creds/dev-deploy`. Inline rather than a
   # variable because it goes away once those credentials move; `vars.VAULT_ADDR`
   # is the per-environment one and would resolve to the wrong instance here.

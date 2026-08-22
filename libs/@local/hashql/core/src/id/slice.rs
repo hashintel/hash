@@ -3,14 +3,13 @@
     expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")
 )]
 
-#[cfg(feature = "rayon")]
-use core::num::NonZero;
 use core::{
     alloc::Allocator,
     cmp,
     fmt::{self, Debug},
     marker::PhantomData,
     mem::MaybeUninit,
+    num::NonZero,
     ops::{Index, IndexMut},
     ptr,
     slice::{self, GetDisjointMutError, GetDisjointMutIndex, SliceIndex},
