@@ -4,6 +4,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import actualMode from "../../../../../../docs/actual-mode.md?raw";
+import adHocScenarios from "../../../../../../docs/ad-hoc-scenarios.md?raw";
 import aiAssistant from "../../../../../../docs/ai-assistant.md?raw";
 import drawingANet from "../../../../../../docs/drawing-a-net.md?raw";
 import examples from "../../../../../../docs/examples.md?raw";
@@ -33,6 +34,7 @@ const rawDocsByName: Record<PetrinautDocName, string> = {
   "useful-patterns": usefulPatterns,
   simulation,
   scenarios,
+  "ad-hoc-scenarios": adHocScenarios,
   experiments,
   optimization,
   "actual-mode": actualMode,

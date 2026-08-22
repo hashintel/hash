@@ -25,7 +25,7 @@ Open the **Simulation Settings** tab in the bottom panel to configure:
 
 The **Scenario** dropdown lists "No scenario" plus every saved [scenario](scenarios.md). Selecting a scenario overrides parameters and the per-place initial marking with the scenario's values for this run. The picker is locked while a simulation is running; reset to change scenario.
 
-Quick-action buttons next to the picker let you edit the selected scenario, create a new scenario, or jump to the [Scenarios](scenarios.md) management view in Simulate mode.
+Quick-action buttons next to the picker let you edit the selected scenario, create a new scenario, or jump to the [Scenarios](scenarios.md) management view in Simulate mode. With "No scenario" selected, a pencil button opens the **Define initial state** drawer instead, where you set up an [ad-hoc scenario](ad-hoc-scenarios.md) for the next run without saving anything.
 
 ### Parameters
 
