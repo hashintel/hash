@@ -34,8 +34,8 @@ export type SegmentedControlProps<ValueType extends string = string> = {
   layout?: "horizontal" | "vertical";
   /**
    * The track style: `default` is filled with a hairline ring; `embossed` has
-   * no fill or ring, just a recessed inset shadow. The selected segment looks
-   * identical in both.
+   * no fill or ring, just a recessed inset shadow — and its selected segment is
+   * subtly raised out of that recess with a soft elevation shadow.
    */
   variant?: "default" | "embossed";
   /** The size (height) of the control */

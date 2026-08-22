@@ -197,6 +197,22 @@ export const styles = sva({
               "[inset 0 1px 2.5px {colors.neutral.a30}, inset 0 0 1px {colors.neutral.a25}]",
           },
         },
+        // The embossed track is a deeper recess than default's, so the selected
+        // pill gets a subtle elevation to read as raised out of the well rather
+        // than sitting flat in it: a soft drop shadow plus a faint top highlight
+        // (light from above). Kept deliberately gentle. Black/white alphas here
+        // are true shadows and must NOT take the frost treatment.
+        indicator: {
+          boxShadow:
+            "[0 1px 2px -1px {colors.black.a15}, 0 1px 1px -1px {colors.black.a10}, inset 0 1px 0 {colors.white.a50}]",
+          _dark: {
+            boxShadow:
+              "[0 1px 1px {colors.black.a40}, inset 0 1px 0 {colors.white.a20}]",
+          },
+          "&[data-disabled]": {
+            boxShadow: "[none]",
+          },
+        },
       },
     },
   },
