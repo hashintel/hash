@@ -1360,57 +1360,26 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             Filter::StartsWith(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
-                let left_filter = if left_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
-                } else {
-                    left_filter
-                };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
-                let right_filter = if right_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
-                } else {
-                    right_filter
-                };
+                let left_filter = self.compile_filter_expression_json(lhs)?;
+                let right_filter = self.compile_filter_expression_json(rhs)?;
 
                 Expression::starts_with(left_filter, right_filter)
             }
             Filter::EndsWith(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
-                let left_filter = if left_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
-                } else {
-                    left_filter
-                };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
-                let right_filter = if right_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
-                } else {
-                    right_filter
-                };
+                let left_filter = self.compile_filter_expression_json(lhs)?;
+                let right_filter = self.compile_filter_expression_json(rhs)?;
 
                 Expression::ends_with(left_filter, right_filter)
             }
             Filter::ContainsSegment(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
-                let left_filter = if left_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
-                } else {
-                    left_filter
-                };
-
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
-                let right_filter = if right_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
-                } else {
-                    right_filter
-                };
+                let left_filter = self.compile_filter_expression_json(lhs)?;
+                let right_filter = self.compile_filter_expression_json(rhs)?;
 
                 Expression::contains_segment(left_filter, right_filter)
             }
@@ -1631,13 +1600,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         )
     }
 
-    #[instrument(level = "debug", skip_all)]
     /// Compiles a [`FilterExpression`] to an [`Expression`] and its parameter type.
     ///
     /// # Errors
     ///
     /// Returns [`SelectCompilerError::PendingParameterConversion`] when the parameter still
     /// carries a conversion; conversions have to be resolved before compilation.
+    #[instrument(level = "debug", skip_all)]
     pub fn compile_filter_expression<'f: 'q>(
         &mut self,
         expression: &'p FilterExpression<'f, R>,
@@ -1665,6 +1634,24 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 self.compile_parameter(parameter)
             }
         })
+    }
+
+    /// Compiles a filter expression that extracts text from a JSON column.
+    #[instrument(level = "debug", skip_all)]
+    fn compile_filter_expression_json<'f: 'q>(
+        &mut self,
+        lhs: &'p FilterExpression<'f, R>,
+    ) -> Result<Expression, Report<SelectCompilerError>>
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
+        let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
+        let left_filter = if left_parameter == ParameterType::Any {
+            Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
+        } else {
+            left_filter
+        };
+        Ok(left_filter)
     }
 
     #[instrument(level = "debug", skip_all)]
