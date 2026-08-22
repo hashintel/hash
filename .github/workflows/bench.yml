@@ -10,9 +10,10 @@ env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
-  # Wire secret for the atlas service in infra/compose, which refuses to interpolate without
-  # one. The containers are ephemeral and CI-local, so a fixed dummy value is fine here.
-  HASH_GRAPH_ATLAS_SECRET: deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+  # The dev values compose interpolation needs (e.g. HASH_GRAPH_ATLAS_SECRET, which compose
+  # refuses to run without). The yarn `compose` script passes these files explicitly, and the
+  # raw `docker compose` invocations below read them through this variable instead.
+  COMPOSE_ENV_FILES: ${{ github.workspace }}/.env,${{ github.workspace }}/.env.development
   # The legacy Vault, still holding `aws/creds/dev-deploy`. Inline rather than a
   # variable because it goes away once those credentials move; `vars.VAULT_ADDR`
   # is the per-environment one and would resolve to the wrong instance here.

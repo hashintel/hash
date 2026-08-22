@@ -33,10 +33,13 @@ mod ulp_sweep;
 /// # Panics
 ///
 /// This panics when the CPU lacks the compiled baseline's instruction-set extensions.
-#[expect(
-    clippy::missing_const_for_fn,
-    reason = "const only where the x86-64 arm compiles out; the runtime feature detection is the \
-              function's purpose"
+#[cfg_attr(
+    not(target_arch = "x86_64"),
+    expect(
+        clippy::missing_const_for_fn,
+        reason = "const only where the x86-64 arm compiles out; the runtime feature detection is \
+                  the function's purpose"
+    )
 )]
 pub(crate) fn verify_cpu_baseline() {
     #[cfg(target_arch = "x86_64")]
