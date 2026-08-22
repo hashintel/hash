@@ -1434,11 +1434,8 @@ mod tests {
             )
         }
 
-        /// Creates the exclusion filter of `hash_default()` as it transforms without an actor.
-        ///
-        /// The rule is `type = User AND uuid != ActorId`. Nothing equals an actor that is not
-        /// there, so every record differs from it and the comparison drops out of the
-        /// conjunction.
+        /// Creates the `hash_default()` exclusion filter as it transforms without an actor, which
+        /// drops the `uuid != ActorId` comparison.
         fn exclusion_filter() -> Filter<'static, Entity> {
             all(vec![type_is_user()])
         }
@@ -1630,10 +1627,6 @@ mod tests {
 
             assert_eq!(do_transform(input), expected);
         }
-
-        // -----------------------------------------------------------------
-        // Extra: The actor comparison for a request that carries an actor
-        // -----------------------------------------------------------------
 
         #[test]
         fn actor_compares_against_its_own_uuid() {

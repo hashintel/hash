@@ -1236,14 +1236,16 @@ impl<'p> Filter<'p, Entity> {
     }
 
     #[must_use]
+    /// Transforms a property filter into a query filter for the given actor.
+    ///
+    /// A request without an actor leaves the actor comparison without a value: an equality then
+    /// matches no record, an inequality every record.
     fn for_property_filter(filter: PropertyFilter<'p>, actor_id: Option<ActorId>) -> Self {
         match filter {
             PropertyFilter::All(filters) => Self::All(
                 filters
                     .into_iter()
                     .map(|filter| Self::for_property_filter(filter, actor_id))
-                    // A comparison that matches every record constrains nothing within a
-                    // conjunction.
                     .filter(|filter| !matches!(filter, Self::All(inner) if inner.is_empty()))
                     .collect(),
             ),
@@ -1251,7 +1253,6 @@ impl<'p> Filter<'p, Entity> {
                 filters
                     .into_iter()
                     .map(|filter| Self::for_property_filter(filter, actor_id))
-                    // A comparison that matches no record adds nothing to a disjunction.
                     .filter(|filter| !matches!(filter, Self::Any(inner) if inner.is_empty()))
                     .collect(),
             ),
@@ -1261,8 +1262,6 @@ impl<'p> Filter<'p, Entity> {
                     FilterExpression::from_cell_filter_expression(rhs, actor_id),
                 ) {
                     (Some(lhs), Some(rhs)) => Self::Equal(lhs, rhs),
-                    // A request without an actor has no value to compare against, so nothing
-                    // equals it.
                     _ => Self::Any(Vec::new()),
                 }
             }
@@ -1272,7 +1271,6 @@ impl<'p> Filter<'p, Entity> {
                     FilterExpression::from_cell_filter_expression(rhs, actor_id),
                 ) {
                     (Some(lhs), Some(rhs)) => Self::NotEqual(lhs, rhs),
-                    // Everything differs from a value that is not there.
                     _ => Self::All(Vec::new()),
                 }
             }
@@ -1496,8 +1494,7 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
 impl<'p> FilterExpression<'p, Entity> {
     /// Converts a cell filter expression into a query filter expression.
     ///
-    /// Returns [`None`] for [`ActorId`] when the request carries no actor, leaving it to the
-    /// caller to decide what a comparison against a missing actor means.
+    /// Returns [`None`] for [`ActorId`] when the request carries no actor.
     ///
     /// [`ActorId`]: PropertyFilterExpression::ActorId
     #[must_use]
