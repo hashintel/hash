@@ -16,6 +16,7 @@ import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Slider } from "../../../../../components/slider";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
+import { AdHocScenarioDrawer } from "../../SimulateView/scenarios/ad-hoc-scenario-drawer";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
 
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -326,6 +327,7 @@ const SimulationSettingsContent: React.FC = () => {
 
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
+  const [isAdHocOpen, setIsAdHocOpen] = useState(false);
 
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
@@ -367,6 +369,10 @@ const SimulationSettingsContent: React.FC = () => {
         open={isViewScenarioOpen}
         onClose={() => setIsViewScenarioOpen(false)}
         scenario={selectedScenario}
+      />
+      <AdHocScenarioDrawer
+        open={isAdHocOpen}
+        onClose={() => setIsAdHocOpen(false)}
       />
 
       <div className={containerStyle}>
@@ -430,6 +436,16 @@ const SimulationSettingsContent: React.FC = () => {
                   tooltip="Edit Scenario"
                   iconName="pencil"
                   onClick={() => setIsViewScenarioOpen(true)}
+                />
+              )}
+              {!selectedScenario && (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  aria-label="Define initial state"
+                  tooltip="Define initial state for this run, without saving a scenario"
+                  iconName="pencil"
+                  onClick={() => setIsAdHocOpen(true)}
                 />
               )}
               <Button
