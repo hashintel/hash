@@ -1,6 +1,7 @@
 import { createContext } from "react";
 
 import type {
+  AdHocScenarioState,
   MonteCarloExpressionMetricSpec,
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
@@ -27,6 +28,12 @@ export type CreateExperimentInput = {
   name: string;
   scenarioId: string | null;
   scenarioParameterValues: Record<string, string>;
+  /**
+   * With no scenario selected, an ad-hoc definition compiles through a
+   * scenario generated at experiment start and never persisted. Ignored when
+   * `scenarioId` is set.
+   */
+  adHocScenario?: AdHocScenarioState | null;
   runCount: number;
   seed: number;
   dt: number;
