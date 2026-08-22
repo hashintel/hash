@@ -19,6 +19,7 @@ import {
   joinOrg,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
+import { inviteUserToOrgResolver } from "@apps/hash-api/src/graphql/resolvers/knowledge/org/invite-user-to-org";
 import { userHasAccessToHash } from "@apps/hash-api/src/shared/user-has-access-to-hash";
 import {
   extractEntityUuidFromEntityId,
@@ -26,7 +27,10 @@ import {
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
-import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
+import {
+  addActorGroupAdministrator,
+  getActorGroupRole,
+} from "@local/hash-graph-sdk/principal/actor-group";
 import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
 import {
   currentTimeInstantTemporalAxes,
@@ -43,11 +47,15 @@ import { deleteUser } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
+  createTestUser,
   generateRandomShortname,
 } from "../../../util";
 
+import type { EmailTransporter } from "@apps/hash-api/src/email/transporters";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { LoggedInGraphQLContext } from "@apps/hash-api/src/graphql/context";
 import type { EntityId } from "@blockprotocol/type-system";
+import type { GraphQLResolveInfo } from "graphql";
 
 const logger = new Logger({
   environment: "test",
@@ -56,6 +64,23 @@ const logger = new Logger({
 });
 
 const graphContext = createTestImpureGraphContext();
+
+const resolverInfo = {} as unknown as GraphQLResolveInfo;
+
+const graphQLContextForUser = (user: User): LoggedInGraphQLContext => ({
+  dataSources: {
+    graphApi: graphContext.graphApi,
+    uploadProvider: graphContext.uploadProvider,
+  },
+  emailTransporter: {
+    sendMail: async () => {},
+  } as unknown as EmailTransporter,
+  logger,
+  authentication: { actorId: user.accountId },
+  user,
+  provenance: { ...graphContext.provenance, actorType: "user" },
+  temporal: graphContext.temporalClient,
+});
 
 const shortname = generateRandomShortname("userTest");
 const incompleteUserShortname = generateRandomShortname("incomplete");
@@ -709,6 +734,71 @@ describe("User model class", () => {
           id: incompleteUser.kratosIdentityId,
         }),
       ).rejects.toThrow();
+    });
+
+    it("can delete a user by email while a scalar-email entity exists", async () => {
+      const authentication = { actorId: systemAccountId };
+      const userEmail = `${generateRandomShortname("scalardelete")}@example.com`;
+      const inviteeEmail = `${generateRandomShortname("scalarinvitee")}@example.com`;
+
+      const identity = await createKratosIdentity({
+        traits: {
+          emails: [userEmail],
+        },
+        verifyEmails: true,
+      });
+
+      let inviter: User | undefined;
+
+      try {
+        await createUser(graphContext, authentication, {
+          emails: [userEmail],
+          kratosIdentityId: identity.id,
+        });
+
+        inviter = await createTestUser(graphContext, "scdeladmin", logger);
+        const testOrg = await createTestOrg(
+          graphContext,
+          authentication,
+          "scdelorg",
+        );
+
+        await addActorGroupAdministrator(
+          graphContext.graphApi,
+          authentication,
+          {
+            actorId: inviter.accountId,
+            actorGroupId: testOrg.webId,
+          },
+        );
+
+        // The invitation's `email` property is a single string, unlike the array on a user
+        await inviteUserToOrgResolver(
+          {},
+          { orgWebId: testOrg.webId, userEmail: inviteeEmail },
+          graphQLContextForUser(inviter),
+          resolverInfo,
+        );
+
+        const status = await deleteUser({ email: userEmail });
+        expect(status.code).toBe(StatusCode.Ok);
+
+        await expect(
+          getUser(graphContext, authentication, {
+            kratosIdentityId: identity.id,
+          }),
+        ).resolves.toBeNull();
+      } finally {
+        // Already gone when the deletion succeeded — only clean up after a failure
+        await deleteKratosIdentity({ kratosIdentityId: identity.id }).catch(
+          () => {},
+        );
+        if (inviter) {
+          await deleteKratosIdentity({
+            kratosIdentityId: inviter.kratosIdentityId,
+          });
+        }
+      }
     });
   });
 });

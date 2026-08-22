@@ -46,7 +46,6 @@ use hash_graph_authentication::provider::AuthenticationProvider;
 use hash_graph_postgres_store::snapshot::SnapshotStore;
 use hash_graph_postgres_store::store::PostgresStorePool;
 use hash_graph_store::{
-    account::AccountStore as _,
     entity::{DeleteEntitiesParams, DeletionSummary, EntityStore as _},
     pool::StorePool as _,
     user_deletion,
@@ -106,6 +105,10 @@ where
         .route("/property-types", delete(delete_property_types))
         .route("/entity-types", delete(delete_entity_types));
 
+    let kratos = Arc::new(KratosIdentityProvider::new(
+        external_services.kratos_admin_url.clone(),
+    ));
+
     probe::router()
         .merge(
             protected.route_layer(axum::middleware::from_fn(move |request, next| {
@@ -124,6 +127,7 @@ where
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(store_pool))
         .layer(Extension(Arc::new(external_services)))
+        .layer(Extension(kratos))
         .layer(Extension(Arc::new(reqwest::Client::new())))
 }
 
@@ -302,32 +306,29 @@ async fn delete_user(
     AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
     external_services: Extension<Arc<ExternalServicesConfig>>,
+    kratos: Extension<Arc<KratosIdentityProvider>>,
     http_client: Extension<Arc<reqwest::Client>>,
     Json(request): Json<DeleteUserRequest>,
 ) -> Result<BoxedResponse, BoxedResponse> {
     let mut store = pool.acquire(None).await.map_err(report_to_response)?;
 
-    let user_id = match request {
-        DeleteUserRequest::ById { user_id } => UserId::new(user_id),
+    let (user_id, kratos_identity_id) = match request {
+        DeleteUserRequest::ById { user_id } => (UserId::new(user_id), None),
         DeleteUserRequest::ByEmail { email } => {
             tracing::info!(%email, "resolving user by email");
-            store
-                .get_user_id_by_email(&email)
+            let resolved = kratos
+                .find_user_by_email(&email)
                 .await
                 .map_err(report_to_response)?
                 .ok_or_else(|| {
                     report_to_response(
                         Report::new(AdminError::UserNotFound).attach(StatusCode::NotFound),
                     )
-                })?
+                })?;
+            (resolved.user_id, Some(resolved.kratos_identity_id))
         }
     };
     tracing::info!(%user_id, "user deletion requested");
-
-    let kratos = KratosIdentityProvider::new(
-        Arc::clone(&http_client),
-        external_services.kratos_admin_url.clone(),
-    );
 
     let hydra = HydraOAuthProvider::new(
         Arc::clone(&http_client),
@@ -351,11 +352,12 @@ async fn delete_user(
 
     let outcome = user_deletion::delete_user(
         &mut store,
-        &kratos,
+        kratos.as_ref(),
         &hydra,
         mailchimp.as_ref(),
         actor_id.into(),
         user_id,
+        kratos_identity_id,
     )
     .await
     .map_err(report_to_response)?;

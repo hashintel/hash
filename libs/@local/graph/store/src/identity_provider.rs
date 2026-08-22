@@ -4,6 +4,8 @@ use error_stack::Report;
 pub enum IdentityProviderError {
     #[display("failed to delete identity")]
     DeletionFailed,
+    #[display("failed to read the identity")]
+    LookupFailed,
 }
 
 /// Abstraction over an external identity management system (e.g. Ory Kratos).
@@ -12,4 +14,13 @@ pub trait IdentityProvider: Send + Sync {
         &self,
         identity_id: &str,
     ) -> impl Future<Output = Result<(), Report<IdentityProviderError>>> + Send;
+
+    /// Returns the email addresses the identity holds.
+    ///
+    /// The provider owns the addresses a user signs up and signs in with, so they are read from
+    /// there rather than from the copy the graph carries.
+    fn get_identity_emails(
+        &self,
+        identity_id: &str,
+    ) -> impl Future<Output = Result<Vec<String>, Report<IdentityProviderError>>> + Send;
 }

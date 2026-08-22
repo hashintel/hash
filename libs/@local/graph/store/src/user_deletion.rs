@@ -75,11 +75,16 @@ pub struct UserDeletionOutcome {
 /// principal would break those references.
 ///
 /// Orchestrates the following operations in order:
-/// 1. Look up the user's Kratos identity ID and email addresses
+/// 1. Look up the user's Kratos identity ID, then its email addresses through the identity provider
 /// 2. Purge all entities owned by the user's personal web
 /// 3. Delete the Kratos identity (removes PII such as email)
 /// 4. Revoke Hydra login and consent sessions
 /// 5. Delete email subscription entries
+///
+/// A caller that already resolved the Kratos identity — deletion by email goes through the
+/// identity provider — passes it as `kratos_identity_id`, which skips the graph read in step 1.
+/// This keeps a partially deleted user deletable: the graph entity carrying the identity ID may
+/// already be purged while the identity still exists.
 ///
 /// Steps 1–2 are fatal: failure causes an `Err` return and no entities are deleted.
 /// Steps 3–5 are non-fatal: failures are collected into [`UserDeletionOutcome::errors`]
@@ -104,6 +109,7 @@ pub async fn delete_user<S, I, O, E>(
     email_subscription_provider: Option<&E>,
     actor: AuthenticatedActor,
     user_id: UserId,
+    kratos_identity_id: Option<String>,
 ) -> Result<UserDeletionOutcome, Report<UserDeletionError>>
 where
     S: AccountStore + EntityStore,
@@ -112,15 +118,18 @@ where
     E: EmailSubscriptionProvider,
 {
     // Step 1: Gather data before we delete anything
-    let kratos_identity_id = store
-        .get_user_kratos_identity_id(user_id)
-        .await
-        .change_context(UserDeletionError::UserLookup)?
-        .ok_or(UserDeletionError::MissingKratosIdentityId)?;
+    let kratos_identity_id = match kratos_identity_id {
+        Some(kratos_identity_id) => kratos_identity_id,
+        None => store
+            .get_user_kratos_identity_id(user_id)
+            .await
+            .change_context(UserDeletionError::UserLookup)?
+            .ok_or(UserDeletionError::MissingKratosIdentityId)?,
+    };
     tracing::info!(%user_id, %kratos_identity_id, "resolved Kratos identity");
 
-    let emails = store
-        .get_user_emails(user_id)
+    let emails = identity_provider
+        .get_identity_emails(&kratos_identity_id)
         .await
         .change_context(UserDeletionError::UserLookup)?;
     tracing::info!(%user_id, email_count = emails.len(), "resolved user emails");
