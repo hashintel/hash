@@ -8,6 +8,12 @@ import {
 import { createMonteCarloMetricShardMerger } from "../metrics/merge";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 import {
+  appendMetricFrames,
+  createEmptyMetricsState,
+  createEventStream,
+  createReadableStore,
+} from "./experiment-stores";
+import {
   getDefaultMonteCarloShardCount,
   planMonteCarloShards,
 } from "./shard-plan";
@@ -34,6 +40,7 @@ import type {
   MonteCarloToMainMessage,
   MonteCarloWorkerProgress,
 } from "../worker/messages";
+import type { MonteCarloExperimentMetrics } from "./experiment-stores";
 import type { MonteCarloShardPlanEntry } from "./shard-plan";
 
 export type MonteCarloExperimentState =
@@ -44,10 +51,7 @@ export type MonteCarloExperimentState =
   | "Error"
   | "Cancelled";
 
-export type MonteCarloExperimentMetrics = {
-  frames: readonly MonteCarloUserDefinedMetricFrame[];
-  latestByMetricId: Readonly<Record<string, MonteCarloUserDefinedMetricFrame>>;
-};
+export type { MonteCarloExperimentMetrics } from "./experiment-stores";
 
 export type MonteCarloExperimentEvent =
   | { type: "complete"; progress: MonteCarloWorkerProgress }
@@ -120,46 +124,9 @@ export interface MonteCarloExperiment {
   dispose(this: void): void;
 }
 
-function createReadableStore<T>(initial: T): ReadableStore<T> & {
-  set(next: T): void;
-} {
-  let current = initial;
-  const listeners = new Set<(value: T) => void>();
-
-  return {
-    get: () => current,
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    set(next) {
-      if (Object.is(next, current)) {
-        return;
-      }
-      current = next;
-      for (const listener of listeners) {
-        listener(current);
-      }
-    },
-  };
-}
-
-function createEventStream<T>(): EventStream<T> & { emit(event: T): void } {
-  const listeners = new Set<(event: T) => void>();
-
-  return {
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    emit(event) {
-      for (const listener of listeners) {
-        listener(event);
-      }
-    },
-  };
-}
-
+/**
+ * Yields to the host between compute batches so the worker stays responsive.
+ */
 function delay(): Promise<void> {
   const runtime = globalThis as {
     setTimeout?: (handler: () => void, timeout?: number) => unknown;
@@ -170,29 +137,6 @@ function delay(): Promise<void> {
         runtime.setTimeout!(() => resolve(undefined), 0);
       })
     : Promise.resolve();
-}
-
-function createEmptyMetricsState(): MonteCarloExperimentMetrics {
-  return {
-    frames: [],
-    latestByMetricId: {},
-  };
-}
-
-function appendMetricFrames(
-  state: MonteCarloExperimentMetrics,
-  nextFrames: readonly MonteCarloUserDefinedMetricFrame[],
-): MonteCarloExperimentMetrics {
-  const latestByMetricId = { ...state.latestByMetricId };
-
-  for (const frame of nextFrames) {
-    latestByMetricId[frame.metricId] = frame;
-  }
-
-  return {
-    frames: [...state.frames, ...nextFrames],
-    latestByMetricId,
-  };
 }
 
 function takePendingMetricFrames(

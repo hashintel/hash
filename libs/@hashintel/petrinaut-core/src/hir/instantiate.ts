@@ -8,6 +8,7 @@
  * packed-struct buffer access with compile-time-constant offsets/strides).
  */
 import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
+import type { HirFunction } from "./hir";
 
 export type HirParameterValues = Record<string, number | boolean>;
 
@@ -86,6 +87,16 @@ export type HirLambdaArtifact = {
   source: string;
   /** Expected `indices.length` — engine-side sanity check. */
   inputSlotCount: number;
+  /**
+   * The lowered HIR the program was emitted from.
+   *
+   * Carried so a second backend can compile the same code without re-running the
+   * TypeScript frontend. That matters for the WebGPU backend specifically: it
+   * runs in the browser, and lowering would pull the TypeScript compiler (and
+   * its Node builtins) into the browser bundle. HIR is a JSON-serializable tree,
+   * so it crosses the worker boundary with the rest of the artifact.
+   */
+  hir?: HirFunction;
 };
 
 export type HirKernelArtifact = {
@@ -93,10 +104,14 @@ export type HirKernelArtifact = {
   inputSlotCount: number;
   /** Expected staging byte length — engine-side sanity check. */
   outputByteCount: number;
+  /** The lowered HIR the program was emitted from — see `HirLambdaArtifact.hir`. */
+  hir?: HirFunction;
 };
 
 export type HirDynamicsArtifact = {
   source: string;
+  /** The lowered HIR the program was emitted from — see `HirLambdaArtifact.hir`. */
+  hir?: HirFunction;
 };
 
 export type HirMetricArtifact = {
