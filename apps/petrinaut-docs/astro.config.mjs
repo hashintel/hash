@@ -214,8 +214,8 @@ export default defineConfig({
   build: { format: "file" },
 
   integrations: [
-    // Authored pages may import diagram components from the bundle; generated
-    // pages stay plain Markdown and never need this.
+    // Generated layer pages import the bundle's facts and relations cards, and
+    // authored pages may import its diagram components; both are React.
     react(),
     starlight({
       title: "Architecture Docs",
