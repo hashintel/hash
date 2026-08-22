@@ -7,11 +7,10 @@
 //! describes its counterpart's row n.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, BoundStatement, Constant, Expression, FromItem, OrderByExpression,
-    Placeholder, SelectList, SelectStatement, Table, WithExpression,
+    Aliased, Binder, BoundStatement, CommonTableExpression, Constant, Expression, FromItem,
+    NonEmptyVec, Placeholder, SelectList, SelectStatement, SimpleSelect, SortBy, Table, WithClause,
     table::{EntityEditionCache, OntologyIds},
 };
-use hash_graph_store::query::Ordering;
 use tokio_postgres::{Row, types::ToSql};
 
 use super::{
@@ -130,36 +129,38 @@ pub(crate) fn node_legend_statement<'params>(
     let statement = SelectStatement::builder()
         .with({
             // WITH scope AS (<scope>)
-            WithExpression::default()
-                .with_statement(CorpusTable::Scope, corpus::scope(axes_points, link_root))
-        })
-        .selects(select.into_selects())
-        .from({
-            // FROM scope
-            // LEFT JOIN entity_edition_cache AS cache
-            //   ON cache.entity_edition_id = scope.entity_edition_id
-            representative_joins(
-                FromItem::table(CorpusTable::Scope).build().left_join_on(
-                    CACHE.from_item(),
-                    vec![
-                        CACHE
-                            .column(&EntityEditionCache::EntityEditionId)
-                            .equal(CorpusTable::Scope.column(Scope::EntityEditionId)),
-                    ],
-                ),
-                CACHE,
-                REPRESENTATIVE_TYPE,
-                types_placeholder,
+            WithClause::builder().common_table_expressions(
+                CommonTableExpression::builder()
+                    .name(CorpusTable::Scope)
+                    .statement(corpus::scope(axes_points, link_root)),
             )
         })
-        .order_by_expression({
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM scope
+                    // LEFT JOIN entity_edition_cache AS cache
+                    //   ON cache.entity_edition_id = scope.entity_edition_id
+                    representative_joins(
+                        FromItem::table(CorpusTable::Scope).build().left_join_on(
+                            CACHE.from_item(),
+                            vec![
+                                CACHE
+                                    .column(&EntityEditionCache::EntityEditionId)
+                                    .equal(CorpusTable::Scope.column(Scope::EntityEditionId)),
+                            ],
+                        ),
+                        CACHE,
+                        REPRESENTATIVE_TYPE,
+                        types_placeholder,
+                    )
+                }),
+        )
+        .order_by(NonEmptyVec::from_array(
             // ORDER BY scope.row
-            OrderByExpression::default().with(
-                CorpusTable::Scope.column(Scope::Row),
-                Ordering::Ascending,
-                None,
-            )
-        })
+            [SortBy::ascending(CorpusTable::Scope.column(Scope::Row)).build()],
+        ))
         .build();
 
     BoundStatement::new(&statement, binder, columns)
@@ -206,53 +207,46 @@ pub(crate) fn edge_legend_statement<'params>(
     let statement = SelectStatement::builder()
         .with({
             // WITH scope AS (<scope>), links AS (<links>)
-            WithExpression::default()
-                .with_statement(CorpusTable::Scope, corpus::scope(axes_points, link_root))
-                .with_statement(CorpusTable::Links, corpus::links(axes_points, attachments))
+            WithClause::builder().common_table_expressions(NonEmptyVec::from_array([
+                CommonTableExpression::builder()
+                    .name(CorpusTable::Scope)
+                    .statement(corpus::scope(axes_points, link_root)),
+                CommonTableExpression::builder()
+                    .name(CorpusTable::Links)
+                    .statement(corpus::links(axes_points, attachments)),
+            ]))
         })
-        .selects(select.into_selects())
-        .from({
-            // FROM links
-            // LEFT JOIN entity_edition_cache AS cache
-            //   ON cache.entity_edition_id = links.entity_edition_id
-            representative_joins(
-                FromItem::table(CorpusTable::Links).build().left_join_on(
-                    CACHE.from_item(),
-                    vec![
-                        CACHE
-                            .column(&EntityEditionCache::EntityEditionId)
-                            .equal(CorpusTable::Links.column(Links::EntityEditionId)),
-                    ],
-                ),
-                CACHE,
-                REPRESENTATIVE_TYPE,
-                types_placeholder,
-            )
-        })
-        .order_by_expression({
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM links
+                    // LEFT JOIN entity_edition_cache AS cache
+                    //   ON cache.entity_edition_id = links.entity_edition_id
+                    representative_joins(
+                        FromItem::table(CorpusTable::Links).build().left_join_on(
+                            CACHE.from_item(),
+                            vec![
+                                CACHE
+                                    .column(&EntityEditionCache::EntityEditionId)
+                                    .equal(CorpusTable::Links.column(Links::EntityEditionId)),
+                            ],
+                        ),
+                        CACHE,
+                        REPRESENTATIVE_TYPE,
+                        types_placeholder,
+                    )
+                }),
+        )
+        .order_by(NonEmptyVec::from_array(
             // ORDER BY links.web_id, links.entity_uuid, links.source_row, links.target_row
-            OrderByExpression::default()
-                .with(
-                    CorpusTable::Links.column(Links::WebId),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    CorpusTable::Links.column(Links::EntityUuid),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    CorpusTable::Links.column(Links::SourceRow),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    CorpusTable::Links.column(Links::TargetRow),
-                    Ordering::Ascending,
-                    None,
-                )
-        })
+            [
+                SortBy::ascending(CorpusTable::Links.column(Links::WebId)),
+                SortBy::ascending(CorpusTable::Links.column(Links::EntityUuid)),
+                SortBy::ascending(CorpusTable::Links.column(Links::SourceRow)),
+                SortBy::ascending(CorpusTable::Links.column(Links::TargetRow)),
+            ],
+        ))
         .build();
 
     BoundStatement::new(&statement, binder, columns)

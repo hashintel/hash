@@ -6,8 +6,8 @@
 //! answer, and the caller counts the answers against its requests.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, BoundStatement, Expression, FromItem, Placeholder, SelectList,
-    SelectStatement, Table, WithExpression, table::EntityEdge,
+    Aliased, Binder, BoundStatement, CommonTableExpression, Expression, FromItem, Placeholder,
+    SelectList, SelectStatement, SimpleSelect, Table, WithClause, table::EntityEdge,
 };
 use tokio_postgres::{Row, types::ToSql};
 use uuid::Uuid;
@@ -130,29 +130,33 @@ pub(crate) fn classification_statement<'params>(
     let statement = SelectStatement::builder()
         .with({
             // WITH requests AS (<requests>)
-            WithExpression::default().with_statement(
-                CorpusTable::Requests,
-                requests(axes_points, web_ids, entity_uuids),
+            WithClause::builder().common_table_expressions(
+                CommonTableExpression::builder()
+                    .name(CorpusTable::Requests)
+                    .statement(requests(axes_points, web_ids, entity_uuids)),
             )
         })
-        .selects(select.into_selects())
-        .from({
-            // FROM requests
-            // LEFT JOIN entity_edge AS left_edge
-            //   ON left_edge is the identity's outgoing has-left-entity edge
-            // LEFT JOIN entity_edge AS right_edge
-            //   ON right_edge is the identity's outgoing has-right-entity edge
-            FromItem::table(CorpusTable::Requests)
-                .build()
-                .left_join_on(
-                    LEFT_EDGE.from_item(),
-                    attachment_join(LEFT_EDGE, attachments.has_left),
-                )
-                .left_join_on(
-                    RIGHT_EDGE.from_item(),
-                    attachment_join(RIGHT_EDGE, attachments.has_right),
-                )
-        })
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM requests
+                    // LEFT JOIN entity_edge AS left_edge
+                    //   ON left_edge is the identity's outgoing has-left-entity edge
+                    // LEFT JOIN entity_edge AS right_edge
+                    //   ON right_edge is the identity's outgoing has-right-entity edge
+                    FromItem::table(CorpusTable::Requests)
+                        .build()
+                        .left_join_on(
+                            LEFT_EDGE.from_item(),
+                            attachment_join(LEFT_EDGE, attachments.has_left),
+                        )
+                        .left_join_on(
+                            RIGHT_EDGE.from_item(),
+                            attachment_join(RIGHT_EDGE, attachments.has_right),
+                        )
+                }),
+        )
         .build();
 
     BoundStatement::new(&statement, binder, columns)

@@ -1,5 +1,6 @@
 ---
 source: libs/@local/graph/atlas/src/postgres/legends.rs
+assertion_line: 324
 expression: "edge_legend_statement(&axes, &types).sql"
 ---
 WITH "scope" AS (SELECT "meta"."web_id" AS "web_id", "meta"."entity_uuid" AS "entity_uuid", "meta"."entity_edition_id" AS "entity_edition_id", row_number() OVER (ORDER BY "meta"."web_id" ASC, "meta"."entity_uuid" ASC) - 1 AS "row"
@@ -13,12 +14,12 @@ INNER JOIN "entity_temporal_metadata" AS "meta"
 INNER JOIN "entity_editions" AS "edition"
   ON "edition"."entity_edition_id" = "meta"."entity_edition_id"
  AND NOT("edition"."archived")
-WHERE "embedding"."property" IS NULL AND NOT(EXISTS (SELECT 
+WHERE ("embedding"."property" IS NULL) AND (NOT(EXISTS (SELECT 
 FROM "entity_is_of_type" AS "is_link"
 INNER JOIN "ontology_ids" AS "link_type"
   ON "link_type"."ontology_id" = "is_link"."entity_type_ontology_id"
  AND "link_type"."base_url" = $3
-WHERE "is_link"."entity_edition_id" = "meta"."entity_edition_id"))), "links" AS (SELECT "left_edge"."source_web_id" AS "web_id", "left_edge"."source_entity_uuid" AS "entity_uuid", "meta"."entity_edition_id" AS "entity_edition_id", "source"."row" AS "source_row", "target"."row" AS "target_row", "left_edge"."confidence" AS "source_confidence", "right_edge"."confidence" AS "target_confidence"
+WHERE "is_link"."entity_edition_id" = "meta"."entity_edition_id")))), "links" AS (SELECT "left_edge"."source_web_id" AS "web_id", "left_edge"."source_entity_uuid" AS "entity_uuid", "meta"."entity_edition_id" AS "entity_edition_id", "source"."row" AS "source_row", "target"."row" AS "target_row", "left_edge"."confidence" AS "source_confidence", "right_edge"."confidence" AS "target_confidence"
 FROM "entity_edge" AS "left_edge"
 INNER JOIN "entity_edge" AS "right_edge"
   ON "right_edge"."source_web_id" = "left_edge"."source_web_id"
@@ -40,7 +41,7 @@ INNER JOIN "entity_temporal_metadata" AS "meta"
 INNER JOIN "entity_editions" AS "edition"
   ON "edition"."entity_edition_id" = "meta"."entity_edition_id"
  AND NOT("edition"."archived")
-WHERE "left_edge"."kind" = $4 AND "left_edge"."direction" = $6)
+WHERE ("left_edge"."kind" = $4) AND ("left_edge"."direction" = $6))
 SELECT ("cache"."labels")[1], "mapping"."ordinality" - 1
 FROM "links"
 LEFT OUTER JOIN "entity_edition_cache" AS "cache"

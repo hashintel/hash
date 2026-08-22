@@ -549,8 +549,15 @@ impl Expression {
             }
             Self::Window(expr, window) => {
                 visitor(expr)?;
-                for partition in &*window.partition_by {
+                for partition in window.partition_by.iter().flatten() {
                     visitor(partition)?;
+                }
+                for sort_by in window
+                    .order_by
+                    .iter()
+                    .flat_map(|order_by| order_by.sort_by.iter())
+                {
+                    visitor(&sort_by.expression)?;
                 }
                 ControlFlow::Continue(())
             }
@@ -615,8 +622,15 @@ impl Expression {
             }
             Self::Window(expr, window) => {
                 visitor(expr)?;
-                for partition in &mut *window.partition_by {
+                for partition in window.partition_by.iter_mut().flat_map(|list| &mut **list) {
                     visitor(partition)?;
+                }
+                for sort_by in window
+                    .order_by
+                    .iter_mut()
+                    .flat_map(|order_by| &mut *order_by.sort_by)
+                {
+                    visitor(&mut sort_by.expression)?;
                 }
                 ControlFlow::Continue(())
             }

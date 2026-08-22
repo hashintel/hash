@@ -1,5 +1,6 @@
 ---
 source: libs/@local/graph/atlas/src/postgres/card/prose.rs
+assertion_line: 335
 expression: ancestor_statement(&types).sql
 ---
 SELECT "mapping"."ordinality", "ids"."base_url", "types"."schema"->>'$id', "types"."schema"->>'title', "types"."schema"->>'description', "inherits"."target_entity_type_ontology_id"
@@ -12,5 +13,5 @@ INNER JOIN "ontology_ids" AS "ids"
   ON "ids"."ontology_id" = "types"."ontology_id"
 INNER JOIN "ontology_ids" AS "own"
   ON "own"."ontology_id" = "mapping"."ontology_id"
-WHERE "ids"."base_url" != $2 AND "ids"."base_url" != "own"."base_url"
+WHERE ("ids"."base_url" != $2) AND ("ids"."base_url" != "own"."base_url")
 ORDER BY "mapping"."ordinality" ASC, "inherits"."depth" ASC, "inherits"."target_entity_type_ontology_id" ASC

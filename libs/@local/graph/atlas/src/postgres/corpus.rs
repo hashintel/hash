@@ -7,16 +7,15 @@
 //! derives the identical row numbering.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, BoundStatement, ColumnName, ColumnReference, Constant, Correlation,
-    Expression, FromItem, Function, GroupByExpression, OrderByExpression, Placeholder,
-    PostgresType, SelectExpression, SelectList, SelectStatement, SetOperation, Table,
-    WhereExpression, WindowStatement, WithExpression,
+    Aliased, Binder, BoundStatement, ColumnName, ColumnReference, CommonTableExpression, Constant,
+    Correlation, Expression, FromItem, Function, GroupByClause, GroupingElement, NonEmptyVec,
+    Placeholder, PostgresType, SelectClause, SelectExpression, SelectList, SelectStatement,
+    SimpleSelect, SortBy, Table, WindowDefinition, WithClause,
     table::{
         DatabaseColumn, EntityEdge, EntityEditions, EntityEmbeddings, EntityIsOfType,
         EntityTemporalMetadata, OntologyIds,
     },
 };
-use hash_graph_store::query::Ordering;
 
 use super::{
     LINK_ROOT_BASE_URL,
@@ -53,31 +52,34 @@ pub(crate) fn link_typed(
     const LINK_TYPE: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "link_type");
 
     SelectStatement::builder()
-        .selects({
-            // SELECT
-            Vec::new()
-        })
-        .from({
-            // FROM entity_is_of_type AS is_link
-            // JOIN ontology_ids AS link_type
-            //   ON link_type.ontology_id = is_link.entity_type_ontology_id
-            //  AND link_type.base_url = <link_root>
-            IS_LINK.from_item().inner_join_on(
-                LINK_TYPE.from_item(),
-                vec![
-                    LINK_TYPE
-                        .column(&OntologyIds::OntologyId)
-                        .equal(IS_LINK.column(&EntityIsOfType::EntityTypeOntologyId)),
-                    LINK_TYPE.column(&OntologyIds::BaseUrl).equal(link_root),
-                ],
-            )
-        })
-        .where_expression({
-            // WHERE is_link.entity_edition_id = <edition>
-            WhereExpression::from_iter([IS_LINK
-                .column(&EntityIsOfType::EntityEditionId)
-                .equal(edition)])
-        })
+        .select_clause(
+            SimpleSelect::builder()
+                .selects({
+                    // SELECT
+                    Vec::new()
+                })
+                .from({
+                    // FROM entity_is_of_type AS is_link
+                    // JOIN ontology_ids AS link_type
+                    //   ON link_type.ontology_id = is_link.entity_type_ontology_id
+                    //  AND link_type.base_url = <link_root>
+                    IS_LINK.from_item().inner_join_on(
+                        LINK_TYPE.from_item(),
+                        vec![
+                            LINK_TYPE
+                                .column(&OntologyIds::OntologyId)
+                                .equal(IS_LINK.column(&EntityIsOfType::EntityTypeOntologyId)),
+                            LINK_TYPE.column(&OntologyIds::BaseUrl).equal(link_root),
+                        ],
+                    )
+                })
+                .where_clause({
+                    // WHERE is_link.entity_edition_id = <edition>
+                    IS_LINK
+                        .column(&EntityIsOfType::EntityEditionId)
+                        .equal(edition)
+                }),
+        )
         .build()
 }
 
@@ -115,75 +117,76 @@ pub(crate) fn scope(axes: Axes, link_root: Placeholder) -> SelectStatement {
     // `row_number() OVER (ORDER BY meta.web_id, meta.entity_uuid) - 1`
     let row = Expression::from(Function::RowNumber)
         .window(
-            WindowStatement::order_by(
-                META.column(&EntityTemporalMetadata::WebId),
-                Ordering::Ascending,
-                None,
-            )
-            .then_order_by(
-                META.column(&EntityTemporalMetadata::EntityUuid),
-                Ordering::Ascending,
-                None,
-            ),
+            WindowDefinition::builder().order_by(NonEmptyVec::from_array([
+                SortBy::ascending(META.column(&EntityTemporalMetadata::WebId)),
+                SortBy::ascending(META.column(&EntityTemporalMetadata::EntityUuid)),
+            ])),
         )
         .subtract(Constant::U32(1));
 
     SelectStatement::builder()
-        .selects(vec![
-            // SELECT
-            //     meta.web_id AS web_id,
-            //     meta.entity_uuid AS entity_uuid,
-            //     meta.entity_edition_id AS entity_edition_id,
-            //     row_number() OVER (ORDER BY meta.web_id, meta.entity_uuid) - 1 AS row
-            SelectExpression::aliased(
-                META.column(&EntityTemporalMetadata::WebId),
-                Scope::WebId.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                META.column(&EntityTemporalMetadata::EntityUuid),
-                Scope::EntityUuid.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                META.column(&EntityTemporalMetadata::EditionId),
-                Scope::EntityEditionId.name().into_identifier(),
-            ),
-            SelectExpression::aliased(row, Scope::Row.name().into_identifier()),
-        ])
-        .from({
-            // FROM entity_embeddings AS embedding
-            // JOIN entity_temporal_metadata AS meta
-            //   ON meta.web_id = embedding.web_id
-            //  AND meta.entity_uuid = embedding.entity_uuid
-            //  AND <currency conditions>
-            // JOIN entity_editions AS edition
-            //   ON edition.entity_edition_id = meta.entity_edition_id AND NOT edition.archived
-            EMBEDDING
-                .from_item()
-                .inner_join_on(
-                    META.from_item(),
-                    current_identity_join(
-                        META,
-                        axes,
-                        EMBEDDING.column(&EntityEmbeddings::WebId),
-                        EMBEDDING.column(&EntityEmbeddings::EntityUuid),
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT
+                    //     meta.web_id AS web_id,
+                    //     meta.entity_uuid AS entity_uuid,
+                    //     meta.entity_edition_id AS entity_edition_id,
+                    //     row_number() OVER (ORDER BY meta.web_id, meta.entity_uuid) - 1 AS row
+                    SelectExpression::aliased(
+                        META.column(&EntityTemporalMetadata::WebId),
+                        Scope::WebId.name().into_identifier(),
                     ),
-                )
-                .inner_join_on(
-                    EDITION.from_item(),
-                    edition_conjunction(EDITION, META.column(&EntityTemporalMetadata::EditionId)),
-                )
-        })
-        .where_expression({
-            // WHERE embedding.property IS NULL AND NOT EXISTS (<link-typed>)
-            WhereExpression::from_iter([
-                EMBEDDING.column(&EntityEmbeddings::Property).is_null(),
-                Expression::exists(link_typed(
-                    META.column(&EntityTemporalMetadata::EditionId),
-                    link_root,
-                ))
-                .not(),
-            ])
-        })
+                    SelectExpression::aliased(
+                        META.column(&EntityTemporalMetadata::EntityUuid),
+                        Scope::EntityUuid.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(
+                        META.column(&EntityTemporalMetadata::EditionId),
+                        Scope::EntityEditionId.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(row, Scope::Row.name().into_identifier()),
+                ])
+                .from({
+                    // FROM entity_embeddings AS embedding
+                    // JOIN entity_temporal_metadata AS meta
+                    //   ON meta.web_id = embedding.web_id
+                    //  AND meta.entity_uuid = embedding.entity_uuid
+                    //  AND <currency conditions>
+                    // JOIN entity_editions AS edition
+                    //   ON edition.entity_edition_id = meta.entity_edition_id AND NOT
+                    // edition.archived
+                    EMBEDDING
+                        .from_item()
+                        .inner_join_on(
+                            META.from_item(),
+                            current_identity_join(
+                                META,
+                                axes,
+                                EMBEDDING.column(&EntityEmbeddings::WebId),
+                                EMBEDDING.column(&EntityEmbeddings::EntityUuid),
+                            ),
+                        )
+                        .inner_join_on(
+                            EDITION.from_item(),
+                            edition_conjunction(
+                                EDITION,
+                                META.column(&EntityTemporalMetadata::EditionId),
+                            ),
+                        )
+                })
+                .where_clause({
+                    // WHERE embedding.property IS NULL AND NOT EXISTS (<link-typed>)
+                    Expression::all(vec![
+                        EMBEDDING.column(&EntityEmbeddings::Property).is_null(),
+                        Expression::exists(link_typed(
+                            META.column(&EntityTemporalMetadata::EditionId),
+                            link_root,
+                        ))
+                        .not(),
+                    ])
+                }),
+        )
         .build()
 }
 
@@ -230,104 +233,110 @@ pub(crate) fn links(axes: Axes, attachments: AttachmentVocabulary) -> SelectStat
         ]
     };
 
-    SelectStatement::builder()
-        .selects(vec![
-            // SELECT
-            //     left_edge.source_web_id AS web_id,
-            //     left_edge.source_entity_uuid AS entity_uuid,
-            //     meta.entity_edition_id AS entity_edition_id,
-            //     source.row AS source_row,
-            //     target.row AS target_row,
-            //     left_edge.confidence AS source_confidence,
-            //     right_edge.confidence AS target_confidence
-            SelectExpression::aliased(
-                LEFT_EDGE.column(&EntityEdge::SourceWebId),
-                Links::WebId.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                LEFT_EDGE.column(&EntityEdge::SourceEntityUuid),
-                Links::EntityUuid.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                META.column(&EntityTemporalMetadata::EditionId),
-                Links::EntityEditionId.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                SOURCE.column(&Scope::Row),
-                Links::SourceRow.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                TARGET.column(&Scope::Row),
-                Links::TargetRow.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                LEFT_EDGE.column(&EntityEdge::Confidence),
-                Links::SourceConfidence.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                RIGHT_EDGE.column(&EntityEdge::Confidence),
-                Links::TargetConfidence.name().into_identifier(),
-            ),
-        ])
-        .from({
-            // FROM entity_edge AS left_edge
-            // JOIN entity_edge AS right_edge
-            //   ON right_edge.source_web_id = left_edge.source_web_id
-            //  AND right_edge.source_entity_uuid = left_edge.source_entity_uuid
-            //  AND right_edge.kind = <has_right> AND right_edge.direction = <outgoing>
-            // JOIN scope AS source ON source resolves left_edge's target
-            // JOIN scope AS target ON target resolves right_edge's target
-            // JOIN entity_temporal_metadata AS meta
-            //   ON meta names the link entity AND <currency conditions>
-            // JOIN entity_editions AS edition
-            //   ON edition.entity_edition_id = meta.entity_edition_id AND NOT edition.archived
-            LEFT_EDGE
-                .from_item()
-                .inner_join_on(
-                    RIGHT_EDGE.from_item(),
-                    vec![
-                        RIGHT_EDGE
-                            .column(&EntityEdge::SourceWebId)
-                            .equal(LEFT_EDGE.column(&EntityEdge::SourceWebId)),
-                        RIGHT_EDGE
-                            .column(&EntityEdge::SourceEntityUuid)
-                            .equal(LEFT_EDGE.column(&EntityEdge::SourceEntityUuid)),
-                        RIGHT_EDGE
-                            .column(&EntityEdge::Kind)
-                            .equal(attachments.has_right),
-                        RIGHT_EDGE
-                            .column(&EntityEdge::Direction)
-                            .equal(attachments.outgoing),
-                    ],
-                )
-                .inner_join_on(SOURCE.from_item(), endpoint_join(SOURCE, LEFT_EDGE))
-                .inner_join_on(TARGET.from_item(), endpoint_join(TARGET, RIGHT_EDGE))
-                .inner_join_on(
-                    META.from_item(),
-                    current_identity_join(
-                        META,
-                        axes,
-                        LEFT_EDGE.column(&EntityEdge::SourceWebId),
-                        LEFT_EDGE.column(&EntityEdge::SourceEntityUuid),
-                    ),
-                )
-                .inner_join_on(
-                    EDITION.from_item(),
-                    edition_conjunction(EDITION, META.column(&EntityTemporalMetadata::EditionId)),
-                )
-        })
-        .where_expression({
-            // WHERE left_edge.kind = <has_left> AND left_edge.direction = <outgoing>
-            WhereExpression::from_iter([
-                LEFT_EDGE
-                    .column(&EntityEdge::Kind)
-                    .equal(attachments.has_left),
-                LEFT_EDGE
-                    .column(&EntityEdge::Direction)
-                    .equal(attachments.outgoing),
+    SelectStatement::from(
+        SimpleSelect::builder()
+            .selects(vec![
+                // SELECT
+                //     left_edge.source_web_id AS web_id,
+                //     left_edge.source_entity_uuid AS entity_uuid,
+                //     meta.entity_edition_id AS entity_edition_id,
+                //     source.row AS source_row,
+                //     target.row AS target_row,
+                //     left_edge.confidence AS source_confidence,
+                //     right_edge.confidence AS target_confidence
+                SelectExpression::aliased(
+                    LEFT_EDGE.column(&EntityEdge::SourceWebId),
+                    Links::WebId.name().into_identifier(),
+                ),
+                SelectExpression::aliased(
+                    LEFT_EDGE.column(&EntityEdge::SourceEntityUuid),
+                    Links::EntityUuid.name().into_identifier(),
+                ),
+                SelectExpression::aliased(
+                    META.column(&EntityTemporalMetadata::EditionId),
+                    Links::EntityEditionId.name().into_identifier(),
+                ),
+                SelectExpression::aliased(
+                    SOURCE.column(&Scope::Row),
+                    Links::SourceRow.name().into_identifier(),
+                ),
+                SelectExpression::aliased(
+                    TARGET.column(&Scope::Row),
+                    Links::TargetRow.name().into_identifier(),
+                ),
+                SelectExpression::aliased(
+                    LEFT_EDGE.column(&EntityEdge::Confidence),
+                    Links::SourceConfidence.name().into_identifier(),
+                ),
+                SelectExpression::aliased(
+                    RIGHT_EDGE.column(&EntityEdge::Confidence),
+                    Links::TargetConfidence.name().into_identifier(),
+                ),
             ])
-        })
-        .build()
+            .from({
+                // FROM entity_edge AS left_edge
+                // JOIN entity_edge AS right_edge
+                //   ON right_edge.source_web_id = left_edge.source_web_id
+                //  AND right_edge.source_entity_uuid = left_edge.source_entity_uuid
+                //  AND right_edge.kind = <has_right> AND right_edge.direction = <outgoing>
+                // JOIN scope AS source ON source resolves left_edge's target
+                // JOIN scope AS target ON target resolves right_edge's target
+                // JOIN entity_temporal_metadata AS meta
+                //   ON meta names the link entity AND <currency conditions>
+                // JOIN entity_editions AS edition
+                //   ON edition.entity_edition_id = meta.entity_edition_id AND NOT
+                // edition.archived
+                LEFT_EDGE
+                    .from_item()
+                    .inner_join_on(
+                        RIGHT_EDGE.from_item(),
+                        vec![
+                            RIGHT_EDGE
+                                .column(&EntityEdge::SourceWebId)
+                                .equal(LEFT_EDGE.column(&EntityEdge::SourceWebId)),
+                            RIGHT_EDGE
+                                .column(&EntityEdge::SourceEntityUuid)
+                                .equal(LEFT_EDGE.column(&EntityEdge::SourceEntityUuid)),
+                            RIGHT_EDGE
+                                .column(&EntityEdge::Kind)
+                                .equal(attachments.has_right),
+                            RIGHT_EDGE
+                                .column(&EntityEdge::Direction)
+                                .equal(attachments.outgoing),
+                        ],
+                    )
+                    .inner_join_on(SOURCE.from_item(), endpoint_join(SOURCE, LEFT_EDGE))
+                    .inner_join_on(TARGET.from_item(), endpoint_join(TARGET, RIGHT_EDGE))
+                    .inner_join_on(
+                        META.from_item(),
+                        current_identity_join(
+                            META,
+                            axes,
+                            LEFT_EDGE.column(&EntityEdge::SourceWebId),
+                            LEFT_EDGE.column(&EntityEdge::SourceEntityUuid),
+                        ),
+                    )
+                    .inner_join_on(
+                        EDITION.from_item(),
+                        edition_conjunction(
+                            EDITION,
+                            META.column(&EntityTemporalMetadata::EditionId),
+                        ),
+                    )
+            })
+            .where_clause({
+                // WHERE left_edge.kind = <has_left> AND left_edge.direction = <outgoing>
+                Expression::all(vec![
+                    LEFT_EDGE
+                        .column(&EntityEdge::Kind)
+                        .equal(attachments.has_left),
+                    LEFT_EDGE
+                        .column(&EntityEdge::Direction)
+                        .equal(attachments.outgoing),
+                ])
+            })
+            .build(),
+    )
 }
 
 /// The ordinal mapping [`type_rows`] aggregates: each type id beside its 0-based ordinal.
@@ -379,83 +388,93 @@ pub(crate) fn type_rows<S: EditionSource>(types: Placeholder) -> SelectStatement
 
     // `unnest ... WITH ORDINALITY` numbers from one and the ordinal is 0-based.
     let ordinals = SelectStatement::builder()
-        .selects(vec![
-            // SELECT mapping.ontology_id, mapping.ordinality - 1 AS ordinal
-            SelectExpression::new(MAPPING.column(&Mapping::OntologyId)),
-            SelectExpression::aliased(
-                MAPPING
-                    .column(&Mapping::Ordinality)
-                    .subtract(Constant::U32(1)),
-                TypeOrdinals::Ordinal.name().into_identifier(),
-            ),
-        ])
-        .from({
-            // FROM unnest(<types>) WITH ORDINALITY AS mapping(ontology_id, ordinality)
-            type_mapping(types)
-        })
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT mapping.ontology_id, mapping.ordinality - 1 AS ordinal
+                    SelectExpression::new(MAPPING.column(&Mapping::OntologyId)),
+                    SelectExpression::aliased(
+                        MAPPING
+                            .column(&Mapping::Ordinality)
+                            .subtract(Constant::U32(1)),
+                        TypeOrdinals::Ordinal.name().into_identifier(),
+                    ),
+                ])
+                .from({
+                    // FROM unnest(<types>) WITH ORDINALITY AS mapping(ontology_id, ordinality)
+                    type_mapping(types)
+                }),
+        )
         .build();
 
     // SELECT <S's edition column> FROM <S>
     let source_editions = SelectStatement::builder()
-        .selects(vec![SelectExpression::new(ColumnReference {
-            correlation: None,
-            name: S::edition_column(),
-        })])
-        .from(FromItem::table(S::TABLE))
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![SelectExpression::new(ColumnReference {
+                    correlation: None,
+                    name: S::edition_column(),
+                })])
+                .from(FromItem::table(S::TABLE)),
+        )
         .build();
 
     SelectStatement::builder()
-        .selects(vec![
-            // SELECT
-            //     is_of_type.entity_edition_id AS entity_edition_id,
-            //     array_agg(mapping.ordinal ORDER BY mapping.ordinal) AS ordinals
-            SelectExpression::aliased(
-                IS_OF_TYPE.column(&EntityIsOfType::EntityEditionId),
-                TypeRows::EntityEditionId.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                Function::ArrayAgg {
-                    expression: Box::new(ORDINALS.column(&TypeOrdinals::Ordinal)),
-                    order_by: OrderByExpression::default().with(
-                        ORDINALS.column(&TypeOrdinals::Ordinal),
-                        Ordering::Ascending,
-                        None,
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT
+                    //     is_of_type.entity_edition_id AS entity_edition_id,
+                    //     array_agg(mapping.ordinal ORDER BY mapping.ordinal) AS ordinals
+                    SelectExpression::aliased(
+                        IS_OF_TYPE.column(&EntityIsOfType::EntityEditionId),
+                        TypeRows::EntityEditionId.name().into_identifier(),
                     ),
-                },
-                TypeRows::Ordinals.name().into_identifier(),
-            ),
-        ])
-        .from({
-            // FROM entity_is_of_type AS is_of_type
-            // JOIN (<ordinals>) AS mapping
-            //   ON mapping.ontology_id = is_of_type.entity_type_ontology_id
-            IS_OF_TYPE.from_item().inner_join_on(
-                FromItem::subquery(ordinals).alias(ORDINALS).build(),
-                vec![
-                    ORDINALS
-                        .column(&TypeOrdinals::OntologyId)
-                        .equal(IS_OF_TYPE.column(&EntityIsOfType::EntityTypeOntologyId)),
-                ],
-            )
-        })
-        .where_expression({
-            // WHERE is_of_type.inheritance_depth = 0
-            //   AND is_of_type.entity_edition_id = ANY(<source editions>)
-            WhereExpression::from_iter([
-                IS_OF_TYPE
-                    .column(&EntityIsOfType::InheritanceDepth)
-                    .equal(Constant::U32(0)),
-                IS_OF_TYPE
-                    .column(&EntityIsOfType::EntityEditionId)
-                    .r#in(Expression::Select(Box::new(source_editions))),
-            ])
-        })
-        .group_by_expression({
-            // GROUP BY is_of_type.entity_edition_id
-            GroupByExpression {
-                expressions: vec![IS_OF_TYPE.column(&EntityIsOfType::EntityEditionId)],
-            }
-        })
+                    SelectExpression::aliased(
+                        Function::ArrayAgg {
+                            expression: Box::new(ORDINALS.column(&TypeOrdinals::Ordinal)),
+                            order_by: Some(
+                                NonEmptyVec::from_array([SortBy::ascending(
+                                    ORDINALS.column(&TypeOrdinals::Ordinal),
+                                )])
+                                .into(),
+                            ),
+                        },
+                        TypeRows::Ordinals.name().into_identifier(),
+                    ),
+                ])
+                .from({
+                    // FROM entity_is_of_type AS is_of_type
+                    // JOIN (<ordinals>) AS mapping
+                    //   ON mapping.ontology_id = is_of_type.entity_type_ontology_id
+                    IS_OF_TYPE.from_item().inner_join_on(
+                        FromItem::subquery(ordinals).alias(ORDINALS).build(),
+                        vec![
+                            ORDINALS
+                                .column(&TypeOrdinals::OntologyId)
+                                .equal(IS_OF_TYPE.column(&EntityIsOfType::EntityTypeOntologyId)),
+                        ],
+                    )
+                })
+                .where_clause({
+                    // WHERE is_of_type.inheritance_depth = 0
+                    //   AND is_of_type.entity_edition_id = ANY(<source editions>)
+                    Expression::all(vec![
+                        IS_OF_TYPE
+                            .column(&EntityIsOfType::InheritanceDepth)
+                            .equal(Constant::U32(0)),
+                        IS_OF_TYPE
+                            .column(&EntityIsOfType::EntityEditionId)
+                            .r#in(Expression::Select(Box::new(source_editions))),
+                    ])
+                })
+                .group_by({
+                    // GROUP BY is_of_type.entity_edition_id
+                    GroupByClause::builder().grouping_elements(GroupingElement::Expressions(
+                        NonEmptyVec::from(IS_OF_TYPE.column(&EntityIsOfType::EntityEditionId)),
+                    ))
+                }),
+        )
         .build()
 }
 
@@ -493,7 +512,7 @@ pub(crate) fn type_table_statement(axes: &TemporalAxes) -> BoundStatement<'_, Ty
 
     // SELECT entity_edition_id FROM scope UNION ALL SELECT entity_edition_id FROM links
     let edition_column = |column: ColumnName<'static>, table: CorpusTable| {
-        SelectStatement::builder()
+        SimpleSelect::builder()
             .selects(vec![SelectExpression::new(ColumnReference {
                 correlation: None,
                 name: column,
@@ -501,10 +520,14 @@ pub(crate) fn type_table_statement(axes: &TemporalAxes) -> BoundStatement<'_, Ty
             .from(FromItem::table(table))
             .build()
     };
-    let corpus_editions = SetOperation::union_all(
-        edition_column(Scope::EntityEditionId.name(), CorpusTable::Scope),
-        edition_column(Links::EntityEditionId.name(), CorpusTable::Links),
-    );
+    let corpus_editions = SelectClause::from(edition_column(
+        Scope::EntityEditionId.name(),
+        CorpusTable::Scope,
+    ))
+    .union_all(edition_column(
+        Links::EntityEditionId.name(),
+        CorpusTable::Links,
+    ));
 
     let mut select = SelectList::default();
     let columns = TypeTableColumns {
@@ -514,40 +537,47 @@ pub(crate) fn type_table_statement(axes: &TemporalAxes) -> BoundStatement<'_, Ty
     let statement = SelectStatement::builder()
         .with({
             // WITH scope AS (<scope>), links AS (<links>)
-            WithExpression::default()
-                .with_statement(CorpusTable::Scope, scope(axes_points, link_root))
-                .with_statement(CorpusTable::Links, links(axes_points, attachments))
+            WithClause::builder().common_table_expressions(NonEmptyVec::from_array([
+                CommonTableExpression::builder()
+                    .name(CorpusTable::Scope)
+                    .statement(scope(axes_points, link_root)),
+                CommonTableExpression::builder()
+                    .name(CorpusTable::Links)
+                    .statement(links(axes_points, attachments)),
+            ]))
         })
-        .distinct({
-            // SELECT DISTINCT ON (is_of_type.entity_type_ontology_id): with the ordering below
-            // this is `SELECT DISTINCT`, and uuid byte order is the ordinal contract anyway.
-            vec![IS_OF_TYPE.column(&EntityIsOfType::EntityTypeOntologyId)]
-        })
-        .selects(select.into_selects())
-        .from({
-            // FROM (<corpus editions>) AS editions
-            // JOIN entity_is_of_type AS is_of_type
-            //   ON is_of_type.entity_edition_id = editions.entity_edition_id
-            FromItem::subquery(corpus_editions)
-                .alias(EDITIONS)
-                .build()
-                .inner_join_on(
-                    IS_OF_TYPE.from_item(),
-                    vec![
-                        IS_OF_TYPE
-                            .column(&EntityIsOfType::EntityEditionId)
-                            .equal(EDITIONS.column(&Scope::EntityEditionId)),
-                    ],
-                )
-        })
-        .order_by_expression({
+        .select_clause(
+            SimpleSelect::builder()
+                .distinct_on({
+                    // SELECT DISTINCT ON (is_of_type.entity_type_ontology_id): with the
+                    // ordering below this is `SELECT DISTINCT`, and uuid byte order is the
+                    // ordinal contract anyway.
+                    IS_OF_TYPE.column(&EntityIsOfType::EntityTypeOntologyId)
+                })
+                .selects(select.into_selects())
+                .from({
+                    // FROM (<corpus editions>) AS editions
+                    // JOIN entity_is_of_type AS is_of_type
+                    //   ON is_of_type.entity_edition_id = editions.entity_edition_id
+                    FromItem::subquery(corpus_editions)
+                        .alias(EDITIONS)
+                        .build()
+                        .inner_join_on(
+                            IS_OF_TYPE.from_item(),
+                            vec![
+                                IS_OF_TYPE
+                                    .column(&EntityIsOfType::EntityEditionId)
+                                    .equal(EDITIONS.column(&Scope::EntityEditionId)),
+                            ],
+                        )
+                }),
+        )
+        .order_by(NonEmptyVec::from_array(
             // ORDER BY is_of_type.entity_type_ontology_id
-            OrderByExpression::default().with(
+            [SortBy::ascending(
                 IS_OF_TYPE.column(&EntityIsOfType::EntityTypeOntologyId),
-                Ordering::Ascending,
-                None,
-            )
-        })
+            )],
+        ))
         .build();
 
     BoundStatement::new(&statement, binder, columns)

@@ -1,5 +1,6 @@
 ---
 source: libs/@local/graph/atlas/src/postgres/card/examples.rs
+assertion_line: 882
 expression: "example_statement(&axes, &types, &64, &256).sql"
 ---
 WITH "relations" AS (SELECT "mapping"."ordinality", "mapping"."ontology_id"
@@ -48,7 +49,7 @@ INNER JOIN "entity_edition_cache" AS "source_cache"
   ON "source_cache"."entity_edition_id" = "source_meta"."entity_edition_id"
 INNER JOIN "entity_edition_cache" AS "target_cache"
   ON "target_cache"."entity_edition_id" = "target_meta"."entity_edition_id"
-WHERE char_length(btrim(("source_cache"."labels")[1])) > 0 AND char_length(btrim(("target_cache"."labels")[1])) > 0), "scored_examples" AS (SELECT *, count(*) OVER (PARTITION BY "raw_examples"."ordinality", "raw_examples"."source_web_id", "raw_examples"."source_entity_uuid") AS "source_frequency", count(*) OVER (PARTITION BY "raw_examples"."ordinality", "raw_examples"."target_web_id", "raw_examples"."target_entity_uuid") AS "target_frequency", row_number() OVER (PARTITION BY "raw_examples"."ordinality", "raw_examples"."source_web_id", "raw_examples"."source_entity_uuid", "raw_examples"."target_web_id", "raw_examples"."target_entity_uuid" ORDER BY "raw_examples"."stable_hash" ASC) AS "pair_rank"
+WHERE (char_length(btrim(("source_cache"."labels")[1])) > 0) AND (char_length(btrim(("target_cache"."labels")[1])) > 0)), "scored_examples" AS (SELECT *, count(*) OVER (PARTITION BY "raw_examples"."ordinality", "raw_examples"."source_web_id", "raw_examples"."source_entity_uuid") AS "source_frequency", count(*) OVER (PARTITION BY "raw_examples"."ordinality", "raw_examples"."target_web_id", "raw_examples"."target_entity_uuid") AS "target_frequency", row_number() OVER (PARTITION BY "raw_examples"."ordinality", "raw_examples"."source_web_id", "raw_examples"."source_entity_uuid", "raw_examples"."target_web_id", "raw_examples"."target_entity_uuid" ORDER BY "raw_examples"."stable_hash" ASC) AS "pair_rank"
 FROM "raw_examples"), "stratified_examples" AS (SELECT *, ln(1 + "scored_examples"."source_frequency") + ln(1 + "scored_examples"."target_frequency") AS "recognizability", row_number() OVER (PARTITION BY "scored_examples"."ordinality", "scored_examples"."source_direct_type" ORDER BY "scored_examples"."stable_hash" ASC) AS "subgroup_rank"
 FROM "scored_examples"
 WHERE "scored_examples"."pair_rank" = 1), "ranked_examples" AS (SELECT *, row_number() OVER (PARTITION BY "stratified_examples"."ordinality" ORDER BY "stratified_examples"."subgroup_rank" ASC, md5((("stratified_examples"."relation_id"::text) || $8 || "stratified_examples"."source_direct_type")) ASC, "stratified_examples"."recognizability" DESC, "stratified_examples"."stable_hash" ASC) AS "relation_rank"

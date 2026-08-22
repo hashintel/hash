@@ -8,11 +8,10 @@
 
 use futures::{Stream, stream};
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, Constant, Correlation, Expression, FromItem, OrderByExpression,
-    ReferenceTable, SelectList, SelectStatement, Table, Transpile as _, WhereExpression,
+    Aliased, Binder, Constant, Correlation, Expression, FromItem, NonEmptyVec, ReferenceTable,
+    SelectList, SelectStatement, SimpleSelect, SortBy, Table, Transpile as _,
     table::{EntityTypeInheritsFrom, EntityTypes},
 };
-use hash_graph_store::query::Ordering;
 use smallvec::SmallVec;
 use tokio_postgres::Transaction;
 use uuid::Uuid;
@@ -66,32 +65,34 @@ pub(crate) async fn ontology<'t>(
     let target_index = select.output(target.clone());
 
     let statement = SelectStatement::builder()
-        .selects(select.into_selects())
-        .from({
-            // FROM <the all-depth inheritance table> AS inherits
-            FromItem::table(Table::Reference(ReferenceTable::EntityTypeInheritsFrom {
-                inheritance_depth: None,
-            }))
-            .alias(INHERITS)
-            .build()
-        })
-        .where_expression({
-            // WHERE inherits.depth = 0 AND the source = ANY(<types>)
-            WhereExpression::from_iter([
-                INHERITS
-                    .column(&EntityTypeInheritsFrom::Depth)
-                    .equal(Constant::U32(0)),
-                source
-                    .clone()
-                    .r#in(Expression::from(types_placeholder).cast(uuid_array())),
-            ])
-        })
-        .order_by_expression({
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM <the all-depth inheritance table> AS inherits
+                    FromItem::table(Table::Reference(ReferenceTable::EntityTypeInheritsFrom {
+                        inheritance_depth: None,
+                    }))
+                    .alias(INHERITS)
+                    .build()
+                })
+                .where_clause({
+                    // WHERE inherits.depth = 0 AND the source = ANY(<types>)
+                    Expression::all(vec![
+                        INHERITS
+                            .column(&EntityTypeInheritsFrom::Depth)
+                            .equal(Constant::U32(0)),
+                        source
+                            .clone()
+                            .r#in(Expression::from(types_placeholder).cast(uuid_array())),
+                    ])
+                }),
+        )
+        .order_by(NonEmptyVec::from_array([
             // ORDER BY the source, then the target
-            OrderByExpression::default()
-                .with(source, Ordering::Ascending, None)
-                .with(target, Ordering::Ascending, None)
-        })
+            SortBy::ascending(source).build(),
+            SortBy::ascending(target).build(),
+        ]))
         .build();
 
     let sql = statement.transpile_to_string();
@@ -158,38 +159,37 @@ pub(crate) async fn ontology_icons<'t>(
     let icon_index = select.output(ICON.column(&NearestIcon::Value));
 
     let statement = SelectStatement::builder()
-        .selects(select.into_selects())
-        .from({
-            // FROM unnest(<types>) WITH ORDINALITY AS mapping(ontology_id, ordinality)
-            // LEFT JOIN entity_types AS types ON types.ontology_id = mapping.ontology_id
-            // LEFT JOIN LATERAL (<nearest icon>) AS icon ON TRUE
-            //
-            // LEFT joins keep every ordinal at exactly one output row: an inner join miss would
-            // shift every later position instead of delivering an empty icon.
-            type_mapping(types_placeholder)
-                .left_join_on(
-                    TYPES.from_item(),
-                    vec![
-                        TYPES
-                            .column(&EntityTypes::OntologyId)
-                            .equal(MAPPING.column(&Mapping::OntologyId)),
-                    ],
-                )
-                .left_join_on(
-                    FromItem::subquery(nearest_declared_icon(TYPES))
-                        .alias(ICON)
-                        .lateral(true),
-                    Vec::<Expression>::new(),
-                )
-        })
-        .order_by_expression({
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM unnest(<types>) WITH ORDINALITY AS mapping(ontology_id, ordinality)
+                    // LEFT JOIN entity_types AS types ON types.ontology_id = mapping.ontology_id
+                    // LEFT JOIN LATERAL (<nearest icon>) AS icon ON TRUE
+                    //
+                    // LEFT joins keep every ordinal at exactly one output row: an inner join
+                    // miss would shift every later position instead of delivering an empty icon.
+                    type_mapping(types_placeholder)
+                        .left_join_on(
+                            TYPES.from_item(),
+                            vec![
+                                TYPES
+                                    .column(&EntityTypes::OntologyId)
+                                    .equal(MAPPING.column(&Mapping::OntologyId)),
+                            ],
+                        )
+                        .left_join_on(
+                            FromItem::subquery(nearest_declared_icon(TYPES))
+                                .alias(ICON)
+                                .lateral(true),
+                            Vec::<Expression>::new(),
+                        )
+                }),
+        )
+        .order_by(NonEmptyVec::from_array(
             // ORDER BY mapping.ordinality
-            OrderByExpression::default().with(
-                MAPPING.column(&Mapping::Ordinality),
-                Ordering::Ascending,
-                None,
-            )
-        })
+            [SortBy::ascending(MAPPING.column(&Mapping::Ordinality)).build()],
+        ))
         .build();
 
     let sql = statement.transpile_to_string();

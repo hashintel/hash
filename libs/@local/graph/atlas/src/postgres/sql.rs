@@ -20,15 +20,14 @@
 use alloc::borrow::Cow;
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, ColumnName, Correlation, Expression, FromItem, Function, OrderByExpression,
-    Placeholder, PostgresType, SelectExpression, SelectStatement, WhereExpression,
+    Aliased, Binder, ColumnName, Correlation, Expression, FromItem, Function, NonEmptyVec,
+    Placeholder, PostgresType, SelectExpression, SelectStatement, SimpleSelect, SortBy,
     table::{
         DatabaseColumn, EntityEditionCache, EntityEditions, EntityTemporalMetadata, EntityTypes,
     },
 };
 use hash_graph_store::{
     filter::PathToken,
-    query::Ordering,
     subgraph::edges::{EdgeDirection, EntityTraversalEdgeKind},
 };
 
@@ -324,42 +323,43 @@ pub(crate) fn nearest_declared_icon(types: Aliased<EntityTypes>) -> SelectStatem
     let display_icon = || json_text(DISPLAY.column(&Display::Value), ICON_KEY);
 
     SelectStatement::builder()
-        .selects(vec![
-            // SELECT display.value ->> 'icon' AS value
-            SelectExpression::aliased(display_icon(), NearestIcon::Value.name().into_identifier()),
-        ])
-        .from(
-            // FROM jsonb_array_elements(types.closed_schema -> 'allOf')
-            //     WITH ORDINALITY AS display(value, position)
-            FromItem::function(Function::JsonArrayElements(Box::new(json_field(
-                types.column(&EntityTypes::ClosedSchema),
-                ALL_OF_KEY,
-            ))))
-            .with_ordinality(true)
-            .alias(DISPLAY)
-            .column_aliases(vec![Display::Value.name(), Display::Position.name()])
-            .build(),
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT display.value ->> 'icon' AS value
+                    SelectExpression::aliased(
+                        display_icon(),
+                        NearestIcon::Value.name().into_identifier(),
+                    ),
+                ])
+                .from(
+                    // FROM jsonb_array_elements(types.closed_schema -> 'allOf')
+                    //     WITH ORDINALITY AS display(value, position)
+                    FromItem::function(Function::JsonArrayElements(Box::new(json_field(
+                        types.column(&EntityTypes::ClosedSchema),
+                        ALL_OF_KEY,
+                    ))))
+                    .with_ordinality(true)
+                    .alias(DISPLAY)
+                    .column_aliases(vec![Display::Value.name(), Display::Position.name()])
+                    .build(),
+                )
+                .where_clause({
+                    // WHERE display.value ->> 'icon' IS NOT NULL
+                    display_icon().is_not_null()
+                }),
         )
-        .where_expression({
-            // WHERE display.value ->> 'icon' IS NOT NULL
-            WhereExpression::from_iter([display_icon().is_not_null()])
-        })
-        .order_by_expression({
+        .order_by(NonEmptyVec::from_array(
             // ORDER BY (display.value ->> 'depth')::int, display.position
-            OrderByExpression::default()
-                .with(
+            [
+                SortBy::ascending(
                     json_text(DISPLAY.column(&Display::Value), DEPTH_KEY)
                         .grouped()
                         .cast(PostgresType::Int4),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    DISPLAY.column(&Display::Position),
-                    Ordering::Ascending,
-                    None,
-                )
-        })
+                ),
+                SortBy::ascending(DISPLAY.column(&Display::Position)),
+            ],
+        ))
         .limit({
             // LIMIT 1
             1

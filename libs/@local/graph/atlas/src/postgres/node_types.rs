@@ -7,8 +7,8 @@
 //! its requests.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Binder, BoundStatement, FromItem, Function, PostgresType, SelectList, SelectStatement,
-    WithExpression,
+    Binder, BoundStatement, CommonTableExpression, FromItem, Function, NonEmptyVec, PostgresType,
+    SelectList, SelectStatement, SimpleSelect, WithClause,
 };
 use smallvec::SmallVec;
 use tokio_postgres::{Row, types::ToSql};
@@ -84,30 +84,32 @@ pub(crate) fn node_type_statement<'params>(
     let statement = SelectStatement::builder()
         .with({
             // WITH requests AS (<requests>), type_rows AS (<type_rows>)
-            WithExpression::default()
-                .with_statement(
-                    CorpusTable::Requests,
-                    requests(axes_points, web_ids, entity_uuids),
-                )
-                .with_statement(
-                    CorpusTable::TypeRows,
-                    corpus::type_rows::<Requests>(types_placeholder),
-                )
+            WithClause::builder().common_table_expressions(NonEmptyVec::from_array([
+                CommonTableExpression::builder()
+                    .name(CorpusTable::Requests)
+                    .statement(requests(axes_points, web_ids, entity_uuids)),
+                CommonTableExpression::builder()
+                    .name(CorpusTable::TypeRows)
+                    .statement(corpus::type_rows::<Requests>(types_placeholder)),
+            ]))
         })
-        .selects(select.into_selects())
-        .from({
-            // FROM requests
-            // LEFT JOIN type_rows
-            //   ON type_rows.entity_edition_id = requests.entity_edition_id
-            FromItem::table(CorpusTable::Requests).build().left_join_on(
-                FromItem::table(CorpusTable::TypeRows).build(),
-                vec![
-                    CorpusTable::TypeRows
-                        .column(TypeRows::EntityEditionId)
-                        .equal(CorpusTable::Requests.column(Requests::EntityEditionId)),
-                ],
-            )
-        })
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM requests
+                    // LEFT JOIN type_rows
+                    //   ON type_rows.entity_edition_id = requests.entity_edition_id
+                    FromItem::table(CorpusTable::Requests).build().left_join_on(
+                        FromItem::table(CorpusTable::TypeRows).build(),
+                        vec![
+                            CorpusTable::TypeRows
+                                .column(TypeRows::EntityEditionId)
+                                .equal(CorpusTable::Requests.column(Requests::EntityEditionId)),
+                        ],
+                    )
+                }),
+        )
         .build();
 
     BoundStatement::new(&statement, binder, columns)

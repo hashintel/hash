@@ -1,11 +1,10 @@
 //! The prose and ancestry facts, carrying each type's own phrasing and its inheritance chain.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, BoundStatement, Correlation, FromItem, OrderByExpression, ReferenceTable,
-    SelectList, SelectStatement, Table, WhereExpression,
+    Aliased, Binder, BoundStatement, Correlation, Expression, FromItem, NonEmptyVec,
+    ReferenceTable, SelectList, SelectStatement, SimpleSelect, SortBy, Table,
     table::{EntityTypeInheritsFrom, EntityTypes, OntologyIds},
 };
-use hash_graph_store::query::Ordering;
 use tokio_postgres::{Transaction, types::ToSql};
 use uuid::Uuid;
 
@@ -64,30 +63,29 @@ fn prose_statement(types: &(impl ToSql + Sync)) -> BoundStatement<'_, ProseColum
     };
 
     let statement = SelectStatement::builder()
-        .selects(select.into_selects())
-        .from(
-            type_mapping(types_placeholder)
-                .inner_join_on(
-                    TYPES.from_item(),
-                    vec![
-                        TYPES
-                            .column(&EntityTypes::OntologyId)
-                            .equal(MAPPING.column(&Mapping::OntologyId)),
-                    ],
-                )
-                .inner_join_on(
-                    IDS.from_item(),
-                    vec![
-                        IDS.column(&OntologyIds::OntologyId)
-                            .equal(MAPPING.column(&Mapping::OntologyId)),
-                    ],
-                ),
+        .select_clause(
+            SimpleSelect::builder().selects(select.into_selects()).from(
+                type_mapping(types_placeholder)
+                    .inner_join_on(
+                        TYPES.from_item(),
+                        vec![
+                            TYPES
+                                .column(&EntityTypes::OntologyId)
+                                .equal(MAPPING.column(&Mapping::OntologyId)),
+                        ],
+                    )
+                    .inner_join_on(
+                        IDS.from_item(),
+                        vec![
+                            IDS.column(&OntologyIds::OntologyId)
+                                .equal(MAPPING.column(&Mapping::OntologyId)),
+                        ],
+                    ),
+            ),
         )
-        .order_by_expression(OrderByExpression::default().with(
+        .order_by(NonEmptyVec::from_array([SortBy::ascending(
             MAPPING.column(&Mapping::Ordinality),
-            Ordering::Ascending,
-            None,
-        ))
+        )]))
         .build();
 
     BoundStatement::new(&statement, binder, columns)
@@ -200,59 +198,55 @@ fn ancestor_statement(types: &(impl ToSql + Sync)) -> BoundStatement<'_, Ancesto
     };
 
     let statement = SelectStatement::builder()
-        .selects(select.into_selects())
-        .from(
-            type_mapping(types_placeholder)
-                .inner_join_on(
-                    FromItem::table(Table::Reference(ReferenceTable::EntityTypeInheritsFrom {
-                        inheritance_depth: None,
-                    }))
-                    .alias(INHERITS)
-                    .build(),
-                    vec![
-                        INHERITS
-                            .column(&EntityTypeInheritsFrom::SourceEntityTypeOntologyId)
-                            .equal(MAPPING.column(&Mapping::OntologyId)),
-                    ],
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from(
+                    type_mapping(types_placeholder)
+                        .inner_join_on(
+                            FromItem::table(Table::Reference(
+                                ReferenceTable::EntityTypeInheritsFrom {
+                                    inheritance_depth: None,
+                                },
+                            ))
+                            .alias(INHERITS)
+                            .build(),
+                            vec![
+                                INHERITS
+                                    .column(&EntityTypeInheritsFrom::SourceEntityTypeOntologyId)
+                                    .equal(MAPPING.column(&Mapping::OntologyId)),
+                            ],
+                        )
+                        .inner_join_on(
+                            TYPES.from_item(),
+                            vec![TYPES.column(&EntityTypes::OntologyId).equal(ancestor())],
+                        )
+                        .inner_join_on(
+                            IDS.from_item(),
+                            vec![
+                                IDS.column(&OntologyIds::OntologyId)
+                                    .equal(TYPES.column(&EntityTypes::OntologyId)),
+                            ],
+                        )
+                        .inner_join_on(
+                            OWN.from_item(),
+                            vec![
+                                OWN.column(&OntologyIds::OntologyId)
+                                    .equal(MAPPING.column(&Mapping::OntologyId)),
+                            ],
+                        ),
                 )
-                .inner_join_on(
-                    TYPES.from_item(),
-                    vec![TYPES.column(&EntityTypes::OntologyId).equal(ancestor())],
-                )
-                .inner_join_on(
-                    IDS.from_item(),
-                    vec![
-                        IDS.column(&OntologyIds::OntologyId)
-                            .equal(TYPES.column(&EntityTypes::OntologyId)),
-                    ],
-                )
-                .inner_join_on(
-                    OWN.from_item(),
-                    vec![
-                        OWN.column(&OntologyIds::OntologyId)
-                            .equal(MAPPING.column(&Mapping::OntologyId)),
-                    ],
-                ),
+                .where_clause(Expression::all(vec![
+                    IDS.column(&OntologyIds::BaseUrl).not_equal(link_root),
+                    IDS.column(&OntologyIds::BaseUrl)
+                        .not_equal(OWN.column(&OntologyIds::BaseUrl)),
+                ])),
         )
-        .where_expression(WhereExpression::from_iter([
-            IDS.column(&OntologyIds::BaseUrl).not_equal(link_root),
-            IDS.column(&OntologyIds::BaseUrl)
-                .not_equal(OWN.column(&OntologyIds::BaseUrl)),
+        .order_by(NonEmptyVec::from_array([
+            SortBy::ascending(MAPPING.column(&Mapping::Ordinality)).build(),
+            SortBy::ascending(INHERITS.column(&EntityTypeInheritsFrom::Depth)).build(),
+            SortBy::ascending(ancestor()).build(),
         ]))
-        .order_by_expression(
-            OrderByExpression::default()
-                .with(
-                    MAPPING.column(&Mapping::Ordinality),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    INHERITS.column(&EntityTypeInheritsFrom::Depth),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(ancestor(), Ordering::Ascending, None),
-        )
         .build();
 
     BoundStatement::new(&statement, binder, columns)

@@ -2,12 +2,11 @@
 //! relation.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, BoundStatement, ColumnName, Constant, Correlation, Expression, FromItem,
-    Function, JoinType, OrderByExpression, Placeholder, PostgresType, SelectExpression, SelectList,
-    SelectStatement, Table, WithExpression,
+    Aliased, Binder, BoundStatement, ColumnName, CommonTableExpression, Constant, Correlation,
+    Expression, FromItem, Function, JoinType, NonEmptyVec, Placeholder, PostgresType,
+    SelectExpression, SelectList, SelectStatement, SimpleSelect, SortBy, Table, WithClause,
     table::{DatabaseColumn, EntityTypes, OntologyIds, OntologyTemporalMetadata},
 };
-use hash_graph_store::query::Ordering;
 use tokio_postgres::{Row, Transaction, types::ToSql};
 use uuid::Uuid;
 
@@ -266,79 +265,79 @@ fn current_types(transaction_point: Placeholder) -> SelectStatement {
     let schema = || TYPES.column(&EntityTypes::Schema);
 
     SelectStatement::builder()
-        .distinct({
-            // SELECT DISTINCT ON (ids.base_url): with the version-descending ordering below,
-            // each base id keeps its newest current version.
-            vec![IDS.column(&OntologyIds::BaseUrl)]
-        })
-        .selects(vec![
-            // SELECT
-            //     ids.base_url AS base_url,
-            //     types.ontology_id AS ontology_id,
-            //     types.schema ->> '$id' AS versioned_url,
-            //     types.schema ->> 'title' AS title,
-            //     types.schema ->> 'description' AS description,
-            //     types.closed_schema -> 'links' AS links
-            SelectExpression::aliased(
-                IDS.column(&OntologyIds::BaseUrl),
-                CurrentType::BaseUrl.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                TYPES.column(&EntityTypes::OntologyId),
-                CurrentType::OntologyId.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                json_text(schema(), ID_KEY),
-                CurrentType::VersionedUrl.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                json_text(schema(), TITLE_KEY),
-                CurrentType::Title.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                json_text(schema(), DESCRIPTION_KEY),
-                CurrentType::Description.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                json_field(TYPES.column(&EntityTypes::ClosedSchema), LINKS_KEY),
-                CurrentType::Links.name().into_identifier(),
-            ),
-        ])
-        .from({
-            // FROM entity_types AS types
-            // JOIN ontology_ids AS ids ON ids.ontology_id = types.ontology_id
-            // JOIN ontology_temporal_metadata AS meta
-            //   ON meta.ontology_id = types.ontology_id
-            //  AND meta.transaction_time @> <transaction point>
-            TYPES
-                .from_item()
-                .inner_join_on(
-                    IDS.from_item(),
-                    vec![
-                        IDS.column(&OntologyIds::OntologyId)
-                            .equal(TYPES.column(&EntityTypes::OntologyId)),
-                    ],
-                )
-                .inner_join_on(
-                    META.from_item(),
-                    vec![
-                        META.column(&OntologyTemporalMetadata::OntologyId)
-                            .equal(TYPES.column(&EntityTypes::OntologyId)),
-                        META.column(&OntologyTemporalMetadata::TransactionTime)
-                            .time_interval_contains_timestamp(transaction_point),
-                    ],
-                )
-        })
-        .order_by_expression({
+        .select_clause(
+            SimpleSelect::builder()
+                .distinct_on({
+                    // SELECT DISTINCT ON (ids.base_url): with the version-descending ordering
+                    // below, each base id keeps its newest current version.
+                    IDS.column(&OntologyIds::BaseUrl)
+                })
+                .selects(vec![
+                    // SELECT
+                    //     ids.base_url AS base_url,
+                    //     types.ontology_id AS ontology_id,
+                    //     types.schema ->> '$id' AS versioned_url,
+                    //     types.schema ->> 'title' AS title,
+                    //     types.schema ->> 'description' AS description,
+                    //     types.closed_schema -> 'links' AS links
+                    SelectExpression::aliased(
+                        IDS.column(&OntologyIds::BaseUrl),
+                        CurrentType::BaseUrl.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(
+                        TYPES.column(&EntityTypes::OntologyId),
+                        CurrentType::OntologyId.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(
+                        json_text(schema(), ID_KEY),
+                        CurrentType::VersionedUrl.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(
+                        json_text(schema(), TITLE_KEY),
+                        CurrentType::Title.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(
+                        json_text(schema(), DESCRIPTION_KEY),
+                        CurrentType::Description.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(
+                        json_field(TYPES.column(&EntityTypes::ClosedSchema), LINKS_KEY),
+                        CurrentType::Links.name().into_identifier(),
+                    ),
+                ])
+                .from({
+                    // FROM entity_types AS types
+                    // JOIN ontology_ids AS ids ON ids.ontology_id = types.ontology_id
+                    // JOIN ontology_temporal_metadata AS meta
+                    //   ON meta.ontology_id = types.ontology_id
+                    //  AND meta.transaction_time @> <transaction point>
+                    TYPES
+                        .from_item()
+                        .inner_join_on(
+                            IDS.from_item(),
+                            vec![
+                                IDS.column(&OntologyIds::OntologyId)
+                                    .equal(TYPES.column(&EntityTypes::OntologyId)),
+                            ],
+                        )
+                        .inner_join_on(
+                            META.from_item(),
+                            vec![
+                                META.column(&OntologyTemporalMetadata::OntologyId)
+                                    .equal(TYPES.column(&EntityTypes::OntologyId)),
+                                META.column(&OntologyTemporalMetadata::TransactionTime)
+                                    .time_interval_contains_timestamp(transaction_point),
+                            ],
+                        )
+                }),
+        )
+        .order_by(NonEmptyVec::from_array(
             // ORDER BY ids.base_url, ids.version DESC
-            OrderByExpression::default()
-                .with(IDS.column(&OntologyIds::BaseUrl), Ordering::Ascending, None)
-                .with(
-                    IDS.column(&OntologyIds::Version),
-                    Ordering::Descending,
-                    None,
-                )
-        })
+            [
+                SortBy::ascending(IDS.column(&OntologyIds::BaseUrl)).build(),
+                SortBy::descending(IDS.column(&OntologyIds::Version)).build(),
+            ],
+        ))
         .build()
 }
 
@@ -347,25 +346,28 @@ fn relations(types: Placeholder) -> SelectStatement {
     const IDS: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "ids");
 
     SelectStatement::builder()
-        .selects(vec![
-            // SELECT mapping.ordinality, ids.base_url AS base_url
-            SelectExpression::new(MAPPING.column(&Mapping::Ordinality)),
-            SelectExpression::aliased(
-                IDS.column(&OntologyIds::BaseUrl),
-                Relation::BaseUrl.name().into_identifier(),
-            ),
-        ])
-        .from({
-            // FROM unnest(<types>) WITH ORDINALITY AS mapping(ontology_id, ordinality)
-            // JOIN ontology_ids AS ids ON ids.ontology_id = mapping.ontology_id
-            type_mapping(types).inner_join_on(
-                IDS.from_item(),
-                vec![
-                    IDS.column(&OntologyIds::OntologyId)
-                        .equal(MAPPING.column(&Mapping::OntologyId)),
-                ],
-            )
-        })
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT mapping.ordinality, ids.base_url AS base_url
+                    SelectExpression::new(MAPPING.column(&Mapping::Ordinality)),
+                    SelectExpression::aliased(
+                        IDS.column(&OntologyIds::BaseUrl),
+                        Relation::BaseUrl.name().into_identifier(),
+                    ),
+                ])
+                .from({
+                    // FROM unnest(<types>) WITH ORDINALITY AS mapping(ontology_id, ordinality)
+                    // JOIN ontology_ids AS ids ON ids.ontology_id = mapping.ontology_id
+                    type_mapping(types).inner_join_on(
+                        IDS.from_item(),
+                        vec![
+                            IDS.column(&OntologyIds::OntologyId)
+                                .equal(MAPPING.column(&Mapping::OntologyId)),
+                        ],
+                    )
+                }),
+        )
         .build()
 }
 
@@ -393,108 +395,101 @@ fn matched(version_suffix: Placeholder) -> SelectStatement {
     };
 
     SelectStatement::builder()
-        .distinct({
-            // SELECT DISTINCT ON (relations.ordinality, source.base_url)
-            vec![
-                RELATIONS.column(&Relation::Ordinality),
-                SOURCE.column(&CurrentType::BaseUrl),
-            ]
-        })
-        .selects(vec![
-            // SELECT
-            //     relations.ordinality,
-            //     source.base_url,
-            //     source.ontology_id,
-            //     source.versioned_url,
-            //     source.title,
-            //     source.description,
-            //     constraint_entry.value -> 'items' -> 'oneOf' AS one_of,
-            //     (constraint_entry.value ->> 'minItems')::bigint AS min_items,
-            //     (constraint_entry.value ->> 'maxItems')::bigint AS max_items
-            SelectExpression::new(RELATIONS.column(&Relation::Ordinality)),
-            SelectExpression::new(SOURCE.column(&CurrentType::BaseUrl)),
-            SelectExpression::new(SOURCE.column(&CurrentType::OntologyId)),
-            SelectExpression::new(SOURCE.column(&CurrentType::VersionedUrl)),
-            SelectExpression::new(SOURCE.column(&CurrentType::Title)),
-            SelectExpression::new(SOURCE.column(&CurrentType::Description)),
-            SelectExpression::aliased(
-                json_field(
-                    json_field(CONSTRAINT_ENTRY.column(&ConstraintEntry::Value), ITEMS_KEY),
-                    ONE_OF_KEY,
-                ),
-                Matched::OneOf.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                json_text(
-                    CONSTRAINT_ENTRY.column(&ConstraintEntry::Value),
-                    MIN_ITEMS_KEY,
-                )
-                .grouped()
-                .cast(PostgresType::Int8),
-                Matched::MinItems.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                json_text(
-                    CONSTRAINT_ENTRY.column(&ConstraintEntry::Value),
-                    MAX_ITEMS_KEY,
-                )
-                .grouped()
-                .cast(PostgresType::Int8),
-                Matched::MaxItems.name().into_identifier(),
-            ),
-        ])
-        .from(
-            // FROM current_types AS source
-            // CROSS JOIN LATERAL jsonb_each(source.links) AS constraint_entry(key, value)
-            // JOIN relations
-            //   ON starts_with(constraint_entry.key, relations.base_url)
-            //  AND <the key's remainder> ~ <version suffix>
-            FromItem::table(CURRENT_TYPES)
-                .alias(SOURCE)
-                .build()
-                .cross_join(
-                    FromItem::function(Function::JsonEach(Box::new(
-                        SOURCE.column(&CurrentType::Links),
-                    )))
-                    .lateral(true)
-                    .alias(CONSTRAINT_ENTRY)
-                    .column_aliases(vec![
-                        ConstraintEntry::Key.name(),
-                        ConstraintEntry::Value.name(),
-                    ]),
-                )
-                .join(JoinType::Inner, FromItem::table(RELATIONS))
-                .on(vec![
-                    CONSTRAINT_ENTRY
-                        .column(&ConstraintEntry::Key)
-                        .starts_with(RELATIONS.column(&Relation::BaseUrl)),
-                    key_remainder(1).regex_match(version_suffix),
+        .select_clause(
+            SimpleSelect::builder()
+                .distinct_on({
+                    // SELECT DISTINCT ON (relations.ordinality, source.base_url)
+                    NonEmptyVec::try_from(vec![
+                        RELATIONS.column(&Relation::Ordinality),
+                        SOURCE.column(&CurrentType::BaseUrl),
+                    ])
+                    .expect("two expressions should form a valid `DISTINCT ON`")
+                })
+                .selects(vec![
+                    // SELECT
+                    //     relations.ordinality,
+                    //     source.base_url,
+                    //     source.ontology_id,
+                    //     source.versioned_url,
+                    //     source.title,
+                    //     source.description,
+                    //     constraint_entry.value -> 'items' -> 'oneOf' AS one_of,
+                    //     (constraint_entry.value ->> 'minItems')::bigint AS min_items,
+                    //     (constraint_entry.value ->> 'maxItems')::bigint AS max_items
+                    SelectExpression::new(RELATIONS.column(&Relation::Ordinality)),
+                    SelectExpression::new(SOURCE.column(&CurrentType::BaseUrl)),
+                    SelectExpression::new(SOURCE.column(&CurrentType::OntologyId)),
+                    SelectExpression::new(SOURCE.column(&CurrentType::VersionedUrl)),
+                    SelectExpression::new(SOURCE.column(&CurrentType::Title)),
+                    SelectExpression::new(SOURCE.column(&CurrentType::Description)),
+                    SelectExpression::aliased(
+                        json_field(
+                            json_field(CONSTRAINT_ENTRY.column(&ConstraintEntry::Value), ITEMS_KEY),
+                            ONE_OF_KEY,
+                        ),
+                        Matched::OneOf.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(
+                        json_text(
+                            CONSTRAINT_ENTRY.column(&ConstraintEntry::Value),
+                            MIN_ITEMS_KEY,
+                        )
+                        .grouped()
+                        .cast(PostgresType::Int8),
+                        Matched::MinItems.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(
+                        json_text(
+                            CONSTRAINT_ENTRY.column(&ConstraintEntry::Value),
+                            MAX_ITEMS_KEY,
+                        )
+                        .grouped()
+                        .cast(PostgresType::Int8),
+                        Matched::MaxItems.name().into_identifier(),
+                    ),
                 ])
-                .build(),
+                .from(
+                    // FROM current_types AS source
+                    // CROSS JOIN LATERAL jsonb_each(source.links) AS constraint_entry(key, value)
+                    // JOIN relations
+                    //   ON starts_with(constraint_entry.key, relations.base_url)
+                    //  AND <the key's remainder> ~ <version suffix>
+                    FromItem::table(CURRENT_TYPES)
+                        .alias(SOURCE)
+                        .build()
+                        .cross_join(
+                            FromItem::function(Function::JsonEach(Box::new(
+                                SOURCE.column(&CurrentType::Links),
+                            )))
+                            .lateral(true)
+                            .alias(CONSTRAINT_ENTRY)
+                            .column_aliases(vec![
+                                ConstraintEntry::Key.name(),
+                                ConstraintEntry::Value.name(),
+                            ]),
+                        )
+                        .join(JoinType::Inner, FromItem::table(RELATIONS))
+                        .on(vec![
+                            CONSTRAINT_ENTRY
+                                .column(&ConstraintEntry::Key)
+                                .starts_with(RELATIONS.column(&Relation::BaseUrl)),
+                            key_remainder(1).regex_match(version_suffix),
+                        ])
+                        .build(),
+                ),
         )
-        .order_by_expression({
+        .order_by(NonEmptyVec::from_array(
             // ORDER BY relations.ordinality, source.base_url,
             //     (<the key's version digits>)::bigint DESC
             //
             // The version digits start after `<base_url>v/`, which is the base id plus two
             // characters.
-            OrderByExpression::default()
-                .with(
-                    RELATIONS.column(&Relation::Ordinality),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    SOURCE.column(&CurrentType::BaseUrl),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    key_remainder(3).cast(PostgresType::Int8),
-                    Ordering::Descending,
-                    None,
-                )
-        })
+            [
+                SortBy::ascending(RELATIONS.column(&Relation::Ordinality)).build(),
+                SortBy::ascending(SOURCE.column(&CurrentType::BaseUrl)).build(),
+                SortBy::descending(key_remainder(3).cast(PostgresType::Int8)).build(),
+            ],
+        ))
         .build()
 }
 
@@ -516,22 +511,26 @@ fn targets(trailing_version_suffix: Placeholder, version_erasure: Placeholder) -
     // Each reference's base id, its version suffix erased, deduplicated before target prose
     // resolves per base id.
     let reference_base_urls = SelectStatement::builder()
-        .distinct({
-            // SELECT DISTINCT ON (<the reference base id>) <the reference base id> AS ref_base_url
-            vec![reference_base()]
-        })
-        .selects(vec![SelectExpression::aliased(
-            reference_base(),
-            ReferenceBase::RefBaseUrl.name().into_identifier(),
-        )])
-        .from(
-            // FROM jsonb_array_elements(matched.one_of) AS reference(value)
-            FromItem::function(Function::JsonArrayElements(Box::new(
-                MATCHED.column(&Matched::OneOf),
-            )))
-            .alias(ELEMENTS)
-            .column_aliases(vec![ReferenceValue::Value.name()])
-            .build(),
+        .select_clause(
+            SimpleSelect::builder()
+                .distinct_on({
+                    // SELECT DISTINCT ON (<the reference base id>)
+                    //     <the reference base id> AS ref_base_url
+                    reference_base()
+                })
+                .selects(vec![SelectExpression::aliased(
+                    reference_base(),
+                    ReferenceBase::RefBaseUrl.name().into_identifier(),
+                )])
+                .from(
+                    // FROM jsonb_array_elements(matched.one_of) AS reference(value)
+                    FromItem::function(Function::JsonArrayElements(Box::new(
+                        MATCHED.column(&Matched::OneOf),
+                    )))
+                    .alias(ELEMENTS)
+                    .column_aliases(vec![ReferenceValue::Value.name()])
+                    .build(),
+                ),
         )
         .build();
 
@@ -540,10 +539,9 @@ fn targets(trailing_version_suffix: Placeholder, version_erasure: Placeholder) -
         SelectExpression::aliased(
             Function::ArrayAgg {
                 expression: Box::new(TARGET.column(&column)),
-                order_by: OrderByExpression::default().with(
-                    TARGET.column(&CurrentType::BaseUrl),
-                    Ordering::Ascending,
-                    None,
+                order_by: Some(
+                    NonEmptyVec::from(SortBy::ascending(TARGET.column(&CurrentType::BaseUrl)))
+                        .into(),
                 ),
             },
             alias.name().into_identifier(),
@@ -551,34 +549,38 @@ fn targets(trailing_version_suffix: Placeholder, version_erasure: Placeholder) -
     };
 
     SelectStatement::builder()
-        .selects(vec![
-            // SELECT
-            //     array_agg(target.title ORDER BY target.base_url) AS titles,
-            //     array_agg(target.description ORDER BY target.base_url) AS descriptions,
-            //     array_agg(target.base_url ORDER BY target.base_url) AS base_urls,
-            //     array_agg(target.versioned_url ORDER BY target.base_url) AS versioned_urls,
-            //     array_agg(target.ontology_id ORDER BY target.base_url) AS ontology_ids
-            aggregated(CurrentType::Title, Targets::Titles),
-            aggregated(CurrentType::Description, Targets::Descriptions),
-            aggregated(CurrentType::BaseUrl, Targets::BaseUrls),
-            aggregated(CurrentType::VersionedUrl, Targets::VersionedUrls),
-            aggregated(CurrentType::OntologyId, Targets::OntologyIds),
-        ])
-        .from({
-            // FROM (<reference base ids>) AS reference
-            // JOIN current_types AS target ON target.base_url = reference.ref_base_url
-            FromItem::subquery(reference_base_urls)
-                .alias(REFERENCE)
-                .build()
-                .inner_join_on(
-                    TARGET.from_item(),
-                    vec![
-                        TARGET
-                            .column(&CurrentType::BaseUrl)
-                            .equal(REFERENCE.column(&ReferenceBase::RefBaseUrl)),
-                    ],
-                )
-        })
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT
+                    //     array_agg(target.title ORDER BY target.base_url) AS titles,
+                    //     array_agg(target.description ORDER BY target.base_url) AS descriptions,
+                    //     array_agg(target.base_url ORDER BY target.base_url) AS base_urls,
+                    //     array_agg(target.versioned_url ORDER BY target.base_url) AS
+                    // versioned_urls,     array_agg(target.ontology_id ORDER
+                    // BY target.base_url) AS ontology_ids
+                    aggregated(CurrentType::Title, Targets::Titles),
+                    aggregated(CurrentType::Description, Targets::Descriptions),
+                    aggregated(CurrentType::BaseUrl, Targets::BaseUrls),
+                    aggregated(CurrentType::VersionedUrl, Targets::VersionedUrls),
+                    aggregated(CurrentType::OntologyId, Targets::OntologyIds),
+                ])
+                .from({
+                    // FROM (<reference base ids>) AS reference
+                    // JOIN current_types AS target ON target.base_url = reference.ref_base_url
+                    FromItem::subquery(reference_base_urls)
+                        .alias(REFERENCE)
+                        .build()
+                        .inner_join_on(
+                            TARGET.from_item(),
+                            vec![
+                                TARGET
+                                    .column(&CurrentType::BaseUrl)
+                                    .equal(REFERENCE.column(&ReferenceBase::RefBaseUrl)),
+                            ],
+                        )
+                }),
+        )
         .build()
 }
 
@@ -652,32 +654,39 @@ fn association_statement<'params>(
             // WITH current_types AS (<current_types>),
             //     relations AS (<relations>),
             //     matched AS (<matched>)
-            WithExpression::default()
-                .with_statement(CURRENT_TYPES, current_types(transaction_point))
-                .with_statement(RELATIONS, relations(types_placeholder))
-                .with_statement(MATCHED, matched(version_suffix))
+            WithClause::builder().common_table_expressions(NonEmptyVec::from_array([
+                CommonTableExpression::builder()
+                    .name(CURRENT_TYPES)
+                    .statement(current_types(transaction_point)),
+                CommonTableExpression::builder()
+                    .name(RELATIONS)
+                    .statement(relations(types_placeholder)),
+                CommonTableExpression::builder()
+                    .name(MATCHED)
+                    .statement(matched(version_suffix)),
+            ]))
         })
-        .selects(select.into_selects())
-        .from({
-            // FROM matched
-            // LEFT JOIN LATERAL (<targets>) AS targets ON TRUE
-            FromItem::table(MATCHED).build().left_join_on(
-                FromItem::subquery(targets(trailing_version_suffix, version_erasure))
-                    .alias(TARGETS)
-                    .lateral(true),
-                Vec::<Expression>::new(),
-            )
-        })
-        .order_by_expression({
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM matched
+                    // LEFT JOIN LATERAL (<targets>) AS targets ON TRUE
+                    FromItem::table(MATCHED).build().left_join_on(
+                        FromItem::subquery(targets(trailing_version_suffix, version_erasure))
+                            .alias(TARGETS)
+                            .lateral(true),
+                        Vec::<Expression>::new(),
+                    )
+                }),
+        )
+        .order_by(NonEmptyVec::from_array(
             // ORDER BY matched.ordinality, matched.base_url
-            OrderByExpression::default()
-                .with(
-                    MATCHED.column(&Matched::Ordinality),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(MATCHED.column(&Matched::BaseUrl), Ordering::Ascending, None)
-        })
+            [
+                SortBy::ascending(MATCHED.column(&Matched::Ordinality)),
+                SortBy::ascending(MATCHED.column(&Matched::BaseUrl)),
+            ],
+        ))
         .build();
 
     BoundStatement::new(&statement, binder, columns)

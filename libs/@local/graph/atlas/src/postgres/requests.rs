@@ -9,7 +9,7 @@
 
 use hash_graph_postgres_store::store::postgres::query::{
     Aliased, ColumnName, Correlation, Expression, FromItem, Function, Placeholder, PostgresType,
-    SelectExpression, SelectStatement, Table,
+    SelectExpression, SelectStatement, SimpleSelect, Table,
     table::{DatabaseColumn, EntityEditions, EntityTemporalMetadata},
 };
 use uuid::Uuid;
@@ -108,46 +108,53 @@ pub(crate) fn requests(
     const EDITION: Aliased<EntityEditions> = Aliased::of(Table::EntityEditions, "edition");
 
     SelectStatement::builder()
-        .selects(vec![
-            // SELECT
-            //     meta.web_id AS web_id,
-            //     meta.entity_uuid AS entity_uuid,
-            //     meta.entity_edition_id AS entity_edition_id
-            SelectExpression::aliased(
-                META.column(&EntityTemporalMetadata::WebId),
-                Requests::WebId.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                META.column(&EntityTemporalMetadata::EntityUuid),
-                Requests::EntityUuid.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                META.column(&EntityTemporalMetadata::EditionId),
-                Requests::EntityEditionId.name().into_identifier(),
-            ),
-        ])
-        .from({
-            // FROM unnest(<web_ids>, <entity_uuids>) AS request(web_id, entity_uuid)
-            // JOIN entity_temporal_metadata AS meta
-            //   ON meta.web_id = request.web_id
-            //  AND meta.entity_uuid = request.entity_uuid
-            //  AND <currency conditions>
-            // JOIN entity_editions AS edition
-            //   ON edition.entity_edition_id = meta.entity_edition_id AND NOT edition.archived
-            request_pair(web_ids, entity_uuids)
-                .inner_join_on(
-                    META.from_item(),
-                    current_identity_join(
-                        META,
-                        axes,
-                        REQUEST.column(&Request::WebId),
-                        REQUEST.column(&Request::EntityUuid),
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT
+                    //     meta.web_id AS web_id,
+                    //     meta.entity_uuid AS entity_uuid,
+                    //     meta.entity_edition_id AS entity_edition_id
+                    SelectExpression::aliased(
+                        META.column(&EntityTemporalMetadata::WebId),
+                        Requests::WebId.name().into_identifier(),
                     ),
-                )
-                .inner_join_on(
-                    EDITION.from_item(),
-                    edition_conjunction(EDITION, META.column(&EntityTemporalMetadata::EditionId)),
-                )
-        })
+                    SelectExpression::aliased(
+                        META.column(&EntityTemporalMetadata::EntityUuid),
+                        Requests::EntityUuid.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(
+                        META.column(&EntityTemporalMetadata::EditionId),
+                        Requests::EntityEditionId.name().into_identifier(),
+                    ),
+                ])
+                .from({
+                    // FROM unnest(<web_ids>, <entity_uuids>) AS request(web_id, entity_uuid)
+                    // JOIN entity_temporal_metadata AS meta
+                    //   ON meta.web_id = request.web_id
+                    //  AND meta.entity_uuid = request.entity_uuid
+                    //  AND <currency conditions>
+                    // JOIN entity_editions AS edition
+                    //   ON edition.entity_edition_id = meta.entity_edition_id
+                    //  AND NOT edition.archived
+                    request_pair(web_ids, entity_uuids)
+                        .inner_join_on(
+                            META.from_item(),
+                            current_identity_join(
+                                META,
+                                axes,
+                                REQUEST.column(&Request::WebId),
+                                REQUEST.column(&Request::EntityUuid),
+                            ),
+                        )
+                        .inner_join_on(
+                            EDITION.from_item(),
+                            edition_conjunction(
+                                EDITION,
+                                META.column(&EntityTemporalMetadata::EditionId),
+                            ),
+                        )
+                }),
+        )
         .build()
 }

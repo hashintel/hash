@@ -46,6 +46,24 @@ pub struct SortBy {
     pub nulls: Option<NullsOrder>,
 }
 
+impl SortBy {
+    pub fn ascending(
+        expression: impl Into<Expression>,
+    ) -> SortByBuilder<impl sort_by_builder::IsComplete> {
+        Self::builder()
+            .direction(SortDirection::Ascending)
+            .expression(expression.into())
+    }
+
+    pub fn descending(
+        expression: impl Into<Expression>,
+    ) -> SortByBuilder<impl sort_by_builder::IsComplete> {
+        Self::builder()
+            .direction(SortDirection::Descending)
+            .expression(expression.into())
+    }
+}
+
 impl<S> From<SortByBuilder<S>> for NonEmptyVec<SortBy>
 where
     S: sort_by_builder::IsComplete,
@@ -81,6 +99,17 @@ pub struct OrderByClause {
     /// via `NonEmptyVec::try_from`.
     #[builder(into)]
     pub sort_by: NonEmptyVec<SortBy>,
+}
+
+impl<T> From<T> for OrderByClause
+where
+    T: Into<NonEmptyVec<SortBy>>,
+{
+    fn from(sort_by: T) -> Self {
+        Self {
+            sort_by: sort_by.into(),
+        }
+    }
 }
 
 impl Transpile for OrderByClause {

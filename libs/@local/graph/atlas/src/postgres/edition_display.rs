@@ -11,7 +11,7 @@
 
 use hash_graph_postgres_store::store::postgres::query::{
     Aliased, Binder, BoundStatement, ColumnName, Correlation, Expression, FromItem, Function,
-    Placeholder, PostgresType, SelectList, SelectStatement, Table,
+    Placeholder, PostgresType, SelectList, SelectStatement, SimpleSelect, Table,
     table::{DatabaseColumn, EntityEditionCache, EntityTypes, OntologyIds},
 };
 use tokio_postgres::{Row, types::ToSql};
@@ -122,52 +122,55 @@ pub(crate) fn edition_display_statement(
     };
 
     let statement = SelectStatement::builder()
-        .selects(select.into_selects())
-        .from({
-            // FROM unnest(<edition_ids>) AS request(entity_edition_id)
-            // LEFT JOIN entity_edition_cache AS cache
-            //   ON cache.entity_edition_id = request.entity_edition_id
-            // LEFT JOIN ontology_ids AS representative_type
-            //   ON representative_type.base_url = (cache.base_urls)[1]
-            //  AND representative_type.version = (cache.versions)[1]
-            // LEFT JOIN entity_types AS types
-            //   ON types.ontology_id = representative_type.ontology_id
-            // LEFT JOIN LATERAL (<the nearest declared icon>) AS icon ON TRUE
-            edition_requests(edition_ids)
-                .left_join_on(
-                    CACHE.from_item(),
-                    vec![
-                        CACHE
-                            .column(&EntityEditionCache::EntityEditionId)
-                            .equal(EDITION_REQUEST.column(&EditionRequest::EntityEditionId)),
-                    ],
-                )
-                .left_join_on(
-                    REPRESENTATIVE_TYPE.from_item(),
-                    vec![
-                        REPRESENTATIVE_TYPE
-                            .column(&OntologyIds::BaseUrl)
-                            .equal(CACHE.column(&EntityEditionCache::BaseUrls).array_element(1)),
-                        REPRESENTATIVE_TYPE
-                            .column(&OntologyIds::Version)
-                            .equal(CACHE.column(&EntityEditionCache::Versions).array_element(1)),
-                    ],
-                )
-                .left_join_on(
-                    TYPES.from_item(),
-                    vec![
-                        TYPES
-                            .column(&EntityTypes::OntologyId)
-                            .equal(REPRESENTATIVE_TYPE.column(&OntologyIds::OntologyId)),
-                    ],
-                )
-                .left_join_on(
-                    FromItem::subquery(nearest_declared_icon(TYPES))
-                        .alias(ICON)
-                        .lateral(true),
-                    Vec::<Expression>::new(),
-                )
-        })
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM unnest(<edition_ids>) AS request(entity_edition_id)
+                    // LEFT JOIN entity_edition_cache AS cache
+                    //   ON cache.entity_edition_id = request.entity_edition_id
+                    // LEFT JOIN ontology_ids AS representative_type
+                    //   ON representative_type.base_url = (cache.base_urls)[1]
+                    //  AND representative_type.version = (cache.versions)[1]
+                    // LEFT JOIN entity_types AS types
+                    //   ON types.ontology_id = representative_type.ontology_id
+                    // LEFT JOIN LATERAL (<the nearest declared icon>) AS icon ON TRUE
+                    edition_requests(edition_ids)
+                        .left_join_on(
+                            CACHE.from_item(),
+                            vec![
+                                CACHE.column(&EntityEditionCache::EntityEditionId).equal(
+                                    EDITION_REQUEST.column(&EditionRequest::EntityEditionId),
+                                ),
+                            ],
+                        )
+                        .left_join_on(
+                            REPRESENTATIVE_TYPE.from_item(),
+                            vec![
+                                REPRESENTATIVE_TYPE.column(&OntologyIds::BaseUrl).equal(
+                                    CACHE.column(&EntityEditionCache::BaseUrls).array_element(1),
+                                ),
+                                REPRESENTATIVE_TYPE.column(&OntologyIds::Version).equal(
+                                    CACHE.column(&EntityEditionCache::Versions).array_element(1),
+                                ),
+                            ],
+                        )
+                        .left_join_on(
+                            TYPES.from_item(),
+                            vec![
+                                TYPES
+                                    .column(&EntityTypes::OntologyId)
+                                    .equal(REPRESENTATIVE_TYPE.column(&OntologyIds::OntologyId)),
+                            ],
+                        )
+                        .left_join_on(
+                            FromItem::subquery(nearest_declared_icon(TYPES))
+                                .alias(ICON)
+                                .lateral(true),
+                            Vec::<Expression>::new(),
+                        )
+                }),
+        )
         .build();
 
     BoundStatement::new(&statement, binder, columns)

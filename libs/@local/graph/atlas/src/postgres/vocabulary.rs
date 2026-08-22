@@ -51,7 +51,6 @@ impl CorpusTable {
         TableReference {
             schema: None,
             name: self.name(),
-            alias: None,
         }
     }
 

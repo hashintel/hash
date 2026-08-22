@@ -554,10 +554,9 @@ where
     C: rkyv::rancor::Fallible<Error: rkyv::rancor::Source> + ?Sized,
 {
     fn verify(&self, _: &mut C) -> Result<(), <C as rancor::Fallible>::Error> {
-        if Self::is_canonical(self.0) {
-            Ok(())
-        } else {
-            rkyv::rancor::fail!(NotInUnitInterval(self.0))
+        if !Self::is_canonical(self.0) {
+            rkyv::rancor::fail!(NotInUnitInterval(self.0));
         }
+        Ok(())
     }
 }

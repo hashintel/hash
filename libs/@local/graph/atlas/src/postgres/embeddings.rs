@@ -10,8 +10,8 @@
 //! against its requests.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, BoundStatement, Expression, SelectList, SelectStatement, Table,
-    WhereExpression, table::EntityEmbeddings,
+    Aliased, Binder, BoundStatement, Expression, SelectList, SelectStatement, SimpleSelect, Table,
+    table::EntityEmbeddings,
 };
 use tokio_postgres::{Row, types::ToSql};
 use uuid::Uuid;
@@ -68,28 +68,31 @@ fn embedding_lookup<'params>(
     };
 
     let statement = SelectStatement::builder()
-        .selects(select.into_selects())
-        .from({
-            // FROM unnest(<web_ids>, <entity_uuids>) AS request(web_id, entity_uuid)
-            // JOIN entity_embeddings AS embeddings
-            //   ON embeddings.web_id = request.web_id
-            //  AND embeddings.entity_uuid = request.entity_uuid
-            request_pair(web_ids, entity_uuids).inner_join_on(
-                EMBEDDING.from_item(),
-                vec![
-                    EMBEDDING
-                        .column(&EntityEmbeddings::WebId)
-                        .equal(REQUEST.column(&Request::WebId)),
-                    EMBEDDING
-                        .column(&EntityEmbeddings::EntityUuid)
-                        .equal(REQUEST.column(&Request::EntityUuid)),
-                ],
-            )
-        })
-        .where_expression({
-            // WHERE embeddings.property IS NULL
-            WhereExpression::from_iter([EMBEDDING.column(&EntityEmbeddings::Property).is_null()])
-        })
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM unnest(<web_ids>, <entity_uuids>) AS request(web_id, entity_uuid)
+                    // JOIN entity_embeddings AS embeddings
+                    //   ON embeddings.web_id = request.web_id
+                    //  AND embeddings.entity_uuid = request.entity_uuid
+                    request_pair(web_ids, entity_uuids).inner_join_on(
+                        EMBEDDING.from_item(),
+                        vec![
+                            EMBEDDING
+                                .column(&EntityEmbeddings::WebId)
+                                .equal(REQUEST.column(&Request::WebId)),
+                            EMBEDDING
+                                .column(&EntityEmbeddings::EntityUuid)
+                                .equal(REQUEST.column(&Request::EntityUuid)),
+                        ],
+                    )
+                })
+                .where_clause({
+                    // WHERE embeddings.property IS NULL
+                    EMBEDDING.column(&EntityEmbeddings::Property).is_null()
+                }),
+        )
         .build();
 
     BoundStatement::new(&statement, binder, columns)

@@ -1,15 +1,15 @@
 //! The example facts, pooling live link instances per relation.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, BoundStatement, ColumnName, Constant, Correlation, Expression, FromItem,
-    Function, OrderByExpression, Placeholder, PostgresType, ReferenceTable, SelectExpression,
-    SelectList, SelectStatement, Table, WhereExpression, WindowStatement, WithExpression,
+    Aliased, Binder, BoundStatement, ColumnName, CommonTableExpression, Constant, Correlation,
+    Expression, FromItem, Function, NonEmptyVec, Placeholder, PostgresType, ReferenceTable,
+    SelectExpression, SelectList, SelectStatement, SimpleSelect, SortBy, Table, WindowDefinition,
+    WithClause,
     table::{
         DatabaseColumn, EntityEdge, EntityEditionCache, EntityEditions, EntityIsOfType,
         EntityTemporalMetadata, EntityTypeInheritsFrom, OntologyIds,
     },
 };
-use hash_graph_store::query::Ordering;
 use tokio_postgres::{Row, Transaction, types::ToSql};
 use uuid::Uuid;
 
@@ -152,41 +152,48 @@ fn relations(types: Placeholder, link_root: Placeholder) -> SelectStatement {
     const ROOT: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "root");
 
     SelectStatement::builder()
-        .selects(vec![
-            // SELECT mapping.ordinality, mapping.ontology_id
-            SelectExpression::new(MAPPING.column(&Mapping::Ordinality)),
-            SelectExpression::new(MAPPING.column(&Mapping::OntologyId)),
-        ])
-        .from({
-            // FROM unnest(<types>) WITH ORDINALITY AS mapping(ontology_id, ordinality)
-            // JOIN <the all-depth inheritance table> AS inherits
-            //   ON inherits.source_entity_type_ontology_id = mapping.ontology_id
-            // JOIN ontology_ids AS root
-            //   ON root.ontology_id = inherits.target_entity_type_ontology_id
-            //  AND root.base_url = <link_root>
-            type_mapping(types)
-                .inner_join_on(
-                    FromItem::table(Table::Reference(ReferenceTable::EntityTypeInheritsFrom {
-                        inheritance_depth: None,
-                    }))
-                    .alias(INHERITS)
-                    .build(),
-                    vec![
-                        INHERITS
-                            .column(&EntityTypeInheritsFrom::SourceEntityTypeOntologyId)
-                            .equal(MAPPING.column(&Mapping::OntologyId)),
-                    ],
-                )
-                .inner_join_on(
-                    ROOT.from_item(),
-                    vec![
-                        ROOT.column(&OntologyIds::OntologyId).equal(
-                            INHERITS.column(&EntityTypeInheritsFrom::TargetEntityTypeOntologyId),
-                        ),
-                        ROOT.column(&OntologyIds::BaseUrl).equal(link_root),
-                    ],
-                )
-        })
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT mapping.ordinality, mapping.ontology_id
+                    SelectExpression::new(MAPPING.column(&Mapping::Ordinality)),
+                    SelectExpression::new(MAPPING.column(&Mapping::OntologyId)),
+                ])
+                .from({
+                    // FROM unnest(<types>) WITH ORDINALITY AS mapping(ontology_id, ordinality)
+                    // JOIN <the all-depth inheritance table> AS inherits
+                    //   ON inherits.source_entity_type_ontology_id = mapping.ontology_id
+                    // JOIN ontology_ids AS root
+                    //   ON root.ontology_id = inherits.target_entity_type_ontology_id
+                    //  AND root.base_url = <link_root>
+                    type_mapping(types)
+                        .inner_join_on(
+                            FromItem::table(Table::Reference(
+                                ReferenceTable::EntityTypeInheritsFrom {
+                                    inheritance_depth: None,
+                                },
+                            ))
+                            .alias(INHERITS)
+                            .build(),
+                            vec![
+                                INHERITS
+                                    .column(&EntityTypeInheritsFrom::SourceEntityTypeOntologyId)
+                                    .equal(MAPPING.column(&Mapping::OntologyId)),
+                            ],
+                        )
+                        .inner_join_on(
+                            ROOT.from_item(),
+                            vec![
+                                ROOT.column(&OntologyIds::OntologyId).equal(
+                                    INHERITS.column(
+                                        &EntityTypeInheritsFrom::TargetEntityTypeOntologyId,
+                                    ),
+                                ),
+                                ROOT.column(&OntologyIds::BaseUrl).equal(link_root),
+                            ],
+                        )
+                }),
+        )
         .build()
 }
 
@@ -206,59 +213,62 @@ fn instances(axes: Axes) -> SelectStatement {
     instance_gates.extend(time_axis_conjunction(TEMPORAL, axes));
 
     SelectStatement::builder()
-        .selects(vec![
-            // SELECT
-            //     relations.ordinality,
-            //     relations.ontology_id AS relation_id,
-            //     temporal.web_id AS web_id,
-            //     temporal.entity_uuid AS entity_uuid
-            SelectExpression::new(RELATIONS.column(&Mapping::Ordinality)),
-            SelectExpression::aliased(
-                RELATIONS.column(&Mapping::OntologyId),
-                Example::RelationId.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                TEMPORAL.column(&EntityTemporalMetadata::WebId),
-                Example::WebId.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                TEMPORAL.column(&EntityTemporalMetadata::EntityUuid),
-                Example::EntityUuid.name().into_identifier(),
-            ),
-        ])
-        .from({
-            // FROM relations
-            // JOIN entity_is_of_type AS is_of_type
-            //   ON is_of_type.entity_type_ontology_id = relations.ontology_id
-            //  AND is_of_type.inheritance_depth = 0
-            // JOIN entity_temporal_metadata AS temporal
-            //   ON temporal.entity_edition_id = is_of_type.entity_edition_id
-            //  AND <currency conditions>
-            // JOIN entity_editions AS edition
-            //   ON edition.entity_edition_id = is_of_type.entity_edition_id
-            //  AND NOT edition.archived
-            FromItem::table(RELATIONS)
-                .build()
-                .inner_join_on(
-                    IS_OF_TYPE.from_item(),
-                    vec![
-                        IS_OF_TYPE
-                            .column(&EntityIsOfType::EntityTypeOntologyId)
-                            .equal(RELATIONS.column(&Mapping::OntologyId)),
-                        IS_OF_TYPE
-                            .column(&EntityIsOfType::InheritanceDepth)
-                            .equal(Constant::U32(0)),
-                    ],
-                )
-                .inner_join_on(TEMPORAL.from_item(), instance_gates)
-                .inner_join_on(
-                    EDITION.from_item(),
-                    edition_conjunction(
-                        EDITION,
-                        IS_OF_TYPE.column(&EntityIsOfType::EntityEditionId),
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT
+                    //     relations.ordinality,
+                    //     relations.ontology_id AS relation_id,
+                    //     temporal.web_id AS web_id,
+                    //     temporal.entity_uuid AS entity_uuid
+                    SelectExpression::new(RELATIONS.column(&Mapping::Ordinality)),
+                    SelectExpression::aliased(
+                        RELATIONS.column(&Mapping::OntologyId),
+                        Example::RelationId.name().into_identifier(),
                     ),
-                )
-        })
+                    SelectExpression::aliased(
+                        TEMPORAL.column(&EntityTemporalMetadata::WebId),
+                        Example::WebId.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(
+                        TEMPORAL.column(&EntityTemporalMetadata::EntityUuid),
+                        Example::EntityUuid.name().into_identifier(),
+                    ),
+                ])
+                .from({
+                    // FROM relations
+                    // JOIN entity_is_of_type AS is_of_type
+                    //   ON is_of_type.entity_type_ontology_id = relations.ontology_id
+                    //  AND is_of_type.inheritance_depth = 0
+                    // JOIN entity_temporal_metadata AS temporal
+                    //   ON temporal.entity_edition_id = is_of_type.entity_edition_id
+                    //  AND <currency conditions>
+                    // JOIN entity_editions AS edition
+                    //   ON edition.entity_edition_id = is_of_type.entity_edition_id
+                    //  AND NOT edition.archived
+                    FromItem::table(RELATIONS)
+                        .build()
+                        .inner_join_on(
+                            IS_OF_TYPE.from_item(),
+                            vec![
+                                IS_OF_TYPE
+                                    .column(&EntityIsOfType::EntityTypeOntologyId)
+                                    .equal(RELATIONS.column(&Mapping::OntologyId)),
+                                IS_OF_TYPE
+                                    .column(&EntityIsOfType::InheritanceDepth)
+                                    .equal(Constant::U32(0)),
+                            ],
+                        )
+                        .inner_join_on(TEMPORAL.from_item(), instance_gates)
+                        .inner_join_on(
+                            EDITION.from_item(),
+                            edition_conjunction(
+                                EDITION,
+                                IS_OF_TYPE.column(&EntityIsOfType::EntityEditionId),
+                            ),
+                        )
+                }),
+        )
         .build()
 }
 
@@ -401,68 +411,74 @@ fn raw_examples(
     };
 
     SelectStatement::builder()
-        .selects(raw_example_outputs(field_separator, no_direct_type))
-        .from({
-            // FROM links
-            // JOIN entity_edge AS left_edge ON <the has-left attachment>
-            // JOIN entity_edge AS right_edge ON <the has-right attachment>
-            // JOIN entity_temporal_metadata AS source_meta
-            //   ON source_meta names left_edge's target AND <currency conditions>
-            // JOIN entity_temporal_metadata AS target_meta
-            //   ON target_meta names right_edge's target AND <currency conditions>
-            // JOIN entity_edition_cache AS source_cache
-            //   ON source_cache.entity_edition_id = source_meta.entity_edition_id
-            // JOIN entity_edition_cache AS target_cache
-            //   ON target_cache.entity_edition_id = target_meta.entity_edition_id
-            FromItem::table(LINKS)
-                .build()
-                .inner_join_on(
-                    LEFT_EDGE.from_item(),
-                    attachment_join(LEFT_EDGE, attachments.has_left),
-                )
-                .inner_join_on(
-                    RIGHT_EDGE.from_item(),
-                    attachment_join(RIGHT_EDGE, attachments.has_right),
-                )
-                .inner_join_on(
-                    SOURCE_META.from_item(),
-                    current_identity_join(
-                        SOURCE_META,
-                        axes,
-                        LEFT_EDGE.column(&EntityEdge::TargetWebId),
-                        LEFT_EDGE.column(&EntityEdge::TargetEntityUuid),
-                    ),
-                )
-                .inner_join_on(
-                    TARGET_META.from_item(),
-                    current_identity_join(
-                        TARGET_META,
-                        axes,
-                        RIGHT_EDGE.column(&EntityEdge::TargetWebId),
-                        RIGHT_EDGE.column(&EntityEdge::TargetEntityUuid),
-                    ),
-                )
-                .inner_join_on(
-                    SOURCE_CACHE.from_item(),
-                    vec![
-                        SOURCE_CACHE
-                            .column(&EntityEditionCache::EntityEditionId)
-                            .equal(SOURCE_META.column(&EntityTemporalMetadata::EditionId)),
-                    ],
-                )
-                .inner_join_on(
-                    TARGET_CACHE.from_item(),
-                    vec![
-                        TARGET_CACHE
-                            .column(&EntityEditionCache::EntityEditionId)
-                            .equal(TARGET_META.column(&EntityTemporalMetadata::EditionId)),
-                    ],
-                )
-        })
-        .where_expression({
-            // WHERE both endpoint labels trim to something visible
-            WhereExpression::from_iter([visible_label(SOURCE_CACHE), visible_label(TARGET_CACHE)])
-        })
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(raw_example_outputs(field_separator, no_direct_type))
+                .from({
+                    // FROM links
+                    // JOIN entity_edge AS left_edge ON <the has-left attachment>
+                    // JOIN entity_edge AS right_edge ON <the has-right attachment>
+                    // JOIN entity_temporal_metadata AS source_meta
+                    //   ON source_meta names left_edge's target AND <currency conditions>
+                    // JOIN entity_temporal_metadata AS target_meta
+                    //   ON target_meta names right_edge's target AND <currency conditions>
+                    // JOIN entity_edition_cache AS source_cache
+                    //   ON source_cache.entity_edition_id = source_meta.entity_edition_id
+                    // JOIN entity_edition_cache AS target_cache
+                    //   ON target_cache.entity_edition_id = target_meta.entity_edition_id
+                    FromItem::table(LINKS)
+                        .build()
+                        .inner_join_on(
+                            LEFT_EDGE.from_item(),
+                            attachment_join(LEFT_EDGE, attachments.has_left),
+                        )
+                        .inner_join_on(
+                            RIGHT_EDGE.from_item(),
+                            attachment_join(RIGHT_EDGE, attachments.has_right),
+                        )
+                        .inner_join_on(
+                            SOURCE_META.from_item(),
+                            current_identity_join(
+                                SOURCE_META,
+                                axes,
+                                LEFT_EDGE.column(&EntityEdge::TargetWebId),
+                                LEFT_EDGE.column(&EntityEdge::TargetEntityUuid),
+                            ),
+                        )
+                        .inner_join_on(
+                            TARGET_META.from_item(),
+                            current_identity_join(
+                                TARGET_META,
+                                axes,
+                                RIGHT_EDGE.column(&EntityEdge::TargetWebId),
+                                RIGHT_EDGE.column(&EntityEdge::TargetEntityUuid),
+                            ),
+                        )
+                        .inner_join_on(
+                            SOURCE_CACHE.from_item(),
+                            vec![
+                                SOURCE_CACHE
+                                    .column(&EntityEditionCache::EntityEditionId)
+                                    .equal(SOURCE_META.column(&EntityTemporalMetadata::EditionId)),
+                            ],
+                        )
+                        .inner_join_on(
+                            TARGET_CACHE.from_item(),
+                            vec![
+                                TARGET_CACHE
+                                    .column(&EntityEditionCache::EntityEditionId)
+                                    .equal(TARGET_META.column(&EntityTemporalMetadata::EditionId)),
+                            ],
+                        )
+                })
+                .where_clause({
+                    // WHERE both endpoint labels trim to something visible
+                    Expression::all(vec![
+                        visible_label(SOURCE_CACHE),
+                        visible_label(TARGET_CACHE),
+                    ])
+                }),
+        )
         .build()
 }
 
@@ -471,56 +487,63 @@ fn scored_examples() -> SelectStatement {
     // count(*) OVER (PARTITION BY ordinality, <the endpoint's identity>) AS <the frequency>
     let frequency = |web_id: Example, entity_uuid: Example, alias: Example| {
         SelectExpression::aliased(
-            Expression::Window(
-                Box::new(Function::Count(None).into()),
-                WindowStatement::partition_by(RAW_EXAMPLES.column(&Example::Ordinality))
-                    .then_partition_by(RAW_EXAMPLES.column(&web_id))
-                    .then_partition_by(RAW_EXAMPLES.column(&entity_uuid)),
+            Expression::from(Function::Count(None)).window(
+                WindowDefinition::builder().partition_by(NonEmptyVec::from_array([
+                    RAW_EXAMPLES.column(&Example::Ordinality),
+                    RAW_EXAMPLES.column(&web_id),
+                    RAW_EXAMPLES.column(&entity_uuid),
+                ])),
             ),
             alias.name().into_identifier(),
         )
     };
 
     SelectStatement::builder()
-        .selects(vec![
-            // SELECT *,
-            //     count(*) OVER (PARTITION BY the relation and the source) AS source_frequency,
-            //     count(*) OVER (PARTITION BY the relation and the target) AS target_frequency,
-            //     row_number() OVER (
-            //         PARTITION BY the relation and the endpoint pair ORDER BY stable_hash
-            //     ) AS pair_rank
-            SelectExpression::Asterisk(None),
-            frequency(
-                Example::SourceWebId,
-                Example::SourceEntityUuid,
-                Example::SourceFrequency,
-            ),
-            frequency(
-                Example::TargetWebId,
-                Example::TargetEntityUuid,
-                Example::TargetFrequency,
-            ),
-            SelectExpression::aliased(
-                Expression::Window(
-                    Box::new(Function::RowNumber.into()),
-                    WindowStatement::partition_by(RAW_EXAMPLES.column(&Example::Ordinality))
-                        .then_partition_by(RAW_EXAMPLES.column(&Example::SourceWebId))
-                        .then_partition_by(RAW_EXAMPLES.column(&Example::SourceEntityUuid))
-                        .then_partition_by(RAW_EXAMPLES.column(&Example::TargetWebId))
-                        .then_partition_by(RAW_EXAMPLES.column(&Example::TargetEntityUuid))
-                        .then_order_by(
-                            RAW_EXAMPLES.column(&Example::StableHash),
-                            Ordering::Ascending,
-                            None,
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT *,
+                    //     count(*) OVER (PARTITION BY the relation and the source)
+                    //         AS source_frequency,
+                    //     count(*) OVER (PARTITION BY the relation and the target)
+                    //         AS target_frequency,
+                    //     row_number() OVER (
+                    //         PARTITION BY the relation and the endpoint pair ORDER BY stable_hash
+                    //     ) AS pair_rank
+                    SelectExpression::Asterisk(None),
+                    frequency(
+                        Example::SourceWebId,
+                        Example::SourceEntityUuid,
+                        Example::SourceFrequency,
+                    ),
+                    frequency(
+                        Example::TargetWebId,
+                        Example::TargetEntityUuid,
+                        Example::TargetFrequency,
+                    ),
+                    SelectExpression::aliased(
+                        Expression::from(Function::RowNumber).window(
+                            WindowDefinition::builder()
+                                .partition_by(NonEmptyVec::from_array([
+                                    RAW_EXAMPLES.column(&Example::Ordinality),
+                                    RAW_EXAMPLES.column(&Example::SourceWebId),
+                                    RAW_EXAMPLES.column(&Example::SourceEntityUuid),
+                                    RAW_EXAMPLES.column(&Example::TargetWebId),
+                                    RAW_EXAMPLES.column(&Example::TargetEntityUuid),
+                                ]))
+                                .order_by(SortBy::ascending(
+                                    RAW_EXAMPLES.column(&Example::StableHash),
+                                ))
+                                .build(),
                         ),
-                ),
-                Example::PairRank.name().into_identifier(),
-            ),
-        ])
-        .from({
-            // FROM raw_examples
-            FromItem::table(RAW_EXAMPLES)
-        })
+                        Example::PairRank.name().into_identifier(),
+                    ),
+                ])
+                .from({
+                    // FROM raw_examples
+                    FromItem::table(RAW_EXAMPLES)
+                }),
+        )
         .build()
 }
 
@@ -535,39 +558,44 @@ fn stratified_examples() -> SelectStatement {
     };
 
     SelectStatement::builder()
-        .selects(vec![
-            // SELECT *,
-            //     ln(1 + source_frequency) + ln(1 + target_frequency) AS recognizability,
-            //     row_number() OVER (
-            //         PARTITION BY ordinality, source_direct_type ORDER BY stable_hash
-            //     ) AS subgroup_rank
-            SelectExpression::Asterisk(None),
-            SelectExpression::aliased(
-                log_frequency(Example::SourceFrequency)
-                    .add(log_frequency(Example::TargetFrequency)),
-                Example::Recognizability.name().into_identifier(),
-            ),
-            SelectExpression::aliased(
-                Expression::Window(
-                    Box::new(Function::RowNumber.into()),
-                    WindowStatement::partition_by(SCORED_EXAMPLES.column(&Example::Ordinality))
-                        .then_partition_by(SCORED_EXAMPLES.column(&Example::SourceDirectType))
-                        .then_order_by(
-                            SCORED_EXAMPLES.column(&Example::StableHash),
-                            Ordering::Ascending,
-                            None,
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT *,
+                    //     ln(1 + source_frequency) + ln(1 + target_frequency) AS recognizability,
+                    //     row_number() OVER (
+                    //         PARTITION BY ordinality, source_direct_type ORDER BY stable_hash
+                    //     ) AS subgroup_rank
+                    SelectExpression::Asterisk(None),
+                    SelectExpression::aliased(
+                        log_frequency(Example::SourceFrequency)
+                            .add(log_frequency(Example::TargetFrequency)),
+                        Example::Recognizability.name().into_identifier(),
+                    ),
+                    SelectExpression::aliased(
+                        Expression::from(Function::RowNumber).window(
+                            WindowDefinition::builder()
+                                .partition_by(NonEmptyVec::from_array([
+                                    SCORED_EXAMPLES.column(&Example::Ordinality),
+                                    SCORED_EXAMPLES.column(&Example::SourceDirectType),
+                                ]))
+                                .order_by(SortBy::ascending(
+                                    SCORED_EXAMPLES.column(&Example::StableHash),
+                                )),
                         ),
+                        Example::SubgroupRank.name().into_identifier(),
+                    ),
+                ])
+                .from({
+                    // FROM scored_examples WHERE pair_rank = 1
+                    FromItem::table(SCORED_EXAMPLES)
+                })
+                .where_clause(
+                    SCORED_EXAMPLES
+                        .column(&Example::PairRank)
+                        .equal(Constant::U32(1)),
                 ),
-                Example::SubgroupRank.name().into_identifier(),
-            ),
-        ])
-        .from({
-            // FROM scored_examples WHERE pair_rank = 1
-            FromItem::table(SCORED_EXAMPLES)
-        })
-        .where_expression(WhereExpression::from_iter([SCORED_EXAMPLES
-            .column(&Example::PairRank)
-            .equal(Constant::U32(1))]))
+        )
         .build()
 }
 
@@ -589,40 +617,36 @@ fn ranked_examples(field_separator: Placeholder, subgroup_pool: Placeholder) -> 
     //     PARTITION BY ordinality
     //     ORDER BY subgroup_rank, <the subgroup shuffle>, recognizability DESC, stable_hash
     // ) AS relation_rank
-    let window = WindowStatement::partition_by(STRATIFIED_EXAMPLES.column(&Example::Ordinality))
-        .then_order_by(
-            STRATIFIED_EXAMPLES.column(&Example::SubgroupRank),
-            Ordering::Ascending,
-            None,
-        )
-        .then_order_by(subgroup_shuffle, Ordering::Ascending, None)
-        .then_order_by(
-            STRATIFIED_EXAMPLES.column(&Example::Recognizability),
-            Ordering::Descending,
-            None,
-        )
-        .then_order_by(
-            STRATIFIED_EXAMPLES.column(&Example::StableHash),
-            Ordering::Ascending,
-            None,
-        );
+    let pool_window = WindowDefinition::builder()
+        .partition_by(STRATIFIED_EXAMPLES.column(&Example::Ordinality))
+        .order_by(NonEmptyVec::from_array([
+            SortBy::ascending(STRATIFIED_EXAMPLES.column(&Example::SubgroupRank)).build(),
+            SortBy::ascending(subgroup_shuffle).build(),
+            SortBy::descending(STRATIFIED_EXAMPLES.column(&Example::Recognizability)).build(),
+            SortBy::ascending(STRATIFIED_EXAMPLES.column(&Example::StableHash)).build(),
+        ]));
 
     SelectStatement::builder()
-        .selects(vec![
-            // SELECT *, <the pool ranking window> AS relation_rank
-            SelectExpression::Asterisk(None),
-            SelectExpression::aliased(
-                Expression::Window(Box::new(Function::RowNumber.into()), window),
-                Example::RelationRank.name().into_identifier(),
-            ),
-        ])
-        .from({
-            // FROM stratified_examples WHERE subgroup_rank <= <subgroup pool>
-            FromItem::table(STRATIFIED_EXAMPLES)
-        })
-        .where_expression(WhereExpression::from_iter([STRATIFIED_EXAMPLES
-            .column(&Example::SubgroupRank)
-            .less_or_equal(subgroup_pool)]))
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(vec![
+                    // SELECT *, <the pool ranking window> AS relation_rank
+                    SelectExpression::Asterisk(None),
+                    SelectExpression::aliased(
+                        Expression::from(Function::RowNumber).window(pool_window),
+                        Example::RelationRank.name().into_identifier(),
+                    ),
+                ])
+                .from({
+                    // FROM stratified_examples WHERE subgroup_rank <= <subgroup pool>
+                    FromItem::table(STRATIFIED_EXAMPLES)
+                })
+                .where_clause(
+                    STRATIFIED_EXAMPLES
+                        .column(&Example::SubgroupRank)
+                        .less_or_equal(subgroup_pool),
+                ),
+        )
         .build()
 }
 
@@ -704,42 +728,52 @@ fn example_statement<'params>(
         .with({
             // WITH relations AS (..), links AS (..), raw_examples AS (..),
             //     scored_examples AS (..), stratified_examples AS (..), ranked_examples AS (..)
-            WithExpression::default()
-                .with_statement(RELATIONS, relations(types_placeholder, link_root))
-                .with_statement(LINKS, instances(axes_points))
-                .with_statement(
-                    RAW_EXAMPLES,
-                    raw_examples(axes_points, attachments, field_separator, no_direct_type),
-                )
-                .with_statement(SCORED_EXAMPLES, scored_examples())
-                .with_statement(STRATIFIED_EXAMPLES, stratified_examples())
-                .with_statement(
-                    RANKED_EXAMPLES,
-                    ranked_examples(field_separator, subgroup_pool_placeholder),
-                )
+            WithClause::builder().common_table_expressions(NonEmptyVec::from_array([
+                CommonTableExpression::builder()
+                    .name(RELATIONS)
+                    .statement(relations(types_placeholder, link_root)),
+                CommonTableExpression::builder()
+                    .name(LINKS)
+                    .statement(instances(axes_points)),
+                CommonTableExpression::builder()
+                    .name(RAW_EXAMPLES)
+                    .statement(raw_examples(
+                        axes_points,
+                        attachments,
+                        field_separator,
+                        no_direct_type,
+                    )),
+                CommonTableExpression::builder()
+                    .name(SCORED_EXAMPLES)
+                    .statement(scored_examples()),
+                CommonTableExpression::builder()
+                    .name(STRATIFIED_EXAMPLES)
+                    .statement(stratified_examples()),
+                CommonTableExpression::builder()
+                    .name(RANKED_EXAMPLES)
+                    .statement(ranked_examples(field_separator, subgroup_pool_placeholder)),
+            ]))
         })
-        .selects(select.into_selects())
-        .from({
-            // FROM ranked_examples WHERE relation_rank <= <pool>
-            FromItem::table(RANKED_EXAMPLES)
-        })
-        .where_expression(WhereExpression::from_iter([RANKED_EXAMPLES
-            .column(&Example::RelationRank)
-            .less_or_equal(pool_placeholder)]))
-        .order_by_expression({
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM ranked_examples WHERE relation_rank <= <pool>
+                    FromItem::table(RANKED_EXAMPLES)
+                })
+                .where_clause(
+                    RANKED_EXAMPLES
+                        .column(&Example::RelationRank)
+                        .less_or_equal(pool_placeholder),
+                ),
+        )
+        .order_by(NonEmptyVec::from_array(
             // ORDER BY ranked_examples.ordinality, ranked_examples.relation_rank
-            OrderByExpression::default()
-                .with(
-                    RANKED_EXAMPLES.column(&Example::Ordinality),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    RANKED_EXAMPLES.column(&Example::RelationRank),
-                    Ordering::Ascending,
-                    None,
-                )
-        })
+            [
+                SortBy::ascending(RANKED_EXAMPLES.column(&Example::Ordinality)),
+                SortBy::ascending(RANKED_EXAMPLES.column(&Example::RelationRank)),
+            ],
+        ))
         .build();
 
     BoundStatement::new(&statement, binder, columns)

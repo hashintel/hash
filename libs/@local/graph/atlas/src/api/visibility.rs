@@ -465,11 +465,11 @@ mod tests {
     /// One real compiler error, reused so the mapping is visibly a statement about the failing
     /// stage rather than about the error inside it.
     ///
-    /// `MultipleEmbeddings` is a failure a caller's own filter can produce, which is why it is the
-    /// one used for both stages here: the same value answers `400` under [`ProofError::Filter`] and
-    /// `500` under [`ProofError::PolicyFilter`].
+    /// `UnsupportedEmbeddingPath` is a failure a caller's own filter can produce, which is why it
+    /// is the one used for both stages here: the same value answers `400` under
+    /// [`ProofError::Filter`] and `500` under [`ProofError::PolicyFilter`].
     fn compiler_error() -> Report<SelectCompilerError> {
-        Report::new(SelectCompilerError::MultipleEmbeddings)
+        Report::new(SelectCompilerError::UnsupportedEmbeddingPath)
     }
 
     /// Renders one problem as the document a client reads.
@@ -488,7 +488,7 @@ mod tests {
             document["detail"]
                 .as_str()
                 .expect("the problem carries a detail")
-                .contains("embedding"),
+                .contains("binary-quantized"),
             "the caller is not told what about its document failed: {document:#}"
         );
     }

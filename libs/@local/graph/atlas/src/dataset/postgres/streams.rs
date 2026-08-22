@@ -8,11 +8,11 @@
 use alloc::borrow::Cow;
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Aliased, Binder, BoundStatement, Expression, FromItem, Function, OrderByExpression,
-    PostgresType, SelectList, SelectStatement, Table, WithExpression,
+    Aliased, Binder, BoundStatement, CommonTableExpression, Expression, FromItem, Function,
+    NonEmptyVec, PostgresType, SelectList, SelectStatement, SimpleSelect, SortBy, Table,
+    WithClause,
     table::{EntityEditions, EntityEmbeddings},
 };
-use hash_graph_store::query::Ordering;
 use tokio_postgres::{Row, types::ToSql};
 use uuid::Uuid;
 
@@ -108,63 +108,64 @@ pub(super) fn node_statement<'params>(
     let statement = SelectStatement::builder()
         .with({
             // WITH scope AS (<scope>), type_rows AS (<type_rows>)
-            WithExpression::default()
-                .with_statement(CorpusTable::Scope, corpus::scope(axes_points, link_root))
-                .with_statement(
-                    CorpusTable::TypeRows,
-                    corpus::type_rows::<Scope>(types_placeholder),
-                )
+            WithClause::builder().common_table_expressions(NonEmptyVec::from_array([
+                CommonTableExpression::builder()
+                    .name(CorpusTable::Scope)
+                    .statement(corpus::scope(axes_points, link_root)),
+                CommonTableExpression::builder()
+                    .name(CorpusTable::TypeRows)
+                    .statement(corpus::type_rows::<Scope>(types_placeholder)),
+            ]))
         })
-        .selects(select.into_selects())
-        .from({
-            // FROM scope
-            // JOIN entity_embeddings AS embedding
-            //   ON embedding.web_id = scope.web_id
-            //  AND embedding.entity_uuid = scope.entity_uuid
-            //  AND embedding.property IS NULL
-            // JOIN entity_editions AS edition
-            //   ON edition.entity_edition_id = scope.entity_edition_id
-            // LEFT JOIN type_rows
-            //   ON type_rows.entity_edition_id = scope.entity_edition_id
-            FromItem::table(CorpusTable::Scope)
-                .build()
-                .inner_join_on(
-                    EMBEDDING.from_item(),
-                    vec![
-                        EMBEDDING
-                            .column(&EntityEmbeddings::WebId)
-                            .equal(CorpusTable::Scope.column(Scope::WebId)),
-                        EMBEDDING
-                            .column(&EntityEmbeddings::EntityUuid)
-                            .equal(CorpusTable::Scope.column(Scope::EntityUuid)),
-                        EMBEDDING.column(&EntityEmbeddings::Property).is_null(),
-                    ],
-                )
-                .inner_join_on(
-                    EDITION.from_item(),
-                    vec![
-                        EDITION
-                            .column(&EntityEditions::EditionId)
-                            .equal(CorpusTable::Scope.column(Scope::EntityEditionId)),
-                    ],
-                )
-                .left_join_on(
-                    FromItem::table(CorpusTable::TypeRows).build(),
-                    vec![
-                        CorpusTable::TypeRows
-                            .column(TypeRows::EntityEditionId)
-                            .equal(CorpusTable::Scope.column(Scope::EntityEditionId)),
-                    ],
-                )
-        })
-        .order_by_expression({
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM scope
+                    // JOIN entity_embeddings AS embedding
+                    //   ON embedding.web_id = scope.web_id
+                    //  AND embedding.entity_uuid = scope.entity_uuid
+                    //  AND embedding.property IS NULL
+                    // JOIN entity_editions AS edition
+                    //   ON edition.entity_edition_id = scope.entity_edition_id
+                    // LEFT JOIN type_rows
+                    //   ON type_rows.entity_edition_id = scope.entity_edition_id
+                    FromItem::table(CorpusTable::Scope)
+                        .build()
+                        .inner_join_on(
+                            EMBEDDING.from_item(),
+                            vec![
+                                EMBEDDING
+                                    .column(&EntityEmbeddings::WebId)
+                                    .equal(CorpusTable::Scope.column(Scope::WebId)),
+                                EMBEDDING
+                                    .column(&EntityEmbeddings::EntityUuid)
+                                    .equal(CorpusTable::Scope.column(Scope::EntityUuid)),
+                                EMBEDDING.column(&EntityEmbeddings::Property).is_null(),
+                            ],
+                        )
+                        .inner_join_on(
+                            EDITION.from_item(),
+                            vec![
+                                EDITION
+                                    .column(&EntityEditions::EditionId)
+                                    .equal(CorpusTable::Scope.column(Scope::EntityEditionId)),
+                            ],
+                        )
+                        .left_join_on(
+                            FromItem::table(CorpusTable::TypeRows).build(),
+                            vec![
+                                CorpusTable::TypeRows
+                                    .column(TypeRows::EntityEditionId)
+                                    .equal(CorpusTable::Scope.column(Scope::EntityEditionId)),
+                            ],
+                        )
+                }),
+        )
+        .order_by(NonEmptyVec::from_array(
             // ORDER BY scope.row
-            OrderByExpression::default().with(
-                CorpusTable::Scope.column(Scope::Row),
-                Ordering::Ascending,
-                None,
-            )
-        })
+            [SortBy::ascending(CorpusTable::Scope.column(Scope::Row))],
+        ))
         .build();
 
     BoundStatement::new(&statement, binder, columns)
@@ -273,76 +274,68 @@ pub(super) fn edge_statement<'params>(
     let statement = SelectStatement::builder()
         .with({
             // WITH scope AS (<scope>), links AS (<links>), type_rows AS (<type_rows>)
-            WithExpression::default()
-                .with_statement(CorpusTable::Scope, corpus::scope(axes_points, link_root))
-                .with_statement(CorpusTable::Links, corpus::links(axes_points, attachments))
-                .with_statement(
-                    CorpusTable::TypeRows,
-                    corpus::type_rows::<Links>(types_placeholder),
-                )
+            WithClause::builder().common_table_expressions(NonEmptyVec::from_array([
+                CommonTableExpression::builder()
+                    .name(CorpusTable::Scope)
+                    .statement(corpus::scope(axes_points, link_root)),
+                CommonTableExpression::builder()
+                    .name(CorpusTable::Links)
+                    .statement(corpus::links(axes_points, attachments)),
+                CommonTableExpression::builder()
+                    .name(CorpusTable::TypeRows)
+                    .statement(corpus::type_rows::<Links>(types_placeholder)),
+            ]))
         })
-        .selects(select.into_selects())
-        .from({
-            // FROM links
-            // JOIN entity_editions AS edition
-            //   ON edition.entity_edition_id = links.entity_edition_id
-            // LEFT JOIN entity_embeddings AS embedding
-            //   ON embedding.web_id = links.web_id
-            //  AND embedding.entity_uuid = links.entity_uuid
-            //  AND embedding.property IS NULL
-            // LEFT JOIN type_rows
-            //   ON type_rows.entity_edition_id = links.entity_edition_id
-            FromItem::table(CorpusTable::Links)
-                .build()
-                .inner_join_on(
-                    EDITION.from_item(),
-                    [EDITION
-                        .column(&EntityEditions::EditionId)
-                        .equal(CorpusTable::Links.column(Links::EntityEditionId))],
-                )
-                .left_join_on(
-                    EMBEDDING.from_item(),
-                    [
-                        EMBEDDING
-                            .column(&EntityEmbeddings::WebId)
-                            .equal(CorpusTable::Links.column(Links::WebId)),
-                        EMBEDDING
-                            .column(&EntityEmbeddings::EntityUuid)
-                            .equal(CorpusTable::Links.column(Links::EntityUuid)),
-                        EMBEDDING.column(&EntityEmbeddings::Property).is_null(),
-                    ],
-                )
-                .left_join_on(
-                    FromItem::table(CorpusTable::TypeRows).build(),
-                    [CorpusTable::TypeRows
-                        .column(TypeRows::EntityEditionId)
-                        .equal(CorpusTable::Links.column(Links::EntityEditionId))],
-                )
-        })
-        .order_by_expression({
+        .select_clause(
+            SimpleSelect::builder()
+                .selects(select.into_selects())
+                .from({
+                    // FROM links
+                    // JOIN entity_editions AS edition
+                    //   ON edition.entity_edition_id = links.entity_edition_id
+                    // LEFT JOIN entity_embeddings AS embedding
+                    //   ON embedding.web_id = links.web_id
+                    //  AND embedding.entity_uuid = links.entity_uuid
+                    //  AND embedding.property IS NULL
+                    // LEFT JOIN type_rows
+                    //   ON type_rows.entity_edition_id = links.entity_edition_id
+                    FromItem::table(CorpusTable::Links)
+                        .build()
+                        .inner_join_on(
+                            EDITION.from_item(),
+                            [EDITION
+                                .column(&EntityEditions::EditionId)
+                                .equal(CorpusTable::Links.column(Links::EntityEditionId))],
+                        )
+                        .left_join_on(
+                            EMBEDDING.from_item(),
+                            [
+                                EMBEDDING
+                                    .column(&EntityEmbeddings::WebId)
+                                    .equal(CorpusTable::Links.column(Links::WebId)),
+                                EMBEDDING
+                                    .column(&EntityEmbeddings::EntityUuid)
+                                    .equal(CorpusTable::Links.column(Links::EntityUuid)),
+                                EMBEDDING.column(&EntityEmbeddings::Property).is_null(),
+                            ],
+                        )
+                        .left_join_on(
+                            FromItem::table(CorpusTable::TypeRows).build(),
+                            [CorpusTable::TypeRows
+                                .column(TypeRows::EntityEditionId)
+                                .equal(CorpusTable::Links.column(Links::EntityEditionId))],
+                        )
+                }),
+        )
+        .order_by(NonEmptyVec::from_array(
             // ORDER BY links.web_id, links.entity_uuid, links.source_row, links.target_row
-            OrderByExpression::default()
-                .with(
-                    CorpusTable::Links.column(Links::WebId),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    CorpusTable::Links.column(Links::EntityUuid),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    CorpusTable::Links.column(Links::SourceRow),
-                    Ordering::Ascending,
-                    None,
-                )
-                .with(
-                    CorpusTable::Links.column(Links::TargetRow),
-                    Ordering::Ascending,
-                    None,
-                )
-        })
+            [
+                SortBy::ascending(CorpusTable::Links.column(Links::WebId)),
+                SortBy::ascending(CorpusTable::Links.column(Links::EntityUuid)),
+                SortBy::ascending(CorpusTable::Links.column(Links::SourceRow)),
+                SortBy::ascending(CorpusTable::Links.column(Links::TargetRow)),
+            ],
+        ))
         .build();
 
     BoundStatement::new(&statement, binder, columns)
