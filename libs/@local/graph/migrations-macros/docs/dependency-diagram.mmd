@@ -10,31 +10,34 @@ graph TD
     %% ---> : Build dependency
     0[<a href="../hash_graph/index.html">hash-graph</a>]
     1[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
-    2[<a href="../hash_graph_migrations/index.html">hash-graph-migrations</a>]
-    3[hash-graph-migrations-macros]
-    class 3 root
-    4[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
-    5[<a href="../hashql_ast/index.html">hashql-ast</a>]
-    6[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
-    7[<a href="../hashql_eval/index.html">hashql-eval</a>]
-    8[<a href="../hashql_hir/index.html">hashql-hir</a>]
-    9[<a href="../hashql_mir/index.html">hashql-mir</a>]
-    10[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    11[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    12[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    2[<a href="../hash_graph_atlas/index.html">hash-graph-atlas</a>]
+    3[<a href="../hash_graph_migrations/index.html">hash-graph-migrations</a>]
+    4[hash-graph-migrations-macros]
+    class 4 root
+    5[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    6[<a href="../hashql_ast/index.html">hashql-ast</a>]
+    7[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
+    8[<a href="../hashql_eval/index.html">hashql-eval</a>]
+    9[<a href="../hashql_hir/index.html">hashql-hir</a>]
+    10[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    11[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    12[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    13[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
     0 --> 1
-    1 --> 7
-    1 --> 10
-    2 --> 3
-    4 --> 2
-    4 -.-> 4
-    5 -.-> 6
-    6 --> 7
-    6 --> 10
-    7 --> 4
-    7 --> 9
-    8 -.-> 6
-    9 --> 8
-    10 --> 5
-    11 -.-> 1
-    12 -.-> 4
+    0 --> 2
+    1 --> 8
+    1 --> 11
+    2 --> 5
+    3 --> 4
+    5 --> 3
+    5 -.-> 5
+    6 -.-> 7
+    7 --> 8
+    7 --> 11
+    8 --> 5
+    8 --> 10
+    9 -.-> 7
+    10 --> 9
+    11 --> 6
+    12 -.-> 1
+    13 -.-> 5

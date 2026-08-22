@@ -25,7 +25,7 @@ use hashql_mir::{
 
 id::newtype!(
     /// Index of a SQL parameter in the compiled query, rendered as `$N` by the SQL formatter.
-    #[id(display = !)]
+    #[id(display = !, const)]
     pub struct ParameterIndex(u32 is 0..=u32::MAX)
 );
 
@@ -208,12 +208,12 @@ impl<'heap, A: Allocator> Parameters<'heap, A> {
     }
 
     /// Returns the number of distinct parameters allocated so far.
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.reverse.len()
     }
 
     /// Returns `true` if no parameters have been allocated.
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.reverse.is_empty()
     }
 

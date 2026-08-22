@@ -1,14 +1,17 @@
 use alloc::sync::Arc;
+use core::future::Future;
 
 use deadpool_postgres::{
     Hook, ManagerConfig, Object, Pool, PoolConfig, PoolError, RecyclingMethod, Timeouts,
 };
 use error_stack::{Report, ResultExt as _};
+use futures::TryStreamExt as _;
 use hash_graph_migrations::IsolationLevel;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
+use postgres_types::BorrowToSql;
 use tokio_postgres::{
-    Client, GenericClient, Socket, Transaction,
+    Client, GenericClient, Row, Socket, ToStatement, Transaction,
     tls::{MakeTlsConnect, TlsConnect},
 };
 
@@ -159,6 +162,44 @@ pub trait AsClient: Send + Sync {
     fn as_client(&self) -> &Self::Client;
     fn as_mut_client(&mut self) -> &mut Self::Client;
 }
+
+/// The iterator-parameter twin of the row-returning [`GenericClient`] conveniences.
+///
+/// The compiler yields its statement parameters as an iterator, and the convenience methods
+/// take a slice they immediately convert back into an iterator, so every call site would
+/// otherwise collect a vector only to satisfy the signature. The twin takes the iterator
+/// directly.
+pub trait GenericClientIter: GenericClient + Sync {
+    /// Executes the statement and collects the resulting rows.
+    ///
+    /// This is the iterator twin of [`GenericClient::query`], for parameters that arrive as
+    /// an iterator rather than a slice.
+    ///
+    /// # Errors
+    ///
+    /// Propagates the client's [`tokio_postgres::Error`] when statement preparation,
+    /// execution or row streaming fails.
+    // The explicit `+ Send` return type stays. An `async fn` here would hide the future's
+    // auto traits from callers generic over the client.
+    fn query_params_iter<T, I>(
+        &self,
+        statement: &T,
+        parameters: I,
+    ) -> impl Future<Output = Result<Vec<Row>, tokio_postgres::Error>> + Send
+    where
+        T: ?Sized + ToStatement + Sync + Send,
+        I: IntoIterator<Item: BorrowToSql, IntoIter: ExactSizeIterator + Send> + Sync + Send,
+    {
+        async move {
+            self.query_raw(statement, parameters)
+                .await?
+                .try_collect()
+                .await
+        }
+    }
+}
+
+impl<C> GenericClientIter for C where C: GenericClient + Sync {}
 
 impl AsClient for Object {
     type Client = Client;

@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
+use futures::TryStreamExt as _;
 use hash_graph_authorization::policies::{MergePolicies, PolicyComponents, action::ActionName};
 use hash_graph_store::{
     entity::{
@@ -272,9 +273,9 @@ where
         compiler.set_limit(candidate_pool);
 
         let (statement, parameters) = compiler.compile();
-        Ok(self
-            .as_client()
-            .query(&statement, parameters)
+
+        self.as_client()
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -284,13 +285,16 @@ where
             ))
             .await
             .change_context(QueryError)?
-            .into_iter()
-            .map(|row| EntityId {
-                web_id: row.get(0),
-                entity_uuid: row.get(1),
-                draft_id: row.get(2),
+            .and_then(|row| {
+                core::future::ready(Ok(EntityId {
+                    web_id: row.get(0),
+                    entity_uuid: row.get(1),
+                    draft_id: row.get(2),
+                }))
             })
-            .collect())
+            .try_collect()
+            .await
+            .change_context(QueryError)
     }
 
     /// Re-scores the candidates against the full vector, applying the distance threshold.

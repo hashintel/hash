@@ -1,0 +1,533 @@
+"""Validate durable request evidence before any result is reused."""
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+
+from atlas_tools.relation.evaluation.domain.api import (
+    ACTIVE_COMPLETION_REQUEST_POLICY_ID,
+    COMPLETION_REQUEST_POLICY_IDS,
+    AttemptId,
+    BaseRunConfig,
+    CompletionRequestPolicyId,
+    HistoricalCompletionRequestPolicyId,
+    HistoricalRequestEvidence,
+    HistoricalRequestSubset,
+    PhysicalAttempt,
+    RequestStage,
+    Vote,
+    VotePlan,
+    VoteTask,
+    attempt_id,
+)
+from atlas_tools.relation.evaluation.execution.vote import (
+    VotePrompt,
+    _build_vote,
+    _completion_request,
+)
+from atlas_tools.relation.evaluation.storage.api import (
+    ResumeIndex,
+    historical_request_prefix_ids,
+    index_resume,
+    jsonl_hash,
+)
+from atlas_tools.relation.evaluation.transport.api import (
+    CompletionRequest,
+    matches_pinned_route,
+    request_hash,
+)
+
+type _AttemptsByStage = dict[RequestStage, tuple[PhysicalAttempt, ...]]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ReconstructedRequestSequence:
+    initial: CompletionRequest
+    repair: CompletionRequest | None
+    initial_raw: str | None
+    repair_raw: str | None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class HistoricalRequestScope:
+    """Carry a verified finite set of attempts allowed to use old policies."""
+
+    request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...]
+    attempt_ids: frozenset[AttemptId]
+
+
+def build_historical_request_evidence(
+    attempts: tuple[PhysicalAttempt, ...],
+    *,
+    request_policy_ids: tuple[HistoricalCompletionRequestPolicyId, ...],
+) -> HistoricalRequestEvidence:
+    """Commit historical policies to the exact current attempt journal."""
+    if not attempts:
+        raise ValueError("historical request evidence requires at least one attempt")
+    return HistoricalRequestEvidence(
+        request_policy_ids=request_policy_ids,
+        attempt_count=len(attempts),
+        attempts_prefix_hash=jsonl_hash(attempts),
+    )
+
+
+def verify_historical_request_evidence(
+    attempts: tuple[PhysicalAttempt, ...],
+    evidence: HistoricalRequestEvidence | None,
+) -> HistoricalRequestScope:
+    """Verify a committed prefix and return its finite historical-policy scope."""
+    if evidence is None:
+        return HistoricalRequestScope(request_policy_ids=(), attempt_ids=frozenset())
+    attempt_ids = historical_request_prefix_ids(attempts, evidence)
+    return HistoricalRequestScope(
+        request_policy_ids=evidence.request_policy_ids,
+        attempt_ids=attempt_ids,
+    )
+
+
+def verify_historical_request_subset(
+    attempts: tuple[PhysicalAttempt, ...],
+    subset: HistoricalRequestSubset | None,
+) -> HistoricalRequestScope:
+    """Bind a persisted imported subset to the attempts being validated."""
+    if subset is None:
+        return HistoricalRequestScope(request_policy_ids=(), attempt_ids=frozenset())
+    available = frozenset(attempt.attempt_id for attempt in attempts)
+    missing = tuple(attempt_id for attempt_id in subset.attempt_ids if attempt_id not in available)
+    if missing:
+        raise ValueError(f"historical request subset lacks attempts: {missing[:5]}")
+    return HistoricalRequestScope(
+        request_policy_ids=subset.source_evidence.request_policy_ids,
+        attempt_ids=frozenset(subset.attempt_ids),
+    )
+
+
+def _request_hash_matches(
+    request: CompletionRequest,
+    attempt: PhysicalAttempt,
+    *,
+    task: VoteTask,
+    stage: RequestStage,
+    historical_request_scope: HistoricalRequestScope,
+) -> bool:
+    historical_policy_ids = (
+        historical_request_scope.request_policy_ids
+        if attempt.attempt_id in historical_request_scope.attempt_ids
+        else ()
+    )
+    policy_ids: tuple[CompletionRequestPolicyId, ...] = (
+        *historical_policy_ids,
+        ACTIVE_COMPLETION_REQUEST_POLICY_ID,
+    )
+    return any(
+        attempt.request_hash
+        == request_hash(
+            request,
+            vote_id=task.vote_id,
+            stage=stage,
+            policy_id=policy_id,
+        )
+        for policy_id in policy_ids
+    )
+
+
+def _group_attempts(
+    task: VoteTask,
+    attempts: Sequence[PhysicalAttempt],
+) -> _AttemptsByStage:
+    grouped: dict[RequestStage, list[PhysicalAttempt]] = {"initial": [], "repair": []}
+    repair_seen = False
+    for attempt in attempts:
+        expected_envelope = (
+            task.vote_id,
+            task.judge.family_id,
+            task.judge.provider_slug,
+            task.judge.model,
+        )
+        observed_envelope = (
+            attempt.vote_id,
+            attempt.family_id,
+            attempt.provider_slug,
+            attempt.model_requested,
+        )
+        if observed_envelope != expected_envelope:
+            raise ValueError(f"attempt {attempt.attempt_id} differs from its planned request")
+        expected_id = attempt_id(
+            request_hash=attempt.request_hash,
+            stage_attempt=attempt.stage_attempt,
+        )
+        if attempt.attempt_id != expected_id:
+            raise ValueError(f"attempt {attempt.attempt_id} has an invalid deterministic ID")
+        if attempt.request_stage == "repair":
+            repair_seen = True
+        elif repair_seen:
+            raise ValueError(f"vote {task.vote_id} resumes the initial stage after repair")
+        grouped[attempt.request_stage].append(attempt)
+
+    result: _AttemptsByStage = {stage: tuple(rows) for stage, rows in grouped.items()}
+    for stage, rows in result.items():
+        observed_indices = tuple(row.stage_attempt for row in rows)
+        if observed_indices != tuple(range(len(rows))):
+            raise ValueError(f"attempts for {task.vote_id}/{stage} are not contiguous from zero")
+        successful = tuple(row for row in rows if row.failure is None)
+        if len(successful) > 1:
+            raise ValueError(f"vote {task.vote_id} has multiple successful {stage} calls")
+        if successful and rows[-1] is not successful[0]:
+            raise ValueError(f"vote {task.vote_id} continues after a successful {stage} call")
+    return result
+
+
+def _successful(
+    grouped: _AttemptsByStage,
+    stage: RequestStage,
+) -> PhysicalAttempt | None:
+    return next((attempt for attempt in grouped[stage] if attempt.failure is None), None)
+
+
+def _accepted_content(task: VoteTask, attempt: PhysicalAttempt) -> str:
+    result = attempt.result
+    if attempt.failure is not None or result is None:
+        raise ValueError(f"attempt {attempt.attempt_id} is not an accepted completion")
+    if result.usage is None:
+        raise ValueError(f"accepted attempt {attempt.attempt_id} omitted usage")
+    if not matches_pinned_route(result, task.judge):
+        raise ValueError(f"accepted attempt {attempt.attempt_id} violates its route pin")
+    content = result.content
+    if content is None or not content.strip():
+        raise ValueError(f"accepted attempt {attempt.attempt_id} has no text completion")
+    return content
+
+
+def _reconstruct_request_sequence(
+    task: VoteTask,
+    grouped: _AttemptsByStage,
+    *,
+    prompt: VotePrompt,
+    config: BaseRunConfig,
+) -> _ReconstructedRequestSequence:
+    initial_messages = prompt.initial(task)
+    initial_request = _completion_request(
+        task,
+        stage="initial",
+        messages=initial_messages,
+        config=config,
+    )
+    initial = _successful(grouped, "initial")
+    initial_raw = _accepted_content(task, initial) if initial is not None else None
+    if not grouped["repair"]:
+        return _ReconstructedRequestSequence(
+            initial=initial_request,
+            repair=None,
+            initial_raw=initial_raw,
+            repair_raw=None,
+        )
+    if initial_raw is None:
+        raise ValueError(f"repair attempts for {task.vote_id} lack an accepted initial call")
+    try:
+        prompt.parse(initial_raw)
+    except ValueError:
+        pass
+    else:
+        raise ValueError(f"repair attempts for {task.vote_id} follow a valid initial response")
+
+    repair_request = _completion_request(
+        task,
+        stage="repair",
+        messages=prompt.repair(initial_messages, initial_raw),
+        config=config,
+    )
+    repair = _successful(grouped, "repair")
+    repair_raw = _accepted_content(task, repair) if repair is not None else None
+    return _ReconstructedRequestSequence(
+        initial=initial_request,
+        repair=repair_request,
+        initial_raw=initial_raw,
+        repair_raw=repair_raw,
+    )
+
+
+def _validate_request_hashes(
+    task: VoteTask,
+    grouped: _AttemptsByStage,
+    *,
+    prompt: VotePrompt,
+    config: BaseRunConfig,
+    historical_request_scope: HistoricalRequestScope,
+) -> tuple[str | None, str | None]:
+    sequence = _reconstruct_request_sequence(
+        task,
+        grouped,
+        prompt=prompt,
+        config=config,
+    )
+    if any(
+        not _request_hash_matches(
+            sequence.initial,
+            attempt,
+            task=task,
+            stage="initial",
+            historical_request_scope=historical_request_scope,
+        )
+        for attempt in grouped["initial"]
+    ):
+        raise ValueError(f"initial request hash differs for vote {task.vote_id}")
+    if sequence.repair is None:
+        return sequence.initial_raw, None
+    if any(
+        not _request_hash_matches(
+            sequence.repair,
+            attempt,
+            task=task,
+            stage="repair",
+            historical_request_scope=historical_request_scope,
+        )
+        for attempt in grouped["repair"]
+    ):
+        raise ValueError(f"repair request hash differs for vote {task.vote_id}")
+    return sequence.initial_raw, sequence.repair_raw
+
+
+def observed_request_policy_ids(
+    task: VoteTask,
+    attempts: tuple[PhysicalAttempt, ...],
+    *,
+    prompt: VotePrompt,
+    config: BaseRunConfig,
+) -> tuple[CompletionRequestPolicyId, ...]:
+    """Identify every closed request policy represented by durable attempts.
+
+    Each attempt must match exactly one registered policy for its reconstructed
+    content. The result is deduplicated in registry order and is empty only
+    when the supplied attempt sequence is empty.
+
+    Raises:
+        ValueError: Stage evidence is invalid, or a request hash has zero or
+            multiple matching registered policies.
+
+    """
+    grouped = _group_attempts(task, attempts)
+    sequence = _reconstruct_request_sequence(
+        task,
+        grouped,
+        prompt=prompt,
+        config=config,
+    )
+    requests: tuple[tuple[RequestStage, CompletionRequest], ...] = (
+        (("initial", sequence.initial),)
+        if sequence.repair is None
+        else (("initial", sequence.initial), ("repair", sequence.repair))
+    )
+    observed: set[CompletionRequestPolicyId] = set()
+    for stage, request in requests:
+        for attempt in grouped[stage]:
+            matches = tuple(
+                policy_id
+                for policy_id in COMPLETION_REQUEST_POLICY_IDS
+                if attempt.request_hash
+                == request_hash(
+                    request,
+                    vote_id=task.vote_id,
+                    stage=stage,
+                    policy_id=policy_id,
+                )
+            )
+            if len(matches) != 1:
+                raise ValueError(
+                    f"attempt {attempt.attempt_id} matches {len(matches)} request policies"
+                )
+            observed.add(matches[0])
+    return tuple(policy_id for policy_id in COMPLETION_REQUEST_POLICY_IDS if policy_id in observed)
+
+
+def _validate_completed_vote(
+    task: VoteTask,
+    attempts: tuple[PhysicalAttempt, ...],
+    vote: Vote,
+    *,
+    prompt: VotePrompt,
+    grouped: _AttemptsByStage,
+) -> None:
+    expected = _reconstruct_vote_or_required_stage(
+        task=task,
+        attempts=attempts,
+        grouped=grouped,
+        prompt=prompt,
+    )
+    match expected:
+        case "initial" | "repair" as stage:
+            raise ValueError(
+                f"completed vote {task.vote_id} still requires its {stage} provider response"
+            )
+        case Vote():
+            pass
+    if vote != expected:
+        expected_fields = expected.model_dump(mode="python", round_trip=True)
+        observed_fields = vote.model_dump(mode="python", round_trip=True)
+        differing = tuple(
+            name for name in expected_fields if expected_fields[name] != observed_fields[name]
+        )
+        raise ValueError(f"vote {task.vote_id} differs from its attempts in fields {differing}")
+
+
+def _reconstruct_vote_or_required_stage(
+    *,
+    task: VoteTask,
+    attempts: tuple[PhysicalAttempt, ...],
+    grouped: _AttemptsByStage,
+    prompt: VotePrompt,
+) -> Vote | RequestStage:
+    initial = _successful(grouped, "initial")
+    if initial is None:
+        if grouped["repair"]:
+            raise ValueError(f"repair attempts for {task.vote_id} lack an accepted initial call")
+        return "initial"
+
+    initial_raw = _accepted_content(task, initial)
+    try:
+        initial_parsed = prompt.parse(initial_raw)
+    except ValueError:
+        initial_parsed = None
+
+    if initial_parsed is not None:
+        if grouped["repair"]:
+            raise ValueError(f"repair attempts for {task.vote_id} follow a valid initial response")
+        return _build_vote(
+            task=task,
+            attempts=attempts,
+            initial_raw=initial_raw,
+            final_raw=initial_raw,
+            parsed=initial_parsed,
+            repaired=False,
+        )
+
+    repair = _successful(grouped, "repair")
+    if repair is None:
+        return "repair"
+    repair_raw = _accepted_content(task, repair)
+    try:
+        repair_parsed = prompt.parse(repair_raw)
+    except ValueError:
+        repair_parsed = None
+    return _build_vote(
+        task=task,
+        attempts=attempts,
+        initial_raw=initial_raw,
+        final_raw=repair_raw,
+        parsed=repair_parsed,
+        repaired=True,
+    )
+
+
+def reconstruct_vote_or_required_stage(
+    task: VoteTask,
+    attempts: tuple[PhysicalAttempt, ...],
+    *,
+    prompt: VotePrompt,
+) -> Vote | RequestStage:
+    """Project accepted evidence or identify the next provider request stage.
+
+    Callers must first obtain `attempts` from `build_resume_index`, which proves
+    request hashes and the historical-policy scope. A returned stage means that
+    exact provider response is still required. Invalid evidence raises instead
+    of being treated as unfinished work.
+
+    Runtime is `O(A)` with `O(A)` temporary references for `A` attempts.
+
+    Raises:
+        ValueError: Accepted evidence violates the initial/repair protocol.
+
+    """
+    grouped = _group_attempts(task, attempts)
+    return _reconstruct_vote_or_required_stage(
+        task=task,
+        attempts=attempts,
+        grouped=grouped,
+        prompt=prompt,
+    )
+
+
+def validate_attempt_sequence(
+    task: VoteTask,
+    attempts: tuple[PhysicalAttempt, ...],
+    vote: Vote | None,
+    *,
+    prompt: VotePrompt,
+    config: BaseRunConfig,
+    historical_request_scope: HistoricalRequestScope | None = None,
+) -> None:
+    """Prove request identity, stage protocol, route pins, and vote projection.
+
+    The work is linear in the number of physical attempts for one logical
+    vote and uses linear temporary space for its two request stages.
+
+    Raises:
+        ValueError: Durable evidence cannot have been produced by the planned
+            request sequence.
+
+    """
+    grouped = _group_attempts(task, attempts)
+    _validate_request_hashes(
+        task,
+        grouped,
+        prompt=prompt,
+        config=config,
+        historical_request_scope=(
+            HistoricalRequestScope(request_policy_ids=(), attempt_ids=frozenset())
+            if historical_request_scope is None
+            else historical_request_scope
+        ),
+    )
+    if vote is not None:
+        _validate_completed_vote(
+            task,
+            attempts,
+            vote,
+            prompt=prompt,
+            grouped=grouped,
+        )
+
+
+def build_resume_index(
+    plan: VotePlan,
+    *,
+    votes: tuple[Vote, ...],
+    attempts: tuple[PhysicalAttempt, ...],
+    prompt: VotePrompt,
+    config: BaseRunConfig,
+    historical_request_evidence: HistoricalRequestEvidence | None = None,
+) -> ResumeIndex:
+    """Validate a replayed plan and return only reusable durable evidence.
+
+    Every attempted task is checked before its accepted result can enter a
+    runner. Runtime is `O(P + A)`, where `P` is planned votes and `A` is
+    physical attempts; the index retains `O(P + A)` references for resume.
+
+    Raises:
+        ValueError: Plan, request, route, stage, accounting, timing, or vote
+            evidence differs from the deterministic replay.
+
+    """
+    historical_request_scope = verify_historical_request_evidence(
+        attempts,
+        historical_request_evidence,
+    )
+
+    def validate(
+        task: VoteTask,
+        task_attempts: tuple[PhysicalAttempt, ...],
+        vote: Vote | None,
+    ) -> None:
+        validate_attempt_sequence(
+            task,
+            task_attempts,
+            vote,
+            prompt=prompt,
+            config=config,
+            historical_request_scope=historical_request_scope,
+        )
+
+    return index_resume(
+        plan,
+        votes=votes,
+        attempts=attempts,
+        validate_attempts=validate,
+    )

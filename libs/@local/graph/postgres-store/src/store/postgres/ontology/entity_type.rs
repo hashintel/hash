@@ -69,7 +69,8 @@ use type_system::{
 use crate::store::{
     error::DeletionError,
     postgres::{
-        AsClient, PostgresStore, ResponseCountMap, TransactionState, TraversalContext,
+        AsClient, GenericClientIter as _, PostgresStore, ResponseCountMap, TransactionState,
+        TraversalContext,
         crud::{QueryIndices, QueryRecordDecode, TypedRow},
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{
@@ -128,7 +129,7 @@ where
                 provider
                     .store
                     .as_client()
-                    .query_raw(&statement, parameters.iter().copied())
+                    .query_raw(&statement, parameters)
                     .instrument(tracing::info_span!(
                         "SELECT",
                         otel.kind = "client",
@@ -470,7 +471,7 @@ where
 
             let entity_type_rows = self
                 .as_client()
-                .query(&statement, parameters)
+                .query_params_iter(&statement, parameters)
                 .instrument(tracing::info_span!(
                     "SELECT",
                     otel.kind = "client",
@@ -531,7 +532,7 @@ where
 
         let rows = self
             .as_client()
-            .query(&statement, parameters)
+            .query_params_iter(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -598,7 +599,7 @@ where
 
         let stream = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -1139,7 +1140,7 @@ where
 
         Ok(self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -1256,7 +1257,7 @@ where
         let (candidate_statement, candidate_parameters) = compiler.compile();
         let maximum_distance = maximum_semantic_distance.into_inner();
 
-        let mut parameters = candidate_parameters.to_vec();
+        let mut parameters: Vec<_> = candidate_parameters.collect();
         let embedding_parameter = parameters.len() + 1;
         parameters.push(&embedding);
         let maximum_distance_parameter = parameters.len() + 1;
@@ -2196,7 +2197,7 @@ where
                 })
                 .collect()
         } else {
-            let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
+            let temporal_axes = params.temporal_axes.resolve();
             let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
 
             let entity_type_uuids = params
@@ -2227,7 +2228,7 @@ where
 
             let (statement, parameters) = compiler.compile();
             self.as_client()
-                .query_raw(&statement, parameters.iter().copied())
+                .query_raw(&statement, parameters)
                 .instrument(tracing::info_span!(
                     "SELECT",
                     otel.kind = "client",

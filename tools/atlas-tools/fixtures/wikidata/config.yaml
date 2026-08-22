@@ -1,0 +1,37 @@
+# Fixture config for offline wikidata-miner tests.
+# cards.tokenizer has to stay "heuristic" here: cl100k downloads its BPE
+# on first use.
+extraction:
+  languages: [en, de]
+  seed: 7
+  endpoints:
+    wdqs: https://query.wikidata.org/sparql
+    qlever: https://qlever.dev/api/wikidata
+    wikibase_api: https://www.wikidata.org/w/api.php
+  politeness:
+    rate_limit_per_sec: 10.0
+    max_retries: 2
+    backoff_base_seconds: 0.5
+  snapshot_date: "2025-06-01"
+  example_count: 4
+  example_pool_limit: 10
+  example_offsets: [0]
+  # Explicit (matches the default): example selection stratifies by the
+  # subject-type constraint classes (untyped candidates dropped, unmatched
+  # ones bucketed as `other`); tests pass fixtures/wikidata/taxonomy.parquet.
+  filter_examples_by_subject_type: true
+  checkpoint_interval: 20
+  dump:
+    date: "2025-06-01"
+    sha256: "0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0"
+  stratification:
+    default_cap: 10
+    rare_floor: 5
+    per_class_caps:
+      Q515: 3
+cards:
+  token_budget: 6000
+  hard_token_budget: 7500
+  tokenizer: heuristic
+  # naive: offline tests must not depend on the nltk punkt_tab data.
+  sentence_splitter: naive

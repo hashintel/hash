@@ -12,7 +12,7 @@ use tokio_postgres::{GenericClient as _, Row};
 use tracing::Instrument as _;
 
 use crate::store::{
-    AsClient, PostgresStore, TransactionState,
+    AsClient, GenericClientIter as _, PostgresStore, TransactionState,
     postgres::query::{PostgresQueryPath, PostgresRecord, PostgresSorting, SelectCompiler},
 };
 
@@ -112,7 +112,7 @@ where
         let (statement, parameters) = compiler.compile();
         let stream = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -162,7 +162,7 @@ where
 
         Ok(self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -195,7 +195,7 @@ where
 
         let rows = self
             .as_client()
-            .query(&statement, parameters)
+            .query_params_iter(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",

@@ -63,7 +63,7 @@ pub(crate) struct BasicBlockCostVec<A: Allocator> {
 
 impl<A: Allocator> BasicBlockCostVec<A> {
     /// Returns the set of candidate targets for `block`.
-    pub(crate) fn assignments(&self, block: BasicBlockId) -> TargetBitSet {
+    pub(crate) const fn assignments(&self, block: BasicBlockId) -> TargetBitSet {
         self.inner[block].targets
     }
 

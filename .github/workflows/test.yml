@@ -12,6 +12,10 @@ env:
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
   NEXTEST_PROFILE: ci
+  # The dev values compose interpolation needs (e.g. HASH_GRAPH_ATLAS_SECRET, which compose
+  # refuses to run without). The yarn `compose` script passes these files explicitly, and the
+  # raw `docker compose` invocations below read them through this variable instead.
+  COMPOSE_ENV_FILES: ${{ github.workspace }}/.env,${{ github.workspace }}/.env.development
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

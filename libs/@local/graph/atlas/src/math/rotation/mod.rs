@@ -1,0 +1,172 @@
+//! Rotations about the origin, stored in decomposed form.
+
+use core::simd::Simd;
+
+use super::{
+    kernel::mul_add_f32x4,
+    vec2::{Vec2, Vec2x4T},
+};
+
+#[cfg(test)]
+mod tests;
+
+/// A rotation about the origin, stored as the unit vector `(cos, sin)`.
+///
+/// The decomposed representation is the contract of this type. It computes the angle's cosine and
+/// sine once, or accepts them directly, and every later operation is plain arithmetic on them.
+/// Composing two rotations via [`then`](Self::then) multiplies the unit vectors, which adds the
+/// angles without any trigonometric calls. [`inverse`](Self::inverse) negates the sine, which is
+/// exact, so no rounding occurs at all.
+///
+/// Angles follow the mathematical convention: radians, counterclockwise, with `x` growing right and
+/// `y` growing up. In a `y`-down space (such as screen coordinates) the visual direction of
+/// rotation reverses.
+///
+/// Note that long chains of [`then`](Self::then) accumulate rounding in the stored vector, letting
+/// it drift off the unit circle by about one unit in the last place per composition. Call
+/// [`renormalize`](Self::renormalize) periodically when composing rotations incrementally.
+/// Renormalizing leaves the angle alone and corrects only the vector's length.
+///
+/// # Examples
+///
+/// ```ignore
+/// let eighth = Rotation::from_radians(core::f32::consts::FRAC_PI_4);
+/// let quarter = eighth.then(eighth);
+///
+/// let rotated = quarter.apply(Vec2::new(1.0, 0.0));
+/// assert!(rotated.x().abs() < 1e-6);
+/// assert!((rotated.y() - 1.0).abs() < 1e-6);
+/// ```
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    zerocopy::ByteHash,
+    zerocopy::FromBytes,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
+#[repr(transparent)]
+pub(crate) struct Rotation(Vec2);
+
+impl Rotation {
+    /// The rotation by zero radians.
+    pub(crate) const IDENTITY: Self = Self(Vec2::new(1.0, 0.0));
+
+    /// Creates a rotation from an angle in radians.
+    ///
+    /// This is the only constructor that calls into trigonometry. Every later operation reuses the
+    /// resulting cosine and sine.
+    #[inline]
+    #[must_use]
+    pub(crate) fn from_radians(radians: f32) -> Self {
+        let (sin, cos) = radians.sin_cos();
+
+        Self(Vec2::new(cos, sin))
+    }
+
+    /// Creates a rotation directly from its cosine and sine.
+    ///
+    /// The pair must lie on the unit circle: `cos · cos + sin · sin = 1` up to rounding. This is
+    /// useful when the pair is already available, for example from normalizing a direction vector,
+    /// and avoids round-tripping through an angle.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn from_cos_sin(cos: f32, sin: f32) -> Self {
+        Self(Vec2::new(cos, sin))
+    }
+
+    /// Returns the cosine of the rotation angle.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn cos(self) -> f32 {
+        self.0.x()
+    }
+
+    /// Returns the sine of the rotation angle.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn sin(self) -> f32 {
+        self.0.y()
+    }
+
+    /// Returns the rotation angle in radians, in `(-pi, pi]`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn radians(self) -> f32 {
+        self.sin().atan2(self.cos())
+    }
+
+    /// Returns the rotation equivalent to applying `self` first, then `next`.
+    ///
+    /// Rotations commute, so the order only matters for consistency with the other transform types.
+    /// The composition adds the two angles by multiplying the stored unit vectors; no trigonometric
+    /// calls occur.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn then(self, next: Self) -> Self {
+        Self(Vec2::new(
+            self.cos() * next.cos() - self.sin() * next.sin(),
+            self.sin() * next.cos() + self.cos() * next.sin(),
+        ))
+    }
+
+    /// Rescales the stored vector back onto the unit circle.
+    ///
+    /// Composition accumulates rounding in the vector's length at about one unit in the last place
+    /// per [`then`](Self::then); a drifted length scales every vector passed to
+    /// [`apply`](Self::apply) by that factor. Renormalizing divides the drift out at the cost of
+    /// one square root, leaving the angle unchanged up to rounding. Calling it once every few
+    /// hundred compositions keeps the error invisible in `f32`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn renormalize(self) -> Self {
+        let scale = self
+            .sin()
+            .mul_add(self.sin(), self.cos() * self.cos())
+            .sqrt()
+            .recip();
+
+        Self(Vec2::new(self.cos() * scale, self.sin() * scale))
+    }
+
+    /// Returns the rotation by the negated angle.
+    ///
+    /// This negates the stored sine, which is exact: applying a rotation and then its inverse
+    /// reproduces the rounding of the forward and backward applications only, never of the
+    /// inversion itself.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn inverse(self) -> Self {
+        Self(Vec2::new(self.cos(), -self.sin()))
+    }
+
+    /// Rotates a single vector about the origin.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn apply(self, vec: Vec2) -> Vec2 {
+        Vec2::new(
+            self.cos() * vec.x() - self.sin() * vec.y(),
+            self.sin() * vec.x() + self.cos() * vec.y(),
+        )
+    }
+
+    /// Rotates four vectors at once, entirely in SIMD registers.
+    ///
+    /// On targets with native FMA the fused multiply-adds round once where [`apply`](Self::apply)
+    /// rounds after each multiply and each add. Results differ by at most a few units in the last
+    /// place of the intermediate products; where the products cancel, that absolute difference
+    /// spans many units in the last place of the small result.
+    #[inline]
+    #[must_use]
+    pub(crate) fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {
+        let (xs, ys) = batch.into_lanes();
+
+        Vec2x4T::from_lanes(
+            mul_add_f32x4(ys, Simd::splat(-self.sin()), xs * Simd::splat(self.cos())),
+            mul_add_f32x4(ys, Simd::splat(self.cos()), xs * Simd::splat(self.sin())),
+        )
+    }
+}
