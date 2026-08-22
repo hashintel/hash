@@ -8,7 +8,7 @@ use http::{HeaderMap, header};
 use subtle::ConstantTimeEq as _;
 
 use crate::{
-    provider::{Authentication, AuthenticationProvider},
+    provider::AuthenticationProvider,
     request::{ACTOR_ID_HEADER, AuthenticationError, actor_id_from_header},
 };
 
@@ -61,23 +61,21 @@ impl AuthenticationProvider for ServiceDelegationProvider {
     fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> impl Future<Output = ControlFlow<Authentication>> + Send {
+    ) -> impl Future<Output = ControlFlow<Result<AuthenticatedActor, Report<AuthenticationError>>>> + Send
+    {
         let decision = if headers.get(ACTOR_ID_HEADER).is_none() {
             // A secret without a named actor requests no delegation.
             ControlFlow::Continue(())
         } else if service_credential(headers).is_none() {
-            ControlFlow::Break(Authentication::Rejected(Report::new(
-                AuthenticationError::MissingServiceSecret,
-            )))
+            ControlFlow::Break(Err(Report::new(AuthenticationError::MissingServiceSecret)))
         } else if !presents_service_secret(headers, &self.secret) {
-            ControlFlow::Break(Authentication::Rejected(Report::new(
-                AuthenticationError::InvalidServiceSecret,
-            )))
+            ControlFlow::Break(Err(Report::new(AuthenticationError::InvalidServiceSecret)))
         } else {
-            ControlFlow::Break(match actor_id_from_header(headers) {
-                Ok(actor_id) => Authentication::Verified(AuthenticatedActor::Uuid(actor_id)),
-                Err(error) => Authentication::Rejected(Report::new(error)),
-            })
+            ControlFlow::Break(
+                actor_id_from_header(headers)
+                    .map(AuthenticatedActor::Uuid)
+                    .map_err(Report::new),
+            )
         };
 
         core::future::ready(decision)
@@ -95,7 +93,7 @@ mod tests {
 
     use super::{SERVICE_AUTH_SCHEME, ServiceDelegationProvider};
     use crate::{
-        provider::{Authentication, AuthenticationProvider as _},
+        provider::{AuthenticationProvider as _, tests::expect_rejection},
         request::{ACTOR_ID_HEADER, AuthenticationError},
     };
 
@@ -131,18 +129,6 @@ mod tests {
         headers
     }
 
-    #[track_caller]
-    fn expect_rejection(decision: ControlFlow<Authentication>) -> AuthenticationError {
-        match decision {
-            ControlFlow::Break(Authentication::Rejected(report)) => {
-                report.current_context().clone()
-            }
-            ControlFlow::Break(Authentication::Verified(_)) | ControlFlow::Continue(()) => {
-                panic!("the credential should be rejected, got {decision:?}")
-            }
-        }
-    }
-
     #[tokio::test]
     async fn secret_and_actor_header_delegate_to_named_actor() {
         let actor_id = random_actor();
@@ -154,7 +140,7 @@ mod tests {
         assert!(
             matches!(
                 decision,
-                ControlFlow::Break(Authentication::Verified(AuthenticatedActor::Uuid(resolved)))
+                ControlFlow::Break(Ok(AuthenticatedActor::Uuid(resolved)))
                     if resolved == actor_id
             ),
             "the service secret with an actor-ID header should delegate to the named actor"
@@ -172,9 +158,12 @@ mod tests {
                 .expect("the credential should be a valid header value"),
         );
 
-        let error = expect_rejection(provider().authenticate(&request_headers).await);
+        let report = expect_rejection(provider().authenticate(&request_headers).await);
         assert!(
-            matches!(error, AuthenticationError::MissingServiceSecret),
+            matches!(
+                report.current_context(),
+                AuthenticationError::MissingServiceSecret
+            ),
             "a credential of another scheme should not be read as the service secret"
         );
     }
@@ -194,7 +183,7 @@ mod tests {
         assert!(
             matches!(
                 decision,
-                ControlFlow::Break(Authentication::Verified(AuthenticatedActor::Uuid(resolved)))
+                ControlFlow::Break(Ok(AuthenticatedActor::Uuid(resolved)))
                     if resolved == actor_id
             ),
             "the authorization scheme should match case-insensitively"
@@ -210,33 +199,39 @@ mod tests {
             .await;
 
         assert!(
-            matches!(decision, ControlFlow::Break(Authentication::Rejected(_))),
+            matches!(decision, ControlFlow::Break(Err(_))),
             "an empty configured secret should never match, even an empty header value"
         );
     }
 
     #[tokio::test]
     async fn wrong_secret_fails_authentication() {
-        let error = expect_rejection(
+        let report = expect_rejection(
             provider()
                 .authenticate(&headers(Some("hash-svc-wrong"), Some(random_actor())))
                 .await,
         );
         assert!(
-            matches!(error, AuthenticationError::InvalidServiceSecret),
+            matches!(
+                report.current_context(),
+                AuthenticationError::InvalidServiceSecret
+            ),
             "a wrong service secret should be rejected"
         );
     }
 
     #[tokio::test]
     async fn actor_header_without_secret_fails_authentication() {
-        let error = expect_rejection(
+        let report = expect_rejection(
             provider()
                 .authenticate(&headers(None, Some(random_actor())))
                 .await,
         );
         assert!(
-            matches!(error, AuthenticationError::MissingServiceSecret),
+            matches!(
+                report.current_context(),
+                AuthenticationError::MissingServiceSecret
+            ),
             "an actor-ID header without the service secret should be rejected, never honored"
         );
     }
@@ -273,9 +268,12 @@ mod tests {
             "not-a-uuid".parse().expect("the header value should parse"),
         );
 
-        let error = expect_rejection(provider().authenticate(&request_headers).await);
+        let report = expect_rejection(provider().authenticate(&request_headers).await);
         assert!(
-            matches!(error, AuthenticationError::InvalidActorIdHeader),
+            matches!(
+                report.current_context(),
+                AuthenticationError::InvalidActorIdHeader
+            ),
             "a malformed actor-ID header should be rejected as invalid"
         );
     }
