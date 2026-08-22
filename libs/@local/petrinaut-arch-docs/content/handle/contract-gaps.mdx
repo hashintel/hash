@@ -1,0 +1,175 @@
+---
+title: Handle contract gaps
+description: Where PetrinautDocHandle under-specifies or misbehaves today, and the enhancement each gap calls for.
+attachTo: core.handle
+sidebar_order: 20
+---
+
+The handle contract is experimental. This page lists where it under-specifies
+behaviour or behaves in ways an integrator would not expect, verified against
+the code in August 2026. Each entry states what happens today and the change
+it calls for. The companion guide is
+[Embedding in a host application](doc:handle/host-integration).
+
+## Implicit invariants
+
+The invariants in the
+[guide](doc:handle/host-integration#invariants-a-custom-handle-must-keep)
+exist only as prose. The type says `change(fn): void` and
+`doc(): SDCPN | undefined`; nothing states that `fn` runs synchronously, that
+a throw inside `fn` must leave the document unchanged, that `doc()` must be
+referentially stable between changes, or that `id` keys per-net worker state.
+The reference implementation satisfies all of them for free through Immer,
+which hides the requirements from anyone reading it as a specification.
+
+- **Move the invariants into TSDoc** on `PetrinautDocHandle` in
+  `handle/types.ts`, where the compiler surfaces them to implementers.
+- **Ship a conformance suite**: an exported
+  `docHandleContractTests(create: () => PetrinautDocHandle)` covering
+  synchronous visibility, emit-per-change, atomicity under a throwing
+  callback, snapshot identity, unsubscribe, and readonly semantics. Run it
+  against `createJsonDocHandle` in-repo so the suite cannot diverge from what
+  the editor relies on. Without it, an external handle has no signal when an
+  upgrade tightens an implicit expectation.
+- **Export the store factory.** `createReadableStore` exists in
+  `petrinaut-core/src/store/` and is not reachable through any package
+  export, so every integrator hand-rolls stores; a minimal handle needs one,
+  a handle with history needs five. The editor itself hand-rolls a
+  `constStore` helper for the same reason.
+
+## Readiness and lifecycle
+
+`state` and `whenReady()` are required by the interface, and the editor UI
+consumes neither: `whenReady()` has no callers at all, and `state` is read
+only by the exported `useDocumentState()` / `useIsDocumentReady()` hooks,
+which no editor component uses. The definition store substitutes an empty net
+while `doc()` is `undefined` and notifies subscribers only when a
+`DocChangeEvent` fires. Three consequences:
+
+- A handle that starts in `"loading"` renders as an editable empty net, with
+  no loading indicator, and stays that way unless the handle emits an event
+  when the document arrives. The emission requirement is the real contract;
+  the editor consumes neither readiness member.
+- `DocHandleState` has four values and no transition rules. Whether
+  `"unavailable"` may return to `"ready"`, whether `"deleted"` is terminal,
+  and what `whenReady()` does when the document never loads are all
+  unspecified.
+- Deletion is inexpressible through `subscribe`: `DocChangeEvent.next` is a
+  required `SDCPN`, so there is no event shape for "the document went away".
+  A remote deletion flips the state store, nothing in the editor observes it,
+  and the canvas keeps accepting edits against the last snapshot.
+
+There is also no error channel anywhere on the contract: no `"error"` state,
+no store carrying a reason. A malformed initial document escapes
+`createJsonDocHandle` as a raw exception from deep inside sanitization
+(`getArcEndpoint` throwing on an arc with neither `placeId` nor `endpoint`),
+and an async backend has no way at all to report a load or sync failure.
+
+Direction: specify the state machine in `handle/types.ts`, define
+`whenReady()` as resolving on `"ready"` and rejecting on `"deleted"` or
+error, add an `"error"` state plus an `error: ReadableStore<...>` carrying a
+code, message, and optional item id, and have the editor subscribe to `state`
+so loading, deleted, and unavailable render distinctly.
+
+## Local and remote changes
+
+`DocChangeEvent.source` is declared and never read: the editor processes
+every event identically, and `createJsonDocHandle` always emits `"local"`.
+The tag currently serves only the host's own listeners (the echo-avoidance
+pattern in the guide). Gaps that follow:
+
+- The producer semantics are unspecified. Whether omitting `source` on a sync
+  event is legal, and what the editor will eventually do differently, are
+  unknowable from the type. Define them: `"local"` means originated from this
+  handle's `change()` or history calls, `"remote"` means delivered by sync,
+  absent defaults to `"local"`.
+- The patch stream (`instance.patches`) forwards every patched event
+  regardless of origin. A host persisting through it would echo collaborators'
+  edits back to the server. A `source`-filtered stream (or `source` threaded
+  through the stream's events) fixes that.
+- Write-side extension stripping is wrong for shared documents. Every
+  mutation from an instance with any disabled extension runs
+  `stripDisabledExtensionData` over the whole draft. On a private in-memory
+  document that only keeps the persisted copy tidy; on a synced document, a
+  client embedded with `disabledExtensions: ["colors"]` would delete every
+  colour type and equation authored by full-capability collaborators on its
+  first edit and sync the deletions out. The read side already sanitizes for
+  display, so the fix is to keep load-time and write-time stripping inside
+  `createJsonDocHandle` (where the document is private by construction) and
+  stop stripping in `createPetrinaut`'s mutate path, validating instead that
+  a restricted client's own edits introduce no disabled-extension data.
+
+## Validation and versioning
+
+The same JSON is held to two different standards depending on how it arrives.
+`parseSDCPNFile` (file import) validates through Zod: positive finite arc
+weights, parameter defaults matching their declared type, known format
+versions. The handle path checks nothing: `normalizeSDCPN` fills defaults and
+passes dangling references, duplicate ids, and non-finite numbers straight
+through. The two paths have already diverged once: the entity schemas define
+an exactly-one-of `placeId`/`endpoint` check per arc, and the file schemas
+lost it by rebuilding the arc objects from `.shape`, which drops the
+`assertSingleArcEndpoint` refinement.
+
+What that costs downstream, today:
+
+| Input defect                              | Behaviour                                                                                                                                                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Arc names a missing place                 | With component instances present: the arc is silently dropped during flattening and the transition fires unconstrained. Without: the engine throws a raw `Error` at simulation build.                   |
+| Coloured output arc names a missing place | Load-time sanitization erases the transition's kernel code when no other coloured output arc resolves, with every extension enabled. The availability check treats "did not resolve" as "not coloured". |
+| Duplicate place ids                       | Detected only on the flattening path; otherwise last-in wins silently via `Map` construction.                                                                                                           |
+| `weight: NaN` on an inhibitor arc         | The enablement comparison is always false; the transition is permanently blocked, with no diagnostic.                                                                                                   |
+| Arc with neither `placeId` nor `endpoint` | Accepted by `normalizeSDCPN`, throws a raw `Error` later, from whichever code first resolves the endpoint.                                                                                              |
+
+Sanitization compounds this: `createJsonDocHandle` strips
+disabled-extension data from the initial document before any `change()`, with
+no event, no report, and no way for the host to learn what was removed. A
+host that round-trips `doc()` to storage persists the loss.
+
+Versioning has the same asymmetry. The file wrapper stamps and migrates a
+format version; the handle path has none, so a host persisting `doc()` JSON
+stores unversioned data that no migration will ever reach when the canonical
+shape changes.
+
+Direction: extract the entity-level checks from the file schemas into a
+shared `validateSDCPN` pass, run it in `createJsonDocHandle` after
+`normalizeSDCPN`, and report violations through the error channel above
+rather than as engine-time crashes. Make sanitization return what it removed.
+Give the document model a schema version with one migration registry shared
+by file import and handle construction.
+
+## History under collaboration
+
+`PetrinautHistory` models history as one linear list: entry N is the state
+after the Nth mutation, and `goToIndex` jumps anywhere. That fits a
+single-user in-memory document and nothing else:
+
+- Under concurrent remote edits it is unspecified whether remote changes
+  append entries; a version-history menu over a shared document either
+  rewinds collaborators' work or shows indices that no longer correspond to
+  document states.
+- The reference implementation replays stored Immer inverse patches, whose
+  positional array paths remote insertions invalidate. Undo after a remote
+  edit corrupts the wrong element or throws out of `undo()`.
+- The property is all-or-nothing: the version-history UI needs `entries`,
+  `currentIndex`, and `goToIndex`, so a handle that could support plain
+  undo/redo over a synced store still has to omit `history` entirely and lose
+  keyboard undo/redo too.
+
+Direction: split the contract into a core `{ undo, redo, canUndo, canRedo }`,
+defined as reversing this handle's own local changes applied as a new change
+on top of the current document, plus an optional timeline capability
+`{ entries, currentIndex, goToIndex }` that collaborative handles omit; gate
+the version-history menu on the timeline part only. Add source and author to
+`HistoryEntry`, and require `undo()` to return `false` rather than throw when
+inverse application is impossible.
+
+## Sequencing
+
+The gaps are not equally expensive. TSDoc plus the conformance suite change
+no behaviour and remove the most integration risk per line, so they come
+first. The error channel and readiness semantics come next; they are additive
+and every async backend needs them. Shared validation closes the two-trust-
+levels hole at the cost of one new module. The local/remote and history work
+is real design, only worth doing alongside the first collaborative backend
+rather than speculatively.

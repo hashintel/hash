@@ -60,6 +60,16 @@ protocols, and the costs behind each design choice.
 - [Monte Carlo experiments](doc:simulation/experiments) — bounded memory, and why
   only aggregates reach the UI.
 
+## Embedding Petrinaut
+
+How a host application connects its own document store to the editor.
+
+- [Embedding in a host application](doc:handle/host-integration): the
+  `PetrinautDocHandle` contract, the invariants the editor relies on, and a
+  worked adapter.
+- [Handle contract gaps](doc:handle/contract-gaps): where the contract
+  under-specifies or misbehaves, and the enhancement each gap calls for.
+
 ## The packages at a glance
 
 `@hashintel/petrinaut-core` is the headless half: the document model, the HIR
