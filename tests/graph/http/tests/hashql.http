@@ -41,6 +41,7 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
 ### HashQL without credentials is rejected
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
+Authorization: <omit>
 
 {}
 

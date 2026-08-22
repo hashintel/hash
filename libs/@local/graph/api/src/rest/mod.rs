@@ -516,6 +516,7 @@ where
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
     pub session_auth: auth::KratosSessionConfig,
+    pub service_secret: String,
     pub compiler: Arc<hashql::CompilerContext>,
     pub clustering: Arc<ClusteringContext>,
     /// Whether to serve an interactive rendering of the `OpenAPI` specification.
@@ -558,10 +559,14 @@ where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
 {
-    let session_provider = Arc::new(auth::KratosSessionProvider::new(
-        dependencies.session_auth,
-        auth::StorePoolActorResolver::new(Arc::clone(&dependencies.store)),
+    let authentication_provider = Arc::new((
+        auth::KratosSessionProvider::new(
+            dependencies.session_auth,
+            auth::StorePoolActorResolver::new(Arc::clone(&dependencies.store)),
+        ),
+        auth::ServiceDelegationProvider::new(dependencies.service_secret.clone()),
     ));
+    let service_secret: Arc<str> = Arc::from(dependencies.service_secret);
 
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()
@@ -583,8 +588,9 @@ where
     // fallback outside the middleware, so unmatched paths return 404 instead of 401.
     let mut router = merged_routes
         .route_layer(axum::middleware::from_fn(move |request, next| {
-            let provider = Arc::clone(&session_provider);
-            auth::authentication_middleware(provider, request, next)
+            let provider = Arc::clone(&authentication_provider);
+            let service_secret = Arc::clone(&service_secret);
+            auth::authentication_middleware(provider, service_secret, request, next)
         }))
         .layer(
             ServiceBuilder::new()

@@ -30,6 +30,7 @@ type-system               = { workspace = true }
 axum           = { workspace = true }
 clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete  = { workspace = true }
+derive_more    = { workspace = true, features = ["debug"] }
 futures        = { workspace = true }
 jsonwebtoken   = { workspace = true }
 mimalloc       = { workspace = true }

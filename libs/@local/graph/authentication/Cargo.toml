@@ -26,6 +26,7 @@ derive_more    = { workspace = true, features = ["display"] }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
+subtle         = { workspace = true }
 tracing        = { workspace = true }
 uuid           = { workspace = true }
 

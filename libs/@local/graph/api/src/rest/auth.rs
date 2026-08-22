@@ -1,13 +1,15 @@
 //! Axum bindings for Graph authentication.
 //!
 //! Bridges [`hash_graph_authentication`] into the REST layer: [`authentication_middleware`]
-//! resolves the request's credentials once and rejects the request when they are missing or
-//! invalid, so every route behind it requires authentication by default. The resolved
-//! [`AuthenticationOutcome`] is stored as a private request extension; the
-//! [`AuthenticatedActorId`] extractor hands the acting actor to handlers that need it.
+//! resolves the request's credentials once — a Kratos session or a service delegation pair —
+//! and rejects the request when they are missing or invalid, so every route behind it requires
+//! authentication by default. The resolved [`AuthenticationOutcome`] is stored as a private
+//! request extension; the [`AuthenticatedActorId`] extractor hands the acting actor to handlers
+//! that need it.
 //!
-//! The only routes behind the middleware reachable without credentials are the bootstrap routes.
-//! The OpenAPI and probe routes are served outside the middleware.
+//! The only routes behind the middleware reachable without an actor are the bootstrap routes,
+//! which still require the service secret. The OpenAPI and probe routes are served outside the
+//! middleware.
 //!
 //! Routers whose callers are authenticated by other means and carry the acting actor only in the
 //! `X-Authenticated-User-Actor-Id` header use [`actor_id_header_middleware`] instead. The
@@ -23,9 +25,11 @@ use axum::{
 };
 pub use hash_graph_authentication::{
     actor::StorePoolActorResolver,
+    delegation::ServiceDelegationProvider,
     kratos::{KratosSessionConfig, KratosSessionProvider},
 };
 use hash_graph_authentication::{
+    delegation::presents_service_secret,
     provider::AuthenticationProvider,
     request::{
         AuthenticationError, AuthenticationOutcome, actor_id_from_header, resolve_request_actor,
@@ -55,10 +59,7 @@ fn rejection(error: &AuthenticationError) -> BoxedResponse {
     ))
 }
 
-/// Returns whether the path is a bootstrap route reachable without credentials.
-///
-/// Bootstrap routes run before any actor exists, so they cannot demand actor credentials.
-// TODO(BE-714): remove once internal services authenticate with a service credential
+/// Returns whether the path is a bootstrap route.
 fn is_bootstrap_route(path: &str) -> bool {
     if path == "/policies/seed" {
         return true;
@@ -82,22 +83,29 @@ fn store_outcome(request: &mut Request, outcome: AuthenticationOutcome) {
 /// Rejects requests without valid credentials and stores the resolved
 /// [`AuthenticationOutcome`] as a request extension.
 ///
-/// Bootstrap routes pass through regardless of credential validity; every other route never
-/// reaches its handler unauthenticated.
+/// Bootstrap routes are service operations: they require the service secret regardless of any
+/// actor credential, and pass without an actor. Every other route never reaches its handler
+/// unauthenticated.
 pub async fn authentication_middleware<P>(
     provider: Arc<P>,
+    service_secret: Arc<str>,
     mut request: Request,
     next: Next,
 ) -> Response
 where
     P: AuthenticationProvider,
 {
+    let bootstrap = is_bootstrap_route(request.uri().path());
+    if bootstrap && !presents_service_secret(request.headers(), &service_secret) {
+        return rejection(&AuthenticationError::MissingServiceSecret).into_response();
+    }
+
     let outcome = resolve_request_actor(&*provider, request.headers()).await;
 
-    if let AuthenticationOutcome::Failed(error) = &outcome
-        && !is_bootstrap_route(request.uri().path())
-    {
-        return rejection(error).into_response();
+    match &outcome {
+        AuthenticationOutcome::Failed(AuthenticationError::MissingCredentials) if bootstrap => {}
+        AuthenticationOutcome::Failed(error) => return rejection(error).into_response(),
+        AuthenticationOutcome::Authenticated(_) => {}
     }
 
     store_outcome(&mut request, outcome);
@@ -159,14 +167,15 @@ mod tests {
 
     use axum::{Router, body::Body, middleware, routing::get};
     use hash_graph_authentication::provider::StaticAuthenticationProvider;
+    use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
     use http::{Request, StatusCode};
     use tower::ServiceExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
     use super::{
-        AuthenticatedActorId, actor_id_header_middleware, authentication_middleware,
-        is_bootstrap_route,
+        AuthenticatedActorId, ServiceDelegationProvider, actor_id_header_middleware,
+        authentication_middleware, is_bootstrap_route,
     };
 
     #[test]
@@ -195,14 +204,18 @@ mod tests {
         "bootstrap"
     }
 
+    const SERVICE_SECRET: &str = "hash-svc-test-secret";
+
     fn router(provider: StaticAuthenticationProvider) -> Router {
         let provider = Arc::new(provider);
+        let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
         Router::new()
             .route("/protected", get(protected))
             .route("/policies/seed", get(bootstrap))
             .layer(middleware::from_fn(move |request, next| {
                 let provider = Arc::clone(&provider);
-                authentication_middleware(provider, request, next)
+                let service_secret = Arc::clone(&service_secret);
+                authentication_middleware(provider, service_secret, request, next)
             }))
     }
 
@@ -221,6 +234,14 @@ mod tests {
             .expect("the request should build")
     }
 
+    fn request_with_secret(uri: &str, secret: &str) -> Request<Body> {
+        Request::builder()
+            .uri(uri)
+            .header("Authorization", format!("HASH-Service {secret}"))
+            .body(Body::empty())
+            .expect("the request should build")
+    }
+
     #[tokio::test]
     async fn middleware_rejects_requests_without_credentials() {
         let response = router(StaticAuthenticationProvider::NotRecognized)
@@ -234,9 +255,9 @@ mod tests {
     #[tokio::test]
     async fn middleware_passes_verified_actors_to_handlers() {
         let actor_id = ActorEntityUuid::new(Uuid::new_v4());
-        let response = router(StaticAuthenticationProvider::Verified(ActorId::User(
-            UserId::new(actor_id),
-        )))
+        let response = router(StaticAuthenticationProvider::Verified(
+            AuthenticatedActor::Id(ActorId::User(UserId::new(actor_id))),
+        ))
         .oneshot(request("/protected"))
         .await
         .expect("the router should respond");
@@ -262,9 +283,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn middleware_admits_bootstrap_routes_without_credentials() {
+    async fn middleware_admits_bootstrap_routes_with_service_secret() {
         let response = router(StaticAuthenticationProvider::NotRecognized)
-            .oneshot(request("/policies/seed"))
+            .oneshot(request_with_secret("/policies/seed", SERVICE_SECRET))
             .await
             .expect("the router should respond");
 
@@ -272,13 +293,100 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn middleware_rejects_malformed_actor_id_headers() {
+    async fn middleware_rejects_bootstrap_routes_without_service_secret() {
         let response = router(StaticAuthenticationProvider::NotRecognized)
-            .oneshot(request_with_actor_header("/protected", "not-a-uuid"))
+            .oneshot(request("/policies/seed"))
+            .await
+            .expect("the router should respond");
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn middleware_rejects_bootstrap_routes_with_wrong_service_secret() {
+        let response = router(StaticAuthenticationProvider::NotRecognized)
+            .oneshot(request_with_secret("/policies/seed", "hash-svc-wrong"))
+            .await
+            .expect("the router should respond");
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn middleware_rejects_authenticated_bootstrap_requests_without_secret() {
+        let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+        let response = router(StaticAuthenticationProvider::Verified(
+            AuthenticatedActor::Id(ActorId::User(UserId::new(actor_id))),
+        ))
+        .oneshot(request("/policies/seed"))
+        .await
+        .expect("the router should respond");
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn middleware_admits_authenticated_bootstrap_requests_with_secret() {
+        let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+        let response = router(StaticAuthenticationProvider::Verified(
+            AuthenticatedActor::Id(ActorId::User(UserId::new(actor_id))),
+        ))
+        .oneshot(request_with_secret("/policies/seed", SERVICE_SECRET))
+        .await
+        .expect("the router should respond");
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn middleware_rejects_rejected_credentials_on_bootstrap_routes() {
+        let response = router(StaticAuthenticationProvider::Rejected)
+            .oneshot(request_with_secret("/policies/seed", SERVICE_SECRET))
+            .await
+            .expect("the router should respond");
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn middleware_rejects_malformed_actor_headers_on_bootstrap_routes() {
+        let provider = Arc::new(ServiceDelegationProvider::new(SERVICE_SECRET.to_owned()));
+        let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
+        let router =
+            Router::new()
+                .route("/policies/seed", get(bootstrap))
+                .layer(middleware::from_fn(move |request, next| {
+                    let provider = Arc::clone(&provider);
+                    let service_secret = Arc::clone(&service_secret);
+                    authentication_middleware(provider, service_secret, request, next)
+                }));
+
+        let request = Request::builder()
+            .uri("/policies/seed")
+            .header("Authorization", format!("HASH-Service {SERVICE_SECRET}"))
+            .header("X-Authenticated-User-Actor-Id", "not-a-uuid")
+            .body(Body::empty())
+            .expect("the request should build");
+
+        let response = router
+            .oneshot(request)
             .await
             .expect("the router should respond");
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn middleware_rejects_bare_actor_id_headers() {
+        let response = router(StaticAuthenticationProvider::NotRecognized)
+            .oneshot(request_with_actor_header(
+                "/protected",
+                &Uuid::new_v4().to_string(),
+            ))
+            .await
+            .expect("the router should respond");
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 
     #[tokio::test]
