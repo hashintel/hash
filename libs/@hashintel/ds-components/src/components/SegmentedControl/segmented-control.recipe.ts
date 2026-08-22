@@ -15,8 +15,23 @@ export const styles = sva({
   base: {
     root: {
       "--sc-item-radius": "[calc(var(--sc-radius) - 2px)]",
+      // Default-variant active-pill "raise": the pill overhangs its item box to
+      // read as a lifted button. --sc-raise shifts the top-left corner out (the
+      // lift direction, constant across sizes); --sc-raise-far pulls the opposite
+      // (bottom-right) corner back in on smaller sizes, where the fixed 2px track
+      // gap is proportionally too large. The gap between them is the visible lift,
+      // so it naturally scales down with size.
+      "--sc-raise": "[1.5px]",
+      "--sc-raise-far": "[0px]",
+      // Rounded to a whole pixel so the item box is integer-sized. zag drives the
+      // active pill from the item's integer offsetWidth/offsetHeight; if the item
+      // box were fractional the pill's pinned (bottom/right) edges would land off
+      // the item by the fractional remainder, and since that remainder differs per
+      // content type (text vs icon vs ellipsized) the gaps would drift between
+      // examples. Integer item boxes also make every stacked offsetTop exact in
+      // the vertical layout, keeping the last item's bottom gap consistent.
       "--sc-item-height":
-        "[calc(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2 - 4px)]",
+        "[round(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2 - 4px, 1px)]",
       "--sc-frost-bg": "[25.5]",
       _dark: {
         "--sc-frost-bg": "[0]",
@@ -137,6 +152,7 @@ export const styles = sva({
           ...formSizes.variants.sizes.xxs,
           "--sc-radius": "radii.md",
           "--sc-item-px": "[6px]",
+          "--sc-raise-far": "[1px]",
         },
         itemText: { fontSize: "[11px]" },
       },
@@ -145,6 +161,7 @@ export const styles = sva({
           ...formSizes.variants.sizes.xs,
           "--sc-radius": "radii.md",
           "--sc-item-px": "[8px]",
+          "--sc-raise-far": "[0.75px]",
         },
         itemText: { fontSize: "[12px]" },
       },
@@ -153,6 +170,7 @@ export const styles = sva({
           ...formSizes.variants.sizes.sm,
           "--sc-radius": "radii.lg",
           "--sc-item-px": "[8px]",
+          "--sc-raise-far": "[0.5px]",
         },
         itemText: { fontSize: "[14px]" },
       },
@@ -184,7 +202,36 @@ export const styles = sva({
       },
     },
     variant: {
-      default: {},
+      default: {
+        // The active pill reads as a raised button sitting on the track: its
+        // top-left corner grows outward to overhang the track gap (a subtle
+        // perspective cue, as if the pill is tilted towards the viewer) while
+        // the bottom-right stays pinned to the item box — that asymmetry, plus
+        // a whisper of down-right drop shadow, sells the lift. Black alphas are
+        // true shadows and must NOT take the frost treatment.
+        //
+        // The top-left shift uses negative margins, NOT left/top overrides:
+        // zag pins the main-axis position inline (`left` when horizontal, `top`
+        // when vertical), which beats a recipe class, so overriding left/top
+        // would only move the cross axis and the overhang would come out uneven
+        // (and differ between orientations). Margins are never set inline, so
+        // they shift both axes consistently. Width/height grow by --sc-raise (to
+        // pin the bottom-right at the item box) plus --sc-raise-far (to pull that
+        // bottom-right corner further in on small sizes, tightening the too-large
+        // fixed gap there).
+        indicator: {
+          marginTop: "[calc(-1 * var(--sc-raise))]",
+          marginLeft: "[calc(-1 * var(--sc-raise))]",
+          width: "[calc(var(--width) + var(--sc-raise) + var(--sc-raise-far))]",
+          height:
+            "[calc(var(--height) + var(--sc-raise) + var(--sc-raise-far))]",
+          boxShadow:
+            "[0 1px 1.5px {colors.black.a10}, 1px 1px 1px {colors.black.a05}]",
+          "&[data-disabled]": {
+            boxShadow: "[none]",
+          },
+        },
+      },
       embossed: {
         root: {
           backgroundColor:
@@ -217,6 +264,39 @@ export const styles = sva({
     },
   },
   compoundVariants: [
+    {
+      // Vertical + default: the cross axis is now width, and the items differ in
+      // width by content (full-width text vs square icons), so the rounded
+      // --width would give them mismatched right gaps. Span the pill between
+      // track-relative left/right insets instead — independent of the item's
+      // measured width — so the left/right gaps are exact and identical for every
+      // content type. (The main axis, height, still comes from the base default;
+      // it's exact now that the item box is integer.)
+      variant: "default",
+      layout: "vertical",
+      css: {
+        indicator: {
+          marginLeft: "[0px]",
+          left: "[calc(var(--left) - var(--sc-raise))]",
+          right: "[calc(2px - var(--sc-raise-far))]",
+          width: "[auto]",
+        },
+      },
+    },
+    {
+      // Same track-relative cross-axis span for embossed vertical — its pill has
+      // no raise/far, so left stays at var(--left) and right pins to the 2px
+      // track inset, giving exact, symmetric left/right gaps for full-width text
+      // and square icon controls alike.
+      variant: "embossed",
+      layout: "vertical",
+      css: {
+        indicator: {
+          right: "[2px]",
+          width: "[auto]",
+        },
+      },
+    },
     {
       variant: "embossed",
       size: ["xxs", "xs"],

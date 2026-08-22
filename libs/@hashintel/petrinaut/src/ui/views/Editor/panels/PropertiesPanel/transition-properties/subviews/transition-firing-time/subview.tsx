@@ -29,7 +29,7 @@ const contentStyle = css({
 });
 
 const segmentGroupContainerStyle = css({
-  marginTop: "[4px]",
+  marginTop: "[8px]",
   marginBottom: "[8px]",
 });
 
@@ -130,6 +130,7 @@ const TransitionFiringTimeContent: React.FC = () => {
 
   const lambdaTypeSelector = (
     <SegmentedControl
+      size="sm"
       value={lambdaType}
       items={[
         { value: "predicate", label: "Predicate" },

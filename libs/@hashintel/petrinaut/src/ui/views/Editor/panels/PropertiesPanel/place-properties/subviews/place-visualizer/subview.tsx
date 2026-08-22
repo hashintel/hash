@@ -33,7 +33,7 @@ const contentStyle = css({
 });
 
 const segmentGroupContainerStyle = css({
-  marginTop: "[4px]",
+  marginTop: "[8px]",
   marginBottom: "[8px]",
 });
 
@@ -111,6 +111,7 @@ const PlaceVisualizerContent: React.FC = () => {
       {!isSimulationRunning && (
         <div className={segmentGroupContainerStyle}>
           <SegmentedControl
+            size="sm"
             value={viewMode}
             items={[
               { value: "code", label: "Code" },
