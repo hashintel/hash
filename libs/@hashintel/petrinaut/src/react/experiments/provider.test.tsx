@@ -6,6 +6,7 @@ import { use } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  type AdHocScenarioState,
   type MonteCarloUserDefinedMetricFrame,
   DEFAULT_PETRINAUT_EXTENSIONS,
   type SDCPN,
@@ -187,11 +188,13 @@ const TestWrapper = ({
   requestHirArtifacts,
   worker,
   onContextValue,
+  petriNetDefinition,
 }: {
   addNotification?: (notification: AddNotificationInput) => string;
   requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
   worker: FakeMonteCarloWorker;
   onContextValue: (value: ExperimentsContextValue) => void;
+  petriNetDefinition?: SDCPN;
 }) => (
   <NotificationsContext
     value={{
@@ -199,7 +202,13 @@ const TestWrapper = ({
       dismissNotification: () => {},
     }}
   >
-    <SDCPNContext.Provider value={sdcpnContextValue}>
+    <SDCPNContext.Provider
+      value={
+        petriNetDefinition
+          ? { ...sdcpnContextValue, petriNetDefinition }
+          : sdcpnContextValue
+      }
+    >
       <LanguageClientOverride requestHirArtifacts={requestHirArtifacts}>
         <ExperimentsProvider
           workerFactory={() =>
@@ -221,6 +230,7 @@ function renderExperimentsProvider(
   options: {
     addNotification?: (notification: AddNotificationInput) => string;
     requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
+    petriNetDefinition?: SDCPN;
   } = {},
 ): {
   getValue: () => ExperimentsContextValue;
@@ -237,6 +247,7 @@ function renderExperimentsProvider(
       requestHirArtifacts={options.requestHirArtifacts}
       worker={worker}
       onContextValue={captureValue}
+      petriNetDefinition={options.petriNetDefinition}
     />,
   );
 
@@ -589,6 +600,104 @@ describe("ExperimentsProvider", () => {
       renderResult.unmount();
       addEventListenerSpy.mockRestore();
       removeEventListenerSpy.mockRestore();
+    }
+  });
+
+  it("compiles an ad-hoc scenario into the experiment's initial marking", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const petriNetDefinition: SDCPN = {
+      ...EMPTY_SDCPN,
+      places: [
+        {
+          id: "place-queue",
+          name: "Queue",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+    };
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      petriNetDefinition,
+    });
+    const adHocScenario: AdHocScenarioState = {
+      variables: [
+        { name: "batches", type: "integer", expression: "3", optimize: null },
+      ],
+      netParameters: [],
+      places: {
+        "place-queue": {
+          kind: "uncoloured",
+          count: { expression: "batches * 2", optimize: null },
+        },
+      },
+    };
+
+    try {
+      await act(async () => {
+        const createPromise = getValue().createExperiment({
+          name: "Ad-hoc experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          adHocScenario,
+          runCount: 2,
+          seed: 42,
+          dt: 1,
+          maxTime: 1,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+
+        await flushWorkerSetup();
+        const initMessage = worker.sent[0];
+        if (initMessage?.type !== "init") {
+          throw new Error("Expected the experiment init message");
+        }
+        expect(initMessage.initialMarking["place-queue"]).toBe(6);
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      expect(getValue().selectedExperiment?.scenarioName).toBe(
+        "Ad-hoc scenario",
+      );
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("rejects an experiment whose ad-hoc scenario does not synthesize", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+    const adHocScenario: AdHocScenarioState = {
+      variables: [
+        { name: "1bad", type: "real", expression: "1", optimize: null },
+      ],
+      netParameters: [],
+      places: {},
+    };
+
+    try {
+      await act(async () => {
+        await expect(
+          getValue().createExperiment({
+            name: "Broken ad-hoc experiment",
+            scenarioId: null,
+            scenarioParameterValues: {},
+            adHocScenario,
+            runCount: 2,
+            seed: 42,
+            dt: 1,
+            maxTime: 1,
+            metricSpecs: CONSTANT_METRIC_SPEC,
+          }),
+        ).rejects.toThrow(/1bad/);
+      });
+
+      expect(worker.sent).toHaveLength(0);
+    } finally {
+      renderResult.unmount();
     }
   });
 
