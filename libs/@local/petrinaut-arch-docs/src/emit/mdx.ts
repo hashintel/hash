@@ -14,6 +14,8 @@
 
 import { posix } from "node:path";
 
+import { isDeclaredEdge, isImportEdge } from "../model";
+
 import type { ArchitectureModel, Edge, Layer } from "../model";
 
 export interface GeneratedPage {
@@ -273,58 +275,83 @@ const describeEdges = (
   const outgoing = edges.filter((edge) => edge.from === layer.id);
   const incoming = edges.filter((edge) => edge.to === layer.id);
 
-  const sections: string[] = [];
+  const layerLink = (otherId: string): string => {
+    const other = layersById.get(otherId);
+    const label = other ? other.name : otherId;
+    return `[${escapeTableCell(label)}](${relativeTo(slug, layerSlug(otherId))})`;
+  };
 
-  const table = (
+  /**
+   * Import edges and declared edges never share a table: one kind is aggregated
+   * from real imports, the other is an annotation someone wrote, and a reader
+   * should not mistake the second kind for the first.
+   */
+  const section = (
     heading: string,
     intro: string,
     rows: Edge[],
     direction: "to" | "from",
   ): string[] => {
-    if (rows.length === 0) {
+    const imports = rows.filter(isImportEdge);
+    const declared = rows.filter(isDeclaredEdge);
+
+    if (imports.length === 0 && declared.length === 0) {
       return [];
     }
 
-    return [
-      `## ${heading}`,
-      "",
-      intro,
-      "",
-      "| Layer | Imports | Package boundary |",
-      "| --- | --- | --- |",
-      ...rows
-        .slice()
-        .sort((left, right) => right.fileDependencies - left.fileDependencies)
-        .map((edge) => {
+    const lines: string[] = [`## ${heading}`, ""];
+
+    if (imports.length > 0) {
+      lines.push(
+        intro,
+        "",
+        "| Layer | Imports | Package boundary |",
+        "| --- | --- | --- |",
+        ...imports
+          .slice()
+          .sort((left, right) => right.fileDependencies - left.fileDependencies)
+          .map((edge) => {
+            const otherId = direction === "to" ? edge.to : edge.from;
+            const crosses = edge.crossesPackage ? "crossed" : "—";
+            return `| ${layerLink(otherId)} | ${edge.fileDependencies} | ${crosses} |`;
+          }),
+        "",
+      );
+    }
+
+    if (declared.length > 0) {
+      lines.push(
+        "### Declared",
+        "",
+        "Declared with `@talksTo` in the source, for boundaries no import crosses. The protocol text is the annotation's claim; only the endpoints are checked.",
+        "",
+        "| Layer | Protocol |",
+        "| --- | --- |",
+        ...declared.map((edge) => {
           const otherId = direction === "to" ? edge.to : edge.from;
-          const other = layersById.get(otherId);
-          const label = other ? other.name : otherId;
-          const link = `[${escapeTableCell(label)}](${relativeTo(slug, layerSlug(otherId))})`;
-          const crosses = edge.crossesPackage ? "crossed" : "—";
-          return `| ${link} | ${edge.fileDependencies} | ${crosses} |`;
+          return `| ${layerLink(otherId)} | ${escapeTableCell(edge.protocol)} |`;
         }),
-      "",
-    ];
+        "",
+      );
+    }
+
+    return lines;
   };
 
-  sections.push(
-    ...table(
+  return [
+    ...section(
       "Depends on",
       "Aggregated from real TypeScript imports.",
       outgoing,
       "to",
     ),
-  );
-  sections.push(
-    ...table(
+    ...section(
       "Depended on by",
       "Who reaches into this layer.",
       incoming,
       "from",
     ),
-  );
-
-  return sections;
+  ];
 };
 
 const buildLayerPage = (

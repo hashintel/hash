@@ -15,7 +15,7 @@
  */
 
 import { error, warning, type Diagnostic } from "./diagnostics";
-import { ancestorLayerIds } from "./model";
+import { ancestorLayerIds, isImportEdge } from "./model";
 
 import type { LayerRule } from "../architecture.config";
 import type { ArchitectureModel } from "./model";
@@ -59,6 +59,9 @@ export const checkRules = (
 ): Diagnostic[] =>
   rules.flatMap((rule) =>
     model.edges
+      // Rules are claims about the import graph. A `@talksTo` edge has its own
+      // checks in `graph.ts` and cannot violate an import rule.
+      .filter(isImportEdge)
       .filter(
         (edge) =>
           withinScope(edge.from, rule.from) && withinScope(edge.to, rule.to),

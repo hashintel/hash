@@ -7,6 +7,8 @@ spawned, read, timed out, and shut down lives in :mod:`petrinaut._transport`;
 this module is the part a consumer reads.
 
 POSIX only, via the transport: process groups and descriptor polling.
+
+@talksTo cli via JSON lines over stdio (spawned subprocess)
 """
 
 from __future__ import annotations
