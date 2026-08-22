@@ -19,8 +19,9 @@ use hash_graph_store::filter::{
 use self::tuple::ColumnTupleGroup;
 use super::{FilterGroup, SelectCompiler, SelectCompilerError};
 use crate::store::postgres::query::{
-    Alias, Column, ColumnReference, EqualityOperator, Expression, FromItem, Function, Identifier,
-    PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, WindowStatement,
+    Alias, Column, ColumnReference, CommonTableExpression, EqualityOperator, Expression, FromItem,
+    Function, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression, SimpleSelect, Table,
+    WindowDefinition, WithClause,
     postgres_type::PostgresType,
     table::{DatabaseColumn as _, FilterColumn as _, OntologyIds},
 };
@@ -175,7 +176,6 @@ impl<'compiler, 'params, 'query: 'params, R: PostgresRecord>
             | Filter::GreaterOrEqual(..)
             | Filter::Less(..)
             | Filter::LessOrEqual(..)
-            | Filter::CosineDistance(..)
             | Filter::In(..)
             | Filter::StartsWith(..)
             | Filter::EndsWith(..)
@@ -434,28 +434,44 @@ impl<'compiler, 'params, 'query: 'params, R: PostgresRecord>
         };
 
         // Add a WITH expression selecting the partitioned version
-        self.compiler.statement.with.add_statement(
-            Table::OntologyIds,
-            SelectStatement::builder()
-                .selects(vec![
-                    SelectExpression::Asterisk(None),
-                    SelectExpression::Expression {
-                        expression: Expression::Function(Function::Max(Box::new(
-                            Expression::ColumnReference(version_column.aliased(alias)),
-                        )))
-                        .window(WindowStatement::partition_by(Expression::ColumnReference(
-                            Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
-                        ))),
-                        alias: Some(Identifier::from("latest_version")),
-                    },
-                ])
-                .from(
-                    FromItem::table(version_column.table())
-                        .alias(version_column.table().aliased(alias))
+        let common_table_expression = CommonTableExpression::builder()
+            .name(Table::OntologyIds)
+            .statement(
+                SimpleSelect::builder()
+                    .selects(vec![
+                        SelectExpression::Asterisk(None),
+                        SelectExpression::Expression {
+                            expression: Expression::Function(Function::Max(Box::new(
+                                Expression::ColumnReference(version_column.aliased(alias)),
+                            )))
+                            .window(
+                                WindowDefinition::builder().partition_by(
+                                    Expression::ColumnReference(
+                                        Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
+                                    ),
+                                ),
+                            ),
+                            output_name: Some(Identifier::from("latest_version")),
+                        },
+                    ])
+                    .from(
+                        FromItem::table(version_column.table())
+                            .alias(version_column.table().aliased_name(alias))
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build();
+        match &mut self.compiler.with {
+            Some(with) => with.push(common_table_expression),
+            None => {
+                self.compiler.with = Some(
+                    WithClause::builder()
+                        .common_table_expressions(common_table_expression)
                         .build(),
-                )
-                .build(),
-        );
+                );
+            }
+        }
 
         // Join the table of `path` and compare the version to the latest version
         let alias = self.compiler.add_join_statements(path);

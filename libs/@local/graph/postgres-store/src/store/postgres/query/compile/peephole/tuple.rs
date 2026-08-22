@@ -11,8 +11,8 @@ use postgres_types::ToSql;
 
 use crate::store::postgres::query::{
     Alias, ColumnName, ColumnReference, Correlation, Expression, FromItem, Function,
-    PostgresQueryPath, PostgresRecord, SelectCompiler, SelectExpression, SelectStatement,
-    TableReference, Transpile as _, postgres_type::PostgresType, table::DatabaseColumn,
+    PostgresQueryPath, PostgresRecord, SelectCompiler, SelectExpression, SimpleSelect, TableName,
+    Transpile as _, postgres_type::PostgresType, table::DatabaseColumn,
 };
 
 /// One member of an unnested tuple row, named by its 1-based position.
@@ -44,7 +44,7 @@ const UNNEST_CORRELATION: Correlation<TupleElement> = Correlation::new("unnest")
 /// One parallel-array unnest of aligned tuples, standing as `"unnest_c_d_n"("elem_1", …)` at the
 /// arrays' shared width.
 fn from_unnest(
-    reference: impl Into<TableReference<'static>>,
+    reference: impl Into<TableName<'static>>,
     arrays: Vec<Expression>,
     members: &[TupleElement],
 ) -> FromItem<'static> {
@@ -411,7 +411,7 @@ where
             .collect(),
     )
     .r#in(Expression::Select(Box::new(
-        SelectStatement::builder()
+        SimpleSelect::builder()
             .selects(
                 members
                     .iter()
@@ -419,6 +419,7 @@ where
                     .collect(),
             )
             .from(from_unnest(unnest, array_expressions, &members))
-            .build(),
+            .build()
+            .into(),
     )))
 }

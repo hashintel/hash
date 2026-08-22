@@ -1257,7 +1257,7 @@ where
         let (candidate_statement, candidate_parameters) = compiler.compile();
         let maximum_distance = maximum_semantic_distance.into_inner();
 
-        let mut parameters = candidate_parameters.to_vec();
+        let mut parameters: Vec<_> = candidate_parameters.collect();
         let embedding_parameter = parameters.len() + 1;
         parameters.push(&embedding);
         let maximum_distance_parameter = parameters.len() + 1;

@@ -1328,7 +1328,7 @@ fn filter_entity_by_any_type_versioned_url() {
         WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
           AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
           AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
-          AND (("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[]))
+          AND ("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[])
         "#,
         &[
             &pinned_timestamp,
@@ -1367,7 +1367,7 @@ fn filter_entity_by_all_type_versioned_url() {
         WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
           AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
           AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
-          AND (("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3, $4]::text[]))
+          AND ("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3, $4]::text[])
         "#,
         &[
             &pinned_timestamp,
@@ -1494,7 +1494,7 @@ fn filter_entity_by_no_type_versioned_url() {
         WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
           AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
           AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
-          AND ((NOT("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[])))
+          AND (NOT("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[]))
         "#,
         &[
             &pinned_timestamp,
@@ -1785,7 +1785,7 @@ fn semantic_ordering_compiles_a_policy_branch() {
          AND "entity_embeddings_2_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
         WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
           AND (("entity_temporal_metadata_0_0_0"."web_id" = ANY($1))
-          AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+          AND (NOT("entity_temporal_metadata_0_0_0"."entity_uuid" = $2)))
           AND ("entity_editions_1_1_0"."archived" = $3)
           AND ("entity_embeddings_2_1_0"."property" IS NULL)
         ORDER BY "entity_embeddings_2_1_0"."embedding_bits" <~> binary_quantize(($4::vector)) ASC
@@ -1857,7 +1857,7 @@ fn semantic_ordering_compiles_the_policy_branch_split() {
              AND "entity_embeddings_1_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
             WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
               AND (("entity_temporal_metadata_0_0_0"."entity_uuid" = $1)
-              AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+              AND (NOT("entity_temporal_metadata_0_0_0"."entity_uuid" = $2)))
               AND ("entity_embeddings_1_1_0"."property" IS NULL)
             ORDER BY "entity_embeddings_1_1_0"."embedding_bits" <~> binary_quantize(($3::vector)) ASC
             LIMIT 400
@@ -1873,7 +1873,7 @@ fn semantic_ordering_compiles_the_policy_branch_split() {
              AND "entity_embeddings_1_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
             WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
               AND (("entity_temporal_metadata_0_0_0"."web_id" = ANY($1))
-              AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+              AND (NOT("entity_temporal_metadata_0_0_0"."entity_uuid" = $2)))
               AND ("entity_embeddings_1_1_0"."property" IS NULL)
             ORDER BY "entity_embeddings_1_1_0"."embedding_bits" <~> binary_quantize(($3::vector)) ASC
             LIMIT 400
@@ -2167,10 +2167,10 @@ mod predefined {
             r#"
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2"))
+            WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+              AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+              AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+              AND (ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2")))
             "#,
             &[
                 &pinned_timestamp,
@@ -2217,10 +2217,10 @@ mod predefined {
             r#"
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2"))
+            WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+              AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+              AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+              AND (ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2")))
             "#,
             &[
                 &pinned_timestamp,
@@ -2266,10 +2266,10 @@ mod predefined {
             r#"
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2"))
+            WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+              AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+              AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+              AND (ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2")))
             "#,
             &[
                 &pinned_timestamp,
@@ -2303,10 +2303,10 @@ mod predefined {
             r#"
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $3) AND ("entity_temporal_metadata_0_0_0"."web_id" = $4)
+            WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+              AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+              AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+              AND (("entity_temporal_metadata_0_0_0"."entity_uuid" = $3) AND ("entity_temporal_metadata_0_0_0"."web_id" = $4))
             "#,
             &[
                 &pinned_timestamp,
@@ -2366,8 +2366,8 @@ mod predefined {
             FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
             INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
               ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
-            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND ("ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version") AND ("ontology_ids_0_1_0"."base_url" = $2)
+            WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+              AND (("ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version") AND ("ontology_ids_0_1_0"."base_url" = $2))
             "#,
             &[
                 &pinned_timestamp,
@@ -2428,10 +2428,10 @@ mod predefined {
             INNER JOIN "entity_ids" AS "entity_ids_0_1_0"
                 ON "entity_ids_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
                 AND "entity_ids_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ((("entity_ids_0_1_0"."created_by_id" = $3) AND ("entity_temporal_metadata_0_0_0"."web_id" = $4)) OR (("entity_ids_0_1_0"."created_by_id" = $5) AND ("entity_temporal_metadata_0_0_0"."web_id" = $6)))
+            WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+              AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+              AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+              AND (((("entity_ids_0_1_0"."created_by_id" = $3) AND ("entity_temporal_metadata_0_0_0"."web_id" = $4)) OR (("entity_ids_0_1_0"."created_by_id" = $5) AND ("entity_temporal_metadata_0_0_0"."web_id" = $6))))
             "#,
             &[
                 &pinned_timestamp,
@@ -2470,9 +2470,9 @@ mod predefined {
             r#"
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ((ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2"))) OR (ROW("entity_temporal_metadata_0_0_0"."draft_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_1"."elem_1", "unnest_0_0_1"."elem_2", "unnest_0_0_1"."elem_3" FROM UNNEST(($5::uuid[]), ($6::uuid[]), ($7::uuid[])) AS "unnest_0_0_1"("elem_1", "elem_2", "elem_3"))))
+            WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+              AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+              AND (((ROW("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::uuid[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2"))) OR (ROW("entity_temporal_metadata_0_0_0"."draft_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_1"."elem_1", "unnest_0_0_1"."elem_2", "unnest_0_0_1"."elem_3" FROM UNNEST(($5::uuid[]), ($6::uuid[]), ($7::uuid[])) AS "unnest_0_0_1"("elem_1", "elem_2", "elem_3")))))
             "#,
             &[
                 &pinned_timestamp,
@@ -2542,9 +2542,9 @@ mod predefined {
             r#"
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ROW("entity_temporal_metadata_0_0_0"."draft_id", "entity_temporal_metadata_0_0_0"."entity_edition_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2", "unnest_0_0_0"."elem_3", "unnest_0_0_0"."elem_4" FROM UNNEST(($3::uuid[]), ($4::uuid[]), ($5::uuid[]), ($6::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2", "elem_3", "elem_4"))
+            WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+              AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+              AND (ROW("entity_temporal_metadata_0_0_0"."draft_id", "entity_temporal_metadata_0_0_0"."entity_edition_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."web_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2", "unnest_0_0_0"."elem_3", "unnest_0_0_0"."elem_4" FROM UNNEST(($3::uuid[]), ($4::uuid[]), ($5::uuid[]), ($6::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2", "elem_3", "elem_4")))
             "#,
             &[
                 &pinned_timestamp,
@@ -2596,10 +2596,10 @@ mod predefined {
             INNER JOIN "entity_ids" AS "entity_ids_0_1_0"
                 ON "entity_ids_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
                 AND "entity_ids_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
-              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND ROW("entity_ids_0_1_0"."created_at_transaction_time", "entity_ids_0_1_0"."created_by_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::timestamptz[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2"))
+            WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+              AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+              AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+              AND (ROW("entity_ids_0_1_0"."created_at_transaction_time", "entity_ids_0_1_0"."created_by_id") = ANY(SELECT "unnest_0_0_0"."elem_1", "unnest_0_0_0"."elem_2" FROM UNNEST(($3::timestamptz[]), ($4::uuid[])) AS "unnest_0_0_0"("elem_1", "elem_2")))
             "#,
             &[
                 &pinned_timestamp,

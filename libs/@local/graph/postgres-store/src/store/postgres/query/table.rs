@@ -1,5 +1,5 @@
 use core::{
-    fmt::Debug,
+    fmt::{self, Debug},
     hash::Hash,
     iter::{Chain, Once, once},
 };
@@ -330,17 +330,9 @@ impl ReferenceTable {
 
 impl Table {
     /// Renders the alias-qualified table name under the compiler's `{name}_{c}_{d}_{n}` scheme.
-    ///
-    /// This is the only place that knows how alias names are derived from an [`Alias`].
     #[must_use]
     pub fn aliased_name(self, alias: Alias) -> TableName<'static> {
-        TableName::from(format!(
-            "{}_{}_{}_{}",
-            self.as_str(),
-            alias.condition_index,
-            alias.chain_depth,
-            alias.number
-        ))
+        alias.qualify(self.as_str())
     }
 
     #[must_use]
@@ -2112,6 +2104,19 @@ pub struct Alias {
     pub condition_index: usize,
     pub chain_depth: usize,
     pub number: usize,
+}
+
+impl Alias {
+    /// Renders `name` under the compiler's `{name}_{c}_{d}_{n}` alias scheme.
+    ///
+    /// This is the only place that knows how alias names are derived from an [`Alias`].
+    #[must_use]
+    pub fn qualify(self, name: impl fmt::Display) -> TableName<'static> {
+        TableName::from(format!(
+            "{}_{}_{}_{}",
+            name, self.condition_index, self.chain_depth, self.number
+        ))
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

@@ -193,7 +193,6 @@ impl<C> Aliased<C> {
         TableReference {
             schema: None,
             name: TableName::from(self.name),
-            alias: None,
         }
     }
 
@@ -210,9 +209,8 @@ impl<C> Aliased<C> {
                 FromItem::table(TableReference {
                     schema: None,
                     name: TableName::from(base),
-                    alias: None,
                 })
-                .alias(self.reference())
+                .alias(self.name)
                 .build()
             },
         )
@@ -279,7 +277,6 @@ impl<C> Correlation<C> {
         TableReference {
             schema: None,
             name: TableName::from(self.name),
-            alias: None,
         }
     }
 
@@ -340,8 +337,7 @@ impl<C> AliasedCorrelation<C> {
     pub fn reference(&self) -> TableReference<'static> {
         TableReference {
             schema: None,
-            name: TableName::from(self.name),
-            alias: Some(self.alias),
+            name: self.alias.qualify(self.name),
         }
     }
 }
@@ -368,6 +364,12 @@ impl<C> Copy for AliasedCorrelation<C> {}
 impl<C> From<AliasedCorrelation<C>> for TableReference<'static> {
     fn from(relation: AliasedCorrelation<C>) -> Self {
         relation.reference()
+    }
+}
+
+impl<C> From<AliasedCorrelation<C>> for TableName<'static> {
+    fn from(relation: AliasedCorrelation<C>) -> Self {
+        relation.alias.qualify(relation.name)
     }
 }
 

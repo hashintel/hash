@@ -238,8 +238,8 @@ impl Expression {
 
     /// Creates an `expression OVER ( window_definition )` window function call.
     #[must_use]
-    pub fn window(expression: Self, definition: impl Into<WindowDefinition>) -> Self {
-        Self::Window(Box::new(expression), definition.into())
+    pub fn window(self, definition: impl Into<WindowDefinition>) -> Self {
+        Self::Window(Box::new(self), definition.into())
     }
 
     #[must_use]
@@ -323,7 +323,7 @@ impl Expression {
     #[must_use]
     pub fn binary_quantize(expression: Self) -> Self {
         Self::Function(Function::BinaryQuantize(Box::new(
-            expression.cast(PostgresType::Vector),
+            expression.cast(PostgresType::Vector { dimensions: None }),
         )))
     }
 
@@ -481,11 +481,6 @@ impl Expression {
     }
 
     #[must_use]
-    pub fn window(self, window: WindowStatement) -> Self {
-        Self::Window(Box::new(self), window)
-    }
-
-    #[must_use]
     pub fn array_element(self, index: usize) -> Self {
         Self::ArrayElement {
             expr: Box::new(self),
@@ -541,10 +536,17 @@ impl Expression {
         visitor: &mut impl FnMut(&Self) -> ControlFlow<B>,
     ) -> ControlFlow<B> {
         match self {
-            Self::ColumnReference(_) | Self::Parameter(_) | Self::Constant(_) | Self::Select(_) => {
-                ControlFlow::Continue(())
-            }
+            Self::ColumnReference(_)
+            | Self::Parameter(_)
+            | Self::Constant(_)
+            | Self::Select(_)
+            | Self::Exists(_) => ControlFlow::Continue(()),
             Self::Function(function) => function.for_each_child(visitor),
+            Self::ArraySlice { expr, lower, upper } => {
+                visitor(expr)?;
+                visitor(lower)?;
+                visitor(upper)
+            }
             Self::Window(expr, window) => {
                 visitor(expr)?;
                 for partition in &*window.partition_by {
@@ -600,10 +602,17 @@ impl Expression {
         visitor: &mut impl FnMut(&mut Self) -> ControlFlow<B>,
     ) -> ControlFlow<B> {
         match self {
-            Self::ColumnReference(_) | Self::Parameter(_) | Self::Constant(_) | Self::Select(_) => {
-                ControlFlow::Continue(())
-            }
+            Self::ColumnReference(_)
+            | Self::Parameter(_)
+            | Self::Constant(_)
+            | Self::Select(_)
+            | Self::Exists(_) => ControlFlow::Continue(()),
             Self::Function(function) => function.for_each_child_mut(visitor),
+            Self::ArraySlice { expr, lower, upper } => {
+                visitor(expr)?;
+                visitor(lower)?;
+                visitor(upper)
+            }
             Self::Window(expr, window) => {
                 visitor(expr)?;
                 for partition in &mut *window.partition_by {
@@ -787,15 +796,15 @@ mod tests {
     use hash_graph_store::{
         data_type::DataTypeQueryPath,
         filter::{Filter, FilterExpression, Parameter, PathToken},
-        query::Ordering,
     };
     use postgres_types::ToSql;
     use type_system::ontology::DataTypeWithMetadata;
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, FromItem, Identifier, OrderByExpression, PostgresQueryPath as _, SelectCompiler,
-        SelectExpression, Table, test_helper::max_version_expression,
+        Alias, FromItem, Identifier, NonEmptyVec, OrderByClause, PostgresQueryPath as _,
+        SelectCompiler, SelectExpression, SimpleSelect, SortBy, SortDirection, Table,
+        test_helper::max_version_expression,
     };
 
     #[test]
@@ -864,27 +873,33 @@ mod tests {
     }
 
     #[test]
-    fn transpile_row_number_over_ordering() {
+    fn transpile_row_number_over_partition() {
         assert_eq!(
             Expression::Window(
                 Box::new(Expression::from(Function::RowNumber)),
-                WindowStatement::order_by(Expression::Parameter(1), Ordering::Ascending, None)
-                    .then_order_by(Expression::Parameter(2), Ordering::Ascending, None),
+                WindowDefinition::builder()
+                    .partition_by(Expression::Parameter(1))
+                    .build(),
             )
             .transpile_to_string(),
-            "row_number() OVER (ORDER BY $1 ASC, $2 ASC)"
+            "row_number() OVER (PARTITION BY $1)"
         );
     }
 
     #[test]
     fn transpile_array_agg_with_ordering() {
-        let mut order_by = OrderByExpression::default();
-        order_by.push(Expression::Parameter(1), Ordering::Ascending, None);
-
         assert_eq!(
             Expression::from(Function::ArrayAgg {
                 expression: Box::new(Expression::Parameter(1)),
-                order_by,
+                order_by: Some(
+                    OrderByClause::builder()
+                        .sort_by(
+                            SortBy::builder()
+                                .expression(Expression::Parameter(1))
+                                .direction(SortDirection::Ascending),
+                        )
+                        .build(),
+                ),
             })
             .transpile_to_string(),
             "array_agg($1 ORDER BY $1 ASC)"
@@ -896,7 +911,7 @@ mod tests {
         assert_eq!(
             Expression::from(Function::ArrayAgg {
                 expression: Box::new(Expression::Parameter(1)),
-                order_by: OrderByExpression::default(),
+                order_by: None,
             })
             .transpile_to_string(),
             "array_agg($1)"
@@ -977,8 +992,15 @@ mod tests {
         assert_eq!(
             Expression::Window(
                 Box::new(Expression::from(Function::Count(None))),
-                WindowStatement::partition_by(Expression::Parameter(1))
-                    .then_partition_by(Expression::Parameter(2)),
+                WindowDefinition::builder()
+                    .partition_by(
+                        NonEmptyVec::try_from(vec![
+                            Expression::Parameter(1),
+                            Expression::Parameter(2),
+                        ])
+                        .expect("the partition list is non-empty"),
+                    )
+                    .build(),
             )
             .transpile_to_string(),
             "count(*) OVER (PARTITION BY $1, $2)"
@@ -1076,10 +1098,12 @@ mod tests {
     #[test]
     fn transpile_exists_and_its_negation() {
         let statement = || {
-            SelectStatement::builder()
-                .selects(vec![SelectExpression::Asterisk(None)])
-                .from(FromItem::table(Table::OntologyIds))
-                .build()
+            SelectStatement::from(
+                SimpleSelect::builder()
+                    .selects(vec![SelectExpression::Asterisk(None)])
+                    .from(FromItem::table(Table::OntologyIds).build())
+                    .build(),
+            )
         };
 
         assert_eq!(

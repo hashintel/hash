@@ -28,7 +28,7 @@ impl SelectExpression {
     pub fn new(expression: impl Into<Expression>) -> Self {
         Self::Expression {
             expression: expression.into(),
-            alias: None,
+            output_name: None,
         }
     }
 
@@ -40,7 +40,7 @@ impl SelectExpression {
     ) -> Self {
         Self::Expression {
             expression: expression.into(),
-            alias: Some(alias.into()),
+            output_name: Some(alias.into()),
         }
     }
 }

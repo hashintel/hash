@@ -25,15 +25,14 @@ use super::ast::{
     ColumnName, ColumnReference, JoinType, Materialization, TableName, TableReference,
 };
 use crate::store::postgres::query::{
-    Alias, Column, CommonTableExpression, Correlation, EqualityOperator, Expression, FromItem,
-    Function, Identifier, NonEmptyVec, NullsOrder, OrderByClause, PostgresQueryPath,
-    PostgresRecord, SelectExpression, SelectQuantifier, SelectStatement, SimpleSelect, SortBy,
-    SortDirection, Table, Transpile as _, WindowDefinition, WithClause,
+    Alias, Column, CommonTableExpression, Correlation, Expression, FromItem, Function, Identifier,
+    NonEmptyVec, NullsOrder, OrderByClause, PostgresQueryPath, PostgresRecord, SelectExpression,
+    SelectQuantifier, SelectStatement, SimpleSelect, SortBy, SortDirection, Table, Transpile as _,
+    WithClause,
     postgres_type::PostgresType,
     table::{
-        DataTypeEmbeddings, DatabaseColumn, EntityEditions, EntityEmbeddings,
-        EntityTemporalMetadata, EntityTypeEmbeddings, EntityTypes, FilterColumn as _, JsonField,
-        OntologyIds, OntologyTemporalMetadata, PropertyTypeEmbeddings,
+        DatabaseColumn, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
+        EntityTypeEmbeddings, EntityTypes, FilterColumn as _, JsonField, OntologyTemporalMetadata,
     },
 };
 
@@ -1506,22 +1505,23 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 //  FROM jsonb_each(<column>) AS "scalar_property"("key", "value")
                 //  WHERE jsonb_typeof("scalar_property"."value") = ANY($n::text[]))
                 Expression::Select(Box::new(
-                    SelectStatement::builder()
+                    SimpleSelect::builder()
                         .selects(vec![SelectExpression::new(Function::JsonObjectAgg {
                             key: Box::new(SCALAR_PROPERTY.column(&ScalarProperty::Key)),
                             value: Box::new(SCALAR_PROPERTY.column(&ScalarProperty::Value)),
                         })])
                         .from(scalar_property_each(column_expression))
-                        .where_expression(WhereExpression::from_iter([Expression::from(
-                            Function::JsonTypeof(Box::new(
+                        .where_clause(
+                            Expression::from(Function::JsonTypeof(Box::new(
                                 SCALAR_PROPERTY.column(&ScalarProperty::Value),
-                            )),
+                            )))
+                            .r#in(
+                                Expression::Parameter(index)
+                                    .cast(PostgresType::Array(Box::new(PostgresType::Text))),
+                            ),
                         )
-                        .r#in(
-                            Expression::Parameter(index)
-                                .cast(PostgresType::Array(Box::new(PostgresType::Text))),
-                        )]))
-                        .build(),
+                        .build()
+                        .into(),
                 ))
                 .grouped()
             }
@@ -1529,10 +1529,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 // ((SELECT count(*) FROM jsonb_each(<column>) AS "scalar_property"("key",
                 // "value"))::int4)
                 Expression::Select(Box::new(
-                    SelectStatement::builder()
+                    SimpleSelect::builder()
                         .selects(vec![SelectExpression::new(Function::Count(None))])
                         .from(scalar_property_each(column_expression))
-                        .build(),
+                        .build()
+                        .into(),
                 ))
                 .grouped()
                 .cast(PostgresType::Int4)

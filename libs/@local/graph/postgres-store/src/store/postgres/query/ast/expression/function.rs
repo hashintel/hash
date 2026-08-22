@@ -5,7 +5,7 @@ use core::{
 
 use hash_graph_store::filter::PathToken;
 
-use crate::store::postgres::query::{Expression, OrderByExpression, PostgresType, Transpile};
+use crate::store::postgres::query::{Expression, OrderByClause, PostgresType, Transpile};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Function {
@@ -78,12 +78,12 @@ pub enum Function {
     RowNumber,
     /// Aggregates the expression's values into an array.
     ///
-    /// Transpiles to `array_agg(<expr>)`, or `array_agg(<expr> ORDER BY ...)` when the ordering
-    /// is non-empty. The ordering fixes the array's element order, which is otherwise
+    /// Transpiles to `array_agg(<expr>)`, or `array_agg(<expr> ORDER BY ...)` when an ordering
+    /// is present. The ordering fixes the array's element order, which is otherwise
     /// unspecified.
     ArrayAgg {
         expression: Box<Expression>,
-        order_by: OrderByExpression,
+        order_by: Option<OrderByClause>,
     },
     /// Aggregates key-value pairs into one `jsonb` object.
     ///
@@ -180,7 +180,12 @@ impl Function {
             | Self::JsonAgg(expr)
             | Self::JsonExtractText(expr)
             | Self::JsonExtractAsText(expr, _)
+            | Self::JsonExtract(expr, _)
+            | Self::JsonTypeof(expr)
             | Self::JsonScalar(expr)
+            | Self::JsonArrayElements(expr)
+            | Self::JsonArrayElementsText(expr)
+            | Self::JsonEach(expr)
             | Self::ToJson(expr)
             | Self::Lower(expr)
             | Self::Upper(expr)
@@ -189,12 +194,36 @@ impl Function {
             | Self::LowerInf(expr)
             | Self::UpperInf(expr)
             | Self::ExtractEpochMs(expr)
-            | Self::BinaryQuantize(expr) => visitor(expr),
+            | Self::BinaryQuantize(expr)
+            | Self::L2Normalize(expr)
+            | Self::Ln(expr)
+            | Self::Md5(expr)
+            | Self::Btrim(expr)
+            | Self::CharLength(expr)
+            | Self::Subvector { vector: expr, .. } => visitor(expr),
             Self::JsonContains(lhs, rhs)
             | Self::JsonPathQueryFirst(lhs, rhs)
-            | Self::Coalesce(lhs, rhs) => {
+            | Self::JsonPathQueryArray(lhs, rhs)
+            | Self::Coalesce(lhs, rhs)
+            | Self::JsonObjectAgg {
+                key: lhs,
+                value: rhs,
+            }
+            | Self::Substring {
+                string: lhs,
+                start: rhs,
+            } => {
                 visitor(lhs)?;
                 visitor(rhs)
+            }
+            Self::RegexpReplace {
+                string,
+                pattern,
+                replacement,
+            } => {
+                visitor(string)?;
+                visitor(pattern)?;
+                visitor(replacement)
             }
             Self::JsonExtractPath(exprs)
             | Self::JsonBuildArray(exprs)
@@ -207,6 +236,16 @@ impl Function {
                 }
                 ControlFlow::Continue(())
             }
+            Self::ConcatWs {
+                separator,
+                expressions,
+            } => {
+                visitor(separator)?;
+                for expr in expressions {
+                    visitor(expr)?;
+                }
+                ControlFlow::Continue(())
+            }
             Self::JsonBuildObject(pairs) => {
                 for (key, value) in pairs {
                     visitor(key)?;
@@ -214,7 +253,25 @@ impl Function {
                 }
                 ControlFlow::Continue(())
             }
-            Self::Now => ControlFlow::Continue(()),
+            Self::ArrayAgg {
+                expression,
+                order_by,
+            } => {
+                visitor(expression)?;
+                if let Some(order_by) = order_by {
+                    for sort_by in &*order_by.sort_by {
+                        visitor(&sort_by.expression)?;
+                    }
+                }
+                ControlFlow::Continue(())
+            }
+            Self::Count(expr) => {
+                if let Some(expr) = expr {
+                    visitor(expr)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::Now | Self::RowNumber => ControlFlow::Continue(()),
         }
     }
 
@@ -228,7 +285,12 @@ impl Function {
             | Self::JsonAgg(expr)
             | Self::JsonExtractText(expr)
             | Self::JsonExtractAsText(expr, _)
+            | Self::JsonExtract(expr, _)
+            | Self::JsonTypeof(expr)
             | Self::JsonScalar(expr)
+            | Self::JsonArrayElements(expr)
+            | Self::JsonArrayElementsText(expr)
+            | Self::JsonEach(expr)
             | Self::ToJson(expr)
             | Self::Lower(expr)
             | Self::Upper(expr)
@@ -237,12 +299,36 @@ impl Function {
             | Self::LowerInf(expr)
             | Self::UpperInf(expr)
             | Self::ExtractEpochMs(expr)
-            | Self::BinaryQuantize(expr) => visitor(expr),
+            | Self::BinaryQuantize(expr)
+            | Self::L2Normalize(expr)
+            | Self::Ln(expr)
+            | Self::Md5(expr)
+            | Self::Btrim(expr)
+            | Self::CharLength(expr)
+            | Self::Subvector { vector: expr, .. } => visitor(expr),
             Self::JsonContains(lhs, rhs)
             | Self::JsonPathQueryFirst(lhs, rhs)
-            | Self::Coalesce(lhs, rhs) => {
+            | Self::JsonPathQueryArray(lhs, rhs)
+            | Self::Coalesce(lhs, rhs)
+            | Self::JsonObjectAgg {
+                key: lhs,
+                value: rhs,
+            }
+            | Self::Substring {
+                string: lhs,
+                start: rhs,
+            } => {
                 visitor(lhs)?;
                 visitor(rhs)
+            }
+            Self::RegexpReplace {
+                string,
+                pattern,
+                replacement,
+            } => {
+                visitor(string)?;
+                visitor(pattern)?;
+                visitor(replacement)
             }
             Self::JsonExtractPath(exprs)
             | Self::JsonBuildArray(exprs)
@@ -255,6 +341,16 @@ impl Function {
                 }
                 ControlFlow::Continue(())
             }
+            Self::ConcatWs {
+                separator,
+                expressions,
+            } => {
+                visitor(separator)?;
+                for expr in expressions {
+                    visitor(expr)?;
+                }
+                ControlFlow::Continue(())
+            }
             Self::JsonBuildObject(pairs) => {
                 for (key, value) in pairs {
                     visitor(key)?;
@@ -262,7 +358,25 @@ impl Function {
                 }
                 ControlFlow::Continue(())
             }
-            Self::Now => ControlFlow::Continue(()),
+            Self::ArrayAgg {
+                expression,
+                order_by,
+            } => {
+                visitor(expression)?;
+                if let Some(order_by) = order_by {
+                    for sort_by in &mut *order_by.sort_by {
+                        visitor(&mut sort_by.expression)?;
+                    }
+                }
+                ControlFlow::Continue(())
+            }
+            Self::Count(expr) => {
+                if let Some(expr) = expr {
+                    visitor(expr)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::Now | Self::RowNumber => ControlFlow::Continue(()),
         }
     }
 }
@@ -430,7 +544,7 @@ impl Transpile for Function {
             } => {
                 fmt.write_str("array_agg(")?;
                 expression.transpile(fmt)?;
-                if !order_by.is_empty() {
+                if let Some(order_by) = order_by {
                     fmt.write_char(' ')?;
                     order_by.transpile(fmt)?;
                 }
