@@ -2,6 +2,7 @@ use alloc::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
+use hash_graph_temporal_versioning::Timestamp;
 use type_system::{
     knowledge::entity::{
         EntityId,
@@ -65,6 +66,7 @@ pub enum MergePolicies {
 #[derive(Debug)]
 pub struct PolicyComponents {
     actor_id: Option<ActorId>,
+    timestamp: Timestamp<()>,
     is_instance_admin: bool,
     policies: Vec<ResolvedPolicy>,
     tracked_actions: HashMap<ActionName, Option<OptimizationData>>,
@@ -84,6 +86,18 @@ impl PolicyComponents {
     #[must_use]
     pub const fn actor_id(&self) -> Option<ActorId> {
         self.actor_id
+    }
+
+    /// Returns the store's clock reading captured while building these components.
+    ///
+    /// Components always carry a reading, whether or not the operation goes on to use one.
+    ///
+    /// This value is the time authority for the operation these components were built for: it
+    /// should be used to resolve temporal axes and to derive written timestamps, so that all
+    /// timestamps within one operation agree with each other and with the store's clock.
+    #[must_use]
+    pub const fn timestamp(&self) -> Timestamp<()> {
+        self.timestamp
     }
 
     /// Returns `true` if the actor is an instance admin.
@@ -319,6 +333,7 @@ impl PolicyComponents {
 pub struct PolicyComponentsBuilder<'a, S> {
     store: &'a S,
     actor: AuthenticatedActor,
+    timestamp: Option<Timestamp<()>>,
     context: ContextBuilder,
     entity_type_ids: HashSet<Cow<'a, VersionedUrl>>,
     property_type_ids: HashSet<Cow<'a, VersionedUrl>>,
@@ -334,6 +349,7 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
         Self {
             store,
             actor: AuthenticatedActor::Uuid(ActorEntityUuid::public_actor()),
+            timestamp: None,
             context: ContextBuilder::default(),
             entity_type_ids: HashSet::new(),
             property_type_ids: HashSet::new(),
@@ -350,6 +366,28 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     #[must_use]
     pub fn with_actor(mut self, actor: impl Into<AuthenticatedActor>) -> Self {
         self.set_actor(actor);
+        self
+    }
+
+    /// Provides the store's clock reading captured for the surrounding operation.
+    ///
+    /// Callers which already hold a clock reading from the store — e.g. because an earlier
+    /// statement of the same operation returned one — should pass it here so the components share
+    /// the operation's timestamp. When absent, a reading is captured while building the
+    /// components: on the actor lookup where the actor still needs resolving, otherwise through a
+    /// statement of its own.
+    pub const fn set_timestamp(&mut self, timestamp: Timestamp<()>) {
+        self.timestamp = Some(timestamp);
+    }
+
+    /// Provides the store's clock reading captured for the surrounding operation.
+    ///
+    /// See [`set_timestamp`] for details.
+    ///
+    /// [`set_timestamp`]: Self::set_timestamp
+    #[must_use]
+    pub const fn with_timestamp(mut self, timestamp: Timestamp<()>) -> Self {
+        self.set_timestamp(timestamp);
         self
     }
 
@@ -584,11 +622,31 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     fn into_future(mut self) -> Self::IntoFuture {
         async move {
-            let actor_id = match self.actor {
-                AuthenticatedActor::Id(actor_id) => Some(actor_id),
-                AuthenticatedActor::Uuid(actor_uuid) => self
+            // The components always carry a clock reading, so each arm resolves one: a reading the
+            // caller supplied is taken as-is, an actor which still needs resolving has the reading
+            // captured by its lookup statement, and only an already-resolved actor without a
+            // supplied reading pays for a statement of its own.
+            let (actor_id, timestamp) = match (self.actor, self.timestamp) {
+                (AuthenticatedActor::Id(actor_id), Some(timestamp)) => (Some(actor_id), timestamp),
+                (AuthenticatedActor::Id(actor_id), None) => (
+                    Some(actor_id),
+                    self.store
+                        .current_timestamp()
+                        .await
+                        .change_context(ContextCreationError::StoreError)?,
+                ),
+                (AuthenticatedActor::Uuid(actor_uuid), Some(timestamp)) => (
+                    self.store
+                        .determine_actor(actor_uuid)
+                        .await
+                        .change_context(ContextCreationError::DetermineActor {
+                            actor_id: actor_uuid,
+                        })?,
+                    timestamp,
+                ),
+                (AuthenticatedActor::Uuid(actor_uuid), None) => self
                     .store
-                    .determine_actor(actor_uuid)
+                    .determine_actor_with_timestamp(actor_uuid)
                     .await
                     .change_context(ContextCreationError::DetermineActor {
                         actor_id: actor_uuid,
@@ -707,6 +765,7 @@ where
 
             let mut policy_components = PolicyComponents {
                 actor_id,
+                timestamp,
                 is_instance_admin: self.context.is_instance_admin(),
                 policies,
                 tracked_actions: actions.iter().map(|action| (*action, None)).collect(),
@@ -735,6 +794,7 @@ where
 mod tests {
     use std::collections::{HashMap, HashSet};
 
+    use hash_graph_temporal_versioning::Timestamp;
     use type_system::{knowledge::entity::id::EntityUuid, principal::actor::ActorId};
     use uuid::Uuid;
 
@@ -772,6 +832,7 @@ mod tests {
 
         let mut policy_components = PolicyComponents {
             actor_id: None,
+            timestamp: Timestamp::UNIX_EPOCH,
             is_instance_admin: false,
             policies,
             tracked_actions: HashMap::from([(ActionName::View, None)]),
@@ -826,6 +887,7 @@ mod tests {
 
         let policy_components_without_optimization = PolicyComponents {
             actor_id: None,
+            timestamp: Timestamp::UNIX_EPOCH,
             is_instance_admin: false,
             policies: policies_without_optimization,
             tracked_actions: HashMap::from([(ActionName::View, None)]),
@@ -854,6 +916,7 @@ mod tests {
 
         let mut policy_components_with_optimization = PolicyComponents {
             actor_id: None,
+            timestamp: Timestamp::UNIX_EPOCH,
             is_instance_admin: false,
             policies: policies_with_optimization,
             tracked_actions: HashMap::new(),
@@ -890,6 +953,7 @@ mod tests {
             actor_id: Some(ActorId::User(type_system::principal::actor::UserId::new(
                 Uuid::new_v4(),
             ))),
+            timestamp: Timestamp::UNIX_EPOCH,
             is_instance_admin: false,
             policies: vec![policy],
             tracked_actions: HashMap::from([(ActionName::View, None)]),

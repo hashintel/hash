@@ -14452,6 +14452,7 @@ __metadata:
     "@rust/error-stack": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-codegen": "workspace:*"
+    "@rust/hash-graph-temporal-versioning": "workspace:*"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft

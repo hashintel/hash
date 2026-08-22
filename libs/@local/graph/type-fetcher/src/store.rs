@@ -14,9 +14,9 @@ use hash_graph_authorization::policies::{
         error::{
             BuildDataTypeContextError, BuildEntityContextError, BuildEntityTypeContextError,
             BuildPrincipalContextError, BuildPropertyTypeContextError, CreatePolicyError,
-            DetermineActorError, EnsureSystemPoliciesError, GetPoliciesError,
-            GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
-            UpdatePolicyError, WebCreationError, WebRoleError,
+            CurrentTimestampError, DetermineActorError, EnsureSystemPoliciesError,
+            GetPoliciesError, GetSystemAccountError, RemovePolicyError, RoleAssignmentError,
+            TeamRoleError, UpdatePolicyError, WebCreationError, WebRoleError,
         },
     },
 };
@@ -252,6 +252,19 @@ where
         actor_entity_uuid: ActorEntityUuid,
     ) -> Result<Option<ActorId>, Report<DetermineActorError>> {
         self.store.determine_actor(actor_entity_uuid).await
+    }
+
+    async fn determine_actor_with_timestamp(
+        &self,
+        actor_entity_uuid: ActorEntityUuid,
+    ) -> Result<(Option<ActorId>, Timestamp<()>), Report<DetermineActorError>> {
+        self.store
+            .determine_actor_with_timestamp(actor_entity_uuid)
+            .await
+    }
+
+    async fn current_timestamp(&self) -> Result<Timestamp<()>, Report<CurrentTimestampError>> {
+        self.store.current_timestamp().await
     }
 
     async fn build_principal_context(
