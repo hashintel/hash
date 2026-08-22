@@ -9,6 +9,7 @@ import { v4 as generateUuid } from "uuid";
 import {
   createMonteCarloExperiment,
   compileScenario,
+  synthesizeAdHocScenario,
   type InitialMarking,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
@@ -335,6 +336,36 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
       parameterValues = compiledScenario.result.parameterValues;
       initialMarking = compiledScenario.result.initialState;
+    } else if (input.adHocScenario) {
+      const synthesized = synthesizeAdHocScenario(input.adHocScenario, {
+        netParameters: globalParameters,
+        places: sdcpn.places,
+        types: sdcpn.types,
+      });
+      if (!synthesized.ok) {
+        throw new Error(
+          synthesized.errors
+            .map((error) => `${error.source}:${error.itemId} ${error.message}`)
+            .join("\n"),
+        );
+      }
+
+      const compiledScenario = compileScenario(
+        synthesized.scenario,
+        globalParameters,
+        sdcpn.places,
+        sdcpn.types,
+      );
+      if (!compiledScenario.ok) {
+        throw new Error(
+          compiledScenario.errors
+            .map((error) => `${error.source}:${error.itemId} ${error.message}`)
+            .join("\n"),
+        );
+      }
+
+      parameterValues = compiledScenario.result.parameterValues;
+      initialMarking = compiledScenario.result.initialState;
     }
 
     const experimentId = generateUuid();
@@ -343,7 +374,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       name: input.name.trim(),
       createdAt: Date.now(),
       scenarioId: input.scenarioId,
-      scenarioName: selectedScenario?.name ?? null,
+      scenarioName:
+        selectedScenario?.name ??
+        (input.adHocScenario ? "Ad-hoc scenario" : null),
       runCount: input.runCount,
       seed: input.seed,
       dt: input.dt,
