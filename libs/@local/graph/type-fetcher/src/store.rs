@@ -1002,10 +1002,6 @@ where
         self.store.get_user_kratos_identity_id(user_id).await
     }
 
-    async fn get_user_emails(&self, user_id: UserId) -> Result<Vec<String>, Report<GetActorError>> {
-        self.store.get_user_emails(user_id).await
-    }
-
     async fn get_machine_by_id(
         &self,
         actor_id: ActorEntityUuid,

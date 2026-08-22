@@ -21,6 +21,18 @@ pub(crate) enum EmailLookupError {
 struct AdminIdentity {
     id: String,
     metadata_public: Option<MetadataPublic>,
+    #[serde(default)]
+    traits: IdentityTraits,
+}
+
+/// The identity traits the Graph reads.
+///
+/// An identity created outside the registration flow may carry no traits at all, so the addresses
+/// default to none rather than failing the read.
+#[derive(Default, Deserialize)]
+struct IdentityTraits {
+    #[serde(default)]
+    emails: Vec<String>,
 }
 
 /// A Kratos identity resolved to its provisioned Graph actor.
@@ -183,6 +195,48 @@ impl IdentityProvider for KratosIdentityProvider {
         }
 
         Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip(self), fields(kratos_url = %self.admin_url))]
+    async fn get_identity_emails(
+        &self,
+        identity_id: &str,
+    ) -> Result<Vec<String>, Report<IdentityProviderError>> {
+        let mut url = self.admin_url.clone();
+        url.path_segments_mut()
+            .expect("admin URL is not a cannot-be-a-base URL")
+            .extend(["admin", "identities", identity_id]);
+
+        let response = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .change_context(IdentityProviderError::LookupFailed)?;
+
+        // An identity deleted between resolution and this read holds no addresses.
+        let status = response.status();
+        if status == reqwest::StatusCode::NOT_FOUND {
+            tracing::info!(%identity_id, "Kratos identity no longer exists");
+            return Ok(Vec::new());
+        }
+
+        // `error_for_status` only covers 4xx/5xx — with redirects disabled, a 3xx has to be
+        // rejected here as well.
+        if !status.is_success() {
+            return Err(Report::new(IdentityProviderError::LookupFailed)
+                .attach(format!("Kratos responded with status {status}")));
+        }
+
+        // A `reqwest::Error` renders the URL it failed on, which carries the identity ID. The
+        // span already records the base URL.
+        let identity: AdminIdentity = response
+            .json()
+            .await
+            .map_err(reqwest::Error::without_url)
+            .change_context(IdentityProviderError::LookupFailed)?;
+
+        Ok(identity.traits.emails)
     }
 }
 
