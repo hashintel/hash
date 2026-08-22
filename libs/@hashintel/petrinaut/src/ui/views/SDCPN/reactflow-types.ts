@@ -71,15 +71,33 @@ export type ComponentInstanceNodeType = Node<
   "componentInstance"
 >;
 
+/**
+ * Data for the frame node rendered when a component instance is expanded in
+ * place (FE-874 prototype). The node id is the component instance id; the
+ * subnet's internal elements are separate child nodes.
+ */
+export type ComponentInstanceExpandedNodeData = {
+  label: string;
+  type: "componentInstanceExpanded";
+  subnetName: string;
+};
+
+export type ComponentInstanceExpandedNodeType = Node<
+  ComponentInstanceExpandedNodeData,
+  "componentInstanceExpanded"
+>;
+
 export type NodeData =
   | PlaceNodeData
   | TransitionNodeData
-  | ComponentInstanceNodeData;
+  | ComponentInstanceNodeData
+  | ComponentInstanceExpandedNodeData;
 
 export type NodeType =
   | TransitionNodeType
   | PlaceNodeType
-  | ComponentInstanceNodeType;
+  | ComponentInstanceNodeType
+  | ComponentInstanceExpandedNodeType;
 
 export type EdgeType = ArcType;
 
