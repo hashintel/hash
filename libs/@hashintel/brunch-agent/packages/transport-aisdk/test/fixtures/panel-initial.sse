@@ -1,0 +1,31 @@
+data: {"type":"start","messageId":"assistant-fe1435-1"}
+
+data: {"type":"start-step"}
+
+data: {"type":"reasoning-start","id":"reasoning-fe1435-1"}
+
+data: {"type":"reasoning-delta","id":"reasoning-fe1435-1","delta":"**Checking the wire seam**\n\nThe harness stream is translating reasoning parts."}
+
+data: {"type":"reasoning-delta","id":"reasoning-fe1435-1","delta":" It will now drive both server and browser tools."}
+
+data: {"type":"reasoning-end","id":"reasoning-fe1435-1"}
+
+data: {"type":"text-start","id":"text-fe1435-1"}
+
+data: {"type":"text-delta","id":"text-fe1435-1","delta":"Harness-streamed text reached Petrinaut before tool execution."}
+
+data: {"type":"text-end","id":"text-fe1435-1"}
+
+data: {"type":"tool-input-available","toolCallId":"tool-server-fe1435","toolName":"serverProbe","input":{"scope":"real-panel"},"providerExecuted":true}
+
+data: {"type":"tool-output-available","toolCallId":"tool-server-fe1435","output":{"ok":true,"source":"fake-harness-loop"},"providerExecuted":true}
+
+data: {"type":"tool-input-available","toolCallId":"tool-place-fe1435","toolName":"addPlace","input":{"id":"place__fe1435_buffer","name":"SpikeBuffer","colorId":null,"dynamicsEnabled":false,"differentialEquationId":null,"showAsInitialState":true,"x":180,"y":140}}
+
+data: {"type":"tool-input-available","toolCallId":"tool-transition-fe1435","toolName":"addTransition","input":{"id":"transition__fe1435_dispatch","name":"Spike dispatch","inputArcs":[],"outputArcs":[],"lambdaType":"predicate","lambdaCode":"export const Lambda = () => true;","transitionKernelCode":"export const TransitionKernel = () => ({});","x":420,"y":140}}
+
+data: {"type":"finish-step"}
+
+data: {"type":"finish","finishReason":"tool-calls"}
+
+data: [DONE]

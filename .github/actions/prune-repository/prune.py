@@ -6,6 +6,7 @@ Handles cyclic and extra dependencies that turbo's dependency graph doesn't trac
 
 import argparse
 import json
+import shutil
 import subprocess
 from collections.abc import Iterable
 from glob import glob
@@ -36,6 +37,25 @@ EXTRA_DEPENDENCIES: dict[str, list[str]] = {
     # Test data crates
     "@blockprotocol/type-system-rs": ["@rust/hash-graph-test-data"],
     "@rust/hash-graph-types": ["@rust/hash-graph-test-data"],
+    # Brunch architecture tests scan the whole package family via the app,
+    # which depends on every Brunch library
+    "@hashintel/brunch-agent": ["@apps/brunch-agent"],
+}
+
+# Non-workspace paths required by packages in the scope. `turbo prune` copies
+# workspace directories and root manifests only, so paths outside every
+# workspace are copied into the pruned output after it runs. Rules trigger on
+# the same prefix matching as EXTRA_DEPENDENCIES.
+EXTRA_PATHS: dict[str, list[str]] = {
+    # The Brunch context root is deliberately not a workspace, but the
+    # architecture tests in packages/core read its docs, scripts, and agent
+    # contract files
+    "@hashintel/brunch-agent": [
+        "libs/@hashintel/brunch-agent/AGENTS.md",
+        "libs/@hashintel/brunch-agent/CONTEXT.md",
+        "libs/@hashintel/brunch-agent/docs",
+        "libs/@hashintel/brunch-agent/scripts",
+    ],
 }
 
 TURBO_QUERY = """
@@ -121,6 +141,35 @@ def turbo_prune(scopes: Iterable[str], *, dry_run: bool = False) -> None:
     subprocess.run(args, check=True)
 
 
+def copy_extra_paths(scopes: Iterable[str], *, dry_run: bool = False) -> None:
+    """Copy non-workspace paths that `turbo prune` cannot include."""
+
+    scope_names = list(scopes)
+
+    for trigger, paths in EXTRA_PATHS.items():
+        if not any(name.startswith(trigger) for name in scope_names):
+            continue
+
+        for path in paths:
+            source = Path(path)
+            if not source.exists():
+                msg = f"EXTRA_PATHS names {source}, which does not exist"
+                raise FileNotFoundError(msg)
+
+            destination = Path("out") / source
+
+            if dry_run:
+                print(f"[dry-run] Would copy: {source} -> {destination}")
+                continue
+
+            print(f"Copying extra path: {source} -> {destination}")
+            if source.is_dir():
+                shutil.copytree(source, destination, dirs_exist_ok=True)
+            else:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, destination)
+
+
 def resolve_workspace_members() -> list[Path]:
     """Read workspace members from Cargo.toml and resolve globs to Cargo.toml paths."""
 
@@ -194,6 +243,7 @@ def main(argv: list[str] | None = None) -> None:
     dependencies = turbo_dependency_map()
     scopes = fixpoint_expand(initial, dependencies)
     turbo_prune(scopes, dry_run=args.dry_run)
+    copy_extra_paths(scopes, dry_run=args.dry_run)
     stub_missing_members(dry_run=args.dry_run)
 
 

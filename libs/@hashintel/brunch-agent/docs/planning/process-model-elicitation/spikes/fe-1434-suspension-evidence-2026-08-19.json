@@ -1,0 +1,168 @@
+{
+  "probe": "FE-1434 Flue client-tool suspension",
+  "probeSourceCommit": "4df6f86b6881653c3400eca101df01d21211dba1",
+  "probeSourcePathAtCommit": "apps/dev/test/flue-client-tool-suspension.probe.ts",
+  "commandAtCommit": "node --experimental-strip-types apps/dev/test/flue-client-tool-suspension.probe.ts",
+  "probeSourceDisposition": "Removed from the branch head after evidence capture; spike code is disposable and only this normalized evidence plus the verdict persist.",
+  "flueVersion": "2.0.3",
+  "carrier": "signal delivery containing a toolCallId-keyed result batch",
+  "nativeToolResultDelivery": {
+    "rejected": true,
+    "status": 400,
+    "errorType": "invalid_request"
+  },
+  "scenarios": [
+    {
+      "batchSize": 3,
+      "dispatches": { "request": 1, "resultReturn": 1, "total": 2 },
+      "modelTurns": 2,
+      "terminatingToolOutcomes": 3,
+      "suspensionBoundary": {
+        "firstSubmissionOutcome": "completed",
+        "modelTurnsBeforeResume": 1,
+        "resultSignalPresentBeforeResume": false
+      },
+      "toolCallIdCoverage": {
+        "pendingCount": 3,
+        "resultCount": 3,
+        "first": "batch-003-call-001",
+        "last": "batch-003-call-003",
+        "exactMatch": true
+      },
+      "resultDeliveryProjection": {
+        "role": "system",
+        "purpose": "dispatch",
+        "display": "diagnostic",
+        "tagName": "client-tool-results",
+        "sweepKind": "non-user"
+      },
+      "stateSurvivedResume": true,
+      "allResultsReachedModel": true,
+      "evidenceAttempt": {
+        "excerpt": "batch-003-result-001",
+        "outcome": "refused",
+        "refusalCode": "non-user-evidence",
+        "refusalMessage": "The quote \"batch-003-result-001\" occurs only in injected non-user entries and cannot be cited as user evidence."
+      },
+      "normalizedTranscript": [
+        {
+          "role": "user",
+          "purpose": "user",
+          "display": "visible",
+          "text": "Queue 3 client mutations.",
+          "tools": []
+        },
+        {
+          "role": "assistant",
+          "purpose": "assistant",
+          "display": "visible",
+          "text": "",
+          "tools": [
+            {
+              "toolName": "probe_client_mutation",
+              "toolCallId": "batch-003-call-001",
+              "state": "output-available",
+              "input": { "batchId": "batch-003", "operation": "mutation-001" },
+              "output": {
+                "status": "pending-client",
+                "batchId": "batch-003",
+                "toolCallId": "batch-003-call-001",
+                "operation": "mutation-001"
+              }
+            },
+            {
+              "toolName": "probe_client_mutation",
+              "toolCallId": "batch-003-call-002",
+              "state": "output-available",
+              "input": { "batchId": "batch-003", "operation": "mutation-002" },
+              "output": {
+                "status": "pending-client",
+                "batchId": "batch-003",
+                "toolCallId": "batch-003-call-002",
+                "operation": "mutation-002"
+              }
+            },
+            {
+              "toolName": "probe_client_mutation",
+              "toolCallId": "batch-003-call-003",
+              "state": "output-available",
+              "input": { "batchId": "batch-003", "operation": "mutation-003" },
+              "output": {
+                "status": "pending-client",
+                "batchId": "batch-003",
+                "toolCallId": "batch-003-call-003",
+                "operation": "mutation-003"
+              }
+            }
+          ]
+        },
+        {
+          "role": "system",
+          "purpose": "dispatch",
+          "display": "diagnostic",
+          "signal": {
+            "tagName": "client-tool-results",
+            "attributes": { "batchId": "batch-003", "resultCount": "3" }
+          },
+          "text": "{\"batchId\":\"batch-003\",\"results\":[{\"toolCallId\":\"batch-003-call-001\",\"output\":\"batch-003-result-001\"},{\"toolCallId\":\"batch-003-call-002\",\"output\":\"batch-003-result-002\"},{\"toolCallId\":\"batch-003-call-003\",\"output\":\"batch-003-result-003\"}]}",
+          "tools": []
+        },
+        {
+          "role": "system",
+          "purpose": "dispatch",
+          "display": "diagnostic",
+          "signal": {
+            "tagName": "client-tool-results-bound",
+            "attributes": {
+              "batchId": "batch-003",
+              "pendingCount": "3",
+              "returnedCount": "3"
+            }
+          },
+          "text": "{\"batchId\":\"batch-003\",\"pendingToolCallIds\":[\"batch-003-call-001\",\"batch-003-call-002\",\"batch-003-call-003\"],\"returnedToolCallIds\":[\"batch-003-call-001\",\"batch-003-call-002\",\"batch-003-call-003\"]}",
+          "tools": []
+        },
+        {
+          "role": "assistant",
+          "purpose": "assistant",
+          "display": "visible",
+          "text": "Three client results were bound.",
+          "tools": []
+        }
+      ]
+    },
+    {
+      "batchSize": 100,
+      "dispatches": { "request": 1, "resultReturn": 1, "total": 2 },
+      "modelTurns": 2,
+      "terminatingToolOutcomes": 100,
+      "suspensionBoundary": {
+        "firstSubmissionOutcome": "completed",
+        "modelTurnsBeforeResume": 1,
+        "resultSignalPresentBeforeResume": false
+      },
+      "toolCallIdCoverage": {
+        "pendingCount": 100,
+        "resultCount": 100,
+        "first": "batch-100-call-001",
+        "last": "batch-100-call-100",
+        "exactMatch": true
+      },
+      "resultDeliveryProjection": {
+        "role": "system",
+        "purpose": "dispatch",
+        "display": "diagnostic",
+        "tagName": "client-tool-results",
+        "sweepKind": "non-user"
+      },
+      "stateSurvivedResume": true,
+      "allResultsReachedModel": true,
+      "evidenceAttempt": {
+        "excerpt": "batch-100-result-001",
+        "outcome": "refused",
+        "refusalCode": "non-user-evidence",
+        "refusalMessage": "The quote \"batch-100-result-001\" occurs only in injected non-user entries and cannot be cited as user evidence."
+      }
+    }
+  ]
+}
