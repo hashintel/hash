@@ -3,7 +3,7 @@
  */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
 import { EMPTY_AD_HOC_STATE } from "./state";
@@ -12,6 +12,26 @@ import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
 } from "@hashintel/petrinaut-core";
+
+// Monaco cannot run in jsdom; the expression editor becomes a plain textarea.
+vi.mock("../../monaco/code-editor", () => ({
+  CodeEditor: ({
+    onChange,
+    value,
+    placeholder,
+  }: {
+    onChange: (value: string | undefined) => void;
+    value?: string;
+    placeholder?: string;
+  }) => (
+    <textarea
+      aria-label="Expression"
+      placeholder={placeholder}
+      value={value ?? ""}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  ),
+}));
 
 // jsdom provides neither observer, but the value editor's popover schedules
 // @floating-ui/dom's autoUpdate on an animation frame, which constructs both.
@@ -92,8 +112,16 @@ const Harness: React.FC<{
   );
 };
 
+const colouredPlace = (state: AdHocScenarioState | undefined) => {
+  const place = state?.places["place-pumps"];
+  if (place?.kind !== "coloured") {
+    throw new Error("expected a coloured place state");
+  }
+  return place;
+};
+
 describe("AdHocScenarioForm", () => {
-  it("adds fixed and template rows to a coloured place", () => {
+  it("materializes the phantom row into a fixed row", () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
@@ -104,17 +132,62 @@ describe("AdHocScenarioForm", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Add row" }));
-    fireEvent.click(screen.getByRole("button", { name: "Add template" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
 
-    const place = latest?.places["place-pumps"];
-    if (place?.kind !== "coloured") {
-      throw new Error("expected a coloured place state");
+    const place = colouredPlace(latest);
+    expect(place.rows).toHaveLength(1);
+    expect(place.rows[0]?.kind).toBe("fixed");
+    // The gutter shows the row's ordinal, and a fresh phantom row follows.
+    expect(
+      screen.getByRole("button", { name: "Cycle kind of row 1" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    ).toBeTruthy();
+  });
+
+  it("cycles a row's kind from the gutter: fixed → dynamic → optimized → fixed", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        optimizable
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+
+    const gutter = () =>
+      screen.getByRole("button", { name: "Cycle kind of row 1" });
+
+    fireEvent.click(gutter());
+    let place = colouredPlace(latest);
+    expect(place.rows[0]?.kind).toBe("template");
+    // The dynamic row carries the quiet count strip with its count slot.
+    expect(
+      screen.getByRole("button", { name: "Pumps › item 0 › count" }),
+    ).toBeTruthy();
+
+    fireEvent.click(gutter());
+    place = colouredPlace(latest);
+    const row = place.rows[0];
+    if (row?.kind !== "template") {
+      throw new Error("expected a dynamic row");
     }
-    expect(place.rows.map((row) => row.kind)).toEqual(["fixed", "template"]);
-    // The template gained a count strip and the fixed row shows its ordinal.
-    expect(screen.getByText("#1")).toBeTruthy();
-    expect(screen.getByText("i")).toBeTruthy();
+    expect(row.count.optimize).toEqual({
+      min: "0",
+      max: "10",
+      scale: "linear",
+    });
+
+    fireEvent.click(gutter());
+    place = colouredPlace(latest);
+    expect(place.rows[0]?.kind).toBe("fixed");
   });
 
   it("shares a column, seeding from the first row, and un-shares it back", () => {
@@ -127,38 +200,38 @@ describe("AdHocScenarioForm", () => {
         }}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Add row" }));
-    fireEvent.click(screen.getByRole("button", { name: "Add row" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
 
     const header = screen.getByRole("button", {
       name: "Share column pressure",
     });
     fireEvent.click(header);
 
-    const place = latest?.places["place-pumps"];
-    if (place?.kind !== "coloured") {
-      throw new Error("expected a coloured place state");
-    }
+    const place = colouredPlace(latest);
     expect(place.sharedColumns["pressure"]?.expression).toBe("0");
     expect(header.getAttribute("aria-pressed")).toBe("true");
 
     fireEvent.click(header);
-    const after = latest?.places["place-pumps"];
-    if (after?.kind !== "coloured") {
-      throw new Error("expected a coloured place state");
-    }
+    const after = colouredPlace(latest);
     expect(after.sharedColumns["pressure"]).toBeUndefined();
     expect(after.retainedSharedColumns?.["pressure"]).toBeTruthy();
   });
 
   it("hides every Optimize control when optimizable is off", () => {
     render(<Harness optimizable={false} />);
-    fireEvent.click(screen.getByRole("button", { name: "Add row" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
     expect(screen.queryByText("Optimize")).toBeNull();
     expect(screen.queryByRole("switch", { name: /Optimize/ })).toBeNull();
   });
 
-  it("keeps the uncoloured count as an expression slot", async () => {
+  it("edits the uncoloured count as an expression", async () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
@@ -169,10 +242,8 @@ describe("AdHocScenarioForm", () => {
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Token count of Queue" }),
-    );
-    const input = await screen.findByRole("textbox");
+    fireEvent.click(screen.getByRole("button", { name: "Queue › count" }));
+    const input = await screen.findByRole("textbox", { name: "Expression" });
     fireEvent.change(input, { target: { value: "parameters.rate * 4" } });
 
     const place = latest?.places["place-queue"];
@@ -180,5 +251,64 @@ describe("AdHocScenarioForm", () => {
       throw new Error("expected an uncoloured place state");
     }
     expect(place.count.expression).toBe("parameters.rate * 4");
+  });
+
+  it("renders a synthesis error on the closed slot's trigger", () => {
+    const initial: AdHocScenarioState = {
+      variables: [],
+      netParameters: [],
+      places: {
+        "place-pumps": {
+          kind: "coloured",
+          variables: [],
+          rows: [
+            {
+              kind: "fixed",
+              cells: [
+                {
+                  expression: "1",
+                  optimize: { min: "nope", max: "1", scale: "linear" },
+                },
+                { expression: "false", optimize: null },
+              ],
+            },
+          ],
+          sharedColumns: {},
+        },
+      },
+    };
+    render(<Harness optimizable initial={initial} />);
+
+    const trigger = screen.getByRole("button", {
+      name: "Pumps › item 0 › pressure",
+    });
+    expect(trigger.getAttribute("title")).toContain("nope");
+  });
+
+  it("shows the place total, unresolved when a count is optimized", () => {
+    const initial: AdHocScenarioState = {
+      variables: [],
+      netParameters: [],
+      places: {
+        "place-pumps": {
+          kind: "coloured",
+          variables: [],
+          rows: [
+            { kind: "fixed", cells: [] },
+            {
+              kind: "template",
+              count: {
+                expression: "4",
+                optimize: { min: "0", max: "10", scale: "linear" },
+              },
+              cells: [],
+            },
+          ],
+          sharedColumns: {},
+        },
+      },
+    };
+    render(<Harness optimizable initial={initial} />);
+    expect(screen.getByText("= 1 + 0 … 10 tokens")).toBeTruthy();
   });
 });

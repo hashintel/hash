@@ -4,6 +4,7 @@ import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
 import { EMPTY_AD_HOC_STATE } from "./state";
 
 import type {
+  AdHocColouredPlace,
   AdHocScenarioState,
   AdHocSynthesisContext,
 } from "@hashintel/petrinaut-core";
@@ -20,36 +21,41 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-const context: AdHocSynthesisContext = {
+/**
+ * The Satellites Launcher net from the design thread: a coloured Space place
+ * whose tokens are satellites (x, y, direction, velocity), an uncoloured
+ * Debris place, and the two net parameters the orbit maths reads.
+ */
+const satellitesContext: AdHocSynthesisContext = {
   netParameters: [
     {
-      id: "param-rate",
-      name: "Failure rate",
-      variableName: "failure_rate",
+      id: "param-radius",
+      name: "Planet radius",
+      variableName: "planet_radius",
       type: "real",
-      defaultValue: "0.02",
+      defaultValue: "6371",
     },
     {
-      id: "param-crews",
-      name: "Repair crews",
-      variableName: "repair_crews",
-      type: "integer",
-      defaultValue: "3",
+      id: "param-gravitation",
+      name: "Gravitational constant",
+      variableName: "gravitational_constant",
+      type: "real",
+      defaultValue: "398600",
     },
   ],
   places: [
     {
-      id: "place-trucks",
-      name: "Trucks",
-      colorId: "colour-truck",
+      id: "place-space",
+      name: "Space",
+      colorId: "colour-satellite",
       dynamicsEnabled: false,
       differentialEquationId: null,
       x: 0,
       y: 0,
     },
     {
-      id: "place-depot",
-      name: "Depot",
+      id: "place-debris",
+      name: "Debris",
       colorId: null,
       dynamicsEnabled: false,
       differentialEquationId: null,
@@ -59,65 +65,169 @@ const context: AdHocSynthesisContext = {
   ],
   types: [
     {
-      id: "colour-truck",
-      name: "Truck",
+      id: "colour-satellite",
+      name: "Satellite",
       iconSlug: "circle",
       displayColor: "#3676b8",
       elements: [
-        { elementId: "e1", name: "mileage", type: "real" },
-        { elementId: "e2", name: "age", type: "integer" },
-        { elementId: "e3", name: "inService", type: "boolean" },
+        { elementId: "e1", name: "x", type: "real" },
+        { elementId: "e2", name: "y", type: "real" },
+        { elementId: "e3", name: "direction", type: "real" },
+        { elementId: "e4", name: "velocity", type: "real" },
       ],
     },
   ],
 };
 
-const initialState: AdHocScenarioState = {
+const satellitesSpace: AdHocColouredPlace = {
+  kind: "coloured",
   variables: [
     {
-      name: "fleetMileage",
+      name: "angle",
       type: "real",
-      expression: "120000",
+      expression: "Math.PI * 2 * (i / count)",
+      optimize: null,
+    },
+    {
+      name: "distance",
+      type: "real",
+      expression: "parameters.planet_radius + scenario.altitude",
       optimize: null,
     },
   ],
-  netParameters: [],
-  places: {
-    "place-trucks": {
-      kind: "coloured",
-      variables: [],
-      rows: [
+  rows: [
+    {
+      kind: "template",
+      count: { expression: "scenario.n_satellites", optimize: null },
+      cells: [
+        { expression: "Math.cos(angle) * distance", optimize: null },
+        { expression: "Math.sin(angle) * distance", optimize: null },
+        { expression: "angle + Math.PI / 2", optimize: null },
         {
-          kind: "fixed",
-          cells: [
-            { expression: "fleetMileage", optimize: null },
-            { expression: "3", optimize: null },
-            { expression: "true", optimize: null },
-          ],
-        },
-        {
-          kind: "template",
-          count: { expression: "5", optimize: null },
-          cells: [
-            { expression: "fleetMileage + i * 10000", optimize: null },
-            { expression: "i", optimize: null },
-            { expression: "true", optimize: null },
-          ],
+          expression: "Math.sqrt(parameters.gravitational_constant / distance)",
+          optimize: null,
         },
       ],
-      sharedColumns: {},
     },
-    "place-depot": {
+    {
+      kind: "fixed",
+      cells: [
+        { expression: "0", optimize: null },
+        { expression: "distance", optimize: null },
+        { expression: "0", optimize: null },
+        { expression: "0", optimize: null },
+      ],
+    },
+  ],
+  sharedColumns: {},
+};
+
+const satellitesState: AdHocScenarioState = {
+  variables: [
+    { name: "altitude", type: "real", expression: "400", optimize: null },
+    { name: "n_satellites", type: "integer", expression: "12", optimize: null },
+  ],
+  netParameters: [],
+  places: {
+    "place-space": satellitesSpace,
+    "place-debris": {
       kind: "uncoloured",
-      count: { expression: "parameters.repair_crews", optimize: null },
+      count: { expression: "40", optimize: null },
     },
   },
 };
 
-const Demo: React.FC<{ optimizable: boolean }> = ({ optimizable }) => {
-  const [state, setState] = useState(initialState);
+const optimizedSatellitesState: AdHocScenarioState = {
+  ...satellitesState,
+  variables: [
+    {
+      ...satellitesState.variables[0]!,
+      optimize: { min: "200", max: "2000", scale: "log" },
+    },
+    satellitesState.variables[1]!,
+  ],
+  places: {
+    ...satellitesState.places,
+    "place-space": {
+      ...satellitesSpace,
+      rows: [
+        {
+          kind: "template",
+          count: {
+            expression: "scenario.n_satellites",
+            optimize: { min: "1", max: "24", scale: "linear" },
+          },
+          cells: satellitesSpace.rows[0]!.cells,
+        },
+      ],
+    },
+  },
+};
+
+const sharedColumnState: AdHocScenarioState = {
+  ...satellitesState,
+  places: {
+    ...satellitesState.places,
+    "place-space": {
+      ...satellitesSpace,
+      sharedColumns: {
+        velocity: { expression: "7.66", optimize: null },
+      },
+    },
+  },
+};
+
+/** A second, simpler model: one two-field colour and no net parameters. */
+const pumpsContext: AdHocSynthesisContext = {
+  netParameters: [],
+  places: [
+    {
+      id: "place-pumps",
+      name: "Pumps",
+      colorId: "colour-pump",
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    },
+    {
+      id: "place-queue",
+      name: "Queue",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    },
+  ],
+  types: [
+    {
+      id: "colour-pump",
+      name: "Pump",
+      iconSlug: "circle",
+      displayColor: "#000000",
+      elements: [
+        { elementId: "e1", name: "pressure", type: "real" },
+        { elementId: "e2", name: "worn", type: "boolean" },
+      ],
+    },
+  ],
+};
+
+const emptyContext: AdHocSynthesisContext = {
+  netParameters: [],
+  places: [],
+  types: [],
+};
+
+const Demo: React.FC<{
+  context: AdHocSynthesisContext;
+  initial: AdHocScenarioState;
+  optimizable: boolean;
+}> = ({ context, initial, optimizable }) => {
+  const [state, setState] = useState(initial);
   return (
-    <div style={{ width: 720 }}>
+    <div style={{ width: 820 }}>
       <AdHocScenarioForm
         state={state}
         onChange={setState}
@@ -128,28 +238,46 @@ const Demo: React.FC<{ optimizable: boolean }> = ({ optimizable }) => {
   );
 };
 
-export const ForOptimization: Story = {
-  render: () => <Demo optimizable />,
+export const Satellites: Story = {
+  render: () => (
+    <Demo context={satellitesContext} initial={satellitesState} optimizable />
+  ),
 };
 
-export const ForPlainRuns: Story = {
-  render: () => <Demo optimizable={false} />,
+export const SatellitesForPlainRuns: Story = {
+  render: () => (
+    <Demo
+      context={satellitesContext}
+      initial={satellitesState}
+      optimizable={false}
+    />
+  ),
 };
 
-const EmptyDemo: React.FC = () => {
-  const [state, setState] = useState(EMPTY_AD_HOC_STATE);
-  return (
-    <div style={{ width: 720 }}>
-      <AdHocScenarioForm
-        state={state}
-        onChange={setState}
-        context={context}
-        optimizable
-      />
-    </div>
-  );
+export const SatellitesOptimized: Story = {
+  render: () => (
+    <Demo
+      context={satellitesContext}
+      initial={optimizedSatellitesState}
+      optimizable
+    />
+  ),
 };
 
-export const Empty: Story = {
-  render: () => <EmptyDemo />,
+export const SharedColumn: Story = {
+  render: () => (
+    <Demo context={satellitesContext} initial={sharedColumnState} optimizable />
+  ),
+};
+
+export const TwoFieldModel: Story = {
+  render: () => (
+    <Demo context={pumpsContext} initial={EMPTY_AD_HOC_STATE} optimizable />
+  ),
+};
+
+export const EmptyNet: Story = {
+  render: () => (
+    <Demo context={emptyContext} initial={EMPTY_AD_HOC_STATE} optimizable />
+  ),
 };
