@@ -52,6 +52,27 @@ pub(crate) const DEFAULT_CONSTRUCTIONS: &[usize] = &[128, 256];
 /// The list covers the deployed setting, one value below it, and two above.
 pub(crate) const DEFAULT_SEARCHES: &[usize] = &[64, 128, 192, 256];
 
+// The grids are pinned sweep designs rather than derivations, so comparability against recorded
+// full-scale sweeps survives a deployment change. This holds the doc claims above to the deployed
+// values: a moved default fails compilation here instead of silently leaving the swept grid
+// without the deployed setting.
+const _: () = {
+    const fn contains(values: &[usize], value: usize) -> bool {
+        let mut index = 0;
+        while index < values.len() {
+            if values[index] == value {
+                return true;
+            }
+            index += 1;
+        }
+        false
+    }
+
+    let deployed = HannoyIndexOptions::default();
+    assert!(contains(DEFAULT_CONSTRUCTIONS, deployed.ef_construction));
+    assert!(contains(DEFAULT_SEARCHES, deployed.ef_search));
+};
+
 /// The sweep grid.
 #[derive(Debug, Clone)]
 pub(crate) struct Options {
