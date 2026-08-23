@@ -21,6 +21,7 @@ import {
   createUserKeyedRecord,
   metricSchema,
   petrinautOptimizationInputSchema,
+  adHocOptimizationBindings,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
 
@@ -713,8 +714,10 @@ export const CreateOptimizationDrawer = ({
         setError(formatAdHocSynthesisErrors(synthesized.errors));
         return;
       }
-      scenarioForRun = synthesized.scenario;
-      adHocBindings = synthesized.parameterBindings;
+      scenarioForRun = synthesized.output.scenario;
+      adHocBindings = adHocOptimizationBindings(
+        synthesized.output.optimizedFields,
+      );
     } else if (selectedScenario) {
       scenarioForRun = selectedScenario;
     } else {
