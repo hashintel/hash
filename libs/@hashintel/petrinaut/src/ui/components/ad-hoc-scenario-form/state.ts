@@ -114,12 +114,21 @@ export function updateCell(
   columnIndex: number,
   update: (cell: AdHocValue) => AdHocValue,
 ): AdHocColouredPlace {
-  return updateRow(place, rowIndex, (row) => ({
-    ...row,
-    cells: row.cells.map((cell, index) =>
-      index === columnIndex ? update(cell) : cell,
-    ),
-  }));
+  return updateRow(place, rowIndex, (row) => {
+    // A row created before its colour gained an element is shorter than the
+    // table; pad it so the edit lands instead of silently dropping.
+    const cells =
+      row.cells.length > columnIndex
+        ? [...row.cells]
+        : [
+            ...row.cells,
+            ...Array.from({ length: columnIndex + 1 - row.cells.length }, () =>
+              emptyValue(""),
+            ),
+          ];
+    cells[columnIndex] = update(cells[columnIndex]!);
+    return { ...row, cells };
+  });
 }
 
 export function replaceVariable(

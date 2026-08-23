@@ -234,6 +234,13 @@ export const TokenTable: React.FC<TokenTableProps> = ({
 
   const gridTemplateColumns = `${GUTTER_WIDTH} repeat(${elements.length}, minmax(0, 1fr)) ${REMOVE_WIDTH}`;
 
+  const openSharedEditor = (field: string) => {
+    setSharedAutoOpen((previous) => ({
+      field,
+      nonce: (previous?.nonce ?? 0) + 1,
+    }));
+  };
+
   const materializeRow = (column: number) => {
     const rowIndex = state.rows.length;
     onChange({
@@ -243,16 +250,16 @@ export const TokenTable: React.FC<TokenTableProps> = ({
         { kind: "fixed", cells: defaultCellsFor(elements) },
       ],
     });
+    // A shared column's cells are derived, so the fresh cell cannot be
+    // edited; its editor is the shared value's.
+    const field = elements[column]?.name;
+    if (field && state.sharedColumns[field]) {
+      openSharedEditor(field);
+      return;
+    }
     setMaterializedCell((previous) => ({
       row: rowIndex,
       column,
-      nonce: (previous?.nonce ?? 0) + 1,
-    }));
-  };
-
-  const openSharedEditor = (field: string) => {
-    setSharedAutoOpen((previous) => ({
-      field,
       nonce: (previous?.nonce ?? 0) + 1,
     }));
   };
@@ -314,7 +321,11 @@ export const TokenTable: React.FC<TokenTableProps> = ({
             className={cx(gutterStyle, gutterButtonStyle, tint)}
             aria-label={`Cycle kind of row ${rowIndex + 1}`}
             onClick={() =>
-              onChange(updateRow(state, rowIndex, cycleAdHocRowKind))
+              onChange(
+                updateRow(state, rowIndex, (current) =>
+                  cycleAdHocRowKind(current, optimizable),
+                ),
+              )
             }
           >
             <span
@@ -353,6 +364,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
               <ValueEditor
                 value={shared ?? cell}
                 target={target}
+                booleanDomain={element.type === "boolean"}
                 label={adHocTargetLabel(
                   shared
                     ? {
@@ -460,6 +472,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   label={adHocTargetLabel(target, formState, context)}
                   optimizable={optimizable}
                   integer={element.type === "integer"}
+                  booleanDomain={element.type === "boolean"}
                   autoOpen={
                     sharedAutoOpen?.field === element.name
                       ? sharedAutoOpen.nonce

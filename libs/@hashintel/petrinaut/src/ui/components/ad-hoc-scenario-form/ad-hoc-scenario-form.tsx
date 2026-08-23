@@ -183,12 +183,13 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                           : entry.expression ||
                             `default (${parameter.defaultValue})`
                       }
-                      optimizable={optimizable && parameter.type !== "boolean"}
+                      optimizable={optimizable}
                       integer={parameter.type === "integer"}
+                      booleanDomain={parameter.type === "boolean"}
                       onChange={(value) => setEntry({ ...entry, ...value })}
                     />
                   </div>
-                  {optimizable && parameter.type !== "boolean" ? (
+                  {optimizable ? (
                     <Toggle
                       size="xs"
                       aria-label={`Optimize ${parameter.name}`}

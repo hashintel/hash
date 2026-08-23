@@ -6,6 +6,8 @@
  * button, so an empty list renders nothing.
  */
 
+import { use } from "react";
+
 import { Button, Select, TextInput, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -13,6 +15,7 @@ import {
   toggleAdHocOptimize,
 } from "@hashintel/petrinaut-core";
 
+import { AdHocFormContext } from "./form-context";
 import { removeAt, replaceVariable } from "./state";
 import { ValueEditor } from "./value-editor";
 
@@ -60,6 +63,11 @@ const typeStyle = css({
   flex: "[0 0 auto]",
 });
 
+const nameErrorStyle = css({
+  fontSize: "[10px]",
+  color: "red.s100",
+});
+
 export interface VariableRowsProps {
   scopeLabel: string;
   /** `null` for top-level Variables, the owning place id otherwise. */
@@ -80,6 +88,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   formState,
   context,
 }) => {
+  const { errorFor } = use(AdHocFormContext);
+
   if (variables.length === 0) {
     return null;
   }
@@ -88,6 +98,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
     <div className={blockStyle} aria-label={scopeLabel}>
       {variables.map((variable, index) => {
         const target = { kind: "variable" as const, placeId, index };
+        const nameError = errorFor({ target, part: "name" });
         return (
           // Row identity is positional in the model.
           // eslint-disable-next-line react/no-array-index-key
@@ -98,20 +109,25 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                 variant="subtle"
                 aria-label={`Name of variable ${index + 1} (${scopeLabel})`}
                 value={variable.name}
+                invalid={nameError !== undefined}
                 onChange={(name) =>
                   onChange(
                     replaceVariable(variables, index, { ...variable, name }),
                   )
                 }
               />
+              {nameError ? (
+                <span className={nameErrorStyle}>{nameError}</span>
+              ) : null}
             </div>
             <div className={valueStyle}>
               <ValueEditor
                 label={adHocTargetLabel(target, formState, context)}
                 target={target}
                 value={variable}
-                optimizable={optimizable && variable.type !== "boolean"}
+                optimizable={optimizable}
                 integer={variable.type === "integer"}
+                booleanDomain={variable.type === "boolean"}
                 onChange={(value) =>
                   onChange(
                     replaceVariable(variables, index, {
