@@ -171,6 +171,59 @@ describe("ad-hoc session diagnostics", () => {
     ).toEqual([]);
   });
 
+  it("keeps a place variable's own and later siblings out of its scope", () => {
+    const state = makeState();
+    const place = state.places["pl1"];
+    if (place?.kind !== "coloured") {
+      throw new Error("fixture should be coloured");
+    }
+    place.variables = [
+      { name: "angle", type: "real", expression: "angle + 1", optimize: null },
+      { name: "later", type: "real", expression: "angle * 2", optimize: null },
+    ];
+
+    const server = makeServer(state);
+    // Self-reference fails, mirroring the generated const-declaration order.
+    expect(
+      slotDiagnostics(server, {
+        target: { kind: "variable", placeId: "pl1", index: 0 },
+        part: "expression",
+      }).join("\n"),
+    ).toContain("angle");
+    // An earlier sibling stays visible.
+    expect(
+      slotDiagnostics(server, {
+        target: { kind: "variable", placeId: "pl1", index: 1 },
+        part: "expression",
+      }),
+    ).toEqual([]);
+  });
+
+  it("ignores a reserved word used as a place variable name", () => {
+    const state = makeState();
+    const place = state.places["pl1"];
+    if (place?.kind !== "coloured") {
+      throw new Error("fixture should be coloured");
+    }
+    // `range` is a scenario helper; declaring it ambiently would break every
+    // slot file in the place.
+    place.variables = [
+      { name: "range", type: "real", expression: "1", optimize: null },
+    ];
+    place.rows[0]!.cells[0] = {
+      expression: "scenario.altitude + 1",
+      optimize: null,
+    };
+
+    const server = makeServer(state);
+    expect(
+      slotDiagnostics(server, {
+        target: { kind: "cell", placeId: "pl1", row: 0, column: 0 },
+        part: "expression",
+      }),
+    ).toEqual([]);
+  });
+
   it("generates no file for an empty expression and removes files on kill", () => {
     const state = makeState();
     const place = state.places["pl1"];
