@@ -13,6 +13,7 @@
  * upstream package directly.
  */
 import type { PetrinautExtensionSettings } from "../../extensions";
+import type { AdHocScenarioState } from "../../simulation/authoring/scenario/ad-hoc-scenario";
 import type { Scenario, ScenarioParameter, SDCPN } from "../../types/sdcpn";
 import type {
   Diagnostic,
@@ -44,6 +45,16 @@ export type ScenarioSessionParams = {
   initialStateCode?: string;
   /** Which initial state mode is active. Only the active mode's files are linted. */
   initialStateAsCode: boolean;
+};
+
+/**
+ * Data describing an ad-hoc scenario editing session for the language server.
+ * The server derives net context (parameters, places, colour types) from the
+ * SDCPN it already holds.
+ */
+export type AdHocSessionParams = {
+  sessionId: string;
+  state: AdHocScenarioState;
 };
 
 /**
@@ -98,6 +109,21 @@ type ClientNotification =
   | {
       jsonrpc: "2.0";
       method: "temp/scenario/kill";
+      params: { sessionId: string };
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/adhoc/initialize";
+      params: AdHocSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/adhoc/didChange";
+      params: AdHocSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/adhoc/kill";
       params: { sessionId: string };
     }
   | {

@@ -12,6 +12,7 @@ import type { HirCompileResult, ScenarioHir } from "../hir";
 import type { ReadableStore } from "../store";
 import type { Scenario, SDCPN } from "../types/sdcpn";
 import type {
+  AdHocSessionParams,
   ClientMessage,
   MetricSessionParams,
   PublishDiagnosticsParams,
@@ -67,6 +68,10 @@ export interface LanguageClient {
   initializeMetricSession(this: void, params: MetricSessionParams): void;
   updateMetricSession(this: void, params: MetricSessionParams): void;
   killMetricSession(this: void, sessionId: string): void;
+
+  initializeAdHocSession(this: void, params: AdHocSessionParams): void;
+  updateAdHocSession(this: void, params: AdHocSessionParams): void;
+  killAdHocSession(this: void, sessionId: string): void;
 
   // --- Requests (return Promise) ---
   requestCompletion(
@@ -302,6 +307,28 @@ export function createLanguageClient(
       sendNotification({
         jsonrpc: "2.0",
         method: "temp/metric/kill",
+        params: { sessionId },
+      });
+    },
+
+    initializeAdHocSession(params) {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/adhoc/initialize",
+        params,
+      });
+    },
+    updateAdHocSession(params) {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/adhoc/didChange",
+        params,
+      });
+    },
+    killAdHocSession(sessionId) {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/adhoc/kill",
         params: { sessionId },
       });
     },

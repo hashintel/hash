@@ -7,6 +7,12 @@ import {
   type PetrinautExtensionSettings,
 } from "../../extensions";
 import { AMBIENT_INPUT_NAMES, type DualFormSurfaceKind } from "../../hir";
+import {
+  adHocSlotKey,
+  type AdHocScenarioState,
+  type AdHocSlot,
+  type AdHocValue,
+} from "../../simulation/authoring/scenario/ad-hoc-scenario";
 import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../simulation/authoring/scenario/helpers";
 import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
 import { applyFormWrapper } from "./create-language-service-host";
@@ -758,6 +764,207 @@ export function generateMetricSessionFiles(
     content: session.code,
     suffix: `\n}`,
   });
+
+  return files;
+}
+
+/**
+ * Data required to generate virtual files for an ad-hoc scenario editing
+ * session. The SDCPN provides the net context (parameters, places, colour
+ * types); the state is the form's editing model.
+ */
+export type AdHocSessionData = {
+  sessionId: string;
+  state: AdHocScenarioState;
+};
+
+const AD_HOC_IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/u;
+
+/**
+ * Generates virtual files for an ad-hoc scenario editing session: one code
+ * file per non-empty value slot (cell, shared column, count, Variable, net
+ * parameter override, and each optimize bound), wrapped so the expression is
+ * type-checked as the slot's type. Scope mirrors the generated code: net
+ * parameters as `parameters.<name>`, top-level Variables as
+ * `scenario.<name>`, and inside a place's rows the per-place Variables plus
+ * `i` and `count`. Bounds must be constants, so they see only the top-level
+ * scope.
+ */
+export function generateAdHocSessionFiles(
+  sdcpn: SDCPN,
+  session: AdHocSessionData,
+): Map<string, VirtualFile> {
+  const files = new Map<string, VirtualFile>();
+  const { sessionId, state } = session;
+
+  const parametersDefsPath = getItemFilePath("parameters-defs");
+  const scenarioProps = state.variables
+    .filter((variable) => AD_HOC_IDENTIFIER_PATTERN.test(variable.name))
+    .map((variable) => `  "${variable.name}": ${toTsType(variable.type)};`)
+    .join("\n");
+  const scenarioTypeDecl =
+    scenarioProps.length > 0
+      ? `declare const scenario: {\n${scenarioProps}\n};`
+      : `declare const scenario: Record<string, never>;`;
+
+  const commonPrefix = [
+    `import type { Parameters } from "${parametersDefsPath}";`,
+    `declare const parameters: Parameters;`,
+    scenarioTypeDecl,
+    SCENARIO_HELPER_TYPE_DECLARATIONS,
+  ].join("\n");
+
+  files.set(getItemFilePath("adhoc-session-defs", { sessionId }), {
+    content: commonPrefix,
+  });
+
+  const addSlotFile = (
+    slot: AdHocSlot,
+    expression: string,
+    returnType: string,
+    extraDeclarations: string,
+  ): void => {
+    if (expression.trim() === "") {
+      return;
+    }
+    const filePath = getItemFilePath("adhoc-value-code", {
+      sessionId,
+      slotKey: adHocSlotKey(slot),
+    });
+    files.set(filePath, {
+      prefix: `${commonPrefix}\n${extraDeclarations}function __check(): ${returnType} { return (\n`,
+      content: expression,
+      suffix: `\n); }`,
+    });
+  };
+
+  const addValue = (
+    target: AdHocSlot["target"],
+    value: AdHocValue,
+    returnType: string,
+    extraDeclarations: string,
+  ): void => {
+    addSlotFile(
+      { target, part: "expression" },
+      value.expression,
+      returnType,
+      extraDeclarations,
+    );
+    if (value.optimize) {
+      addSlotFile({ target, part: "min" }, value.optimize.min, "number", "");
+      addSlotFile({ target, part: "max" }, value.optimize.max, "number", "");
+      if (value.optimize.step !== undefined) {
+        addSlotFile(
+          { target, part: "step" },
+          value.optimize.step,
+          "number",
+          "",
+        );
+      }
+    }
+  };
+
+  for (const [index, variable] of state.variables.entries()) {
+    addValue(
+      { kind: "variable", placeId: null, index },
+      variable,
+      toTsType(variable.type),
+      "",
+    );
+  }
+
+  const parameterById = new Map(
+    sdcpn.parameters.map((parameter) => [parameter.id, parameter]),
+  );
+  for (const entry of state.netParameters) {
+    const parameter = parameterById.get(entry.parameterId);
+    if (!parameter) {
+      continue;
+    }
+    addValue(
+      { kind: "netParameter", parameterId: entry.parameterId },
+      entry,
+      toTsType(parameter.type),
+      "",
+    );
+  }
+
+  const colorById = new Map(sdcpn.types.map((color) => [color.id, color]));
+  for (const [placeId, placeState] of Object.entries(state.places)) {
+    const place = sdcpn.places.find((candidate) => candidate.id === placeId);
+    if (!place) {
+      continue;
+    }
+
+    if (placeState.kind === "uncoloured") {
+      addValue(
+        { kind: "count", placeId, row: null },
+        placeState.count,
+        "number",
+        "",
+      );
+      continue;
+    }
+
+    const elements = place.colorId
+      ? (colorById.get(place.colorId)?.elements ?? [])
+      : [];
+    const rowScopeDeclarations = `${[
+      "declare const i: number;",
+      "declare const count: number;",
+      ...placeState.variables
+        .filter((variable) => AD_HOC_IDENTIFIER_PATTERN.test(variable.name))
+        .map(
+          (variable) =>
+            `declare const ${variable.name}: ${toTsType(variable.type)};`,
+        ),
+    ].join("\n")}\n`;
+
+    for (const [index, variable] of placeState.variables.entries()) {
+      addValue(
+        { kind: "variable", placeId, index },
+        variable,
+        toTsType(variable.type),
+        rowScopeDeclarations,
+      );
+    }
+
+    for (const [field, shared] of Object.entries(placeState.sharedColumns)) {
+      const column = elements.findIndex((element) => element.name === field);
+      if (column < 0) {
+        continue;
+      }
+      addValue(
+        { kind: "column", placeId, column },
+        shared,
+        toTsType(elements[column]!.type),
+        rowScopeDeclarations,
+      );
+    }
+
+    for (const [rowIndex, row] of placeState.rows.entries()) {
+      if (row.kind === "template") {
+        addValue(
+          { kind: "count", placeId, row: rowIndex },
+          row.count,
+          "number",
+          "",
+        );
+      }
+      for (const [column, cell] of row.cells.entries()) {
+        const element = elements[column];
+        if (!element || placeState.sharedColumns[element.name]) {
+          continue;
+        }
+        addValue(
+          { kind: "cell", placeId, row: rowIndex, column },
+          cell,
+          toTsType(element.type),
+          rowScopeDeclarations,
+        );
+      }
+    }
+  }
 
   return files;
 }

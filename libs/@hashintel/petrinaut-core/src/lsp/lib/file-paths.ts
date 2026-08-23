@@ -17,6 +17,8 @@ export type SDCPNFileType =
   | "scenario-param-override-code"
   | "scenario-initial-state-code"
   | "scenario-initial-state-full-code"
+  | "adhoc-session-defs"
+  | "adhoc-value-code"
   | "metric-session-defs"
   | "metric-code";
 
@@ -34,6 +36,8 @@ type FilePathParams = {
   "scenario-param-override-code": { sessionId: string; paramId: string };
   "scenario-initial-state-code": { sessionId: string; placeId: string };
   "scenario-initial-state-full-code": { sessionId: string };
+  "adhoc-session-defs": { sessionId: string };
+  "adhoc-value-code": { sessionId: string; slotKey: string };
   "metric-session-defs": { sessionId: string };
   "metric-code": { sessionId: string };
 };
@@ -97,6 +101,17 @@ export const getItemFilePath = <T extends SDCPNFileType>(
       const { transitionId } =
         params as FilePathParams["transition-kernel-code"];
       return `/transitions/${transitionId}/kernel/code.ts`;
+    }
+
+    case "adhoc-session-defs": {
+      const { sessionId } = params as FilePathParams["adhoc-session-defs"];
+      return `/_temp/adhoc/${sessionId}/defs.d.ts`;
+    }
+
+    case "adhoc-value-code": {
+      const { sessionId, slotKey } =
+        params as FilePathParams["adhoc-value-code"];
+      return `/_temp/adhoc/${sessionId}/values/${slotKey}/code.ts`;
     }
 
     case "scenario-session-defs": {

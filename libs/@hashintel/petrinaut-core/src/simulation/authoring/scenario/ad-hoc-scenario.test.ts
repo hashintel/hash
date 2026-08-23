@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  adHocOptimizationBindings,
   adHocParameterName,
   adHocPlaceKey,
+  adHocSlotKey,
+  adHocTargetLabel,
+  cycleAdHocRowKind,
+  resolveAdHocPlaceTotal,
   shareAdHocColumn,
   synthesizeAdHocOptimization,
   synthesizeAdHocScenario,
@@ -11,6 +16,7 @@ import {
 } from "./ad-hoc-scenario";
 import { compileScenario } from "./compile-scenario";
 
+import type { Scenario } from "../../../types/sdcpn";
 import type {
   AdHocColouredPlace,
   AdHocRow,
@@ -109,7 +115,10 @@ const baseState = (): AdHocScenarioState => ({
       variables: [
         { name: "wear", type: "boolean", expression: "i > 0", optimize: null },
       ],
-      rows: [fixed("basePressure", "false"), fixed("basePressure + i", "wear")],
+      rows: [
+        fixed("scenario.basePressure", "false"),
+        fixed("scenario.basePressure + i", "wear"),
+      ],
       sharedColumns: {},
     },
     "place-queue": {
@@ -119,17 +128,25 @@ const baseState = (): AdHocScenarioState => ({
   },
 });
 
+const scenarioOf = (
+  outcome:
+    | ReturnType<typeof synthesizeAdHocScenario>
+    | ReturnType<typeof synthesizeAdHocOptimization>,
+): Scenario => {
+  if (!outcome.ok) {
+    throw new Error(JSON.stringify(outcome.errors));
+  }
+  return "scenario" in outcome ? outcome.scenario : outcome.output.scenario;
+};
+
 const compiled = (
   outcome:
     | ReturnType<typeof synthesizeAdHocScenario>
     | ReturnType<typeof synthesizeAdHocOptimization>,
   scenarioParameterValues?: Record<string, number>,
 ) => {
-  if (!outcome.ok) {
-    throw new Error(JSON.stringify(outcome.errors));
-  }
   const result = compileScenario(
-    outcome.scenario,
+    scenarioOf(outcome),
     context.netParameters,
     context.places,
     context.types,
@@ -160,7 +177,7 @@ describe("synthesizeAdHocScenario", () => {
     ]);
   });
 
-  it("mixes fixed rows and templates within one place", () => {
+  it("mixes fixed rows and dynamic rows within one place", () => {
     const state = baseState();
     state.places["place-pumps"] = {
       kind: "coloured",
@@ -180,6 +197,26 @@ describe("synthesizeAdHocScenario", () => {
       { pressure: 11, worn: false },
       { pressure: 12, worn: true },
       { pressure: 200, worn: false },
+    ]);
+  });
+
+  it("a dynamic row's count may read a top-level Variable", () => {
+    const state = baseState();
+    state.variables = [
+      { name: "n", type: "integer", expression: "2", optimize: null },
+    ];
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [],
+      rows: [template("scenario.n + 1", "i", "false")],
+      sharedColumns: {},
+    };
+
+    const result = compiled(synthesizeAdHocScenario(state, context));
+    expect(result.initialState["place-pumps"]).toEqual([
+      { pressure: 0, worn: false },
+      { pressure: 1, worn: false },
+      { pressure: 2, worn: false },
     ]);
   });
 
@@ -215,6 +252,20 @@ describe("synthesizeAdHocScenario", () => {
     expect(result.parameterValues["lanes"]).toBe("4");
   });
 
+  it("a net parameter override may read a top-level Variable", () => {
+    const state = baseState();
+    state.netParameters = [
+      {
+        parameterId: "param-rate",
+        expression: "scenario.basePressure * 2",
+        optimize: null,
+      },
+    ];
+    const result = compiled(synthesizeAdHocScenario(state, context));
+    // basePressure = 2 * 1.5 = 3, so the override yields 6.
+    expect(result.parameterValues["rate"]).toBe("6");
+  });
+
   it("rejects a per-place variable that shadows a top-level one", () => {
     const state = baseState();
     const place = state.places["place-pumps"];
@@ -234,6 +285,10 @@ describe("synthesizeAdHocScenario", () => {
       return;
     }
     expect(outcome.errors[0]?.message).toContain("shadows");
+    expect(outcome.errors[0]?.slot).toEqual({
+      target: { kind: "variable", placeId: "place-pumps", index: 1 },
+      part: "name",
+    });
   });
 
   it("rejects reserved and malformed variable names", () => {
@@ -260,7 +315,7 @@ describe("synthesizeAdHocOptimization", () => {
     }
     // One optimized entity of each carrier kind.
     pumps.rows[0]!.cells[0] = {
-      expression: "basePressure",
+      expression: "scenario.basePressure",
       optimize: { min: "0.5", max: "parameters.lanes * 2", scale: "linear" },
     };
     pumps.rows.push({
@@ -287,14 +342,14 @@ describe("synthesizeAdHocOptimization", () => {
     return state;
   };
 
-  it("generates deterministic parameters, bindings, and references", () => {
+  it("generates deterministic parameters, fields, and references", () => {
     const outcome = synthesizeAdHocOptimization(optimizedState(), context);
     expect(outcome.ok ? "ok" : JSON.stringify(outcome.errors)).toBe("ok");
     if (!outcome.ok) {
       return;
     }
 
-    const identifiers = outcome.scenario.scenarioParameters
+    const identifiers = outcome.output.scenario.scenarioParameters
       .map((parameter) => parameter.identifier)
       .sort();
     expect(identifiers).toEqual([
@@ -304,7 +359,9 @@ describe("synthesizeAdHocOptimization", () => {
       "adhoc.param.rate",
       "adhoc.var.net.basePressure",
     ]);
-    expect(outcome.parameterBindings["adhoc.count.Pumps.r2"]).toEqual({
+
+    const bindings = adHocOptimizationBindings(outcome.output.optimizedFields);
+    expect(bindings["adhoc.count.Pumps.r2"]).toEqual({
       kind: "optimize",
       domain: {
         kind: "integer",
@@ -314,12 +371,28 @@ describe("synthesizeAdHocOptimization", () => {
         scale: "linear",
       },
     });
-    expect(outcome.parameterBindings["adhoc.Pumps.r0.pressure"]).toEqual({
+    expect(bindings["adhoc.Pumps.r0.pressure"]).toEqual({
       kind: "optimize",
       domain: { kind: "continuous", minimum: 0.5, maximum: 8, scale: "linear" },
     });
+
+    // Each field labels its source in the attribution notation.
+    const labels = new Map(
+      outcome.output.optimizedFields.map((field) => [
+        field.parameterName,
+        field.label,
+      ]),
+    );
+    expect(labels.get("adhoc.Pumps.r0.pressure")).toBe(
+      "Pumps › item 0 › pressure",
+    );
+    expect(labels.get("adhoc.count.Pumps.r2")).toBe("Pumps › item 2 › count");
+    expect(labels.get("adhoc.count.Queue")).toBe("Queue › count");
+    expect(labels.get("adhoc.var.net.basePressure")).toBe("basePressure");
+    expect(labels.get("adhoc.param.rate")).toBe("Rate");
+
     // The optimized net parameter's override routes through the reference.
-    expect(outcome.scenario.parameterOverrides["param-rate"]).toBe(
+    expect(outcome.output.scenario.parameterOverrides["param-rate"]).toBe(
       'scenario["adhoc.param.rate"]',
     );
   });
@@ -360,7 +433,7 @@ describe("synthesizeAdHocOptimization", () => {
       return;
     }
     const byName = new Map(
-      outcome.scenario.scenarioParameters.map((parameter) => [
+      outcome.output.scenario.scenarioParameters.map((parameter) => [
         parameter.identifier,
         parameter.default,
       ]),
@@ -394,11 +467,15 @@ describe("synthesizeAdHocOptimization", () => {
     if (!outcome.ok) {
       return;
     }
-    const identifiers = outcome.scenario.scenarioParameters.map(
+    const identifiers = outcome.output.scenario.scenarioParameters.map(
       (parameter) => parameter.identifier,
     );
     expect(identifiers).toContain("adhoc.Pumps.col.pressure");
     expect(identifiers).not.toContain("adhoc.Pumps.r0.pressure");
+    const columnField = outcome.output.optimizedFields.find(
+      (field) => field.parameterName === "adhoc.Pumps.col.pressure",
+    );
+    expect(columnField?.label).toBe("Pumps › pressure");
 
     const result = compiled(outcome, { "adhoc.Pumps.col.pressure": 6 });
     const pumpTokens = result.initialState["place-pumps"];
@@ -411,7 +488,7 @@ describe("synthesizeAdHocOptimization", () => {
   it("rejects a bound that references an optimized entity", () => {
     const state = optimizedState();
     state.netParameters[0]!.optimize = {
-      min: "basePressure",
+      min: "scenario.basePressure",
       max: "10",
       scale: "linear",
     };
@@ -420,11 +497,11 @@ describe("synthesizeAdHocOptimization", () => {
     if (outcome.ok) {
       return;
     }
-    expect(
-      outcome.errors.some((error) =>
-        error.message.includes("itself optimized"),
-      ),
-    ).toBe(true);
+    const boundError = outcome.errors.find((error) =>
+      error.message.includes("itself optimized"),
+    );
+    expect(boundError).toBeDefined();
+    expect(boundError?.slot.part).toBe("min");
   });
 
   it("rejects non-constant, inverted, and log-invalid bounds", () => {
@@ -504,6 +581,55 @@ describe("state transitions", () => {
     expect(backOn.optimize).toEqual({ min: "5", max: "9", scale: "log" });
   });
 
+  it("the gutter cycle keeps the count across Fixed → Dynamic → Optimized → Fixed", () => {
+    const start: AdHocRow = {
+      kind: "fixed",
+      cells: [cell("1"), cell("false")],
+    };
+
+    const dynamic = cycleAdHocRowKind(start);
+    if (dynamic.kind !== "template") {
+      throw new Error("expected a dynamic row");
+    }
+    expect(dynamic.count).toEqual({ expression: "1", optimize: null });
+
+    const edited: AdHocRow = {
+      ...dynamic,
+      count: { expression: "scenario.n", optimize: null },
+    };
+    const optimized = cycleAdHocRowKind(edited);
+    if (optimized.kind !== "template") {
+      throw new Error("expected a dynamic row");
+    }
+    expect(optimized.count.expression).toBe("scenario.n");
+    expect(optimized.count.optimize).toEqual({
+      min: "0",
+      max: "10",
+      scale: "linear",
+    });
+
+    const backToFixed = cycleAdHocRowKind(optimized);
+    if (backToFixed.kind !== "fixed") {
+      throw new Error("expected a fixed row");
+    }
+    expect(backToFixed.cells).toBe(start.cells);
+    expect(backToFixed.retainedCount?.expression).toBe("scenario.n");
+    expect(backToFixed.retainedCount?.optimize).toBeNull();
+    expect(backToFixed.retainedCount?.retainedOptimize).toEqual({
+      min: "0",
+      max: "10",
+      scale: "linear",
+    });
+
+    // Cycling again restores the retained count, Optimize off.
+    const around = cycleAdHocRowKind(backToFixed);
+    if (around.kind !== "template") {
+      throw new Error("expected a dynamic row");
+    }
+    expect(around.count.expression).toBe("scenario.n");
+    expect(around.count.optimize).toBeNull();
+  });
+
   it("sharing seeds from row one, un-sharing retains, re-sharing restores", () => {
     const place: AdHocColouredPlace = {
       kind: "coloured",
@@ -527,6 +653,124 @@ describe("state transitions", () => {
 
     const reshared = shareAdHocColumn(released, "pressure", 0);
     expect(reshared.sharedColumns["pressure"]?.expression).toBe("99");
+  });
+});
+
+describe("resolveAdHocPlaceTotal", () => {
+  it("resolves fixed rows and constant dynamic counts to a number", () => {
+    const state = baseState();
+    state.variables.push({
+      name: "n",
+      type: "integer",
+      expression: "3",
+      optimize: null,
+    });
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [],
+      rows: [
+        fixed("1", "false"),
+        template("scenario.n + 1", "i", "false"),
+        fixed("2", "true"),
+      ],
+      sharedColumns: {},
+    };
+    expect(resolveAdHocPlaceTotal(state, context, "place-pumps")).toEqual({
+      resolved: true,
+      total: 6,
+    });
+    expect(resolveAdHocPlaceTotal(state, context, "place-queue")).toEqual({
+      resolved: true,
+      total: 8,
+    });
+  });
+
+  it("prints unresolved parts when a count is optimized or depends on one", () => {
+    const state = baseState();
+    state.variables = [
+      {
+        name: "n",
+        type: "integer",
+        expression: "3",
+        optimize: { min: "0", max: "12", scale: "linear" },
+      },
+    ];
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [],
+      rows: [
+        fixed("1", "false"),
+        template("scenario.n", "i", "false"),
+        {
+          kind: "template",
+          count: {
+            expression: "4",
+            optimize: { min: "0", max: "10", scale: "linear" },
+          },
+          cells: [cell("1"), cell("false")],
+        },
+      ],
+      sharedColumns: {},
+    };
+    expect(resolveAdHocPlaceTotal(state, context, "place-pumps")).toEqual({
+      resolved: false,
+      text: "1 + scenario.n + 0 … 10",
+    });
+  });
+
+  it("treats an absent place as empty", () => {
+    expect(resolveAdHocPlaceTotal(baseState(), context, "no-such")).toEqual({
+      resolved: true,
+      total: 0,
+    });
+  });
+});
+
+describe("slot keys and labels", () => {
+  it("slot keys are stable and path-safe", () => {
+    expect(
+      adHocSlotKey({
+        target: { kind: "cell", placeId: "place-pumps", row: 2, column: 1 },
+        part: "expression",
+      }),
+    ).toBe("cell_place-pumps_2_1.expression");
+    expect(
+      adHocSlotKey({
+        target: { kind: "variable", placeId: null, index: 0 },
+        part: "min",
+      }),
+    ).toBe("var_net_0.min");
+    expect(
+      adHocSlotKey({
+        target: { kind: "count", placeId: "a.b/c", row: null },
+        part: "expression",
+      }),
+    ).toBe("count_a%2eb%2Fc.expression");
+  });
+
+  it("labels targets in the attribution notation", () => {
+    const state = baseState();
+    expect(
+      adHocTargetLabel(
+        { kind: "cell", placeId: "place-pumps", row: 0, column: 0 },
+        state,
+        context,
+      ),
+    ).toBe("Pumps › item 0 › pressure");
+    expect(
+      adHocTargetLabel(
+        { kind: "variable", placeId: "place-pumps", index: 0 },
+        state,
+        context,
+      ),
+    ).toBe("Pumps › wear");
+    expect(
+      adHocTargetLabel(
+        { kind: "netParameter", parameterId: "param-rate" },
+        state,
+        context,
+      ),
+    ).toBe("Rate");
   });
 });
 
