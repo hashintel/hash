@@ -2,31 +2,38 @@
  * Ad-hoc scenarios: an inline initial-state + parameters definition compiled
  * into a `Scenario` value at run time and never persisted into the net file.
  *
- * The form state here is the code editor's model, constrained: per-place
- * token spreadsheets whose every cell is an expression, rows that are either
- * Fixed (one token) or a Template (a count expression's worth of tokens) and
- * may mix within one place, shared column values, and named Variables at two
- * scopes (top-level and per-place). Synthesis emits a **code-mode** scenario —
- * the one initial-state mode whose expressions, loops and intermediate names
- * the existing `compileScenario` already evaluates in its hardened sandbox —
- * so nothing in the compiler changes.
+ * Three shapes cross this module, in pipeline order:
  *
- * For optimization, every part carrying an enabled Optimize toggle (a cell, a
- * shared column, a Variable, a template count, a net parameter) becomes a
- * generated scenario parameter with a deterministic name, and the part's
- * value is replaced by a reference to it. The names are the join key from
- * optimization results back to the thing the user selected, so they derive
- * from the source rather than from randomness and must stay stable across
- * synthesis runs.
+ * 1. {@link AdHocScenarioState} — the form's editing state: per-place token
+ *    spreadsheets whose every cell is an expression, rows that are Fixed (one
+ *    token) or Dynamic (a count expression's worth of tokens, `kind:
+ *    "template"` here) and mix freely within one place, shared column values,
+ *    and named Variables at two scopes.
+ * 2. {@link AdHocSynthesisOutput} — what synthesis emits: a code-mode
+ *    {@link Scenario} (the one initial-state mode whose expressions, loops and
+ *    intermediate names the existing `compileScenario` already evaluates in
+ *    its hardened sandbox, so nothing in the compiler changes) plus one
+ *    {@link AdHocOptimizedField} per enabled Optimize toggle, carrying the
+ *    generated parameter's name, its typed domain, and the form location it
+ *    came from.
+ * 3. The downstream forms: `output.scenario` feeds `compileScenario` directly
+ *    (plain runs), and {@link adHocOptimizationBindings} turns the optimized
+ *    fields into the `parameterBindings` record of a
+ *    `PetrinautOptimizationManifest` (optimization runs).
  *
- * Expression vocabulary: net parameters are reached as `parameters.<name>`,
- * exactly as in every other scenario expression; ad-hoc Variables are bare
- * names. `i` and `count` are per row: inside a template row, `i` runs from 0
- * to that row's count minus one and `count` is that row's count; a fixed row
- * sees its position in the place's row list as `i` and `1` as `count`. A
- * shared column's expression evaluates per row in the same scope, so it may
- * read `i`. The namespaces cannot collide, so a Variable may share a net
- * parameter's name.
+ * Generated parameters take deterministic names (see
+ * {@link adHocParameterName}): they are the join key from optimization
+ * results back to the thing the user selected, so they derive from the source
+ * rather than from randomness and must stay stable across synthesis runs.
+ *
+ * Expression vocabulary, matching the scenario code editor: net parameters
+ * are `parameters.<name>`; top-level Variables are `scenario.<name>` (they
+ * stand in for scenario parameters in this form); per-place Variables are
+ * bare names. `i` and `count` are per row: inside a dynamic row, `i` runs
+ * from 0 to that row's count minus one and `count` is that row's count; a
+ * fixed row sees its position in the place's row list as `i` and `1` as
+ * `count`. A shared column's expression evaluates per row in the same scope,
+ * so it may read `i`.
  */
 
 import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
@@ -73,18 +80,27 @@ export interface AdHocValue {
 }
 
 export interface AdHocVariable extends AdHocValue {
-  /** A bare JavaScript identifier; referenced by name in expressions. */
+  /**
+   * A bare JavaScript identifier. Top-level Variables are referenced as
+   * `scenario.<name>`; per-place Variables by the bare name.
+   */
   name: string;
   type: "real" | "integer" | "boolean";
 }
 
 /**
- * One spreadsheet row. A fixed row emits one token. A template row emits its
- * count's worth of tokens, the cells evaluated once per `i`; the count may
- * itself be optimized. The two kinds mix freely within a place.
+ * One spreadsheet row. A fixed row emits one token. A dynamic ("template")
+ * row emits its count's worth of tokens, the cells evaluated once per `i`;
+ * the count may itself be optimized. The kinds mix freely within a place and
+ * cycle from the row gutter: Fixed → Dynamic → count-Optimized → Fixed.
  */
 export type AdHocRow =
-  | { kind: "fixed"; cells: AdHocValue[] }
+  | {
+      kind: "fixed";
+      cells: AdHocValue[];
+      /** The count from the row's last dynamic stint, restored on cycling. */
+      retainedCount?: AdHocValue;
+    }
   | { kind: "template"; count: AdHocValue; cells: AdHocValue[] };
 
 export interface AdHocColouredPlace {
@@ -119,7 +135,10 @@ export interface AdHocNetParameter extends AdHocValue {
 }
 
 export interface AdHocScenarioState {
-  /** Top-level Variables; they replace scenario parameters in this form. */
+  /**
+   * Top-level Variables, referenced as `scenario.<name>`; they stand in for
+   * scenario parameters in this form.
+   */
   variables: AdHocVariable[];
   /** Overrides for net parameters; empty expression keeps the default. */
   netParameters: AdHocNetParameter[];
@@ -134,11 +153,162 @@ export interface AdHocSynthesisContext {
   types: Color[];
 }
 
+// -- Value targets and slots -----------------------------------------------------
+//
+// A target names one value-carrying location in the form state; a slot names
+// one editable text within it (the expression, or one optimize bound). Slots
+// are the join key between synthesis errors, LSP diagnostics, and the form's
+// rendering of both, so their string form must be stable and path-safe.
+
+export type AdHocValueTarget =
+  | {
+      kind: "variable";
+      /** `null` for a top-level Variable, the owning place otherwise. */
+      placeId: string | null;
+      /** Position in the owning `variables` list. */
+      index: number;
+    }
+  | { kind: "netParameter"; parameterId: string }
+  | { kind: "cell"; placeId: string; row: number; column: number }
+  | { kind: "column"; placeId: string; column: number }
+  | {
+      kind: "count";
+      placeId: string;
+      /** `null` for an uncoloured place's count, the row index otherwise. */
+      row: number | null;
+    };
+
+export type AdHocValuePart = "expression" | "min" | "max" | "step" | "name";
+
+export interface AdHocSlot {
+  target: AdHocValueTarget;
+  part: AdHocValuePart;
+}
+
+/** Escapes an id so it is safe as one path/URI segment of a slot key. */
+const encodeSlotSegment = (value: string): string =>
+  encodeURIComponent(value).replace(
+    /[.!'()*~]/g,
+    (character) => `%${character.charCodeAt(0).toString(16)}`,
+  );
+
+/**
+ * The stable string form of a slot, safe as a single URI or file path
+ * segment. The form computes the same key when rendering a slot, so LSP
+ * diagnostics and synthesis errors join back to the right editor.
+ */
+export function adHocSlotKey(slot: AdHocSlot): string {
+  const { target, part } = slot;
+  let base: string;
+  switch (target.kind) {
+    case "variable":
+      base =
+        target.placeId === null
+          ? `var_net_${target.index}`
+          : `var_${encodeSlotSegment(target.placeId)}_${target.index}`;
+      break;
+    case "netParameter":
+      base = `param_${encodeSlotSegment(target.parameterId)}`;
+      break;
+    case "cell":
+      base = `cell_${encodeSlotSegment(target.placeId)}_${target.row}_${target.column}`;
+      break;
+    case "column":
+      base = `col_${encodeSlotSegment(target.placeId)}_${target.column}`;
+      break;
+    case "count":
+      base =
+        target.row === null
+          ? `count_${encodeSlotSegment(target.placeId)}`
+          : `count_${encodeSlotSegment(target.placeId)}_${target.row}`;
+      break;
+  }
+  return `${base}.${part}`;
+}
+
+/**
+ * The user-facing path of a target, in the prototype's attribution notation:
+ * `Space › item 0 › x`, `Space › direction`, `Space › angle`, `rate`.
+ */
+export function adHocTargetLabel(
+  target: AdHocValueTarget,
+  state: AdHocScenarioState,
+  context: AdHocSynthesisContext,
+): string {
+  const placeName = (placeId: string): string =>
+    context.places.find((place) => place.id === placeId)?.name ?? placeId;
+  const elementName = (placeId: string, column: number): string => {
+    const place = context.places.find((candidate) => candidate.id === placeId);
+    const colour = place?.colorId
+      ? context.types.find((type) => type.id === place.colorId)
+      : undefined;
+    return colour?.elements[column]?.name ?? `column ${column}`;
+  };
+
+  switch (target.kind) {
+    case "variable": {
+      if (target.placeId === null) {
+        return (
+          state.variables[target.index]?.name ?? `variable ${target.index}`
+        );
+      }
+      const placeState = state.places[target.placeId];
+      const name =
+        placeState?.kind === "coloured"
+          ? (placeState.variables[target.index]?.name ??
+            `variable ${target.index}`)
+          : `variable ${target.index}`;
+      return `${placeName(target.placeId)} › ${name}`;
+    }
+    case "netParameter":
+      return (
+        context.netParameters.find(
+          (parameter) => parameter.id === target.parameterId,
+        )?.name ?? target.parameterId
+      );
+    case "cell":
+      return `${placeName(target.placeId)} › item ${target.row} › ${elementName(target.placeId, target.column)}`;
+    case "column":
+      return `${placeName(target.placeId)} › ${elementName(target.placeId, target.column)}`;
+    case "count":
+      return target.row === null
+        ? `${placeName(target.placeId)} › count`
+        : `${placeName(target.placeId)} › item ${target.row} › count`;
+  }
+}
+
+// -- Synthesis outcomes -----------------------------------------------------------
+
 export interface AdHocSynthesisError {
   source: "variable" | "cell" | "count" | "netParameter" | "bounds";
   /** The generated parameter name, variable name, or place id that failed. */
   itemId: string;
+  /** The slot the error belongs to, for rendering it at the right editor. */
+  slot: AdHocSlot;
   message: string;
+}
+
+/** One enabled Optimize toggle, resolved to a generated scenario parameter. */
+export interface AdHocOptimizedField {
+  /** The generated parameter's deterministic `adhoc.*` name. */
+  parameterName: string;
+  /** The user-facing path of the source, e.g. `Space › item 0 › x`. */
+  label: string;
+  target: AdHocValueTarget;
+  domain: PetrinautOptimizationDomain;
+  /** The generated parameter's preview default. */
+  default: number;
+}
+
+/**
+ * What synthesis emits: the generated scenario (never persisted) and one
+ * entry per enabled Optimize toggle. `scenario` feeds `compileScenario`
+ * directly; {@link adHocOptimizationBindings} turns `optimizedFields` into a
+ * manifest's `parameterBindings`.
+ */
+export interface AdHocSynthesisOutput {
+  scenario: Scenario;
+  optimizedFields: AdHocOptimizedField[];
 }
 
 export type SynthesizeAdHocScenarioOutcome =
@@ -146,12 +316,24 @@ export type SynthesizeAdHocScenarioOutcome =
   | { ok: false; errors: AdHocSynthesisError[] };
 
 export type SynthesizeAdHocOptimizationOutcome =
-  | {
-      ok: true;
-      scenario: Scenario;
-      parameterBindings: PetrinautOptimizationManifest["scenario"]["parameterBindings"];
-    }
+  | { ok: true; output: AdHocSynthesisOutput }
   | { ok: false; errors: AdHocSynthesisError[] };
+
+/**
+ * The transform from synthesis output to an optimization manifest's
+ * `parameterBindings`. Every generated parameter is optimized by
+ * construction, so every binding is an optimize binding.
+ */
+export function adHocOptimizationBindings(
+  optimizedFields: readonly AdHocOptimizedField[],
+): PetrinautOptimizationManifest["scenario"]["parameterBindings"] {
+  const bindings: PetrinautOptimizationManifest["scenario"]["parameterBindings"] =
+    {};
+  for (const field of optimizedFields) {
+    bindings[field.parameterName] = { kind: "optimize", domain: field.domain };
+  }
+  return bindings;
+}
 
 // -- Deterministic parameter names ---------------------------------------------
 
@@ -179,7 +361,7 @@ export const adHocParameterName = {
   variable: (scope: string, name: string): string =>
     `adhoc.var.${scope}.${name}`,
   /**
-   * A count: the whole place's for an uncoloured place, one template row's
+   * A count: the whole place's for an uncoloured place, one dynamic row's
    * otherwise. Kept under its own prefix so a colour element named `count`
    * cannot collide with it.
    */
@@ -226,10 +408,10 @@ function validateVariableName(name: string): string | null {
 
 /**
  * Conservatively extracts candidate references from an expression: bare
- * identifiers (ad-hoc Variables) and `parameters.<name>` members (net
- * parameters). Purely lexical: it over-approximates (an identifier inside a
- * string literal counts), which errs toward reporting a dependency rather
- * than missing one.
+ * identifiers (per-place Variables), `scenario.<name>` members (top-level
+ * Variables) and `parameters.<name>` members (net parameters). Purely
+ * lexical: it over-approximates (an identifier inside a string literal
+ * counts), which errs toward reporting a dependency rather than missing one.
  */
 function referencedNames(expression: string): Set<string> {
   const names = new Set<string>();
@@ -243,10 +425,15 @@ function referencedNames(expression: string): Set<string> {
   )) {
     names.add(`parameters.${match[1]}`);
   }
+  for (const match of expression.matchAll(
+    /(?<![.\w$])scenario\s*\.\s*([A-Za-z_$][A-Za-z0-9_$]*)/gu,
+  )) {
+    names.add(`scenario.${match[1]}`);
+  }
   return names;
 }
 
-// -- Sandbox evaluation for bounds and defaults ---------------------------------
+// -- Sandbox evaluation for bounds, defaults and totals ---------------------------
 
 const HELPER_NAMES = Object.keys(SCENARIO_HELPERS);
 const HELPER_VALUES = Object.values(SCENARIO_HELPERS);
@@ -256,42 +443,84 @@ function freeze<T extends Record<string, unknown>>(record: T): T {
 }
 
 /**
- * Evaluates one expression in the same hardened shape `compileScenario` uses,
- * with the non-optimized top-level Variables additionally in scope as
- * constants. Used for bound expressions (which must resolve to constants at
- * synthesis time) and for generated parameters' preview defaults.
+ * Evaluates one expression in the same hardened shape `compileScenario` uses.
+ * The non-optimized top-level Variables are in scope as `scenario.<name>`,
+ * built in declaration order so later Variables may read earlier ones. Used
+ * for bound expressions (which must resolve to constants at synthesis time),
+ * for generated parameters' preview defaults, and for place totals.
  */
 function evaluateConstant(
   expression: string,
   parameters: Record<string, number | boolean>,
-  constants: readonly { name: string; expression: string }[],
+  variables: readonly { name: string; expression: string }[],
 ): unknown {
-  const declarations = constants
-    .map(({ name, expression: value }) => `const ${name} = (${value});`)
+  const assignments = variables
+    .map(
+      ({ name, expression: value }) =>
+        `__adhocVars[${JSON.stringify(name)}] = (${value});`,
+    )
     .join("\n");
+  const body = [
+    `"use strict"; var ${SHADOWED_GLOBALS};`,
+    `const __adhocVars = {};`,
+    `{`,
+    `  const scenario = __adhocVars;`,
+    assignments,
+    `}`,
+    `return (function (scenario) { return (${expression}); })(__adhocVars);`,
+  ].join("\n");
   // eslint-disable-next-line no-new-func,typescript-eslint/no-implied-eval -- intentional: user-authored expressions, same sandbox as compileScenario
-  const fn = new Function(
-    "parameters",
-    "scenario",
-    ...HELPER_NAMES,
-    `"use strict"; var ${SHADOWED_GLOBALS};\n${declarations}\nreturn (${expression});`,
-  ) as (...args: unknown[]) => unknown;
+  const fn = new Function("parameters", "scenario", ...HELPER_NAMES, body) as (
+    ...args: unknown[]
+  ) => unknown;
   return runSandboxed(() =>
     fn(freeze(parameters), freeze({}), ...HELPER_VALUES),
   );
+}
+
+function netParameterDefaults(
+  context: AdHocSynthesisContext,
+): Record<string, number | boolean> {
+  const defaults: Record<string, number | boolean> = {};
+  for (const parameter of context.netParameters) {
+    defaults[parameter.variableName] =
+      parameter.type === "boolean"
+        ? parameter.defaultValue === "true" || parameter.defaultValue === "1"
+        : Number(parameter.defaultValue);
+  }
+  return defaults;
+}
+
+function constantVariables(
+  state: AdHocScenarioState,
+): { name: string; expression: string }[] {
+  return state.variables
+    .filter((variable) => !variable.optimize)
+    .map((variable) => ({
+      name: variable.name,
+      expression: variable.expression,
+    }));
 }
 
 // -- State transitions ------------------------------------------------------------
 //
 // The restore rules are model semantics, not component behaviour: toggling
 // Optimize must not overwrite the expression, toggling it back restores the
-// previous bounds, and re-sharing a column restores the most recent shared
-// value. They live here so every consumer of the form state gets them.
+// previous bounds, cycling a row's kind restores its previous count, and
+// re-sharing a column restores the most recent shared value. They live here
+// so every consumer of the form state gets them.
 
 /** Default bounds a first-time Optimize toggle opens with. */
 export const AD_HOC_DEFAULT_OPTIMIZE: AdHocOptimizeSettings = {
   min: "0",
   max: "1",
+  scale: "linear",
+};
+
+/** Default bounds a count's first-time Optimize opens with. */
+export const AD_HOC_DEFAULT_COUNT_OPTIMIZE: AdHocOptimizeSettings = {
+  min: "0",
+  max: "10",
   scale: "linear",
 };
 
@@ -315,6 +544,37 @@ export function toggleAdHocOptimize(
     return value;
   }
   return { ...value, optimize: null, retainedOptimize: value.optimize };
+}
+
+/**
+ * Advances a row's kind one step along the gutter cycle: Fixed → Dynamic →
+ * count-Optimized → Fixed. Nothing is thrown away: leaving Dynamic retains
+ * the count (bounds included) on the fixed row, and returning restores it.
+ */
+export function cycleAdHocRowKind(row: AdHocRow): AdHocRow {
+  if (row.kind === "fixed") {
+    const retained = row.retainedCount;
+    const count: AdHocValue = retained
+      ? { ...toggleAdHocOptimize(retained, false) }
+      : { expression: "1", optimize: null };
+    const { retainedCount: _restored, ...rest } = row;
+    return { ...rest, kind: "template", count };
+  }
+  if (!row.count.optimize) {
+    return {
+      ...row,
+      count: toggleAdHocOptimize(
+        row.count,
+        true,
+        AD_HOC_DEFAULT_COUNT_OPTIMIZE,
+      ),
+    };
+  }
+  return {
+    kind: "fixed",
+    cells: row.cells,
+    retainedCount: toggleAdHocOptimize(row.count, false),
+  };
 }
 
 /**
@@ -365,12 +625,105 @@ export function unshareAdHocColumn(
   };
 }
 
+// -- Place totals -----------------------------------------------------------------
+
+export type AdHocPlaceTotal =
+  | { resolved: true; total: number }
+  | { resolved: false; text: string };
+
+/**
+ * The token total a place's table shows at its bottom: the sum of every
+ * row's count (1 per fixed row). It resolves to a number unless a count is
+ * optimized or depends on something that is; then the unresolved parts are
+ * printed as they are, joined onto whatever did resolve.
+ */
+export function resolveAdHocPlaceTotal(
+  state: AdHocScenarioState,
+  context: AdHocSynthesisContext,
+  placeId: string,
+): AdHocPlaceTotal {
+  const placeState = state.places[placeId];
+  const parameters = netParameterDefaults(context);
+  const constants = constantVariables(state);
+
+  const optimizedNames = new Set<string>();
+  for (const variable of state.variables) {
+    if (variable.optimize) {
+      optimizedNames.add(`scenario.${variable.name}`);
+    }
+  }
+  for (const entry of state.netParameters) {
+    if (entry.optimize) {
+      const parameter = context.netParameters.find(
+        (candidate) => candidate.id === entry.parameterId,
+      );
+      if (parameter) {
+        optimizedNames.add(`parameters.${parameter.variableName}`);
+      }
+    }
+  }
+
+  const resolveCount = (count: AdHocValue): number | string => {
+    if (count.optimize) {
+      return `${count.optimize.min} … ${count.optimize.max}`;
+    }
+    for (const name of referencedNames(count.expression)) {
+      if (optimizedNames.has(name)) {
+        return count.expression;
+      }
+    }
+    try {
+      const value = evaluateConstant(count.expression, parameters, constants);
+      if (typeof value === "number" && Number.isFinite(value)) {
+        return Math.max(0, Math.round(value));
+      }
+    } catch {
+      // Falls through to printing the expression.
+    }
+    return count.expression;
+  };
+
+  let resolvedSum = 0;
+  const unresolved: string[] = [];
+
+  if (!placeState) {
+    return { resolved: true, total: 0 };
+  }
+  if (placeState.kind === "uncoloured") {
+    const term = resolveCount(placeState.count);
+    if (typeof term === "number") {
+      return { resolved: true, total: term };
+    }
+    return { resolved: false, text: term };
+  }
+
+  for (const row of placeState.rows) {
+    if (row.kind === "fixed") {
+      resolvedSum += 1;
+      continue;
+    }
+    const term = resolveCount(row.count);
+    if (typeof term === "number") {
+      resolvedSum += term;
+    } else {
+      unresolved.push(term);
+    }
+  }
+
+  if (unresolved.length === 0) {
+    return { resolved: true, total: resolvedSum };
+  }
+  const parts = resolvedSum > 0 ? [String(resolvedSum)] : [];
+  return { resolved: false, text: [...parts, ...unresolved].join(" + ") };
+}
+
 // -- Synthesis ------------------------------------------------------------------
 
 interface OptimizedEntity {
   parameterName: string;
   /** What errors and result attribution call this entity. */
   itemId: string;
+  target: AdHocValueTarget;
   type: "real" | "integer" | "boolean";
   settings: AdHocOptimizeSettings;
   /** The kept non-optimized expression, used for the preview default. */
@@ -407,12 +760,14 @@ function collectPlan(
   const typeById = new Map(context.types.map((type) => [type.id, type]));
 
   const topLevelNames = new Set<string>();
-  for (const variable of state.variables) {
+  for (const [index, variable] of state.variables.entries()) {
+    const target: AdHocValueTarget = { kind: "variable", placeId: null, index };
     const nameError = validateVariableName(variable.name);
     if (nameError) {
       errors.push({
         source: "variable",
         itemId: variable.name,
+        slot: { target, part: "name" },
         message: nameError,
       });
       continue;
@@ -421,6 +776,7 @@ function collectPlan(
       errors.push({
         source: "variable",
         itemId: variable.name,
+        slot: { target, part: "name" },
         message: `Variable "${variable.name}" is declared twice.`,
       });
       continue;
@@ -433,20 +789,26 @@ function collectPlan(
           variable.name,
         ),
         itemId: variable.name,
+        target,
         type: variable.type,
         settings: variable.optimize,
         expression: variable.expression,
       });
-      optimizedReferenceNames.add(variable.name);
+      optimizedReferenceNames.add(`scenario.${variable.name}`);
     }
   }
 
   for (const entry of state.netParameters) {
+    const target: AdHocValueTarget = {
+      kind: "netParameter",
+      parameterId: entry.parameterId,
+    };
     const parameter = parameterById.get(entry.parameterId);
     if (!parameter) {
       errors.push({
         source: "netParameter",
         itemId: entry.parameterId,
+        slot: { target, part: "expression" },
         message: `Net parameter "${entry.parameterId}" does not exist.`,
       });
       continue;
@@ -455,6 +817,7 @@ function collectPlan(
       optimized.push({
         parameterName: adHocParameterName.netParameter(parameter.variableName),
         itemId: parameter.id,
+        target,
         type: parameter.type,
         settings: entry.optimize,
         expression:
@@ -473,6 +836,10 @@ function collectPlan(
       errors.push({
         source: "cell",
         itemId: placeId,
+        slot: {
+          target: { kind: "count", placeId, row: null },
+          part: "expression",
+        },
         message: `Place "${placeId}" does not exist.`,
       });
       continue;
@@ -483,6 +850,7 @@ function collectPlan(
         optimized.push({
           parameterName: adHocParameterName.count(placeKey),
           itemId: placeId,
+          target: { kind: "count", placeId, row: null },
           type: "integer",
           settings: placeState.count.optimize,
           expression: placeState.count.expression,
@@ -498,21 +866,27 @@ function collectPlan(
       errors.push({
         source: "cell",
         itemId: placeId,
+        slot: {
+          target: { kind: "count", placeId, row: null },
+          part: "expression",
+        },
         message: `Place "${place.name}" has no colour elements; use an uncoloured entry.`,
       });
       continue;
     }
     const elementByName = new Map(
-      elements.map((element) => [element.name, element]),
+      elements.map((element, index) => [element.name, { element, index }]),
     );
 
     const placeVariableNames = new Set<string>();
-    for (const variable of placeState.variables) {
+    for (const [index, variable] of placeState.variables.entries()) {
+      const target: AdHocValueTarget = { kind: "variable", placeId, index };
       const nameError = validateVariableName(variable.name);
       if (nameError) {
         errors.push({
           source: "variable",
           itemId: variable.name,
+          slot: { target, part: "name" },
           message: nameError,
         });
         continue;
@@ -521,6 +895,7 @@ function collectPlan(
         errors.push({
           source: "variable",
           itemId: variable.name,
+          slot: { target, part: "name" },
           message: `Variable "${variable.name}" in place "${place.name}" shadows a top-level Variable.`,
         });
         continue;
@@ -529,6 +904,7 @@ function collectPlan(
         errors.push({
           source: "variable",
           itemId: variable.name,
+          slot: { target, part: "name" },
           message: `Variable "${variable.name}" is declared twice in place "${place.name}".`,
         });
         continue;
@@ -538,6 +914,7 @@ function collectPlan(
         optimized.push({
           parameterName: adHocParameterName.variable(placeKey, variable.name),
           itemId: variable.name,
+          target,
           type: variable.type,
           settings: variable.optimize,
           expression: variable.expression,
@@ -547,30 +924,41 @@ function collectPlan(
     }
 
     for (const [field, shared] of Object.entries(placeState.sharedColumns)) {
-      const element = elementByName.get(field);
-      if (!element) {
+      const named = elementByName.get(field);
+      if (!named) {
         errors.push({
           source: "cell",
           itemId: adHocParameterName.column(placeKey, field),
+          slot: {
+            target: { kind: "column", placeId, column: -1 },
+            part: "expression",
+          },
           message: `Place "${place.name}" has no colour element "${field}" to share.`,
         });
         continue;
       }
+      const target: AdHocValueTarget = {
+        kind: "column",
+        placeId,
+        column: named.index,
+      };
       if (!includeOptimize || !shared.optimize) {
         continue;
       }
-      if (!optimizableElementType(element.type)) {
+      if (!optimizableElementType(named.element.type)) {
         errors.push({
           source: "cell",
           itemId: adHocParameterName.column(placeKey, field),
-          message: `Column "${field}" holds ${element.type} values, which cannot be optimized.`,
+          slot: { target, part: "expression" },
+          message: `Column "${field}" holds ${named.element.type} values, which cannot be optimized.`,
         });
         continue;
       }
       optimized.push({
         parameterName: adHocParameterName.column(placeKey, field),
         itemId: adHocParameterName.column(placeKey, field),
-        type: element.type,
+        target,
+        type: named.element.type,
         settings: shared.optimize,
         expression: shared.expression,
       });
@@ -581,6 +969,7 @@ function collectPlan(
         optimized.push({
           parameterName: adHocParameterName.count(placeKey, rowIndex),
           itemId: adHocParameterName.count(placeKey, rowIndex),
+          target: { kind: "count", placeId, row: rowIndex },
           type: "integer",
           settings: row.count.optimize,
           expression: row.count.expression,
@@ -590,10 +979,17 @@ function collectPlan(
 
       for (const [columnIndex, cell] of row.cells.entries()) {
         const element = elements[columnIndex];
+        const target: AdHocValueTarget = {
+          kind: "cell",
+          placeId,
+          row: rowIndex,
+          column: columnIndex,
+        };
         if (!element) {
           errors.push({
             source: "cell",
             itemId: `${placeKey}.r${rowIndex}`,
+            slot: { target, part: "expression" },
             message: `Row ${rowIndex} of place "${place.name}" has more cells than colour elements.`,
           });
           break;
@@ -610,6 +1006,7 @@ function collectPlan(
           errors.push({
             source: "cell",
             itemId: adHocParameterName.cell(placeKey, rowIndex, element.name),
+            slot: { target, part: "expression" },
             message: `Cell "${element.name}" holds a ${element.type} value, which cannot be optimized.`,
           });
           continue;
@@ -621,6 +1018,7 @@ function collectPlan(
             element.name,
           ),
           itemId: adHocParameterName.cell(placeKey, rowIndex, element.name),
+          target,
           type: element.type,
           settings: cell.optimize,
           expression: cell.expression,
@@ -644,29 +1042,17 @@ function resolveOptimized(
   context: AdHocSynthesisContext,
 ): {
   scenarioParameters: ScenarioParameter[];
-  parameterBindings: PetrinautOptimizationManifest["scenario"]["parameterBindings"];
+  optimizedFields: AdHocOptimizedField[];
 } {
   const scenarioParameters: ScenarioParameter[] = [];
-  const parameterBindings: PetrinautOptimizationManifest["scenario"]["parameterBindings"] =
-    {};
+  const optimizedFields: AdHocOptimizedField[] = [];
 
-  const parameterDefaults: Record<string, number | boolean> = {};
-  for (const parameter of context.netParameters) {
-    const raw = Number(parameter.defaultValue);
-    parameterDefaults[parameter.variableName] =
-      parameter.type === "boolean"
-        ? parameter.defaultValue === "true" || parameter.defaultValue === "1"
-        : raw;
-  }
-  const constants = state.variables
-    .filter((variable) => !variable.optimize)
-    .map((variable) => ({
-      name: variable.name,
-      expression: variable.expression,
-    }));
+  const parameterDefaults = netParameterDefaults(context);
+  const constants = constantVariables(state);
 
   const evaluateBound = (
     entity: OptimizedEntity,
+    part: "min" | "max" | "step",
     label: string,
     expression: string,
   ): number | null => {
@@ -675,6 +1061,7 @@ function resolveOptimized(
         plan.errors.push({
           source: "bounds",
           itemId: entity.parameterName,
+          slot: { target: entity.target, part },
           message: `The ${label} of "${entity.itemId}" references "${identifier}", which is itself optimized; bounds must be constant.`,
         });
         return null;
@@ -686,6 +1073,7 @@ function resolveOptimized(
         plan.errors.push({
           source: "bounds",
           itemId: entity.parameterName,
+          slot: { target: entity.target, part },
           message: `The ${label} of "${entity.itemId}" evaluated to ${String(value)}, expected a finite number.`,
         });
         return null;
@@ -695,6 +1083,7 @@ function resolveOptimized(
       plan.errors.push({
         source: "bounds",
         itemId: entity.parameterName,
+        slot: { target: entity.target, part },
         message: `The ${label} of "${entity.itemId}": ${error instanceof Error ? error.message : String(error)}`,
       });
       return null;
@@ -708,8 +1097,18 @@ function resolveOptimized(
     if (entity.type === "boolean") {
       domain = { kind: "boolean" };
     } else {
-      const minimum = evaluateBound(entity, "minimum", entity.settings.min);
-      const maximum = evaluateBound(entity, "maximum", entity.settings.max);
+      const minimum = evaluateBound(
+        entity,
+        "min",
+        "minimum",
+        entity.settings.min,
+      );
+      const maximum = evaluateBound(
+        entity,
+        "max",
+        "maximum",
+        entity.settings.max,
+      );
       if (minimum === null || maximum === null) {
         continue;
       }
@@ -717,6 +1116,7 @@ function resolveOptimized(
         plan.errors.push({
           source: "bounds",
           itemId: entity.parameterName,
+          slot: { target: entity.target, part: "max" },
           message: `"${entity.itemId}" needs its maximum above its minimum (got ${minimum} and ${maximum}).`,
         });
         continue;
@@ -725,6 +1125,7 @@ function resolveOptimized(
         plan.errors.push({
           source: "bounds",
           itemId: entity.parameterName,
+          slot: { target: entity.target, part: "min" },
           message: `"${entity.itemId}" uses a logarithmic scale, which needs a positive minimum.`,
         });
         continue;
@@ -733,13 +1134,14 @@ function resolveOptimized(
         plan.errors.push({
           source: "bounds",
           itemId: entity.parameterName,
+          slot: { target: entity.target, part: "min" },
           message: `"${entity.itemId}" cannot go below ${entity.minimumFloor}.`,
         });
         continue;
       }
       if (entity.type === "integer") {
         const step = entity.settings.step
-          ? evaluateBound(entity, "step", entity.settings.step)
+          ? evaluateBound(entity, "step", "step", entity.settings.step)
           : 1;
         if (step === null) {
           continue;
@@ -753,6 +1155,7 @@ function resolveOptimized(
           plan.errors.push({
             source: "bounds",
             itemId: entity.parameterName,
+            slot: { target: entity.target, part: "min" },
             message: `"${entity.itemId}" needs integer bounds and a positive integer step.`,
           });
           continue;
@@ -802,24 +1205,91 @@ function resolveOptimized(
       identifier: entity.parameterName,
       default: defaultValue,
     });
-    parameterBindings[entity.parameterName] = { kind: "optimize", domain };
+    optimizedFields.push({
+      parameterName: entity.parameterName,
+      label: adHocTargetLabel(entity.target, state, context),
+      target: entity.target,
+      domain,
+      default: defaultValue,
+    });
   }
 
-  return { scenarioParameters, parameterBindings };
+  return { scenarioParameters, optimizedFields };
 }
 
-/** A reference to a generated parameter, as written into generated code. */
-const scenarioReference = (parameterName: string): string =>
+// -- Code generation --------------------------------------------------------------
+//
+// Inside generated initial-state code, `scenario` is rebound to the ad-hoc
+// Variables object so user expressions read `scenario.<variable>` exactly as
+// the scenario code editor's expressions read scenario parameters. The
+// compiler-provided parameters object (which carries the generated `adhoc.*`
+// values during optimization) stays reachable as `__adhocParams`.
+
+/** A generated-parameter reference inside generated initial-state code. */
+const initialStateReference = (parameterName: string): string =>
+  `__adhocParams[${JSON.stringify(parameterName)}]`;
+
+/** A generated-parameter reference inside a parameter-override expression. */
+const overrideReference = (parameterName: string): string =>
   `scenario[${JSON.stringify(parameterName)}]`;
 
 function valueSource(
   value: AdHocValue,
   parameterName: string,
   includeOptimize: boolean,
+  reference: (parameterName: string) => string,
 ): string {
   return includeOptimize && value.optimize
-    ? scenarioReference(parameterName)
+    ? reference(parameterName)
     : `(${value.expression})`;
+}
+
+/** The `__adhocVars` assignment lines for the top-level Variables. */
+function variableAssignments(
+  state: AdHocScenarioState,
+  includeOptimize: boolean,
+  reference: (parameterName: string) => string,
+): string[] {
+  return state.variables.map((variable) => {
+    const source = valueSource(
+      variable,
+      adHocParameterName.variable(AD_HOC_TOP_LEVEL_SCOPE, variable.name),
+      includeOptimize,
+      reference,
+    );
+    return `__adhocVars[${JSON.stringify(variable.name)}] = ${source};`;
+  });
+}
+
+/**
+ * Wraps a net-parameter override expression so it may read the top-level
+ * Variables as `scenario.<name>`. Override expressions are evaluated by
+ * `compileScenario` with `scenario` bound to the scenario parameters, so the
+ * generated parameters stay reachable while the Variables shadow them.
+ */
+function wrapOverrideExpression(
+  expression: string,
+  state: AdHocScenarioState,
+  includeOptimize: boolean,
+): string {
+  if (state.variables.length === 0) {
+    return expression;
+  }
+  const assignments = variableAssignments(
+    state,
+    includeOptimize,
+    overrideReference,
+  );
+  return [
+    `(() => {`,
+    `  const __adhocVars = {};`,
+    `  {`,
+    `    const scenario = __adhocVars;`,
+    ...assignments.map((line) => `    ${line}`),
+    `  }`,
+    `  return (function (scenario) { return (${expression}); })(__adhocVars);`,
+    `})()`,
+  ].join("\n");
 }
 
 function generateInitialStateCode(
@@ -830,15 +1300,21 @@ function generateInitialStateCode(
   const typeById = new Map(context.types.map((type) => [type.id, type]));
   const lines: string[] = [];
 
-  for (const variable of state.variables) {
-    const source = valueSource(
-      variable,
-      adHocParameterName.variable(AD_HOC_TOP_LEVEL_SCOPE, variable.name),
-      includeOptimize,
-    );
-    lines.push(`const ${variable.name} = ${source};`);
+  lines.push("const __adhocParams = scenario;");
+  lines.push("const __adhocVars = {};");
+  lines.push("{");
+  lines.push("  const scenario = __adhocVars;");
+  for (const assignment of variableAssignments(
+    state,
+    includeOptimize,
+    initialStateReference,
+  )) {
+    lines.push(`  ${assignment}`);
   }
+  lines.push("}");
   lines.push("const __adhocOut = {};");
+  lines.push("{");
+  lines.push("  const scenario = __adhocVars;");
 
   for (const [placeId, placeState] of Object.entries(state.places)) {
     const place = context.places.find((candidate) => candidate.id === placeId);
@@ -853,8 +1329,9 @@ function generateInitialStateCode(
         placeState.count,
         adHocParameterName.count(placeKey),
         includeOptimize,
+        initialStateReference,
       );
-      lines.push(`__adhocOut[${outKey}] = ${source};`);
+      lines.push(`  __adhocOut[${outKey}] = ${source};`);
       continue;
     }
 
@@ -870,6 +1347,7 @@ function generateInitialStateCode(
         variable,
         adHocParameterName.variable(placeKey, variable.name),
         includeOptimize,
+        initialStateReference,
       );
       return `const ${variable.name} = ${source};`;
     });
@@ -884,49 +1362,55 @@ function generateInitialStateCode(
               shared,
               adHocParameterName.column(placeKey, name),
               includeOptimize,
+              initialStateReference,
             )
           : valueSource(
               cell,
               adHocParameterName.cell(placeKey, rowIndex, name),
               includeOptimize,
+              initialStateReference,
             );
         return `${JSON.stringify(name)}: ${source}`;
       });
       return `{ ${fields.join(", ")} }`;
     };
 
-    lines.push(`__adhocOut[${outKey}] = (() => {`);
-    lines.push("  const __adhocRows = [];");
+    lines.push(`  __adhocOut[${outKey}] = (() => {`);
+    lines.push("    const __adhocRows = [];");
     for (const [rowIndex, row] of placeState.rows.entries()) {
       if (row.kind === "template") {
         const countSource = valueSource(
           row.count,
           adHocParameterName.count(placeKey, rowIndex),
           includeOptimize,
+          initialStateReference,
         );
         lines.push(
-          `  {`,
-          `    const count = Math.max(0, Math.round(${countSource}));`,
-          `    for (let i = 0; i < count; i++) {`,
-          ...variableDeclarations.map((declaration) => `      ${declaration}`),
-          `      __adhocRows.push(${rowObject(row, rowIndex)});`,
+          `    {`,
+          `      const count = Math.max(0, Math.round(${countSource}));`,
+          `      for (let i = 0; i < count; i++) {`,
+          ...variableDeclarations.map(
+            (declaration) => `        ${declaration}`,
+          ),
+          `        __adhocRows.push(${rowObject(row, rowIndex)});`,
+          `      }`,
           `    }`,
-          `  }`,
         );
       } else {
         lines.push(
-          `  {`,
-          `    const i = ${rowIndex};`,
-          `    const count = 1;`,
-          ...variableDeclarations.map((declaration) => `    ${declaration}`),
-          `    __adhocRows.push(${rowObject(row, rowIndex)});`,
-          `  }`,
+          `    {`,
+          `      const i = ${rowIndex};`,
+          `      const count = 1;`,
+          ...variableDeclarations.map((declaration) => `      ${declaration}`),
+          `      __adhocRows.push(${rowObject(row, rowIndex)});`,
+          `    }`,
         );
       }
     }
-    lines.push("  return __adhocRows;", "})();");
+    lines.push("    return __adhocRows;", "  })();");
   }
 
+  lines.push("}");
   lines.push("return __adhocOut;");
   return lines.join("\n");
 }
@@ -936,16 +1420,12 @@ function synthesize(
   context: AdHocSynthesisContext,
   includeOptimize: boolean,
 ):
-  | {
-      ok: true;
-      scenario: Scenario;
-      parameterBindings: PetrinautOptimizationManifest["scenario"]["parameterBindings"];
-    }
+  | { ok: true; output: AdHocSynthesisOutput }
   | { ok: false; errors: AdHocSynthesisError[] } {
   const plan = collectPlan(state, context, includeOptimize);
-  const { scenarioParameters, parameterBindings } = includeOptimize
+  const { scenarioParameters, optimizedFields } = includeOptimize
     ? resolveOptimized(plan, state, context)
-    : { scenarioParameters: [], parameterBindings: {} };
+    : { scenarioParameters: [], optimizedFields: [] };
 
   if (plan.errors.length > 0) {
     return { ok: false, errors: plan.errors };
@@ -961,11 +1441,15 @@ function synthesize(
       continue;
     }
     if (includeOptimize && entry.optimize) {
-      parameterOverrides[entry.parameterId] = scenarioReference(
+      parameterOverrides[entry.parameterId] = overrideReference(
         adHocParameterName.netParameter(parameter.variableName),
       );
     } else if (entry.expression.trim() !== "") {
-      parameterOverrides[entry.parameterId] = entry.expression;
+      parameterOverrides[entry.parameterId] = wrapOverrideExpression(
+        entry.expression,
+        state,
+        includeOptimize,
+      );
     }
   }
 
@@ -980,7 +1464,7 @@ function synthesize(
     },
   };
 
-  return { ok: true, scenario, parameterBindings };
+  return { ok: true, output: { scenario, optimizedFields } };
 }
 
 /**
@@ -992,13 +1476,14 @@ export function synthesizeAdHocScenario(
   context: AdHocSynthesisContext,
 ): SynthesizeAdHocScenarioOutcome {
   const outcome = synthesize(state, context, false);
-  return outcome.ok ? { ok: true, scenario: outcome.scenario } : outcome;
+  return outcome.ok ? { ok: true, scenario: outcome.output.scenario } : outcome;
 }
 
 /**
  * Compiles the form state into a scenario whose Optimize selections became
- * generated scenario parameters, plus the manifest bindings for them. Feed
- * the pair into an optimization manifest; the scenario is never persisted.
+ * generated scenario parameters, plus one {@link AdHocOptimizedField} per
+ * selection. Pass the fields through {@link adHocOptimizationBindings} for a
+ * manifest's `parameterBindings`; the scenario is never persisted.
  */
 export function synthesizeAdHocOptimization(
   state: AdHocScenarioState,

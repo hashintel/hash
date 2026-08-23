@@ -2,4 +2,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-Add ad-hoc scenario synthesis: `synthesizeAdHocScenario` compiles an inline initial-state + parameters definition into a code-mode `Scenario` generated at run time and never persisted, and `synthesizeAdHocOptimization` additionally turns every Optimize selection into a deterministically named scenario parameter with its optimization manifest binding.
+Ad-hoc scenario synthesis: form state, deterministic `adhoc.*` parameter names, synthesis to a generated code-mode scenario plus optimized fields with typed domains, the transform to optimization-manifest bindings, row-kind cycling and shared-column transitions, place totals, and an LSP session kind that type-checks every value expression.
