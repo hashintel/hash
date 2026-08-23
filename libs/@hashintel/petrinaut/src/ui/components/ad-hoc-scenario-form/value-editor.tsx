@@ -111,6 +111,12 @@ const fieldErrorStyle = css({
   color: "red.s100",
 });
 
+// The editor's own container carries `flex: 1` for row layouts; hosting it in
+// a row keeps that meaning width, not a zeroed flex-basis height.
+const expressionRowStyle = css({
+  display: "flex",
+});
+
 const optimizeRowStyle = css({
   display: "flex",
   justifyContent: "flex-end",
@@ -311,17 +317,19 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                       : null}
                   </div>
                 ) : (
-                  <CodeEditor
-                    singleLine
-                    language="typescript"
-                    path={uriFor(expressionSlot) || undefined}
-                    value={value.expression}
-                    placeholder={placeholder}
-                    onChange={(expression) =>
-                      onChange({ ...value, expression: expression ?? "" })
-                    }
-                    onSubmit={() => setOpen(false)}
-                  />
+                  <div className={expressionRowStyle}>
+                    <CodeEditor
+                      singleLine
+                      language="typescript"
+                      path={uriFor(expressionSlot) || undefined}
+                      value={value.expression}
+                      placeholder={placeholder}
+                      onChange={(expression) =>
+                        onChange({ ...value, expression: expression ?? "" })
+                      }
+                      onSubmit={() => setOpen(false)}
+                    />
+                  </div>
                 )}
                 {optimizable ? (
                   <div className={optimizeRowStyle}>
