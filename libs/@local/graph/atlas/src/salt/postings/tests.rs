@@ -6,6 +6,7 @@ use camino::Utf8PathBuf;
 use hashql_core::id::{Id, IdSlice, IdVec};
 use proptest::{prop_assert, prop_assert_eq, property_test};
 use smallvec::{SmallVec, smallvec};
+use zerocopy::{LE, U64};
 
 use super::{
     artifact::{InvalidPostingsFile, Membership, PostingsArchive},
@@ -17,11 +18,13 @@ use crate::{
     file::{
         WriteInto as _,
         postings::{
+            FileHeader,
             read::PostingsFile,
             write::{Regions, write_regions},
         },
     },
     identity::{BasePosition, NodeRowId, OntologyRowId},
+    runs::Runs,
 };
 
 fn scratch(name: &str) -> Utf8PathBuf {
@@ -54,6 +57,16 @@ fn dense_set(domain: usize, members: &[u32]) -> Box<DenseBitSlice<BasePosition>>
         set.insert(BasePosition::from_u32(member));
     }
     set
+}
+
+/// Builds a fencepost column at its persisted little-endian width.
+fn le_posts<I: Id>(raw: &[u64]) -> IdVec<I, U64<LE>> {
+    IdVec::from_raw(raw.iter().copied().map(U64::new).collect())
+}
+
+/// Builds a lawful run structure for a fixture's regions.
+fn runs<I: Id, T>(posts: &[u64], items: Vec<T>) -> Runs<I, T> {
+    Runs::from_parts(le_posts(posts), items).expect("the fixture posts satisfy the fencepost law")
 }
 
 /// The hand fixture has eight rows over four types, gathered through a permutation.
@@ -446,12 +459,34 @@ fn empty_domains_roundtrip() {
     assert_matches!(membership, Membership::List(&[]));
 }
 
-/// Writes raw regions and returns the error their opening surfaces.
+/// Writes lawful regions and returns the error their opening surfaces.
 fn open_invalid(path: impl AsRef<camino::Utf8Path>, regions: Regions<'_>) -> InvalidPostingsFile {
     let path = path.as_ref();
     let mut file = fs::File::create(path).expect("the fixture file should create");
     write_regions(regions, &mut file).expect("the regions should write");
     drop(file);
+
+    PostingsArchive::new(PostingsFile::open(path).expect("the fixture file should open"))
+        .expect_err("the contract violation must surface")
+}
+
+/// The helper writes lawful regions and overwrites one byte of the persisted file before returning
+/// the error surfaced during reopening.
+///
+/// The writer's fencepost columns arrive as validated [`Runs`], so a file with a broken fencepost
+/// region can no longer be written; corrupting the bytes on disk is the remaining road to one,
+/// and it is exactly the corruption class the open checks guard against.
+fn open_corrupted(
+    path: impl AsRef<camino::Utf8Path>,
+    regions: Regions<'_>,
+    offset: u64,
+    value: u8,
+) -> InvalidPostingsFile {
+    let path = path.as_ref();
+    let mut bytes = Vec::new();
+    write_regions(regions, &mut bytes).expect("writing into a vector cannot fail");
+    bytes[usize::try_from(offset).expect("fixture offsets fit usize")] = value;
+    fs::write(path, &bytes).expect("the scratch file is writable");
 
     PostingsArchive::new(PostingsFile::open(path).expect("the fixture file should open"))
         .expect_err("the contract violation must surface")
@@ -464,41 +499,44 @@ fn open_rejects_membership_violations() {
         values.iter().copied().map(BasePosition::from_u32).collect()
     };
 
-    // List posts not anchored at zero, then non-monotone.
+    // List posts not anchored at zero, then non-monotone. The writer's fencepost columns arrive
+    // as validated run structures, so these files exist only through byte corruption.
     let flags = DenseBitSlice::new_empty(1);
     assert_eq!(
-        open_invalid(
+        open_corrupted(
             dir.join("posts-start.post"),
             Regions {
-                points: 4,
                 flags: &flags,
-                list_posts: &[1, 1],
-                list_entries: &positions(&[0]),
+                lists: &runs(&[0, 1], positions(&[0])),
                 dense_sets: Box::leak(DenseBitSliceArray::new_empty(4, 0)),
-                parent_posts: &[0, 0],
-                parent_ids: &[],
-                direct_posts: &[0; 5],
-                direct_ids: &[],
+                parents: &runs(&[0, 0], Vec::new()),
+                direct: &runs(&[0, 1, 1, 1, 1], vec![id(0)]),
             },
+            FileHeader::new(1, 4, 1, 0, 0, 1)
+                .list_posts_offset()
+                .expect("the fixture geometry fits"),
+            1,
         ),
         InvalidPostingsFile::ListPosts { position: 0 },
     );
 
     let flags = DenseBitSlice::new_empty(2);
     assert_eq!(
-        open_invalid(
+        open_corrupted(
             dir.join("posts-order.post"),
             Regions {
-                points: 4,
                 flags: &flags,
-                list_posts: &[0, 2, 1],
-                list_entries: &positions(&[0]),
+                lists: &runs(&[0, 2, 2], positions(&[0, 1])),
                 dense_sets: Box::leak(DenseBitSliceArray::new_empty(4, 0)),
-                parent_posts: &[0, 0, 0],
-                parent_ids: &[],
-                direct_posts: &[0; 5],
-                direct_ids: &[],
+                parents: &runs(&[0, 0, 0], Vec::new()),
+                direct: &runs(&[0, 1, 2, 2, 2], vec![id(0), id(0)]),
             },
+            // The third list fencepost, dropped below its predecessor.
+            FileHeader::new(2, 4, 2, 0, 0, 2)
+                .list_posts_offset()
+                .expect("the fixture geometry fits")
+                + 16,
+            1,
         ),
         InvalidPostingsFile::ListPosts { position: 2 },
     );
@@ -511,18 +549,14 @@ fn open_rejects_membership_violations() {
         open_invalid(
             dir.join("dense-list-run.post"),
             Regions {
-                points: 4,
                 flags: &flags,
-                list_posts: &[0, 1],
-                list_entries: &positions(&[0]),
+                lists: &runs(&[0, 1], positions(&[0])),
                 dense_sets: &dense_sets,
-                parent_posts: &[0, 0],
-                parent_ids: &[],
-                direct_posts: &[0; 5],
-                direct_ids: &[],
+                parents: &runs(&[0, 0], Vec::new()),
+                direct: &runs(&[0, 1, 1, 1, 1], vec![id(0)]),
             },
         ),
-        InvalidPostingsFile::DenseListRun { type_row: 0 },
+        InvalidPostingsFile::DenseListRun { type_row: id(0) },
     );
 
     // A list run out of order, then out of the position domain.
@@ -531,75 +565,88 @@ fn open_rejects_membership_violations() {
         open_invalid(
             dir.join("list-order.post"),
             Regions {
-                points: 10,
                 flags: &flags,
-                list_posts: &[0, 2],
-                list_entries: &positions(&[3, 3]),
+                lists: &runs(&[0, 2], positions(&[3, 3])),
                 dense_sets: Box::leak(DenseBitSliceArray::new_empty(10, 0)),
-                parent_posts: &[0, 0],
-                parent_ids: &[],
-                direct_posts: &[0; 11],
-                direct_ids: &[],
+                parents: &runs(&[0, 0], Vec::new()),
+                direct: &runs(&[0; 11], Vec::new()),
             },
         ),
-        InvalidPostingsFile::ListOrder { type_row: 0 },
+        InvalidPostingsFile::ListOrder { type_row: id(0) },
     );
     let flags = DenseBitSlice::new_empty(1);
     assert_eq!(
         open_invalid(
             dir.join("list-domain.post"),
             Regions {
-                points: 10,
                 flags: &flags,
-                list_posts: &[0, 1],
-                list_entries: &positions(&[10]),
+                lists: &runs(&[0, 1], positions(&[10])),
                 dense_sets: Box::leak(DenseBitSliceArray::new_empty(10, 0)),
-                parent_posts: &[0, 0],
-                parent_ids: &[],
-                direct_posts: &[0; 11],
-                direct_ids: &[],
+                parents: &runs(&[0, 0], Vec::new()),
+                direct: &runs(&[0; 11], Vec::new()),
             },
         ),
-        InvalidPostingsFile::ListDomain { type_row: 0 },
+        InvalidPostingsFile::ListDomain { type_row: id(0) },
     );
 }
 
 #[test]
 fn open_rejects_parent_violations() {
     let dir = scratch("parent-rejections");
-    let parents = |values: &[u64]| -> Vec<OntologyRowId> {
+    let parent_ids = |values: &[u64]| -> Vec<OntologyRowId> {
         values.iter().copied().map(OntologyRowId::new).collect()
     };
-    let open = |name: &str, parent_posts: &[u64], parent_ids: &[OntologyRowId]| {
-        let flags = DenseBitSlice::new_empty(parent_posts.len() - 1);
-        let list_posts = vec![0_u64; parent_posts.len()];
-        open_invalid(
-            dir.join(name),
-            Regions {
-                points: 4,
-                flags: &flags,
-                list_posts: &list_posts,
-                list_entries: &[],
-                dense_sets: Box::leak(DenseBitSliceArray::new_empty(4, 0)),
-                parent_posts,
-                parent_ids,
-                direct_posts: &[0; 5],
-                direct_ids: &[],
-            },
-        )
-    };
 
+    // Broken parent fenceposts reach a reader only through corrupted bytes, exactly as for the
+    // list fenceposts.
+    let flags = DenseBitSlice::new_empty(2);
     assert_eq!(
-        open("parent-posts.post", &[0, 2, 1], &parents(&[0])),
+        open_corrupted(
+            dir.join("parent-posts.post"),
+            Regions {
+                flags: &flags,
+                lists: &runs(&[0, 0, 0], Vec::new()),
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(4, 0)),
+                parents: &runs(&[0, 1, 1], parent_ids(&[0])),
+                direct: &runs(&[0; 5], Vec::new()),
+            },
+            // The third parent fencepost, dropped below its predecessor.
+            FileHeader::new(2, 4, 0, 0, 1, 0)
+                .parent_posts_offset()
+                .expect("the fixture geometry fits")
+                + 16,
+            0,
+        ),
         InvalidPostingsFile::ParentPosts { position: 2 },
     );
+
+    let flags = DenseBitSlice::new_empty(2);
     assert_eq!(
-        open("parent-order.post", &[0, 2, 2], &parents(&[1, 1])),
-        InvalidPostingsFile::ParentOrder { type_row: 0 },
+        open_invalid(
+            dir.join("parent-order.post"),
+            Regions {
+                flags: &flags,
+                lists: &runs(&[0, 0, 0], Vec::new()),
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(4, 0)),
+                parents: &runs(&[0, 2, 2], parent_ids(&[1, 1])),
+                direct: &runs(&[0; 5], Vec::new()),
+            },
+        ),
+        InvalidPostingsFile::ParentOrder { type_row: id(0) },
     );
+    let flags = DenseBitSlice::new_empty(2);
     assert_eq!(
-        open("parent-domain.post", &[0, 1, 1], &parents(&[5])),
-        InvalidPostingsFile::ParentDomain { type_row: 0 },
+        open_invalid(
+            dir.join("parent-domain.post"),
+            Regions {
+                flags: &flags,
+                lists: &runs(&[0, 0, 0], Vec::new()),
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(4, 0)),
+                parents: &runs(&[0, 1, 1], parent_ids(&[5])),
+                direct: &runs(&[0; 5], Vec::new()),
+            },
+        ),
+        InvalidPostingsFile::ParentDomain { type_row: id(0) },
     );
 }
 
@@ -609,43 +656,75 @@ fn open_rejects_direct_violations() {
     let ids = |values: &[u64]| -> Vec<OntologyRowId> {
         values.iter().copied().map(OntologyRowId::new).collect()
     };
-    let open = |name: &str, points: u64, direct_posts: &[u64], direct_ids: &[OntologyRowId]| {
-        let flags = DenseBitSlice::new_empty(1);
-        open_invalid(
-            dir.join(name),
-            Regions {
-                points,
-                flags: &flags,
-                list_posts: &[0, 0],
-                list_entries: &[],
-                dense_sets: Box::leak(DenseBitSliceArray::new_empty(
-                    usize::try_from(points).expect("fixture point domains fit usize"),
-                    0,
-                )),
-                parent_posts: &[0, 0],
-                parent_ids: &[],
-                direct_posts,
-                direct_ids,
-            },
-        )
-    };
 
-    // Direct posts out of order, then a run out of order, out of the type domain, and a direct
-    // map whose entry count contradicts the membership total.
+    // Broken direct fenceposts reach a reader only through corrupted bytes.
+    let flags = DenseBitSlice::new_empty(1);
     assert_eq!(
-        open("direct-posts.post", 2, &[0, 2, 1], &ids(&[0])),
+        open_corrupted(
+            dir.join("direct-posts.post"),
+            Regions {
+                flags: &flags,
+                lists: &runs(&[0, 1], vec![BasePosition::from_u32(0)]),
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(2, 0)),
+                parents: &runs(&[0, 0], Vec::new()),
+                direct: &runs(&[0, 1, 1], ids(&[0])),
+            },
+            // The second direct fencepost, raised above its successor.
+            FileHeader::new(1, 2, 1, 0, 0, 1)
+                .direct_posts_offset()
+                .expect("the fixture geometry fits")
+                + 8,
+            2,
+        ),
         InvalidPostingsFile::DirectPosts { position: 2 },
     );
+
+    // A direct run out of order, out of the type domain, and a direct map whose entry count
+    // contradicts the membership total.
+    let flags = DenseBitSlice::new_empty(1);
     assert_eq!(
-        open("direct-order.post", 1, &[0, 2], &ids(&[0, 0])),
-        InvalidPostingsFile::DirectOrder { position: 0 },
+        open_invalid(
+            dir.join("direct-order.post"),
+            Regions {
+                flags: &flags,
+                lists: &runs(&[0, 0], Vec::new()),
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(1, 0)),
+                parents: &runs(&[0, 0], Vec::new()),
+                direct: &runs(&[0, 2], ids(&[0, 0])),
+            },
+        ),
+        InvalidPostingsFile::DirectOrder {
+            position: BasePosition::from_u32(0)
+        },
     );
+    let flags = DenseBitSlice::new_empty(1);
     assert_eq!(
-        open("direct-domain.post", 1, &[0, 1], &ids(&[5])),
-        InvalidPostingsFile::DirectDomain { position: 0 },
+        open_invalid(
+            dir.join("direct-domain.post"),
+            Regions {
+                flags: &flags,
+                lists: &runs(&[0, 0], Vec::new()),
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(1, 0)),
+                parents: &runs(&[0, 0], Vec::new()),
+                direct: &runs(&[0, 1], ids(&[5])),
+            },
+        ),
+        InvalidPostingsFile::DirectDomain {
+            position: BasePosition::from_u32(0)
+        },
     );
+    let flags = DenseBitSlice::new_empty(1);
     assert_eq!(
-        open("pair-count.post", 1, &[0, 1], &ids(&[0])),
+        open_invalid(
+            dir.join("pair-count.post"),
+            Regions {
+                flags: &flags,
+                lists: &runs(&[0, 0], Vec::new()),
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(1, 0)),
+                parents: &runs(&[0, 0], Vec::new()),
+                direct: &runs(&[0, 1], ids(&[0])),
+            },
+        ),
         InvalidPostingsFile::PairCount {
             direct: 1,
             membership: 0,

@@ -1,16 +1,23 @@
-use sprs::errors::StructureErrorKind;
+use hashql_core::id::IdVec;
+use zerocopy::{LE, U64};
 
-use super::{Runs, RunsBuilder, RunsError};
+use super::{Runs, RunsBuilder, RunsError, RunsView};
 use crate::identity::NodeRowId;
 
 fn node(row: u64) -> NodeRowId {
     NodeRowId::new(row)
 }
 
+/// Builds a fencepost column at its persisted little-endian width.
+fn le_posts(raw: &[u64]) -> IdVec<NodeRowId, U64<LE>> {
+    IdVec::from_raw(raw.iter().copied().map(U64::new).collect())
+}
+
 #[test]
 fn from_parts_accepts_a_valid_structure() {
-    let runs = Runs::<NodeRowId, u32>::from_parts(vec![0, 2, 2, 5], vec![10, 11, 20, 21, 22])
-        .expect("anchored, non-decreasing fenceposts closing at the item count are valid");
+    let runs =
+        Runs::<NodeRowId, u32>::from_parts(le_posts(&[0, 2, 2, 5]), vec![10, 11, 20, 21, 22])
+            .expect("anchored, non-decreasing fenceposts closing at the item count are valid");
 
     assert_eq!(runs.runs(), 3);
     assert_eq!(runs.items(), [10, 11, 20, 21, 22]);
@@ -26,7 +33,7 @@ fn from_parts_accepts_a_valid_structure() {
 
 #[test]
 fn from_parts_accepts_an_empty_domain() {
-    let runs = Runs::<NodeRowId, u32>::from_parts(vec![0], vec![])
+    let runs = Runs::<NodeRowId, u32>::from_parts(le_posts(&[0]), vec![])
         .expect("a lone zero anchor closes an empty structure");
 
     assert_eq!(runs.runs(), 0);
@@ -37,25 +44,81 @@ fn from_parts_accepts_an_empty_domain() {
 #[test]
 fn from_parts_rejects_each_broken_fencepost_rule() {
     assert_eq!(
-        Runs::<NodeRowId, u32>::from_parts(vec![], vec![])
+        Runs::<NodeRowId, u32>::from_parts(le_posts(&[]), vec![])
             .expect_err("an empty fencepost column is invalid"),
         RunsError::Missing
     );
     assert_eq!(
-        Runs::<NodeRowId, u32>::from_parts(vec![1, 2], vec![0, 0])
+        Runs::<NodeRowId, u32>::from_parts(le_posts(&[1, 2]), vec![0, 0])
             .expect_err("a nonzero anchor is invalid"),
         RunsError::Anchor
     );
     assert_eq!(
-        Runs::<NodeRowId, u32>::from_parts(vec![0, 3, 2], vec![0, 0, 0])
+        Runs::<NodeRowId, u32>::from_parts(le_posts(&[0, 3, 2]), vec![0, 0, 0])
             .expect_err("a decreasing fencepost is invalid"),
         RunsError::Order { index: 2 }
     );
     assert_eq!(
-        Runs::<NodeRowId, u32>::from_parts(vec![0, 2], vec![0, 0, 0])
+        Runs::<NodeRowId, u32>::from_parts(le_posts(&[0, 2]), vec![0, 0, 0])
             .expect_err("a fencepost column that closes short of the items is invalid"),
         RunsError::Close { post: 2, items: 3 }
     );
+}
+
+#[test]
+fn view_wraps_mapped_columns() {
+    let posts = [0_u64, 2, 2, 5].map(U64::<LE>::new);
+    let items = [10_u32, 11, 20, 21, 22];
+    let view = RunsView::<NodeRowId, u32>::from_parts(&posts, &items)
+        .expect("anchored, non-decreasing fenceposts closing at the item count are valid");
+
+    assert_eq!(view.runs(), 3);
+    assert_eq!(view.items(), items);
+    assert_eq!(view.run(node(0)), [10, 11]);
+    assert_eq!(view.run(node(1)), [0_u32; 0]);
+    assert_eq!(view.run(node(2)), [20, 21, 22]);
+    assert_eq!(
+        view.iter().map(|(_, value)| value).collect::<Vec<_>>(),
+        [&[10_u32, 11] as &[_], &[], &[20, 21, 22]]
+    );
+}
+
+#[test]
+fn view_from_parts_rejects_each_broken_fencepost_rule() {
+    let items = [0_u32, 0, 0];
+    assert_eq!(
+        RunsView::<NodeRowId, u32>::from_parts(&[], &items)
+            .expect_err("an empty fencepost column is invalid"),
+        RunsError::Missing
+    );
+    assert_eq!(
+        RunsView::<NodeRowId, u32>::from_parts(&[1_u64, 3].map(U64::<LE>::new), &items)
+            .expect_err("a nonzero anchor is invalid"),
+        RunsError::Anchor
+    );
+    assert_eq!(
+        RunsView::<NodeRowId, u32>::from_parts(&[0_u64, 3, 2].map(U64::<LE>::new), &items)
+            .expect_err("a decreasing fencepost is invalid"),
+        RunsError::Order { index: 2 }
+    );
+    assert_eq!(
+        RunsView::<NodeRowId, u32>::from_parts(&[0_u64, 2].map(U64::<LE>::new), &items)
+            .expect_err("a fencepost column that closes short of the items is invalid"),
+        RunsError::Close { post: 2, items: 3 }
+    );
+}
+
+#[test]
+fn view_runs_outlive_the_view_value() {
+    let posts = [0_u64, 2, 2, 5].map(U64::<LE>::new);
+    let items = [10_u32, 11, 20, 21, 22];
+
+    // `run` borrows for the mapping's lifetime, so the run survives the view that served it.
+    let run = {
+        let view = RunsView::<NodeRowId, u32>::from_parts_unchecked(&posts, &items);
+        view.run(node(2))
+    };
+    assert_eq!(run, [20, 21, 22]);
 }
 
 #[test]
@@ -122,7 +185,7 @@ fn builder_appends_runs_in_key_order_and_reports_each_key() {
     assert_eq!(builder.push_run([9]), node(2));
 
     let built = builder.finish();
-    let validated = Runs::from_parts(vec![0, 2, 2, 3], vec![7, 8, 9])
+    let validated = Runs::from_parts(le_posts(&[0, 2, 2, 3]), vec![7, 8, 9])
         .expect("the builder's columns satisfy the fencepost rules");
     assert_eq!(built, validated);
 }
@@ -136,53 +199,4 @@ fn span_slices_a_parallel_column() {
 
     assert_eq!(weights[runs.span(node(0))], [2.0]);
     assert_eq!(weights[runs.span(node(1))], [1.0, 3.0]);
-}
-
-#[test]
-fn structure_view_borrows_ascending_runs() {
-    let pairs = [(node(0), 2_u32), (node(0), 5), (node(2), 1)];
-    let runs = Runs::from_pairs(3, pairs.into_iter());
-
-    let view = runs
-        .structure_view(6)
-        .expect("strictly ascending runs below the column bound obey the matrix law");
-    assert_eq!(view.rows(), 3);
-    assert_eq!(view.cols(), 6);
-    assert_eq!(view.nnz(), 3);
-
-    let rows: Vec<Vec<u32>> = view
-        .outer_iterator()
-        .map(|row| row.indices().to_vec())
-        .collect();
-    assert_eq!(rows, [vec![2, 5], vec![], vec![1]]);
-}
-
-#[test]
-fn structure_view_rejects_runs_outside_the_matrix_law() {
-    let unsorted = Runs::from_pairs(1, [(node(0), 5_u32), (node(0), 2)].into_iter());
-    assert_eq!(
-        unsorted
-            .structure_view(6)
-            .expect_err("a descending run breaks the matrix law")
-            .kind(),
-        StructureErrorKind::Unsorted
-    );
-
-    let repeated = Runs::from_pairs(1, [(node(0), 2_u32), (node(0), 2)].into_iter());
-    assert_eq!(
-        repeated
-            .structure_view(6)
-            .expect_err("a repeated item breaks strict ascent")
-            .kind(),
-        StructureErrorKind::Unsorted
-    );
-
-    let out_of_bound = Runs::from_pairs(1, [(node(0), 6_u32)].into_iter());
-    assert_eq!(
-        out_of_bound
-            .structure_view(6)
-            .expect_err("an item at the column bound lies outside the matrix")
-            .kind(),
-        StructureErrorKind::OutOfRange
-    );
 }

@@ -2,38 +2,35 @@
 
 use std::io;
 
-use zerocopy::{IntoBytes as _, LE, U64};
+use zerocopy::IntoBytes as _;
 
 use super::{FileHeader, PaddedFileHeader};
 use crate::{
     bitset::{DenseBitSlice, DenseBitSliceArray},
-    file::region::{write_padding, write_region},
+    file::region::write_region,
     identity::{BasePosition, OntologyRowId},
+    runs::Runs,
 };
 
 /// The regions of one postings file, borrowed from a finished build.
+///
+/// The run structures arrive as [`Runs`], so every fencepost column already obeys the fencepost
+/// law and carries its persisted little-endian width; the writer streams each column's bytes as
+/// its region.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Regions<'build> {
-    /// The base-position domain the header records.
-    pub points: u64,
     /// The types whose membership is a dense set.
     pub flags: &'build DenseBitSlice<OntologyRowId>,
-    /// `types + 1` fenceposts delimiting [`list_entries`](Self::list_entries); a dense type's run
-    /// is empty.
-    pub list_posts: &'build [u64],
-    /// The list membership entries, type-major, sorted ascending per type.
-    pub list_entries: &'build [BasePosition],
+    /// Each list type's membership positions, ascending per type. A dense type's run is empty.
+    pub lists: &'build Runs<OntologyRowId, BasePosition>,
     /// The dense region holds one frame per dense type in ascending type order, behind the
     /// region's own point-domain header.
     pub dense_sets: &'build DenseBitSliceArray<BasePosition>,
-    /// `types + 1` fenceposts delimiting [`parent_ids`](Self::parent_ids).
-    pub parent_posts: &'build [u64],
-    /// The direct parent rows, type-major.
-    pub parent_ids: &'build [OntologyRowId],
-    /// `points + 1` fenceposts delimiting [`direct_ids`](Self::direct_ids).
-    pub direct_posts: &'build [u64],
-    /// The direct type rows, position-major, ascending per position.
-    pub direct_ids: &'build [OntologyRowId],
+    /// Each type's direct parent rows.
+    pub parents: &'build Runs<OntologyRowId, OntologyRowId>,
+    /// Each position's direct type rows, ascending per position. Its run count is the point
+    /// domain the header records.
+    pub direct: &'build Runs<BasePosition, OntologyRowId>,
 }
 
 /// Streams the postings regions as a postings file.
@@ -48,13 +45,11 @@ pub(crate) struct Regions<'build> {
 ///
 /// # Panics
 ///
-/// This panics when the regions contradict each other. Each fencepost region holds one post per
-/// type plus the closing post, so an empty one describes no type domain at all. Fencepost regions
-/// of differing lengths, a direct fencepost region not covering the point domain plus its closing
-/// post, a flags set whose domain is not the type count, a flag population differing from the
-/// dense set count, a dense region whose domain is not the point domain, and a final fencepost
-/// differing from its array's length are the remaining contradictions. No file geometry
-/// represents any of them.
+/// This panics when the regions contradict each other. Each run structure upholds the fencepost
+/// law by construction. The remaining contradictions live between regions. One check compares
+/// the fencepost-region lengths. Another checks that the flags cover the type domain and agree with
+/// the dense-set population. A final check compares the dense-region domain with the direct-map
+/// point domain. No file geometry represents any of them.
 ///
 /// `salt::postings` owns the membership and parent list rules (ascent, domains, empty list runs
 /// for dense types) as its construction contract. Its build asserts the streams' ascent where it
@@ -67,29 +62,26 @@ pub(crate) struct Regions<'build> {
 )]
 pub(crate) fn write_regions(
     Regions {
-        points,
         flags,
-        list_posts,
-        list_entries,
+        lists,
         dense_sets,
-        parent_posts,
-        parent_ids,
-        direct_posts,
-        direct_ids,
+        parents,
+        direct,
     }: Regions<'_>,
     mut write: impl io::Write,
 ) -> io::Result<()> {
+    let (list_posts, list_entries) = lists.as_raw_parts();
+    let (parent_posts, parent_ids) = parents.as_raw_parts();
+    let (direct_posts, direct_ids) = direct.as_raw_parts();
+
     assert_eq!(
         list_posts.len(),
         parent_posts.len(),
         "both fencepost regions cover the one type domain",
     );
-    assert!(
-        !list_posts.is_empty(),
-        "a fencepost region holds one post per type plus the closing post",
-    );
 
     let types = (list_posts.len() - 1) as u64;
+    let points = direct.runs() as u64;
     assert_eq!(
         flags.domain_size(),
         types,
@@ -105,26 +97,6 @@ pub(crate) fn write_regions(
         points,
         "every dense set covers the point domain",
     );
-    assert_eq!(
-        list_posts.last().copied(),
-        Some(list_entries.len() as u64),
-        "the final list fencepost closes the list entry array",
-    );
-    assert_eq!(
-        parent_posts.last().copied(),
-        Some(parent_ids.len() as u64),
-        "the final parent fencepost closes the parent id array",
-    );
-    assert_eq!(
-        direct_posts.len() as u64,
-        points + 1,
-        "the direct fencepost region covers the point domain plus its closing post",
-    );
-    assert_eq!(
-        direct_posts.last().copied(),
-        Some(direct_ids.len() as u64),
-        "the final direct fencepost closes the direct id array",
-    );
 
     let header = FileHeader::new(
         types,
@@ -135,42 +107,18 @@ pub(crate) fn write_regions(
         direct_ids.len() as u64,
     );
 
-    let posts_bytes = list_posts.len() as u64 * size_of::<U64<LE>>() as u64;
-
     write.write_all(PaddedFileHeader::new(header).as_bytes())?;
 
-    // The flags set, the parent ids, and the dense sets already carry their persisted
-    // little-endian form, so their bytes are their regions.
+    // Every region already carries its persisted little-endian form, so its bytes are its
+    // region.
     write_region(&mut write, flags.as_bytes())?;
-
-    write_words(&mut write, list_posts)?;
-    write_padding(&mut write, posts_bytes)?;
-
-    write_words(&mut write, parent_posts)?;
-    write_padding(&mut write, posts_bytes)?;
-
+    write_region(&mut write, list_posts.as_raw().as_bytes())?;
+    write_region(&mut write, parent_posts.as_raw().as_bytes())?;
     write_region(&mut write, parent_ids.as_bytes())?;
-
-    write_words(&mut write, direct_posts)?;
-    write_padding(
-        &mut write,
-        direct_posts.len() as u64 * size_of::<U64<LE>>() as u64,
-    )?;
-
+    write_region(&mut write, direct_posts.as_raw().as_bytes())?;
     write_region(&mut write, direct_ids.as_bytes())?;
-
     write_region(&mut write, dense_sets.as_bytes())?;
-
     write.write_all(list_entries.as_bytes())?;
-
-    Ok(())
-}
-
-/// Writes one `u64` region in canonical little-endian bytes.
-fn write_words(mut write: impl io::Write, words: &[u64]) -> io::Result<()> {
-    for &word in words {
-        write.write_all(U64::<LE>::new(word).as_bytes())?;
-    }
 
     Ok(())
 }

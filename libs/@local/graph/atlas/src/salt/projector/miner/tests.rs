@@ -11,7 +11,8 @@
 
 use core::num::NonZero;
 
-use hashql_core::id::{Id as _, IdSlice};
+use hashql_core::id::{Id as _, IdSlice, IdVec};
+use zerocopy::U64;
 
 use super::{HardNegativeMiner, MinedFrame, MinerOptions, SpatialField};
 use crate::{
@@ -370,14 +371,21 @@ fn pooled_frames_keep_the_maximum_weight() {
     // Row 0: target 2 mined in both frames (weights 0.5 and 0.25) and
     // target 1 mined only in the second; row 1 mined only in the
     // first. Pooled rows order by ascending target.
+    let le_posts = |raw: &[u64]| IdVec::from_raw(raw.iter().copied().map(U64::new).collect());
     let first = MinedFrame {
-        targets: Runs::from_parts(vec![0, 1, 2], vec![NodeRowId::new(2), NodeRowId::new(0)])
-            .expect("the fixture fenceposts are valid"),
+        targets: Runs::from_parts(
+            le_posts(&[0, 1, 2]),
+            vec![NodeRowId::new(2), NodeRowId::new(0)],
+        )
+        .expect("the fixture fenceposts are valid"),
         weights: vec![0.5, 1.0].into_boxed_slice(),
     };
     let second = MinedFrame {
-        targets: Runs::from_parts(vec![0, 2, 2], vec![NodeRowId::new(2), NodeRowId::new(1)])
-            .expect("the fixture fenceposts are valid"),
+        targets: Runs::from_parts(
+            le_posts(&[0, 2, 2]),
+            vec![NodeRowId::new(2), NodeRowId::new(1)],
+        )
+        .expect("the fixture fenceposts are valid"),
         weights: vec![0.25, 1.0].into_boxed_slice(),
     };
 

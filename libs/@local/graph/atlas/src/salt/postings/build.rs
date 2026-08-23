@@ -4,6 +4,7 @@ use std::io;
 
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 use smallvec::SmallVec;
+use zerocopy::U64;
 
 use crate::{
     bitset::{DenseBitSlice, DenseBitSliceArray},
@@ -13,6 +14,7 @@ use crate::{
     },
     identity::{BasePosition, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
+    runs::{Runs, RunsBuilder},
 };
 
 /// Building the postings failed.
@@ -48,32 +50,26 @@ impl core::error::Error for PostingsError {}
 ///
 /// The direct map is the one stored relation - the row-order type column gathered into position
 /// order - and the membership regions are its inversion, so the two directions agree by
-/// construction. Construction picks each type's representation and lays every region out exactly
-/// as the file stores it. A type goes dense exactly when its dense set costs fewer bytes than its
-/// list - [`DenseBitSlice::total_byte_len`] of the point domain against four bytes per member -
-/// so the choice follows from the sizes alone and carries no tuning knob. At equal cost the list
-/// wins because it reads without bit decoding.
+/// construction. Construction picks each type's representation and lays every region out in the
+/// file's order, with the fencepost columns at the build's native width; the writer persists
+/// them little-endian as it streams. A type goes dense exactly when its dense set costs fewer
+/// bytes than its list - [`DenseBitSlice::total_byte_len`] of the point domain against four
+/// bytes per member. The choice therefore follows from the sizes alone and carries no tuning
+/// knob. At equal cost the list wins because it reads without bit decoding.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Postings {
-    /// The base-position domain `N`.
-    points: u64,
     /// The types whose membership is a dense set.
     flags: Box<DenseBitSlice<OntologyRowId>>,
-    /// `T + 1` list fenceposts over [`Self::list_entries`]. A dense type's run is empty.
-    list_posts: Vec<u64>,
-    /// The list membership entries, type-major, ascending per type.
-    list_entries: Vec<BasePosition>,
+    /// Each list type's membership positions, ascending per type. A dense type's run is empty.
+    lists: Runs<OntologyRowId, BasePosition>,
     /// The dense membership sets, one frame per dense type in ascending type order, each over
     /// the point domain.
     dense_sets: Box<DenseBitSliceArray<BasePosition>>,
-    /// `N + 1` direct fenceposts over [`Self::direct_ids`].
-    direct_posts: Vec<u64>,
-    /// Each position's direct type rows, position-major, ascending per position.
-    direct_ids: Vec<OntologyRowId>,
-    /// `T + 1` parent fenceposts over [`Self::parent_ids`].
-    parent_posts: Vec<u64>,
-    /// The direct parent rows, type-major, ascending per type.
-    parent_ids: Vec<OntologyRowId>,
+    /// Each position's direct type rows, ascending per position. Its run count is the
+    /// base-position domain `N`.
+    direct: Runs<BasePosition, OntologyRowId>,
+    /// Each type's direct parent rows, ascending per type.
+    parents: Runs<OntologyRowId, OntologyRowId>,
 }
 
 impl Postings {
@@ -85,8 +81,8 @@ impl Postings {
     /// direct parents in ontology-row order - the
     /// [`Ontology::parents`](crate::dataset::Ontology::parents) contract, restated in file shape -
     /// and its length is the type domain `T`. The build gathers the direct map first and derives
-    /// the membership regions from it by [`invert`], so every check of one direction binds the
-    /// other.
+    /// the membership regions from it by [`Inverse::new`], so every check of one direction binds
+    /// the other.
     ///
     /// # Errors
     ///
@@ -116,15 +112,12 @@ impl Postings {
             "the type column covers one entry per base position",
         );
 
-        let points = types.len() as u64;
         let domain = parents.len();
 
         // The direct map is the gather itself: each position's run restates its row's type list
         // verbatim, so the runs inherit the column's ascent and deduplication. The domain and
         // ascent checks ride the gather. Every pass below trusts them.
-        let mut direct_posts = Vec::with_capacity(row_of_position.len() + 1);
-        direct_posts.push(0);
-        let mut direct_ids = Vec::new();
+        let mut direct = RunsBuilder::with_capacity(row_of_position.len(), 0);
         for (_position, &row) in row_of_position.iter_enumerated() {
             let list = &types[row];
             assert!(
@@ -136,32 +129,26 @@ impl Postings {
                 if id.index_below(domain).is_none() {
                     return Err(PostingsError::NodeType { row, id });
                 }
-
-                direct_ids.push(id);
             }
 
-            direct_posts.push(direct_ids.len() as u64);
+            direct.push_run(list.iter().copied());
         }
+        let direct = direct.finish();
 
         let Inverse {
             flags,
-            list_posts,
-            list_entries,
+            lists,
             dense_sets,
-        } = invert(&direct_posts, &direct_ids, domain);
+        } = Inverse::new(&direct, domain);
 
-        let (parent_posts, parent_ids) = parent_regions(parents)?;
+        let parents = parent_regions(parents)?;
 
         Ok(Self {
-            points,
             flags,
-            list_posts,
-            list_entries,
+            lists,
             dense_sets,
-            direct_posts,
-            direct_ids,
-            parent_posts,
-            parent_ids,
+            direct,
+            parents,
         })
     }
 
@@ -172,109 +159,109 @@ impl Postings {
     #[must_use]
     pub(crate) fn measurements(&self) -> PostingsMeasurements {
         PostingsMeasurements {
-            types: self.list_posts.len() as u64 - 1,
+            types: self.lists.runs() as u64,
             dense_types: self.dense_sets.len() as u64,
-            list_entries: self.list_entries.len() as u64,
-            parent_edges: self.parent_ids.len() as u64,
-            direct_entries: self.direct_ids.len() as u64,
+            list_entries: self.lists.items().len() as u64,
+            parent_edges: self.parents.items().len() as u64,
+            direct_entries: self.direct.items().len() as u64,
         }
     }
 }
 
-/// The membership regions [`invert`] derives from the direct map.
+/// The membership regions [`Inverse::new`] derives from the direct map.
 struct Inverse {
     /// The types whose membership is a dense set.
     flags: Box<DenseBitSlice<OntologyRowId>>,
-    /// `T + 1` list fenceposts. A dense type's run is empty.
-    list_posts: Vec<u64>,
-    /// The list membership entries, type-major, ascending per type.
-    list_entries: Vec<BasePosition>,
+    /// Each list type's membership positions, ascending per type. A dense type's run is empty.
+    lists: Runs<OntologyRowId, BasePosition>,
     /// The dense membership sets, one frame per dense type in ascending type order.
     dense_sets: Box<DenseBitSliceArray<BasePosition>>,
 }
 
-/// Inverts the position-major direct map into the per-type membership regions.
-///
-/// This is the transpose: a type's membership holds exactly the positions whose direct runs name
-/// the type, so the two directions carry one relation. Walking positions ascending makes every
-/// list run sorted by construction: no sort pass exists.
-///
-/// Every direct id lies below `domain`. [`Postings::build`] validated that while gathering.
-fn invert(direct_posts: &[u64], direct_ids: &[OntologyRowId], domain: usize) -> Inverse {
-    let points = direct_posts.len() - 1;
+impl Inverse {
+    /// Inverts the position-major direct map into the per-type membership regions.
+    ///
+    /// This is the transpose: a type's membership holds exactly the positions whose direct runs
+    /// name the type, so the two directions carry one relation. Walking positions ascending makes
+    /// every list run sorted by construction: no sort pass exists.
+    ///
+    /// Every direct id lies below `domain`. [`Postings::build`] validated that while gathering.
+    fn new(direct: &Runs<BasePosition, OntologyRowId>, domain: usize) -> Self {
+        let points = direct.runs();
 
-    // Member counts first: they pick each type's representation and become the fenceposts, so
-    // the fill pass below writes each entry at its final slot.
-    let mut counts = IdVec::from_elem(0_u64, domain);
-    for &id in direct_ids {
-        counts[id] += 1;
-    }
-
-    // The representation choice is the size comparison, in bytes on both sides: a dense set
-    // costs the whole frame regardless of population while a list costs one position entry per
-    // member. The strict inequality sends the equal-cost case to the list, which reads without
-    // decoding.
-    let dense_bytes = DenseBitSlice::<BasePosition>::total_byte_len(points as u64);
-    let is_dense = |count: u64| dense_bytes < count * size_of::<BasePosition>() as u64;
-
-    // The dense count is known before the region exists, so the sets live in one allocation
-    // laid out exactly as the file stores them.
-    let dense_count = counts.iter().filter(|&&count| is_dense(count)).count();
-    let mut dense_sets = DenseBitSliceArray::<BasePosition>::new_empty(points, dense_count);
-
-    let mut flags = DenseBitSlice::<OntologyRowId>::new_empty(domain);
-    let mut ranks = IdVec::from_elem(0_u32, domain);
-    let mut list_posts = Vec::with_capacity(domain + 1);
-    list_posts.push(0);
-
-    let mut next_rank = 0_usize;
-    let mut total = 0_u64;
-    for (type_row, &count) in counts.iter_enumerated() {
-        if is_dense(count) {
-            flags.insert(type_row);
-            ranks[type_row] = u32::try_from(next_rank).expect("dense types fit the type domain");
-            next_rank += 1;
-        } else {
-            total += count;
+        // Member counts first: they pick each type's representation and become the fenceposts, so
+        // the fill pass below writes each entry at its final slot.
+        let mut counts = IdVec::from_elem(0_u64, domain);
+        for &id in direct.items() {
+            counts[id] += 1;
         }
 
-        list_posts.push(total);
-    }
+        // The representation choice is the size comparison, in bytes on both sides: a dense set
+        // costs the whole frame regardless of population while a list costs one position entry per
+        // member. The strict inequality sends the equal-cost case to the list, which reads without
+        // decoding.
+        let dense_bytes = DenseBitSlice::<BasePosition>::total_byte_len(points as u64);
+        let is_dense = |count: u64| dense_bytes < count * size_of::<BasePosition>() as u64;
 
-    // Fill in position order: each list run's cursor starts at its fencepost and ascending
-    // positions land ascending in place. Dense members insert into their type's set.
-    let mut list_entries = vec![
-        BasePosition::from_u32(0);
-        usize::try_from(total)
-            .expect("resident entries fit the address space")
-    ];
-    let mut cursors: Vec<u64> = list_posts[..domain].to_vec();
+        // The dense count is known before the region exists, so the sets live in one allocation
+        // laid out exactly as the file stores them.
+        let dense_count = counts.iter().filter(|&&count| is_dense(count)).count();
+        let mut dense_sets = DenseBitSliceArray::<BasePosition>::new_empty(points, dense_count);
 
-    for position in 0..points {
-        let start = usize::try_from(direct_posts[position])
-            .expect("resident entries fit the address space");
-        let end = usize::try_from(direct_posts[position + 1])
-            .expect("resident entries fit the address space");
+        let mut flags = DenseBitSlice::<OntologyRowId>::new_empty(domain);
+        let mut ranks = IdVec::from_elem(0_u32, domain);
+        let mut list_posts = Vec::with_capacity(domain + 1);
+        list_posts.push(0);
 
-        for &id in &direct_ids[start..end] {
-            if flags.contains(id) {
-                dense_sets[ranks[id] as usize].insert(BasePosition::from_usize(position));
+        let mut next_rank = 0_usize;
+        let mut total = 0_usize;
+        for (type_row, &count) in counts.iter_enumerated() {
+            if is_dense(count) {
+                flags.insert(type_row);
+                ranks[type_row] =
+                    u32::try_from(next_rank).expect("dense types fit the type domain");
+                next_rank += 1;
             } else {
-                let type_row =
-                    usize::try_from(id.as_u64()).expect("the gather validated the domain");
-                let slot = usize::try_from(cursors[type_row])
-                    .expect("resident entries fit the address space");
-                list_entries[slot] = BasePosition::from_usize(position);
-                cursors[type_row] += 1;
+                total += usize::try_from(count).expect("resident entries fit the address space");
+            }
+
+            list_posts.push(total);
+        }
+
+        // Fill in position order: each list run's cursor starts at its fencepost and ascending
+        // positions land ascending in place. Dense members insert into their type's set.
+        let mut list_entries = vec![BasePosition::from_u32(0); total];
+        let mut cursors: IdVec<OntologyRowId, usize> =
+            IdVec::from_raw(list_posts[..domain].to_vec());
+
+        for (position, run) in direct.iter() {
+            for &id in run {
+                if flags.contains(id) {
+                    dense_sets[ranks[id] as usize].insert(position);
+                } else {
+                    let slot = cursors[id];
+                    list_entries[slot] = position;
+                    cursors[id] += 1;
+                }
             }
         }
-    }
 
-    Inverse {
-        flags,
-        list_posts,
-        list_entries,
-        dense_sets,
+        let posts = IdVec::from_raw(
+            list_posts
+                .iter()
+                .map(|&post| U64::new(post as u64))
+                .collect(),
+        );
+        let lists = Runs::from_parts(posts, list_entries).expect(
+            "prefix sums over the counts anchor at zero, never decrease, and close at the fill's \
+             entry count",
+        );
+
+        Self {
+            flags,
+            lists,
+            dense_sets,
+        }
     }
 }
 
@@ -299,15 +286,11 @@ impl WriteInto for Postings {
 
         write_regions(
             Regions {
-                points: self.points,
                 flags: &self.flags,
-                list_posts: &self.list_posts,
-                list_entries: &self.list_entries,
+                lists: &self.lists,
                 dense_sets: &self.dense_sets,
-                parent_posts: &self.parent_posts,
-                parent_ids: &self.parent_ids,
-                direct_posts: &self.direct_posts,
-                direct_ids: &self.direct_ids,
+                parents: &self.parents,
+                direct: &self.direct,
             },
             &mut writer,
         )?;
@@ -335,9 +318,9 @@ pub(crate) struct PostingsMeasurements {
     pub direct_entries: u64,
 }
 
-/// Lays the parent regions out in file shape.
+/// Gathers the parent lists into their per-type runs.
 ///
-/// The regions restate the dataset's stream. The domain check is the one condition the stream
+/// The runs restate the dataset's stream. The domain check is the one condition the stream
 /// cannot carry itself (parents may point forward). Ascent is the stream's own contract and is
 /// asserted here, so a defective stream fails the build instead of publishing a file the next
 /// open refuses.
@@ -354,13 +337,10 @@ pub(crate) struct PostingsMeasurements {
 )]
 fn parent_regions(
     parents: &IdSlice<OntologyRowId, SmallVec<OntologyRowId, 2>>,
-) -> Result<(Vec<u64>, Vec<OntologyRowId>), PostingsError> {
+) -> Result<Runs<OntologyRowId, OntologyRowId>, PostingsError> {
     let domain = parents.len();
 
-    let mut posts = Vec::with_capacity(domain + 1);
-    posts.push(0);
-
-    let mut ids = Vec::new();
+    let mut runs = RunsBuilder::with_capacity(domain, 0);
     for (type_row, list) in parents.iter_enumerated() {
         assert!(
             list.is_sorted_by(|previous, next| previous < next),
@@ -371,12 +351,10 @@ fn parent_regions(
             if id.index_below(domain).is_none() {
                 return Err(PostingsError::Parent { type_row, id });
             }
-
-            ids.push(id);
         }
 
-        posts.push(ids.len() as u64);
+        runs.push_run(list.iter().copied());
     }
 
-    Ok((posts, ids))
+    Ok(runs.finish())
 }

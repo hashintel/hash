@@ -3,12 +3,12 @@
 use core::ops::Range;
 
 use hashql_core::id::Id as _;
-use zerocopy::{LE, U64};
 
 use crate::{
     bitset::{DenseBitSlice, RowsIn},
     file::postings::read::PostingsFile,
     identity::{BasePosition, OntologyRowId},
+    runs::{RunsError, RunsView},
 };
 
 /// An opened postings file does not hold a valid postings artifact.
@@ -19,21 +19,21 @@ pub enum InvalidPostingsFile {
     /// The parent fenceposts break anchoring, ordering, or coverage at `position`.
     ParentPosts { position: usize },
     /// A dense type's list run is not empty.
-    DenseListRun { type_row: u64 },
+    DenseListRun { type_row: OntologyRowId },
     /// A list run's positions are not strictly ascending.
-    ListOrder { type_row: u64 },
+    ListOrder { type_row: OntologyRowId },
     /// A list run holds a position at or beyond the point count.
-    ListDomain { type_row: u64 },
+    ListDomain { type_row: OntologyRowId },
     /// A parent list's rows are not strictly ascending.
-    ParentOrder { type_row: u64 },
+    ParentOrder { type_row: OntologyRowId },
     /// A parent list names a row at or beyond the type count.
-    ParentDomain { type_row: u64 },
+    ParentDomain { type_row: OntologyRowId },
     /// The direct fenceposts break anchoring, ordering, or coverage at `position`.
     DirectPosts { position: usize },
     /// A direct run's type rows are not strictly ascending.
-    DirectOrder { position: u64 },
+    DirectOrder { position: BasePosition },
     /// A direct run names a row at or beyond the type count.
-    DirectDomain { position: u64 },
+    DirectDomain { position: BasePosition },
     /// The direct entry count contradicts the membership total.
     PairCount {
         /// Entries in the direct map.
@@ -105,9 +105,10 @@ impl core::error::Error for InvalidPostingsFile {}
 /// membership total. An open postings therefore only serves valid runs and consumers re-validate
 /// nothing. The bit set
 /// frames were already validated when the file opened, where the format's geometry lives. The
-/// archive holds the mapped file alone. A dense type's frame index is the flag population below
-/// its row, read from the mapped flags frame at each lookup, so every answer comes from file
-/// bytes and the regions stay in the page cache under memory pressure.
+/// archive holds the mapped file alone, and each lookup re-borrows its fencepost and items
+/// regions as a [`RunsView`] pair the construction validated. A dense type's frame index is the
+/// flag population below its row, read from the mapped flags frame at each lookup, so every
+/// answer comes from file bytes and the regions stay in the page cache under memory pressure.
 #[derive(Debug)]
 pub(crate) struct PostingsArchive {
     file: PostingsFile,
@@ -124,21 +125,15 @@ impl PostingsArchive {
         let types = file.types();
         let points = file.points();
         let flags = file.flags();
-        let list_entries = file.list_entries();
-        let parent_ids = file.parent_ids();
-
-        validate_posts(file.list_posts(), list_entries.len() as u64, |position| {
-            InvalidPostingsFile::ListPosts { position }
-        })?;
-        validate_posts(file.parent_posts(), parent_ids.len() as u64, |position| {
-            InvalidPostingsFile::ParentPosts { position }
-        })?;
 
         let list_posts = file.list_posts();
-        for type_row in 0..types {
-            let run = run_of(list_posts, list_entries, type_row);
-
-            if flags.contains(OntologyRowId::from_u64(type_row)) {
+        let lists = RunsView::from_parts(list_posts, file.list_entries()).map_err(|error| {
+            InvalidPostingsFile::ListPosts {
+                position: post_position(error, list_posts.len()),
+            }
+        })?;
+        for (type_row, run) in lists.iter() {
+            if flags.contains(type_row) {
                 if !run.is_empty() {
                     return Err(InvalidPostingsFile::DenseListRun { type_row });
                 }
@@ -154,8 +149,13 @@ impl PostingsArchive {
         }
 
         let parent_posts = file.parent_posts();
-        for type_row in 0..types {
-            let list = run_of(parent_posts, parent_ids, type_row);
+        let parents: RunsView<'_, OntologyRowId, _> =
+            RunsView::from_parts(parent_posts, file.parent_ids()).map_err(|error| {
+                InvalidPostingsFile::ParentPosts {
+                    position: post_position(error, parent_posts.len()),
+                }
+            })?;
+        for (type_row, list) in parents.iter() {
             if !list.is_sorted_by(|previous, next| previous < next) {
                 return Err(InvalidPostingsFile::ParentOrder { type_row });
             }
@@ -165,14 +165,14 @@ impl PostingsArchive {
             }
         }
 
-        let direct_ids = file.direct_ids();
-        validate_posts(file.direct_posts(), direct_ids.len() as u64, |position| {
-            InvalidPostingsFile::DirectPosts { position }
-        })?;
-
         let direct_posts = file.direct_posts();
-        for position in 0..points {
-            let run = run_of(direct_posts, direct_ids, position);
+        let direct: RunsView<'_, BasePosition, _> =
+            RunsView::from_parts(direct_posts, file.direct_ids()).map_err(|error| {
+                InvalidPostingsFile::DirectPosts {
+                    position: post_position(error, direct_posts.len()),
+                }
+            })?;
+        for (position, run) in direct.iter() {
             if !run.is_sorted_by(|previous, next| previous < next) {
                 return Err(InvalidPostingsFile::DirectOrder { position });
             }
@@ -185,13 +185,13 @@ impl PostingsArchive {
         // Every position-type pair appears once in each direction, so the direct entry count is
         // the membership total: the list entries plus the dense populations.
         let dense_sets = file.dense_sets();
-        let membership = list_entries.len() as u64
+        let membership = lists.items().len() as u64
             + (0..dense_sets.len())
                 .map(|rank| dense_sets[rank].count())
                 .sum::<u64>();
-        if direct_ids.len() as u64 != membership {
+        if direct.items().len() as u64 != membership {
             return Err(InvalidPostingsFile::PairCount {
-                direct: direct_ids.len() as u64,
+                direct: direct.items().len() as u64,
                 membership,
             });
         }
@@ -228,11 +228,7 @@ impl PostingsArchive {
                 .expect("resident type domains fit usize");
             Membership::Dense(&self.file.dense_sets()[rank])
         } else {
-            Membership::List(run_of(
-                self.file.list_posts(),
-                self.file.list_entries(),
-                row,
-            ))
+            Membership::List(self.lists().run(type_row))
         })
     }
 
@@ -244,11 +240,7 @@ impl PostingsArchive {
             return None;
         }
 
-        Some(run_of(
-            self.file.parent_posts(),
-            self.file.parent_ids(),
-            row,
-        ))
+        Some(self.parent_lists().run(type_row))
     }
 
     /// Returns `position`'s direct type rows, strictly ascending, when the position is in domain.
@@ -259,41 +251,36 @@ impl PostingsArchive {
             return None;
         }
 
-        Some(run_of(
-            self.file.direct_posts(),
-            self.file.direct_ids(),
-            index,
-        ))
+        Some(self.direct_runs().run(position))
+    }
+
+    /// Re-borrows the list membership regions construction validated.
+    fn lists(&self) -> RunsView<'_, OntologyRowId, BasePosition> {
+        RunsView::from_parts_unchecked(self.file.list_posts(), self.file.list_entries())
+    }
+
+    /// Re-borrows the parent regions construction validated.
+    fn parent_lists(&self) -> RunsView<'_, OntologyRowId, OntologyRowId> {
+        RunsView::from_parts_unchecked(self.file.parent_posts(), self.file.parent_ids())
+    }
+
+    /// Re-borrows the direct-map regions construction validated.
+    fn direct_runs(&self) -> RunsView<'_, BasePosition, OntologyRowId> {
+        RunsView::from_parts_unchecked(self.file.direct_posts(), self.file.direct_ids())
     }
 }
 
-/// Borrows run `index` of a fencepost-delimited array.
-fn run_of<'map, T>(posts: &[U64<LE>], values: &'map [T], index: u64) -> &'map [T] {
-    let index = usize::try_from(index).expect("resident domains fit usize");
-    let start = usize::try_from(posts[index].get()).expect("entries fit the address space");
-    let end = usize::try_from(posts[index + 1].get()).expect("entries fit the address space");
-
-    &values[start..end]
-}
-
-/// Checks one fencepost region: anchored at zero, non-decreasing, closing at the array length.
-fn validate_posts(
-    posts: &[U64<LE>],
-    close: u64,
-    error: impl Fn(usize) -> InvalidPostingsFile,
-) -> Result<(), InvalidPostingsFile> {
-    if posts.first().map(|post| post.get()) != Some(0) {
-        return Err(error(0));
+/// Names the fencepost position a [`RunsError`] faults, for the per-region error variants.
+///
+/// A missing column and a broken anchor fault the first post, a break in the order faults its
+/// own index, and a closing mismatch faults the last post - exactly the positions the archive
+/// reported before the fencepost law moved into [`RunsView`].
+const fn post_position(error: RunsError, posts: usize) -> usize {
+    match error {
+        RunsError::Missing | RunsError::Anchor => 0,
+        RunsError::Order { index } => index,
+        RunsError::Close { .. } => posts - 1,
     }
-    if let Some(position) = (1..posts.len()).find(|&position| posts[position] < posts[position - 1])
-    {
-        return Err(error(position));
-    }
-    if posts.last().map(|post| post.get()) != Some(close) {
-        return Err(error(posts.len() - 1));
-    }
-
-    Ok(())
 }
 
 /// One type's membership over the base delivery order.

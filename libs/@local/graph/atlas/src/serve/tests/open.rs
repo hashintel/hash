@@ -9,7 +9,7 @@ use core::assert_matches;
 use std::io::Write as _;
 
 use camino::Utf8PathBuf;
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdVec};
 use type_system::ontology::id::VersionedUrl;
 use zerocopy::{IntoBytes as _, LE, U64};
 
@@ -145,16 +145,7 @@ fn retarget_quad_root(path: &Utf8PathBuf, points: u32) {
 fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
     // The mapping ends before the rewrite: the file backs the slices read here, so every region
     // is copied into build vocabulary first.
-    let (
-        flags,
-        list_posts,
-        list_entries,
-        dense_sets,
-        parent_posts,
-        parent_ids,
-        direct_posts,
-        direct_ids,
-    ) = {
+    let (flags, lists, dense_sets, parents, direct) = {
         let postings = PostingsFile::open(path).expect("the published postings artifact opens");
 
         let published = postings.flags();
@@ -176,7 +167,7 @@ fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
         let mut direct_posts = postings
             .direct_posts()
             .iter()
-            .map(|post| post.get())
+            .map(|post| usize::try_from(post.get()).expect("fixture posts fit usize"))
             .collect::<Vec<_>>();
         let mut direct_ids = postings.direct_ids().to_vec();
         if direct_posts.len() > posts_len {
@@ -184,7 +175,7 @@ fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
             let close = *direct_posts
                 .last()
                 .expect("the fencepost region anchors at zero");
-            direct_ids.truncate(usize::try_from(close).expect("fixture entries fit usize"));
+            direct_ids.truncate(close);
         } else {
             let close = *direct_posts
                 .last()
@@ -194,21 +185,27 @@ fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
 
         (
             flags,
-            postings
-                .list_posts()
-                .iter()
-                .map(|post| post.get())
-                .collect::<Vec<_>>(),
-            postings.list_entries().to_vec(),
+            crate::runs::Runs::from_parts(
+                IdVec::from_raw(postings.list_posts().to_vec()),
+                postings.list_entries().to_vec(),
+            )
+            .expect("the published list columns satisfy the fencepost law"),
             dense_sets,
-            postings
-                .parent_posts()
-                .iter()
-                .map(|post| post.get())
-                .collect::<Vec<_>>(),
-            postings.parent_ids().to_vec(),
-            direct_posts,
-            direct_ids,
+            crate::runs::Runs::from_parts(
+                IdVec::from_raw(postings.parent_posts().to_vec()),
+                postings.parent_ids().to_vec(),
+            )
+            .expect("the published parent columns satisfy the fencepost law"),
+            crate::runs::Runs::from_parts(
+                IdVec::from_raw(
+                    direct_posts
+                        .iter()
+                        .map(|&post| U64::new(post as u64))
+                        .collect(),
+                ),
+                direct_ids,
+            )
+            .expect("the resized direct columns satisfy the fencepost law"),
         )
     };
 
@@ -216,15 +213,11 @@ fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
     let mut file = std::io::BufWriter::new(file);
     crate::file::postings::write::write_regions(
         Regions {
-            points,
             flags: &flags,
-            list_posts: &list_posts,
-            list_entries: &list_entries,
+            lists: &lists,
             dense_sets: &dense_sets,
-            parent_posts: &parent_posts,
-            parent_ids: &parent_ids,
-            direct_posts: &direct_posts,
-            direct_ids: &direct_ids,
+            parents: &parents,
+            direct: &direct,
         },
         &mut file,
     )

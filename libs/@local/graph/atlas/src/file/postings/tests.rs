@@ -5,8 +5,8 @@
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 
-use hashql_core::id::Id as _;
-use zerocopy::{IntoBytes as _, TryFromBytes as _};
+use hashql_core::id::{Id, IdVec};
+use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
 
 use super::{
     FileHeader, PaddedFileHeader,
@@ -19,7 +19,18 @@ use crate::{
     },
     file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
     identity::{BasePosition, OntologyRowId},
+    runs::Runs,
 };
+
+/// Converts a native fencepost column into its persisted little-endian width.
+fn le_posts<I: Id>(posts: &[usize]) -> IdVec<I, U64<LE>> {
+    IdVec::from_raw(posts.iter().map(|&post| U64::new(post as u64)).collect())
+}
+
+/// A run structure over an empty key domain: one anchoring fencepost and an empty item column.
+fn empty_runs<I: Id, T>() -> Runs<I, T> {
+    Runs::from_parts(le_posts(&[0]), Vec::new()).expect("the anchoring post closes at zero items")
+}
 
 /// A per-test scratch file path under the system temp directory.
 fn scratch(name: &str) -> PathBuf {
@@ -44,9 +55,9 @@ fn scratch(name: &str) -> PathBuf {
 /// membership: runs `0:{0} 1:{1} 2:{1} 3:{0} 5:{1} 9:{0}` with the other positions empty, so the
 /// direct ids are `[0, 1, 1, 0, 1, 0]` (`M = 6`).
 const POINTS: u64 = 10;
-const LIST_POSTS: [u64; 4] = [0, 3, 3, 3];
-const PARENT_POSTS: [u64; 4] = [0, 0, 0, 2];
-const DIRECT_POSTS: [u64; 11] = [0, 1, 2, 3, 4, 4, 5, 5, 5, 5, 6];
+const LIST_POSTS: [usize; 4] = [0, 3, 3, 3];
+const PARENT_POSTS: [usize; 4] = [0, 0, 0, 2];
+const DIRECT_POSTS: [usize; 11] = [0, 1, 2, 3, 4, 4, 5, 5, 5, 5, 6];
 
 fn fixture_flags() -> Box<DenseBitSlice<OntologyRowId>> {
     let mut flags = DenseBitSlice::new_empty(3);
@@ -74,21 +85,35 @@ fn fixture_direct_ids() -> [OntologyRowId; 6] {
     [0, 1, 1, 0, 1, 0].map(OntologyRowId::new)
 }
 
+fn fixture_lists() -> Runs<OntologyRowId, BasePosition> {
+    Runs::from_parts(le_posts(&LIST_POSTS), fixture_list_entries().to_vec())
+        .expect("the fixture posts satisfy the fencepost law")
+}
+
+fn fixture_parents() -> Runs<OntologyRowId, OntologyRowId> {
+    Runs::from_parts(le_posts(&PARENT_POSTS), fixture_parent_ids().to_vec())
+        .expect("the fixture posts satisfy the fencepost law")
+}
+
+fn fixture_direct() -> Runs<BasePosition, OntologyRowId> {
+    Runs::from_parts(le_posts(&DIRECT_POSTS), fixture_direct_ids().to_vec())
+        .expect("the fixture posts satisfy the fencepost law")
+}
+
 fn fixture_bytes() -> Vec<u8> {
     let flags = fixture_flags();
     let dense_sets = fixture_dense();
+    let lists = fixture_lists();
+    let parents = fixture_parents();
+    let direct = fixture_direct();
     let mut bytes = Vec::new();
     write_regions(
         Regions {
-            points: POINTS,
             flags: &flags,
-            list_posts: &LIST_POSTS,
-            list_entries: &fixture_list_entries(),
+            lists: &lists,
             dense_sets: &dense_sets,
-            parent_posts: &PARENT_POSTS,
-            parent_ids: &fixture_parent_ids(),
-            direct_posts: &DIRECT_POSTS,
-            direct_ids: &fixture_direct_ids(),
+            parents: &parents,
+            direct: &direct,
         },
         &mut bytes,
     )
@@ -196,7 +221,7 @@ fn written_regions_reopen_verbatim() {
     assert_eq!(
         file.list_posts()
             .iter()
-            .map(|post| post.get())
+            .map(|post| usize::try_from(post.get()).expect("fixture posts fit usize"))
             .collect::<Vec<_>>(),
         LIST_POSTS,
     );
@@ -205,7 +230,7 @@ fn written_regions_reopen_verbatim() {
     assert_eq!(
         file.parent_posts()
             .iter()
-            .map(|post| post.get())
+            .map(|post| usize::try_from(post.get()).expect("fixture posts fit usize"))
             .collect::<Vec<_>>(),
         PARENT_POSTS,
     );
@@ -213,7 +238,7 @@ fn written_regions_reopen_verbatim() {
     assert_eq!(
         file.direct_posts()
             .iter()
-            .map(|post| post.get())
+            .map(|post| usize::try_from(post.get()).expect("fixture posts fit usize"))
             .collect::<Vec<_>>(),
         DIRECT_POSTS,
     );
@@ -370,18 +395,16 @@ fn open_rejects_incoherent_frames() {
 }
 
 /// The regions of an edgeless, typeless, pointless file: the smallest coherent write.
+///
+/// The run structures and the dense region are leaked so the helper stays one-parameter. Each
+/// leaked empty structure is a few dozen bytes per test process.
 fn empty_regions(flags: &DenseBitSlice<OntologyRowId>) -> Regions<'_> {
     Regions {
-        points: 0,
         flags,
-        list_posts: &[0],
-        list_entries: &[],
-        // Leaked so the helper stays one-parameter. Each leaked empty array is 8 bytes.
+        lists: Box::leak(Box::new(empty_runs())),
         dense_sets: Box::leak(DenseBitSliceArray::new_empty(0, 0)),
-        parent_posts: &[0],
-        parent_ids: &[],
-        direct_posts: &[0],
-        direct_ids: &[],
+        parents: Box::leak(Box::new(empty_runs())),
+        direct: Box::leak(Box::new(empty_runs())),
     }
 }
 
@@ -389,10 +412,13 @@ fn empty_regions(flags: &DenseBitSlice<OntologyRowId>) -> Regions<'_> {
 #[should_panic(expected = "both fencepost regions cover the one type domain")]
 fn writer_rejects_mismatched_post_regions() {
     let flags = DenseBitSlice::new_empty(0);
+    let one_type_no_members: Runs<OntologyRowId, BasePosition> =
+        Runs::from_parts(le_posts(&[0, 0]), Vec::new())
+            .expect("one empty run satisfies the fencepost law");
     let mut sink = Vec::new();
     let _: std::io::Result<()> = write_regions(
         Regions {
-            list_posts: &[0, 0],
+            lists: &one_type_no_members,
             ..empty_regions(&flags)
         },
         &mut sink,
@@ -428,76 +454,23 @@ fn writer_rejects_missized_dense_sets() {
     let mut flags = DenseBitSlice::new_empty(1);
     flags.insert(OntologyRowId::new(0));
     let dense_sets = DenseBitSliceArray::<BasePosition>::new_empty(5, 1);
+    let one_type_no_members: Runs<OntologyRowId, BasePosition> =
+        Runs::from_parts(le_posts(&[0, 0]), Vec::new())
+            .expect("one empty run satisfies the fencepost law");
+    let no_parents: Runs<OntologyRowId, OntologyRowId> =
+        Runs::from_parts(le_posts(&[0, 0]), Vec::new())
+            .expect("one empty run satisfies the fencepost law");
+    let ten_points: Runs<BasePosition, OntologyRowId> =
+        Runs::from_parts(le_posts(&[0; 11]), Vec::new())
+            .expect("ten empty runs satisfy the fencepost law");
     let mut sink = Vec::new();
     let _: std::io::Result<()> = write_regions(
         Regions {
-            points: 10,
             flags: &flags,
-            list_posts: &[0, 0],
-            list_entries: &[],
+            lists: &one_type_no_members,
             dense_sets: &dense_sets,
-            parent_posts: &[0, 0],
-            parent_ids: &[],
-            direct_posts: &[0; 11],
-            direct_ids: &[],
-        },
-        &mut sink,
-    );
-}
-
-#[test]
-#[should_panic(expected = "the final list fencepost closes the list entry array")]
-fn writer_rejects_unclosed_list_posts() {
-    let flags = DenseBitSlice::new_empty(0);
-    let mut sink = Vec::new();
-    let _: std::io::Result<()> = write_regions(
-        Regions {
-            list_posts: &[1],
-            ..empty_regions(&flags)
-        },
-        &mut sink,
-    );
-}
-
-#[test]
-#[should_panic(expected = "the final parent fencepost closes the parent id array")]
-fn writer_rejects_unclosed_parent_posts() {
-    let flags = DenseBitSlice::new_empty(0);
-    let mut sink = Vec::new();
-    let _: std::io::Result<()> = write_regions(
-        Regions {
-            parent_posts: &[1],
-            ..empty_regions(&flags)
-        },
-        &mut sink,
-    );
-}
-
-#[test]
-#[should_panic(
-    expected = "the direct fencepost region covers the point domain plus its closing post"
-)]
-fn writer_rejects_missized_direct_posts() {
-    let flags = DenseBitSlice::new_empty(0);
-    let mut sink = Vec::new();
-    let _: std::io::Result<()> = write_regions(
-        Regions {
-            direct_posts: &[0, 0],
-            ..empty_regions(&flags)
-        },
-        &mut sink,
-    );
-}
-
-#[test]
-#[should_panic(expected = "the final direct fencepost closes the direct id array")]
-fn writer_rejects_unclosed_direct_posts() {
-    let flags = DenseBitSlice::new_empty(0);
-    let mut sink = Vec::new();
-    let _: std::io::Result<()> = write_regions(
-        Regions {
-            direct_posts: &[1],
-            ..empty_regions(&flags)
+            parents: &no_parents,
+            direct: &ten_points,
         },
         &mut sink,
     );

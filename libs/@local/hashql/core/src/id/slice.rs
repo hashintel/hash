@@ -637,6 +637,27 @@ where
             .map_err(I::from_usize)
     }
 
+    /// Clones the slice into a new [`IdVec`].
+    ///
+    /// See [`slice::to_vec`](prim@slice#method.to_vec) for details.
+    pub fn to_vec(&self) -> IdVec<I, T>
+    where
+        T: Clone,
+    {
+        IdVec::from_raw(self.raw.to_vec())
+    }
+
+    /// Clones the slice into a new [`IdVec`] using the given allocator.
+    ///
+    /// See [`slice::to_vec_in`](prim@slice#method.to_vec_in) for details.
+    pub fn to_vec_in<A>(&self, alloc: A) -> IdVec<I, T, A>
+    where
+        A: Allocator,
+        T: Clone,
+    {
+        IdVec::from_raw(self.raw.to_vec_in(alloc))
+    }
+
     #[inline]
     pub fn partition_point(&self, predicate: impl Fn(&T) -> bool) -> I {
         let index = self.raw.partition_point(predicate);
