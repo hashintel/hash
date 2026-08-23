@@ -6311,6 +6311,9 @@
             "items": {
               "$ref": "#/components/schemas/VersionedUrl"
             }
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
           }
         },
         "additionalProperties": false
