@@ -12,7 +12,10 @@ import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
-import { synthesizeAdHocOptimization } from "@hashintel/petrinaut-core";
+import {
+  adHocOptimizationBindings,
+  synthesizeAdHocOptimization,
+} from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
@@ -697,13 +700,14 @@ describe("CreateOptimizationDrawer", () => {
     if (!outcome.ok) {
       throw new Error(JSON.stringify(outcome.errors));
     }
+    const { scenario: generatedScenario, optimizedFields } = outcome.output;
 
     const input = buildAdHocPetrinautOptimizationInput({
       name: "Ad-hoc study",
       title: "Test model",
       definition,
-      scenario: outcome.scenario,
-      parameterBindings: outcome.parameterBindings,
+      scenario: generatedScenario,
+      parameterBindings: adHocOptimizationBindings(optimizedFields),
       metric,
       direction: "maximize",
       optimizationSteps: 10,
@@ -711,7 +715,7 @@ describe("CreateOptimizationDrawer", () => {
       maxTime: 50,
     });
 
-    expect(input.scenario.id).toBe(outcome.scenario.id);
+    expect(input.scenario.id).toBe(generatedScenario.id);
     expect(input.scenario.parameterBindings).toEqual({
       "adhoc.count.Queue": {
         kind: "optimize",
@@ -724,12 +728,13 @@ describe("CreateOptimizationDrawer", () => {
         },
       },
     });
-    expect(input.model.definition.scenarios).toEqual([outcome.scenario]);
+    expect(input.model.definition.scenarios).toEqual([generatedScenario]);
     expect(
-      outcome.scenario.scenarioParameters.map(
+      generatedScenario.scenarioParameters.map(
         (parameter) => parameter.identifier,
       ),
     ).toEqual(["adhoc.count.Queue"]);
+    expect(optimizedFields[0]?.label).toBe("Queue › count");
     expect(input.model.definition.metrics).toEqual([metric]);
   });
 
