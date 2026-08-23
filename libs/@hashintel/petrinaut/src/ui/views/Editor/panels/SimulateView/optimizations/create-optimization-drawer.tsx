@@ -307,17 +307,25 @@ export function validateOptimizationParameterDraft(
   return null;
 }
 
-function adHocHasOptimizeSelection(state: AdHocScenarioState): boolean {
+function adHocHasOptimizeSelection(
+  state: AdHocScenarioState,
+  definition: SDCPN,
+): boolean {
   if (
     state.variables.some((variable) => variable.optimize !== null) ||
     state.netParameters.some((entry) => entry.optimize !== null)
   ) {
     return true;
   }
-  return Object.values(state.places).some((place) => {
+  const colourById = new Map(definition.types.map((type) => [type.id, type]));
+  return Object.entries(state.places).some(([placeId, place]) => {
     if (place.kind === "uncoloured") {
       return place.count.optimize !== null;
     }
+    const colorId = definition.places.find(
+      (candidate) => candidate.id === placeId,
+    )?.colorId;
+    const elements = colorId ? (colourById.get(colorId)?.elements ?? []) : [];
     return (
       place.variables.some((variable) => variable.optimize !== null) ||
       Object.values(place.sharedColumns).some(
@@ -326,7 +334,13 @@ function adHocHasOptimizeSelection(state: AdHocScenarioState): boolean {
       place.rows.some(
         (row) =>
           (row.kind === "template" && row.count.optimize !== null) ||
-          row.cells.some((cell) => cell.optimize !== null),
+          // A shared column supersedes its cells, so a muted cell toggle is
+          // not a selection — synthesis would emit nothing for it.
+          row.cells.some(
+            (cell, column) =>
+              cell.optimize !== null &&
+              !(elements[column] && place.sharedColumns[elements[column].name]),
+          ),
       )
     );
   });
@@ -342,6 +356,7 @@ function getConfigurationError({
   name,
   scenario,
   adHocState,
+  definition,
   drafts,
   objectiveMetricReady,
   missingObjectiveMessage,
@@ -353,6 +368,7 @@ function getConfigurationError({
   name: string;
   scenario: Scenario | null;
   adHocState: AdHocScenarioState | null;
+  definition: SDCPN;
   drafts: ParameterDrafts;
   objectiveMetricReady: boolean;
   missingObjectiveMessage: string;
@@ -384,7 +400,10 @@ function getConfigurationError({
         return error;
       }
     }
-  } else if (adHocState === null || !adHocHasOptimizeSelection(adHocState)) {
+  } else if (
+    adHocState === null ||
+    !adHocHasOptimizeSelection(adHocState, definition)
+  ) {
     return "Enable Optimize on at least one value";
   }
   if (!objectiveMetricReady) {
@@ -672,6 +691,7 @@ export const CreateOptimizationDrawer = ({
             name,
             scenario: selectedScenario ?? null,
             adHocState: isAdHoc ? (adHocState ?? EMPTY_AD_HOC_STATE) : null,
+            definition: petriNetDefinition,
             drafts,
             objectiveMetricReady: true,
             missingObjectiveMessage: "Select an objective metric",
@@ -847,6 +867,7 @@ export const CreateOptimizationDrawer = ({
           name,
           scenario: selectedScenario ?? null,
           adHocState: isAdHoc ? (adHocState ?? EMPTY_AD_HOC_STATE) : null,
+          definition: petriNetDefinition,
           drafts,
           objectiveMetricReady,
           missingObjectiveMessage:
