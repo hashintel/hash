@@ -65,6 +65,9 @@ const headerButtonStyle = css({
   border: "[none]",
   background: "[transparent]",
   padding: "[0]",
+  // The Tooltip wrapper zeroes line-height; restore the text's box.
+  lineHeight: "[1.3]",
+  minHeight: "[16px]",
   fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s100",

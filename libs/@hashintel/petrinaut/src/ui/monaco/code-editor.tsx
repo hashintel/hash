@@ -43,7 +43,8 @@ const singleLineContainerStyle = cva({
     borderColor: "neutral.bd.subtle",
     borderRadius: "lg",
     overflow: "hidden",
-    height: `[${SINGLE_LINE_TOTAL_HEIGHT}px]`,
+    // Literal: Panda's extractor cannot resolve interpolated constants.
+    height: "[28px]",
     flex: "1",
     minWidth: "[0]",
     transition: "[border-color 0.15s ease, box-shadow 0.15s ease]",
@@ -98,14 +99,14 @@ const singleLineLoadingStyle = css({
 
 const placeholderStyle = css({
   position: "absolute",
-  top: `[${SINGLE_LINE_PADDING_Y}px]`,
+  top: "[6px]",
   left: "[12px]",
   fontSize: "xs",
-  fontFamily: `[${CODE_FONT_FAMILY}]`,
+  fontFamily: "['JetBrains Mono Variable', monospace]",
   color: "neutral.s80",
   pointerEvents: "none",
   zIndex: "[1]",
-  lineHeight: `[${SINGLE_LINE_HEIGHT}px]`,
+  lineHeight: "[16px]",
 });
 
 // -- Props --------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { MonacoProvider } from "../../monaco/provider";
 import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
 import { EMPTY_AD_HOC_STATE } from "./state";
 
@@ -227,14 +228,16 @@ const Demo: React.FC<{
 }> = ({ context, initial, optimizable }) => {
   const [state, setState] = useState(initial);
   return (
-    <div style={{ width: 820 }}>
-      <AdHocScenarioForm
-        state={state}
-        onChange={setState}
-        context={context}
-        optimizable={optimizable}
-      />
-    </div>
+    <MonacoProvider>
+      <div style={{ width: 820 }}>
+        <AdHocScenarioForm
+          state={state}
+          onChange={setState}
+          context={context}
+          optimizable={optimizable}
+        />
+      </div>
+    </MonacoProvider>
   );
 };
 
