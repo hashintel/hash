@@ -185,11 +185,16 @@ export interface AdHocSlot {
   part: AdHocValuePart;
 }
 
-/** Escapes an id so it is safe as one path/URI segment of a slot key. */
+/**
+ * Escapes an id to letters, digits, and `-<hex>-` escapes. Slot keys become
+ * file-path and URI segments, and Monaco normalizes percent-escapes when it
+ * round-trips a URI, so the escape alphabet must survive `URI.parse` +
+ * `toString` unchanged and must not contain the `_` separator.
+ */
 const encodeSlotSegment = (value: string): string =>
-  encodeURIComponent(value).replace(
-    /[.!'()*~]/g,
-    (character) => `%${character.charCodeAt(0).toString(16)}`,
+  value.replace(
+    /[^A-Za-z0-9]/gu,
+    (character) => `-${character.codePointAt(0)!.toString(16)}-`,
   );
 
 /**
@@ -205,7 +210,7 @@ export function adHocSlotKey(slot: AdHocSlot): string {
       base =
         target.placeId === null
           ? `var_net_${target.index}`
-          : `var_${encodeSlotSegment(target.placeId)}_${target.index}`;
+          : `var_pl_${encodeSlotSegment(target.placeId)}_${target.index}`;
       break;
     case "netParameter":
       base = `param_${encodeSlotSegment(target.parameterId)}`;
@@ -406,6 +411,11 @@ function validateVariableName(name: string): string | null {
   return null;
 }
 
+/** Whether a name can be declared in generated code and ambient LSP scope. */
+export function isValidAdHocVariableName(name: string): boolean {
+  return validateVariableName(name) === null;
+}
+
 /**
  * Conservatively extracts candidate references from an expression: bare
  * identifiers (per-place Variables), `scenario.<name>` members (top-level
@@ -548,10 +558,15 @@ export function toggleAdHocOptimize(
 
 /**
  * Advances a row's kind one step along the gutter cycle: Fixed → Dynamic →
- * count-Optimized → Fixed. Nothing is thrown away: leaving Dynamic retains
- * the count (bounds included) on the fixed row, and returning restores it.
+ * count-Optimized → Fixed. Consumers without Optimize pass `includeOptimize:
+ * false` and the cycle skips the optimized stage. Nothing is thrown away:
+ * leaving Dynamic retains the count (bounds included) on the fixed row, and
+ * returning restores it.
  */
-export function cycleAdHocRowKind(row: AdHocRow): AdHocRow {
+export function cycleAdHocRowKind(
+  row: AdHocRow,
+  includeOptimize = true,
+): AdHocRow {
   if (row.kind === "fixed") {
     const retained = row.retainedCount;
     const count: AdHocValue = retained
@@ -560,7 +575,7 @@ export function cycleAdHocRowKind(row: AdHocRow): AdHocRow {
     const { retainedCount: _restored, ...rest } = row;
     return { ...rest, kind: "template", count };
   }
-  if (!row.count.optimize) {
+  if (includeOptimize && !row.count.optimize) {
     return {
       ...row,
       count: toggleAdHocOptimize(
@@ -759,6 +774,29 @@ function collectPlan(
   );
   const typeById = new Map(context.types.map((type) => [type.id, type]));
 
+  // The expression is unused only while the slot is optimized and Optimize is
+  // honored; everywhere else an empty expression would generate the syntax
+  // error `()` attributed to nothing the user can find.
+  const requireExpression = (
+    value: AdHocValue,
+    target: AdHocValueTarget,
+    source: AdHocSynthesisError["source"],
+    itemId: string,
+    what: string,
+  ): void => {
+    if (includeOptimize && value.optimize) {
+      return;
+    }
+    if (value.expression.trim() === "") {
+      errors.push({
+        source,
+        itemId,
+        slot: { target, part: "expression" },
+        message: `${what} needs an expression.`,
+      });
+    }
+  };
+
   const topLevelNames = new Set<string>();
   for (const [index, variable] of state.variables.entries()) {
     const target: AdHocValueTarget = { kind: "variable", placeId: null, index };
@@ -782,6 +820,13 @@ function collectPlan(
       continue;
     }
     topLevelNames.add(variable.name);
+    requireExpression(
+      variable,
+      target,
+      "variable",
+      variable.name,
+      `Variable "${variable.name}"`,
+    );
     if (includeOptimize && variable.optimize) {
       optimized.push({
         parameterName: adHocParameterName.variable(
@@ -829,6 +874,11 @@ function collectPlan(
     }
   }
 
+  // The generated initial state is keyed by place name — the one key
+  // `compileScenario` resolves — so two participating places sharing a name
+  // would silently collapse into one entry.
+  const usedPlaceNames = new Map<string, string>();
+
   for (const [placeId, placeState] of Object.entries(state.places)) {
     const placeKey = adHocPlaceKey(context.places, placeId);
     const place = context.places.find((candidate) => candidate.id === placeId);
@@ -845,7 +895,29 @@ function collectPlan(
       continue;
     }
 
+    const nameHolder = usedPlaceNames.get(place.name);
+    if (nameHolder !== undefined && nameHolder !== placeId) {
+      errors.push({
+        source: "count",
+        itemId: placeId,
+        slot: {
+          target: { kind: "count", placeId, row: null },
+          part: "expression",
+        },
+        message: `Two places are named "${place.name}"; rename one — the generated initial state is keyed by place name.`,
+      });
+      continue;
+    }
+    usedPlaceNames.set(place.name, placeId);
+
     if (placeState.kind === "uncoloured") {
+      requireExpression(
+        placeState.count,
+        { kind: "count", placeId, row: null },
+        "count",
+        placeId,
+        `The token count of "${place.name}"`,
+      );
       if (includeOptimize && placeState.count.optimize) {
         optimized.push({
           parameterName: adHocParameterName.count(placeKey),
@@ -910,6 +982,13 @@ function collectPlan(
         continue;
       }
       placeVariableNames.add(variable.name);
+      requireExpression(
+        variable,
+        target,
+        "variable",
+        variable.name,
+        `Variable "${variable.name}"`,
+      );
       if (includeOptimize && variable.optimize) {
         optimized.push({
           parameterName: adHocParameterName.variable(placeKey, variable.name),
@@ -925,16 +1004,9 @@ function collectPlan(
 
     for (const [field, shared] of Object.entries(placeState.sharedColumns)) {
       const named = elementByName.get(field);
+      // A share whose element was renamed or removed supersedes nothing and
+      // has no slot to carry an error, so it is ignored rather than fatal.
       if (!named) {
-        errors.push({
-          source: "cell",
-          itemId: adHocParameterName.column(placeKey, field),
-          slot: {
-            target: { kind: "column", placeId, column: -1 },
-            part: "expression",
-          },
-          message: `Place "${place.name}" has no colour element "${field}" to share.`,
-        });
         continue;
       }
       const target: AdHocValueTarget = {
@@ -942,6 +1014,13 @@ function collectPlan(
         placeId,
         column: named.index,
       };
+      requireExpression(
+        shared,
+        target,
+        "cell",
+        adHocParameterName.column(placeKey, field),
+        `The shared value of column "${field}"`,
+      );
       if (!includeOptimize || !shared.optimize) {
         continue;
       }
@@ -965,6 +1044,15 @@ function collectPlan(
     }
 
     for (const [rowIndex, row] of placeState.rows.entries()) {
+      if (row.kind === "template") {
+        requireExpression(
+          row.count,
+          { kind: "count", placeId, row: rowIndex },
+          "count",
+          adHocParameterName.count(placeKey, rowIndex),
+          `The count of row ${rowIndex + 1} in "${place.name}"`,
+        );
+      }
       if (includeOptimize && row.kind === "template" && row.count.optimize) {
         optimized.push({
           parameterName: adHocParameterName.count(placeKey, rowIndex),
@@ -999,6 +1087,13 @@ function collectPlan(
         if (placeState.sharedColumns[element.name]) {
           continue;
         }
+        requireExpression(
+          cell,
+          target,
+          "cell",
+          adHocParameterName.cell(placeKey, rowIndex, element.name),
+          `The "${element.name}" value of row ${rowIndex + 1} in "${place.name}"`,
+        );
         if (!includeOptimize || !cell.optimize) {
           continue;
         }
@@ -1160,6 +1255,24 @@ function resolveOptimized(
           });
           continue;
         }
+        if ((maximum - minimum) % step !== 0) {
+          plan.errors.push({
+            source: "bounds",
+            itemId: entity.parameterName,
+            slot: { target: entity.target, part: "step" },
+            message: `"${entity.itemId}" needs a step that divides its range exactly, so the maximum is reachable.`,
+          });
+          continue;
+        }
+        if (entity.settings.scale === "log" && step !== 1) {
+          plan.errors.push({
+            source: "bounds",
+            itemId: entity.parameterName,
+            slot: { target: entity.target, part: "step" },
+            message: `"${entity.itemId}" uses a logarithmic integer scale, which requires a step of 1.`,
+          });
+          continue;
+        }
         domain = {
           kind: "integer",
           minimum,
@@ -1192,7 +1305,8 @@ function resolveOptimized(
         constants,
       );
       if (typeof current === "number" && Number.isFinite(current)) {
-        defaultValue = current;
+        defaultValue =
+          entity.type === "integer" ? Math.round(current) : current;
       } else if (typeof current === "boolean") {
         defaultValue = current ? 1 : 0;
       }
@@ -1261,11 +1375,16 @@ function variableAssignments(
   });
 }
 
+/** A generated-parameter reference inside a wrapped override's variables. */
+const wrappedOverrideReference = (parameterName: string): string =>
+  `__adhocParams[${JSON.stringify(parameterName)}]`;
+
 /**
  * Wraps a net-parameter override expression so it may read the top-level
  * Variables as `scenario.<name>`. Override expressions are evaluated by
- * `compileScenario` with `scenario` bound to the scenario parameters, so the
- * generated parameters stay reachable while the Variables shadow them.
+ * `compileScenario` with `scenario` bound to the scenario parameters; the
+ * wrapper captures that object as `__adhocParams` before the Variables shadow
+ * it, so an optimized Variable's generated parameter stays readable.
  */
 function wrapOverrideExpression(
   expression: string,
@@ -1278,10 +1397,11 @@ function wrapOverrideExpression(
   const assignments = variableAssignments(
     state,
     includeOptimize,
-    overrideReference,
+    wrappedOverrideReference,
   );
   return [
     `(() => {`,
+    `  const __adhocParams = scenario;`,
     `  const __adhocVars = {};`,
     `  {`,
     `    const scenario = __adhocVars;`,

@@ -9,6 +9,7 @@ import {
 import { AMBIENT_INPUT_NAMES, type DualFormSurfaceKind } from "../../hir";
 import {
   adHocSlotKey,
+  isValidAdHocVariableName,
   type AdHocScenarioState,
   type AdHocSlot,
   type AdHocValue,
@@ -778,8 +779,6 @@ export type AdHocSessionData = {
   state: AdHocScenarioState;
 };
 
-const AD_HOC_IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/u;
-
 /**
  * Generates virtual files for an ad-hoc scenario editing session: one code
  * file per non-empty value slot (cell, shared column, count, Variable, net
@@ -799,7 +798,7 @@ export function generateAdHocSessionFiles(
 
   const parametersDefsPath = getItemFilePath("parameters-defs");
   const scenarioProps = state.variables
-    .filter((variable) => AD_HOC_IDENTIFIER_PATTERN.test(variable.name))
+    .filter((variable) => isValidAdHocVariableName(variable.name))
     .map((variable) => `  "${variable.name}": ${toTsType(variable.type)};`)
     .join("\n");
   const scenarioTypeDecl =
@@ -909,23 +908,30 @@ export function generateAdHocSessionFiles(
     const elements = place.colorId
       ? (colorById.get(place.colorId)?.elements ?? [])
       : [];
-    const rowScopeDeclarations = `${[
-      "declare const i: number;",
-      "declare const count: number;",
-      ...placeState.variables
-        .filter((variable) => AD_HOC_IDENTIFIER_PATTERN.test(variable.name))
-        .map(
-          (variable) =>
-            `declare const ${variable.name}: ${toTsType(variable.type)};`,
-        ),
-    ].join("\n")}\n`;
+    // Generated code declares the place's Variables in order inside each
+    // row's scope, so a Variable may read earlier siblings but not itself or
+    // later ones; the ambient scope of each Variable's documents mirrors
+    // that. Cells and shared columns evaluate after every declaration.
+    const rowScopeDeclarations = (visibleVariables: number): string =>
+      `${[
+        "declare const i: number;",
+        "declare const count: number;",
+        ...placeState.variables
+          .slice(0, visibleVariables)
+          .filter((variable) => isValidAdHocVariableName(variable.name))
+          .map(
+            (variable) =>
+              `declare const ${variable.name}: ${toTsType(variable.type)};`,
+          ),
+      ].join("\n")}\n`;
+    const fullRowScope = rowScopeDeclarations(placeState.variables.length);
 
     for (const [index, variable] of placeState.variables.entries()) {
       addValue(
         { kind: "variable", placeId, index },
         variable,
         toTsType(variable.type),
-        rowScopeDeclarations,
+        rowScopeDeclarations(index),
       );
     }
 
@@ -938,7 +944,7 @@ export function generateAdHocSessionFiles(
         { kind: "column", placeId, column },
         shared,
         toTsType(elements[column]!.type),
-        rowScopeDeclarations,
+        fullRowScope,
       );
     }
 
@@ -960,7 +966,7 @@ export function generateAdHocSessionFiles(
           { kind: "cell", placeId, row: rowIndex, column },
           cell,
           toTsType(element.type),
-          rowScopeDeclarations,
+          fullRowScope,
         );
       }
     }

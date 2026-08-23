@@ -291,6 +291,63 @@ describe("synthesizeAdHocScenario", () => {
     });
   });
 
+  it("rejects an empty required expression at its slot", () => {
+    const state = baseState();
+    const place = state.places["place-pumps"];
+    if (place?.kind !== "coloured") {
+      throw new Error("fixture should be coloured");
+    }
+    place.rows[0]!.cells[0] = { expression: "  ", optimize: null };
+
+    const outcome = synthesizeAdHocScenario(state, context);
+    expect(outcome).toMatchObject({ ok: false });
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors[0]?.message).toContain("needs an expression");
+    expect(outcome.errors[0]?.slot).toEqual({
+      target: { kind: "cell", placeId: "place-pumps", row: 0, column: 0 },
+      part: "expression",
+    });
+  });
+
+  it("rejects two participating places sharing a name", () => {
+    const twin: AdHocSynthesisContext = {
+      ...context,
+      places: [
+        ...context.places,
+        { ...context.places[1]!, id: "place-queue-b", name: "Queue" },
+      ],
+    };
+    const state = baseState();
+    state.places["place-queue-b"] = {
+      kind: "uncoloured",
+      count: cell("7"),
+    };
+
+    const outcome = synthesizeAdHocScenario(state, twin);
+    expect(outcome).toMatchObject({ ok: false });
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors[0]?.message).toContain('named "Queue"');
+  });
+
+  it("ignores a shared column whose element no longer exists", () => {
+    const state = baseState();
+    const place = state.places["place-pumps"];
+    if (place?.kind !== "coloured") {
+      throw new Error("fixture should be coloured");
+    }
+    place.sharedColumns["renamed_away"] = cell("1");
+
+    const result = compiled(synthesizeAdHocScenario(state, context));
+    expect(result.initialState["place-pumps"]).toEqual([
+      { pressure: 3, worn: false },
+      { pressure: 4, worn: true },
+    ]);
+  });
+
   it("rejects reserved and malformed variable names", () => {
     const state = baseState();
     state.variables.push(
@@ -529,6 +586,75 @@ describe("synthesizeAdHocOptimization", () => {
     expect(messages).toContain("positive minimum");
   });
 
+  it("an override may read an optimized Variable through its generated parameter", () => {
+    const state = baseState();
+    state.variables[0]!.optimize = { min: "1", max: "10", scale: "linear" };
+    state.netParameters = [
+      {
+        parameterId: "param-rate",
+        expression: "scenario.basePressure * 2",
+        optimize: null,
+      },
+    ];
+
+    const result = compiled(synthesizeAdHocOptimization(state, context), {
+      "adhoc.var.net.basePressure": 4,
+    });
+    expect(result.parameterValues["rate"]).toBe("8");
+  });
+
+  it("rejects integer domains the manifest schema would reject", () => {
+    const state = baseState();
+    state.places["place-queue"] = {
+      kind: "uncoloured",
+      count: {
+        expression: "4",
+        optimize: { min: "2", max: "9", step: "3", scale: "linear" },
+      },
+    };
+    const outcome = synthesizeAdHocOptimization(state, context);
+    expect(outcome).toMatchObject({ ok: false });
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors[0]?.message).toContain("divides its range");
+
+    state.places["place-queue"] = {
+      kind: "uncoloured",
+      count: {
+        expression: "4",
+        optimize: { min: "2", max: "10", step: "2", scale: "log" },
+      },
+    };
+    const logOutcome = synthesizeAdHocOptimization(state, context);
+    expect(logOutcome).toMatchObject({ ok: false });
+    if (logOutcome.ok) {
+      return;
+    }
+    expect(logOutcome.errors[0]?.message).toContain("step of 1");
+  });
+
+  it("rounds an integer parameter's preview default", () => {
+    const state = baseState();
+    state.places["place-queue"] = {
+      kind: "uncoloured",
+      count: {
+        expression: "parameters.rate * 3",
+        optimize: { min: "0", max: "20", scale: "linear" },
+      },
+    };
+    const outcome = synthesizeAdHocOptimization(state, context);
+    expect(outcome.ok ? "ok" : JSON.stringify(outcome.errors)).toBe("ok");
+    if (!outcome.ok) {
+      return;
+    }
+    // rate defaults to 1.5, so the expression evaluates to 4.5.
+    const parameter = outcome.output.scenario.scenarioParameters.find(
+      (candidate) => candidate.identifier === "adhoc.count.Queue",
+    );
+    expect(parameter?.default).toBe(5);
+  });
+
   it("rejects optimizing a string-typed cell", () => {
     const withString: AdHocSynthesisContext = {
       ...context,
@@ -628,6 +754,17 @@ describe("state transitions", () => {
     }
     expect(around.count.expression).toBe("scenario.n");
     expect(around.count.optimize).toBeNull();
+  });
+
+  it("the cycle skips the optimized stage when Optimize is unavailable", () => {
+    const start: AdHocRow = { kind: "fixed", cells: [cell("1")] };
+    const dynamic = cycleAdHocRowKind(start, false);
+    expect(dynamic.kind).toBe("template");
+    const back = cycleAdHocRowKind(dynamic, false);
+    expect(back.kind).toBe("fixed");
+    if (back.kind === "fixed") {
+      expect(back.retainedCount?.optimize).toBeNull();
+    }
   });
 
   it("sharing seeds from row one, un-sharing retains, re-sharing restores", () => {
@@ -733,19 +870,28 @@ describe("slot keys and labels", () => {
         target: { kind: "cell", placeId: "place-pumps", row: 2, column: 1 },
         part: "expression",
       }),
-    ).toBe("cell_place-pumps_2_1.expression");
+    ).toBe("cell_place-2d-pumps_2_1.expression");
     expect(
       adHocSlotKey({
         target: { kind: "variable", placeId: null, index: 0 },
         part: "min",
       }),
     ).toBe("var_net_0.min");
+    // A place literally identified "net" cannot collide with the top-level
+    // sentinel, and separators in ids are escaped without `%` or `_` so the
+    // key survives Monaco's URI normalization.
     expect(
       adHocSlotKey({
-        target: { kind: "count", placeId: "a.b/c", row: null },
+        target: { kind: "variable", placeId: "net", index: 0 },
+        part: "min",
+      }),
+    ).toBe("var_pl_net_0.min");
+    expect(
+      adHocSlotKey({
+        target: { kind: "count", placeId: "a.b/c_d", row: null },
         part: "expression",
       }),
-    ).toBe("count_a%2eb%2Fc.expression");
+    ).toBe("count_a-2e-b-2f-c-5f-d.expression");
   });
 
   it("labels targets in the attribution notation", () => {
