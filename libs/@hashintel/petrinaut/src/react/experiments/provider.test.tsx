@@ -703,7 +703,7 @@ describe("ExperimentsProvider", () => {
       places: {
         "place-queue": {
           kind: "uncoloured",
-          count: { expression: "batches * 2", optimize: null },
+          count: { expression: "scenario.batches * 2", optimize: null },
         },
       },
     };
