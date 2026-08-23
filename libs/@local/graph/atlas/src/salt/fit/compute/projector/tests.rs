@@ -6,7 +6,7 @@
 use core::assert_matches;
 use std::fs;
 
-use burn::{backend::libtorch::LibTorchDevice, module::AutodiffModule as _};
+use burn::module::AutodiffModule as _;
 use camino::Utf8PathBuf;
 use hashql_core::id::{Id as _, IdSlice};
 
@@ -23,7 +23,7 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    device::{Inference, Training},
+    device::{Device, Inference, Training},
     file::{
         array::ArrayFile,
         generation::{GenerationRoot, StagedGeneration},
@@ -382,7 +382,7 @@ fn assert_column_is_aligned_projection(
     ladder: &LadderEvidence,
     columns: NodeColumns<'_, NodeRowId>,
 ) {
-    let device = LibTorchDevice::Cpu;
+    let device = Device::Cpu.pin(0).resolve();
     let bytes =
         fs::read(staging.path_of(&artifact::Projector::NAME)).expect("the checkpoint should read");
     let reopened =
@@ -702,7 +702,7 @@ fn publish_vacuous_baseline() {
     };
 
     let options = skinny_options();
-    let device = LibTorchDevice::Cpu;
+    let device = Device::Cpu.pin(0).resolve();
     let model = Projector::<Training>::new(
         options.architecture,
         &device,
@@ -773,7 +773,7 @@ fn publish_vacuous_baseline() {
         columns(),
         NonNegative::ZERO,
         options.forward_rows,
-        &device,
+        &context.device,
     )
     .expect("the fixture model projects finitely");
     assert!(
@@ -817,7 +817,7 @@ fn publish_measured_aligned_canonical() {
     };
 
     let options = skinny_options();
-    let device = LibTorchDevice::Cpu;
+    let device = Device::Cpu.pin(0).resolve();
     let model = Projector::<Training>::new(
         options.architecture,
         &device,

@@ -2,7 +2,6 @@ use alloc::{borrow::Cow, sync::Arc};
 use core::{future::ready, num::NonZero};
 use std::{collections::HashMap, sync::Mutex};
 
-use burn::backend::libtorch::LibTorchDevice;
 use camino::Utf8PathBuf;
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
@@ -16,6 +15,7 @@ use crate::{
         CANONICAL_DIMENSIONS, Edge, Node, Ontology, PROJECTOR_DIMENSIONS, card::Card,
         memory::MemoryDataset,
     },
+    device::Device,
     file::generation::GenerationRoot,
     identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
@@ -244,7 +244,7 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
             thresholds,
             ..
         },
-        device: LibTorchDevice::Cpu,
+        device: Device::Cpu.pin(0).resolve(),
         ..
     }
 }
@@ -298,7 +298,7 @@ async fn passing_run_activates_the_generation() {
         &classifier,
         None,
         &root,
-        &options(7, QualityThresholds { .. }),
+        options(7, QualityThresholds { .. }),
         &battery,
     )
     .await
@@ -359,7 +359,7 @@ async fn refused_run_leaves_a_candidate() {
         &classifier,
         None,
         &root,
-        &options(
+        options(
             7,
             QualityThresholds {
                 minimum_recall: UnitFraction::new(0.99).expect("0.99 lies inside [0, 1]"),
@@ -398,7 +398,7 @@ async fn prior_modes_route_reuse() {
         &classifier,
         None,
         &root,
-        &options(7, QualityThresholds { .. }),
+        options(7, QualityThresholds { .. }),
         &NoProgress,
     )
     .await
@@ -411,7 +411,7 @@ async fn prior_modes_route_reuse() {
         &classifier,
         None,
         &root,
-        &options(11, QualityThresholds { .. }),
+        options(11, QualityThresholds { .. }),
         &NoProgress,
     )
     .await
@@ -434,7 +434,7 @@ async fn prior_modes_route_reuse() {
         &classifier,
         None,
         &root,
-        &RunnerOptions {
+        RunnerOptions {
             prior: PriorMode::Fresh,
             ..options(13, QualityThresholds { .. })
         },

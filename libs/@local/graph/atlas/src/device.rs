@@ -7,23 +7,26 @@
 
 use core::{error::Error, fmt, num::ParseIntError, str::FromStr};
 
-use burn::backend::{
-    Autodiff,
-    libtorch::{LibTorch, LibTorchDevice},
+use burn::{
+    Dispatch, DispatchDevice,
+    backend::{Autodiff, ndarray::NdArrayDevice},
+    cubecl::{cuda::CudaDevice, wgpu::WgpuDevice},
 };
 
+/// The device every tensor stage runs on.
+pub(crate) type PhysicalDevice = DispatchDevice;
+
 /// The backend inference runs on.
-pub(crate) type Inference = LibTorch;
+pub(crate) type Inference = Dispatch;
 
 /// The inference backend under autodiff, which training runs on.
 pub(crate) type Training = Autodiff<Inference>;
 
 /// A device family the torch backend drives.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum Device {
+pub enum Device {
     Metal,
     Cuda,
-    Vulkan,
     Cpu,
 }
 
@@ -33,7 +36,8 @@ impl Device {
     /// Apple hosts accelerate through Metal, and every other host is taken to carry a CUDA
     /// device. A deployment whose hardware differs passes its own [`Device`] instead of the
     /// derived one.
-    pub(crate) const fn host() -> Self {
+    #[must_use]
+    pub const fn host() -> Self {
         if cfg!(target_os = "macos") {
             Self::Metal
         } else {
@@ -41,7 +45,8 @@ impl Device {
         }
     }
 
-    pub(crate) const fn pin(self, ordinal: usize) -> PinnedDevice {
+    #[must_use]
+    pub const fn pin(self, ordinal: usize) -> PinnedDevice {
         PinnedDevice(self, ordinal)
     }
 }
@@ -51,14 +56,13 @@ impl fmt::Display for Device {
         match self {
             Self::Metal => fmt.write_str("metal"),
             Self::Cuda => fmt.write_str("cuda"),
-            Self::Vulkan => fmt.write_str("vulkan"),
             Self::Cpu => fmt.write_str("cpu"),
         }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct PinnedDevice(Device, usize);
+pub struct PinnedDevice(Device, usize);
 
 impl PinnedDevice {
     /// Pins the host's derived family at ordinal 0.
@@ -67,12 +71,11 @@ impl PinnedDevice {
     }
 
     /// Resolves the family to torch's device handle.
-    pub(crate) const fn resolve(self) -> LibTorchDevice {
+    pub(crate) const fn resolve(self) -> PhysicalDevice {
         match self.0 {
-            Device::Cpu => LibTorchDevice::Cpu,
-            Device::Vulkan => LibTorchDevice::Vulkan,
-            Device::Cuda => LibTorchDevice::Cuda(self.1),
-            Device::Metal => LibTorchDevice::Mps,
+            Device::Cpu => PhysicalDevice::NdArray(NdArrayDevice::Cpu),
+            Device::Cuda => PhysicalDevice::Cuda(CudaDevice { index: self.1 }),
+            Device::Metal => PhysicalDevice::Metal(WgpuDevice::DiscreteGpu(self.1)),
         }
     }
 }
@@ -85,7 +88,7 @@ impl fmt::Display for PinnedDevice {
 
 /// A device string failed to parse.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ParseDeviceError {
+pub enum ParseDeviceError {
     /// The family is not one the torch backend drives.
     UnknownFamily { supplied: String },
     /// The ordinal is not an unsigned integer.
@@ -128,8 +131,6 @@ impl FromStr for PinnedDevice {
             Device::Metal
         } else if device.eq_ignore_ascii_case("cuda") {
             Device::Cuda
-        } else if device.eq_ignore_ascii_case("vulkan") {
-            Device::Vulkan
         } else if device.eq_ignore_ascii_case("cpu") {
             Device::Cpu
         } else {
@@ -157,10 +158,6 @@ mod tests {
         assert_eq!(
             PinnedDevice::from_str("CUDA:3").expect("a pinned family parses"),
             Device::Cuda.pin(3)
-        );
-        assert_eq!(
-            PinnedDevice::from_str("Vulkan").expect("the vulkan family parses"),
-            Device::Vulkan.pin(0)
         );
         assert_eq!(
             PinnedDevice::from_str("cpu:2").expect("the cpu family parses"),

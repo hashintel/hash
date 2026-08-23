@@ -10,10 +10,9 @@
               intermediate exactly representable"
 )]
 
-use burn::{
-    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
-    tensor::{Tensor, TensorData},
-};
+use std::sync::LazyLock;
+
+use burn::tensor::{Tensor, TensorData};
 use hashql_core::id::{Id as _, IdSlice};
 
 use super::{
@@ -23,6 +22,7 @@ use super::{
     relation_term, repulsion_term, support_term,
 };
 use crate::{
+    device::{Device, PhysicalDevice, Training},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
         AffinityCurve, DVec2, FinitePointField, NonNegative, Positive, Vec2, non_negative,
@@ -39,16 +39,12 @@ use crate::{
     },
 };
 
-type TestBackend = Autodiff<NdArray>;
-
 /// Wraps fixture points every test states as finite literals.
 fn proven(points: &[Vec2]) -> &FinitePointField<BatchRowId> {
     FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }
 
-fn device() -> NdArrayDevice {
-    NdArrayDevice::default()
-}
+static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
 
 #[expect(
     clippy::min_ident_chars,
@@ -739,7 +735,6 @@ fn relation_term_skips_gradient_at_coincident_points() {
 
 #[test]
 fn support_targets_reject_invalid_anchors() {
-    let device = device();
     let valid = BatchAnchor {
         row: BatchRowId::new(0),
         target: Vec2::new(1.0, -1.0),
@@ -747,40 +742,38 @@ fn support_targets_reject_invalid_anchors() {
         weight: 1.0,
     };
 
-    assert!(SupportTargets::<TestBackend>::new(&[], &device).is_none());
+    assert!(SupportTargets::<Training>::new(&[], &*DEVICE).is_none());
     assert!(
-        SupportTargets::<TestBackend>::new(
+        SupportTargets::<Training>::new(
             &[BatchAnchor {
                 target: Vec2::new(f32::NAN, 0.0),
                 ..valid
             }],
-            &device
+            &*DEVICE
         )
         .is_none()
     );
     assert!(
-        SupportTargets::<TestBackend>::new(
+        SupportTargets::<Training>::new(
             &[BatchAnchor {
                 weight: -0.5,
                 ..valid
             }],
-            &device
+            &*DEVICE
         )
         .is_none()
     );
-    assert!(SupportTargets::<TestBackend>::new(&[valid], &device).is_some());
+    assert!(SupportTargets::<Training>::new(&[valid], &*DEVICE).is_some());
 }
 
-fn support_fixture(
-    device: NdArrayDevice,
-) -> (
-    Tensor<TestBackend, 2>,
-    SupportTargets<TestBackend>,
+fn support_fixture() -> (
+    Tensor<Training, 2>,
+    SupportTargets<Training>,
     SupportOptions,
 ) {
     let coordinates = Tensor::from_data(
         TensorData::new(vec![0.5_f32, -0.25, 2.0, 1.5, -1.0, 0.75], [3, 2]),
-        &device,
+        &*DEVICE,
     )
     .require_grad();
     let anchors = [
@@ -797,7 +790,7 @@ fn support_fixture(
             weight: 0.5,
         },
     ];
-    let targets = SupportTargets::new(&anchors, &device).expect("the fixture anchors are valid");
+    let targets = SupportTargets::new(&anchors, &*DEVICE).expect("the fixture anchors are valid");
     let options = SupportOptions::new(positive!(1.0), positive!(0.25));
     (coordinates, targets, options)
 }
@@ -808,8 +801,7 @@ fn support_term_gradient_matches_the_analytic_formula() {
     // rule gives dL/dy = scale · weight · min(n, threshold) · (y - t) /
     // (√(d^2 + ε^2) · (r + ε)) with n the smoothed normalized
     // distance. The autodiff backward pass must agree.
-    let device = device();
-    let (coordinates, targets, options) = support_fixture(device);
+    let (coordinates, targets, options) = support_fixture();
     let scale = 1.25;
 
     let gradients = support_term(&coordinates, &targets, options, scale).backward();
@@ -858,16 +850,15 @@ fn support_term_gradient_matches_the_analytic_formula() {
 fn support_term_is_finite_at_exact_coincidence() {
     // Anchored nodes start exactly on their targets; the smoothed
     // distance keeps the gradient defined (and zero) there.
-    let device = device();
-    let coordinates: Tensor<TestBackend, 2> =
-        Tensor::from_data(TensorData::new(vec![0.5_f32, -0.25], [1, 2]), &device).require_grad();
+    let coordinates: Tensor<Training, 2> =
+        Tensor::from_data(TensorData::new(vec![0.5_f32, -0.25], [1, 2]), &*DEVICE).require_grad();
     let anchors = [BatchAnchor {
         row: BatchRowId::new(0),
         target: Vec2::new(0.5, -0.25),
         radius: non_negative!(0.75),
         weight: 1.0,
     }];
-    let targets = SupportTargets::new(&anchors, &device).expect("the fixture anchors are valid");
+    let targets = SupportTargets::new(&anchors, &*DEVICE).expect("the fixture anchors are valid");
     let options = SupportOptions::new(positive!(1.0), positive!(0.25));
 
     let value = support_term(&coordinates, &targets, options, 1.0);

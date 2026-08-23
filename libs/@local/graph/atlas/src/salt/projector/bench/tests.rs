@@ -6,10 +6,11 @@
 
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{BackendKind, Batch, Model};
+use super::{Batch, Model};
+use crate::device::Device;
 
 fn batch(rows: usize) -> Batch {
-    super::batch::<Xoshiro256PlusPlus>(rows, 7)
+    Batch::new::<Xoshiro256PlusPlus>(rows, 7)
 }
 
 #[test]
@@ -29,11 +30,9 @@ fn batches_are_unit_norm_and_deterministic() {
     }
 }
 
-/// Both models of one flavor agree.
-///
-/// The autodiff decoration wraps the same weights, so the training loss is the inference mean.
-fn assert_flavors_agree(kind: BackendKind) {
-    let model = Model::build::<Xoshiro256PlusPlus>(kind, 42);
+#[test]
+fn autodiff_numerical_stability() {
+    let model = Model::build::<Xoshiro256PlusPlus>(Device::Cpu.pin(0), 42);
     let batch = batch(16);
 
     let inference = model.forward(&batch);
@@ -45,18 +44,6 @@ fn assert_flavors_agree(kind: BackendKind) {
         (inference / 32.0 - mean).abs() < 1e-4,
         "sum/count {inference}/32 should match mean {mean}"
     );
-}
-
-#[test]
-fn cpu_flavors_run_and_agree() {
-    assert_flavors_agree(BackendKind::Cpu);
-}
-
-#[cfg(feature = "bench")]
-#[test]
-#[ignore = "requires an Apple GPU; run with --run-ignored all"]
-fn metal_flavors_run_and_agree() {
-    assert_flavors_agree(BackendKind::Metal);
 }
 
 /// The live fixture draws, assembles, and steps every phase to finite numbers.
@@ -72,7 +59,7 @@ fn live_fixture_steps_every_phase() {
     let batch = fixture.assemble(sampler.draw(17));
     assert!(batch.rows() > 0, "the ratified plan draws participants");
 
-    let mut stepper = super::live::Stepper::build(&fixture, BackendKind::Cpu, 42);
+    let mut stepper = super::live::Stepper::build(&fixture, Device::Cpu.pin(0), 42);
     stepper.input(&batch);
     assert!(stepper.forward(&batch).is_finite());
     assert!(stepper.objective(&batch).is_finite());

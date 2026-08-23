@@ -36,7 +36,6 @@
 use core::{error::Error, fmt, num::NonZero};
 use std::io::{self, Write as _};
 
-use burn::backend::libtorch::LibTorchDevice;
 use camino::Utf8Path;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -48,6 +47,7 @@ pub(crate) use self::{
 };
 use crate::{
     dataset::Dataset,
+    device::PhysicalDevice,
     file::{
         classifier::read::{ClassifierFile, OpenClassifierError},
         generation::{Generation, GenerationRoot, PublishedGeneration},
@@ -561,7 +561,7 @@ pub(crate) async fn fit<D, E, P>(
         prior,
     }: Supplies<'_>,
     root: &GenerationRoot,
-    device: LibTorchDevice,
+    device: PhysicalDevice,
     progress: &P,
 ) -> Result<PublishedGeneration, FitError<D::Error, E::Error>>
 where

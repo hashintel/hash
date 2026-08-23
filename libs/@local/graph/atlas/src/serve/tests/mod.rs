@@ -13,7 +13,6 @@ use alloc::borrow::Cow;
 use core::{assert_matches, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
-use burn::backend::libtorch::LibTorchDevice;
 use camino::Utf8PathBuf;
 use futures::future::ready;
 use hash_graph_postgres_store::store::{EntityEnd, EntityEvent};
@@ -51,6 +50,7 @@ use super::{
 };
 use crate::{
     bitset::{CompressedBitSet, DenseBitSlice},
+    device::Device,
     file::generation::GenerationRoot,
     identity::{BasePosition, CardRow, EdgeRowId, NodeRowId, OntologyRowId},
     postgres::id::ArchivedOntologyTypeUuid,
@@ -380,7 +380,7 @@ async fn fit_dataset(name: &str, dataset: &MemoryDataset) -> (GenerationRoot, Ge
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await

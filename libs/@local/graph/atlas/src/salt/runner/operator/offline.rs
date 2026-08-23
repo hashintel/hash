@@ -40,7 +40,7 @@ pub(crate) async fn offline<P: Progress + Sync>(
         &resolved.classifier,
         resolved.verdicts.as_ref(),
         &root,
-        &resolved.runner,
+        resolved.runner,
         &options.progress,
     )
     .await

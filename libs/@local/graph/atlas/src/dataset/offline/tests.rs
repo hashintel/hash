@@ -4,6 +4,7 @@ use std::{collections::HashMap, fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use futures::{Stream, StreamExt as _, TryStreamExt as _, stream};
+use rkyv::{api::high::to_bytes_in, util::AlignedVec};
 use smallvec::{SmallVec, smallvec};
 use zerocopy::FromBytes as _;
 
@@ -839,7 +840,9 @@ fn archived_confidence_outside_the_interval_refuses() {
         }],
         embeddings: vec![Embedding::new(vector::<PROJECTOR_DIMENSIONS>(1).as_array())],
     };
-    let mut bytes = rkyv::to_bytes::<rancor::Error>(&root).expect("the root serializes");
+
+    let mut bytes = AlignedVec::<32>::new();
+    to_bytes_in::<_, rancor::Error>(&root, &mut bytes).expect("the root serializes");
 
     rkyv::access::<ArchivedNodesRoot, rancor::Error>(&bytes)
         .expect("the untampered archive validates");

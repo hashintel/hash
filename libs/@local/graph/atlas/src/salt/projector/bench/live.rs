@@ -18,7 +18,7 @@
 //! production types, and the numbers mean shape and traversal, never convergence.
 
 use burn::{
-    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
+    backend::Autodiff,
     module::AutodiffModule as _,
     optim::{AdamConfig, GradientsParams, Optimizer as _},
     prelude::Backend,
@@ -27,9 +27,10 @@ use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{ARCHITECTURE, BackendKind};
+use super::ARCHITECTURE;
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
+    device::{Inference, PinnedDevice},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
         AffinityCurve, FinitePointField, MatrixN, NonNegative, Positive, UnitFraction, Vec2,
@@ -221,22 +222,6 @@ impl Sampler<'_> {
     }
 }
 
-/// One backend's live stepper.
-///
-/// The stepper owns the training-decorated model, its optimizer, and the evaluation context. That
-/// context - columns, numerical contract, decile axis - binds once at build, as the session binds
-/// it once per run. The timed phases never pay setup.
-pub struct Stepper<'fixture> {
-    flavor: StepFlavor,
-    evaluation: Evaluation<'fixture, NodeRowId>,
-}
-
-enum StepFlavor {
-    Cpu(Box<Live<NdArray>>),
-    #[cfg(feature = "bench")]
-    Metal(Box<Live<super::Gpu>>),
-}
-
 /// The per-backend training state.
 struct Live<B: Backend<FloatElem = f32>> {
     model: Option<Projector<Autodiff<B>>>,
@@ -246,95 +231,6 @@ struct Live<B: Backend<FloatElem = f32>> {
         Autodiff<B>,
     >,
     device: B::Device,
-}
-
-impl<'fixture> Stepper<'fixture> {
-    /// Builds the live stepper on the chosen backend.
-    #[must_use]
-    pub fn build(fixture: &'fixture Fixture, kind: BackendKind, seed: u64) -> Self {
-        let flavor = match kind {
-            BackendKind::Cpu => {
-                StepFlavor::Cpu(Box::new(Live::build(NdArrayDevice::default(), seed)))
-            }
-            #[cfg(feature = "bench")]
-            BackendKind::Metal => StepFlavor::Metal(Box::new(Live::build(
-                burn::backend::wgpu::WgpuDevice::default(),
-                seed,
-            ))),
-        };
-        Self {
-            flavor,
-            evaluation: Evaluation {
-                columns: NodeColumns {
-                    representations: IdSlice::from_raw(fixture.representations.rows()),
-                    roles: IdSlice::from_raw(&fixture.roles),
-                },
-                options: objective_options(),
-                deciles: DegreeDeciles::new(&fixture.indexes.attraction, fixture.rows),
-            },
-        }
-    }
-
-    /// Materializes the batch's model input on the device, fenced.
-    pub fn input(&self, batch: &Assembled) {
-        match &self.flavor {
-            StepFlavor::Cpu(live) => live.input(batch, &self.evaluation),
-            #[cfg(feature = "bench")]
-            StepFlavor::Metal(live) => live.input(batch, &self.evaluation),
-        }
-    }
-
-    /// Runs the training-path forward (autodiff graph recorded), fenced by a scalar readback.
-    ///
-    /// This drops the recorded graph unconsumed: no backward ever runs. On a pooled asynchronous
-    /// device a tight loop of these outruns buffer reclamation and exhausts memory, so the
-    /// decomposition phases are a synchronous-backend instrument; the production forward motion is
-    /// [`refresh`](Self::refresh).
-    #[must_use]
-    pub fn forward(&self, batch: &Assembled) -> f32 {
-        match &self.flavor {
-            StepFlavor::Cpu(live) => live.forward(batch, &self.evaluation),
-            #[cfg(feature = "bench")]
-            StepFlavor::Metal(live) => live.forward(batch, &self.evaluation),
-        }
-    }
-
-    /// Runs the refresh forward on the plain backend, fenced by a scalar readback.
-    ///
-    /// This records no autodiff graph: it is the per-step refresh motion as production performs it,
-    /// safe to loop on any backend.
-    #[must_use]
-    pub fn refresh(&self, batch: &Assembled) -> f32 {
-        match &self.flavor {
-            StepFlavor::Cpu(live) => live.refresh(batch, &self.evaluation),
-            #[cfg(feature = "bench")]
-            StepFlavor::Metal(live) => live.refresh(batch, &self.evaluation),
-        }
-    }
-
-    /// Runs input, forward, and the full composite objective, returning the loss total.
-    ///
-    /// This is everything a step does before its backward pass. It covers the readback, the
-    /// hand-rolled budget-family fields, the clip, the surrogate construction, and the support
-    /// terms.
-    #[must_use]
-    pub fn objective(&self, batch: &Assembled) -> f32 {
-        match &self.flavor {
-            StepFlavor::Cpu(live) => live.objective(batch, &self.evaluation),
-            #[cfg(feature = "bench")]
-            StepFlavor::Metal(live) => live.objective(batch, &self.evaluation),
-        }
-    }
-
-    /// Runs one full training step (objective, backward, optimizer) and returns the loss total.
-    #[must_use]
-    pub fn step(&mut self, batch: &Assembled) -> f32 {
-        match &mut self.flavor {
-            StepFlavor::Cpu(live) => live.step(batch, &self.evaluation),
-            #[cfg(feature = "bench")]
-            StepFlavor::Metal(live) => live.step(batch, &self.evaluation),
-        }
-    }
 }
 
 impl<B: Backend<FloatElem = f32>> Live<B> {
@@ -399,6 +295,78 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         self.model = Some(self.optimizer.step(1.0e-3, model, gradients));
         B::sync(&self.device).expect("the measured device should complete its queue");
         total
+    }
+}
+
+/// One backend's live stepper.
+///
+/// The stepper owns the training-decorated model, its optimizer, and the evaluation context. That
+/// context - columns, numerical contract, decile axis - binds once at build, as the session binds
+/// it once per run. The timed phases never pay setup.
+pub struct Stepper<'fixture> {
+    live: Live<Inference>,
+    evaluation: Evaluation<'fixture, NodeRowId>,
+}
+
+impl<'fixture> Stepper<'fixture> {
+    /// Builds the live stepper on the chosen backend.
+    #[must_use]
+    pub fn build(fixture: &'fixture Fixture, device: PinnedDevice, seed: u64) -> Self {
+        let device = device.resolve();
+        let live = Live::build(device, seed);
+
+        Self {
+            live,
+            evaluation: Evaluation {
+                columns: NodeColumns {
+                    representations: IdSlice::from_raw(fixture.representations.rows()),
+                    roles: IdSlice::from_raw(&fixture.roles),
+                },
+                options: objective_options(),
+                deciles: DegreeDeciles::new(&fixture.indexes.attraction, fixture.rows),
+            },
+        }
+    }
+
+    /// Materializes the batch's model input on the device, fenced.
+    pub fn input(&self, batch: &Assembled) {
+        self.live.input(batch, &self.evaluation);
+    }
+
+    /// Runs the training-path forward (autodiff graph recorded), fenced by a scalar readback.
+    ///
+    /// This drops the recorded graph unconsumed: no backward ever runs. On a pooled asynchronous
+    /// device a tight loop of these outruns buffer reclamation and exhausts memory, so the
+    /// decomposition phases are a synchronous-backend instrument; the production forward motion is
+    /// [`refresh`](Self::refresh).
+    #[must_use]
+    pub fn forward(&self, batch: &Assembled) -> f32 {
+        self.live.forward(batch, &self.evaluation)
+    }
+
+    /// Runs the refresh forward on the plain backend, fenced by a scalar readback.
+    ///
+    /// This records no autodiff graph: it is the per-step refresh motion as production performs it,
+    /// safe to loop on any backend.
+    #[must_use]
+    pub fn refresh(&self, batch: &Assembled) -> f32 {
+        self.live.refresh(batch, &self.evaluation)
+    }
+
+    /// Runs input, forward, and the full composite objective, returning the loss total.
+    ///
+    /// This is everything a step does before its backward pass. It covers the readback, the
+    /// hand-rolled budget-family fields, the clip, the surrogate construction, and the support
+    /// terms.
+    #[must_use]
+    pub fn objective(&self, batch: &Assembled) -> f32 {
+        self.live.objective(batch, &self.evaluation)
+    }
+
+    /// Runs one full training step (objective, backward, optimizer) and returns the loss total.
+    #[must_use]
+    pub fn step(&mut self, batch: &Assembled) -> f32 {
+        self.live.step(batch, &self.evaluation)
     }
 }
 

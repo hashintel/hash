@@ -46,11 +46,16 @@ use std::time::Instant;
 use codspeed_criterion_compat::{
     BatchSize, Criterion, Throughput, criterion_group, criterion_main,
 };
-use hash_graph_atlas::bench::projector::{BackendKind, Batch, Model, batch, live};
+use hash_graph_atlas::{
+    bench::projector::{Batch, Model, live},
+    device::{Device, PinnedDevice},
+};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::ThreadPoolBuilder;
 
 const SEED: u64 = 0x9C0E_C708;
+
+const DEVICES: &[PinnedDevice] = &[Device::Cpu.pin(0), Device::host().pin(0)];
 
 fn rows() -> usize {
     std::env::var("PROJECTOR_BENCH_ROWS").map_or(65_536, |value| {
@@ -61,7 +66,7 @@ fn rows() -> usize {
 }
 
 fn synthesize(rows: usize) -> Batch {
-    batch::<Xoshiro256PlusPlus>(rows, SEED)
+    Batch::new::<Xoshiro256PlusPlus>(rows, SEED)
 }
 
 /// Forward plus backward at training minibatch sizes.
@@ -69,12 +74,12 @@ fn bench_training_step(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("projector_backend/step");
     group.sample_size(10);
 
-    for &kind in BackendKind::ALL {
-        let model = Model::build::<Xoshiro256PlusPlus>(kind, SEED);
+    for &device in DEVICES {
+        let model = Model::build::<Xoshiro256PlusPlus>(device, SEED);
         for rows in [256, 1_024, 4_096, 16_384] {
             let batch = synthesize(rows);
             group.throughput(Throughput::Elements(rows as u64));
-            group.bench_function(format!("{}/{rows}", kind.label()), |bencher| {
+            group.bench_function(format!("{device}/{rows}"), |bencher| {
                 bencher.iter(|| black_box(model.forward_backward(black_box(&batch))));
             });
         }
@@ -90,12 +95,12 @@ fn bench_forward(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("projector_backend/forward");
     group.sample_size(10);
 
-    for &kind in BackendKind::ALL {
-        let model = Model::build::<Xoshiro256PlusPlus>(kind, SEED);
+    for &device in DEVICES {
+        let model = Model::build::<Xoshiro256PlusPlus>(device, SEED);
         for rows in [1_024, 16_384, largest] {
             let batch = synthesize(rows);
             group.throughput(Throughput::Elements(rows as u64));
-            group.bench_function(format!("{}/{rows}", kind.label()), |bencher| {
+            group.bench_function(format!("{device}/{rows}"), |bencher| {
                 bencher.iter(|| black_box(model.forward(black_box(&batch))));
             });
         }
@@ -106,7 +111,7 @@ fn bench_forward(criterion: &mut Criterion) {
 
 /// One fixed CPU training step across rayon pool sizes.
 fn bench_thread_scaling(criterion: &mut Criterion) {
-    let model = Model::build::<Xoshiro256PlusPlus>(BackendKind::Cpu, SEED);
+    let model = Model::build::<Xoshiro256PlusPlus>(Device::Cpu.pin(0), SEED);
     let batch = synthesize(4_096);
 
     let mut group = criterion.benchmark_group("projector_backend/threads");
@@ -156,8 +161,8 @@ fn bench_live_step(criterion: &mut Criterion) {
         );
     });
 
-    for &kind in BackendKind::ALL {
-        let mut stepper = live::Stepper::build(&fixture, kind, SEED);
+    for &device in DEVICES {
+        let mut stepper = live::Stepper::build(&fixture, device, SEED);
 
         // The cold first step carries one-time backend work (autotune,
         // first allocations) that steady-state sampling hides.
@@ -165,7 +170,7 @@ fn bench_live_step(criterion: &mut Criterion) {
         let _cold_loss: f32 = stepper.step(&batch);
         eprintln!(
             "projector_backend/live/{}: cold first step {:?}",
-            kind.label(),
+            device,
             cold.elapsed()
         );
 
@@ -173,41 +178,37 @@ fn bench_live_step(criterion: &mut Criterion) {
         // criterion's tight sample loops: an asynchronous backend's
         // allocator pools per-call buffers, and a loop of corpus-shaped
         // calls grows the pool faster than the device reclaims it.
-        group.bench_function(format!("{}/input", kind.label()), |bencher| {
+        group.bench_function(format!("{device}/input"), |bencher| {
             bencher.iter_batched(
                 || (),
                 |()| stepper.input(black_box(&batch)),
                 BatchSize::PerIteration,
             );
         });
-        group.bench_function(format!("{}/refresh", kind.label()), |bencher| {
+        group.bench_function(format!("{device}/refresh"), |bencher| {
             bencher.iter_batched(
                 || (),
                 |()| black_box(stepper.refresh(black_box(&batch))),
                 BatchSize::PerIteration,
             );
         });
-        // The decomposition phases record autodiff graphs no backward consumes. Orphan graphs pin
-        // device buffers until reclamation, which a sampling loop outruns on a pooled asynchronous
-        // device, so the decomposition stays a synchronous-backend instrument; `refresh` and `step`
-        // are the production motions every backend measures.
-        if matches!(kind, BackendKind::Cpu) {
-            group.bench_function(format!("{}/forward", kind.label()), |bencher| {
-                bencher.iter_batched(
-                    || (),
-                    |()| black_box(stepper.forward(black_box(&batch))),
-                    BatchSize::PerIteration,
-                );
-            });
-            group.bench_function(format!("{}/objective", kind.label()), |bencher| {
-                bencher.iter_batched(
-                    || (),
-                    |()| black_box(stepper.objective(black_box(&batch))),
-                    BatchSize::PerIteration,
-                );
-            });
-        }
-        group.bench_function(format!("{}/step", kind.label()), |bencher| {
+
+        group.bench_function(format!("{device}/forward"), |bencher| {
+            bencher.iter_batched(
+                || (),
+                |()| black_box(stepper.forward(black_box(&batch))),
+                BatchSize::PerIteration,
+            );
+        });
+        group.bench_function(format!("{device}/objective"), |bencher| {
+            bencher.iter_batched(
+                || (),
+                |()| black_box(stepper.objective(black_box(&batch))),
+                BatchSize::PerIteration,
+            );
+        });
+
+        group.bench_function(format!("{device}/step"), |bencher| {
             bencher.iter_batched(
                 || (),
                 |()| black_box(stepper.step(black_box(&batch))),

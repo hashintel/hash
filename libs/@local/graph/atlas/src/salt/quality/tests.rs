@@ -13,7 +13,6 @@ use alloc::borrow::Cow;
 use core::{assert_matches, future::ready, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
-use burn::backend::libtorch::LibTorchDevice;
 use camino::Utf8PathBuf;
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
@@ -38,6 +37,7 @@ use crate::{
         card::Card,
         memory::{MemoryDataset, MemoryNodeId},
     },
+    device::Device,
     file::generation::GenerationRoot,
     identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
@@ -1687,7 +1687,7 @@ async fn runner_reports_a_published_generation() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await

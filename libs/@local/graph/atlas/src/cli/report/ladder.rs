@@ -153,8 +153,11 @@ impl LadderArgs {
     /// canonical frame does not reproduce the published coordinate column. A report run has no
     /// recovery path, and the error is the diagnosis.
     pub(super) fn run(self) -> Result<LadderVerdict, ReportError> {
-        let report =
-            LadderReport::compile(&self.root.root, self.generation, self.root.device.resolve());
+        let report = LadderReport::compile(
+            &self.root.root,
+            self.generation,
+            &self.root.device.resolve(),
+        );
 
         let bundle =
             serde_json::to_vec_pretty(&report).expect("the report bundle serializes to JSON");

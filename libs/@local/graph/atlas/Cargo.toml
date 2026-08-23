@@ -33,8 +33,7 @@ hash-graph-types               = { workspace = true }
 # Private third-party dependencies
 aide                      = { workspace = true, features = ["axum", "axum-json", "macros", "scalar"] }
 arc-swap                  = { workspace = true }
-burn                      = { workspace = true, features = ["autodiff", "cuda", "dispatch", "metal", "ndarray", "tch"] }
-burn-dispatch             = { version = "0.21.0", features = ["tch"] }
+burn                      = { workspace = true, features = ["autodiff", "cubecl", "cuda", "dispatch", "metal", "ndarray"] }
 bytecheck                 = { workspace = true, public = true }
 chacha20poly1305          = { workspace = true }
 clap                      = { workspace = true, features = ["derive", "env"] }

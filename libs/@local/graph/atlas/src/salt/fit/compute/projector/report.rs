@@ -4,14 +4,13 @@
 use core::num::NonZero;
 use std::{fs::File, io::Write as _};
 
-use burn::backend::libtorch::LibTorchDevice;
 use camino::Utf8Path;
 use hashql_core::id::{Id, IdSlice, IdVec};
 use zerocopy::IntoBytes as _;
 
 use super::{error::ProjectorError, inputs::PublishInputs};
 use crate::{
-    device::Inference,
+    device::{Inference, PhysicalDevice},
     file::{
         array::{ArrayFile, ArrayVariant, Dim, SizedArrayWriter, SizedColumn},
         attraction::read::AttractionFile,
@@ -53,7 +52,7 @@ pub(super) struct LadderPass<'fit> {
     /// The scratch directory the level frames project into.
     scratch: &'fit ScratchDirectory,
     /// The device every frame projects on.
-    device: LibTorchDevice,
+    device: &'fit PhysicalDevice,
 }
 
 impl<'fit> LadderPass<'fit> {
@@ -61,7 +60,7 @@ impl<'fit> LadderPass<'fit> {
     pub(super) const fn new(
         staging: &'fit StagedGeneration,
         scratch: &'fit ScratchDirectory,
-        device: LibTorchDevice,
+        device: &'fit PhysicalDevice,
     ) -> Self {
         Self {
             staging,
@@ -84,7 +83,6 @@ impl<'fit> LadderPass<'fit> {
         inputs: &PublishInputs<'_>,
         energy: RelationEnergy,
     ) -> Result<(LadderEvidence, Binding<artifact::Coordinates>), ProjectorError> {
-        let device = self.device;
         let ladder = self.scratch.directory("ladder")?;
         let conditions = options.ladder.conditions.values();
 
@@ -92,7 +90,7 @@ impl<'fit> LadderPass<'fit> {
         let mut frames = Vec::with_capacity(conditions.len());
 
         for (index, &eta) in conditions.iter().enumerate() {
-            let frame = refresh::forward(model, columns, eta, options.forward_rows, &device)?;
+            let frame = refresh::forward(model, columns, eta, options.forward_rows, self.device)?;
 
             // The loss population is the training domain: the full frame gathers at the quotient's
             // first rows - identical representations project identically, so the gather is the

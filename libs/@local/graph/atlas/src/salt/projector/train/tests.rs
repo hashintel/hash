@@ -11,10 +11,9 @@
 
 use alloc::collections::BTreeMap;
 use core::num::NonZero;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 use burn::{
-    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
     module::{Module as _, ModuleMapper, ModuleVisitor, Param, ParamId},
     tensor::{Tensor, TensorData, backend::AutodiffBackend},
 };
@@ -37,10 +36,11 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
+    device::{Device, PhysicalDevice, Training},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, FinitePointField, NonNegative, Positive, Vec2,
-        d_non_negative, non_negative, positive, unit_fraction,
+        d_non_negative, non_negative, nz, positive, unit_fraction,
     },
     progress::{NoProgress, Progress},
     salt::{
@@ -48,8 +48,7 @@ use crate::{
         projector::{
             budget::Budget,
             loss::{
-                AffinityEnergy, BatchRowId, CoincidentEnergy, ProximalEnergy, RelationEnergy,
-                SupportOptions,
+                AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy, SupportOptions,
             },
             miner::{HardNegativeMiner, MinerOptions, SpatialField},
             model::{Architecture, NodeRole, Projector},
@@ -65,19 +64,22 @@ use crate::{
     },
 };
 
-type TestBackend = Autodiff<NdArray>;
+static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
+
+macro_rules! node {
+    ($id:expr) => {
+        NodeRowId::new($id)
+    };
+}
+
+macro_rules! batch {
+    ($id:expr) => {
+        crate::salt::projector::loss::BatchRowId::new($id)
+    };
+}
 
 fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
-}
-
-fn pair(one: u64, other: u64) -> NodePair<NodeRowId> {
-    NodePair::new(NodeRowId::new(one), NodeRowId::new(other))
-}
-
-/// A batch-local pair, for asserting re-indexed populations.
-fn local(one: u32, other: u32) -> NodePair<BatchRowId> {
-    NodePair::new(BatchRowId::new(one), BatchRowId::new(other))
 }
 
 /// Builds a symmetric semantic graph from undirected weighted edges.
@@ -234,12 +236,8 @@ fn empty_populations<'index>(eta: NonNegative) -> Populations<'index, NodeRowId,
 }
 
 /// A coordinate leaf on the autodiff test backend.
-fn leaf(coordinates: &[f32], rows: usize) -> Tensor<TestBackend, 2> {
-    Tensor::from_data(
-        TensorData::new(coordinates.to_vec(), [rows, 2]),
-        &NdArrayDevice::default(),
-    )
-    .require_grad()
+fn leaf(coordinates: &[f32], rows: usize) -> Tensor<Training, 2> {
+    Tensor::from_data(TensorData::new(coordinates.to_vec(), [rows, 2]), &*DEVICE).require_grad()
 }
 
 /// Runs the objective on a leaf and returns its gradient, flattened.
@@ -671,9 +669,9 @@ fn assemble_reindexes_into_the_local_domain() {
     // Corpus rows {2, 5, 9} participate; ascending order maps them to
     // locals {0, 1, 2}.
     let mut populations = empty_populations(non_negative!(0.0));
-    populations.semantic = vec![pair(5, 9)];
+    populations.semantic = vec![NodePair::new(node!(5), node!(9))];
     populations.semantic_scale = 1.0;
-    populations.ordinary = vec![pair(2, 9)];
+    populations.ordinary = vec![NodePair::new(node!(2), node!(9))];
     populations.ordinary_scale = 1.0;
     populations.landmarks = vec![SupportAnchor {
         row: NodeRowId::new(5),
@@ -701,8 +699,8 @@ fn assemble_reindexes_into_the_local_domain() {
 
     let rows: Vec<u64> = batch.rows.iter().map(|row| row.as_u64()).collect();
     assert_eq!(rows, [2, 5, 9]);
-    assert_eq!(batch.semantic, [local(1, 2)]);
-    assert_eq!(batch.ordinary, [local(0, 2)]);
+    assert_eq!(batch.semantic, [NodePair::new(batch!(1), batch!(2))]);
+    assert_eq!(batch.ordinary, [NodePair::new(batch!(0), batch!(2))]);
     assert_eq!(batch.landmarks[0].row.get(), 1);
     let gathered = batch.scales.expect("the table was supplied");
     assert_eq!(
@@ -744,9 +742,9 @@ fn objective_matches_the_hand_computed_semantic_field() {
     //
     // Surrogate: <y1, g1> + <y3, g3> = 0.5 - 1 = -0.5 exactly.
     let mut populations = empty_populations(non_negative!(0.0));
-    populations.semantic = vec![pair(0, 1)];
+    populations.semantic = vec![NodePair::new(node!(0), node!(1))];
     populations.semantic_scale = 2.0;
-    populations.ordinary = vec![pair(2, 3)];
+    populations.ordinary = vec![NodePair::new(node!(2), node!(3))];
     populations.ordinary_scale = 1.0;
     let batch = Batch::assemble(populations, None);
 
@@ -808,7 +806,7 @@ fn relation_batch(
     assert_eq!(edge.normalization, 0.5);
 
     let mut populations = empty_populations(eta);
-    populations.semantic = vec![pair(0, 1)];
+    populations.semantic = vec![NodePair::new(node!(0), node!(1))];
     populations.semantic_scale = 2.0;
     populations.relation = vec![SampledRelationEdges {
         group,
@@ -912,7 +910,7 @@ fn support_terms_ride_autodiff_outside_the_budget() {
     // Its gradient flows through autodiff; row 0 keeps exactly its
     // semantic gradient, certifying the two terms stay separate.
     let mut populations = empty_populations(non_negative!(0.0));
-    populations.semantic = vec![pair(0, 1)];
+    populations.semantic = vec![NodePair::new(node!(0), node!(1))];
     populations.semantic_scale = 2.0;
     populations.landmarks = vec![SupportAnchor {
         row: NodeRowId::new(1),
@@ -956,7 +954,7 @@ fn support_terms_ride_autodiff_outside_the_budget() {
 #[test]
 fn evaluate_rejects_non_finite_coordinates() {
     let mut populations = empty_populations(non_negative!(0.0));
-    populations.semantic = vec![pair(0, 1)];
+    populations.semantic = vec![NodePair::new(node!(0), node!(1))];
     populations.semantic_scale = 1.0;
     let batch = Batch::assemble(populations, None);
 
@@ -1148,11 +1146,11 @@ fn padding_column_view<'corpus>(
 /// ramp makes every parameter's gradient generically nonzero.
 struct Perturb;
 
-impl ModuleMapper<TestBackend> for Perturb {
+impl ModuleMapper<Training> for Perturb {
     fn map_float<const D: usize>(
         &mut self,
-        param: Param<Tensor<TestBackend, D>>,
-    ) -> Param<Tensor<TestBackend, D>> {
+        param: Param<Tensor<Training, D>>,
+    ) -> Param<Tensor<Training, D>> {
         let (id, tensor, mapper) = param.consume();
         let elements = tensor.shape().num_elements();
         let ramp = (0..elements)
@@ -1177,12 +1175,12 @@ impl ModuleMapper<TestBackend> for Perturb {
 
 /// Collects every parameter gradient a backward pass produced.
 struct GradientCollector<'graph> {
-    gradients: &'graph <TestBackend as AutodiffBackend>::Gradients,
+    gradients: &'graph <Training as AutodiffBackend>::Gradients,
     collected: BTreeMap<ParamId, Vec<f32>>,
 }
 
-impl ModuleVisitor<TestBackend> for GradientCollector<'_> {
-    fn visit_float<const D: usize>(&mut self, param: &Param<Tensor<TestBackend, D>>) {
+impl ModuleVisitor<Training> for GradientCollector<'_> {
+    fn visit_float<const D: usize>(&mut self, param: &Param<Tensor<Training, D>>) {
         if let Some(gradient) = param.val().grad(self.gradients) {
             self.collected.insert(
                 param.id,
@@ -1196,8 +1194,8 @@ impl ModuleVisitor<TestBackend> for GradientCollector<'_> {
 }
 
 fn parameter_gradients(
-    model: &Projector<TestBackend>,
-    gradients: &<TestBackend as AutodiffBackend>::Gradients,
+    model: &Projector<Training>,
+    gradients: &<Training as AutodiffBackend>::Gradients,
 ) -> BTreeMap<ParamId, Vec<f32>> {
     let mut collector = GradientCollector {
         gradients,
@@ -1213,27 +1211,22 @@ fn input_pads_the_gathered_rows_to_the_alignment() {
     // and the padded tail replicates corpus row 5 - representation,
     // role, and step alike. Alignment one is the unpadded frame.
     let mut populations = empty_populations(non_negative!(0.5));
-    populations.semantic = vec![pair(0, 2)];
+    populations.semantic = vec![NodePair::new(node!(0), node!(2))];
     populations.semantic_scale = 2.0;
-    populations.ordinary = vec![pair(1, 5)];
+    populations.ordinary = vec![NodePair::new(node!(1), node!(5))];
     populations.ordinary_scale = 1.0;
     let batch = Batch::assemble(populations, None);
     assert_eq!(batch.rows.len(), 4);
 
     let (storage, roles) = padding_columns();
     let columns = padding_column_view(&storage, &roles);
-    let device = NdArrayDevice::default();
 
-    let plain = batch.input_aligned::<TestBackend>(
-        columns,
-        &device,
-        NonZero::new(1).expect("one is non-zero"),
-    );
+    let plain = batch.input_aligned::<Training>(columns, &*DEVICE, nz!(1));
     assert_eq!(plain.representation.dims(), [4, PROJECTOR_DIMENSIONS]);
     assert_eq!(plain.roles.dims(), [4]);
     assert_eq!(plain.condition.dims(), [4, 1]);
 
-    let input = batch.input::<TestBackend>(columns, &device);
+    let input = batch.input::<Training>(columns, &*DEVICE);
     let padded = 4_usize.next_multiple_of(ROW_ALIGNMENT.get());
     assert_eq!(input.representation.dims(), [padded, PROJECTOR_DIMENSIONS]);
     assert_eq!(input.roles.dims(), [padded]);
@@ -1255,7 +1248,7 @@ fn input_pads_the_gathered_rows_to_the_alignment() {
     let role_values = input
         .roles
         .into_data()
-        .to_vec::<i64>()
+        .to_vec::<i32>()
         .expect("the roles are an integer tensor");
     assert!(role_values[4..].iter().all(|&role| role == role_values[3]));
     let condition = input
@@ -1272,7 +1265,7 @@ fn padded_frame_adds_zero_force() {
     // twins the last row: the loss matches the exact-cover frame and
     // the padded rows receive exactly zero coordinate gradient.
     let mut populations = empty_populations(non_negative!(0.0));
-    populations.semantic = vec![pair(0, 1)];
+    populations.semantic = vec![NodePair::new(node!(0), node!(1))];
     populations.semantic_scale = 2.0;
     let batch = Batch::assemble(populations, None);
 
@@ -1314,7 +1307,7 @@ fn padded_frame_adds_zero_force() {
 #[should_panic(expected = "cover the batch rows")]
 fn evaluate_rejects_a_frame_smaller_than_the_batch() {
     let mut populations = empty_populations(non_negative!(0.0));
-    populations.semantic = vec![pair(0, 1)];
+    populations.semantic = vec![NodePair::new(node!(0), node!(1))];
     populations.semantic_scale = 2.0;
     let batch = Batch::assemble(populations, None);
 
@@ -1344,7 +1337,6 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
     // graphs' tensors clear the CPU backend's SIMD dispatch threshold
     // (see the constant's documentation) - the certificate compares
     // the padding, not the backend's kernel election.
-    let device = NdArrayDevice::default();
     let indexes = relation_indexes(
         PADDING_ROWS,
         &[proximal_policy(7)],
@@ -1358,10 +1350,13 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
     let mut populations = empty_populations(non_negative!(1.0));
     let semantic_pairs = u64::try_from(PADDING_ROWS).expect("fixture rows fit u64") >> 1_u32;
     populations.semantic = (0..semantic_pairs)
-        .map(|index| pair(2 * index, 2 * index + 1))
+        .map(|index| NodePair::new(node!(2 * index), node!(2 * index + 1)))
         .collect();
     populations.semantic_scale = 2.0;
-    populations.ordinary = vec![pair(0, 2), pair(1, 3)];
+    populations.ordinary = vec![
+        NodePair::new(node!(0), node!(2)),
+        NodePair::new(node!(1), node!(3)),
+    ];
     populations.ordinary_scale = 1.0;
     populations.relation = vec![SampledRelationEdges {
         group,
@@ -1381,24 +1376,19 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
     let (storage, roles) = padding_columns();
     let columns = padding_column_view(&storage, &roles);
     let architecture = Architecture {
-        width: NonZero::new(8).expect("the width is non-zero"),
-        residual_blocks: NonZero::new(1).expect("the block count is non-zero"),
-        representation_dimensions: NonZero::new(PROJECTOR_DIMENSIONS)
-            .expect("the representation width is non-zero"),
-        role_dimensions: NonZero::new(4).expect("the role width is non-zero"),
-        condition_dimensions: NonZero::new(1).expect("the condition width is non-zero"),
+        width: nz!(8),
+        residual_blocks: nz!(1),
+        representation_dimensions: nz!(PROJECTOR_DIMENSIONS),
+        role_dimensions: nz!(4),
+        condition_dimensions: nz!(1),
     };
-    let model = Projector::<TestBackend>::new(architecture, &device, rng(7)).map(&mut Perturb);
+    let model = Projector::<Training>::new(architecture, &*DEVICE, rng(7)).map(&mut Perturb);
 
     let deciles = DegreeDeciles::new(&indexes.attraction, PADDING_ROWS);
     let options = options(Some(relation_energy()), fixture_budget());
 
-    let padded = model.forward(batch.input(columns, &device));
-    let plain = model.forward(batch.input_aligned(
-        columns,
-        &device,
-        NonZero::new(1).expect("one is non-zero"),
-    ));
+    let padded = model.forward(batch.input(columns, &*DEVICE));
+    let plain = model.forward(batch.input_aligned(columns, &*DEVICE, nz!(1)));
     assert_eq!(
         padded.dims()[0],
         PADDING_ROWS.next_multiple_of(ROW_ALIGNMENT.get())

@@ -311,7 +311,7 @@ impl<'fit> PlacementPass<'fit> {
             let (evidence, binding) = LadderPass::new(
                 &self.context.staging,
                 &self.context.scratch,
-                self.context.device,
+                &self.context.device,
             )
             .measure_conditions(
                 options,

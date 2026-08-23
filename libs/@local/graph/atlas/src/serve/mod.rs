@@ -82,6 +82,7 @@ pub(crate) use self::{
 };
 use self::{grid::Grid, schedule::ScopeSchedule};
 use crate::{
+    device::PhysicalDevice,
     file::{
         generation::{Generation, GenerationId},
         morton::read::MortonFile,
@@ -324,7 +325,7 @@ impl Atlas {
     /// publish path does not reopen and certify. Each refusal logs its own line at the site.
     pub(crate) fn arrival_placer(
         &self,
-        device: burn::backend::libtorch::LibTorchDevice,
+        device: PhysicalDevice,
     ) -> Result<Option<delta::Placer>, delta::PlacementError> {
         delta::Placer::open(&self.generation, device)
     }

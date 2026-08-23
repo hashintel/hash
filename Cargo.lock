@@ -1619,6 +1619,7 @@ dependencies = [
  "burn-train",
  "burn-vision",
  "burn-wgpu",
+ "cubecl",
 ]
 
 [[package]]
@@ -2127,7 +2128,6 @@ dependencies = [
  "bon",
  "burn-cubecl",
  "burn-ir",
- "burn-tch",
  "burn-tensor",
  "bytemuck",
  "cubecl",
@@ -5914,7 +5914,6 @@ dependencies = [
  "arc-swap",
  "axum",
  "burn",
- "burn-dispatch",
  "bytecheck",
  "camino",
  "chacha20poly1305",

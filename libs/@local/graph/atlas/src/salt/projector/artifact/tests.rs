@@ -6,10 +6,9 @@
 //! full precision, so a round-tripped model must compute the identical function. Any deviation
 //! breaks the round-trip rather than merely losing precision.
 
-use core::num::NonZero;
+use std::sync::LazyLock;
 
 use burn::{
-    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
     module::{AutodiffModule as _, Module as _},
     record::{FullPrecisionSettings, NamedMpkBytesRecorder, Recorder as _},
     tensor::{Int, Tensor, TensorData},
@@ -19,34 +18,28 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{CheckpointError, RecordedModel, ResumeRecord, open_model, open_resume};
 use crate::{
+    device::{Device, Inference, PhysicalDevice, Training},
     identity::NodeRowId,
+    math::nz,
     salt::projector::model::{Architecture, Dimension, Layer, Projector, ProjectorInput},
 };
 
-type TestBackend = Autodiff<NdArray>;
-
-fn device() -> NdArrayDevice {
-    NdArrayDevice::default()
-}
-
-fn nonzero(value: usize) -> NonZero<usize> {
-    NonZero::new(value).expect("test dimensions should be nonzero")
-}
-
 fn architecture() -> Architecture {
     Architecture {
-        width: nonzero(8),
-        residual_blocks: nonzero(2),
-        representation_dimensions: nonzero(6),
-        role_dimensions: nonzero(4),
-        condition_dimensions: nonzero(1),
+        width: nz!(8),
+        residual_blocks: nz!(2),
+        representation_dimensions: nz!(6),
+        role_dimensions: nz!(4),
+        condition_dimensions: nz!(1),
     }
 }
 
-fn model(seed: u64) -> Projector<TestBackend> {
+static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
+
+fn model(seed: u64) -> Projector<Training> {
     Projector::new(
         architecture(),
-        &device(),
+        &*DEVICE,
         Xoshiro256PlusPlus::seed_from_u64(seed),
     )
 }
@@ -79,7 +72,7 @@ fn probe<B: burn::tensor::backend::Backend<FloatElem = f32>>(
 }
 
 /// A structurally valid resume record around the given overrides.
-fn resume_record() -> ResumeRecord<TestBackend> {
+fn resume_record() -> ResumeRecord<Training> {
     ResumeRecord {
         model: model(7).into_record(),
         // A fresh optimizer carries no moments until its first step,
@@ -96,7 +89,7 @@ fn resume_record() -> ResumeRecord<TestBackend> {
     }
 }
 
-fn record_bytes(record: ResumeRecord<TestBackend>) -> Vec<u8> {
+fn record_bytes(record: ResumeRecord<Training>) -> Vec<u8> {
     NamedMpkBytesRecorder::<FullPrecisionSettings>::new()
         .record(record, ())
         .expect("the test record encodes")
@@ -109,12 +102,12 @@ fn model_checkpoint_round_trips_bit_exactly_across_backends() {
         .expect("the model checkpoint records")
         .0;
 
-    let reopened = open_model::<NdArray>(bytes.as_slice(), architecture(), &device())
+    let reopened = open_model::<Inference>(bytes.as_slice(), architecture(), &*DEVICE)
         .expect("the model checkpoint opens on the plain inference backend");
 
     assert_eq!(
-        probe(&trained.valid(), &device()),
-        probe(&reopened, &device()),
+        probe(&trained.valid(), &*DEVICE),
+        probe(&reopened, &*DEVICE),
         "the reopened model should compute the identical function"
     );
 }
@@ -126,8 +119,8 @@ fn open_model_rejects_a_different_width() {
         .0;
 
     let mut wider = architecture();
-    wider.width = nonzero(16);
-    let error = open_model::<NdArray>(bytes.as_slice(), wider, &device())
+    wider.width = nz!(16);
+    let error = open_model::<Training>(bytes.as_slice(), wider, &*DEVICE)
         .expect_err("a width mismatch should be rejected");
     let CheckpointError::Architecture(mismatch) = error else {
         panic!("the rejection should name the architecture: {error}");
@@ -143,11 +136,11 @@ fn open_model_rejects_a_different_depth_before_loading() {
         .0;
 
     let mut deeper = architecture();
-    deeper.residual_blocks = nonzero(3);
+    deeper.residual_blocks = nz!(3);
     // A depth mismatch panics inside the framework's record zip, so
     // this open returning an error at all certifies the pre-load
     // check.
-    let error = open_model::<NdArray>(bytes.as_slice(), deeper, &device())
+    let error = open_model::<Training>(bytes.as_slice(), deeper, &*DEVICE)
         .expect_err("a depth mismatch should be rejected");
     let CheckpointError::Architecture(mismatch) = error else {
         panic!("the rejection should name the architecture: {error}");
@@ -164,7 +157,7 @@ fn open_model_rejects_truncated_bytes() {
     // A fixed prefix well inside the record: an incomplete file.
     bytes.truncate(100);
 
-    let error = open_model::<NdArray>(bytes.as_slice(), architecture(), &device())
+    let error = open_model::<Training>(bytes.as_slice(), architecture(), &*DEVICE)
         .expect_err("truncated bytes should be rejected");
     assert!(
         matches!(error, CheckpointError::Record(_)),
@@ -176,7 +169,7 @@ fn open_model_rejects_truncated_bytes() {
 fn resume_checkpoint_round_trips_the_generator_and_schedule() {
     let bytes = record_bytes(resume_record());
     let (state, generator) =
-        open_resume::<NodeRowId, TestBackend>(bytes.as_slice(), architecture(), &device())
+        open_resume::<NodeRowId, Training>(bytes.as_slice(), architecture(), &*DEVICE)
             .expect("the resume checkpoint opens");
 
     assert_eq!(
@@ -195,8 +188,7 @@ fn open_resume_rejects_an_invalid_schedule() {
     record.minimum_learning_rate = 0.9;
     let bytes = record_bytes(record);
 
-    let Err(error) =
-        open_resume::<NodeRowId, TestBackend>(bytes.as_slice(), architecture(), &device())
+    let Err(error) = open_resume::<NodeRowId, Training>(bytes.as_slice(), architecture(), &*DEVICE)
     else {
         panic!("a minimum above the initial rate should be rejected");
     };
@@ -212,8 +204,7 @@ fn open_resume_rejects_a_scheduler_away_from_the_boundary() {
     record.scheduler = 3;
     let bytes = record_bytes(record);
 
-    let Err(error) =
-        open_resume::<NodeRowId, TestBackend>(bytes.as_slice(), architecture(), &device())
+    let Err(error) = open_resume::<NodeRowId, Training>(bytes.as_slice(), architecture(), &*DEVICE)
     else {
         panic!("a scheduler position off the boundary should be rejected");
     };

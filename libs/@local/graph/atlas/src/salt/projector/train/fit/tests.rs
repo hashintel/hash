@@ -13,12 +13,9 @@
 )]
 
 use core::assert_matches;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
-use burn::{
-    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
-    module::AutodiffModule as _,
-};
+use burn::module::AutodiffModule as _;
 use hashql_core::id::{Id, IdSlice, IdVec};
 
 use super::{
@@ -34,6 +31,7 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
+    device::{Device, PhysicalDevice, Training},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
         FinitePointField, NonNegative, Positive, Vec2, d_non_negative, d_positive, non_negative,
@@ -61,21 +59,17 @@ use crate::{
     },
 };
 
-type TestBackend = Autodiff<NdArray>;
+static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
 
-impl<N: Id> FitOutcome<N, TestBackend> {
+impl<N: Id> FitOutcome<N, Training> {
     /// Unwraps a completed run. The refusal fixtures assert on the refusal arm directly.
     #[track_caller]
-    fn trained(self) -> Model<N, TestBackend> {
+    fn trained(self) -> Model<N, Training> {
         match self {
             Self::Trained(fitted) => fitted,
             Self::TargetRefused(refusal) => panic!("the run refused: {refusal:?}"),
         }
     }
-}
-
-fn device() -> NdArrayDevice {
-    NdArrayDevice::default()
 }
 
 /// A vacuous two-cluster corpus with no relation evidence at all.
@@ -107,13 +101,13 @@ fn architecture() -> Architecture {
     }
 }
 
-fn model() -> Projector<TestBackend> {
-    Projector::new(architecture(), &device(), rng(7))
+fn model() -> Projector<Training> {
+    Projector::new(architecture(), &*DEVICE, rng(7))
 }
 
 /// Forwards the trained corpus at a step.
 fn project(
-    trained: &Projector<TestBackend>,
+    trained: &Projector<Training>,
     corpus: &Corpus,
     eta: NonNegative,
 ) -> Box<FinitePointField<NodeRowId>> {
@@ -122,7 +116,7 @@ fn project(
         corpus.inputs().columns,
         eta,
         nonzero(ROWS),
-        &device(),
+        &*DEVICE,
     )
     .expect("the trained fixture model is finite")
 }
@@ -161,7 +155,7 @@ fn training_separates_the_semantic_clusters() {
         &corpus.inputs(),
         &options,
         &mut rng(11),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the semantic fixture trains")
@@ -205,7 +199,7 @@ fn landmark_support_keeps_the_frame() {
         &corpus.inputs(),
         &options,
         &mut rng(11),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the semantic fixture trains")
@@ -251,7 +245,7 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
         &corpus.inputs(),
         &options,
         &mut rng(11),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the semantic fixture trains")
@@ -301,7 +295,7 @@ fn few_steps_landmark_force_points_anchors_at_their_targets() {
         &corpus.inputs(),
         &options,
         &mut rng(11),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the semantic fixture trains")
@@ -338,7 +332,7 @@ fn equal_seeds_train_equal_frames() {
         &corpus.inputs(),
         &options,
         &mut rng(13),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the semantic fixture trains")
@@ -348,7 +342,7 @@ fn equal_seeds_train_equal_frames() {
         &corpus.inputs(),
         &options,
         &mut rng(13),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the semantic fixture trains")
@@ -371,7 +365,7 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
         &corpus.inputs(),
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the boundary fixture trains")
@@ -460,7 +454,7 @@ fn missing_reviewed_radius_names_the_fix() {
         &corpus.inputs(),
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect_err("proximal force without reviews cannot freeze a radius");
@@ -479,7 +473,7 @@ fn forceless_corpus_trains_vacuously() {
         &corpus.inputs(),
         &options,
         &mut rng(19),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("a forceless corpus trains vacuously")
@@ -520,7 +514,7 @@ fn vacuous_run_trains_a_flat_ladder() {
         &corpus.inputs(),
         &options,
         &mut rng(19),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("a forceless corpus trains vacuously")
@@ -556,7 +550,7 @@ fn measured_radius_requires_an_opening_segment() {
         &corpus.inputs(),
         &options(schedule(nz!(8), 0, nz!(4))),
         &mut rng(23),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect_err("a boundary at step zero cannot measure a radius");
@@ -590,7 +584,7 @@ fn coincident_without_proximal_force_refuses() {
         &corpus.inputs(),
         &options(schedule(nz!(8), 4, nz!(4))),
         &mut rng(23),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect_err("coincident force alone cannot set the Proximal radius");
@@ -611,7 +605,7 @@ fn phase_a_ticks_measure_a_frozen_lens() {
         &corpus.inputs(),
         &options,
         &mut rng(29),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the semantic fixture trains")
@@ -639,7 +633,7 @@ fn non_finite_representation_fails_the_first_tick() {
         &corpus.inputs(),
         &options,
         &mut rng(31),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect_err("an infinite representation diverges the forward pass");
@@ -660,7 +654,7 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
         corpus.inputs().columns,
         non_negative!(1.0),
         nonzero(3),
-        &device(),
+        &*DEVICE,
     )
     .expect("the fixture model is finite");
     let whole = refresh::forward(
@@ -668,7 +662,7 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
         corpus.inputs().columns,
         non_negative!(1.0),
         nonzero(ROWS),
-        &device(),
+        &*DEVICE,
     )
     .expect("the fixture model is finite");
     assert_eq!(
@@ -734,7 +728,7 @@ fn checkpointed_resume_matches_the_straight_run() {
         &corpus.inputs(),
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the boundary fixture trains")
@@ -746,7 +740,7 @@ fn checkpointed_resume_matches_the_straight_run() {
         &corpus.inputs(),
         &options,
         &mut stream,
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the opening segment trains");
@@ -754,18 +748,15 @@ fn checkpointed_resume_matches_the_straight_run() {
     artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
     drop((state, stream));
 
-    let (reopened, mut stream) = artifact::open_resume::<NodeRowId, TestBackend>(
-        bytes.as_slice(),
-        architecture(),
-        &device(),
-    )
-    .expect("the resume checkpoint opens");
+    let (reopened, mut stream) =
+        artifact::open_resume::<NodeRowId, Training>(bytes.as_slice(), architecture(), &*DEVICE)
+            .expect("the resume checkpoint opens");
     let resumed = fit_from_boundary(
         reopened,
         &corpus.inputs(),
         &options,
         &mut stream,
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the resumed ladder trains")
@@ -802,7 +793,7 @@ fn forked_ladders_share_the_frozen_radius() {
         &corpus.inputs(),
         &opening,
         &mut stream,
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the opening segment trains");
@@ -810,10 +801,10 @@ fn forked_ladders_share_the_frozen_radius() {
     artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
 
     let fork = |relation: NonNegative| {
-        let (state, mut stream) = artifact::open_resume::<NodeRowId, TestBackend>(
+        let (state, mut stream) = artifact::open_resume::<NodeRowId, Training>(
             bytes.as_slice(),
             architecture(),
-            &device(),
+            &*DEVICE,
         )
         .expect("the resume checkpoint opens");
         let mut cell = opening;
@@ -830,7 +821,7 @@ fn forked_ladders_share_the_frozen_radius() {
             &corpus.inputs(),
             &cell,
             &mut stream,
-            &device(),
+            &*DEVICE,
             &NoProgress,
         )
         .expect("the forked ladder trains")
@@ -860,7 +851,7 @@ fn resumed_ladder_rejects_a_changed_schedule() {
         &corpus.inputs(),
         &opening,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the opening segment trains");
@@ -871,7 +862,7 @@ fn resumed_ladder_rejects_a_changed_schedule() {
         &corpus.inputs(),
         &changed,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect_err("a changed schedule should be rejected");
@@ -954,7 +945,7 @@ fn every_training_step_reports_the_loss_it_records() {
         &corpus.inputs(),
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &progress,
     )
     .expect("the boundary fixture trains")
@@ -990,7 +981,7 @@ fn phases_report_against_the_whole_schedule() {
         &corpus.inputs(),
         &options,
         &mut stream,
-        &device(),
+        &*DEVICE,
         &forked,
     )
     .expect("the opening segment trains");
@@ -999,7 +990,7 @@ fn phases_report_against_the_whole_schedule() {
         &corpus.inputs(),
         &options,
         &mut stream,
-        &device(),
+        &*DEVICE,
         &forked,
     )
     .expect("the resumed ladder trains")
@@ -1029,7 +1020,7 @@ fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
         &corpus.inputs(),
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &observer,
     )
     .expect("the boundary fixture trains")
@@ -1039,7 +1030,7 @@ fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
         &corpus.inputs(),
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the boundary fixture trains")
@@ -1206,7 +1197,7 @@ fn the_identity_constants_re_derive_from_the_recorded_boundary_field() {
         &target_inputs(&corpus, &draws, target_options(1.0)),
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the target fixture trains")
@@ -1319,7 +1310,7 @@ fn gauge_fit_refusal_keeps_the_recorded_evidence() {
         &target_inputs(&corpus, &draws, declared),
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("a refusal is an outcome, and only a diverged run errors");
@@ -1388,7 +1379,7 @@ fn tick_step_refusal_records_telemetry_and_no_evaluation() {
         &target_inputs(&corpus, &draws, declared),
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("a refusal is an outcome, and only a diverged run errors");
@@ -1442,7 +1433,7 @@ fn boundary_freeze_refusal_carries_the_boundary_evidence() {
         &target_inputs(&corpus, &draws, declared),
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("a refusal is an outcome, and only a diverged run errors");
@@ -1490,7 +1481,7 @@ fn the_ruler_re_freezes_from_the_recorded_boundary_field() {
         &target_inputs(&corpus, &draws, declared),
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the target fixture trains")
@@ -1561,7 +1552,7 @@ fn zero_activation_reads_the_estimand_and_adds_no_force() {
             &target_inputs(&corpus, &draws, declared),
             &options,
             &mut rng(17),
-            &device(),
+            &*DEVICE,
             &NoProgress,
         )
         .expect("the target fixture trains")
@@ -1623,7 +1614,7 @@ fn every_target_misconfiguration_refuses_at_admission() {
             inputs,
             options,
             &mut rng(17),
-            &device(),
+            &*DEVICE,
             &NoProgress,
         )
         .expect_err("the configuration should refuse")
@@ -1703,7 +1694,7 @@ fn every_split_population_overlap_refuses_at_admission() {
             inputs,
             &options,
             &mut rng(17),
-            &device(),
+            &*DEVICE,
             &NoProgress,
         )
         .expect_err("the configuration should refuse")
@@ -1772,7 +1763,7 @@ fn resumed_target_ladder_freezes_the_bit_equal_references() {
         &inputs,
         &options,
         &mut rng(17),
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the target fixture trains")
@@ -1784,7 +1775,7 @@ fn resumed_target_ladder_freezes_the_bit_equal_references() {
         &inputs,
         &options,
         &mut stream,
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the opening segment trains");
@@ -1796,18 +1787,15 @@ fn resumed_target_ladder_freezes_the_bit_equal_references() {
     artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
     drop((state, stream));
 
-    let (reopened, mut stream) = artifact::open_resume::<NodeRowId, TestBackend>(
-        bytes.as_slice(),
-        architecture(),
-        &device(),
-    )
-    .expect("the resume checkpoint opens");
+    let (reopened, mut stream) =
+        artifact::open_resume::<NodeRowId, Training>(bytes.as_slice(), architecture(), &*DEVICE)
+            .expect("the resume checkpoint opens");
     let resumed = fit_from_boundary(
         reopened,
         &inputs,
         &options,
         &mut stream,
-        &device(),
+        &*DEVICE,
         &NoProgress,
     )
     .expect("the resumed ladder trains")

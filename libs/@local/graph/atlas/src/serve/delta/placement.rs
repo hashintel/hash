@@ -34,12 +34,11 @@
 
 use std::fs::File;
 
-use burn::backend::libtorch::LibTorchDevice;
 use hashql_core::id::{Id as _, IdSlice};
 
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    device::Inference,
+    device::{Inference, PhysicalDevice},
     file::{array::ArrayFile, generation::Generation},
     math::{AlignedVecN, Bounds2, MatrixN, NonNegative, Similarity, Vec2},
     salt::{
@@ -155,7 +154,7 @@ pub(crate) struct Placer {
     /// The reopened checkpoint on the placement backend.
     model: Projector<Inference>,
     /// The device every projection runs on.
-    device: LibTorchDevice,
+    device: PhysicalDevice,
     /// The canonical step's condition, or zero for a generation without a measured ladder.
     condition: NonNegative,
     /// The canonical step's recorded similarity, or [`None`] where the zero frame published
@@ -198,7 +197,7 @@ impl Placer {
     ///   own published coordinates
     pub(crate) fn open(
         generation: &Generation,
-        device: LibTorchDevice,
+        device: PhysicalDevice,
     ) -> Result<Option<Self>, PlacementError> {
         let repository = generation.repository();
         let metadata = &repository.metadata;
@@ -471,6 +470,7 @@ mod tests {
 
     use super::*;
     use crate::{
+        device::Device,
         math::{BoxedVecN, Rotation, non_negative, positive},
         salt::projector::model::Architecture,
     };
@@ -492,7 +492,7 @@ mod tests {
     fn model() -> Projector<Inference> {
         Projector::new(
             architecture(),
-            &LibTorchDevice::Cpu,
+            &Device::Cpu.pin(0).resolve(),
             Xoshiro256PlusPlus::seed_from_u64(7),
         )
     }
@@ -509,7 +509,7 @@ mod tests {
     fn placer(alignment: Option<Similarity>, world: Bounds2) -> Placer {
         Placer {
             model: model(),
-            device: LibTorchDevice::Cpu,
+            device: Device::Cpu.pin(0).resolve(),
             condition: non_negative!(0.25),
             alignment,
             world,
@@ -554,7 +554,7 @@ mod tests {
             columns,
             placer.condition,
             placer.forward_rows,
-            &LibTorchDevice::Cpu,
+            &Device::Cpu.pin(0).resolve(),
         )
         .expect("the fixture forward is finite");
         let world: Vec<Vec2> = placer.alignment.map_or_else(

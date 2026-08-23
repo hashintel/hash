@@ -2,7 +2,6 @@ use alloc::borrow::Cow;
 use core::{future::ready, num::NonZero};
 use std::{collections::HashMap, fs};
 
-use burn::backend::libtorch::LibTorchDevice;
 use camino::{Utf8Path, Utf8PathBuf};
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
@@ -25,6 +24,7 @@ use crate::{
         card::Card,
         memory::{MemoryDataset, MemoryEdgeId, MemoryNodeId, MemoryOntologyId},
     },
+    device::Device,
     file::{
         array::ArrayFile,
         attraction::read::AttractionFile,
@@ -532,7 +532,7 @@ async fn fit_publishes_a_complete_generation() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -773,7 +773,7 @@ async fn policy_artifacts_publish_and_read_back() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -830,7 +830,7 @@ async fn lod_columns_publish_in_base_order() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -947,7 +947,7 @@ async fn supplied_verdicts_publish_verbatim() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -1111,7 +1111,7 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -1226,7 +1226,7 @@ async fn prior_generation_seeds_reuse_and_retention() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -1245,7 +1245,7 @@ async fn prior_generation_seeds_reuse_and_retention() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -1308,7 +1308,7 @@ async fn override_supersedes_the_classifier() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -1358,7 +1358,7 @@ async fn equal_seeds_publish_equal_generations() {
             ..
         },
         &first_root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -1372,7 +1372,7 @@ async fn equal_seeds_publish_equal_generations() {
             ..
         },
         &second_root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -1423,7 +1423,7 @@ async fn defective_corpus_publishes_nothing() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await;
@@ -1579,7 +1579,7 @@ async fn forceless_projector_publishes_the_baseline_step() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -1737,7 +1737,7 @@ async fn trained_lens_publishes_the_canonical_step_aligned() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -1972,7 +1972,7 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -2075,7 +2075,7 @@ async fn vacuous_placement_trains_without_reviews() {
             ..
         },
         &refused,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await;
@@ -2110,7 +2110,7 @@ async fn vacuous_placement_trains_without_reviews() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await
@@ -2203,7 +2203,7 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await;
@@ -2408,7 +2408,7 @@ async fn edge_artifacts_publish_and_read_back() {
             ..
         },
         &root,
-        LibTorchDevice::Cpu,
+        Device::Cpu.pin(0).resolve(),
         &NoProgress,
     )
     .await

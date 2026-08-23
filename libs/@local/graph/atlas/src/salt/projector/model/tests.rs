@@ -4,10 +4,9 @@
 //! zero, `1 + 0 = 1` exactly, and `h · 1 + 0` reproduces `h` bit for bit, so any drift is a broken
 //! contract, not rounding.
 
-use core::num::NonZero;
+use std::sync::LazyLock;
 
 use burn::{
-    backend::{NdArray, ndarray::NdArrayDevice},
     module::Param,
     tensor::{Int, Tensor, TensorData},
 };
@@ -15,37 +14,33 @@ use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{Architecture, Film, Initialization, NodeRole, Projector, ProjectorInput};
+use crate::{
+    device::{Device, Inference, PhysicalDevice},
+    math::nz,
+};
 
-type TestBackend = NdArray;
+static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
 
-fn device() -> NdArrayDevice {
-    NdArrayDevice::default()
-}
-
-fn nonzero(value: usize) -> NonZero<usize> {
-    NonZero::new(value).expect("test dimensions should be nonzero")
-}
-
-fn tiny(condition_dimensions: usize) -> Architecture {
+fn tiny<const CONDITION_DIMENSIONS: usize>() -> Architecture {
     Architecture {
-        width: nonzero(8),
-        residual_blocks: nonzero(2),
-        representation_dimensions: nonzero(6),
-        role_dimensions: nonzero(4),
-        condition_dimensions: nonzero(condition_dimensions),
+        width: nz!(8),
+        residual_blocks: nz!(2),
+        representation_dimensions: nz!(6),
+        role_dimensions: nz!(4),
+        condition_dimensions: nz!(CONDITION_DIMENSIONS),
     }
 }
 
-fn matrix(rows: usize, columns: usize, values: Vec<f32>) -> Tensor<TestBackend, 2> {
-    Tensor::from_data(TensorData::new(values, [rows, columns]), &device())
+fn matrix(rows: usize, columns: usize, values: Vec<f32>) -> Tensor<Inference, 2> {
+    Tensor::from_data(TensorData::new(values, [rows, columns]), &*DEVICE)
 }
 
-fn roles(values: Vec<i64>) -> Tensor<TestBackend, 1, Int> {
+fn roles(values: Vec<i64>) -> Tensor<Inference, 1, Int> {
     let rows = values.len();
-    Tensor::from_data(TensorData::new(values, [rows]), &device())
+    Tensor::from_data(TensorData::new(values, [rows]), &*DEVICE)
 }
 
-fn to_values(tensor: Tensor<TestBackend, 2>) -> Vec<f32> {
+fn to_values(tensor: Tensor<Inference, 2>) -> Vec<f32> {
     tensor
         .into_data()
         .to_vec()
@@ -53,7 +48,7 @@ fn to_values(tensor: Tensor<TestBackend, 2>) -> Vec<f32> {
 }
 
 /// A representation batch with varied, hand-picked values.
-fn representation(rows: usize, columns: usize) -> Tensor<TestBackend, 2> {
+fn representation(rows: usize, columns: usize) -> Tensor<Inference, 2> {
     let values = (0..rows * columns)
         .map(|index| {
             #[expect(
@@ -75,8 +70,7 @@ fn film_is_identity_at_initialization_for_every_condition() {
             rng: &mut rng,
             next_parameter_id: 1,
         };
-        let film =
-            Film::<TestBackend>::new(4, condition_dimensions, &mut initialization, &device());
+        let film = Film::<Inference>::new(4, condition_dimensions, &mut initialization, &*DEVICE);
 
         let hidden = matrix(2, 4, vec![0.5, -1.25, 3.0, 0.0, -0.75, 2.5, -4.0, 1.0]);
         for condition_value in [0.0_f32, 1.0, -3.5] {
@@ -107,11 +101,11 @@ fn film_modulates_by_hand_computed_values() {
         rng: &mut rng,
         next_parameter_id: 1,
     };
-    let mut film = Film::<TestBackend>::new(2, 1, &mut initialization, &device());
+    let mut film = Film::<Inference>::new(2, 1, &mut initialization, &*DEVICE);
     film.linear.weight = Param::from_tensor(matrix(1, 4, vec![0.5, -0.25, 0.75, 1.5]));
     film.linear.bias = Some(Param::from_tensor(Tensor::from_data(
         TensorData::new(vec![0.125_f32, 0.25, -0.375, 0.5], [4]),
-        &device(),
+        &*DEVICE,
     )));
 
     // Row 1: c = 2, dgamma = [1.125, -0.25], beta = [1.125, 3.5]:
@@ -137,11 +131,11 @@ fn residual_block_is_identity_at_initialization() {
             rng: &mut rng,
             next_parameter_id: 1,
         };
-        let block = super::ResidualBlock::<TestBackend>::new(
+        let block = super::ResidualBlock::<Inference>::new(
             4,
             condition_dimensions,
             &mut initialization,
-            &device(),
+            &*DEVICE,
         );
 
         let hidden = matrix(2, 4, vec![1.5, -0.25, 2.0, -3.0, 0.125, 4.5, -1.0, 0.5]);
@@ -162,11 +156,10 @@ fn residual_block_is_identity_at_initialization() {
 
 #[test]
 fn forward_is_condition_invariant_at_initialization() {
-    for condition_dimensions in [1, 3] {
-        let architecture = tiny(condition_dimensions);
-        let projector = Projector::<TestBackend>::new(
+    for (condition_dimensions, architecture) in [(1, tiny::<1>()), (3, tiny::<3>())] {
+        let projector = Projector::<Inference>::new(
             architecture,
-            &device(),
+            &*DEVICE,
             Xoshiro256PlusPlus::seed_from_u64(13),
         );
 
@@ -206,9 +199,9 @@ fn initialization_is_deterministic_in_the_seed() {
     };
 
     let project = |seed: u64| {
-        let projector = Projector::<TestBackend>::new(
-            tiny(1),
-            &device(),
+        let projector = Projector::<Inference>::new(
+            tiny::<1>(),
+            &*DEVICE,
             Xoshiro256PlusPlus::seed_from_u64(seed),
         );
         to_values(projector.forward(input()))
@@ -229,7 +222,7 @@ fn initialization_is_deterministic_in_the_seed() {
 #[test]
 fn roles_reach_the_output() {
     let projector =
-        Projector::<TestBackend>::new(tiny(1), &device(), Xoshiro256PlusPlus::seed_from_u64(19));
+        Projector::<Inference>::new(tiny::<1>(), &*DEVICE, Xoshiro256PlusPlus::seed_from_u64(19));
 
     let project = |role: i64| {
         to_values(projector.forward(ProjectorInput {
@@ -251,7 +244,7 @@ fn roles_reach_the_output() {
 #[test]
 fn rows_project_independently() {
     let projector =
-        Projector::<TestBackend>::new(tiny(1), &device(), Xoshiro256PlusPlus::seed_from_u64(23));
+        Projector::<Inference>::new(tiny::<1>(), &*DEVICE, Xoshiro256PlusPlus::seed_from_u64(23));
 
     let full = representation(2, 6);
     let batch = to_values(projector.forward(ProjectorInput {
@@ -282,7 +275,7 @@ fn rows_project_independently() {
 #[should_panic(expected = "condition width should match the architecture")]
 fn forward_rejects_a_mismatched_condition_width() {
     let projector =
-        Projector::<TestBackend>::new(tiny(1), &device(), Xoshiro256PlusPlus::seed_from_u64(29));
+        Projector::<Inference>::new(tiny::<1>(), &*DEVICE, Xoshiro256PlusPlus::seed_from_u64(29));
     drop(projector.forward(ProjectorInput {
         representation: representation(1, 6),
         roles: roles(vec![0]),

@@ -59,6 +59,7 @@ use hashql_core::id::{Id as _, IdSlice, IdVec};
 
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
+    device::PhysicalDevice,
     file::{
         array::ArrayFile,
         attraction::read::AttractionFile,
@@ -228,7 +229,7 @@ impl LadderReport {
     pub(crate) fn compile(
         root: &GenerationRoot,
         id: GenerationId,
-        device: burn::backend::libtorch::LibTorchDevice,
+        device: &PhysicalDevice,
     ) -> Self {
         let generation = root.open(id).expect("the generation is published");
         let repository = generation.repository();
@@ -280,7 +281,7 @@ impl LadderReport {
         let model: Projector<crate::device::Inference> = artifact::open_model(
             File::open(generation.path_of(&checkpoint.name())).expect("the checkpoint opens"),
             options.architecture,
-            &device,
+            device,
         )
         .expect("the checkpoint decodes against the echoed architecture");
 
@@ -289,7 +290,7 @@ impl LadderReport {
             representations,
             roles: IdSlice::from_raw(&roles),
         };
-        let aligned = rebuild_frames(&model, columns, evidence, options.forward_rows, &device);
+        let aligned = rebuild_frames(&model, columns, evidence, options.forward_rows, device);
         let certificate = certify(&aligned[evidence.canonical_index], coordinates);
 
         // The reading. Terms materialize once and every step reuses them.

@@ -15,8 +15,6 @@
 //! mid-run. The deliberate exceptions live in the placement's measurement pass, which re-reads
 //! persisted artifacts exactly because the published bytes are what its readings certify.
 
-use burn::backend::libtorch::LibTorchDevice;
-
 #[cfg(test)]
 pub(super) use self::projector::error::ProjectorError;
 use self::{
@@ -35,6 +33,7 @@ use super::{
 };
 use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
+    device::PhysicalDevice,
     file::{
         generation::{Generation, PublishedGeneration, ScratchDirectory, StagedGeneration},
         identity::{Key, read::IdentityFile},
@@ -99,7 +98,7 @@ pub(super) struct Context {
     /// The fit's configuration, echoed into the metadata.
     pub config: FitConfig,
     /// The device every tensor stage runs on.
-    pub device: LibTorchDevice,
+    pub device: PhysicalDevice,
 }
 
 /// One stage's product, pairing the owned value with its typed binding and its evidence.

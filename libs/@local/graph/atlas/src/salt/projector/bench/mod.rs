@@ -13,13 +13,14 @@
 //! graph the composite objective shares, so its wall time is the decision's number.
 
 use burn::{
-    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
+    DispatchDevice,
     prelude::Backend,
     tensor::{Int, Tensor, TensorData},
 };
 use rand::{Rng, RngExt as _, SeedableRng};
 
 use super::model::{Architecture, NodeRole, Projector, ProjectorInput};
+use crate::device::{Inference, PinnedDevice, Training};
 
 pub mod live;
 
@@ -28,16 +29,6 @@ mod tests;
 
 /// The default architecture every measurement runs at.
 const ARCHITECTURE: Architecture = Architecture::default();
-
-/// The CPU backend under measurement.
-type Cpu = NdArray;
-
-/// The GPU backend under measurement.
-///
-/// Burn's `CubeCL` `wgpu` runtime compiling to MSL, with fusion enabled - the configuration a GPU
-/// deployment would run.
-#[cfg(feature = "bench")]
-type Gpu = burn::backend::Metal;
 
 /// One synthesized batch at the trainer's input shape.
 ///
@@ -50,198 +41,64 @@ pub struct Batch {
     condition: Vec<f32>,
 }
 
-/// The backend flavor a [`Model`] runs on.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum BackendKind {
-    /// The CPU backend, burn's ndarray.
-    Cpu,
-    /// The Metal GPU backend, available behind the `bench` and `gpu` features together.
-    #[cfg(feature = "bench")]
-    Metal,
-}
-
-impl BackendKind {
-    /// Every flavor this build can run.
-    pub const ALL: &[Self] = &[
-        Self::Cpu,
-        #[cfg(feature = "bench")]
-        Self::Metal,
-    ];
-
-    /// Returns the flavor's benchmark label.
-    #[must_use]
-    pub const fn label(self) -> &'static str {
-        match self {
-            Self::Cpu => "cpu",
-            #[cfg(feature = "bench")]
-            Self::Metal => "metal",
-        }
-    }
-}
-
-/// A [`Projector`] pair at the default architecture on one backend.
-///
-/// The plain model serves inference forwards and the autodiff-decorated model serves training
-/// steps. Equal seeds give both the same function, so they differ only in bookkeeping.
-/// [`BackendKind`] selects the backend, which stays an internal choice.
-pub struct Model(Flavor);
-
-// Boxed for variant-size parity: a CPU pair holds its parameters
-// inline (megabytes), a GPU pair holds device handles.
-enum Flavor {
-    Cpu(Box<Pair<Cpu>>),
-    #[cfg(feature = "bench")]
-    Metal(Box<Pair<Gpu>>),
-}
-
-/// The plain and autodiff-decorated models of one backend.
-///
-/// The benches measure every flavor in the f32 configuration.
-struct Pair<B: Backend<FloatElem = f32>> {
-    projector: Projector<B>,
-    trained: Projector<Autodiff<B>>,
-    device: B::Device,
-}
-
-/// Synthesizes a batch of `rows` unit-norm representations.
-///
-/// Representations are random unit vectors (the prepared node matrix's contract), roles cycle over
-/// the vocabulary, and the condition is the relation-lens column, alternating the ladder's pinned
-/// extremes so `FiLM` sees both.
-#[expect(
-    clippy::integer_division_remainder_used,
-    reason = "the role and condition columns cycle by row position"
-)]
-#[must_use]
-pub fn batch<R>(rows: usize, seed: u64) -> Batch
-where
-    R: Rng + SeedableRng,
-{
-    let mut rng = R::seed_from_u64(seed);
-    let dimensions = ARCHITECTURE.representation_dimensions.get();
-
-    let mut representation = Vec::with_capacity(rows * dimensions);
-    for _ in 0..rows {
-        let start = representation.len();
-        let mut norm_squared = 0.0_f32;
-        for _ in 0..dimensions {
-            let component = rng.random_range(-1.0_f32..=1.0);
-            norm_squared = component.mul_add(component, norm_squared);
-            representation.push(component);
-        }
-        // A 512-dimensional uniform draw is never the zero vector in practice. The guard keeps the
-        // normalization total.
-        let scale = if norm_squared > 0.0 {
-            norm_squared.sqrt().recip()
-        } else {
-            1.0
-        };
-        for component in &mut representation[start..] {
-            *component *= scale;
-        }
-    }
-
-    #[expect(
-        clippy::cast_possible_wrap,
-        reason = "the role vocabulary holds three variants, far inside every integer type"
-    )]
-    let roles = (0..rows)
-        .map(|row| (row % NodeRole::COUNT) as i64)
-        .collect();
-    let condition = (0..rows)
-        .map(|row| if row % 2 == 0 { 0.0 } else { 1.0 })
-        .collect();
-
-    Batch {
-        rows,
-        representation,
-        roles,
-        condition,
-    }
-}
-
-impl Model {
-    /// Builds the default architecture on the chosen backend.
-    ///
-    /// Equal seeds build the plain and decorated models, so every flavor computes the same
-    /// function.
-    #[must_use]
-    pub fn build<R>(kind: BackendKind, seed: u64) -> Self
-    where
-        R: Rng + SeedableRng,
-    {
-        match kind {
-            BackendKind::Cpu => Self(Flavor::Cpu(Box::new(Pair::build::<R>(
-                NdArrayDevice::default(),
-                seed,
-            )))),
-            #[cfg(feature = "bench")]
-            BackendKind::Metal => Self(Flavor::Metal(Box::new(Pair::build::<R>(
-                burn::backend::wgpu::WgpuDevice::default(),
-                seed,
-            )))),
-        }
-    }
-
-    /// Runs one inference forward pass, returning the coordinate sum.
-    ///
-    /// The scalar readback forces the whole output to materialize and blocks on the device, so
-    /// asynchronous backends cannot defer work past the timed region.
-    #[must_use]
-    pub fn forward(&self, batch: &Batch) -> f32 {
-        match &self.0 {
-            Flavor::Cpu(pair) => pair.forward(batch),
-            #[cfg(feature = "bench")]
-            Flavor::Metal(pair) => pair.forward(batch),
-        }
-    }
-
-    /// Runs one training step's tensor work: forward, loss, backward.
-    ///
-    /// The loss is the coordinate mean - the cheapest scalar that pulls gradients through every
-    /// parameter - and a device sync after the backward fences the traversal inside the timed
-    /// region.
-    #[must_use]
-    pub fn forward_backward(&self, batch: &Batch) -> f32 {
-        match &self.0 {
-            Flavor::Cpu(pair) => pair.forward_backward(batch),
-            #[cfg(feature = "bench")]
-            Flavor::Metal(pair) => pair.forward_backward(batch),
-        }
-    }
-}
-
-impl<B: Backend<FloatElem = f32>> Pair<B> {
-    fn build<R>(device: B::Device, seed: u64) -> Self
-    where
-        R: Rng + SeedableRng,
-    {
-        Self {
-            projector: Projector::new(ARCHITECTURE, &device, R::seed_from_u64(seed)),
-            trained: Projector::new(ARCHITECTURE, &device, R::seed_from_u64(seed)),
-            device,
-        }
-    }
-
-    fn forward(&self, batch: &Batch) -> f32 {
-        let output = self.projector.forward(batch.input::<B>(&self.device));
-        output.sum().into_scalar()
-    }
-
-    fn forward_backward(&self, batch: &Batch) -> f32 {
-        let output = self
-            .trained
-            .forward(batch.input::<Autodiff<B>>(&self.device));
-        let loss = output.mean();
-        let value = loss.clone().into_scalar();
-        let gradients = loss.backward();
-        drop(gradients);
-        B::sync(&self.device).expect("the measured device should complete its queue");
-        value
-    }
-}
-
 impl Batch {
+    /// Synthesizes a batch of `rows` unit-norm representations.
+    ///
+    /// Representations are random unit vectors (the prepared node matrix's contract), roles cycle
+    /// over the vocabulary, and the condition is the relation-lens column, alternating the
+    /// ladder's pinned extremes so `FiLM` sees both.
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "the role and condition columns cycle by row position"
+    )]
+    #[must_use]
+    pub fn new<R>(rows: usize, seed: u64) -> Self
+    where
+        R: Rng + SeedableRng,
+    {
+        let mut rng = R::seed_from_u64(seed);
+        let dimensions = ARCHITECTURE.representation_dimensions.get();
+
+        let mut representation = Vec::with_capacity(rows * dimensions);
+        for _ in 0..rows {
+            let start = representation.len();
+            let mut norm_squared = 0.0_f32;
+            for _ in 0..dimensions {
+                let component = rng.random_range(-1.0_f32..=1.0);
+                norm_squared = component.mul_add(component, norm_squared);
+                representation.push(component);
+            }
+            // A 512-dimensional uniform draw is never the zero vector in practice. The guard keeps
+            // the normalization total.
+            let scale = if norm_squared > 0.0 {
+                norm_squared.sqrt().recip()
+            } else {
+                1.0
+            };
+            for component in &mut representation[start..] {
+                *component *= scale;
+            }
+        }
+
+        #[expect(
+            clippy::cast_possible_wrap,
+            reason = "the role vocabulary holds three variants, far inside every integer type"
+        )]
+        let roles = (0..rows)
+            .map(|row| (row % NodeRole::COUNT) as i64)
+            .collect();
+        let condition = (0..rows)
+            .map(|row| if row % 2 == 0 { 0.0 } else { 1.0 })
+            .collect();
+
+        Self {
+            rows,
+            representation,
+            roles,
+            condition,
+        }
+    }
+
     /// Returns the batch's row count.
     #[inline]
     #[must_use]
@@ -266,5 +123,53 @@ impl Batch {
                 device,
             ),
         }
+    }
+}
+
+/// The plain and autodiff-decorated models of one backend.
+///
+/// The benches measure every flavor in the f32 configuration.
+pub struct Model {
+    projector: Projector<Inference>,
+    trained: Projector<Training>,
+    device: DispatchDevice,
+}
+
+impl Model {
+    #[must_use]
+    pub fn build<R>(device: PinnedDevice, seed: u64) -> Self
+    where
+        R: Rng + SeedableRng,
+    {
+        let device = device.resolve();
+
+        Self {
+            projector: Projector::new(ARCHITECTURE, &device, R::seed_from_u64(seed)),
+            trained: Projector::new(ARCHITECTURE, &device, R::seed_from_u64(seed)),
+            device,
+        }
+    }
+
+    pub fn forward(&self, batch: &Batch) -> f32 {
+        let output = self
+            .projector
+            .forward(batch.input::<Inference>(&self.device));
+        output.sum().into_scalar()
+    }
+
+    /// Run a forward-backward pass on the model, returning the loss value.
+    ///
+    /// # Panics
+    ///
+    /// If the device fails to complete its queue.
+    pub fn forward_backward(&self, batch: &Batch) -> f32 {
+        let output = self.trained.forward(batch.input::<Training>(&self.device));
+        let loss = output.mean();
+        let value = loss.clone().into_scalar();
+        let gradients = loss.backward();
+        drop(gradients);
+
+        Inference::sync(&self.device).expect("the measured device should complete its queue");
+        value
     }
 }

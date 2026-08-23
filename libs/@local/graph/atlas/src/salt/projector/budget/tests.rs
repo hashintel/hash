@@ -6,9 +6,9 @@
 //! and through the full model Jacobian.
 
 use alloc::collections::BTreeMap;
+use std::sync::LazyLock;
 
 use burn::{
-    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
     module::{Module as _, ModuleMapper, ModuleVisitor, Param, ParamId},
     tensor::{Int, Tensor, TensorData, backend::AutodiffBackend},
 };
@@ -17,15 +17,12 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{Budget, BudgetSummary, surrogate};
 use crate::{
-    math::{Positive, Vec2},
+    device::{Device, PhysicalDevice, Training},
+    math::{Positive, Vec2, nz},
     salt::projector::model::{Architecture, Projector, ProjectorInput},
 };
 
-type TestBackend = Autodiff<NdArray>;
-
-fn device() -> NdArrayDevice {
-    NdArrayDevice::default()
-}
+static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
 
 #[test]
 fn measure_records_the_baseline_convention() {
@@ -76,14 +73,14 @@ fn summary_is_empty_before_any_record() {
 
 #[test]
 fn surrogate_deposits_exactly_the_requested_gradient_at_a_leaf() {
-    let device = device();
-    let coordinates: Tensor<TestBackend, 2> = Tensor::from_data(
+    let device = &*DEVICE;
+    let coordinates: Tensor<Training, 2> = Tensor::from_data(
         TensorData::new(vec![0.5_f32, -1.25, 2.0, 0.0, -0.75, 4.0], [3, 2]),
-        &device,
+        device,
     )
     .require_grad();
     let requested = vec![1.5_f32, -0.5, 0.25, 8.0, 0.0, -2.0];
-    let gradient = Tensor::from_data(TensorData::new(requested.clone(), [3, 2]), &device);
+    let gradient = Tensor::from_data(TensorData::new(requested.clone(), [3, 2]), device);
 
     let gradients = surrogate(coordinates.clone(), gradient).backward();
     let deposited = coordinates
@@ -105,11 +102,11 @@ fn surrogate_deposits_exactly_the_requested_gradient_at_a_leaf() {
 /// ramp makes every parameter's gradient generically nonzero.
 struct Perturb;
 
-impl ModuleMapper<TestBackend> for Perturb {
+impl ModuleMapper<Training> for Perturb {
     fn map_float<const D: usize>(
         &mut self,
-        param: Param<Tensor<TestBackend, D>>,
-    ) -> Param<Tensor<TestBackend, D>> {
+        param: Param<Tensor<Training, D>>,
+    ) -> Param<Tensor<Training, D>> {
         let (id, tensor, mapper) = param.consume();
         let elements = tensor.shape().num_elements();
         let ramp = (0..elements)
@@ -134,12 +131,12 @@ impl ModuleMapper<TestBackend> for Perturb {
 
 /// Collects every parameter gradient a backward pass produced.
 struct GradientCollector<'graph> {
-    gradients: &'graph <TestBackend as AutodiffBackend>::Gradients,
+    gradients: &'graph <Training as AutodiffBackend>::Gradients,
     collected: BTreeMap<ParamId, Vec<f32>>,
 }
 
-impl ModuleVisitor<TestBackend> for GradientCollector<'_> {
-    fn visit_float<const D: usize>(&mut self, param: &Param<Tensor<TestBackend, D>>) {
+impl ModuleVisitor<Training> for GradientCollector<'_> {
+    fn visit_float<const D: usize>(&mut self, param: &Param<Tensor<Training, D>>) {
         if let Some(gradient) = param.val().grad(self.gradients) {
             self.collected.insert(
                 param.id,
@@ -153,8 +150,8 @@ impl ModuleVisitor<TestBackend> for GradientCollector<'_> {
 }
 
 fn parameter_gradients(
-    model: &Projector<TestBackend>,
-    gradients: &<TestBackend as AutodiffBackend>::Gradients,
+    model: &Projector<Training>,
+    gradients: &<Training as AutodiffBackend>::Gradients,
 ) -> BTreeMap<ParamId, Vec<f32>> {
     let mut collector = GradientCollector {
         gradients,
@@ -171,16 +168,17 @@ fn surrogate_matches_ordinary_autodiff_through_the_model() {
     // the same coordinate gradient detached and hands it to the
     // surrogate. Equal parameter gradients certify that one surrogate
     // backward deposits J^T g for the full FiLM-residual Jacobian.
-    let device = device();
+    let device = &*DEVICE;
     let architecture = Architecture {
-        width: 8.try_into().expect("8 is nonzero"),
-        residual_blocks: 2.try_into().expect("2 is nonzero"),
-        representation_dimensions: 6.try_into().expect("6 is nonzero"),
-        role_dimensions: 4.try_into().expect("4 is nonzero"),
-        condition_dimensions: 1.try_into().expect("1 is nonzero"),
+        width: nz!(8),
+        residual_blocks: nz!(2),
+        representation_dimensions: nz!(6),
+        role_dimensions: nz!(4),
+        condition_dimensions: nz!(1),
     };
+
     let model =
-        Projector::<TestBackend>::new(architecture, &device, Xoshiro256PlusPlus::seed_from_u64(11))
+        Projector::<Training>::new(architecture, device, Xoshiro256PlusPlus::seed_from_u64(11))
             .map(&mut Perturb);
 
     let representation = || {
@@ -194,13 +192,12 @@ fn surrogate_matches_ordinary_autodiff_through_the_model() {
                 index.mul_add(0.375, -1.5)
             })
             .collect::<Vec<_>>();
-        Tensor::<TestBackend, 2>::from_data(TensorData::new(values, [3, 6]), &device)
+        Tensor::<Training, 2>::from_data(TensorData::new(values, [3, 6]), device)
     };
-    let roles = || {
-        Tensor::<TestBackend, 1, Int>::from_data(TensorData::new(vec![0_i64, 1, 2], [3]), &device)
-    };
+    let roles =
+        || Tensor::<Training, 1, Int>::from_data(TensorData::new(vec![0_i64, 1, 2], [3]), device);
     let condition =
-        || Tensor::<TestBackend, 2>::from_data(TensorData::new(vec![0.5_f32; 3], [3, 1]), &device);
+        || Tensor::<Training, 2>::from_data(TensorData::new(vec![0.5_f32; 3], [3, 1]), device);
     let input = || ProjectorInput {
         representation: representation(),
         roles: roles(),
