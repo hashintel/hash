@@ -29,6 +29,7 @@ use core::{
     alloc::{Allocator, Layout},
     fmt,
     mem::ManuallyDrop,
+    num::NonZero,
     ptr::{self, NonNull},
     simd::{f64x8, num::SimdFloat as _},
     slice,
@@ -209,9 +210,12 @@ const BLOCK_BUDGET_BYTES: usize = 256 * 1024;
     clippy::integer_division_remainder_used,
     reason = "the block height is the floor of the budget over the row bytes"
 )]
-const fn block_rows_for(stride: usize) -> usize {
+const fn block_rows_for(stride: usize) -> NonZero<usize> {
     let rows = BLOCK_BUDGET_BYTES / (stride * size_of::<f64>()).max(1);
-    if rows == 0 { 1 } else { rows }
+    match NonZero::new(rows) {
+        Some(rows) => rows,
+        None => NonZero::<usize>::MIN,
+    }
 }
 
 /// An owned order × order matrix of `f64` components in one SIMD-aligned heap allocation.
@@ -378,8 +382,27 @@ impl<A: Allocator> DSquareMatrix<A> {
     /// pivot is zero or negative, meaning the lower triangle is not positive-definite. The
     /// factorization stops at the first bad pivot.
     #[inline]
-    pub(crate) fn cholesky(mut self) -> Result<DCholeskyFactor<A>, DCholeskyError> {
-        self.factorize()?;
+    pub(crate) fn cholesky(self) -> Result<DCholeskyFactor<A>, DCholeskyError> {
+        let block_height = block_rows_for(stride_for(self.order));
+        self.cholesky_blocked(block_height)
+    }
+
+    /// Factors like [`cholesky`](Self::cholesky) with an explicit block height.
+    ///
+    /// The factor's bytes are identical at every block height, because every entry is the same
+    /// prefix-dot expression regardless of the blocking; the height chooses only how much of the
+    /// active triangle stays cache-resident per pass. [`cholesky`](Self::cholesky) derives the
+    /// height that fits the working-set budget, and this form takes the height directly, so a
+    /// caller can cross block boundaries at any order.
+    ///
+    /// # Errors
+    ///
+    /// Exactly [`cholesky`](Self::cholesky)'s.
+    fn cholesky_blocked(
+        mut self,
+        block_height: NonZero<usize>,
+    ) -> Result<DCholeskyFactor<A>, DCholeskyError> {
+        self.factorize(block_height)?;
 
         // The factor takes over the allocation; skipping the matrix's drop keeps ownership
         // unique.
@@ -397,17 +420,17 @@ impl<A: Allocator> DSquareMatrix<A> {
     ///
     /// Row-wise Cholesky: `L[i][j] = (A[i][j] − Σ_{p<j} L[i][p]·L[j][p]) / L[j][j]` below the
     /// diagonal and `L[i][i] = √(A[i][i] − Σ_{p<i} L[i][p]²)` on it. Rows settle in blocks of
-    /// [`block_rows_for`] rows. The panel pass streams each settled row once through the whole
+    /// `block_height` rows. The panel pass streams each settled row once through the whole
     /// block, then the diagonal pass settles the block's rows against each other in row order,
     /// checking every pivot before anything divides by it. Every entry is the same prefix-dot
     /// expression at every block height, so the factor's bytes depend only on the input bytes.
     ///
     /// The diagonal pass zeroes each settled row's tail beyond its diagonal, leaving the strict
     /// upper triangle of the factor all-zero regardless of the input's.
-    fn factorize(&mut self) -> Result<(), DCholeskyError> {
+    fn factorize(&mut self, block_height: NonZero<usize>) -> Result<(), DCholeskyError> {
         let order = self.order;
         let stride = self.stride();
-        let block_height = block_rows_for(stride);
+        let block_height = block_height.get();
         let components = self.components_mut();
 
         let mut start = 0;

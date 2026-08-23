@@ -10,7 +10,7 @@
 use core::simd::f64x8;
 
 use super::{DCholeskyError, DSquareMatrix, DSquareRowBlock};
-use crate::math::{DVecN, test_alloc::CountingAllocator};
+use crate::math::{DVecN, nz, test_alloc::CountingAllocator};
 
 /// A deterministic integer pattern in `[−5, 5]`.
 fn pattern(row: usize, column: usize) -> f64 {
@@ -45,16 +45,10 @@ fn spd_fixture(order: usize) -> DSquareMatrix {
     matrix
 }
 
-/// The orders the certificates cover: 1, 2, a padded stride (7), whole lanes (8), four lanes with a
-/// tail (33), and one past the derived block height (200).
-const ORDERS: [usize; 6] = [1, 2, 7, 8, 33, 200];
-
-#[test]
-fn the_largest_certificate_order_crosses_a_block_boundary() {
-    // Keeps the panel pass certified: were the working-set budget ever raised past order 200's
-    // whole triangle, the roundtrip certificates would stop exercising it without any test failing.
-    assert!(super::block_rows_for(200) < 200);
-}
+/// The orders the certificates cover: 1, 2, a padded stride (7), whole lanes (8), and four lanes
+/// with a tail (33). Block-boundary crossings are [`block_height_invariance`]'s subject, which
+/// drives the block height directly.
+const ORDERS: [usize; 5] = [1, 2, 7, 8, 33];
 
 #[test]
 fn factor_times_its_transpose_recovers_the_lower_triangle() {
@@ -115,6 +109,39 @@ fn the_solution_reproduces_the_right_hand_side() {
             assert!(
                 (recovered - expected).abs() <= tolerance,
                 "component {row} of order {order}: |{recovered} − {expected}| > {tolerance}",
+            );
+        }
+    }
+}
+
+/// The factor's bytes are identical at every block height.
+///
+/// Heights below the order make the panel pass cross block boundaries, and the derived height at
+/// this order is the single-block path, so the sweep compares every crossing shape against the
+/// unblocked reference. The order is small enough for Miri to interpret the crossings.
+#[test]
+fn block_height_invariance() {
+    const ORDER: usize = 13;
+
+    let reference = spd_fixture(ORDER)
+        .cholesky()
+        .expect("the fixture is positive-definite");
+
+    for height in [nz!(1), nz!(2), nz!(3), nz!(5), nz!(8)] {
+        let factor = spd_fixture(ORDER)
+            .cholesky_blocked(height)
+            .expect("the fixture is positive-definite");
+
+        for (index, (blocked, derived)) in factor
+            .components()
+            .iter()
+            .zip(reference.components())
+            .enumerate()
+        {
+            assert_eq!(
+                blocked.to_bits(),
+                derived.to_bits(),
+                "height {height} moved component {index}",
             );
         }
     }
