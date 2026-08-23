@@ -8,7 +8,7 @@
 use core::{error::Error, fmt};
 use std::io;
 
-use super::{Applicability, Classifier};
+use super::{Applicability, Classifier, Standardization};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     file::{
@@ -123,8 +123,8 @@ impl WriteInto for Classifier {
             self.temperature,
             self.intercepts,
             coefficients,
-            self.applicability.mean.as_array(),
-            self.applicability.inverse_scales.as_array(),
+            self.applicability.standardization.mean.as_array(),
+            self.applicability.standardization.inverse_scales.as_array(),
             DNonNegative::slice_as_raw(&self.applicability.distances),
             &mut writer,
         )?;
@@ -216,8 +216,10 @@ impl Classifier {
             intercepts,
             temperature,
             applicability: Applicability {
-                mean: owned(mean),
-                inverse_scales: owned(inverse_scales),
+                standardization: Standardization {
+                    mean: owned(mean),
+                    inverse_scales: owned(inverse_scales),
+                },
                 distances,
             },
         })

@@ -16,7 +16,7 @@ use crate::{
     math::{BoxedDVecN, BoxedVecN, d_non_negative},
     salt::policy::{
         GeometryClass,
-        classifier::{Applicability, Classifier},
+        classifier::{Applicability, Classifier, Standardization},
     },
 };
 
@@ -71,8 +71,10 @@ fn fixture() -> Classifier {
         intercepts: [0.25, -0.5, 0.125],
         temperature: 1.5,
         applicability: Applicability {
-            mean: filled(3),
-            inverse_scales,
+            standardization: Standardization {
+                mean: filled(3),
+                inverse_scales,
+            },
             distances: Box::new([
                 d_non_negative!(0.0),
                 d_non_negative!(0.5),

@@ -17,9 +17,9 @@ use rayon::ThreadPoolBuilder;
 
 use super::{
     artifact::{InvalidLandmarkFile, LandmarkSkeleton, LandmarkSkeletonArchive},
-    assignment::{AssignmentError, LandmarkAssignment, assign_landmarks},
+    assignment::{AssignmentError, LandmarkAssignment},
     layout::{EdgelessGraphError, LayoutOptions, layout_landmarks},
-    quotient::{QuotientError, QuotientOptions, quotient_graph},
+    quotient::{QuotientError, QuotientOptions},
     select::{
         LandmarkCandidate, LandmarkOrdinal, LandmarkSelection, SelectionError, SelectionOptions,
         Subgroup, SubgroupAxes, SubgroupDimension, SubgroupMinimum, select_landmarks,
@@ -508,7 +508,8 @@ fn assignment_maps_rows_to_their_nearest_landmark() {
     // One landmark per cluster: rows 0, 2, 4.
     let selection = selection_of(&[0, 2, 4]);
 
-    let assignment = assign_landmarks(&mut ExactIndex::new(), rng(), matrix.view(), &selection)
+    let assignment = selection
+        .assign(&mut ExactIndex::new(), rng(), matrix.view())
         .expect("the exact backend assigns every row");
 
     assert_eq!(
@@ -524,7 +525,7 @@ fn assignment_rejects_landmarks_outside_the_corpus() {
     let matrix = Matrix::new(&clustered_embeddings());
     let selection = selection_of(&[0, 99]);
 
-    let result = assign_landmarks(&mut ExactIndex::new(), rng(), matrix.view(), &selection);
+    let result = selection.assign(&mut ExactIndex::new(), rng(), matrix.view());
 
     assert_matches!(
         result,
@@ -582,7 +583,8 @@ fn quotient_contracts_cross_landmark_edges() {
     let graph = corpus_graph();
     let assignment = assignment_of(&[0, 0, 1, 1, 2, 2], 3);
 
-    let quotient = quotient_graph(&graph.view(), &assignment, QuotientOptions { .. })
+    let quotient = assignment
+        .quotient(&graph.view(), QuotientOptions { .. })
         .expect("the fixture quotient has edges");
 
     // The directed inflows are L0 <- 0.5 (edge 1-2), L1 <- 0.5 + 0.25, and L2 <- 0.25. Every row
@@ -617,14 +619,14 @@ fn quotient_keeps_only_the_strongest_neighbours() {
     );
     let assignment = assignment_of(&[0, 0, 1, 1, 2, 2, 3, 3], 4);
 
-    let quotient = quotient_graph(
-        &graph.view(),
-        &assignment,
-        QuotientOptions {
-            maximum_neighbours: NonZero::new(1).expect("one is nonzero"),
-        },
-    )
-    .expect("the fixture quotient has edges");
+    let quotient = assignment
+        .quotient(
+            &graph.view(),
+            QuotientOptions {
+                maximum_neighbours: NonZero::new(1).expect("one is nonzero"),
+            },
+        )
+        .expect("the fixture quotient has edges");
 
     // L0 keeps only L1; L2 and L3 keep their single inflow (normalized
     // to 1.0 within their own rows), so their edges to L0 survive from
@@ -643,12 +645,9 @@ fn quotient_rejects_inconsistent_inputs() {
     let graph = corpus_graph();
 
     assert_eq!(
-        quotient_graph(
-            &graph.view(),
-            &assignment_of(&[0, 0, 1, 1], 2),
-            QuotientOptions { .. },
-        )
-        .expect_err("the inconsistent assignment must be rejected"),
+        assignment_of(&[0, 0, 1, 1], 2)
+            .quotient(&graph.view(), QuotientOptions { .. })
+            .expect_err("the inconsistent assignment must be rejected"),
         QuotientError::AssignmentRows {
             expected: 6,
             actual: 4,
@@ -657,12 +656,9 @@ fn quotient_rejects_inconsistent_inputs() {
 
     // Everything in one landmark: nothing crosses.
     assert_eq!(
-        quotient_graph(
-            &graph.view(),
-            &assignment_of(&[0, 0, 0, 0, 0, 0], 1),
-            QuotientOptions { .. },
-        )
-        .expect_err("the edgeless quotient must be rejected"),
+        assignment_of(&[0, 0, 0, 0, 0, 0], 1)
+            .quotient(&graph.view(), QuotientOptions { .. })
+            .expect_err("the edgeless quotient must be rejected"),
         QuotientError::EmptyQuotient,
     );
 }
@@ -691,11 +687,11 @@ fn quotient_is_invariant_across_thread_counts() {
     let assignment = assignment_of(&ordinals, 10);
 
     let single = in_pool(1, || {
-        quotient_graph(&graph.view(), &assignment, QuotientOptions { .. })
+        assignment.quotient(&graph.view(), QuotientOptions { .. })
     })
     .expect("the fixture quotient has edges");
     let many = in_pool(8, || {
-        quotient_graph(&graph.view(), &assignment, QuotientOptions { .. })
+        assignment.quotient(&graph.view(), QuotientOptions { .. })
     })
     .expect("the fixture quotient has edges");
 
@@ -920,9 +916,11 @@ fn fixture_skeleton() -> (
 ) {
     let matrix = Matrix::new(&clustered_embeddings());
     let selection = selection_of(&[0, 2, 4]);
-    let assignment = assign_landmarks(&mut ExactIndex::new(), rng(), matrix.view(), &selection)
+    let assignment = selection
+        .assign(&mut ExactIndex::new(), rng(), matrix.view())
         .expect("the exact backend assigns every row");
-    let quotient = quotient_graph(&corpus_graph().view(), &assignment, QuotientOptions { .. })
+    let quotient = assignment
+        .quotient(&corpus_graph().view(), QuotientOptions { .. })
         .expect("the fixture quotient has edges");
     let coordinates = layout_landmarks(&quotient.view(), curve(), layout_options(50), rng())
         .expect("the quotient lays out");

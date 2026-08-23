@@ -287,6 +287,11 @@ pub(crate) trait ColumnScalar: zerocopy::Immutable + zerocopy::IntoBytes {
     const VARIANT: ArrayVariant;
     /// The dimensions one row adds beyond the leading row count.
     const TRAILING: &'static [Dim];
+
+    /// Creates a new [`ArrayWriter`] for this scalar type.
+    fn writer<W: Write + Seek>(writer: W) -> io::Result<ArrayWriter<W>> {
+        ArrayWriter::new(writer, Self::VARIANT, Self::TRAILING)
+    }
 }
 
 impl ColumnScalar for Vec2 {

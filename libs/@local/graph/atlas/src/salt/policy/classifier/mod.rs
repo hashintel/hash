@@ -43,9 +43,7 @@ use core::{
 use super::{GeometryClass, Posterior};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{
-        AlignedDVecN, AlignedVecN, BoxedDVecN, DNonNegative, UnitFraction, kernel::mul_add_f64x8,
-    },
+    math::{AlignedVecN, BoxedDVecN, DNonNegative, UnitFraction, kernel::mul_add_f64x8},
 };
 
 pub(crate) mod artifact;
@@ -79,14 +77,52 @@ impl fmt::Display for PredictError {
 
 impl Error for PredictError {}
 
-/// Applicability evidence fitted from the training distribution.
+/// The standardization the applicability distance measures under.
 ///
-/// `inverse_scales` components are positive, and `distances` is non-empty and ascending.
-/// [`fit()`] and validated artifact reads are the construction sites.
+/// `inverse_scales` components are positive; [`fit()`] and validated artifact reads are the
+/// construction sites.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Applicability {
+pub(crate) struct Standardization {
     mean: BoxedDVecN<CANONICAL_DIMENSIONS>,
     inverse_scales: BoxedDVecN<CANONICAL_DIMENSIONS>,
+}
+
+impl Standardization {
+    /// Standardized diagonal-Mahalanobis distance of an embedding from the training distribution.
+    ///
+    /// Computes `√(mean(((e - mean) · inverse_scale)^2))`, accumulated in double precision over
+    /// two independent chains. Returns [`None`] when the reduction is not finite.
+    fn distance(&self, embedding: &AlignedVecN<CANONICAL_DIMENSIONS>) -> Option<DNonNegative> {
+        let (embedding, embedding_rest) = embedding.lanes();
+        let (mean, mean_rest) = self.mean.lanes();
+        let (inverse_scales, scales_rest) = self.inverse_scales.lanes();
+        debug_assert!(embedding_rest.is_empty() && mean_rest.is_empty() && scales_rest.is_empty());
+
+        let mut sums = [f64x8::splat(0.0); 2];
+
+        for (index, ((components, mean), inverse_scale)) in
+            embedding.iter().zip(mean).zip(inverse_scales).enumerate()
+        {
+            let standardized = (components.cast::<f64>() - mean) * inverse_scale;
+            sums[index & 1] = mul_add_f64x8(standardized, standardized, sums[index & 1]);
+        }
+
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "the dimension count is far below f64 integer precision"
+        )]
+        let dimensions = CANONICAL_DIMENSIONS as f64;
+        DNonNegative::new(((sums[0] + sums[1]).reduce_sum() / dimensions).sqrt())
+    }
+}
+
+/// Applicability evidence fitted from the training distribution.
+///
+/// `distances` is non-empty and ascending, measured under `standardization`. [`fit()`] and
+/// validated artifact reads are the construction sites.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Applicability {
+    standardization: Standardization,
     distances: Box<[DNonNegative]>,
 }
 
@@ -143,12 +179,11 @@ impl Classifier {
             embedding.dot_wide(&self.coefficients[class]) + self.intercepts[class]
         });
 
-        let distance = standardized_distance(
-            embedding,
-            &self.applicability.mean,
-            &self.applicability.inverse_scales,
-        )
-        .ok_or(PredictError)?;
+        let distance = self
+            .applicability
+            .standardization
+            .distance(embedding)
+            .ok_or(PredictError)?;
         if logits.iter().any(|value| !value.is_finite()) {
             return Err(PredictError);
         }
@@ -173,35 +208,4 @@ impl Classifier {
             applicability,
         })
     }
-}
-
-/// Standardized diagonal-Mahalanobis distance of an embedding from a fitted training distribution.
-///
-/// Computes `√(mean(((e - mean) · inverse_scale)^2))`, accumulated in double precision over two
-/// independent chains. Returns [`None`] when the reduction is not finite.
-fn standardized_distance(
-    embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,
-    mean: &AlignedDVecN<CANONICAL_DIMENSIONS>,
-    inverse_scales: &AlignedDVecN<CANONICAL_DIMENSIONS>,
-) -> Option<DNonNegative> {
-    let (embedding, embedding_rest) = embedding.lanes();
-    let (mean, mean_rest) = mean.lanes();
-    let (inverse_scales, scales_rest) = inverse_scales.lanes();
-    debug_assert!(embedding_rest.is_empty() && mean_rest.is_empty() && scales_rest.is_empty());
-
-    let mut sums = [f64x8::splat(0.0); 2];
-
-    for (index, ((components, mean), inverse_scale)) in
-        embedding.iter().zip(mean).zip(inverse_scales).enumerate()
-    {
-        let standardized = (components.cast::<f64>() - mean) * inverse_scale;
-        sums[index & 1] = mul_add_f64x8(standardized, standardized, sums[index & 1]);
-    }
-
-    #[expect(
-        clippy::cast_precision_loss,
-        reason = "the dimension count is far below f64 integer precision"
-    )]
-    let dimensions = CANONICAL_DIMENSIONS as f64;
-    DNonNegative::new(((sums[0] + sums[1]).reduce_sum() / dimensions).sqrt())
 }

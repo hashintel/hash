@@ -5,9 +5,9 @@
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 
-use super::{InvalidPolicyFile, PolicyTableArchive, write_policies};
+use super::{InvalidPolicyFile, PolicyTableArchive};
 use crate::{
-    file::policy::read::PolicyFile,
+    file::{WriteInto as _, policy::read::PolicyFile},
     identity::OntologyRowId,
     math::{NonNegative, UnitFraction, unit_fraction},
     salt::policy::{CertifiedPolicies, ClassProbabilities, RelationPolicy},
@@ -51,7 +51,9 @@ fn fixture() -> Vec<RelationPolicy> {
 fn fixture_bytes() -> Vec<u8> {
     let policies = CertifiedPolicies::new(fixture()).expect("the fixture is strictly ascending");
     let mut bytes = Vec::new();
-    write_policies(&policies, &mut bytes).expect("writing into a vector cannot fail");
+    policies
+        .write_into(&mut bytes)
+        .expect("writing into a vector cannot fail");
     bytes
 }
 
@@ -88,7 +90,9 @@ fn empty_table_maps() {
     let policies =
         CertifiedPolicies::new(Vec::new()).expect("an empty table is trivially ascending");
     let mut bytes = Vec::new();
-    write_policies(&policies, &mut bytes).expect("writing into a vector cannot fail");
+    policies
+        .write_into(&mut bytes)
+        .expect("writing into a vector cannot fail");
 
     let table = reopen("empty.plcy", &bytes).expect("an empty table is valid");
     assert_eq!(table.len(), 0);

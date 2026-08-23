@@ -9,8 +9,8 @@ use std::sync::Mutex;
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 
 use super::{
-    FitConfig, FitError, TrainingRow, TrainingSet, TrainingSetError, applicability, calibration,
-    fit, fit_model, grouped_folds,
+    FitConfig, FitError, FoldedTraining, TrainingRow, TrainingSet, TrainingSetError, applicability,
+    calibration, fit, grouped_folds,
     objective::{PARAMETER_COUNT, Parameters},
     regularization,
     solver::{
@@ -264,26 +264,23 @@ fn stronger_regularization_shrinks_the_fitted_coefficients() {
     };
 
     let gram = Gram::assemble(corpus.embeddings().as_raw(), &mut WorkCounters::default());
-    // Every row assigned to fold 0: a raw fixture pinned at the fit_model seam,
+    // Every row assigned to fold 0: a raw fixture driving the fold fit directly,
     // since a single-fold run is the point of this fixture.
-    let (weak, _) = fit_model(
+    let folded = FoldedTraining {
         training,
-        IdSlice::from_raw(&[0, 0, 0]),
-        None,
-        regularized(d_positive!(0.1)),
-        &gram,
-        WorkCounters::default(),
-    )
-    .expect("the weak fit converges");
-    let (strong, _) = fit_model(
-        training,
-        IdSlice::from_raw(&[0, 0, 0]),
-        None,
-        regularized(d_positive!(10.0)),
-        &gram,
-        WorkCounters::default(),
-    )
-    .expect("the strong fit converges");
+        folds: IdSlice::from_raw(&[0, 0, 0]),
+        gram: &gram,
+    };
+    let (weak, _) = folded
+        .fit(None, regularized(d_positive!(0.1)), WorkCounters::default())
+        .expect("the weak fit converges");
+    let (strong, _) = folded
+        .fit(
+            None,
+            regularized(d_positive!(10.0)),
+            WorkCounters::default(),
+        )
+        .expect("the strong fit converges");
 
     assert!(coefficient_norm(&strong) < coefficient_norm(&weak));
 }
@@ -295,15 +292,13 @@ fn fit_model_requires_complete_class_mass() {
     corpus.push(&[0.0, 1.0], [0.0, 0.5, 0.5], 1.0, b"two");
 
     let gram = Gram::assemble(corpus.embeddings().as_raw(), &mut WorkCounters::default());
-    // Every row assigned to fold 0: a raw fixture pinned at the fit_model seam.
-    let error = fit_model(
-        corpus.training(),
-        IdSlice::from_raw(&[0, 0]),
-        None,
-        config(),
-        &gram,
-        WorkCounters::default(),
-    )
+    // Every row assigned to fold 0: a raw fixture driving the fold fit directly.
+    let error = FoldedTraining {
+        training: corpus.training(),
+        folds: IdSlice::from_raw(&[0, 0]),
+        gram: &gram,
+    }
+    .fit(None, config(), WorkCounters::default())
     .expect_err("a class without mass cannot fit");
     assert_matches!(
         error,
@@ -414,9 +409,9 @@ fn applicability_matches_hand_computed_values() {
         (1.0 / leading.sqrt(), 1.0 / other.sqrt())
     };
 
-    assert_eq!(fitted.mean.as_array()[0], 2.0);
-    assert_eq!(fitted.mean.as_array()[1], 0.0);
-    let scales = fitted.inverse_scales.as_array();
+    assert_eq!(fitted.standardization.mean.as_array()[0], 2.0);
+    assert_eq!(fitted.standardization.mean.as_array()[1], 0.0);
+    let scales = fitted.standardization.inverse_scales.as_array();
     assert!((scales[0] - expected_scales.0).abs() <= 1.0e-9 * expected_scales.0);
     assert!((scales[1] - expected_scales.1).abs() <= 1.0e-9 * expected_scales.1);
 
@@ -440,6 +435,7 @@ fn constant_corpus_gets_unit_scales_and_zero_distances() {
 
     assert!(
         fitted
+            .standardization
             .inverse_scales
             .as_array()
             .iter()

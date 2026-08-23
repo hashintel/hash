@@ -14,7 +14,11 @@ use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
 use super::{CertifiedPolicies, RelationPolicy};
 use crate::{
-    file::policy::{PolicyRow, read::PolicyFile, write::write_rows},
+    file::{
+        WriteAs, WriteInto,
+        policy::{PolicyRow, read::PolicyFile, write::write_rows},
+        salt::artifact,
+    },
     identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Writer},
 };
@@ -75,29 +79,26 @@ impl fmt::Display for InvalidPolicyFile {
 
 impl Error for InvalidPolicyFile {}
 
-/// Writes the certified policies as a policy file.
-///
-/// The rows write in the table's certified order, every value as its own bytes. Returns the
-/// SHA-256 of the written bytes: the identity the repository records for the published file.
-///
-/// # Errors
-///
-/// Returns an error when the underlying writer fails.
-pub(crate) fn write_policies(
-    policies: &CertifiedPolicies,
-    write: impl io::Write,
-) -> io::Result<Sha256Digest> {
-    let mut writer = Writer {
-        accumulator: Sha256::new(),
-        writer: write,
-    };
+// The certified table is its own on-disk form: the rows write in the table's certified order,
+// every value as its own bytes.
+impl WriteInto for CertifiedPolicies {
+    type Error = io::Error;
 
-    let rows = <[PolicyRow]>::ref_from_bytes(policies.as_slice().as_bytes())
-        .expect("the policy row layouts are pinned equal at compile time");
-    write_rows(rows, &mut writer)?;
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+        let mut writer = Writer {
+            accumulator: Sha256::new(),
+            writer: write,
+        };
 
-    Ok(writer.accumulator.finalize())
+        let rows = <[PolicyRow]>::ref_from_bytes(self.as_slice().as_bytes())
+            .expect("the policy row layouts are pinned equal at compile time");
+        write_rows(rows, &mut writer)?;
+
+        Ok(writer.accumulator.finalize())
+    }
 }
+
+impl WriteAs<artifact::Policy> for CertifiedPolicies {}
 
 /// A published policy table opened over its mapped file.
 ///

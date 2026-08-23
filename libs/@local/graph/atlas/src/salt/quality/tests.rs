@@ -933,7 +933,7 @@ fn assess_flags_degraded_subgroups() {
         ..
     };
 
-    let report = assess(&readings, &anchor_types, &thresholds);
+    let report = assess(readings.with_anchor_types(&anchor_types), &thresholds);
 
     assert_eq!(report.anchors, 6);
     assert_eq!(report.corpus_universe, 8);
@@ -985,8 +985,7 @@ fn assess_flags_degraded_subgroups() {
     // Raising the anchor floor above the subgroup's size silences the
     // flag but keeps the subgroup's rows in the report.
     let floored = assess(
-        &readings,
-        &anchor_types,
+        readings.with_anchor_types(&anchor_types),
         &QualityThresholds {
             minimum_subgroup_anchors: 3,
             ..
@@ -1036,7 +1035,7 @@ fn clump_resolution_triages_flags() {
     // neighbourhood matches and both degradations read zero.
     let mut readings = flag_fixture(&[true, true, true, true, false, false]);
     readings.clumps = Some(clump_readings_of(&[true; 6]));
-    let report = assess(&readings, &anchor_types, &thresholds);
+    let report = assess(readings.with_anchor_types(&anchor_types), &thresholds);
 
     assert_eq!(report.flags.len(), 1);
     let flag = report.flags[0];
@@ -1074,7 +1073,7 @@ fn clump_resolution_triages_flags() {
     // its breach - 1 against twice the overall 1 - 4/6.
     let mut readings = flag_fixture(&[true, true, true, true, false, false]);
     readings.clumps = Some(clump_readings_of(&[true, true, true, true, false, false]));
-    let report = assess(&readings, &anchor_types, &thresholds);
+    let report = assess(readings.with_anchor_types(&anchor_types), &thresholds);
 
     assert_eq!(report.flags.len(), 1);
     let flag = report.flags[0];
@@ -1116,8 +1115,7 @@ fn assess_reads_density_from_radii() {
     ]);
 
     let report = assess(
-        &readings,
-        &types_of(&[&[], &[], &[]]),
+        readings.with_anchor_types(&types_of(&[&[], &[], &[]])),
         &QualityThresholds::default(),
     );
 
@@ -1139,8 +1137,7 @@ fn assess_reads_density_from_radii() {
     // A pinned ceiling above the spread passes, and one below it fails.
     let spread = row.spread.expect("two anchors contribute");
     let lenient = assess(
-        &readings,
-        &types_of(&[&[], &[], &[]]),
+        readings.with_anchor_types(&types_of(&[&[], &[], &[]])),
         &QualityThresholds {
             maximum_density_spread: ceiling(spread + 1e-3),
             ..
@@ -1148,8 +1145,7 @@ fn assess_reads_density_from_radii() {
     );
     assert!(lenient.passes());
     let strict = assess(
-        &readings,
-        &types_of(&[&[], &[], &[]]),
+        readings.with_anchor_types(&types_of(&[&[], &[], &[]])),
         &QualityThresholds {
             maximum_density_spread: ceiling(spread / 2.0),
             ..
@@ -1176,8 +1172,7 @@ fn assess_fails_pinned_thresholds_without_evidence() {
     let types = types_of(&[&[], &[]]);
 
     let report = assess(
-        &readings,
-        &types,
+        readings.with_anchor_types(&types),
         &QualityThresholds {
             maximum_density_spread: ceiling(1.0),
             ..
@@ -1190,7 +1185,10 @@ fn assess_fails_pinned_thresholds_without_evidence() {
     // Triplet readings with no sampled pairs fail the verdict outright.
     let mut readings = flag_fixture(&[true, true]);
     readings.triplet_map_representation = vec![TripletAggregate::default(); 2].into();
-    let report = assess(&readings, &types, &QualityThresholds::default());
+    let report = assess(
+        readings.with_anchor_types(&types),
+        &QualityThresholds::default(),
+    );
     assert_eq!(report.triplet_map_representation.triplets, 0);
     assert!(!report.passes());
 }
@@ -1207,7 +1205,10 @@ fn neighbourhood_controls_demand_a_nonempty_grid() {
     let readings = flag_fixture(&[true, true]);
     let types = types_of(&[&[], &[]]);
 
-    let mut report = assess(&readings, &types, &QualityThresholds::default());
+    let mut report = assess(
+        readings.with_anchor_types(&types),
+        &QualityThresholds::default(),
+    );
     assert!(report.passes(), "the populated grid clears the defaults");
 
     report.map_representation.clear();
@@ -1305,8 +1306,7 @@ fn assess_applies_pinned_floors() {
 
     // Overall recall 2/3: a floor above it fails, one below passes.
     let strict = assess(
-        &readings,
-        &anchor_types,
+        readings.with_anchor_types(&anchor_types),
         &QualityThresholds {
             minimum_recall: fraction(0.9),
             ..
@@ -1315,8 +1315,7 @@ fn assess_applies_pinned_floors() {
     assert!(!strict.passes());
 
     let lenient = assess(
-        &readings,
-        &anchor_types,
+        readings.with_anchor_types(&anchor_types),
         &QualityThresholds {
             minimum_recall: fraction(0.5),
             maximum_intrusion_rate: fraction(0.5),
@@ -1349,8 +1348,7 @@ async fn assess_reads_a_probed_fixture() {
     // anchor's type survives the trip into subgroup rows.
     let anchor_types = types_of(&[&[9], &[9], &[9], &[9], &[9]]);
     let report = assess(
-        &readings,
-        &anchor_types,
+        readings.with_anchor_types(&anchor_types),
         &QualityThresholds {
             minimum_recall: UnitFraction::ONE,
             minimum_trustworthiness: UnitFraction::ONE,

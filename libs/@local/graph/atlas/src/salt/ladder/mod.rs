@@ -178,14 +178,21 @@ impl LadderOptions {
     ///
     /// Returns an error when the canonical value names no step of the schedule.
     pub(crate) fn canonical_index(&self) -> Result<usize, CanonicalError> {
-        self.conditions
-            .values()
-            .iter()
-            .position(|&condition| condition == self.canonical)
-            .ok_or(CanonicalError::UnknownStep {
-                value: self.canonical,
-            })
+        canonical_position(self.conditions.values().iter().copied(), self.canonical)
     }
+}
+
+/// Returns the position of the canonical `value` among `conditions`.
+///
+/// The one membership rule both the options check and the measured selection apply: equality on
+/// [`NonNegative`] is bit equality.
+fn canonical_position(
+    mut conditions: impl Iterator<Item = NonNegative>,
+    value: NonNegative,
+) -> Result<usize, CanonicalError> {
+    conditions
+        .position(|condition| condition == value)
+        .ok_or(CanonicalError::UnknownStep { value })
 }
 
 /// One step's cross-condition evidence.
@@ -295,13 +302,15 @@ pub(crate) fn select_canonical(
     measurements: &[StepMeasurement],
     value: NonNegative,
 ) -> Result<CanonicalSelection<'_>, CanonicalError> {
-    let (index, measurement) = measurements
-        .iter()
-        .enumerate()
-        .find(|(_, measurement)| measurement.condition == value)
-        .ok_or(CanonicalError::UnknownStep { value })?;
+    let index = canonical_position(
+        measurements.iter().map(|measurement| measurement.condition),
+        value,
+    )?;
 
-    Ok(CanonicalSelection { index, measurement })
+    Ok(CanonicalSelection {
+        index,
+        measurement: &measurements[index],
+    })
 }
 
 /// Fits the alignment of `source` onto `target` and measures the RMS movement it cannot explain.

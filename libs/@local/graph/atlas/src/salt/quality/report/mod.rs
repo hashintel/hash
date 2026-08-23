@@ -48,7 +48,6 @@
 use alloc::collections::BTreeMap;
 
 use hashql_core::id::{Id as _, IdSlice, IdVec};
-use smallvec::SmallVec;
 
 pub(crate) use self::{
     document::{
@@ -59,7 +58,7 @@ pub(crate) use self::{
 };
 use super::{
     clump::ClumpAggregate,
-    probe::{AnchorOrdinal, ProbeReadings, ReadingGrid, Step},
+    probe::{AnchorOrdinal, ProbeReadings, ReadingGrid, Step, TypedReadings},
 };
 use crate::identity::OntologyRowId;
 
@@ -68,27 +67,16 @@ mod document;
 pub(crate) mod live;
 mod thresholds;
 
-/// Renders one probe's readings into a report under the thresholds.
+/// Renders one probe's typed readings into a report under the thresholds.
 ///
-/// `anchor_types` lists each anchor's direct types, parallel to the readings' anchors; an empty
-/// list leaves an anchor in the whole-probe readings only. Subgroup readings merge the per-anchor
-/// cells, so the report costs no ranking work.
-///
-/// # Panics
-///
-/// This panics when `anchor_types` and the readings disagree about the anchor count; both describe
-/// one probe, so a mismatch is a wiring defect.
+/// Subgroup readings merge the per-anchor cells, so the report costs no ranking work.
 #[must_use]
 pub(crate) fn assess<N>(
-    readings: &ProbeReadings<N>,
-    anchor_types: &[SmallVec<OntologyRowId, 2>],
+    readings: TypedReadings<'_, N>,
     thresholds: &QualityThresholds,
 ) -> QualityReport {
-    assert_eq!(
-        anchor_types.len(),
-        readings.anchors.len(),
-        "the anchor types and the readings should describe the same anchors",
-    );
+    let anchor_types = readings.anchor_types();
+    let readings = readings.readings();
 
     let neighbourhoods = &*readings.neighbourhoods;
     let overall_rows = |grid: &ReadingGrid| -> Vec<MetricRow> {
@@ -196,18 +184,12 @@ fn subgroup_reports<N>(
     let mut subgroups = Vec::with_capacity(members.len());
     let mut flags = Vec::new();
     for (&ontology_row, anchors) in members {
-        let (&first, rest) = anchors
-            .split_first()
-            .expect("every membership list holds the anchor that created it");
         let rows: Vec<MetricRow> = readings
             .neighbourhoods
             .ids()
             .zip(overall)
             .map(|(step, overall_row)| {
-                let mut merged = readings.map_representation.anchor(first, step).clone();
-                for &anchor in rest {
-                    merged.merge(readings.map_representation.anchor(anchor, step));
-                }
+                let merged = readings.map_representation.merged(anchors, step);
                 MetricRow::read(overall_row.neighbourhood, &merged)
             })
             .collect();
@@ -225,11 +207,7 @@ fn subgroup_reports<N>(
                 // The triage re-evaluation applies the same rule on clump
                 // ids, subgroup against the whole probe.
                 let collapsed = readings.clumps.as_ref().map(|clumps| {
-                    let mut merged = *clumps.map_representation.anchor(first, step);
-                    for &anchor in rest {
-                        merged.merge(clumps.map_representation.anchor(anchor, step));
-                    }
-
+                    let merged = clumps.map_representation.merged(anchors, step);
                     let overall = &clump_overall
                         .expect("clump readings produce overall clump aggregates")[step];
                     (merged.recall().complement(), overall.recall().complement())
@@ -272,31 +250,16 @@ fn baseline_subgroup_reports<N>(
     members
         .iter()
         .map(|(&ontology_row, anchors)| {
-            let (&first, rest) = anchors
-                .split_first()
-                .expect("every membership list holds the anchor that created it");
             let rows = readings
                 .neighbourhoods
                 .iter_enumerated()
                 .map(|(step, &neighbourhood)| {
-                    let mut merged = readings
+                    let merged = readings
                         .sampled_representation_canonical
-                        .anchor(first, step)
-                        .clone();
-                    for &anchor in rest {
-                        merged.merge(
-                            readings
-                                .sampled_representation_canonical
-                                .anchor(anchor, step),
-                        );
-                    }
+                        .merged(anchors, step);
 
                     let collapsed = readings.clumps.as_ref().map(|clumps| {
-                        let mut merged = *clumps.representation_canonical.anchor(first, step);
-                        for &anchor in rest {
-                            merged.merge(clumps.representation_canonical.anchor(anchor, step));
-                        }
-
+                        let merged = clumps.representation_canonical.merged(anchors, step);
                         merged.recall()
                     });
 

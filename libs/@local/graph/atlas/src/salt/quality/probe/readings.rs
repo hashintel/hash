@@ -7,12 +7,13 @@
 use core::{mem, num::NonZero};
 
 use hashql_core::id::{Id, IdArray, IdMatrix, IdSlice};
+use smallvec::SmallVec;
 
 use super::super::{
     clump::ClumpAggregate,
     metric::{NeighbourhoodAggregate, TripletAggregate},
 };
-use crate::math::NonNegative;
+use crate::{identity::OntologyRowId, math::NonNegative};
 
 hashql_core::id::newtype! {
     /// One position on the grids' neighbourhood axis, in the options' reporting order.
@@ -128,6 +129,24 @@ impl ReadingGrid<NeighbourhoodAggregate> {
 
         merged
     }
+
+    /// Merges the named anchors' readings at one step: the subset case of
+    /// [`overall`](Self::overall).
+    ///
+    /// # Panics
+    ///
+    /// This panics when `anchors` is empty or when an anchor or `step` lies outside the grid.
+    #[must_use]
+    pub(crate) fn merged(&self, anchors: &[AnchorOrdinal], step: Step) -> NeighbourhoodAggregate {
+        let (&first, rest) = anchors
+            .split_first()
+            .expect("a subset merge names at least one anchor");
+        let mut merged = self.anchor(first, step).clone();
+        for &anchor in rest {
+            merged.merge(self.anchor(anchor, step));
+        }
+        merged
+    }
 }
 
 impl ReadingGrid<ClumpAggregate> {
@@ -142,6 +161,24 @@ impl ReadingGrid<ClumpAggregate> {
         let mut merged = *column.next().expect("the grid holds at least one anchor");
         for cell in column {
             merged.merge(cell);
+        }
+        merged
+    }
+
+    /// Merges the named anchors' readings at one neighbourhood size: the subset case of
+    /// [`overall`](Self::overall).
+    ///
+    /// # Panics
+    ///
+    /// This panics when `anchors` is empty or when an anchor or `step` lies outside the grid.
+    #[must_use]
+    pub(crate) fn merged(&self, anchors: &[AnchorOrdinal], step: Step) -> ClumpAggregate {
+        let (&first, rest) = anchors
+            .split_first()
+            .expect("a subset merge names at least one anchor");
+        let mut merged = *self.anchor(first, step);
+        for &anchor in rest {
+            merged.merge(self.anchor(anchor, step));
         }
         merged
     }
@@ -233,4 +270,67 @@ pub(crate) struct ProbeReadings<N> {
     pub triplet_map_canonical: Box<[TripletAggregate]>,
     /// Per-anchor triplet agreement between representation and canonical space.
     pub triplet_representation_canonical: Box<[TripletAggregate]>,
+}
+
+impl<N> ProbeReadings<N> {
+    /// Pairs the readings with each anchor's direct types.
+    ///
+    /// # Panics
+    ///
+    /// This panics when `anchor_types` and the readings disagree about the anchor count; both
+    /// describe one probe, so a mismatch is a wiring defect.
+    #[must_use]
+    pub(crate) fn with_anchor_types<'probe>(
+        &'probe self,
+        anchor_types: &'probe [SmallVec<OntologyRowId, 2>],
+    ) -> TypedReadings<'probe, N> {
+        assert_eq!(
+            anchor_types.len(),
+            self.anchors.len(),
+            "the anchor types and the readings should describe the same anchors",
+        );
+        TypedReadings {
+            readings: self,
+            anchor_types,
+        }
+    }
+}
+
+/// One probe's readings beside each anchor's direct types.
+///
+/// `anchor_types` is parallel to the readings' anchors: each entry lists one anchor's direct
+/// types, and an empty entry leaves its anchor in the whole-probe readings only. Construction
+/// checks the cover once, so a consumer never re-checks the anchor count.
+#[derive(Debug)]
+pub(crate) struct TypedReadings<'probe, N> {
+    /// The probe's readings.
+    readings: &'probe ProbeReadings<N>,
+    /// Each anchor's direct types, parallel to the readings' anchors.
+    anchor_types: &'probe [SmallVec<OntologyRowId, 2>],
+}
+
+// Manual, so the copy exists for every `N`: the derives would demand `N: Copy` for two borrowed
+// fields that copy regardless.
+impl<N> Clone for TypedReadings<'_, N> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<N> Copy for TypedReadings<'_, N> {}
+
+impl<'probe, N> TypedReadings<'probe, N> {
+    /// Borrows the probe's readings.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn readings(&self) -> &'probe ProbeReadings<N> {
+        self.readings
+    }
+
+    /// Borrows each anchor's direct types.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn anchor_types(&self) -> &'probe [SmallVec<OntologyRowId, 2>] {
+        self.anchor_types
+    }
 }

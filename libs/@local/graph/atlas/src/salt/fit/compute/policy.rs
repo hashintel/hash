@@ -16,7 +16,6 @@ use crate::{
         file::{OpenVectorError, VectorFile},
         policy::{
             CertifiedPolicies, Classification, ResolveError,
-            artifact::write_policies,
             classifier::{Classifier, PredictError},
             resolve,
         },
@@ -149,10 +148,7 @@ impl<'fit> PolicyResolution<'fit> {
             self.context.config.policy.admission,
         )?;
 
-        let binding = self
-            .context
-            .staging
-            .stage_with(artifact::Policy, |writer| write_policies(&policies, writer))?;
+        let binding = self.context.staging.stage(artifact::Policy, &policies)?;
 
         let overridden = self
             .context

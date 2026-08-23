@@ -49,7 +49,7 @@ use core::{error::Error, fmt};
 
 use type_system::ontology::id::VersionedUrl;
 
-use crate::{dataset::card, integrity::Sha256Digest, salt::policy::GeometryClass};
+use crate::{dataset::card, integrity::Sha256Digest, math::DFinite, salt::policy::GeometryClass};
 
 pub(crate) mod assembly;
 
@@ -113,8 +113,6 @@ pub enum InvalidAnnotationCorpus {
         vote: usize,
         field: &'static str,
     },
-    /// A vote's sampling temperature is not finite.
-    NonFiniteTemperature { index: usize, vote: usize },
 }
 
 impl fmt::Display for InvalidAnnotationCorpus {
@@ -166,12 +164,6 @@ impl fmt::Display for InvalidAnnotationCorpus {
             Self::EmptyVoteField { index, vote, field } => {
                 write!(fmt, "card {index}'s vote {vote} has an empty {field}")
             }
-            Self::NonFiniteTemperature { index, vote } => {
-                write!(
-                    fmt,
-                    "card {index}'s vote {vote} has a non-finite temperature"
-                )
-            }
         }
     }
 }
@@ -191,8 +183,7 @@ impl Error for InvalidAnnotationCorpus {
             | Self::ShotExcludedVotes { .. }
             | Self::NoEvidence { .. }
             | Self::DisagreeingCardHash { .. }
-            | Self::EmptyVoteField { .. }
-            | Self::NonFiniteTemperature { .. } => None,
+            | Self::EmptyVoteField { .. } => None,
         }
     }
 }
@@ -506,7 +497,7 @@ pub(crate) struct Vote {
     ///
     /// Reasoning-model runs sample without a temperature control and record `null`.
     #[serde(deserialize_with = "nullable")]
-    pub temperature: Option<f64>,
+    pub temperature: Option<DFinite>,
     /// The sampling seed, when the provider accepts one.
     #[serde(deserialize_with = "nullable")]
     pub seed: Option<u64>,
@@ -642,7 +633,7 @@ impl AnnotationCorpus {
             .cards
             .into_iter()
             .enumerate()
-            .map(|(index, card)| validate_card(index, card))
+            .map(|(index, card)| CorpusAdmission { index }.admit(card))
             .collect::<Result<_, _>>()?;
 
         Ok(Self {
@@ -666,171 +657,229 @@ impl AnnotationCorpus {
     }
 }
 
-/// Checks one wire card's contract clauses and types its identity.
-fn validate_card(index: usize, card: WireCard) -> Result<Card, InvalidAnnotationCorpus> {
-    let identity = validate_identity(index, &card)?;
-    validate_content(index, &card.content)?;
-    validate_axes(index, &card.axes)?;
-
-    if card.flags.shot_excluded && !card.votes.is_empty() {
-        return Err(InvalidAnnotationCorpus::ShotExcludedVotes { index });
-    }
-    if card.flags.expects_evidence()
-        && !card
-            .votes
-            .iter()
-            .any(|vote| vote.verdict != VoteVerdict::Abstain)
-    {
-        return Err(InvalidAnnotationCorpus::NoEvidence { index });
-    }
-    if let Some((first, rest)) = card.votes.split_first()
-        && rest.iter().any(|vote| vote.card_hash != first.card_hash)
-    {
-        return Err(InvalidAnnotationCorpus::DisagreeingCardHash { index });
-    }
-    if let Some(stratum) = &card.flags.prescreen_stratum
-        && stratum.is_empty()
-    {
-        return Err(InvalidAnnotationCorpus::EmptyField {
-            index,
-            field: "prescreen_stratum",
-        });
-    }
-
-    validate_votes(index, &card.votes)?;
-
-    Ok(Card {
-        identity,
-        content: card.content,
-        axes: card.axes,
-        flags: card.flags,
-        votes: card.votes,
-    })
+/// One card's admission under the wire contract.
+///
+/// The admission owns the card's row index, so each contract clause reports its position without
+/// carrying it through every check.
+struct CorpusAdmission {
+    index: usize,
 }
 
-/// Types a wire card's identity under its source's form and pin rules.
-fn validate_identity(
-    index: usize,
-    card: &WireCard,
-) -> Result<CardIdentity, InvalidAnnotationCorpus> {
-    match card.source {
-        Source::Hash => {
-            for (field, present) in [
-                ("retrieved_at", card.retrieved_at.is_some()),
-                ("source_record_hash", card.source_record_hash.is_some()),
-            ] {
-                if present {
-                    return Err(InvalidAnnotationCorpus::ForbiddenPin { index, field });
-                }
-            }
-            card.identity
-                .parse()
-                .map(CardIdentity::Hash)
-                .map_err(|_error| InvalidAnnotationCorpus::IdentityForm {
-                    index,
-                    source: Source::Hash,
-                })
+impl CorpusAdmission {
+    /// Checks one wire card's contract clauses and types its identity.
+    fn admit(&self, card: WireCard) -> Result<Card, InvalidAnnotationCorpus> {
+        let index = self.index;
+        let identity = self.identity(&card)?;
+        self.content(&card.content)?;
+        self.axes(&card.axes)?;
+
+        if card.flags.shot_excluded && !card.votes.is_empty() {
+            return Err(InvalidAnnotationCorpus::ShotExcludedVotes { index });
         }
-        Source::Wikidata => {
-            let entity = card
-                .identity
-                .strip_prefix(WIKIDATA_ENTITY_PREFIX)
-                .unwrap_or_default();
-            if entity.is_empty() {
-                return Err(InvalidAnnotationCorpus::IdentityForm {
-                    index,
-                    source: Source::Wikidata,
-                });
+        if card.flags.expects_evidence()
+            && !card
+                .votes
+                .iter()
+                .any(|vote| vote.verdict != VoteVerdict::Abstain)
+        {
+            return Err(InvalidAnnotationCorpus::NoEvidence { index });
+        }
+        if let Some((first, rest)) = card.votes.split_first()
+            && rest.iter().any(|vote| vote.card_hash != first.card_hash)
+        {
+            return Err(InvalidAnnotationCorpus::DisagreeingCardHash { index });
+        }
+        if let Some(stratum) = &card.flags.prescreen_stratum
+            && stratum.is_empty()
+        {
+            return Err(InvalidAnnotationCorpus::EmptyField {
+                index,
+                field: "prescreen_stratum",
+            });
+        }
+
+        self.votes(&card.votes)?;
+
+        Ok(Card {
+            identity,
+            content: card.content,
+            axes: card.axes,
+            flags: card.flags,
+            votes: card.votes,
+        })
+    }
+
+    /// Types a wire card's identity under its source's form and pin rules.
+    fn identity(&self, card: &WireCard) -> Result<CardIdentity, InvalidAnnotationCorpus> {
+        let index = self.index;
+        match card.source {
+            Source::Hash => {
+                for (field, present) in [
+                    ("retrieved_at", card.retrieved_at.is_some()),
+                    ("source_record_hash", card.source_record_hash.is_some()),
+                ] {
+                    if present {
+                        return Err(InvalidAnnotationCorpus::ForbiddenPin { index, field });
+                    }
+                }
+                card.identity
+                    .parse()
+                    .map(CardIdentity::Hash)
+                    .map_err(|_error| InvalidAnnotationCorpus::IdentityForm {
+                        index,
+                        source: Source::Hash,
+                    })
             }
-            let retrieved_at =
-                card.retrieved_at
-                    .clone()
-                    .ok_or(InvalidAnnotationCorpus::MissingPin {
+            Source::Wikidata => {
+                let entity = card
+                    .identity
+                    .strip_prefix(WIKIDATA_ENTITY_PREFIX)
+                    .unwrap_or_default();
+                if entity.is_empty() {
+                    return Err(InvalidAnnotationCorpus::IdentityForm {
+                        index,
+                        source: Source::Wikidata,
+                    });
+                }
+                let retrieved_at =
+                    card.retrieved_at
+                        .clone()
+                        .ok_or(InvalidAnnotationCorpus::MissingPin {
+                            index,
+                            field: "retrieved_at",
+                        })?;
+                if retrieved_at.is_empty() {
+                    return Err(InvalidAnnotationCorpus::EmptyField {
                         index,
                         field: "retrieved_at",
-                    })?;
-            if retrieved_at.is_empty() {
-                return Err(InvalidAnnotationCorpus::EmptyField {
-                    index,
-                    field: "retrieved_at",
-                });
+                    });
+                }
+                let source_record_hash =
+                    card.source_record_hash
+                        .ok_or(InvalidAnnotationCorpus::MissingPin {
+                            index,
+                            field: "source_record_hash",
+                        })?;
+                Ok(CardIdentity::Wikidata {
+                    url: card.identity.clone().into_boxed_str(),
+                    retrieved_at,
+                    source_record_hash,
+                })
             }
-            let source_record_hash =
-                card.source_record_hash
-                    .ok_or(InvalidAnnotationCorpus::MissingPin {
+        }
+    }
+
+    /// Checks one card's content strings and endpoint bounds.
+    fn content(&self, content: &Content) -> Result<(), InvalidAnnotationCorpus> {
+        let index = self.index;
+        let mut prose: Vec<(&'static str, &str)> = vec![
+            ("language", &content.language),
+            ("title", &content.title),
+            ("slug", &content.slug),
+        ];
+        prose.extend(content.aliases.iter().map(|alias| ("aliases", &**alias)));
+        if let Some(phrase) = &content.inverse {
+            collect_phrase(&mut prose, "inverse", phrase);
+        }
+        for phrase in &content.ancestors {
+            collect_phrase(&mut prose, "ancestors", phrase);
+        }
+        for constraint in &content.endpoint_constraints {
+            collect_phrase(
+                &mut prose,
+                "endpoint_constraints.source_type",
+                &constraint.source_type,
+            );
+            for phrase in &constraint.target_types {
+                collect_phrase(&mut prose, "endpoint_constraints.target_types", phrase);
+            }
+        }
+        for phrase in &content.source_types {
+            collect_phrase(&mut prose, "source_types", phrase);
+        }
+        for phrase in &content.target_types {
+            collect_phrase(&mut prose, "target_types", phrase);
+        }
+        for example in &content.examples {
+            prose.push(("examples.subject_label", &example.subject));
+            prose.push(("examples.object_label", &example.object));
+            if let Some(stratum) = &example.stratum {
+                prose.push(("examples.stratum_label", stratum));
+            }
+        }
+
+        if let Some(description) = &content.description {
+            prose.push(("description", description));
+        }
+        for &(field, value) in &prose {
+            if value.is_empty() {
+                return Err(InvalidAnnotationCorpus::EmptyField { index, field });
+            }
+        }
+        for &(field, value) in &prose {
+            if contains_identifier(value) {
+                return Err(InvalidAnnotationCorpus::IdentifierInContent { index, field });
+            }
+        }
+
+        for (constraint, bounds) in content.endpoint_constraints.iter().enumerate() {
+            if let (Some(minimum), Some(maximum)) = (bounds.minimum_targets, bounds.maximum_targets)
+                && minimum > maximum
+            {
+                return Err(InvalidAnnotationCorpus::EndpointBounds { index, constraint });
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Checks one card's axis strings.
+    fn axes(&self, axes: &Axes) -> Result<(), InvalidAnnotationCorpus> {
+        let index = self.index;
+        let mut fields: Vec<(&'static str, &str)> = vec![
+            ("family", &axes.family),
+            ("base_url", &axes.base_url),
+            ("publisher", &axes.publisher),
+        ];
+        fields.extend(axes.inverse_of.iter().map(|url| ("inverse_of", &**url)));
+
+        for (field, value) in fields {
+            if value.is_empty() {
+                return Err(InvalidAnnotationCorpus::EmptyField { index, field });
+            }
+        }
+        Ok(())
+    }
+
+    /// Checks every vote's provenance strings and temperature.
+    fn votes(&self, votes: &[Vote]) -> Result<(), InvalidAnnotationCorpus> {
+        let index = self.index;
+        for (vote_index, vote) in votes.iter().enumerate() {
+            let mut fields = vec![
+                ("model_pinned", &vote.model_pinned),
+                ("model_returned", &vote.model_returned),
+                ("provider", &vote.provider),
+                ("framing", &vote.framing),
+                ("effort", &vote.effort),
+                ("rubric_version", &vote.rubric_version),
+            ];
+
+            if let Some(quantization) = &vote.quantization {
+                fields.push(("quantization", quantization));
+            }
+
+            for (field, value) in fields {
+                if value.is_empty() {
+                    return Err(InvalidAnnotationCorpus::EmptyVoteField {
                         index,
-                        field: "source_record_hash",
-                    })?;
-            Ok(CardIdentity::Wikidata {
-                url: card.identity.clone().into_boxed_str(),
-                retrieved_at,
-                source_record_hash,
-            })
+                        vote: vote_index,
+                        field,
+                    });
+                }
+            }
         }
+        Ok(())
     }
-}
-
-/// Checks one card's content strings and endpoint bounds.
-fn validate_content(index: usize, content: &Content) -> Result<(), InvalidAnnotationCorpus> {
-    let mut prose: Vec<(&'static str, &str)> = vec![
-        ("language", &content.language),
-        ("title", &content.title),
-        ("slug", &content.slug),
-    ];
-    prose.extend(content.aliases.iter().map(|alias| ("aliases", &**alias)));
-    if let Some(phrase) = &content.inverse {
-        collect_phrase(&mut prose, "inverse", phrase);
-    }
-    for phrase in &content.ancestors {
-        collect_phrase(&mut prose, "ancestors", phrase);
-    }
-    for constraint in &content.endpoint_constraints {
-        collect_phrase(
-            &mut prose,
-            "endpoint_constraints.source_type",
-            &constraint.source_type,
-        );
-        for phrase in &constraint.target_types {
-            collect_phrase(&mut prose, "endpoint_constraints.target_types", phrase);
-        }
-    }
-    for phrase in &content.source_types {
-        collect_phrase(&mut prose, "source_types", phrase);
-    }
-    for phrase in &content.target_types {
-        collect_phrase(&mut prose, "target_types", phrase);
-    }
-    for example in &content.examples {
-        prose.push(("examples.subject_label", &example.subject));
-        prose.push(("examples.object_label", &example.object));
-        if let Some(stratum) = &example.stratum {
-            prose.push(("examples.stratum_label", stratum));
-        }
-    }
-
-    if let Some(description) = &content.description {
-        prose.push(("description", description));
-    }
-    for &(field, value) in &prose {
-        if value.is_empty() {
-            return Err(InvalidAnnotationCorpus::EmptyField { index, field });
-        }
-    }
-    for &(field, value) in &prose {
-        if contains_identifier(value) {
-            return Err(InvalidAnnotationCorpus::IdentifierInContent { index, field });
-        }
-    }
-
-    for (constraint, bounds) in content.endpoint_constraints.iter().enumerate() {
-        if let (Some(minimum), Some(maximum)) = (bounds.minimum_targets, bounds.maximum_targets)
-            && minimum > maximum
-        {
-            return Err(InvalidAnnotationCorpus::EndpointBounds { index, constraint });
-        }
-    }
-
-    Ok(())
 }
 
 /// Collects a phrase's label and gloss into the prose list.
@@ -843,57 +892,6 @@ fn collect_phrase<'content>(
     if let Some(description) = &phrase.description {
         prose.push((field, description));
     }
-}
-
-/// Checks one card's axis strings.
-fn validate_axes(index: usize, axes: &Axes) -> Result<(), InvalidAnnotationCorpus> {
-    let mut fields: Vec<(&'static str, &str)> = vec![
-        ("family", &axes.family),
-        ("base_url", &axes.base_url),
-        ("publisher", &axes.publisher),
-    ];
-    fields.extend(axes.inverse_of.iter().map(|url| ("inverse_of", &**url)));
-    for (field, value) in fields {
-        if value.is_empty() {
-            return Err(InvalidAnnotationCorpus::EmptyField { index, field });
-        }
-    }
-    Ok(())
-}
-
-/// Checks every vote's provenance strings and temperature.
-fn validate_votes(index: usize, votes: &[Vote]) -> Result<(), InvalidAnnotationCorpus> {
-    for (vote_index, vote) in votes.iter().enumerate() {
-        let mut fields = vec![
-            ("model_pinned", &vote.model_pinned),
-            ("model_returned", &vote.model_returned),
-            ("provider", &vote.provider),
-            ("framing", &vote.framing),
-            ("effort", &vote.effort),
-            ("rubric_version", &vote.rubric_version),
-        ];
-        if let Some(quantization) = &vote.quantization {
-            fields.push(("quantization", quantization));
-        }
-        for (field, value) in fields {
-            if value.is_empty() {
-                return Err(InvalidAnnotationCorpus::EmptyVoteField {
-                    index,
-                    vote: vote_index,
-                    field,
-                });
-            }
-        }
-        if let Some(temperature) = vote.temperature
-            && !temperature.is_finite()
-        {
-            return Err(InvalidAnnotationCorpus::NonFiniteTemperature {
-                index,
-                vote: vote_index,
-            });
-        }
-    }
-    Ok(())
 }
 
 /// Returns whether `text` carries a URL scheme or a UUID-shaped token.

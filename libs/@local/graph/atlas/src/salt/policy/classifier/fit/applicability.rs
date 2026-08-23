@@ -17,7 +17,7 @@ use super::{FitError, TrainingSet};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     math::{BoxedDVecN, VecN},
-    salt::policy::classifier::{Applicability, standardized_distance},
+    salt::policy::classifier::{Applicability, Standardization},
 };
 
 /// Variance floor relative to the pooled variance.
@@ -67,17 +67,22 @@ pub(super) fn fit_applicability(training: TrainingSet<'_>) -> Result<Applicabili
         }
     }
 
+    let standardization = Standardization {
+        mean,
+        inverse_scales,
+    };
+
     let mut distances = Vec::with_capacity(training.len());
     for embedding in training.embeddings {
-        let distance =
-            standardized_distance(embedding, &mean, &inverse_scales).ok_or(FitError::NonFinite)?;
+        let distance = standardization
+            .distance(embedding)
+            .ok_or(FitError::NonFinite)?;
         distances.push(distance);
     }
     distances.sort_unstable();
 
     Ok(Applicability {
-        mean,
-        inverse_scales,
+        standardization,
         distances: distances.into_boxed_slice(),
     })
 }

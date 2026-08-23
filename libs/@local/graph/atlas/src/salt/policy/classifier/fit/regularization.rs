@@ -1,6 +1,7 @@
 //! Regularization-strength selection by grouped cross-validation.
 //!
-//! [`select`] fits one model per candidate strength and fold over the shared seeded fold
+//! [`select`](FoldedTraining::select) fits one model per candidate strength and fold over the
+//! shared seeded fold
 //! assignment. It scores every candidate by the weighted-mean out-of-fold cross-entropy of its
 //! uncalibrated posteriors and picks the minimizer. An exact tie prefers the stronger penalty. The
 //! fit evidence records the full curve alongside the winner, so a reader sees the plateau the
@@ -15,13 +16,10 @@ use core::{
     sync::atomic::{Atomic, Ordering},
 };
 
-use hashql_core::id::{IdSlice, IdVec};
+use hashql_core::id::IdVec;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
-use super::{
-    FitConfig, FitError, TrainingSet, calibration, fit_model, objective,
-    solver::{Gram, WorkCounters},
-};
+use super::{FitConfig, FitError, FoldedTraining, calibration, objective, solver::WorkCounters};
 use crate::{
     identity::CardRow,
     math::{DNonNegative, DPositive},
@@ -84,87 +82,84 @@ pub(super) fn winner(curve: &[RegularizationReading]) -> usize {
     winner
 }
 
-/// Selects the deployment regularization strength over the shared fold assignment.
-///
-/// Every `(candidate, fold)` model fits in parallel; a fold reports completed to `progress` when
-/// its last candidate lands, so the fold counter keeps its meaning under the widened wave.
-///
-/// # Errors
-///
-/// Returns [`FitError::Preparation`] or [`FitError::Solver`] when any candidate's fold model fails,
-/// and [`FitError::NonFinite`] when an out-of-fold evaluation leaves the finite domain.
-pub(super) fn select<P: Progress + Sync>(
-    training: TrainingSet<'_>,
-    folds: &IdSlice<CardRow, usize>,
-    config: FitConfig,
-    gram: &Gram,
-    progress: &P,
-) -> Result<Selection, FitError> {
-    let pending: Vec<_> = iter::repeat_with(|| Atomic::<usize>::new(CANDIDATES.len()))
-        .take(config.folds)
-        .collect();
+impl FoldedTraining<'_> {
+    /// Selects the deployment regularization strength over the shared fold assignment.
+    ///
+    /// Every `(candidate, fold)` model fits in parallel; a fold reports completed to `progress`
+    /// when its last candidate finishes, so the fold counter keeps its meaning under the widened
+    /// wave.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FitError::Preparation`] or [`FitError::Solver`] when any candidate's fold model
+    /// fails, and [`FitError::NonFinite`] when an out-of-fold evaluation leaves the finite domain.
+    pub(super) fn select<P: Progress + Sync>(
+        &self,
+        config: FitConfig,
+        progress: &P,
+    ) -> Result<Selection, FitError> {
+        let pending: Vec<_> = iter::repeat_with(|| Atomic::<usize>::new(CANDIDATES.len()))
+            .take(config.folds)
+            .collect();
 
-    let pairs: Vec<(usize, usize)> = (0..CANDIDATES.len())
-        .flat_map(|candidate| (0..config.folds).map(move |fold| (candidate, fold)))
-        .collect();
+        let pairs: Vec<(usize, usize)> = (0..CANDIDATES.len())
+            .flat_map(|candidate| (0..config.folds).map(move |fold| (candidate, fold)))
+            .collect();
 
-    // Rayon's collect preserves input order: candidate-major, fold-minor.
-    let models: Vec<_> = pairs
-        .into_par_iter()
-        .map(|(candidate, fold)| {
-            let mut candidate_config = config;
-            candidate_config.solver.preparation.regularization = CANDIDATES[candidate];
-            let (parameters, _) = fit_model(
-                training,
-                folds,
-                Some(fold),
-                candidate_config,
-                gram,
-                WorkCounters::default(),
-            )?;
+        // Rayon's collect preserves input order: candidate-major, fold-minor.
+        let models: Vec<_> = pairs
+            .into_par_iter()
+            .map(|(candidate, fold)| {
+                let mut candidate_config = config;
+                candidate_config.solver.preparation.regularization = CANDIDATES[candidate];
+                let (parameters, _) =
+                    self.fit(Some(fold), candidate_config, WorkCounters::default())?;
 
-            if pending[fold].fetch_sub(1, Ordering::AcqRel) == 1 {
-                progress.classifier_fold_completed(fold);
+                if pending[fold].fetch_sub(1, Ordering::AcqRel) == 1 {
+                    progress.classifier_fold_completed(fold);
+                }
+
+                Ok(parameters)
+            })
+            .collect::<Result<_, _>>()?;
+
+        let mut curve = Vec::with_capacity(CANDIDATES.len());
+        let mut winning_logits = IdVec::new();
+        for (candidate, chunk) in models.chunks_exact(config.folds).enumerate() {
+            let mut logits: IdVec<CardRow, _> =
+                IdVec::from_elem([f64::NAN; GeometryClass::COUNT], self.training.len());
+            for (row, values) in logits.iter_enumerated_mut() {
+                *values = objective::logits(&chunk[self.folds[row]], self.training.embedding(row));
             }
 
-            Ok(parameters)
+            if logits.iter().flatten().any(|value| !value.is_finite()) {
+                return Err(FitError::NonFinite);
+            }
+
+            // Non-negative by the mean's own derivation (targets and weights are validated at
+            // `TrainingSet::new`, posteriors lie in the unit interval), so the construction refuses
+            // exactly the non-finite escapes: a NaN or infinite mean is a weights defect.
+            let cross_entropy = DNonNegative::new(calibration::raw_cross_entropy(
+                self.training.rows(),
+                &logits,
+            ))
+            .ok_or(FitError::NonFinite)?;
+
+            curve.push(RegularizationReading {
+                regularization: CANDIDATES[candidate],
+                cross_entropy,
+            });
+
+            if winner(&curve) == candidate {
+                winning_logits = logits;
+            }
+        }
+
+        let winner = winner(&curve);
+        Ok(Selection {
+            regularization: CANDIDATES[winner],
+            curve: curve.into_boxed_slice(),
+            out_of_fold_logits: winning_logits,
         })
-        .collect::<Result<_, _>>()?;
-
-    let mut curve = Vec::with_capacity(CANDIDATES.len());
-    let mut winning_logits = IdVec::new();
-    for (candidate, chunk) in models.chunks_exact(config.folds).enumerate() {
-        let mut logits: IdVec<CardRow, _> =
-            IdVec::from_elem([f64::NAN; GeometryClass::COUNT], training.len());
-        for (row, values) in logits.iter_enumerated_mut() {
-            *values = objective::logits(&chunk[folds[row]], training.embedding(row));
-        }
-
-        if logits.iter().flatten().any(|value| !value.is_finite()) {
-            return Err(FitError::NonFinite);
-        }
-
-        // Non-negative by the mean's own derivation (targets and weights are validated at
-        // `TrainingSet::new`, posteriors lie in the unit interval), so the construction refuses
-        // exactly the non-finite escapes: a NaN or infinite mean is a weights defect.
-        let cross_entropy =
-            DNonNegative::new(calibration::raw_cross_entropy(training.rows(), &logits))
-                .ok_or(FitError::NonFinite)?;
-
-        curve.push(RegularizationReading {
-            regularization: CANDIDATES[candidate],
-            cross_entropy,
-        });
-
-        if winner(&curve) == candidate {
-            winning_logits = logits;
-        }
     }
-
-    let winner = winner(&curve);
-    Ok(Selection {
-        regularization: CANDIDATES[winner],
-        curve: curve.into_boxed_slice(),
-        out_of_fold_logits: winning_logits,
-    })
 }

@@ -141,5 +141,8 @@ pub(crate) async fn run<D: Dataset>(
             .map_err(QualityRunError::Types)?
     };
 
-    Ok(assess(&readings, &anchor_types, &options.thresholds))
+    Ok(assess(
+        readings.with_anchor_types(&anchor_types),
+        &options.thresholds,
+    ))
 }

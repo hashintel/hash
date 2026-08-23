@@ -626,9 +626,12 @@ where
         }
     };
 
-    let ingested = ingest::run(
-        dataset, embedder, config, &staging, &scratch, prior, progress,
-    )
+    let ingested = ingest::Ingest {
+        dataset,
+        staging: &staging,
+        scratch: &scratch,
+    }
+    .run(embedder, config, prior, progress)
     .await?;
     progress.stage_completed(progress::Stage::Ingest);
 

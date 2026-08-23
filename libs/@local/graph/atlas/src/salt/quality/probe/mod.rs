@@ -39,14 +39,14 @@ use core::{mem, num::NonZero, pin::pin};
 use futures::{Stream, TryStreamExt as _};
 use hashql_core::id::{Id, IdSlice, bit_vec::DenseBitSet};
 use rand::Rng;
-use rayon::iter::ParallelIterator as _;
+use rayon::iter::IndexedParallelIterator as _;
 
 pub(crate) use self::{
     error::{DeliveryError, ProbeError},
     options::ProbeOptions,
     readings::{
         AnchorOrdinal, ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair,
-        SpacePairArray, Step,
+        SpacePairArray, Step, TypedReadings,
     },
 };
 use self::{
@@ -285,7 +285,8 @@ pub(crate) async fn probe<D: Dataset>(
         anchor_mask.insert(row);
     }
 
-    let anchor_readings = CorpusPass {
+    let mut sampled_readings = Vec::new();
+    CorpusPass {
         representations: corpus.representations,
         coordinates: corpus.coordinates,
         anchor_mask: &anchor_mask,
@@ -295,24 +296,24 @@ pub(crate) async fn probe<D: Dataset>(
         clumps: corpus.clumps,
     }
     .run(anchor_rows)
-    .collect();
+    .collect_into_vec(&mut sampled_readings);
+    let anchors = AnchorColumns::new(sampled_readings.into_iter());
 
-    let (corpus_cells, radii, clump_cells) = split_anchor_readings(anchor_readings);
-    let sampled = split_sampled_readings(
-        SampledPass {
-            representations: corpus.representations,
-            coordinates: corpus.coordinates,
-            anchor_canonical,
-            comparison_canonical,
-            comparison_rows,
-            template: &sampled_template,
-            neighbourhoods: &options.neighbourhoods,
-            pairs: &pairs,
-            clumps: corpus.clumps,
-        }
-        .run(anchor_rows)
-        .collect(),
-    );
+    let mut sampled_readings = Vec::new();
+    SampledPass {
+        representations: corpus.representations,
+        coordinates: corpus.coordinates,
+        anchor_canonical,
+        comparison_canonical,
+        comparison_rows,
+        template: &sampled_template,
+        neighbourhoods: &options.neighbourhoods,
+        pairs: &pairs,
+        clumps: corpus.clumps,
+    }
+    .run(anchor_rows)
+    .collect_into_vec(&mut sampled_readings);
+    let sampled = SampledColumns::new(sampled_readings.into_iter());
 
     let steps = options.neighbourhoods.len();
     let mut triplet_columns = transpose_triplets(sampled.triplets);
@@ -333,13 +334,13 @@ pub(crate) async fn probe<D: Dataset>(
         anchors: anchor_rows.iter().copied().collect(),
         comparisons: comparison_rows.iter().copied().collect(),
         neighbourhoods: IdSlice::from_boxed_slice(options.neighbourhoods.iter().copied().collect()),
-        map_representation: ReadingGrid::from_anchor_cells(corpus_cells, steps),
+        map_representation: ReadingGrid::from_anchor_cells(anchors.cells, steps),
         clumps: corpus.clumps.map(|clumps| ClumpReadings {
             epsilon: clumps.epsilon(),
             count: clumps.clumps(),
             groups: clumps.groups(),
             grouped_rows: clumps.grouped_rows(),
-            map_representation: ReadingGrid::from_anchor_cells(clump_cells, steps),
+            map_representation: ReadingGrid::from_anchor_cells(anchors.clumps, steps),
             representation_canonical: ReadingGrid::from_anchor_cells(
                 sampled.baseline_clumps,
                 steps,
@@ -348,7 +349,7 @@ pub(crate) async fn probe<D: Dataset>(
         sampled_map_representation: sampled_grid(SpacePair::MapRepresentation),
         sampled_map_canonical: sampled_grid(SpacePair::MapCanonical),
         sampled_representation_canonical: sampled_grid(SpacePair::RepresentationCanonical),
-        radii: radii.into_boxed_slice(),
+        radii: anchors.radii.into_boxed_slice(),
         triplet_pairs: pairs,
         triplet_map_representation: triplet_column(SpacePair::MapRepresentation),
         triplet_map_canonical: triplet_column(SpacePair::MapCanonical),
@@ -356,25 +357,35 @@ pub(crate) async fn probe<D: Dataset>(
     })
 }
 
-/// Splits the corpus pass's per-anchor readings into grid inputs.
-fn split_anchor_readings(
-    readings: Vec<pass::AnchorReading>,
-) -> (
-    Vec<Vec<NeighbourhoodAggregate>>,
-    Vec<RadiusPair>,
-    Vec<Vec<ClumpAggregate>>,
-) {
-    let mut cells = Vec::with_capacity(readings.len());
-    let mut radii = Vec::new();
-    let mut clumps = Vec::with_capacity(readings.len());
+/// The corpus pass's per-anchor readings split into grid inputs.
+struct AnchorColumns {
+    /// Per-anchor map-representation cells.
+    cells: Vec<Vec<NeighbourhoodAggregate>>,
+    /// Every anchor's radius pairs, concatenated.
+    radii: Vec<RadiusPair>,
+    /// Per-anchor clump cells.
+    clumps: Vec<Vec<ClumpAggregate>>,
+}
 
-    for reading in readings {
-        cells.push(reading.cells);
-        radii.extend(reading.radii);
-        clumps.push(reading.clumps);
+impl AnchorColumns {
+    /// Splits the corpus pass's per-anchor readings into grid inputs.
+    fn new(readings: impl ExactSizeIterator<Item = pass::AnchorReading>) -> Self {
+        let mut cells = Vec::with_capacity(readings.len());
+        let mut radii = Vec::new();
+        let mut clumps = Vec::with_capacity(readings.len());
+
+        for reading in readings {
+            cells.push(reading.cells);
+            radii.extend(reading.radii);
+            clumps.push(reading.clumps);
+        }
+
+        Self {
+            cells,
+            radii,
+            clumps,
+        }
     }
-
-    (cells, radii, clumps)
 }
 
 /// The sampled pass's per-anchor readings split into grid inputs.
@@ -387,22 +398,24 @@ struct SampledColumns {
     baseline_clumps: Vec<Vec<ClumpAggregate>>,
 }
 
-/// Splits the sampled pass's per-anchor readings into grid inputs.
-fn split_sampled_readings(readings: Vec<pass::SampledReading>) -> SampledColumns {
-    let mut cells = Vec::with_capacity(readings.len());
-    let mut triplets = Vec::with_capacity(readings.len());
-    let mut baseline_clumps = Vec::with_capacity(readings.len());
+impl SampledColumns {
+    /// Splits the sampled pass's per-anchor readings into grid inputs.
+    fn new(readings: impl ExactSizeIterator<Item = pass::SampledReading>) -> Self {
+        let mut cells = Vec::with_capacity(readings.len());
+        let mut triplets = Vec::with_capacity(readings.len());
+        let mut baseline_clumps = Vec::with_capacity(readings.len());
 
-    for reading in readings {
-        cells.push(reading.cells);
-        triplets.push(reading.triplets);
-        baseline_clumps.push(reading.baseline_clumps);
-    }
+        for reading in readings {
+            cells.push(reading.cells);
+            triplets.push(reading.triplets);
+            baseline_clumps.push(reading.baseline_clumps);
+        }
 
-    SampledColumns {
-        cells,
-        triplets,
-        baseline_clumps,
+        Self {
+            cells,
+            triplets,
+            baseline_clumps,
+        }
     }
 }
 

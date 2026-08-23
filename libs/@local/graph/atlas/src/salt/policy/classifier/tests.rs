@@ -3,7 +3,7 @@
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]
 
-use super::{Applicability, Classifier, PredictError, standardized_distance};
+use super::{Applicability, Classifier, PredictError, Standardization};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     math::{BoxedDVecN, BoxedVecN, DNonNegative},
@@ -38,8 +38,10 @@ fn classifier(
         intercepts,
         temperature,
         applicability: Applicability {
-            mean: BoxedDVecN::zero(),
-            inverse_scales,
+            standardization: Standardization {
+                mean: BoxedDVecN::zero(),
+                inverse_scales,
+            },
             distances: distances
                 .iter()
                 .map(|&value| DNonNegative::new(value).expect("test distances are non-negative"))
@@ -94,8 +96,12 @@ fn standardized_distance_matches_the_definition() {
     let embedding = embedding(&[3.0]);
     let mut inverse_scales = BoxedDVecN::zero();
     inverse_scales.as_array_mut().fill(1.0);
+    let standardization = Standardization {
+        mean: BoxedDVecN::zero(),
+        inverse_scales,
+    };
 
-    let distance = standardized_distance(&embedding, &BoxedDVecN::zero(), &inverse_scales);
+    let distance = standardization.distance(&embedding);
 
     // 9 / 3072 is exactly representable, so both paths round identically.
     assert_eq!(

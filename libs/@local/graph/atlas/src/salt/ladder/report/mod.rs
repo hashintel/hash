@@ -69,25 +69,18 @@ use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
         AlignedVecN, DFinite, DNonNegative, DPositive, Derivation, FinitePointField, NonNegative,
-        UnitFraction, d_positive,
+        UnitFraction,
     },
     salt::{
         fit::{PlacementOptions, ProjectorOptions},
         projector::{
-            artifact,
+            artifact::{self, CERTIFICATE_TOLERANCE},
             model::{NodeRole, Projector},
             train::{batch::NodeColumns, refresh},
         },
-        relation::artifact::AttractionArchive,
+        relation::{artifact::AttractionArchive, attraction::AttractionWeights},
     },
 };
-
-/// The certificate bound on the canonical step's reproduction, world units per component.
-///
-/// One order above the measured reproduction floor: independent full-corpus rebuilds of two prior
-/// generations reached maximum component errors of `7.6e-5` and `1.03e-4` against their published
-/// coordinate columns.
-pub(crate) const CERTIFICATE_TOLERANCE: DPositive = d_positive!(1e-3);
 
 /// The relation-effect report of one published generation's condition ladder.
 ///
@@ -234,7 +227,7 @@ impl LadderReport {
         let generation = root.open(id).expect("the generation is published");
         let repository = generation.repository();
 
-        let (options, evidence) = ladder_sources(repository);
+        let LadderSources { options, evidence } = LadderSources::new(repository);
 
         // The artifacts. Every row domain must agree before pairs index into frames.
         let files = &repository.files;
@@ -329,57 +322,67 @@ impl LadderReport {
 struct GroupTerms {
     /// The relation type's ontology row.
     relation: OntologyRowId,
-    /// The group's shared `[coincident, proximal, strength]` weights.
-    weights: [NonNegative; 3],
+    /// The group's shared channel weights.
+    weights: AttractionWeights,
     /// The group's instances with their masses.
     terms: Vec<EdgeTerm>,
 }
 
-/// Returns the echoed projector options beside the measured ladder evidence.
-///
-/// # Panics
-///
-/// This panics when the generation placed rows by landmark baseline, when it published no ladder,
-/// or when the echoed schedule and the evidence describe different ladders: a reading over
-/// disagreeing sources would describe neither.
-fn ladder_sources(repository: &SaltRepository) -> (&ProjectorOptions, &LadderEvidence) {
-    let PlacementOptions::Projector(options) =
-        &repository.metadata.reproducibility.config.placement
-    else {
-        panic!("the generation placed rows by landmark baseline; no ladder exists to read");
-    };
+/// The echoed options beside the measured ladder evidence, certified to describe one ladder.
+struct LadderSources<'source> {
+    /// The echoed projector options.
+    options: &'source ProjectorOptions,
+    /// The measured ladder evidence.
+    evidence: &'source LadderEvidence,
+}
 
-    let evidence = repository
-        .metadata
-        .evidence
-        .projector
-        .as_ref()
-        .expect("a projector placement records its training evidence")
-        .ladder
-        .as_ref()
-        .expect("the corpus carries relation force; a forceless ladder never publishes");
+impl<'source> LadderSources<'source> {
+    /// Returns the echoed projector options beside the measured ladder evidence.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the generation placed rows by landmark baseline, when it published no
+    /// ladder, or when the echoed schedule and the evidence describe different ladders: a
+    /// reading over disagreeing sources would describe neither.
+    pub(crate) fn new(repository: &'source SaltRepository) -> Self {
+        let PlacementOptions::Projector(options) =
+            &repository.metadata.reproducibility.config.placement
+        else {
+            panic!("the generation placed rows by landmark baseline; no ladder exists to read");
+        };
 
-    let schedule = options.ladder.conditions.values();
-    assert_eq!(
-        schedule.len(),
-        evidence.steps.len(),
-        "the echoed schedule and the ladder evidence disagree on the step count",
-    );
-    for (index, (&condition, step)) in schedule.iter().zip(&evidence.steps).enumerate() {
+        let evidence = repository
+            .metadata
+            .evidence
+            .projector
+            .as_ref()
+            .expect("a projector placement records its training evidence")
+            .ladder
+            .as_ref()
+            .expect("the corpus carries relation force; a forceless ladder never publishes");
+
+        let schedule = options.ladder.conditions.values();
         assert_eq!(
-            condition, step.condition,
-            "step {index}: the echoed schedule and the ladder evidence disagree on the condition \
-             ({condition} against {})",
-            step.condition,
+            schedule.len(),
+            evidence.steps.len(),
+            "the echoed schedule and the ladder evidence disagree on the step count",
         );
+        for (index, (&condition, step)) in schedule.iter().zip(&evidence.steps).enumerate() {
+            assert_eq!(
+                condition, step.condition,
+                "step {index}: the echoed schedule and the ladder evidence disagree on the \
+                 condition ({condition} against {})",
+                step.condition,
+            );
+        }
+
+        assert_eq!(
+            evidence.steps[evidence.canonical_index].condition, evidence.canonical,
+            "the canonical index does not name the canonical condition",
+        );
+
+        Self { options, evidence }
     }
-
-    assert_eq!(
-        evidence.steps[evidence.canonical_index].condition, evidence.canonical,
-        "the canonical index does not name the canonical condition",
-    );
-
-    (options, evidence)
 }
 
 /// Rebuilds every step: the production forward pass at the step's condition, then the recorded
@@ -429,7 +432,7 @@ fn materialize_terms(attraction: &AttractionArchive<NodeRowId, EdgeRowId>) -> Ve
             let weights = group.weights();
             GroupTerms {
                 relation: group.relation(),
-                weights: [weights.coincident, weights.proximal, weights.strength],
+                weights,
                 terms: group
                     .edges()
                     .map(|edge| EdgeTerm {
@@ -466,9 +469,9 @@ fn read_steps(
                 .iter()
                 .map(|group| GroupReading {
                     relation: group.relation.as_u32(),
-                    coincident: group.weights[0],
-                    proximal: group.weights[1],
-                    strength: group.weights[2],
+                    coincident: group.weights.coincident,
+                    proximal: group.weights.proximal,
+                    strength: group.weights.strength,
                     contraction: contract(baseline, frame, &group.terms),
                 })
                 .collect();

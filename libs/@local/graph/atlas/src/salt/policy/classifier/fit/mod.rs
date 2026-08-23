@@ -375,13 +375,18 @@ pub(crate) fn fit<P: Progress + Sync>(
     let mut assembly_counters = WorkCounters::default();
     let gram = Gram::assemble(training.embeddings.as_raw(), &mut assembly_counters);
 
-    let selection = regularization::select(training, &folds, config, &gram, progress)?;
+    let folded = FoldedTraining {
+        training,
+        folds: &folds,
+        gram: &gram,
+    };
+
+    let selection = folded.select(config, progress)?;
     progress.classifier_regularization_selected(selection.regularization.get());
 
     let mut deployment = config;
     deployment.solver.preparation.regularization = selection.regularization;
-    let (final_parameters, iterations) =
-        fit_model(training, &folds, None, deployment, &gram, assembly_counters)?;
+    let (final_parameters, iterations) = folded.fit(None, deployment, assembly_counters)?;
 
     let out_of_fold_logits = selection.out_of_fold_logits;
     let temperature = calibration::fit_temperature(training.rows(), &out_of_fold_logits);
@@ -410,91 +415,101 @@ pub(crate) fn fit<P: Progress + Sync>(
     })
 }
 
-/// Fits one model over the rows outside the held-out fold through the bounded solver.
-///
-/// Returns the flat class parameters and the count of started outer iterations.
-///
-/// # Errors
-///
-/// Returns [`FitError::Preparation`] when the training portion violates the preparation contract
-/// and [`FitError::Solver`] when the solve ends at a typed terminal.
-fn fit_model(
-    training: TrainingSet<'_>,
-    folds: &IdSlice<CardRow, usize>,
-    held_out: Option<usize>,
-    config: FitConfig,
-    gram: &Gram,
-    counters: WorkCounters,
-) -> Result<(Parameters, u64), FitError> {
-    // The held-out fold's complement materializes densely because the solver traverses whole
-    // corpora and fold membership is not its contract. The gather re-bases the complement into the
-    // solve's own positional row space, so the card-row domain ends here. The window records each
-    // solve row's original corpus index, which is the form the Gram view documents.
-    let subset = held_out.map(|held_out| {
-        let members: Vec<CardRow> = folds
-            .iter_enumerated()
-            .filter(|(_, fold)| **fold != held_out)
-            .map(|(row, _)| row)
-            .collect();
+/// The seeded fold assignment over a training corpus, with the Gram matrix every solve shares.
+struct FoldedTraining<'train> {
+    training: TrainingSet<'train>,
+    folds: &'train IdSlice<CardRow, usize>,
+    gram: &'train Gram,
+}
 
-        let mut embeddings = MatrixN::zeroed(members.len());
-        let embedding_rows = embeddings.rows_mut();
-        let mut rows = Vec::with_capacity(members.len());
-        for (position, &member) in members.iter().enumerate() {
-            *embedding_rows[position].as_array_mut() = *training.embedding(member).as_array();
-            rows.push(training.rows()[member]);
-        }
+impl FoldedTraining<'_> {
+    /// Fits one model over the rows outside the held-out fold through the bounded solver.
+    ///
+    /// Returns the flat class parameters and the count of started outer iterations.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FitError::Preparation`] when the training portion violates the preparation
+    /// contract and [`FitError::Solver`] when the solve ends at a typed terminal.
+    fn fit(
+        &self,
+        held_out: Option<usize>,
+        config: FitConfig,
+        counters: WorkCounters,
+    ) -> Result<(Parameters, u64), FitError> {
+        // The held-out fold's complement materializes densely because the solver traverses whole
+        // corpora and fold membership is not its contract. The gather re-bases the complement into
+        // the solve's own positional row space, so the card-row domain ends here. The
+        // window records each solve row's original corpus index, which is the form the Gram
+        // view documents.
+        let subset = held_out.map(|held_out| {
+            let members: Vec<CardRow> = self
+                .folds
+                .iter_enumerated()
+                .filter(|(_, fold)| **fold != held_out)
+                .map(|(row, _)| row)
+                .collect();
 
-        let window: Vec<usize> = members.iter().map(|member| member.as_usize()).collect();
-        (window, embeddings, rows)
-    });
+            let mut embeddings = MatrixN::zeroed(members.len());
+            let embedding_rows = embeddings.rows_mut();
+            let mut rows = Vec::with_capacity(members.len());
+            for (position, &member) in members.iter().enumerate() {
+                *embedding_rows[position].as_array_mut() =
+                    *self.training.embedding(member).as_array();
+                rows.push(self.training.rows()[member]);
+            }
 
-    let (embeddings, rows, gram_view) = match subset.as_ref() {
-        Some((window, embeddings, rows)) => (
-            embeddings.rows(),
-            rows.as_slice(),
-            GramView::subset(gram, window),
-        ),
-        None => (
-            training.embeddings.as_raw(),
-            training.rows.as_raw(),
-            GramView::full(gram),
-        ),
-    };
+            let window: Vec<usize> = members.iter().map(|member| member.as_usize()).collect();
+            (window, embeddings, rows)
+        });
 
-    let mut counters = counters;
-    let prepared = prepare(embeddings, rows, config.solver.preparation, &mut counters)
-        .map_err(FitError::Preparation)?;
-    let problem = ScaledProblem {
-        prepared,
-        gram: gram_view,
-        config: config.solver,
-    };
+        let (embeddings, rows, gram_view) = match subset.as_ref() {
+            Some((window, embeddings, rows)) => (
+                embeddings.rows(),
+                rows.as_slice(),
+                GramView::subset(self.gram, window),
+            ),
+            None => (
+                self.training.embeddings.as_raw(),
+                self.training.rows.as_raw(),
+                GramView::full(self.gram),
+            ),
+        };
 
-    let run = solve(&problem, counters, ReceiptDetail::None);
-    let converged = match run.outcome {
-        Ok(converged) => converged,
-        Err(failure) => {
-            // The typed terminal, the candidate strength, the aggregate counters, and the fold
-            // identity are the whole routine failure diagnostic. The probe replays `seed:fold` when
-            // a caller needs the vectors.
-            tracing::error!(
-                ?failure,
-                ?held_out,
-                regularization = config.solver.preparation.regularization.get(),
-                outer_iterations_started = run.control.outer_iterations_started,
-                counters = ?run.control.counters,
-                "the classifier solve ended at a typed terminal",
-            );
-            return Err(FitError::Solver(failure));
-        }
-    };
+        let mut counters = counters;
+        let prepared = prepare(embeddings, rows, config.solver.preparation, &mut counters)
+            .map_err(FitError::Preparation)?;
+        let problem = ScaledProblem {
+            prepared,
+            gram: gram_view,
+            config: config.solver,
+        };
 
-    let point = problem.point(&converged.point.zeta);
-    Ok((
-        objective::expand_point(&point),
-        run.control.outer_iterations_started,
-    ))
+        let run = solve(&problem, counters, ReceiptDetail::None);
+        let converged = match run.outcome {
+            Ok(converged) => converged,
+            Err(failure) => {
+                // The typed terminal, the candidate strength, the aggregate counters, and the fold
+                // identity are the whole routine failure diagnostic. The probe replays `seed:fold`
+                // when a caller needs the vectors.
+                tracing::error!(
+                    ?failure,
+                    ?held_out,
+                    regularization = config.solver.preparation.regularization.get(),
+                    outer_iterations_started = run.control.outer_iterations_started,
+                    counters = ?run.control.counters,
+                    "the classifier solve ended at a typed terminal",
+                );
+                return Err(FitError::Solver(failure));
+            }
+        };
+
+        let point = problem.point(&converged.point.zeta);
+        Ok((
+            objective::expand_point(&point),
+            run.control.outer_iterations_started,
+        ))
+    }
 }
 
 /// Copies a flat parameter vector into per-class coefficient rows and intercepts.

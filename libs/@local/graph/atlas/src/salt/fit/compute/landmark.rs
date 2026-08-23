@@ -24,9 +24,9 @@ use crate::{
         knn::hannoy::{HannoyIndex, HannoyIndexError},
         landmark::{
             artifact::{LandmarkSkeleton, LandmarkSkeletonArchive},
-            assignment::{AssignmentError, assign_landmarks},
+            assignment::AssignmentError,
             layout::{EdgelessGraphError, layout_landmarks},
-            quotient::{QuotientError, quotient_graph},
+            quotient::QuotientError,
             select::{
                 CandidateId, LandmarkCandidate, SelectionError, SubgroupAxes, select_landmarks,
             },
@@ -294,20 +294,17 @@ impl<'fit> LandmarkSurvey<'fit> {
                 self.context.config.index,
             )
             .map_err(HannoyIndexError::widen)?;
-            assign_landmarks(
-                &mut index,
-                stage_rng(self.context.config.seed, Stage::LandmarkAssignment),
-                training,
-                &selection,
-            )
-            .map_err(|error| error.map_rows(corpus, |fault| fault.map_rows(corpus)))?
+            selection
+                .assign(
+                    &mut index,
+                    stage_rng(self.context.config.seed, Stage::LandmarkAssignment),
+                    training,
+                )
+                .map_err(|error| error.map_rows(corpus, |fault| fault.map_rows(corpus)))?
         };
 
-        let contracted = quotient_graph(
-            &self.semantic.view(),
-            &assignment,
-            self.context.config.quotient,
-        )?;
+        let contracted =
+            assignment.quotient(&self.semantic.view(), self.context.config.quotient)?;
         let coordinates = layout_landmarks(
             &contracted.view(),
             self.context.config.curve,

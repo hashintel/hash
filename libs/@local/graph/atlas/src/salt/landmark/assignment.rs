@@ -17,6 +17,7 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     math::AlignedVecN,
     progress::NoProgress,
+    runs::Runs,
     salt::knn::{Embedding, NearestNeighboursIndex},
 };
 
@@ -94,6 +95,20 @@ where
     #[must_use]
     pub(crate) const fn landmarks(&self) -> usize {
         self.landmarks
+    }
+
+    /// Groups the assigned corpus rows by landmark ordinal.
+    ///
+    /// Each landmark's run ascends in row order, because the enumeration ascends over rows:
+    /// consumers that fold a run in order fold it as a serial row pass would.
+    #[must_use]
+    pub(super) fn runs(&self) -> Runs<LandmarkOrdinal, N> {
+        Runs::from_pairs(
+            self.landmarks,
+            self.landmark_by_row
+                .iter_enumerated()
+                .map(|(row, &ordinal)| (ordinal, row)),
+        )
     }
 
     /// Re-indexes the assignment through `rows`: entry `i` of the result is this assignment's entry
@@ -192,75 +207,78 @@ impl<N: fmt::Debug + fmt::Display, E: Error + 'static> Error for AssignmentError
     }
 }
 
-/// Assigns every corpus row to its nearest selected landmark.
-///
-/// `embeddings` holds the projector representations in node-row order; a mapped `f32[N, 512]`
-/// artifact yields the slice directly. The empty backend ingests exactly the landmark rows, links
-/// under `rng`, and answers one nearest-neighbour query per non-landmark row, in parallel and
-/// deterministically for a deterministic backend.
-///
-/// # Errors
-///
-/// Returns an error when a selected row lies outside the corpus, the backend fails, or a search
-/// returns nothing or a non-landmark row.
-#[tracing::instrument(skip_all)]
-pub(crate) fn assign_landmarks<N, I>(
-    index: &mut I,
-    rng: impl Rng + SeedableRng,
-    embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
-    selection: &LandmarkSelection<N>,
-) -> Result<LandmarkAssignment<N>, AssignmentError<N, I::Error>>
+impl<N> LandmarkSelection<N>
 where
     N: Id,
-    I: NearestNeighboursIndex<N, Error: Send> + Sync,
 {
-    for &row in selection.rows() {
-        if row >= embeddings.bound() {
-            return Err(AssignmentError::UnknownRow {
-                row,
-                rows: embeddings.len(),
-            });
-        }
-    }
-
-    index
-        .insert_many(selection.rows().iter().map(|&row| Embedding {
-            id: row,
-            components: &embeddings[row],
-        }))
-        .map_err(AssignmentError::Backend)?;
-    // Unobserved: the backend's build phases are a knn-stage observation,
-    // and this index links the landmark selection inside the landmark
-    // stage, which reports its progress by completion alone.
-    index
-        .build(rng, &NoProgress)
-        .map_err(AssignmentError::Backend)?;
-
-    let landmark_by_row = embeddings
-        .par_iter_enumerated()
-        .map(|(row, components)| {
-            if let Some(ordinal) = selection.ordinal(row) {
-                return Ok(ordinal);
-            }
-
-            let nearest = index
-                .search_by_vector(components, 1)
-                .map_err(AssignmentError::Backend)?
-                .into_iter()
-                .next()
-                .ok_or(AssignmentError::MissingMatch { row })?;
-
-            selection
-                .ordinal(nearest.id)
-                .ok_or(AssignmentError::ForeignNeighbour {
+    /// Assigns every corpus row to its nearest selected landmark.
+    ///
+    /// `embeddings` holds the projector representations in node-row order; a mapped `f32[N, 512]`
+    /// artifact yields the slice directly. The empty backend ingests exactly the landmark rows,
+    /// links under `rng`, and answers one nearest-neighbour query per non-landmark row, in
+    /// parallel and deterministically for a deterministic backend.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a selected row lies outside the corpus, the backend fails, or a
+    /// search returns nothing or a non-landmark row.
+    #[tracing::instrument(skip_all)]
+    pub(crate) fn assign<I>(
+        &self,
+        index: &mut I,
+        rng: impl Rng + SeedableRng,
+        embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+    ) -> Result<LandmarkAssignment<N>, AssignmentError<N, I::Error>>
+    where
+        I: NearestNeighboursIndex<N, Error: Send> + Sync,
+    {
+        for &row in self.rows() {
+            if row >= embeddings.bound() {
+                return Err(AssignmentError::UnknownRow {
                     row,
-                    neighbour: nearest.id,
-                })
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+                    rows: embeddings.len(),
+                });
+            }
+        }
 
-    Ok(LandmarkAssignment {
-        landmark_by_row: IdSlice::from_boxed_slice(landmark_by_row.into_boxed_slice()),
-        landmarks: selection.len(),
-    })
+        index
+            .insert_many(self.rows().iter().map(|&row| Embedding {
+                id: row,
+                components: &embeddings[row],
+            }))
+            .map_err(AssignmentError::Backend)?;
+        // Unobserved: the backend's build phases are a knn-stage observation,
+        // and this index links the landmark selection inside the landmark
+        // stage, which reports its progress by completion alone.
+        index
+            .build(rng, &NoProgress)
+            .map_err(AssignmentError::Backend)?;
+
+        let landmark_by_row = embeddings
+            .par_iter_enumerated()
+            .map(|(row, components)| {
+                if let Some(ordinal) = self.ordinal(row) {
+                    return Ok(ordinal);
+                }
+
+                let nearest = index
+                    .search_by_vector(components, 1)
+                    .map_err(AssignmentError::Backend)?
+                    .into_iter()
+                    .next()
+                    .ok_or(AssignmentError::MissingMatch { row })?;
+
+                self.ordinal(nearest.id)
+                    .ok_or(AssignmentError::ForeignNeighbour {
+                        row,
+                        neighbour: nearest.id,
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(LandmarkAssignment {
+            landmark_by_row: IdSlice::from_boxed_slice(landmark_by_row.into_boxed_slice()),
+            landmarks: self.len(),
+        })
+    }
 }

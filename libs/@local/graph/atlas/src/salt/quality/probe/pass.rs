@@ -35,7 +35,7 @@ use hashql_core::{
     heap::{ResetAllocator as _, Scratch},
     id::{Id, IdSlice, bit_vec::DenseBitSet},
 };
-use rayon::iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator as _, ParallelIterator as _};
 
 use super::{
     super::{
@@ -173,7 +173,7 @@ where
     pub(super) fn run<'call>(
         &'call self,
         anchor_rows: &'call [N],
-    ) -> impl ParallelIterator<Item = AnchorReading> + 'call {
+    ) -> impl IndexedParallelIterator<Item = AnchorReading> + 'call {
         let mut negated_anchor_mask = self.anchor_mask.clone();
         negated_anchor_mask.negate();
 
@@ -381,7 +381,7 @@ impl SampledPass<'_> {
     pub(super) fn run<'call>(
         &'call self,
         anchor_rows: &'call [NodeRowId],
-    ) -> impl ParallelIterator<Item = SampledReading> + 'call {
+    ) -> impl IndexedParallelIterator<Item = SampledReading> + 'call {
         anchor_rows
             .par_iter()
             .enumerate()
