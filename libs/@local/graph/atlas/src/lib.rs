@@ -34,16 +34,14 @@
 //!
 //! # Crate features
 //!
-//! Each feature below compiles in something the default build leaves out.
+//! [`device::PinnedDevice`] selects CPU, CUDA, or Metal at runtime. CPU dispatches to `NdArray`,
+//! while CUDA and Metal dispatch to CubeCL. Cargo features expose tools around that runtime:
 //!
 //! - `bench` exposes `bench`, the measurement hooks the five `[[bench]]` targets in `Cargo.toml`
-//!   consume; the lab instruments the standalone binary runs stay outside it and build with the
+//!   consume. The lab instruments the standalone binary runs stay outside it and build with the
 //!   crate regardless.
-//! - `gpu` switches the projector's training and inference backend from the CPU `NdArray` backend
-//!   to `burn`'s Metal-backed `wgpu` `CubeBackend`. It compiles on any target. The GPU-flavored
-//!   tests carry `#[ignore]` because running them needs an Apple GPU.
 //! - `cli` compiles in the standalone `hash-graph-atlas` binary's shell and its exclusive
-//!   dependencies, `ratatui`'s dashboard and `tracing-subscriber`'s log formatting; the operator
+//!   dependencies, `ratatui`'s dashboard and `tracing-subscriber`'s log formatting. The operator
 //!   commands and the read-API routes build unconditionally, so the `hash-graph` binary consumes
 //!   them feature-free.
 //!
@@ -56,7 +54,7 @@
 //! decode. Every published artifact is a plain file mapped whole by `mmap`, so serving cost after
 //! open is page-cache and address-space bound rather than parse bound. An opened [`serve::Atlas`]
 //! is `Send + Sync` and immutable, so a caller can keep one in an `Arc` across requests for the
-//! process lifetime of the generation; reads are synchronous and CPU-bound over mapped memory, so
+//! process lifetime of the generation. Reads are synchronous and CPU-bound over mapped memory, so
 //! an async transport schedules them on a compute pool rather than inline on its own runtime
 //! threads.
 //!
@@ -64,7 +62,7 @@
 //!
 //! Serving and fitting never combine implicitly.
 //!
-//! [`cli::ServeCommand`] opens an already-published generation and never fits one; an empty or
+//! [`cli::ServeCommand`] opens an already-published generation and never fits one. An empty or
 //! unfitted root fails the open with a named [`cli::ServeError::Missing`] rather than fitting on
 //! demand.
 //!

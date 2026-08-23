@@ -6,7 +6,7 @@ The design trades flexibility for verifiability: a fit publishes one **immutable
 
 ## Quick start
 
-The workspace pins the required nightly toolchain. Build from the repository root. The operator commands ride the `hash-graph` binary's `atlas` subcommand, and a production fit on macOS additionally wants the crate's `gpu` feature (Metal-backed projector training, where the CPU backend is the test harness):
+The workspace pins the required nightly toolchain. Build from the repository root. The operator commands ride the `hash-graph` binary's `atlas` subcommand. Projector devices are selected at runtime through `--device`. macOS uses Metal by default. Other hosts use CUDA by default. Pass `--device cpu` for the cross-platform CPU path.
 
 ```sh
 cargo build -p hash-graph
@@ -15,7 +15,7 @@ cargo build -p hash-graph
 Fit a generation from a running graph store and activate it (store flags default to the graph's `HASH_GRAPH_PG_*` environment; exactly one of `--annotations` and `--classifier` supplies the relation classifier):
 
 ```sh
-cargo run -p hash-graph --features hash-graph-atlas/gpu -- \
+cargo run -p hash-graph -- \
   atlas fit --root /var/lib/hash/atlas \
   --annotations annotation-corpus.json
 ```
@@ -175,8 +175,7 @@ Tests never require a GPU or a live store; fixture fits run the production pipel
 
 Cargo features (all off by default):
 
-- `gpu` - trains the projector on the Metal GPU backend and runs the brute-force construction audit on it. Compiles anywhere. Running with it requires an Apple GPU. Without it, fitting uses the CPU backend that CI exercises.
-- `bench` - exposes the measurement seams the `[[bench]]` targets consume. Combined with `gpu`, those seams gain their Metal-backed flavor.
+- `bench` - exposes the benchmark hooks the `[[bench]]` targets consume. The projector backend target measures the CPU and host-derived accelerator, requiring Metal on macOS or CUDA elsewhere.
 - `cli` - builds the standalone `hash-graph-atlas` binary: the fit path with its live dashboard, and the lab instruments under `report`.
 
 The operator commands (`cli` module) and the read API (`api` module) build unconditionally, so the `hash-graph` binary consumes them feature-free. The feature gates only the standalone binary's shell.

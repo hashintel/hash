@@ -3,11 +3,11 @@
 //! The training backend decision holds train time as the binding constraint, and the training
 //! schedule's refresh risk is one full-corpus forward per ladder step per cadence tick. Both price
 //! out through the two motions measured here, at the real default architecture (512-wide stem, four
-//! residual blocks, `FiLM` from the width-1 `[eta]` condition), on every backend flavor the build
-//! carries - the CPU backend always, Metal behind `bench` + `gpu`:
+//! residual blocks, `FiLM` from the width-1 `[eta]` condition), on the CPU and the host-derived
+//! accelerator:
 //!
 //! ```text
-//! cargo bench -p hash-graph-atlas --features bench,gpu --bench projector_backend
+//! cargo bench -p hash-graph-atlas --features bench --bench projector_backend
 //! ```
 //!
 //! - `step` times forward plus backward through the autodiff decorator at training minibatch sizes
@@ -20,17 +20,17 @@
 //!   on matrixmultiply's own pool (`MATMUL_NUM_THREADS`), so a flat response here is the expected
 //!   reading, kept as the guard on that fact.
 //!
-//! - `live/*` times one real training step at the ratified batch plan over a synthesized corpus,
-//!   phase by phase: `draw`, `assemble`, and per backend `input`, `forward`, `objective` (readback
-//!   plus hand-rolled fields plus surrogate), and `step` (the whole motion, optimizer included).
-//!   The phase split decomposes the backend decision into burn tensor work vs hand-rolled CPU work
-//!   vs batch pipeline. Each backend's cold first step prints on its own before its timed phases;
-//!   on autotuning backends that number is the warmup story criterion's steady state hides.
+//! - `live/*` times one real training step at the production batch plan over a synthesized corpus,
+//!   phase by phase. Shared `draw` and `assemble`, per-backend `input`, `refresh`, and `step`, and
+//!   CPU-only `forward` and `objective` expose the costs without leaving unconsumed GPU graphs. The
+//!   phase split decomposes the backend decision into burn tensor work, hand-rolled CPU work, and
+//!   the batch pipeline. Each backend's cold first step prints on its own before its timed phases.
+//!   On autotuning backends that number is the warmup story criterion's steady state hides.
 //!
 //! Set `PROJECTOR_BENCH_ROWS` to scale the largest forward batch (default 65536; the full corpus is
 //! ~1M rows, and forward cost is linear in rows past cache scale, so per-row numbers extrapolate).
 //! `PROJECTOR_BENCH_LIVE_ROWS` scales the live corpus (default 65536). Wall time depends on the
-//! host; compare within one machine, not across.
+//! host. Compare within one machine, not across.
 #![expect(
     clippy::decimal_literal_representation,
     clippy::significant_drop_tightening,
@@ -135,7 +135,7 @@ fn bench_thread_scaling(criterion: &mut Criterion) {
     group.finish();
 }
 
-/// One real training step at the ratified plan, phase by phase.
+/// One real training step at the production plan, phase by phase.
 fn bench_live_step(criterion: &mut Criterion) {
     let rows = std::env::var("PROJECTOR_BENCH_LIVE_ROWS").map_or(65_536, |value| {
         value
@@ -193,20 +193,26 @@ fn bench_live_step(criterion: &mut Criterion) {
             );
         });
 
-        group.bench_function(format!("{device}/forward"), |bencher| {
-            bencher.iter_batched(
-                || (),
-                |()| black_box(stepper.forward(black_box(&batch))),
-                BatchSize::PerIteration,
-            );
-        });
-        group.bench_function(format!("{device}/objective"), |bencher| {
-            bencher.iter_batched(
-                || (),
-                |()| black_box(stepper.objective(black_box(&batch))),
-                BatchSize::PerIteration,
-            );
-        });
+        // These decomposition phases record autodiff graphs no backward consumes. Orphan graphs pin
+        // device buffers until reclamation, which a sampling loop outruns on a pooled asynchronous
+        // device, so the decomposition stays a synchronous-backend instrument. `refresh` and `step`
+        // are the production motions every backend measures.
+        if device == Device::Cpu.pin(0) {
+            group.bench_function(format!("{device}/forward"), |bencher| {
+                bencher.iter_batched(
+                    || (),
+                    |()| black_box(stepper.forward(black_box(&batch))),
+                    BatchSize::PerIteration,
+                );
+            });
+            group.bench_function(format!("{device}/objective"), |bencher| {
+                bencher.iter_batched(
+                    || (),
+                    |()| black_box(stepper.objective(black_box(&batch))),
+                    BatchSize::PerIteration,
+                );
+            });
+        }
 
         group.bench_function(format!("{device}/step"), |bencher| {
             bencher.iter_batched(

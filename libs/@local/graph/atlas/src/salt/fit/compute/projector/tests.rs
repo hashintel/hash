@@ -336,10 +336,6 @@ fn skinny_options() -> ProjectorOptions {
 /// projection-identity assertions stay bit-exact. The tolerance keeps headroom over the
 /// observed single-ulp motion while still refusing value-scale divergence: a duplicate
 /// placed anywhere else in the plane is millions of ulps away.
-// Byte-identical rows project through one model, but the torch batched forward varies its
-// reduction order with the row's batch position, so duplicates land within a few last bits
-// rather than bit-identically. Measured at 8 ulps on this fixture; the bound holds twice that,
-// and a wiring defect scatters duplicates by whole coordinates rather than last bits.
 const DUPLICATE_ULPS: i64 = 16;
 
 /// Maps a finite `f32` onto a line where integer distance is ulp distance, signs included.

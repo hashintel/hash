@@ -1,9 +1,9 @@
-//! The runtime compute device of one process.
+//! Runtime tensor devices selected for fitting and projection.
 //!
-//! Every tensor stage runs on the torch backend, so the device is a runtime value handed down
-//! from the entry point rather than a compile-time backend choice. [`Device`] names the device
-//! families torch drives. [`Device::host`] derives the family this machine accelerates, so an
-//! entry point that does not care resolves the derived family and one that does passes its own.
+//! Burn's [`Dispatch`] backend carries one runtime-selected device through every tensor stage.
+//! [`Device`] names the supported execution families, and [`Device::host`] derives the accelerated
+//! family for the host. CPU execution uses `NdArray`, CUDA selects a CubeCL CUDA device by ordinal,
+//! and Metal delegates adapter selection to CubeCL's WGPU default device.
 
 use core::{error::Error, fmt, num::ParseIntError, str::FromStr};
 
@@ -22,11 +22,14 @@ pub(crate) type Inference = Dispatch;
 /// The inference backend under autodiff, which training runs on.
 pub(crate) type Training = Autodiff<Inference>;
 
-/// A device family the torch backend drives.
+/// A tensor execution family selected at runtime.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Device {
+    /// Metal through CubeCL's WGPU runtime.
     Metal,
+    /// CUDA through CubeCL's CUDA runtime.
     Cuda,
+    /// CPU execution through `NdArray`.
     Cpu,
 }
 
@@ -45,6 +48,11 @@ impl Device {
         }
     }
 
+    /// Records an ordinal beside this family.
+    ///
+    /// CUDA selects the device at that ordinal. CPU and Metal retain the ordinal in their parsed
+    /// and displayed form, while their backend selectors choose the logical CPU and CubeCL's WGPU
+    /// default device respectively.
     #[must_use]
     pub const fn pin(self, ordinal: usize) -> PinnedDevice {
         PinnedDevice(self, ordinal)
@@ -61,6 +69,7 @@ impl fmt::Display for Device {
     }
 }
 
+/// A runtime device request carrying its parsed ordinal.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PinnedDevice(Device, usize);
 
@@ -70,12 +79,12 @@ impl PinnedDevice {
         Device::host().pin(0)
     }
 
-    /// Resolves the family to torch's device handle.
+    /// Resolves the request to Burn's dispatch device.
     pub(crate) const fn resolve(self) -> PhysicalDevice {
         match self.0 {
             Device::Cpu => PhysicalDevice::NdArray(NdArrayDevice::Cpu),
             Device::Cuda => PhysicalDevice::Cuda(CudaDevice { index: self.1 }),
-            Device::Metal => PhysicalDevice::Metal(WgpuDevice::DiscreteGpu(self.1)),
+            Device::Metal => PhysicalDevice::Metal(WgpuDevice::DefaultDevice),
         }
     }
 }
@@ -89,7 +98,7 @@ impl fmt::Display for PinnedDevice {
 /// A device string failed to parse.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ParseDeviceError {
-    /// The family is not one the torch backend drives.
+    /// The supplied family is not supported.
     UnknownFamily { supplied: String },
     /// The ordinal is not an unsigned integer.
     InvalidOrdinal(ParseIntError),
@@ -100,7 +109,7 @@ impl fmt::Display for ParseDeviceError {
         match self {
             Self::UnknownFamily { supplied } => write!(
                 fmt,
-                "`{supplied}` is not a device family: expected `metal`, `cuda`, `vulkan`, or `cpu`"
+                "`{supplied}` is not a device family: expected `metal`, `cuda`, or `cpu`"
             ),
             Self::InvalidOrdinal(error) => {
                 write!(fmt, "the device ordinal does not parse: {error}")
