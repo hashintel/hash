@@ -33,6 +33,8 @@ EXTRA_DEPENDENCIES: dict[str, list[str]] = {
         "@rust/darwin-kperf-events",
         "@rust/darwin-kperf-codegen",
     ],
+    # The frontend's wire-conformance suite decodes the atlas crate's checked-in fixtures
+    "@apps/hash-frontend": ["@rust/hash-graph-atlas"],
     # Test data crates
     "@blockprotocol/type-system-rs": ["@rust/hash-graph-test-data"],
     "@rust/hash-graph-types": ["@rust/hash-graph-test-data"],

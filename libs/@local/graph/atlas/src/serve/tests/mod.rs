@@ -774,7 +774,7 @@ pub(crate) fn fixture_row_ids(rows: &ArrayFile) -> Vec<u32> {
 /// an aggregate witness fail on an extent read off the artifacts rather than off the view: with
 /// any edge still attained, the corpus extent and the view's extent agree there and the wrong
 /// answer looks right.
-pub(crate) fn extremes(points: &[Vec2], row_ids: &[u32]) -> (Bounds2, Vec<u32>) {
+fn extremes(points: &[Vec2], row_ids: &[u32]) -> (Bounds2, Vec<u32>) {
     let corpus = Bounds2::from_points(points.iter().copied()).expect("the fixture holds points");
 
     // Exact equality is the predicate: an extremum IS one of this column's own values, so a row
@@ -799,6 +799,88 @@ pub(crate) fn extremes(points: &[Vec2], row_ids: &[u32]) -> (Bounds2, Vec<u32>) 
     attaining.dedup();
 
     (corpus, attaining)
+}
+
+/// The generation's extent, and rows whose removal both vacates every edge and empties a root cell.
+///
+/// The extreme-attaining rows alone move the extent, and they move the root count only when they
+/// are some cell's whole population: a cell keeping one visible row keeps a representative, and
+/// the root cut delivers one row per occupied cell, so the count does not move at all. Whether any
+/// cell holds nothing but extreme rows is a property of the fitted layout rather than of the
+/// witness, and a layout is target-specific down to the last bit of each coordinate, so a witness
+/// resting on that coincidence has teeth on one target and none on the next.
+///
+/// Adding the rest of one extreme-bearing cell empties that cell whatever the layout, which takes
+/// the occupied-cell count down by at least one and the delivered count with it. An aggregate read
+/// off the artifacts instead of off the view is then a detectable answer on the count axis as well
+/// as on the extent axis, and the construction asserts that outcome rather than trusting it.
+pub(crate) fn extremes_vacating_a_root_cell(
+    atlas: &Atlas,
+    points: &[Vec2],
+    row_ids: &[u32],
+) -> (Bounds2, Vec<u32>) {
+    let (corpus, attaining) = extremes(points, row_ids);
+
+    // The root's cut, which is the depth whose cells the root tile delivers one row apiece from.
+    let cut = Depth::new(FIXTURE_LOD.span.get()).expect("the fixture span is a valid depth");
+    let cell_of = |position: usize| {
+        atlas
+            .morton
+            .code(BasePosition::from_u32(
+                u32::try_from(position).expect("fixture positions fit u32"),
+            ))
+            .prefix(cut)
+    };
+
+    let hidden: HashSet<u32> = attaining.iter().copied().collect();
+    let mut population: HashMap<u64, Vec<usize>> = HashMap::new();
+    for position in 0..points.len() {
+        population
+            .entry(cell_of(position))
+            .or_default()
+            .push(position);
+    }
+    assert!(
+        population.len() > 1,
+        "the fixture occupies one root cell, so no mask can vacate one and leave a view"
+    );
+
+    // Vacating the cell that keeps the fewest visible rows costs the view the least; the cell key
+    // breaks ties, so the choice does not ride a map's iteration order.
+    let survivors = |positions: &[usize]| {
+        positions
+            .iter()
+            .filter(|&&position| !hidden.contains(&row_ids[position]))
+            .count()
+    };
+    let (_, vacated) = population
+        .iter()
+        .filter(|(_, positions)| positions.iter().any(|&at| hidden.contains(&row_ids[at])))
+        .map(|(&cell, positions)| ((survivors(positions), cell), positions))
+        .min_by_key(|&(order, _)| order)
+        .expect("the extremes occupy a cell");
+
+    let mut hiding = attaining;
+    hiding.extend(vacated.iter().map(|&position| row_ids[position]));
+    hiding.sort_unstable();
+    hiding.dedup();
+
+    // What the count witness rests on, checked here rather than left to the next layout to decide.
+    let remaining = population
+        .values()
+        .filter(|positions| {
+            positions
+                .iter()
+                .any(|&position| !hiding.contains(&row_ids[position]))
+        })
+        .count();
+    assert!(
+        remaining < population.len(),
+        "the hidden set empties no root cell, so the count witness would have no teeth"
+    );
+    assert!(remaining > 0, "the hidden set empties every root cell");
+
+    (corpus, hiding)
 }
 
 /// Every operator head accounts for exactly the rows its response delivered.

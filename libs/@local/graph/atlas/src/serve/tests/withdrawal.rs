@@ -23,9 +23,9 @@ use hashql_core::{
 use super::{
     Artifacts, Atlas, Bound, EdgesLimits, FIXTURE_LOD, FULL, HEAD, HashSet, Mode, ROW_IDS,
     TileHead, TileLimits, TileResponse, UntouchedStore, coordinate_of, edges_request,
-    expected_edges_bytes, extremes, fixture_row_ids, head_global, mask_hiding, open_artifacts,
-    open_edge_artifacts, publish, qualifying_columns, request, section, test_codec, walk,
-    wire_columns, withdrawing,
+    expected_edges_bytes, extremes_vacating_a_root_cell, fixture_row_ids, head_global, mask_hiding,
+    open_artifacts, open_edge_artifacts, publish, qualifying_columns, request, section, test_codec,
+    walk, wire_columns, withdrawing,
 };
 use crate::{
     bitset::CompressedBitSet,
@@ -655,10 +655,12 @@ async fn the_folded_scoped_root_publishes_the_folded_views_aggregates() {
     let points = coordinates.points().expect("wire coordinates are points");
     let row_ids = fixture_row_ids(&rows);
 
-    // Withdraw the rows attaining the extent's four extremes and every row of the deepest
-    // occupied bucket, so the extent, the count, and the depth all part from the unfolded
-    // view's: an aggregate that fails to follow the fold is a detectable answer on each axis.
-    let (corpus, mut withdrawn) = extremes(points, &row_ids);
+    // Withdraw the rows attaining the extent's four extremes, the rest of one root cell, and
+    // every row of the deepest occupied bucket, so the extent, the count, and the depth all part
+    // from the unfolded view's: an aggregate that fails to follow the fold is a detectable answer
+    // on each axis. The root cell is what parts the count on any layout, because a cell keeping
+    // one surviving row keeps its representative and delivers the same number of rows as before.
+    let (corpus, mut withdrawn) = extremes_vacating_a_root_cell(&atlas, points, &row_ids);
     let lengths = morton.fenceposts().lengths();
     let (deepest, _) = lengths
         .iter()

@@ -9,10 +9,10 @@ use super::{
     FIXTURE_LOD, FULL, Generation, HEAD, HashMap, HashSet, Id as _, IdSlice, Mode, MortonCell,
     NodeRowId, POSITIONS, ROW_IDS, ServeLimits, TileHead, TileLimits, TileQuery, TileRequest,
     TileResponse, UntouchedStore, VisibilityProof, Xoshiro256PlusPlus, codec, coordinate_of,
-    decode_rows, domain_mask, edges_request, entity_string_of, expected_edges_bytes, extremes,
-    fixture_row_ids, full_grid, head_global, locate_request, mask_hiding, mask_hiding_rows,
-    narrow_usize, open_artifacts, publish, qualifying_columns, request, section, test_codec,
-    viewing, walk, wire_columns,
+    decode_rows, domain_mask, edges_request, entity_string_of, expected_edges_bytes,
+    extremes_vacating_a_root_cell, fixture_row_ids, full_grid, head_global, locate_request,
+    mask_hiding, mask_hiding_rows, narrow_usize, open_artifacts, publish, qualifying_columns,
+    request, section, test_codec, viewing, walk, wire_columns,
 };
 use crate::{
     math::Bounds2,
@@ -1038,9 +1038,11 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
 /// the generation's own columns, under a mask chosen so that a census read off the artifacts
 /// instead of off the view fails on every one of them:
 ///
-/// The hidden set is exactly the rows attaining an extreme coordinate, so the visible extent is
-/// strictly inside the generation's extent on all four edges - the fixture asserts that strictness
-/// rather than assuming it, because a mask that vacates no edge could not fail on the defect.
+/// The hidden set is the rows attaining an extreme coordinate, so the visible extent is strictly
+/// inside the generation's extent on all four edges, plus the rest of one root cell's rows, so the
+/// root cut delivers strictly fewer of them - the fixture asserts both strictnesses rather than
+/// assuming them, because a mask that vacates no edge and empties no cell could not fail on the
+/// defect.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn masked_root_publishes_the_visible_views_own_census() {
@@ -1051,7 +1053,7 @@ async fn masked_root_publishes_the_visible_views_own_census() {
     let points = coordinates.points().expect("wire coordinates are points");
     let row_ids = fixture_row_ids(&rows);
 
-    let (corpus, hidden) = extremes(points, &row_ids);
+    let (corpus, hidden) = extremes_vacating_a_root_cell(&atlas, points, &row_ids);
     assert!(
         !hidden.is_empty() && hidden.len() < points.len(),
         "the mask hides the extremes and leaves a non-empty view"
