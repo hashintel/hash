@@ -141,6 +141,8 @@ export interface ValueEditorProps {
   optimizable: boolean;
   /** Integer slots validate integer bounds. */
   integer?: boolean;
+  /** Boolean slots optimize as a true/false choice with no bounds. */
+  booleanDomain?: boolean;
   /** Counts hide the Step field (integer step 1 is implied). */
   withStep?: boolean;
   /**
@@ -169,6 +171,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   target,
   optimizable,
   integer = false,
+  booleanDomain = false,
   withStep = true,
   derived = false,
   className,
@@ -196,7 +199,9 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const text =
     display ??
     (optimized
-      ? `${value.optimize!.min} … ${value.optimize!.max}`
+      ? booleanDomain
+        ? "true / false"
+        : `${value.optimize!.min} … ${value.optimize!.max}`
       : value.expression || placeholder);
 
   const expressionSlot = { target, part: "expression" as const };
@@ -268,7 +273,11 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             <Popover.Body withPadding={false}>
               <div className={popoverHeaderStyle}>{label}</div>
               <div className={editorBodyStyle}>
-                {optimized ? (
+                {optimized && booleanDomain ? (
+                  <div className={boundLabelStyle}>
+                    The optimizer tries true and false.
+                  </div>
+                ) : optimized ? (
                   <div className={boundsGridStyle}>
                     {boundField("min", "Min", value.optimize!.min, (min) =>
                       onChange({
