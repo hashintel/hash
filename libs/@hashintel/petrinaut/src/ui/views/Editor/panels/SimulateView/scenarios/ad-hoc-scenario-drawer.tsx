@@ -39,10 +39,15 @@ export const AdHocScenarioDrawer = ({
   }
 
   return (
-    <Drawer showBackdrop={false} onClose={onClose} swapKey="adhoc-scenario">
+    <Drawer
+      size="lg"
+      showBackdrop={false}
+      onClose={onClose}
+      swapKey="adhoc-scenario"
+    >
       <Drawer.Header
         title="Define initial state"
-        description="Token counts and values for this run, without saving a scenario. Values are expressions and may use variables."
+        description="Token counts and values for this run, without saving a scenario. Every value is an expression and may read scenario.<variable> and parameters.<name>."
       />
       <Drawer.Body>
         <AdHocScenarioForm
