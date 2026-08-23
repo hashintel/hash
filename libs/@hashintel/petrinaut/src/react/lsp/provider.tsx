@@ -115,6 +115,9 @@ export const LanguageClientProvider: React.FC<{
     updateScenarioSession: client.updateScenarioSession,
     killScenarioSession: client.killScenarioSession,
     initializeMetricSession: client.initializeMetricSession,
+    initializeAdHocSession: client.initializeAdHocSession,
+    updateAdHocSession: client.updateAdHocSession,
+    killAdHocSession: client.killAdHocSession,
     updateMetricSession: client.updateMetricSession,
     killMetricSession: client.killMetricSession,
   };

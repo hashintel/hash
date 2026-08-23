@@ -14,6 +14,7 @@ import type {
   SignatureHelp,
 } from "@hashintel/petrinaut-core";
 import type {
+  AdHocSessionParams,
   MetricSessionParams,
   ScenarioSessionParams,
 } from "@hashintel/petrinaut-core/workers/lsp";
@@ -66,6 +67,12 @@ export interface LanguageClientContextValue {
   killScenarioSession: (sessionId: string) => void;
   /** Initialize a temporary metric editing session. */
   initializeMetricSession: (params: MetricSessionParams) => void;
+  /** Starts an ad-hoc scenario editing session for expression type-checking */
+  initializeAdHocSession: (params: AdHocSessionParams) => void;
+  /** Updates an ad-hoc scenario editing session */
+  updateAdHocSession: (params: AdHocSessionParams) => void;
+  /** Ends an ad-hoc scenario editing session */
+  killAdHocSession: (sessionId: string) => void;
   /** Update a metric editing session. */
   updateMetricSession: (params: MetricSessionParams) => void;
   /** Kill a metric editing session. */
@@ -102,6 +109,9 @@ const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
   updateScenarioSession: () => {},
   killScenarioSession: () => {},
   initializeMetricSession: () => {},
+  initializeAdHocSession: () => {},
+  updateAdHocSession: () => {},
+  killAdHocSession: () => {},
   updateMetricSession: () => {},
   killMetricSession: () => {},
 };

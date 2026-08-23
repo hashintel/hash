@@ -281,6 +281,9 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
     initializeMetricSession: vi.fn(),
     updateMetricSession: vi.fn(),
     killMetricSession: vi.fn(),
+    initializeAdHocSession: vi.fn(),
+    updateAdHocSession: vi.fn(),
+    killAdHocSession: vi.fn(),
   };
 }
 
