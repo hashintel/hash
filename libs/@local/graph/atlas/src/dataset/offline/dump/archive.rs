@@ -47,7 +47,9 @@ pub(super) fn write_archive<T, D, E>(
     value: &T,
 ) -> Result<FileManifest, DumpError<D, E>>
 where
-    T: for<'a> rkyv::Serialize<HighSerializer<ArchiveWriter, ArenaHandle<'a>, rancor::Error>>,
+    T: for<'arena> rkyv::Serialize<
+            HighSerializer<ArchiveWriter, ArenaHandle<'arena>, rancor::Error>,
+        >,
 {
     let io = |source| DumpError::Io { kind, source };
 
@@ -216,7 +218,7 @@ impl<T: Portable> Column<T> {
         value: &U,
     ) -> Result<(), DumpError<D, E>>
     where
-        U: for<'a> Serialize<ArchiveSerializer<'a>, Archived = T>,
+        U: for<'arena> Serialize<ArchiveSerializer<'arena>, Archived = T>,
     {
         let kind = archive.kind;
         let serializer = archive.strategy();

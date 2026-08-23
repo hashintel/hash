@@ -283,7 +283,7 @@ impl Error for OfflineDatasetError {
 fn root<T>(map: &PageMap) -> Result<&T, rancor::Error>
 where
     T: rkyv::Portable
-        + for<'a> bytecheck::CheckBytes<rkyv::api::high::HighValidator<'a, rancor::Error>>,
+        + for<'bytes> bytecheck::CheckBytes<rkyv::api::high::HighValidator<'bytes, rancor::Error>>,
 {
     rkyv::access::<T, rancor::Error>(map.bytes())
 }

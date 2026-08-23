@@ -108,9 +108,9 @@ impl RuleIdentity {
 ///
 /// [`SaltMetadata`]: crate::file::salt::metadata::SaltMetadata
 #[derive(serde::Serialize)]
-struct SaltPreimage<'a> {
-    snapshot: &'a Snapshot,
-    reproducibility: &'a Reproducibility,
+struct SaltPreimage<'document> {
+    snapshot: &'document Snapshot,
+    reproducibility: &'document Reproducibility,
 }
 
 /// The salt preimage did not serialize.

@@ -84,13 +84,13 @@ where
     /// This panics when `payloads` does not yield exactly one payload per row, or when two rows
     /// carry one id, which the dataset row contract excludes. The check runs before any byte
     /// reaches the writer.
-    pub(crate) fn write_into<'a>(
+    pub(crate) fn write_into<'payload>(
         &self,
-        payloads: impl IntoIterator<Item = &'a K::Payload>,
+        payloads: impl IntoIterator<Item = &'payload K::Payload>,
         write: impl io::Write,
     ) -> io::Result<Sha256Digest>
     where
-        K: Key<Payload: 'a>,
+        K: Key<Payload: 'payload>,
     {
         let mut writer = Writer {
             accumulator: Sha256::new(),

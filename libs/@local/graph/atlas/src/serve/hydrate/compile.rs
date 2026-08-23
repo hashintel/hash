@@ -196,7 +196,7 @@ pub(crate) async fn visibility_proof<S>(
 ) -> Result<(VisibilityProof, MaskingActor), ProofError>
 where
     S: PrincipalStore + PolicyStore + AsClient + Sync,
-    for<'a> StoreProvider<'a, S>: DataTypeLookup + Sync,
+    for<'store> StoreProvider<'store, S>: DataTypeLookup + Sync,
 {
     let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
     let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);

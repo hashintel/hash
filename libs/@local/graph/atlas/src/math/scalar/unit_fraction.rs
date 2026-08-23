@@ -453,10 +453,10 @@ impl<'de> serde::Deserialize<'de> for UnitFraction {
     }
 }
 
-impl<'a> tokio_postgres::types::FromSql<'a> for UnitFraction {
+impl<'row> tokio_postgres::types::FromSql<'row> for UnitFraction {
     fn from_sql(
         ty: &tokio_postgres::types::Type,
-        raw: &'a [u8],
+        raw: &'row [u8],
     ) -> Result<Self, Box<dyn Error + Sync + Send>> {
         let value = f64::from_sql(ty, raw)?;
 

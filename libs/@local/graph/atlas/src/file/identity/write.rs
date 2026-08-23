@@ -17,7 +17,7 @@ use crate::file::region::write_region;
 ///
 /// Hashing and equality delegate to the bytes [`IntoBytes`] exposes, so an interning map stores
 /// each distinct payload reference itself rather than a copy of its bytes.
-struct ByteKeyed<'a, A: ?Sized>(&'a A);
+struct ByteKeyed<'payload, A: ?Sized>(&'payload A);
 
 impl<A: IntoBytes + Immutable + ?Sized> PartialEq for ByteKeyed<'_, A> {
     fn eq(&self, other: &Self) -> bool {
@@ -58,15 +58,15 @@ impl<A: IntoBytes + Immutable + ?Sized> Hash for ByteKeyed<'_, A> {
     reason = "the Result carries write failures; disagreeing columns and duplicate keys are a \
               caller contract violation, documented under Panics"
 )]
-pub(crate) fn write_regions<'a, I, K>(
+pub(crate) fn write_regions<'payload, I, K>(
     kind: Kind,
     keys: &IdSlice<I, K>,
-    auxiliary: impl IntoIterator<Item = &'a K::Payload>,
+    auxiliary: impl IntoIterator<Item = &'payload K::Payload>,
     mut write: impl io::Write,
 ) -> io::Result<()>
 where
     I: Id,
-    K: Key<Payload: 'a>,
+    K: Key<Payload: 'payload>,
 {
     const {
         assert!(
