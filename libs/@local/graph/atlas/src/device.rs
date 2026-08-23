@@ -2,8 +2,8 @@
 //!
 //! Burn's [`Dispatch`] backend carries one runtime-selected device through every tensor stage.
 //! [`Device`] names the supported execution families, and [`Device::host`] derives the accelerated
-//! family for the host. CPU execution uses `NdArray`, CUDA selects a CubeCL CUDA device by ordinal,
-//! and Metal delegates adapter selection to CubeCL's WGPU default device.
+//! family for the host. CPU execution uses `NdArray`, CUDA selects a `CubeCL` CUDA device by
+//! ordinal, and Metal delegates adapter selection to `CubeCL`'s WGPU default device.
 
 use core::{error::Error, fmt, num::ParseIntError, str::FromStr};
 
@@ -25,9 +25,9 @@ pub(crate) type Training = Autodiff<Inference>;
 /// A tensor execution family selected at runtime.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Device {
-    /// Metal through CubeCL's WGPU runtime.
+    /// Metal through `CubeCL`'s WGPU runtime.
     Metal,
-    /// CUDA through CubeCL's CUDA runtime.
+    /// CUDA through `CubeCL`'s CUDA runtime.
     Cuda,
     /// CPU execution through `NdArray`.
     Cpu,
@@ -51,8 +51,8 @@ impl Device {
     /// Records an ordinal beside this family.
     ///
     /// CUDA selects the device at that ordinal. CPU and Metal retain the ordinal in their parsed
-    /// and displayed form, while their backend selectors choose the logical CPU and CubeCL's WGPU
-    /// default device respectively.
+    /// and displayed form, while their backend selectors choose the logical CPU and `CubeCL`'s
+    /// WGPU default device respectively.
     #[must_use]
     pub const fn pin(self, ordinal: usize) -> PinnedDevice {
         PinnedDevice(self, ordinal)

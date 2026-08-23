@@ -35,7 +35,7 @@
 //! # Crate features
 //!
 //! [`device::PinnedDevice`] selects CPU, CUDA, or Metal at runtime. CPU dispatches to `NdArray`,
-//! while CUDA and Metal dispatch to CubeCL. Cargo features expose tools around that runtime:
+//! while CUDA and Metal dispatch to `CubeCL`. Cargo features expose tools around that runtime:
 //!
 //! - `bench` exposes `bench`, the measurement hooks the five `[[bench]]` targets in `Cargo.toml`
 //!   consume. The lab instruments the standalone binary runs stay outside it and build with the
