@@ -54,7 +54,7 @@ Every expression is type-checked as you work. The open editor marks problems inl
 
 In the optimization drawer, every value slot -- cells, counts, variables, shared columns, and net parameters -- carries an **Optimize** toggle at the bottom right of its editor. Turning it on replaces the expression input with a search domain: **Min**, **Max**, and **Scale** (linear or logarithmic), plus **Step** for integer values other than counts. Turning it off restores the expression you had, and the bounds are remembered too. An optimized value shows its bounds (`0 … 12`) on a purple slot.
 
-At least one Optimize selection is required to run. Boolean values and text fields cannot be optimized.
+At least one Optimize selection is required to run; a cell muted by a shared column does not count. Text fields cannot be optimized; a boolean value optimizes as a true/false choice with no bounds.
 
 Each selection becomes a generated scenario parameter with a deterministic name, and optimization results attribute back to your selections by these names:
 
