@@ -250,13 +250,17 @@ impl ProximalCalibrationEvidence {
 
         let stability = boundary
             .calibration
-            .stability
-            .as_ref()
+            .stability()
             .expect("a measured boundary carries its evaluated certificate");
 
         Some(Self {
             radius,
-            types: boundary.calibration.types.iter().map(From::from).collect(),
+            types: boundary
+                .calibration
+                .types()
+                .iter()
+                .map(From::from)
+                .collect(),
             fractions: fractions
                 .iter()
                 .map(|reading| RefreshFractionEvidence {

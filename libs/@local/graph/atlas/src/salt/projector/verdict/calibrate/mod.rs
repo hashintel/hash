@@ -56,11 +56,11 @@ use self::stability::StabilityCertificate;
 use crate::{
     identity::OntologyRowId,
     math::{
-        DNonNegative, DPositive, Derivation, FinitePointField, NonNegative, OpenUnitFraction,
-        Positive,
+        DNonNegative, DPositive, Derivation, NonNegative, OpenUnitFraction, Positive,
+        open_unit_fraction,
     },
     salt::{
-        projector::scale::LocalScales,
+        projector::scale::ScaledFrame,
         relation::attraction::{AttractionGroup, AttractionIndex},
     },
 };
@@ -122,17 +122,170 @@ pub(crate) struct ProximalCalibration {
     /// The weighted 25th percentile of `z` over all reviewed-Proximal pairs. [`None`] when no pair
     /// carries mass - the caller decides whether that is an error (proximal mass exists elsewhere,
     /// nothing reviewed to calibrate from) or a vacuous no-op.
-    pub radius: Option<NonNegative>,
+    radius: Option<NonNegative>,
     /// Per-type evidence, in the order the verdicts resolve (ascending by relation row).
-    pub types: Vec<TypeCalibration>,
+    types: Vec<TypeCalibration>,
     /// The reviews arm's stability certificate over the pooled population.
     ///
     /// Present exactly when [`Self::radius`] is: the certificate is an evaluated reading of the
     /// same positive-mass population the radius froze from.
-    pub stability: Option<StabilityCertificate>,
+    stability: Option<StabilityCertificate>,
 }
 
 impl ProximalCalibration {
+    /// Returns the calibration for a run with no measured population. Its radius and certificate
+    /// are absent.
+    ///
+    /// A forceless corpus carries no reviewed-Proximal geometry at all, so the record states
+    /// the absence directly rather than measuring an empty population.
+    pub(crate) const fn vacuous() -> Self {
+        Self {
+            radius: None,
+            types: Vec::new(),
+            stability: None,
+        }
+    }
+
+    /// A calibration assembled from the given readings, for fixtures.
+    ///
+    /// # Panics
+    ///
+    /// This panics when `radius` and `stability` disagree on presence: the certificate is an
+    /// evaluated reading of the same positive-mass population the radius froze from, so a
+    /// fixture carrying one without the other states an impossible record.
+    #[cfg(test)]
+    pub(crate) fn fixture(
+        radius: Option<NonNegative>,
+        types: Vec<TypeCalibration>,
+        stability: Option<StabilityCertificate>,
+    ) -> Self {
+        assert_eq!(
+            radius.is_some(),
+            stability.is_some(),
+            "the certificate is present exactly when the radius is",
+        );
+        Self {
+            radius,
+            types,
+            stability,
+        }
+    }
+
+    /// Measures the reviewed-Proximal `z` population and its percentiles.
+    ///
+    /// This skips verdicts with a class other than Proximal, because Overlay carries no geometry
+    /// and Coincident calibrates its own radius when enabled. A Proximal verdict whose relation
+    /// has no attraction group contributes a zero-mass evidence entry.
+    ///
+    /// # Panics
+    ///
+    /// This panics when an edge references a row outside the frame. The index and the frame
+    /// describe one corpus, so a mismatch is a wiring defect. A pair whose reading or force
+    /// weight falls outside its validated domain panics for the same reason: the coordinates,
+    /// scales, and force factors that produce them are all validated upstream.
+    pub(crate) fn new<N, E>(
+        verdicts: &[ResolvedVerdict],
+        index: &AttractionIndex<N, E>,
+        frame: ScaledFrame<'_, N>,
+        options: CalibrationOptions,
+    ) -> Self
+    where
+        N: Id,
+    {
+        let groups = index.groups();
+
+        // Entries carry the owning type's ordinal in `types` so the
+        // leave-one-type-out radii can exclude a type without copying.
+        let mut population: Vec<(NonNegative, DNonNegative, u32)> = Vec::new();
+        let mut types: Vec<TypeCalibration> = Vec::new();
+
+        for verdict in verdicts {
+            if verdict.placement != PlacementClass::Proximal {
+                continue;
+            }
+
+            let Ok(position) = groups.binary_search_by_key(&verdict.relation.as_u64(), |group| {
+                group.relation().as_u64()
+            }) else {
+                types.push(TypeCalibration {
+                    relation: verdict.relation,
+                    pairs: 0,
+                    mass: DNonNegative::ZERO,
+                    quantiles: None,
+                    radius_without: None,
+                });
+                continue;
+            };
+
+            let group = &groups[position];
+            let edges = group.edges();
+
+            let tag = u32::try_from(types.len()).expect("the verdict list is far shorter than u32");
+            let start = population.len();
+            // Accumulated in double precision, in the group's edge order.
+            let mut mass = Derivation::<DNonNegative>::ZERO;
+            for reading in group_readings(group, frame, options) {
+                mass += reading.weight;
+                population.push((reading.z, reading.weight, tag));
+            }
+            let mass = mass
+                .finish()
+                .expect("a type mass whose weight sum overflows is a defect of the weights");
+
+            let slice = &mut population[start..];
+            slice.sort_unstable_by(|left, right| left.0.get().total_cmp(&right.0.get()));
+            let quantiles = (mass > 0.0).then(|| {
+                let entries = slice.iter().map(|&(z, weight, _)| (z, weight));
+
+                [
+                    weighted_quantile(entries.clone(), mass, open_unit_fraction!(0.25)),
+                    weighted_quantile(entries.clone(), mass, open_unit_fraction!(0.5)),
+                    weighted_quantile(entries, mass, open_unit_fraction!(0.75)),
+                ]
+            });
+
+            types.push(TypeCalibration {
+                relation: verdict.relation,
+                pairs: edges.len(),
+                mass,
+                quantiles,
+                radius_without: None,
+            });
+        }
+
+        let mut total = Derivation::<DNonNegative>::ZERO;
+        for entry in &types {
+            total += entry.mass;
+        }
+        let total = total
+            .finish()
+            .expect("a pooled mass whose weight sum overflows is a defect of the weights");
+        population.sort_unstable_by(|left, right| left.0.get().total_cmp(&right.0.get()));
+        let radius = (total > 0.0).then(|| {
+            weighted_quantile(
+                population.iter().map(|&(z, weight, _)| (z, weight)),
+                total,
+                RADIUS_FRACTION,
+            )
+        });
+        let stability = (total > 0.0).then(|| {
+            stability::evaluate(
+                population.iter().map(|&(z, weight, _)| (z, weight)),
+                types.iter().map(|entry| entry.mass),
+                population.len(),
+                DPositive::from(options.temperature),
+            )
+        });
+
+        assign_radius_without(&mut types, &population);
+
+        Self {
+            radius,
+            types,
+            stability,
+        }
+    }
+
     /// How far a single omitted type moves the pooled radius.
     ///
     /// The maximum of `|R_{-t} - R|` over the types with a leave-one-out reading. [`None`]
@@ -145,6 +298,18 @@ impl ProximalCalibration {
             .filter_map(|entry| entry.radius_without)
             .map(|without| (without.widen() - radius).abs())
             .max()
+    }
+
+    pub(crate) const fn radius(&self) -> Option<NonNegative> {
+        self.radius
+    }
+
+    pub(crate) const fn types(&self) -> &[TypeCalibration] {
+        &self.types
+    }
+
+    pub(crate) const fn stability(&self) -> Option<&StabilityCertificate> {
+        self.stability.as_ref()
     }
 }
 
@@ -164,13 +329,13 @@ struct PairReading {
 /// read their populations through it, so the readings cannot drift apart.
 fn group_readings<'group, N, E>(
     group: &'group AttractionGroup<N, E>,
-    coordinates: &'group FinitePointField<N>,
-    scales: &'group LocalScales<N>,
+    frame: ScaledFrame<'group, N>,
     options: CalibrationOptions,
 ) -> impl Iterator<Item = PairReading> + 'group
 where
     N: Id,
 {
+    let (coordinates, scales) = (frame.coordinates(), frame.scales());
     let edges = group.edges();
     // The pair's inclusion probability once the sampler draws its type. The uniform type draw
     // itself is constant across types and drops out of the percentile.
@@ -235,132 +400,9 @@ fn assign_radius_without(
                     .filter(|&&(_, _, owner)| owner != tag)
                     .map(|&(z, weight, _)| (z, weight)),
                 remaining,
-                RADIUS_FRACTION.get(),
+                RADIUS_FRACTION,
             )
         });
-    }
-}
-
-/// Measures the reviewed-Proximal `z` population and its percentiles.
-///
-/// This skips verdicts with a class other than Proximal, because Overlay carries no geometry and
-/// Coincident calibrates its own radius when enabled. A Proximal verdict whose relation has no
-/// attraction group contributes a zero-mass evidence entry.
-///
-/// # Panics
-///
-/// This panics when the scales do not cover the coordinate rows, or when an edge references a row
-/// outside them. The index, coordinates, and scales all describe one corpus, so a mismatch is a
-/// wiring defect. A pair whose reading or force weight falls outside its validated domain panics
-/// for the same reason: the coordinates, scales, and force factors that produce them are all
-/// validated upstream.
-pub(crate) fn calibrate<N, E>(
-    verdicts: &[ResolvedVerdict],
-    index: &AttractionIndex<N, E>,
-    coordinates: &FinitePointField<N>,
-    scales: &LocalScales<N>,
-    options: CalibrationOptions,
-) -> ProximalCalibration
-where
-    N: Id,
-{
-    assert_eq!(
-        scales.len(),
-        coordinates.len(),
-        "local scales and coordinates should cover the same rows"
-    );
-
-    let groups = index.groups();
-
-    // Entries carry the owning type's ordinal in `types` so the
-    // leave-one-type-out radii can exclude a type without copying.
-    let mut population: Vec<(NonNegative, DNonNegative, u32)> = Vec::new();
-    let mut types: Vec<TypeCalibration> = Vec::new();
-
-    for verdict in verdicts {
-        if verdict.placement != PlacementClass::Proximal {
-            continue;
-        }
-
-        let Ok(position) = groups.binary_search_by_key(&verdict.relation.as_u64(), |group| {
-            group.relation().as_u64()
-        }) else {
-            types.push(TypeCalibration {
-                relation: verdict.relation,
-                pairs: 0,
-                mass: DNonNegative::ZERO,
-                quantiles: None,
-                radius_without: None,
-            });
-            continue;
-        };
-
-        let group = &groups[position];
-        let edges = group.edges();
-
-        let tag = u32::try_from(types.len()).expect("the verdict list is far shorter than u32");
-        let start = population.len();
-        // Accumulated in double precision, in the group's edge order.
-        let mut mass = Derivation::<DNonNegative>::ZERO;
-        for reading in group_readings(group, coordinates, scales, options) {
-            mass += reading.weight;
-            population.push((reading.z, reading.weight, tag));
-        }
-        let mass = mass
-            .finish()
-            .expect("a type mass whose weight sum overflows is a defect of the weights");
-
-        let slice = &mut population[start..];
-        slice.sort_unstable_by(|left, right| left.0.get().total_cmp(&right.0.get()));
-        let quantiles = (mass > 0.0).then(|| {
-            let entries = slice.iter().map(|&(z, weight, _)| (z, weight));
-
-            [
-                weighted_quantile(entries.clone(), mass, 0.25),
-                weighted_quantile(entries.clone(), mass, 0.5),
-                weighted_quantile(entries, mass, 0.75),
-            ]
-        });
-
-        types.push(TypeCalibration {
-            relation: verdict.relation,
-            pairs: edges.len(),
-            mass,
-            quantiles,
-            radius_without: None,
-        });
-    }
-
-    let mut total = Derivation::<DNonNegative>::ZERO;
-    for entry in &types {
-        total += entry.mass;
-    }
-    let total = total
-        .finish()
-        .expect("a pooled mass whose weight sum overflows is a defect of the weights");
-    population.sort_unstable_by(|left, right| left.0.get().total_cmp(&right.0.get()));
-    let radius = (total > 0.0).then(|| {
-        weighted_quantile(
-            population.iter().map(|&(z, weight, _)| (z, weight)),
-            total,
-            RADIUS_FRACTION.get(),
-        )
-    });
-    let stability = (total > 0.0).then(|| {
-        stability::evaluate(
-            population.iter().map(|&(z, weight, _)| (z, weight)),
-            types.iter().map(|entry| entry.mass),
-            population.len(),
-            DPositive::from(options.temperature),
-        )
-    });
-
-    assign_radius_without(&mut types, &population);
-
-    ProximalCalibration {
-        radius,
-        types,
-        stability,
     }
 }
 
@@ -377,27 +419,19 @@ where
 ///
 /// # Panics
 ///
-/// This panics when the scales do not cover the coordinate rows, or when an edge references a
-/// row outside them - the same one-corpus wiring contract as [`calibrate`], and the same
-/// validated-domain contract on every pair's reading and force weight. It also panics when a
-/// weight sum overflows, which is a defect of the weights.
+/// This panics when an edge references a row outside the frame - the same one-corpus wiring
+/// contract as [`calibrate`], and the same validated-domain contract on every pair's reading and
+/// force weight. It also panics when a weight sum overflows, which is a defect of the weights.
 pub(crate) fn reviewed_fraction_within<N, E>(
     verdicts: &[ResolvedVerdict],
     index: &AttractionIndex<N, E>,
-    coordinates: &FinitePointField<N>,
-    scales: &LocalScales<N>,
+    frame: ScaledFrame<'_, N>,
     options: CalibrationOptions,
     radius: NonNegative,
 ) -> Option<DNonNegative>
 where
     N: Id,
 {
-    assert_eq!(
-        scales.len(),
-        coordinates.len(),
-        "local scales and coordinates should cover the same rows"
-    );
-
     let groups = index.groups();
     let mut total = Derivation::<DNonNegative>::ZERO;
     let mut within = Derivation::<DNonNegative>::ZERO;
@@ -412,7 +446,7 @@ where
             continue;
         };
 
-        for reading in group_readings(&groups[position], coordinates, scales, options) {
+        for reading in group_readings(&groups[position], frame, options) {
             total += reading.weight;
             if reading.z <= radius {
                 within += reading.weight;
@@ -439,7 +473,7 @@ where
 fn weighted_quantile(
     sorted: impl IntoIterator<Item = (NonNegative, DNonNegative)>,
     total: DNonNegative,
-    fraction: f64,
+    fraction: OpenUnitFraction,
 ) -> NonNegative {
     let threshold = fraction * total;
     let mut cumulative = Derivation::<DNonNegative>::ZERO;
@@ -447,6 +481,7 @@ fn weighted_quantile(
     for (z, weight) in sorted {
         cumulative += weight;
         last = Some(z);
+
         if cumulative.into_raw() >= threshold {
             return z;
         }

@@ -46,7 +46,7 @@ use crate::{
         DVec2, FinitePointField, NonNegative, Positive, PositiveUnitFraction, UnitFraction, Vec2,
     },
     salt::{
-        projector::scale::LocalScales,
+        projector::scale::ScaledFrame,
         relation::{attraction::AttractionWeights, protection::NodePair},
     },
 };
@@ -246,11 +246,10 @@ where
 ///
 /// # Panics
 ///
-/// This panics when the scales do not cover the coordinate rows, or when an edge references a row
-/// outside them. All three come from one batch assembly, so a mismatch is a wiring defect.
+/// This panics when an edge references a row outside the frame. The batch and the frame come
+/// from one assembly, so a mismatch is a wiring defect.
 pub(crate) fn relation_term<N>(
-    coordinates: &FinitePointField<N>,
-    scales: &LocalScales<N>,
+    frame: ScaledFrame<'_, N>,
     batch: &[RelationEdges<N>],
     energy: RelationEnergy,
     scale: f32,
@@ -259,12 +258,7 @@ pub(crate) fn relation_term<N>(
 where
     N: Id,
 {
-    assert_eq!(
-        scales.len(),
-        coordinates.len(),
-        "local scales and coordinates should cover the same rows"
-    );
-
+    let (coordinates, scales) = (frame.coordinates(), frame.scales());
     let epsilon = energy.epsilon();
 
     // Accumulated in double precision, products included.

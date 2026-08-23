@@ -157,6 +157,71 @@ where
     }
 }
 
+/// A placed frame beside local scales covering the same rows.
+///
+/// The pairing claims one row domain and nothing more. Scales are detached measurements that a
+/// consumer may read against a re-forwarded frame from a later step, so which frame measured them
+/// stays the call site's contract rather than this type's.
+#[derive(Debug)]
+pub(crate) struct ScaledFrame<'frame, N> {
+    /// The placed coordinates.
+    coordinates: &'frame FinitePointField<N>,
+    /// The rows' local scales.
+    scales: &'frame LocalScales<N>,
+}
+
+// Manual, so the copy exists for every `N`: the derives would demand `N: Copy` for two borrowed
+// fields that copy regardless.
+impl<N> Clone for ScaledFrame<'_, N> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<N> Copy for ScaledFrame<'_, N> {}
+
+impl<'frame, N> ScaledFrame<'frame, N>
+where
+    N: Id,
+{
+    /// Pairs a placed frame with local scales over its rows.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the scales do not cover the coordinate rows: the pair describes one
+    /// corpus, so a mismatch is a wiring defect.
+    #[must_use]
+    pub(crate) fn new(
+        coordinates: &'frame FinitePointField<N>,
+        scales: &'frame LocalScales<N>,
+    ) -> Self {
+        assert_eq!(
+            scales.len(),
+            coordinates.len(),
+            "local scales and coordinates should cover the same rows"
+        );
+
+        Self {
+            coordinates,
+            scales,
+        }
+    }
+
+    /// Borrows the placed coordinates.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn coordinates(&self) -> &'frame FinitePointField<N> {
+        self.coordinates
+    }
+
+    /// Borrows the rows' local scales.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn scales(&self) -> &'frame LocalScales<N> {
+        self.scales
+    }
+}
+
 /// Inserts a key into an ascending bounded nearest-key array.
 ///
 /// The array holds the smallest keys seen so far in ascending order, pre-filled with a maximal

@@ -2,7 +2,7 @@ use core::num::NonZero;
 
 use hashql_core::id::{Id as _, IdSlice};
 
-use super::{CalibrationOptions, ProximalCalibration, calibrate, reviewed_fraction_within};
+use super::{CalibrationOptions, ProximalCalibration, reviewed_fraction_within};
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
@@ -12,7 +12,7 @@ use crate::{
     salt::{
         policy::ClassProbabilities,
         projector::{
-            scale::LocalScales,
+            scale::{LocalScales, ScaledFrame},
             verdict::{PlacementClass, ResolvedVerdict},
         },
         relation::{
@@ -118,11 +118,10 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
         scale(24.75),
     ])));
 
-    let outcome = calibrate(
+    let outcome = ProximalCalibration::new(
         &[proximal_verdict(5)],
         &index,
-        frame(&coordinates),
-        &scales,
+        ScaledFrame::new(frame(&coordinates), &scales),
         options(4),
     );
 
@@ -160,11 +159,10 @@ fn radius_is_the_weighted_p25() {
     ];
     let scales = unit_scales(8);
 
-    let outcome = calibrate(
+    let outcome = ProximalCalibration::new(
         &[proximal_verdict(5)],
         &index,
-        frame(&coordinates),
-        &scales,
+        ScaledFrame::new(frame(&coordinates), &scales),
         options(4),
     );
 
@@ -208,7 +206,12 @@ fn cap_bounds_a_high_volume_type() {
 
     // Cap 2: type 5's pairs sample at 2/8, so both types weigh 1.0 and
     // type 9's first pair crosses the p25 threshold (0.5).
-    let capped = calibrate(&verdicts, &index, frame(&coordinates), &scales, options(2));
+    let capped = ProximalCalibration::new(
+        &verdicts,
+        &index,
+        ScaledFrame::new(frame(&coordinates), &scales),
+        options(2),
+    );
     assert_eq!(capped.radius, Some(non_negative!(1.0)));
     assert_eq!(capped.types[0].mass, d_non_negative!(1.0));
     assert_eq!(capped.types[1].mass, d_non_negative!(1.0));
@@ -222,7 +225,12 @@ fn cap_bounds_a_high_volume_type() {
 
     // Cap 8: type 5 weighs 4.0 against type 9's 1.0 and buys the
     // radius with volume - the behaviour the sampler factor forbids.
-    let uncapped = calibrate(&verdicts, &index, frame(&coordinates), &scales, options(8));
+    let uncapped = ProximalCalibration::new(
+        &verdicts,
+        &index,
+        ScaledFrame::new(frame(&coordinates), &scales),
+        options(8),
+    );
     assert_eq!(uncapped.radius, Some(non_negative!(5.0)));
 }
 
@@ -256,11 +264,10 @@ fn hubs_are_discounted_by_degree() {
     ];
     let scales = unit_scales(11);
 
-    let outcome = calibrate(
+    let outcome = ProximalCalibration::new(
         &[proximal_verdict(5), proximal_verdict(9)],
         &index,
-        frame(&coordinates),
-        &scales,
+        ScaledFrame::new(frame(&coordinates), &scales),
         options(4),
     );
 
@@ -308,7 +315,12 @@ fn missing_groups_and_foreign_classes_contribute_nothing() {
         },
     ];
 
-    let outcome = calibrate(&verdicts, &index, frame(&coordinates), &scales, options(4));
+    let outcome = ProximalCalibration::new(
+        &verdicts,
+        &index,
+        ScaledFrame::new(frame(&coordinates), &scales),
+        options(4),
+    );
 
     assert_eq!(outcome.radius, None);
     assert_eq!(outcome.types.len(), 1);
@@ -325,7 +337,12 @@ fn no_verdicts_yield_no_radius() {
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
     let scales = unit_scales(2);
 
-    let outcome = calibrate(&[], &index, frame(&coordinates), &scales, options(4));
+    let outcome = ProximalCalibration::new(
+        &[],
+        &index,
+        ScaledFrame::new(frame(&coordinates), &scales),
+        options(4),
+    );
 
     assert_eq!(
         outcome,
@@ -363,8 +380,7 @@ fn the_fraction_instrument_re_measures_the_freeze_population() {
     let at_radius = reviewed_fraction_within(
         &verdicts,
         &index,
-        frame,
-        &scales,
+        ScaledFrame::new(frame, &scales),
         options(4),
         non_negative!(1.0),
     );
@@ -374,8 +390,7 @@ fn the_fraction_instrument_re_measures_the_freeze_population() {
     let between = reviewed_fraction_within(
         &verdicts,
         &index,
-        frame,
-        &scales,
+        ScaledFrame::new(frame, &scales),
         options(4),
         non_negative!(2.5),
     );
@@ -385,16 +400,20 @@ fn the_fraction_instrument_re_measures_the_freeze_population() {
     let below = reviewed_fraction_within(
         &verdicts,
         &index,
-        frame,
-        &scales,
+        ScaledFrame::new(frame, &scales),
         options(4),
         non_negative!(0.5),
     );
     assert_eq!(below, Some(d_non_negative!(0.0)));
 
     // No reviewed mass at all reads absent, never zero.
-    let unreviewed =
-        reviewed_fraction_within(&[], &index, frame, &scales, options(4), non_negative!(1.0));
+    let unreviewed = reviewed_fraction_within(
+        &[],
+        &index,
+        ScaledFrame::new(frame, &scales),
+        options(4),
+        non_negative!(1.0),
+    );
     assert_eq!(unreviewed, None);
 }
 
@@ -417,11 +436,10 @@ fn the_calibration_carries_its_stability_certificate() {
     ];
     let scales = unit_scales(8);
 
-    let outcome = calibrate(
+    let outcome = ProximalCalibration::new(
         &[proximal_verdict(5)],
         &index,
-        frame(&coordinates),
-        &scales,
+        ScaledFrame::new(frame(&coordinates), &scales),
         options(4),
     );
 
@@ -448,7 +466,12 @@ fn the_calibration_carries_its_stability_certificate() {
     assert_eq!(certificate.type_effective_support, d_positive!(1.0));
 
     // A vacuous measurement carries no certificate.
-    let vacuous = calibrate(&[], &index, frame(&coordinates), &scales, options(4));
+    let vacuous = ProximalCalibration::new(
+        &[],
+        &index,
+        ScaledFrame::new(frame(&coordinates), &scales),
+        options(4),
+    );
     assert_eq!(vacuous.stability, None);
 }
 
@@ -475,11 +498,10 @@ fn the_leave_one_out_spread_reads_the_owning_review() {
     ];
     let scales = unit_scales(8);
 
-    let outcome = calibrate(
+    let outcome = ProximalCalibration::new(
         &[proximal_verdict(5), proximal_verdict(9)],
         &index,
-        frame(&coordinates),
-        &scales,
+        ScaledFrame::new(frame(&coordinates), &scales),
         options(4),
     );
 

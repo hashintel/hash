@@ -7,7 +7,10 @@
 use core::num::NonZero;
 
 use crate::{
-    math::{NonNegative, Positive, PositiveUnitFraction, UnitFraction},
+    math::{
+        NonNegative, Positive, PositiveUnitFraction, UnitFraction, nz, positive_unit_fraction,
+        unit_fraction,
+    },
     salt::projector::{
         budget::Budget,
         loss::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy, SupportOptions},
@@ -60,6 +63,23 @@ impl TrainingSchedule {
             initial_learning_rate,
             minimum_learning_rate,
         })
+    }
+
+    /// Builds the ratified schedule shrunk to a requested step count.
+    ///
+    /// The midpoint boundary splits the opening segment and the ladder evenly, mirroring the
+    /// ratified schedule's shape. The learning-rate envelope and the refresh cadence stay the
+    /// ratified ones.
+    #[must_use]
+    pub(crate) const fn shortened(steps: NonZero<usize>) -> Self {
+        Self::new(
+            steps,
+            steps.get().div_euclid(2),
+            nz!(250),
+            positive_unit_fraction!(1.0e-3),
+            unit_fraction!(1.0e-5),
+        )
+        .expect("the ratified schedule domain admits any step count")
     }
 
     /// Returns the run length in steps.

@@ -19,7 +19,7 @@ use super::{
     super::{
         super::{
             STEPS, StepError,
-            batch::{NodeColumns, ROW_ALIGNMENT, materialize_input},
+            batch::{NodeColumns, ROW_ALIGNMENT},
             refresh,
             step::read_frame_finite,
         },
@@ -255,10 +255,9 @@ where
         // The two-step forwards. Each step's values read back from its own tensor, so every
         // reading the estimator takes shares a graph with the tensor its gradient deposits
         // through.
-        let canonical_tensor = forward.model.forward(materialize_input(
+        let canonical_tensor = forward.model.forward(forward.columns.input_gather(
             &pass.rows,
             context.canonical_eta(),
-            forward.columns,
             forward.device,
             ROW_ALIGNMENT,
         ));
@@ -266,10 +265,9 @@ where
             read_frame_finite(canonical_tensor.clone().inner()).map_err(diverged)?;
         let canonical_point_field = canonical_complete_field.prefix(pass.rows.bound());
 
-        let zero_tensor = forward.model.forward(materialize_input(
+        let zero_tensor = forward.model.forward(forward.columns.input_gather(
             &pass.rows,
             STEPS[0],
-            forward.columns,
             forward.device,
             ROW_ALIGNMENT,
         ));

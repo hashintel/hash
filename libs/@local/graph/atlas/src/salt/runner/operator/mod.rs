@@ -33,7 +33,7 @@ use crate::{
         postgres::PostgresDatasetError,
     },
     device::PinnedDevice,
-    math::{AffinityCurve, positive, positive_unit_fraction, unit_fraction},
+    math::{AffinityCurve, positive},
     salt::{
         embedding::external::ExternalEmbeddingError,
         fit::{
@@ -60,9 +60,6 @@ const DEFAULT_ANCHORS: NonZero<usize> = const { NonZero::new(1_024).unwrap() };
 
 /// The default comparison sample of the admission probe.
 const DEFAULT_COMPARISONS: NonZero<usize> = const { NonZero::new(4_096).unwrap() };
-
-/// The refresh cadence of a step-count-overridden projector run.
-const REFRESH: NonZero<usize> = const { NonZero::new(250).unwrap() };
 
 /// The relation classifier's supply, the one input every run names.
 ///
@@ -273,21 +270,6 @@ impl core::error::Error for RunError {
     }
 }
 
-/// Builds the ratified schedule shrunk to a requested step count.
-///
-/// The midpoint boundary splits the opening segment and the ladder evenly, mirroring the ratified
-/// schedule's shape. The learning-rate envelope stays the ratified one.
-const fn shortened_schedule(steps: NonZero<usize>) -> TrainingSchedule {
-    TrainingSchedule::new(
-        steps,
-        steps.get().div_euclid(2),
-        REFRESH,
-        positive_unit_fraction!(1.0e-3),
-        unit_fraction!(1.0e-5),
-    )
-    .expect("the ratified schedule domain admits any step count")
-}
-
 /// Opens the run's classifier input from its source.
 ///
 /// # Errors
@@ -338,7 +320,7 @@ fn placement_options(placement: Placement, initial: PlacementOptions) -> Placeme
     let mut projector = match (steps, initial) {
         (Some(steps), _) => {
             let mut projector = ProjectorOptions::ratified();
-            projector.schedule = shortened_schedule(steps);
+            projector.schedule = TrainingSchedule::shortened(steps);
             projector
         }
         (None, PlacementOptions::Projector(projector)) => projector,

@@ -30,7 +30,7 @@ use crate::{
     },
     salt::{
         policy::ClassProbabilities,
-        projector::scale::LocalScales,
+        projector::scale::{LocalScales, ScaledFrame},
         relation::{
             Policies, RelationConfidence, RelationIndexes, RelationInstance, RelationPolicy,
             attraction::{AttractionIndex, AttractionOptions},
@@ -654,8 +654,7 @@ fn relation_term_matches_hand_computed_values() {
     let mut field = GradientField::new(4);
 
     let value = relation_term(
-        proven(&coordinates),
-        &rho,
+        ScaledFrame::new(proven(&coordinates), &rho),
         proximal_only,
         relation_energy(0.25),
         1.0,
@@ -681,8 +680,7 @@ fn relation_term_gradient_matches_finite_differences() {
     let coordinates = frame();
     let mut field = GradientField::new(4);
     relation_term(
-        proven(&coordinates),
-        &rho,
+        ScaledFrame::new(proven(&coordinates), &rho),
         &batch,
         energy,
         scale,
@@ -694,7 +692,13 @@ fn relation_term_gradient_matches_finite_differences() {
             let difference = coordinate_difference(
                 |perturbed| {
                     let mut scratch = GradientField::new(4);
-                    relation_term(proven(perturbed), &rho, &batch, energy, scale, &mut scratch)
+                    relation_term(
+                        ScaledFrame::new(proven(perturbed), &rho),
+                        &batch,
+                        energy,
+                        scale,
+                        &mut scratch,
+                    )
                 },
                 &coordinates,
                 row,
@@ -719,8 +723,7 @@ fn relation_term_skips_gradient_at_coincident_points() {
     let mut field = GradientField::new(4);
 
     let value = relation_term(
-        proven(&coordinates),
-        &rho,
+        ScaledFrame::new(proven(&coordinates), &rho),
         &batch,
         relation_energy(0.25),
         1.0,

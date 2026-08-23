@@ -43,10 +43,9 @@ use crate::{
     math::{AlignedVecN, Bounds2, MatrixN, NonNegative, Similarity, Vec2},
     salt::{
         fit::PlacementOptions,
-        ladder::report::CERTIFICATE_TOLERANCE,
         lod::stage::WIRE_FRAME,
         projector::{
-            artifact,
+            artifact::{self, CERTIFICATE_TOLERANCE},
             model::{NodeRole, Projector},
             train::{batch::NodeColumns, refresh},
         },

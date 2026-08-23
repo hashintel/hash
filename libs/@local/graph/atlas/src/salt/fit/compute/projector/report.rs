@@ -34,7 +34,7 @@ use crate::{
         projector::{
             loss::RelationEnergy,
             model::Projector,
-            scale::LocalScales,
+            scale::ScaledFrame,
             train::{NodeColumns, refresh},
         },
         relation::attraction::AttractionIndex,
@@ -99,8 +99,7 @@ impl<'fit> LadderPass<'fit> {
             let scales = refresh::scales(&distinct_frame, &inputs.knn, eta)
                 .map_err(|error| error.map_rows(|row| inputs.quotient.representative(row)))?;
             readouts.push(RelationLossReadout::measure(
-                &distinct_frame,
-                &scales,
+                ScaledFrame::new(&distinct_frame, &scales),
                 inputs.attraction,
                 energy,
                 options.plan.relation_cap,
@@ -209,10 +208,13 @@ impl<'fit> LadderPass<'fit> {
         let distinct_frame = inputs.quotient.training_frame(frame);
         let scales = refresh::scales(&distinct_frame, &inputs.knn, condition)
             .map_err(|error| error.map_rows(|row| inputs.quotient.representative(row)))?;
-        Ok(
-            RelationLossReadout::measure(&distinct_frame, &scales, inputs.attraction, energy, cap)
-                .uncapped_total,
+        Ok(RelationLossReadout::measure(
+            ScaledFrame::new(&distinct_frame, &scales),
+            inputs.attraction,
+            energy,
+            cap,
         )
+        .uncapped_total)
     }
 
     /// Measures the paired-movement readout over the staged attraction index.
@@ -486,8 +488,7 @@ impl RelationLossReadout {
     /// The per-instance formula is the batch relation term's with the estimator scale at one, and
     /// the twin lives at [`relation_term`](crate::salt::projector::loss::relation_term).
     pub(super) fn measure<N, E>(
-        frame: &FinitePointField<N>,
-        scales: &LocalScales<N>,
+        frame: ScaledFrame<'_, N>,
         index: &AttractionIndex<N, E>,
         energy: RelationEnergy,
         cap: NonZero<usize>,
@@ -496,6 +497,7 @@ impl RelationLossReadout {
         N: Id,
         E: Id,
     {
+        let (frame, scales) = (frame.coordinates(), frame.scales());
         let epsilon = energy.epsilon();
 
         // The mixture readings are raw and can carry an f32 overflow, so every accumulation chain

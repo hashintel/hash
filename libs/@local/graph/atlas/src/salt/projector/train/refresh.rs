@@ -13,9 +13,9 @@
 //! Ticks run at a configured cadence rather than per step. The artifacts a tick produces stay stale
 //! between ticks, and that staleness is what keeps their cost off the step path.
 
-use core::{error::Error, fmt, num::NonZero, ops::Range};
+use core::{error::Error, fmt, num::NonZero};
 
-use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
+use burn::tensor::backend::Backend;
 use hashql_core::id::{Id, IdSlice, IdVec};
 
 use super::{
@@ -24,14 +24,13 @@ use super::{
     metrics::{DegreeDeciles, DisplacementSummary, TypeParticipants},
 };
 use crate::{
-    dataset::PROJECTOR_DIMENSIONS,
     math::{FinitePointField, NonFinitePoint, NonNegative, Vec2},
     progress::Progress,
     salt::{
         knn::table::KnnView,
         projector::{
             miner::{HardNegativeMiner, MinedFrame, SpatialField},
-            model::{Projector, ProjectorInput},
+            model::Projector,
             scale::LocalScales,
         },
     },
@@ -314,7 +313,7 @@ where
 
     while start < rows {
         let end = (start + forward_rows.get()).min(rows);
-        let coordinates = model.forward(slice_input(columns, start..end, eta, device));
+        let coordinates = model.forward(columns.input_range(start..end, eta, device));
         let values = coordinates
             .into_data()
             .to_vec::<f32>()
@@ -356,36 +355,4 @@ where
         row: error.row,
         eta,
     })
-}
-
-/// Materializes one row slice's model input at a step on `device`.
-fn slice_input<N, B: Backend>(
-    columns: NodeColumns<'_, N>,
-    range: Range<usize>,
-    eta: NonNegative,
-    device: &B::Device,
-) -> ProjectorInput<B>
-where
-    N: Id,
-{
-    let rows = range.len();
-    let range = N::from_usize(range.start)..N::from_usize(range.end);
-    let mut representation = Vec::with_capacity(rows * PROJECTOR_DIMENSIONS);
-    let mut roles = Vec::with_capacity(rows);
-    for (vector, role) in columns.representations[range.clone()]
-        .iter()
-        .zip(&columns.roles[range])
-    {
-        representation.extend_from_slice(vector.as_array());
-        roles.push(i64::from(role.index()));
-    }
-
-    ProjectorInput {
-        representation: Tensor::from_data(
-            TensorData::new(representation, [rows, PROJECTOR_DIMENSIONS]),
-            device,
-        ),
-        roles: Tensor::<B, 1, Int>::from_data(TensorData::new(roles, [rows]), device),
-        condition: Tensor::from_data(TensorData::new(vec![eta.get(); rows], [rows, 1]), device),
-    }
 }

@@ -5,7 +5,7 @@
 
 use super::{StabilityBound, Support, evaluate};
 use crate::{
-    math::{DNonNegative, NonNegative, d_non_negative, d_positive, non_negative},
+    math::{DNonNegative, NonNegative, OpenUnitFraction, d_non_negative, d_positive, non_negative},
     salt::projector::verdict::calibrate::weighted_quantile,
 };
 
@@ -38,7 +38,9 @@ fn quantile_matches_the_production_walk() {
 
     for numerator in 1..32_u32 {
         let level = f64::from(numerator) / 32.0;
-        let walked = weighted_quantile(population, d_non_negative!(1.0), level);
+        let fraction =
+            OpenUnitFraction::new(level).expect("1/32 through 31/32 lie strictly inside (0, 1)");
+        let walked = weighted_quantile(population, d_non_negative!(1.0), fraction);
         assert_eq!(
             support.quantile(level).get().to_bits(),
             walked.get().to_bits(),
@@ -62,7 +64,9 @@ fn quantile_ignores_zero_weight_rows_exactly_as_the_production_walk_does() {
 
     for numerator in 1..32_u32 {
         let level = f64::from(numerator) / 32.0;
-        let walked = weighted_quantile(raw, d_non_negative!(1.0), level);
+        let fraction =
+            OpenUnitFraction::new(level).expect("1/32 through 31/32 lie strictly inside (0, 1)");
+        let walked = weighted_quantile(raw, d_non_negative!(1.0), fraction);
         assert_eq!(
             support.quantile(level).get().to_bits(),
             walked.get().to_bits(),

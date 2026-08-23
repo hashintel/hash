@@ -43,7 +43,7 @@ use crate::{
     salt::projector::{
         miner::{HardNegativeMiner, MinedFrame},
         model::Projector,
-        scale::LocalScales,
+        scale::{LocalScales, ScaledFrame},
         verdict::calibrate::{ProximalCalibration, reviewed_fraction_within},
     },
 };
@@ -59,7 +59,7 @@ pub(crate) use self::training::TrainerOptimizerRecord;
 pub(super) use self::training::{RunOutcome, Training, optimizer, scheduler};
 use self::{
     admission::admit,
-    boundary::{BoundaryOutcome, calibration_options, freeze_radius},
+    boundary::{BoundaryOutcome, calibration_options},
     draw::{assemble_batch, step},
 };
 
@@ -379,8 +379,7 @@ where
         reviewed_fraction_within(
             self.inputs.verdicts,
             self.inputs.attraction,
-            frame,
-            &tables[0],
+            ScaledFrame::new(frame, &tables[0]),
             calibration_options(self.options),
             energy.proximal().radius(),
         )
@@ -477,11 +476,7 @@ where
                 BoundaryEvidence {
                     step,
                     radius: FrozenRadius::Vacuous,
-                    calibration: ProximalCalibration {
-                        radius: None,
-                        types: Vec::new(),
-                        stability: None,
-                    },
+                    calibration: ProximalCalibration::vacuous(),
                 },
                 None,
             ));
@@ -494,7 +489,7 @@ where
             self.options.forward_rows,
             device,
         )?;
-        let (energy, boundary) = freeze_radius(&frame, self.inputs, self.options, step)?;
+        let (energy, boundary) = self.freeze_radius(&frame, step)?;
 
         Ok((Some(energy), boundary, Some(frame)))
     }

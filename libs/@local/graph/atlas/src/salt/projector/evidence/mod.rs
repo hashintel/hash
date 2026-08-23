@@ -348,7 +348,11 @@ impl EvaluationEvidence {
             })
             .collect();
 
-        let saturation = saturation_tallies(zero, references.projection, references.strata);
+        let saturation = references
+            .projection
+            .saturation_tallies(zero, references.strata)
+            .into_iter()
+            .collect();
 
         Ok(Self {
             step,
@@ -382,40 +386,38 @@ impl EvaluationEvidence {
     }
 }
 
-/// Folds the per-row saturation tallies against the band's floor.
-///
-/// A row counts as saturated when its squared zero-field displacement from its projection
-/// centre reaches the floor. One entry per populated stratum, in ascending stratum order.
-fn saturation_tallies<N>(
-    zero: &FinitePointField<N>,
-    projection: &BandProjection<N>,
-    strata: &IdSlice<N, StratumId>,
-) -> Vec<SaturationStratum>
+impl<N> BandProjection<N>
 where
     N: Id,
 {
-    let floor = projection.saturation_floor_squared();
-    let mut tallies: BTreeMap<StratumId, (u64, u64)> = BTreeMap::new();
-    for ((&position, &centre), &stratum) in zero
-        .as_raw()
-        .iter()
-        .zip(projection.centre().as_raw())
-        .zip(strata.as_raw())
-    {
-        let squared = (DVec2::from(position) - DVec2::from(centre))
-            .norm_squared()
-            .into_raw();
-        let tally = tallies.entry(stratum).or_insert((0, 0));
-        tally.0 += 1;
-        tally.1 += u64::from(squared >= floor);
-    }
+    /// Folds the per-row saturation tallies against the band's floor.
+    ///
+    /// A row counts as saturated when its squared zero-field displacement from its projection
+    /// centre reaches the floor. One entry per populated stratum, in ascending stratum order.
+    fn saturation_tallies(
+        &self,
+        zero: &FinitePointField<N>,
+        strata: &IdSlice<N, StratumId>,
+    ) -> impl IntoIterator<Item = SaturationStratum, IntoIter: ExactSizeIterator> {
+        let floor = self.saturation_floor_squared();
+        let mut tallies: BTreeMap<StratumId, (u64, u64)> = BTreeMap::new();
+        for ((&position, &centre), &stratum) in
+            zero.iter().zip(self.centre().iter()).zip(strata.iter())
+        {
+            let squared = (DVec2::from(position) - DVec2::from(centre))
+                .norm_squared()
+                .into_raw();
+            let tally = tallies.entry(stratum).or_insert((0, 0));
+            tally.0 += 1;
+            tally.1 += u64::from(squared >= floor);
+        }
 
-    tallies
-        .into_iter()
-        .map(|(stratum, (rows, saturated))| SaturationStratum {
-            stratum,
-            rows,
-            saturated,
-        })
-        .collect()
+        tallies
+            .into_iter()
+            .map(|(stratum, (rows, saturated))| SaturationStratum {
+                stratum,
+                rows,
+                saturated,
+            })
+    }
 }

@@ -32,7 +32,7 @@ use super::{
         TypeParticipants,
     },
     refresh::SnapshotSample,
-    step::evaluate,
+    step::Evaluation,
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
@@ -244,13 +244,13 @@ fn leaf(coordinates: &[f32], rows: usize) -> Tensor<Training, 2> {
 fn leaf_gradient(
     coordinates: &[f32],
     batch: &Batch<NodeRowId>,
-    options: &ObjectiveOptions,
-    deciles: &DegreeDeciles<NodeRowId>,
+    evaluation: &Evaluation<'_, NodeRowId>,
     metrics: &mut BudgetBreakdown,
 ) -> Vec<f32> {
     let leaf = leaf(coordinates, batch.rows.len());
-    let objective =
-        evaluate(leaf.clone(), batch, options, deciles, metrics).expect("the fixture is finite");
+    let objective = evaluation
+        .evaluate(leaf.clone(), batch, metrics)
+        .expect("the fixture is finite");
     let gradients = objective.surrogate.backward();
     leaf.grad(&gradients)
         .expect("the surrogate reaches the coordinate leaf")
@@ -263,6 +263,24 @@ fn leaf_gradient(
 fn unused_deciles() -> DegreeDeciles<NodeRowId> {
     let indexes = relation_indexes(2, &[proximal_policy(3)], vec![instance(0, 3, 0, 1)]);
     DegreeDeciles::new(&indexes.attraction, 2)
+}
+
+/// A run context for driving [`Evaluation::evaluate`] with a hand-built frame.
+///
+/// The columns are empty because `evaluate` never reads them; only [`Evaluation::objective`]
+/// projects through them.
+fn frame_evaluation(
+    options: ObjectiveOptions,
+    deciles: DegreeDeciles<NodeRowId>,
+) -> Evaluation<'static, NodeRowId> {
+    Evaluation {
+        columns: NodeColumns {
+            representations: IdSlice::empty(),
+            roles: IdSlice::empty(),
+        },
+        options,
+        deciles,
+    }
 }
 
 #[test]
@@ -749,24 +767,18 @@ fn objective_matches_the_hand_computed_semantic_field() {
     let batch = Batch::assemble(populations, None);
 
     let coordinates = [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0];
-    let deciles = unused_deciles();
     let mut metrics = BudgetBreakdown::new();
-    let options = options(None, fixture_budget());
+    let evaluation = frame_evaluation(options(None, fixture_budget()), unused_deciles());
 
-    let objective = evaluate(
-        leaf(&coordinates, 4),
-        &batch,
-        &options,
-        &deciles,
-        &mut metrics,
-    )
-    .expect("the fixture is finite");
+    let objective = evaluation
+        .evaluate(leaf(&coordinates, 4), &batch, &mut metrics)
+        .expect("the fixture is finite");
     assert_eq!(objective.loss.semantic, 0.0);
     assert_eq!(objective.loss.ordinary, 0.0);
     assert_eq!(objective.loss.total(), 0.0);
     assert_eq!(objective.surrogate.into_scalar(), -0.5);
 
-    let gradient = leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics);
+    let gradient = leaf_gradient(&coordinates, &batch, &evaluation, &mut metrics);
     assert_eq!(gradient, [-0.5, 0.0, 0.5, 0.0, 0.0, 1.0, 0.0, -1.0]);
 
     // With no relation edges the pass measures and records nothing.
@@ -830,11 +842,13 @@ fn objective_applies_the_relation_field_and_records_the_buckets() {
     let (indexes, scales) = relation_fixture();
     let batch = relation_batch(&indexes, &scales, non_negative!(1.0));
     let coordinates = [0.0, 0.0, 1.0, 0.0];
-    let deciles = DegreeDeciles::new(&indexes.attraction, 2);
     let mut metrics = BudgetBreakdown::new();
-    let options = options(Some(relation_energy()), fixture_budget());
+    let evaluation = frame_evaluation(
+        options(Some(relation_energy()), fixture_budget()),
+        DegreeDeciles::new(&indexes.attraction, 2),
+    );
 
-    let gradient = leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics);
+    let gradient = leaf_gradient(&coordinates, &batch, &evaluation, &mut metrics);
     assert_eq!(gradient, [-1.0, 0.0, 1.0, 0.0]);
 
     // Both endpoints measured ratio 0.5 / 0.5 = 1 over the semantic baseline. The floor 0.25 stayed
@@ -860,18 +874,15 @@ fn objective_reports_the_relation_loss_value() {
     // softplus(0) = 1 · 1 · 0.5 · ln 2.
     let (indexes, scales) = relation_fixture();
     let batch = relation_batch(&indexes, &scales, non_negative!(1.0));
-    let deciles = DegreeDeciles::new(&indexes.attraction, 2);
     let mut metrics = BudgetBreakdown::new();
-    let options = options(Some(relation_energy()), fixture_budget());
+    let evaluation = frame_evaluation(
+        options(Some(relation_energy()), fixture_budget()),
+        DegreeDeciles::new(&indexes.attraction, 2),
+    );
 
-    let objective = evaluate(
-        leaf(&[0.0, 0.0, 1.0, 0.0], 2),
-        &batch,
-        &options,
-        &deciles,
-        &mut metrics,
-    )
-    .expect("the fixture is finite");
+    let objective = evaluation
+        .evaluate(leaf(&[0.0, 0.0, 1.0, 0.0], 2), &batch, &mut metrics)
+        .expect("the fixture is finite");
 
     let expected = 0.5 * core::f32::consts::LN_2;
     assert!(
@@ -888,13 +899,15 @@ fn relation_gradients_are_linear_in_the_lens() {
     // is η · (-0.5, 0) at row 0: exactly (-0.5 - η/2, 0) combined.
     let (indexes, scales) = relation_fixture();
     let coordinates = [0.0, 0.0, 1.0, 0.0];
-    let deciles = DegreeDeciles::new(&indexes.attraction, 2);
-    let options = options(Some(relation_energy()), fixture_budget());
+    let evaluation = frame_evaluation(
+        options(Some(relation_energy()), fixture_budget()),
+        DegreeDeciles::new(&indexes.attraction, 2),
+    );
 
     let gradient_at = |eta: NonNegative| {
         let batch = relation_batch(&indexes, &scales, eta);
         let mut metrics = BudgetBreakdown::new();
-        leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics)
+        leaf_gradient(&coordinates, &batch, &evaluation, &mut metrics)
     };
 
     assert_eq!(gradient_at(non_negative!(0.0)), [-0.5, 0.0, 0.5, 0.0]);
@@ -922,24 +935,18 @@ fn support_terms_ride_autodiff_outside_the_budget() {
     let batch = Batch::assemble(populations, None);
 
     let coordinates = [0.0, 0.0, 1.0, 0.0];
-    let deciles = unused_deciles();
     let mut metrics = BudgetBreakdown::new();
-    let options = options(None, fixture_budget());
+    let evaluation = frame_evaluation(options(None, fixture_budget()), unused_deciles());
 
-    let objective = evaluate(
-        leaf(&coordinates, 2),
-        &batch,
-        &options,
-        &deciles,
-        &mut metrics,
-    )
-    .expect("the fixture is finite");
+    let objective = evaluation
+        .evaluate(leaf(&coordinates, 2), &batch, &mut metrics)
+        .expect("the fixture is finite");
     assert!(
         objective.loss.landmark > 0.0,
         "the displaced landmark pays a positive support loss"
     );
 
-    let gradient = leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics);
+    let gradient = leaf_gradient(&coordinates, &batch, &evaluation, &mut metrics);
     assert_eq!(
         &gradient[0..2],
         [-0.5, 0.0],
@@ -958,17 +965,10 @@ fn evaluate_rejects_non_finite_coordinates() {
     populations.semantic_scale = 1.0;
     let batch = Batch::assemble(populations, None);
 
-    let deciles = unused_deciles();
     let mut metrics = BudgetBreakdown::new();
-    let options = options(None, fixture_budget());
+    let evaluation = frame_evaluation(options(None, fixture_budget()), unused_deciles());
 
-    let result = evaluate(
-        leaf(&[0.0, 0.0, f32::NAN, 0.0], 2),
-        &batch,
-        &options,
-        &deciles,
-        &mut metrics,
-    );
+    let result = evaluation.evaluate(leaf(&[0.0, 0.0, f32::NAN, 0.0], 2), &batch, &mut metrics);
     assert_eq!(
         result.err().map(|error| match error {
             StepError::Diverged { row } => row.as_u64(),
@@ -1269,29 +1269,18 @@ fn padded_frame_adds_zero_force() {
     populations.semantic_scale = 2.0;
     let batch = Batch::assemble(populations, None);
 
-    let deciles = unused_deciles();
-    let options = options(None, fixture_budget());
+    let evaluation = frame_evaluation(options(None, fixture_budget()), unused_deciles());
 
     let mut metrics = BudgetBreakdown::new();
-    let exact = evaluate(
-        leaf(&[0.0, 0.0, 1.0, 0.0], 2),
-        &batch,
-        &options,
-        &deciles,
-        &mut metrics,
-    )
-    .expect("the fixture is finite");
+    let exact = evaluation
+        .evaluate(leaf(&[0.0, 0.0, 1.0, 0.0], 2), &batch, &mut metrics)
+        .expect("the fixture is finite");
 
     let mut metrics = BudgetBreakdown::new();
     let padded_leaf = leaf(&[0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0], 4);
-    let padded = evaluate(
-        padded_leaf.clone(),
-        &batch,
-        &options,
-        &deciles,
-        &mut metrics,
-    )
-    .expect("the fixture is finite");
+    let padded = evaluation
+        .evaluate(padded_leaf.clone(), &batch, &mut metrics)
+        .expect("the fixture is finite");
 
     assert_eq!(padded.loss, exact.loss);
     let gradient = padded_leaf
@@ -1311,16 +1300,9 @@ fn evaluate_rejects_a_frame_smaller_than_the_batch() {
     populations.semantic_scale = 2.0;
     let batch = Batch::assemble(populations, None);
 
-    let deciles = unused_deciles();
-    let options = options(None, fixture_budget());
+    let evaluation = frame_evaluation(options(None, fixture_budget()), unused_deciles());
     let mut metrics = BudgetBreakdown::new();
-    let _objective = evaluate(
-        leaf(&[0.0, 0.0], 1),
-        &batch,
-        &options,
-        &deciles,
-        &mut metrics,
-    );
+    let _objective = evaluation.evaluate(leaf(&[0.0, 0.0], 1), &batch, &mut metrics);
 }
 
 #[test]
@@ -1384,8 +1366,11 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
     };
     let model = Projector::<Training>::new(architecture, &*DEVICE, rng(7)).map(&mut Perturb);
 
-    let deciles = DegreeDeciles::new(&indexes.attraction, PADDING_ROWS);
-    let options = options(Some(relation_energy()), fixture_budget());
+    let evaluation = Evaluation {
+        columns,
+        options: options(Some(relation_energy()), fixture_budget()),
+        deciles: DegreeDeciles::new(&indexes.attraction, PADDING_ROWS),
+    };
 
     let padded = model.forward(batch.input(columns, &*DEVICE));
     let plain = model.forward(batch.input_aligned(columns, &*DEVICE, nz!(1)));
@@ -1414,10 +1399,12 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
     );
 
     let mut padded_metrics = BudgetBreakdown::new();
-    let padded_objective = evaluate(padded, &batch, &options, &deciles, &mut padded_metrics)
+    let padded_objective = evaluation
+        .evaluate(padded, &batch, &mut padded_metrics)
         .expect("the fixture is finite");
     let mut plain_metrics = BudgetBreakdown::new();
-    let plain_objective = evaluate(plain, &batch, &options, &deciles, &mut plain_metrics)
+    let plain_objective = evaluation
+        .evaluate(plain, &batch, &mut plain_metrics)
         .expect("the fixture is finite");
 
     // Non-vacuous: every family contributes a nonzero loss.

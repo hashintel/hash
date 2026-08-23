@@ -3,14 +3,14 @@
 //! Forward, hand-gradient fields, budget diagnostics, and the backward-ready surrogate.
 //!
 //! [`objective`](Evaluation::objective) projects the batch rows and hands the coordinates to
-//! [`evaluate`], which computes the composite objective in two regimes. The hand-gradient families
-//! (semantic attraction, ordinary and hard repulsion, relation attraction) evaluate value and
-//! per-node coordinate gradient against the detached coordinate frame; the evaluation measures the
-//! relation field per node against the semantic one for the budget diagnostics, and the combined
-//! field re-enters the parameter graph through the surrogate scalar, whose single backward pass
-//! deposits exactly that field. The support families (temporal anchors, landmarks) ride ordinary
-//! autodiff on the coordinate tensor - they carry no budget diagnostics - and add onto the same
-//! scalar.
+//! [`evaluate`](Evaluation::evaluate), which computes the composite objective in two regimes. The
+//! hand-gradient families (semantic attraction, ordinary and hard repulsion, relation attraction)
+//! evaluate value and per-node coordinate gradient against the detached coordinate frame; the
+//! evaluation measures the relation field per node against the semantic one for the budget
+//! diagnostics, and the combined field re-enters the parameter graph through the surrogate scalar,
+//! whose single backward pass deposits exactly that field. The support families (temporal anchors,
+//! landmarks) ride ordinary autodiff on the coordinate tensor - they carry no budget diagnostics -
+//! and add onto the same scalar.
 //!
 //! Relation-inactive nodes - every node when the batch carries no relation edges, and any node
 //! whose accumulated relation gradient is exactly zero - contribute their semantic gradient alone
@@ -39,6 +39,7 @@ use crate::{
             repulsion_term, support_term,
         },
         model::Projector,
+        scale::ScaledFrame,
     },
 };
 
@@ -136,142 +137,141 @@ where
         device: &B::Device,
     ) -> Result<Objective<B>, StepError<N>> {
         let coordinates = model.forward(batch.input(self.columns, device));
-        evaluate(coordinates, batch, &self.options, &self.deciles, metrics)
+        self.evaluate(coordinates, batch, metrics)
     }
-}
 
-/// Evaluates the composite objective against projected coordinates.
-///
-/// `coordinates` are the batch rows' projections in the batch's local row order, optionally
-/// followed by alignment padding. Trailing rows beyond the batch's own are the materialized input's
-/// padding twins (see [`ROW_ALIGNMENT`]), which no population references, so they carry exactly
-/// zero force.
-///
-/// Splitting this from [`objective`](Evaluation::objective) keeps the coordinate producer
-/// exchangeable, so the training loop forwards the model while tests drive hand-built frames.
-///
-/// # Errors
-///
-/// Returns an error when a coordinate is non-finite, which means training diverged.
-///
-/// # Panics
-///
-/// This panics when the coordinate row count disagrees with the batch, when relation edges arrive
-/// without a frozen relation energy, or when a scale table is missing. Each of those is a wiring
-/// defect.
-#[expect(
-    clippy::panic_in_result_fn,
-    reason = "a frame/batch row mismatch is a wiring defect contract, not a recoverable error"
-)]
-pub(crate) fn evaluate<N, B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
-    coordinates: Tensor<B, 2>,
-    batch: &Batch<N, A>,
-    options: &ObjectiveOptions,
-    deciles: &DegreeDeciles<N>,
-    metrics: &mut BudgetBreakdown,
-) -> Result<Objective<B>, StepError<N>>
-where
-    N: Id,
-{
-    let frame_rows = coordinates.dims()[0];
-    assert!(
-        (batch.rows.len()..=batch.rows.len().next_multiple_of(ROW_ALIGNMENT.get()))
-            .contains(&frame_rows),
-        "the coordinate frame should cover the batch rows, at most alignment-padded"
-    );
+    /// Evaluates the composite objective against projected coordinates.
+    ///
+    /// `coordinates` are the batch rows' projections in the batch's local row order, optionally
+    /// followed by alignment padding. Trailing rows beyond the batch's own are the materialized
+    /// input's padding twins (see [`ROW_ALIGNMENT`]), which no population references, so they
+    /// carry exactly zero force.
+    ///
+    /// The coordinate producer stays exchangeable: [`objective`](Self::objective) forwards the
+    /// model's projection, while tests drive hand-built frames through this method directly.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a coordinate is non-finite, which means training diverged.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the coordinate row count disagrees with the batch, when relation edges
+    /// arrive without a frozen relation energy, or when a scale table is missing. Each of those is
+    /// a wiring defect.
+    #[expect(
+        clippy::panic_in_result_fn,
+        reason = "a frame/batch row mismatch is a wiring defect contract, not a recoverable error"
+    )]
+    pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
+        &self,
+        coordinates: Tensor<B, 2>,
+        batch: &Batch<N, A>,
+        metrics: &mut BudgetBreakdown,
+    ) -> Result<Objective<B>, StepError<N>> {
+        let options = &self.options;
+        let deciles = &self.deciles;
+        let frame_rows = coordinates.dims()[0];
+        assert!(
+            (batch.rows.len()..=batch.rows.len().next_multiple_of(ROW_ALIGNMENT.get()))
+                .contains(&frame_rows),
+            "the coordinate frame should cover the batch rows, at most alignment-padded"
+        );
 
-    // Alignment padding trails the batch rows. A padded point diverging names the last real row.
-    let diverged = |offender: NonFinitePoint<BatchRowId>| {
-        let local = BatchRowId::from_usize(offender.id.as_usize().min(batch.rows.len() - 1));
-        StepError::Diverged {
-            row: batch.rows[local],
+        // Alignment padding trails the batch rows. A padded point diverging names the last real
+        // row.
+        let diverged = |offender: NonFinitePoint<BatchRowId>| {
+            let local = BatchRowId::from_usize(offender.id.as_usize().min(batch.rows.len() - 1));
+            StepError::Diverged {
+                row: batch.rows[local],
+            }
+        };
+        let values = read_frame_finite(coordinates.clone().inner()).map_err(diverged)?;
+        let frame = values.prefix(batch.rows.bound());
+
+        let rows = frame.len();
+        let coefficients = options.coefficients;
+
+        let mut semantic_field = GradientField::new(rows);
+        let semantic = attraction_term(
+            frame,
+            batch.semantic.iter().map(|&pair| (pair, 1.0)),
+            options.affinity,
+            coefficients.semantic * batch.semantic_scale,
+            &mut semantic_field,
+        );
+        let ordinary = repulsion_term(
+            frame,
+            batch.ordinary.iter().map(|&pair| (pair, 1.0)),
+            options.affinity,
+            coefficients.ordinary * batch.ordinary_scale,
+            &mut semantic_field,
+        );
+        let hard = repulsion_term(
+            frame,
+            batch.hard.iter().copied(),
+            options.affinity,
+            coefficients.hard * batch.hard_scale,
+            &mut semantic_field,
+        );
+
+        let (relation, mut combined) = if batch.relation.is_empty() {
+            (0.0, flatten(semantic_field.as_slice()))
+        } else {
+            relation_pass(frame, batch, options, &semantic_field, deciles, metrics)
+        };
+
+        let device = coordinates.device();
+        let landmark_term = SupportTargets::new(&batch.landmarks, &device).map(|targets| {
+            support_term(
+                &coordinates,
+                &targets,
+                options.support,
+                coefficients.landmark * batch.landmark_scale,
+            )
+        });
+        let anchor_term = SupportTargets::new(&batch.anchors, &device).map(|targets| {
+            support_term(
+                &coordinates,
+                &targets,
+                options.support,
+                coefficients.anchor * batch.anchor_scale,
+            )
+        });
+
+        // The surrogate's field matches the coordinate tensor's padded shape. The padding rows
+        // carry exactly zero force.
+        combined.resize(frame_rows * 2, 0.0);
+        let gradient = Tensor::from_data(TensorData::new(combined, [frame_rows, 2]), &device);
+        let mut surrogate = budget::surrogate(coordinates, gradient);
+
+        let mut landmark = 0.0;
+        if let Some(term) = landmark_term {
+            landmark = term.clone().into_scalar();
+            surrogate = surrogate + term;
         }
-    };
-    let values = read_frame_finite(coordinates.clone().inner()).map_err(diverged)?;
-    let frame = values.prefix(batch.rows.bound());
+        let mut anchor = 0.0;
+        if let Some(term) = anchor_term {
+            anchor = term.clone().into_scalar();
+            surrogate = surrogate + term;
+        }
 
-    let rows = frame.len();
-    let coefficients = options.coefficients;
-
-    let mut semantic_field = GradientField::new(rows);
-    let semantic = attraction_term(
-        frame,
-        batch.semantic.iter().map(|&pair| (pair, 1.0)),
-        options.affinity,
-        coefficients.semantic * batch.semantic_scale,
-        &mut semantic_field,
-    );
-    let ordinary = repulsion_term(
-        frame,
-        batch.ordinary.iter().map(|&pair| (pair, 1.0)),
-        options.affinity,
-        coefficients.ordinary * batch.ordinary_scale,
-        &mut semantic_field,
-    );
-    let hard = repulsion_term(
-        frame,
-        batch.hard.iter().copied(),
-        options.affinity,
-        coefficients.hard * batch.hard_scale,
-        &mut semantic_field,
-    );
-
-    let (relation, mut combined) = if batch.relation.is_empty() {
-        (0.0, flatten(semantic_field.as_slice()))
-    } else {
-        relation_pass(frame, batch, options, &semantic_field, deciles, metrics)
-    };
-
-    let device = coordinates.device();
-    let landmark_term = SupportTargets::new(&batch.landmarks, &device).map(|targets| {
-        support_term(
-            &coordinates,
-            &targets,
-            options.support,
-            coefficients.landmark * batch.landmark_scale,
-        )
-    });
-    let anchor_term = SupportTargets::new(&batch.anchors, &device).map(|targets| {
-        support_term(
-            &coordinates,
-            &targets,
-            options.support,
-            coefficients.anchor * batch.anchor_scale,
-        )
-    });
-
-    // The surrogate's field matches the coordinate tensor's padded shape. The padding rows carry
-    // exactly zero force.
-    combined.resize(frame_rows * 2, 0.0);
-    let gradient = Tensor::from_data(TensorData::new(combined, [frame_rows, 2]), &device);
-    let mut surrogate = budget::surrogate(coordinates, gradient);
-
-    let mut landmark = 0.0;
-    if let Some(term) = landmark_term {
-        landmark = term.clone().into_scalar();
-        surrogate = surrogate + term;
+        Ok(Objective {
+            surrogate,
+            loss: LossBreakdown {
+                semantic,
+                ordinary,
+                hard,
+                relation,
+                anchor,
+                landmark,
+                // The target objective evaluates outside this method - it reads whole-corpus
+                // frozen references the batch never carries - and the loop composes its
+                // contribution in.
+                target: 0.0,
+            },
+        })
     }
-    let mut anchor = 0.0;
-    if let Some(term) = anchor_term {
-        anchor = term.clone().into_scalar();
-        surrogate = surrogate + term;
-    }
-
-    Ok(Objective {
-        surrogate,
-        loss: LossBreakdown {
-            semantic,
-            ordinary,
-            hard,
-            relation,
-            anchor,
-            landmark,
-            // The target objective evaluates outside this function - it reads whole-corpus
-            // frozen references the batch never carries - and the loop composes its
-            // contribution in.
-            target: 0.0,
-        },
-    })
 }
 
 /// Evaluates the relation term per type and records its per-node measurements as budget metrics.
@@ -298,6 +298,7 @@ where
     // Raw: the term scale is a product of unbounded working-precision factors, and the
     // relation term folds it under the batch's total.
     let scale = batch.eta.get() * options.coefficients.relation * batch.relation_scale;
+    let scaled_frame = ScaledFrame::new(frame, scales);
     let rows = frame.len();
 
     // One scratch field serves every type. The pass reads and re-zeroes only the rows a type
@@ -311,8 +312,7 @@ where
     let mut value = 0.0_f64;
     for sampled in &batch.relation {
         value += f64::from(relation_term(
-            frame,
-            scales,
+            scaled_frame,
             core::slice::from_ref(sampled),
             energy,
             scale,

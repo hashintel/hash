@@ -18,7 +18,7 @@
 //! draws (the relation draws' and [`RelationEdges`]' edge vectors, the gathered [`LocalScales`])
 //! and the tensor buffers of [`Batch::input`] - consumed by the backend - stay global.
 
-use core::{alloc::Allocator, num::NonZero};
+use core::{alloc::Allocator, num::NonZero, ops::Range};
 use std::alloc::Global;
 
 use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
@@ -308,66 +308,100 @@ where
         device: &B::Device,
         alignment: NonZero<usize>,
     ) -> ProjectorInput<B> {
-        materialize_input(&self.rows, self.eta, columns, device, alignment)
+        columns.input_gather(&self.rows, self.eta, device, alignment)
     }
 }
 
-/// Materializes a model input for an explicit row set at one step on `device`.
-///
-/// The row count pads up to the next `alignment` multiple. Padded rows replicate the last row and
-/// carry the same step. [`Batch::input`] wraps this for the assembled batch, and the target
-/// objective materializes its own row set at the estimand's two steps through it.
-///
-/// # Panics
-///
-/// This panics when the representation and role columns disagree in length or a row lies outside
-/// them. The columns and the draws come from one generation, so a mismatch is a wiring defect.
-#[must_use]
-pub(crate) fn materialize_input<R, N, B: Backend>(
-    rows: &IdSlice<R, N>,
-    eta: NonNegative,
-    columns: NodeColumns<'_, N>,
-    device: &B::Device,
-    alignment: NonZero<usize>,
-) -> ProjectorInput<B>
+impl<N> NodeColumns<'_, N>
 where
-    R: Id,
     N: Id,
 {
-    assert_eq!(
-        columns.representations.len(),
-        columns.roles.len(),
-        "the representation and role columns should cover the same rows"
-    );
+    /// Materializes the model input of one contiguous row range at a step on `device`.
+    pub(super) fn input_range<B: Backend>(
+        self,
+        range: Range<usize>,
+        eta: NonNegative,
+        device: &B::Device,
+    ) -> ProjectorInput<B> {
+        let rows = range.len();
+        let range = N::from_usize(range.start)..N::from_usize(range.end);
+        let mut representation = Vec::with_capacity(rows * PROJECTOR_DIMENSIONS);
+        let mut roles = Vec::with_capacity(rows);
+        for (vector, role) in self.representations[range.clone()]
+            .iter()
+            .zip(&self.roles[range])
+        {
+            representation.extend_from_slice(vector.as_array());
+            roles.push(i64::from(role.index()));
+        }
 
-    let count = rows.len();
-    let padded = count.next_multiple_of(alignment.get());
-    let mut representation = Vec::with_capacity(padded * PROJECTOR_DIMENSIONS);
-    let mut role_values = Vec::with_capacity(padded);
-
-    for &row in rows {
-        representation.extend_from_slice(columns.representations[row].as_array());
-        role_values.push(i64::from(columns.roles[row].index()));
-    }
-
-    if let Some(&last) = rows.last() {
-        let pattern = columns.representations[last].as_array();
-        let role = i64::from(columns.roles[last].index());
-        for _ in count..padded {
-            representation.extend_from_slice(pattern);
-            role_values.push(role);
+        ProjectorInput {
+            representation: Tensor::from_data(
+                TensorData::new(representation, [rows, PROJECTOR_DIMENSIONS]),
+                device,
+            ),
+            roles: Tensor::<B, 1, Int>::from_data(TensorData::new(roles, [rows]), device),
+            condition: Tensor::from_data(TensorData::new(vec![eta.get(); rows], [rows, 1]), device),
         }
     }
 
-    ProjectorInput {
-        representation: Tensor::from_data(
-            TensorData::new(representation, [padded, PROJECTOR_DIMENSIONS]),
-            device,
-        ),
-        roles: Tensor::<B, 1, Int>::from_data(TensorData::new(role_values, [padded]), device),
-        condition: Tensor::from_data(
-            TensorData::new(vec![eta.get(); padded], [padded, 1]),
-            device,
-        ),
+    /// Materializes a model input for an explicit row set at one step on `device`.
+    ///
+    /// The row count pads up to the next `alignment` multiple. Padded rows replicate the last row
+    /// and carry the same step. [`Batch::input`] wraps this for the assembled batch, and the
+    /// target objective materializes its own row set at the estimand's two steps through it.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the representation and role columns disagree in length or a row lies
+    /// outside them. The columns and the draws come from one generation, so a mismatch is a wiring
+    /// defect.
+    #[must_use]
+    pub(super) fn input_gather<R, B: Backend>(
+        self,
+        rows: &IdSlice<R, N>,
+        eta: NonNegative,
+        device: &B::Device,
+        alignment: NonZero<usize>,
+    ) -> ProjectorInput<B>
+    where
+        R: Id,
+    {
+        assert_eq!(
+            self.representations.len(),
+            self.roles.len(),
+            "the representation and role columns should cover the same rows"
+        );
+
+        let count = rows.len();
+        let padded = count.next_multiple_of(alignment.get());
+        let mut representation = Vec::with_capacity(padded * PROJECTOR_DIMENSIONS);
+        let mut role_values = Vec::with_capacity(padded);
+
+        for &row in rows {
+            representation.extend_from_slice(self.representations[row].as_array());
+            role_values.push(i64::from(self.roles[row].index()));
+        }
+
+        if let Some(&last) = rows.last() {
+            let pattern = self.representations[last].as_array();
+            let role = i64::from(self.roles[last].index());
+            for _ in count..padded {
+                representation.extend_from_slice(pattern);
+                role_values.push(role);
+            }
+        }
+
+        ProjectorInput {
+            representation: Tensor::from_data(
+                TensorData::new(representation, [padded, PROJECTOR_DIMENSIONS]),
+                device,
+            ),
+            roles: Tensor::<B, 1, Int>::from_data(TensorData::new(role_values, [padded]), device),
+            condition: Tensor::from_data(
+                TensorData::new(vec![eta.get(); padded], [padded, 1]),
+                device,
+            ),
+        }
     }
 }

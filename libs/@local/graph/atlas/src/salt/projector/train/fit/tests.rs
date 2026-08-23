@@ -22,9 +22,9 @@ use super::{
     FitOutcome, FrozenRadius, Model, TargetRefusalCause, TrainError, TrainOptions, TrainerInputs,
     TrainingSchedule, fit, fit_from_boundary, fit_to_boundary,
     fixture::{
-        Corpus, HALF, RELATION, ROWS, TargetDraws, corpus_with, instance, nonzero, options,
-        proximal_policy, proximal_verdict, rng, schedule, split_digest, target_corpus,
-        target_draws, target_inputs, target_options,
+        Corpus, HALF, RELATION, ROWS, TargetDraws, corpus_with, instance, options, proximal_policy,
+        proximal_verdict, rng, schedule, split_digest, target_corpus, target_draws, target_inputs,
+        target_options,
     },
     objective::{SplitPopulation, TargetOptions},
     session,
@@ -93,11 +93,11 @@ fn proximal_corpus(verdicts: Vec<ResolvedVerdict>) -> Corpus {
 
 fn architecture() -> Architecture {
     Architecture {
-        width: nonzero(8),
-        residual_blocks: nonzero(1),
-        representation_dimensions: nonzero(PROJECTOR_DIMENSIONS),
-        role_dimensions: nonzero(4),
-        condition_dimensions: nonzero(1),
+        width: nz!(8),
+        residual_blocks: nz!(1),
+        representation_dimensions: nz!(PROJECTOR_DIMENSIONS),
+        role_dimensions: nz!(4),
+        condition_dimensions: nz!(1),
     }
 }
 
@@ -115,7 +115,7 @@ fn project(
         &trained.valid(),
         corpus.inputs().columns,
         eta,
-        nonzero(ROWS),
+        nz!(ROWS),
         &*DEVICE,
     )
     .expect("the trained fixture model is finite")
@@ -381,9 +381,9 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
         panic!("the boundary freezes a measured radius");
     };
     assert!(radius.get() > 0.0);
-    assert_eq!(boundary.calibration.radius, Some(radius));
+    assert_eq!(boundary.calibration.radius(), Some(radius));
 
-    let entry = &boundary.calibration.types[0];
+    let entry = &boundary.calibration.types()[0];
     assert_eq!(entry.relation, OntologyRowId::new(RELATION));
     assert_eq!(entry.pairs, 3);
     assert!(entry.mass > d_non_negative!(0.0));
@@ -413,8 +413,7 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     // The certificate rides the calibration as an evaluation of the same freeze population.
     let certificate = boundary
         .calibration
-        .stability
-        .as_ref()
+        .stability()
         .expect("a measured boundary carries its evaluated certificate");
     assert_eq!(certificate.quantile.get(), 0.25);
     assert!(certificate.effective_support.get() > 0.0);
@@ -485,9 +484,9 @@ fn forceless_corpus_trains_vacuously() {
         .as_ref()
         .expect("the boundary ran within the schedule");
     assert_eq!(boundary.radius, FrozenRadius::Vacuous);
-    assert_eq!(boundary.calibration.radius, None);
-    assert!(boundary.calibration.types.is_empty());
-    assert_eq!(boundary.calibration.stability, None);
+    assert_eq!(boundary.calibration.radius(), None);
+    assert!(boundary.calibration.types().is_empty());
+    assert_eq!(boundary.calibration.stability(), None);
     assert!(
         fitted.evidence.fractions.is_empty(),
         "a vacuous run has no radius to drift against"
@@ -653,7 +652,7 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
         &inference,
         corpus.inputs().columns,
         non_negative!(1.0),
-        nonzero(3),
+        nz!(3),
         &*DEVICE,
     )
     .expect("the fixture model is finite");
@@ -661,7 +660,7 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
         &inference,
         corpus.inputs().columns,
         non_negative!(1.0),
-        nonzero(ROWS),
+        nz!(ROWS),
         &*DEVICE,
     )
     .expect("the fixture model is finite");
@@ -676,18 +675,18 @@ fn schedule_validates_its_domain() {
     // Out-of-range rates are unconstructible: the initial rate as a `PositiveUnitFraction`, the
     // minimum as a `UnitFraction`. The residual domain here is the boundary and the rate ordering.
     let valid = TrainingSchedule::new(
-        nonzero(10),
+        nz!(10),
         5,
-        nonzero(2),
+        nz!(2),
         positive_unit_fraction!(0.05),
         unit_fraction!(0.001),
     );
     assert!(valid.is_some());
     assert!(
         TrainingSchedule::new(
-            nonzero(10),
+            nz!(10),
             11,
-            nonzero(2),
+            nz!(2),
             positive_unit_fraction!(0.05),
             unit_fraction!(0.001)
         )
@@ -696,9 +695,9 @@ fn schedule_validates_its_domain() {
     );
     assert!(
         TrainingSchedule::new(
-            nonzero(10),
+            nz!(10),
             5,
-            nonzero(2),
+            nz!(2),
             positive_unit_fraction!(0.05),
             unit_fraction!(0.0)
         )
@@ -707,9 +706,9 @@ fn schedule_validates_its_domain() {
     );
     assert!(
         TrainingSchedule::new(
-            nonzero(10),
+            nz!(10),
             5,
-            nonzero(2),
+            nz!(2),
             positive_unit_fraction!(0.05),
             unit_fraction!(0.1)
         )
@@ -1123,9 +1122,9 @@ fn certificate(pass: bool) -> StabilityCertificate {
 
 /// A calibration whose leave-one-out spread is exactly `spread` around a unit radius.
 fn spread_calibration(spread: f32, pass: bool) -> ProximalCalibration {
-    ProximalCalibration {
-        radius: Some(non_negative!(1.0)),
-        types: vec![TypeCalibration {
+    ProximalCalibration::fixture(
+        Some(non_negative!(1.0)),
+        vec![TypeCalibration {
             relation: OntologyRowId::new(5),
             pairs: 4,
             mass: d_non_negative!(2.0),
@@ -1135,8 +1134,8 @@ fn spread_calibration(spread: f32, pass: bool) -> ProximalCalibration {
                     .expect("the fixture spread keeps the radius non-negative"),
             ),
         }],
-        stability: Some(certificate(pass)),
-    }
+        Some(certificate(pass)),
+    )
 }
 
 #[test]
@@ -1649,7 +1648,7 @@ fn every_target_misconfiguration_refuses_at_admission() {
 
     // A canonical step outside the curriculum names itself.
     let off_schedule = TargetOptions {
-        canonical_step: nonzero(3),
+        canonical_step: nz!(3),
         ..target_options(1.0)
     };
     assert_eq!(

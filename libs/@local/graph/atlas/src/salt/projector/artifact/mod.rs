@@ -31,12 +31,20 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use crate::{
     file::{WriteAs, WriteInto, salt::artifact},
     integrity::{Sha256, Sha256Digest, Writer},
-    math::{PositiveUnitFraction, UnitFraction},
+    math::{DPositive, PositiveUnitFraction, UnitFraction, d_positive},
     salt::projector::{
         model::{Architecture, ArchitectureMismatch, Projector, ProjectorRecord},
         train::{BoundaryState, TrainerOptimizerRecord, TrainingSchedule},
     },
 };
+
+/// The certificate bound on the canonical step's reproduction, world units per component.
+///
+/// A reopened model checkpoint, forwarded at the canonical step, reproduces its generation's
+/// published coordinate column within this bound. One order above the measured reproduction
+/// floor: independent full-corpus rebuilds of two prior generations reached maximum component
+/// errors of `7.6e-5` and `1.03e-4` against their published coordinate columns.
+pub(crate) const CERTIFICATE_TOLERANCE: DPositive = d_positive!(1e-3);
 
 /// An error from writing or opening a checkpoint.
 #[derive(Debug)]

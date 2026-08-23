@@ -40,8 +40,8 @@ use crate::{
     integrity::{Sha256, Update as _},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, FinitePointField, NonNegative, Positive, Similarity,
-        UnitFraction, Vec2, d_non_negative, d_positive, non_negative, open_unit_fraction, positive,
-        positive_unit_fraction,
+        UnitFraction, Vec2, d_non_negative, d_positive, non_negative, nz, open_unit_fraction,
+        positive, positive_unit_fraction,
     },
     salt::{
         embedding::EmbedderFingerprint,
@@ -54,7 +54,7 @@ use crate::{
             artifact as checkpoint,
             loss::CoincidentEnergy,
             model::{Architecture, NodeRole, Projector},
-            scale::LocalScales,
+            scale::{LocalScales, ScaledFrame},
             train::{
                 BoundaryEvidence, BudgetBreakdown, FrozenRadius, Model, NodeColumns,
                 RefreshFraction, RelationLens, TrainingEvidence, TrainingSchedule, refresh,
@@ -72,80 +72,6 @@ use crate::{
     },
 };
 
-#[test]
-fn loss_regression_even_odd_transition() {
-    // Only 1→2 rises. A non-overlapping pairing ((0,1), (2,3))
-    // sees two falling pairs and misses it.
-    let conditions = [
-        non_negative!(0.0),
-        non_negative!(0.25),
-        non_negative!(0.5),
-        non_negative!(0.75),
-    ];
-    let losses = [
-        d_non_negative!(1.0),
-        d_non_negative!(0.5),
-        d_non_negative!(0.75),
-        d_non_negative!(0.5),
-    ];
-
-    let regressions: Vec<_> = LossSeries::new(&conditions, losses.to_vec())
-        .regressions()
-        .collect();
-
-    assert_eq!(regressions.len(), 1);
-    let regression = &regressions[0];
-    assert_eq!(regression.previous_condition, non_negative!(0.25));
-    assert_eq!(regression.condition, non_negative!(0.5));
-    assert_eq!(regression.delta, d_positive!(0.25));
-    assert_eq!(regression.relative, Some(d_positive!(0.5)));
-}
-
-#[test]
-fn loss_regression_final_odd_transition() {
-    // Only 3→4 rises. A non-overlapping pairing of a five-step
-    // series discards the final element with the remainder.
-    let conditions = [
-        non_negative!(0.0),
-        non_negative!(0.25),
-        non_negative!(0.5),
-        non_negative!(0.75),
-        non_negative!(1.0),
-    ];
-    let losses = [
-        d_non_negative!(1.0),
-        d_non_negative!(0.75),
-        d_non_negative!(0.5),
-        d_non_negative!(0.25),
-        d_non_negative!(0.5),
-    ];
-
-    let regressions: Vec<_> = LossSeries::new(&conditions, losses.to_vec())
-        .regressions()
-        .collect();
-
-    assert_eq!(regressions.len(), 1);
-    let regression = &regressions[0];
-    assert_eq!(regression.previous_condition, non_negative!(0.75));
-    assert_eq!(regression.condition, non_negative!(1.0));
-    assert_eq!(regression.delta, d_positive!(0.25));
-    assert_eq!(regression.relative, Some(d_positive!(1.0)));
-}
-
-#[test]
-fn loss_regression_zero_predecessor() {
-    let conditions = [non_negative!(0.0), non_negative!(1.0)];
-    let losses = [d_non_negative!(0.0), d_non_negative!(1.0)];
-
-    let regressions: Vec<_> = LossSeries::new(&conditions, losses.to_vec())
-        .regressions()
-        .collect();
-
-    assert_eq!(regressions.len(), 1);
-    assert_eq!(regressions[0].delta, d_positive!(1.0));
-    assert_eq!(regressions[0].relative, None);
-}
-
 /// Corpus rows of the publish fixture.
 ///
 /// Row 3 carries row 0's representation and row 5 carries row 2's, so the quotient collapses
@@ -156,10 +82,6 @@ const CORPUS_CAPACITY: usize = ROWS * PROJECTOR_DIMENSIONS;
 
 /// The reviewed relation type of the attraction fixture.
 const RELATION: u64 = 7;
-
-fn nonzero(value: usize) -> core::num::NonZero<usize> {
-    core::num::NonZero::new(value).expect("fixture values are nonzero")
-}
 
 fn scratch_dir(name: &str) -> Utf8PathBuf {
     let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
@@ -298,16 +220,16 @@ fn stage_attraction(staging: &StagedGeneration) {
 fn skinny_options() -> ProjectorOptions {
     let mut options = ProjectorOptions::ratified();
     options.architecture = Architecture {
-        width: nonzero(8),
-        residual_blocks: nonzero(1),
-        representation_dimensions: nonzero(PROJECTOR_DIMENSIONS),
-        role_dimensions: nonzero(4),
-        condition_dimensions: nonzero(1),
+        width: nz!(8),
+        residual_blocks: nz!(1),
+        representation_dimensions: nz!(PROJECTOR_DIMENSIONS),
+        role_dimensions: nz!(4),
+        condition_dimensions: nz!(1),
     };
     options.schedule = TrainingSchedule::new(
-        nonzero(1),
+        nz!(1),
         0,
-        nonzero(1),
+        nz!(1),
         positive_unit_fraction!(1.0e-3),
         UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction"),
     )
@@ -320,7 +242,7 @@ fn skinny_options() -> ProjectorOptions {
     options.ladder.conditions = Conditions::new(vec![NonNegative::ZERO, NonNegative::ONE])
         .expect("the fixture schedule is valid");
     options.ladder.canonical = NonNegative::ONE;
-    options.forward_rows = nonzero(4);
+    options.forward_rows = nz!(4);
     options
 }
 
@@ -446,6 +368,80 @@ fn assert_per_type_additivity(ladder: &LadderEvidence) {
     }
 }
 
+#[test]
+fn loss_regression_even_odd_transition() {
+    // Only 1→2 rises. A non-overlapping pairing ((0,1), (2,3))
+    // sees two falling pairs and misses it.
+    let conditions = [
+        non_negative!(0.0),
+        non_negative!(0.25),
+        non_negative!(0.5),
+        non_negative!(0.75),
+    ];
+    let losses = [
+        d_non_negative!(1.0),
+        d_non_negative!(0.5),
+        d_non_negative!(0.75),
+        d_non_negative!(0.5),
+    ];
+
+    let regressions: Vec<_> = LossSeries::new(&conditions, losses.to_vec())
+        .regressions()
+        .collect();
+
+    assert_eq!(regressions.len(), 1);
+    let regression = &regressions[0];
+    assert_eq!(regression.previous_condition, non_negative!(0.25));
+    assert_eq!(regression.condition, non_negative!(0.5));
+    assert_eq!(regression.delta, d_positive!(0.25));
+    assert_eq!(regression.relative, Some(d_positive!(0.5)));
+}
+
+#[test]
+fn loss_regression_final_odd_transition() {
+    // Only 3→4 rises. A non-overlapping pairing of a five-step
+    // series discards the final element with the remainder.
+    let conditions = [
+        non_negative!(0.0),
+        non_negative!(0.25),
+        non_negative!(0.5),
+        non_negative!(0.75),
+        non_negative!(1.0),
+    ];
+    let losses = [
+        d_non_negative!(1.0),
+        d_non_negative!(0.75),
+        d_non_negative!(0.5),
+        d_non_negative!(0.25),
+        d_non_negative!(0.5),
+    ];
+
+    let regressions: Vec<_> = LossSeries::new(&conditions, losses.to_vec())
+        .regressions()
+        .collect();
+
+    assert_eq!(regressions.len(), 1);
+    let regression = &regressions[0];
+    assert_eq!(regression.previous_condition, non_negative!(0.75));
+    assert_eq!(regression.condition, non_negative!(1.0));
+    assert_eq!(regression.delta, d_positive!(0.25));
+    assert_eq!(regression.relative, Some(d_positive!(1.0)));
+}
+
+#[test]
+fn loss_regression_zero_predecessor() {
+    let conditions = [non_negative!(0.0), non_negative!(1.0)];
+    let losses = [d_non_negative!(0.0), d_non_negative!(1.0)];
+
+    let regressions: Vec<_> = LossSeries::new(&conditions, losses.to_vec())
+        .regressions()
+        .collect();
+
+    assert_eq!(regressions.len(), 1);
+    assert_eq!(regressions[0].delta, d_positive!(1.0));
+    assert_eq!(regressions[0].relative, None);
+}
+
 /// The capped estimand scales each group's share by its draw probability.
 ///
 /// The fixture spans relation 7 with two edges and relation 9 with one, both over the
@@ -506,10 +502,9 @@ fn capped_estimand_draw_probability() {
     .energy(&skinny_options().lens)
     .expect("a measured radius composes an energy");
 
-    let biting =
-        RelationLossReadout::measure(frame, &scales, &indexes.attraction, energy, nonzero(1));
-    let covering =
-        RelationLossReadout::measure(frame, &scales, &indexes.attraction, energy, nonzero(2));
+    let scaled_frame = ScaledFrame::new(frame, &scales);
+    let biting = RelationLossReadout::measure(scaled_frame, &indexes.attraction, energy, nz!(1));
+    let covering = RelationLossReadout::measure(scaled_frame, &indexes.attraction, energy, nz!(2));
 
     // Neither the shares nor the uncapped total depend on the cap.
     assert_eq!(biting.per_type, covering.per_type);
@@ -564,8 +559,7 @@ fn assert_calibration_body(evidence: &ProjectorEvidence, boundary: &BoundaryEvid
         StabilityCertificateEvidence::from(
             boundary
                 .calibration
-                .stability
-                .as_ref()
+                .stability()
                 .expect("the fixture boundary carries a certificate")
         )
     );
@@ -578,12 +572,12 @@ fn measured_boundary() -> BoundaryEvidence {
         radius: FrozenRadius::Measured {
             radius: non_negative!(0.5),
         },
-        calibration: ProximalCalibration {
-            radius: Some(non_negative!(0.5)),
-            types: Vec::new(),
-            // Exact dyadic literals: the publish path serializes the certificate as-is,
-            // and this fixture exercises the wiring rather than the derivation.
-            stability: Some(StabilityCertificate {
+        // Exact dyadic literals: the publish path serializes the certificate as-is,
+        // and this fixture exercises the wiring rather than the derivation.
+        calibration: ProximalCalibration::fixture(
+            Some(non_negative!(0.5)),
+            Vec::new(),
+            Some(StabilityCertificate {
                 quantile: open_unit_fraction!(0.25),
                 delta: open_unit_fraction!(0.05),
                 kappa: d_positive!(1.0),
@@ -598,7 +592,7 @@ fn measured_boundary() -> BoundaryEvidence {
                 pass: false,
                 type_effective_support: d_positive!(1.0),
             }),
-        },
+        ),
     }
 }
 
@@ -607,11 +601,7 @@ fn vacuous_boundary() -> BoundaryEvidence {
     BoundaryEvidence {
         step: 0,
         radius: FrozenRadius::Vacuous,
-        calibration: ProximalCalibration {
-            radius: None,
-            types: Vec::new(),
-            stability: None,
-        },
+        calibration: ProximalCalibration::vacuous(),
     }
 }
 
@@ -659,7 +649,7 @@ fn fit_config() -> FitConfig {
     FitConfig {
         seed: 11,
         selection: SelectionOptions {
-            maximum_count: core::num::NonZero::new(4).expect("the fixture capacity is nonzero"),
+            maximum_count: nz!(4),
             ..
         },
         curve: AffinityCurve::fit(positive!(1.0), positive!(0.1))

@@ -60,10 +60,6 @@ pub(super) fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
 }
 
-pub(super) const fn nonzero(value: usize) -> NonZero<usize> {
-    NonZero::new(value).expect("fixture values are non-zero")
-}
-
 /// Whether a row belongs to the first semantic cluster.
 pub(super) const fn first_cluster(row: usize) -> bool {
     row < HALF
