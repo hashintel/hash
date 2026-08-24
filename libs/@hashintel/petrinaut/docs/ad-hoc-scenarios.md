@@ -17,7 +17,7 @@ The same form appears in three places, always when **no scenario is selected**:
 The form has up to three sections:
 
 - **Parameters** -- one row per [net-level parameter](petri-net-extensions.md#global-parameters), showing its type and its default. Enter an expression to override a value for this run. This section appears in the experiment and optimization drawers; the quick-simulation drawer omits it because the Simulation Settings panel already has parameter inputs.
-- **Variables** -- named values (real, integer, or boolean) written as `scenario.<name>` in every expression below, exactly as scenario parameters are written in scenario code. Use them to drive many values from one number. Add one from the dimmed **Add a variable** line at the bottom of the list -- click it, or reach it with the down arrow from the last row; the fresh name opens ready to type. Each row starts with a `#n` gutter whose menu offers **Delete variable**. A variable's name edits like any other cell: select it, then press Enter (or click again) to edit, and Enter or Escape to leave. Its type select is a cell too: arrow keys move past it, Enter opens it.
+- **Variables** -- named values (real, integer, or boolean) written as `scenario.<name>` in every expression below, exactly as scenario parameters are written in scenario code. Use them to drive many values from one number. Add one from the dimmed **Add a variable** line at the bottom of the list -- click it, or reach it with the down arrow from the last row; the fresh name opens ready to type. Each row starts with a small variable-glyph gutter whose menu offers **Delete variable**, and the add line's gutter shows a `+`. A variable's name edits like any other cell: select it, then press Enter (or click again) to edit, and Enter or Escape to leave. Its type select is a cell too: arrow keys move past it, Enter opens it.
 - **Initial state** -- one block per place in the net.
 
 Each section collapses: click the chevron in its header, or focus the header and press Left to collapse and Right to expand. Place headers inside Initial state collapse the same way, and a collapsed place shows a one-line summary of its rows and token total.
@@ -50,7 +50,7 @@ A place with a [token type](petri-net-extensions.md#typed-vs-untyped-places) is 
 
 Changing a row's kind never loses anything: its count (bounds included) is restored when you change back. The dimmed trailing row is a **phantom row**: click any of its cells to materialize a new fixed row. Remove a row from its gutter: the menu offers **Delete row**, and the Delete key removes it directly. In fixed rows, `i` is the row's position in the list and `count` is `1`.
 
-The table's bottom line shows the place's **token total**: a number when every count resolves, otherwise the unresolved counts printed as they are (for example `= 2 + scenario.n_satellites tokens`).
+Below the table, at the right, the place's **token total**: a number when every count resolves, otherwise the unresolved counts printed as they are (for example `= 2 + scenario.n_satellites tokens`).
 
 ### Shared columns
 
