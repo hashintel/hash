@@ -1,15 +1,15 @@
 /**
  * One place's section of the ad-hoc form: a header carrying the place name
- * (a collapse toggle, keyboard-navigable: Left collapses, Right expands) and
- * an icon-only Add-variable button; the per-place Variables block (hidden
- * while empty); and the token spreadsheet (coloured places). Collapsed, the
- * place is one line: its name and a summary of its rows and token total. An
- * uncoloured place is always one line: its name and its count slot.
+ * (a collapse toggle, keyboard-navigable: Left collapses, Right expands),
+ * the per-place Variables block, and the token spreadsheet (coloured
+ * places). Collapsing animates with a grid-track transition and makes the
+ * content inert; collapsed, the place is one line: its name and a summary
+ * of its rows and token total. An uncoloured place is always one line: its
+ * name and its count slot.
  */
 
 import { use, useState } from "react";
 
-import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { resolveAdHocPlaceTotal } from "@hashintel/petrinaut-core";
 
@@ -80,6 +80,27 @@ const summaryStyle = css({
   color: "neutral.s80",
 });
 
+// Collapse with pure CSS: the wrapper is a one-row grid whose track
+// animates 1fr -> 0fr; the inner clips. `inert` removes the collapsed
+// content from focus and the accessibility tree, so the keyboard walk
+// skips it.
+const collapseWrapStyle = css({
+  display: "grid",
+  gridTemplateRows: "[1fr]",
+  transition: "[grid-template-rows 0.2s ease]",
+  "&[data-collapsed]": {
+    gridTemplateRows: "[0fr]",
+  },
+});
+
+const collapseInnerStyle = css({
+  overflow: "hidden",
+  minHeight: "[0]",
+  display: "flex",
+  flexDirection: "column",
+  gap: "1.5",
+});
+
 const placeNameStyle = css({
   fontSize: "sm",
   fontWeight: "semibold",
@@ -104,16 +125,6 @@ const inlineCountEditorStyle = css({
   width: "auto",
   borderRadius: "xs",
 });
-
-/** A fresh variable name no sibling already uses. */
-function nextVariableName(existing: string[]): string {
-  const names = new Set(existing);
-  let ordinal = 1;
-  while (names.has(`variable${ordinal}`)) {
-    ordinal += 1;
-  }
-  return `variable${ordinal}`;
-}
 
 export interface ColouredPlaceBlockProps {
   place: Place;
@@ -164,35 +175,12 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
           </span>
         ) : null}
         <span className={headerSpacerStyle} />
-        {collapsed ? null : (
-          <Button
-            size="xs"
-            variant="ghost"
-            tone="neutral"
-            iconName="plus"
-            aria-label={`Add a variable to ${place.name}`}
-            tooltip="Add a variable scoped to this place's rows"
-            onClick={() =>
-              onChange({
-                ...state,
-                variables: [
-                  ...state.variables,
-                  {
-                    name: nextVariableName(
-                      state.variables.map((it) => it.name),
-                    ),
-                    type: "real",
-                    expression: "0",
-                    optimize: null,
-                  },
-                ],
-              })
-            }
-          />
-        )}
       </div>
-      {collapsed ? null : (
-        <>
+      <div
+        className={collapseWrapStyle}
+        data-collapsed={collapsed || undefined}
+      >
+        <div className={collapseInnerStyle} inert={collapsed}>
           <VariableRows
             scopeLabel={`Variables of ${place.name}`}
             placeId={place.id}
@@ -205,8 +193,8 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
             state={state}
             onChange={onChange}
           />
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -71,13 +71,26 @@ export const cellStyle = css({
   _last: { borderRight: "none" },
 });
 
-export const actionCellStyle = css({
-  borderBottom: "[1px solid {colors.neutral.a05}]",
-  padding: "[0]",
-  textAlign: "center",
-  width: "[32px]",
-  minWidth: "[32px]",
+/** The gutter's focusable button: opens the row's pop-up menu. */
+export const gutterButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[100%]",
   height: "[28px]",
+  border: "none",
+  background: "[transparent]",
+  padding: "[0]",
+  fontFamily: "mono",
+  fontSize: "[10px]",
+  color: "neutral.s80",
+  cursor: "pointer",
+  _hover: { color: "neutral.s120", backgroundColor: "neutral.s20" },
+  _focus: {
+    outline: "[2px solid {colors.blue.s70}]",
+    outlineOffset: "[-2px]",
+    backgroundColor: "blue.s05",
+  },
 });
 
 /** A borderless input filling a cell, spreadsheet-style. */
@@ -155,6 +168,8 @@ export const cellSelectStyle = css({
   "& [data-part='root']": {
     width: "[100%!]",
     minWidth: "[100%!]",
+    height: "[28px!]",
+    minHeight: "[0!]",
     "--base-input-border-radius": "0px",
     "--base-input-background-color": "transparent",
     _hover: { backgroundColor: "neutral.s10" },
@@ -165,6 +180,8 @@ export const cellSelectStyle = css({
     },
   },
   "& [data-part='root'] div": {
+    height: "[28px!]",
+    minHeight: "[0!]",
     borderRadius: "[0!]",
     borderColor: "[transparent!]",
     boxShadow: "[none!]",
@@ -173,21 +190,10 @@ export const cellSelectStyle = css({
   "& [data-part='trigger']": {
     fontFamily: "mono",
     fontSize: "xs",
+    height: "[28px!]",
+    minHeight: "[0!]",
+    paddingY: "[0!]",
   },
-});
-
-/**
- * A row's delete control: a quiet trashcan that appears when the row is
- * hovered or holds focus, and commits to full opacity only under the pointer.
- */
-export const rowDeleteButtonStyle = css({
-  opacity: "[0]",
-  transition: "[opacity 0.12s ease]",
-  "tr:hover &, tr:focus-within &": {
-    opacity: "[0.5]",
-  },
-  _hover: { opacity: "[1!]" },
-  _focusVisible: { opacity: "[1!]" },
 });
 
 export const footerRowStyle = css({
