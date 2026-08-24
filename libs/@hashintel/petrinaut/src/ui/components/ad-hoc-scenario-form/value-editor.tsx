@@ -58,9 +58,12 @@ const triggerStyle = css({
   whiteSpace: "nowrap",
   textOverflow: "ellipsis",
   _hover: { backgroundColor: "neutral.s10" },
-  _focusVisible: {
-    outline: "[2px solid {colors.blue.s50}]",
+  // Plain :focus, not :focus-visible: a pointer click selects the cell and
+  // the selection must show either way.
+  _focus: {
+    outline: "[2px solid {colors.blue.s70}]",
     outlineOffset: "[-2px]",
+    backgroundColor: "blue.s05",
   },
 });
 
@@ -107,12 +110,14 @@ const overlayBodyStyle = css({
   position: "relative",
   zIndex: "[1]",
   backgroundColor: "neutral.s00",
-  boxShadow: "[0 0 0 2px {colors.blue.s50}, 0 4px 12px -4px rgba(0,0,0,0.15)]",
+  boxShadow:
+    "[0 0 0 1px {colors.neutral.s110}, 0 4px 12px -4px rgba(0,0,0,0.25)]",
   display: "flex",
 });
 
 // The label bar and the Optimize bar sit flush against the editor, spanning
-// its full width — one slab, no gaps, rounded only at the outer corners.
+// its full width — one square slab, no gaps. Both are dark, so the slab's
+// frame contrasts with the spreadsheet around it.
 const pathLabelStyle = css({
   position: "absolute",
   bottom: "[100%]",
@@ -120,13 +125,11 @@ const pathLabelStyle = css({
   right: "[0]",
   animation: "[fadeIn 0.12s ease-out both]",
   paddingX: "1.5",
-  paddingY: "[2px]",
-  borderTopRadius: "xs",
-  backgroundColor: "neutral.s15",
-  boxShadow: "[0 0 0 2px {colors.blue.s50}]",
+  paddingY: "[3px]",
+  backgroundColor: "neutral.s110",
   fontSize: "[9px]",
   fontFamily: "mono",
-  color: "neutral.s80",
+  color: "neutral.s30",
   overflow: "hidden",
   whiteSpace: "nowrap",
   textOverflow: "ellipsis",
@@ -144,9 +147,7 @@ const belowStripStyle = css({
   gap: "1.5",
   paddingX: "1",
   paddingY: "[3px]",
-  borderBottomRadius: "xs",
-  backgroundColor: "neutral.s15",
-  boxShadow: "[0 0 0 2px {colors.blue.s50}]",
+  backgroundColor: "neutral.s110",
 });
 
 const boundsRowStyle = css({
@@ -500,6 +501,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                 <div className={expressionRowStyle}>
                   <CodeEditor
                     singleLine
+                    frameless
                     language="typescript"
                     path={uriFor(expressionSlot) || undefined}
                     value={value.expression}

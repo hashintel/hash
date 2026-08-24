@@ -313,6 +313,136 @@ describe("AdHocScenarioForm", () => {
     expect(trigger.getAttribute("title")).toContain("nope");
   });
 
+  it("removes the row when Delete is pressed on its gutter", async () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        optimizable
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+    expect(colouredPlace(latest).rows).toHaveLength(1);
+
+    const gutter = screen.getByRole("button", { name: "Row 1 kind" });
+    fireEvent.keyDown(gutter, { key: "Delete" });
+    expect(colouredPlace(latest).rows).toHaveLength(0);
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+  });
+
+  it("reaches the count strip and the gutter with arrow keys", () => {
+    const initial: AdHocScenarioState = {
+      variables: [],
+      netParameters: [],
+      places: {
+        "place-pumps": {
+          kind: "coloured",
+          variables: [],
+          rows: [
+            {
+              kind: "template",
+              count: { expression: "3", optimize: null },
+              cells: [
+                { expression: "1", optimize: null },
+                { expression: "false", optimize: null },
+              ],
+            },
+          ],
+          sharedColumns: {},
+        },
+      },
+    };
+    render(<Harness optimizable initial={initial} />);
+
+    const cell = screen.getByRole("button", {
+      name: "Pumps › item 0 › pressure",
+    });
+    cell.focus();
+    fireEvent.keyDown(cell, { key: "ArrowUp" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Pumps › item 0 › count",
+    );
+
+    const strip = document.activeElement!;
+    fireEvent.keyDown(strip, { key: "ArrowDown" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Pumps › item 0 › pressure",
+    );
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowLeft" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Row 1 kind",
+    );
+  });
+
+  it("materializes a variable from the phantom row, name cell editing", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        optimizable
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Add a variable (name, Top-level variables)",
+      }),
+    );
+    expect(latest?.variables).toHaveLength(1);
+    expect(latest?.variables[0]?.name).toBe("variable1");
+    // The fresh row's name cell opens in edit mode.
+    const input = screen.getByRole("textbox", {
+      name: "Name of variable 1 (Top-level variables)",
+    });
+    expect(document.activeElement).toBe(input);
+
+    fireEvent.change(input, { target: { value: "altitude" } });
+    expect(latest?.variables[0]?.name).toBe("altitude");
+    expect(input.isConnected).toBe(true);
+    fireEvent.keyDown(input, { key: "Escape" });
+    // Escape leaves the edit; the cell renders as a selectable button again.
+    expect(
+      screen.getByRole("button", {
+        name: "Name of variable 1 (Top-level variables)",
+      }).textContent,
+    ).toBe("altitude");
+  });
+
+  it("undoes and redoes edits at the form level", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        optimizable
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+    expect(colouredPlace(latest).rows).toHaveLength(1);
+
+    const table = screen.getByRole("button", { name: "Row 1 kind" });
+    fireEvent.keyDown(table, { key: "z", metaKey: true });
+    expect(latest?.places["place-pumps"]).toBeUndefined();
+
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+      { key: "z", metaKey: true, shiftKey: true },
+    );
+    expect(colouredPlace(latest).rows).toHaveLength(1);
+  });
+
   it("shows the place total, unresolved when a count is optimized", () => {
     const initial: AdHocScenarioState = {
       variables: [],
