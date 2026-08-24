@@ -555,6 +555,8 @@ type SessionState =
   | "ended"
   | "error";
 
+const panelTransitionDurationMs = 220;
+
 type LoggedEvent = {
   event: VoiceExperimentEvent;
   sequence: number;
@@ -639,11 +641,14 @@ export const VoiceExperiment = ({
   const [conversationId] = useState(() => crypto.randomUUID());
   const [events, setEvents] = useState<LoggedEvent[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isPanelMounted, setIsPanelMounted] = useState(false);
   const [sessionState, setSessionState] = useState<SessionState>("ready");
   const [isConversationActive, setIsConversationActive] = useState(false);
   const hasToggledPanelRef = useRef(false);
   const launcherButtonRef = useRef<HTMLButtonElement>(null);
   const minimizeButtonRef = useRef<HTMLButtonElement>(null);
+  const panelCloseTimeoutRef = useRef<number | undefined>(undefined);
+  const panelOpenFrameRef = useRef<number | undefined>(undefined);
   const sequenceRef = useRef(0);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollTranscriptRef = useRef(true);
@@ -680,6 +685,18 @@ export const VoiceExperiment = ({
       launcherButtonRef.current?.focus();
     }
   }, [isExpanded]);
+
+  useEffect(
+    () => () => {
+      if (panelCloseTimeoutRef.current !== undefined) {
+        window.clearTimeout(panelCloseTimeoutRef.current);
+      }
+      if (panelOpenFrameRef.current !== undefined) {
+        window.cancelAnimationFrame(panelOpenFrameRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const dispose = () => {
@@ -724,6 +741,41 @@ export const VoiceExperiment = ({
     } catch (error) {
       appendEvent(createErrorEvent(error));
     }
+  };
+
+  const openVoiceInterview = () => {
+    hasToggledPanelRef.current = true;
+
+    if (panelCloseTimeoutRef.current !== undefined) {
+      window.clearTimeout(panelCloseTimeoutRef.current);
+      panelCloseTimeoutRef.current = undefined;
+    }
+    if (panelOpenFrameRef.current !== undefined) {
+      window.cancelAnimationFrame(panelOpenFrameRef.current);
+    }
+
+    setIsPanelMounted(true);
+    panelOpenFrameRef.current = window.requestAnimationFrame(() => {
+      setIsExpanded(true);
+      panelOpenFrameRef.current = undefined;
+    });
+
+    if (sessionState === "ready") {
+      void startConversation();
+    }
+  };
+
+  const minimizeVoiceInterview = () => {
+    hasToggledPanelRef.current = true;
+    setIsExpanded(false);
+
+    if (panelCloseTimeoutRef.current !== undefined) {
+      window.clearTimeout(panelCloseTimeoutRef.current);
+    }
+    panelCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsPanelMounted(false);
+      panelCloseTimeoutRef.current = undefined;
+    }, panelTransitionDurationMs);
   };
 
   useEffect(() => {
@@ -788,7 +840,10 @@ export const VoiceExperiment = ({
             : "Start conversation";
 
   return (
-    <div className={`${dockStyle} petrinaut-root`}>
+    <div
+      className={`${dockStyle} petrinaut-root`}
+      data-ai-cta-dismiss-exempt=""
+    >
       <button
         ref={launcherButtonRef}
         aria-controls="voice-experiment-panel"
@@ -808,10 +863,7 @@ export const VoiceExperiment = ({
         ]
           .filter(Boolean)
           .join(" ")}
-        onClick={() => {
-          hasToggledPanelRef.current = true;
-          setIsExpanded(true);
-        }}
+        onClick={openVoiceInterview}
         tabIndex={isExpanded ? -1 : 0}
         title={
           isConversationActive
@@ -849,6 +901,7 @@ export const VoiceExperiment = ({
           .filter(Boolean)
           .join(" ")}
         id="voice-experiment-panel"
+        style={{ display: isPanelMounted ? undefined : "none" }}
       >
         <header className={headerStyle}>
           <div className={headerIdentityStyle}>
@@ -881,10 +934,7 @@ export const VoiceExperiment = ({
               ref={minimizeButtonRef}
               aria-label="Minimize voice interview"
               className={minimizeButtonStyle}
-              onClick={() => {
-                hasToggledPanelRef.current = true;
-                setIsExpanded(false);
-              }}
+              onClick={minimizeVoiceInterview}
               title="Minimize voice interview"
               type="button"
             >

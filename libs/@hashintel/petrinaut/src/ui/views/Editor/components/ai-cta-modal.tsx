@@ -96,6 +96,12 @@ export const AiCtaModal = ({
       if (!(target instanceof Node)) {
         return;
       }
+      if (
+        target instanceof Element &&
+        target.closest("[data-ai-cta-dismiss-exempt]")
+      ) {
+        return;
+      }
       if (formRef.current?.contains(target)) {
         return;
       }
