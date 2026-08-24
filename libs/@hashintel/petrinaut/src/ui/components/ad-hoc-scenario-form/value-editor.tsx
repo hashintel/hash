@@ -11,10 +11,21 @@
  * carries the first synthesis error or LSP diagnostic as its tooltip.
  */
 
-import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { Portal } from "@ark-ui/react/portal";
+import {
+  use,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
-import { Select, TextInput } from "@hashintel/ds-components";
+import {
+  Select,
+  TextInput,
+  usePortalContainerRef,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   AD_HOC_DEFAULT_COUNT_OPTIMIZE,
@@ -81,6 +92,9 @@ const errorTriggerStyle = css({
   },
 });
 
+/** Only one editor may be open; opening one announces itself to the rest. */
+const OPEN_EVENT = "petrinaut-adhoc-editor-open";
+
 // The open editor sits exactly over the cell; the path floats above it and
 // the Optimize control below, both quieter than the content.
 const overlayStyle = css({
@@ -99,6 +113,7 @@ const pathLabelStyle = css({
   position: "absolute",
   bottom: "[100%]",
   left: "[0]",
+  animation: "[fadeIn 0.12s ease-out both]",
   marginBottom: "[2px]",
   paddingX: "1",
   paddingY: "[1px]",
@@ -115,6 +130,7 @@ const belowStripStyle = css({
   position: "absolute",
   top: "[100%]",
   left: "[0]",
+  animation: "[fadeIn 0.12s ease-out both]",
   marginTop: "[3px]",
   display: "flex",
   alignItems: "center",
@@ -225,9 +241,21 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   onTriggerKeyDown,
 }) => {
   const { errorFor, uriFor } = use(AdHocFormContext);
+  const portalContainerRef = usePortalContainerRef();
+  const editorId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(autoOpen > 0);
+  // Whether the pointer landed on an already-selected cell: the first click
+  // selects, the second (or a double-click, or Enter) edits.
+  const wasFocusedOnPointerDownRef = useRef(false);
+  const [open, setOpenState] = useState(autoOpen > 0);
+
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    if (next) {
+      window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: editorId }));
+    }
+  };
   const [rect, setRect] = useState<{
     top: number;
     left: number;
@@ -265,12 +293,18 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     }
   }, [open]);
 
-  // The overlay tracks the cell through scrolling and resizes, and closes on
-  // any pointer press outside itself.
+  // The overlay tracks the cell through scrolling and resizes, closes on any
+  // pointer press outside itself, and yields when another editor opens.
   useEffect(() => {
     if (!open) {
       return;
     }
+    const onAnotherEditorOpen = (event: Event) => {
+      if ((event as CustomEvent<string>).detail !== editorId) {
+        setOpenState(false);
+      }
+    };
+    window.addEventListener(OPEN_EVENT, onAnotherEditorOpen);
     const onScrollOrResize = () => measure();
     const onPointerDown = (event: PointerEvent) => {
       const overlay = overlayRef.current;
@@ -279,13 +313,13 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           !overlay.contains(event.target) &&
           !buttonRef.current?.contains(event.target)
         ) {
-          setOpen(false);
+          setOpenState(false);
         }
       }
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setOpen(false);
+        setOpenState(false);
         buttonRef.current?.focus();
       }
     };
@@ -294,12 +328,13 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     document.addEventListener("pointerdown", onPointerDown, true);
     document.addEventListener("keydown", onKeyDown, true);
     return () => {
+      window.removeEventListener(OPEN_EVENT, onAnotherEditorOpen);
       window.removeEventListener("scroll", onScrollOrResize, true);
       window.removeEventListener("resize", onScrollOrResize);
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("keydown", onKeyDown, true);
     };
-  }, [open]);
+  }, [open, editorId]);
 
   const optimized = optimizable && value.optimize !== null;
   const isEmpty = !display && !optimized && value.expression.trim() === "";
@@ -356,126 +391,136 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           className,
         )}
         tabIndex={derived ? -1 : 0}
-        onClick={() => {
+        onPointerDown={() => {
+          wasFocusedOnPointerDownRef.current =
+            document.activeElement === buttonRef.current;
+        }}
+        onClick={(event) => {
           if (derived) {
             onOpenDerived?.();
             return;
           }
-          setOpen(true);
+          // A keyboard "click" (Enter/Space) carries no pointer detail and
+          // always opens; a pointer click opens only on an already-selected
+          // cell — the first click selects it.
+          if (event.detail === 0 || wasFocusedOnPointerDownRef.current) {
+            setOpen(true);
+          }
+        }}
+        onDoubleClick={() => {
+          if (!derived) {
+            setOpen(true);
+          }
         }}
         onKeyDown={onTriggerKeyDown}
       >
         <span className={triggerTextStyle}>{derived ? `⌃ ${text}` : text}</span>
       </button>
-      {open && rect
-        ? createPortal(
-            <div
-              ref={overlayRef}
-              className={overlayStyle}
-              style={{
-                top: rect.top,
-                left: rect.left,
-                width: Math.max(rect.width, MIN_OVERLAY_WIDTH),
-                minHeight: rect.height,
-              }}
-            >
-              <div className={pathLabelStyle}>{label}</div>
-              <div className={overlayBodyStyle}>
-                {optimized && booleanDomain ? (
-                  <div className={booleanNoteStyle}>
-                    The optimizer tries true and false.
-                  </div>
-                ) : optimized ? (
-                  <div className={boundsRowStyle}>
-                    {boundField("Min", value.optimize!.min, (min) =>
-                      onChange({
-                        ...value,
-                        optimize: { ...value.optimize!, min },
-                      }),
-                    )}
-                    {boundField("Max", value.optimize!.max, (max) =>
-                      onChange({
-                        ...value,
-                        optimize: { ...value.optimize!, max },
-                      }),
-                    )}
-                    {integer && withStep
-                      ? boundField(
-                          "Step",
-                          value.optimize!.step ?? "1",
-                          (step) =>
-                            onChange({
-                              ...value,
-                              optimize: { ...value.optimize!, step },
-                            }),
-                        )
-                      : null}
-                    <div className={scaleFieldStyle}>
-                      <Select
-                        size="sm"
-                        aria-label={`Scale of ${label}`}
-                        value={value.optimize!.scale}
-                        onChange={(scale) =>
-                          onChange({
-                            ...value,
-                            optimize: {
-                              ...value.optimize!,
-                              scale: scale === "log" ? "log" : "linear",
-                            },
-                          })
-                        }
-                        items={[
-                          { value: "linear", text: "Linear" },
-                          { value: "log", text: "Log" },
-                        ]}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className={expressionRowStyle}>
-                    <CodeEditor
-                      singleLine
-                      language="typescript"
-                      path={uriFor(expressionSlot) || undefined}
-                      value={value.expression}
-                      placeholder={placeholder}
-                      onChange={(expression) =>
-                        onChange({ ...value, expression: expression ?? "" })
+      {open && rect ? (
+        <Portal container={portalContainerRef}>
+          <div
+            ref={overlayRef}
+            className={overlayStyle}
+            style={{
+              top: rect.top,
+              left: rect.left,
+              width: Math.max(rect.width, MIN_OVERLAY_WIDTH),
+              minHeight: rect.height,
+            }}
+          >
+            <div className={pathLabelStyle}>{label}</div>
+            <div className={overlayBodyStyle}>
+              {optimized && booleanDomain ? (
+                <div className={booleanNoteStyle}>
+                  The optimizer tries true and false.
+                </div>
+              ) : optimized ? (
+                <div className={boundsRowStyle}>
+                  {boundField("Min", value.optimize!.min, (min) =>
+                    onChange({
+                      ...value,
+                      optimize: { ...value.optimize!, min },
+                    }),
+                  )}
+                  {boundField("Max", value.optimize!.max, (max) =>
+                    onChange({
+                      ...value,
+                      optimize: { ...value.optimize!, max },
+                    }),
+                  )}
+                  {integer && withStep
+                    ? boundField("Step", value.optimize!.step ?? "1", (step) =>
+                        onChange({
+                          ...value,
+                          optimize: { ...value.optimize!, step },
+                        }),
+                      )
+                    : null}
+                  <div className={scaleFieldStyle}>
+                    <Select
+                      size="sm"
+                      aria-label={`Scale of ${label}`}
+                      value={value.optimize!.scale}
+                      onChange={(scale) =>
+                        onChange({
+                          ...value,
+                          optimize: {
+                            ...value.optimize!,
+                            scale: scale === "log" ? "log" : "linear",
+                          },
+                        })
                       }
-                      onSubmit={() => {
-                        setOpen(false);
-                        buttonRef.current?.focus();
-                      }}
+                      items={[
+                        { value: "linear", text: "Linear" },
+                        { value: "log", text: "Log" },
+                      ]}
                     />
                   </div>
-                )}
-              </div>
-              {optimizable ? (
-                <div className={belowStripStyle}>
-                  <OptimizeToggle
-                    label={`Optimize ${label}`}
-                    value={value.optimize !== null}
-                    onChange={(on) =>
-                      onChange(
-                        toggleAdHocOptimize(
-                          value,
-                          on,
-                          integer && !withStep
-                            ? AD_HOC_DEFAULT_COUNT_OPTIMIZE
-                            : AD_HOC_DEFAULT_OPTIMIZE,
-                        ),
-                      )
+                </div>
+              ) : (
+                <div className={expressionRowStyle}>
+                  <CodeEditor
+                    singleLine
+                    language="typescript"
+                    path={uriFor(expressionSlot) || undefined}
+                    value={value.expression}
+                    placeholder={placeholder}
+                    onChange={(expression) =>
+                      onChange({ ...value, expression: expression ?? "" })
                     }
+                    onSubmit={() => {
+                      setOpen(false);
+                      buttonRef.current?.focus();
+                    }}
                   />
                 </div>
-              ) : null}
-              {boundsError ? (
-                <div className={fieldErrorStyle}>{boundsError}</div>
-              ) : null}
-            </div>,
-            document.body,
-          )
-        : null}
+              )}
+            </div>
+            {optimizable ? (
+              <div className={belowStripStyle}>
+                <OptimizeToggle
+                  label={`Optimize ${label}`}
+                  value={value.optimize !== null}
+                  onChange={(on) =>
+                    onChange(
+                      toggleAdHocOptimize(
+                        value,
+                        on,
+                        integer && !withStep
+                          ? AD_HOC_DEFAULT_COUNT_OPTIMIZE
+                          : AD_HOC_DEFAULT_OPTIMIZE,
+                      ),
+                    )
+                  }
+                />
+              </div>
+            ) : null}
+            {boundsError ? (
+              <div className={fieldErrorStyle}>{boundsError}</div>
+            ) : null}
+          </div>
+        </Portal>
+      ) : null}
     </>
   );
 };
