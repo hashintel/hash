@@ -6,6 +6,23 @@ export { Banner } from "./components/Banner/banner";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { ButtonGroup } from "./components/ButtonGroup/button-group";
 export { CharacterCount } from "./components/CharacterCount/character-count";
+export { maxZoomForNodeMinDistance } from "./components/Chart/NetworkGraph/max-zoom";
+export {
+  NetworkGraph,
+  type NetworkGraphEdge,
+  type NetworkGraphEdgeInteraction,
+  type NetworkGraphEdgeNeighbourhood,
+  type NetworkGraphHandle,
+  type NetworkGraphIcon,
+  type NetworkGraphId,
+  type NetworkGraphInteraction,
+  type NetworkGraphNeighbourhood,
+  type NetworkGraphPoint,
+  type NetworkGraphProps,
+  type NetworkGraphSelection,
+  type NetworkGraphSvgIcon,
+} from "./components/Chart/NetworkGraph/network-graph";
+export { minimumNearestNeighbourWorld } from "./components/Chart/NetworkGraph/node-density";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Chip, type ChipColor } from "./components/Chip/chip";
@@ -56,6 +73,7 @@ export { TextMark } from "./components/TextMark/text-mark";
 export { Toggle } from "./components/Toggle/toggle";
 export { BaseTooltip, type Position } from "./components/Tooltip/base-tooltip";
 export { Tooltip } from "./components/Tooltip/tooltip";
+export { brandmarkScale } from "./util/color-scales";
 export {
   PortalContainerContext,
   usePortalContainerRef,
