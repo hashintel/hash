@@ -55,3 +55,39 @@ where
             .await
     }
 }
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use std::collections::HashMap;
+
+    use error_stack::Report;
+    use hash_graph_authorization::policies::store::error::DetermineActorError;
+    use type_system::principal::actor::{ActorEntityUuid, ActorId};
+
+    use super::ResolveActor;
+
+    /// Actor resolver serving a fixed set of actors.
+    ///
+    /// A `None` entry resolves to the public actor.
+    pub(crate) struct FixedActorResolver {
+        actors: HashMap<ActorEntityUuid, Option<ActorId>>,
+    }
+
+    impl FixedActorResolver {
+        pub(crate) fn new(actors: HashMap<ActorEntityUuid, Option<ActorId>>) -> Self {
+            Self { actors }
+        }
+    }
+
+    impl ResolveActor for FixedActorResolver {
+        fn resolve_actor(
+            &self,
+            actor_entity_uuid: ActorEntityUuid,
+        ) -> impl Future<Output = Result<Option<ActorId>, Report<DetermineActorError>>> + Send
+        {
+            core::future::ready(self.actors.get(&actor_entity_uuid).copied().ok_or_else(|| {
+                Report::new(DetermineActorError::ActorNotFound { actor_entity_uuid })
+            }))
+        }
+    }
+}

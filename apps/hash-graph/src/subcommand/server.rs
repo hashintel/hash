@@ -219,7 +219,7 @@ impl KratosSessionAuthConfig {
     clippy::struct_excessive_bools,
     reason = "CLI arguments are boolean flags."
 )]
-#[derive(Debug, Clone, Parser)]
+#[derive(derive_more::Debug, Clone, Parser)]
 pub struct ServerConfig {
     #[clap(flatten)]
     pub http_address: HttpAddress,
@@ -238,7 +238,8 @@ pub struct ServerConfig {
     ///
     /// If not set, the entity and entity-type search endpoints cannot resolve a `semanticString`;
     /// callers must provide a precomputed `embedding` instead.
-    #[clap(long, env = "HASH_GRAPH_OPENAI_API_KEY")]
+    #[clap(long, env = "HASH_GRAPH_OPENAI_API_KEY", hide_env_values = true)]
+    #[debug("***")]
     pub openai_api_key: Option<String>,
 
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
@@ -284,6 +285,17 @@ pub struct ServerConfig {
 
     #[clap(flatten)]
     pub session_auth: KratosSessionAuthConfig,
+
+    /// Shared secret internal services present to act on behalf of an actor.
+    ///
+    /// Sent as the `Authorization: HASH-Service <secret>` credential, either next to
+    /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes.
+    //
+    // Optional at parse time so `--healthcheck` does not require the environment variable. The
+    // server refuses to start without it.
+    #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
+    #[debug("***")]
+    pub service_secret: Option<String>,
 
     #[clap(flatten)]
     pub compiler: CompilerConfig,
@@ -521,6 +533,19 @@ where
         )?;
     }
 
+    // HTTP strips surrounding whitespace from header values, so the senders' secret arrives
+    // trimmed. Trimming here keeps both sides comparing the same bytes.
+    let service_secret = config
+        .service_secret
+        .map(|secret| secret.trim().to_owned())
+        .filter(|secret| !secret.is_empty())
+        .ok_or_else(|| {
+            Report::new(GraphError).attach(
+                "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
+                 running the server",
+            )
+        })?;
+
     let router = rest_api_router(RestRouterDependencies {
         store,
         postgres,
@@ -530,6 +555,7 @@ where
         query_logger,
         api_config: config.api_config,
         session_auth,
+        service_secret,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
         serve_api_reference: config.serve_api_reference,

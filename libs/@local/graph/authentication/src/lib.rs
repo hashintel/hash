@@ -5,6 +5,7 @@
 extern crate alloc;
 
 pub mod actor;
+pub mod delegation;
 pub mod kratos;
 pub mod provider;
 pub mod request;

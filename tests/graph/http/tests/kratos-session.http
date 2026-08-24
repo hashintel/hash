@@ -122,6 +122,18 @@ X-Session-Token: {{session_token}}
   });
 %}
 
+### Session without the service secret does not reach bootstrap routes
+GET http://127.0.0.1:4000/actors/machine/identifier/system/h
+Content-Type: application/json
+Authorization: <omit>
+X-Session-Token: {{session_token}}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+%}
+
 ### Invalid session token is rejected
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
