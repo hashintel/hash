@@ -34,22 +34,20 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { AdHocFormContext } from "./form-context";
+import { FormSpreadsheet } from "./form-spreadsheet";
 import {
   cellStyle,
   columnHeaderStyle,
-  gutterButtonStyle,
   gutterCellStyle,
-  gutterMenuButtonStyle,
   gutterHeaderStyle,
   phantomCellButtonStyle,
-  phantomGutterButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
-  tableContainerStyle,
-  tableStyle,
 } from "./form-table";
-import { GutterMenu } from "./gutter-menu";
+import { GutterCell } from "./gutter-cell";
+import { PhantomLine } from "./phantom-line";
 import { focusLands, useNavigationZone } from "./use-form-navigation";
+import { useRowSelection } from "./use-row-selection";
 import { ValueEditor } from "./value-editor";
 
 // A background image, not a solid color, so it composites over row tints.
@@ -168,12 +166,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     field: string;
     nonce: number;
   } | null>(null);
-  const [kindMenu, setKindMenuState] = useState<{
-    row: number;
-    anchor: HTMLButtonElement;
-  } | null>(null);
   // Gutter focus selects the whole row; the selection highlight follows it.
-  const [selectedRow, setSelectedRow] = useState<number | null>(null);
+  const rowSelection = useRowSelection();
   const cellRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const gutterRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
   const stripRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
@@ -313,8 +307,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
       action();
     };
 
-    // Gutter: vertical moves stay in the gutter, right enters the cells, and
-    // Delete removes the selected row.
+    // Gutter: vertical moves stay in the gutter, right enters the cells.
+    // Delete is the GutterCell's own affair.
     if (position.kind === "gutter") {
       if (event.key === "ArrowRight") {
         handled(() => focusCell(position.row, 0));
@@ -326,8 +320,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
         } else {
           handled(() => exitZone(step === 1 ? "next" : "previous"));
         }
-      } else if (event.key === "Delete" || event.key === "Backspace") {
-        handled(() => deleteRow(position.row));
       }
       return;
     }
@@ -382,20 +374,9 @@ export const TokenTable: React.FC<TokenTableProps> = ({
       } else if (position.kind === "cell") {
         handled(() => gutterRefs.current.get(position.row)?.focus());
       }
-    } else if (event.key === "Tab") {
-      if (event.shiftKey) {
-        if (position.column > 0) {
-          handled(() => focusCell(row, position.column - 1));
-        } else if (stopIndex > 0) {
-          handled(() => focusStop(stopIndex - 1, columnCount - 1));
-        }
-      } else if (position.column < columnCount - 1) {
-        handled(() => focusCell(row, position.column + 1));
-      } else if (stopIndex < verticalStops.length - 1) {
-        handled(() => focusStop(stopIndex + 1, 0));
-      }
     }
     // Enter falls through: the cell's own click/open handling owns it.
+    // Tab stays native everywhere, matching the rest of the form.
   };
 
   const openSharedEditor = (field: string) => {
@@ -429,17 +410,14 @@ export const TokenTable: React.FC<TokenTableProps> = ({
       row: rowIndex,
       rowKind: kind,
     });
-    const anchor = kindMenu?.anchor;
-    setKindMenuState(null);
-    anchor?.focus();
+    rowSelection.menu?.anchor.focus();
   };
 
   const renderDataRow = (row: AdHocRow, rowIndex: number) => {
     const kind = adHocRowKindOf(row);
     const isDynamic = row.kind === "template";
     const selected =
-      (selectedRow === rowIndex || kindMenu?.row === rowIndex) &&
-      selectedRowCellStyle;
+      rowSelection.selectedRow === rowIndex && selectedRowCellStyle;
     const tint =
       kind === "optimized"
         ? optimizedRowStyle
@@ -492,56 +470,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
         ) : null}
         <tr>
           <td className={cx(gutterCellStyle, tint, selected)}>
-            <Tooltip
-              content={
-                kind === "fixed"
-                  ? `Row ${
-                      rowIndex + 1
-                    } — one token. Enter chooses the row's kind, Delete removes it.`
-                  : `Row ${rowIndex + 1} — dynamic${
-                      kind === "optimized" ? ", count optimized" : ""
-                    }. Enter chooses the row's kind, Delete removes it.`
-              }
-            >
-              <button
-                ref={(element) => {
-                  if (element) {
-                    gutterRefs.current.set(rowIndex, element);
-                  } else {
-                    gutterRefs.current.delete(rowIndex);
-                  }
-                }}
-                type="button"
-                className={gutterButtonStyle}
-                aria-label={`Row ${rowIndex + 1} kind`}
-                aria-haspopup="menu"
-                aria-expanded={kindMenu?.row === rowIndex}
-                onFocus={() => {
-                  setSelectedRow(rowIndex);
-                  setFocusedValue({
-                    kind: "tokenRow",
-                    placeId: place.id,
-                    row: rowIndex,
-                  });
-                }}
-                onBlur={() => {
-                  setSelectedRow(null);
-                  setFocusedValue(null);
-                }}
-                onKeyDown={(event) =>
-                  handleGridKeyDown(event, { kind: "gutter", row: rowIndex })
-                }
-                onClick={(event) => {
-                  // A pointer click only selects; the keyboard "click"
-                  // (Enter) and the dots button open the menu.
-                  if (event.detail === 0) {
-                    setKindMenuState({
-                      row: rowIndex,
-                      anchor: event.currentTarget,
-                    });
-                  }
-                }}
-              >
+            <GutterCell
+              glyph={
                 <span
                   className={cx(
                     kind === "dynamic" && dynamicGutterTextStyle,
@@ -550,68 +480,85 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 >
                   {isDynamic ? "i" : `#${rowIndex + 1}`}
                 </span>
-              </button>
-            </Tooltip>
-            <button
-              type="button"
-              tabIndex={-1}
-              className={gutterMenuButtonStyle}
-              aria-label={`Row ${rowIndex + 1} menu`}
-              onClick={(event) =>
-                setKindMenuState({
-                  row: rowIndex,
-                  anchor: event.currentTarget,
-                })
               }
-            >
-              ⋯
-            </button>
-            {kindMenu?.row === rowIndex ? (
-              <GutterMenu
-                anchor={kindMenu.anchor}
-                items={[
-                  {
-                    id: "fixed",
-                    label: "Fixed row",
-                    checked: kind === "fixed",
-                  },
-                  {
-                    id: "dynamic",
-                    label: "Dynamic count",
-                    checked: kind === "dynamic",
-                  },
-                  ...(selection !== "none"
-                    ? [
-                        {
-                          id: "optimized",
-                          label:
-                            selection === "controls"
-                              ? "Controlled count"
-                              : "Optimized count",
-                          checked: kind === "optimized",
-                        },
-                      ]
-                    : []),
-                  { id: "delete", label: "Delete row", destructive: true },
-                ]}
-                onSelect={(id) => {
-                  if (id === "delete") {
-                    setKindMenuState(null);
-                    deleteRow(rowIndex);
-                    return;
-                  }
-                  setRowKind(rowIndex, id as AdHocRowKind);
-                }}
-                onClose={() => setKindMenuState(null)}
-                onDismiss={() => {
-                  const menuAnchor = kindMenu.anchor;
-                  setKindMenuState(null);
-                  // After the Popover teardown settles - Zag's own Escape
-                  // handling races this and would blur to the body.
-                  setTimeout(() => menuAnchor.focus(), 0);
-                }}
-              />
-            ) : null}
+              tooltip={
+                kind === "fixed"
+                  ? `Row ${
+                      rowIndex + 1
+                    } — one token. Enter chooses the row's kind, Delete removes it.`
+                  : `Row ${rowIndex + 1} — dynamic${
+                      kind === "optimized"
+                        ? selection === "controls"
+                          ? ", count controlled"
+                          : ", count optimized"
+                        : ""
+                    }. Enter chooses the row's kind, Delete removes it.`
+              }
+              label={`Row ${rowIndex + 1} kind`}
+              menuLabel={`Row ${rowIndex + 1} menu`}
+              items={[
+                {
+                  id: "fixed",
+                  label: "Fixed row",
+                  checked: kind === "fixed",
+                },
+                {
+                  id: "dynamic",
+                  label: "Dynamic count",
+                  checked: kind === "dynamic",
+                },
+                ...(selection !== "none"
+                  ? [
+                      {
+                        id: "optimized",
+                        label:
+                          selection === "controls"
+                            ? "Controlled count"
+                            : "Optimized count",
+                        checked: kind === "optimized",
+                      },
+                    ]
+                  : []),
+                { id: "delete", label: "Delete row", destructive: true },
+              ]}
+              onMenuSelect={(id) => {
+                if (id === "delete") {
+                  deleteRow(rowIndex);
+                  return;
+                }
+                setRowKind(rowIndex, id as AdHocRowKind);
+              }}
+              menuAnchor={
+                rowSelection.menu?.row === rowIndex
+                  ? rowSelection.menu.anchor
+                  : null
+              }
+              onOpenMenu={(anchor) => rowSelection.openMenu(rowIndex, anchor)}
+              onCloseMenu={rowSelection.closeMenu}
+              buttonRef={(element) => {
+                if (element) {
+                  gutterRefs.current.set(rowIndex, element);
+                } else {
+                  gutterRefs.current.delete(rowIndex);
+                }
+              }}
+              onFocus={() => {
+                rowSelection.setFocusedRow(rowIndex);
+                setFocusedValue({
+                  kind: "tokenRow",
+                  placeId: place.id,
+                  row: rowIndex,
+                });
+              }}
+              onBlur={() => {
+                rowSelection.setFocusedRow(null);
+                setFocusedValue(null);
+              }}
+              onKeyDown={(event) =>
+                handleGridKeyDown(event, { kind: "gutter", row: rowIndex })
+              }
+              onDelete={() => deleteRow(rowIndex)}
+            />
           </td>
           {elements.map((element, columnIndex) => {
             const shared = state.sharedColumns[element.name];
@@ -684,171 +631,161 @@ export const TokenTable: React.FC<TokenTableProps> = ({
 
   return (
     <>
-      <div ref={attachZone} className={tableContainerStyle}>
-        <table className={tableStyle}>
-          <thead>
-            <tr>
-              <th aria-label="Row kind" className={gutterHeaderStyle} />
-              {elements.map((element, columnIndex) => {
-                const shared = Boolean(state.sharedColumns[element.name]);
-                return (
-                  <th
-                    key={element.elementId}
-                    className={cx(columnHeaderStyle, shared && sharedWashStyle)}
+      <FormSpreadsheet attach={attachZone}>
+        <thead>
+          <tr>
+            <th aria-label="Row kind" className={gutterHeaderStyle} />
+            {elements.map((element, columnIndex) => {
+              const shared = Boolean(state.sharedColumns[element.name]);
+              return (
+                <th
+                  key={element.elementId}
+                  className={cx(columnHeaderStyle, shared && sharedWashStyle)}
+                >
+                  <Tooltip
+                    content={
+                      shared
+                        ? "Shared value — click to release the column"
+                        : "Click to share one value across the column"
+                    }
                   >
-                    <Tooltip
-                      content={
-                        shared
-                          ? "Shared value — click to release the column"
-                          : "Click to share one value across the column"
+                    <button
+                      ref={(el) => {
+                        if (el) {
+                          headerRefs.current.set(columnIndex, el);
+                        } else {
+                          headerRefs.current.delete(columnIndex);
+                        }
+                      }}
+                      type="button"
+                      className={headerButtonStyle}
+                      aria-label={`Share column ${element.name}`}
+                      aria-pressed={shared}
+                      onKeyDown={(event) =>
+                        handleGridKeyDown(event, {
+                          kind: "header",
+                          column: columnIndex,
+                        })
+                      }
+                      onClick={() =>
+                        dispatch(
+                          shared
+                            ? {
+                                type: "unshareColumn",
+                                placeId: place.id,
+                                field: element.name,
+                              }
+                            : {
+                                type: "shareColumn",
+                                placeId: place.id,
+                                field: element.name,
+                                column: columnIndex,
+                              },
+                        )
                       }
                     >
-                      <button
-                        ref={(el) => {
-                          if (el) {
-                            headerRefs.current.set(columnIndex, el);
-                          } else {
-                            headerRefs.current.delete(columnIndex);
-                          }
-                        }}
-                        type="button"
-                        className={headerButtonStyle}
-                        aria-label={`Share column ${element.name}`}
-                        aria-pressed={shared}
-                        onKeyDown={(event) =>
-                          handleGridKeyDown(event, {
-                            kind: "header",
-                            column: columnIndex,
-                          })
+                      {element.name}
+                    </button>
+                  </Tooltip>
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+
+        {/* Shared values: one slot directly below each shared header. */}
+        {hasSharedColumns ? (
+          <tbody>
+            <tr>
+              <td className={gutterCellStyle} />
+              {elements.map((element, columnIndex) => {
+                const shared = state.sharedColumns[element.name];
+                if (!shared) {
+                  return <td key={element.elementId} className={cellStyle} />;
+                }
+                const target = {
+                  kind: "column" as const,
+                  placeId: place.id,
+                  column: columnIndex,
+                };
+                return (
+                  <td
+                    key={element.elementId}
+                    className={cx(cellStyle, sharedWashStyle)}
+                  >
+                    <ValueEditor
+                      value={shared}
+                      target={target}
+                      integer={element.type === "integer"}
+                      booleanDomain={element.type === "boolean"}
+                      autoOpen={
+                        sharedAutoOpen?.field === element.name
+                          ? sharedAutoOpen.nonce
+                          : 0
+                      }
+                      triggerRef={(el) => {
+                        if (el) {
+                          sharedRefs.current.set(columnIndex, el);
+                        } else {
+                          sharedRefs.current.delete(columnIndex);
                         }
-                        onClick={() =>
-                          dispatch(
-                            shared
-                              ? {
-                                  type: "unshareColumn",
-                                  placeId: place.id,
-                                  field: element.name,
-                                }
-                              : {
-                                  type: "shareColumn",
-                                  placeId: place.id,
-                                  field: element.name,
-                                  column: columnIndex,
-                                },
-                          )
-                        }
-                      >
-                        {element.name}
-                      </button>
-                    </Tooltip>
-                  </th>
+                      }}
+                      onTriggerKeyDown={(event) =>
+                        handleGridKeyDown(event, {
+                          kind: "shared",
+                          column: columnIndex,
+                        })
+                      }
+                    />
+                  </td>
                 );
               })}
             </tr>
-          </thead>
-
-          {/* Shared values: one slot directly below each shared header. */}
-          {hasSharedColumns ? (
-            <tbody>
-              <tr>
-                <td className={gutterCellStyle} />
-                {elements.map((element, columnIndex) => {
-                  const shared = state.sharedColumns[element.name];
-                  if (!shared) {
-                    return <td key={element.elementId} className={cellStyle} />;
-                  }
-                  const target = {
-                    kind: "column" as const,
-                    placeId: place.id,
-                    column: columnIndex,
-                  };
-                  return (
-                    <td
-                      key={element.elementId}
-                      className={cx(cellStyle, sharedWashStyle)}
-                    >
-                      <ValueEditor
-                        value={shared}
-                        target={target}
-                        integer={element.type === "integer"}
-                        booleanDomain={element.type === "boolean"}
-                        autoOpen={
-                          sharedAutoOpen?.field === element.name
-                            ? sharedAutoOpen.nonce
-                            : 0
-                        }
-                        triggerRef={(el) => {
-                          if (el) {
-                            sharedRefs.current.set(columnIndex, el);
-                          } else {
-                            sharedRefs.current.delete(columnIndex);
-                          }
-                        }}
-                        onTriggerKeyDown={(event) =>
-                          handleGridKeyDown(event, {
-                            kind: "shared",
-                            column: columnIndex,
-                          })
-                        }
-                      />
-                    </td>
-                  );
-                })}
-              </tr>
-            </tbody>
-          ) : null}
-
-          {state.rows.map((row, rowIndex) => renderDataRow(row, rowIndex))}
-
-          {/* Phantom trailing row: materializes on click. */}
-          <tbody>
-            <tr>
-              <td className={cx(gutterCellStyle, phantomRowCellStyle)}>
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  className={phantomGutterButtonStyle}
-                  aria-label="Add a token row"
-                  onClick={() => materializeRow(0)}
-                >
-                  +
-                </button>
-              </td>
-              {elements.map((element, columnIndex) => (
-                <td
-                  key={element.elementId}
-                  className={cx(
-                    cellStyle,
-                    phantomRowCellStyle,
-                    state.sharedColumns[element.name] && sharedWashStyle,
-                  )}
-                >
-                  <button
-                    ref={(el) => {
-                      const key = `${state.rows.length}-${columnIndex}`;
-                      if (el) {
-                        cellRefs.current.set(key, el);
-                      } else {
-                        cellRefs.current.delete(key);
-                      }
-                    }}
-                    type="button"
-                    className={phantomCellButtonStyle}
-                    aria-label={`Add a token row (${element.name})`}
-                    onClick={() => materializeRow(columnIndex)}
-                    onKeyDown={(event) =>
-                      handleGridKeyDown(event, {
-                        kind: "phantom",
-                        column: columnIndex,
-                      })
-                    }
-                  />
-                </td>
-              ))}
-            </tr>
           </tbody>
-        </table>
-      </div>
+        ) : null}
+
+        {state.rows.map((row, rowIndex) => renderDataRow(row, rowIndex))}
+
+        {/* Phantom trailing row: materializes on click. */}
+        <tbody>
+          <PhantomLine
+            gutterLabel="Add a token row"
+            onMaterialize={() => materializeRow(0)}
+          >
+            {elements.map((element, columnIndex) => (
+              <td
+                key={element.elementId}
+                className={cx(
+                  cellStyle,
+                  phantomRowCellStyle,
+                  state.sharedColumns[element.name] && sharedWashStyle,
+                )}
+              >
+                <button
+                  ref={(el) => {
+                    const key = `${state.rows.length}-${columnIndex}`;
+                    if (el) {
+                      cellRefs.current.set(key, el);
+                    } else {
+                      cellRefs.current.delete(key);
+                    }
+                  }}
+                  type="button"
+                  className={phantomCellButtonStyle}
+                  aria-label={`Add a token row (${element.name})`}
+                  onClick={() => materializeRow(columnIndex)}
+                  onKeyDown={(event) =>
+                    handleGridKeyDown(event, {
+                      kind: "phantom",
+                      column: columnIndex,
+                    })
+                  }
+                />
+              </td>
+            ))}
+          </PhantomLine>
+        </tbody>
+      </FormSpreadsheet>
       <div className={totalTextStyle}>
         {total.resolved ? `${total.total} tokens` : `${total.text} tokens`}
       </div>

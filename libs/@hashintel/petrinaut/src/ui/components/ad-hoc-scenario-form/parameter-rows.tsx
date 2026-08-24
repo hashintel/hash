@@ -10,11 +10,10 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { emptyAdHocValue } from "@hashintel/petrinaut-core";
 
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
+import { FormSpreadsheet } from "./form-spreadsheet";
 import {
   cellStyle,
   dependencyHighlightStyle as highlightStyle,
-  tableContainerStyle,
-  tableStyle,
 } from "./form-table";
 import { OptimizeToggle } from "./optimize-toggle";
 import { useNavigationGrid } from "./use-grid-navigation";
@@ -69,78 +68,70 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
     };
 
   return (
-    <div ref={attach} className={tableContainerStyle}>
-      <table className={tableStyle}>
-        <tbody>
-          {synthesisContext.netParameters.map((parameter, parameterIndex) => {
-            const entry = entryFor(parameter.id);
-            const target = {
-              kind: "netParameter" as const,
-              parameterId: parameter.id,
-            };
-            const highlighted = highlight.parameterIds.has(parameter.id);
-            const rowHighlight = highlighted && highlightStyle;
-            return (
-              <tr
-                key={parameter.id}
-                data-highlighted={highlighted || undefined}
+    <FormSpreadsheet attach={attach}>
+      <tbody>
+        {synthesisContext.netParameters.map((parameter, parameterIndex) => {
+          const entry = entryFor(parameter.id);
+          const target = {
+            kind: "netParameter" as const,
+            parameterId: parameter.id,
+          };
+          const highlighted = highlight.parameterIds.has(parameter.id);
+          const rowHighlight = highlighted && highlightStyle;
+          return (
+            <tr key={parameter.id} data-highlighted={highlighted || undefined}>
+              <td
+                className={cx(cellStyle, rowHighlight)}
+                style={{ width: 140 }}
               >
+                <div className={parameterNameCellStyle}>{parameter.name}</div>
+              </td>
+              <td className={cx(cellStyle, rowHighlight)} style={{ width: 96 }}>
+                <div className={parameterTypeCellStyle}>{parameter.type}</div>
+              </td>
+              <td className={cx(cellStyle, rowHighlight)}>
+                <ValueEditor
+                  target={target}
+                  value={entry}
+                  display={
+                    entry.optimize
+                      ? undefined
+                      : entry.expression ||
+                        `default (${parameter.defaultValue})`
+                  }
+                  integer={parameter.type === "integer"}
+                  booleanDomain={parameter.type === "boolean"}
+                  triggerRef={register(parameterIndex, 0)}
+                  onTriggerKeyDown={onKeyDown(parameterIndex, 0)}
+                />
+              </td>
+              {selection !== "none" ? (
                 <td
-                  className={cx(cellStyle, rowHighlight)}
-                  style={{ width: 140 }}
+                  className={cx(
+                    cellStyle,
+                    parameterOptimizeCellStyle,
+                    rowHighlight,
+                  )}
+                  style={{ width: 92 }}
+                  onFocus={() => setFocusedValue(target)}
+                  onBlur={() => setFocusedValue(null)}
                 >
-                  <div className={parameterNameCellStyle}>{parameter.name}</div>
-                </td>
-                <td
-                  className={cx(cellStyle, rowHighlight)}
-                  style={{ width: 96 }}
-                >
-                  <div className={parameterTypeCellStyle}>{parameter.type}</div>
-                </td>
-                <td className={cx(cellStyle, rowHighlight)}>
-                  <ValueEditor
-                    target={target}
-                    value={entry}
-                    display={
-                      entry.optimize
-                        ? undefined
-                        : entry.expression ||
-                          `default (${parameter.defaultValue})`
+                  <OptimizeToggle
+                    text={adHocSelectionText(selection)}
+                    label={`${adHocSelectionText(selection)} ${parameter.name}`}
+                    value={entry.optimize !== null}
+                    buttonRef={register(parameterIndex, 1)}
+                    onKeyDown={onKeyDown(parameterIndex, 1)}
+                    onChange={(on) =>
+                      dispatch({ type: "toggleSelection", target, on })
                     }
-                    integer={parameter.type === "integer"}
-                    booleanDomain={parameter.type === "boolean"}
-                    triggerRef={register(parameterIndex, 0)}
-                    onTriggerKeyDown={onKeyDown(parameterIndex, 0)}
                   />
                 </td>
-                {selection !== "none" ? (
-                  <td
-                    className={cx(
-                      cellStyle,
-                      parameterOptimizeCellStyle,
-                      rowHighlight,
-                    )}
-                    style={{ width: 92 }}
-                    onFocus={() => setFocusedValue(target)}
-                    onBlur={() => setFocusedValue(null)}
-                  >
-                    <OptimizeToggle
-                      text={adHocSelectionText(selection)}
-                      label={`${adHocSelectionText(selection)} ${parameter.name}`}
-                      value={entry.optimize !== null}
-                      buttonRef={register(parameterIndex, 1)}
-                      onKeyDown={onKeyDown(parameterIndex, 1)}
-                      onChange={(on) =>
-                        dispatch({ type: "toggleSelection", target, on })
-                      }
-                    />
-                  </td>
-                ) : null}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+              ) : null}
+            </tr>
+          );
+        })}
+      </tbody>
+    </FormSpreadsheet>
   );
 };
