@@ -1949,6 +1949,24 @@ fn semantic_ordering_production_shape() {
 }
 
 #[test]
+fn select_first_label_property() {
+    let mut compiler = SelectCompiler::<Entity>::new(None, false);
+    compiler.add_selection_path(&EntityQueryPath::FirstLabelProperty);
+
+    test_compilation(
+        &compiler,
+        r#"
+        SELECT ("entity_edition_cache_0_1_0"."label_properties")[1]
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+          ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+        "#,
+        &[],
+    );
+}
+
+#[test]
 fn semantic_ordering_rejects_non_embedding_paths() {
     let embedding = Embedding::from(vec![0.0; 3072]);
 
@@ -2722,6 +2740,114 @@ mod property_masking {
             sql.contains(r#"ORDER BY jsonb_path_query_first(("entity_editions_0_1_0"."properties" - (CASE WHEN"#),
             "ORDER BY should use masked properties expression: {sql}"
         );
+    }
+}
+
+mod scalar_properties {
+    use super::*;
+
+    /// The bound scalar type names, in the order the selection binds them.
+    const SCALAR_TYPES: &[&str] = &["string", "number", "boolean", "null"];
+
+    /// Both paths read the properties object through the column hook, so a configured masking
+    /// reaches the aggregated map and the count without either naming it.
+    #[test]
+    fn selection_reads_the_masked_object() {
+        let config = PropertyProtectionFilterConfig::hash_default();
+
+        let mut compiler = SelectCompiler::<Entity>::new(None, false);
+
+        let property_filter = config.to_property_protection_filter(None);
+        compiler.with_property_masking(&property_filter);
+
+        let scalars = compiler.add_selection_path(&EntityQueryPath::ScalarProperties);
+        let total = compiler.add_selection_path(&EntityQueryPath::PropertyCount);
+        assert_eq!((scalars, total), (0, 1));
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT
+                (SELECT jsonb_object_agg("scalar_property"."key", "scalar_property"."value")
+                FROM jsonb_each(("entity_editions_0_1_0"."properties" - (CASE WHEN
+                    ("entity_temporal_metadata_0_0_0"."entity_uuid" != $2)
+                    AND ("entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$3]::text[])
+                    THEN ARRAY[$4]::text[]
+                    ELSE ARRAY[]::text[] END))) AS "scalar_property"("key", "value")
+                WHERE jsonb_typeof("scalar_property"."value") = ANY(($1::text[]))),
+                ((SELECT count(*)
+                FROM jsonb_each(("entity_editions_0_1_0"."properties" - (CASE WHEN
+                    ("entity_temporal_metadata_0_0_0"."entity_uuid" != $2)
+                    AND ("entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$3]::text[])
+                    THEN ARRAY[$4]::text[]
+                    ELSE ARRAY[]::text[] END))) AS "scalar_property"("key", "value"))::int4)
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+                ON "entity_editions_0_1_0"."entity_edition_id" =
+                    "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+                ON "entity_edition_cache_0_1_0"."entity_edition_id" =
+                    "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+            "#,
+            &[
+                &SCALAR_TYPES,
+                &Uuid::nil(),
+                &"https://hash.ai/@h/types/entity-type/user/",
+                &"https://hash.ai/@h/types/property-type/email/",
+            ],
+        );
+    }
+
+    /// Without a configured masking both paths read the bare properties column.
+    #[test]
+    fn selection_reads_the_bare_object_without_masking() {
+        let mut compiler = SelectCompiler::<Entity>::new(None, false);
+
+        let scalars = compiler.add_selection_path(&EntityQueryPath::ScalarProperties);
+        let total = compiler.add_selection_path(&EntityQueryPath::PropertyCount);
+        assert_eq!((scalars, total), (0, 1));
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT
+                (SELECT jsonb_object_agg("scalar_property"."key", "scalar_property"."value")
+                FROM jsonb_each("entity_editions_0_1_0"."properties")
+                    AS "scalar_property"("key", "value")
+                WHERE jsonb_typeof("scalar_property"."value") = ANY(($1::text[]))),
+                ((SELECT count(*)
+                FROM jsonb_each("entity_editions_0_1_0"."properties")
+                    AS "scalar_property"("key", "value"))::int4)
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+                ON "entity_editions_0_1_0"."entity_edition_id" =
+                    "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+            "#,
+            &[&SCALAR_TYPES],
+        );
+    }
+
+    /// A repeated path answers the first selection's position instead of appending a copy.
+    #[test]
+    fn selection_is_added_once() {
+        let mut compiler = SelectCompiler::<Entity>::new(None, false);
+
+        let first = compiler.add_selection_path(&EntityQueryPath::ScalarProperties);
+        let second = compiler.add_selection_path(&EntityQueryPath::ScalarProperties);
+        assert_eq!(
+            first, second,
+            "the second call answers a different position"
+        );
+
+        let (compiled_statement, parameters) = compiler.compile();
+        assert_eq!(
+            compiled_statement.matches("jsonb_object_agg").count(),
+            1,
+            "the second call appended a second subquery: {compiled_statement}"
+        );
+        assert_eq!(parameters.len(), 1, "the second call bound its own copy");
     }
 }
 
