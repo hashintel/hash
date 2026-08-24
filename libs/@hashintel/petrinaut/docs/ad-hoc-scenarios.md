@@ -26,11 +26,11 @@ Every value in the form is an expression. A first click selects a value; a secon
 
 ### Keyboard editing and undo
 
-Every table in the form is a keyboard grid: arrow keys and Tab move between cells, phantom rows and type selects included, and moving up from a dynamic row's cells lands on its count strip, so counts and bounds are editable without the mouse. A token table's column headers are the grid's top line. In a token table, the left arrow from a row's first cell reaches the **row gutter**: focusing it highlights and selects the whole row, Enter opens the row's menu, and Delete removes the row. The menu is a keyboard menu too: it opens with the current kind focused, arrow keys move through the items, Enter chooses, and Escape returns to the gutter. Every row action lives in that menu -- the row kinds and **Delete row**.
+Every table in the form is a keyboard grid: arrow keys move between cells, phantom rows and type selects included, and moving up from a dynamic row's cells lands on its count strip, so counts and bounds are editable without the mouse. Tab keeps its usual browser behaviour everywhere. A token table's column headers are the grid's top line. In a token table, the left arrow from a row's first cell reaches the **row gutter**: focusing it highlights and selects the whole row, Enter opens the row's menu, and Delete removes the row. The menu is a keyboard menu too: it opens with the current kind focused, arrow keys move through the items, Enter chooses, and Escape returns to the gutter. Every row action lives in that menu -- the row kinds and **Delete row**.
 
 The walk does not stop at a table's edge: moving down from a table's last row continues to the next part of the form -- a section header, a place header, the next table -- and moving up continues backwards the same way. Collapsed sections are skipped.
 
-The whole form has one undo history: Cmd/Ctrl+Z undoes and Shift+Cmd/Ctrl+Z (or Ctrl+Y) redoes any edit -- a changed value, an added or deleted row, a shared column, an Optimize toggle. An open text editor keeps its own text-level undo until you close it.
+The whole form has one undo history: Cmd/Ctrl+Z undoes and Shift+Cmd/Ctrl+Z (or Ctrl+Y) redoes any edit -- a changed value, an added or deleted row, a shared column, an Optimize toggle. Typing in one value counts as a single step, however long the pause; moving to another value starts the next step. Redo restores exactly the state you undid from. An open text editor keeps its own text-level undo until you close it.
 
 ### Connections around the focused value
 
