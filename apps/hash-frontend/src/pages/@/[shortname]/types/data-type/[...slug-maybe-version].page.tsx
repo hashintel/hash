@@ -127,7 +127,7 @@ const Page: NextPageWithLayout = () => {
         webId={routeNamespace.webId}
         draftNewDataType={draftDataType}
         dataTypeBaseUrl={dataTypeBaseUrl}
-        key={`${dataTypeBaseUrl}-${requestedVersion?.toString()}`}
+        key={`${draftDataType?.metadata.recordId.baseUrl ?? dataTypeBaseUrl}-${requestedVersion?.toString()}`}
         requestedVersion={requestedVersion}
         onDataTypeUpdated={(dataType) => {
           void router.push(generateLinkParameters(dataType.schema.$id).href);
