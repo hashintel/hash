@@ -199,10 +199,12 @@ categories are plugin-authored. (Ratified as FE-1393 design input.)
 
 ```yaml
 PluginContract:
+  version: immutable string or digest # bound into every completion snapshot/report
   modelSchema: NodeKind[]           # register 2 — derived, never stored
   proposalCatalog: ProposalType[]   # register 1 — utterance-shaped, envelope-wrapped
   foldTable: FoldRow[]              # overrides only; default rules derive from SlotDecl
-  demandTable: { rows: DemandRow[], staticFloor: string[] }
+  demandTable:
+    { version: immutable string or digest, rows: DemandRow[], staticFloor: DemandClause[] }
   variantDimension: enum?           # e.g. prescribed | practiced; enables slot state 'diverged'
   lossCategories: enum[]
 
@@ -309,13 +311,23 @@ are genuine alternatives must be declared as such and handled by the plugin's ex
 alternative rule; they do not authorize the fold to choose one. A higher-grade value replaces
 a lower-grade value only through an explicit supersession, after which the lower capture is no
 longer active. Regime divergence is per-slot; a regime-split _existence_ (the off-shift wash
-that's prescribed-possible, practiced-never) is the degenerate node-level case.
+that's prescribed-possible, practiced-never) is the degenerate node-level case. The present
+`diverged` shorthand exposes neither side's grade nor support captures. Completion therefore fails
+a demanded diverged slot with `unevaluable-divergence`; FE-1431 owns an evaluable constituent
+shape and the later author-selectable all-sides/either-side rule.
 
 ### Demand, scope, and firing conditions
 
 Requiredness is question-relative: a static floor (≥1 objective; entity coverage; a happy-path
 flow) plus objective-demanded grades (a capacity objective demands quantile-grade durations on
-the activities in its support). Demand rows map anchor patterns to `ScopeExpr → grade` maps.
+the activities in its support). `DemandClause` is the smallest sufficient union: a presence clause
+declares minimum cardinality over `ScopeExpr`; a slot clause declares scope, slot,
+minimum grade, accepted epistemic statuses, and accepted absences. Presence clauses express
+objective, entity, and path existence. Slot clauses require every selected slot to pass and an
+empty selection fails. All matched clauses are conjunctive. Every active completion anchor must
+match at least one row. Plugin and demand-table immutable versions are bound with target-document
+revision into every evaluation and report. The complete evaluation and report shape live in the
+provisional [target-document completion contract](elicitation-completion.md).
 `ScopeExpr` has three constructors — `kind`, `where`-filter, `inSupport(anchor)` — and
 **September ships kind-only**; the other two are the named growth path. `support(anchor)` is
 defined as reference closure over a plugin-declared list of support-bearing proposal types
