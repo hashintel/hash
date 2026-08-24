@@ -70,6 +70,12 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
   toolName: definition.toolName,
   shouldHandle: definition.shouldHandle,
   render: ({ input, state, submit, submittedOutput }) => {
+    let parsedInput: Input;
+    try {
+      parsedInput = definition.parseInput(input);
+    } catch {
+      return null;
+    }
     let parsedOutput: Output | undefined;
     if (state === "submitted") {
       try {
@@ -79,7 +85,7 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
       }
     }
     return createElement(definition.Widget, {
-      input: definition.parseInput(input),
+      input: parsedInput,
       state,
       submit: (output: Output) => submit(output),
       submittedOutput: parsedOutput,
