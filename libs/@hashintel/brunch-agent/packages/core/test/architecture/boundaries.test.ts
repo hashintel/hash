@@ -155,7 +155,9 @@ describe("dependency direction (spec §4, §12.2)", () => {
         for (const specifier of importedPackages(file)) {
           const pkg = packageOf(specifier);
           expect(isSubstrate(pkg)).toBe(false);
-          if (pkg.startsWith("@hashintel/brunch-agent")) expect(pkg).toBe(CORE);
+          expect(pkg.startsWith("@hashintel/brunch-agent") ? pkg : CORE).toBe(
+            CORE,
+          );
           expect(specifier).not.toBe(`${CORE}/storage`);
         }
       }
@@ -207,17 +209,23 @@ describe("the direction is enforced under HASH's linker", () => {
     for (const pkg of PACKAGES) {
       const declared = runtimeDependencies(pkg);
       for (const file of sourceFiles(pkg)) {
-        for (const imported of importedPackages(file).map(packageOf)) {
-          if (
-            imported === CORE ||
-            imported.startsWith("@hashintel/brunch-agent-")
-          ) {
-            expect({ file: file.relPath, imported, declared }).toEqual({
-              file: file.relPath,
-              imported,
-              declared: expect.arrayContaining([imported]),
-            });
-          }
+        const importedWorkspaces = importedPackages(file)
+          .map(packageOf)
+          .filter(
+            (imported) =>
+              imported === CORE ||
+              imported.startsWith("@hashintel/brunch-agent-"),
+          );
+        for (const imported of importedWorkspaces) {
+          expect({
+            file: file.relPath,
+            imported,
+            declared: declared.includes(imported),
+          }).toEqual({
+            file: file.relPath,
+            imported,
+            declared: true,
+          });
         }
       }
     }
@@ -426,11 +434,9 @@ describe("core auxiliary subpaths stay in their assigned lanes (spec §12.2)", (
 describe("the HASH smoke is runnable without a model key or a network (spec §12.5)", () => {
   test("every Brunch workspace exposes HASH lint, typecheck, and unit-test tasks", () => {
     for (const pkg of PACKAGES) {
-      expect(pkg.manifest.scripts).toMatchObject({
-        "lint:eslint": expect.any(String),
-        "lint:tsc": expect.any(String),
-        "test:unit": expect.stringContaining("vitest run"),
-      });
+      expect(typeof pkg.manifest.scripts?.["lint:eslint"]).toBe("string");
+      expect(typeof pkg.manifest.scripts?.["lint:tsc"]).toBe("string");
+      expect(pkg.manifest.scripts?.["test:unit"]).toContain("vitest run");
     }
   });
 

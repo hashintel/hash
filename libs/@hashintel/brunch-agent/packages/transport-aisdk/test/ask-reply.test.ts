@@ -265,7 +265,7 @@ describe("FE-1449 ask return POST", () => {
       expect({
         reason,
         status: response.status,
-        body: await response.json(),
+        body: (await response.json()) as unknown,
       }).toEqual({
         reason,
         status: 409,

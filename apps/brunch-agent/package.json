@@ -8,8 +8,8 @@
   "scripts": {
     "build": "vite build && vite build --config vite.client.config.ts",
     "dev": "vite dev",
-    "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
-    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
+    "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
     "test:unit": "vitest run --config vitest.config.ts"

@@ -45,7 +45,9 @@ describe("settlement and sweep protocol", () => {
       lastCheckedUserEntryId: null,
     });
     expect(parseSweepState(initial)).toEqual(initial);
-    expect(() => parseSweepState({ ...initial, invented: true })).toThrow();
+    expect(() => parseSweepState({ ...initial, invented: true })).toThrow(
+      Error,
+    );
   });
 
   test("computes the unswept range through the latest true-user entry only", () => {

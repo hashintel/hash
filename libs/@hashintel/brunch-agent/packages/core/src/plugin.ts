@@ -43,6 +43,7 @@ export type Plugin = v.InferOutput<typeof PluginDescriptor> & {
 export function definePlugin(descriptor: Plugin): Plugin {
   const identity = v.parse(PluginDescriptor, descriptor);
   const [proposal, ...extraProposals] = descriptor.proposalCatalog;
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- Public JavaScript callers still require the runtime cardinality guard.
   if (!proposal || extraProposals.length > 0) {
     throw new TypeError(
       "This slice requires exactly one declared proposal type.",

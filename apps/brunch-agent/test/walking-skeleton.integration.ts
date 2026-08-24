@@ -273,7 +273,7 @@ try {
   const serializedReplyContext =
     replyContext === undefined ? undefined : JSON.stringify(replyContext);
 
-  console.log(
+  process.stdout.write(
     `WALKING_SKELETON_RESULT ${JSON.stringify({
       affordanceReplyClassified,
       archivePointerResolved,
@@ -325,7 +325,7 @@ try {
       unaccountedAskAdvisory: appliedSweepOutputs.some((output) =>
         JSON.stringify(output.advisories).includes("unaccounted-ask"),
       ),
-    })}`,
+    })}\n`,
   );
 } finally {
   delete process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR;

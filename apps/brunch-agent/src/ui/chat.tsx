@@ -25,6 +25,7 @@ function VisibleMessage({ message }: { message: FlueConversationMessage }) {
       {message.parts.map((part, index) => {
         if (part.type === "text") {
           return (
+            // oxlint-disable-next-line react/no-array-index-key -- Flue text parts expose no stable identifier.
             <p className="message__text" key={index}>
               {part.text}
             </p>

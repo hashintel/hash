@@ -682,6 +682,7 @@ describe("capture-store contract", () => {
         reason,
         refused: true,
         code: "invalid-envelope",
+        // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest asymmetric matchers are typed as any.
         message: expect.stringMatching(expectedMessage),
       });
     }
@@ -770,6 +771,7 @@ describe("capture-store contract", () => {
         reason,
         refused: true,
         code: "invalid-envelope",
+        // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest asymmetric matchers are typed as any.
         message: expect.stringMatching(/open conflict.*share/i),
       });
     }

@@ -136,7 +136,7 @@ describe("FE-1436 Petrinaut wire server", () => {
       expect({
         body,
         status: response.status,
-        refusal: await response.json(),
+        refusal: (await response.json()) as unknown,
       }).toEqual({
         body,
         status: 400,
@@ -207,6 +207,7 @@ describe("FE-1436 Petrinaut wire server", () => {
       ).toEqual([
         {
           type: "request-finish",
+          // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest asymmetric matchers are typed as any.
           requestId: expect.any(String),
           terminalState,
           finishReason: "error",
@@ -215,6 +216,7 @@ describe("FE-1436 Petrinaut wire server", () => {
       expect(inspections.find((event) => event.type === "turn-finish")).toEqual(
         {
           type: "turn-finish",
+          // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest asymmetric matchers are typed as any.
           requestId: expect.any(String),
           turnId: `turn-${terminalState}`,
         },

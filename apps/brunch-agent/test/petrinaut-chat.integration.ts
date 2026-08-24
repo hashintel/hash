@@ -79,7 +79,7 @@ try {
     )
     .map((chunk) => chunk.id);
 
-  console.log(
+  process.stdout.write(
     `PETRINAUT_CHAT_RESULT ${JSON.stringify({
       status: response.status,
       messageId: startChunk?.messageId,
@@ -94,7 +94,7 @@ try {
         .join(""),
       finish: chunks.at(-1),
       chunks,
-    })}`,
+    })}\n`,
   );
 } finally {
   await flue.stop();

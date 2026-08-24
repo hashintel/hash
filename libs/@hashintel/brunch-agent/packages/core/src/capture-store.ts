@@ -615,7 +615,7 @@ const isJsonValue = (value: unknown): value is JsonValue => {
     return Number.isFinite(value) && !Object.is(value, -0);
   if (Array.isArray(value)) return value.every(isJsonValue);
   if (typeof value !== "object") return false;
-  const prototype = Object.getPrototypeOf(value);
+  const prototype: unknown = Object.getPrototypeOf(value);
   return (
     (prototype === Object.prototype || prototype === null) &&
     Object.values(value as Record<string, unknown>).every(isJsonValue)

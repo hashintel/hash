@@ -128,7 +128,7 @@ try {
 
   const duplicate = await postChat("request-fe1449-duplicate", returnBody);
 
-  console.log(
+  process.stdout.write(
     `PETRINAUT_ASK_RESULT ${JSON.stringify({
       initialStatus: initial.status,
       askCall,
@@ -143,8 +143,8 @@ try {
         .join(""),
       resumedFinish: resumedChunks.at(-1),
       duplicateStatus: duplicate.status,
-      duplicateBody: await duplicate.json(),
-    })}`,
+      duplicateBody: (await duplicate.json()) as unknown,
+    })}\n`,
   );
 } finally {
   await flue.stop();

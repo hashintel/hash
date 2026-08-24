@@ -234,7 +234,6 @@ const userTextFrom = (message: PanelMessage): string | undefined => {
     .filter(
       (part): part is { readonly type: "text"; readonly text: string } =>
         typeof part === "object" &&
-        part !== null &&
         "type" in part &&
         part.type === "text" &&
         "text" in part &&
