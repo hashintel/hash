@@ -1316,7 +1316,7 @@ fn filter_entity_by_any_type_versioned_url() {
         WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
           AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
           AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
-          AND (("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[]))
+          AND ("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[])
         "#,
         &[
             &pinned_timestamp,
@@ -1355,7 +1355,7 @@ fn filter_entity_by_all_type_versioned_url() {
         WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
           AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
           AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
-          AND (("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3, $4]::text[]))
+          AND ("entity_edition_cache_0_1_0"."versioned_urls" @> ARRAY[$3, $4]::text[])
         "#,
         &[
             &pinned_timestamp,
@@ -1482,7 +1482,7 @@ fn filter_entity_by_no_type_versioned_url() {
         WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
           AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
           AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
-          AND ((NOT("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[])))
+          AND (NOT("entity_edition_cache_0_1_0"."versioned_urls" && ARRAY[$3, $4]::text[]))
         "#,
         &[
             &pinned_timestamp,
@@ -1773,7 +1773,7 @@ fn semantic_ordering_compiles_a_policy_branch() {
          AND "entity_embeddings_2_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
         WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
           AND (("entity_temporal_metadata_0_0_0"."web_id" = ANY($1))
-          AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+          AND (NOT("entity_temporal_metadata_0_0_0"."entity_uuid" = $2)))
           AND ("entity_editions_1_1_0"."archived" = $3)
           AND ("entity_embeddings_2_1_0"."property" IS NULL)
         ORDER BY "entity_embeddings_2_1_0"."embedding_bits" <~> binary_quantize(($4::vector)) ASC
@@ -1845,7 +1845,7 @@ fn semantic_ordering_compiles_the_policy_branch_split() {
              AND "entity_embeddings_1_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
             WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
               AND (("entity_temporal_metadata_0_0_0"."entity_uuid" = $1)
-              AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+              AND (NOT("entity_temporal_metadata_0_0_0"."entity_uuid" = $2)))
               AND ("entity_embeddings_1_1_0"."property" IS NULL)
             ORDER BY "entity_embeddings_1_1_0"."embedding_bits" <~> binary_quantize(($3::vector)) ASC
             LIMIT 400
@@ -1861,7 +1861,7 @@ fn semantic_ordering_compiles_the_policy_branch_split() {
              AND "entity_embeddings_1_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
             WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
               AND (("entity_temporal_metadata_0_0_0"."web_id" = ANY($1))
-              AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+              AND (NOT("entity_temporal_metadata_0_0_0"."entity_uuid" = $2)))
               AND ("entity_embeddings_1_1_0"."property" IS NULL)
             ORDER BY "entity_embeddings_1_1_0"."embedding_bits" <~> binary_quantize(($3::vector)) ASC
             LIMIT 400

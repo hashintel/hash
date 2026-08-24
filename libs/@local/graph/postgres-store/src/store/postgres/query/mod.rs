@@ -30,15 +30,16 @@ use type_system::knowledge::{Entity, PropertyValue};
 
 pub use self::{
     ast::{
-        BinaryExpression, BinaryOperator, ColumnName, ColumnReference, CommonTableExpression,
-        Constant, EmptyVecError, EqualityOperator, Expression, FromItem, FromItemFunctionBuilder,
-        FromItemJoinBuilder, FromItemSubqueryBuilder, FromItemTableBuilder, Function,
-        GroupByClause, GroupingElement, Identifier, JoinType, Materialization, NonEmptyVec,
-        NonFinitePercentage, NullsOrder, OnConflict, OrderByClause, SamplePercentage,
-        SamplingMethod, SelectClause, SelectExpression, SelectQuantifier, SelectStatement,
-        SetOperator, SetQuantifier, SimpleSelect, SortBy, SortDirection, Statement, TableName,
-        TableReference, TableSample, UnaryExpression, UnaryOperator, VariadicExpression,
-        VariadicOperator, WindowDefinition, WithClause, bulk_insert,
+        Aliased, AliasedCorrelation, BinaryExpression, BinaryOperator, Binder, BoundStatement,
+        ColumnName, ColumnReference, CommonTableExpression, Constant, Correlation, EmptyVecError,
+        EqualityOperator, Expression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
+        FromItemSubqueryBuilder, FromItemTableBuilder, Function, GroupByClause, GroupingElement,
+        Identifier, JoinType, Materialization, NonEmptyVec, NonFinitePercentage, NullsOrder,
+        OnConflict, OrderByClause, Placeholder, SamplePercentage, SamplingMethod, SelectClause,
+        SelectExpression, SelectList, SelectQuantifier, SelectStatement, SetOperator,
+        SetQuantifier, SimpleSelect, SortBy, SortDirection, Statement, TableName, TableReference,
+        TableSample, UnaryExpression, UnaryOperator, VariadicExpression, VariadicOperator,
+        WindowDefinition, WithClause, bulk_insert,
     },
     compile::{
         Distinctness, QUANTIZED_RANK_OVERFETCH, SelectCompiler, SelectCompilerError, StatementShape,
@@ -86,7 +87,12 @@ pub trait Transpile {
     /// Returns an error if the value cannot be formatted or written to the formatter.
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
 
-    fn transpile_to_string(&self) -> String {
+    /// Adapts the value into a [`Display`] that renders the transpiled SQL.
+    ///
+    /// The adapter borrows the value and writes through the surrounding formatter, so
+    /// interpolating a transpiled name into a larger `format!` or `write!` costs no intermediate
+    /// allocation.
+    fn display(&self) -> impl Display {
         struct Transpiler<'a, T: ?Sized>(&'a T);
         impl<T: Transpile + ?Sized> Display for Transpiler<'_, T> {
             fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
@@ -94,7 +100,11 @@ pub trait Transpile {
             }
         }
 
-        Transpiler(self).to_string()
+        Transpiler(self)
+    }
+
+    fn transpile_to_string(&self) -> String {
+        self.display().to_string()
     }
 }
 
