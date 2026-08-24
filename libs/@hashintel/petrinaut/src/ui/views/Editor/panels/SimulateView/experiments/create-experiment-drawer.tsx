@@ -13,6 +13,7 @@ import {
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
 
 import {
   ExperimentsContext,
@@ -23,7 +24,6 @@ import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
-import { EMPTY_AD_HOC_STATE } from "../../../../../components/ad-hoc-scenario-form/state";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
