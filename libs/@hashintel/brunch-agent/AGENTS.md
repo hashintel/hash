@@ -25,24 +25,18 @@ workspace.
 
 - Use Graphite (`gt`) for stack operations; do not use `gh stack` in HASH.
 - Issues live in Linear team `FE`, project `brunch-agent`.
-- Keep the human-owned issue contract separate from collapsed `🏗️ Agent notes`; see
-  `docs/agents/issue-writing.md`.
-- Maintain the glossary in `CONTEXT.md` and context decisions in `docs/adr/`; see
-  `docs/agents/domain.md`.
-- Keep `docs/INDEX.md` complete and follow `docs/agents/documentation.md`.
-- Before closing a Brunch work arc, run the context-local `arc-close` skill and its canonical
-  procedure in `docs/agents/arc-close.md`.
-- At design moments involving Flue, follow `docs/agents/flue-routing.md`.
 
-The complete protocol set is:
+Route by trigger; load only the applicable compact protocol:
 
-- `docs/agents/arc-close.md`
-- `docs/agents/documentation.md`
-- `docs/agents/domain.md`
-- `docs/agents/flue-routing.md`
-- `docs/agents/git-workflow.md`
-- `docs/agents/issue-tracker.md`
-- `docs/agents/issue-writing.md`
-- `docs/agents/legibility.md`
-- `docs/agents/posture.md`
-- `docs/agents/triage-labels.md`
+- Start or resume without a proof target, or when objectives, pressure, proof, authority, external
+  gates, frontier value, or arc-close findings change: `docs/agents/steering.md`.
+- Create, mutate, triage, or structure issues: `docs/agents/issue-tracker.md`,
+  `docs/agents/issue-writing.md`, and `docs/agents/triage-labels.md`.
+- Add, move, settle, or index documents: `docs/agents/documentation.md`.
+- Change domain terms or accepted context decisions: `docs/agents/domain.md`.
+- Make a Flue design choice: `docs/agents/flue-routing.md`.
+- Produce a significant agent-authored artifact or proof: `docs/agents/legibility.md`.
+- Make an architecture-sensitive move: `docs/agents/posture.md`.
+- Operate on branches, stacks, commits, or PRs: `docs/agents/git-workflow.md`.
+- Close a work arc: run the context-local `arc-close` skill and
+  `docs/agents/arc-close.md`.

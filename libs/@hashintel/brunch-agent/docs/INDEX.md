@@ -6,6 +6,11 @@ settlement) · `active` (artifact of a live effort) · `settled` (permanent home
 (retained history replaced by newer canon) · `accepted` (ratified ADR) · `external` (canonical
 copy lives outside the repo).
 
+The authoritative role topology is defined by the documentation protocol. The existing
+`docs/planning/` and `docs/history/` sections below describe legacy physical paths pending an
+atomic pointer-safe migration; add no new files there. Agent protocols are registered through
+`AGENTS.md`; the strategic control loop is [`docs/agents/steering.md`](agents/steering.md).
+
 ## Inbox (awaiting settlement)
 
 | Document                     | Status | Date       | Digest                                                                                                                                                                                                 | Used by                                                      |
@@ -25,7 +30,7 @@ copy lives outside the repo).
 | [amp-analysis-flue-vs-tilde](reference/amp-analysis-flue-vs-tilde.md)                                       | settled | 2026-08-14                   | Amp thread export: comparative assessment of the Flue and tilde agent frameworks (development and deployment stories) and its import for this project; verdict: keep Flue, Tilde is a control plane not a runtime                                                                                                                                                                                                                                                                             | reconciled into flue-architecture-cheatsheet (2026-08-17); source of the pre-remote-exposure gates         |
 | [2026-08 SDCPNs for cyber-physical systems](reference/2026-08%20SDCPNs%20for%20cyber-physical%20systems.md) | settled | 2026-08 (settled 2026-08-18) | Unattributed draft blog post (image placeholders, typos): five-level SDCPN explainer applied to gas supply, truck fleet, semiconductor fab; arrived during the FE-1405 arc. Read skeptically: good pedagogy, promotional register — concedes its formal guarantees don't apply once continuous/stochastic features are used (open research problem), models carry heavy kernel/guard logic that strains the "formal and inspectable" claim, and Petrinaut's integrator limitation is admitted | Register-3 background (projection-target expressivity) only; not elicitation design input; no consumer yet |
 
-## history/planning/elicitation-kernel (effort complete 2026-08-10; settled 2026-08-12)
+## Legacy history/planning/elicitation-kernel (effort complete 2026-08-10; settled 2026-08-12)
 
 | Document                                                                                                 | Status  | Linear                                                      | Digest                                                                                                                                                                         |
 | -------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -36,7 +41,7 @@ copy lives outside the repo).
 | [issues/](history/planning/elicitation-kernel/issues/) 01–13                                             | settled | **mirrored in full**: FE-1367–FE-1379 (relations preserved) | 13 resolved tickets                                                                                                                                                            |
 | [notes/consistency-prepass](history/planning/elicitation-kernel/notes/consistency-prepass-2026-08-10.md) | settled | none                                                        | Pre-assembly contradiction audit (7 contradictions, adjudicated in spec Appendix A)                                                                                            |
 
-## planning/process-model-elicitation (effort active — FE-1357)
+## Legacy planning/process-model-elicitation (effort active — FE-1357)
 
 | Document                                                                                                                                     | Status     | Linear                                   | Digest                                                                                                                                                                                                                                                                                                                 |
 | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -66,7 +71,7 @@ copy lives outside the repo).
 | [notes/deep-read-fe-1390](planning/process-model-elicitation/notes/deep-read-fe-1390.md)                                                     | active     | FE-1401 / probes on FE-1419              | Deep-read of the capture store: spec-discharge table, write-time tiering assessment (penciled item 7), the FE-1405 status-arity answer, and live-probed confirmation of FE-1419's capture-store claims plus one new aliasing hole; source of PR #11's backfilled record                                                |
 | [plugin-contract-spec](planning/process-model-elicitation/plugin-contract-spec.md)                                                           | active     | FE-1431 (spec issue); decided on FE-1405 | Provisional spec: a plugin is two schemas and two tables (model schema, proposal catalog, fold table, demand table) over the three-register IR (ADR-0003) — harness-machinery typology, standard-interiors library, grade-as-narrowing, derived fold rules; strains 4–7 and envelope pressure #2 held open with owners |
 
-## planning/\_shared (cross-effort control documents)
+## Legacy planning/\_shared (cross-effort control documents)
 
 | Document                                                                         | Status                             | Linear                                                                                                          | Digest                                                                                                                                                                                                                                                     |
 | -------------------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -77,7 +82,7 @@ copy lives outside the repo).
 | [flue-architecture-cheatsheet](planning/_shared/flue-architecture-cheatsheet.md) | active                             | commented on FE-1383; feeds docs/agents/flue-routing.md                                                         | Architect's consolidation of all 21 Flue guide pages: direct structured generation uses `harness.prompt`; model-delegated work uses `useSubagent`; three-lane boundary summary and ranked divergence risks; reconciled against installed Flue 2.0.3 source |
 | [topology](planning/_shared/topology.md)                                         | active                             | ratified → ADR-0002; N1 discharged by FE-1422 + FE-1392; local N5 implemented by FE-1391; N3 amended by FE-1437 | Pseudo-style verification of the package/app tree against the three-lane model and spec §12.2: portable ask/sweep protocols, Flue binding wiring, package boundaries, and application-only Brunch–Petrinaut composition                                    |
 
-## planning/legibility-sweep (FE-1401 arc records)
+## Legacy planning/legibility-sweep (FE-1401 arc records)
 
 | Document                                                                                                                  | Status  | Linear                                                                     | Digest                                                                                                                                                                                                                                               |
 | ------------------------------------------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

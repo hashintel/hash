@@ -2,14 +2,19 @@
 
 Issues for this repo live in **Linear**, worked through the `linear` CLI (see the
 `tool-linear-cli` skill). Long-form artifacts — specs, research write-ups, notes — stay in this
-repo under `docs/planning/<effort>/` (see `documentation.md`); Linear issues link to them by repo path (and to Notion/Google
-docs by URL). The issue is the tracker record; the repo file is the document.
+repo in the role-based topology defined by `documentation.md`; Linear issues link to them by repo
+path (and to Notion/Google docs by URL). The issue is the tracker record; the repo file is the
+document.
 
 How issue titles and bodies are written — the contract/execution-record split, outcome-shaped
 titles, plain-prose context — is covered in `issue-writing.md`; it applies to every issue an
 agent authors from this repo.
 
 ## Conventions
+
+**Approval gate:** reading Linear is allowed, but obtain explicit approval before any issue
+creation, edit, comment, hierarchy change, state change, project mutation, or other write. Approval
+for one named operation does not authorize adjacent mutations.
 
 - **Default team**: `FE`. **Project**: `brunch-agent`. Create issues with
   `linear issue create --team FE --project brunch-agent`. The project is the
@@ -26,8 +31,9 @@ agent authors from this repo.
 
 ## When a skill says "publish to the issue tracker"
 
-Create a Linear issue on team `FE`, project `brunch-agent`. If the content is long-form, commit
-it under `docs/planning/<effort>/` and link the repo path from the issue description.
+After explicit approval, create a Linear issue on team `FE`, project `brunch-agent`. If the content
+is long-form, place it by its role under `documentation.md` and link the repo path from the issue
+description.
 
 ## When a skill says "fetch the relevant ticket"
 
@@ -67,7 +73,9 @@ update. Publish it to the `brunch-agent` project.
 ## Wayfinding operations
 
 Used by the `ds-wayfind` skill. The **map** is a Linear issue with one **child** sub-issue per
-ticket.
+ticket. Linear owns issue facts: state, hierarchy, project membership, assignment, and hard
+blockers. `COORDINATION` projects that topology and adds soft edges; `STEERING` chooses strategic
+work by objective contribution, risk retired, and information gain.
 
 - **Map**: an FE issue in project `brunch-agent`, labeled `wayfinder → map` (label group `wayfinder`,
   children `map` / `research` / `prototype` / `grilling` / `manual-task` — created 2026-08-11;
@@ -78,8 +86,8 @@ ticket.
   carrying its `wayfinder → <type>` label. The description holds the question.
 - **Blocking**: Linear's native **blocks / blocked-by** relations. A ticket is unblocked when
   every issue blocking it is closed (Done or Canceled).
-- **Frontier**: open, unblocked, **unassigned** sub-issues of the map — lowest issue number
-  first.
+- **Claimable queue / mechanical frontier**: open, unblocked, **unassigned** sub-issues of the map
+  — lowest issue number first. This is an availability filter, not the strategic proof frontier.
 - **Claim**: assign the issue to yourself (the dev driving the map) before any work.
 - **Resolve**: post the answer as a comment on the issue, set state **Done**, then append a
   one-line gist + link to the map issue's _Decisions so far_ section (edit the map description).

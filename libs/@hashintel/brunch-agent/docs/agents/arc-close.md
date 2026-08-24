@@ -18,11 +18,12 @@ the history of these control surfaces.
 
 Always inspect `docs/inbox/` and `docs/INDEX.md` together.
 
-- Move settled inbox material to its canonical home under `docs/reference/`,
-  `docs/planning/<effort>/`, or `docs/planning/_shared/`.
+- Promote settled inbox material to its role-based home under `documentation.md`. Do not add to the
+  legacy `docs/planning/` or `docs/history/` paths; their existing contents await atomic migration.
 - Delete source material only when its durable information has been transferred and its
   consumption is named.
-- Ensure every non-archive Markdown document is indexed and every index entry still resolves.
+- Ensure every document under `docs/` except `docs/INDEX.md` and `docs/agents/**` is indexed and
+  every index entry still resolves.
 - Update status, ownership, and digest text when this arc changed their truth.
 
 ### 2. Audit the Linear registry and touched references
@@ -33,10 +34,12 @@ issue with no parent.
 - Every non-root issue must have a parent.
 - Every intentional root must be a recognized map or sweep root under the registry rule, or be
   named under **Exceptional roots** in `docs/planning/_shared/COORDINATION.md`.
-- Repair missing parentage in Linear when the intended owner is unambiguous; otherwise record the
+- Subject to [the issue tracker's external-write approval gate](issue-tracker.md#conventions),
+  repair missing parentage in Linear when the intended owner is unambiguous; otherwise record the
   unresolved root in `COORDINATION.md`.
 - Re-read every issue the arc closes or materially changes. Repair stale branch, dependency,
-  evidence, and document references before closing it.
+  evidence, and document references before closing it, subject to the same approval gate for any
+  Linear mutation.
 - Follow `issue-writing.md`: preserve a root issue's human-owned contract and put agent-maintained
   detail inside `🏗️ Agent notes`.
 
@@ -62,7 +65,14 @@ state, and hierarchy. Keep one compact pseudo-style map of the current recommend
 the full generated graph or maintain alternative or historical orderings. If the judgment did not
 change, leave the document untouched.
 
-### 5. Repair tense and report
+### 5. Reconcile steering and proof when triggered
+
+If a steering trigger fired, run and reconcile [the steering protocol](steering.md), including its
+completion criteria. Do not copy its loop here.
+
+If no trigger fired, continue the current proof frontier without a no-op steering update.
+
+### 6. Repair tense and report
 
 Read the arc's planning prose in the state that will exist after landing. Remove stale future
 tense, provisional labels, temporary pointers, and inaccurate status language. Report which
@@ -78,4 +88,5 @@ Arc close is complete when:
 3. touched issue references are current;
 4. affected spec-ledger rows are current;
 5. affected coordination judgment is current; and
-6. changed planning prose reads correctly after landing.
+6. any triggered steering pass meets `steering.md`'s completion criteria; and
+7. changed planning prose reads correctly after landing.
