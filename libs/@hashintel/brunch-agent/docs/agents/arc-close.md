@@ -28,15 +28,15 @@ Always inspect `docs/inbox/` and `docs/INDEX.md` together.
 
 ### 2. Audit the Linear registry and touched references
 
-Always run `turbo run linear:graph --filter '@hashintel/brunch-agent'` and inspect every open project
-issue with no parent.
+Always run `turbo run linear:graph --filter '@hashintel/brunch-agent' -- --all`. Inspect every
+project issue's assignment and every open issue with no parent.
 
 - Every non-root issue must have a parent.
 - Every intentional root must be a recognized map or sweep root under the registry rule, or be
-  named under **Exceptional roots** in `docs/control/COORDINATION.md`.
+  named under **Exceptional roots** in `docs/control/STEERING.md`.
 - Subject to [the issue tracker's external-write approval gate](issue-tracker.md#conventions),
   repair missing parentage in Linear when the intended owner is unambiguous; otherwise record the
-  unresolved root in `COORDINATION.md`.
+  unresolved root in `STEERING.md`.
 - Re-read every issue the arc closes or materially changes. Repair stale branch, dependency,
   evidence, and document references before closing it, subject to the same approval gate for any
   Linear mutation.
@@ -50,20 +50,17 @@ supersedes, or changes evidence for a milestone-one specification obligation. Ch
 affected set of rows; do not add an evaluation narrative. When milestone one closes, settle the
 ledger as a terminal record rather than keeping it artificially live.
 
-### 4. Reassess project coordination when affected
+### 4. Reconcile the current control when affected
 
-Reassess `docs/control/COORDINATION.md` when the arc changes:
+Reassess `docs/control/STEERING.md` only when exceptional roots, active soft edges, or project-wide
+sequencing/strategy materially change. Ordinary blockers, parents, project membership, and ticket
+movement remain Linear facts and are not independent steering triggers.
 
-- a hard blocker, issue parent, project membership, or exceptional root;
-- a soft `coord`, `input`, or `state-gate` edge;
-- an unresolved cross-map seam; or
-- issue semantics that could change the current project-wide sequencing recommendation.
-
-Use `turbo run linear:graph --filter '@hashintel/brunch-agent'` for deterministic facts, then read
-the relevant issue bodies and infer the recommendation. Linear remains canonical for hard blockers,
-state, and hierarchy. Keep one compact pseudo-style map of the current recommendation; do not paste
-the full generated graph or maintain alternative or historical orderings. If the judgment did not
-change, leave the document untouched.
+Use the Linear graph for deterministic facts, then check soft edges, exceptional roots, governing
+strategy, gates, and proof frontier. Linear remains canonical for hard blockers, state, assignment,
+and hierarchy. If the judgment did not change, leave the control untouched. If a material strategy
+trigger fired, validate that the new append-only strategy entry has evidence and supersedes, and
+that `STEERING` references it. No-op reconciliation persists nothing.
 
 ### 5. Reconcile steering and proof when triggered
 
@@ -87,6 +84,6 @@ Arc close is complete when:
 2. the Linear orphan audit has no unexplained roots;
 3. touched issue references are current;
 4. affected spec-ledger rows are current;
-5. affected coordination judgment is current; and
+5. affected steering soft edges, roots, strategy, gates, and frontier are current; and
 6. any triggered steering pass meets `steering.md`'s completion criteria; and
 7. changed planning prose reads correctly after landing.

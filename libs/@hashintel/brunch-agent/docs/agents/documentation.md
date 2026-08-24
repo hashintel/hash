@@ -8,7 +8,7 @@ and `docs/INDEX.md` remains the registry described below.
 
 | Location | Role |
 | --- | --- |
-| `docs/control/` | Compact, mutable strategic, coordination, and obligation control surfaces |
+| `docs/control/` | Current steering, append-only strategy rationale, and the separate obligation ledger |
 | `docs/specs/` | Required behavior |
 | `docs/adr/` | Accepted decisions |
 | `docs/evidence/proofs/` | Immutable observed proof, witness, and implementation snapshots |
@@ -70,10 +70,13 @@ accumulates run history.
 
 ## Mutable controls
 
-Controls under `docs/control/` carry only current objective, topology, obligations, choices, gates,
-and stop conditions. Keep them compact. Link immutable evidence and historical context instead of
-copying it or appending chronology; Git records control-surface history. Linear owns issue state,
-hierarchy, and hard blockers, while repo controls may project those facts and record soft edges.
+`STEERING.md` is the one compact mutable strategic control: current objective, proof frontier, soft
+edges, choices, gates, beliefs, exceptional roots, and stop conditions. `STRATEGY-LOG.md` is
+immutable append-only rationale for material strategic choices; it is distinct from ADRs, which own
+accepted architecture. `SPEC-LEDGER.md` remains a separate conditional obligation control. Link
+evidence and history instead of copying chronology: Git is the mutable-control history. Do not add
+diary or status entries to either strategic control. Linear owns issue state, hierarchy, assignment,
+and hard blockers.
 
 ## Index and link rules
 

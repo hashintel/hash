@@ -67,7 +67,7 @@ evaporation, not fragmentation. Two rules keep the yield coherent:
   owning control surface, pencils graduate to issues or planning documents, and strain reports
   become document fixes. A channel with no named target is a leak with a delay.
 - **An arc is not closed until consolidation runs.** The closing step reconciles what the
-  captures established into the durable artifacts (coordination, ledger, docs, issues) — a
+  captures established into the durable artifacts (steering/`STEERING`, ledger, docs, issues) — a
   handoff note alone is a deferral, not a deposit.
 
 ## Deposit: work describes itself at authoring time

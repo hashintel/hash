@@ -2,7 +2,7 @@
 
 This living ledger tracks the elicitation-kernel specification's obligations against the built
 system. Code and tests are authoritative; a branch that changes an obligation updates its row in
-the same change. Unlike `COORDINATION.md`, this document has a terminal lifecycle: it settles as
+the same change. Unlike current `STEERING.md`, this document has a terminal lifecycle: it settles as
 a record when milestone one closes.
 
 Status vocabulary: **discharged** (built and proved) · **partial** (built with named gaps) ·
@@ -108,7 +108,7 @@ states.
 | Pack form, Principle v2                                                          | §11.2      | **pending**                      | —                                                                                                                                                                                                                          |
 | Smallest honest plugin as a standing bar                                         | §11.3      | **partial**                      | `statement-noted.test.ts` and the core plugin fixture encode the one-type verbatim floor and reject undeclared parsed/pointer shape; the standing bar must grow with FE-1393's operations                                  |
 | Generic strategy quiver                                                          | §11.5      | **pending** (ownership repaired) | was **orphaned** — named-not-designed, carried by no map — now FE-1406 (root issue)                                                                                                                                        |
-| Portfolio + hybrid order: both packs authored before the pack interface freezes  | §13        | **pending**                      | Owned by FE-1387 (FE-1383 slice, backlog), explicitly gated on FE-1357's second-target decision — the inter-map seam in miniature (see `COORDINATION.md`). Gherkin wiring ahead stays legal while FE-1387 holds the freeze |
+| Portfolio + hybrid order: both packs authored before the pack interface freezes  | §13        | **pending**                      | Owned by FE-1387 (FE-1383 slice, backlog); current sequencing puts the CPS proof before generic freeze (see `STEERING.md`). Gherkin wiring ahead stays legal while FE-1387 holds the freeze |
 | Gherkin validation (parse validity, step lexicon)                                | §13.1      | **pending**                      | —                                                                                                                                                                                                                          |
 | Assurance target (Statement record, four edges, five-stratum derivation, ledger) | §13.2–13.3 | **pending**                      | —                                                                                                                                                                                                                          |
 

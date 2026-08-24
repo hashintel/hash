@@ -1,8 +1,8 @@
 # Strategic steering: orient, choose, execute, reconcile, replan
 
 Use this protocol to keep Brunch aimed at a current, falsifiable proof rather than at whatever
-issue happens to be available. The mutable strategy itself lives in `STEERING`; this document owns
-only the recurring control loop.
+issue happens to be available. The arc driver owns trigger evaluation. Current truth lives in
+`STEERING`, which references governing `STRATEGY-LOG` IDs; this document owns only the control loop.
 
 Run a steering pass when:
 
@@ -29,8 +29,8 @@ Do not turn confidence into fact. A confidence change cites the evidence that ch
 
 ## Choose
 
-Treat the claimable queue (the mechanically open, unblocked, unassigned issues) as a filter, not a
-priority rule. Rank eligible moves by objective contribution, risk retired, information gain,
+Treat the mechanical frontier (open, unblocked issues) as a filter, not a priority rule. Rank
+eligible moves by objective contribution, risk retired, information gain,
 deadline pressure, and cost/reversibility.
 
 Select one proof frontier, or a deliberate pair whose join is named. Record:
@@ -77,8 +77,8 @@ Deposit each changed truth into exactly one authority and link to it elsewhere:
 
 | Truth | Authority |
 | --- | --- |
-| Current objective, strategic choice, cuts, beliefs, and gates | `STEERING` |
-| Issue-graph projection and soft edges | `COORDINATION` |
+| Current objective, proof frontier, soft edges, cuts, beliefs, gates, and exceptional roots | `STEERING` |
+| Material strategic decision rationale | append-only `STRATEGY-LOG` |
 | Issue state, hierarchy, and hard blockers | Linear |
 | Required behavior | `docs/specs/` |
 | Accepted decisions | `docs/adr/` |
@@ -97,6 +97,10 @@ closing control pass.
 
 If a trigger fired, return to orient and choose. Otherwise continue the selected frontier; do not
 replan merely because ticket state moved.
+
+Append IDs monotonically. A conflicting decision names the governing ID it supersedes; a
+complementary decision uses `none`. Only unsuperseded governing IDs remain in `STEERING`. A no-op
+writes nothing.
 
 The pass is complete when inputs are classified, one frontier (or named pair) has all choice
 fields, its proof bundle is runnable and indexed, every changed truth has exactly one authority,
