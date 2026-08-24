@@ -16,17 +16,25 @@ The same form appears in three places, always when **no scenario is selected**:
 
 The form has up to three sections:
 
-- **Parameters** -- one row per [net-level parameter](petri-net-extensions.md#global-parameters), showing its default. Enter an expression to override a value for this run. This section appears in the experiment and optimization drawers; the quick-simulation drawer omits it because the Simulation Settings panel already has parameter inputs.
-- **Variables** -- named values (real, integer, or boolean) written as `scenario.<name>` in every expression below, exactly as scenario parameters are written in scenario code. Use them to drive many values from one number. Add one from the icon button in the section header, or click the dimmed trailing row to add one in place. A variable's name edits like any other cell: select it, then press Enter (or click again) to edit, and Enter or Escape to leave.
+- **Parameters** -- one row per [net-level parameter](petri-net-extensions.md#global-parameters), showing its type and its default. Enter an expression to override a value for this run. This section appears in the experiment and optimization drawers; the quick-simulation drawer omits it because the Simulation Settings panel already has parameter inputs.
+- **Variables** -- named values (real, integer, or boolean) written as `scenario.<name>` in every expression below, exactly as scenario parameters are written in scenario code. Use them to drive many values from one number. Add one from the icon button in the section header, or click the dimmed trailing row to add one in place. A variable's name edits like any other cell: select it, then press Enter (or click again) to edit, and Enter or Escape to leave. Its type select is a cell too: arrow keys move past it, Enter opens it.
 - **Initial state** -- one block per place in the net.
+
+Each section collapses: click the chevron in its header, or focus the header and press Left to collapse and Right to expand. Place headers inside Initial state collapse the same way, and a collapsed place shows a one-line summary of its rows and token total.
 
 Every value in the form is an expression. A first click selects a value; a second click, a double-click, or Enter opens the editor in place: a code input with completion and type checking at exactly the cell's position, the value's path (for example `Space › item 0 › x`) above it, and the Optimize control below it. Expressions may use your Variables (`scenario.<name>`), net parameters (`parameters.<name>`), and arithmetic -- the same [expression language](scenarios.md) scenarios use. Press Enter, Escape, or click elsewhere to close the editor.
 
 ### Keyboard editing and undo
 
-Every table in the form is a keyboard grid: arrow keys and Tab move between cells, phantom rows included, and moving up from a dynamic row's cells lands on its count strip, so counts and bounds are editable without the mouse. In a token table, the left arrow from a row's first cell reaches the **row gutter**: focusing it highlights and selects the whole row, Enter opens the row-kind menu, and Delete removes the row (a trashcan at the row's end appears on hover as the pointer equivalent). The menu is a keyboard menu too: it opens with the current kind focused, arrow keys move through the kinds, Enter chooses, and Escape returns to the gutter.
+Every table in the form is a keyboard grid: arrow keys and Tab move between cells, phantom rows and type selects included, and moving up from a dynamic row's cells lands on its count strip, so counts and bounds are editable without the mouse. A token table's column headers are the grid's top line. In a token table, the left arrow from a row's first cell reaches the **row gutter**: focusing it highlights and selects the whole row, Enter opens the row-kind menu, and Delete removes the row (a trashcan at the row's end appears on hover as the pointer equivalent). The menu is a keyboard menu too: it opens with the current kind focused, arrow keys move through the kinds, Enter chooses, and Escape returns to the gutter.
+
+The walk does not stop at a table's edge: moving down from a table's last row continues to the next part of the form -- a section header, a place header, the next table -- and moving up continues backwards the same way. Collapsed sections are skipped.
 
 The whole form has one undo history: Cmd/Ctrl+Z undoes and Shift+Cmd/Ctrl+Z (or Ctrl+Y) redoes any edit -- a changed value, an added or deleted row, a shared column, an Optimize toggle. An open text editor keeps its own text-level undo until you close it.
+
+### Connections around the focused value
+
+Focusing a value highlights what it is connected to, in green. A cell that reads a Variable or a net parameter highlights those rows; focusing a Variable or a Parameter row highlights every cell whose expression reads it. The highlight follows the vocabulary: `scenario.<name>` connects to a top-level Variable, `parameters.<name>` to a net parameter, and a bare name to a variable of the same place.
 
 ### Places without a token type
 
