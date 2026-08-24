@@ -52,7 +52,9 @@ import {
   HOVERED_MAX_MULTIPLIER,
   HOVERED_MIN_RADIUS,
   HOVERED_RADIUS_MULTIPLIER,
+  NEIGHBOUR_MAX_MULTIPLIER,
   NEIGHBOUR_MIN_RADIUS,
+  NEIGHBOUR_RADIUS_MULTIPLIER,
   POINT_MAX_RADIUS,
   POINT_RADIUS,
 } from "./zoom-attributes";
@@ -1509,23 +1511,43 @@ export const NetworkGraph = ({
     return densityPointRadiusPx(easedSpacing, 2 ** currentZoom) / POINT_RADIUS;
   }, [easedSpacing, currentZoom, radiusScale]);
 
+  // The on-screen radius (px) of a compact grow ring as actually drawn: the
+  // zoom/density scale applied to the base radius, clamped to the same pixel range
+  // as the ring layers (see `growRing` in compact-node-layer). The compact-view arrow
+  // offsets and edge trims key off these — not the bare MIN_RADIUS floors — so the
+  // arrow tip and trimmed edge end sit at the ring's rim once density- or zoom-driven
+  // sizing grows the ring past its floor, rather than colliding inside it.
+  const compactHoveredRingRadius = useMemo(
+    () =>
+      Math.min(
+        POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
+        Math.max(
+          HOVERED_MIN_RADIUS,
+          POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER * effectiveRadiusScale,
+        ),
+      ),
+    [effectiveRadiusScale],
+  );
+  const compactNeighbourRingRadius = useMemo(
+    () =>
+      Math.min(
+        POINT_MAX_RADIUS * NEIGHBOUR_MAX_MULTIPLIER,
+        Math.max(
+          NEIGHBOUR_MIN_RADIUS,
+          POINT_RADIUS * NEIGHBOUR_RADIUS_MULTIPLIER * effectiveRadiusScale,
+        ),
+      ),
+    [effectiveRadiusScale],
+  );
+
   /**
    * The on-screen radius (px) of an emphasised node as drawn: the grown ring
    * clamped to its pixel range (compact), or the detailed node's circle. Reported
    * to consumers so an anchored overlay can be offset to clear it.
    */
   const activeNodeRadius = useMemo(
-    () =>
-      isDetailZoom
-        ? DETAIL_NODE_DIAMETER / 2
-        : Math.min(
-            POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
-            Math.max(
-              HOVERED_MIN_RADIUS,
-              POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER * effectiveRadiusScale,
-            ),
-          ),
-    [isDetailZoom, effectiveRadiusScale],
+    () => (isDetailZoom ? DETAIL_NODE_DIAMETER / 2 : compactHoveredRingRadius),
+    [isDetailZoom, compactHoveredRingRadius],
   );
 
   /** Which node rendering is showing, reported to consumers alongside position. */
@@ -2471,11 +2493,12 @@ export const NetworkGraph = ({
       seen.add(edgeId);
       const ux = dx / length;
       const uy = dy / length;
-      // The target node's on-screen radius: fixed in the detail view; a hovered-sized or
-      // neighbour-sized grow-ring radius in the compact view. Hovered-sized covers both
-      // the active node *and* the backgrounded (dimmed) selection — the latter still
-      // draws a hovered-sized ring, so an arrow pointing at it must clear that ring
-      // rather than jump inward when a neighbour is hovered (matches the edge trim).
+      // The target node's on-screen radius: fixed in the detail view; the actual drawn
+      // hovered- or neighbour-sized grow-ring radius in the compact view. Hovered-sized
+      // covers both the active node *and* the backgrounded (dimmed) selection — the
+      // latter still draws a hovered-sized ring, so an arrow pointing at it must clear
+      // that ring rather than jump inward when a neighbour is hovered (matches the edge
+      // trim).
       const toId = resolveEdge(edgeId)?.toId;
       const targetIsHoveredSize =
         toId != null &&
@@ -2483,8 +2506,8 @@ export const NetworkGraph = ({
       const targetRadius = isDetailZoom
         ? DETAIL_NODE_DIAMETER / 2
         : targetIsHoveredSize
-          ? HOVERED_MIN_RADIUS
-          : NEIGHBOUR_MIN_RADIUS;
+          ? compactHoveredRingRadius
+          : compactNeighbourRingRadius;
       const back = targetRadius + arrowGapPx;
       list.push({
         position: target,
@@ -2528,13 +2551,17 @@ export const NetworkGraph = ({
     activeNode,
     dimmedSelectedNode,
     arrowGapPx,
+    compactHoveredRingRadius,
+    compactNeighbourRingRadius,
   ]);
 
   /**
    * The detail view's prominent (arrowed) edges as bundled curves trimmed to each
-   * node's edge: source by the node radius, target by radius + gap (leaving the
-   * arrow's gap empty). Pixel trims, so this re-trims cheaply on zoom without
-   * re-bundling. Empty in compact.
+   * node's edge: source by the node radius, target back past the whole arrowhead
+   * (radius + gap places the arrow's tip, plus the arrowhead's length) so the stroke
+   * ends at the arrowhead's base and a thickened edge doesn't poke out around the
+   * point — matching the compact trim. Pixel trims, so this re-trims cheaply on zoom
+   * without re-bundling. Empty in compact.
    */
   const trimmedHighlightEdgePaths = useMemo<BundledEdge[]>(() => {
     if (!isDetailZoom) {
@@ -2543,7 +2570,10 @@ export const NetworkGraph = ({
     const scale = currentZoom == null ? null : 2 ** currentZoom;
     const sourceTrim = scale == null ? 0 : DETAIL_NODE_DIAMETER / 2 / scale;
     const targetTrim =
-      scale == null ? 0 : (DETAIL_NODE_DIAMETER / 2 + arrowGapPx) / scale;
+      scale == null
+        ? 0
+        : (DETAIL_NODE_DIAMETER / 2 + arrowGapPx + ARROW_HEAD_LENGTH_PX) /
+          scale;
     const clip = (path: [number, number][]) =>
       trimPathBothEnds(path, sourceTrim, targetTrim);
     const list: BundledEdge[] = [];
@@ -2573,12 +2603,14 @@ export const NetworkGraph = ({
    * arrowhead (target node's grow-ring radius + the arrow gap places the arrow's tip, plus
    * the arrowhead's length) so the edge ends at the arrowhead's base — a thickened edge
    * would otherwise poke out around the arrow point. Trim the source end per `sourceMode`
-   * — `"none"` (flush to the node centre), `"gap"` (radius +
-   * arrow gap, matching the arrow side so the edge floats clear of both nodes), or
-   * `"flush"` (radius only, so the edge meets the node's ring/black border with no gap).
+   * — `"gap"` (radius + arrow gap, matching the arrow side so the edge floats clear of
+   * both nodes) or `"flush"` (radius only, so the edge meets the node's ring/black border
+   * with no gap).
    * `hoveredSizeIds` are the nodes drawn at the larger hovered ring size — the active node
    * *and* the backgrounded (dimmed) selection, which also draws a hovered-sized ring — so
-   * an endpoint of either uses HOVERED_MIN_RADIUS; the rest use NEIGHBOUR_MIN_RADIUS. This
+   * an endpoint of either uses the hovered ring's drawn radius; the rest use the
+   * neighbour ring's. Both are the actual clamped, zoom/density-scaled ring radii (not the
+   * bare min-radius floors), so the trim tracks the ring's true rim as it grows. This also
    * keeps the selected node's end of an edge put when a neighbour is hovered rather than
    * letting the edge creep toward it. `scale` is the current world→pixel scale.
    */
@@ -2587,7 +2619,7 @@ export const NetworkGraph = ({
       line: HoverLine,
       scale: number,
       hoveredSizeIds: ReadonlySet<NetworkGraphId>,
-      sourceMode: "none" | "gap" | "flush",
+      sourceMode: "gap" | "flush",
     ): HoverLine => {
       const edge = resolveEdge(line.id);
       const dx = line.target[0] - line.source[0];
@@ -2598,8 +2630,8 @@ export const NetworkGraph = ({
       }
       const radiusFor = (id: NetworkGraphId | undefined) =>
         id != null && hoveredSizeIds.has(id)
-          ? HOVERED_MIN_RADIUS
-          : NEIGHBOUR_MIN_RADIUS;
+          ? compactHoveredRingRadius
+          : compactNeighbourRingRadius;
       // Stop at the arrowhead's base (radius + gap places its tip; add the head length
       // to clear the whole arrow) so a thickened edge doesn't poke out around the point.
       const targetTrim =
@@ -2608,9 +2640,7 @@ export const NetworkGraph = ({
       const sourceTrim =
         sourceMode === "gap"
           ? (sourceRadius + arrowGapPx) / scale
-          : sourceMode === "flush"
-            ? sourceRadius / scale
-            : 0;
+          : sourceRadius / scale;
       // On a short edge the two trims would meet or cross — collapse it to its midpoint.
       if (sourceTrim + targetTrim >= length) {
         const midX = line.source[0] + dx / 2;
@@ -2631,18 +2661,22 @@ export const NetworkGraph = ({
         ],
       };
     },
-    [resolveEdge, arrowGapPx],
+    [
+      resolveEdge,
+      arrowGapPx,
+      compactHoveredRingRadius,
+      compactNeighbourRingRadius,
+    ],
   );
 
   /**
    * The compact view's prominent (arrowed) edges — {@link compactHighlightLines} (the
    * active node's straight incident lines, plus a lone selected edge) — each with its
    * target pulled back by the node radius + gap for the arrow. The source end is trimmed
-   * per selection: the *selected edge* meets its endpoint's black border flush (no gap);
-   * while any selection is active, the active node's edges open a matching short gap (so
-   * they don't overshoot their neighbours — including the hovered node's edges during an
-   * edge selection); otherwise (plain hover) the source runs to the node centre. Empty in
-   * the detail view.
+   * to match: the *selected edge* meets its endpoint's black border flush (no gap); every
+   * other highlight edge — a hovered node's incident edges as well as a selection's —
+   * opens a matching short gap so its tail clears the node's ring instead of overshooting
+   * into it. Empty in the detail view.
    */
   const trimmedHighlightLines = useMemo<HoverLine[]>(() => {
     if (isDetailZoom || currentZoom == null) {
@@ -2660,15 +2694,10 @@ export const NetworkGraph = ({
       hoveredSizeIds.add(dimmedSelectedNode.id);
     }
     return compactHighlightLines.map((line) => {
-      // The selected edge meets its endpoint's border flush; while a node or edge is
-      // selected, the active node's edges get the short source gap; a plain hover leaves
-      // the source untrimmed.
-      const sourceMode =
-        line.id === selectedParts.edgeId
-          ? "flush"
-          : compactHasSelection
-            ? "gap"
-            : "none";
+      // The selected edge meets its endpoint's border flush; every other highlight edge —
+      // a hovered node's incident edges included — gets the short source gap so its tail
+      // clears the node's ring rather than overlapping it.
+      const sourceMode = line.id === selectedParts.edgeId ? "flush" : "gap";
       return trimHighlightLine(line, scale, hoveredSizeIds, sourceMode);
     });
   }, [
@@ -2677,7 +2706,6 @@ export const NetworkGraph = ({
     compactHighlightLines,
     activeNode,
     dimmedSelectedNode,
-    compactHasSelection,
     selectedParts.edgeId,
     trimHighlightLine,
   ]);
@@ -2733,8 +2761,8 @@ export const NetworkGraph = ({
       const targetIsSelected =
         resolveEdge(line.id)?.toId === dimmedSelectedNode.id;
       const targetRadius = targetIsSelected
-        ? HOVERED_MIN_RADIUS
-        : NEIGHBOUR_MIN_RADIUS;
+        ? compactHoveredRingRadius
+        : compactNeighbourRingRadius;
       const back = targetRadius + arrowGapPx;
       list.push({
         position: line.target,
@@ -2749,6 +2777,8 @@ export const NetworkGraph = ({
     dimmedSelectedEdges,
     resolveEdge,
     arrowGapPx,
+    compactHoveredRingRadius,
+    compactNeighbourRingRadius,
   ]);
 
   /**
@@ -2784,10 +2814,10 @@ export const NetworkGraph = ({
   /**
    * The selected edge while a *different* edge owns the active emphasis (another edge
    * hovered): its bundled path trimmed like a prominent edge (source at the node rim,
-   * target back by the arrow gap), but drawn by its own layer at the selected (hover)
-   * width in a lightened grey — so the selection keeps its thickness and arrow yet reads
-   * as backgrounded, ceding the dark prominent styling to the hovered edge. Detail view
-   * only; null unless an edge is selected and backgrounded this way.
+   * target back past the whole arrowhead), but drawn by its own layer at the selected
+   * (hover) width in a lightened grey — so the selection keeps its thickness and arrow yet
+   * reads as backgrounded, ceding the dark prominent styling to the hovered edge. Detail
+   * view only; null unless an edge is selected and backgrounded this way.
    */
   const backgroundedSelectedEdgePath = useMemo<BundledEdge | null>(() => {
     if (
@@ -2801,7 +2831,10 @@ export const NetworkGraph = ({
     const scale = currentZoom == null ? null : 2 ** currentZoom;
     const sourceTrim = scale == null ? 0 : DETAIL_NODE_DIAMETER / 2 / scale;
     const targetTrim =
-      scale == null ? 0 : (DETAIL_NODE_DIAMETER / 2 + arrowGapPx) / scale;
+      scale == null
+        ? 0
+        : (DETAIL_NODE_DIAMETER / 2 + arrowGapPx + ARROW_HEAD_LENGTH_PX) /
+          scale;
     return {
       edgeId: selectedEdgeHoverable.edgeId,
       path: trimPathBothEnds(
@@ -2912,7 +2945,6 @@ export const NetworkGraph = ({
       // Animate crowd points in from / out to radius 0 as nodes are added/removed.
       nodeScaleById,
       nodeScaleEpoch,
-      dimmed: highlight !== null,
       // In detail the grow highlights give way to the detailed layer's outline.
       showGrowHighlights: !isDetailZoom,
       // Hide the compact crowd in detail so it doesn't show through behind the
@@ -3103,7 +3135,6 @@ export const NetworkGraph = ({
           colorByHex: colorByHexWithOverlay,
           radiusScale: effectiveRadiusScale,
           pointOpacity,
-          dimmed: false,
           showGrowHighlights: true,
           showPoints: false,
         }),
@@ -3112,7 +3143,6 @@ export const NetworkGraph = ({
     return nodeLayers;
   }, [
     compactData,
-    highlight,
     trimmedBackgroundEdgePaths,
     trimmedHighlightEdgePaths,
     backgroundedSelectedEdgePath,

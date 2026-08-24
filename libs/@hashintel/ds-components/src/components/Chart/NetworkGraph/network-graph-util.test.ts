@@ -1,10 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   clampPanTarget,
   iconAtlasKey,
   iconAtlasSource,
 } from "./network-graph-util";
+
+// `network-graph-util` pulls in the ds `Icon`, which statically imports hundreds
+// of `.svg` files through `vite-plugin-svgr`. Stub `Icon` so these pure-logic
+// tests never load that SVG-transform chain — its rolldown/oxc branch calls a
+// `transformWithOxc` export that plain (non-rolldown) Vite lacks, which crashes
+// the suite under Vitest's runner. The rasterised markup is exercised by the
+// snapshot tests; here we only assert the data-URL shape.
+vi.mock("../../Icon/icon", async () => {
+  const { createElement } = await import("react");
+  return { Icon: () => createElement("svg") };
+});
 
 /**
  * The pan clamp keeps the network in view, working off the node-*centre* bounds it

@@ -19,6 +19,7 @@ import {
   HOVERED_MAX_MULTIPLIER,
   HOVERED_MIN_RADIUS,
   HOVERED_RADIUS_MULTIPLIER,
+  NEIGHBOUR_MAX_MULTIPLIER,
   NEIGHBOUR_MIN_RADIUS,
   NEIGHBOUR_RADIUS_MULTIPLIER,
   POINT_MAX_RADIUS,
@@ -31,8 +32,6 @@ import type { Color, CompositeLayerProps, DefaultProps } from "@deck.gl/core";
 /** Opacity of the faint "all edges" drawn behind the detail view. */
 const BACKGROUND_EDGE_OPACITY = 0.2;
 const BACKGROUND_EDGE_ALPHA = Math.round(RGBA_OPAQUE * BACKGROUND_EDGE_OPACITY);
-/** Opacity of the points dimmed while a node is hovered. */
-const POINT_DIMMED_OPACITY = 1;
 /** Opacity of the selected node's grow ring while a different node is hovered, so the selection stays visible but secondary. Also applied to its faded edges/neighbours and, by the parent, to their direction arrows. */
 export const SELECTED_DIM_OPACITY = 0.5;
 // Sit at z 0; must not occlude the negative-z detail layers, so draw without writing depth.
@@ -100,8 +99,6 @@ type _CompactNodeLayerProps = {
   radiusScale: number;
   /** Base point opacity for the current zoom. */
   pointOpacity: number;
-  /** Whether a node is active, so the point crowd is dimmed. */
-  dimmed: boolean;
   /** Whether the neighbour/hovered grow highlights render. Suppressed in the detail variation, which highlights via a colour-matched outline. */
   showGrowHighlights: boolean;
   /** Whether the coloured node points render. Hidden in the detail variation so the compact crowd doesn't show through the translucent detailed nodes; the detailed layer then resolves picking. */
@@ -132,7 +129,6 @@ const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   colorByHex: new Map<string, RgbColor>(),
   radiusScale: 1,
   pointOpacity: 1,
-  dimmed: false,
   showGrowHighlights: true,
   showPoints: true,
   dimmedSelectedNode: null,
@@ -180,7 +176,6 @@ export class CompactNodeLayer extends CompositeLayer<
       colorByHex,
       radiusScale,
       pointOpacity,
-      dimmed,
       showGrowHighlights,
       showPoints,
       nodeScaleById,
@@ -351,11 +346,8 @@ export class CompactNodeLayer extends CompositeLayer<
               radiusUnits: "pixels",
               radiusMinPixels: POINT_RADIUS,
               radiusMaxPixels: POINT_MAX_RADIUS,
-              // Opacity scales with zoom; an active highlight dims the crowd no
-              // brighter than that.
-              opacity: dimmed
-                ? Math.min(pointOpacity, POINT_DIMMED_OPACITY)
-                : pointOpacity,
+              // Opacity scales with zoom.
+              opacity: pointOpacity,
               updateTriggers: {
                 getFillColor: selectedPointId,
                 getRadius: nodeScaleEpoch,
@@ -401,6 +393,7 @@ export class CompactNodeLayer extends CompositeLayer<
               data: dimmedSelectedNeighbours,
               radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
               radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+              radiusMaxPixels: POINT_MAX_RADIUS * NEIGHBOUR_MAX_MULTIPLIER,
               opacity: SELECTED_DIM_OPACITY,
               pickable: dimmedSelectionPickable,
             }),
@@ -416,6 +409,7 @@ export class CompactNodeLayer extends CompositeLayer<
               data: neighbours,
               radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
               radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+              radiusMaxPixels: POINT_MAX_RADIUS * NEIGHBOUR_MAX_MULTIPLIER,
               pickable: highlightNodesPickable,
             }),
           ]
@@ -504,6 +498,8 @@ export class CompactNodeLayer extends CompositeLayer<
                     data: neighbourEdgeHoverNodes,
                     radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
                     radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+                    radiusMaxPixels:
+                      POINT_MAX_RADIUS * NEIGHBOUR_MAX_MULTIPLIER,
                   }),
                 ]
               : []),
@@ -525,6 +521,7 @@ export class CompactNodeLayer extends CompositeLayer<
               data: neighbourEdgeHoverNodes,
               radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
               radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+              radiusMaxPixels: POINT_MAX_RADIUS * NEIGHBOUR_MAX_MULTIPLIER,
             }),
           ]
         : []),

@@ -1,5 +1,3 @@
-// colorjs.io is a devDependency; these scales are used by tooling/stories, not
-// imported by the shipped components, so they don't add a runtime dependency.
 import Color from "colorjs.io";
 
 /**

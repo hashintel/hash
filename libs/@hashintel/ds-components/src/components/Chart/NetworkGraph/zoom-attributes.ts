@@ -52,6 +52,16 @@ export const NEIGHBOUR_RADIUS_MULTIPLIER = 1.6;
 export const HOVERED_RADIUS_MULTIPLIER = 2.2;
 /** How much larger than {@link POINT_MAX_RADIUS} the active node's ring may grow. */
 export const HOVERED_MAX_MULTIPLIER = 1.5;
+/**
+ * How much larger than {@link POINT_MAX_RADIUS} a neighbour's ring may grow. Derived
+ * from {@link HOVERED_MAX_MULTIPLIER} in the same ratio as the two rings' base sizes
+ * ({@link NEIGHBOUR_RADIUS_MULTIPLIER} : {@link HOVERED_RADIUS_MULTIPLIER}) so both
+ * caps engage at the same zoom — without its own cap a neighbour ring keeps growing
+ * once the active ring has pinned and eventually outgrows it, inverting the highlight.
+ */
+export const NEIGHBOUR_MAX_MULTIPLIER =
+  (HOVERED_MAX_MULTIPLIER * NEIGHBOUR_RADIUS_MULTIPLIER) /
+  HOVERED_RADIUS_MULTIPLIER;
 // Radius scale vs zoom: shifted exponential `scale = COEFF · RATE^zoom − SHIFT`
 // (floored at 0). Grows ~33% per zoom level; the shift makes the crowd bottom out at
 // the min radius when framed out rather than off a bare exponential. On the
