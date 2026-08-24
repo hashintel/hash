@@ -54,6 +54,7 @@ export const columnHeaderStyle = css({
 });
 
 export const gutterCellStyle = css({
+  position: "relative",
   borderRight: "[1px solid {colors.neutral.bd.subtle}]",
   borderBottom: "[1px solid {colors.neutral.a05}]",
   padding: "[0]",
@@ -91,6 +92,34 @@ export const gutterButtonStyle = css({
     outlineOffset: "[-2px]",
     backgroundColor: "blue.s05",
   },
+});
+
+/**
+ * The gutter's three-dots affordance: appears on row hover or gutter focus
+ * and opens the row's menu; the gutter button itself only selects.
+ */
+export const gutterMenuButtonStyle = css({
+  position: "absolute",
+  right: "[1px]",
+  top: "[50%]",
+  transform: "[translateY(-50%)]",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[14px]",
+  height: "[22px]",
+  border: "none",
+  borderRadius: "xs",
+  background: "[transparent]",
+  padding: "[0]",
+  fontSize: "[11px]",
+  lineHeight: "[1]",
+  color: "neutral.s80",
+  cursor: "pointer",
+  opacity: "[0]",
+  transition: "[opacity 0.12s ease]",
+  "tr:hover &, tr:focus-within &": { opacity: "[0.7]" },
+  _hover: { opacity: "[1!]", backgroundColor: "neutral.s20" },
 });
 
 /** A borderless input filling a cell, spreadsheet-style. */
@@ -153,6 +182,8 @@ export const phantomCellButtonStyle = css({
   color: "neutral.s60",
   opacity: "[0.55]",
   cursor: "text",
+  transition: "[opacity 0.12s ease]",
+  "tr:hover &": { opacity: "[1]" },
   _hover: { backgroundColor: "neutral.s10", opacity: "[1]" },
   _focus: {
     outline: "[2px solid {colors.blue.s70}]",
@@ -162,12 +193,31 @@ export const phantomCellButtonStyle = css({
   },
 });
 
-/** The quiet "+" in an add-line's gutter. */
-export const phantomGutterTextStyle = css({
+/** The quiet "+" button filling an add-line's gutter; hovering the row
+ * brightens it, and clicking it creates the new entry too. */
+export const phantomGutterButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[100%]",
+  height: "[100%]",
+  border: "none",
+  background: "[transparent]",
+  padding: "[0]",
   fontFamily: "mono",
   fontSize: "[11px]",
   color: "neutral.s60",
   opacity: "[0.55]",
+  cursor: "pointer",
+  transition: "[opacity 0.12s ease]",
+  "tr:hover &": { opacity: "[1]" },
+  _hover: { opacity: "[1]" },
+  _focus: {
+    outline: "[2px solid {colors.blue.s70}]",
+    outlineOffset: "[-2px]",
+    backgroundColor: "blue.s05",
+    opacity: "[1]",
+  },
 });
 
 /**

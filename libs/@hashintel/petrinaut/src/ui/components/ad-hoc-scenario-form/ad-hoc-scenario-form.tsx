@@ -51,13 +51,13 @@ import {
 } from "./use-form-navigation";
 import { VariableRows } from "./variable-rows";
 
+import type { AdHocFocusTarget } from "./dependency-highlight";
 import type { AdHocFormSelection, AdHocFormServices } from "./form-context";
 import type {
   AdHocNetParameter,
   AdHocScenarioState,
   AdHocSlot,
   AdHocSynthesisContext,
-  AdHocValueTarget,
 } from "@hashintel/petrinaut-core";
 
 const placesListStyle = css({
@@ -123,7 +123,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
 
   // The focused value drives the dependency highlight: the rows it reads,
   // and — for a Variable or Parameter — the cells that read it.
-  const [focusedValue, setFocusedValue] = useState<AdHocValueTarget | null>(
+  const [focusedValue, setFocusedValue] = useState<AdHocFocusTarget | null>(
     null,
   );
   const highlight = computeAdHocHighlight(state, context, focusedValue);

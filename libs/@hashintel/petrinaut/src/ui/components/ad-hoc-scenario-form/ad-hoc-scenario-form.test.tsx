@@ -775,6 +775,91 @@ describe("AdHocScenarioForm", () => {
     expect(screen.queryByText("Scale")).toBe(null);
   });
 
+  it("selects on pointer click and opens the menu from the dots", async () => {
+    render(<Harness />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+
+    // A pointer click (detail 1) selects without opening the menu.
+    const gutter = screen.getByRole("button", { name: "Row 1 kind" });
+    fireEvent.click(gutter, { detail: 1 });
+    expect(screen.queryByRole("menuitemradio", { name: "Fixed row" })).toBe(
+      null,
+    );
+
+    // The dots affordance opens it.
+    fireEvent.click(screen.getByRole("button", { name: "Row 1 menu" }));
+    expect(
+      await screen.findByRole("menuitemradio", { name: "Fixed row" }),
+    ).toBeTruthy();
+  });
+
+  it("highlights a whole row's connections from its gutter", () => {
+    const initial: AdHocScenarioState = {
+      variables: [
+        { name: "n", type: "integer", expression: "2", optimize: null },
+      ],
+      netParameters: [],
+      places: {
+        "place-pumps": {
+          kind: "coloured",
+          variables: [],
+          rows: [
+            {
+              kind: "fixed",
+              cells: [
+                { expression: "2 * scenario.n", optimize: null },
+                { expression: "false", optimize: null },
+              ],
+            },
+          ],
+          sharedColumns: {},
+        },
+      },
+    };
+    render(<Harness initial={initial} />);
+
+    // The token row's gutter highlights everything its cells read.
+    const rowGutter = screen.getByRole("button", { name: "Row 1 kind" });
+    fireEvent.focus(rowGutter);
+    const nameCell = screen.getByRole("button", {
+      name: "Name of variable 1 (Top-level variables)",
+    });
+    expect(nameCell.closest("tr")?.getAttribute("data-highlighted")).toBe(
+      "true",
+    );
+
+    // The variable row's gutter highlights the cells that read it.
+    fireEvent.focus(screen.getByRole("button", { name: "Variable 1 actions" }));
+    expect(
+      screen
+        .getByRole("button", { name: "Pumps › item 0 › pressure" })
+        .getAttribute("data-highlighted"),
+    ).toBe("true");
+  });
+
+  it("creates entries from the add-line gutters", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add a token row" }));
+    expect(colouredPlace(latest).rows).toHaveLength(1);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Add a variable from the gutter (Top-level variables)",
+      }),
+    );
+    expect(latest?.variables).toHaveLength(1);
+  });
+
   it("shows the place total, unresolved when a count is optimized", () => {
     const initial: AdHocScenarioState = {
       variables: [],

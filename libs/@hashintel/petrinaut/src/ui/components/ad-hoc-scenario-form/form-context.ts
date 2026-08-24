@@ -14,12 +14,11 @@ import { createContext } from "react";
 
 import { EMPTY_AD_HOC_HIGHLIGHT } from "./dependency-highlight";
 
-import type { AdHocHighlight } from "./dependency-highlight";
+import type { AdHocFocusTarget, AdHocHighlight } from "./dependency-highlight";
 import type {
   AdHocScenarioState,
   AdHocSlot,
   AdHocSynthesisContext,
-  AdHocValueTarget,
 } from "@hashintel/petrinaut-core";
 
 /**
@@ -47,8 +46,8 @@ export interface AdHocFormServices {
   uriFor: (slot: AdHocSlot) => string;
   /** The rows and cells connected to the focused value. */
   highlight: AdHocHighlight;
-  /** Reports which value holds focus, driving the dependency highlight. */
-  setFocusedValue: (target: AdHocValueTarget | null) => void;
+  /** Reports which value or row holds focus, driving the highlight. */
+  setFocusedValue: (target: AdHocFocusTarget | null) => void;
 }
 
 export const AdHocFormContext = createContext<AdHocFormServices>({
