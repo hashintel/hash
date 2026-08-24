@@ -24,7 +24,7 @@ Every value in the form is an expression. A first click selects a value; a secon
 
 ### Keyboard editing and undo
 
-Every table in the form is a keyboard grid: arrow keys and Tab move between cells, phantom rows included, and moving up from a dynamic row's cells lands on its count strip, so counts and bounds are editable without the mouse. In a token table, the left arrow from a row's first cell reaches the **row gutter**: focusing it highlights and selects the whole row, Enter opens the row-kind menu, and Delete removes the row (a trashcan at the row's end appears on hover as the pointer equivalent).
+Every table in the form is a keyboard grid: arrow keys and Tab move between cells, phantom rows included, and moving up from a dynamic row's cells lands on its count strip, so counts and bounds are editable without the mouse. In a token table, the left arrow from a row's first cell reaches the **row gutter**: focusing it highlights and selects the whole row, Enter opens the row-kind menu, and Delete removes the row (a trashcan at the row's end appears on hover as the pointer equivalent). The menu is a keyboard menu too: it opens with the current kind focused, arrow keys move through the kinds, Enter chooses, and Escape returns to the gutter.
 
 The whole form has one undo history: Cmd/Ctrl+Z undoes and Shift+Cmd/Ctrl+Z (or Ctrl+Y) redoes any edit -- a changed value, an added or deleted row, a shared column, an Optimize toggle. An open text editor keeps its own text-level undo until you close it.
 
