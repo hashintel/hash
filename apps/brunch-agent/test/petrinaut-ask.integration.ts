@@ -24,6 +24,9 @@ import {
   GherkinElicitor,
 } from "../src/agents/gherkin-elicitor.ts";
 
+import type { PetrinautAskResult } from "./petrinaut-ask-result";
+import type { UIMessageChunk } from "ai";
+
 const targetDirectory = await mkdtemp(join(tmpdir(), "brunch-petrinaut-ask-"));
 process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR = targetDirectory;
 process.env.BRUNCH_TRANSPORT_AISDK_INSPECT = "1";
@@ -59,14 +62,12 @@ const flue = await start({
   providers: [faux.provider],
 });
 
-type StreamChunk = Record<string, unknown> & { readonly type: string };
-
-const chunksFrom = (body: string): StreamChunk[] =>
+const chunksFrom = (body: string): UIMessageChunk[] =>
   body
     .trim()
     .split("\n\n")
     .slice(0, -1)
-    .map((frame) => JSON.parse(frame.slice("data: ".length)) as StreamChunk);
+    .map((frame) => JSON.parse(frame.slice("data: ".length)) as UIMessageChunk);
 
 try {
   const { default: app } = await import("../src/app.ts");
@@ -128,24 +129,23 @@ try {
 
   const duplicate = await postChat("request-fe1449-duplicate", returnBody);
 
-  process.stdout.write(
-    `PETRINAUT_ASK_RESULT ${JSON.stringify({
-      initialStatus: initial.status,
-      askCall,
-      initialToolOutputs: initialChunks.filter(
-        (chunk) => chunk.type === "tool-output-available",
-      ),
-      initialFinish: initialChunks.at(-1),
-      resumedStatus: resumed.status,
-      resumedText: resumedChunks
-        .filter((chunk) => chunk.type === "text-delta")
-        .map((chunk) => chunk.delta)
-        .join(""),
-      resumedFinish: resumedChunks.at(-1),
-      duplicateStatus: duplicate.status,
-      duplicateBody: (await duplicate.json()) as unknown,
-    })}\n`,
-  );
+  const result: PetrinautAskResult = {
+    initialStatus: initial.status,
+    askCall,
+    initialToolOutputs: initialChunks.filter(
+      (chunk) => chunk.type === "tool-output-available",
+    ),
+    initialFinish: initialChunks.at(-1),
+    resumedStatus: resumed.status,
+    resumedText: resumedChunks
+      .filter((chunk) => chunk.type === "text-delta")
+      .map((chunk) => chunk.delta)
+      .join(""),
+    resumedFinish: resumedChunks.at(-1),
+    duplicateStatus: duplicate.status,
+    duplicateBody: (await duplicate.json()) as unknown,
+  };
+  process.stdout.write(`PETRINAUT_ASK_RESULT ${JSON.stringify(result)}\n`);
 } finally {
   await flue.stop();
   await rm(targetDirectory, { recursive: true, force: true });

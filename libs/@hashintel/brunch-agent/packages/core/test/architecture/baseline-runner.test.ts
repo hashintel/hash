@@ -11,6 +11,8 @@ import { afterEach, describe, expect, test } from "vitest";
 
 import { CONTEXT_ROOT, contextRootPresent } from "./workspace";
 
+import type { StubReply } from "./fixtures/baseline-anthropic-stub";
+
 const BASELINE_PROTOCOL_DIR = join(
   CONTEXT_ROOT,
   "evaluations/protocols/process-model-elicitation/baseline",
@@ -23,11 +25,6 @@ const STUB_MODULE = pathToFileURL(
   join(import.meta.dirname, "fixtures/baseline-anthropic-stub.ts"),
 ).href;
 const temporaryDirectories: string[] = [];
-
-interface StubReply {
-  text: string;
-  truncated?: boolean;
-}
 
 interface BaselineCopy {
   outputDirectory: string;

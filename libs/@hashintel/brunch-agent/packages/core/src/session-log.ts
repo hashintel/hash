@@ -1,12 +1,19 @@
 import * as v from "valibot";
 
-import type { EvidenceSpan, JsonValue } from "./capture-store";
+import { JsonValueSchema, isJsonValue } from "./json-value";
 
-export type SessionEntryKind =
-  | "user"
-  | "user-affordance-payload"
-  | "assistant"
-  | "non-user";
+import type { EvidenceSpan } from "./capture-store";
+import type { JsonValue } from "./json-value";
+import type { ReadonlyDeep } from "./readonly-deep";
+
+export const SESSION_ENTRY_KINDS = [
+  "user",
+  "user-affordance-payload",
+  "assistant",
+  "non-user",
+] as const;
+
+export type SessionEntryKind = (typeof SESSION_ENTRY_KINDS)[number];
 
 export interface SessionLogEntrySnapshot {
   /** Stable identity supplied by the substrate's public projection. */
@@ -30,50 +37,30 @@ export interface SessionLogRead {
   readonly settlements: readonly JsonValue[];
 }
 
-export interface ArchivedSessionEntryVersion {
-  readonly version: number;
-  readonly observedAtOffset: string;
-  readonly kind: SessionEntryKind;
-  readonly text: string;
-  readonly materialized: JsonValue;
-}
+export type ArchivedSessionEntryVersion = ReadonlyDeep<
+  v.InferOutput<typeof versionSchema>
+>;
+export type ArchivedSessionEntry = ReadonlyDeep<
+  v.InferOutput<typeof entrySchema>
+>;
+export type ArchivedSessionRead = ReadonlyDeep<
+  v.InferOutput<typeof readSchema>
+>;
+export type ArchivedSessionLog = ReadonlyDeep<
+  v.InferOutput<typeof sessionSchema>
+>;
+export type SessionLogArchive = ReadonlyDeep<
+  v.InferOutput<typeof archiveSchema>
+>;
 
-export interface ArchivedSessionEntry {
-  /** Harness-owned, one-based entry identity used by evidence pointers. */
-  readonly ordinal: number;
-  readonly substrateEntryId: string;
-  readonly substrateIncarnation?: string;
-  readonly versions: readonly ArchivedSessionEntryVersion[];
-}
-
-export interface ArchivedSessionRead {
-  readonly offset: string;
-  readonly substrateConversationId?: string;
-  readonly incarnation?: string;
-  readonly entries: readonly {
-    readonly ordinal: number;
-    readonly version: number;
-  }[];
-  readonly settlements: readonly JsonValue[];
-}
-
-export interface ArchivedSessionLog {
-  readonly sessionId: string;
-  readonly entries: readonly ArchivedSessionEntry[];
-  readonly reads: readonly ArchivedSessionRead[];
-}
-
-export interface SessionLogArchive {
-  readonly sessions: readonly ArchivedSessionLog[];
-}
-
-export interface EvidenceQuote {
-  readonly excerpt: string;
+export type EvidenceQuote = ReadonlyDeep<
+  v.InferOutput<typeof EvidenceQuoteSchema>
+> & {
   /** Persisted pointer fields are deliberately unassignable to caller input. */
   readonly pointer?: never;
   /** Provenance is derived from the archive, never asserted by the caller. */
   readonly source?: never;
-}
+};
 
 export interface MultipleEvidenceMatchesAdvisory {
   readonly type: "multiple-evidence-matches";
@@ -104,18 +91,14 @@ export type EvidenceResolutionResult =
 
 const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
 const positiveInteger = v.pipe(v.number(), v.integer(), v.minValue(1));
-const kindSchema = v.picklist([
-  "user",
-  "user-affordance-payload",
-  "assistant",
-  "non-user",
-]);
+const kindSchema = v.picklist(SESSION_ENTRY_KINDS);
+export const EvidenceQuoteSchema = v.strictObject({ excerpt: nonEmptyString });
 const versionSchema = v.strictObject({
   version: positiveInteger,
   observedAtOffset: nonEmptyString,
   kind: kindSchema,
   text: v.string(),
-  materialized: v.unknown(),
+  materialized: JsonValueSchema,
 });
 const entrySchema = v.strictObject({
   ordinal: positiveInteger,
@@ -133,7 +116,7 @@ const readSchema = v.strictObject({
       version: positiveInteger,
     }),
   ),
-  settlements: v.array(v.unknown()),
+  settlements: v.array(JsonValueSchema),
 });
 const sessionSchema = v.strictObject({
   sessionId: nonEmptyString,
@@ -141,20 +124,6 @@ const sessionSchema = v.strictObject({
   reads: v.array(readSchema),
 });
 const archiveSchema = v.strictObject({ sessions: v.array(sessionSchema) });
-
-const isJsonValue = (value: unknown): value is JsonValue => {
-  if (value === null || typeof value === "string" || typeof value === "boolean")
-    return true;
-  if (typeof value === "number")
-    return Number.isFinite(value) && !Object.is(value, -0);
-  if (Array.isArray(value)) return value.every(isJsonValue);
-  if (typeof value !== "object") return false;
-  const prototype: unknown = Object.getPrototypeOf(value);
-  return (
-    (prototype === Object.prototype || prototype === null) &&
-    Object.values(value as Record<string, unknown>).every(isJsonValue)
-  );
-};
 
 const canonicalize = (value: JsonValue): JsonValue => {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -176,7 +145,7 @@ export const createEmptySessionLogArchive = (): SessionLogArchive => ({
 });
 
 export const parseSessionLogArchive = (input: unknown): SessionLogArchive => {
-  const archive = v.parse(archiveSchema, input) as SessionLogArchive;
+  const archive = v.parse(archiveSchema, input);
   const sessionIds = new Set<string>();
   for (const session of archive.sessions) {
     if (sessionIds.has(session.sessionId)) {
@@ -206,20 +175,8 @@ export const parseSessionLogArchive = (input: unknown): SessionLogArchive => {
           `Archived entry ${entry.ordinal} has non-contiguous versions.`,
         );
       }
-      for (const version of entry.versions) {
-        if (!isJsonValue(version.materialized)) {
-          throw new TypeError(
-            `Archived entry ${entry.ordinal} is not JSON-compatible.`,
-          );
-        }
-      }
     }
     for (const read of session.reads) {
-      if (!read.settlements.every(isJsonValue)) {
-        throw new TypeError(
-          `Session log ${session.sessionId} has a non-JSON settlement.`,
-        );
-      }
       for (const reference of read.entries) {
         const archived = session.entries[reference.ordinal - 1];
         if (!archived || !archived.versions[reference.version - 1]) {

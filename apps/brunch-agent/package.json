@@ -34,6 +34,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "ai": "6.0.182",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "vite": "8.1.0",

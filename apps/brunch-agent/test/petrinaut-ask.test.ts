@@ -4,7 +4,9 @@ import { expect, test } from "vitest";
 
 import { runNodeScript } from "./run-node-script";
 
-type StreamChunk = Record<string, unknown> & { readonly type: string };
+import type { PetrinautAskResult } from "./petrinaut-ask-result";
+import type { TransportInspectionEvent } from "@hashintel/brunch-agent-transport-aisdk";
+
 const testDirectory = import.meta.dirname;
 
 test("a structured ask suspends over the wire and its correlated submission resumes the conversation", async () => {
@@ -20,17 +22,7 @@ test("a structured ask suspends over the wire and its correlated submission resu
   expect(resultLine, stdout).toBeDefined();
   const result = JSON.parse(
     resultLine!.slice("PETRINAUT_ASK_RESULT ".length),
-  ) as {
-    initialStatus: number;
-    askCall: StreamChunk | undefined;
-    initialToolOutputs: StreamChunk[];
-    initialFinish: StreamChunk;
-    resumedStatus: number;
-    resumedText: string;
-    resumedFinish: StreamChunk;
-    duplicateStatus: number;
-    duplicateBody: unknown;
-  };
+  ) as PetrinautAskResult;
 
   // Suspension: the ask leaves the server as an awaiting client tool with a
   // stable call id; the harness's minted affordance never reaches the wire.
@@ -69,7 +61,9 @@ test("a structured ask suspends over the wire and its correlated submission resu
     .filter((line) => line.startsWith("TRANSPORT_AISDK "))
     .map(
       (line) =>
-        JSON.parse(line.slice("TRANSPORT_AISDK ".length)) as StreamChunk,
+        JSON.parse(
+          line.slice("TRANSPORT_AISDK ".length),
+        ) as TransportInspectionEvent,
     );
   expect(inspections.some((event) => event.type === "ask-await")).toBe(true);
   expect(inspections.some((event) => event.type === "ask-reply-admitted")).toBe(

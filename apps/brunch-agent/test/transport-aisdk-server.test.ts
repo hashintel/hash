@@ -10,7 +10,7 @@ import {
   type TransportInspectionEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-type GoldenChunk = Record<string, unknown> & { readonly type: string };
+import type { UIMessageChunk } from "ai";
 
 const FIXTURES = join(
   import.meta.dirname,
@@ -22,12 +22,12 @@ const fixture = (name: string): string =>
 
 const responseChunks = async (
   response: Response,
-): Promise<readonly GoldenChunk[]> =>
+): Promise<readonly UIMessageChunk[]> =>
   (await response.text())
     .trim()
     .split("\n\n")
     .slice(0, -1)
-    .map((frame) => JSON.parse(frame.slice("data: ".length)) as GoldenChunk);
+    .map((frame) => JSON.parse(frame.slice("data: ".length)) as UIMessageChunk);
 
 const panelInitialHarnessEvents: readonly HarnessReplyEvent[] = [
   { type: "response-start", messageId: "assistant-fe1435-1" },

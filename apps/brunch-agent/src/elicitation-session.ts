@@ -4,15 +4,19 @@ import {
   createFlueHistoryReader,
   createLocalCaptureStore,
   type ElicitationSession,
+  type FlueHistoryReaderOptions,
 } from "@hashintel/brunch-agent-binding-flue";
 
 import { GHERKIN_AGENT_ROUTE } from "./routes.ts";
 import { targetDocumentPath } from "./target-document-path.ts";
 
-const appTransport = (async (input: RequestInfo | URL, init?: RequestInit) => {
+const appTransport: FlueHistoryReaderOptions["transport"] = async (
+  input,
+  init,
+) => {
   const { default: app } = await import("./app.ts");
   return app.fetch(input instanceof Request ? input : new Request(input, init));
-}) as typeof fetch;
+};
 
 export const createGherkinElicitationSession = (
   sessionId: string,

@@ -14,6 +14,7 @@ import {
   settlementProtocolInstructionFragments,
   sweepableRange,
   unsweptTail,
+  type SweepRefusalFact,
   type SweepSessionEntry,
 } from "../src/sweep-protocol";
 
@@ -180,7 +181,7 @@ describe("settlement and sweep protocol", () => {
     const refusal = {
       code: "evidence-quote-not-found",
       message: "Use an exact quote.",
-    };
+    } satisfies SweepRefusalFact;
     expect(buildSweepRepairSignal(refusal)).toEqual({
       type: "sweep-repair",
       tagName: "sweep-repair",

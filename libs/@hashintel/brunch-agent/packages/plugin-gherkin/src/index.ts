@@ -18,7 +18,7 @@ import { definePlugin } from "@hashintel/brunch-agent";
 const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
 const evidenceQuote = v.strictObject({ excerpt: nonEmptyString });
 
-const StatementNotedProposal = v.pipe(
+export const StatementNotedProposal = v.pipe(
   v.strictObject({
     evidence: v.pipe(v.array(evidenceQuote), v.minLength(1)),
     epistemicStatus: v.literal("explicit"),
@@ -39,6 +39,10 @@ const StatementNotedProposal = v.pipe(
     "The verbatim interior must equal one cited user quote.",
   ),
 );
+
+export type StatementNotedProposalInput = v.InferInput<
+  typeof StatementNotedProposal
+>;
 
 export const gherkin = definePlugin({
   name: "plugin-gherkin",

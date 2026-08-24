@@ -447,6 +447,7 @@ __metadata:
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    ai: "npm:6.0.182"
     hono: "npm:4.13.2"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"

@@ -20,7 +20,7 @@ import {
   type TransportInspectionEvent,
 } from "../src/index";
 
-type StreamChunk = Record<string, unknown> & { readonly type: string };
+import type { UIMessageChunk } from "ai";
 
 const FIXTURES = join(import.meta.dirname, "fixtures");
 
@@ -30,12 +30,12 @@ test("keeps the client ask tool name aligned with the Brunch product name", () =
 
 const responseChunks = async (
   response: Response,
-): Promise<readonly StreamChunk[]> =>
+): Promise<readonly UIMessageChunk[]> =>
   (await response.text())
     .trim()
     .split("\n\n")
     .slice(0, -1)
-    .map((frame) => JSON.parse(frame.slice("data: ".length)) as StreamChunk);
+    .map((frame) => JSON.parse(frame.slice("data: ".length)) as UIMessageChunk);
 
 const post = (body: unknown): Request =>
   new Request("http://brunch.test/api/petrinaut/chat", {

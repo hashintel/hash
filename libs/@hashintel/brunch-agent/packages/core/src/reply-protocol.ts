@@ -5,23 +5,26 @@
  * crosses the boundary. Message, part, turn, and tool-call identities are
  * supplied by the binding and preserved by transports.
  */
+export type ReplyPartKind = "text" | "reasoning";
+export type ToolExecution = "client" | "server";
+
 export type HarnessReplyEvent =
   | { readonly type: "response-start"; readonly messageId: string }
   | { readonly type: "turn-start"; readonly turnId: string }
   | {
       readonly type: "part-start";
-      readonly kind: "text" | "reasoning";
+      readonly kind: ReplyPartKind;
       readonly partId: string;
     }
   | {
       readonly type: "part-delta";
-      readonly kind: "text" | "reasoning";
+      readonly kind: ReplyPartKind;
       readonly partId: string;
       readonly delta: string;
     }
   | {
       readonly type: "part-end";
-      readonly kind: "text" | "reasoning";
+      readonly kind: ReplyPartKind;
       readonly partId: string;
     }
   | {
@@ -29,19 +32,19 @@ export type HarnessReplyEvent =
       readonly toolCallId: string;
       readonly toolName: string;
       readonly input: unknown;
-      readonly execution: "client" | "server";
+      readonly execution: ToolExecution;
     }
   | {
       readonly type: "tool-output";
       readonly toolCallId: string;
       readonly output: unknown;
-      readonly execution: "client" | "server";
+      readonly execution: ToolExecution;
     }
   | {
       readonly type: "tool-output-error";
       readonly toolCallId: string;
       readonly errorText: string;
-      readonly execution: "client" | "server";
+      readonly execution: ToolExecution;
     }
   | { readonly type: "turn-finish"; readonly turnId: string }
   | {
