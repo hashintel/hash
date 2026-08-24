@@ -1,26 +1,29 @@
 //! Peephole rewrites over compiled filters.
 //!
 //! A peephole here is a filter shape whose direct compilation would be wrong or wasteful: an
-//! equality on an array-backed column would compare arrays where the filter means containment,
-//! and a `version = "latest"` equality would bind the text `"latest"` against an int8 column.
-//! [`PeepholeOptimizer`] recognizes those shapes and compiles the rewrite, and every other
-//! filter compiles as written.
+//! equality on an array-backed column would compare arrays where the filter means containment, a
+//! `version = "latest"` equality would bind the text `"latest"` against an int8 column, and a
+//! disjunction of identity tuples plans as one index-scan branch per tuple. [`PeepholeOptimizer`]
+//! recognizes those shapes and compiles the rewrite, and every other filter compiles as written.
 //!
 //! [`PeepholeOptimizer::recognize`] yields at most one [`Peephole`] per filter, so no filter is
 //! rewritten twice, and a filter classified as a plain equality is one no rewrite claims.
+
+mod tuple;
 
 use error_stack::Report;
 use hash_graph_store::filter::{
     Filter, FilterExpression, FilterExpressionList, Parameter, QueryRecord,
 };
 
+use self::tuple::ColumnTupleGroup;
 use super::{FilterGroup, SelectCompiler, SelectCompilerError};
 use crate::store::postgres::query::{
     Alias, Column, ColumnReference, CommonTableExpression, EqualityOperator, Expression, FromItem,
     Function, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression, SimpleSelect, Table,
     WindowDefinition, WithClause,
     postgres_type::PostgresType,
-    table::{FilterColumn as _, OntologyIds},
+    table::{DatabaseColumn as _, FilterColumn as _, OntologyIds},
 };
 
 /// Orientation-normalizes an equality's operands into its path and its parameter.
@@ -99,6 +102,9 @@ enum Peephole<'params, 'filter, R: QueryRecord> {
         parameter: &'params Parameter<'filter>,
         operator: EqualityOperator,
     },
+    /// An `All` group where every child pins a plain scalar column to a parameter: a candidate
+    /// for row-membership bundling when its `Any`-group siblings share the column set.
+    ColumnTuple(Vec<(&'params R::QueryPath<'filter>, &'params Parameter<'filter>)>),
 }
 
 /// The peephole pass over one compiler.
@@ -121,6 +127,7 @@ impl<'compiler, 'params, 'query: 'params, R: PostgresRecord>
     ///
     /// Priority is the match order, and a filter no arm claims compiles as written.
     fn recognize<'filter: 'query>(
+        &self,
         filter: &'params Filter<'filter, R>,
     ) -> Option<Peephole<'params, 'filter, R>>
     where
@@ -150,8 +157,19 @@ impl<'compiler, 'params, 'query: 'params, R: PostgresRecord>
                         operator: EqualityOperator::Equal,
                     })
             }
-            Filter::All(_)
-            | Filter::Any(_)
+            Filter::All(children) => {
+                let members = flattened_children(FilterGroup::All, children);
+                if members.len() < 2 {
+                    return None;
+                }
+
+                members
+                    .into_iter()
+                    .map(|child| self.plain_column_equality(child))
+                    .collect::<Option<Vec<_>>>()
+                    .map(Peephole::ColumnTuple)
+            }
+            Filter::Any(_)
             | Filter::Not(_)
             | Filter::Exists { .. }
             | Filter::Greater(..)
@@ -199,7 +217,46 @@ impl<'compiler, 'params, 'query: 'params, R: PostgresRecord>
         None
     }
 
+    /// Decomposes an equality filter pinning a plain scalar column to a parameter: the unit
+    /// [`Peephole::ColumnTuple`] builds on.
+    ///
+    /// `None` when [`recognize`](Self::recognize) claims the filter (a rewritten filter must
+    /// never be rebuilt as the direct equality whose meaning the rewrite exists to change), when
+    /// the path reaches into a JSON document rather than a whole column, when the column is
+    /// array-backed (an equality there means containment and belongs to the array predicates),
+    /// and when the column carries a column hook (the tuple forms build their column references
+    /// directly, which would silently skip the hook's rewrite). A refused group compiles
+    /// through [`SelectCompiler::compile_filter`], which handles all four.
+    fn plain_column_equality<'filter: 'query>(
+        &self,
+        filter: &'params Filter<'filter, R>,
+    ) -> Option<(&'params R::QueryPath<'filter>, &'params Parameter<'filter>)>
+    where
+        R::QueryPath<'filter>: PostgresQueryPath,
+    {
+        let Filter::Equal(lhs, rhs) = filter else {
+            return None;
+        };
+
+        if self.recognize(filter).is_some() {
+            return None;
+        }
+
+        let (path, parameter) = equality_halves(lhs, rhs)?;
+        let (column, None) = path.terminating_column() else {
+            return None;
+        };
+
+        (!matches!(column.postgres_type(), PostgresType::Array(_))
+            && !self.compiler.column_hooks.contains_key(&column))
+        .then_some((path, parameter))
+    }
+
     /// Rewrites a filter whose shape stands alone, or returns `None` for the plain compile.
+    ///
+    /// [`Peephole::ColumnTuple`] returns `None` here: a lone tuple gains nothing over its own
+    /// conjunction, and tuples fuse only among the siblings of an `Any` group, in
+    /// [`compile_group`](Self::compile_group).
     pub(super) fn try_filter<'filter: 'query>(
         &mut self,
         filter: &'params Filter<'filter, R>,
@@ -207,7 +264,7 @@ impl<'compiler, 'params, 'query: 'params, R: PostgresRecord>
     where
         R::QueryPath<'filter>: PostgresQueryPath,
     {
-        match Self::recognize(filter)? {
+        match self.recognize(filter)? {
             Peephole::LatestOntologyVersion { path, operator } => {
                 Some(self.latest_ontology_version(path, operator))
             }
@@ -222,16 +279,19 @@ impl<'compiler, 'params, 'query: 'params, R: PostgresRecord>
                 // A lone filter has a single parameter, so the group connective is irrelevant.
                 Some(self.array_predicate(column, &[parameter], operator, FilterGroup::All))
             }
+            Peephole::ColumnTuple(_) => None,
         }
     }
 
     /// Compiles the filters of an `All`/`Any` group, fusing siblings that share a backing
     /// shape into one predicate: equality filters backed by the same materialized array
-    /// column collapse into a single array predicate.
+    /// column collapse into a single array predicate, and, in an `Any` group only,
+    /// column-equality `All` tuples over one aliased table collapse into a single
+    /// row-membership predicate over unnested arrays.
     ///
-    /// Bundles are keyed on the *aliased* column: paths terminating in the same column
-    /// through different join chains (e.g. an entity's own types vs. a linked entity's
-    /// types) resolve to different aliases and stay separate predicates.
+    /// Bundles are keyed on the *aliased* column or column set: paths terminating in the
+    /// same column through different join chains (e.g. an entity's own types vs. a linked
+    /// entity's types) resolve to different aliases and stay separate predicates.
     pub(super) fn compile_group<'filter: 'query>(
         &mut self,
         filters: &'params [Filter<'filter, R>],
@@ -247,9 +307,10 @@ impl<'compiler, 'params, 'query: 'params, R: PostgresRecord>
         }
 
         let mut array_bundles: Vec<ArrayPredicateGroup<'params, 'filter>> = Vec::new();
+        let mut tuple_bundles: Vec<ColumnTupleGroup<'params, 'filter>> = Vec::new();
         let mut expressions = Vec::new();
         for filter in flattened_children(group, filters) {
-            match Self::recognize(filter) {
+            match self.recognize(filter) {
                 Some(Peephole::ArrayContainment {
                     path,
                     parameter,
@@ -270,7 +331,15 @@ impl<'compiler, 'params, 'query: 'params, R: PostgresRecord>
                         });
                     }
                 }
-                Some(Peephole::LatestOntologyVersion { .. }) | None => {
+                Some(Peephole::ColumnTuple(halves)) if group == FilterGroup::Any => {
+                    ColumnTupleGroup::bundle(
+                        self.compiler,
+                        halves,
+                        &mut tuple_bundles,
+                        &mut expressions,
+                    );
+                }
+                Some(Peephole::LatestOntologyVersion { .. } | Peephole::ColumnTuple(_)) | None => {
                     expressions.push(self.compiler.compile_filter(filter)?);
                 }
             }
@@ -283,6 +352,10 @@ impl<'compiler, 'params, 'query: 'params, R: PostgresRecord>
                 bundle.operator,
                 group,
             ));
+        }
+
+        for (index, bundle) in tuple_bundles.into_iter().enumerate() {
+            expressions.push(bundle.compile(self.compiler, index));
         }
 
         Ok(expressions)
