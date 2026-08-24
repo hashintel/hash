@@ -1,8 +1,8 @@
 /**
- * One place's section of the ad-hoc form: a header carrying the place name, a
- * bare TOKENS subtitle, and an icon-only Add-variable button; the per-place
- * Variables block (hidden while empty); and the token spreadsheet (coloured
- * places) or a single count slot (uncoloured places).
+ * One place's section of the ad-hoc form: a header carrying the place name
+ * and an icon-only Add-variable button; the per-place Variables block (hidden
+ * while empty); and the token spreadsheet (coloured places). An uncoloured
+ * place is one line: its name and its count slot.
  */
 
 import { Button } from "@hashintel/ds-components";
@@ -30,7 +30,7 @@ const blockStyle = css({
 
 const headerStyle = css({
   display: "flex",
-  alignItems: "baseline",
+  alignItems: "center",
   gap: "2",
 });
 
@@ -40,23 +40,23 @@ const placeNameStyle = css({
   color: "neutral.s120",
 });
 
-const subtitleStyle = css({
-  fontSize: "[10px]",
-  fontWeight: "medium",
-  letterSpacing: "[0.06em]",
-  color: "neutral.s70",
-});
-
 const headerSpacerStyle = css({
   flex: "1",
 });
 
-const countRowStyle = css({
+const inlineCountStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "2",
+  gap: "1",
+  fontFamily: "mono",
   fontSize: "xs",
-  color: "neutral.s100",
+  color: "neutral.s80",
+});
+
+const inlineCountEditorStyle = css({
+  minWidth: "[64px]",
+  width: "auto",
+  borderRadius: "xs",
 });
 
 /** A fresh variable name no sibling already uses. */
@@ -91,7 +91,6 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   <div className={blockStyle}>
     <div className={headerStyle}>
       <span className={placeNameStyle}>{place.name}</span>
-      <span className={subtitleStyle}>TOKENS</span>
       <span className={headerSpacerStyle} />
       <Button
         size="xs"
@@ -156,12 +155,9 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
 }) => {
   const target = { kind: "count" as const, placeId: place.id, row: null };
   return (
-    <div className={blockStyle}>
-      <div className={headerStyle}>
-        <span className={placeNameStyle}>{place.name}</span>
-        <span className={subtitleStyle}>TOKENS</span>
-      </div>
-      <div className={countRowStyle}>
+    <div className={headerStyle}>
+      <span className={placeNameStyle}>{place.name}</span>
+      <div className={inlineCountStyle}>
         <span>×</span>
         <ValueEditor
           value={state.count}
@@ -170,6 +166,7 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
           optimizable={optimizable}
           integer
           withStep={false}
+          className={inlineCountEditorStyle}
           onChange={(count) => onChange({ ...state, count })}
         />
       </div>

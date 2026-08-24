@@ -1,20 +1,20 @@
 /**
- * The editor every value slot opens: a small popover anchored on the slot
- * whose header names the slot in the attribution notation (`Space › x`), a
- * Monaco single-line expression editor type-checked through the form's LSP
- * session, and — where optimization is available — an Optimize toggle
- * bottom-right behind a thin border. Turning Optimize on replaces the
- * expression editor with Min/Max/Scale (and Step where definable) in the same
- * slot; the core transition retains bounds and expression alike, so toggling
- * destroys nothing.
+ * The editor every value slot opens, in place: the trigger is the cell, and
+ * opening replaces it with a Monaco single-line editor at exactly the cell's
+ * position — no chrome, no padding. The slot's attribution path (`Space ›
+ * item 0 › x`) floats quietly above the cell; the Optimize control floats
+ * below it, and turning Optimize on replaces the expression editor with
+ * Min/Max/Scale (Step where definable) in the same slot. Toggling destroys
+ * nothing: the core transition retains bounds and expression alike.
  *
  * A closed slot still shows its problems: the trigger underlines in red and
  * carries the first synthesis error or LSP diagnostic as its tooltip.
  */
 
-import { use, useRef, useState } from "react";
+import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
-import { Popover, Select, TextInput, Toggle } from "@hashintel/ds-components";
+import { Select, TextInput } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   AD_HOC_DEFAULT_COUNT_OPTIMIZE,
@@ -24,33 +24,44 @@ import {
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { AdHocFormContext } from "./form-context";
+import { OptimizeToggle } from "./optimize-toggle";
 
 import type { AdHocValue, AdHocValueTarget } from "@hashintel/petrinaut-core";
 
 const triggerStyle = css({
-  display: "inline-flex",
+  display: "flex",
   alignItems: "center",
-  gap: "1",
-  maxWidth: "[100%]",
-  minWidth: "[24px]",
-  paddingX: "1",
-  paddingY: "0.5",
-  borderRadius: "xs",
+  width: "[100%]",
+  height: "[100%]",
+  minHeight: "[28px]",
+  border: "none",
+  padding: "[4px 8px]",
   fontFamily: "mono",
   fontSize: "xs",
   color: "neutral.s110",
+  backgroundColor: "[transparent]",
   cursor: "pointer",
   textAlign: "left",
   overflow: "hidden",
   whiteSpace: "nowrap",
   textOverflow: "ellipsis",
-  _hover: { backgroundColor: "neutral.s20" },
+  _hover: { backgroundColor: "neutral.s10" },
+  _focusVisible: {
+    outline: "[2px solid {colors.blue.s50}]",
+    outlineOffset: "[-2px]",
+  },
+});
+
+const triggerTextStyle = css({
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
 });
 
 const optimizedTriggerStyle = css({
-  backgroundColor: "purple.s20",
+  backgroundColor: "purple.s10",
   color: "purple.s110",
-  _hover: { backgroundColor: "purple.s30" },
+  _hover: { backgroundColor: "purple.s20" },
 });
 
 const derivedTriggerStyle = css({
@@ -62,82 +73,106 @@ const placeholderTriggerStyle = css({
 });
 
 const errorTriggerStyle = css({
-  textDecorationLine: "underline",
-  textDecorationStyle: "wavy",
-  textDecorationColor: "red.s90",
-  textUnderlineOffset: "[3px]",
+  "& > span": {
+    textDecorationLine: "underline",
+    textDecorationStyle: "wavy",
+    textDecorationColor: "red.s90",
+    textUnderlineOffset: "[3px]",
+  },
 });
 
-const popoverHeaderStyle = css({
-  paddingX: "2",
-  paddingTop: "2",
-  fontSize: "[10px]",
-  fontWeight: "medium",
-  letterSpacing: "[0.02em]",
-  color: "neutral.s80",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
-  textOverflow: "ellipsis",
+// The open editor sits exactly over the cell; the path floats above it and
+// the Optimize control below, both quieter than the content.
+const overlayStyle = css({
+  position: "fixed",
+  zIndex: "[1000]",
 });
 
-const editorBodyStyle = css({
+const overlayBodyStyle = css({
+  backgroundColor: "neutral.s00",
+  boxShadow: "[0 0 0 2px {colors.blue.s50}, 0 4px 12px -4px rgba(0,0,0,0.15)]",
+  borderRadius: "xs",
   display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  width: "[280px]",
-  padding: "2",
 });
 
-const boundsGridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: "2",
+const pathLabelStyle = css({
+  position: "absolute",
+  bottom: "[100%]",
+  left: "[0]",
+  marginBottom: "[2px]",
+  paddingX: "1",
+  paddingY: "[1px]",
+  borderRadius: "xs",
+  backgroundColor: "neutral.s15",
+  fontSize: "[9px]",
+  fontFamily: "mono",
+  color: "neutral.s80",
+  whiteSpace: "nowrap",
+  pointerEvents: "none",
+});
+
+const belowStripStyle = css({
+  position: "absolute",
+  top: "[100%]",
+  left: "[0]",
+  marginTop: "[3px]",
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+});
+
+const boundsRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  padding: "[2px]",
+  width: "[100%]",
 });
 
 const boundFieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[2px]",
-  minWidth: "[0]",
+  flex: "1",
+  minWidth: "[56px]",
 });
 
-const boundLabelStyle = css({
-  fontSize: "[10px]",
-  color: "neutral.s80",
+const scaleFieldStyle = css({
+  flex: "[0 0 84px]",
 });
 
 const fieldErrorStyle = css({
+  position: "absolute",
+  top: "[100%]",
+  right: "[0]",
+  marginTop: "[3px]",
+  maxWidth: "[100%]",
   fontSize: "[10px]",
   color: "red.s100",
+  backgroundColor: "neutral.s00",
+  paddingX: "1",
 });
 
-// The editor's own container carries `flex: 1` for row layouts; hosting it in
-// a row keeps that meaning width, not a zeroed flex-basis height.
+const booleanNoteStyle = css({
+  display: "flex",
+  alignItems: "center",
+  height: "[28px]",
+  paddingX: "2",
+  fontSize: "[10px]",
+  color: "purple.s110",
+  whiteSpace: "nowrap",
+});
+
 const expressionRowStyle = css({
   display: "flex",
-});
-
-const optimizeRowStyle = css({
-  display: "flex",
-  justifyContent: "flex-end",
-  alignItems: "center",
-  gap: "2",
-  paddingTop: "2",
-  borderTopWidth: "[1px]",
-  borderTopStyle: "solid",
-  borderTopColor: "neutral.bd.subtle",
-  fontSize: "xs",
-  color: "neutral.s100",
+  width: "[100%]",
 });
 
 export interface ValueEditorProps {
   value: AdHocValue;
   onChange: (value: AdHocValue) => void;
-  /** The slot's attribution path, used as the accessible name and popover title. */
+  /** The slot's attribution path, used as the accessible name and floating label. */
   label: string;
   /** The slot's location, joining it to LSP diagnostics and synthesis errors. */
   target: AdHocValueTarget;
-  /** Whether the Optimize toggle exists at all. */
+  /** Whether the Optimize control exists at all. */
   optimizable: boolean;
   /** Integer slots validate integer bounds. */
   integer?: boolean;
@@ -162,7 +197,14 @@ export interface ValueEditorProps {
    */
   autoOpen?: number;
   onOpenDerived?: () => void;
+  /** Registers the trigger for the owning table's keyboard navigation. */
+  triggerRef?: (element: HTMLButtonElement | null) => void;
+  /** Keyboard navigation hook; Enter/open behaviour stays internal. */
+  onTriggerKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
 }
+
+/** The minimum open-editor width; narrow cells grow to stay usable. */
+const MIN_OVERLAY_WIDTH = 220;
 
 export const ValueEditor: React.FC<ValueEditorProps> = ({
   value,
@@ -179,10 +221,19 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   placeholder = "0",
   autoOpen = 0,
   onOpenDerived,
+  triggerRef,
+  onTriggerKeyDown,
 }) => {
   const { errorFor, uriFor } = use(AdHocFormContext);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(autoOpen > 0);
+  const [rect, setRect] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   // Render-adjusted state: a fresh auto-open nonce opens the editor without
   // an effect (materialized phantom rows, derived-cell click-through).
@@ -193,6 +244,62 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       setOpen(true);
     }
   }
+
+  const measure = () => {
+    const element = buttonRef.current;
+    if (!element) {
+      return;
+    }
+    const bounds = element.getBoundingClientRect();
+    setRect({
+      top: bounds.top,
+      left: bounds.left,
+      width: bounds.width,
+      height: bounds.height,
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (open) {
+      measure();
+    }
+  }, [open]);
+
+  // The overlay tracks the cell through scrolling and resizes, and closes on
+  // any pointer press outside itself.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onScrollOrResize = () => measure();
+    const onPointerDown = (event: PointerEvent) => {
+      const overlay = overlayRef.current;
+      if (overlay && event.target instanceof Node) {
+        if (
+          !overlay.contains(event.target) &&
+          !buttonRef.current?.contains(event.target)
+        ) {
+          setOpen(false);
+        }
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [open]);
 
   const optimized = optimizable && value.optimize !== null;
   const isEmpty = !display && !optimized && value.expression.trim() === "";
@@ -210,37 +317,33 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       errorFor({ target, part: "max" }) ??
       errorFor({ target, part: "step" }))
     : errorFor(expressionSlot);
-  // Errors stay off the trigger while the editor is open — Monaco marks them
-  // inline and the bound fields show their own.
   const showTriggerError = error !== undefined && !open;
 
   const boundField = (
-    part: "min" | "max" | "step",
     fieldLabel: string,
     fieldValue: string,
     setBound: (next: string) => void,
-  ) => {
-    const boundError = errorFor({ target, part });
-    return (
-      <div className={boundFieldStyle}>
-        <span className={boundLabelStyle}>{fieldLabel}</span>
-        <TextInput
-          size="sm"
-          aria-label={`${fieldLabel} of ${label}`}
-          value={fieldValue}
-          onChange={setBound}
-        />
-        {boundError ? (
-          <span className={fieldErrorStyle}>{boundError}</span>
-        ) : null}
-      </div>
-    );
-  };
+  ) => (
+    <div className={boundFieldStyle}>
+      <TextInput
+        size="sm"
+        aria-label={`${fieldLabel} of ${label}`}
+        placeholder={fieldLabel}
+        value={fieldValue}
+        onChange={setBound}
+      />
+    </div>
+  );
+
+  const boundsError = optimized ? error : undefined;
 
   return (
     <>
       <button
-        ref={triggerRef}
+        ref={(element) => {
+          buttonRef.current = element;
+          triggerRef?.(element);
+        }}
         type="button"
         aria-label={label}
         title={showTriggerError ? error : undefined}
@@ -260,39 +363,54 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           }
           setOpen(true);
         }}
+        onKeyDown={onTriggerKeyDown}
       >
-        {derived ? `⌃ ${text}` : text}
+        <span className={triggerTextStyle}>{derived ? `⌃ ${text}` : text}</span>
       </button>
-      {open ? (
-        <Popover
-          triggerRef={triggerRef}
-          position="bottom-start"
-          onClose={() => setOpen(false)}
-        >
-          <Popover.Container>
-            <Popover.Body withPadding={false}>
-              <div className={popoverHeaderStyle}>{label}</div>
-              <div className={editorBodyStyle}>
+      {open && rect
+        ? createPortal(
+            <div
+              ref={overlayRef}
+              className={overlayStyle}
+              style={{
+                top: rect.top,
+                left: rect.left,
+                width: Math.max(rect.width, MIN_OVERLAY_WIDTH),
+                minHeight: rect.height,
+              }}
+            >
+              <div className={pathLabelStyle}>{label}</div>
+              <div className={overlayBodyStyle}>
                 {optimized && booleanDomain ? (
-                  <div className={boundLabelStyle}>
+                  <div className={booleanNoteStyle}>
                     The optimizer tries true and false.
                   </div>
                 ) : optimized ? (
-                  <div className={boundsGridStyle}>
-                    {boundField("min", "Min", value.optimize!.min, (min) =>
+                  <div className={boundsRowStyle}>
+                    {boundField("Min", value.optimize!.min, (min) =>
                       onChange({
                         ...value,
                         optimize: { ...value.optimize!, min },
                       }),
                     )}
-                    {boundField("max", "Max", value.optimize!.max, (max) =>
+                    {boundField("Max", value.optimize!.max, (max) =>
                       onChange({
                         ...value,
                         optimize: { ...value.optimize!, max },
                       }),
                     )}
-                    <div className={boundFieldStyle}>
-                      <span className={boundLabelStyle}>Scale</span>
+                    {integer && withStep
+                      ? boundField(
+                          "Step",
+                          value.optimize!.step ?? "1",
+                          (step) =>
+                            onChange({
+                              ...value,
+                              optimize: { ...value.optimize!, step },
+                            }),
+                        )
+                      : null}
+                    <div className={scaleFieldStyle}>
                       <Select
                         size="sm"
                         aria-label={`Scale of ${label}`}
@@ -312,18 +430,6 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                         ]}
                       />
                     </div>
-                    {integer && withStep
-                      ? boundField(
-                          "step",
-                          "Step",
-                          value.optimize!.step ?? "1",
-                          (step) =>
-                            onChange({
-                              ...value,
-                              optimize: { ...value.optimize!, step },
-                            }),
-                        )
-                      : null}
                   </div>
                 ) : (
                   <div className={expressionRowStyle}>
@@ -336,36 +442,40 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                       onChange={(expression) =>
                         onChange({ ...value, expression: expression ?? "" })
                       }
-                      onSubmit={() => setOpen(false)}
+                      onSubmit={() => {
+                        setOpen(false);
+                        buttonRef.current?.focus();
+                      }}
                     />
                   </div>
                 )}
-                {optimizable ? (
-                  <div className={optimizeRowStyle}>
-                    <span>Optimize</span>
-                    <Toggle
-                      size="xs"
-                      aria-label={`Optimize ${label}`}
-                      value={value.optimize !== null}
-                      onChange={(on) =>
-                        onChange(
-                          toggleAdHocOptimize(
-                            value,
-                            on,
-                            integer && !withStep
-                              ? AD_HOC_DEFAULT_COUNT_OPTIMIZE
-                              : AD_HOC_DEFAULT_OPTIMIZE,
-                          ),
-                        )
-                      }
-                    />
-                  </div>
-                ) : null}
               </div>
-            </Popover.Body>
-          </Popover.Container>
-        </Popover>
-      ) : null}
+              {optimizable ? (
+                <div className={belowStripStyle}>
+                  <OptimizeToggle
+                    label={`Optimize ${label}`}
+                    value={value.optimize !== null}
+                    onChange={(on) =>
+                      onChange(
+                        toggleAdHocOptimize(
+                          value,
+                          on,
+                          integer && !withStep
+                            ? AD_HOC_DEFAULT_COUNT_OPTIMIZE
+                            : AD_HOC_DEFAULT_OPTIMIZE,
+                        ),
+                      )
+                    }
+                  />
+                </div>
+              ) : null}
+              {boundsError ? (
+                <div className={fieldErrorStyle}>{boundsError}</div>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 };

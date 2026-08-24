@@ -140,15 +140,13 @@ describe("AdHocScenarioForm", () => {
     expect(place.rows).toHaveLength(1);
     expect(place.rows[0]?.kind).toBe("fixed");
     // The gutter shows the row's ordinal, and a fresh phantom row follows.
-    expect(
-      screen.getByRole("button", { name: "Cycle kind of row 1" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Row 1 kind" })).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Add a token row (pressure)" }),
     ).toBeTruthy();
   });
 
-  it("cycles a row's kind from the gutter: fixed → dynamic → optimized → fixed", () => {
+  it("selects a row's kind from the gutter menu", async () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
@@ -162,10 +160,10 @@ describe("AdHocScenarioForm", () => {
       screen.getByRole("button", { name: "Add a token row (pressure)" }),
     );
 
-    const gutter = () =>
-      screen.getByRole("button", { name: "Cycle kind of row 1" });
-
-    fireEvent.click(gutter());
+    fireEvent.click(screen.getByRole("button", { name: "Row 1 kind" }));
+    fireEvent.click(
+      await screen.findByRole("menuitemradio", { name: "Dynamic count" }),
+    );
     let place = colouredPlace(latest);
     expect(place.rows[0]?.kind).toBe("template");
     // The dynamic row carries the quiet count strip with its count slot.
@@ -173,7 +171,10 @@ describe("AdHocScenarioForm", () => {
       screen.getByRole("button", { name: "Pumps › item 0 › count" }),
     ).toBeTruthy();
 
-    fireEvent.click(gutter());
+    fireEvent.click(screen.getByRole("button", { name: "Row 1 kind" }));
+    fireEvent.click(
+      await screen.findByRole("menuitemradio", { name: "Optimized count" }),
+    );
     place = colouredPlace(latest);
     const row = place.rows[0];
     if (row?.kind !== "template") {
@@ -185,9 +186,36 @@ describe("AdHocScenarioForm", () => {
       scale: "linear",
     });
 
-    fireEvent.click(gutter());
+    fireEvent.click(screen.getByRole("button", { name: "Row 1 kind" }));
+    fireEvent.click(
+      await screen.findByRole("menuitemradio", { name: "Fixed row" }),
+    );
     place = colouredPlace(latest);
     expect(place.rows[0]?.kind).toBe("fixed");
+  });
+
+  it("hides the optimized kind and moves focus with arrow keys", async () => {
+    render(<Harness optimizable={false} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+
+    // Without Optimize, the menu offers no optimized-count kind.
+    fireEvent.click(screen.getByRole("button", { name: "Row 1 kind" }));
+    await screen.findByRole("menuitemradio", { name: "Dynamic count" });
+    expect(
+      screen.queryByRole("menuitemradio", { name: "Optimized count" }),
+    ).toBeNull();
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    const first = screen.getByRole("button", {
+      name: "Pumps › item 0 › pressure",
+    });
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowRight" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Pumps › item 0 › worn",
+    );
   });
 
   it("shares a column, seeding from the first row, and un-shares it back", () => {

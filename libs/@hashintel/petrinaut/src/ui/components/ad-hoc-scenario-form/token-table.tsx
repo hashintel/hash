@@ -1,90 +1,52 @@
 /**
- * The token spreadsheet under a coloured place: one column per colour
- * element, one row per token row. The row gutter cycles the row's kind —
- * Fixed (`#n`) → Dynamic (`i`, blue) → count-Optimized (`i`, purple) → Fixed —
- * and dynamic rows carry a quiet strip above their cells showing `×` and the
- * count (or its bounds). Column headers toggle shared values: sharing paints
- * the column with a subtle wash under the row tints, puts one value slot
- * directly below the header, and renders the cells beneath as dimmed derived
- * copies whose clicks edit the shared value. A phantom trailing row
- * materializes into a fixed row on click, and the place's token total sits at
- * the bottom — a number when it resolves, the expression otherwise.
+ * The token spreadsheet under a coloured place, in the same visual grammar as
+ * the token spreadsheet elsewhere in the editor: a bordered table with 28px
+ * rows, hairline cell delimitations, and a gutter column. The gutter opens a
+ * row-kind menu — Fixed (`#n`) / Dynamic count (`i`, blue) / Optimized count
+ * (`i`, purple) — and dynamic rows carry a quiet strip above their cells
+ * showing `×` and the count (or its bounds). Column headers toggle shared
+ * values: sharing paints the column with a subtle wash under the row tints,
+ * puts one value slot directly below the header, and renders the cells
+ * beneath as dimmed derived copies whose clicks edit the shared value. A
+ * phantom trailing row materializes into a fixed row on click, and the
+ * place's token total sits at the bottom.
+ *
+ * Cells navigate by keyboard: arrows and Tab move between cells, Enter opens
+ * the focused cell's editor, Escape closes it.
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { Button, Tooltip } from "@hashintel/ds-components";
+import { Button, Popover, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
+  adHocRowKindOf,
   adHocTargetLabel,
-  cycleAdHocRowKind,
   resolveAdHocPlaceTotal,
+  setAdHocRowKind,
   shareAdHocColumn,
   unshareAdHocColumn,
+  type AdHocColouredPlace,
+  type AdHocRow,
+  type AdHocRowKind,
+  type AdHocScenarioState,
+  type AdHocSynthesisContext,
+  type Color,
+  type Place,
 } from "@hashintel/petrinaut-core";
 
+import {
+  actionCellStyle,
+  cellStyle,
+  columnHeaderStyle,
+  footerRowStyle,
+  gutterCellStyle,
+  gutterHeaderStyle,
+  tableContainerStyle,
+  tableStyle,
+} from "./form-table";
 import { defaultCellsFor, updateCell, updateRow } from "./state";
 import { ValueEditor } from "./value-editor";
-
-import type {
-  AdHocColouredPlace,
-  AdHocRow,
-  AdHocScenarioState,
-  AdHocSynthesisContext,
-  Color,
-  Place,
-} from "@hashintel/petrinaut-core";
-
-const GUTTER_WIDTH = "36px";
-const REMOVE_WIDTH = "28px";
-
-const tableStyle = css({
-  display: "grid",
-  alignItems: "stretch",
-  borderTopWidth: "[1px]",
-  borderTopStyle: "solid",
-  borderTopColor: "neutral.bd.subtle",
-});
-
-const headerCellStyle = css({
-  display: "flex",
-  alignItems: "flex-end",
-  minWidth: "[0]",
-  paddingX: "1",
-  paddingY: "1",
-  borderBottomWidth: "[1px]",
-  borderBottomStyle: "solid",
-  borderBottomColor: "neutral.bd.subtle",
-});
-
-const headerButtonStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  maxWidth: "[100%]",
-  border: "[none]",
-  background: "[transparent]",
-  padding: "[0]",
-  // The Tooltip wrapper zeroes line-height; restore the text's box.
-  lineHeight: "[1.3]",
-  minHeight: "[16px]",
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s100",
-  cursor: "pointer",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
-  textOverflow: "ellipsis",
-  _hover: { color: "neutral.s120" },
-});
-
-const cellStyle = css({
-  display: "flex",
-  alignItems: "center",
-  minWidth: "[0]",
-  minHeight: "[30px]",
-  paddingX: "0.5",
-});
 
 // A background image, not a solid color, so it composites over row tints.
 const sharedWashStyle = css({
@@ -100,22 +62,47 @@ const optimizedRowStyle = css({
   backgroundColor: "purple.s10",
 });
 
-const gutterStyle = css({
+const headerButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  width: "[100%]",
+  height: "[24px]",
+  border: "none",
+  background: "[transparent]",
+  paddingX: "2",
+  fontFamily: "mono",
+  fontSize: "xs",
+  fontWeight: "medium",
+  color: "neutral.s100",
+  cursor: "pointer",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
+  _hover: { color: "neutral.s120", backgroundColor: "neutral.s20" },
+  _focusVisible: {
+    outline: "[2px solid {colors.blue.s50}]",
+    outlineOffset: "[-2px]",
+  },
+});
+
+const gutterButtonStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  minHeight: "[30px]",
-  border: "[none]",
+  width: "[100%]",
+  height: "[28px]",
+  border: "none",
   background: "[transparent]",
   padding: "[0]",
   fontFamily: "mono",
   fontSize: "[10px]",
   color: "neutral.s80",
-});
-
-const gutterButtonStyle = css({
   cursor: "pointer",
   _hover: { color: "neutral.s120", backgroundColor: "neutral.s20" },
+  _focusVisible: {
+    outline: "[2px solid {colors.blue.s50}]",
+    outlineOffset: "[-2px]",
+  },
 });
 
 const dynamicGutterTextStyle = css({
@@ -128,13 +115,17 @@ const optimizedGutterTextStyle = css({
   fontStyle: "italic",
 });
 
-const stripStyle = css({
-  gridColumn: "[2 / -2]",
+const stripCellStyle = css({
+  borderBottom: "none",
+  padding: "[0 8px]",
+  height: "[18px]",
+});
+
+const stripInnerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
   minWidth: "[0]",
-  paddingX: "1",
   fontFamily: "mono",
   fontSize: "[10px]",
 });
@@ -144,57 +135,68 @@ const stripMarkStyle = css({
 });
 
 const stripEditorStyle = css({
+  minHeight: "[16px]",
+  height: "[16px]",
+  paddingY: "[0]",
   fontSize: "[10px]",
-  paddingY: "[1px]",
   color: "blue.s110",
+  width: "auto",
 });
 
 const stripEditorOptimizedStyle = css({
   color: "purple.s110",
+  backgroundColor: "[transparent]",
 });
 
-const removeCellStyle = css({
+const phantomCellButtonStyle = css({
   display: "flex",
   alignItems: "center",
-  justifyContent: "center",
-  minHeight: "[30px]",
-});
-
-const phantomGutterStyle = css({
-  opacity: "[0.45]",
-});
-
-const phantomCellStyle = css({
-  display: "flex",
-  alignItems: "center",
-  minWidth: "[0]",
-  minHeight: "[30px]",
-  paddingX: "1",
-  border: "[none]",
+  width: "[100%]",
+  height: "[28px]",
+  border: "none",
   background: "[transparent]",
+  padding: "[4px 8px]",
   fontFamily: "mono",
   fontSize: "xs",
   color: "neutral.s60",
   cursor: "text",
   _hover: { backgroundColor: "neutral.s10" },
+  _focusVisible: {
+    outline: "[2px solid {colors.blue.s50}]",
+    outlineOffset: "[-2px]",
+  },
 });
 
-const totalStyle = css({
-  gridColumn: "[1 / -1]",
+const phantomGutterTextStyle = css({
+  opacity: "[0.45]",
+});
+
+const menuStyle = css({
   display: "flex",
-  justifyContent: "flex-end",
-  paddingX: "1",
+  flexDirection: "column",
+  minWidth: "[160px]",
   paddingY: "1",
-  borderTopWidth: "[1px]",
-  borderTopStyle: "solid",
-  borderTopColor: "neutral.bd.subtle",
-  fontFamily: "mono",
-  fontSize: "[10px]",
-  color: "neutral.s80",
 });
 
-const fullWidthEditorStyle = css({
-  width: "[100%]",
+const menuItemStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  border: "none",
+  background: "[transparent]",
+  paddingX: "2.5",
+  paddingY: "1",
+  fontSize: "xs",
+  color: "neutral.s110",
+  cursor: "pointer",
+  textAlign: "left",
+  _hover: { backgroundColor: "neutral.s15" },
+});
+
+const menuMarkStyle = css({
+  width: "[14px]",
+  fontFamily: "mono",
+  color: "neutral.s80",
 });
 
 export interface TokenTableProps {
@@ -218,7 +220,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   context,
 }) => {
   const elements = colour.elements;
-  // Nonces, so a repeat click re-triggers the editor's auto-open effect.
+  const columnCount = elements.length;
+  // Nonces, so a repeat click re-triggers the editor's auto-open behaviour.
   const [materializedCell, setMaterializedCell] = useState<{
     row: number;
     column: number;
@@ -228,11 +231,54 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     field: string;
     nonce: number;
   } | null>(null);
+  const [kindMenu, setKindMenuState] = useState<{
+    row: number;
+    anchor: HTMLButtonElement;
+  } | null>(null);
+  const cellRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const hasSharedColumns = Object.keys(state.sharedColumns).length > 0;
   const total = resolveAdHocPlaceTotal(formState, context, place.id);
+  // The phantom row participates in keyboard navigation as the last row.
+  const navigableRowCount = state.rows.length + 1;
 
-  const gridTemplateColumns = `${GUTTER_WIDTH} repeat(${elements.length}, minmax(0, 1fr)) ${REMOVE_WIDTH}`;
+  const focusCell = (row: number, column: number) => {
+    cellRefs.current.get(`${row}-${column}`)?.focus();
+  };
+
+  const handleCellKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    row: number,
+    column: number,
+  ) => {
+    const move = (nextRow: number, nextColumn: number) => {
+      event.preventDefault();
+      event.stopPropagation();
+      focusCell(nextRow, nextColumn);
+    };
+    if (event.key === "ArrowRight" && column < columnCount - 1) {
+      move(row, column + 1);
+    } else if (event.key === "ArrowLeft" && column > 0) {
+      move(row, column - 1);
+    } else if (event.key === "ArrowDown" && row < navigableRowCount - 1) {
+      move(row + 1, column);
+    } else if (event.key === "ArrowUp" && row > 0) {
+      move(row - 1, column);
+    } else if (event.key === "Tab") {
+      if (event.shiftKey) {
+        if (column > 0) {
+          move(row, column - 1);
+        } else if (row > 0) {
+          move(row - 1, columnCount - 1);
+        }
+      } else if (column < columnCount - 1) {
+        move(row, column + 1);
+      } else if (row < navigableRowCount - 1) {
+        move(row + 1, 0);
+      }
+    }
+    // Enter falls through: the cell's own click/open handling owns it.
+  };
 
   const openSharedEditor = (field: string) => {
     setSharedAutoOpen((previous) => ({
@@ -264,11 +310,68 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     }));
   };
 
-  const renderRow = (row: AdHocRow, rowIndex: number) => {
+  const setRowKind = (rowIndex: number, kind: AdHocRowKind) => {
+    onChange(
+      updateRow(state, rowIndex, (current) => setAdHocRowKind(current, kind)),
+    );
+    const anchor = kindMenu?.anchor;
+    setKindMenuState(null);
+    anchor?.focus();
+  };
+
+  const renderKindMenu = (
+    rowIndex: number,
+    row: AdHocRow,
+    anchor: HTMLButtonElement,
+  ) => {
+    const current = adHocRowKindOf(row);
+    const options: { kind: AdHocRowKind; label: string }[] = [
+      { kind: "fixed", label: "Fixed row" },
+      { kind: "dynamic", label: "Dynamic count" },
+      ...(optimizable
+        ? [{ kind: "optimized" as const, label: "Optimized count" }]
+        : []),
+    ];
+    return (
+      <Popover
+        triggerRef={{ current: anchor }}
+        position="bottom-start"
+        onClose={() => setKindMenuState(null)}
+      >
+        <Popover.Container>
+          <Popover.Body withPadding={false}>
+            <div className={menuStyle} role="menu">
+              {options.map((option) => (
+                <button
+                  key={option.kind}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={current === option.kind}
+                  className={menuItemStyle}
+                  onClick={() => setRowKind(rowIndex, option.kind)}
+                >
+                  <span className={menuMarkStyle}>
+                    {current === option.kind ? "✓" : ""}
+                  </span>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </Popover.Body>
+        </Popover.Container>
+      </Popover>
+    );
+  };
+
+  const renderDataRow = (row: AdHocRow, rowIndex: number) => {
+    const kind = adHocRowKindOf(row);
     const isDynamic = row.kind === "template";
-    const countOptimized = isDynamic && row.count.optimize !== null;
     const tint =
-      isDynamic && (countOptimized ? optimizedRowStyle : dynamicRowStyle);
+      kind === "optimized"
+        ? optimizedRowStyle
+        : kind === "dynamic"
+          ? dynamicRowStyle
+          : false;
     const countTarget = {
       kind: "count" as const,
       placeId: place.id,
@@ -276,258 +379,308 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     };
 
     return (
-      <>
+      <tbody key={rowIndex}>
         {isDynamic ? (
-          <>
-            <div className={cx(gutterStyle, tint)} />
-            <div className={cx(stripStyle, tint)}>
-              <span className={stripMarkStyle}>×</span>
-              <ValueEditor
-                value={row.count}
-                target={countTarget}
-                label={adHocTargetLabel(countTarget, formState, context)}
-                optimizable={optimizable}
-                integer
-                withStep={false}
-                placeholder="1"
-                className={cx(
-                  stripEditorStyle,
-                  countOptimized && stripEditorOptimizedStyle,
-                )}
-                onChange={(count) =>
-                  onChange(
-                    updateRow(state, rowIndex, (current) =>
-                      current.kind === "template"
-                        ? { ...current, count }
-                        : current,
-                    ),
-                  )
-                }
-              />
-            </div>
-            <div className={cx(removeCellStyle, tint)} />
-          </>
+          <tr>
+            <td className={cx(gutterCellStyle, stripCellStyle, tint)} />
+            <td
+              colSpan={columnCount}
+              className={cx(cellStyle, stripCellStyle, tint)}
+            >
+              <div className={stripInnerStyle}>
+                <span className={stripMarkStyle}>×</span>
+                <ValueEditor
+                  value={row.count}
+                  target={countTarget}
+                  label={adHocTargetLabel(countTarget, formState, context)}
+                  optimizable={optimizable}
+                  integer
+                  withStep={false}
+                  placeholder="1"
+                  className={cx(
+                    stripEditorStyle,
+                    kind === "optimized" && stripEditorOptimizedStyle,
+                  )}
+                  onChange={(count) =>
+                    onChange(
+                      updateRow(state, rowIndex, (current) =>
+                        current.kind === "template"
+                          ? { ...current, count }
+                          : current,
+                      ),
+                    )
+                  }
+                />
+              </div>
+            </td>
+            <td className={cx(actionCellStyle, stripCellStyle, tint)} />
+          </tr>
         ) : null}
-
-        <Tooltip
-          content={
-            isDynamic
-              ? `Row ${rowIndex + 1} — dynamic${countOptimized ? ", count optimized" : ""}. Click to cycle its kind.`
-              : `Row ${rowIndex + 1} — one token. Click to make it dynamic.`
-          }
-        >
-          <button
-            type="button"
-            className={cx(gutterStyle, gutterButtonStyle, tint)}
-            aria-label={`Cycle kind of row ${rowIndex + 1}`}
-            onClick={() =>
-              onChange(
-                updateRow(state, rowIndex, (current) =>
-                  cycleAdHocRowKind(current, optimizable),
-                ),
-              )
-            }
-          >
-            <span
-              className={cx(
-                isDynamic && !countOptimized && dynamicGutterTextStyle,
-                countOptimized && optimizedGutterTextStyle,
-              )}
-            >
-              {isDynamic ? "i" : `#${rowIndex + 1}`}
-            </span>
-          </button>
-        </Tooltip>
-        {elements.map((element, columnIndex) => {
-          const shared = state.sharedColumns[element.name];
-          const cell = row.cells[columnIndex] ?? {
-            expression: "",
-            optimize: null,
-          };
-          const target = {
-            kind: "cell" as const,
-            placeId: place.id,
-            row: rowIndex,
-            column: columnIndex,
-          };
-          const autoOpen =
-            materializedCell !== null &&
-            materializedCell.row === rowIndex &&
-            materializedCell.column === columnIndex
-              ? materializedCell.nonce
-              : 0;
-          return (
-            <div
-              key={element.elementId}
-              className={cx(cellStyle, tint, shared && sharedWashStyle)}
-            >
-              <ValueEditor
-                value={shared ?? cell}
-                target={target}
-                booleanDomain={element.type === "boolean"}
-                label={adHocTargetLabel(
-                  shared
-                    ? {
-                        kind: "column",
-                        placeId: place.id,
-                        column: columnIndex,
-                      }
-                    : target,
-                  formState,
-                  context,
-                )}
-                optimizable={optimizable}
-                integer={element.type === "integer"}
-                derived={Boolean(shared)}
-                autoOpen={autoOpen}
-                className={fullWidthEditorStyle}
-                onOpenDerived={() => openSharedEditor(element.name)}
-                onChange={(next) =>
-                  onChange(updateCell(state, rowIndex, columnIndex, () => next))
-                }
-              />
-            </div>
-          );
-        })}
-        <div className={cx(removeCellStyle, tint)}>
-          <Button
-            size="xs"
-            variant="ghost"
-            tone="neutral"
-            aria-label={`Remove row ${rowIndex + 1}`}
-            iconName="close"
-            onClick={() =>
-              onChange({
-                ...state,
-                rows: state.rows.filter((_, index) => index !== rowIndex),
-              })
-            }
-          />
-        </div>
-      </>
-    );
-  };
-
-  return (
-    <div className={tableStyle} style={{ gridTemplateColumns }}>
-      {/* Header row: share toggles. */}
-      <div className={headerCellStyle} />
-      {elements.map((element, columnIndex) => {
-        const shared = Boolean(state.sharedColumns[element.name]);
-        return (
-          <div
-            key={element.elementId}
-            className={cx(headerCellStyle, shared && sharedWashStyle)}
-          >
+        <tr>
+          <td className={cx(gutterCellStyle, tint)}>
             <Tooltip
               content={
-                shared
-                  ? "Shared value — click to release the column"
-                  : "Click to share one value across the column"
+                kind === "fixed"
+                  ? `Row ${rowIndex + 1} — one token. Choose the row's kind.`
+                  : `Row ${rowIndex + 1} — dynamic${kind === "optimized" ? ", count optimized" : ""}. Choose the row's kind.`
               }
             >
               <button
                 type="button"
-                className={headerButtonStyle}
-                aria-label={`Share column ${element.name}`}
-                aria-pressed={shared}
-                onClick={() =>
-                  onChange(
-                    shared
-                      ? unshareAdHocColumn(state, element.name)
-                      : shareAdHocColumn(state, element.name, columnIndex),
-                  )
+                className={gutterButtonStyle}
+                aria-label={`Row ${rowIndex + 1} kind`}
+                aria-haspopup="menu"
+                onClick={(event) =>
+                  setKindMenuState({
+                    row: rowIndex,
+                    anchor: event.currentTarget,
+                  })
                 }
               >
-                {element.name}
+                <span
+                  className={cx(
+                    kind === "dynamic" && dynamicGutterTextStyle,
+                    kind === "optimized" && optimizedGutterTextStyle,
+                  )}
+                >
+                  {isDynamic ? "i" : `#${rowIndex + 1}`}
+                </span>
               </button>
             </Tooltip>
-          </div>
-        );
-      })}
-      <div className={headerCellStyle} />
-
-      {/* Shared values row: one slot directly below each shared header. */}
-      {hasSharedColumns ? (
-        <>
-          <div className={cellStyle} />
+            {kindMenu?.row === rowIndex
+              ? renderKindMenu(rowIndex, row, kindMenu.anchor)
+              : null}
+          </td>
           {elements.map((element, columnIndex) => {
             const shared = state.sharedColumns[element.name];
-            if (!shared) {
-              return <div key={element.elementId} className={cellStyle} />;
-            }
+            const cell = row.cells[columnIndex] ?? {
+              expression: "",
+              optimize: null,
+            };
             const target = {
-              kind: "column" as const,
+              kind: "cell" as const,
               placeId: place.id,
+              row: rowIndex,
               column: columnIndex,
             };
+            const autoOpen =
+              materializedCell !== null &&
+              materializedCell.row === rowIndex &&
+              materializedCell.column === columnIndex
+                ? materializedCell.nonce
+                : 0;
             return (
-              <div
+              <td
                 key={element.elementId}
-                className={cx(cellStyle, sharedWashStyle)}
+                className={cx(cellStyle, tint, shared && sharedWashStyle)}
               >
                 <ValueEditor
-                  value={shared}
+                  value={shared ?? cell}
                   target={target}
-                  label={adHocTargetLabel(target, formState, context)}
+                  label={adHocTargetLabel(
+                    shared
+                      ? {
+                          kind: "column",
+                          placeId: place.id,
+                          column: columnIndex,
+                        }
+                      : target,
+                    formState,
+                    context,
+                  )}
                   optimizable={optimizable}
                   integer={element.type === "integer"}
                   booleanDomain={element.type === "boolean"}
-                  autoOpen={
-                    sharedAutoOpen?.field === element.name
-                      ? sharedAutoOpen.nonce
-                      : 0
+                  derived={Boolean(shared)}
+                  autoOpen={autoOpen}
+                  onOpenDerived={() => openSharedEditor(element.name)}
+                  triggerRef={(el) => {
+                    if (el) {
+                      cellRefs.current.set(`${rowIndex}-${columnIndex}`, el);
+                    } else {
+                      cellRefs.current.delete(`${rowIndex}-${columnIndex}`);
+                    }
+                  }}
+                  onTriggerKeyDown={(event) =>
+                    handleCellKeyDown(event, rowIndex, columnIndex)
                   }
-                  className={fullWidthEditorStyle}
                   onChange={(next) =>
-                    onChange({
-                      ...state,
-                      sharedColumns: {
-                        ...state.sharedColumns,
-                        [element.name]: next,
-                      },
-                    })
+                    onChange(
+                      updateCell(state, rowIndex, columnIndex, () => next),
+                    )
                   }
                 />
-              </div>
+              </td>
             );
           })}
-          <div className={cellStyle} />
-        </>
-      ) : null}
+          <td className={cx(actionCellStyle, tint)}>
+            <Button
+              size="xs"
+              variant="ghost"
+              tone="neutral"
+              aria-label={`Remove row ${rowIndex + 1}`}
+              iconName="close"
+              onClick={() =>
+                onChange({
+                  ...state,
+                  rows: state.rows.filter((_, index) => index !== rowIndex),
+                })
+              }
+            />
+          </td>
+        </tr>
+      </tbody>
+    );
+  };
 
-      {/* Token rows: identity is positional in the model. */}
-      {state.rows.map((row, rowIndex) => (
-        // eslint-disable-next-line react/no-array-index-key
-        <div key={rowIndex} style={{ display: "contents" }}>
-          {renderRow(row, rowIndex)}
-        </div>
-      ))}
+  return (
+    <div className={tableContainerStyle}>
+      <table className={tableStyle}>
+        <thead>
+          <tr>
+            <th aria-label="Row kind" className={gutterHeaderStyle} />
+            {elements.map((element, columnIndex) => {
+              const shared = Boolean(state.sharedColumns[element.name]);
+              return (
+                <th
+                  key={element.elementId}
+                  className={cx(columnHeaderStyle, shared && sharedWashStyle)}
+                >
+                  <Tooltip
+                    content={
+                      shared
+                        ? "Shared value — click to release the column"
+                        : "Click to share one value across the column"
+                    }
+                  >
+                    <button
+                      type="button"
+                      className={headerButtonStyle}
+                      aria-label={`Share column ${element.name}`}
+                      aria-pressed={shared}
+                      onClick={() =>
+                        onChange(
+                          shared
+                            ? unshareAdHocColumn(state, element.name)
+                            : shareAdHocColumn(
+                                state,
+                                element.name,
+                                columnIndex,
+                              ),
+                        )
+                      }
+                    >
+                      {element.name}
+                    </button>
+                  </Tooltip>
+                </th>
+              );
+            })}
+            <th aria-label="Row actions" className={gutterHeaderStyle} />
+          </tr>
+        </thead>
 
-      {/* Phantom trailing row: materializes on click. */}
-      <div className={cx(gutterStyle, phantomGutterStyle)}>
-        #{state.rows.length + 1}
-      </div>
-      {elements.map((element, columnIndex) => (
-        <button
-          key={element.elementId}
-          type="button"
-          className={cx(
-            phantomCellStyle,
-            state.sharedColumns[element.name] && sharedWashStyle,
-          )}
-          aria-label={`Add a token row (${element.name})`}
-          onClick={() => materializeRow(columnIndex)}
-        >
-          …
-        </button>
-      ))}
-      <div className={removeCellStyle} />
+        {/* Shared values: one slot directly below each shared header. */}
+        {hasSharedColumns ? (
+          <tbody>
+            <tr>
+              <td className={gutterCellStyle} />
+              {elements.map((element, columnIndex) => {
+                const shared = state.sharedColumns[element.name];
+                if (!shared) {
+                  return <td key={element.elementId} className={cellStyle} />;
+                }
+                const target = {
+                  kind: "column" as const,
+                  placeId: place.id,
+                  column: columnIndex,
+                };
+                return (
+                  <td
+                    key={element.elementId}
+                    className={cx(cellStyle, sharedWashStyle)}
+                  >
+                    <ValueEditor
+                      value={shared}
+                      target={target}
+                      label={adHocTargetLabel(target, formState, context)}
+                      optimizable={optimizable}
+                      integer={element.type === "integer"}
+                      booleanDomain={element.type === "boolean"}
+                      autoOpen={
+                        sharedAutoOpen?.field === element.name
+                          ? sharedAutoOpen.nonce
+                          : 0
+                      }
+                      onChange={(next) =>
+                        onChange({
+                          ...state,
+                          sharedColumns: {
+                            ...state.sharedColumns,
+                            [element.name]: next,
+                          },
+                        })
+                      }
+                    />
+                  </td>
+                );
+              })}
+              <td className={actionCellStyle} />
+            </tr>
+          </tbody>
+        ) : null}
 
-      {/* Place total. */}
-      <div className={totalStyle}>
-        {total.resolved ? `= ${total.total} tokens` : `= ${total.text} tokens`}
-      </div>
+        {state.rows.map((row, rowIndex) => renderDataRow(row, rowIndex))}
+
+        {/* Phantom trailing row: materializes on click. */}
+        <tbody>
+          <tr>
+            <td className={gutterCellStyle}>
+              <span className={phantomGutterTextStyle}>
+                #{state.rows.length + 1}
+              </span>
+            </td>
+            {elements.map((element, columnIndex) => (
+              <td
+                key={element.elementId}
+                className={cx(
+                  cellStyle,
+                  state.sharedColumns[element.name] && sharedWashStyle,
+                )}
+              >
+                <button
+                  ref={(el) => {
+                    const key = `${state.rows.length}-${columnIndex}`;
+                    if (el) {
+                      cellRefs.current.set(key, el);
+                    } else {
+                      cellRefs.current.delete(key);
+                    }
+                  }}
+                  type="button"
+                  className={phantomCellButtonStyle}
+                  aria-label={`Add a token row (${element.name})`}
+                  onClick={() => materializeRow(columnIndex)}
+                  onKeyDown={(event) =>
+                    handleCellKeyDown(event, state.rows.length, columnIndex)
+                  }
+                />
+              </td>
+            ))}
+            <td className={actionCellStyle} />
+          </tr>
+        </tbody>
+
+        <tfoot>
+          <tr>
+            <td colSpan={columnCount + 2} className={footerRowStyle}>
+              {total.resolved
+                ? `= ${total.total} tokens`
+                : `= ${total.text} tokens`}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 };
