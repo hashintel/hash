@@ -51,6 +51,7 @@ import {
   tableStyle,
 } from "./form-table";
 import { defaultCellsFor, updateCell, updateRow } from "./state";
+import { focusLands, useNavigationZone } from "./use-form-navigation";
 import { ValueEditor } from "./value-editor";
 
 // A background image, not a solid color, so it composites over row tints.
@@ -343,6 +344,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   const gutterRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
   const stripRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
   const sharedRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const headerRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
   // The column a vertical move started from, so passing through a full-width
   // stop (a count strip) returns to the same column.
   const lastColumnRef = useRef(0);
@@ -350,16 +352,26 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   const hasSharedColumns = Object.keys(state.sharedColumns).length > 0;
   const total = resolveAdHocPlaceTotal(formState, synthesisContext, place.id);
 
-  // Every keyboard-reachable line of the table, top to bottom: the shared
-  // values, then each row's count strip (dynamic rows) and cells, then the
-  // phantom row. Vertical arrows walk this list; horizontal arrows walk a
-  // line's own parts (gutter, cells).
+  // The table hands focus to the neighbouring form zone past its edges, and
+  // receives it at the column headers (top) or the phantom row (bottom).
+  const { attach: attachZone, exit: exitZone } = useNavigationZone((edge) =>
+    edge === "first"
+      ? focusLands(headerRefs.current.get(0))
+      : focusLands(cellRefs.current.get(`${state.rows.length}-0`)),
+  );
+
+  // Every keyboard-reachable line of the table, top to bottom: the column
+  // headers, the shared values, then each row's count strip (dynamic rows)
+  // and cells, then the phantom row. Vertical arrows walk this list;
+  // horizontal arrows walk a line's own parts (gutter, cells).
   type VerticalStop =
+    | { kind: "header" }
     | { kind: "shared" }
     | { kind: "strip"; row: number }
     | { kind: "cells"; row: number }
     | { kind: "phantom" };
   const verticalStops: VerticalStop[] = [
+    { kind: "header" },
     ...(hasSharedColumns ? [{ kind: "shared" } as const] : []),
     ...state.rows.flatMap<VerticalStop>((row, index) =>
       row.kind === "template"
@@ -382,6 +394,9 @@ export const TokenTable: React.FC<TokenTableProps> = ({
       return;
     }
     switch (stop.kind) {
+      case "header":
+        headerRefs.current.get(column)?.focus();
+        break;
       case "shared": {
         const sharedColumns = elements
           .map((element, columnIndex) =>
@@ -409,6 +424,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   };
 
   type GridPosition =
+    | { kind: "header"; column: number }
     | { kind: "cell"; row: number; column: number }
     | { kind: "phantom"; column: number }
     | { kind: "strip"; row: number }
@@ -422,6 +438,9 @@ export const TokenTable: React.FC<TokenTableProps> = ({
       }
       if (position.kind === "strip") {
         return stop.kind === "strip" && stop.row === position.row;
+      }
+      if (position.kind === "header") {
+        return stop.kind === "header";
       }
       return position.kind === "phantom"
         ? stop.kind === "phantom"
@@ -473,6 +492,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
         const nextRow = position.row + step;
         if (nextRow >= 0 && nextRow < state.rows.length) {
           handled(() => gutterRefs.current.get(nextRow)?.focus());
+        } else {
+          handled(() => exitZone(step === 1 ? "next" : "previous"));
         }
       } else if (event.key === "Delete" || event.key === "Backspace") {
         handled(() => deleteRow(position.row));
@@ -484,6 +505,19 @@ export const TokenTable: React.FC<TokenTableProps> = ({
       const nextIndex = stopIndex + (event.key === "ArrowDown" ? 1 : -1);
       if (nextIndex >= 0 && nextIndex < verticalStops.length) {
         handled(() => focusStop(nextIndex, column));
+      } else {
+        handled(() =>
+          exitZone(event.key === "ArrowDown" ? "next" : "previous"),
+        );
+      }
+      return;
+    }
+
+    if (position.kind === "header") {
+      if (event.key === "ArrowRight" && position.column < columnCount - 1) {
+        handled(() => headerRefs.current.get(position.column + 1)?.focus());
+      } else if (event.key === "ArrowLeft" && position.column > 0) {
+        handled(() => headerRefs.current.get(position.column - 1)?.focus());
       }
       return;
     }
@@ -791,7 +825,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   };
 
   return (
-    <div className={tableContainerStyle}>
+    <div ref={attachZone} className={tableContainerStyle}>
       <table className={tableStyle}>
         <thead>
           <tr>
@@ -811,10 +845,23 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                     }
                   >
                     <button
+                      ref={(el) => {
+                        if (el) {
+                          headerRefs.current.set(columnIndex, el);
+                        } else {
+                          headerRefs.current.delete(columnIndex);
+                        }
+                      }}
                       type="button"
                       className={headerButtonStyle}
                       aria-label={`Share column ${element.name}`}
                       aria-pressed={shared}
+                      onKeyDown={(event) =>
+                        handleGridKeyDown(event, {
+                          kind: "header",
+                          column: columnIndex,
+                        })
+                      }
                       onClick={() =>
                         onChange(
                           shared

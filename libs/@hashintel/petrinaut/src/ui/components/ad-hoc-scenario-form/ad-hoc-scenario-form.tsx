@@ -17,37 +17,37 @@
  * LSP diagnostic as their tooltip.
  *
  * The whole form is keyboard-editable: every table is an arrow-key grid with
- * a phantom trailing row, and Cmd/Ctrl+Z / Shift+Cmd/Ctrl+Z walk a
- * form-level undo history (open text fields keep their own).
+ * a phantom trailing row, grids and collapsible section/place headers chain
+ * into one vertical walk (the zone registry in `use-form-navigation`), and
+ * Cmd/Ctrl+Z / Shift+Cmd/Ctrl+Z walk a form-level undo history (open text
+ * fields keep their own). Focusing a value highlights the rows it reads and
+ * the cells that read it (`dependency-highlight`).
  */
 
-import { use } from "react";
+import { use, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import {
   adHocSlotKey,
   getAdHocDocumentUri,
   synthesizeAdHocOptimization,
-  toggleAdHocOptimize,
 } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../react/lsp/context";
 import { Section, SectionList } from "../section";
+import { computeAdHocHighlight } from "./dependency-highlight";
 import { AdHocFormContext } from "./form-context";
-import {
-  actionCellStyle,
-  cellStyle,
-  tableContainerStyle,
-  tableStyle,
-} from "./form-table";
-import { OptimizeToggle } from "./optimize-toggle";
+import { ParameterRows } from "./parameter-rows";
 import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
-import { emptyValue, newVariable, placeStateFor, updatePlace } from "./state";
+import { newVariable, placeStateFor, updatePlace } from "./state";
 import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
 import { useAdHocFormHistory } from "./use-form-history";
-import { useGridNavigation } from "./use-grid-navigation";
-import { ValueEditor } from "./value-editor";
+import {
+  FormNavigationContext,
+  useFormNavigationRegistry,
+  useNavigationHeader,
+} from "./use-form-navigation";
 import { VariableRows } from "./variable-rows";
 
 import type { AdHocFormServices } from "./form-context";
@@ -56,38 +56,8 @@ import type {
   AdHocScenarioState,
   AdHocSlot,
   AdHocSynthesisContext,
+  AdHocValueTarget,
 } from "@hashintel/petrinaut-core";
-
-const parameterNameCellStyle = css({
-  width: "[140px]",
-  display: "flex",
-  alignItems: "center",
-  height: "[28px]",
-  paddingX: "2",
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s110",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
-  textOverflow: "ellipsis",
-});
-
-const parameterTypeCellStyle = css({
-  width: "[96px]",
-  display: "flex",
-  alignItems: "center",
-  height: "[28px]",
-  paddingX: "2",
-  fontFamily: "mono",
-  fontSize: "xs",
-  color: "neutral.s80",
-});
-
-const parameterOptimizeCellStyle = css({
-  width: "[92px]",
-  paddingX: "1",
-  textAlign: "center",
-});
 
 const placesListStyle = css({
   display: "flex",
@@ -108,6 +78,36 @@ export interface AdHocScenarioFormProps {
   optimizable: boolean;
 }
 
+/**
+ * A Section that participates in the form's keyboard walk: its collapse
+ * trigger is a navigation stop, Left collapses, Right expands.
+ */
+const NavigableSection: React.FC<{
+  title: string;
+  tooltip: string;
+  children: React.ReactNode;
+}> = ({ title, tooltip, children }) => {
+  const [open, setOpen] = useState(true);
+  const header = useNavigationHeader({
+    collapse: () => setOpen(false),
+    expand: () => setOpen(true),
+  });
+  return (
+    <Section
+      title={title}
+      tooltip={tooltip}
+      collapsible
+      unmountOnCollapse
+      open={open}
+      onOpenChange={setOpen}
+      triggerRef={header.attach}
+      onTriggerKeyDown={header.onHeaderKeyDown}
+    >
+      {children}
+    </Section>
+  );
+};
+
 export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   state,
   onChange,
@@ -116,11 +116,21 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
 }) => {
   const sessionId = useAdHocLspSession(state);
   const { diagnosticsByUri } = use(LanguageClientContext);
-  const parametersGrid = useGridNavigation();
   // Every edit below routes through `change`, so Cmd/Ctrl+Z anywhere in the
   // form (open text fields excepted — those own their own undo) walks the
   // whole form's history.
   const { change, handleKeyDown } = useAdHocFormHistory(state, onChange);
+
+  // Zones (grids, section headers, place headers) register here; arrow moves
+  // past a zone's edge continue into the next one in document order.
+  const navigation = useFormNavigationRegistry();
+
+  // The focused value drives the dependency highlight: the rows it reads,
+  // and — for a Variable or Parameter — the cells that read it.
+  const [focusedValue, setFocusedValue] = useState<AdHocValueTarget | null>(
+    null,
+  );
+  const highlight = computeAdHocHighlight(state, context, focusedValue);
 
   // A synthesis dry-run per change surfaces the rules the type system cannot
   // (bounds resolution, name collisions, optimize legality) at their slots.
@@ -155,13 +165,9 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
       );
       return diagnostics?.[0]?.message;
     },
+    highlight,
+    setFocusedValue,
   };
-
-  const entryFor = (parameterId: string): AdHocNetParameter =>
-    state.netParameters.find((entry) => entry.parameterId === parameterId) ?? {
-      parameterId,
-      ...emptyValue(""),
-    };
 
   const setEntry = (entry: AdHocNetParameter) => {
     const rest = state.netParameters.filter(
@@ -179,169 +185,94 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
 
   return (
     <AdHocFormContext value={services}>
-      {/* Undo/redo listens in the capture phase, so it sees keys before any
+      <FormNavigationContext value={navigation}>
+        {/* Undo/redo listens in the capture phase, so it sees keys before any
           cell handler; open text fields and Monaco pass through untouched. */}
-      <div onKeyDownCapture={handleKeyDown}>
-        <SectionList>
-          {context.netParameters.length > 0 ? (
-            <Section
-              title="Parameters"
-              tooltip="Override a net parameter's value for this run. Empty keeps its default."
+        <div onKeyDownCapture={handleKeyDown}>
+          <SectionList>
+            {context.netParameters.length > 0 ? (
+              <NavigableSection
+                title="Parameters"
+                tooltip="Override a net parameter's value for this run. Empty keeps its default."
+              >
+                <ParameterRows
+                  entries={state.netParameters}
+                  onEntryChange={setEntry}
+                />
+              </NavigableSection>
+            ) : null}
+
+            <NavigableSection
+              title="Variables"
+              tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
             >
-              <div className={tableContainerStyle}>
-                <table className={tableStyle}>
-                  <tbody>
-                    {context.netParameters.map((parameter, parameterIndex) => {
-                      const entry = entryFor(parameter.id);
-                      const target = {
-                        kind: "netParameter" as const,
-                        parameterId: parameter.id,
-                      };
-                      return (
-                        <tr key={parameter.id}>
-                          <td className={cellStyle} style={{ width: 140 }}>
-                            <div className={parameterNameCellStyle}>
-                              {parameter.name}
-                            </div>
-                          </td>
-                          <td className={cellStyle}>
-                            <ValueEditor
-                              target={target}
-                              value={entry}
-                              display={
-                                entry.optimize
-                                  ? undefined
-                                  : entry.expression ||
-                                    `default (${parameter.defaultValue})`
-                              }
-                              integer={parameter.type === "integer"}
-                              booleanDomain={parameter.type === "boolean"}
-                              triggerRef={parametersGrid.register(
-                                parameterIndex,
-                                0,
-                              )}
-                              onTriggerKeyDown={parametersGrid.onKeyDown(
-                                parameterIndex,
-                                0,
-                              )}
-                              onChange={(value) =>
-                                setEntry({ ...entry, ...value })
-                              }
-                            />
-                          </td>
-                          <td className={cellStyle} style={{ width: 96 }}>
-                            <div className={parameterTypeCellStyle}>
-                              {parameter.type}
-                            </div>
-                          </td>
-                          {optimizable ? (
-                            <td
-                              className={cx(
-                                cellStyle,
-                                parameterOptimizeCellStyle,
-                              )}
-                              style={{ width: 92 }}
-                            >
-                              <OptimizeToggle
-                                label={`Optimize ${parameter.name}`}
-                                value={entry.optimize !== null}
-                                buttonRef={parametersGrid.register(
-                                  parameterIndex,
-                                  1,
-                                )}
-                                onKeyDown={parametersGrid.onKeyDown(
-                                  parameterIndex,
-                                  1,
-                                )}
-                                onChange={(on) =>
-                                  setEntry({
-                                    ...entry,
-                                    ...toggleAdHocOptimize(entry, on),
-                                  })
-                                }
-                              />
-                            </td>
-                          ) : null}
-                          <td className={actionCellStyle} />
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </Section>
-          ) : null}
-
-          <Section
-            title="Variables"
-            tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
-          >
-            <VariableRows
-              scopeLabel="Top-level variables"
-              placeId={null}
-              variables={state.variables}
-              alwaysVisible
-              onChange={(variables) => change({ ...state, variables })}
-            />
-            <div className={sectionHeaderActionsStyle}>
-              <Button
-                size="xs"
-                variant="ghost"
-                tone="neutral"
-                iconName="plus"
-                aria-label="Add a variable"
-                tooltip="Add a variable"
-                onClick={addTopLevelVariable}
+              <VariableRows
+                scopeLabel="Top-level variables"
+                placeId={null}
+                variables={state.variables}
+                alwaysVisible
+                onChange={(variables) => change({ ...state, variables })}
               />
-            </div>
-          </Section>
+              <div className={sectionHeaderActionsStyle}>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  tone="neutral"
+                  iconName="plus"
+                  aria-label="Add a variable"
+                  tooltip="Add a variable"
+                  onClick={addTopLevelVariable}
+                />
+              </div>
+            </NavigableSection>
 
-          <Section
-            title="Initial state"
-            tooltip="Token counts and values per place. Every value is an expression."
-          >
-            <div className={placesListStyle}>
-              {context.places.map((place) => {
-                const placeState = placeStateFor(state, context, place.id);
-                const colour = place.colorId
-                  ? context.types.find((type) => type.id === place.colorId)
-                  : undefined;
+            <NavigableSection
+              title="Initial state"
+              tooltip="Token counts and values per place. Every value is an expression."
+            >
+              <div className={placesListStyle}>
+                {context.places.map((place) => {
+                  const placeState = placeStateFor(state, context, place.id);
+                  const colour = place.colorId
+                    ? context.types.find((type) => type.id === place.colorId)
+                    : undefined;
 
-                if (placeState.kind === "coloured" && colour) {
-                  return (
-                    <ColouredPlaceBlock
-                      key={place.id}
-                      place={place}
-                      colour={colour}
-                      state={placeState}
-                      onChange={(next) =>
-                        change(
-                          updatePlace(state, place.id, context, () => next),
-                        )
-                      }
-                    />
-                  );
-                }
-                if (placeState.kind === "uncoloured") {
-                  return (
-                    <UncolouredPlaceBlock
-                      key={place.id}
-                      place={place}
-                      state={placeState}
-                      onChange={(next) =>
-                        change(
-                          updatePlace(state, place.id, context, () => next),
-                        )
-                      }
-                    />
-                  );
-                }
-                return null;
-              })}
-            </div>
-          </Section>
-        </SectionList>
-      </div>
+                  if (placeState.kind === "coloured" && colour) {
+                    return (
+                      <ColouredPlaceBlock
+                        key={place.id}
+                        place={place}
+                        colour={colour}
+                        state={placeState}
+                        onChange={(next) =>
+                          change(
+                            updatePlace(state, place.id, context, () => next),
+                          )
+                        }
+                      />
+                    );
+                  }
+                  if (placeState.kind === "uncoloured") {
+                    return (
+                      <UncolouredPlaceBlock
+                        key={place.id}
+                        place={place}
+                        state={placeState}
+                        onChange={(next) =>
+                          change(
+                            updatePlace(state, place.id, context, () => next),
+                          )
+                        }
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </NavigableSection>
+          </SectionList>
+        </div>
+      </FormNavigationContext>
     </AdHocFormContext>
   );
 };

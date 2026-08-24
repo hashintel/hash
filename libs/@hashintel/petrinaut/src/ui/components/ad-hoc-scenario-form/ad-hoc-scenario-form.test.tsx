@@ -1,7 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -494,6 +500,153 @@ describe("AdHocScenarioForm", () => {
       { key: "z", metaKey: true, shiftKey: true },
     );
     expect(colouredPlace(latest).rows).toHaveLength(1);
+  });
+
+  it("walks between zones and toggles sections from their headers", async () => {
+    render(<Harness optimizable />);
+
+    // Down from the parameters grid lands on the Variables section header.
+    const rateValue = screen.getByRole("button", { name: "Rate" });
+    rateValue.focus();
+    fireEvent.keyDown(rateValue, { key: "ArrowDown" });
+    const variablesTrigger = screen.getByRole("button", {
+      name: "Toggle Variables section",
+    });
+    expect(document.activeElement).toBe(variablesTrigger);
+
+    // Down enters the variables grid; Up returns to the header.
+    fireEvent.keyDown(variablesTrigger, { key: "ArrowDown" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Add a variable (name, Top-level variables)",
+    );
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(variablesTrigger);
+
+    // Left collapses the section; its grid leaves the accessibility tree,
+    // and Down now skips it, landing on the Initial state header.
+    fireEvent.keyDown(variablesTrigger, { key: "ArrowLeft" });
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", {
+          name: "Add a variable (name, Top-level variables)",
+        }),
+      ).toBe(null);
+    });
+    fireEvent.keyDown(variablesTrigger, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Toggle Initial state section" }),
+    );
+
+    // Right expands it again.
+    fireEvent.keyDown(variablesTrigger, { key: "ArrowRight" });
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", {
+          name: "Add a variable (name, Top-level variables)",
+        }),
+      ).toBeTruthy();
+    });
+  });
+
+  it("reaches the column headers and collapses a place to a summary", () => {
+    render(<Harness optimizable />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+
+    // Up from the first row's cell lands on its column header.
+    const cell = screen.getByRole("button", {
+      name: "Pumps › item 0 › pressure",
+    });
+    cell.focus();
+    fireEvent.keyDown(cell, { key: "ArrowUp" });
+    const header = screen.getByRole("button", {
+      name: "Share column pressure",
+    });
+    expect(document.activeElement).toBe(header);
+
+    // Up from the header leaves the table onto the place header.
+    fireEvent.keyDown(header, { key: "ArrowUp" });
+    const placeHeader = screen.getByRole("button", { name: "Pumps place" });
+    expect(document.activeElement).toBe(placeHeader);
+
+    // Left collapses the place to a one-line summary; Right restores it.
+    fireEvent.keyDown(placeHeader, { key: "ArrowLeft" });
+    expect(screen.getByText("1 row · = 1 tokens")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Share column pressure" }),
+    ).toBe(null);
+    fireEvent.keyDown(placeHeader, { key: "ArrowRight" });
+    expect(
+      screen.getByRole("button", { name: "Share column pressure" }),
+    ).toBeTruthy();
+  });
+
+  it("navigates through the type select, which offers no empty row", () => {
+    const initial: AdHocScenarioState = {
+      variables: [
+        { name: "altitude", type: "real", expression: "400", optimize: null },
+      ],
+      netParameters: [],
+      places: {},
+    };
+    render(<Harness optimizable initial={initial} />);
+
+    const nameCell = screen.getByRole("button", {
+      name: "Name of variable 1 (Top-level variables)",
+    });
+    nameCell.focus();
+    fireEvent.keyDown(nameCell, { key: "ArrowRight" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Type of altitude",
+    );
+
+    // The native select mirrors the dropdown: three types, no empty item.
+    const nativeSelect = document.querySelector("select");
+    expect(nativeSelect?.options.length).toBe(3);
+  });
+
+  it("highlights dependencies and dependents around the focused value", () => {
+    const initial: AdHocScenarioState = {
+      variables: [
+        { name: "n", type: "integer", expression: "2", optimize: null },
+      ],
+      netParameters: [],
+      places: {
+        "place-pumps": {
+          kind: "coloured",
+          variables: [],
+          rows: [
+            {
+              kind: "fixed",
+              cells: [
+                { expression: "2 * scenario.n", optimize: null },
+                { expression: "false", optimize: null },
+              ],
+            },
+          ],
+          sharedColumns: {},
+        },
+      },
+    };
+    render(<Harness optimizable initial={initial} />);
+
+    // Focusing the cell highlights the variable row its expression reads.
+    const cell = screen.getByRole("button", {
+      name: "Pumps › item 0 › pressure",
+    });
+    const nameCell = screen.getByRole("button", {
+      name: "Name of variable 1 (Top-level variables)",
+    });
+    fireEvent.focus(cell);
+    expect(nameCell.closest("tr")?.getAttribute("data-highlighted")).toBe(
+      "true",
+    );
+
+    // Focusing the variable highlights the cell that reads it.
+    fireEvent.focus(nameCell);
+    expect(cell.getAttribute("data-highlighted")).toBe("true");
+    expect(nameCell.closest("tr")?.getAttribute("data-highlighted")).toBe(null);
   });
 
   it("shows the place total, unresolved when a count is optimized", () => {

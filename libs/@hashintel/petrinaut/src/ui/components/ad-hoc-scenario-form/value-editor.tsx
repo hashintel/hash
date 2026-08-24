@@ -30,12 +30,14 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   AD_HOC_DEFAULT_COUNT_OPTIMIZE,
   AD_HOC_DEFAULT_OPTIMIZE,
+  adHocSlotKey,
   adHocTargetLabel,
   toggleAdHocOptimize,
 } from "@hashintel/petrinaut-core";
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { AdHocFormContext } from "./form-context";
+import { dependencyHighlightStyle } from "./form-table";
 import { OptimizeToggle } from "./optimize-toggle";
 
 import type { AdHocValue, AdHocValueTarget } from "@hashintel/petrinaut-core";
@@ -251,9 +253,19 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   triggerRef,
   onTriggerKeyDown,
 }) => {
-  const { errorFor, uriFor, formState, synthesisContext, optimizable } =
-    use(AdHocFormContext);
+  const {
+    errorFor,
+    uriFor,
+    formState,
+    synthesisContext,
+    optimizable,
+    highlight,
+    setFocusedValue,
+  } = use(AdHocFormContext);
   const label = adHocTargetLabel(target, formState, synthesisContext);
+  const dependencyHighlighted = highlight.slotKeys.has(
+    adHocSlotKey({ target, part: "expression" }),
+  );
   const portalContainerRef = usePortalContainerRef();
   const editorId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -398,15 +410,23 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         type="button"
         aria-label={label}
         title={showTriggerError ? error : undefined}
+        data-highlighted={dependencyHighlighted || undefined}
         className={cx(
           triggerStyle,
           optimized && optimizedTriggerStyle,
           derived && derivedTriggerStyle,
           isEmpty && placeholderTriggerStyle,
           showTriggerError && errorTriggerStyle,
+          dependencyHighlighted && dependencyHighlightStyle,
           className,
         )}
         tabIndex={derived ? -1 : 0}
+        onFocus={() => setFocusedValue(target)}
+        onBlur={() => {
+          if (!open) {
+            setFocusedValue(null);
+          }
+        }}
         onPointerDown={() => {
           wasFocusedOnPointerDownRef.current =
             document.activeElement === buttonRef.current;
