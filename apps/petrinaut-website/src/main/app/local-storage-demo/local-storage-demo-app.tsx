@@ -24,6 +24,7 @@ import {
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
 import { VoiceExperiment } from "./voice-experiment";
+import { createOpenAIRealtimeAdapter } from "./voice-experiment/openai-realtime-adapter";
 import { getVoiceExperiment } from "./voice-experiment/voice-experiment-selection";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
@@ -121,6 +122,13 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
 export const LocalStorageDemoApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
   const voiceExperiment = getVoiceExperiment(window.location);
+  const voiceExperimentAdapter = useMemo(
+    () =>
+      voiceExperiment === "openai-realtime"
+        ? createOpenAIRealtimeAdapter()
+        : undefined,
+    [voiceExperiment],
+  );
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
@@ -311,7 +319,10 @@ export const LocalStorageDemoApp = () => {
           viewportActions={[sentryFeedbackAction]}
         />
         {voiceExperiment ? (
-          <VoiceExperiment experiment={voiceExperiment} />
+          <VoiceExperiment
+            adapter={voiceExperimentAdapter}
+            experiment={voiceExperiment}
+          />
         ) : null}
       </WalkthroughProvider>
     </div>

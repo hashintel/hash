@@ -2,13 +2,13 @@
 
 A website for demoing Petrinaut (libs/@hashintel/petrinaut).
 
-A SPA plus a single API function that proxies AI requests to OpenAI.
+A SPA plus API functions that proxy text and experimental Realtime requests to OpenAI.
 
 ## Quickstart
 
 ```sh
 cp .env.example .env.local
-# add your OPENAI_API_KEY to .env.local, if you want to use the chat feature
+# add your OPENAI_API_KEY to .env.local for chat or the OpenAI Realtime experiment
 
 turbo run dev
 ```
@@ -38,19 +38,23 @@ optimizer for isolated UI development.
 
 ## Environment variables
 
-| Name                          | Required         | Used by          | Notes                                                     |
-| ----------------------------- | ---------------- | ---------------- | --------------------------------------------------------- |
-| `OPENAI_API_KEY`              | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.        |
-| `PETRINAUT_AI_MODEL`          | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                    |
-| `PETRINAUT_OPT_ORIGIN`        | no               | `vite.config.ts` | Overrides the local optimizer proxy target.               |
-| `VITE_PETRINAUT_OPT_PROVIDER` | no               | website          | Set to `service` to enable the optimization route.        |
-| `SENTRY_DSN`                  | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time. |
+| Name                          | Required            | Used by                                                          | Notes                                                                               |
+| ----------------------------- | ------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`              | for OpenAI features | `api/chat.ts`, `api/voice-experiment/openai-realtime-session.ts` | Server-only OpenAI key used for chat and to mint ephemeral Realtime client secrets. |
+| `PETRINAUT_AI_MODEL`          | no                  | `api/chat.ts`                                                    | Overrides the default OpenAI model id.                                              |
+| `PETRINAUT_OPT_ORIGIN`        | no                  | `vite.config.ts`                                                 | Overrides the local optimizer proxy target.                                         |
+| `VITE_PETRINAUT_OPT_PROVIDER` | no                  | website                                                          | Set to `service` to enable the optimization route.                                  |
+| `SENTRY_DSN`                  | no                  | `vite.config.ts`                                                 | Wired into the bundle via `__SENTRY_DSN__` at build time.                           |
 
-Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the chat function. In production, set these in the Vercel project settings.
+Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings. The standard OpenAI key must never be exposed through a `VITE_` variable or sent to the browser.
+
+The OpenAI voice experiment is available at
+`/?voiceExperiment=openai-realtime`. Its same-origin session endpoint returns only a short-lived
+client secret; model, prompt, transcription, and dummy-tool configuration are fixed on the server.
 
 ## Testing the API against the built output
 
-A plain `yarn build && yarn vite preview` only serves the static `dist/` assets - `/api/chat` will 404 because the dev plugin is not loaded by `vite preview`. Use one of the options below to exercise the production code path locally.
+A plain `yarn build && yarn vite preview` only serves the static `dist/` assets - `/api/*` will 404 because the dev plugin is not loaded by `vite preview`. Use one of the options below to exercise the production code path locally.
 
 ### Option A: `vercel dev` (recommended)
 
@@ -107,4 +111,5 @@ Useful when you want to serve the literal `dist/` artifact you just built and av
 ## Known caveats
 
 - **In-memory rate limiting.** [`api/chat.ts`](api/chat.ts) keys rate-limit buckets by the client IP that Vercel's edge writes into `x-forwarded-for` (which Vercel actively prevents the caller from spoofing - see the [request headers docs](https://vercel.com/docs/edge-network/headers/request-headers)). The bucket map lives in module scope, so it resets on cold start and is not shared between concurrent function instances.
+- **The Realtime experiment uses the same rate-limit shape.** Its tighter bucket protects client-secret minting, but is still per warm function instance rather than a durable distributed limit.
 - **`vercel-build.sh` deletes the repo-root `.env`.** This is intentional (mise picks it up otherwise), but worth knowing if you run `vercel dev` locally and keep secrets there.

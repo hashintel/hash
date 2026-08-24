@@ -112,8 +112,13 @@ const sectionLabelStyle = css({
 });
 
 const transcriptStyle = css({
+  display: "flex",
   minHeight: "16",
+  maxHeight: "52",
+  flexDirection: "column",
+  gap: "2.5",
   padding: "3",
+  overflowY: "auto",
   borderWidth: "thin",
   borderStyle: "solid",
   borderColor: "neutral.a20",
@@ -122,6 +127,46 @@ const transcriptStyle = css({
   color: "neutral.s70",
   fontSize: "sm",
   lineHeight: "relaxed",
+});
+
+const transcriptEntryStyle = css({
+  display: "flex",
+  width: "[88%]",
+  flexDirection: "column",
+  gap: "0.5",
+});
+
+const expertTranscriptEntryStyle = css({
+  marginLeft: "auto",
+  alignItems: "flex-end",
+});
+
+const transcriptSpeakerStyle = css({
+  color: "neutral.s55",
+  fontSize: "xs",
+  fontWeight: "medium",
+});
+
+const transcriptBubbleStyle = css({
+  paddingX: "3",
+  paddingY: "2",
+  borderRadius: "lg",
+  backgroundColor: "neutral.a10",
+  color: "neutral.s80",
+});
+
+const expertTranscriptBubbleStyle = css({
+  backgroundColor: "blue.a15",
+});
+
+const partialTranscriptStyle = css({
+  opacity: "0.7",
+});
+
+const transcriptPlaceholderStyle = css({
+  margin: "auto",
+  color: "neutral.s55",
+  textAlign: "center",
 });
 
 const controlsStyle = css({
@@ -271,25 +316,39 @@ type LoggedEvent = {
   sequence: number;
 };
 
-const getLatestTranscript = (events: LoggedEvent[]) => {
-  for (let index = events.length - 1; index >= 0; index -= 1) {
-    const event = events[index]?.event;
+type TranscriptEntry = {
+  isPartial: boolean;
+  speaker: "assistant" | "expert";
+  transcript: string;
+  turnId: number;
+};
+
+const getTranscriptEntries = (events: LoggedEvent[]): TranscriptEntry[] => {
+  const entries = new Map<string, TranscriptEntry>();
+
+  for (const { event } of events) {
     if (
-      event?.type === "partial-transcript" ||
-      event?.type === "final-transcript"
+      event.type === "partial-transcript" ||
+      event.type === "final-transcript"
     ) {
-      return event.transcript;
+      entries.set(`${event.turnId}:${event.speaker}`, {
+        isPartial: event.type === "partial-transcript",
+        speaker: event.speaker,
+        transcript: event.transcript,
+        turnId: event.turnId,
+      });
     }
   }
-  return null;
+
+  return [...entries.values()];
 };
 
 const getEventSummary = (event: VoiceExperimentEvent) => {
   if (event.type === "partial-transcript") {
-    return `${event.type}: ${event.transcript}`;
+    return `${event.type} (${event.speaker}): ${event.transcript}`;
   }
   if (event.type === "final-transcript") {
-    return `${event.type}: ${event.transcript}`;
+    return `${event.type} (${event.speaker}): ${event.transcript}`;
   }
   if (event.type === "tool-called") {
     return `${event.type}: ${event.toolName}`;
@@ -385,7 +444,11 @@ export const VoiceExperiment = ({
   };
 
   const startTurn = async () => {
-    if (!adapter || sessionState !== "connected" || pressedRef.current) {
+    if (
+      !adapter ||
+      (sessionState !== "connected" && sessionState !== "responding") ||
+      pressedRef.current
+    ) {
       return;
     }
 
@@ -434,27 +497,34 @@ export const VoiceExperiment = ({
     }
   };
 
-  const transcript = getLatestTranscript(events);
+  const transcriptEntries = getTranscriptEntries(events);
   const isConnected =
     sessionState === "connected" || sessionState === "responding";
   const isAdapterPending = !adapter;
   const canStartSession = Boolean(adapter) && sessionState === "ready";
-  const canStartTurn = Boolean(adapter) && sessionState === "connected";
+  const canEndSession =
+    Boolean(adapter) &&
+    sessionState !== "ready" &&
+    sessionState !== "ending" &&
+    sessionState !== "ended";
+  const canStartTurn = Boolean(adapter) && isConnected;
   const statusMessage = isAdapterPending
     ? "Adapter pending — this shell does not own microphone access"
-    : sessionState === "ready"
-      ? "Ready to start a clean session"
-      : sessionState === "connecting"
-        ? "Connecting…"
-        : sessionState === "connected"
-          ? "Connected — hold the microphone to speak"
-          : sessionState === "responding"
-            ? "Response in progress"
-            : sessionState === "ending"
-              ? "Ending session…"
-              : sessionState === "ended"
-                ? "Session ended — reload for a new conversation"
-                : "Experiment error";
+    : isTurnActive
+      ? "Recording — release the microphone to send"
+      : sessionState === "ready"
+        ? "Ready to start a clean session"
+        : sessionState === "connecting"
+          ? "Connecting…"
+          : sessionState === "connected"
+            ? "Connected — hold the microphone to speak"
+            : sessionState === "responding"
+              ? "Response in progress"
+              : sessionState === "ending"
+                ? "Ending session…"
+                : sessionState === "ended"
+                  ? "Session ended — reload for a new conversation"
+                  : "Experiment error";
 
   return (
     <aside
@@ -479,10 +549,41 @@ export const VoiceExperiment = ({
         <span>{SCENARIO_SCRIPT}</span>
       </div>
 
-      <p className={transcriptStyle}>
-        {transcript ??
-          `Transcript events will appear here when the ${voiceExperimentLabel[experiment]} adapter is connected.`}
-      </p>
+      <div aria-live="polite" className={transcriptStyle} role="log">
+        {transcriptEntries.length === 0 ? (
+          <p className={transcriptPlaceholderStyle}>
+            Transcript events will appear here when the{" "}
+            {voiceExperimentLabel[experiment]} adapter is connected.
+          </p>
+        ) : (
+          transcriptEntries.map((entry) => (
+            <div
+              className={[
+                transcriptEntryStyle,
+                entry.speaker === "expert" ? expertTranscriptEntryStyle : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              key={`${entry.turnId}:${entry.speaker}`}
+            >
+              <span className={transcriptSpeakerStyle}>
+                {entry.speaker === "expert" ? "Expert" : "Interviewer"}
+              </span>
+              <p
+                className={[
+                  transcriptBubbleStyle,
+                  entry.speaker === "expert" ? expertTranscriptBubbleStyle : "",
+                  entry.isPartial ? partialTranscriptStyle : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {entry.transcript}
+              </p>
+            </div>
+          ))
+        )}
+      </div>
 
       <div className={controlsStyle}>
         <div className={headingGroupStyle}>
@@ -502,7 +603,7 @@ export const VoiceExperiment = ({
             </button>
             <button
               className={sessionButtonStyle}
-              disabled={!isConnected}
+              disabled={!canEndSession}
               onClick={() => void endSession()}
               type="button"
             >

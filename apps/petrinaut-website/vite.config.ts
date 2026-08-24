@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { createServerAdapter } from "@whatwg-node/server";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin, type ViteDevServer } from "vite";
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 
@@ -19,32 +19,49 @@ const loadServerEnv = (mode: string) => {
   }
 };
 
-// Plugin required to serve the chat endpoint in dev.
-// In production, it will be bundled and served by Vercel.
+type WebFetchApi = {
+  default: { fetch: (request: Request) => Promise<Response> };
+};
+
+const createApiAdapter = (server: ViteDevServer, modulePath: string) =>
+  createServerAdapter(async (request) => {
+    const { default: api } = (await server.ssrLoadModule(
+      modulePath,
+    )) as WebFetchApi;
+
+    try {
+      return await api.fetch(request);
+    } catch (error) {
+      server.ssrFixStacktrace(error as Error);
+      throw error;
+    }
+  });
+
+// Plugin required to serve the API endpoints in dev.
+// In production, Vercel deploys the files in `api` as functions.
 const petrinautApiDevPlugin = (): Plugin => ({
   name: "petrinaut-api-dev",
   apply: "serve",
   configureServer(server) {
-    // The chat endpoint ships a default `{ fetch }` so Vercel's Node.js
+    // Each endpoint ships a default `{ fetch }` so Vercel's Node.js
     // runtime treats it as a Web fetch handler in production. We mirror the
     // same shape here so dev and prod hit the same code path.
-    const adapter = createServerAdapter(async (request) => {
-      const { default: api } = (await server.ssrLoadModule("/api/chat.ts")) as {
-        default: { fetch: (request: Request) => Promise<Response> };
-      };
-
-      try {
-        return await api.fetch(request);
-      } catch (error) {
-        server.ssrFixStacktrace(error as Error);
-        throw error;
-      }
-    });
+    const chatAdapter = createApiAdapter(server, "/api/chat.ts");
+    const openAIRealtimeAdapter = createApiAdapter(
+      server,
+      "/api/voice-experiment/openai-realtime-session.ts",
+    );
 
     server.middlewares.use(
       "/api/chat",
       (request: IncomingMessage, response: ServerResponse) => {
-        void adapter(request, response);
+        void chatAdapter(request, response);
+      },
+    );
+    server.middlewares.use(
+      "/api/voice-experiment/openai-realtime-session",
+      (request: IncomingMessage, response: ServerResponse) => {
+        void openAIRealtimeAdapter(request, response);
       },
     );
   },

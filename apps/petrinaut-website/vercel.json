@@ -20,6 +20,9 @@
   "functions": {
     "api/chat.ts": {
       "maxDuration": 300
+    },
+    "api/voice-experiment/openai-realtime-session.ts": {
+      "maxDuration": 15
     }
   }
 }

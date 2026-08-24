@@ -19,6 +19,16 @@ Two experiments answer different questions:
 ElevenLabs is the default architectural lean. OpenAI Realtime wins only if its interaction quality
 is materially better and the team explicitly accepts the demonstrated porting cost.
 
+## Implementation progress
+
+- The shared, URL-selected shell is committed as `2903ed77bc98eeddc3c4fa3df95da7f9c11bcf2f`.
+- The OpenAI path now has a server-owned client-secret endpoint, WebRTC adapter, push-to-talk and
+  barge-in sequence, input/output transcripts, dummy tool handling, and idempotent resource cleanup.
+- The OpenAI code path does not call `/api/chat` and does not import or mutate Lu's Brunch session.
+- Automated endpoint and adapter coverage is in place. A credentialed microphone run is still
+  pending because this worktree has no `OPENAI_API_KEY` configured.
+- The ElevenLabs path remains deliberately unconnected until the next experiment slice.
+
 ## Accepted placement and boundaries
 
 - `apps/petrinaut-website` owns the user-facing voice controls and provider adapters.
@@ -73,7 +83,7 @@ remaining work to satisfy H-6763.
 
 ## Prototype exclusions
 
-- Open microphone and interruption semantics
+- Open-microphone VAD tuning beyond the explicit push-to-talk barge-in sequence
 - Provider abstraction intended for production reuse
 - Durable transcript persistence
 - Live capture extraction from partial transcripts
@@ -91,6 +101,6 @@ remaining work to satisfy H-6763.
 
 ## Post-decision work
 
-The winning path then adds monotonic turn ids, transcript persistence, private browser sessions,
+The winning path then adds transcript persistence, private browser sessions, production-wide
 cancellation and stale-audio invalidation, live captures with provenance, open-mic/VAD, and the
 end-session transition to the separate IR-to-net projection and Petrinaut draft.
