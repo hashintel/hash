@@ -26,7 +26,6 @@
 
 import { use, useState } from "react";
 
-import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   adHocSlotKey,
@@ -40,7 +39,7 @@ import { computeAdHocHighlight } from "./dependency-highlight";
 import { AdHocFormContext } from "./form-context";
 import { ParameterRows } from "./parameter-rows";
 import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
-import { newVariable, placeStateFor, updatePlace } from "./state";
+import { placeStateFor, updatePlace } from "./state";
 import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
 import { useAdHocFormHistory } from "./use-form-history";
 import {
@@ -63,11 +62,6 @@ const placesListStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "5",
-});
-
-const sectionHeaderActionsStyle = css({
-  display: "flex",
-  justifyContent: "flex-end",
 });
 
 export interface AdHocScenarioFormProps {
@@ -176,13 +170,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     change({ ...state, netParameters: [...rest, entry] });
   };
 
-  const addTopLevelVariable = () => {
-    change({
-      ...state,
-      variables: [...state.variables, newVariable(state.variables)],
-    });
-  };
-
   return (
     <AdHocFormContext value={services}>
       <FormNavigationContext value={navigation}>
@@ -210,20 +197,8 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                 scopeLabel="Top-level variables"
                 placeId={null}
                 variables={state.variables}
-                alwaysVisible
                 onChange={(variables) => change({ ...state, variables })}
               />
-              <div className={sectionHeaderActionsStyle}>
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  tone="neutral"
-                  iconName="plus"
-                  aria-label="Add a variable"
-                  tooltip="Add a variable"
-                  onClick={addTopLevelVariable}
-                />
-              </div>
             </NavigableSection>
 
             <NavigableSection

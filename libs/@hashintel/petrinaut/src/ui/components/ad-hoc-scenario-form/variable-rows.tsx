@@ -1,38 +1,46 @@
 /**
  * A Variables list, used at both scopes, in the form's spreadsheet grammar:
- * one row per Variable — name cell, type cell, value cell, Optimize (where
- * available), remove — plus a quiet phantom trailing row that materializes a
- * fresh Variable on click or Enter. The name cell behaves like every other
- * cell: focusing selects it, Enter (or a second click) edits, Escape leaves
- * the edit. Arrow keys move between cells, the type select included (Enter
- * opens it), and continue into the neighbouring form zone past the edges.
+ * one row per Variable — a gutter whose pop-up menu deletes the row, then
+ * name, type, value, and Optimize (where available) cells — plus a quiet
+ * trailing line that materializes a fresh Variable on click or Enter,
+ * reachable with ArrowDown from any cell of the last row. The name cell
+ * behaves like every other cell: focusing selects it, Enter (or a second
+ * click) edits, Escape leaves the edit. Arrow keys move between cells, the
+ * type select included (Enter opens it), and continue into the neighbouring
+ * form zone past the edges.
  */
 
 import { use, useRef, useState } from "react";
 
-import { Button, Select } from "@hashintel/ds-components";
+import { Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { toggleAdHocOptimize } from "@hashintel/petrinaut-core";
 
 import { adHocVariableKey } from "./dependency-highlight";
 import { AdHocFormContext } from "./form-context";
 import {
-  actionCellStyle,
   cellInputStyle,
   cellSelectStyle,
   cellStyle,
   dependencyHighlightStyle as highlightStyle,
+  gutterButtonStyle,
+  gutterCellStyle,
   phantomCellButtonStyle,
-  rowDeleteButtonStyle,
   tableContainerStyle,
   tableStyle,
 } from "./form-table";
+import { GutterMenu } from "./gutter-menu";
 import { OptimizeToggle } from "./optimize-toggle";
 import { newVariable, removeAt, replaceVariable } from "./state";
 import { useNavigationGrid } from "./use-grid-navigation";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocVariable } from "@hashintel/petrinaut-core";
+
+const gutterColumnStyle = css({
+  width: "[40px]",
+  minWidth: "[40px]",
+});
 
 const nameCellStyle = css({
   width: "[140px]",
@@ -197,41 +205,50 @@ export interface VariableRowsProps {
   placeId: string | null;
   variables: AdHocVariable[];
   onChange: (variables: AdHocVariable[]) => void;
-  /**
-   * Renders the table (its phantom row alone) even with no Variables.
-   * Per-place lists stay hidden while empty; the top-level section shows.
-   */
-  alwaysVisible?: boolean;
 }
+
+/** Grid columns: 0 gutter, 1 name, 2 type, 3 value, 4 Optimize. */
+const PHANTOM_COLUMNS = [0, 1, 2, 3, 4];
 
 export const VariableRows: React.FC<VariableRowsProps> = ({
   scopeLabel,
   placeId,
   variables,
   onChange,
-  alwaysVisible = false,
 }) => {
   const { errorFor, optimizable, highlight, setFocusedValue } =
     use(AdHocFormContext);
   const { register, onKeyDown, attach } = useNavigationGrid();
-  // Nonces, so a repeat click re-triggers the fresh row's editor.
+  const gutterRefs = useRef(new Map<number, HTMLButtonElement>());
+  const phantomRef = useRef<HTMLButtonElement | null>(null);
+  const [menu, setMenu] = useState<{
+    index: number;
+    anchor: HTMLButtonElement;
+  } | null>(null);
+  // A nonce, so a repeat click re-opens the fresh row's name editor.
   const [materialized, setMaterialized] = useState<{
     index: number;
-    part: "name" | "value";
     nonce: number;
   } | null>(null);
 
-  if (variables.length === 0 && !alwaysVisible) {
-    return null;
-  }
-
-  const materializeVariable = (part: "name" | "value") => {
+  const materializeVariable = () => {
     onChange([...variables, newVariable(variables)]);
     setMaterialized((previous) => ({
       index: variables.length,
-      part,
       nonce: (previous?.nonce ?? 0) + 1,
     }));
+  };
+
+  const deleteVariable = (index: number) => {
+    onChange(removeAt(variables, index));
+    const remaining = variables.length - 1;
+    setTimeout(() => {
+      if (remaining > 0) {
+        gutterRefs.current.get(Math.min(index, remaining - 1))?.focus();
+      } else {
+        phantomRef.current?.focus();
+      }
+    }, 0);
   };
 
   /** Arrow keys on a closed type select navigate the grid; open, they are
@@ -245,7 +262,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
       if (trigger?.getAttribute("aria-expanded") === "true") {
         return;
       }
-      onKeyDown(rowIndex, 1)(event);
+      onKeyDown(rowIndex, 2)(event);
     };
 
   return (
@@ -265,6 +282,67 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
               <tr key={index} data-highlighted={highlighted || undefined}>
                 <td
                   className={cx(
+                    gutterCellStyle,
+                    gutterColumnStyle,
+                    rowHighlight,
+                  )}
+                >
+                  <button
+                    ref={(element) => {
+                      register(index, 0)(element);
+                      if (element) {
+                        gutterRefs.current.set(index, element);
+                      } else {
+                        gutterRefs.current.delete(index);
+                      }
+                    }}
+                    type="button"
+                    className={gutterButtonStyle}
+                    aria-label={`Variable ${index + 1} actions`}
+                    aria-haspopup="menu"
+                    aria-expanded={menu?.index === index}
+                    onKeyDown={(event) => {
+                      if (event.key === "Delete" || event.key === "Backspace") {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        deleteVariable(index);
+                        return;
+                      }
+                      onKeyDown(index, 0)(event);
+                    }}
+                    onClick={(event) =>
+                      setMenu({ index, anchor: event.currentTarget })
+                    }
+                  >
+                    #{index + 1}
+                  </button>
+                  {menu?.index === index ? (
+                    <GutterMenu
+                      anchor={menu.anchor}
+                      items={[
+                        {
+                          id: "delete",
+                          label: "Delete variable",
+                          destructive: true,
+                        },
+                      ]}
+                      onSelect={(id) => {
+                        setMenu(null);
+                        if (id === "delete") {
+                          deleteVariable(index);
+                        }
+                      }}
+                      onClose={() => setMenu(null)}
+                      onDismiss={() => {
+                        const anchor = menu.anchor;
+                        setMenu(null);
+                        setTimeout(() => anchor.focus(), 0);
+                      }}
+                    />
+                  ) : null}
+                </td>
+                <td
+                  className={cx(
                     cellStyle,
                     nameCellStyle,
                     nameError && invalidNameStyle,
@@ -276,16 +354,13 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     ariaLabel={`Name of variable ${index + 1} (${scopeLabel})`}
                     error={nameError}
                     autoEdit={
-                      materialized?.index === index &&
-                      materialized.part === "name"
-                        ? materialized.nonce
-                        : 0
+                      materialized?.index === index ? materialized.nonce : 0
                     }
                     onFocusChange={(focused) =>
                       setFocusedValue(focused ? target : null)
                     }
-                    cellRef={register(index, 0)}
-                    onCellKeyDown={onKeyDown(index, 0)}
+                    cellRef={register(index, 1)}
+                    onCellKeyDown={onKeyDown(index, 1)}
                     onChange={(name) =>
                       onChange(
                         replaceVariable(variables, index, {
@@ -302,7 +377,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                   ref={(element) =>
                     register(
                       index,
-                      1,
+                      2,
                     )(
                       element
                         ? element.querySelector<HTMLElement>(
@@ -345,14 +420,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     value={variable}
                     integer={variable.type === "integer"}
                     booleanDomain={variable.type === "boolean"}
-                    autoOpen={
-                      materialized?.index === index &&
-                      materialized.part === "value"
-                        ? materialized.nonce
-                        : 0
-                    }
-                    triggerRef={register(index, 2)}
-                    onTriggerKeyDown={onKeyDown(index, 2)}
+                    triggerRef={register(index, 3)}
+                    onTriggerKeyDown={onKeyDown(index, 3)}
                     onChange={(value) =>
                       onChange(
                         replaceVariable(variables, index, {
@@ -370,8 +439,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     <OptimizeToggle
                       label={`Optimize ${variable.name}`}
                       value={variable.optimize !== null}
-                      buttonRef={register(index, 3)}
-                      onKeyDown={onKeyDown(index, 3)}
+                      buttonRef={register(index, 4)}
+                      onKeyDown={onKeyDown(index, 4)}
                       onChange={(on) =>
                         onChange(
                           replaceVariable(variables, index, {
@@ -383,48 +452,30 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     />
                   </td>
                 ) : null}
-                <td className={cx(actionCellStyle, rowHighlight)}>
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    tone="neutral"
-                    iconName="trash"
-                    className={rowDeleteButtonStyle}
-                    aria-label={`Remove ${variable.name}`}
-                    onClick={() => onChange(removeAt(variables, index))}
-                  />
-                </td>
               </tr>
             );
           })}
 
-          {/* Phantom trailing row: materializes a fresh Variable. */}
+          {/* The trailing line materializes a fresh Variable; one cell,
+              reachable with ArrowDown from any cell of the row above. */}
           <tr>
-            <td className={cx(cellStyle, nameCellStyle)}>
+            <td colSpan={optimizable ? 5 : 4} className={cellStyle}>
               <button
-                ref={register(variables.length, 0)}
+                ref={(element) => {
+                  phantomRef.current = element;
+                  for (const column of PHANTOM_COLUMNS) {
+                    register(variables.length, column)(element);
+                  }
+                }}
                 type="button"
                 className={phantomCellButtonStyle}
-                aria-label={`Add a variable (name, ${scopeLabel})`}
-                onClick={() => materializeVariable("name")}
+                aria-label={`Add a variable (${scopeLabel})`}
+                onClick={materializeVariable}
                 onKeyDown={onKeyDown(variables.length, 0)}
-              />
+              >
+                Add a variable…
+              </button>
             </td>
-            <td className={cx(cellStyle, typeCellStyle)} />
-            <td className={cellStyle}>
-              <button
-                ref={register(variables.length, 2)}
-                type="button"
-                className={phantomCellButtonStyle}
-                aria-label={`Add a variable (value, ${scopeLabel})`}
-                onClick={() => materializeVariable("value")}
-                onKeyDown={onKeyDown(variables.length, 2)}
-              />
-            </td>
-            {optimizable ? (
-              <td className={cx(cellStyle, optimizeCellStyle)} />
-            ) : null}
-            <td className={actionCellStyle} />
           </tr>
         </tbody>
       </table>

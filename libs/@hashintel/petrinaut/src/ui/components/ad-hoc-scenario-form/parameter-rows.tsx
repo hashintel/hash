@@ -11,7 +11,6 @@ import { toggleAdHocOptimize } from "@hashintel/petrinaut-core";
 
 import { AdHocFormContext } from "./form-context";
 import {
-  actionCellStyle,
   cellStyle,
   dependencyHighlightStyle as highlightStyle,
   tableContainerStyle,
@@ -142,7 +141,6 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({
                     />
                   </td>
                 ) : null}
-                <td className={cx(actionCellStyle, rowHighlight)} />
               </tr>
             );
           })}

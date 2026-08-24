@@ -453,7 +453,7 @@ describe("AdHocScenarioForm", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Add a variable (name, Top-level variables)",
+        name: "Add a variable (Top-level variables)",
       }),
     );
     expect(latest?.variables).toHaveLength(1);
@@ -517,7 +517,7 @@ describe("AdHocScenarioForm", () => {
     // Down enters the variables grid; Up returns to the header.
     fireEvent.keyDown(variablesTrigger, { key: "ArrowDown" });
     expect(document.activeElement?.getAttribute("aria-label")).toBe(
-      "Add a variable (name, Top-level variables)",
+      "Add a variable (Top-level variables)",
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
     expect(document.activeElement).toBe(variablesTrigger);
@@ -528,7 +528,7 @@ describe("AdHocScenarioForm", () => {
     await waitFor(() => {
       expect(
         screen.queryByRole("button", {
-          name: "Add a variable (name, Top-level variables)",
+          name: "Add a variable (Top-level variables)",
         }),
       ).toBe(null);
     });
@@ -542,7 +542,7 @@ describe("AdHocScenarioForm", () => {
     await waitFor(() => {
       expect(
         screen.getByRole("button", {
-          name: "Add a variable (name, Top-level variables)",
+          name: "Add a variable (Top-level variables)",
         }),
       ).toBeTruthy();
     });
@@ -565,18 +565,24 @@ describe("AdHocScenarioForm", () => {
     });
     expect(document.activeElement).toBe(header);
 
-    // Up from the header leaves the table onto the place header.
+    // Up from the header leaves the table onto the place's variables line,
+    // then the place header.
     fireEvent.keyDown(header, { key: "ArrowUp" });
+    const placePhantom = screen.getByRole("button", {
+      name: "Add a variable (Variables of Pumps)",
+    });
+    expect(document.activeElement).toBe(placePhantom);
+    fireEvent.keyDown(placePhantom, { key: "ArrowUp" });
     const placeHeader = screen.getByRole("button", { name: "Pumps place" });
     expect(document.activeElement).toBe(placeHeader);
 
-    // Left collapses the place to a one-line summary; Right restores it.
+    // Left collapses the place to a one-line summary; the content stays
+    // mounted (the collapse animates and turns inert). Right restores it.
     fireEvent.keyDown(placeHeader, { key: "ArrowLeft" });
     expect(screen.getByText("1 row · = 1 tokens")).toBeTruthy();
-    expect(
-      screen.queryByRole("button", { name: "Share column pressure" }),
-    ).toBe(null);
+    expect(placeHeader.getAttribute("aria-expanded")).toBe("false");
     fireEvent.keyDown(placeHeader, { key: "ArrowRight" });
+    expect(placeHeader.getAttribute("aria-expanded")).toBe("true");
     expect(
       screen.getByRole("button", { name: "Share column pressure" }),
     ).toBeTruthy();
@@ -604,6 +610,61 @@ describe("AdHocScenarioForm", () => {
     // The native select mirrors the dropdown: three types, no empty item.
     const nativeSelect = document.querySelector("select");
     expect(nativeSelect?.options.length).toBe(3);
+
+    // The trailing add-a-variable line is one cell, reachable with
+    // ArrowDown from any column of the row above it.
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Add a variable (Top-level variables)",
+    );
+  });
+
+  it("deletes rows and variables from the gutter menus", async () => {
+    let latest: AdHocScenarioState | undefined;
+    const initial: AdHocScenarioState = {
+      variables: [
+        { name: "n", type: "integer", expression: "2", optimize: null },
+      ],
+      netParameters: [],
+      places: {
+        "place-pumps": {
+          kind: "coloured",
+          variables: [],
+          rows: [{ kind: "fixed", cells: [] }],
+          sharedColumns: {},
+        },
+      },
+    };
+    render(
+      <Harness
+        optimizable
+        initial={initial}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    // The token gutter's menu carries Delete row.
+    fireEvent.click(screen.getByRole("button", { name: "Row 1 kind" }));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Delete row" }),
+    );
+    expect(colouredPlace(latest).rows).toHaveLength(0);
+
+    // The variable gutter's menu deletes the variable.
+    fireEvent.click(screen.getByRole("button", { name: "Variable 1 actions" }));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Delete variable" }),
+    );
+    expect(latest?.variables).toHaveLength(0);
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    // Focus lands on the add-a-variable line once nothing is left.
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Add a variable (Top-level variables)",
+    );
   });
 
   it("highlights dependencies and dependents around the focused value", () => {

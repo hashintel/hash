@@ -21,7 +21,7 @@
 
 import { use, useRef, useState } from "react";
 
-import { Button, Popover, Tooltip } from "@hashintel/ds-components";
+import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocRowKindOf,
@@ -38,18 +38,18 @@ import {
 
 import { AdHocFormContext } from "./form-context";
 import {
-  actionCellStyle,
   cellStyle,
   columnHeaderStyle,
   footerRowStyle,
+  gutterButtonStyle,
   gutterCellStyle,
   gutterHeaderStyle,
   phantomCellButtonStyle,
-  rowDeleteButtonStyle,
   selectedRowCellStyle,
   tableContainerStyle,
   tableStyle,
 } from "./form-table";
+import { GutterMenu } from "./gutter-menu";
 import { defaultCellsFor, updateCell, updateRow } from "./state";
 import { focusLands, useNavigationZone } from "./use-form-navigation";
 import { ValueEditor } from "./value-editor";
@@ -84,27 +84,6 @@ const headerButtonStyle = css({
   overflow: "hidden",
   whiteSpace: "nowrap",
   textOverflow: "ellipsis",
-  _hover: { color: "neutral.s120", backgroundColor: "neutral.s20" },
-  _focus: {
-    outline: "[2px solid {colors.blue.s70}]",
-    outlineOffset: "[-2px]",
-    backgroundColor: "blue.s05",
-  },
-});
-
-const gutterButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[100%]",
-  height: "[28px]",
-  border: "none",
-  background: "[transparent]",
-  padding: "[0]",
-  fontFamily: "mono",
-  fontSize: "[10px]",
-  color: "neutral.s80",
-  cursor: "pointer",
   _hover: { color: "neutral.s120", backgroundColor: "neutral.s20" },
   _focus: {
     outline: "[2px solid {colors.blue.s70}]",
@@ -159,154 +138,6 @@ const stripEditorOptimizedStyle = css({
 const phantomGutterTextStyle = css({
   opacity: "[0.45]",
 });
-
-const menuStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  minWidth: "[160px]",
-  paddingY: "1",
-});
-
-const menuItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-  border: "none",
-  background: "[transparent]",
-  paddingX: "2.5",
-  paddingY: "1",
-  fontSize: "xs",
-  color: "neutral.s110",
-  cursor: "pointer",
-  textAlign: "left",
-  outline: "none",
-  _hover: { backgroundColor: "neutral.s15" },
-  _focus: { backgroundColor: "neutral.s15" },
-});
-
-const menuMarkStyle = css({
-  width: "[14px]",
-  fontFamily: "mono",
-  color: "neutral.s80",
-});
-
-interface RowKindMenuProps {
-  current: AdHocRowKind;
-  optimizable: boolean;
-  anchor: HTMLButtonElement;
-  onSelect: (kind: AdHocRowKind) => void;
-  /** The menu went away without a choice (outside interaction). */
-  onClose: () => void;
-  /** The menu was dismissed from the keyboard: close and refocus the gutter. */
-  onDismiss: () => void;
-}
-
-/**
- * The row-kind menu, keyboard-first: opening moves focus into the menu onto
- * the checked kind, ArrowUp/ArrowDown cycle the items, Enter chooses, and
- * Escape returns focus to the gutter that opened it.
- */
-const RowKindMenu: React.FC<RowKindMenuProps> = ({
-  current,
-  optimizable,
-  anchor,
-  onSelect,
-  onClose,
-  onDismiss,
-}) => {
-  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const focusedOnOpenRef = useRef(false);
-  // The Popover focuses this when it opens; the checked item's ref fills it.
-  const checkedItemRef = useRef<HTMLElement | null>(null);
-  const options: { kind: AdHocRowKind; label: string }[] = [
-    { kind: "fixed", label: "Fixed row" },
-    { kind: "dynamic", label: "Dynamic count" },
-    ...(optimizable
-      ? [{ kind: "optimized" as const, label: "Optimized count" }]
-      : []),
-  ];
-  const checkedIndex = Math.max(
-    0,
-    options.findIndex((option) => option.kind === current),
-  );
-
-  const handleMenuKeyDown = (event: React.KeyboardEvent) => {
-    const items = itemRefs.current.filter(
-      (item): item is HTMLButtonElement => item !== null,
-    );
-    const activeIndex = items.findIndex(
-      (item) => item === document.activeElement,
-    );
-    const focusItem = (index: number) => {
-      event.preventDefault();
-      event.stopPropagation();
-      items[(index + items.length) % items.length]?.focus();
-    };
-    if (event.key === "ArrowDown") {
-      focusItem(activeIndex + 1);
-    } else if (event.key === "ArrowUp") {
-      focusItem(activeIndex - 1);
-    } else if (event.key === "Home") {
-      focusItem(0);
-    } else if (event.key === "End") {
-      focusItem(items.length - 1);
-    } else if (event.key === "Escape" || event.key === "Tab") {
-      event.preventDefault();
-      event.stopPropagation();
-      onDismiss();
-    }
-  };
-
-  return (
-    <Popover
-      triggerRef={{ current: anchor }}
-      position="bottom-start"
-      onClose={onClose}
-      initialFocusRef={checkedItemRef}
-    >
-      <Popover.Container>
-        <Popover.Body withPadding={false}>
-          <div
-            className={menuStyle}
-            role="menu"
-            aria-orientation="vertical"
-            tabIndex={-1}
-            onKeyDown={handleMenuKeyDown}
-          >
-            {options.map((option, index) => (
-              <button
-                key={option.kind}
-                ref={(element) => {
-                  itemRefs.current[index] = element;
-                  if (index === checkedIndex) {
-                    checkedItemRef.current = element;
-                    // Focus on first attach too: jsdom never runs the
-                    // Popover's own open-autofocus.
-                    if (element && !focusedOnOpenRef.current) {
-                      focusedOnOpenRef.current = true;
-                      element.focus();
-                    }
-                  }
-                }}
-                type="button"
-                role="menuitemradio"
-                aria-checked={current === option.kind}
-                tabIndex={index === checkedIndex ? 0 : -1}
-                className={menuItemStyle}
-                onClick={() => onSelect(option.kind)}
-              >
-                <span className={menuMarkStyle} aria-hidden="true">
-                  {current === option.kind ? "✓" : ""}
-                </span>
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </Popover.Body>
-      </Popover.Container>
-    </Popover>
-  );
-};
 
 export interface TokenTableProps {
   place: Place;
@@ -669,9 +500,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 />
               </div>
             </td>
-            <td
-              className={cx(actionCellStyle, stripCellStyle, tint, selected)}
-            />
           </tr>
         ) : null}
         <tr>
@@ -723,11 +551,38 @@ export const TokenTable: React.FC<TokenTableProps> = ({
               </button>
             </Tooltip>
             {kindMenu?.row === rowIndex ? (
-              <RowKindMenu
-                current={kind}
-                optimizable={optimizable}
+              <GutterMenu
                 anchor={kindMenu.anchor}
-                onSelect={(nextKind) => setRowKind(rowIndex, nextKind)}
+                items={[
+                  {
+                    id: "fixed",
+                    label: "Fixed row",
+                    checked: kind === "fixed",
+                  },
+                  {
+                    id: "dynamic",
+                    label: "Dynamic count",
+                    checked: kind === "dynamic",
+                  },
+                  ...(optimizable
+                    ? [
+                        {
+                          id: "optimized",
+                          label: "Optimized count",
+                          checked: kind === "optimized",
+                        },
+                      ]
+                    : []),
+                  { id: "delete", label: "Delete row", destructive: true },
+                ]}
+                onSelect={(id) => {
+                  if (id === "delete") {
+                    setKindMenuState(null);
+                    deleteRow(rowIndex);
+                    return;
+                  }
+                  setRowKind(rowIndex, id as AdHocRowKind);
+                }}
                 onClose={() => setKindMenuState(null)}
                 onDismiss={() => {
                   const menuAnchor = kindMenu.anchor;
@@ -808,17 +663,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
               </td>
             );
           })}
-          <td className={cx(actionCellStyle, tint, selected)}>
-            <Button
-              size="xs"
-              variant="ghost"
-              tone="neutral"
-              aria-label={`Remove row ${rowIndex + 1}`}
-              iconName="trash"
-              className={rowDeleteButtonStyle}
-              onClick={() => deleteRow(rowIndex)}
-            />
-          </td>
         </tr>
       </tbody>
     );
@@ -880,7 +724,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 </th>
               );
             })}
-            <th aria-label="Row actions" className={gutterHeaderStyle} />
           </tr>
         </thead>
 
@@ -940,7 +783,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   </td>
                 );
               })}
-              <td className={actionCellStyle} />
             </tr>
           </tbody>
         ) : null}
@@ -985,13 +827,12 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 />
               </td>
             ))}
-            <td className={actionCellStyle} />
           </tr>
         </tbody>
 
         <tfoot>
           <tr>
-            <td colSpan={columnCount + 2} className={footerRowStyle}>
+            <td colSpan={columnCount + 1} className={footerRowStyle}>
               {total.resolved
                 ? `= ${total.total} tokens`
                 : `= ${total.text} tokens`}
