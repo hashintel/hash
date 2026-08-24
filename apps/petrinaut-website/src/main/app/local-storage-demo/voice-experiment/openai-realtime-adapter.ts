@@ -23,6 +23,7 @@ type RealtimeEvent = {
 };
 
 type FunctionCall = {
+  arguments: string | null;
   callId: string;
   name: string;
 };
@@ -63,6 +64,70 @@ const parseServerEvent = (data: unknown): RealtimeEvent | null => {
   } catch {
     return null;
   }
+};
+
+const boundedSummaryText = (value: unknown, limit = 120): string => {
+  if (typeof value !== "string") {
+    return "";
+  }
+  let sanitized = "";
+  for (const character of value.normalize("NFKC")) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    if (codePoint >= 32 && codePoint !== 127) {
+      sanitized += character;
+    }
+  }
+  return sanitized.replace(/\s+/gu, " ").trim().slice(0, limit);
+};
+
+const summarizeFunctionCall = ({
+  arguments: serializedArguments,
+  name,
+}: FunctionCall): string => {
+  if (!serializedArguments) {
+    return "Arguments unavailable";
+  }
+
+  let input: Record<string, unknown> | null = null;
+  try {
+    input = asRecord(JSON.parse(serializedArguments));
+  } catch {
+    return "Arguments unavailable";
+  }
+
+  if (name === "record_process_step") {
+    const parts = [
+      boundedSummaryText(input?.name),
+      boundedSummaryText(input?.description),
+    ];
+    const owner = boundedSummaryText(input?.owner);
+    if (owner) {
+      parts.push(`Owner: ${owner}`);
+    }
+    return (
+      parts.filter(Boolean).join(" · ").slice(0, 240) || "Arguments unavailable"
+    );
+  }
+
+  if (name === "record_process_decision") {
+    const condition = boundedSummaryText(input?.condition);
+    const outcomes = Array.isArray(input?.outcomes)
+      ? input.outcomes
+          .slice(0, 4)
+          .map((outcome) => boundedSummaryText(outcome, 80))
+          .filter(Boolean)
+          .join(" / ")
+      : "";
+    const parts = [
+      condition ? `Condition: ${condition}` : "",
+      outcomes ? `Outcomes: ${outcomes}` : "",
+    ];
+    return (
+      parts.filter(Boolean).join(" · ").slice(0, 240) || "Arguments unavailable"
+    );
+  }
+
+  return "Arguments hidden";
 };
 
 class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
@@ -309,9 +374,18 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
 
     if (event.type === "input_audio_buffer.committed") {
       const itemId = getString(event, "item_id");
-      if (itemId && this.#pendingCommittedTurnId !== null) {
-        this.#turnByItemId.set(itemId, this.#pendingCommittedTurnId);
-        this.#pendingCommittedTurnId = null;
+      if (itemId) {
+        if (this.#pendingCommittedTurnId !== null) {
+          this.#turnByItemId.set(itemId, this.#pendingCommittedTurnId);
+          this.#pendingCommittedTurnId = null;
+        } else {
+          if (this.#turnByItemId.size > 0) {
+            this.#turnId += 1;
+            this.#latestTurnId = this.#turnId;
+            this.#latestAssistantTranscript = "";
+          }
+          this.#turnByItemId.set(itemId, this.#latestTurnId);
+        }
       }
       return;
     }
@@ -432,6 +506,8 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
 
       for (const functionCall of functionCalls) {
         this.#emit({
+          argumentSummary: summarizeFunctionCall(functionCall),
+          callId: functionCall.callId,
           timestampMs: this.#dependencies.now(),
           toolName: functionCall.name,
           turnId: this.#latestTurnId,
@@ -481,7 +557,9 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
       }
       const callId = getString(record, "call_id");
       const name = getString(record, "name");
-      return callId && name ? [{ callId, name }] : [];
+      return callId && name
+        ? [{ arguments: getString(record, "arguments"), callId, name }]
+        : [];
     });
   }
 

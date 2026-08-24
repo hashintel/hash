@@ -19,6 +19,7 @@ import {
 import { GherkinElicitor } from "./agents/gherkin-elicitor.ts";
 import { createGherkinElicitationSession } from "./elicitation-session.ts";
 import { defaultPanelOrigins } from "./local-dev-origins.ts";
+import { voiceExperimentDiagnostics } from "./voice-experiment-diagnostics.ts";
 
 const inspect =
   process.env.BRUNCH_TRANSPORT_AISDK_INSPECT === "1"
@@ -39,6 +40,7 @@ const streamElicitorTurn = async (
   dispatch: { readonly message: string; readonly idempotencyKey: string },
   emit: (event: HarnessReplyEvent) => void,
 ): Promise<void> => {
+  const voiceTurnId = voiceExperimentDiagnostics.beginTurn(conversationId);
   const agent = init(GherkinElicitor, { id: conversationId });
   const receipt = await agent.dispatch({
     ...dispatch,
@@ -46,7 +48,16 @@ const streamElicitorTurn = async (
   });
   const projector = createFlueReplyProjector({
     submissionId: receipt.submissionId,
-    emit,
+    emit: (event) => {
+      if (event.type === "tool-input") {
+        voiceExperimentDiagnostics.recordToolCall(
+          conversationId,
+          voiceTurnId,
+          event,
+        );
+      }
+      emit(event);
+    },
   });
   await agent.read(receipt, { onEvent: (chunk) => projector.accept(chunk) });
 };

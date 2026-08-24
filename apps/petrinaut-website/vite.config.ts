@@ -108,6 +108,10 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        "/api/voice-experiment/elevenlabs-brunch-diagnostics": {
+          target: process.env.BRUNCH_CHAT_ORIGIN ?? "http://127.0.0.1:4321",
+          changeOrigin: true,
+        },
         "/api/petrinaut-opt": {
           target: process.env.PETRINAUT_OPT_ORIGIN ?? "http://127.0.0.1:4004",
           changeOrigin: true,

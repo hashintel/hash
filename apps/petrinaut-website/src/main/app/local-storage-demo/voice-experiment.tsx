@@ -1,12 +1,12 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  type KeyboardEvent,
-  type PointerEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { MdGraphicEq, MdMic } from "react-icons/md";
+  FiActivity,
+  FiChevronDown,
+  FiMessageSquare,
+  FiMic,
+  FiSquare,
+  FiTool,
+} from "react-icons/fi";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -18,29 +18,122 @@ import {
 import type { VoiceExperimentAdapter } from "./voice-experiment/voice-experiment-adapter";
 import type { VoiceExperimentEvent } from "./voice-experiment/voice-experiment-events";
 
-const SCENARIO_SCRIPT =
-  "Trace an urgent customer support escalation from first report to resolution.";
-
-const panelStyle = css({
+const dockStyle = css({
   position: "fixed",
   zIndex: "popover",
-  bottom: "4",
+  bottom: "[76px]",
   left: "[50%]",
-  display: "flex",
   width: "[calc(100vw - 32px)]",
-  maxWidth: "[620px]",
-  maxHeight: "[calc(100vh - 32px)]",
+  maxWidth: "[600px]",
   transform: "translateX(-50%)",
+  pointerEvents: "none",
+});
+
+const panelStyle = css({
+  position: "relative",
+  display: "flex",
+  width: "full",
+  maxHeight: "[calc(100vh - 108px)]",
   flexDirection: "column",
-  gap: "3",
-  padding: "4",
+  gap: "3.5",
+  padding: "[18px]",
   overflow: "auto",
   borderWidth: "thin",
   borderStyle: "solid",
   borderColor: "neutral.a30",
-  borderRadius: "xl",
-  backgroundColor: "neutral.s00",
-  boxShadow: "xl",
+  borderRadius: "2xl",
+  backgroundColor: "neutral.s05",
+  boxShadow:
+    "[0 24px 72px rgb(15 23 42 / 0.22), 0 2px 8px rgb(15 23 42 / 0.08)]",
+  transformOrigin: "bottom center",
+  transition:
+    "[opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 180ms]",
+});
+
+const collapsedPanelStyle = css({
+  visibility: "hidden",
+  opacity: "0",
+  pointerEvents: "none",
+  transform: "translateY(14px) scale(0.965)",
+});
+
+const expandedPanelStyle = css({
+  visibility: "visible",
+  opacity: "1",
+  pointerEvents: "auto",
+  transform: "translateY(0) scale(1)",
+  transition:
+    "[opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s]",
+});
+
+const launcherButtonStyle = css({
+  position: "absolute",
+  bottom: "0",
+  left: "[50%]",
+  display: "inline-flex",
+  width: "12",
+  height: "12",
+  transform: "translateX(-50%)",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "0",
+  pointerEvents: "auto",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "blue.a100",
+  borderRadius: "full",
+  backgroundColor: "blue.s100",
+  color: "white",
+  cursor: "pointer",
+  isolation: "isolate",
+  boxShadow:
+    "[0 8px 22px rgb(42 128 200 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.25)]",
+  transition:
+    "[opacity 150ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease, box-shadow 150ms ease]",
+  _hover: {
+    transform: "translateX(-50%) translateY(-2px) scale(1.04)",
+    boxShadow:
+      "[0 11px 26px rgb(42 128 200 / 0.34), inset 0 1px 0 rgb(255 255 255 / 0.28)]",
+  },
+  _focusVisible: {
+    outline: "3px solid",
+    outlineColor: "blue.a40",
+    outlineOffset: "[3px]",
+  },
+});
+
+const hiddenLauncherButtonStyle = css({
+  visibility: "hidden",
+  opacity: "0",
+  pointerEvents: "none",
+  transform: "translateX(-50%) translateY(8px) scale(0.78)",
+  transition:
+    "[opacity 150ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease, box-shadow 150ms ease, visibility 0s linear 150ms]",
+});
+
+const activeLauncherButtonStyle = css({
+  borderColor: "red.s100",
+  backgroundColor: "red.s100",
+  boxShadow:
+    "[0 8px 24px rgb(211 47 47 / 0.34), inset 0 1px 0 rgb(255 255 255 / 0.22)]",
+  _hover: {
+    backgroundColor: "red.s110",
+    boxShadow:
+      "[0 11px 28px rgb(211 47 47 / 0.40), inset 0 1px 0 rgb(255 255 255 / 0.24)]",
+  },
+});
+
+const launcherStatusStyle = css({
+  position: "absolute",
+  top: "[-1px]",
+  right: "[-1px]",
+  width: "2.5",
+  height: "2.5",
+  borderWidth: "[2px]",
+  borderStyle: "solid",
+  borderColor: "neutral.s00",
+  borderRadius: "full",
+  backgroundColor: "neutral.s55",
 });
 
 const headerStyle = css({
@@ -48,38 +141,82 @@ const headerStyle = css({
   alignItems: "center",
   justifyContent: "space-between",
   gap: "4",
+  paddingBottom: "3",
+  borderBottomWidth: "thin",
+  borderBottomStyle: "solid",
+  borderBottomColor: "neutral.a20",
+});
+
+const headerIdentityStyle = css({
+  display: "flex",
+  minWidth: "0",
+  alignItems: "center",
+});
+
+const headerActionsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "3",
+});
+
+const minimizeButtonStyle = css({
+  display: "inline-flex",
+  width: "8",
+  height: "8",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "0",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a20",
+  borderRadius: "lg",
+  backgroundColor: "white",
+  color: "neutral.s75",
+  cursor: "pointer",
+  transition:
+    "[background-color 140ms ease, color 140ms ease, transform 140ms ease]",
+  _hover: {
+    backgroundColor: "neutral.a10",
+    color: "neutral.s100",
+    transform: "translateY(1px)",
+  },
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "blue.a35",
+    outlineOffset: "[2px]",
+  },
+});
+
+const titleCopyStyle = css({
+  display: "flex",
+  minWidth: "0",
+  alignItems: "center",
+  gap: "2",
+  flexWrap: "wrap",
 });
 
 const headingStyle = css({
-  color: "neutral.s100",
+  color: "neutral.s115",
   fontSize: "lg",
   fontWeight: "semibold",
+  lineHeight: "tight",
 });
 
 const experimentBadgeStyle = css({
-  paddingX: "3",
-  paddingY: "1.5",
+  paddingX: "2",
+  paddingY: "0.5",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a30",
   borderRadius: "full",
-  backgroundColor: "blue.a10",
-  color: "blue.a85",
-  fontSize: "xs",
-  fontWeight: "semibold",
-});
-
-const scenarioStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  padding: "3",
-  borderRadius: "lg",
-  backgroundColor: "neutral.a10",
+  backgroundColor: "white",
   color: "neutral.s80",
   fontSize: "xs",
-  lineHeight: "relaxed",
+  fontWeight: "medium",
 });
 
 const sectionLabelStyle = css({
-  color: "blue.a85",
+  color: "neutral.s90",
   fontSize: "xs",
   fontWeight: "semibold",
   letterSpacing: "wide",
@@ -88,20 +225,57 @@ const sectionLabelStyle = css({
 
 const transcriptStyle = css({
   display: "flex",
-  minHeight: "16",
-  maxHeight: "52",
+  minHeight: "28",
+  maxHeight: "64",
   flexDirection: "column",
   gap: "2.5",
   padding: "3",
   overflowY: "auto",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.a20",
-  borderRadius: "lg",
-  backgroundColor: "neutral.a05",
-  color: "neutral.s70",
+  borderColor: "neutral.a25",
+  borderRadius: "xl",
+  backgroundColor: "white",
+  color: "neutral.s80",
+  boxShadow: "[inset 0 1px 0 rgb(255 255 255 / 0.85)]",
   fontSize: "sm",
   lineHeight: "relaxed",
+  scrollBehavior: "smooth",
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "blue.a30",
+    outlineOffset: "[2px]",
+  },
+});
+
+const transcriptSectionStyle = css({
+  display: "flex",
+  minHeight: "0",
+  flexDirection: "column",
+  gap: "2",
+});
+
+const transcriptHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingX: "1",
+});
+
+const sectionHeadingStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  color: "neutral.s80",
+});
+
+const transcriptCountStyle = css({
+  paddingX: "2",
+  paddingY: "0.5",
+  borderRadius: "full",
+  backgroundColor: "neutral.a15",
+  color: "neutral.s70",
+  fontSize: "xs",
 });
 
 const transcriptEntryStyle = css({
@@ -117,7 +291,7 @@ const expertTranscriptEntryStyle = css({
 });
 
 const transcriptSpeakerStyle = css({
-  color: "neutral.s55",
+  color: "neutral.s65",
   fontSize: "xs",
   fontWeight: "medium",
 });
@@ -125,13 +299,13 @@ const transcriptSpeakerStyle = css({
 const transcriptBubbleStyle = css({
   paddingX: "3",
   paddingY: "2",
-  borderRadius: "lg",
-  backgroundColor: "neutral.a10",
-  color: "neutral.s80",
+  borderRadius: "xl",
+  backgroundColor: "neutral.a15",
+  color: "neutral.s95",
 });
 
 const expertTranscriptBubbleStyle = css({
-  backgroundColor: "blue.a15",
+  backgroundColor: "blue.a20",
 });
 
 const partialTranscriptStyle = css({
@@ -140,85 +314,16 @@ const partialTranscriptStyle = css({
 
 const transcriptPlaceholderStyle = css({
   margin: "auto",
-  color: "neutral.s55",
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  color: "neutral.s65",
   textAlign: "center",
 });
 
-const controlsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "3",
-});
-
-const sessionAreaStyle = css({
-  display: "flex",
-  minWidth: "0",
-  flex: "1",
-  flexDirection: "column",
-  gap: "2",
-});
-
-const sessionControlsStyle = css({
-  display: "flex",
-  width: "full",
-  alignItems: "center",
-  gap: "2",
-});
-
-const sessionButtonStyle = css({
-  display: "inline-flex",
-  minHeight: "12",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingX: "4",
-  paddingY: "3",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderRadius: "lg",
-  cursor: "pointer",
-  fontSize: "sm",
-  fontWeight: "semibold",
-  transition: "[transform 120ms ease, box-shadow 120ms ease]",
-  _disabled: {
-    cursor: "not-allowed",
-    opacity: "0.4",
-  },
-});
-
-const startSessionButtonStyle = css({
-  flex: "[2 1 0%]",
-  borderColor: "blue.a100",
-  backgroundColor: "blue.a100",
-  color: "white",
-  boxShadow: "md",
-  _hover: {
-    transform: "translateY(-1px)",
-    boxShadow: "lg",
-  },
-});
-
-const endSessionButtonStyle = css({
-  flex: "1",
-  borderColor: "red.a35",
-  backgroundColor: "neutral.s00",
-  color: "red.a85",
-  _hover: {
-    backgroundColor: "red.a10",
-  },
-});
-
-const statusStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-  color: "neutral.s70",
-  fontSize: "xs",
-});
-
 const statusIndicatorStyle = css({
-  width: "2",
-  height: "2",
+  width: "2.5",
+  height: "2.5",
   flexShrink: "0",
   borderRadius: "full",
   backgroundColor: "neutral.a50",
@@ -226,51 +331,77 @@ const statusIndicatorStyle = css({
 
 const connectedStatusIndicatorStyle = css({
   backgroundColor: "green.a85",
-  boxShadow: "[0 0 0 4px {colors.green.a15}]",
+  boxShadow: "[0 0 0 4px {colors.green.a10}]",
 });
 
-const liveStatusIndicatorStyle = css({
-  backgroundColor: "red.a85",
-  boxShadow: "[0 0 0 4px {colors.red.a15}]",
+const pendingStatusIndicatorStyle = css({
+  backgroundColor: "yellow.a85",
+  boxShadow: "[0 0 0 4px {colors.yellow.a10}]",
 });
 
 const errorStatusIndicatorStyle = css({
   backgroundColor: "red.a85",
+  boxShadow: "[0 0 0 4px {colors.red.a10}]",
+});
+
+const conversationControlStyle = css({
+  display: "flex",
+  width: "full",
+  minHeight: "24",
+  alignItems: "center",
+  justifyContent: "center",
+  paddingY: "1",
 });
 
 const microphoneButtonStyle = css({
+  position: "relative",
   display: "inline-flex",
+  width: "[68px]",
+  height: "[68px]",
+  flexShrink: "0",
   alignItems: "center",
   justifyContent: "center",
-  width: "14",
-  height: "14",
-  flexShrink: "0",
+  padding: "0",
+  borderWidth: "[2px]",
+  borderStyle: "solid",
+  borderColor: "blue.a100",
   borderRadius: "full",
-  backgroundColor: "blue.a85",
+  backgroundColor: "blue.a100",
   color: "white",
   cursor: "pointer",
-  boxShadow: "md",
-  touchAction: "none",
-  transition: "[transform 120ms ease, background-color 120ms ease]",
+  isolation: "isolate",
+  boxShadow:
+    "[0 10px 26px rgb(42 128 200 / 0.30), inset 0 1px 0 rgb(255 255 255 / 0.22)]",
+  transition:
+    "[transform 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease]",
   _hover: {
-    backgroundColor: "blue.a100",
+    backgroundColor: "blue.a110",
+    transform: "translateY(-2px) scale(1.03)",
+    boxShadow:
+      "[0 14px 30px rgb(42 128 200 / 0.34), inset 0 1px 0 rgb(255 255 255 / 0.24)]",
   },
   _focusVisible: {
     outline: "3px solid",
-    outlineColor: "blue.a30",
-    outlineOffset: "[2px]",
+    outlineColor: "blue.a40",
+    outlineOffset: "[4px]",
   },
   _disabled: {
-    backgroundColor: "neutral.a30",
-    color: "neutral.s50",
     cursor: "not-allowed",
-    boxShadow: "[none]",
+    opacity: "0.52",
+    transform: "none",
   },
 });
 
 const activeMicrophoneButtonStyle = css({
-  transform: "scale(1.08)",
-  backgroundColor: "red.a85",
+  borderColor: "red.s100",
+  backgroundColor: "red.s100",
+  boxShadow:
+    "[0 10px 28px rgb(211 47 47 / 0.34), inset 0 1px 0 rgb(255 255 255 / 0.20)]",
+  _hover: {
+    backgroundColor: "red.s110",
+    boxShadow:
+      "[0 14px 32px rgb(211 47 47 / 0.38), inset 0 1px 0 rgb(255 255 255 / 0.22)]",
+  },
 });
 
 const eventLogStyle = css({
@@ -283,10 +414,10 @@ const eventLogStyle = css({
   overflowY: "auto",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.a20",
+  borderColor: "neutral.a15",
   borderRadius: "md",
   backgroundColor: "neutral.a05",
-  color: "neutral.s60",
+  color: "neutral.s70",
   fontFamily: "mono",
   fontSize: "xs",
 });
@@ -294,7 +425,7 @@ const eventLogStyle = css({
 const technicalDetailsStyle = css({
   borderTopWidth: "thin",
   borderTopStyle: "solid",
-  borderTopColor: "neutral.a15",
+  borderTopColor: "neutral.a20",
   paddingTop: "2",
 });
 
@@ -302,14 +433,20 @@ const technicalSummaryStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  color: "neutral.s60",
+  color: "neutral.s75",
   cursor: "pointer",
   fontSize: "xs",
   fontWeight: "medium",
 });
 
+const technicalSummaryLabelStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+});
+
 const eventCountStyle = css({
-  color: "neutral.s50",
+  color: "neutral.s65",
   fontWeight: "normal",
 });
 
@@ -322,6 +459,91 @@ const eventRowStyle = css({
 const emptyLogStyle = css({
   color: "neutral.s50",
   fontFamily: "body",
+});
+
+const toolDiagnosticsSectionStyle = css({
+  display: "flex",
+  minHeight: "0",
+  flexDirection: "column",
+  gap: "2",
+});
+
+const toolDiagnosticsHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingX: "1",
+});
+
+const toolDiagnosticsLogStyle = css({
+  display: "flex",
+  maxHeight: "36",
+  flexDirection: "column",
+  gap: "2",
+  padding: "2",
+  overflowY: "auto",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a15",
+  borderRadius: "xl",
+  backgroundColor: "neutral.a10",
+});
+
+const toolDiagnosticEmptyStyle = css({
+  display: "flex",
+  minHeight: "14",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "2",
+  color: "neutral.s65",
+  fontSize: "sm",
+});
+
+const toolDiagnosticCardStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[minmax(0, 1fr) auto]",
+  gap: "1.5",
+  paddingX: "2.5",
+  paddingY: "2",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a20",
+  borderRadius: "lg",
+  backgroundColor: "white",
+});
+
+const toolDiagnosticNameStyle = css({
+  minWidth: "0",
+  overflow: "hidden",
+  color: "blue.a85",
+  fontFamily: "mono",
+  fontSize: "xs",
+  fontWeight: "semibold",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const toolDiagnosticTurnStyle = css({
+  color: "neutral.s50",
+  fontFamily: "mono",
+  fontSize: "xs",
+  whiteSpace: "nowrap",
+});
+
+const toolDiagnosticSummaryStyle = css({
+  gridColumn: "[1 / -1]",
+  color: "neutral.s75",
+  fontSize: "sm",
+  lineHeight: "relaxed",
+  overflowWrap: "anywhere",
+});
+
+const toolDiagnosticCallStyle = css({
+  gridColumn: "[1 / -1]",
+  color: "neutral.s45",
+  fontFamily: "mono",
+  fontSize: "xs",
+  overflowWrap: "anywhere",
 });
 
 type SessionState =
@@ -339,6 +561,7 @@ type LoggedEvent = {
 };
 
 type TranscriptEntry = {
+  id: number;
   isPartial: boolean;
   speaker: "assistant" | "expert";
   transcript: string;
@@ -346,23 +569,42 @@ type TranscriptEntry = {
 };
 
 const getTranscriptEntries = (events: LoggedEvent[]): TranscriptEntry[] => {
-  const entries = new Map<string, TranscriptEntry>();
+  const entries: TranscriptEntry[] = [];
+  const partialEntryIndexes = new Map<string, number>();
 
-  for (const { event } of events) {
+  for (const { event, sequence } of events) {
     if (
       event.type === "partial-transcript" ||
       event.type === "final-transcript"
     ) {
-      entries.set(`${event.turnId}:${event.speaker}`, {
+      const partialKey = `${event.turnId}:${event.speaker}`;
+      const partialEntryIndex = partialEntryIndexes.get(partialKey);
+      const entry: TranscriptEntry = {
+        id:
+          partialEntryIndex === undefined
+            ? sequence
+            : (entries[partialEntryIndex]?.id ?? sequence),
         isPartial: event.type === "partial-transcript",
         speaker: event.speaker,
         transcript: event.transcript,
         turnId: event.turnId,
-      });
+      };
+
+      if (partialEntryIndex === undefined) {
+        if (event.type === "partial-transcript") {
+          partialEntryIndexes.set(partialKey, entries.length);
+        }
+        entries.push(entry);
+      } else {
+        entries[partialEntryIndex] = entry;
+        if (event.type === "final-transcript") {
+          partialEntryIndexes.delete(partialKey);
+        }
+      }
     }
   }
 
-  return [...entries.values()];
+  return entries;
 };
 
 const getEventSummary = (event: VoiceExperimentEvent) => {
@@ -373,7 +615,7 @@ const getEventSummary = (event: VoiceExperimentEvent) => {
     return `${event.type} (${event.speaker}): ${event.transcript}`;
   }
   if (event.type === "tool-called") {
-    return `${event.type}: ${event.toolName}`;
+    return `${event.type}: ${event.toolName} · turn ${event.turnId} · call ${event.callId}`;
   }
   if (event.type === "error") {
     return `${event.type}: ${event.message}`;
@@ -396,10 +638,15 @@ export const VoiceExperiment = ({
 }) => {
   const [conversationId] = useState(() => crypto.randomUUID());
   const [events, setEvents] = useState<LoggedEvent[]>([]);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [sessionState, setSessionState] = useState<SessionState>("ready");
-  const [isTurnActive, setIsTurnActive] = useState(false);
+  const [isConversationActive, setIsConversationActive] = useState(false);
+  const hasToggledPanelRef = useRef(false);
+  const launcherButtonRef = useRef<HTMLButtonElement>(null);
+  const minimizeButtonRef = useRef<HTMLButtonElement>(null);
   const sequenceRef = useRef(0);
-  const pressedRef = useRef(false);
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollTranscriptRef = useRef(true);
 
   const appendEvent = useCallback((event: VoiceExperimentEvent) => {
     setEvents((previous) => [
@@ -410,7 +657,7 @@ export const VoiceExperiment = ({
     if (event.type === "connected") {
       setSessionState("connected");
     } else if (event.type === "recording-started") {
-      setIsTurnActive(true);
+      setIsConversationActive(true);
     } else if (event.type === "response-started") {
       setSessionState("responding");
     } else if (event.type === "response-completed") {
@@ -423,8 +670,19 @@ export const VoiceExperiment = ({
   useEffect(() => adapter?.subscribe(appendEvent), [adapter, appendEvent]);
 
   useEffect(() => {
+    if (!hasToggledPanelRef.current) {
+      return;
+    }
+
+    if (isExpanded) {
+      minimizeButtonRef.current?.focus();
+    } else {
+      launcherButtonRef.current?.focus();
+    }
+  }, [isExpanded]);
+
+  useEffect(() => {
     const dispose = () => {
-      pressedRef.current = false;
       void adapter?.dispose();
     };
 
@@ -435,7 +693,7 @@ export const VoiceExperiment = ({
     };
   }, [adapter]);
 
-  const startSession = async () => {
+  const startConversation = async () => {
     if (!adapter || sessionState !== "ready") {
       return;
     }
@@ -443,19 +701,22 @@ export const VoiceExperiment = ({
     setSessionState("connecting");
     try {
       await adapter.connect();
+      await adapter.startTurn();
+      setIsConversationActive(true);
       setSessionState("connected");
     } catch (error) {
+      setIsConversationActive(false);
+      await adapter.dispose().catch(() => undefined);
       appendEvent(createErrorEvent(error));
     }
   };
 
-  const endSession = async () => {
+  const stopConversation = async () => {
     if (!adapter || sessionState === "ready" || sessionState === "ended") {
       return;
     }
 
-    pressedRef.current = false;
-    setIsTurnActive(false);
+    setIsConversationActive(false);
     setSessionState("ending");
     try {
       await adapter.dispose();
@@ -465,236 +726,344 @@ export const VoiceExperiment = ({
     }
   };
 
-  const startTurn = async () => {
-    if (
-      !adapter ||
-      (sessionState !== "connected" && sessionState !== "responding") ||
-      pressedRef.current
-    ) {
-      return;
+  useEffect(() => {
+    const transcript = transcriptRef.current;
+    if (transcript && shouldAutoScrollTranscriptRef.current) {
+      transcript.scrollTo({ top: transcript.scrollHeight });
     }
+  }, [events]);
 
-    pressedRef.current = true;
-    setIsTurnActive(true);
-    try {
-      await adapter.startTurn();
-    } catch (error) {
-      pressedRef.current = false;
-      setIsTurnActive(false);
-      appendEvent(createErrorEvent(error));
-    }
-  };
-
-  const finishTurn = async () => {
-    if (!adapter || !pressedRef.current) {
-      return;
-    }
-
-    pressedRef.current = false;
-    setIsTurnActive(false);
-    try {
-      await adapter.finishTurn();
-    } catch (error) {
-      appendEvent(createErrorEvent(error));
-    }
-  };
-
-  const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    void startTurn();
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if ((event.key === " " || event.key === "Enter") && !event.repeat) {
-      event.preventDefault();
-      void startTurn();
-    }
-  };
-
-  const handleKeyUp = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === " " || event.key === "Enter") {
-      event.preventDefault();
-      void finishTurn();
+  const handleTranscriptScroll = () => {
+    const transcript = transcriptRef.current;
+    if (transcript) {
+      const distanceFromBottom =
+        transcript.scrollHeight -
+        transcript.scrollTop -
+        transcript.clientHeight;
+      shouldAutoScrollTranscriptRef.current = distanceFromBottom < 24;
     }
   };
 
   const transcriptEntries = getTranscriptEntries(events);
+  const toolDiagnostics = events.filter(
+    (
+      entry,
+    ): entry is LoggedEvent & {
+      event: Extract<VoiceExperimentEvent, { type: "tool-called" }>;
+    } => entry.event.type === "tool-called",
+  );
   const isConnected =
     sessionState === "connected" || sessionState === "responding";
-  const isAdapterPending = !adapter;
-  const canStartSession = Boolean(adapter) && sessionState === "ready";
-  const canEndSession =
+  const isPending = sessionState === "connecting" || sessionState === "ending";
+  const canToggleConversation =
     Boolean(adapter) &&
-    sessionState !== "ready" &&
-    sessionState !== "ending" &&
-    sessionState !== "ended";
-  const canStartTurn = Boolean(adapter) && isConnected;
+    !isPending &&
+    (sessionState === "ready" || isConversationActive);
   const latestEvent = events.at(-1)?.event;
-  const statusMessage = isAdapterPending
-    ? "Voice connection unavailable"
-    : isTurnActive
-      ? "Listening — release to send"
-      : sessionState === "ready"
-        ? "Ready"
-        : sessionState === "connecting"
-          ? "Connecting…"
-          : sessionState === "connected"
-            ? "Connected — hold the microphone to speak"
-            : sessionState === "responding"
-              ? "Interviewer is responding…"
-              : sessionState === "ending"
-                ? "Ending…"
-                : sessionState === "ended"
-                  ? "Session ended"
-                  : latestEvent?.type === "error"
-                    ? latestEvent.message
-                    : "Could not start the voice session";
+  const statusLabel = !adapter
+    ? "Unavailable"
+    : sessionState === "ready"
+      ? "Ready"
+      : sessionState === "connecting"
+        ? "Connecting"
+        : sessionState === "connected" || sessionState === "responding"
+          ? "Conversation active"
+          : sessionState === "ending"
+            ? "Stopping"
+            : sessionState === "ended"
+              ? "Conversation ended"
+              : latestEvent?.type === "error"
+                ? latestEvent.message
+                : "Connection error";
+  const controlLabel = isConversationActive
+    ? "Stop conversation"
+    : sessionState === "connecting"
+      ? "Starting…"
+      : sessionState === "ending"
+        ? "Stopping…"
+        : sessionState === "ended"
+          ? "Conversation ended"
+          : sessionState === "error"
+            ? "Unavailable"
+            : "Start conversation";
 
   return (
-    <aside
-      aria-label="Voice experiment"
-      className={`${panelStyle} petrinaut-root`}
-    >
-      <header className={headerStyle}>
-        <strong className={headingStyle}>Voice interview</strong>
-        <span className={experimentBadgeStyle}>
-          {voiceExperimentLabel[experiment]}
-        </span>
-      </header>
+    <div className={`${dockStyle} petrinaut-root`}>
+      <button
+        ref={launcherButtonRef}
+        aria-controls="voice-experiment-panel"
+        aria-expanded={isExpanded}
+        aria-hidden={isExpanded}
+        aria-label={
+          isConversationActive
+            ? "Open active voice interview"
+            : "Open voice interview"
+        }
+        className={[
+          launcherButtonStyle,
+          "voice-experiment-launcher",
+          isExpanded ? hiddenLauncherButtonStyle : "",
+          isConversationActive ? activeLauncherButtonStyle : "",
+          isConversationActive ? "voice-conversation-active" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        onClick={() => {
+          hasToggledPanelRef.current = true;
+          setIsExpanded(true);
+        }}
+        tabIndex={isExpanded ? -1 : 0}
+        title={
+          isConversationActive
+            ? "Open active voice interview"
+            : "Open voice interview"
+        }
+        type="button"
+      >
+        <FiMic aria-hidden="true" size={19} />
+        <span
+          aria-hidden="true"
+          className={[
+            launcherStatusStyle,
+            sessionState === "error"
+              ? errorStatusIndicatorStyle
+              : isPending
+                ? pendingStatusIndicatorStyle
+                : isConnected
+                  ? connectedStatusIndicatorStyle
+                  : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        />
+      </button>
 
-      <div className={scenarioStyle}>
-        <span className={sectionLabelStyle}>Scenario</span>
-        <span>{SCENARIO_SCRIPT}</span>
-      </div>
-
-      <div className={controlsStyle}>
-        <div className={sessionAreaStyle}>
-          <div className={sessionControlsStyle}>
-            <button
-              className={[sessionButtonStyle, startSessionButtonStyle]
-                .filter(Boolean)
-                .join(" ")}
-              disabled={!canStartSession}
-              onClick={() => void startSession()}
-              type="button"
-            >
-              Start session
-            </button>
-            <button
-              className={[sessionButtonStyle, endSessionButtonStyle]
-                .filter(Boolean)
-                .join(" ")}
-              disabled={!canEndSession}
-              onClick={() => void endSession()}
-              type="button"
-            >
-              End session
-            </button>
+      <aside
+        aria-hidden={!isExpanded}
+        aria-label="Voice experiment"
+        className={[
+          panelStyle,
+          "voice-experiment-panel",
+          isExpanded ? expandedPanelStyle : collapsedPanelStyle,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        id="voice-experiment-panel"
+      >
+        <header className={headerStyle}>
+          <div className={headerIdentityStyle}>
+            <div className={titleCopyStyle}>
+              <strong className={headingStyle}>Voice interview</strong>
+              <span className={experimentBadgeStyle}>
+                {voiceExperimentLabel[experiment]}
+              </span>
+            </div>
           </div>
-          <p className={statusStyle}>
+          <div className={headerActionsStyle}>
             <span
-              aria-hidden="true"
+              aria-label={statusLabel}
               className={[
                 statusIndicatorStyle,
-                isTurnActive
-                  ? liveStatusIndicatorStyle
-                  : isConnected
-                    ? connectedStatusIndicatorStyle
-                    : sessionState === "error"
-                      ? errorStatusIndicatorStyle
+                sessionState === "error"
+                  ? errorStatusIndicatorStyle
+                  : isPending
+                    ? pendingStatusIndicatorStyle
+                    : isConnected
+                      ? connectedStatusIndicatorStyle
                       : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
+              role="status"
+              title={statusLabel}
             />
-            {statusMessage}
-          </p>
-        </div>
-        {canStartTurn ? (
+            <button
+              ref={minimizeButtonRef}
+              aria-label="Minimize voice interview"
+              className={minimizeButtonStyle}
+              onClick={() => {
+                hasToggledPanelRef.current = true;
+                setIsExpanded(false);
+              }}
+              title="Minimize voice interview"
+              type="button"
+            >
+              <FiChevronDown aria-hidden="true" size={17} />
+            </button>
+          </div>
+        </header>
+
+        <div className={conversationControlStyle}>
           <button
-            aria-label={
-              isTurnActive ? "Release to finish speaking" : "Hold to speak"
-            }
+            aria-label={controlLabel}
+            aria-pressed={isConversationActive}
             className={[
               microphoneButtonStyle,
-              isTurnActive ? activeMicrophoneButtonStyle : "",
+              isConversationActive ? activeMicrophoneButtonStyle : "",
+              isConversationActive ? "voice-conversation-active" : "",
             ]
               .filter(Boolean)
               .join(" ")}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
-            onPointerCancel={() => void finishTurn()}
-            onPointerDown={handlePointerDown}
-            onPointerUp={() => void finishTurn()}
+            disabled={!canToggleConversation}
+            onClick={() =>
+              void (isConversationActive
+                ? stopConversation()
+                : startConversation())
+            }
+            title={controlLabel}
             type="button"
           >
-            {isTurnActive ? <MdGraphicEq size={24} /> : <MdMic size={24} />}
+            {isConversationActive ? (
+              <FiSquare aria-hidden="true" fill="currentColor" size={22} />
+            ) : (
+              <FiMic aria-hidden="true" size={26} />
+            )}
           </button>
-        ) : null}
-      </div>
-
-      <div aria-live="polite" className={transcriptStyle} role="log">
-        {transcriptEntries.length === 0 ? (
-          <p className={transcriptPlaceholderStyle}>
-            The conversation will appear here.
-          </p>
-        ) : (
-          transcriptEntries.map((entry) => (
-            <div
-              className={[
-                transcriptEntryStyle,
-                entry.speaker === "expert" ? expertTranscriptEntryStyle : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              key={`${entry.turnId}:${entry.speaker}`}
-            >
-              <span className={transcriptSpeakerStyle}>
-                {entry.speaker === "expert" ? "Expert" : "Interviewer"}
-              </span>
-              <p
-                className={[
-                  transcriptBubbleStyle,
-                  entry.speaker === "expert" ? expertTranscriptBubbleStyle : "",
-                  entry.isPartial ? partialTranscriptStyle : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                {entry.transcript}
-              </p>
-            </div>
-          ))
-        )}
-      </div>
-
-      <details className={technicalDetailsStyle}>
-        <summary className={technicalSummaryStyle}>
-          <span>Technical details</span>
-          <span className={eventCountStyle}>
-            {events.length} {events.length === 1 ? "event" : "events"}
-          </span>
-        </summary>
-        <div className={eventLogStyle}>
-          {events.length === 0 ? (
-            <span className={emptyLogStyle}>
-              No events · conversation {conversationId.slice(0, 8)}
-            </span>
-          ) : (
-            events.map(({ event, sequence }) => (
-              <div className={eventRowStyle} key={sequence}>
-                <span>
-                  {String(sequence).padStart(2, "0")} · {getEventSummary(event)}
-                </span>
-                <time dateTime={new Date(event.timestampMs).toISOString()}>
-                  {new Date(event.timestampMs).toLocaleTimeString()}
-                </time>
-              </div>
-            ))
-          )}
         </div>
-      </details>
-    </aside>
+
+        <section className={transcriptSectionStyle}>
+          <div className={transcriptHeaderStyle}>
+            <span className={sectionHeadingStyle}>
+              <FiMessageSquare aria-hidden="true" size={14} />
+              <span className={sectionLabelStyle}>Transcript</span>
+            </span>
+            <span className={transcriptCountStyle}>
+              {transcriptEntries.length}{" "}
+              {transcriptEntries.length === 1 ? "message" : "messages"}
+            </span>
+          </div>
+          <div
+            aria-label="Conversation transcript"
+            aria-live="polite"
+            className={transcriptStyle}
+            onScroll={handleTranscriptScroll}
+            ref={transcriptRef}
+            role="log"
+            // A bounded transcript must be keyboard-focusable to scroll.
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+            tabIndex={0}
+          >
+            {transcriptEntries.length === 0 ? (
+              <p className={transcriptPlaceholderStyle}>
+                <FiMessageSquare aria-hidden="true" size={16} />
+                Conversation appears here
+              </p>
+            ) : (
+              transcriptEntries.map((entry) => (
+                <div
+                  className={[
+                    transcriptEntryStyle,
+                    entry.speaker === "expert"
+                      ? expertTranscriptEntryStyle
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  key={entry.id}
+                >
+                  <span className={transcriptSpeakerStyle}>
+                    {entry.speaker === "expert" ? "Expert" : "Interviewer"}
+                  </span>
+                  <p
+                    className={[
+                      transcriptBubbleStyle,
+                      entry.speaker === "expert"
+                        ? expertTranscriptBubbleStyle
+                        : "",
+                      entry.isPartial ? partialTranscriptStyle : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    {entry.transcript}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section
+          aria-labelledby="voice-tool-diagnostics-heading"
+          className={toolDiagnosticsSectionStyle}
+        >
+          <div className={toolDiagnosticsHeaderStyle}>
+            <span className={sectionHeadingStyle}>
+              <FiTool aria-hidden="true" size={14} />
+              <span
+                className={sectionLabelStyle}
+                id="voice-tool-diagnostics-heading"
+              >
+                Tool calls
+              </span>
+            </span>
+            <span className={transcriptCountStyle}>
+              {toolDiagnostics.length}
+            </span>
+          </div>
+          <div
+            aria-label="Tool call diagnostics"
+            aria-live="polite"
+            className={toolDiagnosticsLogStyle}
+            role="log"
+          >
+            {toolDiagnostics.length === 0 ? (
+              <p className={toolDiagnosticEmptyStyle}>
+                <FiTool aria-hidden="true" size={14} />
+                Tool calls appear here
+              </p>
+            ) : (
+              toolDiagnostics.map(({ event, sequence }) => (
+                <article className={toolDiagnosticCardStyle} key={sequence}>
+                  <strong className={toolDiagnosticNameStyle}>
+                    {event.toolName}
+                  </strong>
+                  <span className={toolDiagnosticTurnStyle}>
+                    Turn {event.turnId}
+                  </span>
+                  <p className={toolDiagnosticSummaryStyle}>
+                    {event.argumentSummary}
+                  </p>
+                  <span className={toolDiagnosticCallStyle}>
+                    Call {event.callId}
+                  </span>
+                </article>
+              ))
+            )}
+          </div>
+        </section>
+
+        <details className={technicalDetailsStyle}>
+          <summary className={technicalSummaryStyle}>
+            <span className={technicalSummaryLabelStyle}>
+              <FiActivity aria-hidden="true" size={13} />
+              Logs
+            </span>
+            <span className={eventCountStyle}>
+              {events.length} {events.length === 1 ? "event" : "events"}
+            </span>
+          </summary>
+          <div className={eventLogStyle}>
+            {events.length === 0 ? (
+              <span className={emptyLogStyle}>
+                No events · conversation {conversationId.slice(0, 8)}
+              </span>
+            ) : (
+              events.map(({ event, sequence }) => (
+                <div className={eventRowStyle} key={sequence}>
+                  <span>
+                    {String(sequence).padStart(2, "0")} ·{" "}
+                    {getEventSummary(event)}
+                  </span>
+                  <time dateTime={new Date(event.timestampMs).toISOString()}>
+                    {new Date(event.timestampMs).toLocaleTimeString()}
+                  </time>
+                </div>
+              ))
+            )}
+          </div>
+        </details>
+      </aside>
+    </div>
   );
 };

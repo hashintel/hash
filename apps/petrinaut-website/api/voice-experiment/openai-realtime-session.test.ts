@@ -136,12 +136,25 @@ describe("OpenAI Realtime session endpoint", () => {
     expect(
       new Headers(request.headers).get("openai-safety-identifier"),
     ).toMatch(/^[a-f0-9]{64}$/u);
-    expect(JSON.parse(request.body as string)).toMatchObject({
+    const sessionRequest = JSON.parse(request.body as string) as {
+      session: {
+        instructions: string;
+        tools: { name: string }[];
+      };
+    };
+    expect(sessionRequest).toMatchObject({
       session: {
         audio: {
           input: {
             transcription: { model: "gpt-live-transcribe" },
-            turn_detection: null,
+            turn_detection: {
+              create_response: true,
+              interrupt_response: true,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 500,
+              threshold: 0.5,
+              type: "server_vad",
+            },
           },
           output: { voice: "marin" },
         },
@@ -151,6 +164,23 @@ describe("OpenAI Realtime session endpoint", () => {
         type: "realtime",
       },
     });
+    expect(sessionRequest.session.instructions).toContain(
+      "Stochastic Dynamic Coloured Petri Net",
+    );
+    expect(sessionRequest.session.instructions).toContain(
+      "wait_for_user",
+    );
+    expect(sessionRequest.session.instructions).not.toContain(
+      "urgent customer support escalation",
+    );
+    expect(sessionRequest.session.tools.map(({ name }) => name)).toEqual([
+      "record_process_state",
+      "record_process_step",
+      "record_process_decision",
+      "record_process_flow",
+      "record_model_requirement",
+      "wait_for_user",
+    ]);
   });
 
   test("does not expose upstream errors or the primary key", async () => {

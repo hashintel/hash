@@ -212,6 +212,55 @@ describe("OpenAIRealtimeAdapter", () => {
     });
   });
 
+  test("keeps the microphone open while server VAD creates distinct turns", async () => {
+    const harness = createHarness();
+    await harness.adapter.connect();
+    await harness.adapter.startTurn();
+
+    harness.dataChannel.receive({
+      type: "input_audio_buffer.committed",
+      item_id: "expert-item-1",
+    });
+    harness.dataChannel.receive({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "expert-item-1",
+      transcript: "The support lead triages it.",
+    });
+    harness.dataChannel.receive({ type: "response.created" });
+    harness.dataChannel.receive({
+      type: "response.done",
+      response: { output: [], status: "completed" },
+    });
+    harness.dataChannel.receive({
+      type: "input_audio_buffer.committed",
+      item_id: "expert-item-2",
+    });
+    harness.dataChannel.receive({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "expert-item-2",
+      transcript: "Then the incident owner takes over.",
+    });
+
+    expect(harness.microphoneTrack.enabled).toBe(true);
+    expect(harness.dataChannel.sent).toEqual([
+      { type: "input_audio_buffer.clear" },
+    ]);
+    expect(harness.events).toContainEqual({
+      speaker: "expert",
+      timestampMs: 1_003,
+      transcript: "The support lead triages it.",
+      turnId: 1,
+      type: "final-transcript",
+    });
+    expect(harness.events).toContainEqual({
+      speaker: "expert",
+      timestampMs: 1_006,
+      transcript: "Then the incident owner takes over.",
+      turnId: 2,
+      type: "final-transcript",
+    });
+  });
+
   test("executes only dummy tools and continues the same turn", async () => {
     const harness = createHarness();
     await harness.adapter.connect();
@@ -224,7 +273,8 @@ describe("OpenAIRealtimeAdapter", () => {
       response: {
         output: [
           {
-            arguments: '{"name":"Triage","description":"Assess severity"}',
+            arguments:
+              '{"name":"Triage","description":"Assess severity","owner":"Support lead","secret":"must-not-leak"}',
             call_id: "call-1",
             name: "record_process_step",
             type: "function_call",
@@ -235,11 +285,14 @@ describe("OpenAIRealtimeAdapter", () => {
     });
 
     expect(harness.events).toContainEqual({
+      argumentSummary: "Triage · Assess severity · Owner: Support lead",
+      callId: "call-1",
       timestampMs: 1_004,
       toolName: "record_process_step",
       turnId: 1,
       type: "tool-called",
     });
+    expect(JSON.stringify(harness.events)).not.toContain("must-not-leak");
     expect(harness.dataChannel.sent).toContainEqual({
       type: "conversation.item.create",
       item: {
@@ -257,6 +310,53 @@ describe("OpenAIRealtimeAdapter", () => {
     expect(
       harness.events.some((event) => event.type === "response-completed"),
     ).toBe(false);
+  });
+
+  test("ends a background-audio turn silently after wait_for_user", async () => {
+    const harness = createHarness();
+    await harness.adapter.connect();
+    await harness.adapter.startTurn();
+    harness.dataChannel.receive({ type: "response.created" });
+
+    harness.dataChannel.receive({
+      type: "response.done",
+      response: {
+        output: [
+          {
+            arguments: "{}",
+            call_id: "call-wait",
+            name: "wait_for_user",
+            type: "function_call",
+          },
+        ],
+        status: "completed",
+      },
+    });
+
+    expect(harness.events).toContainEqual({
+      argumentSummary: "Silent no-op",
+      callId: "call-wait",
+      timestampMs: 1_004,
+      toolName: "wait_for_user",
+      turnId: 1,
+      type: "tool-called",
+    });
+    expect(harness.dataChannel.sent.at(-1)).toEqual({
+      type: "conversation.item.create",
+      item: {
+        call_id: "call-wait",
+        output: JSON.stringify({ mode: "experiment-only", waited: true }),
+        type: "function_call_output",
+      },
+    });
+    expect(harness.dataChannel.sent).not.toContainEqual({
+      type: "response.create",
+    });
+    expect(harness.events.at(-1)).toEqual({
+      timestampMs: 1_005,
+      turnId: 1,
+      type: "response-completed",
+    });
   });
 
   test("cancels response audio when the expert barges in", async () => {

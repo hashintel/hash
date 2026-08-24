@@ -33,7 +33,14 @@ const sessionConfig = {
           prompt:
             "A process-model interview about urgent customer support escalations, incident ownership, handoffs, decisions, and resolution.",
         },
-        turn_detection: null,
+        turn_detection: {
+          type: "server_vad",
+          create_response: true,
+          interrupt_response: true,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 500,
+          threshold: 0.5,
+        },
       },
       output: {
         voice: "marin",

@@ -23,32 +23,50 @@ class FakeConversation {
   public setMicMuted = vi.fn();
 }
 
-const createHarness = () => {
+const createHarness = ({ autoConnect = true } = {}) => {
   const conversation = new FakeConversation();
   let callbacks: SessionCallbacks | null = null;
+  let diagnosticPoll: (() => void) | null = null;
+  let diagnosticResponse: unknown = { events: [] };
   const startSession = vi.fn(async (options: SessionCallbacks) => {
     callbacks = options;
     options.onConversationCreated?.(conversation);
-    options.onConnect?.({ conversationId: "conv_123" });
+    if (autoConnect) {
+      options.onConnect?.({ conversationId: "conv_123" });
+    }
     return conversation;
   });
   const permissionTrack = { stop: vi.fn() };
   const getUserMedia = vi.fn(async () => ({
     getTracks: () => [permissionTrack],
   }));
-  const fetch = vi.fn().mockResolvedValue(
-    Response.json({
-      conversationId: "conv_123",
-      conversationToken: "short-lived-token",
-    }),
+  const fetch = vi.fn(async (input: RequestInfo | URL) =>
+    (input instanceof Request
+      ? input.url
+      : input instanceof URL
+        ? input.href
+        : input
+    ).includes("elevenlabs-brunch-diagnostics")
+      ? Response.json(diagnosticResponse)
+      : Response.json({
+          conversationId: "conv_123",
+          conversationToken: "short-lived-token",
+        }),
   );
+  const clearInterval = vi.fn();
+  const setInterval = vi.fn((callback: () => void) => {
+    diagnosticPoll = callback;
+    return 17 as unknown as ReturnType<typeof globalThis.setInterval>;
+  });
   let now = 1_000;
   const adapter = createElevenLabsAdapter({
+    clearInterval,
     fetch: fetch as typeof globalThis.fetch,
     getUserMedia: getUserMedia as unknown as (
       constraints: MediaStreamConstraints,
     ) => Promise<MediaStream>,
     now: () => ++now,
+    setInterval,
     startSession,
   });
   const events: VoiceExperimentEvent[] = [];
@@ -57,16 +75,57 @@ const createHarness = () => {
   return {
     adapter,
     callbacks: () => callbacks,
+    clearInterval,
     conversation,
     events,
     fetch,
     getUserMedia,
     permissionTrack,
+    pollDiagnostics: async (response: unknown) => {
+      diagnosticResponse = response;
+      diagnosticPoll?.();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    },
+    setInterval,
     startSession,
   };
 };
 
 describe("ElevenLabsAdapter", () => {
+  test("can connect after an unused adapter is disposed by a Strict Mode cleanup", async () => {
+    const harness = createHarness();
+
+    await harness.adapter.dispose();
+    await harness.adapter.connect();
+
+    await expect(harness.adapter.startTurn()).resolves.toBeUndefined();
+    expect(harness.conversation.endSession).not.toHaveBeenCalled();
+    expect(harness.conversation.setMicMuted.mock.calls).toEqual([
+      [true],
+      [false],
+    ]);
+  });
+
+  test("does not resolve connect until ElevenLabs reports the session connected", async () => {
+    const harness = createHarness({ autoConnect: false });
+    let connectionResolved = false;
+
+    const connection = harness.adapter.connect().then(() => {
+      connectionResolved = true;
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(harness.startSession).toHaveBeenCalledTimes(1);
+    expect(connectionResolved).toBe(false);
+
+    harness.callbacks()?.onConnect?.({ conversationId: "conv_123" });
+    await connection;
+
+    expect(connectionResolved).toBe(true);
+    await expect(harness.adapter.startTurn()).resolves.toBeUndefined();
+  });
+
   test("starts an authenticated WebRTC session with the microphone gated", async () => {
     const harness = createHarness();
 
@@ -88,9 +147,17 @@ describe("ElevenLabsAdapter", () => {
       }),
     );
     expect(harness.conversation.setMicMuted).toHaveBeenCalledWith(true);
-    expect(harness.fetch.mock.calls.flat().join(" ")).not.toContain(
-      "/api/chat",
-    );
+    expect(
+      harness.fetch.mock.calls
+        .map(([input]) =>
+          input instanceof Request
+            ? input.url
+            : input instanceof URL
+              ? input.href
+              : input,
+        )
+        .join(" "),
+    ).not.toContain("/api/chat");
     expect(harness.events).toContainEqual({
       timestampMs: 1_001,
       type: "connected",
@@ -159,6 +226,42 @@ describe("ElevenLabsAdapter", () => {
       turnId: 1,
       type: "response-completed",
     });
+  });
+
+  test("polls normalized Brunch tool diagnostics for the provider conversation", async () => {
+    const harness = createHarness();
+    await harness.adapter.connect();
+
+    await harness.pollDiagnostics({
+      events: [
+        {
+          argumentSummary: "Question: Who owns triage?",
+          callId: "call_ask",
+          privateInput: "must-not-appear",
+          sequence: 1,
+          timestampMs: 2_000,
+          toolName: "brunch_ask",
+          turnId: 1,
+        },
+      ],
+    });
+
+    expect(harness.fetch).toHaveBeenCalledWith(
+      "/api/voice-experiment/elevenlabs-brunch-diagnostics?conversationId=conv_123&after=0",
+      { headers: { "x-voice-experiment": "elevenlabs-brunch" } },
+    );
+    expect(harness.events).toContainEqual({
+      argumentSummary: "Question: Who owns triage?",
+      callId: "call_ask",
+      timestampMs: 2_000,
+      toolName: "brunch_ask",
+      turnId: 1,
+      type: "tool-called",
+    });
+    expect(JSON.stringify(harness.events)).not.toContain("must-not-appear");
+
+    await harness.adapter.dispose();
+    expect(harness.clearInterval).toHaveBeenCalledWith(17);
   });
 
   test("releases ElevenLabs microphone, playback, and connection once", async () => {

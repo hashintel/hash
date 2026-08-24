@@ -23,6 +23,8 @@ export type VoiceExperimentEvent =
       type: "response-completed";
     }
   | {
+      argumentSummary: string;
+      callId: string;
       timestampMs: number;
       toolName: string;
       turnId: number;

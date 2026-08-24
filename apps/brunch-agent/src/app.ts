@@ -15,7 +15,12 @@ import { Hono } from "hono";
 import { GherkinElicitor } from "./agents/gherkin-elicitor.ts";
 import { assetHandler } from "./assets.ts";
 import { petrinautChatHandler } from "./petrinaut-chat.ts";
-import { GHERKIN_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from "./routes.ts";
+import {
+  GHERKIN_AGENT_ROUTE,
+  PETRINAUT_CHAT_ROUTE,
+  VOICE_EXPERIMENT_DIAGNOSTICS_ROUTE,
+} from "./routes.ts";
+import { voiceExperimentDiagnosticsHandler } from "./voice-experiment-diagnostics.ts";
 
 const app = new Hono();
 
@@ -29,6 +34,9 @@ app.route(`/agents/${GHERKIN_AGENT_ROUTE}`, createAgentRouter(GherkinElicitor));
 // and AI SDK stream encoding. No parallel conversation renderer is introduced.
 app.on(["POST", "OPTIONS"], PETRINAUT_CHAT_ROUTE, (c) =>
   petrinautChatHandler(c.req.raw),
+);
+app.get(VOICE_EXPERIMENT_DIAGNOSTICS_ROUTE, (c) =>
+  voiceExperimentDiagnosticsHandler(c.req.raw),
 );
 
 // The flue dev controller owns the whole request space — no fall-through to
