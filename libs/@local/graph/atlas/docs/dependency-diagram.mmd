@@ -1,0 +1,73 @@
+graph TD
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[<a href="../type_system/index.html">type-system</a>]
+    1[<a href="../hash_codec/index.html">hash-codec</a>]
+    2[<a href="../hash_codegen/index.html">hash-codegen</a>]
+    3[hash-graph-atlas]
+    class 3 root
+    4[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
+    5[<a href="../hash_graph_embeddings/index.html">hash-graph-embeddings</a>]
+    6[<a href="../hash_graph_migrations/index.html">hash-graph-migrations</a>]
+    7[<a href="../hash_graph_migrations_macros/index.html">hash-graph-migrations-macros</a>]
+    8[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    9[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    10[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    11[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    12[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
+    13[<a href="../harpc_types/index.html">harpc-types</a>]
+    14[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    15[<a href="../hashql_core/index.html">hashql-core</a>]
+    16[<a href="../hashql_diagnostics/index.html">hashql-diagnostics</a>]
+    17[<a href="../hashql_macros/index.html">hashql-macros</a>]
+    18[<a href="../hash_status/index.html">hash-status</a>]
+    19[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
+    20[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    21[<a href="../darwin_kperf/index.html">darwin-kperf</a>]
+    22[<a href="../darwin_kperf_criterion/index.html">darwin-kperf-criterion</a>]
+    23[<a href="../darwin_kperf_events/index.html">darwin-kperf-events</a>]
+    24[<a href="../darwin_kperf_sys/index.html">darwin-kperf-sys</a>]
+    25[<a href="../error_stack/index.html">error-stack</a>]
+    26[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    0 --> 10
+    0 -.-> 26
+    1 -.-> 2
+    1 --> 14
+    3 --> 8
+    3 --> 15
+    4 --> 0
+    5 --> 11
+    5 -.-> 22
+    6 --> 7
+    6 --> 19
+    8 --> 5
+    8 --> 6
+    8 -.-> 8
+    8 --> 12
+    8 --> 18
+    9 --> 4
+    9 --> 11
+    9 --> 20
+    10 --> 1
+    11 -.-> 26
+    12 -.-> 26
+    14 -.-> 13
+    14 --> 13
+    14 --> 25
+    15 --> 1
+    15 --> 16
+    15 --> 17
+    15 -.-> 22
+    19 --> 25
+    20 --> 0
+    21 --> 23
+    21 --> 24
+    22 --> 21
+    26 --> 9

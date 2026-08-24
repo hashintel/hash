@@ -1,0 +1,288 @@
+//! RFC 9457 problem documents, the error surface of every handler.
+//!
+//! The `type` member carries Surface v1's stable root-relative URIs, the body goes out as
+//! `application/problem+json`, and the shared rejections - foreign generation, foreign variant -
+//! live here beside the document they produce. Requests that fail before a handler runs - malformed
+//! bodies, wrong content types, unparsable tile addresses - route through [`super::extract`]'s
+//! wrappers and answer problem documents too; only the router's own rejections (an unmatched route,
+//! a wrong method) stay plain.
+
+use alloc::borrow::Cow;
+
+use aide::{OperationOutput, generate::GenContext, openapi};
+use axum::{
+    Json,
+    http::{StatusCode, header},
+    response::{IntoResponse, Response},
+};
+
+use super::AppState;
+use crate::{file::generation::GenerationId, serve::VARIANTS};
+
+/// The `type` member of one problem document: Surface v1's stable root-relative URIs.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
+pub(super) enum ProblemType {
+    /// A producer bug surfacing as a 500: the assembly panicked or its worker vanished.
+    #[serde(rename = "/problems/atlas/internal")]
+    InternalError,
+    /// The route names a generation this process does not serve.
+    #[serde(rename = "/problems/atlas/unknown-generation")]
+    UnknownGeneration,
+    /// The route names a variant outside the manifest's list.
+    #[serde(rename = "/problems/atlas/unknown-variant")]
+    UnknownVariant,
+    /// A tile coordinate outside the zoom range or off its grid.
+    #[serde(rename = "/problems/atlas/invalid-coordinate")]
+    InvalidCoordinate,
+    /// A generation path segment that is not a sha256 generation id.
+    #[serde(rename = "/problems/atlas/invalid-generation")]
+    InvalidGeneration,
+    /// A surface the contract pins but this build does not serve.
+    #[serde(rename = "/problems/atlas/unsupported-feature")]
+    UnsupportedFeature,
+    /// An edges body listing more tiles than the manifest's cap.
+    #[serde(rename = "/problems/atlas/too-many-tiles")]
+    TooManyTiles,
+    /// A tile body carrying more `coloredTypeIds` than the manifest's cap.
+    #[serde(rename = "/problems/atlas/too-many-types")]
+    TooManyTypes,
+    /// A translate body listing more entity ids than the manifest's cap.
+    #[serde(rename = "/problems/atlas/too-many-entity-ids")]
+    TooManyEntityIds,
+    /// A locate source id that does not name a visible node.
+    ///
+    /// Nonexistent, denied, and unparsable answer identically (missing = denied).
+    #[serde(rename = "/problems/atlas/unknown-entity")]
+    UnknownEntity,
+    /// A locate body that does not name exactly one source: `entityId` XOR `row`.
+    #[serde(rename = "/problems/atlas/invalid-source")]
+    InvalidSource,
+    /// A required request body that did not arrive.
+    #[serde(rename = "/problems/atlas/missing-body")]
+    MissingBody,
+    /// A request body that is not the operation's JSON: wrong content type, syntax error, shape
+    /// mismatch, or oversize.
+    #[serde(rename = "/problems/atlas/invalid-body")]
+    InvalidBody,
+    /// A request that names no authenticated actor while the process resolves scopes per caller.
+    #[serde(rename = "/problems/atlas/missing-actor")]
+    MissingActor,
+    /// A request whose authority token is absent, malformed, foreign, or stale.
+    #[serde(rename = "/problems/atlas/unauthorized")]
+    Unauthorized,
+    /// Resolving the caller's scope failed, so the process cannot say what they may see.
+    #[serde(rename = "/problems/atlas/visibility-unavailable")]
+    VisibilityUnavailable,
+}
+
+/// One RFC 9457 problem document.
+#[derive(Debug, serde::Serialize, schemars::JsonSchema)]
+pub(super) struct Problem<'content> {
+    r#type: ProblemType,
+    title: Cow<'content, str>,
+    #[serde(serialize_with = "status_as_u16")]
+    #[schemars(with = "u16")]
+    status: StatusCode,
+    detail: Cow<'content, str>,
+}
+
+/// Serializes the problem's `status` member as its integer form.
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde's serialize_with contract passes fields by reference"
+)]
+fn status_as_u16<S: serde::Serializer>(
+    status: &StatusCode,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    serializer.serialize_u16(status.as_u16())
+}
+
+impl<'content> Problem<'content> {
+    pub(super) fn new(
+        status: StatusCode,
+        r#type: ProblemType,
+        detail: impl Into<Cow<'content, str>>,
+    ) -> Self {
+        Self {
+            r#type,
+            title: Cow::Borrowed(status.canonical_reason().unwrap_or("error")),
+            status,
+            detail: detail.into(),
+        }
+    }
+
+    /// A 500 whose source stays in the server log.
+    ///
+    /// The document carries only the static `detail`. The log records `source` at error level.
+    /// Driver errors and panic payloads are log material and never reach a client.
+    pub(super) fn internal(
+        source: impl core::fmt::Display,
+        detail: impl Into<Cow<'content, str>>,
+    ) -> Self {
+        let detail = detail.into();
+        tracing::error!(source = %source, "{detail}");
+        Self::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            ProblemType::InternalError,
+            detail,
+        )
+    }
+}
+
+impl IntoResponse for Problem<'_> {
+    fn into_response(self) -> Response {
+        (
+            self.status,
+            [(header::CONTENT_TYPE, "application/problem+json")],
+            Json(self),
+        )
+            .into_response()
+    }
+}
+
+impl OperationOutput for Problem<'_> {
+    type Inner = Self;
+
+    fn operation_response(
+        ctx: &mut GenContext,
+        _operation: &mut openapi::Operation,
+    ) -> Option<openapi::Response> {
+        let json_schema = ctx.schema.subschema_for::<Problem<'static>>();
+        let mut response = openapi::Response {
+            description: "an RFC 9457 problem document".into(),
+            ..Default::default()
+        };
+        response.content.insert(
+            "application/problem+json".into(),
+            openapi::MediaType {
+                schema: Some(openapi::SchemaObject {
+                    json_schema,
+                    example: None,
+                    external_docs: None,
+                }),
+                ..Default::default()
+            },
+        );
+
+        Some(response)
+    }
+
+    fn inferred_responses(
+        ctx: &mut GenContext,
+        operation: &mut openapi::Operation,
+    ) -> Vec<(Option<openapi::StatusCode>, openapi::Response)> {
+        // One default response suffices because a problem carries its own status.
+        Self::operation_response(ctx, operation)
+            .map(|response| vec![(None, response)])
+            .unwrap_or_default()
+    }
+}
+
+/// Rejects a route whose generation echo does not name the pinned generation.
+///
+/// A well-formed id names a resource, so an id this process does not serve is a 404; the client's
+/// recovery is to re-read `current` and retry. A malformed id never reaches here - the path
+/// extractor answers `invalid-generation` (400) first.
+pub(super) fn reject_generation(
+    state: &AppState,
+    generation: GenerationId,
+) -> Result<(), Problem<'static>> {
+    if generation == state.atlas.generation() {
+        return Ok(());
+    }
+
+    Err(Problem::new(
+        StatusCode::NOT_FOUND,
+        ProblemType::UnknownGeneration,
+        format!("generation {generation} is not served; re-read /v1/atlas/current and retry"),
+    ))
+}
+
+/// Refuses a request that names no authenticated actor.
+///
+/// The gateway authenticates the session and states the actor in a header, so a request arriving
+/// without one is a malformed request and answers 400. `detail` names which way the header failed,
+/// and echoes nothing else.
+pub(super) fn missing_actor(detail: impl Into<Cow<'static, str>>) -> Problem<'static> {
+    Problem::new(StatusCode::BAD_REQUEST, ProblemType::MissingActor, detail)
+}
+
+/// Refuses a request that presents no acceptable authority token.
+///
+/// One uniform answer for every cause (an absent header, a malformed encoding, a failed tag, a
+/// stale issue time, or an actor mismatch), so a caller learns that its presentation refused and
+/// nothing about why. Refusals are client-recoverable and arrive whenever a held token ages out, so
+/// the server logs no cause.
+pub(super) fn unauthorized() -> Problem<'static> {
+    Problem::new(
+        StatusCode::UNAUTHORIZED,
+        ProblemType::Unauthorized,
+        "the request presents no acceptable authority token; re-fetch the manifest presenting the \
+         held token to renew, or without one to bootstrap afresh",
+    )
+}
+
+/// Refuses a request whose scope resolution failed.
+///
+/// The caller's permissions are unknown, so the answer is a 503. This process cannot say what the
+/// caller may see, and a later attempt may succeed. The cause stays in the server log, since a
+/// resolution failure names store internals. The client reads that the scope is unavailable.
+pub(super) fn visibility_unavailable(error: &(impl core::fmt::Debug + ?Sized)) -> Problem<'static> {
+    tracing::error!(?error, "resolving the caller's visibility failed");
+
+    Problem::new(
+        StatusCode::SERVICE_UNAVAILABLE,
+        ProblemType::VisibilityUnavailable,
+        "the caller's scope could not be resolved",
+    )
+}
+
+/// Rejects a route naming a variant this generation does not serve.
+pub(super) fn reject_variant(variant: &str) -> Result<(), Problem<'static>> {
+    if VARIANTS.contains(&variant) {
+        return Ok(());
+    }
+
+    Err(Problem::new(
+        StatusCode::NOT_FOUND,
+        ProblemType::UnknownVariant,
+        format!("variant {variant} is not served; the manifest lists {VARIANTS:?}"),
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::http::StatusCode;
+
+    use super::{Problem, ProblemType};
+
+    #[test]
+    fn type_member_is_a_root_relative_uri() {
+        let problem = Problem::new(
+            StatusCode::NOT_FOUND,
+            ProblemType::UnknownGeneration,
+            "re-bootstrap via /v1/atlas/current",
+        );
+        let document = serde_json::to_value(&problem).expect("problem documents serialize");
+
+        assert_eq!(document["type"], "/problems/atlas/unknown-generation");
+        assert_eq!(document["status"], 404);
+    }
+
+    #[test]
+    fn internal_problems_redact_their_source() {
+        let problem = Problem::internal(
+            "connection refused: db=secret host=10.0.0.7",
+            "the detail hydration failed",
+        );
+        let document = serde_json::to_value(&problem).expect("problem documents serialize");
+
+        assert_eq!(document["type"], "/problems/atlas/internal");
+        assert_eq!(document["detail"], "the detail hydration failed");
+        assert!(
+            !document.to_string().contains("10.0.0.7"),
+            "the source error must stay out of the document"
+        );
+    }
+}

@@ -15055,6 +15055,25 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hash-graph-atlas@workspace:libs/@local/graph/atlas":
+  version: 0.0.0-use.local
+  resolution: "@rust/hash-graph-atlas@workspace:libs/@local/graph/atlas"
+  dependencies:
+    "@blockprotocol/type-system-rs": "workspace:*"
+    "@rust/darwin-kperf-criterion": "workspace:*"
+    "@rust/darwin-kperf-events": "workspace:*"
+    "@rust/error-stack": "workspace:*"
+    "@rust/hash-graph-authorization": "workspace:*"
+    "@rust/hash-graph-embeddings": "workspace:*"
+    "@rust/hash-graph-postgres-store": "workspace:*"
+    "@rust/hash-graph-store": "workspace:*"
+    "@rust/hash-graph-temporal-versioning": "workspace:*"
+    "@rust/hash-graph-types": "workspace:*"
+    "@rust/hash-temporal-client": "workspace:*"
+    "@rust/hashql-core": "workspace:*"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hash-graph-authentication@workspace:*, @rust/hash-graph-authentication@workspace:libs/@local/graph/authentication":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-authentication@workspace:libs/@local/graph/authentication"
