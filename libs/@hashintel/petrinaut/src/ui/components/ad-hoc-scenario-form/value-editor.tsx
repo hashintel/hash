@@ -30,6 +30,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   AD_HOC_DEFAULT_COUNT_OPTIMIZE,
   AD_HOC_DEFAULT_OPTIMIZE,
+  adHocTargetLabel,
   toggleAdHocOptimize,
 } from "@hashintel/petrinaut-core";
 
@@ -195,12 +196,12 @@ const expressionRowStyle = css({
 export interface ValueEditorProps {
   value: AdHocValue;
   onChange: (value: AdHocValue) => void;
-  /** The slot's attribution path, used as the accessible name and floating label. */
-  label: string;
-  /** The slot's location, joining it to LSP diagnostics and synthesis errors. */
+  /**
+   * The slot's location: its attribution label, LSP document, and error
+   * lookup all derive from it. A derived cell passes its column's target, so
+   * the shared value's problems surface on every cell it supersedes.
+   */
   target: AdHocValueTarget;
-  /** Whether the Optimize control exists at all. */
-  optimizable: boolean;
   /** Integer slots validate integer bounds. */
   integer?: boolean;
   /** Boolean slots optimize as a true/false choice with no bounds. */
@@ -236,9 +237,7 @@ const MIN_OVERLAY_WIDTH = 220;
 export const ValueEditor: React.FC<ValueEditorProps> = ({
   value,
   onChange,
-  label,
   target,
-  optimizable,
   integer = false,
   booleanDomain = false,
   withStep = true,
@@ -251,7 +250,9 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   triggerRef,
   onTriggerKeyDown,
 }) => {
-  const { errorFor, uriFor } = use(AdHocFormContext);
+  const { errorFor, uriFor, formState, synthesisContext, optimizable } =
+    use(AdHocFormContext);
+  const label = adHocTargetLabel(target, formState, synthesisContext);
   const portalContainerRef = usePortalContainerRef();
   const editorId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);

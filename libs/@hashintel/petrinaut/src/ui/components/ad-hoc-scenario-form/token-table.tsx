@@ -15,13 +15,12 @@
  * the focused cell's editor, Escape closes it.
  */
 
-import { useRef, useState } from "react";
+import { use, useRef, useState } from "react";
 
 import { Button, Popover, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocRowKindOf,
-  adHocTargetLabel,
   resolveAdHocPlaceTotal,
   setAdHocRowKind,
   shareAdHocColumn,
@@ -29,12 +28,11 @@ import {
   type AdHocColouredPlace,
   type AdHocRow,
   type AdHocRowKind,
-  type AdHocScenarioState,
-  type AdHocSynthesisContext,
   type Color,
   type Place,
 } from "@hashintel/petrinaut-core";
 
+import { AdHocFormContext } from "./form-context";
 import {
   actionCellStyle,
   cellStyle,
@@ -205,10 +203,6 @@ export interface TokenTableProps {
   colour: Color;
   state: AdHocColouredPlace;
   onChange: (next: AdHocColouredPlace) => void;
-  optimizable: boolean;
-  /** The whole form state, for total resolution and labels. */
-  formState: AdHocScenarioState;
-  context: AdHocSynthesisContext;
 }
 
 export const TokenTable: React.FC<TokenTableProps> = ({
@@ -216,10 +210,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   colour,
   state,
   onChange,
-  optimizable,
-  formState,
-  context,
 }) => {
+  const { formState, synthesisContext, optimizable } = use(AdHocFormContext);
   const elements = colour.elements;
   const columnCount = elements.length;
   // Nonces, so a repeat click re-triggers the editor's auto-open behaviour.
@@ -239,7 +231,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   const cellRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const hasSharedColumns = Object.keys(state.sharedColumns).length > 0;
-  const total = resolveAdHocPlaceTotal(formState, context, place.id);
+  const total = resolveAdHocPlaceTotal(formState, synthesisContext, place.id);
   // The phantom row participates in keyboard navigation as the last row.
   const navigableRowCount = state.rows.length + 1;
 
@@ -393,8 +385,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 <ValueEditor
                   value={row.count}
                   target={countTarget}
-                  label={adHocTargetLabel(countTarget, formState, context)}
-                  optimizable={optimizable}
                   integer
                   withStep={false}
                   placeholder="1"
@@ -477,19 +467,17 @@ export const TokenTable: React.FC<TokenTableProps> = ({
               >
                 <ValueEditor
                   value={shared ?? cell}
-                  target={target}
-                  label={adHocTargetLabel(
+                  // A derived cell joins to its column's slot: the shared
+                  // value's label, diagnostics, and errors surface here.
+                  target={
                     shared
                       ? {
                           kind: "column",
                           placeId: place.id,
                           column: columnIndex,
                         }
-                      : target,
-                    formState,
-                    context,
-                  )}
-                  optimizable={optimizable}
+                      : target
+                  }
                   integer={element.type === "integer"}
                   booleanDomain={element.type === "boolean"}
                   derived={Boolean(shared)}
@@ -605,8 +593,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                     <ValueEditor
                       value={shared}
                       target={target}
-                      label={adHocTargetLabel(target, formState, context)}
-                      optimizable={optimizable}
                       integer={element.type === "integer"}
                       booleanDomain={element.type === "boolean"}
                       autoOpen={

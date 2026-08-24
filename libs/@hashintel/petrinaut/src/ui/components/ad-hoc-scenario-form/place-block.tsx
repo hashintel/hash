@@ -7,7 +7,6 @@
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { adHocTargetLabel } from "@hashintel/petrinaut-core";
 
 import { TokenTable } from "./token-table";
 import { ValueEditor } from "./value-editor";
@@ -15,8 +14,6 @@ import { VariableRows } from "./variable-rows";
 
 import type {
   AdHocColouredPlace,
-  AdHocScenarioState,
-  AdHocSynthesisContext,
   AdHocUncolouredPlace,
   Color,
   Place,
@@ -74,9 +71,6 @@ export interface ColouredPlaceBlockProps {
   colour: Color;
   state: AdHocColouredPlace;
   onChange: (place: AdHocColouredPlace) => void;
-  optimizable: boolean;
-  formState: AdHocScenarioState;
-  context: AdHocSynthesisContext;
 }
 
 export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
@@ -84,9 +78,6 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   colour,
   state,
   onChange,
-  optimizable,
-  formState,
-  context,
 }) => (
   <div className={blockStyle}>
     <div className={headerStyle}>
@@ -120,18 +111,12 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
       placeId={place.id}
       variables={state.variables}
       onChange={(variables) => onChange({ ...state, variables })}
-      optimizable={optimizable}
-      formState={formState}
-      context={context}
     />
     <TokenTable
       place={place}
       colour={colour}
       state={state}
       onChange={onChange}
-      optimizable={optimizable}
-      formState={formState}
-      context={context}
     />
   </div>
 );
@@ -140,18 +125,12 @@ export interface UncolouredPlaceBlockProps {
   place: Place;
   state: AdHocUncolouredPlace;
   onChange: (place: AdHocUncolouredPlace) => void;
-  optimizable: boolean;
-  formState: AdHocScenarioState;
-  context: AdHocSynthesisContext;
 }
 
 export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   place,
   state,
   onChange,
-  optimizable,
-  formState,
-  context,
 }) => {
   const target = { kind: "count" as const, placeId: place.id, row: null };
   return (
@@ -162,8 +141,6 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
         <ValueEditor
           value={state.count}
           target={target}
-          label={adHocTargetLabel(target, formState, context)}
-          optimizable={optimizable}
           integer
           withStep={false}
           className={inlineCountEditorStyle}
