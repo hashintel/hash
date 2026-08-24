@@ -592,6 +592,56 @@ export function cycleAdHocRowKind(
   };
 }
 
+/** The user-facing kind of a row: what the gutter menu selects. */
+export type AdHocRowKind = "fixed" | "dynamic" | "optimized";
+
+/** The user-facing kind of a row (an optimized row is a dynamic row whose count is optimized). */
+export function adHocRowKindOf(row: AdHocRow): AdHocRowKind {
+  if (row.kind === "fixed") {
+    return "fixed";
+  }
+  return row.count.optimize ? "optimized" : "dynamic";
+}
+
+/**
+ * Sets a row's kind directly (the gutter menu's selection). The same
+ * retention rules as {@link cycleAdHocRowKind}: leaving Dynamic retains the
+ * count (bounds included) on the fixed row, and returning restores it.
+ */
+export function setAdHocRowKind(row: AdHocRow, kind: AdHocRowKind): AdHocRow {
+  if (adHocRowKindOf(row) === kind) {
+    return row;
+  }
+  if (kind === "fixed") {
+    if (row.kind === "fixed") {
+      return row;
+    }
+    return {
+      kind: "fixed",
+      cells: row.cells,
+      retainedCount: toggleAdHocOptimize(row.count, false),
+    };
+  }
+  const asDynamic: Extract<AdHocRow, { kind: "template" }> =
+    row.kind === "template"
+      ? row
+      : {
+          kind: "template",
+          cells: row.cells,
+          count: row.retainedCount
+            ? { ...toggleAdHocOptimize(row.retainedCount, false) }
+            : { expression: "1", optimize: null },
+        };
+  return {
+    ...asDynamic,
+    count: toggleAdHocOptimize(
+      asDynamic.count,
+      kind === "optimized",
+      AD_HOC_DEFAULT_COUNT_OPTIMIZE,
+    ),
+  };
+}
+
 /**
  * Shares a column: one expression supersedes every cell of `field`. The
  * initial shared value is the most recently un-shared one, then the first
