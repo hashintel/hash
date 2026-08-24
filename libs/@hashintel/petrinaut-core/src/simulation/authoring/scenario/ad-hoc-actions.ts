@@ -21,6 +21,7 @@ import {
 import type { ColorElementType } from "../../../types/sdcpn";
 import type {
   AdHocColouredPlace,
+  AdHocOptimizeSettings,
   AdHocPlaceState,
   AdHocRow,
   AdHocScenarioState,
@@ -255,11 +256,21 @@ export function adHocPlaceStateFor(
     : { kind: "uncoloured", count: emptyAdHocValue("0") };
 }
 
-/** A fresh variable name (`variable1`, `variable2`, …) no sibling uses. */
-export function newAdHocVariable(existing: AdHocVariable[]): AdHocVariable {
+/**
+ * A fresh variable name (`variable1`, `variable2`, …) no sibling uses and
+ * no reserved name claims. Synthesis rejects a per-place Variable whose name
+ * equals a top-level one, so generation must avoid the other scope too.
+ */
+export function newAdHocVariable(
+  existing: AdHocVariable[],
+  reserved: ReadonlySet<string> = new Set(),
+): AdHocVariable {
   const names = new Set(existing.map((variable) => variable.name));
   let ordinal = 1;
-  while (names.has(`variable${ordinal}`)) {
+  while (
+    names.has(`variable${ordinal}`) ||
+    reserved.has(`variable${ordinal}`)
+  ) {
     ordinal += 1;
   }
   return {
@@ -268,6 +279,32 @@ export function newAdHocVariable(existing: AdHocVariable[]): AdHocVariable {
     expression: "0",
     optimize: null,
   };
+}
+
+/**
+ * The names a fresh Variable in the given scope must not take, beyond its
+ * own siblings: every per-place name for a top-level Variable, the
+ * top-level names for a per-place one (shadowing is a synthesis error).
+ */
+function reservedVariableNames(
+  state: AdHocScenarioState,
+  placeId: string | null,
+): Set<string> {
+  const names = new Set<string>();
+  if (placeId === null) {
+    for (const place of Object.values(state.places)) {
+      if (place.kind === "coloured") {
+        for (const variable of place.variables) {
+          names.add(variable.name);
+        }
+      }
+    }
+  } else {
+    for (const variable of state.variables) {
+      names.add(variable.name);
+    }
+  }
+  return names;
 }
 
 const cloneValue = <V extends AdHocValue>(value: V): V => ({
@@ -294,13 +331,19 @@ const cloneRow = (row: AdHocRow): AdHocRow =>
       };
 
 /** `name` unchanged if free, else `name2`, `name3`, … */
-const dedupedName = (name: string, existing: AdHocVariable[]): string => {
+const dedupedName = (
+  name: string,
+  existing: AdHocVariable[],
+  reserved: ReadonlySet<string>,
+): string => {
   const names = new Set(existing.map((variable) => variable.name));
-  if (!names.has(name)) {
+  const taken = (candidate: string) =>
+    names.has(candidate) || reserved.has(candidate);
+  if (!taken(name)) {
     return name;
   }
   let ordinal = 2;
-  while (names.has(`${name}${ordinal}`)) {
+  while (taken(`${name}${ordinal}`)) {
     ordinal += 1;
   }
   return `${name}${ordinal}`;
@@ -324,13 +367,14 @@ function updatePlaceState(
   placeId: string,
   update: (place: AdHocPlaceState) => AdHocPlaceState,
 ): AdHocScenarioState {
-  return {
-    ...state,
-    places: {
-      ...state.places,
-      [placeId]: update(adHocPlaceStateFor(state, context, placeId)),
-    },
-  };
+  const base = adHocPlaceStateFor(state, context, placeId);
+  const next = update(base);
+  // A no-op update leaves the state alone — in particular, a place absent
+  // from the state is not materialized by an action that did nothing to it.
+  if (next === base) {
+    return state;
+  }
+  return { ...state, places: { ...state.places, [placeId]: next } };
 }
 
 function updateColouredPlace(
@@ -344,7 +388,11 @@ function updateColouredPlace(
   );
 }
 
-/** Applies `update` to the value a target names, creating what it needs. */
+/**
+ * Applies `update` to the value a target names, creating what it needs. An
+ * `update` that returns its input unchanged leaves the whole state
+ * unchanged, reference included — the reducer's no-op contract rests on it.
+ */
 function updateValueAt(
   state: AdHocScenarioState,
   context: AdHocSynthesisContext,
@@ -358,25 +406,34 @@ function updateValueAt(
         if (!variable) {
           return state;
         }
+        const next = update(variable);
+        if (next === variable) {
+          return state;
+        }
         return {
           ...state,
           variables: replaceAt(state.variables, target.index, {
             ...variable,
-            ...update(variable),
+            ...next,
           }),
         };
       }
       return updateColouredPlace(state, context, target.placeId, (place) => {
         const variable = place.variables[target.index];
-        return variable
-          ? {
-              ...place,
-              variables: replaceAt(place.variables, target.index, {
-                ...variable,
-                ...update(variable),
-              }),
-            }
-          : place;
+        if (!variable) {
+          return place;
+        }
+        const next = update(variable);
+        if (next === variable) {
+          return place;
+        }
+        return {
+          ...place,
+          variables: replaceAt(place.variables, target.index, {
+            ...variable,
+            ...next,
+          }),
+        };
       });
     }
     case "netParameter": {
@@ -387,12 +444,18 @@ function updateValueAt(
         parameterId: target.parameterId,
         ...emptyAdHocValue(""),
       };
+      const next = update(entry);
+      // A no-op leaves the state alone — in particular, it does not create
+      // an entry for an absent override.
+      if (next === entry) {
+        return state;
+      }
       const rest = state.netParameters.filter(
         (candidate) => candidate.parameterId !== target.parameterId,
       );
       return {
         ...state,
-        netParameters: [...rest, { ...entry, ...update(entry) }],
+        netParameters: [...rest, { ...entry, ...next }],
       };
     }
     case "cell":
@@ -401,13 +464,18 @@ function updateValueAt(
         if (!row) {
           return place;
         }
+        const current = row.cells[target.column] ?? emptyAdHocValue("");
+        const next = update(current);
+        if (next === current) {
+          return place;
+        }
         // A row created before its colour gained an element is shorter than
         // the table; pad it so the edit lands instead of silently dropping.
         const cells = [...row.cells];
         while (cells.length <= target.column) {
           cells.push(emptyAdHocValue(""));
         }
-        cells[target.column] = update(cells[target.column]!);
+        cells[target.column] = next;
         return {
           ...place,
           rows: replaceAt(place.rows, target.row, { ...row, cells }),
@@ -421,17 +489,23 @@ function updateValueAt(
         if (!field || !shared) {
           return place;
         }
+        const next = update(shared);
+        if (next === shared) {
+          return place;
+        }
         return {
           ...place,
-          sharedColumns: { ...place.sharedColumns, [field]: update(shared) },
+          sharedColumns: { ...place.sharedColumns, [field]: next },
         };
       });
     case "count":
       return updatePlaceState(state, context, target.placeId, (place) => {
         if (place.kind === "uncoloured") {
-          return target.row === null
-            ? { ...place, count: update(place.count) }
-            : place;
+          if (target.row !== null) {
+            return place;
+          }
+          const next = update(place.count);
+          return next === place.count ? place : { ...place, count: next };
         }
         if (target.row === null) {
           return place;
@@ -440,12 +514,13 @@ function updateValueAt(
         if (row?.kind !== "template") {
           return place;
         }
+        const next = update(row.count);
+        if (next === row.count) {
+          return place;
+        }
         return {
           ...place,
-          rows: replaceAt(place.rows, target.row, {
-            ...row,
-            count: update(row.count),
-          }),
+          rows: replaceAt(place.rows, target.row, { ...row, count: next }),
         };
       });
   }
@@ -468,37 +543,49 @@ export function rewriteAdHocReference(
   newName: string,
 ): string {
   const escaped = escapeForPattern(oldName);
+  // Replacement functions, not replacement strings: `$` is a legal
+  // identifier character, so a plain string would re-expand `$1`/`$$` in
+  // the new name. `(?<![.\w$])` before `scenario` keeps member chains
+  // rooted in another identifier (`foo.scenario.x`) untouched, matching
+  // how dependency detection reads references.
   if (scope === "topLevel") {
     return expression.replace(
       new RegExp(
-        String.raw`\b(scenario\s*\.\s*)${escaped}(?![A-Za-z0-9_$])`,
+        String.raw`(?<![.\w$])(scenario\s*\.\s*)${escaped}(?![A-Za-z0-9_$])`,
         "g",
       ),
-      `$1${newName}`,
+      (_match, prefix: string) => `${prefix}${newName}`,
     );
   }
   return expression.replace(
     new RegExp(String.raw`(?<![.\w$])${escaped}(?![A-Za-z0-9_$])`, "g"),
-    newName,
+    () => newName,
   );
 }
 
+const rewriteOptimize = (
+  settings: AdHocOptimizeSettings,
+  rewrite: (expression: string) => string,
+): AdHocOptimizeSettings => ({
+  ...settings,
+  min: rewrite(settings.min),
+  max: rewrite(settings.max),
+  ...(settings.step !== undefined ? { step: rewrite(settings.step) } : {}),
+});
+
+// The retained stores are rewritten too: they are restore sources (a later
+// toggle, kind change, or re-share puts them back into live state), so a
+// rename that skipped them would restore dangling references.
 const rewriteValue = <V extends AdHocValue>(
   value: V,
   rewrite: (expression: string) => string,
 ): V => ({
   ...value,
   expression: rewrite(value.expression),
-  optimize: value.optimize
-    ? {
-        ...value.optimize,
-        min: rewrite(value.optimize.min),
-        max: rewrite(value.optimize.max),
-        ...(value.optimize.step !== undefined
-          ? { step: rewrite(value.optimize.step) }
-          : {}),
-      }
-    : value.optimize,
+  optimize: value.optimize ? rewriteOptimize(value.optimize, rewrite) : null,
+  ...(value.retainedOptimize
+    ? { retainedOptimize: rewriteOptimize(value.retainedOptimize, rewrite) }
+    : {}),
 });
 
 function rewritePlace(
@@ -523,6 +610,9 @@ function rewritePlace(
         : {
             ...row,
             cells: row.cells.map((cell) => rewriteValue(cell, rewrite)),
+            ...(row.retainedCount
+              ? { retainedCount: rewriteValue(row.retainedCount, rewrite) }
+              : {}),
           },
     ),
     sharedColumns: Object.fromEntries(
@@ -531,6 +621,15 @@ function rewritePlace(
         rewriteValue(value, rewrite),
       ]),
     ),
+    ...(place.retainedSharedColumns
+      ? {
+          retainedSharedColumns: Object.fromEntries(
+            Object.entries(place.retainedSharedColumns).map(
+              ([field, value]) => [field, rewriteValue(value, rewrite)],
+            ),
+          ),
+        }
+      : {}),
   };
 }
 
@@ -581,13 +680,16 @@ const updateVariableList = (
   context: AdHocSynthesisContext,
   placeId: string | null,
   update: (variables: AdHocVariable[]) => AdHocVariable[],
-): AdHocScenarioState =>
-  placeId === null
-    ? { ...state, variables: update(state.variables) }
-    : updateColouredPlace(state, context, placeId, (place) => ({
-        ...place,
-        variables: update(place.variables),
-      }));
+): AdHocScenarioState => {
+  if (placeId === null) {
+    const next = update(state.variables);
+    return next === state.variables ? state : { ...state, variables: next };
+  }
+  return updateColouredPlace(state, context, placeId, (place) => {
+    const next = update(place.variables);
+    return next === place.variables ? place : { ...place, variables: next };
+  });
+};
 
 /**
  * Applies one action to the form state. Pure; returns the same reference
@@ -600,43 +702,48 @@ export function applyAdHocAction(
 ): AdHocScenarioState {
   switch (action.type) {
     case "setExpression":
-      return updateValueAt(state, context, action.target, (value) => ({
-        ...value,
-        expression: action.expression,
-      }));
+      return updateValueAt(state, context, action.target, (value) =>
+        value.expression === action.expression
+          ? value
+          : { ...value, expression: action.expression },
+      );
     case "setDomainField":
       return updateValueAt(state, context, action.target, (value) => {
         if (!value.optimize) {
           return value;
         }
         if (action.field === "scale") {
-          return {
-            ...value,
-            optimize: {
-              ...value.optimize,
-              scale: action.value === "log" ? "log" : "linear",
-            },
-          };
+          const scale = action.value === "log" ? "log" : "linear";
+          return value.optimize.scale === scale
+            ? value
+            : { ...value, optimize: { ...value.optimize, scale } };
         }
-        return {
-          ...value,
-          optimize: { ...value.optimize, [action.field]: action.value },
-        };
+        return value.optimize[action.field] === action.value
+          ? value
+          : {
+              ...value,
+              optimize: { ...value.optimize, [action.field]: action.value },
+            };
       });
     case "toggleSelection":
       return updateValueAt(state, context, action.target, (value) =>
-        toggleAdHocOptimize(
-          value,
-          action.on,
-          action.target.kind === "count"
-            ? AD_HOC_DEFAULT_COUNT_OPTIMIZE
-            : AD_HOC_DEFAULT_OPTIMIZE,
-        ),
+        (value.optimize !== null) === action.on
+          ? value
+          : toggleAdHocOptimize(
+              value,
+              action.on,
+              action.target.kind === "count"
+                ? AD_HOC_DEFAULT_COUNT_OPTIMIZE
+                : AD_HOC_DEFAULT_OPTIMIZE,
+            ),
       );
     case "addVariable":
       return updateVariableList(state, context, action.placeId, (variables) => [
         ...variables,
-        newAdHocVariable(variables),
+        newAdHocVariable(
+          variables,
+          reservedVariableNames(state, action.placeId),
+        ),
       ]);
     case "renameVariable": {
       const list =
@@ -648,14 +755,7 @@ export function applyAdHocAction(
             })();
       const oldName = list?.[action.index]?.name;
       if (oldName === undefined || oldName === action.name) {
-        return oldName === undefined
-          ? state
-          : updateVariableList(state, context, action.placeId, (variables) =>
-              replaceAt(variables, action.index, {
-                ...variables[action.index]!,
-                name: action.name,
-              }),
-            );
+        return state;
       }
       const renamed = updateVariableList(
         state,
@@ -679,7 +779,7 @@ export function applyAdHocAction(
     case "setVariableType":
       return updateVariableList(state, context, action.placeId, (variables) => {
         const variable = variables[action.index];
-        return variable
+        return variable && variable.type !== action.variableType
           ? replaceAt(variables, action.index, {
               ...variable,
               type: action.variableType,
@@ -688,7 +788,7 @@ export function applyAdHocAction(
       });
     case "deleteVariable":
       return updateVariableList(state, context, action.placeId, (variables) =>
-        removeAt(variables, action.index),
+        variables[action.index] ? removeAt(variables, action.index) : variables,
       );
     case "duplicateVariable":
       return updateVariableList(state, context, action.placeId, (variables) => {
@@ -698,7 +798,11 @@ export function applyAdHocAction(
         }
         return insertAfter(variables, action.index, {
           ...cloneValue(variable),
-          name: dedupedName(variable.name, variables),
+          name: dedupedName(
+            variable.name,
+            variables,
+            reservedVariableNames(state, action.placeId),
+          ),
         });
       });
     case "addTokenRow":
@@ -713,10 +817,11 @@ export function applyAdHocAction(
         ],
       }));
     case "deleteTokenRow":
-      return updateColouredPlace(state, context, action.placeId, (place) => ({
-        ...place,
-        rows: removeAt(place.rows, action.row),
-      }));
+      return updateColouredPlace(state, context, action.placeId, (place) =>
+        place.rows[action.row]
+          ? { ...place, rows: removeAt(place.rows, action.row) }
+          : place,
+      );
     case "duplicateTokenRow":
       return updateColouredPlace(state, context, action.placeId, (place) => {
         const row = place.rows[action.row];
@@ -730,16 +835,13 @@ export function applyAdHocAction(
     case "setTokenRowKind":
       return updateColouredPlace(state, context, action.placeId, (place) => {
         const row = place.rows[action.row];
-        return row
-          ? {
-              ...place,
-              rows: replaceAt(
-                place.rows,
-                action.row,
-                setAdHocRowKind(row, action.rowKind),
-              ),
-            }
-          : place;
+        if (!row) {
+          return place;
+        }
+        const next = setAdHocRowKind(row, action.rowKind);
+        return next === row
+          ? place
+          : { ...place, rows: replaceAt(place.rows, action.row, next) };
       });
     case "shareColumn":
       return updateColouredPlace(state, context, action.placeId, (place) =>
