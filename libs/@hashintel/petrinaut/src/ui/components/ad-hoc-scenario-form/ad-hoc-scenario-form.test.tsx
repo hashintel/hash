@@ -105,7 +105,15 @@ const Harness: React.FC<{
   selection?: AdHocFormSelection;
   onState?: (state: AdHocScenarioState) => void;
   initial?: AdHocScenarioState;
-}> = ({ selection = "optimize", onState, initial = EMPTY_AD_HOC_STATE }) => {
+  withVariables?: boolean;
+  bare?: boolean;
+}> = ({
+  selection = "optimize",
+  onState,
+  initial = EMPTY_AD_HOC_STATE,
+  withVariables,
+  bare,
+}) => {
   const [state, setState] = useState(initial);
   return (
     <AdHocScenarioForm
@@ -116,6 +124,8 @@ const Harness: React.FC<{
       }}
       context={context}
       selection={selection}
+      withVariables={withVariables}
+      bare={bare}
     />
   );
 };
@@ -955,5 +965,34 @@ describe("AdHocScenarioForm", () => {
     };
     render(<Harness initial={initial} />);
     expect(screen.getByText("1 + 0 … 10 tokens")).toBeTruthy();
+  });
+
+  it("hides the Variables section when the embedding offers none", () => {
+    render(<Harness withVariables={false} />);
+    expect(
+      screen.queryByRole("button", {
+        name: "Add a variable (Top-level variables)",
+      }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Toggle Variables section" }),
+    ).toBeNull();
+    // The other groups are untouched.
+    expect(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    ).toBeTruthy();
+  });
+
+  it("renders bare, without section chrome, for hosts with their own headings", () => {
+    render(<Harness bare withVariables={false} />);
+    expect(screen.queryByText("Initial state")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Toggle Initial state section" }),
+    ).toBeNull();
+    // The content itself is all there: places, gutters, phantom rows.
+    expect(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Queue › count" })).toBeTruthy();
   });
 });
