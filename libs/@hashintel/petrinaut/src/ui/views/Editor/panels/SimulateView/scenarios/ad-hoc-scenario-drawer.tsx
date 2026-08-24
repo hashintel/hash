@@ -10,11 +10,11 @@ import { use } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
-import { EMPTY_AD_HOC_STATE } from "../../../../../components/ad-hoc-scenario-form/state";
 
 const footerStyle = css({
   display: "flex",
