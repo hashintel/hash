@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "P9006": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "synthetic grandparent property for involvement relations"
+        }
+      },
+      "id": "P9006",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "abstract involvement"
+        }
+      }
+    },
+    "Q35120": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "anything that can be considered, discussed, or observed. The root class of the ontology."
+        }
+      },
+      "id": "Q35120",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "entity"
+        }
+      }
+    },
+    "Q47461344": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "any work expressed in writing"
+        }
+      },
+      "id": "Q47461344",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "written work"
+        }
+      }
+    },
+    "Q486972": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "community of people living in a particular place"
+        }
+      },
+      "id": "Q486972",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "human settlement"
+        }
+      }
+    },
+    "Q5": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "any member of Homo sapiens"
+        }
+      },
+      "id": "Q5",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "human"
+        }
+      }
+    },
+    "Q571": {
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "written medium of text bound as pages. Includes physical and digital volumes."
+        }
+      },
+      "id": "Q571",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "book"
+        }
+      }
+    }
+  },
+  "success": 1
+}

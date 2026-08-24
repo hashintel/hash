@@ -1,5 +1,5 @@
 use core::{
-    fmt::Debug,
+    fmt::{self, Debug},
     hash::Hash,
     iter::{Chain, Once, once},
 };
@@ -330,17 +330,9 @@ impl ReferenceTable {
 
 impl Table {
     /// Renders the alias-qualified table name under the compiler's `{name}_{c}_{d}_{n}` scheme.
-    ///
-    /// This is the only place that knows how alias names are derived from an [`Alias`].
     #[must_use]
     pub fn aliased_name(self, alias: Alias) -> TableName<'static> {
-        TableName::from(format!(
-            "{}_{}_{}_{}",
-            self.as_str(),
-            alias.condition_index,
-            alias.chain_depth,
-            alias.number
-        ))
+        alias.qualify(self.as_str())
     }
 
     #[must_use]
@@ -399,6 +391,9 @@ impl Table {
     }
 }
 
+/// The `jsonb_typeof` names of the values a [`JsonField::ScalarEntries`] read delivers inline.
+const JSON_SCALAR_TYPES: &[&str] = &["string", "number", "boolean", "null"];
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JsonField<'p> {
     JsonPath(&'p JsonPath<'p>),
@@ -409,6 +404,21 @@ pub enum JsonField<'p> {
     /// Filter parameters against subscripted columns are typed as [`ParameterType::Text`],
     /// so this is only valid for text arrays.
     ArrayElement(usize),
+    /// The object's scalar entries, aggregated into one `jsonb` map.
+    ///
+    /// Compiles to a scalar subquery over `jsonb_each` that keeps every entry whose value is a
+    /// string, a number, a boolean, or an explicit null, and reads SQL `NULL` when no entry
+    /// qualifies. The qualifying type names travel as a bound parameter, so
+    /// [`into_owned`](Self::into_owned) converts this to
+    /// [`ScalarEntriesParameter`](Self::ScalarEntriesParameter).
+    ScalarEntries,
+    /// [`ScalarEntries`](Self::ScalarEntries) with its type names bound at the parameter index.
+    ScalarEntriesParameter(usize),
+    /// The object's whole entry count, as `int4`.
+    ///
+    /// Compiles to a scalar subquery over `jsonb_each`, so it also counts the entries a
+    /// [`ScalarEntries`](Self::ScalarEntries) read of the same column excludes.
+    EntryCount,
     Label {
         inheritance_depth: Option<u32>,
     },
@@ -428,6 +438,12 @@ impl<'p> JsonField<'p> {
             Self::JsonPathParameter(index) => (JsonField::JsonPathParameter(index), None),
             Self::StaticText(text) => (JsonField::StaticText(text), None),
             Self::ArrayElement(index) => (JsonField::ArrayElement(index), None),
+            Self::ScalarEntries => (
+                JsonField::ScalarEntriesParameter(current_parameter_index),
+                Some(&JSON_SCALAR_TYPES),
+            ),
+            Self::ScalarEntriesParameter(index) => (JsonField::ScalarEntriesParameter(index), None),
+            Self::EntryCount => (JsonField::EntryCount, None),
             Self::Label { inheritance_depth } => (JsonField::Label { inheritance_depth }, None),
         }
     }
@@ -452,6 +468,21 @@ pub trait DatabaseColumn<'name> {
 pub trait FilterColumn<'name>: DatabaseColumn<'name> {
     /// The logical type filter values compared against this column must have.
     fn parameter_type(&self) -> ParameterType;
+
+    /// Whether the column holds an array of textual values ([`BaseUrl`] and
+    /// [`VersionedUrl`] columns transpile to `text[]`).
+    ///
+    /// [`BaseUrl`]: ParameterType::BaseUrl
+    /// [`VersionedUrl`]: ParameterType::VersionedUrl
+    fn is_text_array(&self) -> bool {
+        matches!(
+            self.parameter_type(),
+            ParameterType::Vector(inner) if matches!(
+                *inner,
+                ParameterType::Text | ParameterType::BaseUrl | ParameterType::VersionedUrl
+            )
+        )
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -814,6 +845,7 @@ pub enum EntityEditionCache {
     EntityEditionId,
     DirectTypes,
     Labels,
+    LabelProperties,
     TypeTitles,
     BaseUrls,
     Versions,
@@ -826,6 +858,7 @@ impl DatabaseColumn<'_> for EntityEditionCache {
             Self::EntityEditionId => "entity_edition_id".into(),
             Self::DirectTypes => "direct_types".into(),
             Self::Labels => "labels".into(),
+            Self::LabelProperties => "label_properties".into(),
             Self::TypeTitles => "type_titles".into(),
             Self::BaseUrls => "base_urls".into(),
             Self::Versions => "versions".into(),
@@ -837,9 +870,11 @@ impl DatabaseColumn<'_> for EntityEditionCache {
         match self {
             Self::EntityEditionId => PostgresType::Uuid,
             Self::DirectTypes => PostgresType::Int4,
-            Self::Labels | Self::TypeTitles | Self::BaseUrls | Self::VersionedUrls => {
-                PostgresType::Array(Box::new(PostgresType::Text))
-            }
+            Self::Labels
+            | Self::LabelProperties
+            | Self::TypeTitles
+            | Self::BaseUrls
+            | Self::VersionedUrls => PostgresType::Array(Box::new(PostgresType::Text)),
             Self::Versions => PostgresType::Array(Box::new(PostgresType::Int8)),
         }
     }
@@ -851,7 +886,9 @@ impl FilterColumn<'_> for EntityEditionCache {
             Self::EntityEditionId => ParameterType::Uuid,
             Self::DirectTypes => ParameterType::Integer,
             Self::Labels | Self::TypeTitles => ParameterType::Vector(Box::new(ParameterType::Text)),
-            Self::BaseUrls => ParameterType::Vector(Box::new(ParameterType::BaseUrl)),
+            Self::LabelProperties | Self::BaseUrls => {
+                ParameterType::Vector(Box::new(ParameterType::BaseUrl))
+            }
             Self::Versions => ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion)),
             Self::VersionedUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
         }
@@ -867,6 +904,9 @@ pub enum EntityIds {
     CreatedById,
     CreatedAtTransactionTime,
     CreatedAtDecisionTime,
+    DeletedById,
+    DeletedAtTransactionTime,
+    DeletedAtDecisionTime,
 }
 
 impl DatabaseColumn<'_> for EntityIds {
@@ -879,17 +919,23 @@ impl DatabaseColumn<'_> for EntityIds {
             Self::CreatedById => "created_by_id".into(),
             Self::CreatedAtTransactionTime => "created_at_transaction_time".into(),
             Self::CreatedAtDecisionTime => "created_at_decision_time".into(),
+            Self::DeletedById => "deleted_by_id".into(),
+            Self::DeletedAtTransactionTime => "deleted_at_transaction_time".into(),
+            Self::DeletedAtDecisionTime => "deleted_at_decision_time".into(),
         }
     }
 
     fn postgres_type(&self) -> PostgresType {
         match self {
-            Self::WebId | Self::EntityUuid | Self::CreatedById => PostgresType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::CreatedById | Self::DeletedById => {
+                PostgresType::Uuid
+            }
             Self::Provenance => PostgresType::JsonB,
             Self::ReadOnly => PostgresType::Bool,
-            Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
-                PostgresType::TimestampTz
-            }
+            Self::CreatedAtTransactionTime
+            | Self::CreatedAtDecisionTime
+            | Self::DeletedAtTransactionTime
+            | Self::DeletedAtDecisionTime => PostgresType::TimestampTz,
         }
     }
 }
@@ -897,12 +943,15 @@ impl DatabaseColumn<'_> for EntityIds {
 impl FilterColumn<'_> for EntityIds {
     fn parameter_type(&self) -> ParameterType {
         match self {
-            Self::WebId | Self::EntityUuid | Self::CreatedById => ParameterType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::CreatedById | Self::DeletedById => {
+                ParameterType::Uuid
+            }
             Self::Provenance => ParameterType::Any,
             Self::ReadOnly => ParameterType::Boolean,
-            Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
-                ParameterType::Timestamp
-            }
+            Self::CreatedAtTransactionTime
+            | Self::CreatedAtDecisionTime
+            | Self::DeletedAtTransactionTime
+            | Self::DeletedAtDecisionTime => ParameterType::Timestamp,
         }
     }
 }
@@ -1038,7 +1087,7 @@ impl DatabaseColumn<'_> for DataTypeEmbeddings {
     fn postgres_type(&self) -> PostgresType {
         match self {
             Self::OntologyId => PostgresType::Uuid,
-            Self::Embedding => PostgresType::Vector,
+            Self::Embedding => PostgresType::Vector { dimensions: None },
             Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
         }
     }
@@ -1106,7 +1155,7 @@ impl DatabaseColumn<'_> for PropertyTypeEmbeddings {
     fn postgres_type(&self) -> PostgresType {
         match self {
             Self::OntologyId => PostgresType::Uuid,
-            Self::Embedding => PostgresType::Vector,
+            Self::Embedding => PostgresType::Vector { dimensions: None },
             Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
         }
     }
@@ -1146,7 +1195,7 @@ impl DatabaseColumn<'_> for EntityTypeEmbeddings {
     fn postgres_type(&self) -> PostgresType {
         match self {
             Self::OntologyId => PostgresType::Uuid,
-            Self::Embedding => PostgresType::Vector,
+            Self::Embedding => PostgresType::Vector { dimensions: None },
             Self::EmbeddingBits => PostgresType::Bit,
             Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
         }
@@ -1200,7 +1249,7 @@ impl DatabaseColumn<'_> for EntityEmbeddings {
     fn postgres_type(&self) -> PostgresType {
         match self {
             Self::WebId | Self::EntityUuid | Self::DraftId => PostgresType::Uuid,
-            Self::Embedding => PostgresType::Vector,
+            Self::Embedding => PostgresType::Vector { dimensions: None },
             Self::EmbeddingBits => PostgresType::Bit,
             Self::Property => PostgresType::Text,
             Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
@@ -2055,6 +2104,19 @@ pub struct Alias {
     pub condition_index: usize,
     pub chain_depth: usize,
     pub number: usize,
+}
+
+impl Alias {
+    /// Renders `name` under the compiler's `{name}_{c}_{d}_{n}` alias scheme.
+    ///
+    /// This is the only place that knows how alias names are derived from an [`Alias`].
+    #[must_use]
+    pub fn qualify(self, name: impl fmt::Display) -> TableName<'static> {
+        TableName::from(format!(
+            "{}_{}_{}_{}",
+            name, self.condition_index, self.chain_depth, self.number
+        ))
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

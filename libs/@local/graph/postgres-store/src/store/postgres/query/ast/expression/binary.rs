@@ -23,6 +23,8 @@ pub enum BinaryOperator {
     LessOrEqual,
     /// `<lhs> = ANY(<rhs>)`
     In,
+    /// `<lhs> ~ <rhs>`
+    RegexMatch,
 
     // --- Arithmetic ---
     /// `<lhs> + <rhs>`
@@ -47,6 +49,8 @@ pub enum BinaryOperator {
     JsonAccess,
     /// `<lhs> ->> <rhs>`
     JsonAccessAsText,
+    /// `<lhs> - <rhs>`
+    JsonDelete,
 
     // --- Domain-specific ---
     /// `<lhs> @> <rhs>::TIMESTAMPTZ`
@@ -55,6 +59,8 @@ pub enum BinaryOperator {
     ArrayContains,
     /// `<lhs> && <rhs>`
     Overlap,
+    /// `<lhs> <=> <rhs>`
+    CosineDistance,
     /// `<lhs> <~> <rhs>`
     HammingDistance,
 }
@@ -69,8 +75,9 @@ impl BinaryOperator {
             Self::Less => " < ",
             Self::LessOrEqual => " <= ",
             Self::In => " = ANY(",
+            Self::RegexMatch => " ~ ",
             Self::Add => " + ",
-            Self::Subtract => " - ",
+            Self::Subtract | Self::JsonDelete => " - ",
             Self::Multiply => " * ",
             Self::Divide => " / ",
             Self::Modulo => " % ",
@@ -80,6 +87,7 @@ impl BinaryOperator {
             Self::JsonAccessAsText => " ->> ",
             Self::TimeIntervalContainsTimestamp | Self::ArrayContains => " @> ",
             Self::Overlap => " && ",
+            Self::CosineDistance => " <=> ",
             Self::HammingDistance => " <~> ",
         };
         fmt.write_str(string)
@@ -104,8 +112,11 @@ impl BinaryOperator {
             | Self::BitwiseOr
             | Self::JsonAccess
             | Self::JsonAccessAsText
+            | Self::JsonDelete
             | Self::ArrayContains
             | Self::Overlap
+            | Self::RegexMatch
+            | Self::CosineDistance
             | Self::HammingDistance => Ok(()),
         }
     }

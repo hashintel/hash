@@ -29,6 +29,7 @@ id::newtype!(
     /// The value space is restricted to 0..=0xFFFF_FF00, reserving the last 256 for niches.
     /// As real pattern types are an experimental feature in Rust, these can currently only be
     /// used by directly modifying and accessing the `NodeId`'s internal value.
+    #[id(const)]
     pub struct HirId(u32 is 0..=0xFFFF_FF00)
 );
 

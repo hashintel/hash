@@ -1,0 +1,140 @@
+exact = true
+exclude = [
+    ".nltk-probe/**",
+    ".pytest_cache/**",
+    ".ruff_cache/**",
+    ".venv/**",
+    "fixtures/**",
+    "runs/**",
+    "tests/**",
+]
+forbid_circular_dependencies = true
+ignore_type_checking_imports = false
+layers_explicit_depends_on = true
+respect_gitignore = true
+root_module = "ignore"
+source_roots = ["."]
+
+layers = [
+    "application",
+    "orchestration",
+    "capability",
+    "domain",
+]
+
+[rules]
+require_ignore_directive_reasons = "error"
+unused_external_dependencies     = "off"
+unused_ignore_directives         = "error"
+
+# The package root stays empty. Callers enter through a subsystem's api module.
+[[modules]]
+depends_on          = []
+depends_on_external = []
+layer               = "domain"
+path                = "atlas_tools.relation.evaluation"
+
+[[modules]]
+depends_on          = []
+depends_on_external = ["pydantic", "pydantic_core"]
+layer               = "domain"
+path                = "atlas_tools.relation.evaluation.domain"
+
+[[modules]]
+depends_on          = ["atlas_tools.relation.evaluation.domain"]
+depends_on_external = []
+layer               = "capability"
+path                = "atlas_tools.relation.evaluation.modes"
+
+[[modules]]
+depends_on          = ["atlas_tools.relation.evaluation.domain"]
+depends_on_external = ["openrouter", "pydantic", "trio"]
+layer               = "capability"
+path                = "atlas_tools.relation.evaluation.transport"
+
+[[modules]]
+depends_on          = ["atlas_tools.relation.evaluation.domain"]
+depends_on_external = ["pydantic", "trio", "yaml"]
+layer               = "capability"
+path                = "atlas_tools.relation.evaluation.storage"
+
+[[modules]]
+depends_on          = ["atlas_tools.relation.evaluation.domain"]
+depends_on_external = ["rich", "textual"]
+layer               = "capability"
+path                = "atlas_tools.relation.evaluation.visualization"
+
+[[modules]]
+depends_on = [
+    "atlas_tools.relation.evaluation.domain",
+    "atlas_tools.relation.evaluation.storage",
+    "atlas_tools.relation.evaluation.transport",
+]
+depends_on_external = ["trio"]
+layer = "orchestration"
+path = "atlas_tools.relation.evaluation.execution"
+
+[[modules]]
+depends_on = ["atlas_tools.relation.evaluation.domain"]
+depends_on_external = [
+    "matplotlib",
+    "numpy",
+    "pydantic",
+    "sklearn",
+]
+layer = "capability"
+path = "atlas_tools.relation.evaluation.analysis"
+
+[[modules]]
+depends_on = [
+    "atlas_tools.relation.evaluation.analysis",
+    "atlas_tools.relation.evaluation.domain",
+    "atlas_tools.relation.evaluation.execution",
+    "atlas_tools.relation.evaluation.modes",
+    "atlas_tools.relation.evaluation.storage",
+    "atlas_tools.relation.evaluation.transport",
+    "atlas_tools.relation.evaluation.visualization",
+]
+depends_on_external = [
+    "matplotlib",
+    "numpy",
+    "pyarrow",
+    "pydantic",
+    "pydantic_core",
+    "pydantic_settings",
+    "trio",
+]
+layer = "application"
+path = "atlas_tools.relation.evaluation.application"
+
+[[interfaces]]
+expose = ["api.*"]
+from   = ["atlas_tools.relation.evaluation.domain"]
+
+[[interfaces]]
+expose = ["api.*"]
+from   = ["atlas_tools.relation.evaluation.modes"]
+
+[[interfaces]]
+expose = ["api.*"]
+from   = ["atlas_tools.relation.evaluation.transport"]
+
+[[interfaces]]
+expose = ["api.*"]
+from   = ["atlas_tools.relation.evaluation.storage"]
+
+[[interfaces]]
+expose = ["api.*", "model.*"]
+from   = ["atlas_tools.relation.evaluation.visualization"]
+
+[[interfaces]]
+expose = ["api.*"]
+from   = ["atlas_tools.relation.evaluation.execution"]
+
+[[interfaces]]
+expose = ["api.*", "grid_finalization.*"]
+from   = ["atlas_tools.relation.evaluation.analysis"]
+
+[[interfaces]]
+expose = ["api.*"]
+from   = ["atlas_tools.relation.evaluation.application"]

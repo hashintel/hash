@@ -19,7 +19,7 @@ id::newtype!(
     ///
     /// The value space is restricted to `0..=0xFFFF_FF00`, reserving the last 256
     /// values for niche optimizations in `Option<BasicBlockId>` and similar types.
-    #[id(display = "bb{}")]
+    #[id(display = "bb{}", const)]
     pub struct BasicBlockId(u32 is 0..=0xFFFF_FF00)
 );
 

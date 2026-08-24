@@ -1,4 +1,5 @@
 mod delete;
+pub(crate) mod feed;
 pub(crate) mod provenance;
 mod query;
 mod read;
@@ -98,7 +99,7 @@ use type_system::{
 use uuid::Uuid;
 
 use crate::store::{
-    AsClient, PostgresStore,
+    AsClient, GenericClientIter as _, PostgresStore,
     error::{EntityDoesNotExist, RaceConditionOnUpdate},
     postgres::{
         BeginReadOnlyTransaction, InTransaction, TransactionState, TraversalContext,
@@ -645,7 +646,7 @@ where
 
         let rows = self
             .as_client()
-            .query(&statement, parameters)
+            .query_params_iter(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -1036,10 +1037,10 @@ where
 {
     /// Rebuilds the entity edition cache and the inherited `entity_is_of_type` rows.
     ///
-    /// This is inherent rather than only an [`EntityStore`] method so that code paths already
-    /// operating inside an enclosing transaction — snapshot restore and entity-type reindexing —
-    /// can rebuild the cache without requiring the [`EntityStore`] impl, whose snapshot-consistent
-    /// reads are only available where [`BeginReadOnlyTransaction`] is implemented.
+    /// This is inherent rather than only an [`EntityStore`] method so that snapshot restore and
+    /// entity-type reindexing, which already operate inside an enclosing transaction, can rebuild
+    /// the cache without requiring the [`EntityStore`] impl, whose snapshot-consistent reads are
+    /// only available where [`BeginReadOnlyTransaction`] is implemented.
     ///
     /// # Errors
     ///
@@ -1103,7 +1104,7 @@ where
     ///
     /// This is inherent rather than only an [`EntityStore`] method because the snapshot-consistent
     /// read implementations invoke it on the [`InTransaction`] store, where the [`EntityStore`]
-    /// impl — bounded on [`BeginReadOnlyTransaction`] — is not available.
+    /// impl, bounded on [`BeginReadOnlyTransaction`], is not available.
     ///
     /// # Errors
     ///
@@ -1163,7 +1164,7 @@ where
         let (statement, parameters) = compiler.compile();
         let () = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -1432,6 +1433,9 @@ where
                 created_by_id: stored_provenance.created_by_id,
                 created_at_transaction_time: stored_provenance.created_at_transaction_time,
                 created_at_decision_time: stored_provenance.created_at_decision_time,
+                deleted_by_id: None,
+                deleted_at_transaction_time: None,
+                deleted_at_decision_time: None,
                 provenance: stored_provenance.json.clone(),
             });
             if let Some(draft_id) = entity_id.draft_id {
@@ -1993,7 +1997,7 @@ where
 
         let rows = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -2994,6 +2998,7 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
         entity_edition_id,
         direct_types,
         labels,
+        label_properties,
         type_titles,
         base_urls,
         versions,
@@ -3002,6 +3007,7 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
     SELECT types.entity_edition_id,
            types.direct_types,
            labels.labels,
+           labels.label_properties,
            types.type_titles,
            types.base_urls,
            types.versions,
@@ -3044,7 +3050,11 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
                  array_agg(label_value.label
                      ORDER BY entity_types.schema ->> 'title', ontology_ids.base_url,
                               ontology_ids.version DESC, label_value.ordinality
-                 ) FILTER (WHERE label_value.label IS NOT NULL) AS labels
+                 ) FILTER (WHERE label_value.label IS NOT NULL) AS labels,
+                 array_agg(label_value.path
+                     ORDER BY entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC, label_value.ordinality
+                 ) FILTER (WHERE label_value.label IS NOT NULL) AS label_properties
             FROM entity_is_of_type
             JOIN ontology_ids
               ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
@@ -3056,6 +3066,7 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
                SELECT jsonb_extract_path(
                           entity_editions.properties, label_path.path
                       ) #>> '{{}}' AS label,
+                      label_path.path,
                       label_path.ordinality
                  FROM jsonb_array_elements_text(
                           jsonb_path_query_array(

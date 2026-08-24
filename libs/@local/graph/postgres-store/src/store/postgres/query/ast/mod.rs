@@ -6,6 +6,7 @@
 //! the gram.y nonterminal (`SortBy`, `SimpleSelect`). Doc comments name gram.y productions
 //! where the structure would otherwise be surprising and in "not representable yet" lists.
 
+mod assembly;
 mod clause;
 mod column_reference;
 mod expression;
@@ -16,6 +17,9 @@ mod statement;
 mod table_reference;
 
 pub use self::{
+    assembly::{
+        Aliased, AliasedCorrelation, Binder, BoundStatement, Correlation, Placeholder, SelectList,
+    },
     clause::{
         CommonTableExpression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
         FromItemSubqueryBuilder, FromItemTableBuilder, GroupByClause, GroupingElement, JoinType,

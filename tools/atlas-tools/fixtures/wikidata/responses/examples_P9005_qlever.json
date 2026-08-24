@@ -1,0 +1,95 @@
+{
+  "head": {
+    "vars": []
+  },
+  "results": {
+    "bindings": [
+      {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002001"
+        },
+        "objectLabel": {
+          "type": "literal",
+          "value": "Person 001"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "5"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001011"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Synthetic Novel"
+        },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "8"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q571"
+        }
+      },
+      {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002003"
+        },
+        "objectLabel": {
+          "type": "literal",
+          "value": "Person 003"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "7"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001021"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Synthetic Film"
+        },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "12"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q11424"
+        }
+      },
+      {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002005"
+        },
+        "objectLabel": {
+          "type": "literal",
+          "value": "Person 005"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9001014"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Poem Collection"
+        },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "3"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q571"
+        }
+      }
+    ]
+  }
+}

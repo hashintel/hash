@@ -6,13 +6,28 @@ CREATE TABLE entity_ids (
     created_by_id UUID NOT NULL,
     created_at_transaction_time TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at_decision_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    PRIMARY KEY (web_id, entity_uuid)
+    deleted_by_id UUID,
+    deleted_at_transaction_time TIMESTAMP WITH TIME ZONE,
+    deleted_at_decision_time TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (web_id, entity_uuid),
+
+    -- The deletion tombstone is total or absent: either all three deleted_* columns are set, or
+    -- none is.
+    CONSTRAINT entity_ids_deletion_tombstone_total CHECK (
+        ((deleted_by_id IS NULL) = (deleted_at_transaction_time IS NULL))
+        AND ((deleted_by_id IS NULL) = (deleted_at_decision_time IS NULL))
+    )
 );
 
 CREATE INDEX entity_ids_created_at_transaction_time
 ON entity_ids (created_at_transaction_time);
 CREATE INDEX entity_ids_created_at_decision_time
 ON entity_ids (created_at_decision_time);
+
+CREATE INDEX entity_ids_deleted_at_transaction_time
+ON entity_ids (deleted_at_transaction_time)
+INCLUDE (web_id, entity_uuid)
+WHERE deleted_at_transaction_time IS NOT NULL;
 
 CREATE TABLE entity_drafts (
     web_id UUID NOT NULL,
@@ -42,10 +57,15 @@ CREATE TABLE entity_editions (
 -- `closed_schema.allOf`), ordered by (title, base URL, version DESC); `labels[1]` is
 -- the display/sort label, NULL when the entity has none. Descending sorts reuse the
 -- same element — no min/max flip.
+-- `label_properties` aggregates the winning `labelProperty` path over the same rows in
+-- the same order under the same non-null filter, so `labels[i]` is the value of the
+-- property named by `label_properties[i]`, and `label_properties[1]` names the property
+-- providing the display label. NULL exactly when `labels` is NULL.
 CREATE TABLE entity_edition_cache (
     entity_edition_id UUID PRIMARY KEY REFERENCES entity_editions ON DELETE CASCADE,
     direct_types INT NOT NULL,
     labels TEXT [],
+    label_properties TEXT [],
     type_titles TEXT [] NOT NULL,
     base_urls TEXT [] NOT NULL,
     versions BIGINT [] NOT NULL,
@@ -88,6 +108,29 @@ ON entity_temporal_metadata
 USING gist (web_id, entity_uuid, transaction_time, decision_time);
 CREATE INDEX entity_temporal_metadata_edition_id_idx
 ON entity_temporal_metadata (entity_edition_id);
+
+-- The update feed polls current rows by their transaction-time start. Every predicate it uses
+-- is a function over a column, so only these partial expression indexes can serve it, one per
+-- feed arm: present rows for `changed`, decision-closed current rows for `ended`.
+CREATE INDEX entity_temporal_metadata_present_transaction_start
+ON entity_temporal_metadata (lower(transaction_time))
+WHERE draft_id IS NULL AND upper_inf(transaction_time) AND upper_inf(decision_time);
+CREATE INDEX entity_temporal_metadata_closed_transaction_start
+ON entity_temporal_metadata (lower(transaction_time))
+WHERE draft_id IS NULL AND upper_inf(transaction_time) AND NOT upper_inf(decision_time);
+
+-- The feed predicates are expressions, which carry no column statistics, so without these
+-- objects the planner sweeps every present row for the ended arm. The mcv object prices the
+-- predicate combination both arms share, which bounds the ended arm's anti-join by the
+-- candidate count. The expression object gives the transaction-time start a histogram, which
+-- fixes the changed arm's cardinality. The bounded plan wins to roughly twenty thousand
+-- candidates per poll window. A burst the statistics have not caught up with stretches it to
+-- about four times the sweep at a hundred thousand candidates.
+CREATE STATISTICS entity_temporal_metadata_transaction_start_stats
+ON lower(transaction_time) FROM entity_temporal_metadata;
+CREATE STATISTICS entity_temporal_metadata_feed_stats (MCV)
+ON draft_id, upper_inf(transaction_time), upper_inf(decision_time)
+FROM entity_temporal_metadata;
 
 CREATE TABLE entity_is_of_type (
     entity_edition_id UUID NOT NULL REFERENCES entity_editions,

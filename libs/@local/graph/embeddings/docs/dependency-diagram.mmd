@@ -13,62 +13,65 @@ graph TD
     2[<a href="../hash_codec/index.html">hash-codec</a>]
     3[<a href="../hash_codegen/index.html">hash-codegen</a>]
     4[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
-    5[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
-    6[hash-graph-embeddings]
-    class 6 root
-    7[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
-    8[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
-    9[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    10[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    11[<a href="../harpc_types/index.html">harpc-types</a>]
-    12[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    13[<a href="../hashql_ast/index.html">hashql-ast</a>]
-    14[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
-    15[<a href="../hashql_eval/index.html">hashql-eval</a>]
-    16[<a href="../hashql_hir/index.html">hashql-hir</a>]
-    17[<a href="../hashql_mir/index.html">hashql-mir</a>]
-    18[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    19[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    20[<a href="../darwin_kperf/index.html">darwin-kperf</a>]
-    21[<a href="../darwin_kperf_criterion/index.html">darwin-kperf-criterion</a>]
-    22[<a href="../darwin_kperf_events/index.html">darwin-kperf-events</a>]
-    23[<a href="../darwin_kperf_sys/index.html">darwin-kperf-sys</a>]
-    24[<a href="../error_stack/index.html">error-stack</a>]
-    25[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    26[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    27[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    5[<a href="../hash_graph_atlas/index.html">hash-graph-atlas</a>]
+    6[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
+    7[hash-graph-embeddings]
+    class 7 root
+    8[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    9[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    10[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    11[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    12[<a href="../harpc_types/index.html">harpc-types</a>]
+    13[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    14[<a href="../hashql_ast/index.html">hashql-ast</a>]
+    15[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
+    16[<a href="../hashql_eval/index.html">hashql-eval</a>]
+    17[<a href="../hashql_hir/index.html">hashql-hir</a>]
+    18[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    19[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    20[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    21[<a href="../darwin_kperf/index.html">darwin-kperf</a>]
+    22[<a href="../darwin_kperf_criterion/index.html">darwin-kperf-criterion</a>]
+    23[<a href="../darwin_kperf_events/index.html">darwin-kperf-events</a>]
+    24[<a href="../darwin_kperf_sys/index.html">darwin-kperf-sys</a>]
+    25[<a href="../error_stack/index.html">error-stack</a>]
+    26[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    27[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    28[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 4
-    1 --> 9
-    1 -.-> 27
+    0 --> 5
+    1 --> 10
+    1 -.-> 28
     2 -.-> 3
-    2 --> 12
-    4 --> 15
-    4 --> 18
-    5 --> 1
-    6 --> 10
-    6 -.-> 21
-    7 --> 6
-    7 -.-> 7
-    8 --> 5
-    8 --> 10
-    8 --> 19
-    9 --> 2
-    10 -.-> 27
-    12 -.-> 11
-    12 --> 11
-    12 --> 24
-    13 -.-> 14
-    14 --> 15
-    14 --> 18
-    15 --> 7
-    15 --> 17
-    16 -.-> 14
-    17 --> 16
-    18 --> 13
-    19 --> 1
-    20 --> 22
-    20 --> 23
-    21 --> 20
-    25 -.-> 4
-    26 -.-> 7
-    27 --> 8
+    2 --> 13
+    4 --> 16
+    4 --> 19
+    5 --> 8
+    6 --> 1
+    7 --> 11
+    7 -.-> 22
+    8 --> 7
+    8 -.-> 8
+    9 --> 6
+    9 --> 11
+    9 --> 20
+    10 --> 2
+    11 -.-> 28
+    13 -.-> 12
+    13 --> 12
+    13 --> 25
+    14 -.-> 15
+    15 --> 16
+    15 --> 19
+    16 --> 8
+    16 --> 18
+    17 -.-> 15
+    18 --> 17
+    19 --> 14
+    20 --> 1
+    21 --> 23
+    21 --> 24
+    22 --> 21
+    26 -.-> 4
+    27 -.-> 8
+    28 --> 9

@@ -619,6 +619,11 @@ impl<'p> PropertyProtectionFilterConfig<'p> {
 
     /// Returns the default HASH configuration that protects email on User entities.
     ///
+    /// Every protected property must be a property that no entity type names as its label
+    /// property. Entity labels are materialized into the label cache by extracting the label
+    /// property's value from the stored properties object, and that derivation takes no actor,
+    /// so the label column of a masked entity still carries the protected value.
+    ///
     /// # Panics
     ///
     /// Panics if the hardcoded URLs are invalid (should never happen).
@@ -667,6 +672,26 @@ impl<'p> PropertyProtectionFilterConfig<'p> {
     #[must_use]
     pub fn property_exclusion_filter(&self, property: &BaseUrl) -> Option<&PropertyFilter<'p>> {
         self.property_filters.get(property)
+    }
+
+    /// Returns the base URL of every protected property, in arbitrary order.
+    ///
+    /// The protection each URL carries is a per-actor condition, so this answers *which* properties
+    /// are protected and never *whether* a given actor may read one. A caller that cannot evaluate
+    /// the conditions - it compiles no filter - can still withhold the whole set unconditionally,
+    /// which is stricter than the store's own masking for every actor.
+    ///
+    /// ```
+    /// use hash_graph_store::filter::protection::PropertyProtectionFilterConfig;
+    /// use type_system::ontology::id::BaseUrl;
+    ///
+    /// let config = PropertyProtectionFilterConfig::hash_default();
+    /// let protected: Vec<&str> = config.protected_properties().map(BaseUrl::as_str).collect();
+    ///
+    /// assert_eq!(protected, ["https://hash.ai/@h/types/property-type/email/"]);
+    /// ```
+    pub fn protected_properties(&self) -> impl Iterator<Item = &BaseUrl> {
+        self.property_filters.keys()
     }
 
     /// Returns true if this configuration has any protection rules.
@@ -846,7 +871,9 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
             collect_from_json_path(json_path.as_ref(), config, excluded);
         }
         EntityQueryPath::EntityEdge { path, .. } => collect_from_path(path, config, excluded),
-        EntityQueryPath::Label { .. } | EntityQueryPath::FirstLabel => {
+        EntityQueryPath::Label { .. }
+        | EntityQueryPath::FirstLabel
+        | EntityQueryPath::FirstLabelProperty => {
             // TODO(BE-313): check if label_property is protected
         }
         EntityQueryPath::Embedding => {
@@ -859,6 +886,8 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
         | EntityQueryPath::DecisionTime
         | EntityQueryPath::TransactionTime
         | EntityQueryPath::DirectTypeCount
+        | EntityQueryPath::ScalarProperties
+        | EntityQueryPath::PropertyCount
         | EntityQueryPath::EntityConfidence
         | EntityQueryPath::LeftEntityConfidence
         | EntityQueryPath::LeftEntityProvenance

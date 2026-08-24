@@ -12,6 +12,7 @@ members = [
     "libs/@local/codegen",
     "libs/@local/effect-dns/hickory",
     "libs/@local/graph/api",
+    "libs/@local/graph/atlas",
     "libs/@local/graph/authentication/",
     "libs/@local/graph/authorization",
     "libs/@local/graph/embeddings",
@@ -76,6 +77,7 @@ harpc-wire-protocol.path            = "libs/@local/harpc/wire-protocol"
 hash-codec.path                     = "libs/@local/codec"
 hash-codegen.path                   = "libs/@local/codegen"
 hash-graph-api.path                 = "libs/@local/graph/api"
+hash-graph-atlas.path               = "libs/@local/graph/atlas"
 hash-graph-authentication.path      = "libs/@local/graph/authentication/"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"
 hash-graph-embeddings.path          = "libs/@local/graph/embeddings"
@@ -105,6 +107,7 @@ hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
+aide                               = { version = "0.16.0-alpha.4" }
 annotate-snippets                  = { version = "0.12.8", default-features = false }
 ansi-to-html                       = { version = "0.2.2", default-features = false }
 ansi-to-tui                        = { version = "8.0.1" }
@@ -112,6 +115,7 @@ anstream                           = { version = "1.0.0", default-features = fal
 anstyle                            = { version = "1.0.13", default-features = false }
 anstyle-lossy                      = { version = "1.1.4", default-features = false }
 anstyle-svg                        = { version = "1.0.0", default-features = false }
+arc-swap                           = { version = "1.9.1", default-features = false }
 async-scoped                       = { version = "0.9.0", default-features = false }
 aws-config                         = { version = "1.8.10" }
 aws-sdk-s3                         = { version = "1.110.0", default-features = false }
@@ -124,11 +128,14 @@ bitvec                             = { version = "1.0.1", default-features = fal
 bon                                = { version = "3.8.1", default-features = false, features = ["implied-bounds"] }
 bstr                               = { version = "1.12.1" }
 bump-scope                         = { version = "2.0.0", default-features = false, features = ["alloc", "nightly-clone-to-uninit", "panic-on-alloc", "std"] }
+burn                               = { version = "0.21.0" }
+bytecheck                          = { version = "0.8.2", default-features = false }
 bytes                              = { version = "1.10.1" }
 bytes-utils                        = { version = "0.1.4", default-features = false }
 camino                             = { version = "1.1.12", default-features = false }
 cargo_metadata                     = { version = "0.23.0", default-features = false }
 cedar-policy-core                  = { version = "4.5.1", default-features = false, features = ["decimal"] }                                                                                       # FIXME: Remove `decimal`: https://github.com/cedar-policy/cedar/issues/1700
+chacha20poly1305                   = { version = "0.10.1", default-features = false, features = ["alloc"] }
 circular-buffer                    = { version = "1.1.0", default-features = false }
 clap                               = { version = "4.5.51", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder                       = { version = "4.5.51", default-features = false, features = ["std"] }
@@ -156,6 +163,7 @@ expect-test                        = { version = "1.5.1", default-features = fal
 foldhash                           = { version = "0.2.0", default-features = false }
 frunk                              = { version = "0.4.4", default-features = false }
 frunk_core                         = { version = "0.4.4", default-features = false }
+fst                                = { version = "0.4.7" }
 futures                            = { version = "0.3.31", default-features = false }
 futures-channel                    = { version = "0.3.31", default-features = false }
 futures-core                       = { version = "0.3.31", default-features = false }
@@ -166,8 +174,11 @@ futures-util                       = { version = "0.3.31", default-features = fa
 glob                               = { version = "0.3.3" }
 globset                            = { version = "0.4.18", default-features = false }
 guppy                              = { version = "0.17.20", default-features = false }
+hannoy                             = { version = "0.1.7-nested-rtxns" }
 hashbrown                          = { version = "0.17.0", default-features = false, features = ["inline-more", "nightly", "raw-entry"] }
+heed                               = { version = "0.22.1" }
 hifijson                           = { version = "0.4.0", default-features = false }
+hkdf                               = { version = "0.13.0", default-features = false }
 hostname                           = { version = "0.4.2", default-features = false }
 http                               = { version = "1.3.1", default-features = false }
 humansize                          = { version = "2.1.3", default-features = false }
@@ -182,6 +193,7 @@ iso8601-duration                   = { version = "0.2.0", default-features = fal
 itertools                          = { version = "0.14.0", default-features = false }
 jsonptr                            = { version = "0.7.1", default-features = false }
 jsonwebtoken                       = { version = "10.3.0", default-features = false }
+kiddo                              = { version = "6.0.0" }
 lcov                               = { version = "0.8.1" }
 lexical                            = { version = "7.0.5", default-features = false }
 libp2p                             = { version = "0.57.0", default-features = false }
@@ -196,8 +208,10 @@ line-index                         = { version = "0.1.2", default-features = fal
 logos                              = { version = "0.16.0", default-features = false }
 md-5                               = { version = "0.11.0", default-features = false }
 memchr                             = { version = "2.7.6", default-features = false }
+memmap2                            = { version = "0.9" }
 mimalloc                           = { version = "0.1.48", default-features = false }
 mime                               = { version = "0.3.17", default-features = false }
+moka                               = { version = "0.12.15", default-features = false }
 multiaddr                          = { version = "0.18.2", default-features = false }
 multistream-select                 = { version = "0.14.0", default-features = false }
 napi                               = { version = "3.9.0", default-features = false }
@@ -225,8 +239,10 @@ proc-macro2                        = { version = "1.0.103", default-features = f
 prometheus-client                  = { version = "0.24.0", default-features = false }
 proptest                           = { version = "1.7.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
 quote                              = { version = "1.0.41", default-features = false }
+rancor                             = { version = "0.1.2", default-features = false }
 rand                               = { version = "0.10.0", default-features = false }
 rand_core                          = { version = "0.10.0", default-features = false }
+rand_core_06                       = { version = "0.6", package = "rand_core" }
 rand_distr                         = { version = "0.6.0", default-features = false }
 rand_xoshiro                       = { version = "0.8.1" }
 rapidfuzz                          = { version = "0.5.0", default-features = false }
@@ -238,11 +254,13 @@ reqwest                            = { version = "0.13.0", default-features = fa
 reqwest-middleware                 = { version = "0.5.0", default-features = false }
 reqwest-retry                      = { version = "0.9.1", default-features = false }
 reqwest-tracing                    = { version = "0.7.0", default-features = false }
+rkyv                               = { version = "0.8.9" }
 roaring                            = { version = "0.11.2", default-features = false }
 rpds                               = { version = "1.1.2", default-features = false }
 rstest                             = { version = "0.26.1", default-features = false }
 rustc_version                      = { version = "0.4.1", default-features = false }
 scc                                = { version = "3.8.4", default-features = false }
+schemars                           = { version = "1.2.1" }
 semver                             = { version = "1.0.27", default-features = false }
 sentry                             = { version = "0.48.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
 sentry-core                        = { version = "0.48.0", default-features = false }
@@ -254,13 +272,16 @@ serde_plain                        = { version = "1.0.2", default-features = fal
 sha2                               = { version = "0.11.0", default-features = false }
 similar-asserts                    = { version = "2.0.0", default-features = false }
 simple-mermaid                     = { version = "0.2.0", default-features = false }
+siphasher                          = { version = "1.0.3", default-features = false }
 smallvec                           = { version = "2.0.0-alpha.11", default-features = false }
 smol_str                           = { version = "0.3.4" }
 sort-package-json                  = { version = "0.0.12" }
 specta                             = { version = "2.0.0-rc.22", default-features = false }
+sprs                               = { version = "0.11.4" }
 sqruff-lib                         = { version = "0.37.3" }
 sqruff-lib-core                    = { version = "0.37.3" }
 stacker                            = { version = "0.1.22", default-features = false }
+steppe                             = { version = "0.4.1", default-features = false }
 supports-color                     = { version = "3.0.2", default-features = false }
 supports-unicode                   = { version = "3.0.0", default-features = false }
 syn                                = { version = "2.0.108", default-features = false }
@@ -273,6 +294,7 @@ testcontainers                     = { version = "0.27.1", default-features = fa
 testcontainers-modules             = { version = "0.15.0", default-features = false }
 text-size                          = { version = "1.1.1", default-features = false }
 thiserror                          = { version = "2.0.17", default-features = false }
+tiktoken-rs                        = { version = "0.12.0" }
 time                               = { version = "0.3.44", default-features = false }
 tokio                              = { version = "1.47.1", default-features = false }
 tokio-postgres                     = { version = "0.7.15", default-features = false }
@@ -300,6 +322,7 @@ unicode-ident                      = { version = "1.0.22", default-features = fa
 unicode-normalization              = { version = "0.1.25", default-features = false }
 unicode-properties                 = { version = "0.1.4", default-features = false }
 unicode-segmentation               = { version = "1.12.0", default-features = false }
+unidecode                          = { version = "0.3.0" }
 unsynn                             = { version = "0.3.0", default-features = false, features = ["proc_macro2"] }
 url                                = { version = "2.5.7", default-features = false }
 utoipa                             = { version = "4.2.3", default-features = false }
@@ -310,6 +333,8 @@ wasm-bindgen                       = { version = "0.2.100", default-features = f
 wasm-bindgen-test                  = { version = "0.3.50", default-features = false }
 winnow                             = { version = "1.0.0", default-features = false }
 xxhash-rust                        = { version = "0.8.15", default-features = false }
+zerocopy                           = { version = "0.8.55" }
+zeroize                            = { version = "1.9.0", default-features = false }
 
 [profile.dev]
 # TODO: Use `codegen-backend = "cranelift"`
@@ -338,7 +363,7 @@ inherits        = "test"
 
 [profile.production]
 inherits = "release"
-lto      = "fat"
+lto      = "thin"
 strip    = "none"
 
 [workspace.lints.rust]

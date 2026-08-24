@@ -1,0 +1,7 @@
+.venv/
+.nltk-probe/
+__pycache__/
+*.pyc
+.pytest_cache/
+runs/
+*.egg-info/

@@ -13,6 +13,9 @@
 
     // Library Features
     allocator_api,
+    const_convert,
+    const_index,
+    const_trait_impl,
     try_trait_v2,
     unwrap_infallible,
 )]
