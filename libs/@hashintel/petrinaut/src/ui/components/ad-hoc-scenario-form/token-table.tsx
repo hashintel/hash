@@ -26,9 +26,6 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocRowKindOf,
   resolveAdHocPlaceTotal,
-  setAdHocRowKind,
-  shareAdHocColumn,
-  unshareAdHocColumn,
   type AdHocColouredPlace,
   type AdHocRow,
   type AdHocRowKind,
@@ -52,7 +49,6 @@ import {
   tableStyle,
 } from "./form-table";
 import { GutterMenu } from "./gutter-menu";
-import { defaultCellsFor, updateCell, updateRow } from "./state";
 import { focusLands, useNavigationZone } from "./use-form-navigation";
 import { ValueEditor } from "./value-editor";
 
@@ -151,16 +147,14 @@ export interface TokenTableProps {
   place: Place;
   colour: Color;
   state: AdHocColouredPlace;
-  onChange: (next: AdHocColouredPlace) => void;
 }
 
 export const TokenTable: React.FC<TokenTableProps> = ({
   place,
   colour,
   state,
-  onChange,
 }) => {
-  const { formState, synthesisContext, selection, setFocusedValue } =
+  const { formState, synthesisContext, selection, setFocusedValue, dispatch } =
     use(AdHocFormContext);
   const elements = colour.elements;
   const columnCount = elements.length;
@@ -288,10 +282,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     });
 
   const deleteRow = (rowIndex: number) => {
-    onChange({
-      ...state,
-      rows: state.rows.filter((_, index) => index !== rowIndex),
-    });
+    dispatch({ type: "deleteTokenRow", placeId: place.id, row: rowIndex });
     // Focus the same gutter position after React commits the removal; the
     // phantom row's first cell when the last row went.
     const remaining = state.rows.length - 1;
@@ -416,13 +407,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
 
   const materializeRow = (column: number) => {
     const rowIndex = state.rows.length;
-    onChange({
-      ...state,
-      rows: [
-        ...state.rows,
-        { kind: "fixed", cells: defaultCellsFor(elements) },
-      ],
-    });
+    dispatch({ type: "addTokenRow", placeId: place.id });
     // A shared column's cells are derived, so the fresh cell cannot be
     // edited; its editor is the shared value's.
     const field = elements[column]?.name;
@@ -438,9 +423,12 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   };
 
   const setRowKind = (rowIndex: number, kind: AdHocRowKind) => {
-    onChange(
-      updateRow(state, rowIndex, (current) => setAdHocRowKind(current, kind)),
-    );
+    dispatch({
+      type: "setTokenRowKind",
+      placeId: place.id,
+      row: rowIndex,
+      rowKind: kind,
+    });
     const anchor = kindMenu?.anchor;
     setKindMenuState(null);
     anchor?.focus();
@@ -496,15 +484,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   }}
                   onTriggerKeyDown={(event) =>
                     handleGridKeyDown(event, { kind: "strip", row: rowIndex })
-                  }
-                  onChange={(count) =>
-                    onChange(
-                      updateRow(state, rowIndex, (current) =>
-                        current.kind === "template"
-                          ? { ...current, count }
-                          : current,
-                      ),
-                    )
                   }
                 />
               </div>
@@ -694,11 +673,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                       column: columnIndex,
                     })
                   }
-                  onChange={(next) =>
-                    onChange(
-                      updateCell(state, rowIndex, columnIndex, () => next),
-                    )
-                  }
                 />
               </td>
             );
@@ -748,14 +722,19 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                           })
                         }
                         onClick={() =>
-                          onChange(
+                          dispatch(
                             shared
-                              ? unshareAdHocColumn(state, element.name)
-                              : shareAdHocColumn(
-                                  state,
-                                  element.name,
-                                  columnIndex,
-                                ),
+                              ? {
+                                  type: "unshareColumn",
+                                  placeId: place.id,
+                                  field: element.name,
+                                }
+                              : {
+                                  type: "shareColumn",
+                                  placeId: place.id,
+                                  field: element.name,
+                                  column: columnIndex,
+                                },
                           )
                         }
                       >
@@ -809,15 +788,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                           handleGridKeyDown(event, {
                             kind: "shared",
                             column: columnIndex,
-                          })
-                        }
-                        onChange={(next) =>
-                          onChange({
-                            ...state,
-                            sharedColumns: {
-                              ...state.sharedColumns,
-                              [element.name]: next,
-                            },
                           })
                         }
                       />

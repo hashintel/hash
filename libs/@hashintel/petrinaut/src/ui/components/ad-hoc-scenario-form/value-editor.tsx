@@ -26,13 +26,7 @@ import {
 
 import { Select, usePortalContainerRef } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import {
-  AD_HOC_DEFAULT_COUNT_OPTIMIZE,
-  AD_HOC_DEFAULT_OPTIMIZE,
-  adHocSlotKey,
-  adHocTargetLabel,
-  toggleAdHocOptimize,
-} from "@hashintel/petrinaut-core";
+import { adHocSlotKey, adHocTargetLabel } from "@hashintel/petrinaut-core";
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
@@ -242,11 +236,12 @@ const expressionRowStyle = css({
 
 export interface ValueEditorProps {
   value: AdHocValue;
-  onChange: (value: AdHocValue) => void;
   /**
-   * The slot's location: its attribution label, LSP document, and error
-   * lookup all derive from it. A derived cell passes its column's target, so
-   * the shared value's problems surface on every cell it supersedes.
+   * The slot's location. Edits dispatch against it — `setExpression`,
+   * `setDomainField`, `toggleSelection` — and its attribution label, LSP
+   * document, and error lookup all derive from it. A derived cell passes its
+   * column's target, so the shared value's problems surface on every cell it
+   * supersedes.
    */
   target: AdHocValueTarget;
   /** Integer slots validate integer bounds. */
@@ -378,7 +373,6 @@ const BoundCell: React.FC<BoundCellProps> = ({
 
 export const ValueEditor: React.FC<ValueEditorProps> = ({
   value,
-  onChange,
   target,
   integer = false,
   booleanDomain = false,
@@ -400,6 +394,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     selection,
     highlight,
     setFocusedValue,
+    dispatch,
   } = use(AdHocFormContext);
   const label = adHocTargetLabel(target, formState, synthesisContext);
   const dependencyHighlighted = highlight.slotKeys.has(
@@ -668,11 +663,14 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                         editing={editingBound === field.key}
                         onStartEdit={() => setEditingBound(field.key)}
                         onEndEdit={() => endBoundEdit(field.key)}
-                        onChange={(next) => {
-                          const optimize = { ...value.optimize! };
-                          optimize[field.key] = next;
-                          onChange({ ...value, optimize });
-                        }}
+                        onChange={(next) =>
+                          dispatch({
+                            type: "setDomainField",
+                            target,
+                            field: field.key,
+                            value: next,
+                          })
+                        }
                         registerTrigger={registerBound(
                           field.key,
                           fieldIndex === 0,
@@ -719,9 +717,11 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                       aria-label={`Scale of ${label}`}
                       value={value.optimize!.scale}
                       onChange={(scale) =>
-                        onChange({
-                          ...value,
-                          optimize: { ...value.optimize!, scale },
+                        dispatch({
+                          type: "setDomainField",
+                          target,
+                          field: "scale",
+                          value: scale,
                         })
                       }
                       items={[
@@ -744,7 +744,11 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                       editorInstance.focus();
                     }}
                     onChange={(expression) =>
-                      onChange({ ...value, expression: expression ?? "" })
+                      dispatch({
+                        type: "setExpression",
+                        target,
+                        expression: expression ?? "",
+                      })
                     }
                     onSubmit={() => {
                       setOpen(false);
@@ -761,15 +765,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                   label={`${adHocSelectionText(selection)} ${label}`}
                   value={value.optimize !== null}
                   onChange={(on) =>
-                    onChange(
-                      toggleAdHocOptimize(
-                        value,
-                        on,
-                        integer && !withStep
-                          ? AD_HOC_DEFAULT_COUNT_OPTIMIZE
-                          : AD_HOC_DEFAULT_OPTIMIZE,
-                      ),
-                    )
+                    dispatch({ type: "toggleSelection", target, on })
                   }
                 />
               </div>

@@ -16,6 +16,7 @@ import { EMPTY_AD_HOC_HIGHLIGHT } from "./dependency-highlight";
 
 import type { AdHocFocusTarget, AdHocHighlight } from "./dependency-highlight";
 import type {
+  AdHocAction,
   AdHocScenarioState,
   AdHocSlot,
   AdHocSynthesisContext,
@@ -34,6 +35,11 @@ export const adHocSelectionText = (selection: AdHocFormSelection): string =>
 export interface AdHocFormServices {
   /** The whole form state, as currently edited. */
   formState: AdHocScenarioState;
+  /**
+   * The one write path: every edit is a serializable action applied by the
+   * pure reducer in petrinaut-core and recorded as an undo step.
+   */
+  dispatch: (action: AdHocAction) => void;
   /** The net the form resolves names and types against. */
   synthesisContext: AdHocSynthesisContext;
   /** What selecting a value means here; "none" hides the toggles. */
@@ -52,6 +58,7 @@ export interface AdHocFormServices {
 
 export const AdHocFormContext = createContext<AdHocFormServices>({
   formState: { variables: [], netParameters: [], places: {} },
+  dispatch: () => {},
   synthesisContext: { netParameters: [], places: [], types: [] },
   selection: "none",
   sessionId: "",

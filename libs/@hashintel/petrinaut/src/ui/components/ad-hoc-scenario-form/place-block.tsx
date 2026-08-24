@@ -130,14 +130,12 @@ export interface ColouredPlaceBlockProps {
   place: Place;
   colour: Color;
   state: AdHocColouredPlace;
-  onChange: (place: AdHocColouredPlace) => void;
 }
 
 export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   place,
   colour,
   state,
-  onChange,
 }) => {
   const { formState, synthesisContext } = use(AdHocFormContext);
   const [collapsed, setCollapsed] = useState(false);
@@ -185,14 +183,8 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
             scopeLabel={`Variables of ${place.name}`}
             placeId={place.id}
             variables={state.variables}
-            onChange={(variables) => onChange({ ...state, variables })}
           />
-          <TokenTable
-            place={place}
-            colour={colour}
-            state={state}
-            onChange={onChange}
-          />
+          <TokenTable place={place} colour={colour} state={state} />
         </div>
       </div>
     </div>
@@ -202,13 +194,11 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
 export interface UncolouredPlaceBlockProps {
   place: Place;
   state: AdHocUncolouredPlace;
-  onChange: (place: AdHocUncolouredPlace) => void;
 }
 
 export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   place,
   state,
-  onChange,
 }) => {
   const target = { kind: "count" as const, placeId: place.id, row: null };
   const [trigger, setTrigger] = useState<HTMLButtonElement | null>(null);
@@ -235,7 +225,6 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
               exitZone(event.key === "ArrowUp" ? "previous" : "next");
             }
           }}
-          onChange={(count) => onChange({ ...state, count })}
         />
       </div>
     </div>

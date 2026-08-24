@@ -1,14 +1,68 @@
-import { useRef } from "react";
+/**
+ * Redux-like editing history for the ad-hoc form. Every edit is a
+ * serializable `AdHocAction` dispatched through here: the pure reducer in
+ * petrinaut-core computes the next state, the caller's `onChange` keeps
+ * owning it (the form stays controlled), and the history is a stack of
+ * state snapshots with a cursor. Undo and redo never dispatch — they move
+ * the cursor and replay the snapshot, so redo after undo restores the
+ * identical state value.
+ *
+ * Consecutive dispatches whose `adHocActionCoalescingKey` matches (typing
+ * in one slot) collapse into one entry. The key match is identity-based,
+ * not time-based, and breaks on undo/redo or an external state change, so
+ * a burst never merges into an entry the user has already navigated to.
+ *
+ * The history is ephemeral: it lives with the form instance and dies with
+ * the drawer that hosts it.
+ */
 
-import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
+import { useState } from "react";
 
-/** Edits closer together than this coalesce into one undo step. */
-const COALESCE_MS = 600;
+import {
+  adHocActionCoalescingKey,
+  applyAdHocAction,
+} from "@hashintel/petrinaut-core";
+
+import type {
+  AdHocAction,
+  AdHocScenarioState,
+  AdHocSynthesisContext,
+} from "@hashintel/petrinaut-core";
+
 const HISTORY_LIMIT = 100;
 
+interface HistoryEntry {
+  state: AdHocScenarioState;
+  /** ISO timestamp of the edit that created the entry. */
+  timestamp: string;
+}
+
+interface HistoryModel {
+  entries: HistoryEntry[];
+  /** The entry the form currently shows. */
+  cursor: number;
+  /**
+   * The coalescing key of the entry at the cursor, set only when the last
+   * movement was a dispatch — undo/redo and external changes clear it, so
+   * the next dispatch starts a fresh entry.
+   */
+  hotKey: string | null;
+}
+
 export interface AdHocFormHistory {
-  /** Routes an edit to the caller's `onChange`, recording it for undo. */
-  change: (next: AdHocScenarioState) => void;
+  /** Applies one action and records the step for undo. */
+  dispatch: (action: AdHocAction) => void;
+  /** Moves the cursor back and replays that snapshot; never dispatches. */
+  undo: () => void;
+  /** Moves the cursor forward and replays that snapshot; never dispatches. */
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  /** One entry per undo step, oldest first, mirroring `UndoRedoContext`. */
+  history: { timestamp: string }[];
+  currentIndex: number;
+  /** Jumps the cursor to any recorded step. */
+  goToIndex: (index: number) => void;
   /**
    * Capture-phase key handler for the form root: Cmd/Ctrl+Z undoes,
    * Shift+Cmd/Ctrl+Z or Ctrl+Y redoes. Keys inside a text field or a Monaco
@@ -17,57 +71,71 @@ export interface AdHocFormHistory {
   handleKeyDown: (event: React.KeyboardEvent) => void;
 }
 
-/**
- * Form-level undo/redo over the whole `AdHocScenarioState`. The form stays
- * controlled: undo and redo replay snapshots through the caller's `onChange`,
- * so the caller keeps owning the state. Bursts of changes (typing in an open
- * expression editor) coalesce into one step.
- */
+/** Truncates any redo tail and pushes a fresh entry; the burst goes cold. */
+function appendEntry(
+  model: HistoryModel,
+  state: AdHocScenarioState,
+): HistoryModel {
+  const kept = model.entries.slice(0, model.cursor + 1);
+  const entries = [
+    ...(kept.length >= HISTORY_LIMIT ? kept.slice(1) : kept),
+    { state, timestamp: new Date().toISOString() },
+  ];
+  return { entries, cursor: entries.length - 1, hotKey: null };
+}
+
 export function useAdHocFormHistory(
   state: AdHocScenarioState,
+  context: AdHocSynthesisContext,
   onChange: (state: AdHocScenarioState) => void,
 ): AdHocFormHistory {
-  const historyRef = useRef<{
-    past: AdHocScenarioState[];
-    future: AdHocScenarioState[];
-    lastEditAt: number;
-  }>({ past: [], future: [], lastEditAt: 0 });
+  const [model, setModel] = useState<HistoryModel>(() => ({
+    entries: [{ state, timestamp: new Date().toISOString() }],
+    cursor: 0,
+    hotKey: null,
+  }));
 
-  const change = (next: AdHocScenarioState) => {
-    const history = historyRef.current;
-    const now = Date.now();
-    if (now - history.lastEditAt > COALESCE_MS) {
-      history.past.push(state);
-      if (history.past.length > HISTORY_LIMIT) {
-        history.past.shift();
+  // The invariant is `entries[cursor].state === state`; every dispatch,
+  // undo, and redo maintains it. A mismatch means the parent changed the
+  // state externally — record that as a fresh step (render-adjusted state,
+  // no effect involved).
+  if (model.entries[model.cursor]!.state !== state) {
+    setModel(appendEntry(model, state));
+  }
+
+  const dispatch = (action: AdHocAction) => {
+    const next = applyAdHocAction(state, context, action);
+    if (next === state) {
+      return;
+    }
+    const key = adHocActionCoalescingKey(action);
+    setModel((current) => {
+      const atTop = current.cursor === current.entries.length - 1;
+      if (key !== null && key === current.hotKey && atTop) {
+        // Extend the burst: replace the top snapshot, keep its timestamp.
+        const entries = [...current.entries];
+        entries[current.cursor] = {
+          state: next,
+          timestamp: entries[current.cursor]!.timestamp,
+        };
+        return { ...current, entries };
       }
-    }
-    history.future = [];
-    history.lastEditAt = now;
+      return { ...appendEntry(current, next), hotKey: key };
+    });
     onChange(next);
   };
 
-  const undo = () => {
-    const history = historyRef.current;
-    const previous = history.past.pop();
-    if (previous === undefined) {
+  const goToIndex = (index: number) => {
+    const target = model.entries[index];
+    if (!target || index === model.cursor) {
       return;
     }
-    history.future.push(state);
-    history.lastEditAt = 0;
-    onChange(previous);
+    setModel({ ...model, cursor: index, hotKey: null });
+    onChange(target.state);
   };
 
-  const redo = () => {
-    const history = historyRef.current;
-    const next = history.future.pop();
-    if (next === undefined) {
-      return;
-    }
-    history.past.push(state);
-    history.lastEditAt = 0;
-    onChange(next);
-  };
+  const undo = () => goToIndex(model.cursor - 1);
+  const redo = () => goToIndex(model.cursor + 1);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     const target = event.target as HTMLElement;
@@ -93,5 +161,15 @@ export function useAdHocFormHistory(
     }
   };
 
-  return { change, handleKeyDown };
+  return {
+    dispatch,
+    undo,
+    redo,
+    canUndo: model.cursor > 0,
+    canRedo: model.cursor < model.entries.length - 1,
+    history: model.entries.map(({ timestamp }) => ({ timestamp })),
+    currentIndex: model.cursor,
+    goToIndex,
+    handleKeyDown,
+  };
 }

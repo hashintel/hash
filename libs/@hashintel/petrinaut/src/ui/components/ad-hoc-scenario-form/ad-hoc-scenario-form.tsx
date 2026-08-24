@@ -30,6 +30,7 @@ import { use, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  adHocPlaceStateFor,
   adHocSlotKey,
   getAdHocDocumentUri,
   synthesizeAdHocOptimization,
@@ -41,7 +42,6 @@ import { computeAdHocHighlight } from "./dependency-highlight";
 import { AdHocFormContext } from "./form-context";
 import { ParameterRows } from "./parameter-rows";
 import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
-import { placeStateFor, updatePlace } from "./state";
 import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
 import { useAdHocFormHistory } from "./use-form-history";
 import {
@@ -54,7 +54,6 @@ import { VariableRows } from "./variable-rows";
 import type { AdHocFocusTarget } from "./dependency-highlight";
 import type { AdHocFormSelection, AdHocFormServices } from "./form-context";
 import type {
-  AdHocNetParameter,
   AdHocScenarioState,
   AdHocSlot,
   AdHocSynthesisContext,
@@ -112,10 +111,15 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
 }) => {
   const sessionId = useAdHocLspSession(state);
   const { diagnosticsByUri } = use(LanguageClientContext);
-  // Every edit below routes through `change`, so Cmd/Ctrl+Z anywhere in the
-  // form (open text fields excepted — those own their own undo) walks the
-  // whole form's history.
-  const { change, handleKeyDown } = useAdHocFormHistory(state, onChange);
+  // Every edit below is an action dispatched through the history: the pure
+  // reducer in petrinaut-core computes the next state, and Cmd/Ctrl+Z
+  // anywhere in the form (open text fields excepted — those own their own
+  // undo) moves a cursor over the recorded snapshots.
+  const { dispatch, handleKeyDown } = useAdHocFormHistory(
+    state,
+    context,
+    onChange,
+  );
 
   // Zones (grids, section headers, place headers) register here; arrow moves
   // past a zone's edge continue into the next one in document order.
@@ -145,6 +149,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
 
   const services: AdHocFormServices = {
     formState: state,
+    dispatch,
     synthesisContext: context,
     selection,
     sessionId,
@@ -165,13 +170,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     setFocusedValue,
   };
 
-  const setEntry = (entry: AdHocNetParameter) => {
-    const rest = state.netParameters.filter(
-      (existing) => existing.parameterId !== entry.parameterId,
-    );
-    change({ ...state, netParameters: [...rest, entry] });
-  };
-
   return (
     <AdHocFormContext value={services}>
       <FormNavigationContext value={navigation}>
@@ -184,10 +182,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                 title="Parameters"
                 tooltip="Override a net parameter's value for this run. Empty keeps its default."
               >
-                <ParameterRows
-                  entries={state.netParameters}
-                  onEntryChange={setEntry}
-                />
+                <ParameterRows entries={state.netParameters} />
               </NavigableSection>
             ) : null}
 
@@ -199,7 +194,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                 scopeLabel="Top-level variables"
                 placeId={null}
                 variables={state.variables}
-                onChange={(variables) => change({ ...state, variables })}
               />
             </NavigableSection>
 
@@ -209,7 +203,11 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
             >
               <div className={placesListStyle}>
                 {context.places.map((place) => {
-                  const placeState = placeStateFor(state, context, place.id);
+                  const placeState = adHocPlaceStateFor(
+                    state,
+                    context,
+                    place.id,
+                  );
                   const colour = place.colorId
                     ? context.types.find((type) => type.id === place.colorId)
                     : undefined;
@@ -221,11 +219,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                         place={place}
                         colour={colour}
                         state={placeState}
-                        onChange={(next) =>
-                          change(
-                            updatePlace(state, place.id, context, () => next),
-                          )
-                        }
                       />
                     );
                   }
@@ -235,11 +228,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                         key={place.id}
                         place={place}
                         state={placeState}
-                        onChange={(next) =>
-                          change(
-                            updatePlace(state, place.id, context, () => next),
-                          )
-                        }
                       />
                     );
                   }
