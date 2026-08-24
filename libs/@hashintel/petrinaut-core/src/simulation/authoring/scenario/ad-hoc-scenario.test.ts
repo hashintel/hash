@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   adHocOptimizationBindings,
+  adHocRowKindOf,
+  setAdHocRowKind,
   adHocParameterName,
   adHocPlaceKey,
   adHocSlotKey,
@@ -754,6 +756,41 @@ describe("state transitions", () => {
     }
     expect(around.count.expression).toBe("scenario.n");
     expect(around.count.optimize).toBeNull();
+  });
+
+  it("sets a row's kind directly with the same retention as the cycle", () => {
+    const start: AdHocRow = { kind: "fixed", cells: [cell("1")] };
+    expect(adHocRowKindOf(start)).toBe("fixed");
+
+    const optimized = setAdHocRowKind(start, "optimized");
+    if (optimized.kind !== "template") {
+      throw new Error("expected a dynamic row");
+    }
+    expect(adHocRowKindOf(optimized)).toBe("optimized");
+    expect(optimized.count.optimize).toEqual({
+      min: "0",
+      max: "10",
+      scale: "linear",
+    });
+
+    const edited: AdHocRow = {
+      ...optimized,
+      count: { ...optimized.count, expression: "scenario.n" },
+    };
+    const backToFixed = setAdHocRowKind(edited, "fixed");
+    if (backToFixed.kind !== "fixed") {
+      throw new Error("expected a fixed row");
+    }
+    expect(backToFixed.retainedCount?.expression).toBe("scenario.n");
+
+    const dynamic = setAdHocRowKind(backToFixed, "dynamic");
+    if (dynamic.kind !== "template") {
+      throw new Error("expected a dynamic row");
+    }
+    expect(dynamic.count.expression).toBe("scenario.n");
+    expect(dynamic.count.optimize).toBeNull();
+    // Same kind is a no-op.
+    expect(setAdHocRowKind(dynamic, "dynamic")).toBe(dynamic);
   });
 
   it("the cycle skips the optimized stage when Optimize is unavailable", () => {
