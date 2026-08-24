@@ -39,10 +39,9 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
 
   const isLinkEntityType = isSpecialEntityTypeLookup?.[entityTypeId]?.isLink;
 
-  // Only fetch permissions while the menu is open to avoid a query per sidebar item
-  const { userPermissions } = useUserPermissionsOnEntityType(
-    popupState.isOpen ? entityTypeId : undefined,
-  );
+  // Fetch on mount, not on open, so permission-gated items are already resolved
+  // by the time the menu opens – avoids the list shifting under the cursor
+  const { userPermissions } = useUserPermissionsOnEntityType(entityTypeId);
 
   const canInstantiate = !!userPermissions?.instantiate;
 
