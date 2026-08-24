@@ -56,6 +56,9 @@ export interface OptimizeToggleProps {
   /** Accessible name; the visible text stays "Optimize". */
   label: string;
   className?: string;
+  /** Registers the pill for an owning grid's keyboard navigation. */
+  buttonRef?: (element: HTMLButtonElement | null) => void;
+  onKeyDown?: React.KeyboardEventHandler<HTMLButtonElement>;
 }
 
 export const OptimizeToggle: React.FC<OptimizeToggleProps> = ({
@@ -63,13 +66,17 @@ export const OptimizeToggle: React.FC<OptimizeToggleProps> = ({
   onChange,
   label,
   className,
+  buttonRef,
+  onKeyDown,
 }) => (
   <button
+    ref={buttonRef}
     type="button"
     aria-pressed={value}
     aria-label={label}
     className={cx(pillStyle, value && pillOnStyle, className)}
     onClick={() => onChange(!value)}
+    onKeyDown={onKeyDown}
   >
     <span className={cx(knobStyle, value && knobOnStyle)} />
     Optimize

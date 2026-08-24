@@ -42,6 +42,7 @@ import {
   footerRowStyle,
   gutterCellStyle,
   gutterHeaderStyle,
+  rowDeleteButtonStyle,
   tableContainerStyle,
   tableStyle,
 } from "./form-table";
@@ -519,7 +520,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
               variant="ghost"
               tone="neutral"
               aria-label={`Remove row ${rowIndex + 1}`}
-              iconName="close"
+              iconName="trash"
+              className={rowDeleteButtonStyle}
               onClick={() =>
                 onChange({
                   ...state,

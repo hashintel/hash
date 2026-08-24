@@ -103,26 +103,32 @@ const overlayStyle = css({
 });
 
 const overlayBodyStyle = css({
+  position: "relative",
+  zIndex: "[1]",
   backgroundColor: "neutral.s00",
   boxShadow: "[0 0 0 2px {colors.blue.s50}, 0 4px 12px -4px rgba(0,0,0,0.15)]",
-  borderRadius: "xs",
   display: "flex",
 });
 
+// The label bar and the Optimize bar sit flush against the editor, spanning
+// its full width — one slab, no gaps, rounded only at the outer corners.
 const pathLabelStyle = css({
   position: "absolute",
   bottom: "[100%]",
   left: "[0]",
+  right: "[0]",
   animation: "[fadeIn 0.12s ease-out both]",
-  marginBottom: "[2px]",
-  paddingX: "1",
-  paddingY: "[1px]",
-  borderRadius: "xs",
+  paddingX: "1.5",
+  paddingY: "[2px]",
+  borderTopRadius: "xs",
   backgroundColor: "neutral.s15",
+  boxShadow: "[0 0 0 2px {colors.blue.s50}]",
   fontSize: "[9px]",
   fontFamily: "mono",
   color: "neutral.s80",
+  overflow: "hidden",
   whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
   pointerEvents: "none",
 });
 
@@ -130,11 +136,16 @@ const belowStripStyle = css({
   position: "absolute",
   top: "[100%]",
   left: "[0]",
+  right: "[0]",
   animation: "[fadeIn 0.12s ease-out both]",
-  marginTop: "[3px]",
   display: "flex",
   alignItems: "center",
   gap: "1.5",
+  paddingX: "1",
+  paddingY: "[3px]",
+  borderBottomRadius: "xs",
+  backgroundColor: "neutral.s15",
+  boxShadow: "[0 0 0 2px {colors.blue.s50}]",
 });
 
 const boundsRowStyle = css({
@@ -358,6 +369,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     fieldLabel: string,
     fieldValue: string,
     setBound: (next: string) => void,
+    focusOnOpen = false,
   ) => (
     <div className={boundFieldStyle}>
       <TextInput
@@ -366,6 +378,8 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         placeholder={fieldLabel}
         value={fieldValue}
         onChange={setBound}
+        // eslint-disable-next-line jsx-a11y/no-autofocus -- opening the editor is an explicit edit intent
+        autoFocus={focusOnOpen}
       />
     </div>
   );
@@ -436,11 +450,15 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                 </div>
               ) : optimized ? (
                 <div className={boundsRowStyle}>
-                  {boundField("Min", value.optimize!.min, (min) =>
-                    onChange({
-                      ...value,
-                      optimize: { ...value.optimize!, min },
-                    }),
+                  {boundField(
+                    "Min",
+                    value.optimize!.min,
+                    (min) =>
+                      onChange({
+                        ...value,
+                        optimize: { ...value.optimize!, min },
+                      }),
+                    true,
                   )}
                   {boundField("Max", value.optimize!.max, (max) =>
                     onChange({
@@ -485,6 +503,9 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                     path={uriFor(expressionSlot) || undefined}
                     value={value.expression}
                     placeholder={placeholder}
+                    onMount={(editorInstance) => {
+                      editorInstance.focus();
+                    }}
                     onChange={(expression) =>
                       onChange({ ...value, expression: expression ?? "" })
                     }

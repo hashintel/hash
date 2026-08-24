@@ -20,11 +20,13 @@ import {
   cellInputStyle,
   cellSelectStyle,
   cellStyle,
+  rowDeleteButtonStyle,
   tableContainerStyle,
   tableStyle,
 } from "./form-table";
 import { OptimizeToggle } from "./optimize-toggle";
 import { removeAt, replaceVariable } from "./state";
+import { useGridNavigation } from "./use-grid-navigation";
 import { ValueEditor } from "./value-editor";
 
 import type {
@@ -78,6 +80,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   context,
 }) => {
   const { errorFor } = use(AdHocFormContext);
+  const grid = useGridNavigation();
 
   if (variables.length === 0) {
     return null;
@@ -102,6 +105,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                   )}
                 >
                   <input
+                    ref={grid.register(index, 0)}
+                    onKeyDown={grid.onKeyDown(index, 0)}
                     className={cellInputStyle}
                     aria-label={`Name of variable ${index + 1} (${scopeLabel})`}
                     title={nameError}
@@ -124,6 +129,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     optimizable={optimizable}
                     integer={variable.type === "integer"}
                     booleanDomain={variable.type === "boolean"}
+                    triggerRef={grid.register(index, 1)}
+                    onTriggerKeyDown={grid.onKeyDown(index, 1)}
                     onChange={(value) =>
                       onChange(
                         replaceVariable(variables, index, {
@@ -163,6 +170,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     <OptimizeToggle
                       label={`Optimize ${variable.name}`}
                       value={variable.optimize !== null}
+                      buttonRef={grid.register(index, 2)}
+                      onKeyDown={grid.onKeyDown(index, 2)}
                       onChange={(on) =>
                         onChange(
                           replaceVariable(variables, index, {
@@ -179,7 +188,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     size="xs"
                     variant="ghost"
                     tone="neutral"
-                    iconName="close"
+                    iconName="trash"
+                    className={rowDeleteButtonStyle}
                     aria-label={`Remove ${variable.name}`}
                     onClick={() => onChange(removeAt(variables, index))}
                   />
