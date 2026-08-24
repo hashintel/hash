@@ -44,7 +44,7 @@ async fn decision_time_exceeds_transaction_time() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -109,7 +109,7 @@ async fn decision_time_in_past_succeeds() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 temporal_axes: crate::axes_at_decision_time(one_hour_ago),
@@ -157,7 +157,7 @@ async fn decision_time_defaults_to_transaction_time() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -214,7 +214,7 @@ async fn decision_time_before_creation_finds_nothing() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -320,7 +320,7 @@ async fn past_decision_time_deletes_all_editions() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 temporal_axes: crate::axes_at_decision_time(one_hour_ago),

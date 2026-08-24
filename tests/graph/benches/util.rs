@@ -33,7 +33,7 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     principal::{
-        actor::{ActorEntityUuid, ActorType},
+        actor::{ActorId, ActorType},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -51,7 +51,7 @@ pub struct StoreWrapper {
     pub store: ManuallyDrop<Store>,
     #[expect(clippy::allow_attributes, reason = "False positive")]
     #[allow(dead_code, reason = "False positive")]
-    pub account_id: ActorEntityUuid,
+    pub account_id: ActorId,
 }
 
 pub fn setup_subscriber(
@@ -71,7 +71,7 @@ impl StoreWrapper {
         bench_db_name: &str,
         fail_on_exists: bool,
         delete_on_drop: bool,
-        account_id: ActorEntityUuid,
+        account_id: ActorId,
     ) -> Self {
         load_env(Environment::Test);
 
@@ -288,7 +288,7 @@ impl Drop for StoreWrapper {
 
 pub async fn seed<D, P, E, C, S>(
     store: &mut PostgresStore<C, S>,
-    account_id: ActorEntityUuid,
+    account_id: ActorId,
     data_types: D,
     property_types: P,
     entity_types: E,
@@ -407,7 +407,7 @@ pub fn setup(
     db_name: &str,
     fail_on_exists: bool,
     delete_on_drop: bool,
-    account_id: ActorEntityUuid,
+    account_id: ActorId,
 ) -> (Runtime, StoreWrapper) {
     let runtime = Runtime::new().expect("could not create runtime");
 

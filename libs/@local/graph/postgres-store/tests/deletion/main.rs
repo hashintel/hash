@@ -48,7 +48,7 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     principal::{
-        actor::{ActorEntityUuid, ActorType, UserId},
+        actor::{ActorEntityUuid, ActorId, ActorType, UserId},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -58,7 +58,7 @@ pub use crate::common::DatabaseTestWrapper;
 
 pub struct DatabaseApi<'pool> {
     pub store: PostgresStore<Transaction<'pool>, InTransaction>,
-    pub account_id: ActorEntityUuid,
+    pub account_id: ActorId,
 }
 
 impl DatabaseTestWrapper {

@@ -15,9 +15,8 @@ use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName,
-    principal::actor::AuthenticatedActor,
     resource::{EntityResourceConstraint, ResourceConstraint},
-    store::{PolicyCreationParams, PrincipalStore as _},
+    store::PolicyCreationParams,
 };
 use hash_graph_embeddings::{Dimension, clustering::Clustering};
 use hash_graph_migrations::Transaction as _;
@@ -93,7 +92,10 @@ use type_system::{
         entity_type::{ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid},
         id::{OntologyTypeUuid, VersionedUrl},
     },
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId},
+        actor_group::WebId,
+    },
 };
 use uuid::Uuid;
 
@@ -683,9 +685,7 @@ where
             closed_multi_entity_types: if params.include_entity_types.is_some() {
                 Some(
                     self.get_closed_multi_entity_types(
-                        policy_components
-                            .actor_id()
-                            .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                        policy_components.actor_id(),
                         entities
                             .iter()
                             .map(|entity| entity.metadata.entity_type_ids.clone()),
@@ -717,9 +717,7 @@ where
                         .collect::<Vec<_>>();
                     Some(
                         self.get_entity_type_resolve_definitions(
-                            policy_components
-                                .actor_id()
-                                .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                            policy_components.actor_id(),
                             &entity_type_uuids,
                             params.include_entity_types
                                 == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),
@@ -746,7 +744,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn query_entities_impl(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         mut params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
@@ -786,7 +784,7 @@ where
 
             let update_permissions = self
                 .has_permission_for_entities_impl(
-                    policy_components.actor_id().into(),
+                    policy_components.actor_id(),
                     HasPermissionForEntitiesParams {
                         action: ActionName::UpdateEntity,
                         entity_ids: Cow::Borrowed(&entity_ids),
@@ -818,7 +816,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn query_entity_subgraph_impl(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryEntitySubgraphParams<'_>,
     ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
         let actions = params.view_actions();
@@ -999,7 +997,7 @@ where
 
                     let update_permissions = self
                         .has_permission_for_entities_impl(
-                            actor.into(),
+                            actor,
                             HasPermissionForEntitiesParams {
                                 action: ActionName::UpdateEntity,
                                 entity_ids: Cow::Borrowed(&entity_ids),
@@ -1111,7 +1109,7 @@ where
     #[tracing::instrument(skip(self, params))]
     pub(crate) async fn has_permission_for_entities_impl(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: Option<ActorId>,
         params: HasPermissionForEntitiesParams<'_>,
     ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
         let temporal_axes = params.temporal_axes.resolve();
@@ -1201,7 +1199,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn create_entities(
         &mut self,
-        actor_uuid: ActorEntityUuid,
+        actor_id: ActorId,
         params: Vec<CreateEntityParams>,
     ) -> Result<Vec<Entity>, Report<InsertionError>> {
         let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
@@ -1225,12 +1223,6 @@ where
             .begin_transaction()
             .await
             .change_context(InsertionError)?;
-
-        let actor_id = transaction
-            .determine_actor(actor_uuid)
-            .await
-            .change_context(InsertionError)?
-            .ok_or_else(|| Report::new(InsertionError).attach("Actor not found"))?;
 
         let mut policy_components_builder = PolicyComponents::builder(&transaction);
 
@@ -1261,7 +1253,7 @@ where
         // The policy components builder will make sure, that also parent entity types are added to
         // the set of entity type IDs. These are accessible via `tracked_entity_types` method.
         let policy_components = policy_components_builder
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_entity_type_ids(entity_type_id_set)
             .with_actions(
                 [ActionName::Instantiate, ActionName::CreateEntity],
@@ -1407,7 +1399,7 @@ where
                 .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
 
             let stored_provenance = SqlEntityProvenance::from(EntityProvenance {
-                created_by_id: actor_uuid,
+                created_by_id: ActorEntityUuid::from(actor_id),
                 created_at_transaction_time: transaction_time,
                 created_at_decision_time: decision_time,
                 first_non_draft_created_at_transaction_time: entity_id
@@ -1420,7 +1412,7 @@ where
                     .then_some(decision_time),
                 deletion: None,
                 edition: EntityEditionProvenance {
-                    created_by_id: actor_uuid,
+                    created_by_id: ActorEntityUuid::from(actor_id),
                     archived_by_id: None,
                     provided: params.provenance,
                 },
@@ -1705,7 +1697,7 @@ where
                 .collect();
             temporal_client
                 .start_update_entity_embeddings_workflow(
-                    actor_uuid,
+                    ActorEntityUuid::from(actor_id),
                     &entity_ids,
                     self.settings.filter_protection.embedding_exclusions(),
                 )
@@ -1723,11 +1715,11 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn validate_entities(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_actions(
                 [
                     ActionName::ViewEntity,
@@ -1819,7 +1811,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn query_entities(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryEntitiesParams<'_>,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         // An entity query consists of multiple statements: the entity read itself, the optional
@@ -1843,7 +1835,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn search_entities(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: SearchEntitiesParams,
     ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
         // The search issues several statements — one candidate read per policy branch, the
@@ -1865,7 +1857,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn query_entity_subgraph(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryEntitySubgraphParams<'_>,
     ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
         // A subgraph read consists of multiple statements: the roots query, one recursive CTE
@@ -1892,7 +1884,7 @@ where
     #[tracing::instrument(level = "info", skip_all)]
     async fn query_entities_table(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: QueryEntitiesTableParams,
     ) -> Result<QueryEntitiesTableResponse, Report<QueryError>> {
         // The summary defines the type universe the page query runs on. Reading
@@ -1914,11 +1906,11 @@ where
 
     async fn summarize_entities(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         mut params: SummarizeEntitiesParams<'_>,
     ) -> Result<SummarizeEntitiesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -2022,7 +2014,7 @@ where
 
     async fn get_entity_by_id(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -2064,7 +2056,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn patch_entity(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         mut params: PatchEntityParams,
     ) -> Result<Entity, Report<UpdateError>> {
         let transaction_time = Timestamp::now().remove_nanosecond();
@@ -2113,7 +2105,7 @@ where
         .change_context(UpdateError)?;
 
         let policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_entity_edition_id(previous_entity.metadata.record_id.edition_id)
             .with_entity_type_ids(&params.entity_type_ids)
             .with_actions(
@@ -2384,7 +2376,7 @@ where
         let link_data = previous_entity.link_data;
 
         let edition_provenance = EntityEditionProvenance {
-            created_by_id: actor_id,
+            created_by_id: ActorEntityUuid::from(actor_id),
             archived_by_id: None,
             provided: params.provenance,
         };
@@ -2559,7 +2551,7 @@ where
                 .collect();
             temporal_client
                 .start_update_entity_embeddings_workflow(
-                    actor_id,
+                    ActorEntityUuid::from(actor_id),
                     &entity_ids,
                     self.settings.filter_protection.embedding_exclusions(),
                 )
@@ -2573,7 +2565,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn delete_entities(
         &mut self,
-        actor_id: AuthenticatedActor,
+        actor_id: ActorId,
         params: DeleteEntitiesParams<'_>,
     ) -> Result<DeletionSummary, Report<DeletionError>> {
         // TODO: Authorization — check delete permission via PolicyComponents
@@ -2583,7 +2575,7 @@ where
             .await
             .change_context(DeletionError::Store)?;
         let summary = transaction
-            .execute_entity_deletion(actor_id.into(), params)
+            .execute_entity_deletion(actor_id, params)
             .await?;
         transaction
             .commit()
@@ -2597,7 +2589,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn update_entity_embeddings(
         &mut self,
-        _: ActorEntityUuid,
+        _: ActorId,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         let mut properties = Vec::with_capacity(params.embeddings.len());
@@ -2748,13 +2740,13 @@ where
 
     async fn has_permission_for_entities(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         params: HasPermissionForEntitiesParams<'_>,
     ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
         // Delegates to the inherent method on `PostgresStore<C, S>`, so the permission check is
         // also reachable where the `EntityStore` impl — bounded on `BeginReadOnlyTransaction` —
         // is unavailable.
-        self.has_permission_for_entities_impl(authenticated_actor, params)
+        self.has_permission_for_entities_impl(Some(authenticated_actor), params)
             .await
     }
 
@@ -2762,7 +2754,7 @@ where
     #[tracing::instrument(skip(self, params))]
     async fn cluster_entities(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: ClusterEntitiesParams,
     ) -> Result<ClusterEntitiesResponse, Report<ClusterError>> {
         const MAX_ALLOWED_DIM: u16 = 512;
@@ -2797,7 +2789,7 @@ where
         // Filter to entities the actor is allowed to view.
         let permitted = self
             .has_permission_for_entities_impl(
-                AuthenticatedActor::from(actor_id),
+                Some(actor_id),
                 HasPermissionForEntitiesParams {
                     action: ActionName::ViewEntity,
                     entity_ids: Cow::Borrowed(&params.entity_ids),
@@ -3522,7 +3514,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn archive_entity(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         locked_row: LockedEntityEdition,
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,

@@ -120,9 +120,7 @@ async fn get_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let (client, actor_id) = db.seed().await?;
 
     let non_existent_id = MachineId::new(Uuid::new_v4());
-    let result = client
-        .get_machine_by_id(actor_id.into(), non_existent_id)
-        .await?;
+    let result = client.get_machine_by_id(actor_id, non_existent_id).await?;
 
     assert!(
         result.is_none(),
@@ -139,7 +137,7 @@ async fn get_machine() -> Result<(), Box<dyn Error>> {
 
     let machine_id = client.create_machine(None, "test-machine").await?;
     let retrieved = client
-        .get_machine_by_identifier(actor_id.into(), "test-machine")
+        .get_machine_by_identifier(actor_id, "test-machine")
         .await?
         .expect("Machine should exist");
 
@@ -173,7 +171,7 @@ async fn machine_role_assignment() -> Result<(), Box<dyn Error>> {
     // Assign the role to the machine
     client
         .assign_role(
-            actor_id.into(),
+            actor_id,
             machine_id.into(),
             web_id.into(),
             RoleName::Administrator,

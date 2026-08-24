@@ -99,7 +99,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .create_policy(authenticated_actor_id.into(), policy)
+        .create_policy(authenticated_actor_id, policy)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -133,7 +133,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .get_policy_by_id(authenticated_actor_id.into(), policy_id)
+        .get_policy_by_id(authenticated_actor_id, policy_id)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -167,7 +167,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .query_policies(authenticated_actor_id.into(), &filter)
+        .query_policies(authenticated_actor_id, &filter)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -237,7 +237,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .update_policy_by_id(authenticated_actor_id.into(), policy_id, &operations)
+        .update_policy_by_id(authenticated_actor_id, policy_id, &operations)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -271,7 +271,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .archive_policy_by_id(authenticated_actor_id.into(), policy_id)
+        .archive_policy_by_id(authenticated_actor_id, policy_id)
         .await
         .map_err(report_to_response)
         .map(|()| StatusCode::NO_CONTENT)
@@ -305,7 +305,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .delete_policy_by_id(authenticated_actor_id.into(), policy_id)
+        .delete_policy_by_id(authenticated_actor_id, policy_id)
         .await
         .map_err(report_to_response)
         .map(|()| StatusCode::NO_CONTENT)

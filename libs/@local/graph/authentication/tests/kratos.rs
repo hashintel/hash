@@ -38,9 +38,9 @@ impl ResolveActor for EchoingActorResolver {
     fn resolve_actor(
         &self,
         actor_entity_uuid: ActorEntityUuid,
-    ) -> impl Future<Output = Result<Option<ActorId>, error_stack::Report<DetermineActorError>>> + Send
+    ) -> impl Future<Output = Result<ActorId, error_stack::Report<DetermineActorError>>> + Send
     {
-        core::future::ready(Ok(Some(ActorId::User(UserId::new(actor_entity_uuid)))))
+        core::future::ready(Ok(ActorId::User(UserId::new(actor_entity_uuid))))
     }
 }
 

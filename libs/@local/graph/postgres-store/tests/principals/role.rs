@@ -180,7 +180,7 @@ async fn delete_role() -> Result<(), Box<dyn Error>> {
 
     let role_policies = client
         .query_policies(
-            actor_id.into(),
+            actor_id,
             &PolicyFilter {
                 name: None,
                 principal: Some(PrincipalFilter::Constrained(PrincipalConstraint::Role {
@@ -191,9 +191,7 @@ async fn delete_role() -> Result<(), Box<dyn Error>> {
         )
         .await?;
     for policy in role_policies {
-        client
-            .delete_policy_by_id(actor_id.into(), policy.id)
-            .await?;
+        client.delete_policy_by_id(actor_id, policy.id).await?;
     }
 
     // Delete the role

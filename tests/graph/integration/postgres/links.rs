@@ -163,7 +163,7 @@ async fn insert() {
     .expect("could not create link");
 
     let entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::All(vec![
                 Filter::Equal(
@@ -464,7 +464,7 @@ async fn get_entity_links() {
     .expect("could not create link");
 
     let links_from_source = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::Equal(
                 FilterExpression::Path {

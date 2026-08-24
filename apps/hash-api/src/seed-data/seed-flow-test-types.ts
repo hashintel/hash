@@ -1,5 +1,6 @@
 import {
   type EntityTypeWithMetadata,
+  type MachineId,
   makeOntologyTypeVersion,
   type PropertyTypeWithMetadata,
   type ProvidedEntityEditionProvenance,
@@ -8,8 +9,6 @@ import {
 } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -154,16 +153,9 @@ const seedFlowTestTypes = async () => {
 
   const context = { graphApi, provenance };
 
-  const hashBotActorId = await getMachineIdByIdentifier(
-    context,
-    { actorId: publicUserAccountId },
-    { identifier: "h" },
-  ).then((maybeMachineId) => {
-    if (!maybeMachineId) {
-      throw new Error("Failed to get hash bot");
-    }
-    return maybeMachineId;
-  });
+  const hashBotActorId = await graphApi
+    .getOrCreateSystemMachine("h")
+    .then(({ data: machineId }) => machineId as MachineId);
 
   const authentication = { actorId: hashBotActorId };
 

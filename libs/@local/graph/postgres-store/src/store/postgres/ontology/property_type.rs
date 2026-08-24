@@ -5,7 +5,7 @@ use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
-    action::ActionName, principal::actor::AuthenticatedActor,
+    action::ActionName,
 };
 use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{
@@ -46,7 +46,7 @@ use type_system::{
         },
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    principal::actor::ActorEntityUuid,
+    principal::actor::{ActorEntityUuid, ActorId},
 };
 
 use crate::store::{
@@ -497,7 +497,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn create_property_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>
     where
@@ -519,7 +519,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: actor_id,
+                    created_by_id: ActorEntityUuid::from(actor_id),
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -567,7 +567,7 @@ where
         }
 
         let policy_components = policy_components_builder
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_actions([ActionName::CreatePropertyType], MergePolicies::No)
             .await
             .change_context(InsertionError)?;
@@ -627,7 +627,10 @@ where
             && let Some(temporal_client) = &self.temporal_client
         {
             temporal_client
-                .start_update_property_type_embeddings_workflow(actor_id, &inserted_property_types)
+                .start_update_property_type_embeddings_workflow(
+                    ActorEntityUuid::from(actor_id),
+                    &inserted_property_types,
+                )
                 .await
                 .change_context(InsertionError)?;
         }
@@ -637,7 +640,7 @@ where
 
     async fn count_property_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         mut params: CountPropertyTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
@@ -686,7 +689,7 @@ where
 
     async fn query_property_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         mut params: QueryPropertyTypesParams<'_>,
     ) -> Result<QueryPropertyTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
@@ -710,7 +713,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn query_property_type_subgraph(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryPropertyTypeSubgraphParams<'_>,
     ) -> Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>> {
         let actions = params.view_actions();
@@ -838,7 +841,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn update_property_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
@@ -857,7 +860,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: actor_id,
+                    created_by_id: ActorEntityUuid::from(actor_id),
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -912,7 +915,7 @@ where
         }
 
         let policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_property_type_ids(&old_property_type_ids)
             .with_actions([ActionName::UpdatePropertyType], MergePolicies::No)
             .await
@@ -970,7 +973,10 @@ where
             && let Some(temporal_client) = &self.temporal_client
         {
             temporal_client
-                .start_update_property_type_embeddings_workflow(actor_id, &inserted_property_types)
+                .start_update_property_type_embeddings_workflow(
+                    ActorEntityUuid::from(actor_id),
+                    &inserted_property_types,
+                )
                 .await
                 .change_context(UpdateError)?;
         }
@@ -981,11 +987,11 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn archive_property_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: ArchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_property_type_id(&params.property_type_id)
             .with_actions([ActionName::ArchivePropertyType], MergePolicies::No)
             .await
@@ -1018,18 +1024,18 @@ where
             }
         }
 
-        self.archive_ontology_type(&params.property_type_id, actor_id)
+        self.archive_ontology_type(&params.property_type_id, ActorEntityUuid::from(actor_id))
             .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
     async fn unarchive_property_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: UnarchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+            .with_actor(Some(actor_id))
             .with_property_type_id(&params.property_type_id)
             .with_actions([ActionName::ArchivePropertyType], MergePolicies::No)
             .await
@@ -1065,7 +1071,7 @@ where
         self.unarchive_ontology_type(
             &params.property_type_id,
             &OntologyEditionProvenance {
-                created_by_id: actor_id,
+                created_by_id: ActorEntityUuid::from(actor_id),
                 archived_by_id: None,
                 user_defined: params.provenance,
             },
@@ -1076,7 +1082,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_property_type_embeddings(
         &mut self,
-        _: ActorEntityUuid,
+        _: ActorId,
         params: UpdatePropertyTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         let ontology_id = OntologyTypeUuid::from(DataTypeUuid::from_url(&params.property_type_id));
@@ -1156,7 +1162,7 @@ where
     #[tracing::instrument(skip(self, params))]
     async fn has_permission_for_property_types(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         params: HasPermissionForPropertyTypesParams<'_>,
     ) -> Result<HashSet<VersionedUrl>, Report<hash_graph_store::error::CheckPermissionError>> {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
@@ -1174,7 +1180,7 @@ where
             .change_context(CheckPermissionError::CompileFilter)?;
 
         let policy_components = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
+            .with_actor(Some(authenticated_actor))
             .with_action(params.action, MergePolicies::Yes)
             .await
             .change_context(CheckPermissionError::BuildPolicyContext)?;

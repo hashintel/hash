@@ -1,7 +1,9 @@
 use error_stack::{Report, ReportSink, ResultExt as _};
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use serde::Serialize;
-use type_system::principal::{actor::UserId, actor_group::WebId};
+use type_system::principal::{
+    actor::{ActorId, UserId},
+    actor_group::WebId,
+};
 
 use crate::{
     account::AccountStore,
@@ -114,7 +116,7 @@ pub async fn delete_user<S, I, O, E>(
     identity_provider: &I,
     oauth_provider: &O,
     email_subscription_provider: Option<&E>,
-    actor: AuthenticatedActor,
+    actor: ActorId,
     user_id: UserId,
     kratos_identity_id: Option<String>,
 ) -> Result<UserDeletionOutcome, Report<UserDeletionError>>

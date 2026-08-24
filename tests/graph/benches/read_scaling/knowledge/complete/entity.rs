@@ -29,7 +29,7 @@ use type_system::{
     },
     ontology::entity_type::EntityType,
     principal::{
-        actor::{ActorEntityUuid, ActorId, ActorType},
+        actor::{ActorId, ActorType, UserId},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -50,7 +50,7 @@ struct DatastoreEntitiesMetadata {
 
 #[expect(clippy::too_many_lines)]
 async fn seed_db(
-    account_id: ActorEntityUuid,
+    account_id: ActorId,
     store_wrapper: &mut StoreWrapper,
     total: usize,
 ) -> DatastoreEntitiesMetadata {
@@ -227,7 +227,7 @@ pub fn bench_get_entity_by_id(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &RefCell<&mut Store>,
-    actor_id: ActorEntityUuid,
+    actor_id: ActorId,
     entity_metadata_list: &[Entity],
     traversal_params: &SubgraphTraversalParams,
 ) {
@@ -247,7 +247,7 @@ pub fn bench_get_entity_by_id(
                 store
                     .borrow_mut()
                     .query_entity_subgraph(
-                        actor_id,
+                        Some(actor_id),
                         QueryEntitySubgraphParams::from_parts(
                             QueryEntitiesParams {
                                 filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
@@ -283,9 +283,9 @@ fn bench_scaling_read_entity(
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(
+    let account_id = ActorId::User(UserId::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    );
+    ));
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
