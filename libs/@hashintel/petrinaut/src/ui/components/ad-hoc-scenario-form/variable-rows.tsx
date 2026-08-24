@@ -12,7 +12,7 @@
 
 import { use, useRef, useState } from "react";
 
-import { Select } from "@hashintel/ds-components";
+import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { toggleAdHocOptimize } from "@hashintel/petrinaut-core";
 
@@ -27,6 +27,7 @@ import {
   gutterCellStyle,
   phantomCellButtonStyle,
   phantomGutterTextStyle,
+  phantomRowCellStyle,
   tableContainerStyle,
   tableStyle,
 } from "./form-table";
@@ -315,7 +316,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                       setMenu({ index, anchor: event.currentTarget })
                     }
                   >
-                    <span aria-hidden="true">𝑥</span>
+                    <Icon name="function" size="xs" />
                   </button>
                   {menu?.index === index ? (
                     <GutterMenu
@@ -463,12 +464,21 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
           {/* The trailing line materializes a fresh Variable; one cell,
               reachable with ArrowDown from any cell of the row above. */}
           <tr>
-            <td className={cx(gutterCellStyle, gutterColumnStyle)}>
+            <td
+              className={cx(
+                gutterCellStyle,
+                gutterColumnStyle,
+                phantomRowCellStyle,
+              )}
+            >
               <span className={phantomGutterTextStyle} aria-hidden="true">
                 +
               </span>
             </td>
-            <td colSpan={selection !== "none" ? 3 : 2} className={cellStyle}>
+            <td
+              colSpan={selection !== "none" ? 3 : 2}
+              className={cx(cellStyle, phantomRowCellStyle)}
+            >
               <button
                 ref={(element) => {
                   phantomRef.current = element;
