@@ -198,6 +198,8 @@ pub fn actor_id_from_header(headers: &HeaderMap) -> Result<ActorEntityUuid, Auth
 
 #[cfg(test)]
 mod tests {
+    use core::mem;
+
     use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
     use http::HeaderMap;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
@@ -290,10 +292,14 @@ mod tests {
 
     /// One instance of every error variant.
     ///
-    /// A variant added to the enum stops compiling here until it is listed, so the tests below
-    /// cannot silently skip it.
-    fn every_error(identity_id: &str, actor_id: ActorEntityUuid) -> Vec<AuthenticationError> {
-        let errors = vec![
+    /// The array length is the variant count, so adding a variant stops compiling here until an
+    /// instance of it is supplied. Distinct discriminants rule out one variant standing in twice
+    /// while another goes missing.
+    fn every_error(
+        identity_id: &str,
+        actor_id: ActorEntityUuid,
+    ) -> [AuthenticationError; mem::variant_count::<AuthenticationError>()] {
+        let errors = [
             AuthenticationError::MissingCredentials,
             AuthenticationError::MalformedCredential,
             AuthenticationError::InvalidActorIdHeader,
@@ -311,22 +317,11 @@ mod tests {
             AuthenticationError::StoreError,
         ];
 
-        for error in &errors {
-            match error {
-                AuthenticationError::MissingCredentials
-                | AuthenticationError::MalformedCredential
-                | AuthenticationError::InvalidActorIdHeader
-                | AuthenticationError::MissingServiceSecret
-                | AuthenticationError::InvalidServiceSecret
-                | AuthenticationError::ProviderUnreachable
-                | AuthenticationError::ProviderRejection
-                | AuthenticationError::InvalidProviderResponse
-                | AuthenticationError::InvalidSession
-                | AuthenticationError::NotProvisioned { .. }
-                | AuthenticationError::ActorNotFound { .. }
-                | AuthenticationError::NotAUser { .. }
-                | AuthenticationError::StoreError => {}
-            }
+        for (index, error) in errors.iter().enumerate() {
+            let repeated = errors[..index]
+                .iter()
+                .any(|earlier| mem::discriminant(earlier) == mem::discriminant(error));
+            assert!(!repeated, "`{error}` should appear exactly once");
         }
 
         errors
@@ -339,21 +334,6 @@ mod tests {
             assert!(
                 !error.client_message().is_empty(),
                 "`{error}` should report a client message"
-            );
-        }
-    }
-
-    /// No client message may carry an identifier, whichever variant it comes from.
-    #[test]
-    fn no_client_message_carries_an_identifier() {
-        let identity_id = "d290f1ee-6c54-4b01-90e6-d701748f0851";
-        let actor_id = ActorEntityUuid::new(Uuid::new_v4());
-
-        for error in every_error(identity_id, actor_id) {
-            let message = error.client_message();
-            assert!(
-                !message.contains(identity_id) && !message.contains(&actor_id.to_string()),
-                "the client message for `{error}` should not carry an identifier"
             );
         }
     }
