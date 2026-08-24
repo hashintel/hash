@@ -8,7 +8,9 @@ copy lives outside the repo).
 
 ## Inbox (awaiting settlement)
 
-_(empty — items settle out via the arc-close inbox sweep)_
+| Document                     | Status | Date       | Digest                                                                                                                                                                                                 | Used by                                                      |
+| ---------------------------- | ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| [SDCPN JSON nets](inbox/SDCPNs/) | inbox  | 2026-08-24 | Seven valid Petrinaut v1 JSON files: two plain-net gas variants, gas SPN/CPN/DCPN models, truck-fleet maintenance, and semiconductor-fab drift; the expected fifth gas SDCPN is not present in this arrival | Frontier 0 corpus inventory; settlement/conformance pending |
 
 ## Reference (settled sources)
 

@@ -1,0 +1,1619 @@
+{
+  "places": [
+    {
+      "id": "place__idle_tankers",
+      "name": "IdleTankers",
+      "colorId": "type__tanker",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 2190,
+      "y": 1875
+    },
+    {
+      "id": "place__loads_delivered",
+      "name": "LoadsDelivered",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1890,
+      "y": 2100
+    },
+    {
+      "id": "place__returning",
+      "name": "Returning",
+      "colorId": "type__tanker",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__returning",
+      "showAsInitialState": false,
+      "x": 1725,
+      "y": 1875
+    },
+    {
+      "id": "place__open_orders",
+      "name": "OpenOrders",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2160,
+      "y": 2580
+    },
+    {
+      "id": "place__hires",
+      "name": "Hires",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2880,
+      "y": 2010
+    },
+    {
+      "id": "place__plant",
+      "name": "Plant",
+      "colorId": "type__plant",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 1755,
+      "y": 2565
+    },
+    {
+      "id": "place__outages",
+      "name": "Outages",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2115,
+      "y": 2760
+    },
+    {
+      "id": "place__s1_order_placed",
+      "name": "SteadyNitrogenOrderPlaced",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2100,
+      "y": 2325
+    },
+    {
+      "id": "place__s1_order_permits",
+      "name": "SteadyNitrogenOrderPermits",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 1545,
+      "y": 2190
+    },
+    {
+      "id": "place__s1_on_route",
+      "name": "SteadyNitrogenOnRoute",
+      "colorId": "type__tanker",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__on_route",
+      "showAsInitialState": false,
+      "x": 2940,
+      "y": 2310
+    },
+    {
+      "id": "place__s1_vented",
+      "name": "SteadyNitrogenVented",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1440,
+      "y": 1845
+    },
+    {
+      "id": "place__s1_line_running",
+      "name": "SteadyNitrogenLineRunning",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 615,
+      "y": 2565
+    },
+    {
+      "id": "place__s1_line_stopped",
+      "name": "SteadyNitrogenLineStopped",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1170,
+      "y": 2700
+    },
+    {
+      "id": "place__s1_stockouts",
+      "name": "SteadyNitrogenStockouts",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1170,
+      "y": 2415
+    },
+    {
+      "id": "place__s1_tank",
+      "name": "SteadyNitrogenTank",
+      "colorId": "type__tank",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__tank",
+      "showAsInitialState": true,
+      "x": 615,
+      "y": 2010
+    },
+    {
+      "id": "place__s2_order_placed",
+      "name": "SlowNitrogenOrderPlaced",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2100,
+      "y": 3540
+    },
+    {
+      "id": "place__s2_order_permits",
+      "name": "SlowNitrogenOrderPermits",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 1530,
+      "y": 3375
+    },
+    {
+      "id": "place__s2_on_route",
+      "name": "SlowNitrogenOnRoute",
+      "colorId": "type__tanker",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__on_route",
+      "showAsInitialState": false,
+      "x": 2955,
+      "y": 3540
+    },
+    {
+      "id": "place__s2_vented",
+      "name": "SlowNitrogenVented",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1455,
+      "y": 2970
+    },
+    {
+      "id": "place__s2_line_running",
+      "name": "SlowNitrogenLineRunning",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 600,
+      "y": 3720
+    },
+    {
+      "id": "place__s2_line_stopped",
+      "name": "SlowNitrogenLineStopped",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1185,
+      "y": 3855
+    },
+    {
+      "id": "place__s2_stockouts",
+      "name": "SlowNitrogenStockouts",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1185,
+      "y": 3570
+    },
+    {
+      "id": "place__s2_tank",
+      "name": "SlowNitrogenTank",
+      "colorId": "type__tank",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__tank",
+      "showAsInitialState": true,
+      "x": 585,
+      "y": 3165
+    },
+    {
+      "id": "place__s3_order_placed",
+      "name": "CriticalOxygenOrderPlaced",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2115,
+      "y": 1350
+    },
+    {
+      "id": "place__s3_order_permits",
+      "name": "CriticalOxygenOrderPermits",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 1545,
+      "y": 1245
+    },
+    {
+      "id": "place__s3_on_route",
+      "name": "CriticalOxygenOnRoute",
+      "colorId": "type__tanker",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__on_route",
+      "showAsInitialState": false,
+      "x": 2955,
+      "y": 1335
+    },
+    {
+      "id": "place__s3_vented",
+      "name": "CriticalOxygenVented",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1455,
+      "y": 780
+    },
+    {
+      "id": "place__s3_line_running",
+      "name": "CriticalOxygenLineRunning",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 615,
+      "y": 1440
+    },
+    {
+      "id": "place__s3_line_stopped",
+      "name": "CriticalOxygenLineStopped",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1170,
+      "y": 1575
+    },
+    {
+      "id": "place__s3_stockouts",
+      "name": "CriticalOxygenStockouts",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1170,
+      "y": 1290
+    },
+    {
+      "id": "place__s3_tank",
+      "name": "CriticalOxygenTank",
+      "colorId": "type__tank",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__tank",
+      "showAsInitialState": true,
+      "x": 645,
+      "y": 960
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition__s1_raise_order",
+      "name": "Raise an order (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_tank",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s1_order_permits",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s1_order_placed",
+          "weight": 1
+        },
+        {
+          "placeId": "place__open_orders",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "// The same threshold the plain net wrote as an inhibitor arc, now reading a\n// continuous level. Crossing it forces an order: a boundary jump, not a poll.\nexport default Lambda((input, parameters) => {\n  return input.SteadyNitrogenTank[0].level < parameters.trigger_1;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const unit = input.SteadyNitrogenTank[0];\n  return { SteadyNitrogenTank: [{ level: unit.level, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled }] };\n});",
+      "x": 1845,
+      "y": 2325
+    },
+    {
+      "id": "transition__s1_dispatch",
+      "name": "Dispatch a tanker (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_order_placed",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__idle_tankers",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__open_orders",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__plant",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_on_route",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return (input.IdleTankers[0].product === \"nitrogen\" && input.Plant[0].up === 1) ? parameters.loading_rate : 1e-9;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const unit = input.IdleTankers[0];\n  return {\n    SteadyNitrogenOnRoute: [{ remaining: Distribution.Lognormal(Math.log(6.0 * parameters.route_scale), parameters.route_spread), product: unit.product, payload: unit.payload, hired: unit.hired }],\n  };\n});",
+      "x": 2685,
+      "y": 2190
+    },
+    {
+      "id": "transition__s1_dispatch_resourced",
+      "name": "Dispatch a re-sourced tanker (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_order_placed",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__idle_tankers",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__open_orders",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__plant",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_on_route",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return (input.IdleTankers[0].product === \"nitrogen\" && input.Plant[0].up === 0) ? parameters.loading_rate : 1e-9;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const unit = input.IdleTankers[0];\n  return {\n    SteadyNitrogenOnRoute: [{ remaining: Distribution.Lognormal(Math.log(6.0 * parameters.route_scale * parameters.outage_route_penalty), parameters.route_spread), product: unit.product, payload: unit.payload, hired: unit.hired }],\n  };\n});",
+      "x": 2685,
+      "y": 2415
+    },
+    {
+      "id": "transition__s1_arrive",
+      "name": "Unload the tanker (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_on_route",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s1_tank",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s1_order_permits",
+          "weight": 1
+        },
+        {
+          "placeId": "place__loads_delivered",
+          "weight": 1
+        },
+        {
+          "placeId": "place__returning",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.SteadyNitrogenOnRoute[0].remaining <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.SteadyNitrogenOnRoute[0];\n  const unit = input.SteadyNitrogenTank[0];\n  const taken = Math.min(truck.payload, Math.max(unit.capacity - unit.level, 0));\n  return {\n    SteadyNitrogenTank: [\n      {\n        level: unit.level + taken, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled + (truck.payload - taken)\n      },\n    ],\n    Returning: [\n      { remaining: parameters.return_time, product: truck.product, payload: truck.payload, hired: truck.hired },\n    ],\n  };\n});",
+      "x": 1170,
+      "y": 2100
+    },
+    {
+      "id": "transition__s1_vent",
+      "name": "Vent through the relief valve (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_tank",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s1_vented",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "// The boundary jump no lower rung can express. Pressure reaching the setpoint\n// forces a discrete loss of product, and the valve reseats below the setpoint\n// so it cycles rather than firing once.\nexport default Lambda((input, parameters) => {\n  return input.SteadyNitrogenTank[0].pressure >= parameters.relief_setpoint;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const unit = input.SteadyNitrogenTank[0];\n  return {\n    SteadyNitrogenTank: [\n      {\n        level: Math.max(unit.level - parameters.vent_loss, 0), pressure: parameters.relief_setpoint - parameters.relief_reseat, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled\n      },\n    ],\n  };\n});",
+      "x": 1170,
+      "y": 1845
+    },
+    {
+      "id": "transition__s1_stop_line",
+      "name": "Stop the line (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_tank",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s1_line_running",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s1_line_stopped",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s1_stockouts",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.SteadyNitrogenTank[0].level <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const unit = input.SteadyNitrogenTank[0];\n  return { SteadyNitrogenTank: [{ level: unit.level, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled }] };\n});",
+      "x": 885,
+      "y": 2565
+    },
+    {
+      "id": "transition__s1_resume_line",
+      "name": "Resume the line (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_tank",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s1_line_stopped",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s1_line_running",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.SteadyNitrogenTank[0].level > 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const unit = input.SteadyNitrogenTank[0];\n  return { SteadyNitrogenTank: [{ level: unit.level, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled }] };\n});",
+      "x": 1410,
+      "y": 2700
+    },
+    {
+      "id": "transition__s2_raise_order",
+      "name": "Raise an order (SlowNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s2_tank",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s2_order_permits",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s2_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s2_order_placed",
+          "weight": 1
+        },
+        {
+          "placeId": "place__open_orders",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "// The same threshold the plain net wrote as an inhibitor arc, now reading a\n// continuous level. Crossing it forces an order: a boundary jump, not a poll.\nexport default Lambda((input, parameters) => {\n  return input.SlowNitrogenTank[0].level < parameters.trigger_2;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const unit = input.SlowNitrogenTank[0];\n  return { SlowNitrogenTank: [{ level: unit.level, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled }] };\n});",
+      "x": 1830,
+      "y": 3540
+    },
+    {
+      "id": "transition__s2_dispatch",
+      "name": "Dispatch a tanker (SlowNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s2_order_placed",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__idle_tankers",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__open_orders",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__plant",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s2_on_route",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return (input.IdleTankers[0].product === \"nitrogen\" && input.Plant[0].up === 1) ? parameters.loading_rate : 1e-9;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const unit = input.IdleTankers[0];\n  return {\n    SlowNitrogenOnRoute: [{ remaining: Distribution.Lognormal(Math.log(9.0 * parameters.route_scale), parameters.route_spread), product: unit.product, payload: unit.payload, hired: unit.hired }],\n  };\n});",
+      "x": 2670,
+      "y": 3450
+    },
+    {
+      "id": "transition__s2_dispatch_resourced",
+      "name": "Dispatch a re-sourced tanker (SlowNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s2_order_placed",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__idle_tankers",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__open_orders",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__plant",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s2_on_route",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return (input.IdleTankers[0].product === \"nitrogen\" && input.Plant[0].up === 0) ? parameters.loading_rate : 1e-9;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const unit = input.IdleTankers[0];\n  return {\n    SlowNitrogenOnRoute: [{ remaining: Distribution.Lognormal(Math.log(9.0 * parameters.route_scale * parameters.outage_route_penalty), parameters.route_spread), product: unit.product, payload: unit.payload, hired: unit.hired }],\n  };\n});",
+      "x": 2670,
+      "y": 3630
+    },
+    {
+      "id": "transition__s2_arrive",
+      "name": "Unload the tanker (SlowNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s2_on_route",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s2_tank",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s2_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s2_order_permits",
+          "weight": 1
+        },
+        {
+          "placeId": "place__loads_delivered",
+          "weight": 1
+        },
+        {
+          "placeId": "place__returning",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.SlowNitrogenOnRoute[0].remaining <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.SlowNitrogenOnRoute[0];\n  const unit = input.SlowNitrogenTank[0];\n  const taken = Math.min(truck.payload, Math.max(unit.capacity - unit.level, 0));\n  return {\n    SlowNitrogenTank: [\n      {\n        level: unit.level + taken, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled + (truck.payload - taken)\n      },\n    ],\n    Returning: [\n      { remaining: parameters.return_time, product: truck.product, payload: truck.payload, hired: truck.hired },\n    ],\n  };\n});",
+      "x": 1170,
+      "y": 3240
+    },
+    {
+      "id": "transition__s2_vent",
+      "name": "Vent through the relief valve (SlowNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s2_tank",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s2_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s2_vented",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "// The boundary jump no lower rung can express. Pressure reaching the setpoint\n// forces a discrete loss of product, and the valve reseats below the setpoint\n// so it cycles rather than firing once.\nexport default Lambda((input, parameters) => {\n  return input.SlowNitrogenTank[0].pressure >= parameters.relief_setpoint;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const unit = input.SlowNitrogenTank[0];\n  return {\n    SlowNitrogenTank: [\n      {\n        level: Math.max(unit.level - parameters.vent_loss, 0), pressure: parameters.relief_setpoint - parameters.relief_reseat, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled\n      },\n    ],\n  };\n});",
+      "x": 1170,
+      "y": 2970
+    },
+    {
+      "id": "transition__s2_stop_line",
+      "name": "Stop the line (SlowNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s2_tank",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s2_line_running",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s2_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s2_line_stopped",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s2_stockouts",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.SlowNitrogenTank[0].level <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const unit = input.SlowNitrogenTank[0];\n  return { SlowNitrogenTank: [{ level: unit.level, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled }] };\n});",
+      "x": 870,
+      "y": 3720
+    },
+    {
+      "id": "transition__s2_resume_line",
+      "name": "Resume the line (SlowNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s2_tank",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s2_line_stopped",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s2_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s2_line_running",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.SlowNitrogenTank[0].level > 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const unit = input.SlowNitrogenTank[0];\n  return { SlowNitrogenTank: [{ level: unit.level, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled }] };\n});",
+      "x": 1425,
+      "y": 3855
+    },
+    {
+      "id": "transition__s3_raise_order",
+      "name": "Raise an order (CriticalOxygen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s3_tank",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s3_order_permits",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s3_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s3_order_placed",
+          "weight": 1
+        },
+        {
+          "placeId": "place__open_orders",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "// The same threshold the plain net wrote as an inhibitor arc, now reading a\n// continuous level. Crossing it forces an order: a boundary jump, not a poll.\nexport default Lambda((input, parameters) => {\n  return input.CriticalOxygenTank[0].level < parameters.trigger_3;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const unit = input.CriticalOxygenTank[0];\n  return { CriticalOxygenTank: [{ level: unit.level, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled }] };\n});",
+      "x": 1845,
+      "y": 1350
+    },
+    {
+      "id": "transition__s3_dispatch",
+      "name": "Dispatch a tanker (CriticalOxygen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s3_order_placed",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__idle_tankers",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__open_orders",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__plant",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s3_on_route",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return (input.IdleTankers[0].product === \"oxygen\" && input.Plant[0].up === 1) ? parameters.loading_rate : 1e-9;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const unit = input.IdleTankers[0];\n  return {\n    CriticalOxygenOnRoute: [{ remaining: Distribution.Lognormal(Math.log(12.0 * parameters.route_scale), parameters.route_spread), product: unit.product, payload: unit.payload, hired: unit.hired }],\n  };\n});",
+      "x": 2700,
+      "y": 1260
+    },
+    {
+      "id": "transition__s3_dispatch_resourced",
+      "name": "Dispatch a re-sourced tanker (CriticalOxygen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s3_order_placed",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__idle_tankers",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__open_orders",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__plant",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s3_on_route",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return (input.IdleTankers[0].product === \"oxygen\" && input.Plant[0].up === 0) ? parameters.loading_rate : 1e-9;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const unit = input.IdleTankers[0];\n  return {\n    CriticalOxygenOnRoute: [{ remaining: Distribution.Lognormal(Math.log(12.0 * parameters.route_scale * parameters.outage_route_penalty), parameters.route_spread), product: unit.product, payload: unit.payload, hired: unit.hired }],\n  };\n});",
+      "x": 2715,
+      "y": 1440
+    },
+    {
+      "id": "transition__s3_arrive",
+      "name": "Unload the tanker (CriticalOxygen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s3_on_route",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s3_tank",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s3_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s3_order_permits",
+          "weight": 1
+        },
+        {
+          "placeId": "place__loads_delivered",
+          "weight": 1
+        },
+        {
+          "placeId": "place__returning",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.CriticalOxygenOnRoute[0].remaining <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.CriticalOxygenOnRoute[0];\n  const unit = input.CriticalOxygenTank[0];\n  const taken = Math.min(truck.payload, Math.max(unit.capacity - unit.level, 0));\n  return {\n    CriticalOxygenTank: [\n      {\n        level: unit.level + taken, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled + (truck.payload - taken)\n      },\n    ],\n    Returning: [\n      { remaining: parameters.return_time, product: truck.product, payload: truck.payload, hired: truck.hired },\n    ],\n  };\n});",
+      "x": 1170,
+      "y": 1080
+    },
+    {
+      "id": "transition__s3_vent",
+      "name": "Vent through the relief valve (CriticalOxygen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s3_tank",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s3_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s3_vented",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "// The boundary jump no lower rung can express. Pressure reaching the setpoint\n// forces a discrete loss of product, and the valve reseats below the setpoint\n// so it cycles rather than firing once.\nexport default Lambda((input, parameters) => {\n  return input.CriticalOxygenTank[0].pressure >= parameters.relief_setpoint;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const unit = input.CriticalOxygenTank[0];\n  return {\n    CriticalOxygenTank: [\n      {\n        level: Math.max(unit.level - parameters.vent_loss, 0), pressure: parameters.relief_setpoint - parameters.relief_reseat, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled\n      },\n    ],\n  };\n});",
+      "x": 1170,
+      "y": 780
+    },
+    {
+      "id": "transition__s3_stop_line",
+      "name": "Stop the line (CriticalOxygen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s3_tank",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s3_line_running",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s3_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s3_line_stopped",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s3_stockouts",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.CriticalOxygenTank[0].level <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const unit = input.CriticalOxygenTank[0];\n  return { CriticalOxygenTank: [{ level: unit.level, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled }] };\n});",
+      "x": 885,
+      "y": 1440
+    },
+    {
+      "id": "transition__s3_resume_line",
+      "name": "Resume the line (CriticalOxygen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s3_tank",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s3_line_stopped",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s3_tank",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s3_line_running",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.CriticalOxygenTank[0].level > 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const unit = input.CriticalOxygenTank[0];\n  return { CriticalOxygenTank: [{ level: unit.level, pressure: unit.pressure, capacity: unit.capacity, draw: unit.draw, drawn: unit.drawn, boiled: unit.boiled, criticality: unit.criticality, product: unit.product, spilled: unit.spilled }] };\n});",
+      "x": 1425,
+      "y": 1575
+    },
+    {
+      "id": "transition__return_to_depot",
+      "name": "Return a tanker to the depot",
+      "inputArcs": [
+        {
+          "placeId": "place__returning",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__idle_tankers",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.Returning[0].remaining <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const unit = input.Returning[0];\n  return { IdleTankers: [{ remaining: 0, product: unit.product, payload: unit.payload, hired: unit.hired }] };\n});",
+      "x": 1950,
+      "y": 1875
+    },
+    {
+      "id": "transition__hire_tanker",
+      "name": "Hire a tanker",
+      "inputArcs": [
+        {
+          "placeId": "place__open_orders",
+          "weight": 3,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__idle_tankers",
+          "weight": 1
+        },
+        {
+          "placeId": "place__hires",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.hire_enabled > 0 ? parameters.hire_rate : 1e-9;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  return {\n    IdleTankers: [\n      {\n        remaining: 0,\n        product: parameters.hire_oxygen > 0 ? \"oxygen\" : \"nitrogen\",\n        payload: parameters.hired_payload,\n        hired: 1,\n      },\n    ],\n  };\n});",
+      "x": 2580,
+      "y": 2010
+    },
+    {
+      "id": "transition__release_tanker",
+      "name": "Release a hired tanker",
+      "inputArcs": [
+        {
+          "placeId": "place__idle_tankers",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__open_orders",
+          "weight": 1,
+          "type": "inhibitor"
+        }
+      ],
+      "outputArcs": [],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input.IdleTankers[0].hired === 1 ? 1000 : 1e-9;\n});",
+      "transitionKernelCode": "",
+      "x": 2565,
+      "y": 2580
+    },
+    {
+      "id": "transition__plant_trips",
+      "name": "Trip the air separation plant",
+      "inputArcs": [
+        {
+          "placeId": "place__plant",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__plant",
+          "weight": 1
+        },
+        {
+          "placeId": "place__outages",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input.Plant[0].up === 1 ? 1 / parameters.uptime_hours : 1e-9;\n});",
+      "transitionKernelCode": "export default TransitionKernel(() => {\n  return { Plant: [{ up: 0 }] };\n});",
+      "x": 1755,
+      "y": 2760
+    },
+    {
+      "id": "transition__plant_recovers",
+      "name": "Restart the air separation plant",
+      "inputArcs": [
+        {
+          "placeId": "place__plant",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__plant",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input.Plant[0].up === 0 ? 1 / parameters.repair_hours : 1e-9;\n});",
+      "transitionKernelCode": "export default TransitionKernel(() => {\n  return { Plant: [{ up: 1 }] };\n});",
+      "x": 1755,
+      "y": 2970
+    }
+  ],
+  "types": [
+    {
+      "id": "type__tanker",
+      "name": "Tanker",
+      "iconSlug": "circle",
+      "displayColor": "#0ea5e9",
+      "elements": [
+        {
+          "elementId": "type__tanker__remaining",
+          "name": "remaining",
+          "type": "real"
+        },
+        {
+          "elementId": "type__tanker__product",
+          "name": "product",
+          "type": "string"
+        },
+        {
+          "elementId": "type__tanker__payload",
+          "name": "payload",
+          "type": "real"
+        },
+        {
+          "elementId": "type__tanker__hired",
+          "name": "hired",
+          "type": "integer"
+        }
+      ]
+    },
+    {
+      "id": "type__tank",
+      "name": "Tank",
+      "iconSlug": "circle",
+      "displayColor": "#f97316",
+      "elements": [
+        {
+          "elementId": "type__tank__level",
+          "name": "level",
+          "type": "real"
+        },
+        {
+          "elementId": "type__tank__pressure",
+          "name": "pressure",
+          "type": "real"
+        },
+        {
+          "elementId": "type__tank__capacity",
+          "name": "capacity",
+          "type": "real"
+        },
+        {
+          "elementId": "type__tank__draw",
+          "name": "draw",
+          "type": "real"
+        },
+        {
+          "elementId": "type__tank__drawn",
+          "name": "drawn",
+          "type": "real"
+        },
+        {
+          "elementId": "type__tank__boiled",
+          "name": "boiled",
+          "type": "real"
+        },
+        {
+          "elementId": "type__tank__criticality",
+          "name": "criticality",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__tank__product",
+          "name": "product",
+          "type": "string"
+        },
+        {
+          "elementId": "type__tank__spilled",
+          "name": "spilled",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__plant",
+      "name": "Plant",
+      "iconSlug": "circle",
+      "displayColor": "#ef4444",
+      "elements": [
+        {
+          "elementId": "type__plant__up",
+          "name": "up",
+          "type": "integer"
+        }
+      ]
+    }
+  ],
+  "differentialEquations": [
+    {
+      "id": "de__tank",
+      "name": "Tank",
+      "colorId": "type__tank",
+      "code": "// The rung the whole domain is built for. Level falls from the customer's draw\n// and from boil-off together, and stops at empty so Euler cannot drive it\n// negative. Pressure rises as boil-off gas fills whatever ullage is left, so a\n// nearly full tank pressurises fastest, and falls as liquid is drawn off. Empty\n// stops the customer's line and full opens the relief valve, so the safe region\n// is an interval and \"hold more stock\" is not a safe default.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((unit) => ({\n    level: unit.level > 0 ? -(unit.draw + parameters.boiloff_rate) : 0, pressure: Math.max(parameters.pressure_gain * parameters.boiloff_rate / Math.max(unit.capacity - unit.level, 1) - parameters.pressure_vented_by_draw * unit.draw, unit.pressure > 1 ? -1 : 0), capacity: 0, draw: 0, drawn: unit.level > 0 ? unit.draw : 0, boiled: unit.level > 0 ? parameters.boiloff_rate : 0, spilled: 0\n  }));\n});"
+    },
+    {
+      "id": "de__on_route",
+      "name": "Journey clock (on route)",
+      "colorId": "type__tanker",
+      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ remaining: -1, payload: 0 }));\n});"
+    },
+    {
+      "id": "de__returning",
+      "name": "Journey clock (returning)",
+      "colorId": "type__tanker",
+      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ remaining: -1, payload: 0 }));\n});"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "param__boiloff_rate",
+      "name": "Boil-off rate",
+      "variableName": "boiloff_rate",
+      "type": "real",
+      "defaultValue": "0.16"
+    },
+    {
+      "id": "param__draw_1",
+      "name": "SteadyNitrogen draw rate",
+      "variableName": "draw_1",
+      "type": "real",
+      "defaultValue": "0.8"
+    },
+    {
+      "id": "param__draw_2",
+      "name": "SlowNitrogen draw rate",
+      "variableName": "draw_2",
+      "type": "real",
+      "defaultValue": "0.1"
+    },
+    {
+      "id": "param__draw_3",
+      "name": "CriticalOxygen draw rate",
+      "variableName": "draw_3",
+      "type": "real",
+      "defaultValue": "0.6"
+    },
+    {
+      "id": "param__route_scale",
+      "name": "Route scale",
+      "variableName": "route_scale",
+      "type": "real",
+      "defaultValue": "1"
+    },
+    {
+      "id": "param__route_spread",
+      "name": "Route spread",
+      "variableName": "route_spread",
+      "type": "real",
+      "defaultValue": "0.35"
+    },
+    {
+      "id": "param__return_time",
+      "name": "Return leg (hours)",
+      "variableName": "return_time",
+      "type": "real",
+      "defaultValue": "4.0"
+    },
+    {
+      "id": "param__trigger_1",
+      "name": "SteadyNitrogen trigger level",
+      "variableName": "trigger_1",
+      "type": "real",
+      "defaultValue": "16"
+    },
+    {
+      "id": "param__trigger_2",
+      "name": "SlowNitrogen trigger level",
+      "variableName": "trigger_2",
+      "type": "real",
+      "defaultValue": "6"
+    },
+    {
+      "id": "param__trigger_3",
+      "name": "CriticalOxygen trigger level",
+      "variableName": "trigger_3",
+      "type": "real",
+      "defaultValue": "20"
+    },
+    {
+      "id": "param__pressure_gain",
+      "name": "Pressure gain",
+      "variableName": "pressure_gain",
+      "type": "real",
+      "defaultValue": "20"
+    },
+    {
+      "id": "param__pressure_vented_by_draw",
+      "name": "Pressure vented by draw",
+      "variableName": "pressure_vented_by_draw",
+      "type": "real",
+      "defaultValue": "3"
+    },
+    {
+      "id": "param__relief_setpoint",
+      "name": "Relief setpoint",
+      "variableName": "relief_setpoint",
+      "type": "real",
+      "defaultValue": "8"
+    },
+    {
+      "id": "param__relief_reseat",
+      "name": "Relief reseat margin",
+      "variableName": "relief_reseat",
+      "type": "real",
+      "defaultValue": "1"
+    },
+    {
+      "id": "param__vent_loss",
+      "name": "Units lost per valve opening",
+      "variableName": "vent_loss",
+      "type": "real",
+      "defaultValue": "0.4"
+    },
+    {
+      "id": "param__hire_enabled",
+      "name": "Hire enabled",
+      "variableName": "hire_enabled",
+      "type": "real",
+      "defaultValue": "1"
+    },
+    {
+      "id": "param__hire_oxygen",
+      "name": "Hire oxygen trailers (0 nitrogen, 1 oxygen)",
+      "variableName": "hire_oxygen",
+      "type": "integer",
+      "defaultValue": "0"
+    },
+    {
+      "id": "param__hired_payload",
+      "name": "Hired payload",
+      "variableName": "hired_payload",
+      "type": "real",
+      "defaultValue": "12"
+    },
+    {
+      "id": "param__uptime_hours",
+      "name": "Mean hours between trips",
+      "variableName": "uptime_hours",
+      "type": "real",
+      "defaultValue": "90"
+    },
+    {
+      "id": "param__repair_hours",
+      "name": "Mean hours to recover",
+      "variableName": "repair_hours",
+      "type": "real",
+      "defaultValue": "24"
+    },
+    {
+      "id": "param__outage_route_penalty",
+      "name": "Re-sourced route penalty",
+      "variableName": "outage_route_penalty",
+      "type": "real",
+      "defaultValue": "2.2"
+    },
+    {
+      "id": "param__loading_rate",
+      "name": "Depot loading rate",
+      "variableName": "loading_rate",
+      "type": "real",
+      "defaultValue": "4"
+    },
+    {
+      "id": "param__hire_rate",
+      "name": "Spot hire arrival rate",
+      "variableName": "hire_rate",
+      "type": "real",
+      "defaultValue": "0.1"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scenario__base",
+      "name": "Three tankers, normal routes",
+      "description": "The reference case: three tankers on the depot, routes at their nominal length.",
+      "scenarioParameters": [],
+      "parameterOverrides": {},
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  IdleTankers: [{ remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"oxygen\", payload: 12, hired: 0 }],\n  LoadsDelivered: 0,\n  Returning: [],\n  OpenOrders: 0,\n  Hires: 0,\n  Plant: [{ up: 1 }],\n  Outages: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: [],\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenTank: [{ level: 42, pressure: 2, drawn: 0, boiled: 0, capacity: 54, draw: parameters.draw_1, criticality: 2, product: \"nitrogen\", spilled: 0 }],\n  SlowNitrogenOrderPlaced: 0,\n  SlowNitrogenOrderPermits: 1,\n  SlowNitrogenOnRoute: [],\n  SlowNitrogenVented: 0,\n  SlowNitrogenLineRunning: 1,\n  SlowNitrogenLineStopped: 0,\n  SlowNitrogenStockouts: 0,\n  SlowNitrogenTank: [{ level: 18, pressure: 2, drawn: 0, boiled: 0, capacity: 30, draw: parameters.draw_2, criticality: 1, product: \"nitrogen\", spilled: 0 }],\n  CriticalOxygenOrderPlaced: 0,\n  CriticalOxygenOrderPermits: 2,\n  CriticalOxygenOnRoute: [],\n  CriticalOxygenVented: 0,\n  CriticalOxygenLineRunning: 1,\n  CriticalOxygenLineStopped: 0,\n  CriticalOxygenStockouts: 0,\n  CriticalOxygenTank: [{ level: 46, pressure: 2, drawn: 0, boiled: 0, capacity: 58, draw: parameters.draw_3, criticality: 3, product: \"oxygen\", spilled: 0 }],\n};"
+      }
+    },
+    {
+      "id": "scenario__slow_routes",
+      "name": "Three tankers, routes half again as long",
+      "description": "Winter roads. Every route stretches by half, which is a question about the tail of the delay rather than its mean.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "route_scale",
+          "default": 1.5
+        }
+      ],
+      "parameterOverrides": {
+        "param__route_scale": "scenario.route_scale"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  IdleTankers: [{ remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"oxygen\", payload: 12, hired: 0 }],\n  LoadsDelivered: 0,\n  Returning: [],\n  OpenOrders: 0,\n  Hires: 0,\n  Plant: [{ up: 1 }],\n  Outages: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: [],\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenTank: [{ level: 42, pressure: 2, drawn: 0, boiled: 0, capacity: 54, draw: parameters.draw_1, criticality: 2, product: \"nitrogen\", spilled: 0 }],\n  SlowNitrogenOrderPlaced: 0,\n  SlowNitrogenOrderPermits: 1,\n  SlowNitrogenOnRoute: [],\n  SlowNitrogenVented: 0,\n  SlowNitrogenLineRunning: 1,\n  SlowNitrogenLineStopped: 0,\n  SlowNitrogenStockouts: 0,\n  SlowNitrogenTank: [{ level: 18, pressure: 2, drawn: 0, boiled: 0, capacity: 30, draw: parameters.draw_2, criticality: 1, product: \"nitrogen\", spilled: 0 }],\n  CriticalOxygenOrderPlaced: 0,\n  CriticalOxygenOrderPermits: 2,\n  CriticalOxygenOnRoute: [],\n  CriticalOxygenVented: 0,\n  CriticalOxygenLineRunning: 1,\n  CriticalOxygenLineStopped: 0,\n  CriticalOxygenStockouts: 0,\n  CriticalOxygenTank: [{ level: 46, pressure: 2, drawn: 0, boiled: 0, capacity: 58, draw: parameters.draw_3, criticality: 3, product: \"oxygen\", spilled: 0 }],\n};"
+      }
+    },
+    {
+      "id": "scenario__two_tankers",
+      "name": "Two tankers, normal routes",
+      "description": "One trailer off the road. What the fleet can absorb.",
+      "scenarioParameters": [],
+      "parameterOverrides": {},
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  IdleTankers: [{ remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"oxygen\", payload: 12, hired: 0 }],\n  LoadsDelivered: 0,\n  Returning: [],\n  OpenOrders: 0,\n  Hires: 0,\n  Plant: [{ up: 1 }],\n  Outages: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: [],\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenTank: [{ level: 42, pressure: 2, drawn: 0, boiled: 0, capacity: 54, draw: parameters.draw_1, criticality: 2, product: \"nitrogen\", spilled: 0 }],\n  SlowNitrogenOrderPlaced: 0,\n  SlowNitrogenOrderPermits: 1,\n  SlowNitrogenOnRoute: [],\n  SlowNitrogenVented: 0,\n  SlowNitrogenLineRunning: 1,\n  SlowNitrogenLineStopped: 0,\n  SlowNitrogenStockouts: 0,\n  SlowNitrogenTank: [{ level: 18, pressure: 2, drawn: 0, boiled: 0, capacity: 30, draw: parameters.draw_2, criticality: 1, product: \"nitrogen\", spilled: 0 }],\n  CriticalOxygenOrderPlaced: 0,\n  CriticalOxygenOrderPermits: 2,\n  CriticalOxygenOnRoute: [],\n  CriticalOxygenVented: 0,\n  CriticalOxygenLineRunning: 1,\n  CriticalOxygenLineStopped: 0,\n  CriticalOxygenStockouts: 0,\n  CriticalOxygenTank: [{ level: 46, pressure: 2, drawn: 0, boiled: 0, capacity: 58, draw: parameters.draw_3, criticality: 3, product: \"oxygen\", spilled: 0 }],\n};"
+      }
+    },
+    {
+      "id": "scenario__slow_customer_throttled",
+      "name": "SlowNitrogen throttled back",
+      "description": "The slow-drawing customer cuts to a fifth of its usual draw. Its tank now sits nearly full with boil-off gas filling a small ullage, so the relief valve starts to cycle. This is the case where filling a tank up is the wrong thing to do.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "slow_draw",
+          "default": 0.01
+        }
+      ],
+      "parameterOverrides": {
+        "param__draw_2": "scenario.slow_draw"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  IdleTankers: [{ remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"oxygen\", payload: 12, hired: 0 }],\n  LoadsDelivered: 0,\n  Returning: [],\n  OpenOrders: 0,\n  Hires: 0,\n  Plant: [{ up: 1 }],\n  Outages: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: [],\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenTank: [{ level: 42, pressure: 2, drawn: 0, boiled: 0, capacity: 54, draw: parameters.draw_1, criticality: 2, product: \"nitrogen\", spilled: 0 }],\n  SlowNitrogenOrderPlaced: 0,\n  SlowNitrogenOrderPermits: 1,\n  SlowNitrogenOnRoute: [],\n  SlowNitrogenVented: 0,\n  SlowNitrogenLineRunning: 1,\n  SlowNitrogenLineStopped: 0,\n  SlowNitrogenStockouts: 0,\n  SlowNitrogenTank: [{ level: 18, pressure: 2, drawn: 0, boiled: 0, capacity: 30, draw: parameters.draw_2, criticality: 1, product: \"nitrogen\", spilled: 0 }],\n  CriticalOxygenOrderPlaced: 0,\n  CriticalOxygenOrderPermits: 2,\n  CriticalOxygenOnRoute: [],\n  CriticalOxygenVented: 0,\n  CriticalOxygenLineRunning: 1,\n  CriticalOxygenLineStopped: 0,\n  CriticalOxygenStockouts: 0,\n  CriticalOxygenTank: [{ level: 46, pressure: 2, drawn: 0, boiled: 0, capacity: 58, draw: parameters.draw_3, criticality: 3, product: \"oxygen\", spilled: 0 }],\n};"
+      }
+    },
+    {
+      "id": "scenario__no_hire",
+      "name": "No spot hire",
+      "description": "The same net with hiring switched off, so the fleet is fixed at three. The difference against the base case is what the ability to hire is worth.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "hire_enabled",
+          "default": 0
+        }
+      ],
+      "parameterOverrides": {
+        "param__hire_enabled": "scenario.hire_enabled"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  IdleTankers: [{ remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"oxygen\", payload: 12, hired: 0 }],\n  LoadsDelivered: 0,\n  Returning: [],\n  OpenOrders: 0,\n  Hires: 0,\n  Plant: [{ up: 1 }],\n  Outages: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: [],\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenTank: [{ level: 42, pressure: 2, drawn: 0, boiled: 0, capacity: 54, draw: parameters.draw_1, criticality: 2, product: \"nitrogen\", spilled: 0 }],\n  SlowNitrogenOrderPlaced: 0,\n  SlowNitrogenOrderPermits: 1,\n  SlowNitrogenOnRoute: [],\n  SlowNitrogenVented: 0,\n  SlowNitrogenLineRunning: 1,\n  SlowNitrogenLineStopped: 0,\n  SlowNitrogenStockouts: 0,\n  SlowNitrogenTank: [{ level: 18, pressure: 2, drawn: 0, boiled: 0, capacity: 30, draw: parameters.draw_2, criticality: 1, product: \"nitrogen\", spilled: 0 }],\n  CriticalOxygenOrderPlaced: 0,\n  CriticalOxygenOrderPermits: 2,\n  CriticalOxygenOnRoute: [],\n  CriticalOxygenVented: 0,\n  CriticalOxygenLineRunning: 1,\n  CriticalOxygenLineStopped: 0,\n  CriticalOxygenStockouts: 0,\n  CriticalOxygenTank: [{ level: 46, pressure: 2, drawn: 0, boiled: 0, capacity: 58, draw: parameters.draw_3, criticality: 3, product: \"oxygen\", spilled: 0 }],\n};"
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "id": "metric__deliveries",
+      "name": "Loads delivered",
+      "description": "Tanker drops made.",
+      "code": "return state.places.LoadsDelivered.count;"
+    },
+    {
+      "id": "metric__stockouts",
+      "name": "Stockouts",
+      "description": "Times a customer line stopped for want of product.",
+      "code": "return state.places.SteadyNitrogenStockouts.count + state.places.SlowNitrogenStockouts.count + state.places.CriticalOxygenStockouts.count;"
+    },
+    {
+      "id": "metric__weighted_stockouts",
+      "name": "Criticality-weighted stockouts",
+      "description": "Stockouts weighted by how much the customer matters: the metals plant counts 3, the freezing plant 2, the laser shop 1. A total count cannot say whether the outages landed on the customer you could least afford to lose.",
+      "code": "return 2 * state.places.SteadyNitrogenStockouts.count + 1 * state.places.SlowNitrogenStockouts.count + 3 * state.places.CriticalOxygenStockouts.count;"
+    },
+    {
+      "id": "metric__vented",
+      "name": "Vented through relief",
+      "description": "Units lost through a relief valve, in units at every level. Below the continuous levels the Vented place holds one token per unit, because the tank is a pile of one-unit tokens. From the continuous levels it holds one token per valve opening, each worth vent_loss units, so the count is scaled to keep this metric comparable down the sequence. Structurally reachable everywhere, and unreachable in practice below the continuous levels: under a level trigger the tank never fills completely, and with no pressure nothing else opens the valve.",
+      "code": "return parameters.vent_loss * (state.places.SteadyNitrogenVented.count + state.places.SlowNitrogenVented.count + state.places.CriticalOxygenVented.count);"
+    },
+    {
+      "id": "metric__evaporated",
+      "name": "Evaporated",
+      "description": "Units lost to boil-off.",
+      "code": "const boiled1 = state.places.SteadyNitrogenTank.tokens.reduce((sum, tank) => sum + tank.boiled, 0);\nconst boiled2 = state.places.SlowNitrogenTank.tokens.reduce((sum, tank) => sum + tank.boiled, 0);\nconst boiled3 = state.places.CriticalOxygenTank.tokens.reduce((sum, tank) => sum + tank.boiled, 0);\nreturn boiled1 + boiled2 + boiled3;"
+    },
+    {
+      "id": "metric__spilled",
+      "name": "Surplus lost on delivery",
+      "description": "Units a tanker could not fit into the tank. From this level the arrival kernel fills the tank to capacity and drops the remainder, where levels 1 to 3 held the delivery back until it fit. It reads 0 in every scenario here, because the reorder trigger plus the largest possible outstanding order stays at least 14 units below capacity in all three tanks (40 of 54, 18 of 30, 44 of 58), so a load always fits. The metric guards that headroom against a change in trigger, payload or permit count.",
+      "code": "const spilled1 = state.places.SteadyNitrogenTank.tokens.reduce((sum, tank) => sum + tank.spilled, 0);\nconst spilled2 = state.places.SlowNitrogenTank.tokens.reduce((sum, tank) => sum + tank.spilled, 0);\nconst spilled3 = state.places.CriticalOxygenTank.tokens.reduce((sum, tank) => sum + tank.spilled, 0);\nreturn spilled1 + spilled2 + spilled3;"
+    },
+    {
+      "id": "metric__consumed",
+      "name": "Consumed",
+      "description": "Units the customers actually used.",
+      "code": "const drawn1 = state.places.SteadyNitrogenTank.tokens.reduce((sum, tank) => sum + tank.drawn, 0);\nconst drawn2 = state.places.SlowNitrogenTank.tokens.reduce((sum, tank) => sum + tank.drawn, 0);\nconst drawn3 = state.places.CriticalOxygenTank.tokens.reduce((sum, tank) => sum + tank.drawn, 0);\nreturn drawn1 + drawn2 + drawn3;"
+    },
+    {
+      "id": "metric__stockouts_per_hundred",
+      "name": "Stockouts per 100 units delivered to customers",
+      "description": "Stockouts against the volume actually drawn. A demand process that cannot go negative consumes more when it is more volatile, so a raw count would credit a volatile scenario for being busier as well as worse.",
+      "code": "const drawn1 = state.places.SteadyNitrogenTank.tokens.reduce((sum, tank) => sum + tank.drawn, 0);\nconst drawn2 = state.places.SlowNitrogenTank.tokens.reduce((sum, tank) => sum + tank.drawn, 0);\nconst drawn3 = state.places.CriticalOxygenTank.tokens.reduce((sum, tank) => sum + tank.drawn, 0);\nconst drawnTotal = drawn1 + drawn2 + drawn3;\nreturn drawnTotal > 0 ? 100 * (state.places.SteadyNitrogenStockouts.count + state.places.SlowNitrogenStockouts.count + state.places.CriticalOxygenStockouts.count) / drawnTotal : 0;"
+    },
+    {
+      "id": "metric__stockouts_1",
+      "name": "SteadyNitrogen stockouts",
+      "description": "Times the food freezing plant stopped.",
+      "code": "return state.places.SteadyNitrogenStockouts.count;"
+    },
+    {
+      "id": "metric__stockouts_2",
+      "name": "SlowNitrogen stockouts",
+      "description": "Times the laser cutting shop stopped.",
+      "code": "return state.places.SlowNitrogenStockouts.count;"
+    },
+    {
+      "id": "metric__stockouts_3",
+      "name": "CriticalOxygen stockouts",
+      "description": "Times the metals plant stopped.",
+      "code": "return state.places.CriticalOxygenStockouts.count;"
+    },
+    {
+      "id": "metric__level",
+      "name": "Level in tanks",
+      "description": "Units left across the three customer tanks at the end.",
+      "code": "const level1 = state.places.SteadyNitrogenTank.tokens.reduce((sum, tank) => sum + tank.level, 0);\nconst level2 = state.places.SlowNitrogenTank.tokens.reduce((sum, tank) => sum + tank.level, 0);\nconst level3 = state.places.CriticalOxygenTank.tokens.reduce((sum, tank) => sum + tank.level, 0);\nreturn level1 + level2 + level3;"
+    },
+    {
+      "id": "metric__vent_openings",
+      "name": "Relief valve openings",
+      "description": "Times a relief valve lifted. The valve reseats below the setpoint, so a tank that stays near it cycles, and the count of openings says how hard the valve is working where the units vented say what it cost.",
+      "code": "return state.places.SteadyNitrogenVented.count + state.places.SlowNitrogenVented.count + state.places.CriticalOxygenVented.count;"
+    },
+    {
+      "id": "metric__pressure",
+      "name": "Pressure at SlowNitrogen",
+      "description": "Tank pressure at the slow-drawing customer, where boil-off gas has the least ullage to fill.",
+      "code": "const tanks = state.places.SlowNitrogenTank.tokens;\nif (tanks.length === 0) return 0;\nreturn tanks[0].pressure;"
+    },
+    {
+      "id": "metric__hires",
+      "name": "Tankers hired in",
+      "description": "Trailers created on demand. A fixed-population net cannot represent this at all.",
+      "code": "return state.places.Hires.count;"
+    },
+    {
+      "id": "metric__outages",
+      "name": "Plant outages",
+      "description": "Times the air separation plant tripped and its customers were re-sourced onto longer routes.",
+      "code": "return state.places.Outages.count;"
+    }
+  ],
+  "subnets": [],
+  "componentInstances": [],
+  "version": 1,
+  "meta": {
+    "generator": "Petrinaut"
+  },
+  "title": "Gases 4 \u2014 dynamic coloured net"
+}

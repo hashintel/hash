@@ -1,0 +1,486 @@
+{
+  "places": [
+    {
+      "id": "place__idle_tankers",
+      "name": "IdleTankers",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 1470,
+      "y": 555
+    },
+    {
+      "id": "place__loads_delivered",
+      "name": "LoadsDelivered",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1230,
+      "y": 435
+    },
+    {
+      "id": "place__s1_order_placed",
+      "name": "SteadyNitrogenOrderPlaced",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1785,
+      "y": 780
+    },
+    {
+      "id": "place__s1_order_permits",
+      "name": "SteadyNitrogenOrderPermits",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 1230,
+      "y": 660
+    },
+    {
+      "id": "place__s1_on_route",
+      "name": "SteadyNitrogenOnRoute",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2325,
+      "y": 780
+    },
+    {
+      "id": "place__s1_vented",
+      "name": "SteadyNitrogenVented",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1230,
+      "y": 225
+    },
+    {
+      "id": "place__s1_line_running",
+      "name": "SteadyNitrogenLineRunning",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 75,
+      "y": 1065
+    },
+    {
+      "id": "place__s1_line_stopped",
+      "name": "SteadyNitrogenLineStopped",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 645,
+      "y": 1260
+    },
+    {
+      "id": "place__s1_stockouts",
+      "name": "SteadyNitrogenStockouts",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 645,
+      "y": 960
+    },
+    {
+      "id": "place__s1_consumed",
+      "name": "SteadyNitrogenConsumed",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 645,
+      "y": 765
+    },
+    {
+      "id": "place__s1_evaporated",
+      "name": "SteadyNitrogenEvaporated",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 630,
+      "y": 75
+    },
+    {
+      "id": "place__s1_contents",
+      "name": "SteadyNitrogenContents",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 60,
+      "y": 360
+    },
+    {
+      "id": "place__s1_ullage",
+      "name": "SteadyNitrogenUllage",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 630,
+      "y": 375
+    },
+    {
+      "id": "place__s1_units_drawn_since_order",
+      "name": "SteadyNitrogenUnitsDrawnSinceOrder",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1050,
+      "y": 780
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition__s1_draw",
+      "name": "Draw a unit (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_contents",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_consumed",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s1_ullage",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s1_units_drawn_since_order",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "// Switched off in the scenario where the customer's plant is shut. The tank\n// still boils off while they draw nothing, which is the point of the level.\nexport default Lambda((input, parameters) => {\n  return parameters.draw_enabled > 0;\n});",
+      "transitionKernelCode": "",
+      "x": 360,
+      "y": 555
+    },
+    {
+      "id": "transition__s1_boil_off",
+      "name": "Boil off a unit (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_contents",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_evaporated",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s1_ullage",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => {\n  return true;\n});",
+      "transitionKernelCode": "",
+      "x": 345,
+      "y": 165
+    },
+    {
+      "id": "transition__s1_raise_order",
+      "name": "Raise an order, 8 units drawn (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_units_drawn_since_order",
+          "weight": 8,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s1_order_permits",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_order_placed",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => {\n  return true;\n});",
+      "transitionKernelCode": "",
+      "x": 1530,
+      "y": 780
+    },
+    {
+      "id": "transition__s1_dispatch",
+      "name": "Dispatch a tanker (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_order_placed",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__idle_tankers",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_on_route",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => {\n  return true;\n});",
+      "transitionKernelCode": "",
+      "x": 2055,
+      "y": 780
+    },
+    {
+      "id": "transition__s1_arrive",
+      "name": "Unload the tanker (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_on_route",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s1_ullage",
+          "weight": 12,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_contents",
+          "weight": 12
+        },
+        {
+          "placeId": "place__s1_order_permits",
+          "weight": 1
+        },
+        {
+          "placeId": "place__loads_delivered",
+          "weight": 1
+        },
+        {
+          "placeId": "place__idle_tankers",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => {\n  return true;\n});",
+      "transitionKernelCode": "",
+      "x": 900,
+      "y": 555
+    },
+    {
+      "id": "transition__s1_vent",
+      "name": "Vent through the relief valve (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_contents",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s1_ullage",
+          "weight": 1,
+          "type": "inhibitor"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_vented",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s1_ullage",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => {\n  return true;\n});",
+      "transitionKernelCode": "",
+      "x": 900,
+      "y": 225
+    },
+    {
+      "id": "transition__s1_stop_line",
+      "name": "Stop the line (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_line_running",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s1_contents",
+          "weight": 1,
+          "type": "inhibitor"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_line_stopped",
+          "weight": 1
+        },
+        {
+          "placeId": "place__s1_stockouts",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => {\n  return true;\n});",
+      "transitionKernelCode": "",
+      "x": 360,
+      "y": 1065
+    },
+    {
+      "id": "transition__s1_resume_line",
+      "name": "Resume the line (SteadyNitrogen)",
+      "inputArcs": [
+        {
+          "placeId": "place__s1_line_stopped",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__s1_contents",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__s1_line_running",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => {\n  return true;\n});",
+      "transitionKernelCode": "",
+      "x": 930,
+      "y": 1260
+    }
+  ],
+  "types": [],
+  "differentialEquations": [],
+  "parameters": [
+    {
+      "id": "param__draw_enabled",
+      "name": "Draw enabled",
+      "variableName": "draw_enabled",
+      "type": "real",
+      "defaultValue": "1"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scenario__drawing",
+      "name": "Customer drawing normally",
+      "description": "The customer is using product, so consumption events happen and either ordering policy has something to work with.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "draw_enabled",
+          "default": 1
+        }
+      ],
+      "parameterOverrides": {
+        "param__draw_enabled": "scenario.draw_enabled"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  IdleTankers: 1,\n  LoadsDelivered: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: 0,\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenConsumed: 0,\n  SteadyNitrogenEvaporated: 0,\n  SteadyNitrogenContents: 42,\n  SteadyNitrogenUllage: 12,\n  SteadyNitrogenUnitsDrawnSinceOrder: 0,\n};"
+      }
+    },
+    {
+      "id": "scenario__shut",
+      "name": "Customer shut, tank still evaporating",
+      "description": "The customer's plant is down for maintenance and draws nothing. The tank still loses product to boil-off. A real operating condition, and where the two ordering policies come apart.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "draw_enabled",
+          "default": 0
+        }
+      ],
+      "parameterOverrides": {
+        "param__draw_enabled": "scenario.draw_enabled"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  IdleTankers: 1,\n  LoadsDelivered: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: 0,\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenConsumed: 0,\n  SteadyNitrogenEvaporated: 0,\n  SteadyNitrogenContents: 42,\n  SteadyNitrogenUllage: 12,\n  SteadyNitrogenUnitsDrawnSinceOrder: 0,\n};"
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "id": "metric__deliveries",
+      "name": "Loads delivered",
+      "description": "Tanker drops made.",
+      "code": "return state.places.LoadsDelivered.count;"
+    },
+    {
+      "id": "metric__stockouts",
+      "name": "Stockouts",
+      "description": "Times a customer line stopped for want of product.",
+      "code": "return state.places.SteadyNitrogenStockouts.count;"
+    },
+    {
+      "id": "metric__vented",
+      "name": "Vented through relief",
+      "description": "Units lost through a relief valve, in units at every level. Below the continuous levels the Vented place holds one token per unit, because the tank is a pile of one-unit tokens. From the continuous levels it holds one token per valve opening, each worth vent_loss units, so the count is scaled to keep this metric comparable down the sequence. Structurally reachable everywhere, and unreachable in practice below the continuous levels: under a level trigger the tank never fills completely, and with no pressure nothing else opens the valve.",
+      "code": "return state.places.SteadyNitrogenVented.count;"
+    },
+    {
+      "id": "metric__evaporated",
+      "name": "Evaporated",
+      "description": "Units lost to boil-off.",
+      "code": "return state.places.SteadyNitrogenEvaporated.count;"
+    },
+    {
+      "id": "metric__consumed",
+      "name": "Consumed",
+      "description": "Units the customers actually used.",
+      "code": "return state.places.SteadyNitrogenConsumed.count;"
+    },
+    {
+      "id": "metric__envelope",
+      "name": "Contents plus ullage",
+      "description": "The place invariant, summed over the three sites. Every transition that moves product moves it between Contents and Ullage, so this is total capacity in every reachable marking and can be checked without simulating anything.",
+      "code": "return state.places.SteadyNitrogenContents.count + state.places.SteadyNitrogenUllage.count;"
+    },
+    {
+      "id": "metric__stranded",
+      "name": "Stranded customers",
+      "description": "Customers that ended stopped with no order outstanding: the line is down and nothing is on its way to fix it.",
+      "code": "return (state.places.SteadyNitrogenLineStopped.count > 0 && state.places.SteadyNitrogenOrderPlaced.count === 0 ? 1 : 0);"
+    }
+  ],
+  "subnets": [],
+  "componentInstances": [],
+  "version": 1,
+  "meta": {
+    "generator": "Petrinaut"
+  },
+  "title": "Gases 1 — plain net, one customer (consumption trigger)"
+}
