@@ -218,6 +218,59 @@ describe("AdHocScenarioForm", () => {
     );
   });
 
+  it("navigates the row-kind menu with the keyboard", async () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        optimizable
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Row 1 kind" }));
+    const fixed = await screen.findByRole("menuitemradio", {
+      name: "Fixed row",
+    });
+    // Opening moves focus into the menu, onto the checked kind.
+    expect(document.activeElement).toBe(fixed);
+
+    fireEvent.keyDown(fixed, { key: "ArrowDown" });
+    const dynamic = screen.getByRole("menuitemradio", {
+      name: "Dynamic count",
+    });
+    expect(document.activeElement).toBe(dynamic);
+
+    // Escape returns focus to the gutter without choosing.
+    fireEvent.keyDown(dynamic, { key: "Escape" });
+    expect(screen.queryByRole("menuitemradio", { name: "Fixed row" })).toBe(
+      null,
+    );
+    // The refocus is deferred a tick, past the Popover teardown.
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    const gutter = screen.getByRole("button", { name: "Row 1 kind" });
+    expect(document.activeElement).toBe(gutter);
+    expect(colouredPlace(latest).rows[0]?.kind).toBe("fixed");
+
+    // Reopen, walk to a kind, and choose it.
+    fireEvent.click(gutter);
+    const reopenedFixed = await screen.findByRole("menuitemradio", {
+      name: "Fixed row",
+    });
+    fireEvent.keyDown(reopenedFixed, { key: "ArrowDown" });
+    fireEvent.click(document.activeElement!);
+    expect(colouredPlace(latest).rows[0]?.kind).toBe("template");
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Row 1 kind" }),
+    );
+  });
+
   it("shares a column, seeding from the first row, and un-shares it back", () => {
     let latest: AdHocScenarioState | undefined;
     render(
