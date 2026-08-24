@@ -409,8 +409,8 @@ fn assign_radius_without(
 /// Measures the weighted share of reviewed-Proximal mass at or below `radius`.
 ///
 /// The population, weights, and normalization convention are the calibration's own
-/// ([`calibrate`]), re-measured over the given frame and scales: the per-refresh drift
-/// report re-asks the freeze-time question of a later frame, on the same step the freeze
+/// ([`ProximalCalibration::new`]), re-measured over the given frame and scales: the per-refresh
+/// drift report re-asks the freeze-time question of a later frame, on the same step the freeze
 /// measured. At the freeze frame itself the reading is the smallest mass share the atom
 /// structure realizes at or above the radius fraction, so later readings drift against that
 /// first entry rather than against the fraction constant.
@@ -420,7 +420,8 @@ fn assign_radius_without(
 /// # Panics
 ///
 /// This panics when an edge references a row outside the frame - the same one-corpus wiring
-/// contract as [`calibrate`], and the same validated-domain contract on every pair's reading and
+/// contract as [`ProximalCalibration::new`], and the same validated-domain contract on every pair's
+/// reading and
 /// force weight. It also panics when a weight sum overflows, which is a defect of the weights.
 pub(crate) fn reviewed_fraction_within<N, E>(
     verdicts: &[ResolvedVerdict],

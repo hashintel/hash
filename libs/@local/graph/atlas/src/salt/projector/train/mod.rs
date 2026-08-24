@@ -48,9 +48,8 @@ use core::{error::Error, fmt, num::NonZero};
 pub(crate) use self::{
     batch::{NodeColumns, SupportAnchor},
     fit::{
-        BoundaryEvidence, BoundaryState, FitOutcome, FrozenRadius, Model, RefreshFraction,
-        RelationLens, TrainError, TrainOptions, TrainerInputs, TrainerOptimizerRecord,
-        TrainingSchedule, fit,
+        BoundaryEvidence, FitOutcome, FrozenRadius, Model, RefreshFraction, RelationLens,
+        TrainError, TrainOptions, TrainerInputs, TrainingSchedule, fit,
     },
 };
 #[expect(
@@ -59,7 +58,10 @@ pub(crate) use self::{
               metadata summaries and the checkpoint-fork tuning protocol"
 )]
 pub(crate) use self::{
-    fit::{TickTelemetry, TrainingEvidence, fit_from_boundary, fit_to_boundary},
+    fit::{
+        BoundaryState, ResumePoint, TickTelemetry, TrainingEvidence, fit_from_boundary,
+        fit_to_boundary,
+    },
     metrics::{BudgetBreakdown, DisplacementHistogram, DisplacementMoments, DisplacementSummary},
     step::LossBreakdown,
 };
@@ -125,7 +127,7 @@ impl<N> Error for StepError<N> where N: fmt::Debug + fmt::Display {}
 /// every other force, and a run without it has no baseline to measure by - and every other
 /// coefficient is finite and non-negative.
 ///
-/// The relation coefficient is the lens-independent factor; the training loop multiplies it by the
+/// The relation coefficient is the lens-independent factor. The training loop multiplies it by the
 /// step's step, so a zero step contributes nothing regardless of the configured value.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct Coefficients {
@@ -254,7 +256,7 @@ impl Coefficients {
 
 /// The per-step sampling plan, with one draw count per family.
 ///
-/// A zero count disables its family for the run; the semantic draw and the relation cap are
+/// A zero count disables its family for the run. The semantic draw and the relation cap are
 /// structurally positive because a batch without semantic pairs cannot train and a zero cap would
 /// admit no edges from a selected type.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

@@ -1,4 +1,4 @@
-//! Certificates for the checkpoint artifacts.
+//! Certificates for the model checkpoint artifact.
 //!
 //! Bit-exact round-trips across backends, and every open-path verification naming its failure.
 //!
@@ -9,17 +9,15 @@
 use std::sync::LazyLock;
 
 use burn::{
-    module::{AutodiffModule as _, Module as _},
-    record::{FullPrecisionSettings, NamedMpkBytesRecorder, Recorder as _},
+    module::AutodiffModule as _,
     tensor::{Int, Tensor, TensorData},
 };
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{CheckpointError, RecordedModel, ResumeRecord, open_model, open_resume};
+use super::{CheckpointError, RecordedModel, open_model};
 use crate::{
     device::{Device, Inference, PhysicalDevice, Training},
-    identity::NodeRowId,
     math::nz,
     salt::projector::model::{Architecture, Dimension, Layer, Projector, ProjectorInput},
 };
@@ -69,30 +67,6 @@ fn probe<B: burn::tensor::backend::Backend<FloatElem = f32>>(
         .into_data()
         .to_vec()
         .expect("projector outputs should convert to f32 values")
-}
-
-/// A structurally valid resume record around the given overrides.
-fn resume_record() -> ResumeRecord<Training> {
-    ResumeRecord {
-        model: model(7).into_record(),
-        // A fresh optimizer carries no moments until its first step,
-        // so the empty map is the boundary state of a zero-length
-        // opening segment.
-        optimizer: <_>::default(),
-        scheduler: 5,
-        steps: 12,
-        boundary: 6,
-        refresh_interval: 4,
-        initial_learning_rate: 0.05,
-        minimum_learning_rate: 0.001,
-        generator: Xoshiro256PlusPlus::seed_from_u64(3).state(),
-    }
-}
-
-fn record_bytes(record: ResumeRecord<Training>) -> Vec<u8> {
-    NamedMpkBytesRecorder::<FullPrecisionSettings>::new()
-        .record(record, ())
-        .expect("the test record encodes")
 }
 
 #[test]
@@ -163,54 +137,4 @@ fn open_model_rejects_truncated_bytes() {
         matches!(error, CheckpointError::Record(_)),
         "the rejection should name the record decode: {error}"
     );
-}
-
-#[test]
-fn resume_checkpoint_round_trips_the_generator_and_schedule() {
-    let bytes = record_bytes(resume_record());
-    let (state, generator) =
-        open_resume::<NodeRowId, Training>(bytes.as_slice(), architecture(), &*DEVICE)
-            .expect("the resume checkpoint opens");
-
-    assert_eq!(
-        generator.state(),
-        Xoshiro256PlusPlus::seed_from_u64(3).state(),
-        "the generator state should round-trip exactly"
-    );
-    assert_eq!(state.schedule().steps().get(), 12);
-    assert_eq!(state.schedule().boundary(), 6);
-    assert_eq!(state.schedule().refresh_interval().get(), 4);
-}
-
-#[test]
-fn open_resume_rejects_an_invalid_schedule() {
-    let mut record = resume_record();
-    record.minimum_learning_rate = 0.9;
-    let bytes = record_bytes(record);
-
-    let Err(error) = open_resume::<NodeRowId, Training>(bytes.as_slice(), architecture(), &*DEVICE)
-    else {
-        panic!("a minimum above the initial rate should be rejected");
-    };
-    assert!(
-        matches!(error, CheckpointError::InvalidSchedule),
-        "the rejection should name the schedule: {error}"
-    );
-}
-
-#[test]
-fn open_resume_rejects_a_scheduler_away_from_the_boundary() {
-    let mut record = resume_record();
-    record.scheduler = 3;
-    let bytes = record_bytes(record);
-
-    let Err(error) = open_resume::<NodeRowId, Training>(bytes.as_slice(), architecture(), &*DEVICE)
-    else {
-        panic!("a scheduler position off the boundary should be rejected");
-    };
-    let CheckpointError::SchedulerPosition { position, boundary } = error else {
-        panic!("the rejection should name the position: {error}");
-    };
-    assert_eq!(position, 3);
-    assert_eq!(boundary, 6);
 }

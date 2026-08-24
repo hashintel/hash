@@ -39,11 +39,19 @@ mod session;
 #[cfg(test)]
 mod tests;
 
+use core::num::NonZero;
+use std::io;
+
 use burn::{
-    lr_scheduler::LrScheduler as _, optim::Optimizer as _, tensor::backend::AutodiffBackend,
+    lr_scheduler::LrScheduler as _,
+    module::Module as _,
+    optim::Optimizer as _,
+    record::{FullPrecisionSettings, NamedMpkBytesRecorder, Record, Recorder as _},
+    tensor::backend::AutodiffBackend,
 };
 use hashql_core::id::Id;
-use rand::Rng;
+use rand::{Rng, SeedableRng as _};
+use rand_xoshiro::Xoshiro256PlusPlus;
 
 use self::session::{RunOutcome, Session, Training};
 pub(crate) use self::{
@@ -51,10 +59,16 @@ pub(crate) use self::{
     evidence::{BoundaryEvidence, FrozenRadius, RefreshFraction, TickTelemetry, TrainingEvidence},
     inputs::TrainerInputs,
     options::{RelationLens, TrainOptions, TrainingSchedule},
-    session::TrainerOptimizerRecord,
 };
 use super::metrics::BudgetBreakdown;
-use crate::{progress::Progress, salt::projector::model::Projector};
+use crate::{
+    math::{PositiveUnitFraction, UnitFraction},
+    progress::Progress,
+    salt::projector::{
+        artifact::CheckpointError,
+        model::{Architecture, Projector, ProjectorRecord},
+    },
+};
 
 /// A trained projector and the evidence of its training.
 #[derive(Debug)]
@@ -85,13 +99,41 @@ pub(crate) enum FitOutcome<N, B: AutodiffBackend> {
     TargetRefused(TargetRefusal<N>),
 }
 
+/// A decoded resume checkpoint holding the boundary state and the run's batch-draw stream.
+// No Debug: `BoundaryState` carries the optimizer adaptor, which does not implement it.
+pub(crate) struct ResumePoint<N, B: AutodiffBackend<FloatElem = f32>> {
+    /// The training state at entry of the boundary step.
+    pub state: BoundaryState<N, B>,
+    /// The run's batch-draw stream, positioned at the boundary.
+    pub generator: Xoshiro256PlusPlus,
+}
+
+/// The resume checkpoint's record of the training state at entry of the boundary step.
+///
+/// The schedule rides in full so a resumed run can verify it trains under the schedule the opening
+/// segment ran under. The scheduler position is redundant with the boundary by construction, and
+/// the open path rejects a record where the two disagree. The generator rides as the generator's
+/// own 32 state bytes, which pins the pipeline's generator algorithm.
+#[derive(Record)]
+struct ResumeRecord<B: AutodiffBackend<FloatElem = f32>> {
+    model: ProjectorRecord<B>,
+    optimizer: session::TrainerOptimizerRecord<B>,
+    scheduler: usize,
+    steps: usize,
+    boundary: usize,
+    refresh_interval: usize,
+    initial_learning_rate: f64,
+    minimum_learning_rate: f64,
+    generator: [u8; 32],
+}
+
 /// The training state at entry of the boundary step.
 ///
 /// This is the fork point of a run. The opening segment produces the state and the ladder consumes
-/// it. The checkpoint artifact serializes it with the caller's generator position, so a resumed
+/// it. [`Self::write_checkpoint`] serializes it with the caller's generator position, so a resumed
 /// ladder starts from the same boundary. The state is opaque and exists only as the output of
-/// [`fit_to_boundary`] or of the checkpoint artifact's validated open path, so no ladder ever
-/// starts from a state no opening segment produced.
+/// [`fit_to_boundary`] or of [`Self::open_checkpoint`], so no ladder ever starts from a state no
+/// opening segment produced.
 ///
 /// The state excludes the boundary work itself, the radius freeze and the opening refresh. That
 /// work happens at entry of [`fit_from_boundary`] and derives from the model alone, so every ladder
@@ -103,71 +145,122 @@ pub(crate) struct BoundaryState<N, B: AutodiffBackend<FloatElem = f32>> {
 }
 
 impl<N, B: AutodiffBackend<FloatElem = f32>> BoundaryState<N, B> {
-    /// Returns the model at the boundary.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn model(&self) -> &Projector<B> {
-        &self.training.model
-    }
-
-    /// Returns the schedule the opening segment ran under.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn schedule(&self) -> TrainingSchedule {
-        self.schedule
-    }
-
-    /// Returns the optimizer's record.
-    #[must_use]
-    pub(crate) fn optimizer_record(&self) -> session::TrainerOptimizerRecord<B> {
-        self.training.optimizer.to_record()
-    }
-
-    /// Returns the scheduler's position record.
-    #[must_use]
-    pub(crate) fn scheduler_position(&self) -> usize {
-        self.training.scheduler.to_record::<B>()
-    }
-
-    /// Rebuilds a boundary state from its serialized parts.
+    /// Writes this state and the run's generator as a resume checkpoint.
     ///
-    /// A resumed ladder's evidence starts fresh and covers the segment it runs, including the
+    /// The generator is the run's batch-draw stream as it stands at the boundary. A resumed
+    /// ladder continues that stream, which is what makes the resumed run's draws identical to
+    /// the straight run's. The opening segment's evidence stays out of the checkpoint: a resumed
+    /// ladder records its own from the boundary on.
+    ///
+    /// The written bytes are not canonical. The optimizer record is a map whose serialization
+    /// order may differ between processes, so two writes of one training state need not be
+    /// byte-equal. Identity lives in the decoded state and round-trips exactly.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when encoding or writing fails.
+    pub(crate) fn write_checkpoint(
+        &self,
+        generator: &Xoshiro256PlusPlus,
+        writer: &mut impl io::Write,
+    ) -> Result<(), CheckpointError> {
+        let Self {
+            training:
+                Training {
+                    model,
+                    optimizer,
+                    scheduler,
+                    evidence: _,
+                },
+            schedule,
+        } = self;
+
+        let record = ResumeRecord {
+            model: model.clone().into_record(),
+            optimizer: optimizer.to_record(),
+            scheduler: scheduler.to_record::<B>(),
+            steps: schedule.steps().get(),
+            boundary: schedule.boundary(),
+            refresh_interval: schedule.refresh_interval().get(),
+            initial_learning_rate: schedule.initial_learning_rate().get(),
+            minimum_learning_rate: schedule.minimum_learning_rate().get(),
+            generator: generator.state(),
+        };
+        let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
+        let bytes = recorder.record(record, ())?;
+        writer.write_all(&bytes)?;
+
+        Ok(())
+    }
+
+    /// Opens a resume checkpoint.
+    ///
+    /// The open path verifies the parameters against `architecture`, the schedule against its
+    /// own validity domain, and the scheduler position against the boundary before it returns
+    /// the state. The record type fixes the generator state's length. The state round-trip is
+    /// exact: a generator captured from a live stream is never the all-zero state the
+    /// generator's seeding remaps.
+    ///
+    /// The reopened state's evidence starts fresh and covers the segment it runs, including the
     /// boundary measurement. The opening segment's evidence belongs to the run that produced the
     /// checkpoint.
     ///
-    /// Returns [`None`] when the scheduler position does not sit at the schedule's boundary - the
-    /// parts describe two different runs.
-    #[must_use]
-    pub(crate) fn from_parts(
-        model: Projector<B>,
-        optimizer: session::TrainerOptimizerRecord<B>,
-        scheduler_position: usize,
-        schedule: TrainingSchedule,
-    ) -> Option<Self> {
-        // The scheduler advances once per step and reads its position
-        // before use, so after the opening segment's `boundary` steps
-        // it sits at `boundary - 1`. A boundary of zero leaves the
-        // pre-first-step sentinel, which is what the wrapping
-        // subtraction produces.
-        if scheduler_position != schedule.boundary().wrapping_sub(1) {
-            return None;
+    /// # Errors
+    ///
+    /// Returns an error when reading or decoding fails or any decoded value fails its
+    /// verification.
+    #[tracing::instrument(skip_all)]
+    pub(crate) fn open_checkpoint(
+        mut reader: impl io::Read,
+        architecture: Architecture,
+        device: &B::Device,
+    ) -> Result<ResumePoint<N, B>, CheckpointError> {
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes)?;
+        let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
+        let record: ResumeRecord<B> = recorder.load(bytes, device)?;
+
+        let schedule = NonZero::new(record.steps)
+            .zip(NonZero::new(record.refresh_interval))
+            .zip(
+                PositiveUnitFraction::new(record.initial_learning_rate)
+                    .zip(UnitFraction::new(record.minimum_learning_rate)),
+            )
+            .and_then(|((steps, refresh_interval), (initial, minimum))| {
+                TrainingSchedule::new(steps, record.boundary, refresh_interval, initial, minimum)
+            })
+            .ok_or(CheckpointError::InvalidSchedule)?;
+
+        // The scheduler advances once per step and reads its position before use, so after the
+        // opening segment's `boundary` steps it sits at `boundary - 1`. A boundary of zero
+        // leaves the pre-first-step sentinel, which is what the wrapping subtraction produces.
+        if record.scheduler != schedule.boundary().wrapping_sub(1) {
+            return Err(CheckpointError::SchedulerPosition {
+                position: record.scheduler,
+                boundary: schedule.boundary(),
+            });
         }
 
-        Some(Self {
-            training: Training {
-                model,
-                optimizer: session::optimizer().load_record(optimizer),
-                scheduler: session::scheduler(schedule).load_record::<B>(scheduler_position),
-                evidence: TrainingEvidence {
-                    boundary: None,
-                    budget: BudgetBreakdown::new(),
-                    losses: Vec::new(),
-                    telemetry: Vec::new(),
-                    fractions: Vec::new(),
-                    target: None,
+        let model = Projector::from_record(architecture, record.model, device)?;
+
+        Ok(ResumePoint {
+            state: Self {
+                training: Training {
+                    model,
+                    optimizer: session::optimizer().load_record(record.optimizer),
+                    scheduler: session::scheduler(schedule).load_record::<B>(record.scheduler),
+                    evidence: TrainingEvidence {
+                        boundary: None,
+                        budget: BudgetBreakdown::new(),
+                        losses: Vec::new(),
+                        telemetry: Vec::new(),
+                        fractions: Vec::new(),
+                        target: None,
+                    },
                 },
+                schedule,
             },
-            schedule,
+            generator: Xoshiro256PlusPlus::from_seed(record.generator),
         })
     }
 }

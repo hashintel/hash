@@ -440,3 +440,9 @@ fn factor_drop_returns_the_moved_buffer_to_its_allocator() {
     drop(factor);
     assert_eq!(alloc.deallocations(), 1);
 }
+
+/// The derived block height splits a production-scale order into more than one block.
+#[test]
+fn block_rows_for_production_order() {
+    assert!(super::block_rows_for(super::stride_for(200)).get() < 200);
+}

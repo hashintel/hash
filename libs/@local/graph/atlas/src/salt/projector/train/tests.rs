@@ -9,13 +9,12 @@
               contract"
 )]
 
-use alloc::collections::BTreeMap;
 use core::num::NonZero;
 use std::sync::{LazyLock, Mutex};
 
 use burn::{
-    module::{Module as _, ModuleMapper, ModuleVisitor, Param, ParamId},
-    tensor::{Tensor, TensorData, backend::AutodiffBackend},
+    module::{Module as _, ModuleMapper, Param},
+    tensor::{Tensor, TensorData},
 };
 use hashql_core::id::{Id as _, IdSlice};
 use proptest::{prop_assert, prop_assert_eq, property_test};
@@ -1173,38 +1172,6 @@ impl ModuleMapper<Training> for Perturb {
     }
 }
 
-/// Collects every parameter gradient a backward pass produced.
-struct GradientCollector<'graph> {
-    gradients: &'graph <Training as AutodiffBackend>::Gradients,
-    collected: BTreeMap<ParamId, Vec<f32>>,
-}
-
-impl ModuleVisitor<Training> for GradientCollector<'_> {
-    fn visit_float<const D: usize>(&mut self, param: &Param<Tensor<Training, D>>) {
-        if let Some(gradient) = param.val().grad(self.gradients) {
-            self.collected.insert(
-                param.id,
-                gradient
-                    .into_data()
-                    .to_vec()
-                    .expect("gradients should convert to f32 values"),
-            );
-        }
-    }
-}
-
-fn parameter_gradients(
-    model: &Projector<Training>,
-    gradients: &<Training as AutodiffBackend>::Gradients,
-) -> BTreeMap<ParamId, Vec<f32>> {
-    let mut collector = GradientCollector {
-        gradients,
-        collected: BTreeMap::new(),
-    };
-    model.visit(&mut collector);
-    collector.collected
-}
-
 #[test]
 fn input_pads_the_gathered_rows_to_the_alignment() {
     // Rows {0, 1, 2, 5} participate: four rows pad to the alignment,
@@ -1305,18 +1272,41 @@ fn evaluate_rejects_a_frame_smaller_than_the_batch() {
     let _objective = evaluation.evaluate(leaf(&[0.0, 0.0], 1), &batch, &mut metrics);
 }
 
+/// The coordinate leaf's gradient under the surrogate's backward pass, as flat values.
+///
+/// Unlike [`leaf_gradient`], the leaf arrives already built, so a padded shape wider than the
+/// batch keeps its padded rows in the reading.
+fn frame_gradient(leaf: &Tensor<Training, 2>, surrogate: &Tensor<Training, 1>) -> Vec<f32> {
+    leaf.grad(&surrogate.backward())
+        .expect("the surrogate reaches the coordinate leaf")
+        .into_data()
+        .to_vec::<f32>()
+        .expect("coordinate gradients are f32")
+}
+
+/// The frame's coordinates as flat f32 values.
+fn frame_values(frame: &Tensor<Training, 2>) -> Vec<f32> {
+    frame
+        .clone()
+        .inner()
+        .into_data()
+        .to_vec::<f32>()
+        .expect("coordinates are f32")
+}
+
 #[test]
-fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
+fn padding_zero_force_at_simd_scale() {
     // Semantic, ordinary, relation, and landmark families all
     // participate, so every loss path crosses the padded frame. The
     // padded and unpadded materializations of the same batch project
-    // bit-equal coordinates for the participating rows, evaluate to
-    // bit-equal loss values, and deposit bit-equal parameter
-    // gradients: the padded rows carry exactly zero force, appended
-    // after every real contribution in the backward reductions.
+    // bit-equal coordinates for the participating rows and evaluate
+    // to bit-equal loss values, and the padded rows carry exactly
+    // zero force: a coordinate leaf of the padded shape deposits an
+    // exactly-zero gradient on every padded row, read from the one
+    // graph that computes it.
     //
-    // The batch covers all [`PADDING_ROWS`] corpus rows so both
-    // graphs' tensors clear the CPU backend's SIMD dispatch threshold
+    // The batch covers all [`PADDING_ROWS`] corpus rows so the
+    // tensors clear the CPU backend's SIMD dispatch threshold
     // (see the constant's documentation) - the certificate compares
     // the padding, not the backend's kernel election.
     let indexes = relation_indexes(
@@ -1380,18 +1370,8 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
     );
     assert_eq!(plain.dims()[0], PADDING_ROWS);
 
-    let padded_values = padded
-        .clone()
-        .inner()
-        .into_data()
-        .to_vec::<f32>()
-        .expect("coordinates are f32");
-    let plain_values = plain
-        .clone()
-        .inner()
-        .into_data()
-        .to_vec::<f32>()
-        .expect("coordinates are f32");
+    let padded_values = frame_values(&padded);
+    let plain_values = frame_values(&plain);
     assert_eq!(
         padded_values[..plain_values.len()],
         plain_values[..],
@@ -1418,10 +1398,25 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
         plain_metrics.overall().nodes()
     );
 
-    let padded_gradients = parameter_gradients(&model, &padded_objective.surrogate.backward());
-    let plain_gradients = parameter_gradients(&model, &plain_objective.surrogate.backward());
-    assert!(!padded_gradients.is_empty());
-    assert_eq!(padded_gradients, plain_gradients);
+    // A coordinate leaf at the padded materialization's own values: the padded tail deposits
+    // an exactly-zero gradient, so padding adds no force at SIMD-dispatch scale.
+    let padded_rows = PADDING_ROWS.next_multiple_of(ROW_ALIGNMENT.get());
+    let leaf_frame = leaf(&padded_values, padded_rows);
+    let mut leaf_metrics = BudgetBreakdown::new();
+    let leaf_objective = evaluation
+        .evaluate(leaf_frame.clone(), &batch, &mut leaf_metrics)
+        .expect("the fixture is finite");
+    let gradient = frame_gradient(&leaf_frame, &leaf_objective.surrogate);
+    assert_eq!(gradient.len(), padded_rows * 2);
+    let (participating, padded_tail) = gradient.split_at(PADDING_ROWS * 2);
+    assert!(
+        participating.iter().any(|&force| force != 0.0),
+        "the participating rows should carry force"
+    );
+    assert!(
+        padded_tail.iter().all(|&force| force == 0.0),
+        "the padded rows should carry exactly zero force"
+    );
 }
 
 /// Records every snapshot an observer with the given appetite receives.

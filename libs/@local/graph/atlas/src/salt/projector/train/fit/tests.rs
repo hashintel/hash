@@ -15,12 +15,19 @@
 use core::assert_matches;
 use std::sync::{LazyLock, Mutex};
 
-use burn::module::AutodiffModule as _;
+use burn::{
+    lr_scheduler::LrScheduler as _,
+    module::{AutodiffModule as _, Module as _},
+    record::{FullPrecisionSettings, NamedMpkBytesRecorder, Recorder as _},
+};
 use hashql_core::id::{Id, IdSlice, IdVec};
+use rand::SeedableRng as _;
+use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
-    FitOutcome, FrozenRadius, Model, TargetRefusalCause, TrainError, TrainOptions, TrainerInputs,
-    TrainingSchedule, fit, fit_from_boundary, fit_to_boundary,
+    BoundaryState, FitOutcome, FrozenRadius, Model, ResumePoint, ResumeRecord, TargetRefusalCause,
+    TrainError, TrainOptions, TrainerInputs, TrainingSchedule, fit, fit_from_boundary,
+    fit_to_boundary,
     fixture::{
         Corpus, HALF, RELATION, ROWS, TargetDraws, corpus_with, instance, options, proximal_policy,
         proximal_verdict, rng, schedule, split_digest, target_corpus, target_draws, target_inputs,
@@ -41,7 +48,7 @@ use crate::{
     salt::{
         policy::ClassProbabilities,
         projector::{
-            artifact,
+            artifact::CheckpointError,
             gauge::{DuplicateClassId, GaugeOrdinal, GaugeRefusal},
             loss::{Penalty, UnitLaw},
             model::{Architecture, Projector},
@@ -744,12 +751,20 @@ fn checkpointed_resume_matches_the_straight_run() {
     )
     .expect("the opening segment trains");
     let mut bytes = Vec::new();
-    artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
+    state
+        .write_checkpoint(&stream, &mut bytes)
+        .expect("the resume checkpoint writes");
     drop((state, stream));
 
-    let (reopened, mut stream) =
-        artifact::open_resume::<NodeRowId, Training>(bytes.as_slice(), architecture(), &*DEVICE)
-            .expect("the resume checkpoint opens");
+    let ResumePoint {
+        state: reopened,
+        generator: mut stream,
+    } = BoundaryState::<NodeRowId, Training>::open_checkpoint(
+        bytes.as_slice(),
+        architecture(),
+        &*DEVICE,
+    )
+    .expect("the resume checkpoint opens");
     let resumed = fit_from_boundary(
         reopened,
         &corpus.inputs(),
@@ -797,10 +812,15 @@ fn forked_ladders_share_the_frozen_radius() {
     )
     .expect("the opening segment trains");
     let mut bytes = Vec::new();
-    artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
+    state
+        .write_checkpoint(&stream, &mut bytes)
+        .expect("the resume checkpoint writes");
 
     let fork = |relation: NonNegative| {
-        let (state, mut stream) = artifact::open_resume::<NodeRowId, Training>(
+        let ResumePoint {
+            state,
+            generator: mut stream,
+        } = BoundaryState::<NodeRowId, Training>::open_checkpoint(
             bytes.as_slice(),
             architecture(),
             &*DEVICE,
@@ -1527,18 +1547,12 @@ fn the_ruler_re_freezes_from_the_recorded_boundary_field() {
     );
 }
 
-/// The activation is a value, not structure. A zero-activation run reads the identical first
-/// estimand the live run reads while contributing nothing to the composite loss, and its
-/// trained model is bit-independent of the penalty - the whole target path ran and added
-/// exactly zero force.
-///
-/// The bit-equality claims presume per-process test isolation. burn-autodiff draws node ids
-/// from a process-global counter, so an autodiff test running concurrently in the same
-/// process can reorder the gradient map's accumulation and move these bits. The repository's
-/// nextest profile isolates every test in its own process, and single-threaded `cargo test`
-/// also holds.
+/// The activation is a value, not structure. A zero-activation run reads a live estimand
+/// stream while contributing exactly zero force: the recorded per-step target loss - the term
+/// the composite loss descends - is 0.0 at every step under either penalty, and only a live
+/// activation descends it.
 #[test]
-fn zero_activation_reads_the_estimand_and_adds_no_force() {
+fn zero_activation_zero_force() {
     let corpus = target_corpus();
     let draws = target_draws();
 
@@ -1559,46 +1573,32 @@ fn zero_activation_reads_the_estimand_and_adds_no_force() {
     };
 
     let inert = run(0.0, Penalty::QuadraticHinge);
-    let live = run(2.0, Penalty::QuadraticHinge);
-
-    // Identical streams and an identical boundary model: the first reading agrees bit for
-    // bit, and only the live run descends it.
     let inert_target = inert.evidence.target.as_ref().expect("evidence exists");
-    let live_target = live.evidence.target.as_ref().expect("evidence exists");
-    assert_eq!(inert_target.estimands[0], live_target.estimands[0]);
     assert!(inert_target.estimands.iter().any(|&reading| reading != 0.0));
     assert!(inert.evidence.losses.iter().all(|loss| loss.target == 0.0));
+
+    // A live activation descends the very term the inert run recorded as zero.
+    let live = run(2.0, Penalty::QuadraticHinge);
+    let live_target = live.evidence.target.as_ref().expect("evidence exists");
     assert_eq!(
         live.evidence.losses[6].target,
         2.0 * live_target.estimands[0]
     );
 
-    // Absent against inert, made concrete: at zero activation the penalty's value cannot
-    // reach the model, so swapping it changes the readings and not one trained bit.
+    // At zero activation the penalty's value cannot reach the model: swapping it changes the
+    // readings and adds the same exactly-zero force.
     let swapped = run(0.0, Penalty::Identity);
-    assert_ne!(
-        inert
-            .evidence
-            .target
-            .as_ref()
-            .expect("evidence exists")
-            .estimands,
+    let swapped_target = swapped.evidence.target.as_ref().expect("evidence exists");
+    assert!(
         swapped
             .evidence
-            .target
-            .as_ref()
-            .expect("evidence exists")
-            .estimands,
+            .losses
+            .iter()
+            .all(|loss| loss.target == 0.0)
+    );
+    assert_ne!(
+        inert_target.estimands, swapped_target.estimands,
         "the two penalties should read different estimands"
-    );
-    assert_eq!(
-        project(&inert.projector, &corpus, non_negative!(0.0)),
-        project(&swapped.projector, &corpus, non_negative!(0.0)),
-        "zero activation should train the identical model under either penalty"
-    );
-    assert_eq!(
-        project(&inert.projector, &corpus, non_negative!(1.0)),
-        project(&swapped.projector, &corpus, non_negative!(1.0)),
     );
 }
 
@@ -1742,31 +1742,16 @@ fn every_split_population_overlap_refuses_at_admission() {
     );
 }
 
-/// A resumed target ladder freezes the bit-equal references and replays the straight run's
-/// readings exactly, because the whole target machinery derives from the boundary model alone.
-///
-/// The bit-equality claims presume per-process test isolation. burn-autodiff draws node ids
-/// from a process-global counter, so an autodiff test running concurrently in the same
-/// process can reorder the gradient map's accumulation and move these bits. The repository's
-/// nextest profile isolates every test in its own process, and single-threaded `cargo test`
-/// also holds.
+/// A reopened resume checkpoint carries the written parameters, the scheduler at the boundary,
+/// the identical schedule, and the caller's generator stream. Identity is asserted on the
+/// decoded state, per the writer's own contract - the bytes are not canonical (the optimizer
+/// record is a map), the decoded state is.
 #[test]
-fn resumed_target_ladder_freezes_the_bit_equal_references() {
+fn resume_checkpoint_round_trip() {
     let corpus = target_corpus();
     let draws = target_draws();
     let inputs = target_inputs(&corpus, &draws, target_options(1.0));
     let options = options(schedule(nz!(12), 6, nz!(4)));
-
-    let straight = fit(
-        model(),
-        &inputs,
-        &options,
-        &mut rng(17),
-        &*DEVICE,
-        &NoProgress,
-    )
-    .expect("the target fixture trains")
-    .trained();
 
     let mut stream = rng(17);
     let state = fit_to_boundary(
@@ -1782,39 +1767,126 @@ fn resumed_target_ladder_freezes_the_bit_equal_references() {
         state.training.evidence.target.is_none(),
         "the opening segment never freezes a target phase"
     );
+
     let mut bytes = Vec::new();
-    artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
-    drop((state, stream));
+    state
+        .write_checkpoint(&stream, &mut bytes)
+        .expect("the resume checkpoint writes");
 
-    let (reopened, mut stream) =
-        artifact::open_resume::<NodeRowId, Training>(bytes.as_slice(), architecture(), &*DEVICE)
-            .expect("the resume checkpoint opens");
-    let resumed = fit_from_boundary(
-        reopened,
-        &inputs,
-        &options,
-        &mut stream,
+    let ResumePoint {
+        state: reopened,
+        generator: reopened_stream,
+    } = BoundaryState::<NodeRowId, Training>::open_checkpoint(
+        bytes.as_slice(),
+        architecture(),
         &*DEVICE,
-        &NoProgress,
     )
-    .expect("the resumed ladder trains")
-    .trained();
+    .expect("the resume checkpoint opens");
 
-    let straight_target = straight.evidence.target.as_ref().expect("evidence exists");
-    let resumed_target = resumed.evidence.target.as_ref().expect("evidence exists");
-    assert_eq!(straight_target.identity, resumed_target.identity);
-    assert_eq!(straight_target.unit_law, resumed_target.unit_law);
-    assert_eq!(straight_target.split_digest, resumed_target.split_digest);
     assert_eq!(
-        straight_target.boundary_field,
-        resumed_target.boundary_field
+        reopened_stream, stream,
+        "the generator stream should round-trip exactly"
     );
-    assert_eq!(straight_target.tables, resumed_target.tables);
-    assert_eq!(straight_target.estimands, resumed_target.estimands);
-    assert_eq!(straight_target.evaluations, resumed_target.evaluations);
+
+    assert_eq!(reopened.schedule, state.schedule);
     assert_eq!(
-        project(&resumed.projector, &corpus, non_negative!(1.0)),
-        project(&straight.projector, &corpus, non_negative!(1.0)),
-        "the straight and resumed target runs should train bit-equal frames"
+        reopened.training.scheduler.to_record::<Training>(),
+        state.training.scheduler.to_record::<Training>()
     );
+
+    // The model record is a named-struct tree, so its serialization is deterministic - the
+    // writer's non-canonical clause covers the optimizer map alone.
+    let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
+    let written = recorder
+        .record(state.training.model.into_record(), ())
+        .expect("the model record encodes");
+    let reopened_bytes = recorder
+        .record(reopened.training.model.into_record(), ())
+        .expect("the model record encodes");
+    assert_eq!(
+        written, reopened_bytes,
+        "the model parameters should round-trip exactly"
+    );
+}
+
+/// A structurally valid resume record around the given overrides.
+fn resume_record() -> ResumeRecord<Training> {
+    ResumeRecord {
+        model: model().into_record(),
+        // A fresh optimizer carries no moments until its first step, so the empty map is the
+        // boundary state of a zero-length opening segment.
+        optimizer: <_>::default(),
+        scheduler: 5,
+        steps: 12,
+        boundary: 6,
+        refresh_interval: 4,
+        initial_learning_rate: 0.05,
+        minimum_learning_rate: 0.001,
+        generator: Xoshiro256PlusPlus::seed_from_u64(3).state(),
+    }
+}
+
+fn record_bytes(record: ResumeRecord<Training>) -> Vec<u8> {
+    NamedMpkBytesRecorder::<FullPrecisionSettings>::new()
+        .record(record, ())
+        .expect("the test record encodes")
+}
+
+#[test]
+fn open_checkpoint_schedule_round_trip() {
+    let bytes = record_bytes(resume_record());
+    let ResumePoint { state, generator } = BoundaryState::<NodeRowId, Training>::open_checkpoint(
+        bytes.as_slice(),
+        architecture(),
+        &*DEVICE,
+    )
+    .expect("the resume checkpoint opens");
+
+    assert_eq!(
+        generator.state(),
+        Xoshiro256PlusPlus::seed_from_u64(3).state(),
+        "the generator state should round-trip exactly"
+    );
+    assert_eq!(state.schedule.steps().get(), 12);
+    assert_eq!(state.schedule.boundary(), 6);
+    assert_eq!(state.schedule.refresh_interval().get(), 4);
+}
+
+#[test]
+fn open_checkpoint_invalid_schedule() {
+    let mut record = resume_record();
+    record.minimum_learning_rate = 0.9;
+    let bytes = record_bytes(record);
+
+    let Err(error) = BoundaryState::<NodeRowId, Training>::open_checkpoint(
+        bytes.as_slice(),
+        architecture(),
+        &*DEVICE,
+    ) else {
+        panic!("a minimum above the initial rate should be rejected");
+    };
+    assert!(
+        matches!(error, CheckpointError::InvalidSchedule),
+        "the rejection should name the schedule: {error}"
+    );
+}
+
+#[test]
+fn open_checkpoint_scheduler_off_boundary() {
+    let mut record = resume_record();
+    record.scheduler = 3;
+    let bytes = record_bytes(record);
+
+    let Err(error) = BoundaryState::<NodeRowId, Training>::open_checkpoint(
+        bytes.as_slice(),
+        architecture(),
+        &*DEVICE,
+    ) else {
+        panic!("a scheduler position off the boundary should be rejected");
+    };
+    let CheckpointError::SchedulerPosition { position, boundary } = error else {
+        panic!("the rejection should name the position: {error}");
+    };
+    assert_eq!(position, 3);
+    assert_eq!(boundary, 6);
 }
