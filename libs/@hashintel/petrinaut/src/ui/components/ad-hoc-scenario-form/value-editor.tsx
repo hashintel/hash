@@ -647,7 +647,9 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             <div className={overlayBodyStyle}>
               {optimized && booleanDomain ? (
                 <div className={booleanNoteStyle}>
-                  The optimizer tries true and false.
+                  {selection === "controls"
+                    ? "The control chooses true or false."
+                    : "The optimizer tries true and false."}
                 </div>
               ) : optimized ? (
                 <div className={boundsGridStyle}>

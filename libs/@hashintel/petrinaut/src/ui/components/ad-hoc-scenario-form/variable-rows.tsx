@@ -17,24 +17,22 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { adHocVariableKey } from "./dependency-highlight";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
+import { FormSpreadsheet } from "./form-spreadsheet";
 import {
   cellInputStyle,
   cellSelectStyle,
   cellStyle,
   dependencyHighlightStyle as highlightStyle,
-  gutterButtonStyle,
   gutterCellStyle,
-  gutterMenuButtonStyle,
   phantomCellButtonStyle,
-  phantomGutterButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
-  tableContainerStyle,
-  tableStyle,
 } from "./form-table";
-import { GutterMenu } from "./gutter-menu";
+import { GutterCell } from "./gutter-cell";
 import { OptimizeToggle } from "./optimize-toggle";
+import { PhantomLine } from "./phantom-line";
 import { useNavigationGrid } from "./use-grid-navigation";
+import { useRowSelection } from "./use-row-selection";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocVariable } from "@hashintel/petrinaut-core";
@@ -221,12 +219,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   const { register, onKeyDown, attach } = useNavigationGrid();
   const gutterRefs = useRef(new Map<number, HTMLButtonElement>());
   const phantomRef = useRef<HTMLButtonElement | null>(null);
-  const [menu, setMenu] = useState<{
-    index: number;
-    anchor: HTMLButtonElement;
-  } | null>(null);
   // Gutter focus selects the whole row; the selection highlight follows it.
-  const [selectedRow, setSelectedRow] = useState<number | null>(null);
+  const rowSelection = useRowSelection();
   // A nonce, so a repeat click re-opens the fresh row's name editor.
   const [materialized, setMaterialized] = useState<{
     index: number;
@@ -268,253 +262,199 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
     };
 
   return (
-    <div ref={attach} className={tableContainerStyle} aria-label={scopeLabel}>
-      <table className={tableStyle}>
-        <tbody>
-          {variables.map((variable, index) => {
-            const target = { kind: "variable" as const, placeId, index };
-            const nameError = errorFor({ target, part: "name" });
-            const highlighted = highlight.variableKeys.has(
-              adHocVariableKey(placeId, variable.name),
-            );
-            const rowHighlight = cx(
-              highlighted && highlightStyle,
-              (selectedRow === index || menu?.index === index) &&
-                selectedRowCellStyle,
-            );
-            return (
-              // Row identity is positional in the model.
-              // eslint-disable-next-line react/no-array-index-key
-              <tr key={index} data-highlighted={highlighted || undefined}>
-                <td
-                  className={cx(
-                    gutterCellStyle,
-                    gutterColumnStyle,
-                    rowHighlight,
-                  )}
-                >
-                  <button
-                    ref={(element) => {
-                      register(index, 0)(element);
-                      if (element) {
-                        gutterRefs.current.set(index, element);
-                      } else {
-                        gutterRefs.current.delete(index);
-                      }
-                    }}
-                    type="button"
-                    className={gutterButtonStyle}
-                    aria-label={`Variable ${index + 1} actions`}
-                    aria-haspopup="menu"
-                    aria-expanded={menu?.index === index}
-                    onFocus={() => {
-                      setSelectedRow(index);
-                      setFocusedValue(target);
-                    }}
-                    onBlur={() => {
-                      setSelectedRow(null);
-                      setFocusedValue(null);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Delete" || event.key === "Backspace") {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        deleteVariable(index);
-                        return;
-                      }
-                      onKeyDown(index, 0)(event);
-                    }}
-                    onClick={(event) => {
-                      // A pointer click only selects; the keyboard "click"
-                      // (Enter) and the dots button open the menu.
-                      if (event.detail === 0) {
-                        setMenu({ index, anchor: event.currentTarget });
-                      }
-                    }}
-                  >
-                    <Icon name="function" size="xs" />
-                  </button>
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    className={gutterMenuButtonStyle}
-                    aria-label={`Variable ${index + 1} menu`}
-                    onClick={(event) =>
-                      setMenu({ index, anchor: event.currentTarget })
+    <FormSpreadsheet attach={attach} ariaLabel={scopeLabel}>
+      <tbody>
+        {variables.map((variable, index) => {
+          const target = { kind: "variable" as const, placeId, index };
+          const nameError = errorFor({ target, part: "name" });
+          const highlighted = highlight.variableKeys.has(
+            adHocVariableKey(placeId, variable.name),
+          );
+          const rowHighlight = cx(
+            highlighted && highlightStyle,
+            rowSelection.selectedRow === index && selectedRowCellStyle,
+          );
+          return (
+            // Row identity is positional in the model.
+            // eslint-disable-next-line react/no-array-index-key
+            <tr key={index} data-highlighted={highlighted || undefined}>
+              <td
+                className={cx(gutterCellStyle, gutterColumnStyle, rowHighlight)}
+              >
+                <GutterCell
+                  glyph={<Icon name="function" size="xs" />}
+                  label={`Variable ${index + 1} actions`}
+                  menuLabel={`Variable ${index + 1} menu`}
+                  items={[
+                    {
+                      id: "delete",
+                      label: "Delete variable",
+                      destructive: true,
+                    },
+                  ]}
+                  onMenuSelect={(id) => {
+                    if (id === "delete") {
+                      deleteVariable(index);
                     }
-                  >
-                    ⋯
-                  </button>
-                  {menu?.index === index ? (
-                    <GutterMenu
-                      anchor={menu.anchor}
-                      items={[
-                        {
-                          id: "delete",
-                          label: "Delete variable",
-                          destructive: true,
-                        },
-                      ]}
-                      onSelect={(id) => {
-                        setMenu(null);
-                        if (id === "delete") {
-                          deleteVariable(index);
-                        }
-                      }}
-                      onClose={() => setMenu(null)}
-                      onDismiss={() => {
-                        const anchor = menu.anchor;
-                        setMenu(null);
-                        setTimeout(() => anchor.focus(), 0);
-                      }}
-                    />
-                  ) : null}
-                </td>
-                <td
-                  className={cx(
-                    cellStyle,
-                    nameCellStyle,
-                    nameError && invalidNameStyle,
-                    rowHighlight,
-                  )}
-                >
-                  <NameCell
-                    value={variable.name}
-                    ariaLabel={`Name of variable ${index + 1} (${scopeLabel})`}
-                    error={nameError}
-                    autoEdit={
-                      materialized?.index === index ? materialized.nonce : 0
-                    }
-                    onFocusChange={(focused) =>
-                      setFocusedValue(focused ? target : null)
-                    }
-                    cellRef={register(index, 1)}
-                    onCellKeyDown={onKeyDown(index, 1)}
-                    onChange={(name) =>
-                      dispatch({ type: "renameVariable", placeId, index, name })
-                    }
-                  />
-                </td>
-                {/* The Select drops className, so its cell styles the box
-                    and registers the trigger for the grid. */}
-                <td
-                  ref={(element) =>
-                    register(
-                      index,
-                      2,
-                    )(
-                      element
-                        ? element.querySelector<HTMLElement>(
-                            "[data-part='trigger']",
-                          )
-                        : null,
-                    )
+                  }}
+                  menuAnchor={
+                    rowSelection.menu?.row === index
+                      ? rowSelection.menu.anchor
+                      : null
                   }
-                  className={cx(
-                    cellStyle,
-                    typeCellStyle,
-                    cellSelectStyle,
-                    rowHighlight,
-                  )}
-                  onKeyDownCapture={selectCellKeyDown(index)}
+                  onOpenMenu={(anchor) => rowSelection.openMenu(index, anchor)}
+                  onCloseMenu={rowSelection.closeMenu}
+                  buttonRef={(element) => {
+                    register(index, 0)(element);
+                    if (element) {
+                      gutterRefs.current.set(index, element);
+                    } else {
+                      gutterRefs.current.delete(index);
+                    }
+                  }}
+                  onFocus={() => {
+                    rowSelection.setFocusedRow(index);
+                    setFocusedValue(target);
+                  }}
+                  onBlur={() => {
+                    rowSelection.setFocusedRow(null);
+                    setFocusedValue(null);
+                  }}
+                  onKeyDown={onKeyDown(index, 0)}
+                  onDelete={() => deleteVariable(index)}
+                />
+              </td>
+              <td
+                className={cx(
+                  cellStyle,
+                  nameCellStyle,
+                  nameError && invalidNameStyle,
+                  rowHighlight,
+                )}
+              >
+                <NameCell
+                  value={variable.name}
+                  ariaLabel={`Name of variable ${index + 1} (${scopeLabel})`}
+                  error={nameError}
+                  autoEdit={
+                    materialized?.index === index ? materialized.nonce : 0
+                  }
+                  onFocusChange={(focused) =>
+                    setFocusedValue(focused ? target : null)
+                  }
+                  cellRef={register(index, 1)}
+                  onCellKeyDown={onKeyDown(index, 1)}
+                  onChange={(name) =>
+                    dispatch({ type: "renameVariable", placeId, index, name })
+                  }
+                />
+              </td>
+              {/* The Select drops className, so its cell styles the box
+                    and registers the trigger for the grid. */}
+              <td
+                ref={(element) =>
+                  register(
+                    index,
+                    2,
+                  )(
+                    element
+                      ? element.querySelector<HTMLElement>(
+                          "[data-part='trigger']",
+                        )
+                      : null,
+                  )
+                }
+                className={cx(
+                  cellStyle,
+                  typeCellStyle,
+                  cellSelectStyle,
+                  rowHighlight,
+                )}
+                onKeyDownCapture={selectCellKeyDown(index)}
+                onFocus={() => setFocusedValue(target)}
+                onBlur={() => setFocusedValue(null)}
+              >
+                <Select
+                  required
+                  size="sm"
+                  aria-label={`Type of ${variable.name}`}
+                  value={variable.type}
+                  onChange={(type) =>
+                    dispatch({
+                      type: "setVariableType",
+                      placeId,
+                      index,
+                      variableType: type,
+                    })
+                  }
+                  items={[
+                    { value: "real", text: "Real" },
+                    { value: "integer", text: "Integer" },
+                    { value: "boolean", text: "Boolean" },
+                  ]}
+                />
+              </td>
+              <td className={cx(cellStyle, rowHighlight)}>
+                <ValueEditor
+                  target={target}
+                  value={variable}
+                  integer={variable.type === "integer"}
+                  booleanDomain={variable.type === "boolean"}
+                  triggerRef={register(index, 3)}
+                  onTriggerKeyDown={onKeyDown(index, 3)}
+                />
+              </td>
+              {selection !== "none" ? (
+                <td
+                  className={cx(cellStyle, optimizeCellStyle, rowHighlight)}
                   onFocus={() => setFocusedValue(target)}
                   onBlur={() => setFocusedValue(null)}
                 >
-                  <Select
-                    required
-                    size="sm"
-                    aria-label={`Type of ${variable.name}`}
-                    value={variable.type}
-                    onChange={(type) =>
-                      dispatch({
-                        type: "setVariableType",
-                        placeId,
-                        index,
-                        variableType: type,
-                      })
+                  <OptimizeToggle
+                    text={adHocSelectionText(selection)}
+                    label={`${adHocSelectionText(selection)} ${variable.name}`}
+                    value={variable.optimize !== null}
+                    buttonRef={register(index, 4)}
+                    onKeyDown={onKeyDown(index, 4)}
+                    onChange={(on) =>
+                      dispatch({ type: "toggleSelection", target, on })
                     }
-                    items={[
-                      { value: "real", text: "Real" },
-                      { value: "integer", text: "Integer" },
-                      { value: "boolean", text: "Boolean" },
-                    ]}
                   />
                 </td>
-                <td className={cx(cellStyle, rowHighlight)}>
-                  <ValueEditor
-                    target={target}
-                    value={variable}
-                    integer={variable.type === "integer"}
-                    booleanDomain={variable.type === "boolean"}
-                    triggerRef={register(index, 3)}
-                    onTriggerKeyDown={onKeyDown(index, 3)}
-                  />
-                </td>
-                {selection !== "none" ? (
-                  <td
-                    className={cx(cellStyle, optimizeCellStyle, rowHighlight)}
-                    onFocus={() => setFocusedValue(target)}
-                    onBlur={() => setFocusedValue(null)}
-                  >
-                    <OptimizeToggle
-                      text={adHocSelectionText(selection)}
-                      label={`${adHocSelectionText(selection)} ${variable.name}`}
-                      value={variable.optimize !== null}
-                      buttonRef={register(index, 4)}
-                      onKeyDown={onKeyDown(index, 4)}
-                      onChange={(on) =>
-                        dispatch({ type: "toggleSelection", target, on })
-                      }
-                    />
-                  </td>
-                ) : null}
-              </tr>
-            );
-          })}
+              ) : null}
+            </tr>
+          );
+        })}
 
-          {/* The trailing line materializes a fresh Variable; one cell,
-              reachable with ArrowDown from any cell of the row above. */}
-          <tr>
-            <td
-              className={cx(
-                gutterCellStyle,
-                gutterColumnStyle,
-                phantomRowCellStyle,
-              )}
+        {/* The trailing line materializes a fresh Variable; one cell,
+            reachable with ArrowDown from any cell of the row above. */}
+        <PhantomLine
+          gutterLabel={`Add a variable from the gutter (${scopeLabel})`}
+          onMaterialize={materializeVariable}
+          gutterClassName={gutterColumnStyle}
+        >
+          <td
+            colSpan={selection !== "none" ? 3 : 2}
+            className={cx(cellStyle, phantomRowCellStyle)}
+          >
+            <button
+              ref={(element) => {
+                phantomRef.current = element;
+                for (const column of PHANTOM_COLUMNS) {
+                  register(variables.length, column)(element);
+                }
+              }}
+              type="button"
+              className={phantomCellButtonStyle}
+              aria-label={`Add a variable (${scopeLabel})`}
+              onClick={materializeVariable}
+              onKeyDown={onKeyDown(variables.length, 0)}
             >
-              <button
-                type="button"
-                tabIndex={-1}
-                className={phantomGutterButtonStyle}
-                aria-label={`Add a variable from the gutter (${scopeLabel})`}
-                onClick={materializeVariable}
-              >
-                +
-              </button>
-            </td>
-            <td
-              colSpan={selection !== "none" ? 3 : 2}
-              className={cx(cellStyle, phantomRowCellStyle)}
-            >
-              <button
-                ref={(element) => {
-                  phantomRef.current = element;
-                  for (const column of PHANTOM_COLUMNS) {
-                    register(variables.length, column)(element);
-                  }
-                }}
-                type="button"
-                className={phantomCellButtonStyle}
-                aria-label={`Add a variable (${scopeLabel})`}
-                onClick={materializeVariable}
-                onKeyDown={onKeyDown(variables.length, 0)}
-              >
-                Add a variable…
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+              Add a variable…
+            </button>
+          </td>
+        </PhantomLine>
+      </tbody>
+    </FormSpreadsheet>
   );
 };
