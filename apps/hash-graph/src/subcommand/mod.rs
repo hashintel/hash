@@ -213,8 +213,8 @@ pub enum Subcommand {
     TypeFetcher(Box<TypeFetcherArgs>),
     /// Run the SALT Atlas service.
     ///
-    /// Currently a stub exposing only the health probe, so the deployment
-    /// pipeline can be exercised before the real implementation lands.
+    /// Serves the read API over the root's active generation; `atlas fit`
+    /// runs one production generation over the live store.
     Atlas(Box<AtlasArgs>),
     /// Generate a completion script for the given shell and outputs it to stdout.
     Completions(Box<CompletionsArgs>),
