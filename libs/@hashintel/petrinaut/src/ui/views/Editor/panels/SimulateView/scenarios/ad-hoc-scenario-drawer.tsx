@@ -61,7 +61,7 @@ export const AdHocScenarioDrawer = ({
             places: petriNetDefinition.places,
             types: extensions.colors ? petriNetDefinition.types : [],
           }}
-          optimizable={false}
+          selection="none"
         />
       </Drawer.Body>
       <Drawer.Footer>
