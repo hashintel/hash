@@ -25,7 +25,7 @@ export const REPO_ROOT = CONTEXT_ROOT;
 /**
  * The context root's `docs/` and `scripts/` belong to no workspace, so
  * `turbo prune` never copies them; CI's prune-repository action copies them
- * into its pruned checkout via an `EXTRA_PATHS` rule. This guard is the
+ * into its pruned checkout via a requested-scope extra-path rule. This guard is the
  * fallback for a pruned tree where that rule is absent or has drifted: the
  * context-root tests skip there instead of failing on missing files, and run
  * in every full checkout, where this is always true.
