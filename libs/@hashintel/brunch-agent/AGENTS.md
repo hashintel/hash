@@ -26,6 +26,7 @@ workspace.
 
 - Use Graphite (`gt`) for stack operations; do not use `gh stack` in HASH.
 - Issues live in Linear team `FE`, project `brunch-agent`.
+- Brunch Markdown is created and maintained by agents; exclude it from `oxfmt` and `markdownlint`.
 
 Route by trigger; load only the applicable compact protocol:
 

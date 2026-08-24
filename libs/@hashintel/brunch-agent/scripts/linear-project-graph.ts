@@ -20,6 +20,7 @@ export interface HardEdge {
 export interface ProjectGraph {
   readonly projectName: string;
   readonly viewerName: string;
+  readonly includeClosed: boolean;
   readonly issues: readonly ProjectIssue[];
   readonly hardEdges: readonly HardEdge[];
 }
@@ -208,7 +209,7 @@ export function renderProjectGraph(graph: ProjectGraph): string {
   ).length;
   const header = [
     `project ${graph.projectName}`,
-    `open=${projectIssueCount}`,
+    `${graph.includeClosed ? "issues" : "open"}=${projectIssueCount}`,
     `hard=${hardEdges.length}`,
     `assignee-mismatches=${assigneeMismatchCount}`,
     ...(externalCount > 0 ? [`external=${externalCount}`] : []),
@@ -519,6 +520,7 @@ export const fetchProjectGraph = (
   return {
     projectName: resolvedProjectName,
     viewerName: viewer.name,
+    includeClosed,
     issues: [...issues.values()],
     hardEdges: [...hardEdges.values()],
   };

@@ -28,6 +28,7 @@ interface ProjectIssue {
 interface ProjectGraph {
   readonly projectName: string;
   readonly viewerName: string;
+  readonly includeClosed: boolean;
   readonly issues: readonly ProjectIssue[];
   readonly hardEdges: readonly { readonly from: string; readonly to: string }[];
 }
@@ -203,9 +204,8 @@ describe.skipIf(!contextRootPresent)("the compact Linear project graph", () => {
   });
 
   test("defaults to open issues and --all includes closed issues", async () => {
-    const { fetchProjectGraph, parseArguments } = (await import(
-      SCRIPT_MODULE_URL
-    )) as LinearProjectGraphModule;
+    const { fetchProjectGraph, parseArguments, renderProjectGraph } =
+      (await import(SCRIPT_MODULE_URL)) as LinearProjectGraphModule;
     const page: ProjectIssuePage = {
       projectName: "brunch-agent",
       viewer: { id: "viewer-id", name: "Lu" },
@@ -218,12 +218,16 @@ describe.skipIf(!contextRootPresent)("the compact Linear project graph", () => {
     };
     expect(parseArguments([]).includeClosed).toBe(false);
     expect(parseArguments(["--all"]).includeClosed).toBe(true);
-    expect(
-      fetchProjectGraph("brunch-agent", false, () => page).issues,
-    ).toHaveLength(1);
-    expect(
-      fetchProjectGraph("brunch-agent", true, () => page).issues,
-    ).toHaveLength(2);
+    const openGraph = fetchProjectGraph("brunch-agent", false, () => page);
+    const allGraph = fetchProjectGraph("brunch-agent", true, () => page);
+    expect(openGraph.issues).toHaveLength(1);
+    expect(allGraph.issues).toHaveLength(2);
+    expect(renderProjectGraph(openGraph)).toContain(
+      "project brunch-agent open=1",
+    );
+    expect(renderProjectGraph(allGraph)).toContain(
+      "project brunch-agent issues=2",
+    );
   });
 
   test("renders hard-dependency layers with enough issue context for agent inference", async () => {
@@ -231,6 +235,7 @@ describe.skipIf(!contextRootPresent)("the compact Linear project graph", () => {
     const graph: ProjectGraph = {
       projectName: "brunch-agent",
       viewerName: "Lu Nelson",
+      includeClosed: false,
       issues: [
         {
           identifier: "FE-100",
@@ -288,6 +293,7 @@ cycles: none`);
     const graph: ProjectGraph = {
       projectName: "brunch-agent",
       viewerName: "Lu Nelson",
+      includeClosed: false,
       issues: [
         {
           identifier: "FE-100",
