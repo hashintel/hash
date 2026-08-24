@@ -130,10 +130,22 @@ libraries remain mutually unaware.
 _Avoid_: using "demo shell" for the accepted topology
 
 **Artifact boundary**:
-The inter-library contract retained by ADR-0004: the elicitor emits a versioned net file plus
-scenario; Petrinaut consumes it through its published parser and import-with-autolayout path.
-Applications may compose both libraries, but neither reusable library consumes the other.
+The inter-library contract retained by ADR-0004 and amended by ADR-0005: the plugin projects a
+versioned net scaffold plus scenario, code obligations, and loss report; the application realizes
+the obligations through Petrinaut's client tools and compiler. Applications may compose both
+libraries, but neither reusable library consumes the other.
 _Avoid_: file handoff (undersells it), integration (generic)
+
+**Code obligation**:
+A field-addressed requirement emitted with a projection scaffold for TypeScript that cannot be
+derived deterministically. It names the semantic intent, available net symbols, supporting capture
+ids, and acceptance checks. The sidecar obligation is authoritative; a matching comment in the
+draft code field is human- and agent-facing context, not the machine contract.
+
+**Artifact realization**:
+The model-assisted application step that fulfills code obligations through Petrinaut client tools,
+repairs against compiler diagnostics, and stops only at deterministic compilation and simulation
+gates. It is downstream authoring over a projection, not a fourth IR register or a plugin operation.
 
 **Revision story**:
 The working-hypothesis demo spine (FE-1363; recommended to PM, not ratified): a sped-up recorded elicitation (conversation, interpretation surface, and growing net visible together) plus a bounded live segment in which a few turns elicit a fact forcing a structural revision of the net, run before/after in Petrinaut.

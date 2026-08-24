@@ -7,6 +7,9 @@ Assembled: 2026-08-10, from the resolved
 [criteria](../reference/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md)), and the
 [2026-08-10 consistency pre-pass](../archive/elicitation-kernel/notes/consistency-prepass-2026-08-10.md).
 Contradiction adjudications are collected in [Appendix A](#appendix-a--adjudications).
+Amended 2026-08-24 by
+[ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md): code-bearing projections emit
+deterministic scaffolds and obligations; executable realization is downstream agent work.
 
 "Elicitation kernel" and "brunch-lite" are working labels; the real product name is unresolved
 fog. No architectural string bakes in either label (see [Naming](#123-naming--tool-namespacing)).
@@ -180,8 +183,9 @@ transport fact to earn `explicit`; nothing else may claim it.
 
 ### 6.1 Plugin operations
 
-- **Required**: `project` (captures → draft artifact + **typed loss report**: `mapped-exactly /
-normalized / approximate / collapsed / omitted / defaulted / unrepresentable`) and `validate`
+- **Required**: `project` (elicited model → draft artifact + **typed loss report**:
+  `mapped-exactly / normalized / approximate / collapsed / omitted / defaulted /
+  unrepresentable`, plus typed code obligations when the target contains programs) and `validate`
   (→ typed issues). `project` also computes the plugin's domain labels (§13.3) — read-time
   derivation is projection. (The operation keeps the canon name `project`; in running prose this
   spec prefers the noun — "produce a projection" — because the verb collides with everyday
@@ -190,6 +194,9 @@ normalized / approximate / collapsed / omitted / defaulted / unrepresentable`) a
   calls it when present.
 - **Agent-native**: `observe` — noticing is the agent's work, guided by pack kernel cards;
   code-level extractors are an optimization, never the required path.
+- **Agent-native**: artifact realization — an agent fulfills code obligations through the target
+  application's authoring tools and repairs against deterministic compiler/runtime feedback. It
+  is downstream of `project`, never a plugin operation or capture-store write.
 - **Calling convention — pure, snapshot-in/deltas-out** (adjudicated, C2): every operation
   receives an **immutable state snapshot** and returns observations/issues/deltas; the harness
   validates and applies. Operations never address storage, the user, or the model. This purity is
@@ -536,9 +543,10 @@ Target policy only: its **own payload structure** (graph, flat list — never un
 concepts); **ElicitationPack** — kernel cards (Detects / Goal / contrastive Questions /
 Artifacts), completion contract, clarification hints; **ProjectionPack(s)** — `project` +
 `validate` (required), `reconcile` (optional), output contract, annotated shapes, typed loss
-reports, lossiness policy; its declared payload/output _shape_ (never persistence itself, §9.6);
-domain vocabulary. One ElicitationPack + N ProjectionPacks per plugin sharing the plugin's payload
-structure — axes separated in contract, bundled in shipping; swappability proven by reprojection.
+reports, code-obligation shapes for program-bearing targets, lossiness policy; its declared
+payload/output _shape_ (never persistence itself, §9.6); domain vocabulary. One ElicitationPack + N
+ProjectionPacks per plugin sharing the plugin's payload structure — axes separated in contract,
+bundled in shipping; swappability proven by reprojection.
 
 ### 11.2 Pack form and Principle v2
 

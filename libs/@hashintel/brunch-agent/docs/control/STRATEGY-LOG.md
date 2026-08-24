@@ -69,3 +69,29 @@ shared prerequisite.
 **Supersedes:** none
 
 **Evidence links:** [STEERING execution tree](STEERING.md#execution-tree), FE-1479
+
+### S-004
+
+**Date:** 2026-08-24
+
+**Trigger/evidence:** All seven incoming SDCPNs contain TypeScript code surfaces, and the richer
+examples require substantial stochastic lambdas, transition kernels, dynamics, scenario code, and
+metrics. FE-1480 therefore fired the replan trigger: an executable net cannot be projected
+deterministically from the elicited model.
+
+**Decision:** Produce a deterministic SDCPN scaffold, typed code obligations, and loss report from
+the elicited model; realize the obligations with model inference through Petrinaut client tools;
+then gate the result with deterministic compilation and simulation.
+
+**Consequences/cuts:** Scaffold work remains independent, but FE-1438 blocks FE-1480's executable
+production proof. The semantic and elicitor lanes first join at FE-1480 realization, then join the
+review-and-revise path at FE-1479. This authority decision does not select FE-1480 implementation as
+the next investment.
+
+**Revisit when:** Field-local obligations cannot support localized repair without whole-net
+resynthesis, or Petrinaut diagnostics cannot provide the deterministic gate.
+
+**Supersedes:** S-003
+
+**Evidence links:** [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md),
+[incoming SDCPNs](../inbox/SDCPNs/), FE-1480, FE-1438

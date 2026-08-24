@@ -6,6 +6,8 @@ FE-1397-style worked pass across at least three plugin targets. Until the Septem
 exercises a real fold, everything here is design, not demonstrated behavior.
 Decided on: FE-1405 (the payload-interiors session, 2026-08-18); inputs were that session's
 working draft and its pseudo-YAML structural rendering, which collapse into this document.
+Amended: 2026-08-24 by [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md), which
+separates deterministic projection scaffolds from model-assisted executable-artifact realization.
 
 ## Problem Statement
 
@@ -109,14 +111,17 @@ able to write a third plugin by analogy in a sitting.
     audit, contest, and supersede any interpretation.
 20. As a reviewer, I want the fold forbidden to interpret, so that re-running it on the same
     store always yields the same model.
-21. As a projection author (net renderer, loss report, completion table), I want to consume
+21. As a projection author (net scaffold, loss report, completion table), I want to consume
     the elicited model without rereading the transcript or interpreting generic capture
-    fields, so that my projection is a pure function of register 2.
+    fields, so that the scaffold and its code obligations are pure functions of register 2.
 22. As a harness developer (FE-1393, the plugin SDK and fold engine), I want every harness
     mechanism to be a pure function classified by which plugin declaration it reads, so that
     the harness/plugin boundary is mechanically checkable.
 23. As a team reader, I want example plugins that read as declarations of their domain, so
     that I can evaluate the product's generality without reading harness internals.
+24. As the artifact-realizing agent, I want each code obligation to name one target field, its
+    semantic intent, available net symbols, supporting captures, and acceptance checks, so that I
+    can write and repair TypeScript without resynthesizing unrelated regions.
 
 ## Implementation Decisions
 
@@ -126,11 +131,39 @@ artifact); they encode the decisions more precisely than prose.
 ### The three registers (ADR-0003, binding)
 
 Assertions (envelope-wrapped typed proposals) → the elicited model (derived by a pure fold,
-never stored) → projections. Write-time-only semantics: no semantic act at read time; every
-bridge is a capture. The acceptance oracle: a second projection must consume the model without
-rereading the transcript or semantically interpreting generic capture fields. Promotion, never
-refusal: low-grade statements are captured honestly and never promote to a demanded grade
-without a higher-grade capture superseding them.
+never stored) → projections. Write-time-only semantics still governs model assembly: no semantic
+act hides inside the fold, and every bridge from user language into the model is a capture. The
+acceptance oracle: a second projection must consume the model without rereading the transcript or
+semantically interpreting generic capture fields. Promotion, never refusal: low-grade statements
+are captured honestly and never promote to a demanded grade without a higher-grade capture
+superseding them.
+
+### Executable-artifact seam (ADR-0005)
+
+Some projection targets contain authored programs rather than declarative fields. For SDCPN, the
+deterministic register-3 output is therefore a scaffold, a typed loss report, and a sidecar of code
+obligations. Artifact realization is a downstream, model-assisted application step; it is not part
+of `project`, the fold, or the persisted IR.
+
+```yaml
+ProjectionResult:
+  draftArtifact: unknown
+  lossReport: LossEntry[]
+  codeObligations: CodeObligation[]
+
+CodeObligation:
+  id: string
+  target: { elementId: string, field: string }
+  semanticIntent: string
+  availableSymbols: { places: string[], tokenFields: string[], parameters: string[] }
+  supportingCaptureIds: string[]
+  acceptanceChecks: string[]
+```
+
+The sidecar is authoritative. A projector may mirror `semanticIntent` into the target code field as
+a comment so the incomplete work is visible in the editor, but realization never reconstructs the
+contract by parsing comments. The final gate is deterministic: every obligation is fulfilled, all
+code compiles through Petrinaut, and at least one scenario simulates without a runtime error.
 
 ### Harness machinery: pure functions classified by what they read
 
@@ -325,8 +358,10 @@ activeCaptures) → model` is pure by construction, so the whole contract is gol
    the sweep-accuracy rubric material for FE-1407 (the evaluation/gold-set effort).
 2. **The acceptance oracle, executable**: a second projection consumes the folded model with
    no transcript access and no generic-field interpretation — enforced structurally by the
-   projection's input type being register 2 only. If the projection can't be written that
-   way, the failure is the finding.
+   projection's input type being register 2 only. For a code-bearing target, this proves the
+   scaffold and obligation plan; separate realization gates prove that the resulting artifact
+   compiles and runs. If the scaffold or obligations cannot be written from register 2 alone,
+   the failure is the finding.
 3. **Contract validation**: plugin contract documents validate against the harness
    meta-schema; the fold-rule derivation is tested as a table-driven pure function over its
    finite product space (cardinality × gradedness + the two specials).
@@ -377,6 +412,7 @@ decidedness.
 - Authoring the sweep skill, technique cards, and prompt-mechanism manifest keys
   (FE-1392/FE-1403/FE-1406 territory — this spec fixes only the `firesWhen` and `technique`
   hook points).
+- Implementing artifact realization or the Petrinaut client-tool round trip (FE-1480/FE-1438).
 - The full FE-1397-style ratification pass — it is this spec's _condition_, owed before the
   provisional marker comes off, not part of its build scope.
 - Loss-category content and projection implementations beyond the oracle projection.

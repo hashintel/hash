@@ -130,7 +130,7 @@ simulation/experiment layer — i.e. metrics.)
 not a storage rule. The IR stores activities at the expert's statement granularity, durations
 included. Petrinaut has no timing field of any kind — a timed step cannot be one transition —
 so `project` owns the factoring (e.g. start-transition → in-progress place → end-transition,
-or rate code). If the IR stored net-granularity elements, every factoring change would
+or a rate-code obligation). If the IR stored net-granularity elements, every factoring change would
 masquerade as a knowledge change and the interviewer would be doing net modelling
 mid-conversation.
 
@@ -156,37 +156,51 @@ objectives demand rather than from the ontology's own layout.
 
 ### Projection to Petrinaut
 
-- **Emission surfaces**: all four in-file surfaces — net structure (places, transitions,
-  colours, ODEs, arcs), **scenario** (mandatory: a bare net loads with an empty marking and
-  does nothing when simulated), **metrics**, **parameters**. The Optuna/optimization file
-  format (`petrinaut-optimization`) is **excluded for September**: its ontology is itself in
-  flight (Yannis is working on it; his design is a candidate future input). Penalty weights
-  stay IR-only and appear in the loss report.
+- **Emission surfaces**: the deterministic scaffold declares all four in-file surfaces — net
+  structure (places, transitions, colours, ODEs, arcs), **scenario** (mandatory: a bare net loads
+  with an empty marking and does nothing when simulated), **metrics**, **parameters**. Declarative
+  structure is populated directly. TypeScript fields that require authored behavior carry readable
+  comments and field-local code obligations; they become executable only through the downstream
+  realization step defined by ADR-0005. The Optuna/optimization file format
+  (`petrinaut-optimization`) is **excluded for September**: its ontology is itself in flight
+  (Yannis is working on it; his design is a candidate future input). Penalty weights stay IR-only
+  and appear in the loss report.
 - **Typed loss report**: per-capture; every active capture lands in exactly one of
   `mapped-exactly / normalized / approximate / collapsed / omitted / defaulted /
-unrepresentable`. The table above implies the first cut: entity-types and dynamics map
-  exactly (names normalized); boundary-conditions map to scenario content; activity structure
-  is normalized with durations approximate (rate code); orderings map exactly; policies are
-  approximate/collapsed with rationale unrepresentable; objectives normalize to metrics where
-  scalar-expressible, with penalty weights and rationale unrepresentable; constraints collapse
-  partially with regulatory references unrepresentable; data-bindings and validation-criteria
-  are unrepresentable. **First cut, illustrative** — the binding table is owned by the plugin
-  spec; the mechanism (per-capture, seven categories) is resolution-grade.
+unrepresentable`. These categories describe the semantic fidelity of the scaffold-plus-obligation
+  product, not whether its TypeScript has already been realized. The table above implies the first
+  cut: entity-types map exactly (names normalized); dynamics and other authored behavior map to
+  field-local obligations and are exact, normalized, or approximate according to the specificity
+  of the capture; boundary-conditions map to declarative scenario content or scenario-code
+  obligations; activity structure is normalized with durations approximate; orderings map exactly;
+  policies are approximate/collapsed with rationale unrepresentable; objectives normalize to
+  metric obligations where scalar-expressible, with penalty weights and rationale unrepresentable;
+  constraints collapse partially with regulatory references unrepresentable; data-bindings and
+  validation-criteria are unrepresentable. **First cut, illustrative** — the binding table is owned
+  by the plugin spec; the mechanism (per-capture, seven categories) is resolution-grade.
 - **Regime rule**: the net projects the **practiced** process. Where prescribed and practiced
   diverge unresolved, practiced wins and the prescribed reading lands as `omitted` in the
   report.
 - **Naming discipline**: IR payloads keep expert-language names verbatim (evidence-faithful).
   The ProjectionPack owns a deterministic name→PascalCase identifier scheme, emits the name-map
   as projection metadata for the demo shell to display, and records collision renames as
-  `normalized`. The failure mode this prevents: place names are identifiers inside every code
-  surface (guards, kernels, ODEs, metrics) and import does not validate them, so an
-  inconsistent rename leaves code referencing identifiers that no longer resolve — nothing
-  catches it at import time; it surfaces only when simulation misbehaves.
+  `normalized`. Code obligations expose those generated identifiers as available symbols. The
+  failure mode this prevents: place names are identifiers inside every code surface (guards,
+  kernels, ODEs, metrics) and import does not validate them, so an inconsistent rename leaves code
+  referencing identifiers that no longer resolve — nothing catches it at import time; it surfaces
+  only when simulation misbehaves.
 - **Provenance stays outside the file.** The Petrinaut format has no provenance, rationale,
   confidence, or draft-ness fields anywhere, and unknown keys are stripped on import (inline
-  annotation is explicitly not round-trippable). Everything IR-only is honestly
-  `unrepresentable` in the artifact; provenance display is the demo shell's job, never
-  smuggled into the file.
+  annotation is explicitly not round-trippable). The obligation sidecar may reference supporting
+  capture ids, but comments in code fields are readable context rather than authority. Everything
+  IR-only is honestly `unrepresentable` in the artifact; provenance display is the demo shell's
+  job, never smuggled into the file.
+
+The application realizes code obligations through Petrinaut's client tools. Model inference writes
+and repairs field-local TypeScript against returned compiler diagnostics; no generated code is
+promoted into the capture store or elicited model. The completed artifact is accepted only when all
+obligations are fulfilled, Petrinaut reports no compile failures, and at least one scenario runs
+without a runtime error.
 
 ### September minimum (the open-questions doc's §7.2, answered)
 
