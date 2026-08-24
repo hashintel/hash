@@ -54,7 +54,12 @@ export const styles = sva({
     },
     item: {
       position: "relative",
-      zIndex: "[1]",
+      // Deliberately no z-index: the item must NOT form a stacking context, so
+      // its ::before hover fill (z-index -1) can drop *below* the active pill
+      // (indicator, z-index 0) and the track's rail shadow rather than painting
+      // over their borders. Item content (text/icon) still sits above the pill
+      // via DOM order — the indicator is rendered before the items, so these
+      // same-level positioned siblings paint on top of it.
       display: "inline-flex",
       flexGrow: "1",
       // Allow segments to shrink below their content (labels ellipsize) when
@@ -75,11 +80,25 @@ export const styles = sva({
       whiteSpace: "nowrap",
       color: "fg.subtle",
       cursor: "pointer",
-      transition: "[color 0.15s ease, background-color 0.15s ease]",
+      transition: "[color 0.15s ease]",
+      // Hover fill on a pseudo pinned to the item box, one layer below the pill
+      // (see the no-z-index note above). The item element itself only carries
+      // text colour; the fill fades in here.
+      "&::before": {
+        content: "''",
+        position: "absolute",
+        inset: "[1.5px]",
+        zIndex: "[-1]",
+        borderRadius: "[calc(var(--sc-item-radius) - 1.5px)]",
+        transition: "[background-color 0.15s ease]",
+        pointerEvents: "none",
+      },
       "&[data-state='unchecked']:hover:not([data-disabled])": {
         color: "fg.muted.hover",
-        backgroundColor:
-          "[rgb(from {colors.neutral.s25} calc((r - var(--sc-frost-bg)) / 0.9) calc((g - var(--sc-frost-bg)) / 0.9) calc((b - var(--sc-frost-bg)) / 0.9) / 0.9)]",
+        "&::before": {
+          backgroundColor:
+            "[rgb(from {colors.neutral.s25} calc((r - var(--sc-frost-bg)) / 0.9) calc((g - var(--sc-frost-bg)) / 0.9) calc((b - var(--sc-frost-bg)) / 0.9) / 0.9)]",
+        },
       },
       "&[data-state='checked']": {
         color: "fg.heading",
@@ -235,6 +254,19 @@ export const styles = sva({
         // (light from above). Kept deliberately gentle. Black/white alphas here
         // are true shadows and must NOT take the frost treatment.
         indicator: {
+          // Flush to the rail: overhang the item box by the 2px track padding on
+          // every side so the selected pill fills its cell wall-to-wall with no
+          // groove to the well. Negative margins (not left/top) shift the near
+          // corner out — same reason as the default variant, zag pins the
+          // main-axis inset inline — and width/height grow by 4px (2px per edge)
+          // so the far corner reaches the rail too. Radius jumps from the inset
+          // --sc-item-radius up to the rail's own --sc-radius so the now-flush
+          // corners nest against the well instead of leaving a corner crescent.
+          marginTop: "[-2px]",
+          marginLeft: "[-2px]",
+          width: "[calc(var(--width) + 4px)]",
+          height: "[calc(var(--height) + 4px)]",
+          borderRadius: "[var(--sc-radius)]",
           boxShadow:
             "[0 1px 2px -1px {colors.black.a15}, 0 1px 1px -1px {colors.black.a10}, inset 0 1px 0 {colors.white.a50}]",
           _dark: {
@@ -270,15 +302,19 @@ export const styles = sva({
       },
     },
     {
-      // Same track-relative cross-axis span for embossed vertical — its pill has
-      // no raise/far, so left stays at var(--left) and right pins to the 2px
-      // track inset, giving exact, symmetric left/right gaps for full-width text
-      // and square icon controls alike.
+      // Embossed vertical: the cross axis is width, which differs by content
+      // (full-width text vs square icons), so span the pill between rail-relative
+      // left/right insets instead of the measured --width. Both sit flush to the
+      // rail (0), removing the cross-axis gap for every content type; the base
+      // embossed margins/height handle the main axis. marginLeft is zeroed so it
+      // doesn't fight the explicit left inset.
       variant: "embossed",
       layout: "vertical",
       css: {
         indicator: {
-          right: "[2px]",
+          marginLeft: "[0px]",
+          left: "[0px]",
+          right: "[0px]",
           width: "[auto]",
         },
       },
