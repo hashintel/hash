@@ -59,7 +59,7 @@ session = PetrinautSession.from_model_file(
 ```python
 from petrinaut import OptimizationSession
 
-# `OptimizationSession(manifest_path=...)` reads the manifest from disk instead.
+# `OptimizationSession.from_manifest_file(path)` reads the manifest from disk instead.
 with OptimizationSession(manifest) as session:
     description = session.describe()
     value = session.objective({"production_rate": 112.5, "enabled": True})

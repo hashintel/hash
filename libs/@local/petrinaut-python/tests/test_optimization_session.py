@@ -20,7 +20,7 @@ from petrinaut import (
     PetrinautProtocolError,
     PetrinautRunError,
 )
-from petrinaut import session as petrinaut_session
+from petrinaut import _transport as petrinaut_transport
 
 
 def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
@@ -110,6 +110,38 @@ def test_optimization_session_from_a_manifest_file(
     session.close()
 
 
+def test_manifest_factories_mirror_the_model_factories(
+    optimization_manifest: dict,
+) -> None:
+    """Both classes construct the same way: name the source, get the session."""
+    from_file = spawn(FakeProcess([]))
+    session = OptimizationSession.from_manifest_file(
+        "./optimize.json", popen_factory=from_file["popen_factory"]
+    )
+    session.start()
+    assert from_file["command"] == [
+        "petrinaut",
+        "serve",
+        "--optimization",
+        "./optimize.json",
+        "--stdio",
+    ]
+    session.close()
+
+    from_object = spawn(FakeProcess([]))
+    session = OptimizationSession.from_manifest(
+        optimization_manifest, popen_factory=from_object["popen_factory"]
+    )
+    session.start()
+    assert from_object["command"] == [
+        "petrinaut",
+        "serve",
+        "--optimization-stdin",
+        "--stdio",
+    ]
+    session.close()
+
+
 def test_optimization_session_requires_exactly_one_source(
     optimization_manifest: dict,
 ) -> None:
@@ -153,7 +185,7 @@ def test_bootstrap_timeout_terminates_a_stuck_process(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(petrinaut_session, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(petrinaut_transport, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
     script = "import sys, time; sys.stdin.readline(); time.sleep(60)"
     model = OptimizationSession(
         optimization_manifest,
@@ -172,7 +204,7 @@ def test_protocol_timeout_terminates_a_stuck_process(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(petrinaut_session, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(petrinaut_transport, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
     script = """
 import sys
 import time
@@ -209,7 +241,7 @@ def test_rejects_an_oversized_protocol_line(
         popen_factory=lambda *_args, **_kwargs: process,
     )
     model.start()
-    monkeypatch.setattr(petrinaut_session, "MAX_PROTOCOL_LINE_BYTES", 8)
+    monkeypatch.setattr(petrinaut_transport, "MAX_PROTOCOL_LINE_BYTES", 8)
 
     with pytest.raises(PetrinautProtocolError, match="line limit"):
         model.describe()
@@ -256,7 +288,7 @@ def test_close_signals_the_isolated_process_group(
     process.wait = wait  # type: ignore[method-assign]
     signals: list[tuple[int, signal.Signals]] = []
     monkeypatch.setattr(
-        petrinaut_session.os,
+        petrinaut_transport.os,
         "killpg",
         lambda pid, sent_signal: signals.append((pid, sent_signal)),
     )
@@ -289,7 +321,7 @@ def test_prompt_close_signals_the_group_before_any_shutdown_wait(
 
     process.wait = wait  # type: ignore[method-assign]
     monkeypatch.setattr(
-        petrinaut_session.os,
+        petrinaut_transport.os,
         "killpg",
         lambda _pid, sent_signal: events.append(
             f"killpg:{signal.Signals(sent_signal).name}"
@@ -438,7 +470,7 @@ def test_scales_the_request_timeout_by_the_described_seeds_per_trial(
     model.start()
 
     assert model.describe() == OptimizationDescribeResult.model_validate(description)
-    assert model._request_timeout_seconds == 1200
+    assert model._transport.request_timeout_seconds == 1200
     model.close()
 
 
@@ -465,7 +497,7 @@ def test_evaluate_without_describe_scales_the_timeout_first(
     model.start()
 
     assert model.evaluate({"rate": 1.0}).objective == 1.5
-    assert model._request_timeout_seconds == 1200
+    assert model._transport.request_timeout_seconds == 1200
     model.close()
 
 

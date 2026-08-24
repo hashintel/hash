@@ -139,7 +139,7 @@ def test_runs_a_seeded_optimization_study_end_to_end() -> None:
     with OptimizationSession(manifest, command=(str(NODE), str(CLI_BUNDLE))) as session:
         description = session.describe()
         assert description.study.seedsPerTrial == 2
-        assert session._request_timeout_seconds == 480
+        assert session._transport.request_timeout_seconds == 480
 
         result = session.evaluate({"infected_ratio": 0.1})
         assert result.objective == pytest.approx(0.1)
