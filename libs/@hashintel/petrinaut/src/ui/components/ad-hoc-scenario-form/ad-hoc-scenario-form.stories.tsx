@@ -1,14 +1,20 @@
 import { useState } from "react";
 
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  type AdHocColouredPlace,
+  type AdHocScenarioState,
+  type AdHocSynthesisContext,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
+
+import { LanguageClientProvider } from "../../../react/lsp/provider";
+import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { MonacoProvider } from "../../monaco/provider";
 import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
 import { EMPTY_AD_HOC_STATE } from "./state";
 
-import type {
-  AdHocColouredPlace,
-  AdHocScenarioState,
-  AdHocSynthesisContext,
-} from "@hashintel/petrinaut-core";
+import type { SDCPNContextValue } from "../../../react/state/sdcpn-context";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -221,6 +227,34 @@ const emptyContext: AdHocSynthesisContext = {
   types: [],
 };
 
+/**
+ * The stories run the real language client (a bundled worker) so the full
+ * type-checking experience works: the SDCPN built from the fixture is what
+ * the ad-hoc LSP session resolves names and types against.
+ */
+const toSdcpn = (context: AdHocSynthesisContext): SDCPN => ({
+  places: context.places,
+  transitions: [],
+  types: context.types,
+  parameters: context.netParameters,
+  differentialEquations: [],
+});
+
+const toSdcpnContextValue = (
+  context: AdHocSynthesisContext,
+): SDCPNContextValue => ({
+  createNewNet: () => {},
+  existingNets: [],
+  loadPetriNet: () => {},
+  petriNetId: "story-net",
+  petriNetDefinition: toSdcpn(context),
+  readonly: false,
+  extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+  setTitle: () => {},
+  title: "Story Net",
+  getItemType: () => null,
+});
+
 const Demo: React.FC<{
   context: AdHocSynthesisContext;
   initial: AdHocScenarioState;
@@ -228,16 +262,20 @@ const Demo: React.FC<{
 }> = ({ context, initial, optimizable }) => {
   const [state, setState] = useState(initial);
   return (
-    <MonacoProvider>
-      <div style={{ width: 820 }}>
-        <AdHocScenarioForm
-          state={state}
-          onChange={setState}
-          context={context}
-          optimizable={optimizable}
-        />
-      </div>
-    </MonacoProvider>
+    <SDCPNContext value={toSdcpnContextValue(context)}>
+      <LanguageClientProvider>
+        <MonacoProvider>
+          <div style={{ width: 820 }}>
+            <AdHocScenarioForm
+              state={state}
+              onChange={setState}
+              context={context}
+              optimizable={optimizable}
+            />
+          </div>
+        </MonacoProvider>
+      </LanguageClientProvider>
+    </SDCPNContext>
   );
 };
 

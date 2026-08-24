@@ -16,8 +16,8 @@
 
 import { use } from "react";
 
-import { Button, Toggle } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { Button } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocSlotKey,
   adHocTargetLabel,
@@ -29,6 +29,13 @@ import {
 import { LanguageClientContext } from "../../../react/lsp/context";
 import { Section, SectionList } from "../section";
 import { AdHocFormContext } from "./form-context";
+import {
+  actionCellStyle,
+  cellStyle,
+  tableContainerStyle,
+  tableStyle,
+} from "./form-table";
+import { OptimizeToggle } from "./optimize-toggle";
 import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
 import { emptyValue, placeStateFor, updatePlace } from "./state";
 import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
@@ -43,23 +50,35 @@ import type {
   AdHocSynthesisContext,
 } from "@hashintel/petrinaut-core";
 
-const parameterRowStyle = css({
+const parameterNameCellStyle = css({
+  width: "[140px]",
   display: "flex",
   alignItems: "center",
-  gap: "2",
+  height: "[28px]",
+  paddingX: "2",
   fontSize: "xs",
-  color: "neutral.s100",
-});
-
-const parameterNameStyle = css({
-  width: "[140px]",
-  flex: "[0 0 auto]",
   fontWeight: "medium",
+  color: "neutral.s110",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
 });
 
-const parameterValueStyle = css({
-  flex: "1",
-  minWidth: "[0]",
+const parameterTypeCellStyle = css({
+  width: "[96px]",
+  display: "flex",
+  alignItems: "center",
+  height: "[28px]",
+  paddingX: "2",
+  fontFamily: "mono",
+  fontSize: "xs",
+  color: "neutral.s80",
+});
+
+const parameterOptimizeCellStyle = css({
+  width: "[92px]",
+  paddingX: "1",
+  textAlign: "center",
 });
 
 const placesListStyle = css({
@@ -163,48 +182,73 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
             title="Parameters"
             tooltip="Override a net parameter's value for this run. Empty keeps its default."
           >
-            {context.netParameters.map((parameter) => {
-              const entry = entryFor(parameter.id);
-              const target = {
-                kind: "netParameter" as const,
-                parameterId: parameter.id,
-              };
-              return (
-                <div key={parameter.id} className={parameterRowStyle}>
-                  <span className={parameterNameStyle}>{parameter.name}</span>
-                  <div className={parameterValueStyle}>
-                    <ValueEditor
-                      label={adHocTargetLabel(target, state, context)}
-                      target={target}
-                      value={entry}
-                      display={
-                        entry.optimize
-                          ? undefined
-                          : entry.expression ||
-                            `default (${parameter.defaultValue})`
-                      }
-                      optimizable={optimizable}
-                      integer={parameter.type === "integer"}
-                      booleanDomain={parameter.type === "boolean"}
-                      onChange={(value) => setEntry({ ...entry, ...value })}
-                    />
-                  </div>
-                  {optimizable ? (
-                    <Toggle
-                      size="xs"
-                      aria-label={`Optimize ${parameter.name}`}
-                      value={entry.optimize !== null}
-                      onChange={(on) =>
-                        setEntry({
-                          ...entry,
-                          ...toggleAdHocOptimize(entry, on),
-                        })
-                      }
-                    />
-                  ) : null}
-                </div>
-              );
-            })}
+            <div className={tableContainerStyle}>
+              <table className={tableStyle}>
+                <tbody>
+                  {context.netParameters.map((parameter) => {
+                    const entry = entryFor(parameter.id);
+                    const target = {
+                      kind: "netParameter" as const,
+                      parameterId: parameter.id,
+                    };
+                    return (
+                      <tr key={parameter.id}>
+                        <td className={cellStyle} style={{ width: 140 }}>
+                          <div className={parameterNameCellStyle}>
+                            {parameter.name}
+                          </div>
+                        </td>
+                        <td className={cellStyle}>
+                          <ValueEditor
+                            label={adHocTargetLabel(target, state, context)}
+                            target={target}
+                            value={entry}
+                            display={
+                              entry.optimize
+                                ? undefined
+                                : entry.expression ||
+                                  `default (${parameter.defaultValue})`
+                            }
+                            optimizable={optimizable}
+                            integer={parameter.type === "integer"}
+                            booleanDomain={parameter.type === "boolean"}
+                            onChange={(value) =>
+                              setEntry({ ...entry, ...value })
+                            }
+                          />
+                        </td>
+                        <td className={cellStyle} style={{ width: 96 }}>
+                          <div className={parameterTypeCellStyle}>
+                            {parameter.type}
+                          </div>
+                        </td>
+                        {optimizable ? (
+                          <td
+                            className={cx(
+                              cellStyle,
+                              parameterOptimizeCellStyle,
+                            )}
+                            style={{ width: 92 }}
+                          >
+                            <OptimizeToggle
+                              label={`Optimize ${parameter.name}`}
+                              value={entry.optimize !== null}
+                              onChange={(on) =>
+                                setEntry({
+                                  ...entry,
+                                  ...toggleAdHocOptimize(entry, on),
+                                })
+                              }
+                            />
+                          </td>
+                        ) : null}
+                        <td className={actionCellStyle} />
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </Section>
         ) : null}
 
