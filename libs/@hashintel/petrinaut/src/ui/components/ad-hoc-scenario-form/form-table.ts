@@ -97,26 +97,48 @@ export const cellInputStyle = css({
   },
 });
 
-/** A Select rendered as a square spreadsheet cell rather than a control. */
+/**
+ * A Select rendered as a square spreadsheet cell rather than a control: the
+ * visible box lives on `[data-part='select']`, whose border, radius, and
+ * background come from base-input variables, so those are neutralized here.
+ */
 export const cellSelectStyle = css({
   width: "[100%]",
-  "& [data-part='trigger']": {
-    width: "[100%]",
-    height: "[28px]",
+  display: "block",
+  "& [data-part='select']": {
+    width: "[100%!]",
+    minWidth: "[100%!]",
     minHeight: "[28px]",
-    borderRadius: "[0]",
-    borderWidth: "[0]",
-    boxShadow: "[none]",
-    backgroundColor: "[transparent]",
-    paddingX: "2",
-    fontFamily: "mono",
-    fontSize: "xs",
-    _hover: { backgroundColor: "neutral.s10" },
-    _focusVisible: {
+    borderRadius: "[0!]",
+    borderColor: "[transparent!]",
+    boxShadow: "[none!]",
+    backgroundColor: "[transparent!]",
+    "--base-input-border-radius": "0px",
+    "--base-input-background-color": "transparent",
+    _hover: { backgroundColor: "[{colors.neutral.s10}!]" },
+    _focusWithin: {
       outline: "[2px solid {colors.blue.s50}]",
       outlineOffset: "[-2px]",
     },
   },
+  "& [data-part='trigger']": {
+    fontFamily: "mono",
+    fontSize: "xs",
+  },
+});
+
+/**
+ * A row's delete control: a quiet trashcan that appears when the row is
+ * hovered or holds focus, and commits to full opacity only under the pointer.
+ */
+export const rowDeleteButtonStyle = css({
+  opacity: "[0]",
+  transition: "[opacity 0.12s ease]",
+  "tr:hover &, tr:focus-within &": {
+    opacity: "[0.5]",
+  },
+  _hover: { opacity: "[1!]" },
+  _focusVisible: { opacity: "[1!]" },
 });
 
 export const footerRowStyle = css({

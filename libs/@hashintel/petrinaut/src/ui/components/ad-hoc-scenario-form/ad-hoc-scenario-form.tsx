@@ -39,6 +39,7 @@ import { OptimizeToggle } from "./optimize-toggle";
 import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
 import { emptyValue, placeStateFor, updatePlace } from "./state";
 import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
+import { useGridNavigation } from "./use-grid-navigation";
 import { ValueEditor } from "./value-editor";
 import { VariableRows } from "./variable-rows";
 
@@ -108,6 +109,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
 }) => {
   const sessionId = useAdHocLspSession(state);
   const { diagnosticsByUri } = use(LanguageClientContext);
+  const parametersGrid = useGridNavigation();
 
   // A synthesis dry-run per change surfaces the rules the type system cannot
   // (bounds resolution, name collisions, optimize legality) at their slots.
@@ -185,7 +187,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
             <div className={tableContainerStyle}>
               <table className={tableStyle}>
                 <tbody>
-                  {context.netParameters.map((parameter) => {
+                  {context.netParameters.map((parameter, parameterIndex) => {
                     const entry = entryFor(parameter.id);
                     const target = {
                       kind: "netParameter" as const,
@@ -212,6 +214,14 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                             optimizable={optimizable}
                             integer={parameter.type === "integer"}
                             booleanDomain={parameter.type === "boolean"}
+                            triggerRef={parametersGrid.register(
+                              parameterIndex,
+                              0,
+                            )}
+                            onTriggerKeyDown={parametersGrid.onKeyDown(
+                              parameterIndex,
+                              0,
+                            )}
                             onChange={(value) =>
                               setEntry({ ...entry, ...value })
                             }
@@ -233,6 +243,14 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                             <OptimizeToggle
                               label={`Optimize ${parameter.name}`}
                               value={entry.optimize !== null}
+                              buttonRef={parametersGrid.register(
+                                parameterIndex,
+                                1,
+                              )}
+                              onKeyDown={parametersGrid.onKeyDown(
+                                parameterIndex,
+                                1,
+                              )}
                               onChange={(on) =>
                                 setEntry({
                                   ...entry,
