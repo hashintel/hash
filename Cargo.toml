@@ -368,7 +368,7 @@ inherits        = "test"
 
 [profile.production]
 inherits = "release"
-lto      = "fat"
+lto      = "thin"
 strip    = "none"
 
 [workspace.lints.rust]
