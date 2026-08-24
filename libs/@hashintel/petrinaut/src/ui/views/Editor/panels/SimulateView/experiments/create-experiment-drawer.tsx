@@ -1102,7 +1102,7 @@ export const CreateExperimentDrawer = ({
                   places: petriNetDefinition.places,
                   types: extensions.colors ? petriNetDefinition.types : [],
                 }}
-                optimizable={false}
+                selection="none"
               />
             )}
           </Section>
