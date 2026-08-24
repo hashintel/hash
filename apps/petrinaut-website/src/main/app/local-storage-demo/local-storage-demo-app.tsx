@@ -23,6 +23,8 @@ import {
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
+import { VoiceExperiment } from "./voice-experiment";
+import { getVoiceExperiment } from "./voice-experiment/voice-experiment-selection";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
@@ -118,6 +120,7 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
  */
 export const LocalStorageDemoApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
+  const voiceExperiment = getVoiceExperiment(window.location);
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
@@ -307,6 +310,9 @@ export const LocalStorageDemoApp = () => {
           title={currentNet.title}
           viewportActions={[sentryFeedbackAction]}
         />
+        {voiceExperiment ? (
+          <VoiceExperiment experiment={voiceExperiment} />
+        ) : null}
       </WalkthroughProvider>
     </div>
   );
