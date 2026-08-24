@@ -421,12 +421,15 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   // Opening the slab selects the Min cell once; reset per open.
   const minAutoSelectedRef = useRef(false);
 
-  const setOpen = (next: boolean) => {
-    setOpenState(next);
-    if (next) {
+  // Opening announces itself so any other open editor yields. The dispatch
+  // lives in an effect, never in render: the listeners call other
+  // components' setState, and this also covers an editor that mounts
+  // already open (a materialized phantom row's cell).
+  useEffect(() => {
+    if (open) {
       window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: editorId }));
     }
-  };
+  }, [open, editorId]);
 
   const endBoundEdit = (key: "min" | "max" | "step") => {
     setEditingBound(null);
@@ -445,7 +448,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   if (autoOpen !== seenAutoOpen) {
     setSeenAutoOpen(autoOpen);
     if (autoOpen > 0) {
-      setOpen(true);
+      setOpenState(true);
     }
   }
 
@@ -614,12 +617,12 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           // always opens; a pointer click opens only on an already-selected
           // cell — the first click selects it.
           if (event.detail === 0 || wasFocusedOnPointerDownRef.current) {
-            setOpen(true);
+            setOpenState(true);
           }
         }}
         onDoubleClick={() => {
           if (!derived) {
-            setOpen(true);
+            setOpenState(true);
           }
         }}
         onKeyDown={onTriggerKeyDown}
@@ -753,7 +756,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                       })
                     }
                     onSubmit={() => {
-                      setOpen(false);
+                      setOpenState(false);
                       buttonRef.current?.focus();
                     }}
                   />

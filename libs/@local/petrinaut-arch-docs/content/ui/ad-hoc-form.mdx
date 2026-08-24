@@ -14,11 +14,12 @@ without saving a [scenario](layer:core.simulation.authoring) — and compiles
 what they enter through a scenario **generated at run time and never
 persisted**. Three consumers mount the same component, differing only in
 what selecting a value means (`selection` prop): quick simulation and plain
-experiment creation pass `"none"` (no toggles), the optimization drawer
-passes `"optimize"` (a value is selected for the optimizer), and a classical
-scenario editor passes `"controls"` (a value is exposed as a control over
-the state). The toggle column, the pill on every open editor, and the
-strings all follow that mode; the underlying state field is the same
+experiment creation pass `"none"` (no toggles), and the optimization drawer
+passes `"optimize"` (a value is selected for the optimizer). A third mode,
+`"controls"`, relabels the same selection as a control over the state for a
+future classical scenario editor — no consumer mounts it yet; a story
+exercises it. The toggle column, the pill on every open editor, and the
+strings all follow the mode; the underlying state field is the same
 `optimize` settings object in every mode.
 
 The design is the scenario **code editor's model, constrained**: everything
@@ -146,7 +147,9 @@ are background images, so they compose over row tints.
 Arrow keys walk each table as a grid; moves past an edge continue into the
 neighbouring **zone** in document order (grids, section headers, place
 headers — the registry in `use-form-navigation`, which skips zones that
-decline focus, e.g. collapsed ones). Tab stays native everywhere. Section
+decline focus, e.g. collapsed ones). Tab stays native throughout the form;
+the one interception is an open gutter menu, where Tab dismisses the menu
+back to its gutter, as menus do. Section
 and place headers are stops of the walk: Left collapses, Right expands, and
 a collapsed place renders as one line with a row/token summary. Inside the
 token spreadsheet the vertical walk passes through every line — column
