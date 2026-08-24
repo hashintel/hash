@@ -20,10 +20,7 @@ use tracing::Instrument as _;
 use type_system::{
     knowledge::{
         Entity,
-        entity::{
-            id::{DraftId, EntityEditionId, EntityUuid},
-            provenance::EntityDeletionProvenance,
-        },
+        entity::id::{DraftId, EntityEditionId, EntityUuid},
     },
     principal::{
         actor::{ActorEntityUuid, ActorId},
@@ -760,7 +757,14 @@ where
         Ok(row.get::<_, i64>(0).cast_unsigned())
     }
 
-    /// Merges [`EntityDeletionProvenance`] into the existing `entity_ids` provenance JSONB.
+    /// Stamps the deletion tombstone columns on the targets' `entity_ids` rows.
+    ///
+    /// Purge removes every edition and temporal row, so the tombstone is the only record that
+    /// the entity existed and was deleted: who deleted it and when, on both temporal axes. The
+    /// columns mirror [`EntityDeletionProvenance`], and the partial index on
+    /// `deleted_at_transaction_time` makes deletions queryable by recency.
+    ///
+    /// [`EntityDeletionProvenance`]: type_system::knowledge::entity::provenance::EntityDeletionProvenance
     async fn update_entity_ids_provenance(
         &mut self,
         target: &FullEntityDeletionTarget,
@@ -768,26 +772,25 @@ where
         decision_time: Timestamp<DecisionTime>,
         transaction_time: Timestamp<TransactionTime>,
     ) -> Result<u64, Report<DeletionError>> {
-        let provenance = EntityDeletionProvenance {
-            deleted_by_id: ActorEntityUuid::from(actor_id),
-            deleted_at_transaction_time: transaction_time,
-            deleted_at_decision_time: decision_time,
-        };
         self.as_mut_client()
             .execute(
                 "UPDATE entity_ids
-                 SET provenance = provenance || $3::jsonb
+                 SET deleted_by_id = $3,
+                     deleted_at_transaction_time = $4,
+                     deleted_at_decision_time = $5
                  WHERE (web_id, entity_uuid) IN (
                      SELECT * FROM UNNEST($1::UUID[], $2::UUID[])
                  )",
                 &[
                     &target.web_ids,
                     &target.entity_uuids,
-                    &postgres_types::Json(&provenance),
+                    &actor_id,
+                    &transaction_time,
+                    &decision_time,
                 ],
             )
             .instrument(tracing::info_span!(
-                "UPDATE entity_ids provenance",
+                "UPDATE entity_ids tombstone",
                 otel.kind = "client",
                 db.system = "postgresql",
                 peer.service = "Postgres",
@@ -904,10 +907,10 @@ where
         actor_id: ActorId,
         params: DeleteEntitiesParams<'_>,
     ) -> Result<DeletionSummary, Report<DeletionError>> {
-        let transaction_time = Timestamp::<TransactionTime>::now();
+        let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
         let decision_time = params
             .decision_time
-            .unwrap_or_else(|| transaction_time.cast());
+            .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
 
         if decision_time > transaction_time.cast() {
             return Err(Report::new(DeletionError::InvalidDecisionTime));
