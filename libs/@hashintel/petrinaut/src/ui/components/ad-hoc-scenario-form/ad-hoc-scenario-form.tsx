@@ -66,12 +66,33 @@ const placesListStyle = css({
   gap: "5",
 });
 
+// The bare layout: the exposed groups stacked without section chrome.
+const bareListStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "4",
+});
+
 export interface AdHocScenarioFormProps {
   state: AdHocScenarioState;
   onChange: (state: AdHocScenarioState) => void;
   context: AdHocSynthesisContext;
   /** What selecting a value means; "none" hides the toggles. */
   selection: AdHocFormSelection;
+  /**
+   * Whether the Variables section is offered. Embeddings that provide no
+   * scenario Variables (quick simulation's Simulation Settings) turn it
+   * off; an expression referencing `scenario.<name>` then fails as unknown,
+   * exactly as it should. The Parameters section hides itself the same way
+   * when the context carries no net parameters.
+   */
+  withVariables?: boolean;
+  /**
+   * Render the exposed groups without the collapsible section chrome — the
+   * host supplies its own headings. For embedding inside a panel that
+   * already has a heading grammar (Simulation Settings).
+   */
+  bare?: boolean;
 }
 
 /**
@@ -109,6 +130,8 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   onChange,
   context,
   selection,
+  withVariables = true,
+  bare = false,
 }) => {
   const sessionId = useAdHocLspSession(state);
   const { diagnosticsByUri } = use(LanguageClientContext);
@@ -171,72 +194,92 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     setFocusedValue,
   };
 
+  const parameterRows =
+    context.netParameters.length > 0 ? (
+      <ParameterRows entries={state.netParameters} />
+    ) : null;
+
+  const variableRows = withVariables ? (
+    <VariableRows
+      scopeLabel="Top-level variables"
+      placeId={null}
+      variables={state.variables}
+    />
+  ) : null;
+
+  const placesList = (
+    <div className={placesListStyle}>
+      {context.places.map((place) => {
+        const placeState = adHocPlaceStateFor(state, context, place.id);
+        const colour = place.colorId
+          ? context.types.find((type) => type.id === place.colorId)
+          : undefined;
+
+        if (placeState.kind === "coloured" && colour) {
+          return (
+            <ColouredPlaceBlock
+              key={place.id}
+              place={place}
+              colour={colour}
+              state={placeState}
+            />
+          );
+        }
+        if (placeState.kind === "uncoloured") {
+          return (
+            <UncolouredPlaceBlock
+              key={place.id}
+              place={place}
+              state={placeState}
+            />
+          );
+        }
+        return null;
+      })}
+    </div>
+  );
+
   return (
     <AdHocFormContext value={services}>
       <FormNavigationContext value={navigation}>
         {/* Undo/redo listens in the capture phase, so it sees keys before any
           cell handler; open text fields and Monaco pass through untouched. */}
         <div onKeyDownCapture={handleKeyDown}>
-          <SectionList>
-            {context.netParameters.length > 0 ? (
+          {bare ? (
+            // The host owns the headings; the groups stack plainly.
+            <div className={bareListStyle}>
+              {parameterRows}
+              {variableRows}
+              {placesList}
+            </div>
+          ) : (
+            <SectionList>
+              {parameterRows ? (
+                <NavigableSection
+                  title="Parameters"
+                  tooltip="Override a net parameter's value for this run. Empty keeps its default."
+                >
+                  {parameterRows}
+                </NavigableSection>
+              ) : null}
+
+              {variableRows ? (
+                <NavigableSection
+                  title="Variables"
+                  tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
+                >
+                  {variableRows}
+                </NavigableSection>
+              ) : null}
+
               <NavigableSection
-                title="Parameters"
-                tooltip="Override a net parameter's value for this run. Empty keeps its default."
+                title="Initial state"
+                tooltip="Token counts and values per place. Every value is an expression."
               >
-                <ParameterRows entries={state.netParameters} />
+                {placesList}
               </NavigableSection>
-            ) : null}
-
-            <NavigableSection
-              title="Variables"
-              tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
-            >
-              <VariableRows
-                scopeLabel="Top-level variables"
-                placeId={null}
-                variables={state.variables}
-              />
-            </NavigableSection>
-
-            <NavigableSection
-              title="Initial state"
-              tooltip="Token counts and values per place. Every value is an expression."
-            >
-              <div className={placesListStyle}>
-                {context.places.map((place) => {
-                  const placeState = adHocPlaceStateFor(
-                    state,
-                    context,
-                    place.id,
-                  );
-                  const colour = place.colorId
-                    ? context.types.find((type) => type.id === place.colorId)
-                    : undefined;
-
-                  if (placeState.kind === "coloured" && colour) {
-                    return (
-                      <ColouredPlaceBlock
-                        key={place.id}
-                        place={place}
-                        colour={colour}
-                        state={placeState}
-                      />
-                    );
-                  }
-                  if (placeState.kind === "uncoloured") {
-                    return (
-                      <UncolouredPlaceBlock
-                        key={place.id}
-                        place={place}
-                        state={placeState}
-                      />
-                    );
-                  }
-                  return null;
-                })}
-              </div>
-            </NavigableSection>
-          </SectionList>
+            </SectionList>
+          )}
         </div>
       </FormNavigationContext>
     </AdHocFormContext>
