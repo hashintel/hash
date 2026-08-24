@@ -365,7 +365,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
         }
     }
 
-    pub(crate) fn outgoing_edges<'this>(
+    pub(crate) const fn outgoing_edges<'this>(
         &'this self,
         local: Local,
     ) -> IncidentEdges<'this, Local, EdgeData<'heap>, A> {

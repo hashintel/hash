@@ -38,7 +38,9 @@
     step_trait,
     sync_nonpoison,
     try_trait_v2,
-    variant_count
+    variant_count,
+    const_range_bounds,
+    const_index
 )]
 
 extern crate alloc;

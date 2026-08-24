@@ -400,7 +400,10 @@ where
     N: Id,
 {
     /// Returns true if node is reachable from the start node.
-    pub fn is_reachable(&self, node: N) -> bool {
+    pub const fn is_reachable(&self, node: N) -> bool
+    where
+        N: [const] Id,
+    {
         match &self.kind {
             Kind::Path => true,
             Kind::General(g) => g.time[node].start != 0,

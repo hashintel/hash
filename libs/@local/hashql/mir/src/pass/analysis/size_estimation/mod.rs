@@ -102,7 +102,7 @@ impl PendingDataflow {
     }
 
     /// Returns the synthetic local used to track whether the return type needs dynamic analysis.
-    fn return_slot(&self) -> Local {
+    const fn return_slot(&self) -> Local {
         Local::from_usize(self.inner.domain_size() - 1)
     }
 
