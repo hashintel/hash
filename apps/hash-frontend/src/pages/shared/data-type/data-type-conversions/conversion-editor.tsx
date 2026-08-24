@@ -45,6 +45,19 @@ const operatorToOpCharacterMap: Record<Operator, OperatorCharacter> = {
   "/": "÷",
 };
 
+export const applyConversionDefinition = ({
+  conversions,
+  definition,
+  direction,
+}: {
+  conversions: Conversions;
+  definition: ConversionDefinition;
+  direction: "from" | "to";
+}): Conversions => ({
+  from: direction === "from" ? definition : conversions.from,
+  to: direction === "to" ? definition : conversions.to,
+});
+
 const ReadOnlyCalculation = ({
   definition,
   inheritedFrom,
@@ -68,7 +81,7 @@ const ReadOnlyCalculation = ({
               <>
                 {" "}
                 <br />
-                Inherited from ${inheritedFrom}.
+                Inherited from {inheritedFrom}.
               </>
             ) : (
               ""
@@ -159,6 +172,7 @@ const ConversionFormulaEditor = ({
   error,
   inheritedFrom,
   isReadOnly,
+  onChange,
   self,
   target,
 }: {
@@ -167,13 +181,13 @@ const ConversionFormulaEditor = ({
   inheritedFrom: string | null;
   error?: string;
   isReadOnly: boolean;
+  onChange: (
+    direction: "from" | "to",
+    definition: ConversionDefinition,
+  ) => void;
   self: DataType;
   target: DataTypeWithMetadata;
 }) => {
-  const { control, setValue } = useFormContext<DataTypeFormData>();
-
-  const conversions = useWatch({ control, name: "conversions" });
-
   const [operator, left, right] = definition.expression;
 
   if (Array.isArray(left) || Array.isArray(right)) {
@@ -207,7 +221,7 @@ const ConversionFormulaEditor = ({
               <>
                 {" "}
                 <br />
-                Inherited from ${inheritedFrom}, but may be overridden
+                Inherited from {inheritedFrom}.
               </>
             ) : (
               ""
@@ -225,31 +239,17 @@ const ConversionFormulaEditor = ({
         <OperatorDropdown
           operator={operator}
           onChange={(newOp) => {
-            setValue("conversions", {
-              ...conversions,
-              [target.metadata.recordId.baseUrl]: {
-                ...(conversions?.[target.metadata.recordId.baseUrl] ?? {}),
-                [direction]: {
-                  expression: [newOp, left, right],
-                } satisfies ConversionDefinition,
-              },
-            });
+            onChange(direction, { expression: [newOp, left, right] });
           }}
         />
         <NumberInput
           onChange={(newRightConst) => {
-            setValue("conversions", {
-              ...conversions,
-              [target.metadata.recordId.baseUrl]: {
-                ...(conversions?.[target.metadata.recordId.baseUrl] ?? {}),
-                [direction]: {
-                  expression: [
-                    operator,
-                    left,
-                    { const: newRightConst ?? 1, type: "number" },
-                  ],
-                } satisfies ConversionDefinition,
-              },
+            onChange(direction, {
+              expression: [
+                operator,
+                left,
+                { const: newRightConst ?? 1, type: "number" },
+              ],
             });
           }}
           value={right.const}
@@ -300,6 +300,22 @@ export const ConversionEditor = ({
 
   const ownConversions = useWatch({ control, name: "conversions" });
 
+  const isEditable = !isReadOnly && !inheritedFromTitle;
+
+  const onDefinitionChange = (
+    direction: "from" | "to",
+    definition: ConversionDefinition,
+  ) => {
+    setValue("conversions", {
+      ...ownConversions,
+      [target.metadata.recordId.baseUrl]: applyConversionDefinition({
+        conversions,
+        definition,
+        direction,
+      }),
+    });
+  };
+
   const unexpectedResult = useMemo(() => {
     const fromFn = createConversionFunction([from]);
     const toFn = createConversionFunction([to]);
@@ -333,11 +349,12 @@ export const ConversionEditor = ({
               : undefined
           }
           inheritedFrom={inheritedFromTitle}
-          isReadOnly={isReadOnly}
+          isReadOnly={!isEditable}
+          onChange={onDefinitionChange}
           self={dataType}
           target={target}
         />
-        {!inheritedFromTitle && !isReadOnly && (
+        {isEditable && (
           <Tooltip title={`Remove conversion to ${target.schema.title}`}>
             <IconButton
               onClick={() => {
@@ -377,7 +394,8 @@ export const ConversionEditor = ({
             : undefined
         }
         inheritedFrom={inheritedFromTitle}
-        isReadOnly={isReadOnly}
+        isReadOnly={!isEditable}
+        onChange={onDefinitionChange}
         self={dataType}
         target={target}
       />

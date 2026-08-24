@@ -4,52 +4,52 @@
 
 ### Patch Changes
 
-- [#8818](https://github.com/hashintel/hash/pull/8818) [`0e52504`](https://github.com/hashintel/hash/commit/0e52504315a909befc9fe2c748edd765f183e15a) Thanks [@CiaranMn](https://github.com/CiaranMn)! - update uuid dependency
+- update uuid dependency ([@CiaranMn](https://github.com/CiaranMn), [#8818](https://github.com/hashintel/hash/pull/8818))
 
 ## 0.2.1
 
 ### Patch Changes
 
-- [#8328](https://github.com/hashintel/hash/pull/8328) [`567b951`](https://github.com/hashintel/hash/commit/567b95178a429aa2c1c00050ca753250db0db094) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Build fix
+- Build fix ([@CiaranMn](https://github.com/CiaranMn), [#8328](https://github.com/hashintel/hash/pull/8328))
 
 ## 0.2.0
 
 ### Minor Changes
 
-- [#7714](https://github.com/hashintel/hash/pull/7714) [`f7a47f1`](https://github.com/hashintel/hash/commit/f7a47f15f97eb5ef79a35edf76078a45bdc36cc6) Thanks [@CiaranMn](https://github.com/CiaranMn)! - major overhaul including new metadata, data type inheritance
+- major overhaul including new metadata, data type inheritance ([@CiaranMn](https://github.com/CiaranMn), [#7714](https://github.com/hashintel/hash/pull/7714))
 
 ## 0.1.1
 
 ### Patch Changes
 
-- [#1182](https://github.com/blockprotocol/blockprotocol/pull/1182) [`2b771f30`](https://github.com/blockprotocol/blockprotocol/commit/2b771f30e88ae610a01cb024eab082b8c7bb9a8a) Thanks [@CiaranMn](https://github.com/CiaranMn)! - add inheritsFromEntityTypes to getReferencedIdsFromEntityType return
+- add inheritsFromEntityTypes to getReferencedIdsFromEntityType return ([@CiaranMn](https://github.com/CiaranMn), [#1182](https://github.com/blockprotocol/blockprotocol/pull/1182))
 
 ## 0.1.0
 
 ### Minor Changes
 
-- [#985](https://github.com/blockprotocol/blockprotocol/pull/985) [`16871042`](https://github.com/blockprotocol/blockprotocol/commit/168710424e95d3f5f24d15527814a8067ad1e68b) Thanks [@CiaranMn](https://github.com/CiaranMn)! - rename Block Protocol 'Services' to 'Modules'
+- rename Block Protocol 'Services' to 'Modules' ([@CiaranMn](https://github.com/CiaranMn), [#985](https://github.com/blockprotocol/blockprotocol/pull/985))
 
 ### Patch Changes
 
-- [#879](https://github.com/blockprotocol/blockprotocol/pull/879) [`f03de705`](https://github.com/blockprotocol/blockprotocol/commit/f03de705383463f41f72612b7fe38df5589855b3) Thanks [@CiaranMn](https://github.com/CiaranMn)! - update schema representations of ontology types to remove redundant fields, and add further validation
+- update schema representations of ontology types to remove redundant fields, and add further validation ([@CiaranMn](https://github.com/CiaranMn), [#879](https://github.com/blockprotocol/blockprotocol/pull/879))
 
 ## 0.0.4
 
 ### Patch Changes
 
-- [#937](https://github.com/blockprotocol/blockprotocol/pull/937) [`71d954c3`](https://github.com/blockprotocol/blockprotocol/commit/71d954c335cccb0274ac95fc677e1cb78b5f3d19) Thanks [@Alfred-Mountfield](https://github.com/Alfred-Mountfield)! - Require `"additionalProperties": false` on entity types
+- Require `"additionalProperties": false` on entity types ([@Alfred-Mountfield](https://github.com/Alfred-Mountfield), [#937](https://github.com/blockprotocol/blockprotocol/pull/937))
 
-- [#937](https://github.com/blockprotocol/blockprotocol/pull/937) [`71d954c3`](https://github.com/blockprotocol/blockprotocol/commit/71d954c335cccb0274ac95fc677e1cb78b5f3d19) Thanks [@Alfred-Mountfield](https://github.com/Alfred-Mountfield)! - Fix empty object in links definition inside EntityType
+- Fix empty object in links definition inside EntityType ([@Alfred-Mountfield](https://github.com/Alfred-Mountfield), [#937](https://github.com/blockprotocol/blockprotocol/pull/937))
 
 ## 0.0.3
 
 ### Patch Changes
 
-- [#875](https://github.com/blockprotocol/blockprotocol/pull/875) [`a1ba0d7d`](https://github.com/blockprotocol/blockprotocol/commit/a1ba0d7d17971ee30586a673ce3d4f5bee6e65d1) Thanks [@kachkaev](https://github.com/kachkaev)! - Update package metadata (change path to source following repo restructuring)
+- Update package metadata ([@kachkaev](https://github.com/kachkaev), [#875](https://github.com/blockprotocol/blockprotocol/pull/875))
 
 ## 0.0.2
 
 ### Patch Changes
 
-- [#813](https://github.com/blockprotocol/blockprotocol/pull/813) [`22991ad`](https://github.com/blockprotocol/blockprotocol/commit/22991ad7c63ad8683ce09f5a10743e481d6b474a) Thanks [@Alfred-Mountfield](https://github.com/Alfred-Mountfield)! - Fix the typescript exports of the package
+- Fix the typescript exports of the package ([@Alfred-Mountfield](https://github.com/Alfred-Mountfield), [#813](https://github.com/blockprotocol/blockprotocol/pull/813))

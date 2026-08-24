@@ -2,6 +2,7 @@ import { Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { CopyRegularIcon, IconButton } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
 import { GridEditorWrapper } from "./entity/entity-editor/shared/grid-editor-wrapper";
@@ -29,7 +30,14 @@ export const ReadonlyGridPopup = ({
         minHeight,
       }}
     >
-      <Tooltip title={tooltip}>
+      <Tooltip
+        title={tooltip}
+        PopperProps={{
+          // this className prevents editor overlay from closing
+          className: GRID_CLICK_IGNORE_CLASS,
+        }}
+        disableInteractive
+      >
         <IconButton
           onClick={async () => {
             try {

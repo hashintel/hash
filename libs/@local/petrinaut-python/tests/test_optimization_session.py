@@ -20,7 +20,7 @@ from petrinaut import (
     PetrinautProtocolError,
     PetrinautRunError,
 )
-from petrinaut import session as petrinaut_session
+from petrinaut import _transport as petrinaut_transport
 
 
 def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
@@ -110,6 +110,38 @@ def test_optimization_session_from_a_manifest_file(
     session.close()
 
 
+def test_manifest_factories_mirror_the_model_factories(
+    optimization_manifest: dict,
+) -> None:
+    """Both classes construct the same way: name the source, get the session."""
+    from_file = spawn(FakeProcess([]))
+    session = OptimizationSession.from_manifest_file(
+        "./optimize.json", popen_factory=from_file["popen_factory"]
+    )
+    session.start()
+    assert from_file["command"] == [
+        "petrinaut",
+        "serve",
+        "--optimization",
+        "./optimize.json",
+        "--stdio",
+    ]
+    session.close()
+
+    from_object = spawn(FakeProcess([]))
+    session = OptimizationSession.from_manifest(
+        optimization_manifest, popen_factory=from_object["popen_factory"]
+    )
+    session.start()
+    assert from_object["command"] == [
+        "petrinaut",
+        "serve",
+        "--optimization-stdin",
+        "--stdio",
+    ]
+    session.close()
+
+
 def test_optimization_session_requires_exactly_one_source(
     optimization_manifest: dict,
 ) -> None:
@@ -121,6 +153,7 @@ def test_optimization_session_requires_exactly_one_source(
 
 def test_evaluate_returns_the_full_result_including_replicates(
     optimization_manifest: dict,
+    optimization_description: dict,
 ) -> None:
     full_result = {
         "objective": 12.5,
@@ -129,7 +162,13 @@ def test_evaluate_returns_the_full_result_including_replicates(
             {"seed": 7, "objective": 13.0},
         ],
     }
-    process = FakeProcess([{"id": 1, "result": full_result}])
+    # The first evaluate describes once to scale the response deadline.
+    process = FakeProcess(
+        [
+            {"id": 1, "result": optimization_description},
+            {"id": 2, "result": full_result},
+        ]
+    )
     invocation = spawn(process)
     session = OptimizationSession(
         optimization_manifest, popen_factory=invocation["popen_factory"]
@@ -146,7 +185,7 @@ def test_bootstrap_timeout_terminates_a_stuck_process(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(petrinaut_session, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(petrinaut_transport, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
     script = "import sys, time; sys.stdin.readline(); time.sleep(60)"
     model = OptimizationSession(
         optimization_manifest,
@@ -165,7 +204,7 @@ def test_protocol_timeout_terminates_a_stuck_process(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(petrinaut_session, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(petrinaut_transport, "PROCESS_SHUTDOWN_TIMEOUT_SECONDS", 0.05)
     script = """
 import sys
 import time
@@ -202,7 +241,7 @@ def test_rejects_an_oversized_protocol_line(
         popen_factory=lambda *_args, **_kwargs: process,
     )
     model.start()
-    monkeypatch.setattr(petrinaut_session, "MAX_PROTOCOL_LINE_BYTES", 8)
+    monkeypatch.setattr(petrinaut_transport, "MAX_PROTOCOL_LINE_BYTES", 8)
 
     with pytest.raises(PetrinautProtocolError, match="line limit"):
         model.describe()
@@ -249,7 +288,7 @@ def test_close_signals_the_isolated_process_group(
     process.wait = wait  # type: ignore[method-assign]
     signals: list[tuple[int, signal.Signals]] = []
     monkeypatch.setattr(
-        petrinaut_session.os,
+        petrinaut_transport.os,
         "killpg",
         lambda pid, sent_signal: signals.append((pid, sent_signal)),
     )
@@ -282,7 +321,7 @@ def test_prompt_close_signals_the_group_before_any_shutdown_wait(
 
     process.wait = wait  # type: ignore[method-assign]
     monkeypatch.setattr(
-        petrinaut_session.os,
+        petrinaut_transport.os,
         "killpg",
         lambda _pid, sent_signal: events.append(
             f"killpg:{signal.Signals(sent_signal).name}"
@@ -326,11 +365,13 @@ while True:
 
 def test_cli_error_during_evaluation_is_recoverable(
     optimization_manifest: dict,
+    optimization_description: dict,
 ) -> None:
     process = FakeProcess(
         [
-            {"id": 1, "error": {"message": "scenario failed"}},
-            {"id": 2, "result": {"objective": 7}},
+            {"id": 1, "result": optimization_description},
+            {"id": 2, "error": {"message": "scenario failed"}},
+            {"id": 3, "result": {"objective": 7}},
         ]
     )
     model = OptimizationSession(
@@ -349,10 +390,16 @@ def test_cli_error_during_evaluation_is_recoverable(
 @pytest.mark.parametrize("objective", [True, None, "12.5"])
 def test_a_non_numeric_objective_is_a_protocol_error(
     optimization_manifest: dict,
+    optimization_description: dict,
     objective: Any,
 ) -> None:
     """A result outside the protocol schema closes the session."""
-    process = FakeProcess([{"id": 1, "result": {"objective": objective}}])
+    process = FakeProcess(
+        [
+            {"id": 1, "result": optimization_description},
+            {"id": 2, "result": {"objective": objective}},
+        ]
+    )
     model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,
@@ -367,9 +414,15 @@ def test_a_non_numeric_objective_is_a_protocol_error(
 
 def test_rejects_a_non_finite_numeric_objective(
     optimization_manifest: dict,
+    optimization_description: dict,
 ) -> None:
     """JSON cannot carry Infinity, but Python's parser admits it; refuse it."""
-    process = FakeProcess([{"id": 1, "result": {"objective": float("inf")}}])
+    process = FakeProcess(
+        [
+            {"id": 1, "result": optimization_description},
+            {"id": 2, "result": {"objective": float("inf")}},
+        ]
+    )
     model = OptimizationSession(
         optimization_manifest,
         popen_factory=lambda *_args, **_kwargs: process,
@@ -397,3 +450,72 @@ def test_rejects_a_mismatched_protocol_response(
 
     assert process.returncode == 0
     model.close()
+
+
+def test_scales_the_request_timeout_by_the_described_seeds_per_trial(
+    optimization_manifest: dict,
+    optimization_description: dict,
+) -> None:
+    description = {
+        **optimization_description,
+        "study": {**optimization_description["study"], "seedsPerTrial": 5},
+    }
+    process = FakeProcess([{"id": 1, "result": description}])
+    model = OptimizationSession(
+        optimization_manifest,
+        command=("node", "/cli.js"),
+        popen_factory=lambda command, **kwargs: process,
+        request_timeout_seconds=240,
+    )
+    model.start()
+
+    assert model.describe() == OptimizationDescribeResult.model_validate(description)
+    assert model._transport.request_timeout_seconds == 1200
+    model.close()
+
+
+def test_evaluate_without_describe_scales_the_timeout_first(
+    optimization_manifest: dict,
+    optimization_description: dict,
+) -> None:
+    description = {
+        **optimization_description,
+        "study": {**optimization_description["study"], "seedsPerTrial": 5},
+    }
+    process = FakeProcess(
+        [
+            {"id": 1, "result": description},
+            {"id": 2, "result": {"objective": 1.5}},
+        ]
+    )
+    model = OptimizationSession(
+        optimization_manifest,
+        command=("node", "/cli.js"),
+        popen_factory=lambda command, **kwargs: process,
+        request_timeout_seconds=240,
+    )
+    model.start()
+
+    assert model.evaluate({"rate": 1.0}).objective == 1.5
+    assert model._transport.request_timeout_seconds == 1200
+    model.close()
+
+
+def test_rejects_an_invalid_described_seeds_per_trial(
+    optimization_manifest: dict,
+    optimization_description: dict,
+) -> None:
+    description = {
+        **optimization_description,
+        "study": {**optimization_description["study"], "seedsPerTrial": 0},
+    }
+    process = FakeProcess([{"id": 1, "result": description}])
+    model = OptimizationSession(
+        optimization_manifest,
+        command=("node", "/cli.js"),
+        popen_factory=lambda command, **kwargs: process,
+    )
+    model.start()
+
+    with pytest.raises(PetrinautProtocolError, match="seedsPerTrial"):
+        model.describe()

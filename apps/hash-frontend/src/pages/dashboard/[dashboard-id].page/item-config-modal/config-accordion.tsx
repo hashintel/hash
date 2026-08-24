@@ -226,31 +226,16 @@ const ConfigAccordionSection = ({
             }}
           >
             {renderBuilder ? (
-              /* The ds SegmentedControl has no size prop – compact it here.
-                 Panda's atomic classes carry a :not(#\#) specificity boost,
-                 so the overrides need !important to take effect. */
-              <Box
-                sx={{
-                  '& [data-scope="segment-group"][data-part="item"]': {
-                    padding: "4px 10px !important",
-                  },
-                  '& [data-scope="segment-group"][data-part="item-text"]': {
-                    fontSize: "12px !important",
-                    lineHeight: "16px !important",
-                  },
-                }}
-              >
-                <SegmentedControl
-                  options={[
-                    { name: "Builder", value: "builder" },
-                    { name: "JSON", value: "code" },
-                  ]}
-                  value={view}
-                  onValueChange={(newView) =>
-                    setView(newView as "builder" | "code")
-                  }
-                />
-              </Box>
+              <SegmentedControl
+                size="sm"
+                variant="embossed"
+                items={[
+                  { label: "Builder", value: "builder" },
+                  { label: "JSON", value: "code" },
+                ]}
+                value={view}
+                onChange={setView}
+              />
             ) : (
               <Box />
             )}

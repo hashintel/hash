@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 
+import { GRID_CLICK_IGNORE_CLASS } from "./constants";
 import { getIconForDataType } from "./data-type-selector/icons";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 import { IconButton } from "./icon-button";
@@ -51,6 +52,16 @@ export type DataTypeForSelector = {
   version: OntologyTypeVersion;
 };
 
+/**
+ * The menu is portalled to the end of the document, so aligning the selected option to the top of
+ * every scrollable ancestor would also drag the whole page down to it. `nearest` leaves ancestors
+ * which already show the option alone, confining the scroll to the menu's own list.
+ */
+const scrollSelectedIntoViewOptions: ScrollIntoViewOptions = {
+  behavior: "smooth",
+  block: "nearest",
+};
+
 const DataTypeLabel = (props: {
   dataType: DataTypeForSelector;
   isEarlierVersion: boolean;
@@ -71,7 +82,15 @@ const DataTypeLabel = (props: {
   const icon = getIconForDataType(dataType);
 
   return (
-    <Tooltip title={dataType.description} placement="left">
+    <Tooltip
+      title={dataType.description}
+      placement="left"
+      PopperProps={{
+        // this className prevents editor overlay from closing
+        className: GRID_CLICK_IGNORE_CLASS,
+      }}
+      disableInteractive
+    >
       <Stack direction="row" alignItems="center">
         <FontAwesomeIcon
           icon={{ icon }}
@@ -134,7 +153,7 @@ const DataTypeFlatView = (props: {
   useEffect(() => {
     if (selectedDataTypeIds?.includes(dataType.$id)) {
       setTimeout(() => {
-        ref.current?.scrollIntoView({ behavior: "smooth" });
+        ref.current?.scrollIntoView(scrollSelectedIntoViewOptions);
       }, 100);
     }
   }, [selectedDataTypeIds, dataType.$id]);
@@ -221,7 +240,7 @@ const DataTypeTreeView = (props: {
   useEffect(() => {
     if (selected) {
       setTimeout(() => {
-        ref.current?.scrollIntoView({ behavior: "smooth" });
+        ref.current?.scrollIntoView(scrollSelectedIntoViewOptions);
       }, 100);
     }
   }, [selected]);
@@ -541,6 +560,11 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
       )}
       <Popper
         anchorEl={externalSearchInput?.inputRef.current ?? textFieldRef.current}
+        /**
+         * The menu is portalled, so it is outside the DOM tree of a <Grid /> cell editor hosting this selector.
+         * This className stops mousedown in the menu closing the editor before the option's onClick can run.
+         */
+        className={GRID_CLICK_IGNORE_CLASS}
         open={externalSearchInput?.focused ?? textFieldFocused}
         ref={externallyProvidedPopoverRef ?? popoverRef}
         sx={{

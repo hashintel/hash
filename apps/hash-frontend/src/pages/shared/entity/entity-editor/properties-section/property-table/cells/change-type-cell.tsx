@@ -8,6 +8,7 @@ import { getYCenter } from "../../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawChip } from "../../../../../../../components/grid/utils/draw-chip";
 import { drawChipWithIcon } from "../../../../../../../components/grid/utils/draw-chip-with-icon";
+import { InteractableManager } from "../../../../../../../components/grid/utils/interactable-manager";
 import { propertyGridIndexes } from "../constants";
 import { getEditorSpecs } from "./value-cell/editor-specs";
 
@@ -108,6 +109,13 @@ export const createRenderChangeTypeCell = (
       );
 
       drawCellFadeOutGradient(args);
+
+      /**
+       * Interactables are stored per cell position and only replaced when a cell draws its own.
+       * This cell has none, but the same position was drawn as a chip cell until the property had a value – and those
+       * chips open a data type in a slide-over. Clearing them stops them swallowing clicks meant for 'change'.
+       */
+      InteractableManager.setInteractablesForCell(args, []);
     },
     onClick: (args) => {
       const { valueCellOfThisRow } = args.cell.data;
