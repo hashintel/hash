@@ -2912,7 +2912,6 @@ export const NetworkGraph = ({
       // Animate crowd points in from / out to radius 0 as nodes are added/removed.
       nodeScaleById,
       nodeScaleEpoch,
-      dimmed: highlight !== null,
       // In detail the grow highlights give way to the detailed layer's outline.
       showGrowHighlights: !isDetailZoom,
       // Hide the compact crowd in detail so it doesn't show through behind the
@@ -3103,7 +3102,6 @@ export const NetworkGraph = ({
           colorByHex: colorByHexWithOverlay,
           radiusScale: effectiveRadiusScale,
           pointOpacity,
-          dimmed: false,
           showGrowHighlights: true,
           showPoints: false,
         }),
