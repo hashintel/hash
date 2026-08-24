@@ -12,6 +12,12 @@ formality: complete sentences, short paragraphs, active voice, concrete nouns an
 State causal, temporal, and conditional relationships explicitly. Keep sentence structure
 simple without simplifying the idea; prefer two clear sentences over one compressed sentence.
 
+Respect the reader's existing knowledge. Supply the context needed to judge the change, but do
+not add named theories, tutorial passages, or persuasive flourishes merely to demonstrate
+authority. Walk through the relevant evidence, state the verdict at the strength that evidence
+supports, and label opinion as opinion. Trust colleagues to ask when they need more; cut
+pre-emptive explanation before cutting facts they need to act.
+
 Use shared product and system vocabulary, but avoid implementation-specific names unless they
 are necessary to explain the behavior. Do not write in telegraphic, checklist, ticket,
 changelog, or runbook style. Avoid fragments and labeled fields. Use a list only when readers

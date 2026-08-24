@@ -46,6 +46,18 @@ pass over the filings before the arc closes. The FE-1405/FE-1406 round came from
 first round's own text ("shapes-to-fill" quoted back); the gaps were real and had been deepened
 by the filings meant to close them.
 
+## Point findings may reveal a recurrent class
+
+A point finding is evidence of a possible fault class, not proof that the whole codebase shares
+it. Promote the finding to an audit only when recurrence is plausible, the class is cheaply
+searchable, and missed instances could fail silently. Search both the mechanical family and the
+ownership boundaries where the same contract may be reimplemented. Keep finding and fixing as
+separate steps so a human can confirm the class and scope before repair begins.
+
+When the class is confirmed, make its categorical part executable as a boundary or regression
+check. Put any judgment that cannot be mechanized into review guidance. Do not widen a one-off
+finding into a repository sweep merely for symmetry.
+
 ## Consolidation: capture-as-we-go, reconcile-before-landing
 
 Capture channels (accrual comments, pencil lists, strain appendices, handoffs) guard against

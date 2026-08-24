@@ -16,6 +16,14 @@ Use **git** for local operations that don't touch the stack: `status` / `diff` /
 stack parentage metadata; commits and reads are safe as plain git (run `gt restack` afterwards
 if upstack branches exist). Do not use `gh stack` in `hashintel/hash`.
 
+## Shared-worktree safety
+
+A branch switch changes the checkout under every process using that worktree. Before `gt create`
+or `gt checkout`, record the current branch and inspect the worktree for unexpected changes or
+in-flight agents. If another agent may be active, use a separate worktree instead of switching the
+shared one; never stash, reset, clean, or otherwise claim work you did not create. Restore the
+branch you found after the stack operation unless the user asks to leave the worktree elsewhere.
+
 ## Naming
 
 - **Branch**: `{prefix}/{issue-id}-{keywords}` (e.g. `ln/fe-1362-demo-vehicle`).
