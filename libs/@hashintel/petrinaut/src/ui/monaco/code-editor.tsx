@@ -74,6 +74,17 @@ const singleLineContainerStyle = cva({
         },
       },
     },
+    frameless: {
+      true: {
+        borderColor: "[transparent]",
+        borderRadius: "[0]",
+        _hover: { borderColor: "[transparent]" },
+        _focusWithin: {
+          borderColor: "[transparent]",
+          boxShadow: "[none]",
+        },
+      },
+    },
   },
 });
 
@@ -125,6 +136,11 @@ export type CodeEditorProps = Omit<EditorProps, "theme"> & {
   onEditorBlur?: () => void;
   /** Show error styling (red border) */
   hasError?: boolean;
+  /**
+   * Drop the single-line container's own border, radius, and focus ring, for
+   * hosts that draw the frame themselves (the ad-hoc form's editor slab).
+   */
+  frameless?: boolean;
 };
 
 // -- Inner component ----------------------------------------------------------
@@ -240,7 +256,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         <div className={placeholderStyle}>{placeholder}</div>
       )}
       <Editor
-        theme="vs-light"
+        theme="petrinaut-light"
         height={singleLine ? SINGLE_LINE_TOTAL_HEIGHT : "100%"}
         options={editorOptions}
         onMount={handleMount}
@@ -260,12 +276,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   height,
   singleLine = false,
   hasError = false,
+  frameless = false,
   ...props
 }) => {
   const isReadOnly = options?.readOnly === true;
 
   const containerClass = singleLine
-    ? singleLineContainerStyle({ isReadOnly, hasError })
+    ? singleLineContainerStyle({ isReadOnly, hasError, frameless })
     : multiLineContainerStyle({ isReadOnly });
 
   const fallback = singleLine ? (

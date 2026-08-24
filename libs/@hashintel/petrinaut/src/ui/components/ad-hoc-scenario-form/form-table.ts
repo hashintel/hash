@@ -91,35 +91,74 @@ export const cellInputStyle = css({
   fontSize: "xs",
   backgroundColor: "[transparent]",
   boxSizing: "border-box",
-  _focusVisible: {
-    outline: "[2px solid {colors.blue.s50}]",
+  _focus: {
+    outline: "[2px solid {colors.blue.s70}]",
     outlineOffset: "[-2px]",
+    backgroundColor: "blue.s05",
   },
 });
 
 /**
- * A Select rendered as a square spreadsheet cell rather than a control: the
- * visible box lives on `[data-part='select']`, whose border, radius, and
- * background come from base-input variables, so those are neutralized here.
+ * The row-selection highlight, applied to every cell of the row whose gutter
+ * holds focus. A background image with `!`, so it composites over row tints
+ * and wins over the shared-column wash.
+ */
+export const selectedRowCellStyle = css({
+  backgroundImage:
+    "[linear-gradient(rgba(37, 99, 235, 0.11), rgba(37, 99, 235, 0.11))!]",
+});
+
+/**
+ * A phantom cell: an empty trailing row's click target, quieter than real
+ * content, materializing a fresh entry on click or Enter.
+ */
+export const phantomCellButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  width: "[100%]",
+  height: "[28px]",
+  border: "none",
+  background: "[transparent]",
+  padding: "[4px 8px]",
+  fontFamily: "mono",
+  fontSize: "xs",
+  color: "neutral.s60",
+  opacity: "[0.55]",
+  cursor: "text",
+  _hover: { backgroundColor: "neutral.s10", opacity: "[1]" },
+  _focus: {
+    outline: "[2px solid {colors.blue.s70}]",
+    outlineOffset: "[-2px]",
+    backgroundColor: "blue.s05",
+    opacity: "[1]",
+  },
+});
+
+/**
+ * Renders a cell's Select as a square spreadsheet cell rather than a
+ * control. Applied to the owning `<td>` — the Select drops `className` — and
+ * the visible box is an unnamed div under `[data-part='root']` styled by
+ * base-input variables, so the neutralization hits every div beneath the
+ * root; the dropdown itself is portalled out and keeps its own look.
  */
 export const cellSelectStyle = css({
-  width: "[100%]",
-  display: "block",
-  "& [data-part='select']": {
+  "& [data-part='root']": {
     width: "[100%!]",
     minWidth: "[100%!]",
-    minHeight: "[28px]",
+    "--base-input-border-radius": "0px",
+    "--base-input-background-color": "transparent",
+    _hover: { backgroundColor: "neutral.s10" },
+    _focusWithin: {
+      outline: "[2px solid {colors.blue.s70}]",
+      outlineOffset: "[-2px]",
+      backgroundColor: "blue.s05",
+    },
+  },
+  "& [data-part='root'] div": {
     borderRadius: "[0!]",
     borderColor: "[transparent!]",
     boxShadow: "[none!]",
     backgroundColor: "[transparent!]",
-    "--base-input-border-radius": "0px",
-    "--base-input-background-color": "transparent",
-    _hover: { backgroundColor: "[{colors.neutral.s10}!]" },
-    _focusWithin: {
-      outline: "[2px solid {colors.blue.s50}]",
-      outlineOffset: "[-2px]",
-    },
   },
   "& [data-part='trigger']": {
     fontFamily: "mono",

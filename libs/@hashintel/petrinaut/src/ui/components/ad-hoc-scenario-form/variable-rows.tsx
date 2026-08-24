@@ -1,11 +1,13 @@
 /**
  * A Variables list, used at both scopes, in the form's spreadsheet grammar:
  * one row per Variable — name cell, value cell, type cell, Optimize (where
- * available), remove. Adding happens from the owning header's icon-only
- * button, so an empty list renders nothing.
+ * available), remove — plus a quiet phantom trailing row that materializes a
+ * fresh Variable on click or Enter. The name cell behaves like every other
+ * cell: focusing selects it, Enter (or a second click) edits, Escape leaves
+ * the edit. Arrow keys move between cells, phantom row included.
  */
 
-import { use } from "react";
+import { use, useRef, useState } from "react";
 
 import { Button, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -17,12 +19,13 @@ import {
   cellInputStyle,
   cellSelectStyle,
   cellStyle,
+  phantomCellButtonStyle,
   rowDeleteButtonStyle,
   tableContainerStyle,
   tableStyle,
 } from "./form-table";
 import { OptimizeToggle } from "./optimize-toggle";
-import { removeAt, replaceVariable } from "./state";
+import { newVariable, removeAt, replaceVariable } from "./state";
 import { useGridNavigation } from "./use-grid-navigation";
 import { ValueEditor } from "./value-editor";
 
@@ -43,8 +46,34 @@ const optimizeCellStyle = css({
   textAlign: "center",
 });
 
+const nameButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  width: "[100%]",
+  height: "[28px]",
+  border: "none",
+  padding: "[4px 8px]",
+  fontFamily: "mono",
+  fontSize: "xs",
+  color: "neutral.s110",
+  backgroundColor: "[transparent]",
+  cursor: "pointer",
+  textAlign: "left",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
+  _hover: { backgroundColor: "neutral.s10" },
+  // Plain :focus, not :focus-visible: a pointer click selects the cell and
+  // the selection must show either way.
+  _focus: {
+    outline: "[2px solid {colors.blue.s70}]",
+    outlineOffset: "[-2px]",
+    backgroundColor: "blue.s05",
+  },
+});
+
 const invalidNameStyle = css({
-  "& input": {
+  "& input, & span": {
     textDecorationLine: "underline",
     textDecorationStyle: "wavy",
     textDecorationColor: "red.s90",
@@ -52,12 +81,113 @@ const invalidNameStyle = css({
   },
 });
 
+interface NameCellProps {
+  value: string;
+  ariaLabel: string;
+  error: string | undefined;
+  /** Enters edit mode when this becomes a fresh non-zero nonce. */
+  autoEdit: number;
+  onChange: (name: string) => void;
+  cellRef: (element: HTMLElement | null) => void;
+  onCellKeyDown: React.KeyboardEventHandler;
+}
+
+/**
+ * The variable-name cell, with the same selection model as the value cells:
+ * a pointer click selects, a second click (or a double-click, or Enter)
+ * edits, and Enter or Escape leaves the edit back to the selected cell.
+ */
+const NameCell: React.FC<NameCellProps> = ({
+  value,
+  ariaLabel,
+  error,
+  autoEdit,
+  onChange,
+  cellRef,
+  onCellKeyDown,
+}) => {
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const wasFocusedOnPointerDownRef = useRef(false);
+  const [editing, setEditing] = useState(autoEdit > 0);
+  const [seenAutoEdit, setSeenAutoEdit] = useState(autoEdit);
+  if (autoEdit !== seenAutoEdit) {
+    setSeenAutoEdit(autoEdit);
+    if (autoEdit > 0) {
+      setEditing(true);
+    }
+  }
+
+  const closeEdit = () => {
+    setEditing(false);
+    setTimeout(() => buttonRef.current?.focus(), 0);
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={cellRef}
+        className={cellInputStyle}
+        aria-label={ariaLabel}
+        title={error}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            closeEdit();
+            return;
+          }
+          onCellKeyDown(event);
+        }}
+        onBlur={() => setEditing(false)}
+        onFocus={(event) => event.target.select()}
+        // eslint-disable-next-line jsx-a11y/no-autofocus -- entering edit mode is an explicit intent
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <button
+      ref={(element) => {
+        buttonRef.current = element;
+        cellRef(element);
+      }}
+      type="button"
+      className={nameButtonStyle}
+      aria-label={ariaLabel}
+      title={error}
+      onPointerDown={() => {
+        wasFocusedOnPointerDownRef.current =
+          document.activeElement === buttonRef.current;
+      }}
+      onClick={(event) => {
+        // A keyboard "click" (Enter/Space) carries no pointer detail and
+        // always edits; a pointer click edits only an already-selected cell.
+        if (event.detail === 0 || wasFocusedOnPointerDownRef.current) {
+          setEditing(true);
+        }
+      }}
+      onDoubleClick={() => setEditing(true)}
+      onKeyDown={onCellKeyDown}
+    >
+      <span>{value}</span>
+    </button>
+  );
+};
+
 export interface VariableRowsProps {
   scopeLabel: string;
   /** `null` for top-level Variables, the owning place id otherwise. */
   placeId: string | null;
   variables: AdHocVariable[];
   onChange: (variables: AdHocVariable[]) => void;
+  /**
+   * Renders the table (its phantom row alone) even with no Variables.
+   * Per-place lists stay hidden while empty; the top-level section shows.
+   */
+  alwaysVisible?: boolean;
 }
 
 export const VariableRows: React.FC<VariableRowsProps> = ({
@@ -65,13 +195,29 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   placeId,
   variables,
   onChange,
+  alwaysVisible = false,
 }) => {
   const { errorFor, optimizable } = use(AdHocFormContext);
   const grid = useGridNavigation();
+  // Nonces, so a repeat click re-triggers the fresh row's editor.
+  const [materialized, setMaterialized] = useState<{
+    index: number;
+    part: "name" | "value";
+    nonce: number;
+  } | null>(null);
 
-  if (variables.length === 0) {
+  if (variables.length === 0 && !alwaysVisible) {
     return null;
   }
+
+  const materializeVariable = (part: "name" | "value") => {
+    onChange([...variables, newVariable(variables)]);
+    setMaterialized((previous) => ({
+      index: variables.length,
+      part,
+      nonce: (previous?.nonce ?? 0) + 1,
+    }));
+  };
 
   return (
     <div className={tableContainerStyle} aria-label={scopeLabel}>
@@ -91,18 +237,23 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     nameError && invalidNameStyle,
                   )}
                 >
-                  <input
-                    ref={grid.register(index, 0)}
-                    onKeyDown={grid.onKeyDown(index, 0)}
-                    className={cellInputStyle}
-                    aria-label={`Name of variable ${index + 1} (${scopeLabel})`}
-                    title={nameError}
+                  <NameCell
                     value={variable.name}
-                    onChange={(event) =>
+                    ariaLabel={`Name of variable ${index + 1} (${scopeLabel})`}
+                    error={nameError}
+                    autoEdit={
+                      materialized?.index === index &&
+                      materialized.part === "name"
+                        ? materialized.nonce
+                        : 0
+                    }
+                    cellRef={grid.register(index, 0)}
+                    onCellKeyDown={grid.onKeyDown(index, 0)}
+                    onChange={(name) =>
                       onChange(
                         replaceVariable(variables, index, {
                           ...variable,
-                          name: event.target.value,
+                          name,
                         }),
                       )
                     }
@@ -114,6 +265,12 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     value={variable}
                     integer={variable.type === "integer"}
                     booleanDomain={variable.type === "boolean"}
+                    autoOpen={
+                      materialized?.index === index &&
+                      materialized.part === "value"
+                        ? materialized.nonce
+                        : 0
+                    }
                     triggerRef={grid.register(index, 1)}
                     onTriggerKeyDown={grid.onKeyDown(index, 1)}
                     onChange={(value) =>
@@ -126,10 +283,10 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     }
                   />
                 </td>
-                <td className={cx(cellStyle, typeCellStyle)}>
+                {/* The Select drops className, so its cell styles the box. */}
+                <td className={cx(cellStyle, typeCellStyle, cellSelectStyle)}>
                   <Select
                     size="sm"
-                    className={cellSelectStyle}
                     aria-label={`Type of ${variable.name}`}
                     value={variable.type}
                     onChange={(type) =>
@@ -182,6 +339,35 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
               </tr>
             );
           })}
+
+          {/* Phantom trailing row: materializes a fresh Variable. */}
+          <tr>
+            <td className={cx(cellStyle, nameCellStyle)}>
+              <button
+                ref={grid.register(variables.length, 0)}
+                type="button"
+                className={phantomCellButtonStyle}
+                aria-label={`Add a variable (name, ${scopeLabel})`}
+                onClick={() => materializeVariable("name")}
+                onKeyDown={grid.onKeyDown(variables.length, 0)}
+              />
+            </td>
+            <td className={cellStyle}>
+              <button
+                ref={grid.register(variables.length, 1)}
+                type="button"
+                className={phantomCellButtonStyle}
+                aria-label={`Add a variable (value, ${scopeLabel})`}
+                onClick={() => materializeVariable("value")}
+                onKeyDown={grid.onKeyDown(variables.length, 1)}
+              />
+            </td>
+            <td className={cx(cellStyle, typeCellStyle)} />
+            {optimizable ? (
+              <td className={cx(cellStyle, optimizeCellStyle)} />
+            ) : null}
+            <td className={actionCellStyle} />
+          </tr>
         </tbody>
       </table>
     </div>
