@@ -17,7 +17,7 @@ The same form appears in three places, always when **no scenario is selected**:
 The form has up to three sections:
 
 - **Parameters** -- one row per [net-level parameter](petri-net-extensions.md#global-parameters), showing its type and its default. Enter an expression to override a value for this run. This section appears in the experiment and optimization drawers; the quick-simulation drawer omits it because the Simulation Settings panel already has parameter inputs.
-- **Variables** -- named values (real, integer, or boolean) written as `scenario.<name>` in every expression below, exactly as scenario parameters are written in scenario code. Use them to drive many values from one number. Add one from the icon button in the section header, or click the dimmed trailing row to add one in place. A variable's name edits like any other cell: select it, then press Enter (or click again) to edit, and Enter or Escape to leave. Its type select is a cell too: arrow keys move past it, Enter opens it.
+- **Variables** -- named values (real, integer, or boolean) written as `scenario.<name>` in every expression below, exactly as scenario parameters are written in scenario code. Use them to drive many values from one number. Add one from the dimmed **Add a variable** line at the bottom of the list -- click it, or reach it with the down arrow from the last row; the fresh name opens ready to type. Each row starts with a `#n` gutter whose menu offers **Delete variable**. A variable's name edits like any other cell: select it, then press Enter (or click again) to edit, and Enter or Escape to leave. Its type select is a cell too: arrow keys move past it, Enter opens it.
 - **Initial state** -- one block per place in the net.
 
 Each section collapses: click the chevron in its header, or focus the header and press Left to collapse and Right to expand. Place headers inside Initial state collapse the same way, and a collapsed place shows a one-line summary of its rows and token total.
@@ -26,7 +26,7 @@ Every value in the form is an expression. A first click selects a value; a secon
 
 ### Keyboard editing and undo
 
-Every table in the form is a keyboard grid: arrow keys and Tab move between cells, phantom rows and type selects included, and moving up from a dynamic row's cells lands on its count strip, so counts and bounds are editable without the mouse. A token table's column headers are the grid's top line. In a token table, the left arrow from a row's first cell reaches the **row gutter**: focusing it highlights and selects the whole row, Enter opens the row-kind menu, and Delete removes the row (a trashcan at the row's end appears on hover as the pointer equivalent). The menu is a keyboard menu too: it opens with the current kind focused, arrow keys move through the kinds, Enter chooses, and Escape returns to the gutter.
+Every table in the form is a keyboard grid: arrow keys and Tab move between cells, phantom rows and type selects included, and moving up from a dynamic row's cells lands on its count strip, so counts and bounds are editable without the mouse. A token table's column headers are the grid's top line. In a token table, the left arrow from a row's first cell reaches the **row gutter**: focusing it highlights and selects the whole row, Enter opens the row's menu, and Delete removes the row. The menu is a keyboard menu too: it opens with the current kind focused, arrow keys move through the items, Enter chooses, and Escape returns to the gutter. Every row action lives in that menu -- the row kinds and **Delete row**.
 
 The walk does not stop at a table's edge: moving down from a table's last row continues to the next part of the form -- a section header, a place header, the next table -- and moving up continues backwards the same way. Collapsed sections are skipped.
 
@@ -48,7 +48,7 @@ A place with a [token type](petri-net-extensions.md#typed-vs-untyped-places) is 
 - **Dynamic** (`i`, blue) -- the row emits many tokens: a quiet strip above the cells shows `×` and the row's **count expression**, and each cell is evaluated once per token with `i` running from `0` to `count - 1` (`count` is also available). The gutter's tooltip shows the row number.
 - **Count-optimized** (`i`, purple; optimizations only) -- a dynamic row whose count is an optimization parameter: the strip shows the count's bounds, `× 0 … 12`.
 
-Changing a row's kind never loses anything: its count (bounds included) is restored when you change back. The dimmed trailing row is a **phantom row**: click any of its cells to materialize a new fixed row. Remove a row with the trashcan at its end, or select it from its gutter and press Delete. In fixed rows, `i` is the row's position in the list and `count` is `1`.
+Changing a row's kind never loses anything: its count (bounds included) is restored when you change back. The dimmed trailing row is a **phantom row**: click any of its cells to materialize a new fixed row. Remove a row from its gutter: the menu offers **Delete row**, and the Delete key removes it directly. In fixed rows, `i` is the row's position in the list and `count` is `1`.
 
 The table's bottom line shows the place's **token total**: a number when every count resolves, otherwise the unresolved counts printed as they are (for example `= 2 + scenario.n_satellites tokens`).
 
@@ -58,7 +58,7 @@ Click a column header to give the whole column **one shared value**: the column 
 
 ### Per-place variables
 
-Each place block can declare its own variables from the icon button in its header, scoped to that place's rows and referenced by bare name. They are evaluated per row, so they may read `i` -- use one for a per-token intermediate value such as an angle.
+Each place block can declare its own variables from its **Add a variable** line, scoped to that place's rows and referenced by bare name. They are evaluated per row, so they may read `i` -- use one for a per-token intermediate value such as an angle.
 
 ## Type checking
 
