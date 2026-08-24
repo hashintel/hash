@@ -28,6 +28,7 @@ import {
   phantomCellButtonStyle,
   phantomGutterTextStyle,
   phantomRowCellStyle,
+  selectedRowCellStyle,
   tableContainerStyle,
   tableStyle,
 } from "./form-table";
@@ -227,6 +228,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
     index: number;
     anchor: HTMLButtonElement;
   } | null>(null);
+  // Gutter focus selects the whole row; the selection highlight follows it.
+  const [selectedRow, setSelectedRow] = useState<number | null>(null);
   // A nonce, so a repeat click re-opens the fresh row's name editor.
   const [materialized, setMaterialized] = useState<{
     index: number;
@@ -277,7 +280,11 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
             const highlighted = highlight.variableKeys.has(
               adHocVariableKey(placeId, variable.name),
             );
-            const rowHighlight = highlighted && highlightStyle;
+            const rowHighlight = cx(
+              highlighted && highlightStyle,
+              (selectedRow === index || menu?.index === index) &&
+                selectedRowCellStyle,
+            );
             return (
               // Row identity is positional in the model.
               // eslint-disable-next-line react/no-array-index-key
@@ -303,6 +310,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     aria-label={`Variable ${index + 1} actions`}
                     aria-haspopup="menu"
                     aria-expanded={menu?.index === index}
+                    onFocus={() => setSelectedRow(index)}
+                    onBlur={() => setSelectedRow(null)}
                     onKeyDown={(event) => {
                       if (event.key === "Delete" || event.key === "Backspace") {
                         event.preventDefault();
