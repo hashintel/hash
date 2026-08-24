@@ -17,7 +17,8 @@ superseding capture while an unrelated region stays stable. Preserve runnable an
 evidence under [proof evidence](../evidence/proofs/).
 
 Governing strategic decisions: [S-001](STRATEGY-LOG.md#s-001),
-[S-004](STRATEGY-LOG.md#s-004), and [S-005](STRATEGY-LOG.md#s-005).
+[S-004](STRATEGY-LOG.md#s-004), [S-005](STRATEGY-LOG.md#s-005), and
+[S-006](STRATEGY-LOG.md#s-006).
 
 ## Selected frontier: design convergence
 
@@ -26,8 +27,9 @@ sufficient to settle completion versus session stopping, targeted interview guid
 strategy without new human or domain-expert input. Those results can then narrow FE-1431 to a
 build-ready plugin-authoring contract before runtime implementation resumes.
 
-The selected single-agent work order is below. Arrows express strategic order, not new Linear hard
-dependencies:
+The selected single-agent work order is below. Arrows express strategic order. Linear is canonical
+for hard blockers and now encodes the three genuine prerequisite joins: FE-1407 blocks FE-1404,
+FE-1404 blocks FE-1406, and FE-1406 blocks FE-1431. The other arrows remain soft ordering.
 
 ```text
 design resolution
@@ -64,10 +66,10 @@ FE-1393 exercised plugin SDK -> FE-1482 CPS plugin -> FE-1478 provenance read
 
 ### Active soft edges
 
-- FE-1407 supplies FE-1404's failure vocabulary; FE-1402 and FE-1403 join at FE-1404, whose verdict
-  then inputs FE-1406 and FE-1431.
-- FE-1431's design closure must be separated from its later three-target ratification condition;
-  the unresolved absence locator is part of that design seam.
+- FE-1402 and FE-1403 remain deliberately soft-ordered after FE-1407 even though they do not depend
+  on it; all three inputs join at FE-1404 through Linear's hard blockers.
+- FE-1431 now defines design closure as a build-ready handoff separately from its later three-target
+  ratification condition; the unresolved absence locator remains part of that design seam.
 - FE-1420's idempotency and abandonment semantics precede FE-1438's external-tool protocol; FE-1439
   then proves the reviewer path survives reload without crossing principals.
 - FE-1393 exercises the smallest honest plugin before CPS pressures the still-unstable SDK in

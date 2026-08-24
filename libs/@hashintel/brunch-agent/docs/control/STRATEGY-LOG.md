@@ -129,3 +129,29 @@ contract from later three-target ratification.
 **Evidence links:** [STEERING selected frontier](STEERING.md#selected-frontier-design-convergence),
 [plugin contract](../specs/plugin-contract.md), FE-1407, FE-1402, FE-1403, FE-1404, FE-1406,
 FE-1431
+
+### S-006
+
+**Date:** 2026-08-24
+
+**Trigger/evidence:** The design-convergence queue in S-005 was selected, but Linear did not encode
+three genuine prerequisites, and FE-1431 still conflated a build-ready design handoff with later
+three-target ratification.
+
+**Decision:** Encode FE-1407 blocking FE-1404, FE-1404 blocking FE-1406, and FE-1406 blocking
+FE-1431 in Linear. Define FE-1431 as complete when its plugin-authoring contract is build-ready,
+while retaining three-target ratification as a later condition for removing the contract's
+provisional marker. Keep every other sequencing edge in S-005 soft.
+
+**Consequences/cuts:** Mechanical issue availability now protects the three actual joins without
+pretending that the whole strategic order is a dependency graph. FE-1402 and FE-1403 can still run
+independently, and SDK implementation or empirical ratification cannot hold FE-1431's design
+closure open.
+
+**Revisit when:** A recorded prerequisite proves unnecessary, or implementation exposes a product
+decision that the FE-1431 handoff failed to settle.
+
+**Supersedes:** none
+
+**Evidence links:** [STEERING selected frontier](STEERING.md#selected-frontier-design-convergence),
+FE-1407, FE-1404, FE-1406, FE-1431
