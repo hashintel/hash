@@ -50,7 +50,7 @@ A place with a [token type](petri-net-extensions.md#typed-vs-untyped-places) is 
 
 Changing a row's kind never loses anything: its count (bounds included) is restored when you change back. The dimmed trailing row is a **phantom row**: click any of its cells to materialize a new fixed row. Remove a row from its gutter: the menu offers **Delete row**, and the Delete key removes it directly. In fixed rows, `i` is the row's position in the list and `count` is `1`.
 
-Below the table, at the right, the place's **token total**: a number when every count resolves, otherwise the unresolved counts printed as they are (for example `= 2 + scenario.n_satellites tokens`).
+Below the table, at the right, the place's **token total**: a number when every count resolves, otherwise the unresolved counts printed as they are (for example `2 + scenario.n_satellites tokens`).
 
 ### Shared columns
 
