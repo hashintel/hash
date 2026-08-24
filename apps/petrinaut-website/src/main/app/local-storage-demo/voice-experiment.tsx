@@ -13,14 +13,13 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   type VoiceExperiment as VoiceExperimentName,
   voiceExperimentLabel,
-  voiceExperimentMode,
 } from "./voice-experiment/voice-experiment-selection";
 
 import type { VoiceExperimentAdapter } from "./voice-experiment/voice-experiment-adapter";
 import type { VoiceExperimentEvent } from "./voice-experiment/voice-experiment-events";
 
 const SCENARIO_SCRIPT =
-  "Interview the expert about how an urgent customer support escalation moves from the initial report to resolution.";
+  "Trace an urgent customer support escalation from first report to resolution.";
 
 const panelStyle = css({
   position: "fixed",
@@ -46,49 +45,25 @@ const panelStyle = css({
 
 const headerStyle = css({
   display: "flex",
-  alignItems: "flex-start",
+  alignItems: "center",
   justifyContent: "space-between",
   gap: "4",
 });
 
-const headingGroupStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "0.5",
-});
-
-const eyebrowStyle = css({
-  color: "blue.a85",
-  fontSize: "xs",
-  fontWeight: "semibold",
-  letterSpacing: "wide",
-  textTransform: "uppercase",
-});
-
 const headingStyle = css({
   color: "neutral.s100",
-  fontSize: "base",
+  fontSize: "lg",
   fontWeight: "semibold",
 });
 
 const experimentBadgeStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-end",
-  gap: "0.5",
-  paddingX: "2.5",
-  paddingY: "2",
-  borderRadius: "lg",
-  backgroundColor: "neutral.a10",
-  color: "neutral.s90",
+  paddingX: "3",
+  paddingY: "1.5",
+  borderRadius: "full",
+  backgroundColor: "blue.a10",
+  color: "blue.a85",
   fontSize: "xs",
-  fontWeight: "medium",
-});
-
-const experimentModeStyle = css({
-  color: "neutral.s60",
-  fontSize: "xs",
-  fontWeight: "normal",
+  fontWeight: "semibold",
 });
 
 const scenarioStyle = css({
@@ -97,7 +72,7 @@ const scenarioStyle = css({
   gap: "1",
   padding: "3",
   borderRadius: "lg",
-  backgroundColor: "blue.a10",
+  backgroundColor: "neutral.a10",
   color: "neutral.s80",
   fontSize: "xs",
   lineHeight: "relaxed",
@@ -173,39 +148,63 @@ const controlsStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: "4",
+  gap: "3",
+});
+
+const sessionAreaStyle = css({
+  display: "flex",
+  minWidth: "0",
+  flex: "1",
+  flexDirection: "column",
+  gap: "2",
 });
 
 const sessionControlsStyle = css({
   display: "flex",
+  width: "full",
   alignItems: "center",
   gap: "2",
 });
 
 const sessionButtonStyle = css({
-  paddingX: "3",
-  paddingY: "2",
-  borderRadius: "md",
-  backgroundColor: "neutral.a10",
-  color: "neutral.s90",
+  display: "inline-flex",
+  minHeight: "12",
+  alignItems: "center",
+  justifyContent: "center",
+  paddingX: "4",
+  paddingY: "3",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderRadius: "lg",
   cursor: "pointer",
-  fontSize: "xs",
-  fontWeight: "medium",
-  _hover: {
-    backgroundColor: "neutral.a15",
-  },
+  fontSize: "sm",
+  fontWeight: "semibold",
+  transition: "[transform 120ms ease, box-shadow 120ms ease]",
   _disabled: {
-    color: "neutral.s50",
     cursor: "not-allowed",
-    opacity: "0.65",
+    opacity: "0.4",
   },
 });
 
 const startSessionButtonStyle = css({
-  backgroundColor: "blue.a85",
+  flex: "[2 1 0%]",
+  borderColor: "blue.a100",
+  backgroundColor: "blue.a100",
   color: "white",
+  boxShadow: "md",
   _hover: {
-    backgroundColor: "blue.a100",
+    transform: "translateY(-1px)",
+    boxShadow: "lg",
+  },
+});
+
+const endSessionButtonStyle = css({
+  flex: "1",
+  borderColor: "red.a35",
+  backgroundColor: "neutral.s00",
+  color: "red.a85",
+  _hover: {
+    backgroundColor: "red.a10",
   },
 });
 
@@ -233,6 +232,10 @@ const connectedStatusIndicatorStyle = css({
 const liveStatusIndicatorStyle = css({
   backgroundColor: "red.a85",
   boxShadow: "[0 0 0 4px {colors.red.a15}]",
+});
+
+const errorStatusIndicatorStyle = css({
+  backgroundColor: "red.a85",
 });
 
 const microphoneButtonStyle = css({
@@ -270,13 +273,10 @@ const activeMicrophoneButtonStyle = css({
   backgroundColor: "red.a85",
 });
 
-const disabledMicrophoneIconStyle = css({
-  color: "neutral.s50",
-});
-
 const eventLogStyle = css({
   display: "flex",
   maxHeight: "28",
+  marginTop: "2",
   flexDirection: "column",
   gap: "1",
   padding: "2",
@@ -289,6 +289,28 @@ const eventLogStyle = css({
   color: "neutral.s60",
   fontFamily: "mono",
   fontSize: "xs",
+});
+
+const technicalDetailsStyle = css({
+  borderTopWidth: "thin",
+  borderTopStyle: "solid",
+  borderTopColor: "neutral.a15",
+  paddingTop: "2",
+});
+
+const technicalSummaryStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  color: "neutral.s60",
+  cursor: "pointer",
+  fontSize: "xs",
+  fontWeight: "medium",
+});
+
+const eventCountStyle = css({
+  color: "neutral.s50",
+  fontWeight: "normal",
 });
 
 const eventRowStyle = css({
@@ -508,23 +530,26 @@ export const VoiceExperiment = ({
     sessionState !== "ending" &&
     sessionState !== "ended";
   const canStartTurn = Boolean(adapter) && isConnected;
+  const latestEvent = events.at(-1)?.event;
   const statusMessage = isAdapterPending
-    ? "Adapter pending — this shell does not own microphone access"
+    ? "Voice connection unavailable"
     : isTurnActive
-      ? "Recording — release the microphone to send"
+      ? "Listening — release to send"
       : sessionState === "ready"
-        ? "Ready to start a clean session"
+        ? "Ready"
         : sessionState === "connecting"
           ? "Connecting…"
           : sessionState === "connected"
             ? "Connected — hold the microphone to speak"
             : sessionState === "responding"
-              ? "Response in progress"
+              ? "Interviewer is responding…"
               : sessionState === "ending"
-                ? "Ending session…"
+                ? "Ending…"
                 : sessionState === "ended"
-                  ? "Session ended — reload for a new conversation"
-                  : "Experiment error";
+                  ? "Session ended"
+                  : latestEvent?.type === "error"
+                    ? latestEvent.message
+                    : "Could not start the voice session";
 
   return (
     <aside
@@ -532,28 +557,87 @@ export const VoiceExperiment = ({
       className={`${panelStyle} petrinaut-root`}
     >
       <header className={headerStyle}>
-        <div className={headingGroupStyle}>
-          <span className={eyebrowStyle}>H-6763 experiment</span>
-          <strong className={headingStyle}>Voice interview</strong>
-        </div>
-        <div className={experimentBadgeStyle}>
-          <span>{voiceExperimentLabel[experiment]}</span>
-          <span className={experimentModeStyle}>
-            {voiceExperimentMode[experiment]}
-          </span>
-        </div>
+        <strong className={headingStyle}>Voice interview</strong>
+        <span className={experimentBadgeStyle}>
+          {voiceExperimentLabel[experiment]}
+        </span>
       </header>
 
       <div className={scenarioStyle}>
-        <span className={sectionLabelStyle}>Shared scenario</span>
+        <span className={sectionLabelStyle}>Scenario</span>
         <span>{SCENARIO_SCRIPT}</span>
+      </div>
+
+      <div className={controlsStyle}>
+        <div className={sessionAreaStyle}>
+          <div className={sessionControlsStyle}>
+            <button
+              className={[sessionButtonStyle, startSessionButtonStyle]
+                .filter(Boolean)
+                .join(" ")}
+              disabled={!canStartSession}
+              onClick={() => void startSession()}
+              type="button"
+            >
+              Start session
+            </button>
+            <button
+              className={[sessionButtonStyle, endSessionButtonStyle]
+                .filter(Boolean)
+                .join(" ")}
+              disabled={!canEndSession}
+              onClick={() => void endSession()}
+              type="button"
+            >
+              End session
+            </button>
+          </div>
+          <p className={statusStyle}>
+            <span
+              aria-hidden="true"
+              className={[
+                statusIndicatorStyle,
+                isTurnActive
+                  ? liveStatusIndicatorStyle
+                  : isConnected
+                    ? connectedStatusIndicatorStyle
+                    : sessionState === "error"
+                      ? errorStatusIndicatorStyle
+                      : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            />
+            {statusMessage}
+          </p>
+        </div>
+        {canStartTurn ? (
+          <button
+            aria-label={
+              isTurnActive ? "Release to finish speaking" : "Hold to speak"
+            }
+            className={[
+              microphoneButtonStyle,
+              isTurnActive ? activeMicrophoneButtonStyle : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            onKeyDown={handleKeyDown}
+            onKeyUp={handleKeyUp}
+            onPointerCancel={() => void finishTurn()}
+            onPointerDown={handlePointerDown}
+            onPointerUp={() => void finishTurn()}
+            type="button"
+          >
+            {isTurnActive ? <MdGraphicEq size={24} /> : <MdMic size={24} />}
+          </button>
+        ) : null}
       </div>
 
       <div aria-live="polite" className={transcriptStyle} role="log">
         {transcriptEntries.length === 0 ? (
           <p className={transcriptPlaceholderStyle}>
-            Transcript events will appear here when the{" "}
-            {voiceExperimentLabel[experiment]} adapter is connected.
+            The conversation will appear here.
           </p>
         ) : (
           transcriptEntries.map((entry) => (
@@ -585,79 +669,13 @@ export const VoiceExperiment = ({
         )}
       </div>
 
-      <div className={controlsStyle}>
-        <div className={headingGroupStyle}>
-          <div className={sessionControlsStyle}>
-            <button
-              className={[
-                sessionButtonStyle,
-                canStartSession ? startSessionButtonStyle : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              disabled={!canStartSession}
-              onClick={() => void startSession()}
-              type="button"
-            >
-              Start session
-            </button>
-            <button
-              className={sessionButtonStyle}
-              disabled={!canEndSession}
-              onClick={() => void endSession()}
-              type="button"
-            >
-              End session
-            </button>
-          </div>
-          <p className={statusStyle}>
-            <span
-              aria-hidden="true"
-              className={[
-                statusIndicatorStyle,
-                isTurnActive
-                  ? liveStatusIndicatorStyle
-                  : isConnected
-                    ? connectedStatusIndicatorStyle
-                    : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            />
-            {statusMessage}
-          </p>
-        </div>
-        <button
-          aria-label={
-            isTurnActive ? "Release to finish speaking" : "Hold to speak"
-          }
-          className={[
-            microphoneButtonStyle,
-            isTurnActive ? activeMicrophoneButtonStyle : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          disabled={!canStartTurn}
-          onKeyDown={handleKeyDown}
-          onKeyUp={handleKeyUp}
-          onPointerCancel={() => void finishTurn()}
-          onPointerDown={handlePointerDown}
-          onPointerUp={() => void finishTurn()}
-          type="button"
-        >
-          {isTurnActive ? (
-            <MdGraphicEq size={24} />
-          ) : (
-            <MdMic
-              className={canStartTurn ? undefined : disabledMicrophoneIconStyle}
-              size={24}
-            />
-          )}
-        </button>
-      </div>
-
-      <div>
-        <span className={sectionLabelStyle}>Event and timing log</span>
+      <details className={technicalDetailsStyle}>
+        <summary className={technicalSummaryStyle}>
+          <span>Technical details</span>
+          <span className={eventCountStyle}>
+            {events.length} {events.length === 1 ? "event" : "events"}
+          </span>
+        </summary>
         <div className={eventLogStyle}>
           {events.length === 0 ? (
             <span className={emptyLogStyle}>
@@ -676,7 +694,7 @@ export const VoiceExperiment = ({
             ))
           )}
         </div>
-      </div>
+      </details>
     </aside>
   );
 };
