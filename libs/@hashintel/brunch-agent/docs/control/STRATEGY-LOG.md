@@ -95,3 +95,37 @@ resynthesis, or Petrinaut diagnostics cannot provide the deterministic gate.
 
 **Evidence links:** [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md),
 [incoming SDCPNs](../inbox/SDCPNs/), FE-1480, FE-1438
+
+### S-005
+
+**Date:** 2026-08-24
+
+**Trigger/evidence:** FE-1480's authority boundary is settled, but the implementation floor remains
+thin: the plugin SDK exposes identity plus one verbatim proposal, the client-tool surface exposes
+only ask contracts, and FE-1482 has no build-ready contract. In contrast, FE-1407, FE-1402,
+FE-1403, FE-1404, and FE-1406 each have bounded existing evidence and explicit non-HITL oracles.
+
+**Decision:** Run a design-convergence queue before more runtime feature work: FE-1407 failure
+catalogue, FE-1402 completion/stopping contract, FE-1403 CPS guidance, FE-1404 condition-3 run, and
+FE-1406 reusable strategy quiver. Use those results to narrow FE-1431 to a build-ready
+plugin-authoring handoff, including the absence locator. Then build the under-developed reviewer
+path before returning to semantic realization.
+
+**Consequences/cuts:** One agent can execute the design queue from existing inputs without waiting
+for domain experts or the final use-case decision. No SDK, client-tool, projection, provider, or
+deployment implementation belongs inside that frontier. After design convergence, the selected
+order is FE-1420 → FE-1438 → FE-1439, then FE-1393 → FE-1482 → FE-1478 → FE-1480, joining at
+FE-1479. These are strategic sequencing edges; Linear hard dependencies remain unchanged until a
+separately approved tracker reconciliation. This replaces S-002's claim that Gherkin completion
+does not gate CPS: FE-1393 now provides the smallest-honest, explicitly non-freezing SDK exercise;
+FE-1482 still pressures that interface before FE-1387's generic freeze.
+
+**Revisit when:** A design issue requires an unrecorded product preference or new domain testimony,
+condition 3 fails to discriminate the claimed improvements, or FE-1431 cannot separate a build-ready
+contract from later three-target ratification.
+
+**Supersedes:** S-002
+
+**Evidence links:** [STEERING selected frontier](STEERING.md#selected-frontier-design-convergence),
+[plugin contract](../specs/plugin-contract.md), FE-1407, FE-1402, FE-1403, FE-1404, FE-1406,
+FE-1431
