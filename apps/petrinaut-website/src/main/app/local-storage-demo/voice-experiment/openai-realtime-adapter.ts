@@ -4,9 +4,14 @@ import type { VoiceExperimentEvent } from "./voice-experiment-events";
 const SESSION_ENDPOINT = "/api/voice-experiment/openai-realtime-session";
 const REALTIME_CALLS_ENDPOINT = "https://api.openai.com/v1/realtime/calls";
 const CONNECTION_TIMEOUT_MS = 20_000;
+const WAIT_FOR_USER_TOOL_NAME = "wait_for_user";
 const DUMMY_TOOL_NAMES = new Set([
   "record_process_decision",
+  "record_process_flow",
   "record_process_step",
+  "record_process_state",
+  "record_model_requirement",
+  WAIT_FOR_USER_TOOL_NAME,
 ]);
 
 type OpenAIRealtimeAdapterDependencies = {
@@ -84,6 +89,10 @@ const summarizeFunctionCall = ({
   arguments: serializedArguments,
   name,
 }: FunctionCall): string => {
+  if (name === WAIT_FOR_USER_TOOL_NAME) {
+    return "Silent no-op";
+  }
+
   if (!serializedArguments) {
     return "Arguments unavailable";
   }
@@ -93,6 +102,20 @@ const summarizeFunctionCall = ({
     input = asRecord(JSON.parse(serializedArguments));
   } catch {
     return "Arguments unavailable";
+  }
+
+  if (name === "record_process_state") {
+    const nameSummary = boundedSummaryText(input?.name);
+    const category = boundedSummaryText(input?.category);
+    const description = boundedSummaryText(input?.description);
+    const parts = [
+      nameSummary,
+      category ? `Type: ${category}` : "",
+      description,
+    ];
+    return (
+      parts.filter(Boolean).join(" · ").slice(0, 240) || "Arguments unavailable"
+    );
   }
 
   if (name === "record_process_step") {
@@ -122,6 +145,28 @@ const summarizeFunctionCall = ({
       condition ? `Condition: ${condition}` : "",
       outcomes ? `Outcomes: ${outcomes}` : "",
     ];
+    return (
+      parts.filter(Boolean).join(" · ").slice(0, 240) || "Arguments unavailable"
+    );
+  }
+
+  if (name === "record_process_flow") {
+    const from = boundedSummaryText(input?.from);
+    const to = boundedSummaryText(input?.to);
+    const condition = boundedSummaryText(input?.condition);
+    const parts = [
+      from && to ? `${from} → ${to}` : from || to,
+      condition ? `Condition: ${condition}` : "",
+    ];
+    return (
+      parts.filter(Boolean).join(" · ").slice(0, 240) || "Arguments unavailable"
+    );
+  }
+
+  if (name === "record_model_requirement") {
+    const category = boundedSummaryText(input?.category);
+    const description = boundedSummaryText(input?.description);
+    const parts = [category ? `Type: ${category}` : "", description];
     return (
       parts.filter(Boolean).join(" · ").slice(0, 240) || "Arguments unavailable"
     );
@@ -505,6 +550,7 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
       }
 
       for (const functionCall of functionCalls) {
+        const isWaitForUser = functionCall.name === WAIT_FOR_USER_TOOL_NAME;
         this.#emit({
           argumentSummary: summarizeFunctionCall(functionCall),
           callId: functionCall.callId,
@@ -518,15 +564,32 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
           item: {
             type: "function_call_output",
             call_id: functionCall.callId,
-            output: JSON.stringify({
-              mode: "experiment-only",
-              recorded: DUMMY_TOOL_NAMES.has(functionCall.name),
-            }),
+            output: JSON.stringify(
+              isWaitForUser
+                ? { mode: "experiment-only", waited: true }
+                : {
+                    mode: "experiment-only",
+                    recorded: DUMMY_TOOL_NAMES.has(functionCall.name),
+                  },
+            ),
           },
         });
       }
-      this.#send(dataChannel, { type: "response.create" });
-      this.#responseInProgress = true;
+
+      if (
+        functionCalls.some(
+          (functionCall) => functionCall.name !== WAIT_FOR_USER_TOOL_NAME,
+        )
+      ) {
+        this.#send(dataChannel, { type: "response.create" });
+        this.#responseInProgress = true;
+      } else {
+        this.#emit({
+          timestampMs: this.#dependencies.now(),
+          turnId: this.#latestTurnId,
+          type: "response-completed",
+        });
+      }
       return;
     }
 

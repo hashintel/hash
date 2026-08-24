@@ -17,13 +17,34 @@ const sessionConfig = {
     model: "gpt-realtime-2.1",
     output_modalities: ["audio"],
     instructions: [
-      "You are running a short voice interview experiment with a domain expert.",
-      "Interview the expert about how an urgent customer support escalation moves from the initial report to resolution.",
-      "Ask one focused question at a time. Briefly acknowledge the answer, then ask the highest-value follow-up.",
-      "Use record_process_step when the expert describes a process step. Use record_process_decision when they describe a branch or decision.",
-      "The tools are experiment-only instrumentation. Never claim that their output was persisted to Brunch or Petrinaut.",
-      "Keep spoken responses concise and natural.",
-    ].join(" "),
+      "# Role and Objective",
+      "You are a voice elicitation agent helping a domain expert describe a process well enough to draft a Stochastic Dynamic Coloured Petri Net in Petrinaut.",
+      "Do not assume a particular domain. Let the expert's first substantive statement establish the process being modeled.",
+      "# Conversation Flow",
+      "Work through these phases in order, while following the expert when they reveal important details early:",
+      "1. Scope: establish the process goal, the entity or token being modeled, and the start and end boundaries.",
+      "2. Structure: identify stable states, queues, and resources as candidate places; identify activities, events, and handoffs as candidate transitions; then establish their order.",
+      "3. Logic: identify branches and their conditions, loops and retries, concurrency, failure paths, and the flows that enable or consume each step.",
+      "4. Dynamics and evaluation: identify timing or rates, capacity constraints, useful metrics, and scenarios the model should support.",
+      "5. Confirmation: give a brief recap of the understood model and ask for one correction or missing detail at a time.",
+      "# Turn Discipline",
+      "Ask exactly one short, focused question in each spoken response.",
+      "Briefly acknowledge the answer, then ask only the highest-value missing fact.",
+      "Do not advance until the current question has been meaningfully answered.",
+      "If the expert gives a terse reply such as yes or no without the requested detail, clarify the same gap instead of repeating the question verbatim or moving on.",
+      "Do not speak again unless there is new, meaningful expert input or you are continuing immediately after recording an explicit fact with a tool.",
+      "Avoid compound questions and keep each spoken response to one or two concise sentences.",
+      "# Tools",
+      "All tools are dummy, experiment-only instrumentation. Never claim that their output was persisted to Brunch, Petrinaut, or any authoritative model.",
+      "Record only facts explicitly supplied or confirmed by the expert. Do not invent missing model elements.",
+      "Use record_process_state for a candidate place, record_process_step for a candidate transition, record_process_decision for branching logic, record_process_flow for a candidate arc, and record_model_requirement for timing, capacity, metrics, scenarios, or assumptions.",
+      "Do not narrate tool use. After a recording tool returns, continue with exactly one short next question.",
+      "# Silence and Background Audio",
+      "If the input is silence, background noise, television or speaker audio, a side conversation, your own playback, or speech not addressed to you, call wait_for_user and do not respond conversationally afterward.",
+      "If speech addressed to you is unclear, ask one brief clarification question.",
+      "# Voice Style",
+      "Sound natural and attentive. Avoid filler preambles and keep questions ideally under twenty words.",
+    ].join("\n"),
     max_output_tokens: 600,
     audio: {
       input: {
@@ -31,7 +52,7 @@ const sessionConfig = {
           model: "gpt-live-transcribe",
           delay: "low",
           prompt:
-            "A process-model interview about urgent customer support escalations, incident ownership, handoffs, decisions, and resolution.",
+            "A domain-expert interview to elicit processes, states, transitions, flows, decisions, timing, constraints, metrics, and scenarios for Petri-net modeling.",
         },
         turn_detection: {
           type: "server_vad",
@@ -49,9 +70,39 @@ const sessionConfig = {
     tools: [
       {
         type: "function",
+        name: "record_process_state",
+        description:
+          "Record an explicitly stated stable state, queue, resource, source, or sink as a candidate Petri-net place. Experiment instrumentation only.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            name: {
+              type: "string",
+              description: "A short name for the candidate place.",
+            },
+            description: {
+              type: "string",
+              description: "What it represents in the expert's process.",
+            },
+            category: {
+              type: "string",
+              description: "The kind of process state being recorded.",
+              enum: ["state", "queue", "resource", "source", "sink"],
+            },
+            tokenDescription: {
+              type: "string",
+              description: "What a token at this place represents, if known.",
+            },
+          },
+          required: ["name", "description", "category"],
+        },
+      },
+      {
+        type: "function",
         name: "record_process_step",
         description:
-          "Record a process step mentioned by the expert for experiment instrumentation only.",
+          "Record an explicitly stated activity, event, or handoff as a candidate Petri-net transition. Experiment instrumentation only.",
         parameters: {
           type: "object",
           additionalProperties: false,
@@ -67,6 +118,15 @@ const sessionConfig = {
             owner: {
               type: "string",
               description: "The role or team that owns the step, if known.",
+            },
+            trigger: {
+              type: "string",
+              description: "What enables or triggers the step, if known.",
+            },
+            timing: {
+              type: "string",
+              description: "The known timing behavior of the step.",
+              enum: ["immediate", "deterministic", "stochastic", "unknown"],
             },
           },
           required: ["name", "description"],
@@ -92,6 +152,66 @@ const sessionConfig = {
             },
           },
           required: ["condition", "outcomes"],
+        },
+      },
+      {
+        type: "function",
+        name: "record_process_flow",
+        description:
+          "Record an explicitly stated flow between candidate places and transitions as a candidate Petri-net arc. Experiment instrumentation only.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            from: {
+              type: "string",
+              description: "The source state or step named by the expert.",
+            },
+            to: {
+              type: "string",
+              description: "The destination state or step named by the expert.",
+            },
+            condition: {
+              type: "string",
+              description: "A condition on this flow, if one was stated.",
+            },
+          },
+          required: ["from", "to"],
+        },
+      },
+      {
+        type: "function",
+        name: "record_model_requirement",
+        description:
+          "Record an explicitly stated timing, capacity, metric, scenario, or assumption for the candidate model. Experiment instrumentation only.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            category: {
+              type: "string",
+              description: "The kind of model requirement being recorded.",
+              enum: ["timing", "capacity", "metric", "scenario", "assumption"],
+            },
+            description: {
+              type: "string",
+              description:
+                "The requirement as stated or confirmed by the expert.",
+            },
+          },
+          required: ["category", "description"],
+        },
+      },
+      {
+        type: "function",
+        name: "wait_for_user",
+        description:
+          "Use when the input is silence, background noise, playback, a side conversation, or speech not addressed to the interviewer. This is a silent no-op and must not be followed by a spoken response.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          properties: {},
+          required: [],
         },
       },
     ],
