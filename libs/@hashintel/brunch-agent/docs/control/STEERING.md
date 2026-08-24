@@ -41,6 +41,13 @@ entire CPS model from a blank conversation. It does need to prove a closed seman
 loop. A chat transcript beside a static fixture, an unexplained net mutation, or a test that injects
 wiring absent from the deployed entrypoint does not satisfy the outcome.
 
+## External gates
+
+| Gate | Owner and source | Watch trigger | Last checked | Consequence |
+| --- | --- | --- | --- | --- |
+| Confirm the business use case and whether review-and-revise supersedes create-new-net for September. | Dora; FE-1476 and the September Plan linked from `docs/INDEX.md` | Dora confirms or changes the scenario. | 2026-08-24 | Replan the proof spine and reconcile ADR-0004 if the confirmed use case requires cold-start creation. |
+| Recover or replace the truck-fleet source dossier named by FE-1357. | Owner unresolved/unknown; source: FE-1357 plus historical build ticket FE-1382; FE-1357 names branch `research/truck-fleet-dossier` and `docs/reference/research/truck-fleet-source-dossier.md` | The named branch/ref becomes available, or Frontier 0 selects a different sourced case. | 2026-08-24 — branch/ref unavailable in this checkout | Treat the dossier as an external evidence gap. Do not treat its branch-only path as a missing file in the current tree or use its claims as fixture provenance. |
+
 The proof spine is therefore:
 
 ```text

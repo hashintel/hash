@@ -15,15 +15,16 @@ honest recommendation. Do not paste the generated graph here or mirror issue sta
 ## Current sequencing recommendation
 
 As of **2026-08-24**, FE-1476 (the September demo delivery) changes the recommendation from generic
-package completion to a concrete CPS review-and-revise proof. After FE-1437 (the monorepo import)
-lands, open two fronts in parallel. The semantic front starts FE-1482 (the CPS plugin) against one
-worked fixture and settles FE-1480's requirements-model-to-SDCPN authority boundary before it
+package completion to a concrete CPS review-and-revise proof. FE-1437 crossed the authority
+threshold in this branch and is Ready for review; the work remains gated until the branch reaches
+`main`. Then open two fronts in parallel. The semantic front starts FE-1482 (the CPS plugin) against
+one worked fixture and settles FE-1480's requirements-model-to-SDCPN authority boundary before it
 implements a projector; FE-1478 (net-to-requirements provenance) is part of that spine from its
 first types. The experience front advances FE-1438 (machine client-tool round-trip) and FE-1439
 (private sessions) far enough for a new reviewer conversation to target an existing document,
 while FE-1477/FE-1440 share one provider-routing implementation. Join the fronts at FE-1479
-(targeted re-elicitation), then drive the same path through FE-1423's pre-exposure gates and
-FE-1441 deployment.
+(targeted re-elicitation), then drive the same path through FE-1423's pre-exposure gates and FE-1441
+deployment.
 
 FE-1393's generic Gherkin artifact and FE-1387's second-target contract freeze no longer gate the
 September proof. FE-1402, FE-1403, FE-1406, and FE-1431 supply only the completion, guidance,
