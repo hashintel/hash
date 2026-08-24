@@ -18,6 +18,7 @@ import {
 
 import { GherkinElicitor } from "./agents/gherkin-elicitor.ts";
 import { createGherkinElicitationSession } from "./elicitation-session.ts";
+import { defaultPanelOrigins } from "./local-dev-origins.ts";
 
 const inspect =
   process.env.BRUNCH_TRANSPORT_AISDK_INSPECT === "1"
@@ -52,8 +53,7 @@ const streamElicitorTurn = async (
 
 export const petrinautChatHandler = createAiSdkChatHandler({
   allowedOrigins: (
-    process.env.BRUNCH_PETRINAUT_ORIGINS ??
-    "http://127.0.0.1:4915,http://localhost:4915"
+    process.env.BRUNCH_PETRINAUT_ORIGINS ?? defaultPanelOrigins.join(",")
   )
     .split(",")
     .map((origin) => origin.trim())

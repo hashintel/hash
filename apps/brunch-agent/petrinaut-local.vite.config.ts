@@ -16,6 +16,11 @@ import {
   type PluginOption,
 } from "vite";
 
+import {
+  defaultChatOrigin,
+  petrinautLocalServer,
+} from "./src/local-dev-origins.ts";
+
 const withoutIncumbentChatHandler = (
   plugins: readonly PluginOption[],
 ): PluginOption[] =>
@@ -53,7 +58,7 @@ export default defineConfig(async (environment) => {
   if (!loaded)
     throw new Error(`Could not load Petrinaut's Vite config from ${root}.`);
 
-  const chatOrigin = process.env.BRUNCH_CHAT_ORIGIN ?? "http://127.0.0.1:4321";
+  const chatOrigin = process.env.BRUNCH_CHAT_ORIGIN ?? defaultChatOrigin;
   return mergeConfig(
     {
       ...loaded.config,
@@ -61,14 +66,7 @@ export default defineConfig(async (environment) => {
     },
     {
       root,
-      server: {
-        proxy: {
-          "/api/chat": {
-            target: chatOrigin,
-            changeOrigin: true,
-          },
-        },
-      },
+      server: petrinautLocalServer(chatOrigin),
     },
   );
 });
