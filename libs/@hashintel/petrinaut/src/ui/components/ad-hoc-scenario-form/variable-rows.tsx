@@ -9,10 +9,7 @@ import { use } from "react";
 
 import { Button, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import {
-  adHocTargetLabel,
-  toggleAdHocOptimize,
-} from "@hashintel/petrinaut-core";
+import { toggleAdHocOptimize } from "@hashintel/petrinaut-core";
 
 import { AdHocFormContext } from "./form-context";
 import {
@@ -29,11 +26,7 @@ import { removeAt, replaceVariable } from "./state";
 import { useGridNavigation } from "./use-grid-navigation";
 import { ValueEditor } from "./value-editor";
 
-import type {
-  AdHocScenarioState,
-  AdHocSynthesisContext,
-  AdHocVariable,
-} from "@hashintel/petrinaut-core";
+import type { AdHocVariable } from "@hashintel/petrinaut-core";
 
 const nameCellStyle = css({
   width: "[140px]",
@@ -65,9 +58,6 @@ export interface VariableRowsProps {
   placeId: string | null;
   variables: AdHocVariable[];
   onChange: (variables: AdHocVariable[]) => void;
-  optimizable: boolean;
-  formState: AdHocScenarioState;
-  context: AdHocSynthesisContext;
 }
 
 export const VariableRows: React.FC<VariableRowsProps> = ({
@@ -75,11 +65,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   placeId,
   variables,
   onChange,
-  optimizable,
-  formState,
-  context,
 }) => {
-  const { errorFor } = use(AdHocFormContext);
+  const { errorFor, optimizable } = use(AdHocFormContext);
   const grid = useGridNavigation();
 
   if (variables.length === 0) {
@@ -123,10 +110,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                 </td>
                 <td className={cellStyle}>
                   <ValueEditor
-                    label={adHocTargetLabel(target, formState, context)}
                     target={target}
                     value={variable}
-                    optimizable={optimizable}
                     integer={variable.type === "integer"}
                     booleanDomain={variable.type === "boolean"}
                     triggerRef={grid.register(index, 1)}

@@ -1,4 +1,7 @@
 /**
+ * @layerRoot ui.adhoc-form
+ * @role The inline Initial State + Parameters form compiling to a generated, never-persisted scenario
+ *
  * The ad-hoc scenario form: define Initial State + Parameters inline and let
  * the caller compile them through `synthesizeAdHocScenario` (plain runs) or
  * `synthesizeAdHocOptimization` (optimization). The generated scenario is
@@ -20,7 +23,6 @@ import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocSlotKey,
-  adHocTargetLabel,
   getAdHocDocumentUri,
   synthesizeAdHocOptimization,
   toggleAdHocOptimize,
@@ -127,6 +129,9 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   }
 
   const services: AdHocFormServices = {
+    formState: state,
+    synthesisContext: context,
+    optimizable,
     sessionId,
     uriFor: (slot: AdHocSlot) =>
       getAdHocDocumentUri(sessionId, adHocSlotKey(slot)),
@@ -202,7 +207,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                         </td>
                         <td className={cellStyle}>
                           <ValueEditor
-                            label={adHocTargetLabel(target, state, context)}
                             target={target}
                             value={entry}
                             display={
@@ -211,7 +215,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                                 : entry.expression ||
                                   `default (${parameter.defaultValue})`
                             }
-                            optimizable={optimizable}
                             integer={parameter.type === "integer"}
                             booleanDomain={parameter.type === "boolean"}
                             triggerRef={parametersGrid.register(
@@ -279,9 +282,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
             placeId={null}
             variables={state.variables}
             onChange={(variables) => onChange({ ...state, variables })}
-            optimizable={optimizable}
-            formState={state}
-            context={context}
           />
           <div className={sectionHeaderActionsStyle}>
             <Button
@@ -314,9 +314,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                     place={place}
                     colour={colour}
                     state={placeState}
-                    optimizable={optimizable}
-                    formState={state}
-                    context={context}
                     onChange={(next) =>
                       onChange(
                         updatePlace(state, place.id, context, () => next),
@@ -331,9 +328,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
                     key={place.id}
                     place={place}
                     state={placeState}
-                    optimizable={optimizable}
-                    formState={state}
-                    context={context}
                     onChange={(next) =>
                       onChange(
                         updatePlace(state, place.id, context, () => next),

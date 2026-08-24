@@ -1,14 +1,30 @@
 /**
- * Services the form provides to every value slot beneath it: the LSP session
- * the slots' Monaco documents belong to, and per-slot error lookup joining
- * synthesis errors with LSP diagnostics through `adHocSlotKey`.
+ * Everything the form provides to the slots beneath it, so per-slot
+ * components carry only their own value and location:
+ *
+ * - the whole form state and the net context, for attribution labels and
+ *   place totals;
+ * - whether Optimize controls exist at all in this consumer;
+ * - the LSP session the slots' Monaco documents belong to;
+ * - per-slot error lookup, joining synthesis errors with LSP diagnostics
+ *   through `adHocSlotKey`.
  */
 
 import { createContext } from "react";
 
-import type { AdHocSlot } from "@hashintel/petrinaut-core";
+import type {
+  AdHocScenarioState,
+  AdHocSlot,
+  AdHocSynthesisContext,
+} from "@hashintel/petrinaut-core";
 
 export interface AdHocFormServices {
+  /** The whole form state, as currently edited. */
+  formState: AdHocScenarioState;
+  /** The net the form resolves names and types against. */
+  synthesisContext: AdHocSynthesisContext;
+  /** Whether Optimize controls exist at all in this consumer. */
+  optimizable: boolean;
   /** The ad-hoc LSP session id, or empty when no language client is wired. */
   sessionId: string;
   /** The first error attached to a slot: a synthesis error, else an LSP diagnostic. */
@@ -18,6 +34,9 @@ export interface AdHocFormServices {
 }
 
 export const AdHocFormContext = createContext<AdHocFormServices>({
+  formState: { variables: [], netParameters: [], places: {} },
+  synthesisContext: { netParameters: [], places: [], types: [] },
+  optimizable: false,
   sessionId: "",
   errorFor: () => undefined,
   uriFor: () => "",

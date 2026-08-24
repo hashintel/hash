@@ -1,0 +1,233 @@
+---
+title: The ad-hoc scenario form
+description: How an inline Initial State + Parameters definition becomes a generated scenario, an optimization manifest, and a live-type-checked spreadsheet.
+sidebar_order: 10
+attachTo: ui.adhoc-form
+---
+
+import { Lanes } from "@diagrams/lanes";
+import { Pipeline } from "@diagrams/pipeline";
+import { Sequence } from "@diagrams/sequence";
+
+The ad-hoc form lets a user define Initial State and Parameters inline —
+without saving a [scenario](layer:core.simulation.authoring) — and compiles
+what they enter through a scenario **generated at run time and never
+persisted**. Three consumers mount the same component: quick simulation and
+plain experiment creation with Optimize off, optimization experiments with
+Optimize on.
+
+The design is the scenario **code editor's model, constrained**: everything
+the form can express synthesizes to code-mode scenario source that the
+existing `compileScenario` already evaluates, so the compiler is untouched.
+
+## The three shapes
+
+Everything flows through three types declared in
+`core/simulation/authoring/scenario/ad-hoc-scenario.ts`:
+
+<Pipeline
+  title="From form state to the pipeline"
+  steps={[
+    {
+      label: "AdHocScenarioState",
+      note: "The form's editing model: Variables at two scopes, net-parameter overrides, per-place token rows",
+    },
+    {
+      label: "synthesize",
+      note: "Validates names, expressions, bounds; emits code-mode scenario source",
+    },
+    {
+      label: "AdHocSynthesisOutput",
+      note: "A generated `Scenario` plus one `AdHocOptimizedField` per enabled Optimize toggle",
+    },
+    {
+      label: "Downstream",
+      note: "`output.scenario` feeds compileScenario; `adHocOptimizationBindings(fields)` fills a manifest's parameterBindings",
+    },
+  ]}
+/>
+
+`synthesizeAdHocScenario` is the plain-run entry (Optimize ignored, scenario
+only); `synthesizeAdHocOptimization` is the optimization entry (full output).
+Each `AdHocOptimizedField` carries the generated parameter's deterministic
+`adhoc.*` name, its typed domain, its target path, and an attribution label
+(`Space › item 0 › x`) — the join key from optimization results back to the
+thing the user selected.
+
+## Slots: one join key for errors, diagnostics, and cells
+
+A **target** names a value-carrying location (`cell`, `column`, `count`,
+`variable`, `netParameter`); a **slot** is a target plus a part
+(`expression`, `min`, `max`, `step`, `name`). `adHocSlotKey(slot)` renders a
+stable, path-safe string used three ways:
+
+- synthesis errors carry their slot, so the form renders each error on the
+  editor it belongs to;
+- the [LSP session](layer:core.lsp) names each slot's virtual TypeScript
+  document `…/_temp/adhoc/<session>/values/<slotKey>.ts`, so diagnostics map
+  back the same way;
+- the form computes the same key when rendering, closing the loop.
+
+A cell superseded by a shared column passes its **column's** target, so the
+shared value's problems surface on every cell it derives.
+
+## Type checking end to end
+
+<Sequence
+  title="One keystroke, both checkers"
+  actors={["Form (main thread)", "LSP worker"]}
+  rows={[
+    {
+      phase:
+        "On the main thread, every render dry-runs synthesizeAdHocOptimization and maps its slot-anchored errors (bounds rules, name collisions, …) to the cells.",
+    },
+    {
+      direction: "right",
+      label: "`temp/adhoc/didChange`",
+      note: "The whole `AdHocScenarioState`, via `updateAdHocSession`",
+    },
+    {
+      phase:
+        "The worker regenerates one wrapped TypeScript document per non-empty slot, scoped like the generated code.",
+    },
+    {
+      direction: "left",
+      label: "`publishDiagnostics`",
+      note: "Per slot-document URI; the form joins them back by `adHocSlotKey`",
+    },
+  ]}
+/>
+
+The worker generates one wrapped document per non-empty slot, with the scope
+the generated code will actually have: `parameters.<name>` ambiently,
+top-level Variables as `scenario.<name>`, and — inside a place's rows — the
+per-place Variables declared **in order** plus `i` and `count`, so a Variable
+referencing itself or a later sibling fails in the editor exactly as it would
+at run time. Optimize bounds see only the constant scope, so `i` in a bound is
+a type error. An open cell is a Monaco document with inline markers; a closed
+cell underlines in red and carries the first synthesis error or diagnostic as
+its tooltip.
+
+## The expression vocabulary
+
+| Written as          | Resolves to                                                                    |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `parameters.<name>` | a net parameter (override-aware)                                               |
+| `scenario.<name>`   | a top-level Variable (they stand in for scenario parameters)                   |
+| bare identifier     | a per-place Variable, in its place's rows                                      |
+| `i`, `count`        | per row: position and row count (fixed rows: `i` = list position, `count` = 1) |
+
+In generated code the compiler's `scenario` object (which carries the
+generated `adhoc.*` values during optimization) is captured as
+`__adhocParams` before the Variables shadow `scenario`, in both the
+initial-state body and wrapped override expressions.
+
+## Who owns what
+
+<Lanes
+  title="The component split"
+  lanes={[
+    {
+      title: "core.simulation.authoring",
+      accent: "core",
+      boxes: [
+        {
+          label: "ad-hoc-scenario.ts",
+          note: "Shapes, transitions (toggle / share / row kind), synthesis, slots, labels, place totals",
+        },
+      ],
+    },
+    {
+      title: "core.lsp",
+      accent: "core",
+      boxes: [
+        {
+          label: "generateAdHocSessionFiles",
+          note: "One wrapped virtual document per non-empty slot",
+        },
+        {
+          label: "temp/adhoc/* protocol",
+          note: "Session lifecycle in the worker, mirroring scenario sessions",
+        },
+      ],
+    },
+    {
+      title: "ui.adhoc-form",
+      accent: "ui",
+      boxes: [
+        {
+          label: "ad-hoc-scenario-form.tsx",
+          note: "Sections, the LSP session, the error map, the AdHocFormContext provider",
+        },
+        {
+          label: "token-table.tsx",
+          note: "The spreadsheet: gutter kind menu, strips, shared columns, phantom row, totals",
+        },
+        {
+          label: "value-editor.tsx",
+          note: "The in-place cell editor: Monaco, bounds, the Optimize pill",
+        },
+        {
+          label: "variable-rows / optimize-toggle / form-table / state / hooks",
+          note: "Rows, the labeled toggle, the shared spreadsheet grammar, pure state helpers",
+        },
+      ],
+    },
+    {
+      title: "Consumers",
+      accent: "ui",
+      boxes: [
+        {
+          label: "Quick simulation drawer",
+          note: "react.simulation compiles the generated scenario per run",
+        },
+        {
+          label: "Create-experiment drawer",
+          note: "react.experiments compiles it at experiment start",
+        },
+        {
+          label: "Create-optimization drawer",
+          note: "Optimized fields become manifest parameterBindings",
+        },
+      ],
+    },
+  ]}
+/>
+
+`AdHocFormContext` is the internal seam: the form provides the whole editing
+state, the net context, the Optimize availability, the LSP session id, and
+per-slot error/URI lookup, so the components beneath carry only their own
+value and location.
+
+## Mounting the form
+
+```tsx
+const [state, setState] = useState<AdHocScenarioState>(EMPTY_AD_HOC_STATE);
+
+<AdHocScenarioForm
+  state={state}
+  onChange={setState}
+  context={{ netParameters, places, types }} // from the SDCPN
+  optimizable={false} // true only in the optimization drawer
+/>;
+```
+
+The form runs its own LSP session against `LanguageClientContext`; with the
+default no-op client (tests, stories without the provider) it degrades to
+synthesis-only validation. State is plain data — hold it wherever the consumer
+already keeps its draft (component state in the drawers, `SimulationContext`
+for quick simulation) and hand `output.scenario` to `compileScenario` when the
+user runs.
+
+## Invariants worth knowing
+
+- **Nothing is ever thrown away.** Toggling Optimize retains the expression
+  and the previous bounds; changing a row's kind retains its count; releasing
+  a shared column restores every cell exactly, including held Optimize state.
+- **Generated names are deterministic** (`adhoc.<place>.r<row>.<field>`,
+  `adhoc.count.<place>`, `adhoc.var.net.<name>`, `adhoc.param.<name>`), so
+  optimization results attribute across runs; place-name duplicates among
+  participating places are a synthesis error because the generated initial
+  state is keyed by place name.
+- **The generated scenario is never persisted** — no consumer writes it into
+  the net file, and the experiments table shows it as "Ad-hoc scenario".
