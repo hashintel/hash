@@ -9,9 +9,10 @@
  *
  * Three consumers share it: Quick Simulation and plain experiment creation
  * render it with `selection` "none"; optimization experiments render it
- * with "optimize", which grows an Optimize toggle on every value slot; a
- * classical scenario editor renders it with "controls", where the same
- * toggle exposes the value as a control over the state.
+ * with "optimize", which grows an Optimize toggle on every value slot. A
+ * third mode, "controls", relabels the same toggle as Control for a future
+ * classical scenario editor exposing values as controls over the state —
+ * today only a story exercises it.
  *
  * The form runs its own ad-hoc LSP session, so every expression is
  * type-checked live: open editors are Monaco documents with inline markers,
