@@ -22,13 +22,23 @@ import type {
   AdHocValueTarget,
 } from "@hashintel/petrinaut-core";
 
+/**
+ * What selecting a value means in this consumer: nothing, marking it for
+ * the optimizer, or exposing it as a control over the scenario's state.
+ */
+export type AdHocFormSelection = "none" | "optimize" | "controls";
+
+/** The visible name of the selection toggle ("Optimize" / "Control"). */
+export const adHocSelectionText = (selection: AdHocFormSelection): string =>
+  selection === "controls" ? "Control" : "Optimize";
+
 export interface AdHocFormServices {
   /** The whole form state, as currently edited. */
   formState: AdHocScenarioState;
   /** The net the form resolves names and types against. */
   synthesisContext: AdHocSynthesisContext;
-  /** Whether Optimize controls exist at all in this consumer. */
-  optimizable: boolean;
+  /** What selecting a value means here; "none" hides the toggles. */
+  selection: AdHocFormSelection;
   /** The ad-hoc LSP session id, or empty when no language client is wired. */
   sessionId: string;
   /** The first error attached to a slot: a synthesis error, else an LSP diagnostic. */
@@ -44,7 +54,7 @@ export interface AdHocFormServices {
 export const AdHocFormContext = createContext<AdHocFormServices>({
   formState: { variables: [], netParameters: [], places: {} },
   synthesisContext: { netParameters: [], places: [], types: [] },
-  optimizable: false,
+  selection: "none",
   sessionId: "",
   errorFor: () => undefined,
   uriFor: () => "",

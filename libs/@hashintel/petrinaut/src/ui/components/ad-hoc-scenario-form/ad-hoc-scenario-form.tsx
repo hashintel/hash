@@ -8,8 +8,10 @@
  * never persisted; this component only edits `AdHocScenarioState`.
  *
  * Three consumers share it: Quick Simulation and plain experiment creation
- * render it with `optimizable` off; optimization experiments render it with
- * `optimizable` on, which grows an Optimize control on every value slot.
+ * render it with `selection` "none"; optimization experiments render it
+ * with "optimize", which grows an Optimize toggle on every value slot; a
+ * classical scenario editor renders it with "controls", where the same
+ * toggle exposes the value as a control over the state.
  *
  * The form runs its own ad-hoc LSP session, so every expression is
  * type-checked live: open editors are Monaco documents with inline markers,
@@ -49,7 +51,7 @@ import {
 } from "./use-form-navigation";
 import { VariableRows } from "./variable-rows";
 
-import type { AdHocFormServices } from "./form-context";
+import type { AdHocFormSelection, AdHocFormServices } from "./form-context";
 import type {
   AdHocNetParameter,
   AdHocScenarioState,
@@ -68,8 +70,8 @@ export interface AdHocScenarioFormProps {
   state: AdHocScenarioState;
   onChange: (state: AdHocScenarioState) => void;
   context: AdHocSynthesisContext;
-  /** Grows the Optimize selection on every value slot. */
-  optimizable: boolean;
+  /** What selecting a value means; "none" hides the toggles. */
+  selection: AdHocFormSelection;
 }
 
 /**
@@ -106,7 +108,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   state,
   onChange,
   context,
-  optimizable,
+  selection,
 }) => {
   const sessionId = useAdHocLspSession(state);
   const { diagnosticsByUri } = use(LanguageClientContext);
@@ -144,7 +146,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   const services: AdHocFormServices = {
     formState: state,
     synthesisContext: context,
-    optimizable,
+    selection,
     sessionId,
     uriFor: (slot: AdHocSlot) =>
       getAdHocDocumentUri(sessionId, adHocSlotKey(slot)),

@@ -9,7 +9,7 @@ import { use } from "react";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { toggleAdHocOptimize } from "@hashintel/petrinaut-core";
 
-import { AdHocFormContext } from "./form-context";
+import { AdHocFormContext, adHocSelectionText } from "./form-context";
 import {
   cellStyle,
   dependencyHighlightStyle as highlightStyle,
@@ -63,7 +63,7 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({
   entries,
   onEntryChange,
 }) => {
-  const { synthesisContext, optimizable, highlight } = use(AdHocFormContext);
+  const { synthesisContext, selection, highlight } = use(AdHocFormContext);
   const { register, onKeyDown, attach } = useNavigationGrid();
 
   const entryFor = (parameterId: string): AdHocNetParameter =>
@@ -118,7 +118,7 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({
                     onChange={(value) => onEntryChange({ ...entry, ...value })}
                   />
                 </td>
-                {optimizable ? (
+                {selection !== "none" ? (
                   <td
                     className={cx(
                       cellStyle,
@@ -128,7 +128,8 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({
                     style={{ width: 92 }}
                   >
                     <OptimizeToggle
-                      label={`Optimize ${parameter.name}`}
+                      text={adHocSelectionText(selection)}
+                      label={`${adHocSelectionText(selection)} ${parameter.name}`}
                       value={entry.optimize !== null}
                       buttonRef={register(parameterIndex, 1)}
                       onKeyDown={onKeyDown(parameterIndex, 1)}

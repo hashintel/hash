@@ -17,7 +17,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { toggleAdHocOptimize } from "@hashintel/petrinaut-core";
 
 import { adHocVariableKey } from "./dependency-highlight";
-import { AdHocFormContext } from "./form-context";
+import { AdHocFormContext, adHocSelectionText } from "./form-context";
 import {
   cellInputStyle,
   cellSelectStyle,
@@ -26,6 +26,7 @@ import {
   gutterButtonStyle,
   gutterCellStyle,
   phantomCellButtonStyle,
+  phantomGutterTextStyle,
   tableContainerStyle,
   tableStyle,
 } from "./form-table";
@@ -216,7 +217,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   variables,
   onChange,
 }) => {
-  const { errorFor, optimizable, highlight, setFocusedValue } =
+  const { errorFor, selection, highlight, setFocusedValue } =
     use(AdHocFormContext);
   const { register, onKeyDown, attach } = useNavigationGrid();
   const gutterRefs = useRef(new Map<number, HTMLButtonElement>());
@@ -314,7 +315,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                       setMenu({ index, anchor: event.currentTarget })
                     }
                   >
-                    #{index + 1}
+                    <span aria-hidden="true">𝑥</span>
                   </button>
                   {menu?.index === index ? (
                     <GutterMenu
@@ -393,6 +394,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     rowHighlight,
                   )}
                   onKeyDownCapture={selectCellKeyDown(index)}
+                  onFocus={() => setFocusedValue(target)}
+                  onBlur={() => setFocusedValue(null)}
                 >
                   <Select
                     required
@@ -432,12 +435,13 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     }
                   />
                 </td>
-                {optimizable ? (
+                {selection !== "none" ? (
                   <td
                     className={cx(cellStyle, optimizeCellStyle, rowHighlight)}
                   >
                     <OptimizeToggle
-                      label={`Optimize ${variable.name}`}
+                      text={adHocSelectionText(selection)}
+                      label={`${adHocSelectionText(selection)} ${variable.name}`}
                       value={variable.optimize !== null}
                       buttonRef={register(index, 4)}
                       onKeyDown={onKeyDown(index, 4)}
@@ -459,7 +463,12 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
           {/* The trailing line materializes a fresh Variable; one cell,
               reachable with ArrowDown from any cell of the row above. */}
           <tr>
-            <td colSpan={optimizable ? 5 : 4} className={cellStyle}>
+            <td className={cx(gutterCellStyle, gutterColumnStyle)}>
+              <span className={phantomGutterTextStyle} aria-hidden="true">
+                +
+              </span>
+            </td>
+            <td colSpan={selection !== "none" ? 3 : 2} className={cellStyle}>
               <button
                 ref={(element) => {
                   phantomRef.current = element;

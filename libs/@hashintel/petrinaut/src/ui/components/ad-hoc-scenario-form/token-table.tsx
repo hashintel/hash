@@ -40,11 +40,11 @@ import { AdHocFormContext } from "./form-context";
 import {
   cellStyle,
   columnHeaderStyle,
-  footerRowStyle,
   gutterButtonStyle,
   gutterCellStyle,
   gutterHeaderStyle,
   phantomCellButtonStyle,
+  phantomGutterTextStyle,
   selectedRowCellStyle,
   tableContainerStyle,
   tableStyle,
@@ -135,8 +135,14 @@ const stripEditorOptimizedStyle = css({
   backgroundColor: "[transparent]",
 });
 
-const phantomGutterTextStyle = css({
-  opacity: "[0.45]",
+// The place total sits under the spreadsheet, outside it.
+const totalTextStyle = css({
+  textAlign: "right",
+  fontFamily: "mono",
+  fontSize: "[10px]",
+  color: "neutral.s80",
+  paddingX: "1",
+  marginTop: "[2px]",
 });
 
 export interface TokenTableProps {
@@ -152,7 +158,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   state,
   onChange,
 }) => {
-  const { formState, synthesisContext, optimizable } = use(AdHocFormContext);
+  const { formState, synthesisContext, selection } = use(AdHocFormContext);
   const elements = colour.elements;
   const columnCount = elements.length;
   // Nonces, so a repeat click re-triggers the editor's auto-open behaviour.
@@ -564,11 +570,14 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                     label: "Dynamic count",
                     checked: kind === "dynamic",
                   },
-                  ...(optimizable
+                  ...(selection !== "none"
                     ? [
                         {
                           id: "optimized",
-                          label: "Optimized count",
+                          label:
+                            selection === "controls"
+                              ? "Controlled count"
+                              : "Optimized count",
                           checked: kind === "optimized",
                         },
                       ]
@@ -669,177 +678,172 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   };
 
   return (
-    <div ref={attachZone} className={tableContainerStyle}>
-      <table className={tableStyle}>
-        <thead>
-          <tr>
-            <th aria-label="Row kind" className={gutterHeaderStyle} />
-            {elements.map((element, columnIndex) => {
-              const shared = Boolean(state.sharedColumns[element.name]);
-              return (
-                <th
-                  key={element.elementId}
-                  className={cx(columnHeaderStyle, shared && sharedWashStyle)}
-                >
-                  <Tooltip
-                    content={
-                      shared
-                        ? "Shared value — click to release the column"
-                        : "Click to share one value across the column"
-                    }
+    <>
+      <div ref={attachZone} className={tableContainerStyle}>
+        <table className={tableStyle}>
+          <thead>
+            <tr>
+              <th aria-label="Row kind" className={gutterHeaderStyle} />
+              {elements.map((element, columnIndex) => {
+                const shared = Boolean(state.sharedColumns[element.name]);
+                return (
+                  <th
+                    key={element.elementId}
+                    className={cx(columnHeaderStyle, shared && sharedWashStyle)}
                   >
-                    <button
-                      ref={(el) => {
-                        if (el) {
-                          headerRefs.current.set(columnIndex, el);
-                        } else {
-                          headerRefs.current.delete(columnIndex);
-                        }
-                      }}
-                      type="button"
-                      className={headerButtonStyle}
-                      aria-label={`Share column ${element.name}`}
-                      aria-pressed={shared}
-                      onKeyDown={(event) =>
-                        handleGridKeyDown(event, {
-                          kind: "header",
-                          column: columnIndex,
-                        })
-                      }
-                      onClick={() =>
-                        onChange(
-                          shared
-                            ? unshareAdHocColumn(state, element.name)
-                            : shareAdHocColumn(
-                                state,
-                                element.name,
-                                columnIndex,
-                              ),
-                        )
+                    <Tooltip
+                      content={
+                        shared
+                          ? "Shared value — click to release the column"
+                          : "Click to share one value across the column"
                       }
                     >
-                      {element.name}
-                    </button>
-                  </Tooltip>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-
-        {/* Shared values: one slot directly below each shared header. */}
-        {hasSharedColumns ? (
-          <tbody>
-            <tr>
-              <td className={gutterCellStyle} />
-              {elements.map((element, columnIndex) => {
-                const shared = state.sharedColumns[element.name];
-                if (!shared) {
-                  return <td key={element.elementId} className={cellStyle} />;
-                }
-                const target = {
-                  kind: "column" as const,
-                  placeId: place.id,
-                  column: columnIndex,
-                };
-                return (
-                  <td
-                    key={element.elementId}
-                    className={cx(cellStyle, sharedWashStyle)}
-                  >
-                    <ValueEditor
-                      value={shared}
-                      target={target}
-                      integer={element.type === "integer"}
-                      booleanDomain={element.type === "boolean"}
-                      autoOpen={
-                        sharedAutoOpen?.field === element.name
-                          ? sharedAutoOpen.nonce
-                          : 0
-                      }
-                      triggerRef={(el) => {
-                        if (el) {
-                          sharedRefs.current.set(columnIndex, el);
-                        } else {
-                          sharedRefs.current.delete(columnIndex);
+                      <button
+                        ref={(el) => {
+                          if (el) {
+                            headerRefs.current.set(columnIndex, el);
+                          } else {
+                            headerRefs.current.delete(columnIndex);
+                          }
+                        }}
+                        type="button"
+                        className={headerButtonStyle}
+                        aria-label={`Share column ${element.name}`}
+                        aria-pressed={shared}
+                        onKeyDown={(event) =>
+                          handleGridKeyDown(event, {
+                            kind: "header",
+                            column: columnIndex,
+                          })
                         }
-                      }}
-                      onTriggerKeyDown={(event) =>
-                        handleGridKeyDown(event, {
-                          kind: "shared",
-                          column: columnIndex,
-                        })
-                      }
-                      onChange={(next) =>
-                        onChange({
-                          ...state,
-                          sharedColumns: {
-                            ...state.sharedColumns,
-                            [element.name]: next,
-                          },
-                        })
-                      }
-                    />
-                  </td>
+                        onClick={() =>
+                          onChange(
+                            shared
+                              ? unshareAdHocColumn(state, element.name)
+                              : shareAdHocColumn(
+                                  state,
+                                  element.name,
+                                  columnIndex,
+                                ),
+                          )
+                        }
+                      >
+                        {element.name}
+                      </button>
+                    </Tooltip>
+                  </th>
                 );
               })}
             </tr>
-          </tbody>
-        ) : null}
+          </thead>
 
-        {state.rows.map((row, rowIndex) => renderDataRow(row, rowIndex))}
-
-        {/* Phantom trailing row: materializes on click. */}
-        <tbody>
-          <tr>
-            <td className={gutterCellStyle}>
-              <span className={phantomGutterTextStyle}>
-                #{state.rows.length + 1}
-              </span>
-            </td>
-            {elements.map((element, columnIndex) => (
-              <td
-                key={element.elementId}
-                className={cx(
-                  cellStyle,
-                  state.sharedColumns[element.name] && sharedWashStyle,
-                )}
-              >
-                <button
-                  ref={(el) => {
-                    const key = `${state.rows.length}-${columnIndex}`;
-                    if (el) {
-                      cellRefs.current.set(key, el);
-                    } else {
-                      cellRefs.current.delete(key);
-                    }
-                  }}
-                  type="button"
-                  className={phantomCellButtonStyle}
-                  aria-label={`Add a token row (${element.name})`}
-                  onClick={() => materializeRow(columnIndex)}
-                  onKeyDown={(event) =>
-                    handleGridKeyDown(event, {
-                      kind: "phantom",
-                      column: columnIndex,
-                    })
+          {/* Shared values: one slot directly below each shared header. */}
+          {hasSharedColumns ? (
+            <tbody>
+              <tr>
+                <td className={gutterCellStyle} />
+                {elements.map((element, columnIndex) => {
+                  const shared = state.sharedColumns[element.name];
+                  if (!shared) {
+                    return <td key={element.elementId} className={cellStyle} />;
                   }
-                />
-              </td>
-            ))}
-          </tr>
-        </tbody>
+                  const target = {
+                    kind: "column" as const,
+                    placeId: place.id,
+                    column: columnIndex,
+                  };
+                  return (
+                    <td
+                      key={element.elementId}
+                      className={cx(cellStyle, sharedWashStyle)}
+                    >
+                      <ValueEditor
+                        value={shared}
+                        target={target}
+                        integer={element.type === "integer"}
+                        booleanDomain={element.type === "boolean"}
+                        autoOpen={
+                          sharedAutoOpen?.field === element.name
+                            ? sharedAutoOpen.nonce
+                            : 0
+                        }
+                        triggerRef={(el) => {
+                          if (el) {
+                            sharedRefs.current.set(columnIndex, el);
+                          } else {
+                            sharedRefs.current.delete(columnIndex);
+                          }
+                        }}
+                        onTriggerKeyDown={(event) =>
+                          handleGridKeyDown(event, {
+                            kind: "shared",
+                            column: columnIndex,
+                          })
+                        }
+                        onChange={(next) =>
+                          onChange({
+                            ...state,
+                            sharedColumns: {
+                              ...state.sharedColumns,
+                              [element.name]: next,
+                            },
+                          })
+                        }
+                      />
+                    </td>
+                  );
+                })}
+              </tr>
+            </tbody>
+          ) : null}
 
-        <tfoot>
-          <tr>
-            <td colSpan={columnCount + 1} className={footerRowStyle}>
-              {total.resolved
-                ? `= ${total.total} tokens`
-                : `= ${total.text} tokens`}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+          {state.rows.map((row, rowIndex) => renderDataRow(row, rowIndex))}
+
+          {/* Phantom trailing row: materializes on click. */}
+          <tbody>
+            <tr>
+              <td className={gutterCellStyle}>
+                <span className={phantomGutterTextStyle} aria-hidden="true">
+                  +
+                </span>
+              </td>
+              {elements.map((element, columnIndex) => (
+                <td
+                  key={element.elementId}
+                  className={cx(
+                    cellStyle,
+                    state.sharedColumns[element.name] && sharedWashStyle,
+                  )}
+                >
+                  <button
+                    ref={(el) => {
+                      const key = `${state.rows.length}-${columnIndex}`;
+                      if (el) {
+                        cellRefs.current.set(key, el);
+                      } else {
+                        cellRefs.current.delete(key);
+                      }
+                    }}
+                    type="button"
+                    className={phantomCellButtonStyle}
+                    aria-label={`Add a token row (${element.name})`}
+                    onClick={() => materializeRow(columnIndex)}
+                    onKeyDown={(event) =>
+                      handleGridKeyDown(event, {
+                        kind: "phantom",
+                        column: columnIndex,
+                      })
+                    }
+                  />
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div className={totalTextStyle}>
+        {total.resolved ? `= ${total.total} tokens` : `= ${total.text} tokens`}
+      </div>
+    </>
   );
 };

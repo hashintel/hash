@@ -15,6 +15,7 @@ import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
 import { EMPTY_AD_HOC_STATE } from "./state";
 
 import type { SDCPNContextValue } from "../../../react/state/sdcpn-context";
+import type { AdHocFormSelection } from "./form-context";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -258,8 +259,8 @@ const toSdcpnContextValue = (
 const Demo: React.FC<{
   context: AdHocSynthesisContext;
   initial: AdHocScenarioState;
-  optimizable: boolean;
-}> = ({ context, initial, optimizable }) => {
+  selection: AdHocFormSelection;
+}> = ({ context, initial, selection }) => {
   const [state, setState] = useState(initial);
   return (
     <SDCPNContext value={toSdcpnContextValue(context)}>
@@ -270,7 +271,7 @@ const Demo: React.FC<{
               state={state}
               onChange={setState}
               context={context}
-              optimizable={optimizable}
+              selection={selection}
             />
           </div>
         </MonacoProvider>
@@ -281,7 +282,11 @@ const Demo: React.FC<{
 
 export const Satellites: Story = {
   render: () => (
-    <Demo context={satellitesContext} initial={satellitesState} optimizable />
+    <Demo
+      context={satellitesContext}
+      initial={satellitesState}
+      selection="optimize"
+    />
   ),
 };
 
@@ -290,35 +295,59 @@ export const SatellitesForPlainRuns: Story = {
     <Demo
       context={satellitesContext}
       initial={satellitesState}
-      optimizable={false}
+      selection="none"
     />
   ),
 };
 
-export const SatellitesOptimized: Story = {
+/** Optimization: select which values the optimizer searches over. */
+export const SatellitesOptimization: Story = {
   render: () => (
     <Demo
       context={satellitesContext}
       initial={optimizedSatellitesState}
-      optimizable
+      selection="optimize"
+    />
+  ),
+};
+
+/** Classical scenario: select which values are exposed as controls. */
+export const SatellitesScenarioControls: Story = {
+  render: () => (
+    <Demo
+      context={satellitesContext}
+      initial={optimizedSatellitesState}
+      selection="controls"
     />
   ),
 };
 
 export const SharedColumn: Story = {
   render: () => (
-    <Demo context={satellitesContext} initial={sharedColumnState} optimizable />
+    <Demo
+      context={satellitesContext}
+      initial={sharedColumnState}
+      selection="optimize"
+    />
   ),
 };
 
 export const TwoFieldModel: Story = {
   render: () => (
-    <Demo context={pumpsContext} initial={EMPTY_AD_HOC_STATE} optimizable />
+    <Demo
+      context={pumpsContext}
+      initial={EMPTY_AD_HOC_STATE}
+      selection="optimize"
+    />
   ),
 };
 
 export const EmptyNet: Story = {
   render: () => (
-    <Demo context={emptyContext} initial={EMPTY_AD_HOC_STATE} optimizable />
+    <Demo
+      context={emptyContext}
+      initial={EMPTY_AD_HOC_STATE}
+      selection="optimize"
+    />
   ),
 };
