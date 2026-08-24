@@ -170,7 +170,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
         </button>
         {collapsed ? (
           <span className={summaryStyle}>
-            {state.rows.length} row{state.rows.length === 1 ? "" : "s"} · ={" "}
+            {state.rows.length} row{state.rows.length === 1 ? "" : "s"} ·{" "}
             {totalText} tokens
           </span>
         ) : null}

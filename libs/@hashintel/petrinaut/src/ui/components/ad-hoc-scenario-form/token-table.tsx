@@ -45,6 +45,7 @@ import {
   gutterHeaderStyle,
   phantomCellButtonStyle,
   phantomGutterTextStyle,
+  phantomRowCellStyle,
   selectedRowCellStyle,
   tableContainerStyle,
   tableStyle,
@@ -105,7 +106,7 @@ const optimizedGutterTextStyle = css({
 const stripCellStyle = css({
   borderBottom: "none",
   padding: "[0 8px]",
-  height: "[18px]",
+  height: "[20px!]",
 });
 
 const stripInnerStyle = css({
@@ -122,8 +123,8 @@ const stripMarkStyle = css({
 });
 
 const stripEditorStyle = css({
-  minHeight: "[16px]",
-  height: "[16px]",
+  minHeight: "[16px!]",
+  height: "[16px!]",
   paddingY: "[0]",
   fontSize: "[10px]",
   color: "blue.s110",
@@ -802,7 +803,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
           {/* Phantom trailing row: materializes on click. */}
           <tbody>
             <tr>
-              <td className={gutterCellStyle}>
+              <td className={cx(gutterCellStyle, phantomRowCellStyle)}>
                 <span className={phantomGutterTextStyle} aria-hidden="true">
                   +
                 </span>
@@ -812,6 +813,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   key={element.elementId}
                   className={cx(
                     cellStyle,
+                    phantomRowCellStyle,
                     state.sharedColumns[element.name] && sharedWashStyle,
                   )}
                 >
@@ -842,7 +844,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
         </table>
       </div>
       <div className={totalTextStyle}>
-        {total.resolved ? `= ${total.total} tokens` : `= ${total.text} tokens`}
+        {total.resolved ? `${total.total} tokens` : `${total.text} tokens`}
       </div>
     </>
   );

@@ -131,6 +131,11 @@ export const dependencyHighlightStyle = css({
     "[linear-gradient(rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.12))]",
 });
 
+/** The add-line's cells are a little shorter than content rows. */
+export const phantomRowCellStyle = css({
+  height: "[22px!]",
+});
+
 /**
  * A phantom cell: an empty trailing row's click target, quieter than real
  * content, materializing a fresh entry on click or Enter.
@@ -139,7 +144,7 @@ export const phantomCellButtonStyle = css({
   display: "flex",
   alignItems: "center",
   width: "[100%]",
-  height: "[28px]",
+  height: "[22px]",
   border: "none",
   background: "[transparent]",
   padding: "[4px 8px]",

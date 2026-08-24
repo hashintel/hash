@@ -590,7 +590,7 @@ describe("AdHocScenarioForm", () => {
     // Left collapses the place to a one-line summary; the content stays
     // mounted (the collapse animates and turns inert). Right restores it.
     fireEvent.keyDown(placeHeader, { key: "ArrowLeft" });
-    expect(screen.getByText("1 row · = 1 tokens")).toBeTruthy();
+    expect(screen.getByText("1 row · 1 tokens")).toBeTruthy();
     expect(placeHeader.getAttribute("aria-expanded")).toBe("false");
     fireEvent.keyDown(placeHeader, { key: "ArrowRight" });
     expect(placeHeader.getAttribute("aria-expanded")).toBe("true");
@@ -799,6 +799,6 @@ describe("AdHocScenarioForm", () => {
       },
     };
     render(<Harness initial={initial} />);
-    expect(screen.getByText("= 1 + 0 … 10 tokens")).toBeTruthy();
+    expect(screen.getByText("1 + 0 … 10 tokens")).toBeTruthy();
   });
 });
