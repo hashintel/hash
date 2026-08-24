@@ -179,7 +179,7 @@ issue closes — a closing act, not a workspace.
 
 State a fact once; everywhere else links. Within an issue, a plan links to a decision, never
 restates it. Across issues, a sub-issue never re-explains a fact its parent's context already
-states. Long-form artifacts live in the repo (`docs/planning/<effort>/`) and are linked by
+states. Long-form artifacts live in the repo's role-based documentation zones and are linked by
 path, per `issue-tracker.md`.
 
 ## Voice and authority

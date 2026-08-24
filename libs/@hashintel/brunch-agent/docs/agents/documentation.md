@@ -23,11 +23,10 @@ and `docs/INDEX.md` remains the registry described below.
 Effort is metadata recorded in the index or document, not a placement rule. Do not create an
 effort-shaped documentation tree.
 
-`docs/planning/` and `docs/history/` are legacy paths pending one atomic migration. Existing files
-remain authoritative according to their present role until that migration repairs all external
-pointers and updates the index. Add no new files to either path, and do not describe the target
-topology as already physically complete. Do not create `evaluations/` until executable assets are
-actually promoted there.
+The role topology is physically authoritative. During the baseline follow-up only,
+`docs/planning/process-model-elicitation/baseline/**` remains at its legacy path; no other document
+may remain under `docs/planning/`, and `docs/history/` must stay empty. Add no files to either
+legacy path. Do not create `evaluations/` until executable assets are actually promoted there.
 
 External stores hold pointers or tracker facts, never the only repo-owned document. Before moving
 or deleting a path referenced from Linear, Notion, or another external store, repair every pointer;

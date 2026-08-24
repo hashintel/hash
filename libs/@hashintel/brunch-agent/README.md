@@ -6,7 +6,7 @@ This directory is its context and agent-session root, not a package workspace:
 
 - [`CONTEXT.md`](./CONTEXT.md) defines the domain language.
 - [`docs/adr/`](./docs/adr/) records governing decisions.
-- [`docs/spec.md`](./docs/spec.md) defines the harness contract.
+- [`docs/specs/elicitation-kernel.md`](docs/specs/elicitation-kernel.md) defines the harness contract.
 - [`docs/INDEX.md`](./docs/INDEX.md) indexes Brunch documentation.
 - [`packages/core/`](./packages/core/) is `@hashintel/brunch-agent`.
 - [`packages/binding-flue/`](./packages/binding-flue/) is the Flue binding.

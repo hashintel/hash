@@ -19,7 +19,7 @@ the history of these control surfaces.
 Always inspect `docs/inbox/` and `docs/INDEX.md` together.
 
 - Promote settled inbox material to its role-based home under `documentation.md`. Do not add to the
-  legacy `docs/planning/` or `docs/history/` paths; their existing contents await atomic migration.
+  legacy `docs/planning/` or `docs/history/` paths; only the transitional baseline remains.
 - Delete source material only when its durable information has been transferred and its
   consumption is named.
 - Ensure every document under `docs/` except `docs/INDEX.md` and `docs/agents/**` is indexed and
@@ -33,7 +33,7 @@ issue with no parent.
 
 - Every non-root issue must have a parent.
 - Every intentional root must be a recognized map or sweep root under the registry rule, or be
-  named under **Exceptional roots** in `docs/planning/_shared/COORDINATION.md`.
+  named under **Exceptional roots** in `docs/control/COORDINATION.md`.
 - Subject to [the issue tracker's external-write approval gate](issue-tracker.md#conventions),
   repair missing parentage in Linear when the intended owner is unambiguous; otherwise record the
   unresolved root in `COORDINATION.md`.
@@ -45,14 +45,14 @@ issue with no parent.
 
 ### 3. Reconcile the spec ledger when affected
 
-Update `docs/planning/_shared/SPEC-LEDGER.md` in the same change when the arc builds, disproves,
+Update `docs/control/SPEC-LEDGER.md` in the same change when the arc builds, disproves,
 supersedes, or changes evidence for a milestone-one specification obligation. Change the smallest
 affected set of rows; do not add an evaluation narrative. When milestone one closes, settle the
 ledger as a terminal record rather than keeping it artificially live.
 
 ### 4. Reassess project coordination when affected
 
-Reassess `docs/planning/_shared/COORDINATION.md` when the arc changes:
+Reassess `docs/control/COORDINATION.md` when the arc changes:
 
 - a hard blocker, issue parent, project membership, or exceptional root;
 - a soft `coord`, `input`, or `state-gate` edge;

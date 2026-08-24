@@ -56,7 +56,7 @@ Transcripts land in `transcripts/` and are committed as the experiment artifact.
 
 1. **Bano/Ferrari 34-mistake taxonomy**, via the operationalized Likert questionnaire
    (verbatim in
-   [../research/re-interviewing-literature-worker-report.md](../research/re-interviewing-literature-worker-report.md)),
+   [../research/re-interviewing-literature-worker-report.md](../../../reference/research/elicitation/interviewing-literature-source-catalog.md)),
    scored per LLMREI practice: Question Formulation, Question Omission, Order of Interview,
    Communication Skills, Customer Interaction (Analyst Behaviour and Teamwork & Planning
    dropped as inapplicable to a text-only single agent).

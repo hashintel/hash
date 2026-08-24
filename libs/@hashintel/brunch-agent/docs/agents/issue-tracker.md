@@ -105,7 +105,7 @@ in the `brunch-agent` project. Nothing else — no label, no team, no root-walki
 belonging. Within the project, every issue must additionally be **reachable from a root**: either
 it is a sub-issue (directly or transitively) of a root map — currently FE-1383 (build) and
 FE-1357 (demo + plugin spec) — or a sub-issue of a named sweep ticket (FE-1401-style), or it
-_is_ a root and `docs/planning/_shared/COORDINATION.md` names it under **Exceptional roots**. An
+_is_ a root and `docs/control/COORDINATION.md` names it under **Exceptional roots**. An
 issue in the project but reachable from no root is captured-then-orphaned, the failure mode this
 rule exists to stop. Set the parent at creation (`--parent FE-XXXX`), not in a later sweep.
 
@@ -124,9 +124,8 @@ candidate orphans continuously; its only legitimate rows are the roots themselve
 ## Historical note
 
 Before 2026-08-11 this repo tracked issues as local markdown under `.scratch/<feature-slug>/`
-(map at `map.md`, tickets at `issues/NN-<slug>.md`; live trees moved under `docs/planning/`,
-completed ones under `docs/history/planning/`). The completed `elicitation-kernel` effort
-remains in that form as the canonical archive (now at `docs/history/planning/elicitation-kernel/`), and is **mirrored in Linear for team
+(map at `map.md`, tickets at `issues/NN-<slug>.md`). The completed `elicitation-kernel` effort
+remains in that form as the canonical archive (now at `docs/archive/elicitation-kernel/`), and is **mirrored in Linear for team
 visibility** as FE-1366 (map) with sub-issues FE-1367–FE-1379, all Done, blocking relations
 preserved. New efforts go to Linear directly.
 
