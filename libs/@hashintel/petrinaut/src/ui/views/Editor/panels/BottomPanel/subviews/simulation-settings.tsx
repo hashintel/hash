@@ -10,13 +10,14 @@ import {
   Toggle,
 } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Slider } from "../../../../../components/slider";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
-import { AdHocScenarioDrawer } from "../../SimulateView/scenarios/ad-hoc-scenario-drawer";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
 
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -75,10 +76,29 @@ const parameterSliderInputStyles = css({
 
 const containerStyle = css({
   display: "grid",
-  gridTemplateColumns: "[1fr 1fr]",
   gap: "8",
   flex: "[1]",
   minHeight: "[0]",
+});
+
+// Two columns with a saved scenario; a third, widest, carries the inline
+// initial-state form when no scenario is selected.
+const twoColumnContainerStyle = css({
+  gridTemplateColumns: "[1fr 1fr]",
+});
+
+const threeColumnContainerStyle = css({
+  gridTemplateColumns: "[1fr 1.4fr 0.7fr]",
+});
+
+const initialStateTitleRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+});
+
+const initialStateSpacerStyle = css({
+  flex: "[1]",
 });
 
 // Left column: the scenario picker and the parameters list share one width.
@@ -309,7 +329,7 @@ const SimulationSettingsContent: React.FC = () => {
   const { navigateTo, setSimulateDrawer } = use(EditorContext);
   const {
     extensions,
-    petriNetDefinition: { parameters, scenarios },
+    petriNetDefinition: { parameters, scenarios, places, types },
   } = use(SDCPNContext);
   const globalParameters = extensions.parameters ? parameters : [];
   const {
@@ -323,11 +343,12 @@ const SimulationSettingsContent: React.FC = () => {
     scenarioParameterValues,
     setScenarioParameterValue,
     scenarioCompilationErrors,
+    adHocScenario,
+    setAdHocScenario,
   } = use(SimulationContext);
 
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
-  const [isAdHocOpen, setIsAdHocOpen] = useState(false);
 
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
@@ -370,12 +391,15 @@ const SimulationSettingsContent: React.FC = () => {
         onClose={() => setIsViewScenarioOpen(false)}
         scenario={selectedScenario}
       />
-      <AdHocScenarioDrawer
-        open={isAdHocOpen}
-        onClose={() => setIsAdHocOpen(false)}
-      />
 
-      <div className={containerStyle}>
+      <div
+        className={cx(
+          containerStyle,
+          selectedScenario
+            ? twoColumnContainerStyle
+            : threeColumnContainerStyle,
+        )}
+      >
         {/* Scenario & Parameters Column */}
         <div className={scenarioColumnStyle}>
           {/* Scenario Picker */}
@@ -436,16 +460,6 @@ const SimulationSettingsContent: React.FC = () => {
                   tooltip="Edit Scenario"
                   iconName="pencil"
                   onClick={() => setIsViewScenarioOpen(true)}
-                />
-              )}
-              {!selectedScenario && (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  aria-label="Define initial state"
-                  tooltip="Define initial state for this run, without saving a scenario"
-                  iconName="pencil"
-                  onClick={() => setIsAdHocOpen(true)}
                 />
               )}
               <Button
@@ -620,6 +634,45 @@ const SimulationSettingsContent: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Initial state: with no scenario selected, the ad-hoc form edits
+            token counts and values for this run directly here — no drawer,
+            no separate edition step. The panel's parameter inputs stay the
+            single owner of parameter values (the form gets no netParameters)
+            and this embedding offers no scenario Variables. */}
+        {!selectedScenario && (
+          <div className={cx(sectionStyle, fillSectionStyle)}>
+            <div className={initialStateTitleRowStyle}>
+              <div className={sectionTitleStyle}>Initial state</div>
+              <HelpTooltip content="Token counts and values for this run, without saving a scenario. Every value is an expression and may read parameters.<name>." />
+              <span className={initialStateSpacerStyle} />
+              {adHocScenario ? (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  tone="neutral"
+                  onClick={() => setAdHocScenario(null)}
+                >
+                  Clear
+                </Button>
+              ) : null}
+            </div>
+            <ParametersScrollArea>
+              <AdHocScenarioForm
+                state={adHocScenario ?? EMPTY_AD_HOC_STATE}
+                onChange={setAdHocScenario}
+                context={{
+                  netParameters: [],
+                  places,
+                  types: extensions.colors ? types : [],
+                }}
+                selection="none"
+                withVariables={false}
+                bare
+              />
+            </ParametersScrollArea>
+          </div>
+        )}
 
         {/* Computation Section */}
         <div className={sectionStyle}>
