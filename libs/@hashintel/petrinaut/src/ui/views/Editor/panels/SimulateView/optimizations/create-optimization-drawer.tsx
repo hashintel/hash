@@ -1074,7 +1074,7 @@ export const CreateOptimizationDrawer = ({
                       places: petriNetDefinition.places,
                       types: extensions.colors ? petriNetDefinition.types : [],
                     }}
-                    optimizable
+                    selection="optimize"
                   />
                 </Section>
               )}
