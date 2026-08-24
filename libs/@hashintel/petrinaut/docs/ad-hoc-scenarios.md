@@ -1,6 +1,6 @@
 # Ad-hoc Scenarios
 
-An **ad-hoc scenario** is an initial state and a set of parameter values defined inline, right where you run -- without saving a [scenario](scenarios.md) first. Petrinaut compiles what you enter through a scenario generated for that run. Nothing is added to the net's scenario list, and closing the form discards nothing: your entries stay until you clear them or close the drawer that owns them.
+An **ad-hoc scenario** is an initial state and a set of parameter values defined inline, right where you run -- without saving a [scenario](scenarios.md) first. Petrinaut compiles what you enter through a scenario generated for that run. Nothing is added to the net's scenario list, and leaving the form discards nothing: your entries stay until you clear them.
 
 Use an ad-hoc scenario for one-off runs and quick exploration. When you want to keep a configuration, name it, or compare several setups, [create a scenario](scenarios.md#creating-a-scenario).
 
@@ -8,7 +8,7 @@ Use an ad-hoc scenario for one-off runs and quick exploration. When you want to 
 
 The same form appears in three places, always when **no scenario is selected**:
 
-1. **Quick simulation** -- in the [Simulation Settings](simulation.md#simulation-settings) tab, with "No scenario" selected, a pencil button next to the scenario picker opens the **Define initial state** drawer. The next simulation run uses what you defined. Any [compile error](#errors) appears in the settings panel's error banner.
+1. **Quick simulation** -- in the [Simulation Settings](simulation.md#simulation-settings) tab, with "No scenario" selected, the **Initial state** column edits token counts and values directly in the panel -- no separate dialog. A **Clear** button appears next to the column's title once you have entries. This embedding shows only the initial state: the panel's own parameter inputs set parameter values, and there are no Variables here. The next simulation run uses what you defined. Any [compile error](#errors) appears in the settings panel's error banner.
 2. **Experiments** -- in the [create-experiment drawer](experiments.md#creating-an-experiment), choosing "No scenario" shows the form inside the Scenario section. The experiment's runs start from the state you defined, and the experiments table shows "Ad-hoc scenario" in its Scenario column.
 3. **Optimizations** -- in the [create-optimization drawer](optimization.md#creating-an-optimization), the scenario picker offers **Ad-hoc (define inline)**. This is the only surface where the form shows **Optimize** controls (see below).
 
@@ -16,11 +16,11 @@ The same form appears in three places, always when **no scenario is selected**:
 
 The form has up to three sections:
 
-- **Parameters** -- one row per [net-level parameter](petri-net-extensions.md#global-parameters), showing its type and its default. Enter an expression to override a value for this run. This section appears in the experiment and optimization drawers; the quick-simulation drawer omits it because the Simulation Settings panel already has parameter inputs.
-- **Variables** -- named values (real, integer, or boolean) written as `scenario.<name>` in every expression below, exactly as scenario parameters are written in scenario code. Use them to drive many values from one number. Add one from the dimmed **Add a variable** line at the bottom of the list -- click it, or reach it with the down arrow from the last row; the fresh name opens ready to type. Each row starts with a small variable-glyph gutter whose menu offers **Delete variable**, and the add line's gutter shows a `+`. A variable's name edits like any other cell: select it, then press Enter (or click again) to edit, and Enter or Escape to leave. Its type select is a cell too: arrow keys move past it, Enter opens it.
+- **Parameters** -- one row per [net-level parameter](petri-net-extensions.md#global-parameters), showing its type and its default. Enter an expression to override a value for this run. This section appears in the experiment and optimization drawers; the quick-simulation embedding omits it because the Simulation Settings panel already has parameter inputs.
+- **Variables** -- named values (real, integer, or boolean) written as `scenario.<name>` in every expression below, exactly as scenario parameters are written in scenario code. Use them to drive many values from one number. Add one from the dimmed **Add a variable** line at the bottom of the list -- click it, or reach it with the down arrow from the last row; the fresh name opens ready to type. Each row starts with a small variable-glyph gutter whose menu offers **Delete variable**, and the add line's gutter shows a `+`. A variable's name edits like any other cell: select it, then press Enter (or click again) to edit, and Enter or Escape to leave. Its type select is a cell too: arrow keys move past it, Enter opens it. The quick-simulation embedding offers no Variables; per-place variables inside Initial state remain available everywhere.
 - **Initial state** -- one block per place in the net.
 
-Each section collapses: click the chevron in its header, or focus the header and press Left to collapse and Right to expand. Place headers inside Initial state collapse the same way, and a collapsed place shows a one-line summary of its rows and token total.
+In the experiment and optimization drawers each section collapses: click the chevron in its header, or focus the header and press Left to collapse and Right to expand. Place headers inside Initial state collapse the same way everywhere, and a collapsed place shows a one-line summary of its rows and token total.
 
 Every value in the form is an expression. A first click selects a value; a second click, a double-click, or Enter opens the editor in place: a code input with completion and type checking at exactly the cell's position, the value's path (for example `Space › item 0 › x`) above it, and -- in the optimization drawer -- the Optimize control below it. Expressions may use your Variables (`scenario.<name>`), net parameters (`parameters.<name>`), and arithmetic -- the same [expression language](scenarios.md) scenarios use. Press Enter, Escape, or click elsewhere to close the editor.
 
