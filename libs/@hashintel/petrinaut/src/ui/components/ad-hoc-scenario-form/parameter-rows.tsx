@@ -63,7 +63,8 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({
   entries,
   onEntryChange,
 }) => {
-  const { synthesisContext, selection, highlight } = use(AdHocFormContext);
+  const { synthesisContext, selection, highlight, setFocusedValue } =
+    use(AdHocFormContext);
   const { register, onKeyDown, attach } = useNavigationGrid();
 
   const entryFor = (parameterId: string): AdHocNetParameter =>
@@ -126,6 +127,8 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({
                       rowHighlight,
                     )}
                     style={{ width: 92 }}
+                    onFocus={() => setFocusedValue(target)}
+                    onBlur={() => setFocusedValue(null)}
                   >
                     <OptimizeToggle
                       text={adHocSelectionText(selection)}

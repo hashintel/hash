@@ -25,8 +25,9 @@ import {
   dependencyHighlightStyle as highlightStyle,
   gutterButtonStyle,
   gutterCellStyle,
+  gutterMenuButtonStyle,
   phantomCellButtonStyle,
-  phantomGutterTextStyle,
+  phantomGutterButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
   tableContainerStyle,
@@ -310,8 +311,14 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     aria-label={`Variable ${index + 1} actions`}
                     aria-haspopup="menu"
                     aria-expanded={menu?.index === index}
-                    onFocus={() => setSelectedRow(index)}
-                    onBlur={() => setSelectedRow(null)}
+                    onFocus={() => {
+                      setSelectedRow(index);
+                      setFocusedValue(target);
+                    }}
+                    onBlur={() => {
+                      setSelectedRow(null);
+                      setFocusedValue(null);
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === "Delete" || event.key === "Backspace") {
                         event.preventDefault();
@@ -321,11 +328,26 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                       }
                       onKeyDown(index, 0)(event);
                     }}
+                    onClick={(event) => {
+                      // A pointer click only selects; the keyboard "click"
+                      // (Enter) and the dots button open the menu.
+                      if (event.detail === 0) {
+                        setMenu({ index, anchor: event.currentTarget });
+                      }
+                    }}
+                  >
+                    <Icon name="function" size="xs" />
+                  </button>
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className={gutterMenuButtonStyle}
+                    aria-label={`Variable ${index + 1} menu`}
                     onClick={(event) =>
                       setMenu({ index, anchor: event.currentTarget })
                     }
                   >
-                    <Icon name="function" size="xs" />
+                    ⋯
                   </button>
                   {menu?.index === index ? (
                     <GutterMenu
@@ -448,6 +470,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                 {selection !== "none" ? (
                   <td
                     className={cx(cellStyle, optimizeCellStyle, rowHighlight)}
+                    onFocus={() => setFocusedValue(target)}
+                    onBlur={() => setFocusedValue(null)}
                   >
                     <OptimizeToggle
                       text={adHocSelectionText(selection)}
@@ -480,9 +504,15 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                 phantomRowCellStyle,
               )}
             >
-              <span className={phantomGutterTextStyle} aria-hidden="true">
+              <button
+                type="button"
+                tabIndex={-1}
+                className={phantomGutterButtonStyle}
+                aria-label={`Add a variable from the gutter (${scopeLabel})`}
+                onClick={materializeVariable}
+              >
                 +
-              </span>
+              </button>
             </td>
             <td
               colSpan={selection !== "none" ? 3 : 2}

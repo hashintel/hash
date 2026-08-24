@@ -29,6 +29,14 @@ export const EMPTY_AD_HOC_HIGHLIGHT: AdHocHighlight = {
   slotKeys: new Set(),
 };
 
+/**
+ * What the user can focus for highlighting: one value, or a whole token row
+ * (its gutter), which highlights as if every cell in it were selected.
+ */
+export type AdHocFocusTarget =
+  | AdHocValueTarget
+  | { kind: "tokenRow"; placeId: string; row: number };
+
 export const adHocVariableKey = (
   placeId: string | null,
   name: string,
@@ -202,17 +210,51 @@ function expressionAt(
 }
 
 /** The place whose variables a target's bare names resolve against. */
-function scopePlaceId(target: AdHocValueTarget): string | null {
+function scopePlaceId(target: AdHocFocusTarget): string | null {
   switch (target.kind) {
     case "variable":
       return target.placeId;
     case "netParameter":
       return null;
+    case "tokenRow":
     case "cell":
     case "column":
     case "count":
       return target.placeId;
   }
+}
+
+/**
+ * The expressions a focused target reads: its own value, or — for a whole
+ * token row — every cell it effectively holds (shared values included) plus
+ * its count.
+ */
+function focusedExpressions(
+  state: AdHocScenarioState,
+  context: AdHocSynthesisContext,
+  focused: AdHocFocusTarget,
+): string[] {
+  if (focused.kind !== "tokenRow") {
+    const expression = expressionAt(state, context, focused);
+    return expression === undefined ? [] : [expression];
+  }
+  const place = state.places[focused.placeId];
+  if (place?.kind !== "coloured") {
+    return [];
+  }
+  const row = place.rows[focused.row];
+  if (!row) {
+    return [];
+  }
+  const elements = placeColourElements(context, focused.placeId);
+  const expressions = elements.map((element, column) => {
+    const shared = place.sharedColumns[element.name];
+    return shared ? shared.expression : (row.cells[column]?.expression ?? "");
+  });
+  if (row.kind === "template") {
+    expressions.push(row.count.expression);
+  }
+  return expressions;
 }
 
 /**
@@ -223,7 +265,7 @@ function scopePlaceId(target: AdHocValueTarget): string | null {
 export function computeAdHocHighlight(
   state: AdHocScenarioState,
   context: AdHocSynthesisContext,
-  focused: AdHocValueTarget | null,
+  focused: AdHocFocusTarget | null,
 ): AdHocHighlight {
   if (focused === null) {
     return EMPTY_AD_HOC_HIGHLIGHT;
@@ -232,9 +274,11 @@ export function computeAdHocHighlight(
   const parameterIds = new Set<string>();
   const slotKeys = new Set<string>();
 
-  // Dependencies: what the focused expression reads.
-  const expression = expressionAt(state, context, focused);
-  if (expression) {
+  // Dependencies: what the focused expressions read.
+  for (const expression of focusedExpressions(state, context, focused)) {
+    if (!expression) {
+      continue;
+    }
     const references = expressionReferences(expression);
     for (const name of references.scenario) {
       if (state.variables.some((variable) => variable.name === name)) {

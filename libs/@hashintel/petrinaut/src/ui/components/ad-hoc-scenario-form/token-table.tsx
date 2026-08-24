@@ -42,9 +42,10 @@ import {
   columnHeaderStyle,
   gutterButtonStyle,
   gutterCellStyle,
+  gutterMenuButtonStyle,
   gutterHeaderStyle,
   phantomCellButtonStyle,
-  phantomGutterTextStyle,
+  phantomGutterButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
   tableContainerStyle,
@@ -159,7 +160,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   state,
   onChange,
 }) => {
-  const { formState, synthesisContext, selection } = use(AdHocFormContext);
+  const { formState, synthesisContext, selection, setFocusedValue } =
+    use(AdHocFormContext);
   const elements = colour.elements;
   const columnCount = elements.length;
   // Nonces, so a repeat click re-triggers the editor's auto-open behaviour.
@@ -535,17 +537,31 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 aria-label={`Row ${rowIndex + 1} kind`}
                 aria-haspopup="menu"
                 aria-expanded={kindMenu?.row === rowIndex}
-                onFocus={() => setSelectedRow(rowIndex)}
-                onBlur={() => setSelectedRow(null)}
+                onFocus={() => {
+                  setSelectedRow(rowIndex);
+                  setFocusedValue({
+                    kind: "tokenRow",
+                    placeId: place.id,
+                    row: rowIndex,
+                  });
+                }}
+                onBlur={() => {
+                  setSelectedRow(null);
+                  setFocusedValue(null);
+                }}
                 onKeyDown={(event) =>
                   handleGridKeyDown(event, { kind: "gutter", row: rowIndex })
                 }
-                onClick={(event) =>
-                  setKindMenuState({
-                    row: rowIndex,
-                    anchor: event.currentTarget,
-                  })
-                }
+                onClick={(event) => {
+                  // A pointer click only selects; the keyboard "click"
+                  // (Enter) and the dots button open the menu.
+                  if (event.detail === 0) {
+                    setKindMenuState({
+                      row: rowIndex,
+                      anchor: event.currentTarget,
+                    });
+                  }
+                }}
               >
                 <span
                   className={cx(
@@ -557,6 +573,20 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 </span>
               </button>
             </Tooltip>
+            <button
+              type="button"
+              tabIndex={-1}
+              className={gutterMenuButtonStyle}
+              aria-label={`Row ${rowIndex + 1} menu`}
+              onClick={(event) =>
+                setKindMenuState({
+                  row: rowIndex,
+                  anchor: event.currentTarget,
+                })
+              }
+            >
+              ⋯
+            </button>
             {kindMenu?.row === rowIndex ? (
               <GutterMenu
                 anchor={kindMenu.anchor}
@@ -804,9 +834,15 @@ export const TokenTable: React.FC<TokenTableProps> = ({
           <tbody>
             <tr>
               <td className={cx(gutterCellStyle, phantomRowCellStyle)}>
-                <span className={phantomGutterTextStyle} aria-hidden="true">
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className={phantomGutterButtonStyle}
+                  aria-label="Add a token row"
+                  onClick={() => materializeRow(0)}
+                >
                   +
-                </span>
+                </button>
               </td>
               {elements.map((element, columnIndex) => (
                 <td
