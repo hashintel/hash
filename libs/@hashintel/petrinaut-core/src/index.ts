@@ -456,6 +456,21 @@ export {
   type SynthesizeAdHocOptimizationOutcome,
   type SynthesizeAdHocScenarioOutcome,
 } from "./simulation/authoring/scenario/ad-hoc-scenario";
+export {
+  adHocActionCoalescingKey,
+  adHocActionInputSchemas,
+  adHocPlaceStateFor,
+  adHocValueTargetSchema,
+  applyAdHocAction,
+  defaultAdHocCellsFor,
+  EMPTY_AD_HOC_STATE,
+  emptyAdHocValue,
+  newAdHocVariable,
+  rewriteAdHocReference,
+  type AdHocAction,
+  type AdHocActionInput,
+  type AdHocActionName,
+} from "./simulation/authoring/scenario/ad-hoc-actions";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
   coerceTokenAttributeValue,
