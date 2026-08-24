@@ -14,7 +14,6 @@ import { use, useRef, useState } from "react";
 
 import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { toggleAdHocOptimize } from "@hashintel/petrinaut-core";
 
 import { adHocVariableKey } from "./dependency-highlight";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
@@ -35,7 +34,6 @@ import {
 } from "./form-table";
 import { GutterMenu } from "./gutter-menu";
 import { OptimizeToggle } from "./optimize-toggle";
-import { newVariable, removeAt, replaceVariable } from "./state";
 import { useNavigationGrid } from "./use-grid-navigation";
 import { ValueEditor } from "./value-editor";
 
@@ -208,7 +206,6 @@ export interface VariableRowsProps {
   /** `null` for top-level Variables, the owning place id otherwise. */
   placeId: string | null;
   variables: AdHocVariable[];
-  onChange: (variables: AdHocVariable[]) => void;
 }
 
 /** Grid columns: 0 gutter, 1 name, 2 type, 3 value, 4 Optimize. */
@@ -218,9 +215,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   scopeLabel,
   placeId,
   variables,
-  onChange,
 }) => {
-  const { errorFor, selection, highlight, setFocusedValue } =
+  const { errorFor, selection, highlight, setFocusedValue, dispatch } =
     use(AdHocFormContext);
   const { register, onKeyDown, attach } = useNavigationGrid();
   const gutterRefs = useRef(new Map<number, HTMLButtonElement>());
@@ -238,7 +234,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   } | null>(null);
 
   const materializeVariable = () => {
-    onChange([...variables, newVariable(variables)]);
+    dispatch({ type: "addVariable", placeId });
     setMaterialized((previous) => ({
       index: variables.length,
       nonce: (previous?.nonce ?? 0) + 1,
@@ -246,7 +242,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   };
 
   const deleteVariable = (index: number) => {
-    onChange(removeAt(variables, index));
+    dispatch({ type: "deleteVariable", placeId, index });
     const remaining = variables.length - 1;
     setTimeout(() => {
       if (remaining > 0) {
@@ -395,12 +391,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     cellRef={register(index, 1)}
                     onCellKeyDown={onKeyDown(index, 1)}
                     onChange={(name) =>
-                      onChange(
-                        replaceVariable(variables, index, {
-                          ...variable,
-                          name,
-                        }),
-                      )
+                      dispatch({ type: "renameVariable", placeId, index, name })
                     }
                   />
                 </td>
@@ -435,12 +426,12 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     aria-label={`Type of ${variable.name}`}
                     value={variable.type}
                     onChange={(type) =>
-                      onChange(
-                        replaceVariable(variables, index, {
-                          ...variable,
-                          type,
-                        }),
-                      )
+                      dispatch({
+                        type: "setVariableType",
+                        placeId,
+                        index,
+                        variableType: type,
+                      })
                     }
                     items={[
                       { value: "real", text: "Real" },
@@ -457,14 +448,6 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                     booleanDomain={variable.type === "boolean"}
                     triggerRef={register(index, 3)}
                     onTriggerKeyDown={onKeyDown(index, 3)}
-                    onChange={(value) =>
-                      onChange(
-                        replaceVariable(variables, index, {
-                          ...variable,
-                          ...value,
-                        }),
-                      )
-                    }
                   />
                 </td>
                 {selection !== "none" ? (
@@ -480,12 +463,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                       buttonRef={register(index, 4)}
                       onKeyDown={onKeyDown(index, 4)}
                       onChange={(on) =>
-                        onChange(
-                          replaceVariable(variables, index, {
-                            ...variable,
-                            ...toggleAdHocOptimize(variable, on),
-                          }),
-                        )
+                        dispatch({ type: "toggleSelection", target, on })
                       }
                     />
                   </td>

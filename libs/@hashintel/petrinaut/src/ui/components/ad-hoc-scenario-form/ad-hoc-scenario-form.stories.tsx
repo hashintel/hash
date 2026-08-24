@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  EMPTY_AD_HOC_STATE,
   type AdHocColouredPlace,
   type AdHocScenarioState,
   type AdHocSynthesisContext,
@@ -12,7 +13,6 @@ import { LanguageClientProvider } from "../../../react/lsp/provider";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { MonacoProvider } from "../../monaco/provider";
 import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
-import { EMPTY_AD_HOC_STATE } from "./state";
 
 import type { SDCPNContextValue } from "../../../react/state/sdcpn-context";
 import type { AdHocFormSelection } from "./form-context";

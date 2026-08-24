@@ -7,7 +7,7 @@
 import { use } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { toggleAdHocOptimize } from "@hashintel/petrinaut-core";
+import { emptyAdHocValue } from "@hashintel/petrinaut-core";
 
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
 import {
@@ -17,7 +17,6 @@ import {
   tableStyle,
 } from "./form-table";
 import { OptimizeToggle } from "./optimize-toggle";
-import { emptyValue } from "./state";
 import { useNavigationGrid } from "./use-grid-navigation";
 import { ValueEditor } from "./value-editor";
 
@@ -56,21 +55,17 @@ const parameterOptimizeCellStyle = css({
 
 export interface ParameterRowsProps {
   entries: AdHocNetParameter[];
-  onEntryChange: (entry: AdHocNetParameter) => void;
 }
 
-export const ParameterRows: React.FC<ParameterRowsProps> = ({
-  entries,
-  onEntryChange,
-}) => {
-  const { synthesisContext, selection, highlight, setFocusedValue } =
+export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
+  const { synthesisContext, selection, highlight, setFocusedValue, dispatch } =
     use(AdHocFormContext);
   const { register, onKeyDown, attach } = useNavigationGrid();
 
   const entryFor = (parameterId: string): AdHocNetParameter =>
     entries.find((entry) => entry.parameterId === parameterId) ?? {
       parameterId,
-      ...emptyValue(""),
+      ...emptyAdHocValue(""),
     };
 
   return (
@@ -116,7 +111,6 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({
                     booleanDomain={parameter.type === "boolean"}
                     triggerRef={register(parameterIndex, 0)}
                     onTriggerKeyDown={onKeyDown(parameterIndex, 0)}
-                    onChange={(value) => onEntryChange({ ...entry, ...value })}
                   />
                 </td>
                 {selection !== "none" ? (
@@ -137,10 +131,7 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({
                       buttonRef={register(parameterIndex, 1)}
                       onKeyDown={onKeyDown(parameterIndex, 1)}
                       onChange={(on) =>
-                        onEntryChange({
-                          ...entry,
-                          ...toggleAdHocOptimize(entry, on),
-                        })
+                        dispatch({ type: "toggleSelection", target, on })
                       }
                     />
                   </td>

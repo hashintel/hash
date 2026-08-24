@@ -11,8 +11,9 @@ import {
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
+
 import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
-import { EMPTY_AD_HOC_STATE } from "./state";
 
 import type { AdHocFormSelection } from "./form-context";
 import type {
@@ -511,6 +512,75 @@ describe("AdHocScenarioForm", () => {
       { key: "z", metaKey: true, shiftKey: true },
     );
     expect(colouredPlace(latest).rows).toHaveLength(1);
+  });
+
+  it("replays identical snapshots: undo moves a cursor, redo restores the same state", () => {
+    const states: AdHocScenarioState[] = [];
+    render(
+      <Harness
+        onState={(state) => {
+          states.push(state);
+        }}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+    const afterRow = states.at(-1)!;
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Add a variable (Top-level variables)",
+      }),
+    );
+    const afterVariable = states.at(-1)!;
+
+    // Fire on the phantom row's always-present button, freshly queried each
+    // time — an unmounted node's events never reach the form's handler.
+    const anywhere = () =>
+      screen.getByRole("button", { name: "Add a token row (pressure)" });
+    fireEvent.keyDown(anywhere(), { key: "z", metaKey: true });
+    // Undo replays the exact recorded snapshot — the same object, not a
+    // reconstruction from an inverse edit.
+    expect(states.at(-1)).toBe(afterRow);
+    fireEvent.keyDown(anywhere(), { key: "z", metaKey: true });
+    expect(states.at(-1)).toBe(EMPTY_AD_HOC_STATE);
+    fireEvent.keyDown(anywhere(), { key: "z", metaKey: true, shiftKey: true });
+    expect(states.at(-1)).toBe(afterRow);
+    fireEvent.keyDown(anywhere(), { key: "z", metaKey: true, shiftKey: true });
+    expect(states.at(-1)).toBe(afterVariable);
+  });
+
+  it("coalesces a typing burst in one slot into a single undo step", async () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Queue › count" }));
+    const input = await screen.findByRole("textbox", { name: "Expression" });
+    fireEvent.change(input, { target: { value: "4" } });
+    fireEvent.change(input, { target: { value: "42" } });
+    fireEvent.change(input, { target: { value: "421" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    const queueCount = () => {
+      const place = latest?.places["place-queue"];
+      return place?.kind === "uncoloured" ? place.count.expression : undefined;
+    };
+    expect(queueCount()).toBe("421");
+
+    // One undo unwinds the whole burst — the slot's edits collapsed into one
+    // step keyed by the slot, not by a timer.
+    const trigger = screen.getByRole("button", { name: "Queue › count" });
+    fireEvent.keyDown(trigger, { key: "z", metaKey: true });
+    expect(latest?.places["place-queue"]).toBeUndefined();
+    fireEvent.keyDown(trigger, { key: "z", metaKey: true, shiftKey: true });
+    expect(queueCount()).toBe("421");
   });
 
   it("walks between zones and toggles sections from their headers", async () => {
