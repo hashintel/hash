@@ -199,9 +199,8 @@ export const styles = sva({
       default: {
         // The active pill reads as a raised button sitting on the track: it
         // overhangs the item box by --sc-raise on every side, leaving an even
-        // hairline gap to the track all the way around, and a whisper of
-        // down-right drop shadow sells the lift. Black alphas are true shadows
-        // and must NOT take the frost treatment.
+        // hairline gap to the track all the way around, which — together with
+        // the pill's light fill and hairline border — reads as a subtle lift.
         //
         // The top-left shift uses negative margins, NOT left/top overrides:
         // zag pins the main-axis position inline (`left` when horizontal, `top`
@@ -216,11 +215,6 @@ export const styles = sva({
           marginLeft: "[calc(-1 * var(--sc-raise))]",
           width: "[calc(var(--width) + 2 * var(--sc-raise))]",
           height: "[calc(var(--height) + 2 * var(--sc-raise))]",
-          boxShadow:
-            "[0 1px 1.5px {colors.black.a10}, 1px 1px 1px {colors.black.a05}]",
-          "&[data-disabled]": {
-            boxShadow: "[none]",
-          },
         },
       },
       embossed: {
@@ -272,33 +266,6 @@ export const styles = sva({
           left: "[calc(var(--left) - var(--sc-raise))]",
           right: "[calc(2px - var(--sc-raise))]",
           width: "[auto]",
-        },
-      },
-    },
-    {
-      // The pill is physically smaller at xs, so the default drop shadow reads
-      // heavier relative to it; lighten and tighten it a touch so it stays a
-      // whisper. Disabled still gets no shadow from the base default rule (its
-      // [data-disabled] selector outranks this plain override). xxs shrinks it
-      // further below.
-      variant: "default",
-      size: "xs",
-      css: {
-        indicator: {
-          boxShadow:
-            "[0 1px 1px {colors.black.a05}, 0.5px 0.5px 1px {colors.black.a05}]",
-        },
-      },
-    },
-    {
-      // xxs is smaller still: a05 is already the faintest alpha step, so drop
-      // the down-right directional layer entirely and halve the ambient offset,
-      // leaving just a barely-there hint of lift.
-      variant: "default",
-      size: "xxs",
-      css: {
-        indicator: {
-          boxShadow: "[0 0.5px 1px {colors.black.a05}]",
         },
       },
     },
