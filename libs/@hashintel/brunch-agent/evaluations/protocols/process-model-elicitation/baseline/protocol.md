@@ -2,7 +2,8 @@
 
 What does one-shot / lightly-prompted AI elicitation already achieve? Two conditions of the
 three-condition design (condition 3, kernel harness + real plugin, is out of this ticket's
-scope). The read-out lives in [readout.md](readout.md).
+scope). The read-out lives in the immutable
+[evaluation evidence](../../../../docs/evidence/evaluations/process-model-elicitation/baseline/readout.md).
 
 ## Conditions
 
@@ -12,7 +13,8 @@ scope). The read-out lives in [readout.md](readout.md).
 | 2   | `claude-opus-5` | [v0-prompt.md](v0-prompt.md) | the degenerate plugin: the seven-category elicitation surface as pure guidance, no machinery                                                           |
 
 Both conditions receive the identical opening user message
-([opening-message.md](opening-message.md)); the v0 system prompt is the only difference, so
+([opening-message.md](../../../cases/process-model-elicitation/baseline/opening-message.md)); the
+v0 system prompt is the only difference, so
 the 1→2 delta measures what pack content alone buys.
 
 ## Subject and interviewee
@@ -20,7 +22,9 @@ the 1→2 delta measures what pack content alone buys.
 Subject: **Production Process Scheduling** (Notion use-case DB, the mature spec'd case with a
 reference model — FE-1363 retained it as the flat-baseline testbed). The interviewee is a
 simulated expert per the FE-1363 resolution: `claude-sonnet-5` role-playing a master scheduler,
-defined by [situation-pack.md](situation-pack.md). The pack was authored from the use case's
+defined by
+[situation-pack.md](../../../cases/process-model-elicitation/baseline/situation-pack.md). The pack
+was authored from the use case's
 operational prose (problem & context, data requirements, commercial angle) and never from the
 model outline — pack and reference model sit on opposite sides of the information wall. Facts
 are tiered: freely given, _(tacit)_ (surfaces only under reaching questions), _(believes)_
@@ -50,13 +54,15 @@ rather than fill).
 Rerun from the HASH root with
 `turbo run baseline:run --filter '@hashintel/brunch-agent' -- 1` /
 `turbo run baseline:run --filter '@hashintel/brunch-agent' -- 2` (needs `ANTHROPIC_API_KEY`).
-Transcripts land in `transcripts/` and are committed as the experiment artifact.
+Production transcripts land in
+`docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/`. Tests set
+`BRUNCH_BASELINE_TEST_OUTPUT_DIR` to an isolated directory and never write committed evidence.
 
 ## Instruments (scored in the read-out)
 
 1. **Bano/Ferrari 34-mistake taxonomy**, via the operationalized Likert questionnaire
    (verbatim in
-   [../research/re-interviewing-literature-worker-report.md](../../../reference/research/elicitation/interviewing-literature-source-catalog.md)),
+   [interviewing-literature-source-catalog.md](../../../../docs/reference/research/elicitation/interviewing-literature-source-catalog.md)),
    scored per LLMREI practice: Question Formulation, Question Omission, Order of Interview,
    Communication Skills, Customer Interaction (Analyst Behaviour and Teamwork & Planning
    dropped as inapplicable to a text-only single agent).

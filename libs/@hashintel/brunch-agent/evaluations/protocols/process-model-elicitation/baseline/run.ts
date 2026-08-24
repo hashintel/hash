@@ -2,7 +2,7 @@
 //
 // Runs one condition of the two-condition experiment: an interviewer model is asked to
 // "interview me, then produce the model" against a simulated domain expert defined by
-// situation-pack.md. Condition 1 sends no interviewer system prompt (bare Claude);
+// the baseline case's situation-pack.md. Condition 1 sends no interviewer system prompt (bare Claude);
 // condition 2 sends v0-prompt.md (the seven-category elicitation surface as guidance).
 //
 // Usage: ANTHROPIC_API_KEY=... node --experimental-strip-types run.ts <1|2> [--resume|--continue-final]
@@ -10,7 +10,7 @@
 //   --continue-final  ask the interviewer to finish a final delivery that was cut off at
 //                     max_tokens, and rewrite the artifacts with the merged message
 //
-// Outputs, under transcripts/:
+// Production outputs, under docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/:
 //   condition-<n>.md        readable transcript with run metadata
 //   condition-<n>.raw.json  full message arrays + per-call token usage (also the checkpoint)
 //   condition-<n>-model.txt the final delivery message, verbatim (delivered runs only)
@@ -75,6 +75,13 @@ interface RawCheckpoint {
 }
 
 const clientModule = process.env["BRUNCH_BASELINE_ANTHROPIC_MODULE"];
+const testOutputDirectory = process.env["BRUNCH_BASELINE_TEST_OUTPUT_DIR"];
+if (testOutputDirectory && !clientModule) {
+  console.error(
+    "BRUNCH_BASELINE_TEST_OUTPUT_DIR requires BRUNCH_BASELINE_ANTHROPIC_MODULE",
+  );
+  process.exit(1);
+}
 const apiKey = process.env["ANTHROPIC_API_KEY"];
 if (!apiKey && !clientModule) {
   console.error("ANTHROPIC_API_KEY is not set");
@@ -109,7 +116,20 @@ if (!["fresh", "--resume", "--continue-final"].includes(mode)) usage();
 const condition: "1" | "2" = conditionArg;
 
 const baseDir = fileURLToPath(new URL(".", import.meta.url));
-const transcriptDir = `${baseDir}transcripts`;
+const caseDir = fileURLToPath(
+  new URL(
+    "../../../cases/process-model-elicitation/baseline/",
+    import.meta.url,
+  ),
+);
+const transcriptDir =
+  testOutputDirectory ??
+  fileURLToPath(
+    new URL(
+      "../../../../docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/",
+      import.meta.url,
+    ),
+  );
 const rawPath = `${transcriptDir}/condition-${condition}.raw.json`;
 const calls: CallRecord[] = [];
 
@@ -211,7 +231,10 @@ async function callInterviewer(
 }
 
 async function loadSection(file: string): Promise<string> {
-  const raw = await readFile(baseDir + file, "utf8");
+  const raw = await readFile(
+    file.startsWith("/") ? file : baseDir + file,
+    "utf8",
+  );
   const separatorIndex = raw.indexOf("\n---\n");
   return separatorIndex === -1
     ? raw.trim()
@@ -240,10 +263,10 @@ async function isFinalModel(message: string): Promise<boolean> {
   return verdict.text.trim().toUpperCase().startsWith("YES");
 }
 
-const openingMessage = await loadSection("opening-message.md");
+const openingMessage = await loadSection(`${caseDir}opening-message.md`);
 const v0Prompt =
   condition === "2" ? await loadSection("v0-prompt.md") : undefined;
-const situationPack = await readFile(baseDir + "situation-pack.md", "utf8");
+const situationPack = await readFile(`${caseDir}situation-pack.md`, "utf8");
 await mkdir(transcriptDir, { recursive: true });
 
 let interviewerMessages: ChatMessage[] = [

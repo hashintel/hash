@@ -1,7 +1,9 @@
 # Baseline control — read-out (FE-1361)
 
 Scored 2026-08-13, against the transcripts in [`transcripts/`](transcripts/). Design and
-mechanics in [protocol.md](protocol.md). Both conditions ran `claude-opus-5` as interviewer
+mechanics in the executable
+[protocol](../../../../../evaluations/protocols/process-model-elicitation/baseline/protocol.md).
+Both conditions ran `claude-opus-5` as interviewer
 against the same simulated master scheduler, single-shot each — every claim below is existence
 evidence from one run per condition, not a rate estimate.
 

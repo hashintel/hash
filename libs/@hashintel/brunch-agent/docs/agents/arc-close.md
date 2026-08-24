@@ -19,7 +19,7 @@ the history of these control surfaces.
 Always inspect `docs/inbox/` and `docs/INDEX.md` together.
 
 - Promote settled inbox material to its role-based home under `documentation.md`. Do not add to the
-  legacy `docs/planning/` or `docs/history/` paths; only the transitional baseline remains.
+  retired `docs/planning/` or `docs/history/` paths.
 - Delete source material only when its durable information has been transferred and its
   consumption is named.
 - Ensure every document under `docs/` except `docs/INDEX.md` and `docs/agents/**` is indexed and

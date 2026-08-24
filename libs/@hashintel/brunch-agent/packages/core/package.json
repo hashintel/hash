@@ -24,7 +24,7 @@
     }
   },
   "scripts": {
-    "baseline:run": "node --experimental-strip-types ../../docs/planning/process-model-elicitation/baseline/run.ts",
+    "baseline:run": "node --experimental-strip-types ../../evaluations/protocols/process-model-elicitation/baseline/run.ts",
     "build": "vite build",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "linear:graph": "node --experimental-strip-types ../../scripts/linear-project-graph.ts",

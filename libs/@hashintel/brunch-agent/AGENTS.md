@@ -10,6 +10,7 @@ guidance always wins where it conflicts with this file.
 - `packages/transport-*`: wire transports; none may depend on a binding.
 - `packages/plugin-*`: target plugins; each depends only on the harness.
 - `../../../apps/brunch-agent`: remote server, application composition, and local diagnostics.
+- `evaluations`: cases, protocols, and oracles; see `evaluations/AGENTS.md` before changing them.
 
 The context root is not a package-manager root. Do not add a `package.json`, lockfile, nested
 workspace configuration, or standalone CI here. Run package tasks through HASH's root Yarn/Turbo

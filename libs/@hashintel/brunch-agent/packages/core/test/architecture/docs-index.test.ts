@@ -219,18 +219,14 @@ test("relative links in context documentation point at existing files", () => {
   }
 });
 
-test("legacy documentation paths contain only the transitional baseline", () => {
-  const planning = join(DOCS_ROOT, "planning");
-  const planningFiles = FILES.filter((file) => file.startsWith("planning/"));
-  expect(planningFiles.length).toBeGreaterThan(0);
-  for (const file of planningFiles) {
-    expect(
-      file.startsWith("planning/process-model-elicitation/baseline/"),
-    ).toBe(true);
-  }
-
+test("retired planning and history paths contain no documents", () => {
+  expect(
+    FILES.filter(
+      (file) => file.startsWith("planning/") || file.startsWith("history/"),
+    ),
+  ).toEqual([]);
+  expect(existsSync(join(DOCS_ROOT, "planning"))).toBe(false);
   expect(existsSync(join(DOCS_ROOT, "history"))).toBe(false);
-  expect(readdirSync(planning)).toEqual(["process-model-elicitation"]);
 });
 
 describe.skipIf(!contextRootPresent)(
