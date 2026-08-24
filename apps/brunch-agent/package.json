@@ -12,9 +12,11 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
-    "test:unit": "vitest run --config vitest.config.ts"
+    "test:unit": "vitest run --config vitest.config.ts",
+    "voice:dev": "node --env-file-if-exists=.env.local --experimental-strip-types src/elevenlabs-speech-engine-server.ts"
   },
   "dependencies": {
+    "@elevenlabs/elevenlabs-js": "2.64.0",
     "@flue/react": "2.0.3",
     "@flue/runtime": "2.0.3",
     "@flue/sdk": "2.0.3",

@@ -35,7 +35,7 @@ const withoutIncumbentChatHandler = (
     ) {
       return true;
     }
-    return plugin.name !== "petrinaut-api-dev";
+    return plugin.name !== "petrinaut-chat-api-dev";
   });
 
 export default defineConfig(async (environment) => {

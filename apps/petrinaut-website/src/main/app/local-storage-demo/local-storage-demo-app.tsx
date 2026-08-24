@@ -24,6 +24,7 @@ import {
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
 import { VoiceExperiment } from "./voice-experiment";
+import { createElevenLabsAdapter } from "./voice-experiment/elevenlabs-adapter";
 import { createOpenAIRealtimeAdapter } from "./voice-experiment/openai-realtime-adapter";
 import { getVoiceExperiment } from "./voice-experiment/voice-experiment-selection";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
@@ -122,13 +123,15 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
 export const LocalStorageDemoApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
   const voiceExperiment = getVoiceExperiment(window.location);
-  const voiceExperimentAdapter = useMemo(
-    () =>
-      voiceExperiment === "openai-realtime"
-        ? createOpenAIRealtimeAdapter()
-        : undefined,
-    [voiceExperiment],
-  );
+  const voiceExperimentAdapter = useMemo(() => {
+    if (voiceExperiment === "openai-realtime") {
+      return createOpenAIRealtimeAdapter();
+    }
+    if (voiceExperiment === "elevenlabs-brunch") {
+      return createElevenLabsAdapter();
+    }
+    return undefined;
+  }, [voiceExperiment]);
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();

@@ -435,6 +435,7 @@ __metadata:
   resolution: "@apps/brunch-agent@workspace:apps/brunch-agent"
   dependencies:
     "@earendil-works/pi-ai": "npm:0.83.0"
+    "@elevenlabs/elevenlabs-js": "npm:2.64.0"
     "@flue/react": "npm:2.0.3"
     "@flue/runtime": "npm:2.0.3"
     "@flue/sdk": "npm:2.0.3"
@@ -914,6 +915,7 @@ __metadata:
   resolution: "@apps/petrinaut-website@workspace:apps/petrinaut-website"
   dependencies:
     "@ai-sdk/openai": "npm:3.0.63"
+    "@elevenlabs/client": "npm:1.18.0"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
     "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-helpers": "workspace:*"
@@ -4351,6 +4353,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@bufbuild/protobuf@npm:^1.10.0":
+  version: 1.10.1
+  resolution: "@bufbuild/protobuf@npm:1.10.1"
+  checksum: 10c0/a89572ae99aa193dd232fca0cdc9ece1dfe2f3d8b061be1f966a4f88fb63410aeb0fe7de927037e970aefcb52036eec58a7f89a40fe1286eed1448ea1bd2634e
+  languageName: node
+  linkType: hard
+
 "@bufbuild/protobuf@npm:^2.6.2":
   version: 2.12.1
   resolution: "@bufbuild/protobuf@npm:2.12.1"
@@ -5280,6 +5289,34 @@ __metadata:
     effect: ^3.21.0
     vitest: ^3.2.0
   checksum: 10c0/28127e1aa22928e58c0b09cf0494e38baac3fe0397223273136c78cce6b21650c7f73935e32a05e116d1c10e0b552552011bbe213a67de3975522712690a6e6f
+  languageName: node
+  linkType: hard
+
+"@elevenlabs/client@npm:1.18.0":
+  version: 1.18.0
+  resolution: "@elevenlabs/client@npm:1.18.0"
+  dependencies:
+    "@elevenlabs/types": "npm:0.20.0"
+    livekit-client: "npm:^2.21.0"
+  checksum: 10c0/331fe90bffe89005fadece646ef72dfdc6858a1ae87089d6fa9c33c25ce7df01f0d8fe9f5e2cd39c4822de9edc9ffcedfc3982d416abc800e7bfe16cca0b6fc7
+  languageName: node
+  linkType: hard
+
+"@elevenlabs/elevenlabs-js@npm:2.64.0":
+  version: 2.64.0
+  resolution: "@elevenlabs/elevenlabs-js@npm:2.64.0"
+  dependencies:
+    command-exists: "npm:^1.2.9"
+    node-fetch: "npm:^2.7.0"
+    ws: "npm:^8.18.3"
+  checksum: 10c0/6cb8f9bcf70e237bc15d664ec3569ade1d72591c775d45e599b44c46bb08d306685c6d5be77791547bb11877169802a2fb9065b18b285386bf0ba5d6af477e97
+  languageName: node
+  linkType: hard
+
+"@elevenlabs/types@npm:0.20.0":
+  version: 0.20.0
+  resolution: "@elevenlabs/types@npm:0.20.0"
+  checksum: 10c0/726454bdfbf8c4272858a8e2bac31d6e190bdff6b228a9428674b3bf7685effcf67010293252aa2358dfb629d5cfdd30574724db756c3246573ac12de3a763b3
   languageName: node
   linkType: hard
 
@@ -9109,6 +9146,22 @@ __metadata:
   dependencies:
     "@lit-labs/ssr-dom-shim": "npm:^1.0.0"
   checksum: 10c0/10f1d25e24e32feb21c4c6f9e11d062901241602e12c4ecf746b3138f87fed4d8394194645514d5c1bfd5f33f3fd56ee8ef41344e2cb4413c40fe4961ec9d419
+  languageName: node
+  linkType: hard
+
+"@livekit/mutex@npm:1.1.1":
+  version: 1.1.1
+  resolution: "@livekit/mutex@npm:1.1.1"
+  checksum: 10c0/d4bb1bd34e20939dfc8af0ae10b86918f3944336d0236d219e80a8c554207e8bfaf21e86794f0c56d2c28b43d74ca966111172a95eacb0e12b72133dd184d49a
+  languageName: node
+  linkType: hard
+
+"@livekit/protocol@npm:1.50.4":
+  version: 1.50.4
+  resolution: "@livekit/protocol@npm:1.50.4"
+  dependencies:
+    "@bufbuild/protobuf": "npm:^1.10.0"
+  checksum: 10c0/6e986854bdae38991d60f6dca204b1ad90d8f033d699fb5a317abbfe97df9da8f8a5f905f94de0e25300cede03462bfcc0802232660e599daa97205302cc7384
   languageName: node
   linkType: hard
 
@@ -24135,6 +24188,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"command-exists@npm:^1.2.9":
+  version: 1.2.9
+  resolution: "command-exists@npm:1.2.9"
+  checksum: 10c0/75040240062de46cd6cd43e6b3032a8b0494525c89d3962e280dde665103f8cc304a8b313a5aa541b91da2f5a9af75c5959dc3a77893a2726407a5e9a0234c16
+  languageName: node
+  linkType: hard
+
 "command-line-args@npm:^4.0.6":
   version: 4.0.7
   resolution: "command-line-args@npm:4.0.7"
@@ -32346,10 +32406,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jose@npm:^6.1.3":
-  version: 6.1.3
-  resolution: "jose@npm:6.1.3"
-  checksum: 10c0/b9577b4a7a5e84131011c23823db9f5951eae3ba796771a6a2401ae5dd50daf71104febc8ded9c38146aa5ebe94a92ac09c725e699e613ef26949b9f5a8bc30f
+"jose@npm:^6.1.0, jose@npm:^6.1.3":
+  version: 6.2.9
+  resolution: "jose@npm:6.2.9"
+  checksum: 10c0/fc6d79b11fdd5cc1393bccd644533b3e2445fd8eb2468066eb23c01ed7f6b41deca710e8aabe9379a382cca7920740900c7f610bdf0be4ff5e7ee44412730d4c
   languageName: node
   linkType: hard
 
@@ -33495,6 +33555,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"livekit-client@npm:^2.21.0":
+  version: 2.22.0
+  resolution: "livekit-client@npm:2.22.0"
+  dependencies:
+    "@livekit/mutex": "npm:1.1.1"
+    "@livekit/protocol": "npm:1.50.4"
+    events: "npm:^3.3.0"
+    jose: "npm:^6.1.0"
+    loglevel: "npm:^1.9.2"
+    sdp-transform: "npm:^2.15.0"
+    tslib: "npm:2.8.1"
+    typed-emitter: "npm:^2.1.0"
+    webrtc-adapter: "npm:9.0.6"
+  peerDependencies:
+    "@types/dom-mediacapture-record": ^1
+  checksum: 10c0/a881f7477f6d675a291e146f27e748137ca0d37a9601eb4488818c29817417412588d78a52eff08ff7a523926e334ddc94b85f3f9da50ef43c2f1266eda49276
+  languageName: node
+  linkType: hard
+
 "llamaindex@npm:0.12.1":
   version: 0.12.1
   resolution: "llamaindex@npm:0.12.1"
@@ -33767,7 +33846,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"loglevel@npm:^1.6.8":
+"loglevel@npm:^1.6.8, loglevel@npm:^1.9.2":
   version: 1.9.2
   resolution: "loglevel@npm:1.9.2"
   checksum: 10c0/1e317fa4648fe0b4a4cffef6de037340592cee8547b07d4ce97a487abe9153e704b98451100c799b032c72bb89c9366d71c9fb8192ada8703269263ae77acdc7
@@ -36001,7 +36080,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-fetch@npm:2.7.0, node-fetch@npm:^2.6.1, node-fetch@npm:^2.6.7, node-fetch@npm:^2.6.9":
+"node-fetch@npm:2.7.0, node-fetch@npm:^2.6.1, node-fetch@npm:^2.6.7, node-fetch@npm:^2.6.9, node-fetch@npm:^2.7.0":
   version: 2.7.0
   resolution: "node-fetch@npm:2.7.0"
   dependencies:
@@ -41000,7 +41079,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rxjs@npm:7.8.2, rxjs@npm:^7.8.1, rxjs@npm:^7.8.2":
+"rxjs@npm:*, rxjs@npm:7.8.2, rxjs@npm:^7.8.1, rxjs@npm:^7.8.2":
   version: 7.8.2
   resolution: "rxjs@npm:7.8.2"
   dependencies:
@@ -41237,6 +41316,22 @@ __metadata:
   version: 1.3.0
   resolution: "scule@npm:1.3.0"
   checksum: 10c0/5d1736daa10622c420f2aa74e60d3c722e756bfb139fa784ae5c66669fdfe92932d30ed5072e4ce3107f9c3053e35ad73b2461cb18de45b867e1d4dea63f8823
+  languageName: node
+  linkType: hard
+
+"sdp-transform@npm:^2.15.0":
+  version: 2.15.0
+  resolution: "sdp-transform@npm:2.15.0"
+  bin:
+    sdp-verify: checker.js
+  checksum: 10c0/96c060f113a3d5418defa168db609f7e23e5bd7954fa1cf7784f103dbe702e24d667e5310d2ac6d88abdb32322af83d6ebd0df08e07f4f172d5ed5888f921386
+  languageName: node
+  linkType: hard
+
+"sdp@npm:^3.2.0":
+  version: 3.2.2
+  resolution: "sdp@npm:3.2.2"
+  checksum: 10c0/62913cbd92b0cca8feb17850dee9e331d6e38402385d4985aac80bde6b35032bfb7453c00096c4d7e6a91a9d73a7ba6235c2368998a54a8edd1c0dd4ec94d9e3
   languageName: node
   linkType: hard
 
@@ -44085,6 +44180,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typed-emitter@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "typed-emitter@npm:2.1.0"
+  dependencies:
+    rxjs: "npm:*"
+  dependenciesMeta:
+    rxjs:
+      optional: true
+  checksum: 10c0/01fc354ba8e87bd39b1bf4fe1c96fe7ecff7fde83161003b0f8c7f4b285a368052e185ba655dd8c102c4445301b7a1e032c8972f181b440fc95bd810450f1314
+  languageName: node
+  linkType: hard
+
 "typedarray@npm:^0.0.6":
   version: 0.0.6
   resolution: "typedarray@npm:0.0.6"
@@ -46139,6 +46246,15 @@ __metadata:
   bin:
     webpack: bin/webpack.js
   checksum: 10c0/287a4ac7fe36174e3a83d735c35381e120d099f9016180a1f42188140f630a4dc12b09c875ddf8683fe1c3fc10f9761feb74e47eafa4c3db601aa164a9f84306
+  languageName: node
+  linkType: hard
+
+"webrtc-adapter@npm:9.0.6":
+  version: 9.0.6
+  resolution: "webrtc-adapter@npm:9.0.6"
+  dependencies:
+    sdp: "npm:^3.2.0"
+  checksum: 10c0/19b44f507d4583df300ce338a24fe343473edf433228978666eacfc7eee27d2603cb8683da8f1bb380031ac5e827e224824d2921395e008fea85d14ad59b1aba
   languageName: node
   linkType: hard
 

@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.63",
+    "@elevenlabs/client": "1.18.0",
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
     "@hashintel/ds-components": "workspace:*",
     "@hashintel/ds-helpers": "workspace:*",

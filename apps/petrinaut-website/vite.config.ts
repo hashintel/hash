@@ -37,20 +37,13 @@ const createApiAdapter = (server: ViteDevServer, modulePath: string) =>
     }
   });
 
-// Plugin required to serve the API endpoints in dev.
-// In production, Vercel deploys the files in `api` as functions.
-const petrinautApiDevPlugin = (): Plugin => ({
-  name: "petrinaut-api-dev",
+// Split chat from voice so the Brunch launcher can replace `/api/chat` while
+// retaining the same-origin provider-token endpoints.
+const petrinautChatApiDevPlugin = (): Plugin => ({
+  name: "petrinaut-chat-api-dev",
   apply: "serve",
   configureServer(server) {
-    // Each endpoint ships a default `{ fetch }` so Vercel's Node.js
-    // runtime treats it as a Web fetch handler in production. We mirror the
-    // same shape here so dev and prod hit the same code path.
     const chatAdapter = createApiAdapter(server, "/api/chat.ts");
-    const openAIRealtimeAdapter = createApiAdapter(
-      server,
-      "/api/voice-experiment/openai-realtime-session.ts",
-    );
 
     server.middlewares.use(
       "/api/chat",
@@ -58,10 +51,34 @@ const petrinautApiDevPlugin = (): Plugin => ({
         void chatAdapter(request, response);
       },
     );
+  },
+});
+
+// Each endpoint ships a default `{ fetch }` so Vercel's Node.js runtime treats
+// it as a Web fetch handler in production. Dev mirrors that same code path.
+const petrinautVoiceApiDevPlugin = (): Plugin => ({
+  name: "petrinaut-voice-api-dev",
+  apply: "serve",
+  configureServer(server) {
+    const openAIRealtimeAdapter = createApiAdapter(
+      server,
+      "/api/voice-experiment/openai-realtime-session.ts",
+    );
+    const elevenLabsAdapter = createApiAdapter(
+      server,
+      "/api/voice-experiment/elevenlabs-conversation-token.ts",
+    );
+
     server.middlewares.use(
       "/api/voice-experiment/openai-realtime-session",
       (request: IncomingMessage, response: ServerResponse) => {
         void openAIRealtimeAdapter(request, response);
+      },
+    );
+    server.middlewares.use(
+      "/api/voice-experiment/elevenlabs-conversation-token",
+      (request: IncomingMessage, response: ServerResponse) => {
+        void elevenLabsAdapter(request, response);
       },
     );
   },
@@ -100,7 +117,8 @@ export default defineConfig(({ mode }) => {
     },
 
     plugins: [
-      petrinautApiDevPlugin(),
+      petrinautChatApiDevPlugin(),
+      petrinautVoiceApiDevPlugin(),
       react(),
       babel({
         presets: [

@@ -23,6 +23,9 @@
     },
     "api/voice-experiment/openai-realtime-session.ts": {
       "maxDuration": 15
+    },
+    "api/voice-experiment/elevenlabs-conversation-token.ts": {
+      "maxDuration": 15
     }
   }
 }
