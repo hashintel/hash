@@ -20,21 +20,21 @@ The form has up to three sections:
 - **Variables** -- named values (real, integer, or boolean) written as `scenario.<name>` in every expression below, exactly as scenario parameters are written in scenario code. Use them to drive many values from one number. Add one from the icon button in the section header.
 - **Initial state** -- one block per place in the net.
 
-Every value in the form is an expression. Click a value to open its editor: a code input with completion and type checking, and the value's path (for example `Space › item 0 › x`) as its title. Expressions may use your Variables (`scenario.<name>`), net parameters (`parameters.<name>`), and arithmetic -- the same [expression language](scenarios.md) scenarios use. Press Enter to close the editor.
+Every value in the form is an expression. Click a value (or press Enter on a focused cell) and the editor opens in place: a code input with completion and type checking at exactly the cell's position, the value's path (for example `Space › item 0 › x`) floating above it, and the Optimize control below it. Expressions may use your Variables (`scenario.<name>`), net parameters (`parameters.<name>`), and arithmetic -- the same [expression language](scenarios.md) scenarios use. Press Enter or click elsewhere to close the editor; arrow keys and Tab move between cells.
 
 ### Places without a token type
 
-A place without a token type is a single **token count** slot after a `×` mark.
+A place without a token type is one line: the place's name and a single **token count** slot after a `×` mark.
 
 ### Places with a token type
 
-A place with a [token type](petri-net-extensions.md#typed-vs-untyped-places) is a token table with one column per field of the type. Each row is one of three kinds, and **clicking the row's gutter cycles between them**:
+A place with a [token type](petri-net-extensions.md#typed-vs-untyped-places) is a token table with one column per field of the type. Each row is one of three kinds, and **clicking the row's gutter opens a menu to choose one**:
 
 - **Fixed** (`#1`, `#2`, ...) -- the row emits exactly one token.
 - **Dynamic** (`i`, blue) -- the row emits many tokens: a quiet strip above the cells shows `×` and the row's **count expression**, and each cell is evaluated once per token with `i` running from `0` to `count - 1` (`count` is also available). The gutter's tooltip shows the row number.
 - **Count-optimized** (`i`, purple; optimizations only) -- a dynamic row whose count is an optimization parameter: the strip shows the count's bounds, `× 0 … 12`.
 
-Cycling never loses anything: a row's count (bounds included) is restored when you cycle back. The dimmed trailing row is a **phantom row**: click any of its cells to materialize a new fixed row. In fixed rows, `i` is the row's position in the list and `count` is `1`.
+Changing a row's kind never loses anything: its count (bounds included) is restored when you change back. The dimmed trailing row is a **phantom row**: click any of its cells to materialize a new fixed row. In fixed rows, `i` is the row's position in the list and `count` is `1`.
 
 The table's bottom line shows the place's **token total**: a number when every count resolves, otherwise the unresolved counts printed as they are (for example `= 2 + scenario.n_satellites tokens`).
 
@@ -52,7 +52,7 @@ Every expression is type-checked as you work. The open editor marks problems inl
 
 ## Optimize selections (optimizations only)
 
-In the optimization drawer, every value slot -- cells, counts, variables, shared columns, and net parameters -- carries an **Optimize** toggle at the bottom right of its editor. Turning it on replaces the expression input with a search domain: **Min**, **Max**, and **Scale** (linear or logarithmic), plus **Step** for integer values other than counts. Turning it off restores the expression you had, and the bounds are remembered too. An optimized value shows its bounds (`0 … 12`) on a purple slot.
+In the optimization drawer, every value slot -- cells, counts, variables, shared columns, and net parameters -- carries a labeled **Optimize** toggle, purple while on: under the open cell editor, and on the row for Variables and Parameters. Turning it on replaces the expression input with a search domain: **Min**, **Max**, and **Scale** (linear or logarithmic), plus **Step** for integer values other than counts. Turning it off restores the expression you had, and the bounds are remembered too. An optimized value shows its bounds (`0 … 12`) on a purple slot.
 
 At least one Optimize selection is required to run; a cell muted by a shared column does not count. Text fields cannot be optimized; a boolean value optimizes as a true/false choice with no bounds.
 
