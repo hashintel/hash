@@ -216,6 +216,99 @@ describe("setExpression", () => {
   });
 });
 
+describe("no-op actions return the same reference", () => {
+  it("covers value edits, kinds, shares, and renames", () => {
+    const before = baseState();
+    const noOps: AdHocAction[] = [
+      {
+        type: "setExpression",
+        target: { kind: "cell", placeId: "place-pumps", row: 0, column: 0 },
+        expression: "wear + 1",
+      },
+      {
+        type: "toggleSelection",
+        target: { kind: "variable", placeId: null, index: 0 },
+        on: false,
+      },
+      {
+        type: "setDomainField",
+        target: { kind: "variable", placeId: null, index: 0 },
+        field: "min",
+        value: "0",
+      },
+      {
+        type: "setTokenRowKind",
+        placeId: "place-pumps",
+        row: 0,
+        rowKind: "fixed",
+      },
+      { type: "unshareColumn", placeId: "place-pumps", field: "pressure" },
+      {
+        type: "renameVariable",
+        placeId: "place-pumps",
+        index: 0,
+        name: "wear",
+      },
+      {
+        type: "setVariableType",
+        placeId: null,
+        index: 0,
+        variableType: "real",
+      },
+      { type: "deleteVariable", placeId: null, index: 9 },
+      { type: "deleteTokenRow", placeId: "place-pumps", row: 9 },
+    ];
+    for (const action of noOps) {
+      expect(apply(before, action)).toBe(before);
+    }
+
+    const shared = apply(before, {
+      type: "shareColumn",
+      placeId: "place-pumps",
+      field: "pressure",
+      column: 0,
+    });
+    expect(
+      apply(shared, {
+        type: "shareColumn",
+        placeId: "place-pumps",
+        field: "pressure",
+        column: 0,
+      }),
+    ).toBe(shared);
+    const selected = apply(before, {
+      type: "toggleSelection",
+      target: { kind: "variable", placeId: null, index: 0 },
+      on: true,
+    });
+    expect(
+      apply(selected, {
+        type: "toggleSelection",
+        target: { kind: "variable", placeId: null, index: 0 },
+        on: true,
+      }),
+    ).toBe(selected);
+  });
+
+  it("does not materialize a place a no-op action names", () => {
+    const before = baseState();
+    const after = apply(before, {
+      type: "setTokenRowKind",
+      placeId: "place-queue",
+      row: 0,
+      rowKind: "fixed",
+    });
+    expect(after).toBe(before);
+    expect(
+      apply(EMPTY_AD_HOC_STATE, {
+        type: "deleteTokenRow",
+        placeId: "place-pumps",
+        row: 0,
+      }),
+    ).toBe(EMPTY_AD_HOC_STATE);
+  });
+});
+
 describe("selection and domains", () => {
   it("toggles selection on with the plain defaults, counts with count defaults", () => {
     const plain = apply(baseState(), {
@@ -416,6 +509,110 @@ describe("variable actions", () => {
     ]);
     // Whitespace around the dot still reads as a member access.
     expect(queue(state).count.expression).toBe("scenario . root");
+  });
+
+  it("rewrites the retained stores too, so later restores stay consistent", () => {
+    const before = baseState();
+    const withRetained: AdHocScenarioState = {
+      ...before,
+      variables: [
+        {
+          ...before.variables[0]!,
+          retainedOptimize: {
+            min: "scenario.base",
+            max: "scenario.base + 1",
+            scale: "linear",
+          },
+        },
+      ],
+      places: {
+        ...before.places,
+        "place-pumps": {
+          ...pumps(before),
+          rows: [
+            {
+              kind: "fixed",
+              cells: [cell("0"), cell("false")],
+              retainedCount: cell("scenario.base * 3"),
+            },
+          ],
+          sharedColumns: {},
+          retainedSharedColumns: { pressure: cell("scenario.base + 5") },
+        },
+      },
+    };
+    const state = apply(withRetained, {
+      type: "renameVariable",
+      placeId: null,
+      index: 0,
+      name: "root",
+      rewriteReferences: true,
+    });
+    expect(state.variables[0]!.retainedOptimize).toEqual({
+      min: "scenario.root",
+      max: "scenario.root + 1",
+      scale: "linear",
+    });
+    const row = pumps(state).rows[0]!;
+    expect(row.kind === "fixed" && row.retainedCount?.expression).toBe(
+      "scenario.root * 3",
+    );
+    expect(pumps(state).retainedSharedColumns?.pressure?.expression).toBe(
+      "scenario.root + 5",
+    );
+  });
+
+  it("treats $ as an ordinary identifier character in both names", () => {
+    expect(
+      rewriteAdHocReference("scenario.base + 1", "topLevel", "base", "$1x"),
+    ).toBe("scenario.$1x + 1");
+    expect(rewriteAdHocReference("wear + 2", "place", "wear", "a$$b")).toBe(
+      "a$$b + 2",
+    );
+    expect(
+      rewriteAdHocReference("scenario.$1x * 2", "topLevel", "$1x", "base"),
+    ).toBe("scenario.base * 2");
+  });
+
+  it("leaves member chains rooted in another identifier alone", () => {
+    expect(
+      rewriteAdHocReference("foo.scenario.base", "topLevel", "base", "root"),
+    ).toBe("foo.scenario.base");
+    expect(
+      rewriteAdHocReference("$scenario.base", "topLevel", "base", "root"),
+    ).toBe("$scenario.base");
+  });
+
+  it("generates default names that avoid the other scope", () => {
+    let state = apply(EMPTY_AD_HOC_STATE, {
+      type: "addVariable",
+      placeId: null,
+    });
+    state = apply(state, { type: "addVariable", placeId: "place-pumps" });
+    // A per-place "variable1" would shadow the top-level one — a synthesis
+    // error — so the generated name skips it.
+    expect(pumps(state).variables[0]!.name).toBe("variable2");
+    const outcome = synthesizeAdHocScenario(state, context);
+    expect(outcome.ok).toBe(true);
+
+    const duplicated = apply(baseState(), {
+      type: "duplicateVariable",
+      placeId: "place-pumps",
+      index: 0,
+    });
+    const withTopLevelClash = apply(
+      {
+        ...baseState(),
+        variables: [
+          ...baseState().variables,
+          { name: "wear2", type: "real", expression: "0", optimize: null },
+        ],
+      },
+      { type: "duplicateVariable", placeId: "place-pumps", index: 0 },
+    );
+    expect(pumps(duplicated).variables[1]!.name).toBe("wear2");
+    // "wear2" is taken at the top level, so the copy skips to "wear3".
+    expect(pumps(withTopLevelClash).variables[1]!.name).toBe("wear3");
   });
 
   it("sets types, deletes, and duplicates with a deduplicated name", () => {
