@@ -35,7 +35,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { CodeEditor } from "../../monaco/code-editor";
-import { AdHocFormContext } from "./form-context";
+import { AdHocFormContext, adHocSelectionText } from "./form-context";
 import { cellSelectStyle, dependencyHighlightStyle } from "./form-table";
 import { OptimizeToggle } from "./optimize-toggle";
 
@@ -397,7 +397,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     uriFor,
     formState,
     synthesisContext,
-    optimizable,
+    selection,
     highlight,
     setFocusedValue,
   } = use(AdHocFormContext);
@@ -523,7 +523,8 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     };
   }, [open, editorId, editingBound]);
 
-  const optimized = optimizable && value.optimize !== null;
+  const selectable = selection !== "none";
+  const optimized = selectable && value.optimize !== null;
   const isEmpty = !display && !optimized && value.expression.trim() === "";
   const text =
     display ??
@@ -753,10 +754,11 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                 </div>
               )}
             </div>
-            {optimizable ? (
+            {selectable ? (
               <div className={belowStripStyle}>
                 <OptimizeToggle
-                  label={`Optimize ${label}`}
+                  text={adHocSelectionText(selection)}
+                  label={`${adHocSelectionText(selection)} ${label}`}
                   value={value.optimize !== null}
                   onChange={(on) =>
                     onChange(

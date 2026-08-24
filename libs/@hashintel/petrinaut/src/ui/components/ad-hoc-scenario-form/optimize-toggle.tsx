@@ -53,8 +53,10 @@ const knobOnStyle = css({
 export interface OptimizeToggleProps {
   value: boolean;
   onChange: (value: boolean) => void;
-  /** Accessible name; the visible text stays "Optimize". */
+  /** Accessible name. */
   label: string;
+  /** Visible text; "Optimize" for optimization, "Control" for scenarios. */
+  text?: string;
   className?: string;
   /** Registers the pill for an owning grid's keyboard navigation. */
   buttonRef?: (element: HTMLButtonElement | null) => void;
@@ -65,6 +67,7 @@ export const OptimizeToggle: React.FC<OptimizeToggleProps> = ({
   value,
   onChange,
   label,
+  text = "Optimize",
   className,
   buttonRef,
   onKeyDown,
@@ -79,6 +82,6 @@ export const OptimizeToggle: React.FC<OptimizeToggleProps> = ({
     onKeyDown={onKeyDown}
   >
     <span className={cx(knobStyle, value && knobOnStyle)} />
-    Optimize
+    {text}
   </button>
 );

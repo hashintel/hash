@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
 import { EMPTY_AD_HOC_STATE } from "./state";
 
+import type { AdHocFormSelection } from "./form-context";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
@@ -100,10 +101,10 @@ const context: AdHocSynthesisContext = {
 };
 
 const Harness: React.FC<{
-  optimizable: boolean;
+  selection?: AdHocFormSelection;
   onState?: (state: AdHocScenarioState) => void;
   initial?: AdHocScenarioState;
-}> = ({ optimizable, onState, initial = EMPTY_AD_HOC_STATE }) => {
+}> = ({ selection = "optimize", onState, initial = EMPTY_AD_HOC_STATE }) => {
   const [state, setState] = useState(initial);
   return (
     <AdHocScenarioForm
@@ -113,7 +114,7 @@ const Harness: React.FC<{
         onState?.(next);
       }}
       context={context}
-      optimizable={optimizable}
+      selection={selection}
     />
   );
 };
@@ -131,7 +132,6 @@ describe("AdHocScenarioForm", () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
-        optimizable
         onState={(state) => {
           latest = state;
         }}
@@ -156,7 +156,6 @@ describe("AdHocScenarioForm", () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
-        optimizable
         onState={(state) => {
           latest = state;
         }}
@@ -201,7 +200,7 @@ describe("AdHocScenarioForm", () => {
   });
 
   it("hides the optimized kind and moves focus with arrow keys", async () => {
-    render(<Harness optimizable={false} />);
+    render(<Harness selection="none" />);
     fireEvent.click(
       screen.getByRole("button", { name: "Add a token row (pressure)" }),
     );
@@ -228,7 +227,6 @@ describe("AdHocScenarioForm", () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
-        optimizable
         onState={(state) => {
           latest = state;
         }}
@@ -281,7 +279,6 @@ describe("AdHocScenarioForm", () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
-        optimizable
         onState={(state) => {
           latest = state;
         }}
@@ -309,8 +306,8 @@ describe("AdHocScenarioForm", () => {
     expect(after.retainedSharedColumns?.["pressure"]).toBeTruthy();
   });
 
-  it("hides every Optimize control when optimizable is off", () => {
-    render(<Harness optimizable={false} />);
+  it("hides every selection toggle when selection is none", () => {
+    render(<Harness selection="none" />);
     fireEvent.click(
       screen.getByRole("button", { name: "Add a token row (pressure)" }),
     );
@@ -318,11 +315,28 @@ describe("AdHocScenarioForm", () => {
     expect(screen.queryByRole("switch", { name: /Optimize/ })).toBeNull();
   });
 
+  it("labels the selection toggle Control in controls mode", () => {
+    const initial: AdHocScenarioState = {
+      variables: [
+        { name: "n", type: "integer", expression: "2", optimize: null },
+      ],
+      netParameters: [],
+      places: {},
+    };
+    render(<Harness selection="controls" initial={initial} />);
+    expect(screen.getAllByText("Control").length).toBeGreaterThan(0);
+    expect(
+      screen
+        .getByRole("button", { name: "Control n" })
+        .getAttribute("aria-pressed"),
+    ).toBe("false");
+    expect(screen.queryByText("Optimize")).toBe(null);
+  });
+
   it("edits the uncoloured count as an expression", async () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
-        optimizable
         onState={(state) => {
           latest = state;
         }}
@@ -364,7 +378,7 @@ describe("AdHocScenarioForm", () => {
         },
       },
     };
-    render(<Harness optimizable initial={initial} />);
+    render(<Harness initial={initial} />);
 
     const trigger = screen.getByRole("button", {
       name: "Pumps › item 0 › pressure",
@@ -376,7 +390,6 @@ describe("AdHocScenarioForm", () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
-        optimizable
         onState={(state) => {
           latest = state;
         }}
@@ -417,7 +430,7 @@ describe("AdHocScenarioForm", () => {
         },
       },
     };
-    render(<Harness optimizable initial={initial} />);
+    render(<Harness initial={initial} />);
 
     const cell = screen.getByRole("button", {
       name: "Pumps › item 0 › pressure",
@@ -444,7 +457,6 @@ describe("AdHocScenarioForm", () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
-        optimizable
         onState={(state) => {
           latest = state;
         }}
@@ -480,7 +492,6 @@ describe("AdHocScenarioForm", () => {
     let latest: AdHocScenarioState | undefined;
     render(
       <Harness
-        optimizable
         onState={(state) => {
           latest = state;
         }}
@@ -503,7 +514,7 @@ describe("AdHocScenarioForm", () => {
   });
 
   it("walks between zones and toggles sections from their headers", async () => {
-    render(<Harness optimizable />);
+    render(<Harness />);
 
     // Down from the parameters grid lands on the Variables section header.
     const rateValue = screen.getByRole("button", { name: "Rate" });
@@ -549,7 +560,7 @@ describe("AdHocScenarioForm", () => {
   });
 
   it("reaches the column headers and collapses a place to a summary", () => {
-    render(<Harness optimizable />);
+    render(<Harness />);
     fireEvent.click(
       screen.getByRole("button", { name: "Add a token row (pressure)" }),
     );
@@ -596,7 +607,7 @@ describe("AdHocScenarioForm", () => {
       netParameters: [],
       places: {},
     };
-    render(<Harness optimizable initial={initial} />);
+    render(<Harness initial={initial} />);
 
     const nameCell = screen.getByRole("button", {
       name: "Name of variable 1 (Top-level variables)",
@@ -637,7 +648,6 @@ describe("AdHocScenarioForm", () => {
     };
     render(
       <Harness
-        optimizable
         initial={initial}
         onState={(state) => {
           latest = state;
@@ -690,7 +700,7 @@ describe("AdHocScenarioForm", () => {
         },
       },
     };
-    render(<Harness optimizable initial={initial} />);
+    render(<Harness initial={initial} />);
 
     // Focusing the cell highlights the variable row its expression reads.
     const cell = screen.getByRole("button", {
@@ -726,7 +736,6 @@ describe("AdHocScenarioForm", () => {
     };
     render(
       <Harness
-        optimizable
         initial={initial}
         onState={(state) => {
           latest = state;
@@ -789,7 +798,7 @@ describe("AdHocScenarioForm", () => {
         },
       },
     };
-    render(<Harness optimizable initial={initial} />);
+    render(<Harness initial={initial} />);
     expect(screen.getByText("= 1 + 0 … 10 tokens")).toBeTruthy();
   });
 });

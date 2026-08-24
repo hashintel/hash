@@ -157,6 +157,14 @@ export const phantomCellButtonStyle = css({
   },
 });
 
+/** The quiet "+" in an add-line's gutter. */
+export const phantomGutterTextStyle = css({
+  fontFamily: "mono",
+  fontSize: "[11px]",
+  color: "neutral.s60",
+  opacity: "[0.55]",
+});
+
 /**
  * Renders a cell's Select as a square spreadsheet cell rather than a
  * control. Applied to the owning `<td>` — the Select drops `className` — and
@@ -194,13 +202,4 @@ export const cellSelectStyle = css({
     minHeight: "[0!]",
     paddingY: "[0!]",
   },
-});
-
-export const footerRowStyle = css({
-  padding: "[4px 8px]",
-  textAlign: "right",
-  fontFamily: "mono",
-  fontSize: "[10px]",
-  color: "neutral.s80",
-  backgroundColor: "neutral.s10",
 });
