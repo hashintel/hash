@@ -3,9 +3,12 @@
  * opening replaces it with a Monaco single-line editor at exactly the cell's
  * position — no chrome, no padding. The slot's attribution path (`Space ›
  * item 0 › x`) floats quietly above the cell; the Optimize control floats
- * below it, and turning Optimize on replaces the expression editor with
- * Min/Max/Scale (Step where definable) in the same slot. Toggling destroys
- * nothing: the core transition retains bounds and expression alike.
+ * below it, and turning Optimize on replaces the expression editor with a
+ * small bounds spreadsheet in the same slot: labeled Min/Max/Scale cells
+ * (Step where definable), each a square expression cell with the form's
+ * selection model — focus selects, Enter edits in a frameless Monaco,
+ * Enter or Escape returns to the cell. Toggling destroys nothing: the core
+ * transition retains bounds and expression alike.
  *
  * A closed slot still shows its problems: the trigger underlines in red and
  * carries the first synthesis error or LSP diagnostic as its tooltip.
@@ -21,11 +24,7 @@ import {
   useState,
 } from "react";
 
-import {
-  Select,
-  TextInput,
-  usePortalContainerRef,
-} from "@hashintel/ds-components";
+import { Select, usePortalContainerRef } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   AD_HOC_DEFAULT_COUNT_OPTIMIZE,
@@ -37,7 +36,7 @@ import {
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { AdHocFormContext } from "./form-context";
-import { dependencyHighlightStyle } from "./form-table";
+import { cellSelectStyle, dependencyHighlightStyle } from "./form-table";
 import { OptimizeToggle } from "./optimize-toggle";
 
 import type { AdHocValue, AdHocValueTarget } from "@hashintel/petrinaut-core";
@@ -152,21 +151,66 @@ const belowStripStyle = css({
   backgroundColor: "neutral.s110",
 });
 
-const boundsRowStyle = css({
+// The bounds are a small spreadsheet inside the slab: one labeled square
+// column per field, hairline-delimited, no chrome of their own — the slab's
+// path and Optimize bars stay the only header and footer.
+const boundsGridStyle = css({
   display: "flex",
-  alignItems: "center",
-  gap: "1",
-  padding: "[2px]",
   width: "[100%]",
 });
 
-const boundFieldStyle = css({
+const boundsColumnStyle = css({
   flex: "1",
-  minWidth: "[56px]",
+  minWidth: "[64px]",
+  borderLeft: "[1px solid {colors.neutral.a05}]",
+  _first: { borderLeft: "none" },
 });
 
-const scaleFieldStyle = css({
-  flex: "[0 0 84px]",
+const boundsScaleColumnStyle = css({
+  flex: "[0 0 96px]",
+});
+
+const boundsLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  height: "[16px]",
+  paddingX: "1.5",
+  fontFamily: "mono",
+  fontSize: "[9px]",
+  fontWeight: "medium",
+  color: "neutral.s80",
+  backgroundColor: "neutral.s15",
+  borderBottom: "[1px solid {colors.neutral.a05}]",
+});
+
+const boundTriggerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  width: "[100%]",
+  height: "[28px]",
+  border: "none",
+  padding: "[4px 8px]",
+  fontFamily: "mono",
+  fontSize: "xs",
+  color: "neutral.s110",
+  backgroundColor: "[transparent]",
+  cursor: "pointer",
+  textAlign: "left",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
+  _hover: { backgroundColor: "neutral.s10" },
+  _focus: {
+    outline: "[2px solid {colors.blue.s70}]",
+    outlineOffset: "[-2px]",
+    backgroundColor: "blue.s05",
+  },
+});
+
+const boundEditorStyle = css({
+  display: "flex",
+  width: "[100%]",
+  height: "[28px]",
 });
 
 const fieldErrorStyle = css({
@@ -237,6 +281,101 @@ export interface ValueEditorProps {
 /** The minimum open-editor width; narrow cells grow to stay usable. */
 const MIN_OVERLAY_WIDTH = 220;
 
+/** The wider minimum when the bounds spreadsheet is showing. */
+const MIN_BOUNDS_OVERLAY_WIDTH = 340;
+
+interface BoundCellProps {
+  /** The visible field label ("Min"); the accessible name appends the value's path. */
+  label: string;
+  valueLabel: string;
+  bound: string;
+  /** The bound slot's Monaco document, for type checking while editing. */
+  uri: string | undefined;
+  error: string | undefined;
+  editing: boolean;
+  onStartEdit: () => void;
+  /** Enter in the expression editor: commit and return to the selected cell. */
+  onEndEdit: () => void;
+  onChange: (next: string) => void;
+  registerTrigger: (element: HTMLButtonElement | null) => void;
+  onNavigate: (delta: -1 | 1) => void;
+}
+
+/**
+ * One bound cell of the bounds spreadsheet, with the form's cell selection
+ * model: focusing selects, Enter (or a second click) opens an in-place
+ * expression editor, Enter or Escape leaves it. No chrome of its own.
+ */
+const BoundCell: React.FC<BoundCellProps> = ({
+  label,
+  valueLabel,
+  bound,
+  uri,
+  error,
+  editing,
+  onStartEdit,
+  onEndEdit,
+  onChange,
+  registerTrigger,
+  onNavigate,
+}) => {
+  const wasFocusedOnPointerDownRef = useRef(false);
+  const selfRef = useRef<HTMLButtonElement | null>(null);
+
+  if (editing) {
+    return (
+      <div className={boundEditorStyle}>
+        <CodeEditor
+          singleLine
+          frameless
+          language="typescript"
+          path={uri}
+          value={bound}
+          onMount={(editorInstance) => {
+            editorInstance.focus();
+          }}
+          onChange={(next) => onChange(next ?? "")}
+          onSubmit={onEndEdit}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <button
+      ref={(element) => {
+        selfRef.current = element;
+        registerTrigger(element);
+      }}
+      type="button"
+      aria-label={`${label} of ${valueLabel}`}
+      title={error}
+      className={cx(boundTriggerStyle, error && errorTriggerStyle)}
+      onPointerDown={() => {
+        wasFocusedOnPointerDownRef.current =
+          document.activeElement === selfRef.current;
+      }}
+      onClick={(event) => {
+        // A keyboard "click" (Enter/Space) always edits; a pointer click
+        // edits only an already-selected cell — the first click selects.
+        if (event.detail === 0 || wasFocusedOnPointerDownRef.current) {
+          onStartEdit();
+        }
+      }}
+      onDoubleClick={onStartEdit}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+          event.preventDefault();
+          event.stopPropagation();
+          onNavigate(event.key === "ArrowLeft" ? -1 : 1);
+        }
+      }}
+    >
+      <span>{bound}</span>
+    </button>
+  );
+};
+
 export const ValueEditor: React.FC<ValueEditorProps> = ({
   value,
   onChange,
@@ -274,12 +413,29 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   // selects, the second (or a double-click, or Enter) edits.
   const wasFocusedOnPointerDownRef = useRef(false);
   const [open, setOpenState] = useState(autoOpen > 0);
+  // Which bound cell holds an open expression editor. Escape peels one
+  // layer: it leaves the bound edit first, and closes the slab from a
+  // selected cell.
+  const [editingBound, setEditingBound] = useState<
+    "min" | "max" | "step" | null
+  >(null);
+  if (!open && editingBound !== null) {
+    setEditingBound(null);
+  }
+  const boundRefs = useRef(new Map<string, HTMLButtonElement>());
+  // Opening the slab selects the Min cell once; reset per open.
+  const minAutoSelectedRef = useRef(false);
 
   const setOpen = (next: boolean) => {
     setOpenState(next);
     if (next) {
       window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: editorId }));
     }
+  };
+
+  const endBoundEdit = (key: "min" | "max" | "step") => {
+    setEditingBound(null);
+    setTimeout(() => boundRefs.current.get(key)?.focus(), 0);
   };
   const [rect, setRect] = useState<{
     top: number;
@@ -344,6 +500,12 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (editingBound !== null) {
+          const key = editingBound;
+          setEditingBound(null);
+          setTimeout(() => boundRefs.current.get(key)?.focus(), 0);
+          return;
+        }
         setOpenState(false);
         buttonRef.current?.focus();
       }
@@ -359,7 +521,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("keydown", onKeyDown, true);
     };
-  }, [open, editorId]);
+  }, [open, editorId, editingBound]);
 
   const optimized = optimizable && value.optimize !== null;
   const isEmpty = !display && !optimized && value.expression.trim() === "";
@@ -379,26 +541,42 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     : errorFor(expressionSlot);
   const showTriggerError = error !== undefined && !open;
 
-  const boundField = (
-    fieldLabel: string,
-    fieldValue: string,
-    setBound: (next: string) => void,
-    focusOnOpen = false,
-  ) => (
-    <div className={boundFieldStyle}>
-      <TextInput
-        size="sm"
-        aria-label={`${fieldLabel} of ${label}`}
-        placeholder={fieldLabel}
-        value={fieldValue}
-        onChange={setBound}
-        // eslint-disable-next-line jsx-a11y/no-autofocus -- opening the editor is an explicit edit intent
-        autoFocus={focusOnOpen}
-      />
-    </div>
-  );
-
   const boundsError = optimized ? error : undefined;
+
+  const boundFields: { key: "min" | "max" | "step"; fieldLabel: string }[] = [
+    { key: "min", fieldLabel: "Min" },
+    { key: "max", fieldLabel: "Max" },
+    ...(integer && withStep
+      ? [{ key: "step" as const, fieldLabel: "Step" }]
+      : []),
+  ];
+  const boundOrder = [...boundFields.map((field) => field.key), "scale"];
+  const navigateBound = (from: string, delta: -1 | 1) => {
+    const next = boundOrder[boundOrder.indexOf(from) + delta];
+    if (next) {
+      boundRefs.current.get(next)?.focus();
+    }
+  };
+  const registerBound =
+    (key: string, selectOnAttach = false) =>
+    (element: HTMLButtonElement | null) => {
+      if (element) {
+        boundRefs.current.set(key, element);
+        if (selectOnAttach && !minAutoSelectedRef.current) {
+          minAutoSelectedRef.current = true;
+          element.focus();
+        }
+      } else {
+        boundRefs.current.delete(key);
+        if (selectOnAttach) {
+          minAutoSelectedRef.current = false;
+        }
+      }
+    };
+  const boundValue = (key: "min" | "max" | "step"): string =>
+    key === "step"
+      ? (value.optimize?.step ?? "1")
+      : (value.optimize?.[key] ?? "");
 
   return (
     <>
@@ -460,7 +638,12 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             style={{
               top: rect.top,
               left: rect.left,
-              width: Math.max(rect.width, MIN_OVERLAY_WIDTH),
+              width: Math.max(
+                rect.width,
+                optimized && !booleanDomain
+                  ? MIN_BOUNDS_OVERLAY_WIDTH
+                  : MIN_OVERLAY_WIDTH,
+              ),
               minHeight: rect.height,
             }}
           >
@@ -471,43 +654,73 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                   The optimizer tries true and false.
                 </div>
               ) : optimized ? (
-                <div className={boundsRowStyle}>
-                  {boundField(
-                    "Min",
-                    value.optimize!.min,
-                    (min) =>
-                      onChange({
-                        ...value,
-                        optimize: { ...value.optimize!, min },
-                      }),
-                    true,
-                  )}
-                  {boundField("Max", value.optimize!.max, (max) =>
-                    onChange({
-                      ...value,
-                      optimize: { ...value.optimize!, max },
-                    }),
-                  )}
-                  {integer && withStep
-                    ? boundField("Step", value.optimize!.step ?? "1", (step) =>
-                        onChange({
-                          ...value,
-                          optimize: { ...value.optimize!, step },
-                        }),
-                      )
-                    : null}
-                  <div className={scaleFieldStyle}>
+                <div className={boundsGridStyle}>
+                  {boundFields.map((field, fieldIndex) => (
+                    <div key={field.key} className={boundsColumnStyle}>
+                      <div className={boundsLabelStyle}>{field.fieldLabel}</div>
+                      <BoundCell
+                        label={field.fieldLabel}
+                        valueLabel={label}
+                        bound={boundValue(field.key)}
+                        uri={uriFor({ target, part: field.key }) || undefined}
+                        error={errorFor({ target, part: field.key })}
+                        editing={editingBound === field.key}
+                        onStartEdit={() => setEditingBound(field.key)}
+                        onEndEdit={() => endBoundEdit(field.key)}
+                        onChange={(next) => {
+                          const optimize = { ...value.optimize! };
+                          optimize[field.key] = next;
+                          onChange({ ...value, optimize });
+                        }}
+                        registerTrigger={registerBound(
+                          field.key,
+                          fieldIndex === 0,
+                        )}
+                        onNavigate={(delta) => navigateBound(field.key, delta)}
+                      />
+                    </div>
+                  ))}
+                  <div
+                    ref={(element) => {
+                      const trigger =
+                        element?.querySelector<HTMLButtonElement>(
+                          "[data-part='trigger']",
+                        ) ?? null;
+                      if (trigger) {
+                        boundRefs.current.set("scale", trigger);
+                      } else {
+                        boundRefs.current.delete("scale");
+                      }
+                    }}
+                    className={cx(
+                      boundsColumnStyle,
+                      boundsScaleColumnStyle,
+                      cellSelectStyle,
+                    )}
+                    onKeyDownCapture={(event) => {
+                      const trigger = event.currentTarget.querySelector(
+                        "[data-part='trigger']",
+                      );
+                      if (trigger?.getAttribute("aria-expanded") === "true") {
+                        return;
+                      }
+                      if (event.key === "ArrowLeft") {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        navigateBound("scale", -1);
+                      }
+                    }}
+                  >
+                    <div className={boundsLabelStyle}>Scale</div>
                     <Select
+                      required
                       size="sm"
                       aria-label={`Scale of ${label}`}
                       value={value.optimize!.scale}
                       onChange={(scale) =>
                         onChange({
                           ...value,
-                          optimize: {
-                            ...value.optimize!,
-                            scale: scale === "log" ? "log" : "linear",
-                          },
+                          optimize: { ...value.optimize!, scale },
                         })
                       }
                       items={[

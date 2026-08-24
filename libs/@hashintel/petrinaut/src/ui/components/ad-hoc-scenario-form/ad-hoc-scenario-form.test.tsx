@@ -649,6 +649,62 @@ describe("AdHocScenarioForm", () => {
     expect(nameCell.closest("tr")?.getAttribute("data-highlighted")).toBe(null);
   });
 
+  it("edits optimize bounds as selectable expression cells", async () => {
+    let latest: AdHocScenarioState | undefined;
+    const initial: AdHocScenarioState = {
+      variables: [
+        {
+          name: "n",
+          type: "integer",
+          expression: "2",
+          optimize: { min: "0", max: "10", step: "1", scale: "linear" },
+        },
+      ],
+      netParameters: [],
+      places: {},
+    };
+    render(
+      <Harness
+        optimizable
+        initial={initial}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    // A keyboard click opens the slab; the Min cell arrives selected, and
+    // the bounds show their labels.
+    fireEvent.click(screen.getByRole("button", { name: "n" }));
+    const minCell = await screen.findByRole("button", { name: "Min of n" });
+    expect(document.activeElement).toBe(minCell);
+    expect(screen.getByText("Scale")).toBeTruthy();
+
+    // Arrows move between the bound cells; Enter opens the expression
+    // editor in place (no per-cell path or Optimize chrome).
+    fireEvent.keyDown(minCell, { key: "ArrowRight" });
+    const maxCell = screen.getByRole("button", { name: "Max of n" });
+    expect(document.activeElement).toBe(maxCell);
+    fireEvent.click(maxCell);
+    const editor = await screen.findByRole("textbox", { name: "Expression" });
+    fireEvent.change(editor, { target: { value: "scenario.other" } });
+    expect(latest?.variables[0]?.optimize?.max).toBe("scenario.other");
+
+    // Escape peels one layer: first back to the selected cell...
+    fireEvent.keyDown(editor, { key: "Escape" });
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Max of n" }),
+    );
+    expect(screen.getByText("Scale")).toBeTruthy();
+
+    // ...then the whole slab.
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(screen.queryByText("Scale")).toBe(null);
+  });
+
   it("shows the place total, unresolved when a count is optimized", () => {
     const initial: AdHocScenarioState = {
       variables: [],
