@@ -545,9 +545,9 @@ where
 
         let (statement, parameters) = compiler.compile();
 
-        let rows = self
+        let rows: Vec<_> = self
             .as_client()
-            .query(&statement, parameters)
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -555,6 +555,9 @@ where
                 peer.service = "Postgres",
                 db.query.text = statement,
             ))
+            .await
+            .change_context(QueryError)?
+            .try_collect()
             .await
             .change_context(QueryError)?;
 
@@ -764,7 +767,7 @@ where
 
         let rows = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -811,7 +814,7 @@ where
 
         let rows = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",

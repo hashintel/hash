@@ -50,7 +50,6 @@ fn test_compilation<'p, 'q: 'p, T: PostgresRecord + 'static>(
     );
 
     let compiled_parameters = compiled_parameters
-        .iter()
         .map(|parameter| format!("{parameter:?}"))
         .collect::<Vec<_>>();
     let expected_parameters = expected_parameters

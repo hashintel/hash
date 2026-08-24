@@ -123,7 +123,7 @@ where
         let mut entity_ids = HashMap::<(WebId, EntityUuid), Vec<DraftId>>::new();
 
         self.as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT entities for deletion",
                 otel.kind = "client",
