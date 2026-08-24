@@ -109,6 +109,16 @@ export const selectedRowCellStyle = css({
 });
 
 /**
+ * The dependency highlight: marks the rows a focused expression reads, and
+ * the cells that read a focused Variable or Parameter. A background image so
+ * it composites over the row tints; the selection overlay still wins.
+ */
+export const dependencyHighlightStyle = css({
+  backgroundImage:
+    "[linear-gradient(rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.12))]",
+});
+
+/**
  * A phantom cell: an empty trailing row's click target, quieter than real
  * content, materializing a fresh entry on click or Enter.
  */

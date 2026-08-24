@@ -12,10 +12,14 @@
 
 import { createContext } from "react";
 
+import { EMPTY_AD_HOC_HIGHLIGHT } from "./dependency-highlight";
+
+import type { AdHocHighlight } from "./dependency-highlight";
 import type {
   AdHocScenarioState,
   AdHocSlot,
   AdHocSynthesisContext,
+  AdHocValueTarget,
 } from "@hashintel/petrinaut-core";
 
 export interface AdHocFormServices {
@@ -31,6 +35,10 @@ export interface AdHocFormServices {
   errorFor: (slot: AdHocSlot) => string | undefined;
   /** The Monaco document URI for a slot ("" when no session is wired). */
   uriFor: (slot: AdHocSlot) => string;
+  /** The rows and cells connected to the focused value. */
+  highlight: AdHocHighlight;
+  /** Reports which value holds focus, driving the dependency highlight. */
+  setFocusedValue: (target: AdHocValueTarget | null) => void;
 }
 
 export const AdHocFormContext = createContext<AdHocFormServices>({
@@ -40,4 +48,6 @@ export const AdHocFormContext = createContext<AdHocFormServices>({
   sessionId: "",
   errorFor: () => undefined,
   uriFor: () => "",
+  highlight: EMPTY_AD_HOC_HIGHLIGHT,
+  setFocusedValue: () => {},
 });
