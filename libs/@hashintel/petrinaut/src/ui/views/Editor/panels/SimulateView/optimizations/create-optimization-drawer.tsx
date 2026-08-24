@@ -19,6 +19,7 @@ import {
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
   PETRINAUT_OPTIMIZATION_MAX_TRIALS,
   createUserKeyedRecord,
+  EMPTY_AD_HOC_STATE,
   metricSchema,
   petrinautOptimizationInputSchema,
   adHocOptimizationBindings,
@@ -29,7 +30,6 @@ import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
-import { EMPTY_AD_HOC_STATE } from "../../../../../components/ad-hoc-scenario-form/state";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
