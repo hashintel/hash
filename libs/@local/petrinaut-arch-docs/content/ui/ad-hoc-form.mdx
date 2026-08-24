@@ -308,8 +308,8 @@ initial-state body and wrapped override expressions.
       accent: "ui",
       boxes: [
         {
-          label: "Quick simulation drawer",
-          note: "react.simulation compiles the generated scenario per run",
+          label: "Simulation Settings (inline)",
+          note: "Quick simulation embeds the bare, variables-less form; react.simulation compiles the generated scenario per run",
         },
         {
           label: "Create-experiment drawer",
@@ -342,6 +342,17 @@ const [state, setState] = useState<AdHocScenarioState>(EMPTY_AD_HOC_STATE);
   selection="none" // "optimize" | "controls" where the toggles apply
 />;
 ```
+
+Two props shape an **embedding**: `withVariables={false}` removes the
+Variables section (an expression referencing `scenario.<name>` then fails as
+unknown), and `bare` renders the exposed groups without the collapsible
+section chrome, for hosts with their own heading grammar. The Parameters
+section removes itself the same way when the context carries no net
+parameters. Quick simulation combines all three — `bare`,
+`withVariables={false}`, `netParameters: []` — so Simulation Settings shows
+exactly one group, the places, under the panel's own "Initial state"
+heading, with the panel's parameter inputs staying the single owner of
+parameter values.
 
 The form runs its own LSP session against `LanguageClientContext`; with the
 default no-op client (tests, stories without the provider) it degrades to
