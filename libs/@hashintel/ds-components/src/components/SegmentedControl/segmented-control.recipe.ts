@@ -15,21 +15,18 @@ export const styles = sva({
   base: {
     root: {
       "--sc-item-radius": "[calc(var(--sc-radius) - 2px)]",
-      // Default-variant active-pill "raise": the pill overhangs its item box to
-      // read as a lifted button. --sc-raise shifts the top-left corner out (the
-      // lift direction, constant across sizes); --sc-raise-far pulls the opposite
-      // (bottom-right) corner back in on smaller sizes, where the fixed 2px track
-      // gap is proportionally too large. The gap between them is the visible lift,
-      // so it naturally scales down with size.
+      // Default-variant active-pill "raise": the pill overhangs its item box on
+      // every side by --sc-raise so it reads as a lifted button while keeping an
+      // even gap to the track all the way around. Constant across sizes, so the
+      // gap (2px track inset − --sc-raise) stays a uniform hairline everywhere.
       "--sc-raise": "[1.5px]",
-      "--sc-raise-far": "[0px]",
       // Rounded to a whole pixel so the item box is integer-sized. zag drives the
       // active pill from the item's integer offsetWidth/offsetHeight; if the item
-      // box were fractional the pill's pinned (bottom/right) edges would land off
-      // the item by the fractional remainder, and since that remainder differs per
-      // content type (text vs icon vs ellipsized) the gaps would drift between
-      // examples. Integer item boxes also make every stacked offsetTop exact in
-      // the vertical layout, keeping the last item's bottom gap consistent.
+      // box were fractional the pill's overhanging edges would land off the item
+      // by the fractional remainder, and since that remainder differs per content
+      // type (text vs icon vs ellipsized) the gaps would drift between examples.
+      // Integer item boxes also make every stacked offsetTop exact in the
+      // vertical layout, keeping the last item's bottom gap consistent.
       "--sc-item-height":
         "[round(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2 - 4px, 1px)]",
       "--sc-frost-bg": "[25.5]",
@@ -152,7 +149,6 @@ export const styles = sva({
           ...formSizes.variants.sizes.xxs,
           "--sc-radius": "radii.md",
           "--sc-item-px": "[6px]",
-          "--sc-raise-far": "[1px]",
         },
         itemText: { fontSize: "[11px]" },
       },
@@ -161,7 +157,6 @@ export const styles = sva({
           ...formSizes.variants.sizes.xs,
           "--sc-radius": "radii.md",
           "--sc-item-px": "[8px]",
-          "--sc-raise-far": "[0.75px]",
         },
         itemText: { fontSize: "[12px]" },
       },
@@ -170,7 +165,6 @@ export const styles = sva({
           ...formSizes.variants.sizes.sm,
           "--sc-radius": "radii.lg",
           "--sc-item-px": "[8px]",
-          "--sc-raise-far": "[0.5px]",
         },
         itemText: { fontSize: "[14px]" },
       },
@@ -203,28 +197,25 @@ export const styles = sva({
     },
     variant: {
       default: {
-        // The active pill reads as a raised button sitting on the track: its
-        // top-left corner grows outward to overhang the track gap (a subtle
-        // perspective cue, as if the pill is tilted towards the viewer) while
-        // the bottom-right stays pinned to the item box — that asymmetry, plus
-        // a whisper of down-right drop shadow, sells the lift. Black alphas are
-        // true shadows and must NOT take the frost treatment.
+        // The active pill reads as a raised button sitting on the track: it
+        // overhangs the item box by --sc-raise on every side, leaving an even
+        // hairline gap to the track all the way around, and a whisper of
+        // down-right drop shadow sells the lift. Black alphas are true shadows
+        // and must NOT take the frost treatment.
         //
         // The top-left shift uses negative margins, NOT left/top overrides:
         // zag pins the main-axis position inline (`left` when horizontal, `top`
         // when vertical), which beats a recipe class, so overriding left/top
         // would only move the cross axis and the overhang would come out uneven
         // (and differ between orientations). Margins are never set inline, so
-        // they shift both axes consistently. Width/height grow by --sc-raise (to
-        // pin the bottom-right at the item box) plus --sc-raise-far (to pull that
-        // bottom-right corner further in on small sizes, tightening the too-large
-        // fixed gap there).
+        // they shift both axes consistently. Width/height then grow by twice
+        // --sc-raise so the bottom-right corner overhangs by the same amount as
+        // the top-left, keeping the gap symmetric.
         indicator: {
           marginTop: "[calc(-1 * var(--sc-raise))]",
           marginLeft: "[calc(-1 * var(--sc-raise))]",
-          width: "[calc(var(--width) + var(--sc-raise) + var(--sc-raise-far))]",
-          height:
-            "[calc(var(--height) + var(--sc-raise) + var(--sc-raise-far))]",
+          width: "[calc(var(--width) + 2 * var(--sc-raise))]",
+          height: "[calc(var(--height) + 2 * var(--sc-raise))]",
           boxShadow:
             "[0 1px 1.5px {colors.black.a10}, 1px 1px 1px {colors.black.a05}]",
           "&[data-disabled]": {
@@ -269,17 +260,45 @@ export const styles = sva({
       // width by content (full-width text vs square icons), so the rounded
       // --width would give them mismatched right gaps. Span the pill between
       // track-relative left/right insets instead — independent of the item's
-      // measured width — so the left/right gaps are exact and identical for every
-      // content type. (The main axis, height, still comes from the base default;
-      // it's exact now that the item box is integer.)
+      // measured width — each overhanging the item box by --sc-raise so the
+      // left/right gaps are exact, symmetric, and identical for every content
+      // type. (The main axis, height, still comes from the base default; it's
+      // exact now that the item box is integer.)
       variant: "default",
       layout: "vertical",
       css: {
         indicator: {
           marginLeft: "[0px]",
           left: "[calc(var(--left) - var(--sc-raise))]",
-          right: "[calc(2px - var(--sc-raise-far))]",
+          right: "[calc(2px - var(--sc-raise))]",
           width: "[auto]",
+        },
+      },
+    },
+    {
+      // The pill is physically smaller at xs, so the default drop shadow reads
+      // heavier relative to it; lighten and tighten it a touch so it stays a
+      // whisper. Disabled still gets no shadow from the base default rule (its
+      // [data-disabled] selector outranks this plain override). xxs shrinks it
+      // further below.
+      variant: "default",
+      size: "xs",
+      css: {
+        indicator: {
+          boxShadow:
+            "[0 1px 1px {colors.black.a05}, 0.5px 0.5px 1px {colors.black.a05}]",
+        },
+      },
+    },
+    {
+      // xxs is smaller still: a05 is already the faintest alpha step, so drop
+      // the down-right directional layer entirely and halve the ambient offset,
+      // leaving just a barely-there hint of lift.
+      variant: "default",
+      size: "xxs",
+      css: {
+        indicator: {
+          boxShadow: "[0 0.5px 1px {colors.black.a05}]",
         },
       },
     },
