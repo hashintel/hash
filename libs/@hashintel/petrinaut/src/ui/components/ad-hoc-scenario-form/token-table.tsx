@@ -178,7 +178,9 @@ const menuItemStyle = css({
   color: "neutral.s110",
   cursor: "pointer",
   textAlign: "left",
+  outline: "none",
   _hover: { backgroundColor: "neutral.s15" },
+  _focus: { backgroundColor: "neutral.s15" },
 });
 
 const menuMarkStyle = css({
@@ -186,6 +188,124 @@ const menuMarkStyle = css({
   fontFamily: "mono",
   color: "neutral.s80",
 });
+
+interface RowKindMenuProps {
+  current: AdHocRowKind;
+  optimizable: boolean;
+  anchor: HTMLButtonElement;
+  onSelect: (kind: AdHocRowKind) => void;
+  /** The menu went away without a choice (outside interaction). */
+  onClose: () => void;
+  /** The menu was dismissed from the keyboard: close and refocus the gutter. */
+  onDismiss: () => void;
+}
+
+/**
+ * The row-kind menu, keyboard-first: opening moves focus into the menu onto
+ * the checked kind, ArrowUp/ArrowDown cycle the items, Enter chooses, and
+ * Escape returns focus to the gutter that opened it.
+ */
+const RowKindMenu: React.FC<RowKindMenuProps> = ({
+  current,
+  optimizable,
+  anchor,
+  onSelect,
+  onClose,
+  onDismiss,
+}) => {
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const focusedOnOpenRef = useRef(false);
+  // The Popover focuses this when it opens; the checked item's ref fills it.
+  const checkedItemRef = useRef<HTMLElement | null>(null);
+  const options: { kind: AdHocRowKind; label: string }[] = [
+    { kind: "fixed", label: "Fixed row" },
+    { kind: "dynamic", label: "Dynamic count" },
+    ...(optimizable
+      ? [{ kind: "optimized" as const, label: "Optimized count" }]
+      : []),
+  ];
+  const checkedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.kind === current),
+  );
+
+  const handleMenuKeyDown = (event: React.KeyboardEvent) => {
+    const items = itemRefs.current.filter(
+      (item): item is HTMLButtonElement => item !== null,
+    );
+    const activeIndex = items.findIndex(
+      (item) => item === document.activeElement,
+    );
+    const focusItem = (index: number) => {
+      event.preventDefault();
+      event.stopPropagation();
+      items[(index + items.length) % items.length]?.focus();
+    };
+    if (event.key === "ArrowDown") {
+      focusItem(activeIndex + 1);
+    } else if (event.key === "ArrowUp") {
+      focusItem(activeIndex - 1);
+    } else if (event.key === "Home") {
+      focusItem(0);
+    } else if (event.key === "End") {
+      focusItem(items.length - 1);
+    } else if (event.key === "Escape" || event.key === "Tab") {
+      event.preventDefault();
+      event.stopPropagation();
+      onDismiss();
+    }
+  };
+
+  return (
+    <Popover
+      triggerRef={{ current: anchor }}
+      position="bottom-start"
+      onClose={onClose}
+      initialFocusRef={checkedItemRef}
+    >
+      <Popover.Container>
+        <Popover.Body withPadding={false}>
+          <div
+            className={menuStyle}
+            role="menu"
+            aria-orientation="vertical"
+            tabIndex={-1}
+            onKeyDown={handleMenuKeyDown}
+          >
+            {options.map((option, index) => (
+              <button
+                key={option.kind}
+                ref={(element) => {
+                  itemRefs.current[index] = element;
+                  if (index === checkedIndex) {
+                    checkedItemRef.current = element;
+                    // Focus on first attach too: jsdom never runs the
+                    // Popover's own open-autofocus.
+                    if (element && !focusedOnOpenRef.current) {
+                      focusedOnOpenRef.current = true;
+                      element.focus();
+                    }
+                  }
+                }}
+                type="button"
+                role="menuitemradio"
+                aria-checked={current === option.kind}
+                tabIndex={index === checkedIndex ? 0 : -1}
+                className={menuItemStyle}
+                onClick={() => onSelect(option.kind)}
+              >
+                <span className={menuMarkStyle} aria-hidden="true">
+                  {current === option.kind ? "✓" : ""}
+                </span>
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </Popover.Body>
+      </Popover.Container>
+    </Popover>
+  );
+};
 
 export interface TokenTableProps {
   place: Place;
@@ -452,50 +572,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     anchor?.focus();
   };
 
-  const renderKindMenu = (
-    rowIndex: number,
-    row: AdHocRow,
-    anchor: HTMLButtonElement,
-  ) => {
-    const current = adHocRowKindOf(row);
-    const options: { kind: AdHocRowKind; label: string }[] = [
-      { kind: "fixed", label: "Fixed row" },
-      { kind: "dynamic", label: "Dynamic count" },
-      ...(optimizable
-        ? [{ kind: "optimized" as const, label: "Optimized count" }]
-        : []),
-    ];
-    return (
-      <Popover
-        triggerRef={{ current: anchor }}
-        position="bottom-start"
-        onClose={() => setKindMenuState(null)}
-      >
-        <Popover.Container>
-          <Popover.Body withPadding={false}>
-            <div className={menuStyle} role="menu">
-              {options.map((option) => (
-                <button
-                  key={option.kind}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={current === option.kind}
-                  className={menuItemStyle}
-                  onClick={() => setRowKind(rowIndex, option.kind)}
-                >
-                  <span className={menuMarkStyle}>
-                    {current === option.kind ? "✓" : ""}
-                  </span>
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </Popover.Body>
-        </Popover.Container>
-      </Popover>
-    );
-  };
-
   const renderDataRow = (row: AdHocRow, rowIndex: number) => {
     const kind = adHocRowKindOf(row);
     const isDynamic = row.kind === "template";
@@ -589,6 +665,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 className={gutterButtonStyle}
                 aria-label={`Row ${rowIndex + 1} kind`}
                 aria-haspopup="menu"
+                aria-expanded={kindMenu?.row === rowIndex}
                 onFocus={() => setSelectedRow(rowIndex)}
                 onBlur={() => setSelectedRow(null)}
                 onKeyDown={(event) =>
@@ -611,9 +688,22 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 </span>
               </button>
             </Tooltip>
-            {kindMenu?.row === rowIndex
-              ? renderKindMenu(rowIndex, row, kindMenu.anchor)
-              : null}
+            {kindMenu?.row === rowIndex ? (
+              <RowKindMenu
+                current={kind}
+                optimizable={optimizable}
+                anchor={kindMenu.anchor}
+                onSelect={(nextKind) => setRowKind(rowIndex, nextKind)}
+                onClose={() => setKindMenuState(null)}
+                onDismiss={() => {
+                  const menuAnchor = kindMenu.anchor;
+                  setKindMenuState(null);
+                  // After the Popover teardown settles - Zag's own Escape
+                  // handling races this and would blur to the body.
+                  setTimeout(() => menuAnchor.focus(), 0);
+                }}
+              />
+            ) : null}
           </td>
           {elements.map((element, columnIndex) => {
             const shared = state.sharedColumns[element.name];
