@@ -3110,7 +3110,6 @@ export const NetworkGraph = ({
     return nodeLayers;
   }, [
     compactData,
-    highlight,
     trimmedBackgroundEdgePaths,
     trimmedHighlightEdgePaths,
     backgroundedSelectedEdgePath,

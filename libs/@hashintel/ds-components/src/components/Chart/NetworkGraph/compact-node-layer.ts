@@ -19,6 +19,7 @@ import {
   HOVERED_MAX_MULTIPLIER,
   HOVERED_MIN_RADIUS,
   HOVERED_RADIUS_MULTIPLIER,
+  NEIGHBOUR_MAX_MULTIPLIER,
   NEIGHBOUR_MIN_RADIUS,
   NEIGHBOUR_RADIUS_MULTIPLIER,
   POINT_MAX_RADIUS,
@@ -392,6 +393,7 @@ export class CompactNodeLayer extends CompositeLayer<
               data: dimmedSelectedNeighbours,
               radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
               radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+              radiusMaxPixels: POINT_MAX_RADIUS * NEIGHBOUR_MAX_MULTIPLIER,
               opacity: SELECTED_DIM_OPACITY,
               pickable: dimmedSelectionPickable,
             }),
@@ -407,6 +409,7 @@ export class CompactNodeLayer extends CompositeLayer<
               data: neighbours,
               radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
               radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+              radiusMaxPixels: POINT_MAX_RADIUS * NEIGHBOUR_MAX_MULTIPLIER,
               pickable: highlightNodesPickable,
             }),
           ]
@@ -495,6 +498,8 @@ export class CompactNodeLayer extends CompositeLayer<
                     data: neighbourEdgeHoverNodes,
                     radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
                     radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+                    radiusMaxPixels:
+                      POINT_MAX_RADIUS * NEIGHBOUR_MAX_MULTIPLIER,
                   }),
                 ]
               : []),
@@ -516,6 +521,7 @@ export class CompactNodeLayer extends CompositeLayer<
               data: neighbourEdgeHoverNodes,
               radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
               radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+              radiusMaxPixels: POINT_MAX_RADIUS * NEIGHBOUR_MAX_MULTIPLIER,
             }),
           ]
         : []),
