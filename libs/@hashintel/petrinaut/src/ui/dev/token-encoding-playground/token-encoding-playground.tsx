@@ -1,8 +1,8 @@
 import { Suspense, use, useEffect, useState } from "react";
 
+import { SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { SegmentGroup } from "../../components/segment-group";
 import { CodeEditor } from "../../monaco/code-editor";
 import { MonacoContext } from "../../monaco/context";
 import { DimensionEditor } from "./dimension-editor";
@@ -223,11 +223,11 @@ export const TokenEncodingPlayground: React.FC = () => {
       </div>
 
       <div className={togglesStyle}>
-        <SegmentGroup
+        <SegmentedControl
           size="sm"
           value={bitOrder}
           onChange={(value) => setBitOrder(value as BitOrder)}
-          options={[
+          items={[
             { value: "logical", label: "Logical bits (MSB→LSB)" },
             { value: "memory", label: "Memory bytes (little-endian)" },
           ]}

@@ -15,8 +15,20 @@ export const styles = sva({
   base: {
     root: {
       "--sc-item-radius": "[calc(var(--sc-radius) - 2px)]",
+      // Default-variant active-pill "raise": the pill overhangs its item box on
+      // every side by --sc-raise so it reads as a lifted button while keeping an
+      // even gap to the track all the way around. Constant across sizes, so the
+      // gap (2px track inset − --sc-raise) stays a uniform hairline everywhere.
+      "--sc-raise": "[1.5px]",
+      // Rounded to a whole pixel so the item box is integer-sized. zag drives the
+      // active pill from the item's integer offsetWidth/offsetHeight; if the item
+      // box were fractional the pill's overhanging edges would land off the item
+      // by the fractional remainder, and since that remainder differs per content
+      // type (text vs icon vs ellipsized) the gaps would drift between examples.
+      // Integer item boxes also make every stacked offsetTop exact in the
+      // vertical layout, keeping the last item's bottom gap consistent.
       "--sc-item-height":
-        "[calc(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2 - 4px)]",
+        "[round(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2 - 4px, 1px)]",
       "--sc-frost-bg": "[25.5]",
       _dark: {
         "--sc-frost-bg": "[0]",
@@ -42,7 +54,12 @@ export const styles = sva({
     },
     item: {
       position: "relative",
-      zIndex: "[1]",
+      // Deliberately no z-index: the item must NOT form a stacking context, so
+      // its ::before hover fill (z-index -1) can drop *below* the active pill
+      // (indicator, z-index 0) and the track's rail shadow rather than painting
+      // over their borders. Item content (text/icon) still sits above the pill
+      // via DOM order — the indicator is rendered before the items, so these
+      // same-level positioned siblings paint on top of it.
       display: "inline-flex",
       flexGrow: "1",
       // Allow segments to shrink below their content (labels ellipsize) when
@@ -63,11 +80,25 @@ export const styles = sva({
       whiteSpace: "nowrap",
       color: "fg.subtle",
       cursor: "pointer",
-      transition: "[color 0.15s ease, background-color 0.15s ease]",
+      transition: "[color 0.15s ease]",
+      // Hover fill on a pseudo pinned to the item box, one layer below the pill
+      // (see the no-z-index note above). The item element itself only carries
+      // text colour; the fill fades in here.
+      "&::before": {
+        content: "''",
+        position: "absolute",
+        inset: "[1.5px]",
+        zIndex: "[-1]",
+        borderRadius: "[calc(var(--sc-item-radius) - 1.5px)]",
+        transition: "[background-color 0.15s ease]",
+        pointerEvents: "none",
+      },
       "&[data-state='unchecked']:hover:not([data-disabled])": {
         color: "fg.muted.hover",
-        backgroundColor:
-          "[rgb(from {colors.neutral.s25} calc((r - var(--sc-frost-bg)) / 0.9) calc((g - var(--sc-frost-bg)) / 0.9) calc((b - var(--sc-frost-bg)) / 0.9) / 0.9)]",
+        "&::before": {
+          backgroundColor:
+            "[rgb(from {colors.neutral.s25} calc((r - var(--sc-frost-bg)) / 0.9) calc((g - var(--sc-frost-bg)) / 0.9) calc((b - var(--sc-frost-bg)) / 0.9) / 0.9)]",
+        },
       },
       "&[data-state='checked']": {
         color: "fg.heading",
@@ -184,7 +215,27 @@ export const styles = sva({
       },
     },
     variant: {
-      default: {},
+      default: {
+        // The active pill reads as a raised button sitting on the track: it
+        // overhangs the item box by --sc-raise on every side, leaving an even
+        // hairline gap to the track all the way around, which — together with
+        // the pill's light fill and hairline border — reads as a subtle lift.
+        //
+        // The top-left shift uses negative margins, NOT left/top overrides:
+        // zag pins the main-axis position inline (`left` when horizontal, `top`
+        // when vertical), which beats a recipe class, so overriding left/top
+        // would only move the cross axis and the overhang would come out uneven
+        // (and differ between orientations). Margins are never set inline, so
+        // they shift both axes consistently. Width/height then grow by twice
+        // --sc-raise so the bottom-right corner overhangs by the same amount as
+        // the top-left, keeping the gap symmetric.
+        indicator: {
+          marginTop: "[calc(-1 * var(--sc-raise))]",
+          marginLeft: "[calc(-1 * var(--sc-raise))]",
+          width: "[calc(var(--width) + 2 * var(--sc-raise))]",
+          height: "[calc(var(--height) + 2 * var(--sc-raise))]",
+        },
+      },
       embossed: {
         root: {
           backgroundColor:
@@ -197,10 +248,77 @@ export const styles = sva({
               "[inset 0 1px 2.5px {colors.neutral.a30}, inset 0 0 1px {colors.neutral.a25}]",
           },
         },
+        // The embossed track is a deeper recess than default's, so the selected
+        // pill gets a subtle elevation to read as raised out of the well rather
+        // than sitting flat in it: a soft drop shadow plus a faint top highlight
+        // (light from above). Kept deliberately gentle. Black/white alphas here
+        // are true shadows and must NOT take the frost treatment.
+        indicator: {
+          // Flush to the rail: overhang the item box by the 2px track padding on
+          // every side so the selected pill fills its cell wall-to-wall with no
+          // groove to the well. Negative margins (not left/top) shift the near
+          // corner out — same reason as the default variant, zag pins the
+          // main-axis inset inline — and width/height grow by 4px (2px per edge)
+          // so the far corner reaches the rail too. Radius jumps from the inset
+          // --sc-item-radius up to the rail's own --sc-radius so the now-flush
+          // corners nest against the well instead of leaving a corner crescent.
+          marginTop: "[-2px]",
+          marginLeft: "[-2px]",
+          width: "[calc(var(--width) + 4px)]",
+          height: "[calc(var(--height) + 4px)]",
+          borderRadius: "[var(--sc-radius)]",
+          boxShadow:
+            "[0 1px 2px -1px {colors.black.a15}, 0 1px 1px -1px {colors.black.a10}, inset 0 1px 0 {colors.white.a50}]",
+          _dark: {
+            boxShadow:
+              "[0 1px 1px {colors.black.a40}, inset 0 1px 0 {colors.white.a20}]",
+          },
+          "&[data-disabled]": {
+            boxShadow: "[none]",
+          },
+        },
       },
     },
   },
   compoundVariants: [
+    {
+      // Vertical + default: the cross axis is now width, and the items differ in
+      // width by content (full-width text vs square icons), so the rounded
+      // --width would give them mismatched right gaps. Span the pill between
+      // track-relative left/right insets instead — independent of the item's
+      // measured width — each overhanging the item box by --sc-raise so the
+      // left/right gaps are exact, symmetric, and identical for every content
+      // type. (The main axis, height, still comes from the base default; it's
+      // exact now that the item box is integer.)
+      variant: "default",
+      layout: "vertical",
+      css: {
+        indicator: {
+          marginLeft: "[0px]",
+          left: "[calc(var(--left) - var(--sc-raise))]",
+          right: "[calc(2px - var(--sc-raise))]",
+          width: "[auto]",
+        },
+      },
+    },
+    {
+      // Embossed vertical: the cross axis is width, which differs by content
+      // (full-width text vs square icons), so span the pill between rail-relative
+      // left/right insets instead of the measured --width. Both sit flush to the
+      // rail (0), removing the cross-axis gap for every content type; the base
+      // embossed margins/height handle the main axis. marginLeft is zeroed so it
+      // doesn't fight the explicit left inset.
+      variant: "embossed",
+      layout: "vertical",
+      css: {
+        indicator: {
+          marginLeft: "[0px]",
+          left: "[0px]",
+          right: "[0px]",
+          width: "[auto]",
+        },
+      },
+    },
     {
       variant: "embossed",
       size: ["xxs", "xs"],

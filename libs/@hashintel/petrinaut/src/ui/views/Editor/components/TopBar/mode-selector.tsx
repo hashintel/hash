@@ -1,9 +1,7 @@
-import { Icon } from "@hashintel/ds-components";
-
-import { SegmentGroup } from "../../../../components/segment-group";
+import { SegmentedControl } from "@hashintel/ds-components";
 
 import type { EditorGlobalMode } from "../../../../../react/state/editor-context";
-import type { SegmentOption } from "../../../../components/segment-group";
+import type { SegmentedControlItem } from "@hashintel/ds-components";
 
 export interface ModeSelectorProps {
   actualModeAvailable: boolean;
@@ -11,21 +9,23 @@ export interface ModeSelectorProps {
   onChange: (mode: EditorGlobalMode) => void;
 }
 
-const getOptions = (actualModeAvailable: boolean): SegmentOption[] => [
+const getOptions = (
+  actualModeAvailable: boolean,
+): SegmentedControlItem<EditorGlobalMode>[] => [
   {
     label: "Edit",
     value: "edit",
-    icon: <Icon name="shapes" size="sm" />,
+    iconName: "shapes",
   },
   {
     label: "Simulate",
     value: "simulate",
-    icon: <Icon name="play" size="sm" />,
+    iconName: "play",
   },
   {
     label: "Actual",
     value: "actual",
-    icon: <Icon name="circleFilled" size="sm" />,
+    iconName: "circleFilled",
     disabled: !actualModeAvailable,
     tooltip: actualModeAvailable
       ? "View actual execution state."
@@ -39,10 +39,11 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
   onChange,
 }) => {
   return (
-    <SegmentGroup
+    <SegmentedControl
+      size="sm"
       value={mode}
-      options={getOptions(actualModeAvailable)}
-      onChange={(value) => onChange(value as EditorGlobalMode)}
+      items={getOptions(actualModeAvailable)}
+      onChange={onChange}
     />
   );
 };

@@ -10,19 +10,25 @@ import { SimulateView } from "./simulate-view";
 
 import type { PetrinautOptimization } from "@hashintel/petrinaut-core";
 
-vi.mock("../../../../components/segment-group", () => ({
-  SegmentGroup: ({
-    options,
-  }: {
-    options: readonly { value: string; label: string }[];
-  }) => (
-    <div>
-      {options.map((option) => (
-        <span key={option.value}>{option.label}</span>
-      ))}
-    </div>
-  ),
-}));
+vi.mock("@hashintel/ds-components", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@hashintel/ds-components")>();
+
+  return {
+    ...actual,
+    SegmentedControl: ({
+      items,
+    }: {
+      items: readonly { value: string; label?: string; tooltip?: string }[];
+    }) => (
+      <div>
+        {items.map((item) => (
+          <span key={item.value}>{item.tooltip ?? item.label}</span>
+        ))}
+      </div>
+    ),
+  };
+});
 
 vi.mock("./experiments/experiments-view", () => ({
   ExperimentsView: () => <div>Experiments view</div>,
