@@ -110,7 +110,6 @@
     "@vitejs/plugin-react": "5.0.4",
     "@vitest/browser-playwright": "4.1.10",
     "case-anything": "3.1.0",
-    "colorjs.io": "0.6.1",
     "esbuild-plugin-svgr": "3.1.1",
     "eslint": "9.39.4",
     "lorem-ipsum": "2.0.8",
