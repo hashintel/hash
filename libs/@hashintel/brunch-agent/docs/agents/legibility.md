@@ -24,6 +24,31 @@ yield: the ir-design plain rendering returned seven strain points where an unins
 round-2 read of the FE-1374 spec renderings had found four by accident (each of which fed a
 real spec change — the practice predates its name).
 
+## Review before commit in an orchestrated frontier
+
+When a thread contributes one step of an ordered proof frontier, its producer stops before commit
+with a fixed review packet: the base commit, the exact issue contract, the uncommitted diff,
+applicable verification commands and results, and a second-register rendering whose grade the
+orchestrator chose for the claim, plus the proof bundle and its evidence references. A reviewer
+other than the producer checks every packet component, records each correctness or legibility
+finding and its disposition in the thread's review record, and judges the claim validated,
+rejected, or narrowed with its consequences for successor work.
+
+The orchestrator owns the review gate and adjudicates disagreements. A confirmed issue-contract
+violation blocks commit until it is fixed or the contract changes in its owning authority and the
+packet is reviewed again; it cannot be relabelled as uncertainty. Other findings must be fixed,
+refused with evidence, or carried into residual uncertainty with the claim and downstream
+consequences narrowed accordingly. Remediation that changes the diff or makes the rendering stale
+requires an updated packet, rerun verification, and reviewer confirmation before authorization.
+Consolidate the review record into the branch's commit and PR description or the indexed proof
+artifact, as appropriate. The commit is the deposit of reviewed understanding, not the checkpoint
+at which review begins.
+
+The orchestrator then deposits the reviewed result and confidence changes in their owning
+authorities and derives the next dispatch brief from those deposits before dispatching a successor.
+An issue moving state or producing a plausible artifact is not evidence that its claim survived
+review.
+
 ## The register dial
 
 The register is a dial, not a single target. One practice, several grades — pick the cheapest

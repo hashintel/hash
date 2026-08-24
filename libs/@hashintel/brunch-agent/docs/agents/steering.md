@@ -41,6 +41,15 @@ Select one proof frontier, or a deliberate pair whose join is named. Record:
 - **issue/gap projection** — existing issues and uncovered work needed to execute it; and
 - **stop/replan trigger** — the observation that ends or redirects the attempt.
 
+An ordered frontier is an epistemic strategy, not a queue of tasks. Before dispatch, each step
+names the evidence it consumes, the claim it can establish, and the later decision or proof it
+informs; a terminal step records `none`. Do not dispatch a successor merely because the preceding
+issue moved: first pass the independent review gate in [legibility](legibility.md), reconcile what
+the result changed in current truth and confidence, and prepare the successor's dispatch brief from
+that result. Deposit any durable change in its owning authority before launch; a dispatch brief is
+not a substitute authority. Parallelize steps only after recording why neither step's scope or
+interpretation depends on the other's findings and defining the claim and inputs at their join.
+
 ## Execute
 
 Exercise real production entrypoints and wiring. A fixture may supply domain inputs, but it must
@@ -69,7 +78,12 @@ inputs to the interviewee or elicitor under evaluation.
 - witness record, or explicit inapplicability;
 - observed failures and residual uncertainty;
 - validated, rejected, or narrowed claim;
-- oracle candidate and promotion decision.
+- oracle candidate and promotion decision; and
+- successor decisions or dispatch briefs changed by the result, or `none`.
+
+At selection time, initialize the prospective fields. After independent review, finalize the
+result-dependent fields and deposit changed truth in the owning authorities before dispatching a
+successor.
 
 ## Reconcile
 
