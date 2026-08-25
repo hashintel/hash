@@ -640,7 +640,7 @@ where
         .fold(Router::new(), Router::merge)
         .merge(hashql::HashQlResource::routes())
         .fallback(|| {
-            tracing::error!("404: Not found");
+            tracing::debug!("404: Not found");
             async { StatusCode::NOT_FOUND }
         });
 
