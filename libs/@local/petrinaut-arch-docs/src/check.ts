@@ -59,8 +59,9 @@ export const checkRules = (
 ): Diagnostic[] =>
   rules.flatMap((rule) =>
     model.edges
-      // Rules are claims about the import graph. A `@talksTo` edge has its own
-      // checks in `graph.ts` and cannot violate an import rule.
+      // Rules are checked against import edges only: the message names the
+      // files behind an edge, and a `@talksTo` edge carries none. `graph.ts`
+      // checks its endpoints instead.
       .filter(isImportEdge)
       .filter(
         (edge) =>
