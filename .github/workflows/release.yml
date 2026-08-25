@@ -111,6 +111,65 @@ jobs:
           TURBO_LOG_ORDER: stream
           TURBO_LOG_VERBOSITY: 1
 
+      # `commitMode: github-api` resets `changeset-release/main` to `main` before
+      # writing the version commit, and GitHub closes the pull request as empty
+      # in the window between the two ref writes.
+      - name: Recreate the Version Packages pull request
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.value }}
+          BASE_BRANCH: main
+          VERSION_BRANCH: changeset-release/main
+        run: |
+          set -euo pipefail
+
+          if ! gh api --silent "repos/${GITHUB_REPOSITORY}/git/ref/heads/${VERSION_BRANCH}"; then
+            echo "${VERSION_BRANCH} does not exist."
+            exit 0
+          fi
+
+          ahead_by=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${BASE_BRANCH}...${VERSION_BRANCH}" --jq .ahead_by)
+          if [[ "${ahead_by}" -eq 0 ]]; then
+            echo "${VERSION_BRANCH} is not ahead of ${BASE_BRANCH}."
+            exit 0
+          fi
+
+          head_filter="${GITHUB_REPOSITORY_OWNER}:${VERSION_BRANCH}"
+
+          open_count=$(gh api "repos/${GITHUB_REPOSITORY}/pulls" -X GET \
+            -f state=open -f base="${BASE_BRANCH}" -f head="${head_filter}" --jq length)
+          if [[ "${open_count}" -gt 0 ]]; then
+            echo "${VERSION_BRANCH} already has an open pull request into ${BASE_BRANCH}."
+            exit 0
+          fi
+
+          closed_number=$(gh api "repos/${GITHUB_REPOSITORY}/pulls" -X GET \
+            -f state=closed -f base="${BASE_BRANCH}" -f head="${head_filter}" \
+            -f sort=created -f direction=desc \
+            --jq '[.[] | select(.merged_at == null)][0].number // empty')
+
+          if [[ -n "${closed_number}" ]] && gh api --silent -X PATCH \
+            "repos/${GITHUB_REPOSITORY}/pulls/${closed_number}" -f state=open; then
+            echo "Reopened #${closed_number}."
+            exit 0
+          fi
+
+          body=$(cat <<'PR_BODY'
+          This PR was opened by the [Changesets release](https://github.com/changesets/action) GitHub action. When you're ready to do a release, you can merge this and the packages will be published to npm automatically. If you're not ready to do a release yet, that's fine, whenever you add more changesets to main, this PR will be updated.
+
+
+          # Releases
+          PR_BODY
+          )
+
+          created_number=$(gh api -X POST "repos/${GITHUB_REPOSITORY}/pulls" \
+            -f title="Version Packages" \
+            -f head="${VERSION_BRANCH}" \
+            -f base="${BASE_BRANCH}" \
+            -f body="${body}" \
+            --jq .number)
+          echo "Created #${created_number}."
+
       - name: Notify Slack on failure
         uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
         if: ${{ failure() }}
