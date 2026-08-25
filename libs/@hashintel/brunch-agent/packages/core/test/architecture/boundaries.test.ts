@@ -467,6 +467,8 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
    * path enters here by review only.
    */
   const SUBSTRATE_INTEGRATION_ENTRY_POINTS: Readonly<Record<string, string>> = {
+    "apps/brunch-agent/test/fixtures/baseline-harness-interviewer.ts":
+      "A pi-ai faux provider whose scripted responses stand in for the interviewer model when baseline-harness.test.ts runs the condition-5 evaluation runner as a child process; it exports the provider and decides each response from the model-visible context — no provider key, no socket, no model call.",
     "apps/brunch-agent/test/petrinaut-ask.integration.ts":
       "Boots the real Gherkin elicitor on Flue's node runtime with pi-ai's faux provider and drives the committed application route over app.fetch through a full ask suspend/return/resume cycle plus a refused duplicate — no provider key, no socket, no external checkout mutation.",
     "apps/brunch-agent/test/petrinaut-chat.integration.ts":

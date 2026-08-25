@@ -3,8 +3,8 @@
  * The SDCPN elicitor (spec §12.5: one agent per target).
  *
  * The second entry in the target gallery, and the first whose plugin is a
- * file: `@hashintel/brunch-agent-plugin-sdcpn` loads `plugin.md` and the
- * harness reads its three tables (ADR-0006). This module is as thin as the
+ * file: `@hashintel/brunch-agent-plugin-sdcpn` loads `plugin.yaml` and the
+ * harness reads its cells (ADR-0006, ADR-0007). This module is as thin as the
  * gherkin one — it mounts harness capability and holds no elicitation
  * semantics of its own; what the interviewer asks, demands, and treats as
  * complete all comes from the plugin file through the binding.
@@ -22,8 +22,15 @@ import { sdcpn } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import { createSdcpnElicitationSession } from "../elicitation-session.ts";
 
-/** One definition for the agent and any faux provider alike (see the gherkin elicitor). */
-export const SDCPN_MODEL_ID = "claude-haiku-4-5";
+/**
+ * One definition for the agent and any faux provider alike (see the gherkin
+ * elicitor). `BRUNCH_SDCPN_MODEL` overrides the default so an evaluation
+ * runner can drive this same agent with a stronger model without a second
+ * agent definition; the override is read once, at module load, like the rest
+ * of the agent's static configuration.
+ */
+export const SDCPN_MODEL_ID =
+  process.env["BRUNCH_SDCPN_MODEL"] || "claude-haiku-4-5";
 
 const sdcpnElicitorInitialData = v.object({
   targetDocumentId: v.pipe(v.string(), v.nonEmpty()),

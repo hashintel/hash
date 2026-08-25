@@ -1,5 +1,13 @@
 # FE-1404 condition-3 preregistration
 
+> **Amendment, 2026-08-25 — retired, never run.** Condition 3 was superseded before its first model
+> call by ADR-0007: the completion-and-guidance treatment it preregistered is now the shipped
+> harness (keys, repertoire, plugin cells, fold, computed completion), which the baseline protocol
+> exercises directly as condition 5 rather than through a hand-run operator projection. Nothing
+> below this note is altered. The lock file stays as sealed; because `protocol.md` is among the
+> locked files and has since been edited to record this retirement, the lock intentionally no
+> longer verifies, and `run.ts` refuses a condition-3 production run.
+
 Status: **frozen before the first model call**. The lock file beside this document records hashes
 for the complete treatment and instrument. Any later change requires an explicit amendment; the
 original run and original lock remain immutable.
