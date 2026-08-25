@@ -44,6 +44,16 @@ const edge = (from: string, to: string, count = 1): Edge => ({
   crossesPackage: false,
 });
 
+const declaredEdge = (from: string, to: string): Edge => ({
+  from,
+  to,
+  provenance: "declared",
+  protocol: "JSON lines over stdio",
+  declaredIn: `src/${from}/boundary.ts`,
+  line: 7,
+  crossesPackage: true,
+});
+
 const model = (layers: Layer[], edges: Edge[] = []): ArchitectureModel => ({
   version: ARCHITECTURE_MODEL_VERSION,
   packages: [],
@@ -154,6 +164,30 @@ describe("checkRules", () => {
     expect(diagnostics[0]?.message).toContain("4 imports");
     // Names a real file so the fix does not begin with a search.
     expect(diagnostics[0]?.file).toBe("src/core.engine.ts");
+  });
+
+  it("fires on a declared edge, naming the annotation to remove", () => {
+    const diagnostics = checkRules(
+      model(layers, [declaredEdge("core.engine", "ui.views")]),
+      [{ from: "core", to: "ui", reason: "core stays headless" }],
+    );
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain("core stays headless");
+    expect(diagnostics[0]?.message).toContain(
+      "@talksTo via JSON lines over stdio",
+    );
+    // The annotation's own location, so the fix does not begin with a search.
+    expect(diagnostics[0]?.file).toBe("src/core.engine/boundary.ts");
+    expect(diagnostics[0]?.line).toBe(7);
+  });
+
+  it("stays quiet on a declared edge the rules permit", () => {
+    expect(
+      checkRules(model(layers, [declaredEdge("ui.views", "core.engine")]), [
+        { from: "core", to: "ui", reason: "core stays headless" },
+      ]),
+    ).toEqual([]);
   });
 
   it("stays quiet on the permitted direction", () => {

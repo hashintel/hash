@@ -216,6 +216,8 @@ describe("buildPages with a declared edge", () => {
         to: "cli",
         provenance: "declared",
         protocol: "JSON lines over stdio",
+        declaredIn: "py/src/session.py",
+        line: 3,
         crossesPackage: true,
       },
     ],

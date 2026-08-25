@@ -76,6 +76,10 @@ export const declaredEdgeSchema = edgeBaseSchema.extend({
   provenance: z.literal("declared"),
   /** The `via` text from the annotation, e.g. "JSON lines over stdio". */
   protocol: z.string().min(1),
+  /** Repo-relative file carrying the annotation. */
+  declaredIn: z.string().min(1),
+  /** Line of the annotation within `declaredIn`. */
+  line: z.number().int().positive(),
 });
 
 export const edgeSchema = z.discriminatedUnion("provenance", [

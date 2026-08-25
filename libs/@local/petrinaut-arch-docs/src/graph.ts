@@ -314,6 +314,8 @@ export const resolveDeclaredEdges = (options: {
       to: declaration.target,
       provenance: "declared",
       protocol: declaration.protocol,
+      declaredIn: declaration.file,
+      line: declaration.line,
       crossesPackage:
         fromPackage !== undefined &&
         toPackage !== undefined &&

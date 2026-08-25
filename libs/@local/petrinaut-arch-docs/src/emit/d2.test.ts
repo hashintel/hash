@@ -39,6 +39,8 @@ const declaredEdge = (from: string, to: string, protocol: string): Edge => ({
   to,
   provenance: "declared",
   protocol,
+  declaredIn: `src/${from}/boundary.ts`,
+  line: 1,
   crossesPackage: false,
 });
 

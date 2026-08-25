@@ -59,15 +59,24 @@ export const checkRules = (
 ): Diagnostic[] =>
   rules.flatMap((rule) =>
     model.edges
-      // Rules are checked against import edges only: the message names the
-      // files behind an edge, and a `@talksTo` edge carries none. `graph.ts`
-      // checks its endpoints instead.
-      .filter(isImportEdge)
       .filter(
         (edge) =>
           withinScope(edge.from, rule.from) && withinScope(edge.to, rule.to),
       )
       .map((edge) => {
+        const forbidden = `\`${edge.from}\` must not depend on \`${edge.to}\` (${rule.reason})`;
+
+        // A declared edge names the annotation to remove, since it has no
+        // importing file to point at. Both provenances are checked: a rule
+        // states which layers may couple, whatever carries the coupling.
+        if (!isImportEdge(edge)) {
+          return error(
+            edge.declaredIn,
+            `${forbidden}; declared with @talksTo via ${edge.protocol}`,
+            edge.line,
+          );
+        }
+
         const example = edge.examples[0];
         const imports =
           edge.fileDependencies === 1
@@ -76,7 +85,7 @@ export const checkRules = (
 
         return error(
           example?.from ?? edge.from,
-          `\`${edge.from}\` must not depend on \`${edge.to}\` (${rule.reason}); ${imports}, e.g. ${example ? `${example.from} → ${example.to}` : "unknown"}`,
+          `${forbidden}; ${imports}, e.g. ${example ? `${example.from} → ${example.to}` : "unknown"}`,
         );
       }),
   );

@@ -154,4 +154,5 @@ from the edges aggregated from imports.
 
 The check fails when the target is not a declared layer. It also fails when the
 pair is already derived from imports; the import edge is the record in that
-case, so remove the declaration.
+case, so remove the declaration. A declared edge is held to the layer rules
+too, so declaring a boundary cannot express a dependency the rules forbid.

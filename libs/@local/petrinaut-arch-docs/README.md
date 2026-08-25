@@ -99,7 +99,9 @@ layer pages, apart from the edges aggregated from imports.
 
 The build fails when the target is not a declared layer, and when the pair is
 already derived from imports; remove the declaration in the second case, since
-the imports already prove the edge.
+the imports already prove the edge. A layer rule applies to a declared edge as
+it does to an imported one: a rule states which layers may couple, whatever
+carries the coupling.
 
 ### Inheritance is what keeps this small
 
