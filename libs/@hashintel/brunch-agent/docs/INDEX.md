@@ -76,6 +76,7 @@ control loop is [`docs/agents/steering.md`](agents/steering.md).
 | [cps-interview-guidance](specs/cps-interview-guidance.md) | active | FE-1403; inputs FE-1404/FE-1406/FE-1431 | Provisional CPS ElicitationPack handoff: six mechanism-typed cards plus status/grade and respectful-close fragments, with clause-addressed activation, explicit machinery/guidance ownership, and the singular-`firesWhen` authoring seam carried to FE-1431 |
 | [cps-interview-guidance-desk-replay](evidence/proofs/design/cps-interview-guidance-desk-replay.md) | active | FE-1403; inputs FE-1404/FE-1406/FE-1431 | Manual two-transcript prefix replay: per-card firings, expected evidence deltas, positive deactivation boundaries, candidate dispositions, and repository research ledger; desk discrimination only |
 | [cps-interview-guidance-plain](evidence/proofs/design/cps-interview-guidance-plain.md) | active | FE-1403 legibility snapshot | Reviewer-facing plain rendering of the CPS guidance contract with translation strains and their dispositions |
+| [sdcpn-plugin](specs/sdcpn-plugin.md) | active | FE-1404 (redefined toward the walking skeleton); supersedes the domain-keyed tables of FE-1402/1403 | The SDCPN plugin file: fixed contract headings (Purpose, Kinds, Must know, Patterns, Moves, Deliverable) over the IR spec's ten Layer-B kinds; three machine-read tables, domain-neutral by rule; moves to `packages/plugin-sdcpn/` with the skeleton |
 
 ## Control, architecture reference, and migration archive
 
