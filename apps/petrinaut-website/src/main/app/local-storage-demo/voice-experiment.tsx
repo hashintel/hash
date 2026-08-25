@@ -31,10 +31,9 @@ const dockStyle = css({
   position: "fixed",
   zIndex: "popover",
   bottom: "[76px]",
-  left: "[50%]",
-  width: "[calc(100vw - 32px)]",
-  maxWidth: "[600px]",
-  transform: "translateX(-50%)",
+  left: "0",
+  width: "full",
+  maxWidth: "[none]",
   backgroundColor: "[transparent]",
   pointerEvents: "none",
 });
@@ -54,7 +53,9 @@ const panelStyle = css({
   position: "relative",
   display: "flex",
   width: "full",
+  maxWidth: "[600px]",
   maxHeight: "[calc(100vh - 108px)]",
+  marginX: "auto",
   flexDirection: "column",
   gap: "3.5",
   padding: "[18px]",
@@ -79,12 +80,11 @@ const fullscreenPanelStyle = css({
 
 const launcherButtonStyle = css({
   position: "absolute",
-  bottom: "0",
-  left: "[50%]",
+  right: "[16px]",
+  bottom: "[-52px]",
   display: "inline-flex",
   width: "12",
   height: "12",
-  transform: "translateX(-50%)",
   alignItems: "center",
   justifyContent: "center",
   padding: "0",
@@ -102,7 +102,7 @@ const launcherButtonStyle = css({
   transition:
     "[opacity 150ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease, box-shadow 150ms ease]",
   _hover: {
-    transform: "translateX(-50%) translateY(-2px) scale(1.04)",
+    transform: "translateY(-2px) scale(1.04)",
     boxShadow:
       "[0 11px 26px rgb(42 128 200 / 0.34), inset 0 1px 0 rgb(255 255 255 / 0.28)]",
   },
@@ -117,7 +117,7 @@ const hiddenLauncherButtonStyle = css({
   visibility: "hidden",
   opacity: "0",
   pointerEvents: "none",
-  transform: "translateX(-50%) translateY(8px) scale(0.78)",
+  transform: "translateY(8px) scale(0.78)",
   transition:
     "[opacity 150ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease, box-shadow 150ms ease, visibility 0s linear 150ms]",
 });
