@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { BrunchVoiceBridge } from "../src/brunch-voice-bridge.ts";
+import { BrunchVoiceBridge } from "@hashintel/brunch-agent-transport-aisdk/voice-bridge";
 
 const encoder = new TextEncoder();
 

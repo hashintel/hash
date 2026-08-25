@@ -1,7 +1,15 @@
-import type { VoiceExperimentAdapter } from "./voice-experiment-adapter";
-import type { VoiceExperimentEvent } from "./voice-experiment-events";
+import {
+  BrunchVoiceBridge,
+  type BrunchVoiceToolCall,
+} from "@hashintel/brunch-agent-transport-aisdk/voice-bridge";
+
 import { interviewOpeningQuestion } from "./interview-opening";
 
+import type { VoiceExperimentAdapter } from "./voice-experiment-adapter";
+import type { VoiceExperimentEvent } from "./voice-experiment-events";
+import type { VoiceElicitor } from "./voice-experiment-selection";
+
+const BRUNCH_CHAT_ENDPOINT = "/api/voice-experiment/brunch-chat";
 const SESSION_ENDPOINT = "/api/voice-experiment/openai-realtime-session";
 const REALTIME_CALLS_ENDPOINT = "https://api.openai.com/v1/realtime/calls";
 const CONNECTION_TIMEOUT_MS = 20_000;
@@ -16,8 +24,10 @@ const DUMMY_TOOL_NAMES = new Set([
 ]);
 
 type OpenAIRealtimeAdapterDependencies = {
+  conversationId: string;
   createAudioElement: () => HTMLAudioElement;
   createPeerConnection: () => RTCPeerConnection;
+  elicitor: VoiceElicitor;
   fetch: typeof globalThis.fetch;
   getUserMedia: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
   now: () => number;
@@ -34,14 +44,17 @@ type FunctionCall = {
   name: string;
 };
 
-const defaultDependencies: OpenAIRealtimeAdapterDependencies = {
+const defaultDependencies = {
   createAudioElement: () => document.createElement("audio"),
   createPeerConnection: () => new RTCPeerConnection(),
   fetch: (...args) => globalThis.fetch(...args),
   getUserMedia: (constraints) =>
     navigator.mediaDevices.getUserMedia(constraints),
   now: () => Date.now(),
-};
+} satisfies Omit<
+  OpenAIRealtimeAdapterDependencies,
+  "conversationId" | "elicitor"
+>;
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   typeof value === "object" && value !== null
@@ -177,6 +190,7 @@ const summarizeFunctionCall = ({
 };
 
 class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
+  readonly #brunchBridge: BrunchVoiceBridge | null;
   readonly #dependencies: OpenAIRealtimeAdapterDependencies;
   readonly #listeners = new Set<(event: VoiceExperimentEvent) => void>();
   readonly #pendingListeningTurnByResponseId = new Map<string, number>();
@@ -186,6 +200,7 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
   readonly #turnByResponseId = new Map<string, number>();
 
   #audioElement: HTMLAudioElement | null = null;
+  #brunchAbortController: AbortController | null = null;
   #connectAbortController: AbortController | null = null;
   #connectPromise: Promise<void> | null = null;
   #connected = false;
@@ -201,6 +216,14 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
 
   public constructor(dependencies: OpenAIRealtimeAdapterDependencies) {
     this.#dependencies = dependencies;
+    this.#brunchBridge =
+      dependencies.elicitor === "brunch"
+        ? new BrunchVoiceBridge({
+            chatEndpoint: BRUNCH_CHAT_ENDPOINT,
+            fetch: dependencies.fetch,
+            onToolCall: (toolCall) => this.#emitBrunchToolCall(toolCall),
+          })
+        : null;
   }
 
   public subscribe(listener: (event: VoiceExperimentEvent) => void) {
@@ -237,10 +260,25 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
     this.#interviewStarted = true;
     this.#turnId += 1;
     this.#latestTurnId = this.#turnId;
-    this.#latestAssistantTranscript = "";
+    this.#latestAssistantTranscript =
+      this.#dependencies.elicitor === "brunch" ? interviewOpeningQuestion : "";
 
     this.#send(dataChannel, { type: "input_audio_buffer.clear" });
     microphoneTrack.enabled = false;
+    if (this.#dependencies.elicitor === "brunch") {
+      this.#emit({
+        timestampMs: this.#dependencies.now(),
+        turnId: this.#latestTurnId,
+        type: "response-started",
+      });
+      this.#emit({
+        speaker: "assistant",
+        timestampMs: this.#dependencies.now(),
+        transcript: interviewOpeningQuestion,
+        turnId: this.#latestTurnId,
+        type: "final-transcript",
+      });
+    }
     this.#send(dataChannel, {
       type: "response.create",
       response: {
@@ -270,7 +308,10 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
     try {
       const tokenResponse = await this.#dependencies.fetch(SESSION_ENDPOINT, {
         method: "POST",
-        headers: { "x-voice-experiment": "openai-realtime" },
+        headers: {
+          "x-voice-elicitor": this.#dependencies.elicitor,
+          "x-voice-experiment": "openai-realtime",
+        },
         signal: abortController.signal,
       });
       if (!tokenResponse.ok) {
@@ -436,9 +477,13 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
       const turnId = itemId ? this.#getTurnId(itemId) : this.#latestTurnId;
       const transcript = this.#handleTranscriptCompleted(event, "expert");
       if (transcript) {
-        const dataChannel = this.#dataChannel;
-        if (dataChannel?.readyState === "open") {
-          this.#send(dataChannel, { type: "response.create" });
+        if (this.#brunchBridge) {
+          void this.#requestBrunchTurn(transcript, turnId);
+        } else {
+          const dataChannel = this.#dataChannel;
+          if (dataChannel?.readyState === "open") {
+            this.#send(dataChannel, { type: "response.create" });
+          }
         }
       } else {
         this.#openListeningWindow(turnId);
@@ -463,11 +508,13 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
         this.#turnByResponseId.set(responseId, this.#latestTurnId);
       }
       this.#setMicrophoneEnabled(false);
-      this.#emit({
-        timestampMs: this.#dependencies.now(),
-        turnId: this.#latestTurnId,
-        type: "response-started",
-      });
+      if (!this.#brunchBridge) {
+        this.#emit({
+          timestampMs: this.#dependencies.now(),
+          turnId: this.#latestTurnId,
+          type: "response-started",
+        });
+      }
       return;
     }
 
@@ -488,7 +535,9 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
       if (responseId) {
         this.#responsesWithAudio.add(responseId);
       }
-      this.#handleTranscriptDelta(event, "assistant");
+      if (!this.#brunchBridge) {
+        this.#handleTranscriptDelta(event, "assistant");
+      }
       return;
     }
 
@@ -497,7 +546,9 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
       if (responseId) {
         this.#responsesWithAudio.add(responseId);
       }
-      this.#handleTranscriptCompleted(event, "assistant");
+      if (!this.#brunchBridge) {
+        this.#handleTranscriptCompleted(event, "assistant");
+      }
       return;
     }
 
@@ -588,6 +639,135 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
     return transcript;
   }
 
+  async #requestBrunchTurn(transcript: string, turnId: number): Promise<void> {
+    const bridge = this.#brunchBridge;
+    if (!bridge) {
+      return;
+    }
+
+    this.#brunchAbortController?.abort();
+    const abortController = new AbortController();
+    this.#brunchAbortController = abortController;
+    let responseStarted = false;
+    let responseText = "";
+
+    try {
+      for await (const delta of bridge.respond({
+        conversationId: this.#dependencies.conversationId,
+        signal: abortController.signal,
+        transcript,
+      })) {
+        if (abortController.signal.aborted || !this.#connected) {
+          return;
+        }
+        responseText += delta;
+        if (!responseStarted) {
+          responseStarted = true;
+          this.#emit({
+            timestampMs: this.#dependencies.now(),
+            turnId,
+            type: "response-started",
+          });
+        }
+        this.#emit({
+          speaker: "assistant",
+          timestampMs: this.#dependencies.now(),
+          transcript: responseText,
+          turnId,
+          type: "partial-transcript",
+        });
+      }
+
+      if (abortController.signal.aborted || !this.#connected) {
+        return;
+      }
+      if (!responseText.trim()) {
+        this.#emit({
+          timestampMs: this.#dependencies.now(),
+          turnId,
+          type: "response-completed",
+        });
+        this.#openListeningWindow(turnId);
+        return;
+      }
+
+      if (!responseStarted) {
+        this.#emit({
+          timestampMs: this.#dependencies.now(),
+          turnId,
+          type: "response-started",
+        });
+      }
+      this.#latestAssistantTranscript = responseText;
+      this.#emit({
+        speaker: "assistant",
+        timestampMs: this.#dependencies.now(),
+        transcript: responseText,
+        turnId,
+        type: "final-transcript",
+      });
+
+      const dataChannel = this.#requireOpenDataChannel();
+      this.#send(dataChannel, {
+        type: "response.create",
+        response: {
+          conversation: "none",
+          input: [],
+          instructions: [
+            "Read the supplied interviewer text exactly as written.",
+            "Do not add, remove, paraphrase, answer, or comment on any words.",
+            `Interviewer text: ${JSON.stringify(responseText)}`,
+          ].join("\n"),
+          metadata: {
+            source: "brunch",
+            turnId: String(turnId),
+          },
+          output_modalities: ["audio"],
+        },
+      });
+    } catch (error) {
+      if (abortController.signal.aborted) {
+        return;
+      }
+      this.#emitError(
+        error instanceof Error
+          ? error.message
+          : "Brunch could not answer the voice turn.",
+      );
+      this.#openListeningWindow(turnId);
+    } finally {
+      if (this.#brunchAbortController === abortController) {
+        this.#brunchAbortController = null;
+      }
+    }
+  }
+
+  #emitBrunchToolCall({
+    input,
+    toolCallId,
+    toolName,
+  }: BrunchVoiceToolCall): void {
+    const question =
+      toolName === "brunch_ask"
+        ? boundedSummaryText(asRecord(input)?.question, 220)
+        : "";
+    this.#emit({
+      argumentSummary:
+        toolName === "brunch_ask"
+          ? question
+            ? `Question: ${question}`
+            : "Question unavailable"
+          : toolName === "brunch_sweep"
+            ? "Settlement requested"
+            : "Arguments hidden",
+      callId: boundedSummaryText(toolCallId, 96) || "unknown-call",
+      timestampMs: this.#dependencies.now(),
+      toolName: boundedSummaryText(toolName, 96) || "unknown-tool",
+      turnId: this.#latestTurnId,
+      type: "tool-called",
+    });
+  }
+
   #handleResponseDone(event: RealtimeEvent) {
     const response = asRecord(event.response);
     const responseTurnId = this.#getResponseTurnId(response);
@@ -674,10 +854,7 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
       (this.#responsesWithAudio.has(responseId) ||
         this.#responseHasAudioOutput(response))
     ) {
-      this.#pendingListeningTurnByResponseId.set(
-        responseId,
-        responseTurnId,
-      );
+      this.#pendingListeningTurnByResponseId.set(responseId, responseTurnId);
     } else {
       this.#openListeningWindow(responseTurnId);
     }
@@ -790,6 +967,9 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
   #releaseResources() {
     this.#isReleasingResources = true;
     this.#connected = false;
+    this.#brunchAbortController?.abort();
+    this.#brunchAbortController = null;
+    this.#brunchBridge?.release(this.#dependencies.conversationId);
 
     const dataChannel = this.#dataChannel;
     this.#dataChannel = null;
@@ -834,4 +1014,9 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
 export const createOpenAIRealtimeAdapter = (
   dependencies: Partial<OpenAIRealtimeAdapterDependencies> = {},
 ): VoiceExperimentAdapter =>
-  new OpenAIRealtimeAdapter({ ...defaultDependencies, ...dependencies });
+  new OpenAIRealtimeAdapter({
+    ...defaultDependencies,
+    conversationId: crypto.randomUUID(),
+    elicitor: "mock",
+    ...dependencies,
+  });

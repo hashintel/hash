@@ -26,7 +26,7 @@ import {
 import { VoiceExperiment } from "./voice-experiment";
 import { createElevenLabsAdapter } from "./voice-experiment/elevenlabs-adapter";
 import { createOpenAIRealtimeAdapter } from "./voice-experiment/openai-realtime-adapter";
-import { getVoiceExperiment } from "./voice-experiment/voice-experiment-selection";
+import { getVoiceExperimentSelection } from "./voice-experiment/voice-experiment-selection";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
@@ -122,16 +122,22 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
  */
 export const LocalStorageDemoApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
-  const voiceExperiment = getVoiceExperiment(window.location);
+  const voiceExperiment = getVoiceExperimentSelection(window.location);
+  const [voiceConversationId] = useState(() => crypto.randomUUID());
+  const voiceProvider = voiceExperiment?.provider;
+  const voiceElicitor = voiceExperiment?.elicitor;
   const voiceExperimentAdapter = useMemo(() => {
-    if (voiceExperiment === "openai-realtime") {
-      return createOpenAIRealtimeAdapter();
+    if (voiceProvider === "openai" && voiceElicitor) {
+      return createOpenAIRealtimeAdapter({
+        conversationId: voiceConversationId,
+        elicitor: voiceElicitor,
+      });
     }
-    if (voiceExperiment === "elevenlabs-brunch") {
+    if (voiceProvider === "elevenlabs" && voiceElicitor === "brunch") {
       return createElevenLabsAdapter();
     }
     return undefined;
-  }, [voiceExperiment]);
+  }, [voiceConversationId, voiceElicitor, voiceProvider]);
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
@@ -324,6 +330,7 @@ export const LocalStorageDemoApp = () => {
         {voiceExperiment ? (
           <VoiceExperiment
             adapter={voiceExperimentAdapter}
+            conversationId={voiceConversationId}
             experiment={voiceExperiment}
           />
         ) : null}

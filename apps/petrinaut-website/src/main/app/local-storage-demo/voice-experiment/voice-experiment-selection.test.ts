@@ -1,30 +1,51 @@
 import { describe, expect, test } from "vitest";
 
-import { getVoiceExperiment } from "./voice-experiment-selection";
+import { getVoiceExperimentSelection } from "./voice-experiment-selection";
 
-describe("getVoiceExperiment", () => {
-  test.each(["openai-realtime", "elevenlabs-brunch"] as const)(
-    "selects the %s experiment for the lifetime of the page",
-    (experiment) => {
-      expect(
-        getVoiceExperiment({ search: `?voiceExperiment=${experiment}` }),
-      ).toBe(experiment);
-    },
-  );
-
-  test("keeps the experiment shell hidden by default", () => {
-    expect(getVoiceExperiment({ search: "" })).toBeNull();
+describe("getVoiceExperimentSelection", () => {
+  test.each([
+    ["openai", "mock"],
+    ["openai", "brunch"],
+    ["elevenlabs", "brunch"],
+  ] as const)("selects %s voice with the %s elicitor", (provider, elicitor) => {
+    expect(
+      getVoiceExperimentSelection({
+        search: `?voiceProvider=${provider}&elicitor=${elicitor}`,
+      }),
+    ).toEqual({ elicitor, provider });
   });
 
-  test("rejects the superseded prototype parameter and aliases", () => {
+  test("keeps the experiment shell hidden by default", () => {
+    expect(getVoiceExperimentSelection({ search: "" })).toBeNull();
+  });
+
+  test("rejects partial, invalid, and unsupported combinations", () => {
     expect(
-      getVoiceExperiment({ search: "?voicePrototype=elevenlabs" }),
+      getVoiceExperimentSelection({ search: "?voiceProvider=openai" }),
     ).toBeNull();
     expect(
-      getVoiceExperiment({ search: "?voiceExperiment=openai" }),
+      getVoiceExperimentSelection({ search: "?elicitor=brunch" }),
     ).toBeNull();
     expect(
-      getVoiceExperiment({ search: "?voiceExperiment=elevenlabs" }),
+      getVoiceExperimentSelection({
+        search: "?voiceProvider=elevenlabs&elicitor=mock",
+      }),
     ).toBeNull();
+    expect(
+      getVoiceExperimentSelection({
+        search: "?voiceProvider=other&elicitor=brunch",
+      }),
+    ).toBeNull();
+  });
+
+  test.each([
+    ["openai-realtime", { elicitor: "mock", provider: "openai" }],
+    ["elevenlabs-brunch", { elicitor: "brunch", provider: "elevenlabs" }],
+  ] as const)("keeps the legacy %s link working", (experiment, selection) => {
+    expect(
+      getVoiceExperimentSelection({
+        search: `?voiceExperiment=${experiment}`,
+      }),
+    ).toEqual(selection);
   });
 });

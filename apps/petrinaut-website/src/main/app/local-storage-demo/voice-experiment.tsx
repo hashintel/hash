@@ -10,12 +10,12 @@ import {
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { getTranscriptEntries } from "./voice-experiment/transcript-entries";
 import {
-  type VoiceExperiment as VoiceExperimentName,
-  voiceExperimentLabel,
+  getVoiceExperimentLabel,
+  type VoiceExperimentSelection,
 } from "./voice-experiment/voice-experiment-selection";
 
-import { getTranscriptEntries } from "./voice-experiment/transcript-entries";
 import type { VoiceExperimentAdapter } from "./voice-experiment/voice-experiment-adapter";
 import type { VoiceExperimentEvent } from "./voice-experiment/voice-experiment-events";
 
@@ -544,7 +544,6 @@ type LoggedEvent = {
   sequence: number;
 };
 
-
 const getEventSummary = (event: VoiceExperimentEvent) => {
   if (event.type === "partial-transcript") {
     return `${event.type} (${event.speaker}): ${event.transcript}`;
@@ -569,12 +568,13 @@ const createErrorEvent = (error: unknown): VoiceExperimentEvent => ({
 
 export const VoiceExperiment = ({
   adapter,
+  conversationId,
   experiment,
 }: {
   adapter?: VoiceExperimentAdapter;
-  experiment: VoiceExperimentName;
+  conversationId: string;
+  experiment: VoiceExperimentSelection;
 }) => {
-  const [conversationId] = useState(() => crypto.randomUUID());
   const [events, setEvents] = useState<LoggedEvent[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [sessionState, setSessionState] = useState<SessionState>("ready");
@@ -796,216 +796,216 @@ export const VoiceExperiment = ({
           className={`${panelStyle} voice-experiment-panel`}
           id="voice-experiment-panel"
         >
-        <header className={headerStyle}>
-          <div className={headerIdentityStyle}>
-            <div className={titleCopyStyle}>
-              <strong className={headingStyle}>Voice interview</strong>
-              <span className={experimentBadgeStyle}>
-                {voiceExperimentLabel[experiment]}
-              </span>
+          <header className={headerStyle}>
+            <div className={headerIdentityStyle}>
+              <div className={titleCopyStyle}>
+                <strong className={headingStyle}>Voice interview</strong>
+                <span className={experimentBadgeStyle}>
+                  {getVoiceExperimentLabel(experiment)}
+                </span>
+              </div>
             </div>
-          </div>
-          <div className={headerActionsStyle}>
-            <span
-              aria-label={statusLabel}
+            <div className={headerActionsStyle}>
+              <span
+                aria-label={statusLabel}
+                className={[
+                  statusIndicatorStyle,
+                  sessionState === "error"
+                    ? errorStatusIndicatorStyle
+                    : isPending
+                      ? pendingStatusIndicatorStyle
+                      : isConnected
+                        ? connectedStatusIndicatorStyle
+                        : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                role="status"
+                title={statusLabel}
+              />
+              <button
+                ref={minimizeButtonRef}
+                aria-label="Minimize voice interview"
+                className={minimizeButtonStyle}
+                onClick={minimizeVoiceInterview}
+                title="Minimize voice interview"
+                type="button"
+              >
+                <FiChevronDown aria-hidden="true" size={17} />
+              </button>
+            </div>
+          </header>
+
+          <div className={conversationControlStyle}>
+            <button
+              aria-label={controlLabel}
+              aria-pressed={isConversationActive}
               className={[
-                statusIndicatorStyle,
-                sessionState === "error"
-                  ? errorStatusIndicatorStyle
-                  : isPending
-                    ? pendingStatusIndicatorStyle
-                    : isConnected
-                      ? connectedStatusIndicatorStyle
-                      : "",
+                microphoneButtonStyle,
+                isConversationActive ? activeMicrophoneButtonStyle : "",
+                isConversationActive ? "voice-conversation-active" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
-              role="status"
-              title={statusLabel}
-            />
-            <button
-              ref={minimizeButtonRef}
-              aria-label="Minimize voice interview"
-              className={minimizeButtonStyle}
-              onClick={minimizeVoiceInterview}
-              title="Minimize voice interview"
+              disabled={!canToggleConversation}
+              onClick={() =>
+                void (isConversationActive
+                  ? stopConversation()
+                  : startConversation())
+              }
+              title={controlLabel}
               type="button"
             >
-              <FiChevronDown aria-hidden="true" size={17} />
+              {isConversationActive ? (
+                <FiSquare aria-hidden="true" fill="currentColor" size={22} />
+              ) : (
+                <FiMic aria-hidden="true" size={26} />
+              )}
             </button>
           </div>
-        </header>
 
-        <div className={conversationControlStyle}>
-          <button
-            aria-label={controlLabel}
-            aria-pressed={isConversationActive}
-            className={[
-              microphoneButtonStyle,
-              isConversationActive ? activeMicrophoneButtonStyle : "",
-              isConversationActive ? "voice-conversation-active" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            disabled={!canToggleConversation}
-            onClick={() =>
-              void (isConversationActive
-                ? stopConversation()
-                : startConversation())
-            }
-            title={controlLabel}
-            type="button"
-          >
-            {isConversationActive ? (
-              <FiSquare aria-hidden="true" fill="currentColor" size={22} />
-            ) : (
-              <FiMic aria-hidden="true" size={26} />
-            )}
-          </button>
-        </div>
-
-        <section className={transcriptSectionStyle}>
-          <div className={transcriptHeaderStyle}>
-            <span className={sectionHeadingStyle}>
-              <FiMessageSquare aria-hidden="true" size={14} />
-              <span className={sectionLabelStyle}>Transcript</span>
-            </span>
-            <span className={transcriptCountStyle}>
-              {transcriptEntries.length}{" "}
-              {transcriptEntries.length === 1 ? "message" : "messages"}
-            </span>
-          </div>
-          <div
-            aria-label="Conversation transcript"
-            aria-live="polite"
-            className={transcriptStyle}
-            onScroll={handleTranscriptScroll}
-            ref={transcriptRef}
-            role="log"
-            // A bounded transcript must be keyboard-focusable to scroll.
-            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-            tabIndex={0}
-          >
-            {transcriptEntries.length === 0 ? (
-              <p className={transcriptPlaceholderStyle}>
-                <FiMessageSquare aria-hidden="true" size={16} />
-                Conversation appears here
-              </p>
-            ) : (
-              transcriptEntries.map((entry) => (
-                <div
-                  className={[
-                    transcriptEntryStyle,
-                    entry.speaker === "expert"
-                      ? expertTranscriptEntryStyle
-                      : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  key={entry.id}
-                >
-                  <span className={transcriptSpeakerStyle}>
-                    {entry.speaker === "expert" ? "Expert" : "Interviewer"}
-                  </span>
-                  <p
+          <section className={transcriptSectionStyle}>
+            <div className={transcriptHeaderStyle}>
+              <span className={sectionHeadingStyle}>
+                <FiMessageSquare aria-hidden="true" size={14} />
+                <span className={sectionLabelStyle}>Transcript</span>
+              </span>
+              <span className={transcriptCountStyle}>
+                {transcriptEntries.length}{" "}
+                {transcriptEntries.length === 1 ? "message" : "messages"}
+              </span>
+            </div>
+            <div
+              aria-label="Conversation transcript"
+              aria-live="polite"
+              className={transcriptStyle}
+              onScroll={handleTranscriptScroll}
+              ref={transcriptRef}
+              role="log"
+              // A bounded transcript must be keyboard-focusable to scroll.
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+              tabIndex={0}
+            >
+              {transcriptEntries.length === 0 ? (
+                <p className={transcriptPlaceholderStyle}>
+                  <FiMessageSquare aria-hidden="true" size={16} />
+                  Conversation appears here
+                </p>
+              ) : (
+                transcriptEntries.map((entry) => (
+                  <div
                     className={[
-                      transcriptBubbleStyle,
+                      transcriptEntryStyle,
                       entry.speaker === "expert"
-                        ? expertTranscriptBubbleStyle
+                        ? expertTranscriptEntryStyle
                         : "",
-                      entry.isPartial ? partialTranscriptStyle : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}
+                    key={entry.id}
                   >
-                    {entry.transcript}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
+                    <span className={transcriptSpeakerStyle}>
+                      {entry.speaker === "expert" ? "Expert" : "Interviewer"}
+                    </span>
+                    <p
+                      className={[
+                        transcriptBubbleStyle,
+                        entry.speaker === "expert"
+                          ? expertTranscriptBubbleStyle
+                          : "",
+                        entry.isPartial ? partialTranscriptStyle : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      {entry.transcript}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
 
-        <section
-          aria-labelledby="voice-tool-diagnostics-heading"
-          className={toolDiagnosticsSectionStyle}
-        >
-          <div className={toolDiagnosticsHeaderStyle}>
-            <span className={sectionHeadingStyle}>
-              <FiTool aria-hidden="true" size={14} />
-              <span
-                className={sectionLabelStyle}
-                id="voice-tool-diagnostics-heading"
-              >
-                Tool calls
-              </span>
-            </span>
-            <span className={transcriptCountStyle}>
-              {toolDiagnostics.length}
-            </span>
-          </div>
-          <div
-            aria-label="Tool call diagnostics"
-            aria-live="polite"
-            className={toolDiagnosticsLogStyle}
-            role="log"
+          <section
+            aria-labelledby="voice-tool-diagnostics-heading"
+            className={toolDiagnosticsSectionStyle}
           >
-            {toolDiagnostics.length === 0 ? (
-              <p className={toolDiagnosticEmptyStyle}>
+            <div className={toolDiagnosticsHeaderStyle}>
+              <span className={sectionHeadingStyle}>
                 <FiTool aria-hidden="true" size={14} />
-                Tool calls appear here
-              </p>
-            ) : (
-              toolDiagnostics.map(({ event, sequence }) => (
-                <article className={toolDiagnosticCardStyle} key={sequence}>
-                  <strong className={toolDiagnosticNameStyle}>
-                    {event.toolName}
-                  </strong>
-                  <span className={toolDiagnosticTurnStyle}>
-                    Turn {event.turnId}
-                  </span>
-                  <p className={toolDiagnosticSummaryStyle}>
-                    {event.argumentSummary}
-                  </p>
-                  <span className={toolDiagnosticCallStyle}>
-                    Call {event.callId}
-                  </span>
-                </article>
-              ))
-            )}
-          </div>
-        </section>
-
-        <details className={technicalDetailsStyle}>
-          <summary className={technicalSummaryStyle}>
-            <span className={technicalSummaryLabelStyle}>
-              <FiActivity aria-hidden="true" size={13} />
-              Logs
-            </span>
-            <span className={eventCountStyle}>
-              {events.length} {events.length === 1 ? "event" : "events"}
-            </span>
-          </summary>
-          <div className={eventLogStyle}>
-            {events.length === 0 ? (
-              <span className={emptyLogStyle}>
-                No events · conversation {conversationId.slice(0, 8)}
+                <span
+                  className={sectionLabelStyle}
+                  id="voice-tool-diagnostics-heading"
+                >
+                  Tool calls
+                </span>
               </span>
-            ) : (
-              events.map(({ event, sequence }) => (
-                <div className={eventRowStyle} key={sequence}>
-                  <span>
-                    {String(sequence).padStart(2, "0")} ·{" "}
-                    {getEventSummary(event)}
-                  </span>
-                  <time dateTime={new Date(event.timestampMs).toISOString()}>
-                    {new Date(event.timestampMs).toLocaleTimeString()}
-                  </time>
-                </div>
-              ))
-            )}
-          </div>
-        </details>
+              <span className={transcriptCountStyle}>
+                {toolDiagnostics.length}
+              </span>
+            </div>
+            <div
+              aria-label="Tool call diagnostics"
+              aria-live="polite"
+              className={toolDiagnosticsLogStyle}
+              role="log"
+            >
+              {toolDiagnostics.length === 0 ? (
+                <p className={toolDiagnosticEmptyStyle}>
+                  <FiTool aria-hidden="true" size={14} />
+                  Tool calls appear here
+                </p>
+              ) : (
+                toolDiagnostics.map(({ event, sequence }) => (
+                  <article className={toolDiagnosticCardStyle} key={sequence}>
+                    <strong className={toolDiagnosticNameStyle}>
+                      {event.toolName}
+                    </strong>
+                    <span className={toolDiagnosticTurnStyle}>
+                      Turn {event.turnId}
+                    </span>
+                    <p className={toolDiagnosticSummaryStyle}>
+                      {event.argumentSummary}
+                    </p>
+                    <span className={toolDiagnosticCallStyle}>
+                      Call {event.callId}
+                    </span>
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
+
+          <details className={technicalDetailsStyle}>
+            <summary className={technicalSummaryStyle}>
+              <span className={technicalSummaryLabelStyle}>
+                <FiActivity aria-hidden="true" size={13} />
+                Logs
+              </span>
+              <span className={eventCountStyle}>
+                {events.length} {events.length === 1 ? "event" : "events"}
+              </span>
+            </summary>
+            <div className={eventLogStyle}>
+              {events.length === 0 ? (
+                <span className={emptyLogStyle}>
+                  No events · conversation {conversationId.slice(0, 8)}
+                </span>
+              ) : (
+                events.map(({ event, sequence }) => (
+                  <div className={eventRowStyle} key={sequence}>
+                    <span>
+                      {String(sequence).padStart(2, "0")} ·{" "}
+                      {getEventSummary(event)}
+                    </span>
+                    <time dateTime={new Date(event.timestampMs).toISOString()}>
+                      {new Date(event.timestampMs).toLocaleTimeString()}
+                    </time>
+                  </div>
+                ))
+              )}
+            </div>
+          </details>
         </aside>
       )}
     </div>

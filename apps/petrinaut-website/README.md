@@ -51,19 +51,26 @@ optimizer for isolated UI development.
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings. Provider API keys must never be exposed through a `VITE_` variable or sent to the browser.
 
-The OpenAI voice experiment is available at
-`/?voiceExperiment=openai-realtime`. Its same-origin session endpoint returns only a short-lived
-client secret; model, prompt, transcription, and dummy-tool configuration are fixed on the server.
-Start opens with one short interviewer question, then opens the microphone for the answer. OpenAI
-server VAD owns the end of each expert answer; the browser mutes while the interviewer responds and
-reopens only after OpenAI reports that the WebRTC output-audio buffer has drained. The browser does
-not manually commit turns. Server VAD does not auto-create model responses: as on the ElevenLabs
-path, only a non-empty finalized expert transcript admits the next interviewer response.
+The OpenAI voice experiment supports two server-owned elicitor modes:
+
+- `/?voiceProvider=openai&elicitor=mock` uses the Realtime model and experiment-only dummy tools.
+- `/?voiceProvider=openai&elicitor=brunch` sends finalized expert transcripts through the real
+  Brunch `/api/chat` transport. Brunch owns the interview response and pending `brunch_ask` state;
+  Realtime renders the returned text as speech. Brunch's source text remains the visible,
+  authoritative transcript because generated speech is not guaranteed to be verbatim.
+
+The same-origin session endpoint returns only a short-lived client secret; each mode maps to a fixed
+server-side configuration. Start opens with one short interviewer question, then opens the
+microphone for the answer. OpenAI server VAD owns the end of each expert answer; the browser mutes
+while the interviewer responds and reopens only after OpenAI reports that the WebRTC output-audio
+buffer has drained. The browser does not manually commit turns. Server VAD does not auto-create
+model responses: only a non-empty finalized expert transcript admits the next interviewer response.
+The legacy `/?voiceExperiment=openai-realtime` URL continues to select mock mode.
 
 ## ElevenLabs + Brunch voice experiment
 
 The real-elicitor experiment is available at
-`/?voiceExperiment=elevenlabs-brunch`. ElevenLabs owns browser WebRTC, speech recognition,
+`/?voiceProvider=elevenlabs&elicitor=brunch`. ElevenLabs owns browser WebRTC, speech recognition,
 turn-taking, speech synthesis, playback, and interruption detection. The Speech Engine server
 forwards only the latest finalized expert transcript into Brunch's existing `/api/chat` transport;
 Brunch remains authoritative for the session and `brunch_ask` state. The conversation panel shows
@@ -81,7 +88,9 @@ For local development:
 4. Expose port `3001` through a public HTTPS tunnel and configure the ElevenLabs Speech Engine
    resource's WebSocket URL as `wss://<public-host>/ws`.
 5. Start the real-panel launcher with `PETRINAUT_WEBSITE_ROOT` pointing at this app and open
-   `http://127.0.0.1:4915/?voiceExperiment=elevenlabs-brunch`.
+   `http://127.0.0.1:4915/?voiceProvider=elevenlabs&elicitor=brunch`. Use
+   `?voiceProvider=openai&elicitor=brunch` on the same launcher to test OpenAI against the real
+   elicitor.
 
 The browser receives only a short-lived conversation token. The primary ElevenLabs key is used
 by the website token endpoint and the authenticated Speech Engine server, never by browser code.
@@ -91,6 +100,9 @@ alternation: it mutes after one finalized expert answer and reopens only after i
 ends. `voice:dev` enables the client-supplied opening message and applies the turn config to the
 Speech Engine resource on startup. The server serializes revised provider turns and retains pending
 `brunch_ask` correlation when interruption happens before Brunch admits the answer.
+The legacy `/?voiceExperiment=elevenlabs-brunch` URL remains available. ElevenLabs with the mock
+elicitor is intentionally unsupported because a Speech Engine conversation is bound to its
+server-side callback.
 
 ## Testing the API against the built output
 

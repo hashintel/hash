@@ -1,7 +1,14 @@
+export type BrunchVoiceToolCall = {
+  input: unknown;
+  toolCallId: string;
+  toolName: string;
+};
+
 type BrunchVoiceBridgeDependencies = {
   chatEndpoint: string;
   createId?: () => string;
   fetch?: typeof globalThis.fetch;
+  onToolCall?: (toolCall: BrunchVoiceToolCall) => void;
 };
 
 type VoiceTurn = {
@@ -88,7 +95,7 @@ const readUiMessageStream = async function* (
 };
 
 /**
- * Translates finalized Speech Engine turns into the existing AI SDK transport.
+ * Translates finalized voice turns into the existing AI SDK transport.
  * Brunch remains authoritative: this bridge retains only enough correlation to
  * return a spoken answer to a pending `brunch_ask` affordance.
  */
@@ -96,12 +103,14 @@ export class BrunchVoiceBridge {
   readonly #chatEndpoint: string;
   readonly #createId: () => string;
   readonly #fetch: typeof globalThis.fetch;
+  readonly #onToolCall: ((toolCall: BrunchVoiceToolCall) => void) | undefined;
   readonly #sessions = new Map<string, BridgeSessionState>();
 
   public constructor(dependencies: BrunchVoiceBridgeDependencies) {
     this.#chatEndpoint = dependencies.chatEndpoint;
     this.#createId = dependencies.createId ?? (() => crypto.randomUUID());
     this.#fetch = dependencies.fetch ?? globalThis.fetch;
+    this.#onToolCall = dependencies.onToolCall;
   }
 
   public async *respond({
@@ -189,11 +198,20 @@ export class BrunchVoiceBridge {
         continue;
       }
 
-      if (
-        chunk.type === "tool-input-available" &&
-        stringProperty(chunk, "toolName") === "brunch_ask"
-      ) {
+      if (chunk.type === "tool-input-available") {
         const toolCallId = stringProperty(chunk, "toolCallId");
+        const toolName = stringProperty(chunk, "toolName");
+        if (toolCallId && toolName) {
+          this.#onToolCall?.({
+            input: chunk.input,
+            toolCallId,
+            toolName,
+          });
+        }
+        if (toolName !== "brunch_ask") {
+          continue;
+        }
+
         const input = chunk.input;
         if (!assistantMessageId || !toolCallId) {
           throw new Error("Brunch returned an invalid voice response.");
@@ -203,9 +221,10 @@ export class BrunchVoiceBridge {
         const question = stringProperty(asRecord(input), "question");
         if (
           question &&
-          !spokenText.trim().toLocaleLowerCase().endsWith(
-            question.trim().toLocaleLowerCase(),
-          )
+          !spokenText
+            .trim()
+            .toLocaleLowerCase()
+            .endsWith(question.trim().toLocaleLowerCase())
         ) {
           yield question;
         }

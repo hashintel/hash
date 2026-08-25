@@ -14,6 +14,7 @@ const createRequest = (init: RequestInit = {}) =>
     method: "POST",
     headers: {
       origin: "https://petrinaut.local",
+      "x-voice-elicitor": "mock",
       "x-voice-experiment": "openai-realtime",
     },
     ...init,
@@ -88,6 +89,27 @@ describe("OpenAI Realtime session endpoint", () => {
     );
 
     expect(response.status).toBe(400);
+    expect(upstreamFetch).not.toHaveBeenCalled();
+  });
+
+  test("rejects unsupported elicitor modes", async () => {
+    const upstreamFetch = vi.fn();
+    vi.stubGlobal("fetch", upstreamFetch);
+
+    const response = await api.fetch(
+      createRequest({
+        headers: {
+          origin: "https://petrinaut.local",
+          "x-voice-elicitor": "browser-controlled",
+          "x-voice-experiment": "openai-realtime",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Unsupported elicitor mode",
+    });
     expect(upstreamFetch).not.toHaveBeenCalled();
   });
 
@@ -167,9 +189,7 @@ describe("OpenAI Realtime session endpoint", () => {
     expect(sessionRequest.session.instructions).toContain(
       "Stochastic Dynamic Coloured Petri Net",
     );
-    expect(sessionRequest.session.instructions).toContain(
-      "wait_for_user",
-    );
+    expect(sessionRequest.session.instructions).toContain("wait_for_user");
     expect(sessionRequest.session.instructions).toContain(
       "before emitting spoken audio",
     );
@@ -184,6 +204,40 @@ describe("OpenAI Realtime session endpoint", () => {
       "record_model_requirement",
       "wait_for_user",
     ]);
+  });
+
+  test("mints a fixed speech-renderer session for Brunch", async () => {
+    const upstreamFetch = vi.fn().mockResolvedValue(
+      Response.json({
+        expires_at: 1_800_000_000,
+        value: "ephemeral-client-secret",
+      }),
+    );
+    vi.stubGlobal("fetch", upstreamFetch);
+
+    const response = await api.fetch(
+      createRequest({
+        headers: {
+          origin: "https://petrinaut.local",
+          "x-voice-elicitor": "brunch",
+          "x-voice-experiment": "openai-realtime",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const [, request] = upstreamFetch.mock.calls[0] as [string, RequestInit];
+    const sessionRequest = JSON.parse(request.body as string) as {
+      session: {
+        instructions: string;
+        tool_choice?: unknown;
+        tools?: unknown;
+      };
+    };
+    expect(sessionRequest.session.instructions).toContain("Brunch elicitor");
+    expect(sessionRequest.session.instructions).toContain("exactly as written");
+    expect(sessionRequest.session.tools).toBeUndefined();
+    expect(sessionRequest.session.tool_choice).toBeUndefined();
   });
 
   test("does not expose upstream errors or the primary key", async () => {

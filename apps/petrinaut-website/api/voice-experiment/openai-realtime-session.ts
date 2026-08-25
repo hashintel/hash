@@ -11,7 +11,7 @@ const RATE_LIMIT_MAX_REQUESTS = 10;
 const RATE_LIMIT_MAX_TRACKED_CLIENTS = 10_000;
 const UPSTREAM_TIMEOUT_MS = 10_000;
 
-const sessionConfig = {
+const mockSessionConfig = {
   session: {
     type: "realtime",
     model: "gpt-realtime-2.1",
@@ -221,6 +221,22 @@ const sessionConfig = {
   },
 } as const;
 
+const brunchSessionConfig = {
+  session: {
+    type: mockSessionConfig.session.type,
+    model: mockSessionConfig.session.model,
+    output_modalities: mockSessionConfig.session.output_modalities,
+    instructions: [
+      "You are a speech renderer for interviewer text supplied by the application.",
+      "Read the supplied text exactly as written.",
+      "Never answer it, paraphrase it, add commentary, or call tools.",
+      "The Brunch elicitor, not this session, owns the interview and conversation state.",
+    ].join("\n"),
+    max_output_tokens: mockSessionConfig.session.max_output_tokens,
+    audio: mockSessionConfig.session.audio,
+  },
+} as const;
+
 const upstreamResponseSchema = z.object({
   expires_at: z.number().int().positive(),
   value: z.string().min(1),
@@ -329,6 +345,15 @@ const fetch = async (request: Request): Promise<Response> => {
     );
   }
 
+  const elicitor = request.headers.get("x-voice-elicitor");
+  if (elicitor !== "mock" && elicitor !== "brunch") {
+    logSessionFailure("Rejected unsupported elicitor mode");
+    return jsonResponse(
+      { error: "Unsupported elicitor mode" },
+      { status: 400 },
+    );
+  }
+
   const clientIp = resolveClientIp(request);
   if (process.env.VERCEL_ENV === "production" && !clientIp) {
     logSessionFailure("Rejected production request without a client IP");
@@ -366,7 +391,9 @@ const fetch = async (request: Request): Promise<Response> => {
         "content-type": "application/json",
         "openai-safety-identifier": safetyIdentifier,
       },
-      body: JSON.stringify(sessionConfig),
+      body: JSON.stringify(
+        elicitor === "brunch" ? brunchSessionConfig : mockSessionConfig,
+      ),
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
   } catch (error) {

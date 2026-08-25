@@ -12,6 +12,9 @@ export default defineConfig({
           new URL("src/client-tools.ts", import.meta.url),
         ),
         index: fileURLToPath(new URL("src/index.ts", import.meta.url)),
+        "voice-bridge": fileURLToPath(
+          new URL("src/voice-bridge.ts", import.meta.url),
+        ),
       },
       fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],

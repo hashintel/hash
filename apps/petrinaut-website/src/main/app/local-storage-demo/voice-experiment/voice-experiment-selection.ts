@@ -1,23 +1,50 @@
-export type VoiceExperiment = "openai-realtime" | "elevenlabs-brunch";
+export type VoiceProvider = "elevenlabs" | "openai";
+export type VoiceElicitor = "brunch" | "mock";
 
-export const voiceExperimentLabel = {
-  "openai-realtime": "OpenAI Realtime",
-  "elevenlabs-brunch": "ElevenLabs + Brunch",
-} satisfies Record<VoiceExperiment, string>;
+export type VoiceExperimentSelection = {
+  elicitor: VoiceElicitor;
+  provider: VoiceProvider;
+};
 
-export const voiceExperimentMode = {
-  "openai-realtime": "Native voice · dummy tools",
-  "elevenlabs-brunch": "Speech edge · real elicitor",
-} satisfies Record<VoiceExperiment, string>;
+const legacySelections = {
+  "elevenlabs-brunch": {
+    elicitor: "brunch",
+    provider: "elevenlabs",
+  },
+  "openai-realtime": {
+    elicitor: "mock",
+    provider: "openai",
+  },
+} as const satisfies Record<string, VoiceExperimentSelection>;
 
-export const getVoiceExperiment = (
+export const getVoiceExperimentLabel = ({
+  elicitor,
+  provider,
+}: VoiceExperimentSelection): string =>
+  `${provider === "openai" ? "OpenAI Realtime" : "ElevenLabs"} · ${
+    elicitor === "brunch" ? "Brunch" : "mock tools"
+  }`;
+
+export const getVoiceExperimentSelection = (
   location: Pick<Location, "search">,
-): VoiceExperiment | null => {
-  const value = new URLSearchParams(location.search).get("voiceExperiment");
+): VoiceExperimentSelection | null => {
+  const searchParams = new URLSearchParams(location.search);
+  const provider = searchParams.get("voiceProvider");
+  const elicitor = searchParams.get("elicitor");
 
-  if (value === "openai-realtime" || value === "elevenlabs-brunch") {
-    return value;
+  if (provider !== null || elicitor !== null) {
+    if (
+      (provider !== "openai" && provider !== "elevenlabs") ||
+      (elicitor !== "mock" && elicitor !== "brunch") ||
+      (provider === "elevenlabs" && elicitor === "mock")
+    ) {
+      return null;
+    }
+    return { elicitor, provider };
   }
 
-  return null;
+  const legacyExperiment = searchParams.get("voiceExperiment");
+  return legacyExperiment && Object.hasOwn(legacySelections, legacyExperiment)
+    ? legacySelections[legacyExperiment as keyof typeof legacySelections]
+    : null;
 };

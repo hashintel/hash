@@ -2,7 +2,8 @@ import { createServer } from "node:http";
 
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
-import { BrunchVoiceBridge } from "./brunch-voice-bridge.ts";
+import { BrunchVoiceBridge } from "@hashintel/brunch-agent-transport-aisdk/voice-bridge";
+
 import {
   applySpeechEngineInterviewConfig,
   createElevenLabsSpeechEngineCallbacks,

@@ -114,6 +114,11 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        "/api/voice-experiment/brunch-chat": {
+          target: process.env.BRUNCH_CHAT_ORIGIN ?? "http://127.0.0.1:4321",
+          changeOrigin: true,
+          rewrite: () => "/api/chat",
+        },
         "/api/voice-experiment/elevenlabs-brunch-diagnostics": {
           target: process.env.BRUNCH_CHAT_ORIGIN ?? "http://127.0.0.1:4321",
           changeOrigin: true,

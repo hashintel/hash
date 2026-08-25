@@ -13,6 +13,10 @@
     "./client-tools": {
       "types": "./src/client-tools.ts",
       "import": "./dist/client-tools.js"
+    },
+    "./voice-bridge": {
+      "types": "./src/voice-bridge.ts",
+      "import": "./dist/voice-bridge.js"
     }
   },
   "scripts": {

@@ -4,6 +4,23 @@ import { createOpenAIRealtimeAdapter } from "./openai-realtime-adapter";
 
 import type { VoiceExperimentEvent } from "./voice-experiment-events";
 
+const encoder = new TextEncoder();
+
+const sseResponse = (...chunks: Record<string, unknown>[]) =>
+  new Response(
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const chunk of chunks) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`),
+          );
+        }
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    }),
+  );
+
 class FakeDataChannel extends EventTarget {
   public readyState: RTCDataChannelState = "connecting";
   public readonly sent: unknown[] = [];
@@ -28,7 +45,13 @@ class FakeDataChannel extends EventTarget {
   }
 }
 
-const createHarness = () => {
+const createHarness = ({
+  brunchResponse,
+  elicitor = "mock",
+}: {
+  brunchResponse?: Response;
+  elicitor?: "brunch" | "mock";
+} = {}) => {
   const dataChannel = new FakeDataChannel();
   const microphoneTrack = {
     enabled: true,
@@ -64,11 +87,16 @@ const createHarness = () => {
       }),
     )
     .mockResolvedValueOnce(new Response("answer-sdp"));
+  if (brunchResponse) {
+    fetch.mockResolvedValueOnce(brunchResponse);
+  }
   let now = 1_000;
 
   const adapter = createOpenAIRealtimeAdapter({
+    conversationId: "voice-conversation",
     createAudioElement: () => audioElement as unknown as HTMLAudioElement,
     createPeerConnection: () => peerConnection as unknown as RTCPeerConnection,
+    elicitor,
     fetch: fetch as typeof globalThis.fetch,
     getUserMedia: vi.fn(async () => mediaStream as unknown as MediaStream),
     now: () => ++now,
@@ -98,7 +126,10 @@ describe("OpenAIRealtimeAdapter", () => {
       1,
       "/api/voice-experiment/openai-realtime-session",
       expect.objectContaining({
-        headers: { "x-voice-experiment": "openai-realtime" },
+        headers: {
+          "x-voice-elicitor": "mock",
+          "x-voice-experiment": "openai-realtime",
+        },
         method: "POST",
       }),
     );
@@ -244,6 +275,140 @@ describe("OpenAIRealtimeAdapter", () => {
     expect(harness.dataChannel.sent).not.toContainEqual({
       type: "response.create",
     });
+  });
+
+  test("uses Brunch as the authoritative elicitor and Realtime only for speech", async () => {
+    const harness = createHarness({
+      elicitor: "brunch",
+      brunchResponse: sseResponse(
+        { type: "start", messageId: "assistant-ask" },
+        { type: "text-delta", id: "text-1", delta: "Thanks. " },
+        {
+          type: "tool-input-available",
+          toolCallId: "ask-1",
+          toolName: "brunch_ask",
+          input: { question: "What happens next?" },
+        },
+        { type: "finish", finishReason: "tool-calls" },
+      ),
+    });
+    await harness.adapter.connect();
+    await harness.adapter.startTurn();
+
+    harness.dataChannel.receive({
+      type: "input_audio_buffer.committed",
+      item_id: "expert-item",
+    });
+    harness.dataChannel.receive({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "expert-item",
+      transcript: "The support lead triages it.",
+    });
+
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledTimes(3));
+    const [chatUrl, chatRequest] = harness.fetch.mock.calls[2] as [
+      string,
+      RequestInit,
+    ];
+    expect(chatUrl).toBe("/api/voice-experiment/brunch-chat");
+    expect(JSON.parse(chatRequest.body as string)).toMatchObject({
+      id: "voice:voice-conversation",
+      messages: [
+        {
+          role: "user",
+          parts: [{ type: "text", text: "The support lead triages it." }],
+        },
+      ],
+    });
+    type SentResponseCreate = {
+      response?: {
+        conversation?: string;
+        input?: unknown[];
+        metadata?: Record<string, string>;
+        output_modalities?: string[];
+      };
+      type?: string;
+    };
+    let brunchSpeechRequest: SentResponseCreate | undefined;
+    await vi.waitFor(() => {
+      brunchSpeechRequest = (
+        harness.dataChannel.sent as SentResponseCreate[]
+      ).find(
+        (event) =>
+          event.type === "response.create" &&
+          event.response?.metadata?.source === "brunch",
+      );
+      expect(brunchSpeechRequest).toBeDefined();
+    });
+    expect(brunchSpeechRequest).toMatchObject({
+      type: "response.create",
+      response: {
+        conversation: "none",
+        input: [],
+        metadata: { source: "brunch", turnId: "1" },
+        output_modalities: ["audio"],
+      },
+    });
+
+    expect(harness.events).toContainEqual(
+      expect.objectContaining({
+        speaker: "assistant",
+        transcript: "Thanks. What happens next?",
+        turnId: 1,
+        type: "final-transcript",
+      }),
+    );
+    expect(harness.events).toContainEqual(
+      expect.objectContaining({
+        argumentSummary: "Question: What happens next?",
+        callId: "ask-1",
+        toolName: "brunch_ask",
+        type: "tool-called",
+      }),
+    );
+    expect(harness.microphoneTrack.enabled).toBe(false);
+
+    harness.dataChannel.receive({
+      type: "response.created",
+      response: { id: "brunch-speech-response" },
+    });
+    harness.dataChannel.receive({
+      type: "response.output_audio_transcript.done",
+      response_id: "brunch-speech-response",
+      item_id: "generated-speech-item",
+      transcript: "A paraphrase that is not authoritative.",
+    });
+    harness.dataChannel.receive({
+      type: "response.done",
+      response: {
+        id: "brunch-speech-response",
+        output: [
+          {
+            type: "message",
+            content: [{ type: "audio", transcript: "Generated speech" }],
+          },
+        ],
+        status: "completed",
+      },
+    });
+
+    expect(JSON.stringify(harness.events)).not.toContain(
+      "A paraphrase that is not authoritative.",
+    );
+    expect(harness.events).toContainEqual(
+      expect.objectContaining({
+        responseText: "Thanks. What happens next?",
+        turnId: 1,
+        type: "response-completed",
+      }),
+    );
+    expect(harness.microphoneTrack.enabled).toBe(false);
+
+    harness.dataChannel.receive({
+      type: "output_audio_buffer.stopped",
+      response_id: "brunch-speech-response",
+    });
+    expect(harness.microphoneTrack.enabled).toBe(true);
   });
 
   test("listens only between interviewer responses", async () => {
