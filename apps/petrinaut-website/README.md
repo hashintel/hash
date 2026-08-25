@@ -51,87 +51,12 @@ optimizer for isolated UI development.
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings. Provider API keys must never be exposed through a `VITE_` variable or sent to the browser.
 
-The OpenAI voice experiment supports two server-owned elicitor modes:
+## Voice interview experiments
 
-- `/?voiceProvider=openai&elicitor=mock` uses the Realtime model and experiment-only dummy tools.
-- `/?voiceProvider=openai&elicitor=brunch` sends finalized expert transcripts through the real
-  Brunch `/api/chat` transport. Brunch owns the interview response and pending `brunch_ask` state;
-  Realtime renders the returned text as speech. Brunch's source text remains the visible,
-  authoritative transcript because generated speech is not guaranteed to be verbatim.
-
-The same-origin session endpoint returns only a short-lived client secret; each mode maps to a fixed
-server-side configuration. Start opens with one short interviewer question, then opens the
-microphone for the answer. OpenAI server VAD owns the end of each expert answer; the browser mutes
-while the interviewer responds and reopens only after OpenAI reports that the WebRTC output-audio
-buffer has drained. The browser does not manually commit turns. Server VAD does not auto-create
-model responses: only a non-empty finalized expert transcript admits the next interviewer response.
-The legacy `/?voiceExperiment=openai-realtime` URL continues to select mock mode.
-
-### Mock draft completion
-
-Append `&projector=mock` to any supported voice URL to exercise the complete handoff from interview
-to an opened Petrinaut net:
-
-- `/?voiceProvider=openai&elicitor=mock&projector=mock`
-- `/?voiceProvider=openai&elicitor=brunch&projector=mock`
-- `/?voiceProvider=elevenlabs&elicitor=brunch&projector=mock`
-
-While this mode is active, the stop control reads **Finish and create net**. Finishing disposes the
-voice session, collects the final transcript and any experiment capture calls, passes them through
-the provider-independent draft contract, saves the result in local storage, and opens it in the
-editor. OpenAI mock capture calls can produce a state-step-flow graph. Other incomplete interviews
-produce a visibly labelled two-place placeholder so the end-to-end loop remains testable while the
-Brunch projector evolves. The saved record includes the transcript, source conversation id, and
-projector warnings. `projector=mock` is deliberately explicit: URLs without it keep the current
-stop-without-projection behavior.
-
-The mock projector also models incremental projection. Structured capture calls from either
-provider path are accumulated through the same contract and debounced for 300 ms. Once the captures
-form a coherent state-step-flow graph, the app creates one draft net and updates that same net on
-later capture revisions. Incomplete capture batches do not cause placeholder churn. An applied
-`brunch_sweep` emits a provider-neutral elicitor-readiness signal and projects the best available
-mock draft, falling back to the labelled placeholder when structured captures are unavailable;
-refused sweeps do not trigger projection. **Finish and create net** forces the same behavior if no
-sweep has completed. Revision checks discard stale projector responses. Once the user manually
-edits the live draft, later projections preserve those edits and update only the saved interview
-metadata rather than replacing the net.
-
-## ElevenLabs + Brunch voice experiment
-
-The real-elicitor experiment is available at
-`/?voiceProvider=elevenlabs&elicitor=brunch`. ElevenLabs owns browser WebRTC, speech recognition,
-turn-taking, speech synthesis, playback, and interruption detection. The Speech Engine server
-forwards only the latest finalized expert transcript into Brunch's existing `/api/chat` transport;
-Brunch remains authoritative for the session and `brunch_ask` state. The conversation panel shows
-those Brunch-owned lines (expert utterance and spoken interviewer question) by polling diagnostics;
-it does not receive live Speech Engine STT the way OpenAI Realtime pushes partials over WebRTC.
-
-For local development:
-
-1. Copy `.env.example` to `.env.local` in both `apps/petrinaut-website` and
-   `apps/brunch-agent`, then set the same `ELEVENLABS_API_KEY` and
-   `ELEVENLABS_SPEECH_ENGINE_ID` in both files.
-2. Start the real Brunch server on `127.0.0.1:4321` as usual.
-3. Run `yarn workspace @apps/brunch-agent voice:dev`. It serves the authenticated Speech Engine
-   WebSocket at `ws://127.0.0.1:3001/ws` and a health check at `/health`.
-4. Expose port `3001` through a public HTTPS tunnel and configure the ElevenLabs Speech Engine
-   resource's WebSocket URL as `wss://<public-host>/ws`.
-5. Start the real-panel launcher with `PETRINAUT_WEBSITE_ROOT` pointing at this app and open
-   `http://127.0.0.1:4915/?voiceProvider=elevenlabs&elicitor=brunch`. Use
-   `?voiceProvider=openai&elicitor=brunch` on the same launcher to test OpenAI against the real
-   elicitor.
-
-The browser receives only a short-lived conversation token. The primary ElevenLabs key is used
-by the website token endpoint and the authenticated Speech Engine server, never by browser code.
-The shell uses the same opening question as OpenAI and starts once. Speech Engine owns expert
-endpointing (`patient` eagerness, `turn_v3`, 10s timeout), while the browser enforces interview
-alternation: it mutes after one finalized expert answer and reopens only after interviewer playback
-ends. `voice:dev` enables the client-supplied opening message and applies the turn config to the
-Speech Engine resource on startup. The server serializes revised provider turns and retains pending
-`brunch_ask` correlation when interruption happens before Brunch admits the answer.
-The legacy `/?voiceExperiment=elevenlabs-brunch` URL remains available. ElevenLabs with the mock
-elicitor is intentionally unsupported because a Speech Engine conversation is bound to its
-server-side callback.
+The local-storage demo can compare OpenAI Realtime and ElevenLabs while independently selecting the
+elicitor and mock projector. Detailed architecture, supported URL combinations, projection
+behavior, and local setup are documented in the
+[scoped voice experiment guide](src/main/app/local-storage-demo/voice-experiment/README.md).
 
 ## Testing the API against the built output
 

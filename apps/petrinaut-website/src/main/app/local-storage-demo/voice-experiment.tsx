@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FiActivity,
+  FiCheck,
   FiChevronDown,
+  FiCopy,
+  FiMaximize2,
   FiMessageSquare,
   FiMic,
+  FiMinimize2,
   FiSquare,
   FiTool,
 } from "react-icons/fi";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { getTranscriptEntries } from "./voice-experiment/transcript-entries";
+import {
+  getTranscriptEntries,
+  type TranscriptEntry,
+} from "./voice-experiment/transcript-entries";
 import {
   getVoiceExperimentLabel,
   type VoiceExperimentSelection,
@@ -32,6 +39,17 @@ const dockStyle = css({
   pointerEvents: "none",
 });
 
+const fullscreenDockStyle = css({
+  zIndex: "[1600]",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "4",
+  backgroundColor: "[rgb(15 23 42 / 0.62)]",
+  backdropFilter: "[blur(5px)]",
+  pointerEvents: "auto",
+});
+
 const panelStyle = css({
   position: "relative",
   display: "flex",
@@ -49,6 +67,14 @@ const panelStyle = css({
   boxShadow:
     "[0 24px 72px rgb(15 23 42 / 0.22), 0 2px 8px rgb(15 23 42 / 0.08)]",
   pointerEvents: "auto",
+});
+
+const fullscreenPanelStyle = css({
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a35",
+  borderRadius: "2xl",
+  boxShadow: "[0 32px 96px rgb(15 23 42 / 0.42)]",
 });
 
 const launcherButtonStyle = css({
@@ -247,6 +273,63 @@ const transcriptHeaderStyle = css({
   paddingX: "1",
 });
 
+const sectionHeaderMetaStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+});
+
+const sectionActionsStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+});
+
+const sectionActionButtonStyle = css({
+  display: "inline-flex",
+  width: "7",
+  height: "7",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "0",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a20",
+  borderRadius: "md",
+  backgroundColor: "white",
+  color: "neutral.s65",
+  cursor: "pointer",
+  transition:
+    "[background-color 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease]",
+  _hover: {
+    borderColor: "blue.a35",
+    backgroundColor: "blue.a10",
+    color: "blue.a95",
+    transform: "translateY(-1px)",
+  },
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "blue.a35",
+    outlineOffset: "[2px]",
+  },
+});
+
+const copiedSectionActionButtonStyle = css({
+  borderColor: "green.a35",
+  backgroundColor: "green.a10",
+  color: "green.a95",
+});
+
+const fullscreenSectionStyle = css({
+  flex: "1",
+  minHeight: "0",
+});
+
+const fullscreenContentStyle = css({
+  flex: "1",
+  maxHeight: "[none]",
+});
+
 const sectionHeadingStyle = css({
   display: "inline-flex",
   alignItems: "center",
@@ -399,59 +482,98 @@ const activeMicrophoneButtonStyle = css({
 
 const eventLogStyle = css({
   display: "flex",
-  maxHeight: "28",
-  marginTop: "2",
+  minHeight: "20",
+  maxHeight: "36",
   flexDirection: "column",
-  gap: "1",
+  gap: "1.5",
   padding: "2",
   overflowY: "auto",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.a15",
-  borderRadius: "md",
-  backgroundColor: "neutral.a05",
-  color: "neutral.s70",
-  fontFamily: "mono",
-  fontSize: "xs",
+  borderColor: "neutral.a20",
+  borderRadius: "xl",
+  backgroundColor: "neutral.a10",
 });
 
-const technicalDetailsStyle = css({
+const logsSectionStyle = css({
+  display: "flex",
+  minHeight: "0",
+  flexDirection: "column",
+  gap: "2",
   borderTopWidth: "thin",
   borderTopStyle: "solid",
   borderTopColor: "neutral.a20",
   paddingTop: "2",
 });
 
-const technicalSummaryStyle = css({
+const logsHeaderStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  color: "neutral.s75",
-  cursor: "pointer",
-  fontSize: "xs",
-  fontWeight: "medium",
-});
-
-const technicalSummaryLabelStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1.5",
-});
-
-const eventCountStyle = css({
-  color: "neutral.s65",
-  fontWeight: "normal",
+  paddingX: "1",
 });
 
 const eventRowStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[auto minmax(0, 1fr) auto]",
+  alignItems: "start",
+  gap: "2",
+  padding: "2",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a15",
+  borderRadius: "lg",
+  backgroundColor: "white",
+});
+
+const eventSequenceStyle = css({
+  display: "inline-flex",
+  minWidth: "7",
+  height: "6",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "md",
+  backgroundColor: "neutral.a15",
+  color: "neutral.s60",
+  fontFamily: "mono",
+  fontSize: "[11px]",
+  fontWeight: "semibold",
+});
+
+const eventBodyStyle = css({
   display: "flex",
-  justifyContent: "space-between",
-  gap: "3",
+  minWidth: "0",
+  flexDirection: "column",
+  gap: "0.5",
+});
+
+const eventTypeStyle = css({
+  color: "blue.a85",
+  fontFamily: "mono",
+  fontSize: "xs",
+  fontWeight: "semibold",
+  overflowWrap: "anywhere",
+});
+
+const eventSummaryStyle = css({
+  color: "neutral.s75",
+  fontSize: "xs",
+  lineHeight: "relaxed",
+  overflowWrap: "anywhere",
+});
+
+const eventTimeStyle = css({
+  color: "neutral.s50",
+  fontFamily: "mono",
+  fontSize: "[11px]",
+  whiteSpace: "nowrap",
 });
 
 const emptyLogStyle = css({
+  padding: "3",
   color: "neutral.s50",
-  fontFamily: "body",
+  fontSize: "sm",
+  textAlign: "center",
 });
 
 const toolDiagnosticsSectionStyle = css({
@@ -553,6 +675,8 @@ type LoggedEvent = {
   sequence: number;
 };
 
+type DetailSection = "logs" | "tools" | "transcript";
+
 const PROJECTION_DEBOUNCE_MS = 300;
 
 const createInterviewInput = (
@@ -578,27 +702,84 @@ const createInterviewInput = (
 
 const getEventSummary = (event: VoiceExperimentEvent) => {
   if (event.type === "partial-transcript") {
-    return `${event.type} (${event.speaker}): ${event.transcript}`;
+    return `${event.speaker} · ${event.transcript}`;
   }
   if (event.type === "final-transcript") {
-    return `${event.type} (${event.speaker}): ${event.transcript}`;
+    return `${event.speaker} · ${event.transcript}`;
   }
   if (event.type === "tool-called") {
-    return `${event.type}: ${event.toolName} · turn ${event.turnId} · call ${event.callId}`;
+    return `${event.toolName} · turn ${event.turnId} · call ${event.callId}`;
   }
   if (event.type === "projection-updated") {
-    return `${event.type}: revision ${event.revision}`;
+    return `Draft updated to revision ${event.revision}`;
   }
   if (event.type === "projection-error") {
-    return `${event.type}: revision ${event.revision} · ${event.message}`;
+    return `Revision ${event.revision} · ${event.message}`;
   }
   if (event.type === "projection-ready") {
-    return `${event.type}: call ${event.callId}`;
+    return `Applied sweep ${event.callId}`;
   }
   if (event.type === "error") {
-    return `${event.type}: ${event.message}`;
+    return event.message;
   }
-  return event.type;
+  if (event.type === "recording-started") {
+    return `Expert microphone opened for turn ${event.turnId}`;
+  }
+  if (event.type === "response-started") {
+    return `Interviewer response started for turn ${event.turnId}`;
+  }
+  if (event.type === "response-completed") {
+    return event.responseText
+      ? `Interviewer response completed · ${event.responseText}`
+      : `Interviewer response completed for turn ${event.turnId}`;
+  }
+  return event.conversationId
+    ? `Provider connected · ${event.conversationId}`
+    : "Provider connected";
+};
+
+const formatTranscriptOutput = (
+  transcriptEntries: readonly TranscriptEntry[],
+): string =>
+  transcriptEntries
+    .map(
+      (entry) =>
+        `${entry.speaker === "expert" ? "Expert" : "Interviewer"}${
+          entry.isPartial ? " (partial)" : ""
+        }: ${entry.transcript}`,
+    )
+    .join("\n\n");
+
+const formatToolOutput = (events: readonly LoggedEvent[]): string =>
+  events
+    .flatMap(({ event }) =>
+      event.type === "tool-called"
+        ? [
+            [
+              `[Turn ${event.turnId}] ${event.toolName}`,
+              event.argumentSummary,
+              `Call ${event.callId}`,
+              ...(event.capture
+                ? [`Capture ${JSON.stringify(event.capture.input)}`]
+                : []),
+            ].join("\n"),
+          ]
+        : [],
+    )
+    .join("\n\n");
+
+const formatLogOutput = (events: readonly LoggedEvent[]): string =>
+  events
+    .map(
+      ({ event, sequence }) =>
+        `${new Date(event.timestampMs).toISOString()}  #${String(
+          sequence,
+        ).padStart(2, "0")}  ${event.type}  ${getEventSummary(event)}`,
+    )
+    .join("\n");
+
+const writeTextToClipboard = async (text: string): Promise<void> => {
+  await navigator.clipboard.writeText(text);
 };
 
 const createErrorEvent = (error: unknown): VoiceExperimentEvent => ({
@@ -606,6 +787,55 @@ const createErrorEvent = (error: unknown): VoiceExperimentEvent => ({
   timestampMs: Date.now(),
   type: "error",
 });
+
+const DetailSectionActions = ({
+  copied,
+  isFullscreen,
+  label,
+  onCopy,
+  onToggleFullscreen,
+}: {
+  copied: boolean;
+  isFullscreen: boolean;
+  label: string;
+  onCopy: () => void;
+  onToggleFullscreen: () => void;
+}) => (
+  <div className={sectionActionsStyle}>
+    <button
+      aria-label={copied ? `${label} copied` : `Copy ${label}`}
+      className={[
+        sectionActionButtonStyle,
+        copied ? copiedSectionActionButtonStyle : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      onClick={onCopy}
+      title={copied ? "Copied" : `Copy ${label}`}
+      type="button"
+    >
+      {copied ? (
+        <FiCheck aria-hidden="true" size={14} />
+      ) : (
+        <FiCopy aria-hidden="true" size={14} />
+      )}
+    </button>
+    <button
+      aria-label={`${isFullscreen ? "Exit fullscreen" : "Show fullscreen"} ${label}`}
+      aria-pressed={isFullscreen}
+      className={sectionActionButtonStyle}
+      onClick={onToggleFullscreen}
+      title={`${isFullscreen ? "Exit fullscreen" : "Show fullscreen"} ${label}`}
+      type="button"
+    >
+      {isFullscreen ? (
+        <FiMinimize2 aria-hidden="true" size={14} />
+      ) : (
+        <FiMaximize2 aria-hidden="true" size={14} />
+      )}
+    </button>
+  </div>
+);
 
 export const VoiceExperiment = ({
   adapter,
@@ -620,12 +850,18 @@ export const VoiceExperiment = ({
   onFinalize?: (input: FinalizeInterviewInput) => Promise<void> | void;
   onProject?: (input: FinalizeInterviewInput) => boolean | Promise<boolean>;
 }) => {
+  const [copiedSection, setCopiedSection] = useState<DetailSection | null>(
+    null,
+  );
   const [events, setEvents] = useState<LoggedEvent[]>([]);
+  const [fullscreenSection, setFullscreenSection] =
+    useState<DetailSection | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [projectionRequestRevision, setProjectionRequestRevision] = useState(0);
   const [sessionState, setSessionState] = useState<SessionState>("ready");
   const [isConversationActive, setIsConversationActive] = useState(false);
   const hasToggledPanelRef = useRef(false);
+  const copiedResetTimeoutRef = useRef<number | null>(null);
   const launcherButtonRef = useRef<HTMLButtonElement>(null);
   const minimizeButtonRef = useRef<HTMLButtonElement>(null);
   const sequenceRef = useRef(0);
@@ -681,6 +917,34 @@ export const VoiceExperiment = ({
   useEffect(() => {
     onProjectRef.current = onProject;
   }, [onProject]);
+
+  useEffect(
+    () => () => {
+      if (copiedResetTimeoutRef.current !== null) {
+        window.clearTimeout(copiedResetTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!fullscreenSection) {
+      return;
+    }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setFullscreenSection(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [fullscreenSection]);
 
   useEffect(() => {
     if (projectionRequestRevision < 1) {
@@ -801,6 +1065,7 @@ export const VoiceExperiment = ({
 
   const minimizeVoiceInterview = () => {
     hasToggledPanelRef.current = true;
+    setFullscreenSection(null);
     setIsExpanded(false);
   };
 
@@ -830,6 +1095,34 @@ export const VoiceExperiment = ({
       event: Extract<VoiceExperimentEvent, { type: "tool-called" }>;
     } => entry.event.type === "tool-called",
   );
+  const copySectionOutput = async (section: DetailSection) => {
+    const output =
+      section === "transcript"
+        ? formatTranscriptOutput(transcriptEntries)
+        : section === "tools"
+          ? formatToolOutput(events)
+          : formatLogOutput(events);
+    try {
+      await writeTextToClipboard(output || `No ${section} output.`);
+    } catch {
+      return;
+    }
+    setCopiedSection(section);
+    if (copiedResetTimeoutRef.current !== null) {
+      window.clearTimeout(copiedResetTimeoutRef.current);
+    }
+    copiedResetTimeoutRef.current = window.setTimeout(() => {
+      setCopiedSection(null);
+      copiedResetTimeoutRef.current = null;
+    }, 1_500);
+  };
+  const toggleFullscreenSection = (section: DetailSection) => {
+    setFullscreenSection((current) => (current === section ? null : section));
+  };
+  const showTranscript =
+    fullscreenSection === null || fullscreenSection === "transcript";
+  const showTools = fullscreenSection === null || fullscreenSection === "tools";
+  const showLogs = fullscreenSection === null || fullscreenSection === "logs";
   const isConnected =
     sessionState === "connected" || sessionState === "responding";
   const isPending = sessionState === "connecting" || sessionState === "ending";
@@ -871,8 +1164,25 @@ export const VoiceExperiment = ({
 
   return (
     <div
-      className={`${dockStyle} petrinaut-root`}
+      className={[
+        dockStyle,
+        fullscreenSection ? fullscreenDockStyle : "",
+        "petrinaut-root",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       data-ai-cta-dismiss-exempt=""
+      style={
+        fullscreenSection
+          ? {
+              inset: 0,
+              height: "100dvh",
+              maxWidth: "none",
+              transform: "none",
+              width: "100vw",
+            }
+          : undefined
+      }
     >
       <button
         ref={launcherButtonRef}
@@ -923,8 +1233,25 @@ export const VoiceExperiment = ({
       {isExpanded && (
         <aside
           aria-label="Voice experiment"
-          className={`${panelStyle} voice-experiment-panel`}
+          className={[
+            panelStyle,
+            fullscreenSection ? fullscreenPanelStyle : "",
+            "voice-experiment-panel",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           id="voice-experiment-panel"
+          role={fullscreenSection ? "dialog" : undefined}
+          style={
+            fullscreenSection
+              ? {
+                  height: "min(56rem, calc(100dvh - 48px))",
+                  maxHeight: "none",
+                  maxWidth: "none",
+                  width: "min(72rem, 100%)",
+                }
+              : undefined
+          }
         >
           <header className={headerStyle}>
             <div className={headerIdentityStyle}>
@@ -966,179 +1293,273 @@ export const VoiceExperiment = ({
             </div>
           </header>
 
-          <div className={conversationControlStyle}>
-            <button
-              aria-label={controlLabel}
-              aria-pressed={isConversationActive}
+          {fullscreenSection === null && (
+            <div className={conversationControlStyle}>
+              <button
+                aria-label={controlLabel}
+                aria-pressed={isConversationActive}
+                className={[
+                  microphoneButtonStyle,
+                  isConversationActive ? activeMicrophoneButtonStyle : "",
+                  isConversationActive ? "voice-conversation-active" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                disabled={!canToggleConversation}
+                onClick={() =>
+                  void (isConversationActive
+                    ? stopConversation()
+                    : startConversation())
+                }
+                title={controlLabel}
+                type="button"
+              >
+                {isConversationActive ? (
+                  <FiSquare aria-hidden="true" fill="currentColor" size={22} />
+                ) : (
+                  <FiMic aria-hidden="true" size={26} />
+                )}
+              </button>
+              <span className={conversationControlLabelStyle}>
+                {controlLabel}
+              </span>
+            </div>
+          )}
+
+          {showTranscript && (
+            <section
               className={[
-                microphoneButtonStyle,
-                isConversationActive ? activeMicrophoneButtonStyle : "",
-                isConversationActive ? "voice-conversation-active" : "",
+                transcriptSectionStyle,
+                fullscreenSection === "transcript"
+                  ? fullscreenSectionStyle
+                  : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
-              disabled={!canToggleConversation}
-              onClick={() =>
-                void (isConversationActive
-                  ? stopConversation()
-                  : startConversation())
-              }
-              title={controlLabel}
-              type="button"
             >
-              {isConversationActive ? (
-                <FiSquare aria-hidden="true" fill="currentColor" size={22} />
-              ) : (
-                <FiMic aria-hidden="true" size={26} />
-              )}
-            </button>
-            <span className={conversationControlLabelStyle}>
-              {controlLabel}
-            </span>
-          </div>
-
-          <section className={transcriptSectionStyle}>
-            <div className={transcriptHeaderStyle}>
-              <span className={sectionHeadingStyle}>
-                <FiMessageSquare aria-hidden="true" size={14} />
-                <span className={sectionLabelStyle}>Transcript</span>
-              </span>
-              <span className={transcriptCountStyle}>
-                {transcriptEntries.length}{" "}
-                {transcriptEntries.length === 1 ? "message" : "messages"}
-              </span>
-            </div>
-            <div
-              aria-label="Conversation transcript"
-              aria-live="polite"
-              className={transcriptStyle}
-              onScroll={handleTranscriptScroll}
-              ref={transcriptRef}
-              role="log"
-              // A bounded transcript must be keyboard-focusable to scroll.
-              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-              tabIndex={0}
-            >
-              {transcriptEntries.length === 0 ? (
-                <p className={transcriptPlaceholderStyle}>
-                  <FiMessageSquare aria-hidden="true" size={16} />
-                  Conversation appears here
-                </p>
-              ) : (
-                transcriptEntries.map((entry) => (
-                  <div
-                    className={[
-                      transcriptEntryStyle,
-                      entry.speaker === "expert"
-                        ? expertTranscriptEntryStyle
-                        : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    key={entry.id}
-                  >
-                    <span className={transcriptSpeakerStyle}>
-                      {entry.speaker === "expert" ? "Expert" : "Interviewer"}
-                    </span>
-                    <p
+              <div className={transcriptHeaderStyle}>
+                <span className={sectionHeadingStyle}>
+                  <FiMessageSquare aria-hidden="true" size={14} />
+                  <span className={sectionLabelStyle}>Transcript</span>
+                </span>
+                <div className={sectionHeaderMetaStyle}>
+                  <span className={transcriptCountStyle}>
+                    {transcriptEntries.length}{" "}
+                    {transcriptEntries.length === 1 ? "message" : "messages"}
+                  </span>
+                  <DetailSectionActions
+                    copied={copiedSection === "transcript"}
+                    isFullscreen={fullscreenSection === "transcript"}
+                    label="transcript"
+                    onCopy={() => void copySectionOutput("transcript")}
+                    onToggleFullscreen={() =>
+                      toggleFullscreenSection("transcript")
+                    }
+                  />
+                </div>
+              </div>
+              <div
+                aria-label="Conversation transcript"
+                aria-live="polite"
+                className={[
+                  transcriptStyle,
+                  fullscreenSection === "transcript"
+                    ? fullscreenContentStyle
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                onScroll={handleTranscriptScroll}
+                ref={transcriptRef}
+                role="log"
+                // A bounded transcript must be keyboard-focusable to scroll.
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                tabIndex={0}
+              >
+                {transcriptEntries.length === 0 ? (
+                  <p className={transcriptPlaceholderStyle}>
+                    <FiMessageSquare aria-hidden="true" size={16} />
+                    Conversation appears here
+                  </p>
+                ) : (
+                  transcriptEntries.map((entry) => (
+                    <div
                       className={[
-                        transcriptBubbleStyle,
+                        transcriptEntryStyle,
                         entry.speaker === "expert"
-                          ? expertTranscriptBubbleStyle
+                          ? expertTranscriptEntryStyle
                           : "",
-                        entry.isPartial ? partialTranscriptStyle : "",
                       ]
                         .filter(Boolean)
                         .join(" ")}
+                      key={entry.id}
                     >
-                      {entry.transcript}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
+                      <span className={transcriptSpeakerStyle}>
+                        {entry.speaker === "expert" ? "Expert" : "Interviewer"}
+                      </span>
+                      <p
+                        className={[
+                          transcriptBubbleStyle,
+                          entry.speaker === "expert"
+                            ? expertTranscriptBubbleStyle
+                            : "",
+                          entry.isPartial ? partialTranscriptStyle : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                      >
+                        {entry.transcript}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          )}
 
-          <section
-            aria-labelledby="voice-tool-diagnostics-heading"
-            className={toolDiagnosticsSectionStyle}
-          >
-            <div className={toolDiagnosticsHeaderStyle}>
-              <span className={sectionHeadingStyle}>
-                <FiTool aria-hidden="true" size={14} />
-                <span
-                  className={sectionLabelStyle}
-                  id="voice-tool-diagnostics-heading"
-                >
-                  Tool calls
-                </span>
-              </span>
-              <span className={transcriptCountStyle}>
-                {toolDiagnostics.length}
-              </span>
-            </div>
-            <div
-              aria-label="Tool call diagnostics"
-              aria-live="polite"
-              className={toolDiagnosticsLogStyle}
-              role="log"
+          {showTools && (
+            <section
+              aria-labelledby="voice-tool-diagnostics-heading"
+              className={[
+                toolDiagnosticsSectionStyle,
+                fullscreenSection === "tools" ? fullscreenSectionStyle : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
             >
-              {toolDiagnostics.length === 0 ? (
-                <p className={toolDiagnosticEmptyStyle}>
+              <div className={toolDiagnosticsHeaderStyle}>
+                <span className={sectionHeadingStyle}>
                   <FiTool aria-hidden="true" size={14} />
-                  Tool calls appear here
-                </p>
-              ) : (
-                toolDiagnostics.map(({ event, sequence }) => (
-                  <article className={toolDiagnosticCardStyle} key={sequence}>
-                    <strong className={toolDiagnosticNameStyle}>
-                      {event.toolName}
-                    </strong>
-                    <span className={toolDiagnosticTurnStyle}>
-                      Turn {event.turnId}
-                    </span>
-                    <p className={toolDiagnosticSummaryStyle}>
-                      {event.argumentSummary}
-                    </p>
-                    <span className={toolDiagnosticCallStyle}>
-                      Call {event.callId}
-                    </span>
-                  </article>
-                ))
-              )}
-            </div>
-          </section>
-
-          <details className={technicalDetailsStyle}>
-            <summary className={technicalSummaryStyle}>
-              <span className={technicalSummaryLabelStyle}>
-                <FiActivity aria-hidden="true" size={13} />
-                Logs
-              </span>
-              <span className={eventCountStyle}>
-                {events.length} {events.length === 1 ? "event" : "events"}
-              </span>
-            </summary>
-            <div className={eventLogStyle}>
-              {events.length === 0 ? (
-                <span className={emptyLogStyle}>
-                  No events · conversation {conversationId.slice(0, 8)}
+                  <span
+                    className={sectionLabelStyle}
+                    id="voice-tool-diagnostics-heading"
+                  >
+                    Tool calls
+                  </span>
                 </span>
-              ) : (
-                events.map(({ event, sequence }) => (
-                  <div className={eventRowStyle} key={sequence}>
-                    <span>
-                      {String(sequence).padStart(2, "0")} ·{" "}
-                      {getEventSummary(event)}
-                    </span>
-                    <time dateTime={new Date(event.timestampMs).toISOString()}>
-                      {new Date(event.timestampMs).toLocaleTimeString()}
-                    </time>
-                  </div>
-                ))
-              )}
-            </div>
-          </details>
+                <div className={sectionHeaderMetaStyle}>
+                  <span className={transcriptCountStyle}>
+                    {toolDiagnostics.length}
+                  </span>
+                  <DetailSectionActions
+                    copied={copiedSection === "tools"}
+                    isFullscreen={fullscreenSection === "tools"}
+                    label="tool calls"
+                    onCopy={() => void copySectionOutput("tools")}
+                    onToggleFullscreen={() => toggleFullscreenSection("tools")}
+                  />
+                </div>
+              </div>
+              <div
+                aria-label="Tool call diagnostics"
+                aria-live="polite"
+                className={[
+                  toolDiagnosticsLogStyle,
+                  fullscreenSection === "tools" ? fullscreenContentStyle : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                role="log"
+              >
+                {toolDiagnostics.length === 0 ? (
+                  <p className={toolDiagnosticEmptyStyle}>
+                    <FiTool aria-hidden="true" size={14} />
+                    Tool calls appear here
+                  </p>
+                ) : (
+                  toolDiagnostics.map(({ event, sequence }) => (
+                    <article className={toolDiagnosticCardStyle} key={sequence}>
+                      <strong className={toolDiagnosticNameStyle}>
+                        {event.toolName}
+                      </strong>
+                      <span className={toolDiagnosticTurnStyle}>
+                        Turn {event.turnId}
+                      </span>
+                      <p className={toolDiagnosticSummaryStyle}>
+                        {event.argumentSummary}
+                      </p>
+                      <span className={toolDiagnosticCallStyle}>
+                        Call {event.callId}
+                      </span>
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+          )}
+
+          {showLogs && (
+            <section
+              aria-labelledby="voice-event-log-heading"
+              className={[
+                logsSectionStyle,
+                fullscreenSection === "logs" ? fullscreenSectionStyle : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <div className={logsHeaderStyle}>
+                <span className={sectionHeadingStyle}>
+                  <FiActivity aria-hidden="true" size={14} />
+                  <span
+                    className={sectionLabelStyle}
+                    id="voice-event-log-heading"
+                  >
+                    Logs
+                  </span>
+                </span>
+                <div className={sectionHeaderMetaStyle}>
+                  <span className={transcriptCountStyle}>
+                    {events.length} {events.length === 1 ? "event" : "events"}
+                  </span>
+                  <DetailSectionActions
+                    copied={copiedSection === "logs"}
+                    isFullscreen={fullscreenSection === "logs"}
+                    label="logs"
+                    onCopy={() => void copySectionOutput("logs")}
+                    onToggleFullscreen={() => toggleFullscreenSection("logs")}
+                  />
+                </div>
+              </div>
+              <div
+                aria-label="Voice event log"
+                aria-live="polite"
+                className={[
+                  eventLogStyle,
+                  fullscreenSection === "logs" ? fullscreenContentStyle : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                role="log"
+              >
+                {events.length === 0 ? (
+                  <span className={emptyLogStyle}>
+                    No events · conversation {conversationId.slice(0, 8)}
+                  </span>
+                ) : (
+                  events.map(({ event, sequence }) => (
+                    <article className={eventRowStyle} key={sequence}>
+                      <span className={eventSequenceStyle}>
+                        {String(sequence).padStart(2, "0")}
+                      </span>
+                      <div className={eventBodyStyle}>
+                        <strong className={eventTypeStyle}>{event.type}</strong>
+                        <span className={eventSummaryStyle}>
+                          {getEventSummary(event)}
+                        </span>
+                      </div>
+                      <time
+                        className={eventTimeStyle}
+                        dateTime={new Date(event.timestampMs).toISOString()}
+                      >
+                        {new Date(event.timestampMs).toLocaleTimeString()}
+                      </time>
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+          )}
         </aside>
       )}
     </div>
