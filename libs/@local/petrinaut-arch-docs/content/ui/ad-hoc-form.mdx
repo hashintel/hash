@@ -309,7 +309,7 @@ initial-state body and wrapped override expressions.
       boxes: [
         {
           label: "Simulation Settings (inline)",
-          note: "Quick simulation embeds the bare, variables-less form; react.simulation compiles the generated scenario per run",
+          note: "Quick simulation embeds the bare, variables-less form; react.simulation synthesizes and compiles on every change, so errors surface live",
         },
         {
           label: "Create-experiment drawer",
@@ -358,8 +358,10 @@ The form runs its own LSP session against `LanguageClientContext`; with the
 default no-op client (tests, stories without the provider) it degrades to
 synthesis-only validation. State is plain data — hold it wherever the consumer
 already keeps its draft (component state in the drawers, `SimulationContext`
-for quick simulation) and hand `output.scenario` to `compileScenario` when the
-user runs.
+for quick simulation) and hand `output.scenario` to `compileScenario` when
+the consumer needs it: the drawers compile at experiment/optimization start,
+while quick simulation synthesizes and compiles eagerly on every change, so
+its Simulation Settings error banner stays live.
 
 ## Invariants worth knowing
 
