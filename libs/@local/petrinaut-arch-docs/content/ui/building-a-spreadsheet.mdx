@@ -1,0 +1,121 @@
+---
+title: Building a spreadsheet
+description: How to compose a new editable table from the state-agnostic spreadsheet kit, the way the ad-hoc form's three tables do.
+sidebar_order: 10
+attachTo: ui.adhoc-form.spreadsheet
+---
+
+The kit exists so that a new table costs a render function, not a
+reimplementation of the form's interaction grammar. The three tables of the
+[ad-hoc form](layer:ui.adhoc-form) — Parameters, Variables, and the token
+spreadsheet — are each a thin composition over the same seven files, and a
+fourth table (a future controls editor, a results grid) should be too.
+
+The kit's one invariant is that **it knows nothing about what the rows
+mean**: no form state, no dispatch, no highlight. That is enforced by
+visibility — this layer's page shows no "Depends on" entries, and an import
+of form state from inside the kit would put one there on the next build.
+Everything row-specific stays in the composing table.
+
+## The pieces
+
+| Piece             | What it owns                                                                                                                                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `FormSpreadsheet` | The bordered shell: the container that registers as a navigation zone, and the `<table>` with the form's fixed layout. Rows are `children`.                                                                        |
+| `form-table.ts`   | The style grammar: 28px `cellStyle`, `gutterCellStyle`, the blue `selectedRowCellStyle` and green `dependencyHighlightStyle` washes, the shorter phantom-row styles.                                               |
+| `GutterCell`      | The inside of a gutter cell: the main button (focus selects the row, a pointer click selects first, Enter or the trailing `⋯` opens the menu, Delete deletes) plus the menu with its dismiss-refocus choreography. |
+| `GutterMenu`      | The keyboard-first pop-up itself — usually reached through `GutterCell`.                                                                                                                                           |
+| `PhantomLine`     | The quiet trailing add-line: a `+` gutter that creates the entry, plus whatever cells the table renders after it.                                                                                                  |
+| `useRowSelection` | The selection model: `selectedRow` is the focused gutter's row, or the row whose menu is open. One menu at a time per table.                                                                                       |
+| `OptimizeToggle`  | The labelled pill the selection modes render; generic text-in, boolean-out.                                                                                                                                        |
+
+Keyboard movement is the neighbouring
+[navigation layer](layer:ui.adhoc-form.navigation)'s business:
+`useNavigationGrid` gives a table arrow-key cells and an `attach` ref that
+`FormSpreadsheet` takes, so edge moves continue into the next zone of the
+composing form.
+
+## The recipe
+
+A minimal table — one gutter column, one content column, an add-line —
+composed the way `parameter-rows.tsx` and `variable-rows.tsx` are:
+
+```tsx
+const { register, onKeyDown, attach } = useNavigationGrid();
+const rowSelection = useRowSelection();
+
+return (
+  <FormSpreadsheet attach={attach} ariaLabel="Things">
+    <tbody>
+      {items.map((item, index) => {
+        const selected =
+          rowSelection.selectedRow === index && selectedRowCellStyle;
+        return (
+          <tr key={item.id}>
+            <td className={cx(gutterCellStyle, selected)}>
+              <GutterCell
+                glyph={`#${index + 1}`}
+                label={`Thing ${index + 1} actions`}
+                menuLabel={`Thing ${index + 1} menu`}
+                items={[{ id: "delete", label: "Delete", destructive: true }]}
+                onMenuSelect={(id) => id === "delete" && deleteItem(index)}
+                menuAnchor={
+                  rowSelection.menu?.row === index
+                    ? rowSelection.menu.anchor
+                    : null
+                }
+                onOpenMenu={(anchor) => rowSelection.openMenu(index, anchor)}
+                onCloseMenu={rowSelection.closeMenu}
+                buttonRef={register(index, 0)}
+                onFocus={() => rowSelection.setFocusedRow(index)}
+                onBlur={() => rowSelection.setFocusedRow(null)}
+                onKeyDown={onKeyDown(index, 0)}
+                onDelete={() => deleteItem(index)}
+              />
+            </td>
+            <td className={cx(cellStyle, selected)}>{/* the cell */}</td>
+          </tr>
+        );
+      })}
+      <PhantomLine gutterLabel="Add a thing" onMaterialize={addItem}>
+        <td className={cx(cellStyle, phantomRowCellStyle)}>
+          <button
+            ref={register(items.length, 0)}
+            type="button"
+            className={phantomCellButtonStyle}
+            onClick={addItem}
+            onKeyDown={onKeyDown(items.length, 0)}
+          >
+            Add a thing…
+          </button>
+        </td>
+      </PhantomLine>
+    </tbody>
+  </FormSpreadsheet>
+);
+```
+
+The contract the composition keeps, in exchange for the kit's behaviour:
+
+- **Selection styling is the table's job.** `useRowSelection` only says which
+  row is selected; the table paints `selectedRowCellStyle` on every cell of
+  that row, so a selected row reads as one unit.
+- **Focus after a deletion is the table's job.** `GutterCell` intercepts
+  Delete and calls `onDelete`, but only the table knows where focus should
+  land next — the neighbouring row's gutter, or the phantom line when the
+  last row went. Keep a ref map of gutter buttons and refocus in a
+  `setTimeout(0)`, after React commits the removal.
+- **Menu items mean whatever the table says.** `GutterCell` closes the menu
+  and hands the chosen id to `onMenuSelect`; kinds, checkmarks, and
+  destructive styling are declared per item.
+- **Rows can be richer than `<tr>`s.** The token table renders count strips
+  and shared-value lines between rows; the kit does not care, because the
+  shell only owns the container and the `<table>`.
+
+## What not to add here
+
+A piece belongs in the kit only if a table that knows nothing about the
+ad-hoc model could still want it. Cell editors do not qualify — the form's
+`value-editor` dispatches actions against a form target, so it lives with
+the form. The same test keeps the kit's layer page honest: if a new file
+here needs form state, it is a table concern wearing the wrong folder.
