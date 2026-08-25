@@ -1,6 +1,7 @@
+import { interviewOpeningQuestion } from "./interview-opening";
+
 import type { VoiceExperimentAdapter } from "./voice-experiment-adapter";
 import type { VoiceExperimentEvent } from "./voice-experiment-events";
-import { interviewOpeningQuestion } from "./interview-opening";
 
 const TOKEN_ENDPOINT = "/api/voice-experiment/elevenlabs-conversation-token";
 const DIAGNOSTICS_ENDPOINT =
@@ -93,7 +94,7 @@ const parseTranscriptDiagnostic = (
       VoiceExperimentEvent,
       { type: "final-transcript" | "partial-transcript" }
     >)
-    | null => {
+  | null => {
   const record = asRecord(value);
   const sequence = record?.sequence;
   const timestampMs = record?.timestampMs;
@@ -309,6 +310,9 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
       this.#connected = true;
       this.#hasConnected = true;
       this.#emit({
+        ...(this.#diagnosticConversationId
+          ? { conversationId: this.#diagnosticConversationId }
+          : {}),
         timestampMs: this.#dependencies.now(),
         type: "connected",
       });

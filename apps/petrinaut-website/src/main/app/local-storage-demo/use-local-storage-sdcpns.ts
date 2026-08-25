@@ -9,6 +9,16 @@ export type SDCPNInLocalStorage = {
   lastUpdated: string; // ISO timestamp
   sdcpn: SDCPN;
   title: string;
+  voiceInterview?: {
+    conversationId: string;
+    source: "brunch" | "mock";
+    transcript: {
+      speaker: "assistant" | "expert";
+      transcript: string;
+      turnId: number;
+    }[];
+    warnings: string[];
+  };
 };
 
 type LocalStorageSDCPNsStore = Record<string, SDCPNInLocalStorage>;

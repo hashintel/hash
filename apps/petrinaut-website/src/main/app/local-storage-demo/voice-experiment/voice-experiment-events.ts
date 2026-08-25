@@ -1,5 +1,7 @@
+import type { InterviewCapture } from "./interview-draft";
+
 export type VoiceExperimentEvent =
-  | { timestampMs: number; type: "connected" }
+  | { conversationId?: string; timestampMs: number; type: "connected" }
   | { timestampMs: number; turnId: number; type: "recording-started" }
   | {
       speaker: "assistant" | "expert";
@@ -25,6 +27,7 @@ export type VoiceExperimentEvent =
   | {
       argumentSummary: string;
       callId: string;
+      capture?: InterviewCapture;
       timestampMs: number;
       toolName: string;
       turnId: number;

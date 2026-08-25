@@ -25,6 +25,10 @@ import {
 } from "./use-local-storage-sdcpns";
 import { VoiceExperiment } from "./voice-experiment";
 import { createElevenLabsAdapter } from "./voice-experiment/elevenlabs-adapter";
+import {
+  createMockInterviewDraft,
+  type FinalizeInterviewInput,
+} from "./voice-experiment/interview-draft";
 import { createOpenAIRealtimeAdapter } from "./voice-experiment/openai-realtime-adapter";
 import { getVoiceExperimentSelection } from "./voice-experiment/voice-experiment-selection";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
@@ -62,6 +66,7 @@ const createDefaultStoredSDCPN = (): SDCPNInLocalStorage => ({
 const createLocalStorageNetRecord = (params: {
   petriNetDefinition: SDCPN;
   title: string;
+  voiceInterview?: SDCPNInLocalStorage["voiceInterview"];
 }): SDCPNInLocalStorage => {
   const now = new Date();
 
@@ -70,6 +75,7 @@ const createLocalStorageNetRecord = (params: {
     title: params.title,
     sdcpn: params.petriNetDefinition,
     lastUpdated: now.toISOString(),
+    ...(params.voiceInterview ? { voiceInterview: params.voiceInterview } : {}),
   };
 };
 
@@ -205,6 +211,7 @@ export const LocalStorageDemoApp = () => {
   const createNewNet = (params: {
     petriNetDefinition: SDCPN;
     title: string;
+    voiceInterview?: SDCPNInLocalStorage["voiceInterview"];
   }) => {
     const newNet = createLocalStorageNetRecord(params);
     const previousNet =
@@ -228,6 +235,23 @@ export const LocalStorageDemoApp = () => {
     setActiveHandle(createActiveHandle(newNet));
     setCurrentNetId(newNet.id);
   };
+
+  const finalizeVoiceInterview =
+    voiceExperiment?.draft === "mock"
+      ? (input: FinalizeInterviewInput) => {
+          const result = createMockInterviewDraft(input);
+          createNewNet({
+            petriNetDefinition: result.petriNetDefinition,
+            title: result.title,
+            voiceInterview: {
+              conversationId: result.conversationId,
+              source: result.source,
+              transcript: result.transcript,
+              warnings: result.warnings,
+            },
+          });
+        }
+      : undefined;
 
   const loadPetriNet = (petriNetId: string) => {
     const netToLoad = storedSDCPNsForDisplay[petriNetId];
@@ -332,6 +356,7 @@ export const LocalStorageDemoApp = () => {
             adapter={voiceExperimentAdapter}
             conversationId={voiceConversationId}
             experiment={voiceExperiment}
+            onFinalize={finalizeVoiceInterview}
           />
         ) : null}
       </WalkthroughProvider>

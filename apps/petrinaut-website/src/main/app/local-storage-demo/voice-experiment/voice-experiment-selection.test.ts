@@ -19,6 +19,19 @@ describe("getVoiceExperimentSelection", () => {
     expect(getVoiceExperimentSelection({ search: "" })).toBeNull();
   });
 
+  test("enables the provider-independent mock draft flow", () => {
+    expect(
+      getVoiceExperimentSelection({
+        search: "?voiceProvider=openai&elicitor=brunch&draft=mock",
+      }),
+    ).toEqual({ draft: "mock", elicitor: "brunch", provider: "openai" });
+    expect(
+      getVoiceExperimentSelection({
+        search: "?voiceProvider=elevenlabs&elicitor=brunch&draft=mock",
+      }),
+    ).toEqual({ draft: "mock", elicitor: "brunch", provider: "elevenlabs" });
+  });
+
   test("rejects partial, invalid, and unsupported combinations", () => {
     expect(
       getVoiceExperimentSelection({ search: "?voiceProvider=openai" }),
@@ -36,6 +49,11 @@ describe("getVoiceExperimentSelection", () => {
         search: "?voiceProvider=other&elicitor=brunch",
       }),
     ).toBeNull();
+    expect(
+      getVoiceExperimentSelection({
+        search: "?voiceProvider=openai&elicitor=brunch&draft=real",
+      }),
+    ).toBeNull();
   });
 
   test.each([
@@ -47,5 +65,13 @@ describe("getVoiceExperimentSelection", () => {
         search: `?voiceExperiment=${experiment}`,
       }),
     ).toEqual(selection);
+  });
+
+  test("supports mock drafts on legacy experiment links", () => {
+    expect(
+      getVoiceExperimentSelection({
+        search: "?voiceExperiment=openai-realtime&draft=mock",
+      }),
+    ).toEqual({ draft: "mock", elicitor: "mock", provider: "openai" });
   });
 });

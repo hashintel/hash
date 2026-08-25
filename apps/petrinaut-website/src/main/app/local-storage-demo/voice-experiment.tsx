@@ -16,6 +16,7 @@ import {
   type VoiceExperimentSelection,
 } from "./voice-experiment/voice-experiment-selection";
 
+import type { FinalizeInterviewInput } from "./voice-experiment/interview-draft";
 import type { VoiceExperimentAdapter } from "./voice-experiment/voice-experiment-adapter";
 import type { VoiceExperimentEvent } from "./voice-experiment/voice-experiment-events";
 
@@ -333,8 +334,16 @@ const conversationControlStyle = css({
   width: "full",
   minHeight: "24",
   alignItems: "center",
+  flexDirection: "column",
+  gap: "2",
   justifyContent: "center",
   paddingY: "1",
+});
+
+const conversationControlLabelStyle = css({
+  color: "neutral.s80",
+  fontSize: "xs",
+  fontWeight: "semibold",
 });
 
 const microphoneButtonStyle = css({
@@ -570,10 +579,12 @@ export const VoiceExperiment = ({
   adapter,
   conversationId,
   experiment,
+  onFinalize,
 }: {
   adapter?: VoiceExperimentAdapter;
   conversationId: string;
   experiment: VoiceExperimentSelection;
+  onFinalize?: (input: FinalizeInterviewInput) => Promise<void> | void;
 }) => {
   const [events, setEvents] = useState<LoggedEvent[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -583,27 +594,39 @@ export const VoiceExperiment = ({
   const launcherButtonRef = useRef<HTMLButtonElement>(null);
   const minimizeButtonRef = useRef<HTMLButtonElement>(null);
   const sequenceRef = useRef(0);
+  const finalizationConversationIdRef = useRef(conversationId);
+  const finalizationEventsRef = useRef<LoggedEvent[]>([]);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollTranscriptRef = useRef(true);
 
-  const appendEvent = useCallback((event: VoiceExperimentEvent) => {
-    setEvents((previous) => [
-      ...previous.slice(-49),
-      { event, sequence: ++sequenceRef.current },
-    ]);
+  const appendEvent = useCallback(
+    (event: VoiceExperimentEvent) => {
+      const loggedEvent = { event, sequence: ++sequenceRef.current };
+      if (
+        event.type === "partial-transcript" ||
+        event.type === "final-transcript" ||
+        event.type === "tool-called"
+      ) {
+        finalizationEventsRef.current.push(loggedEvent);
+      }
+      setEvents((previous) => [...previous.slice(-49), loggedEvent]);
 
-    if (event.type === "connected") {
-      setSessionState("connected");
-    } else if (event.type === "recording-started") {
-      setIsConversationActive(true);
-    } else if (event.type === "response-started") {
-      setSessionState("responding");
-    } else if (event.type === "response-completed") {
-      setSessionState("connected");
-    } else if (event.type === "error") {
-      setSessionState("error");
-    }
-  }, []);
+      if (event.type === "connected") {
+        finalizationConversationIdRef.current =
+          event.conversationId ?? conversationId;
+        setSessionState("connected");
+      } else if (event.type === "recording-started") {
+        setIsConversationActive(true);
+      } else if (event.type === "response-started") {
+        setSessionState("responding");
+      } else if (event.type === "response-completed") {
+        setSessionState("connected");
+      } else if (event.type === "error") {
+        setSessionState("error");
+      }
+    },
+    [conversationId],
+  );
 
   useEffect(() => adapter?.subscribe(appendEvent), [adapter, appendEvent]);
 
@@ -658,6 +681,23 @@ export const VoiceExperiment = ({
     setSessionState("ending");
     try {
       await adapter.dispose();
+      if (onFinalize) {
+        const transcript = getTranscriptEntries(finalizationEventsRef.current)
+          .filter((entry) => !entry.isPartial)
+          .map(({ speaker, transcript: text, turnId }) => ({
+            speaker,
+            transcript: text,
+            turnId,
+          }));
+        const captures = finalizationEventsRef.current.flatMap(({ event }) =>
+          event.type === "tool-called" && event.capture ? [event.capture] : [],
+        );
+        await onFinalize({
+          captures,
+          conversationId: finalizationConversationIdRef.current,
+          transcript,
+        });
+      }
       setSessionState("ended");
     } catch (error) {
       appendEvent(createErrorEvent(error));
@@ -728,11 +768,15 @@ export const VoiceExperiment = ({
                 ? latestEvent.message
                 : "Connection error";
   const controlLabel = isConversationActive
-    ? "Stop conversation"
+    ? onFinalize
+      ? "Finish and create net"
+      : "Stop conversation"
     : sessionState === "connecting"
       ? "Starting…"
       : sessionState === "ending"
-        ? "Stopping…"
+        ? onFinalize
+          ? "Creating draft…"
+          : "Stopping…"
         : sessionState === "ended"
           ? "Conversation ended"
           : sessionState === "error"
@@ -862,6 +906,9 @@ export const VoiceExperiment = ({
                 <FiMic aria-hidden="true" size={26} />
               )}
             </button>
+            <span className={conversationControlLabelStyle}>
+              {controlLabel}
+            </span>
           </div>
 
           <section className={transcriptSectionStyle}>

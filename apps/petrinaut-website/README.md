@@ -67,6 +67,24 @@ buffer has drained. The browser does not manually commit turns. Server VAD does 
 model responses: only a non-empty finalized expert transcript admits the next interviewer response.
 The legacy `/?voiceExperiment=openai-realtime` URL continues to select mock mode.
 
+### Mock draft completion
+
+Append `&draft=mock` to any supported voice URL to exercise the complete handoff from interview
+to an opened Petrinaut net:
+
+- `/?voiceProvider=openai&elicitor=mock&draft=mock`
+- `/?voiceProvider=openai&elicitor=brunch&draft=mock`
+- `/?voiceProvider=elevenlabs&elicitor=brunch&draft=mock`
+
+While this mode is active, the stop control reads **Finish and create net**. Finishing disposes the
+voice session, collects the final transcript and any experiment capture calls, passes them through
+the provider-independent draft contract, saves the result in local storage, and opens it in the
+editor. OpenAI mock capture calls can produce a state-step-flow graph. Other incomplete interviews
+produce a visibly labelled two-place placeholder so the end-to-end loop remains testable while the
+Brunch projector evolves. The saved record includes the transcript, source conversation id, and
+projector warnings. `draft=mock` is deliberately explicit: URLs without it keep the current
+stop-without-projection behavior.
+
 ## ElevenLabs + Brunch voice experiment
 
 The real-elicitor experiment is available at

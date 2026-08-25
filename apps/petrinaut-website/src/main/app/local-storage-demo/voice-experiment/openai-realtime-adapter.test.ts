@@ -629,6 +629,15 @@ describe("OpenAIRealtimeAdapter", () => {
     expect(harness.events).toContainEqual({
       argumentSummary: "Triage · Assess severity · Owner: Support lead",
       callId: "call-1",
+      capture: {
+        captureId: "capture-call-1",
+        input: {
+          description: "Assess severity",
+          name: "Triage",
+          owner: "Support lead",
+        },
+        toolName: "record_process_step",
+      },
       timestampMs: 1_003,
       toolName: "record_process_step",
       turnId: 1,
@@ -640,8 +649,8 @@ describe("OpenAIRealtimeAdapter", () => {
       item: {
         call_id: "call-1",
         output: JSON.stringify({
-          mode: "experiment-only",
-          recorded: true,
+          captureId: "capture-call-1",
+          status: "accepted",
         }),
         type: "function_call_output",
       },
@@ -687,7 +696,7 @@ describe("OpenAIRealtimeAdapter", () => {
       type: "conversation.item.create",
       item: {
         call_id: "call-wait",
-        output: JSON.stringify({ mode: "experiment-only", waited: true }),
+        output: JSON.stringify({ status: "waited" }),
         type: "function_call_output",
       },
     });

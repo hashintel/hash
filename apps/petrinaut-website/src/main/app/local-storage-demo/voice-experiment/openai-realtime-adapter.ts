@@ -5,6 +5,7 @@ import {
 
 import { interviewOpeningQuestion } from "./interview-opening";
 
+import type { InterviewCapture } from "./interview-draft";
 import type { VoiceExperimentAdapter } from "./voice-experiment-adapter";
 import type { VoiceExperimentEvent } from "./voice-experiment-events";
 import type { VoiceElicitor } from "./voice-experiment-selection";
@@ -187,6 +188,61 @@ const summarizeFunctionCall = ({
   }
 
   return "Arguments hidden";
+};
+
+const createInterviewCapture = (
+  functionCall: FunctionCall,
+): InterviewCapture | null => {
+  const toolName = functionCall.name;
+  if (
+    toolName !== "record_process_state" &&
+    toolName !== "record_process_step" &&
+    toolName !== "record_process_decision" &&
+    toolName !== "record_process_flow" &&
+    toolName !== "record_model_requirement"
+  ) {
+    return null;
+  }
+  if (!functionCall.arguments) {
+    return null;
+  }
+
+  try {
+    const input = asRecord(JSON.parse(functionCall.arguments));
+    if (!input) {
+      return null;
+    }
+    const allowedProperties = {
+      record_model_requirement: ["category", "description"],
+      record_process_decision: ["condition", "outcomes"],
+      record_process_flow: ["condition", "from", "to"],
+      record_process_state: [
+        "category",
+        "description",
+        "name",
+        "tokenDescription",
+      ],
+      record_process_step: [
+        "description",
+        "name",
+        "owner",
+        "timing",
+        "trigger",
+      ],
+    } satisfies Record<InterviewCapture["toolName"], string[]>;
+    const sanitizedInput = Object.fromEntries(
+      allowedProperties[toolName].flatMap((property) =>
+        input[property] === undefined ? [] : [[property, input[property]]],
+      ),
+    );
+    return {
+      captureId: `capture-${functionCall.callId}`,
+      input: sanitizedInput,
+      toolName,
+    };
+  } catch {
+    return null;
+  }
 };
 
 class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
@@ -792,9 +848,11 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
 
       for (const functionCall of functionCalls) {
         const isWaitForUser = functionCall.name === WAIT_FOR_USER_TOOL_NAME;
+        const capture = createInterviewCapture(functionCall);
         this.#emit({
           argumentSummary: summarizeFunctionCall(functionCall),
           callId: functionCall.callId,
+          ...(capture ? { capture } : {}),
           timestampMs: this.#dependencies.now(),
           toolName: functionCall.name,
           turnId: responseTurnId,
@@ -807,11 +865,17 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
             call_id: functionCall.callId,
             output: JSON.stringify(
               isWaitForUser
-                ? { mode: "experiment-only", waited: true }
-                : {
-                    mode: "experiment-only",
-                    recorded: DUMMY_TOOL_NAMES.has(functionCall.name),
-                  },
+                ? { status: "waited" }
+                : capture
+                  ? {
+                      captureId: capture.captureId,
+                      status: "accepted",
+                    }
+                  : {
+                      status: DUMMY_TOOL_NAMES.has(functionCall.name)
+                        ? "ignored"
+                        : "unsupported",
+                    },
             ),
           },
         });

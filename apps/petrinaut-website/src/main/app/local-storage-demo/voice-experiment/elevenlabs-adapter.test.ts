@@ -146,8 +146,7 @@ describe("ElevenLabsAdapter", () => {
         conversationToken: "short-lived-token",
         overrides: {
           agent: {
-            firstMessage:
-              "Hi—what process would you like us to model today?",
+            firstMessage: "Hi—what process would you like us to model today?",
           },
         },
       }),
@@ -165,6 +164,7 @@ describe("ElevenLabsAdapter", () => {
         .join(" "),
     ).not.toContain("/api/chat");
     expect(harness.events).toContainEqual({
+      conversationId: "conv_123",
       timestampMs: 1_001,
       type: "connected",
     });
@@ -229,7 +229,11 @@ describe("ElevenLabsAdapter", () => {
     });
 
     expect(harness.events).toEqual([
-      { timestampMs: 1_001, type: "connected" },
+      {
+        conversationId: "conv_123",
+        timestampMs: 1_001,
+        type: "connected",
+      },
       { timestampMs: 1_002, turnId: 1, type: "recording-started" },
       { timestampMs: 1_003, turnId: 1, type: "response-started" },
       {
