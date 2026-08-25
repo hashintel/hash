@@ -95,10 +95,13 @@ const errorTriggerStyle = css({
 const OPEN_EVENT = "petrinaut-adhoc-editor-open";
 
 // The open editor sits exactly over the cell; the path floats above it and
-// the Optimize control below, both quieter than the content.
+// the Optimize control below, both quieter than the content. The overlay
+// portals to the app-level container, so it must layer on the `popover`
+// tier — the same layer the ds Popover uses — to paint above the bottom
+// panel (`sticky` − 2) and the drawers (`modal`) the form is embedded in.
 const overlayStyle = css({
   position: "fixed",
-  zIndex: "[1000]",
+  zIndex: "popover",
 });
 
 const overlayBodyStyle = css({
