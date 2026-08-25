@@ -1,5 +1,11 @@
 # @hashintel/petrinaut
 
+## 0.0.18
+
+### Patch Changes
+
+- Add an interactive-tool extension point to the AI assistant panel: hosts can register app-level tools whose calls render as interactive widgets in the conversation, including tools that suspend the turn until the user responds. ([@lunelson](https://github.com/lunelson), [#9274](https://github.com/hashintel/hash/pull/9274))
+
 ## 0.0.17
 
 ### Patch Changes
