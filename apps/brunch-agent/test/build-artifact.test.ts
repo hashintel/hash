@@ -40,13 +40,17 @@ beforeAll(() => {
 
 /** The pinned identity of every agent module in the app, read from source. */
 function declaredAgentIdentities(): string[] {
-  const agentSource = readFileSync(
-    join(DEV_APP, "src/agents/gherkin-elicitor.ts"),
-    "utf8",
-  );
-  return [
-    ...agentSource.matchAll(/\w+\.agentName\s*=\s*(["'])([^"']+)\1/gu),
-  ].map((match) => match[2]!);
+  const agentsDirectory = join(DEV_APP, "src/agents");
+  return readdirSync(agentsDirectory)
+    .filter((entry) => entry.endsWith(".ts"))
+    .flatMap((entry) =>
+      Array.from(
+        readFileSync(join(agentsDirectory, entry), "utf8").matchAll(
+          /\w+\.agentName\s*=\s*(["'])([^"']+)\1/gu,
+        ),
+      ),
+    )
+    .map((match) => match[2]!);
 }
 
 describe("the emitted server bundle", () => {

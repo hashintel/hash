@@ -442,6 +442,7 @@ __metadata:
     "@hashintel/brunch-agent": "workspace:*"
     "@hashintel/brunch-agent-binding-flue": "workspace:*"
     "@hashintel/brunch-agent-plugin-gherkin": "workspace:*"
+    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
     "@types/node": "npm:22.18.13"
     "@types/react": "npm:19.2.14"
@@ -7568,7 +7569,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn":
+"@hashintel/brunch-agent-plugin-sdcpn@workspace:*, @hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn":
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn"
   dependencies:
