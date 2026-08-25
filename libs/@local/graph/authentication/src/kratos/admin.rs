@@ -291,11 +291,14 @@ mod tests {
     ) {
         let client = client_answering(status).await;
 
-        // `expect_err` would ask `AdminIdentity` for a `Debug` it deliberately does not have:
-        // a debug-rendered identity carries its addresses.
-        let Err(report) = client.get_by_id("some-identity").await else {
-            panic!("a failure status should fail the read rather than read as absent");
-        };
+        // The record is dropped before `expect_err`, which would otherwise ask `IdentityRecord`
+        // for a `Debug` it deliberately does not have. A `let`-`else` here crashes the
+        // toolchain's llvm-cov when it instruments the rstest-generated cases.
+        let report = client
+            .get_by_id("some-identity")
+            .await
+            .map(|_identity| ())
+            .expect_err("a failure status should fail the read rather than read as absent");
         assert!(
             core::mem::discriminant(report.current_context()) == core::mem::discriminant(&expected),
             "a {status} should fail the read as {expected}, got {}",
