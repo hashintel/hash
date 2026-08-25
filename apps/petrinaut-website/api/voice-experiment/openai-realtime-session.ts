@@ -55,12 +55,10 @@ const sessionConfig = {
             "A domain-expert interview to elicit processes, states, transitions, flows, decisions, timing, constraints, metrics, and scenarios for Petri-net modeling.",
         },
         turn_detection: {
-          type: "server_vad",
+          type: "semantic_vad",
+          eagerness: "low",
           create_response: true,
           interrupt_response: true,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500,
-          threshold: 0.5,
         },
       },
       output: {

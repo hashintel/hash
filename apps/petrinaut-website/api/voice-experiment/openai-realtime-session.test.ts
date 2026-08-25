@@ -149,11 +149,9 @@ describe("OpenAI Realtime session endpoint", () => {
             transcription: { model: "gpt-live-transcribe" },
             turn_detection: {
               create_response: true,
+              eagerness: "low",
               interrupt_response: true,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 500,
-              threshold: 0.5,
-              type: "server_vad",
+              type: "semantic_vad",
             },
           },
           output: { voice: "marin" },
