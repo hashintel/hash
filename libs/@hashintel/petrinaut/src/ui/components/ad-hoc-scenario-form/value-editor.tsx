@@ -515,12 +515,31 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     window.addEventListener("resize", onScrollOrResize);
     document.addEventListener("pointerdown", onPointerDown, true);
     document.addEventListener("keydown", onKeyDown, true);
+    // The fixed overlay tracks the cell, but a cell scrolled out of its
+    // clipped container must not leave the slab floating detached over
+    // unrelated UI — close when the trigger stops being visible.
+    const trigger = buttonRef.current;
+    const visibility =
+      trigger && typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(
+            (entries) => {
+              if (entries.some((entry) => !entry.isIntersecting)) {
+                setOpenState(false);
+              }
+            },
+            { threshold: 0.05 },
+          )
+        : null;
+    if (trigger && visibility) {
+      visibility.observe(trigger);
+    }
     return () => {
       window.removeEventListener(OPEN_EVENT, onAnotherEditorOpen);
       window.removeEventListener("scroll", onScrollOrResize, true);
       window.removeEventListener("resize", onScrollOrResize);
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("keydown", onKeyDown, true);
+      visibility?.disconnect();
     };
   }, [open, editorId, editingBound]);
 
