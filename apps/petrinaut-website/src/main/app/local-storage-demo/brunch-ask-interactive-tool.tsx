@@ -10,7 +10,7 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import {
   definePetrinautAiInteractiveTool,
-  type InteractiveToolWidgetProps,
+  type PetrinautAiInteractiveToolWidgetProps,
 } from "@hashintel/petrinaut/ui";
 
 const containerStyle = css({
@@ -96,7 +96,7 @@ const BrunchAskWidget = ({
   state,
   submit,
   submittedOutput,
-}: InteractiveToolWidgetProps<BrunchAskInput, BrunchAskOutput>) => {
+}: PetrinautAiInteractiveToolWidgetProps<BrunchAskInput, BrunchAskOutput>) => {
   const answerId = useId();
   const [answer, setAnswer] = useState("");
 
@@ -113,7 +113,7 @@ const BrunchAskWidget = ({
     <section className={containerStyle}>
       <p className={questionStyle}>{input.question}</p>
       {state === "submitted" ? (
-        <p className={answerStyle}>{submittedOutput?.answer}</p>
+        <p className={answerStyle}>{submittedOutput.answer}</p>
       ) : (
         <form className={formStyle} onSubmit={onSubmit}>
           <label className={labelStyle} htmlFor={answerId}>
@@ -142,8 +142,7 @@ const BrunchAskWidget = ({
 
 export const brunchAskInteractiveTool = definePetrinautAiInteractiveTool({
   toolName: ASK_TOOL_NAME,
-  shouldHandle: () => true,
-  parseInput: parseBrunchAskInput,
-  parseOutput: parseBrunchAskOutput,
-  Widget: BrunchAskWidget,
+  inputSchema: { parse: parseBrunchAskInput },
+  outputSchema: { parse: parseBrunchAskOutput },
+  component: BrunchAskWidget,
 });
