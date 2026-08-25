@@ -185,24 +185,25 @@ export function executeTransitions(
   // Iterate through all transitions in the frame
   for (const transitionId of simulation.frameLayout.transitionIds) {
     // Compute if this transition can fire based on the current state
-    const result = computePossibleTransition(
+    const { firing, newRngState } = computePossibleTransition(
       currentFrame,
       simulation,
       transitionId,
       currentRngState,
     );
 
-    if (result !== null) {
+    // Every evaluation's randomness is consumed, fired or not — reusing the
+    // state would re-test the same draw next frame and freeze the outcome.
+    currentRngState = newRngState;
+
+    if (firing !== null) {
       // Transition fired!
       transitionsFired.add(transitionId);
-
-      // Update RNG state for deterministic randomness
-      currentRngState = result.newRngState;
 
       // Immediately remove tokens from the current frame
       // Convert the result.remove Record to a Map
       const tokensToRemove = new Map<PlaceID, Set<number> | number>(
-        Object.entries(result.remove),
+        Object.entries(firing.remove),
       );
       currentFrame = removeTokensFromSimulationFrame(
         currentFrame,
@@ -211,7 +212,7 @@ export function executeTransitions(
       );
 
       // Accumulate tokens to add
-      for (const [placeId, tokenValues] of Object.entries(result.add)) {
+      for (const [placeId, tokenValues] of Object.entries(firing.add)) {
         if (!tokensToAdd.has(placeId)) {
           tokensToAdd.set(placeId, []);
         }
@@ -221,9 +222,11 @@ export function executeTransitions(
     }
   }
 
-  // If no transitions fired, return the original frame with unchanged RNG state
+  // If no transitions fired, return the original frame. The RNG state still
+  // moves forward: every evaluated transition consumed a draw, and restoring
+  // the pre-frame state would hand the next frame the same draws again.
   if (transitionsFired.size === 0) {
-    return { frame, rngState, transitionFired: false };
+    return { frame, rngState: currentRngState, transitionFired: false };
   }
 
   // Add all new tokens at once
