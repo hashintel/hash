@@ -26,6 +26,27 @@ describe("the sweep list", () => {
     expect(list.unsatisfied.map((f) => f.diagnostic)).toEqual(["unaddressed"]);
     expect(list.patterns).toEqual([
       { id: "P01", nodeId: "step:stamp", ask: "ask how often" },
+      { id: "P03", nodeId: "step:stamp", ask: "ask for a source" },
+    ]);
+  });
+
+  test("a pattern indexed on no kind fires on a failing node of any kind", () => {
+    // Fixture P03 is `on: []` — the contract's "any node". Fail a `thing`
+    // instead of a `step`: P02 (on thing) and P03 surface, P01 (on step) not.
+    const model = foldElicitedModel(
+      snapshotOf(
+        completeCaptures().filter((c) => c.id !== "c-widget-distinctions"),
+      ),
+      definition,
+    );
+    const report = evaluateCompletion(model, demands);
+    const list = buildSweepList(model, report, definition.patterns);
+    const failing = list.unsatisfied.map((f) => f.nodeId);
+    expect(failing.every((id) => id?.startsWith("thing:"))).toBe(true);
+    expect(list.patterns.map((cue) => cue.id)).toEqual(["P02", "P03"]);
+    expect(list.patterns.map((cue) => cue.nodeId)).toEqual([
+      failing[0],
+      failing[0],
     ]);
   });
 

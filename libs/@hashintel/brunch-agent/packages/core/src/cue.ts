@@ -2,7 +2,8 @@
  * The cue — what the harness tells the interviewer after it has read the model.
  *
  * A sweep list is the completion report's failures plus the patterns whose
- * kind-index matches a node that still has one. It is a harness fact, so it
+ * kind-index matches a node that still has one (an empty index matches every
+ * kind, as the plugin contract documents). It is a harness fact, so it
  * reaches the model as a tool result or a signal entry, never interpolated
  * into instructions (Flue routing: "you need the model to see a harness fact").
  * Patterns are surfaced, never mandated; the interviewer decides.
@@ -37,7 +38,7 @@ export const buildSweepList = (
   for (const node of model.nodes) {
     if (!failingNodeIds.has(node.id)) continue;
     for (const pattern of patterns) {
-      if (pattern.kinds.includes(node.kind)) {
+      if (pattern.kinds.length === 0 || pattern.kinds.includes(node.kind)) {
         cues.push({ id: pattern.id, nodeId: node.id, ask: pattern.ask });
       }
     }
