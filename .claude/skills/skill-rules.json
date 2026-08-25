@@ -170,10 +170,11 @@
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
-      "description": "Git workflow for HASH including branch naming, PR creation, and PR reviews. Use when creating branches, making commits, opening pull requests, or reviewing PRs.",
+      "description": "Git and Graphite workflow for HASH including branch naming, PR creation, and PR reviews. Use when creating branches, making commits, opening pull requests, or reviewing PRs.",
       "promptTriggers": {
         "keywords": [
           "git",
+          "graphite",
           "branch",
           "pull request",
           "PR",
@@ -184,7 +185,7 @@
         "intentPatterns": [
           "\\b(create|open|submit|review)\\b.*?\\b(PR|pull request|branch)\\b",
           "\\b(name|naming)\\b.*?\\bbranch\\b",
-          "\\bH-\\d+\\b"
+          "\\b(FE|SRE|BE|H)-\\d+\\b"
         ]
       },
       "fileTriggers": {
@@ -217,6 +218,24 @@
       "blockMessage": "Skill is required to proceed",
       "skipConditions": {}
     },
+    "meaningful-identifiers": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "low",
+      "description": "Naming guidance for callback parameters and local variables in TypeScript. Use when writing or refactoring loops, array callbacks (map/filter/find/reduce), or local accumulators.",
+      "promptTriggers": {
+        "keywords": ["naming", "rename", "identifier", "variable name"],
+        "intentPatterns": []
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
     "panda-css": {
       "type": "domain",
       "enforcement": "suggest",
@@ -238,23 +257,58 @@
       "blockMessage": "Skill is required to proceed",
       "skipConditions": {}
     },
-    "skill-creator": {
+    "rust-coding-style": {
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
-      "description": "Guide for creating effective Agent Skills. Use when users want to create a new skill (or update an existing skill) that extends an AI agent's capabilities with specialized knowledge, workflows, or tool integrations. Covers skill structure, YAML frontmatter, trigger configuration, and the 500-line rule.",
+      "description": "HASH Rust coding style. Use when writing or reviewing Rust code, choosing types, imports, function arguments, or naming.",
       "promptTriggers": {
-        "keywords": [
-          "skill",
-          "skill-rules",
-          "SKILL.md",
-          "creating skill",
-          "writing skill"
-        ],
+        "keywords": ["rust coding style", "rustfmt", "clippy"],
         "intentPatterns": [
-          "\\b(how do|how does|explain)\\b.*?\\bskill\\b",
-          "\\b(create|add|modify|build|write)\\b.*?\\bskill\\b",
-          "\\bskill\\b.*?\\b(work|trigger|activate|system|structure|template|pattern)\\b"
+          "\\b(write|review|refactor|style|format)\\b.*?\\brust\\b",
+          "\\b(impl|trait|struct|enum|clippy|rustfmt)\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "rust-testing-strategy": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "HASH Rust testing strategy. Use when writing Rust unit, integration, or snapshot tests, or choosing assertion and test-organization patterns.",
+      "promptTriggers": {
+        "keywords": ["rust test", "cargo nextest", "insta", "similar_asserts"],
+        "intentPatterns": [
+          "\\b(write|add|run|fix)\\b.*?\\b(rust|cargo)\\b.*?\\btest",
+          "\\b(nextest|snapshot test|insta)\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "rust-tracing-practices": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "HASH tracing and instrumentation practices for Rust. Use when adding spans, events, or #[tracing::instrument] to Rust code.",
+      "promptTriggers": {
+        "keywords": ["tracing", "instrument", "span", "rust log"],
+        "intentPatterns": [
+          "\\b(tracing|instrument|span)\\b",
+          "\\b(info|debug|trace|warn|error)!\\b"
         ]
       },
       "fileTriggers": {

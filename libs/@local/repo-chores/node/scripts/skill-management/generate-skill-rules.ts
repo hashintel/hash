@@ -9,7 +9,12 @@ import { pathExists } from "fs-extra";
 import { z } from "zod";
 
 import { type Frontmatter, SkillRules, type SkillTrigger } from "./schemas";
-import { findSkillsDir, formatError, scanSkills } from "./shared";
+import {
+  findClaudeSkillsDir,
+  findSkillsDir,
+  formatError,
+  scanSkills,
+} from "./shared";
 
 const convert = (frontmatters: Iterable<Frontmatter>): SkillRules => {
   const skills: Record<string, SkillTrigger> = {};
@@ -74,7 +79,8 @@ const run = async (skillsDir: string) => {
   }
 
   const skillRules = convert(validSkills);
-  const outputPath = path.join(resolvedSkillsDir, "skill-rules.json");
+  const claudeSkillsDir = await findClaudeSkillsDir();
+  const outputPath = path.join(claudeSkillsDir, "skill-rules.json");
 
   const replacer = (_key: string, value: unknown) => {
     if (value instanceof RegExp) {

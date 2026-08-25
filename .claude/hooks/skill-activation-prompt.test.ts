@@ -48,9 +48,5 @@ describe("Skill Activation Snapshots", () => {
 
   it("improve rust documentation", ({ task }) => createSnapshot(task.name));
 
-  it("how do skills work", ({ task }) => createSnapshot(task.name));
-
-  it("how does the skill system work", ({ task }) => createSnapshot(task.name));
-
   it("what is the weather today", ({ task }) => createSnapshot(task.name));
 });

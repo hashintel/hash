@@ -34,6 +34,8 @@ The HASH repository is organized into several key directories:
 - Check existing implementations before creating new ones
 - For understanding cross-component interactions, look for integration tests in `/tests`
 
+Package-specific standing instructions live in that package’s `AGENTS.md`. On-demand workflows live in `.agents/skills`.
+
 ## Common Commands
 
 ### Development
@@ -91,55 +93,27 @@ mise run sync:turborepo    # sync package.json identity + deps from Cargo.toml m
 
 `sync:turborepo` only manages that generated wiring — the `scripts` section is hand-maintained and is used by CI and Turborepo (e.g. `test:unit`, `lint:clippy`, `doc:dependency-diagram`), so add or edit scripts by hand. The task wraps the `repo-chores` CLI; the equivalent direct invocation is `cargo run --package hash-repo-chores --bin repo-chores-cli -- sync-turborepo`. A related task, `mise run fix:package-json`, sorts `package.json` keys consistently.
 
-## Documentation Maintenance
+## Git commits
 
-### Petrinaut user-facing docs
+Commit messages should be descriptive and concise, use sentence case, and describe the change in an imperative, present-tense style. Do not use semantic prefixes such as `fix:`, `feat:`, or `chore:`.
 
-The Petrinaut user guide lives at `libs/@hashintel/petrinaut/docs/*.md` and is the source of truth for end-user behaviour. The in-app AI assistant reads these pages at runtime via the `readPetrinautDoc` tool, so stale docs lead directly to wrong advice in the product.
+```text
+Add feature flags to Real type tests that require `serde`
+Update performance documentation guidelines
+Fix PostgreSQL integration type reference issues
+```
 
-When you change UI or behaviour in the petrinaut packages (`libs/@hashintel/petrinaut`, `libs/@hashintel/petrinaut-core`), you MUST:
+## TypeScript
 
-1. Review the user-facing docs that mention the affected feature and update them in the same change.
-2. If you add a brand-new user-facing surface (panel, view, mode, tool, settings dialog, ...), add a corresponding page and link it from `libs/@hashintel/petrinaut/docs/README.md`.
-3. When you add a new doc page, also register it in `petrinautDocNames` and `petrinautDocSummaries` in `libs/@hashintel/petrinaut-core/src/ai.ts`, and add a `?raw` import in `libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/petrinaut-docs-content.ts`. The tests in `libs/@hashintel/petrinaut-core/src/ai.test.ts` and `petrinaut-docs-content.test.ts` enforce that every enum value has a summary and a content entry.
-4. Keep the docs end-user-focused: describe what the user sees, what they click, what happens. Do not document Storybook, internal modules, or test setup in the user guide.
-5. If UI are changes that may make screenshots in the docs outdated, you MUST prompt your user to replace the screenshots.
+- Prefer `const myFunc = () => {}` over function declarations.
+- Parallelize independent async work with `Promise.all`.
+- No `any`. If the input type is genuinely unknown, use `unknown` and narrow it.
+- Prefer `??` over `||`.
+- No unchecked index access (`array[0]` might be `undefined`).
+- Don’t make formatting corrections to lines you aren’t already modifying.
+- Avoid single-letter variable names except in `for` loops (`i` is fine).
+- Variable names are `camelCase`. No `SCREAMING_SNAKE_CASE`.
+- Check function and type signatures; don’t guess APIs.
+- Yarn workspaces: install a dependency in the relevant workspace, not at the root.
 
-If a change ships without doc updates, call that out in your summary so the user can decide whether to follow up.
-
-### Petrinaut architecture docs
-
-Distinct from the user guide above: the **architecture** docs describe the shape of the code for the people (and agents) working on it. They are generated from annotations in the source by `@local/petrinaut-arch-docs`, and building the bundle fails when they drift.
-
-The architecture is declared **next to the code it describes** — never in a central mapping file. Three tags, and that is the whole vocabulary:
-
-- `@layerRoot <id>` plus `@role <one line>` in a doc comment on a folder's primary file declares a layer. Prefer this — it needs no new file.
-- A folder's `README.md` frontmatter (`layer` and `role`) does the same, and the prose below becomes that layer's page. Use it when the folder has real prose to carry, or when no single file is the obvious host.
-- `@talksTo <layer-id> via <protocol>` in any scanned doc comment or docstring declares an edge no import produces, such as a spawned subprocess or a postMessage channel. The declaring file's own layer is the edge source; the build fails on an unknown target or on a pair the imports already prove.
-- Files with no annotation inherit from the nearest declaring ancestor, so 37 declarations cover 412 files. Do not annotate every file.
-
-Any other tag is ignored, so do not add one expecting it to appear in the docs. In a declaring README's frontmatter, `layer` and `role` are the only keys and anything else fails the build.
-
-The generated docs are **build output and are not committed** — there is nothing to regenerate before pushing. Only the annotations are versioned.
-
-When you change structure in `libs/@hashintel/petrinaut-core`, `libs/@hashintel/petrinaut`, or `libs/@hashintel/petrinaut-cli`, you MUST add a declaration if you introduce a folder that is a new architectural unit, meaning a new boundary or a distinct responsibility rather than only a new directory.
-
-Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, which fails on unannotated files, undeclared ancestors and rule violations. To read the docs, `turbo run doc:architecture --filter @local/petrinaut-arch-docs` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored); open `bundle/architecture.md` for the entire model in one file.
-
-Full reference: `libs/@local/petrinaut-arch-docs/README.md`. Browse the docs with `turbo run dev --filter @apps/petrinaut-docs`, which regenerates the bundle first — run it through Turborepo, since the package script alone skips that.
-
-Hand-written MDX in `libs/@local/petrinaut-arch-docs/content/` carries the reasoning an import graph cannot express — why a boundary sits where it does, what the alternatives were. It is optional; the system works with that directory absent.
-
-Give such a page `attachTo: <layer id>` in its frontmatter and it nests inside the generated tree beneath that layer, rather than sitting in a separate section — that is how the simulation deep-dives are wired. Link between pages with `[text](layer:core.simulation.engine)` or `[text](doc:simulation/memory-model)`; relative paths break when a page's `attachTo` changes, and unresolved targets fail CI.
-
-## Contextual Rules
-
-CRITICAL: For the files referenced below, use your Read tool to load it on a need-to-know basis, ONLY when relevant to the SPECIFIC task at hand:
-
-- .config/agents/rules/\*.md
-
-Instructions:
-
-- Do NOT preemptively load all references - use lazy loading based on actual need
-- When loaded, treat content as mandatory instructions that override defaults
-- Follow references recursively when needed
+File placement for TypeScript modules is covered by the `fractal-file-structuring` skill.
