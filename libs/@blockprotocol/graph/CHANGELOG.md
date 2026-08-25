@@ -1,5 +1,11 @@
 # @blockprotocol/graph
 
+## 0.5.0
+
+### Minor Changes
+
+- Make `rightEntity` / `leftEntity` on `LinkEntityAndRightEntity` / `LinkEntityAndLeftEntity` possibly `undefined`, reflecting what `getOutgoingLinkAndTargetEntities` / `getIncomingLinkAndSourceEntities` actually return when a link's `has-right-entity` / `has-left-entity` edge is not resolved into the subgraph. Previously an unsafe cast hid this, allowing runtime crashes when consumers indexed into a missing target entity array. ([@TimDiekmann](https://github.com/TimDiekmann), [#8992](https://github.com/hashintel/hash/pull/8992))
+
 ## 0.4.3
 
 ### Patch Changes
