@@ -217,3 +217,56 @@ heading the contract does not have (ADR-0006's condition).
 [baseline situation pack](../../evaluations/cases/process-model-elicitation/baseline/situation-pack.md),
 [condition-3 instrument](../../evaluations/protocols/process-model-elicitation/baseline/),
 FE-1402, FE-1403, FE-1404, FE-1406, FE-1431, FE-1482
+
+### S-008
+
+**Date:** 2026-08-25
+
+**Trigger/evidence:** The controller read path landed (FE-1497, #9325) and the slice forced two
+findings. First, the SDCPN `construct` runbook is five-sixths harness method — open with objectives,
+slice, sweep, probe, keep the ledger, close honestly — that a `gherkin` plugin written to the same
+contract would repeat; the plugin file carries it because the contract gives the harness no place
+to put its own. Second, the plugin-file parser and the proposal-schema narrowing that hangs off it
+are 378 lines against a 225-line file, reading the floor by regex over prose and the completion
+anchor by naming convention. The [lineage audit](../evidence/proofs/audits/harness-teaching-lineage-audit.md)
+then showed that the harness-teaching half of §11.5 — "guidance ownership follows vocabulary
+ownership" — was affirmed at every design station since 2026-08-11 and rescoped down four times
+(designed quiver → graduated cards → five relocated rows), each time as prose with no home and none
+of the times citing run evidence. The penciled manifest of 2026-08-14 (licenses, techniques,
+movements, motifs, rabbit_holes, failure_modes, smells, lenses, checks, tools, ontology, schema)
+already stated the structure that fits: every key lets an author give formalism-specific direction
+in concepts the harness defines and teaches.
+
+**Decision:** Complements S-007 (amending its sizing of FE-1406 and FE-1431; supersedes nothing).
+Materialise the harness-teaching layer as topology, per
+[ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) (proposed; governs on
+ratification): a fixed set of harness-owned keys in four groups — contract data, guidance typed by
+mechanism, per-job runbooks, machinery — each rendered key → harness default → plugin cell; a
+`packages/repertoire` package that depends only on `core` and that bindings render; a JSON schema
+in `core` that rejects unknown keys; gates that require the repertoire to fill every key and forbid
+a plugin from adding one. FE-1406 is restored to its original question with the package as its
+deliverable; FE-1431 becomes the plugin authoring surface (schema, `plugin.yaml`, key reader,
+SDCPN migration); FE-1393 stays the zero-new-keys check. This complements S-007 rather than
+reversing it: the slice forced the layer, the layer is built as code and gates rather than spec,
+and each layer ships paired with the document that states its intent. Sequencing: the authoring
+lane (FE-1431 → FE-1406 → FE-1393) runs alongside the skeleton run (FE-1404) and joins it at a
+second run over the migrated plugin. Rejected: holding FE-1406 at five rows, because it repeats the
+recorded pattern; and a spec-first design of the repertoire, because that is the failure S-007
+corrected.
+
+**Consequences/cuts:** STEERING gains a fifth epicentre for the teaching layer, an authoring lane in
+the frontier, an ADR-0007 ratification gate, an anti-rescope trigger, and an updated belief row: the
+"is the parser an argument for data?" probe is answered yes by decision 8. Linear edits to FE-1406,
+FE-1431, and FE-1393 remain a separately approved step. The domain-neutrality rule, the derived
+ordering of IR Layer B, and completion rule 15 are unchanged.
+
+**Revisit when:** ADR-0007 is rejected or amended in a way that removes a group; the migrated SDCPN
+plugin or the gherkin plugin needs a key the schema lacks; or `packages/repertoire` grows larger
+than the plugin it teaches (the instrument-larger-than-the-thing heuristic, applied to guidance).
+
+**Supersedes:** none
+
+**Evidence links:** [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md),
+[lineage audit](../evidence/proofs/audits/harness-teaching-lineage-audit.md),
+[penciled directions 2026-08-14](../archive/planning-inputs/penciled-directions-2026-08-14.md),
+[SDCPN plugin file](../../packages/plugin-sdcpn/plugin.md), FE-1406, FE-1431, FE-1393, FE-1497

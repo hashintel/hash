@@ -6,7 +6,7 @@
 > any one plugin. Produced 2026-08-25 from three full-read sweeps (specs, ADRs, and control
 > surfaces; archive and reference; evidence, evaluations, inbox, agent protocols, and source
 > prose) plus the Linear record of FE-1360, FE-1364, FE-1397, FE-1403, FE-1406, and FE-1407. It
-> feeds [ADR-0007](../../../adr/0007-harness-teaching-meets-plugin-content-at-fixed-move-headings.md)
+> feeds [ADR-0007](../../../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md)
 > and is evidence, not authority: where it quotes a document, that document governs. Counts are
 > case-insensitive occurrence counts over the named trees at the audit date.
 
