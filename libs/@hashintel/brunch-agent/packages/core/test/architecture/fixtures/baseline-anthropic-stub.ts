@@ -1,4 +1,4 @@
-import { appendFile } from "node:fs/promises";
+import { appendFile, readFile } from "node:fs/promises";
 
 import type Anthropic from "@anthropic-ai/sdk";
 
@@ -7,9 +7,11 @@ export interface StubReply {
   truncated?: boolean;
 }
 
-const replies = JSON.parse(
-  process.env["BASELINE_STUB_REPLIES"] ?? "[]",
-) as StubReply[];
+const repliesPath = process.env["BASELINE_STUB_REPLIES_PATH"];
+if (!repliesPath) {
+  throw new Error("BASELINE_STUB_REPLIES_PATH is required");
+}
+const replies = JSON.parse(await readFile(repliesPath, "utf8")) as StubReply[];
 const requestsPath = process.env["BASELINE_STUB_REQUESTS_PATH"];
 let requestCount = 0;
 

@@ -9,6 +9,7 @@ import {
   readdir,
   rm,
   symlink,
+  utimes,
   writeFile,
 } from "node:fs/promises";
 import { createServer } from "node:http";
@@ -365,21 +366,26 @@ async function createBaselineCopy(): Promise<BaselineCopy> {
     join(CONTEXT_ROOT, "../../../node_modules"),
     join(testDirectory, "node_modules"),
   );
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  const sealedAt = new Date();
+  const lockedFileTimestamp = new Date(sealedAt.getTime() - 1_000);
   const files = await Promise.all(
-    CONDITION_3_LOCKED_PATHS.map(async (path) => ({
-      path,
-      sha256: createHash("sha256")
-        .update(await readFile(join(testDirectory, path), "utf8"))
-        .digest("hex"),
-    })),
+    CONDITION_3_LOCKED_PATHS.map(async (path) => {
+      const lockedFilePath = join(testDirectory, path);
+      await utimes(lockedFilePath, lockedFileTimestamp, lockedFileTimestamp);
+      return {
+        path,
+        sha256: createHash("sha256")
+          .update(await readFile(lockedFilePath, "utf8"))
+          .digest("hex"),
+      };
+    }),
   );
   await writeFile(
     join(protocolDirectory, "condition-3-preregistration.lock.json"),
     JSON.stringify(
       {
         version: CONDITION_3_INSTRUMENT_VERSION,
-        sealedAt: new Date().toISOString(),
+        sealedAt: sealedAt.toISOString(),
         files,
       },
       null,
@@ -404,6 +410,8 @@ async function runBaseline(
   requests: Array<v.InferOutput<typeof BaselineRequest>>;
 }> {
   const requestsPath = join(baselineCopy.testDirectory, "requests.jsonl");
+  const repliesPath = join(baselineCopy.testDirectory, "replies.json");
+  await writeFile(repliesPath, JSON.stringify(replies));
   const subprocess = spawn(
     process.execPath,
     [
@@ -418,7 +426,7 @@ async function runBaseline(
         ...process.env,
         BRUNCH_BASELINE_ANTHROPIC_MODULE: STUB_MODULE,
         BRUNCH_BASELINE_TEST_OUTPUT_DIR: baselineCopy.outputDirectory,
-        BASELINE_STUB_REPLIES: JSON.stringify(replies),
+        BASELINE_STUB_REPLIES_PATH: repliesPath,
         BASELINE_STUB_REQUESTS_PATH: requestsPath,
       },
       stdio: ["ignore", "ignore", "pipe"],
@@ -471,6 +479,8 @@ async function runBaselineFailure(
   requests: Array<v.InferOutput<typeof BaselineRequest>>;
 }> {
   const requestsPath = join(baselineCopy.testDirectory, "requests.jsonl");
+  const repliesPath = join(baselineCopy.testDirectory, "replies.json");
+  await writeFile(repliesPath, JSON.stringify(replies));
   const subprocess = spawn(
     process.execPath,
     [
@@ -485,7 +495,7 @@ async function runBaselineFailure(
         ...process.env,
         BRUNCH_BASELINE_ANTHROPIC_MODULE: STUB_MODULE,
         BRUNCH_BASELINE_TEST_OUTPUT_DIR: baselineCopy.outputDirectory,
-        BASELINE_STUB_REPLIES: JSON.stringify(replies),
+        BASELINE_STUB_REPLIES_PATH: repliesPath,
         BASELINE_STUB_REQUESTS_PATH: requestsPath,
       },
       stdio: ["ignore", "ignore", "pipe"],
