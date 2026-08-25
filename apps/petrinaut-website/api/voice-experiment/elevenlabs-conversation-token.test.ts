@@ -26,7 +26,7 @@ describe("ElevenLabs conversation-token endpoint", () => {
 
   beforeEach(() => {
     process.env.ELEVENLABS_API_KEY =
-      "primary-elevenlabs-secret-that-must-stay-server-side";
+      "primary-elevenlabs-secret-that-must-stay-server-side"; // nosemgrep: hardcoded_secrets.node_api_key
     process.env.ELEVENLABS_SPEECH_ENGINE_ID = "seng_server_owned";
     delete process.env.VERCEL_ENV;
   });

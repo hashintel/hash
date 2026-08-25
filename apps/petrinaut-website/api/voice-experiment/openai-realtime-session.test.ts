@@ -25,7 +25,7 @@ describe("OpenAI Realtime session endpoint", () => {
   const originalVercelEnvironment = process.env.VERCEL_ENV;
 
   beforeEach(() => {
-    process.env.OPENAI_API_KEY = "primary-secret-that-must-stay-server-side";
+    process.env.OPENAI_API_KEY = "primary-secret-that-must-stay-server-side"; // nosemgrep: hardcoded_secrets.node_api_key
     delete process.env.VERCEL_ENV;
   });
 

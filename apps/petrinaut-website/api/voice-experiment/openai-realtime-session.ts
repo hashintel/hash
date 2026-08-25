@@ -5,7 +5,7 @@ declare const process: {
 };
 
 const OPENAI_CLIENT_SECRETS_URL =
-  "https://api.openai.com/v1/realtime/client_secrets";
+  "https://api.openai.com/v1/realtime/client_secrets"; // nosemgrep: hardcoded_secrets.node_secret
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
 const RATE_LIMIT_MAX_TRACKED_CLIENTS = 10_000;

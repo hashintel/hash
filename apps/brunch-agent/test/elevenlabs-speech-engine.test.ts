@@ -92,7 +92,9 @@ describe("ElevenLabs Speech Engine callbacks", () => {
     const bridge = { release: vi.fn(), respond };
     const callbacks = createElevenLabsSpeechEngineCallbacks({ bridge });
     const { response, session } = createSession();
-    const transcript = [{ role: "user", content: "A finalized answer." }] as const;
+    const transcript = [
+      { role: "user", content: "A finalized answer." },
+    ] as const;
 
     callbacks.onTranscript?.(
       [...transcript],
@@ -118,29 +120,27 @@ describe("ElevenLabs Speech Engine callbacks", () => {
     });
     let activeResponses = 0;
     let maximumActiveResponses = 0;
-    const respond = vi.fn(
-      async function* ({
-        signal,
-        transcript,
-      }: {
-        signal: AbortSignal;
-        transcript: string;
-      }) {
-        activeResponses += 1;
-        maximumActiveResponses = Math.max(
-          maximumActiveResponses,
-          activeResponses,
-        );
-        if (transcript === "First answer.") {
-          await firstTurnGate;
-        }
-        activeResponses -= 1;
-        if (signal.aborted) {
-          throw new DOMException("Interrupted", "AbortError");
-        }
-        yield `Reply to ${transcript}`;
-      },
-    );
+    const respond = vi.fn(async function* ({
+      signal,
+      transcript,
+    }: {
+      signal: AbortSignal;
+      transcript: string;
+    }) {
+      activeResponses += 1;
+      maximumActiveResponses = Math.max(
+        maximumActiveResponses,
+        activeResponses,
+      );
+      if (transcript === "First answer.") {
+        await firstTurnGate;
+      }
+      activeResponses -= 1;
+      if (signal.aborted) {
+        throw new DOMException("Interrupted", "AbortError");
+      }
+      yield `Reply to ${transcript}`;
+    });
     const bridge = { release: vi.fn(), respond };
     const callbacks = createElevenLabsSpeechEngineCallbacks({ bridge });
     const { session } = createSession();
