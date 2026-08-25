@@ -1,3 +1,16 @@
+> **Superseded 2026-08-25.** Moved from `docs/specs/cps-interview-guidance.md` under
+> [ADR-0006](../../adr/0006-plugins-per-target-formalism.md): interview "cards" are no longer
+> separate artifacts; they became kind-indexed patterns in the `Patterns` and `Moves` sections of
+> [`sdcpn-plugin.md`](../../specs/sdcpn-plugin.md). Mapping: CPS-Q01 → P01 · CPS-Q02 → P02 ·
+> CPS-Q03 → P03 · CPS-Q04 → P04 · CPS-Q05 → P05 · GEN-Q02 → Moves "construct" step 3 (the
+> batching sentence) · HINT-STATUS-GRADE → P12 · HINT-RESPECTFUL-CLOSE → Moves "construct" step 6.
+> The `domain` tag on the CPS cards was a mis-tag: each card names a model situation that occurs
+> on a kind (an event-shaped `activity`, a mode-changing `activity`, a grouped `ordering/flow`, a
+> gating `policy`/`boundary-condition`, a contended `entity-type`), so each lifts to a kind-level
+> pattern without naming a domain. The file is retained as test-bed material: its desk replay and
+> failure signatures remain evidence for the harness oracles, not authority. Content is otherwise
+> verbatim; only relative link targets were re-rooted for the archive location.
+
 # Spec: CPS interview guidance
 
 Status: **provisional, desk-tested pack content**. This is the FE-1403 handoff to CPS plugin
@@ -10,10 +23,10 @@ diagnostic and asks for evidence that could change the named slot. No card infer
 changes a completion grade, turns `not-mentioned` into an absence, or claims that asking the expert
 what was missed can discover an unknown omission.
 
-Vocabulary and mechanics come from the [plugin contract](plugin-contract.md) and the
-[completion contract](elicitation-completion.md). The fixed target IDs and full coordinates used
+Vocabulary and mechanics come from the [plugin contract](plugin-contract-2026-08-25-declarative-draft.md) and the
+[completion contract](elicitation-completion-2026-08-25-full-draft.md). The fixed target IDs and full coordinates used
 here are declared in the [FE-1402 replay
-DemandTable](../evidence/proofs/design/elicitation-completion-rehearsal.md#provisional-cps-demandtable).
+DemandTable](../../evidence/proofs/design/elicitation-completion-rehearsal.md#provisional-cps-demandtable).
 For this packet, the applicable quantity ladder is `verbal < point < range < quantiles`, the
 condition ladder is `verbal < structured`, and the accepted completion statuses are `explicit`
 and `inferred`. Other statuses remain representable but do not pass these fixed clauses.
@@ -73,9 +86,9 @@ predicate or imply that the current hook represents the whole card.
   ambiguity bypass.
 
 This card chooses the imported IDEA (Investigate, Discuss, Estimate, Aggregate) protocol's
-interval-before-best-guess ordering over the [v0 prompt's](../../evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md)
+interval-before-best-guess ordering over the [v0 prompt's](../../../evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md)
 typical-first script because the imported protocol supplies that order and a calibration question.
-The [FE-1360 research deposit](../reference/research/elicitation/elicitation-strategy-literature.md#14-numbers-vs-distributions-vs-stories),
+The [FE-1360 research deposit](../../reference/research/elicitation/elicitation-strategy-literature.md#14-numbers-vs-distributions-vs-stories),
 not the transcript replay, owns the anti-anchoring rationale. The replay establishes only that the
 baseline left demanded occurrence and repair grades unresolved.
 
@@ -98,7 +111,7 @@ baseline left demanded occurrence and repair grades unresolved.
 - **Artifacts:** a direction-scoped typed dynamics proposal for ramp-scrap magnitude and a distinct
   split-run proposal for repeated scrap. If the expert says they do not know, the clause remains
   failing; the current contract may propose a field-local absence only after the
-  [absence-locator seam](plugin-contract.md#the-envelope-is-untouched) has an approved representation.
+  [absence-locator seam](plugin-contract-2026-08-25-declarative-draft.md#the-envelope-is-untouched) has an approved representation.
   A promised observation is not the value.
 - **Targets:** `IW-SCRAP`, `CH-SCRAP`, and `SP-SCRAP` at `range`.
 - **Failure signatures:** FM-08 never-asked coverage blindness, FM-09 complementary-miss

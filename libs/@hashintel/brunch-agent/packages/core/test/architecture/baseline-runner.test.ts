@@ -321,6 +321,7 @@ async function createBaselineCopy(): Promise<BaselineCopy> {
     "evaluations/cases/process-model-elicitation/baseline",
   );
   const completionSpecDirectory = join(testDirectory, "docs/specs");
+  const archivedSpecDirectory = join(testDirectory, "docs/archive/specs");
   const researchDirectory = join(
     testDirectory,
     "docs/reference/research/elicitation",
@@ -333,6 +334,7 @@ async function createBaselineCopy(): Promise<BaselineCopy> {
     mkdir(protocolDirectory, { recursive: true }),
     mkdir(caseDirectory, { recursive: true }),
     mkdir(completionSpecDirectory, { recursive: true }),
+    mkdir(archivedSpecDirectory, { recursive: true }),
     mkdir(researchDirectory, { recursive: true }),
     mkdir(evidenceDirectory, { recursive: true }),
   ]);
@@ -345,8 +347,11 @@ async function createBaselineCopy(): Promise<BaselineCopy> {
       join(completionSpecDirectory, "elicitation-completion.md"),
     ),
     cp(
-      join(CONTEXT_ROOT, "docs/specs/cps-interview-guidance.md"),
-      join(completionSpecDirectory, "cps-interview-guidance.md"),
+      join(
+        CONTEXT_ROOT,
+        "docs/archive/specs/cps-interview-guidance-2026-08-25.md",
+      ),
+      join(archivedSpecDirectory, "cps-interview-guidance-2026-08-25.md"),
     ),
     cp(
       join(

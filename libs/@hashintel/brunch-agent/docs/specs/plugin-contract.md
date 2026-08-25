@@ -1,451 +1,146 @@
-# Spec: the plugin contract — two schemas, two tables
+# Spec: the plugin contract — one file per target formalism
 
-Status: **provisional** — desk-validated on baseline transcripts and cross-plugin thumbnails.
-Ratification condition (inherited from [ADR-0003](../adr/0003-three-register-ir.md)): a full
-FE-1397-style worked pass across at least three plugin targets. Until the September build
-exercises a real fold, everything here is design, not demonstrated behavior.
-Decided on: FE-1405 (the payload-interiors session, 2026-08-18); inputs were that session's
-working draft and its pseudo-YAML structural rendering, which collapse into this document.
-Amended: 2026-08-24 by [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md), which
-separates deterministic projection scaffolds from model-assisted executable-artifact realization.
+Status: **provisional**, reshaped 2026-08-25 by
+[ADR-0006](../adr/0006-plugins-per-target-formalism.md). Ratification condition (inherited from
+[ADR-0003](../adr/0003-three-register-ir.md)): a worked pass across at least three plugin
+targets on a real fold. Decided on: FE-1405 (registers), FE-1480 (ADR-0005 outputs), and the
+2026-08-25 design-convergence review (per-formalism plugin file). The normative exemplar for
+every row and column shape named here is [`sdcpn-plugin.md`](sdcpn-plugin.md); where this
+document and that file disagree about shape, the file wins and this document is amended.
+The retired declarative draft is archived at
+[`plugin-contract-2026-08-25-declarative-draft.md`](../archive/specs/plugin-contract-2026-08-25-declarative-draft.md).
 
-## Problem Statement
+## What a plugin is
 
-The elicitation system needs to work across domains: cyber-physical process models (the
-September target), BDD/Gherkin feature specification, formal verification, and domains not yet
-named. Today there is no defined answer to "what is a plugin?" — the capture envelope
-(FE-1383, the build root: capture store and envelope semantics) says how evidence is stored,
-and the ratified IR design says captures are typed, but nothing says what a domain author must
-write down to make the machinery elicit _their_ domain, and nothing turns a pile of typed
-captures into the thing the user actually wants: a model of their plant, their feature, their
-system.
+A plugin is **per target formalism** — Gherkin, SDCPN — never per domain. It is one authored
+Markdown file with fixed section headings, plus a small amount of code for `project` and
+`validate`. The harness parses three tables from the file into the model vocabulary, the demand
+list, and the pattern index; every other section is concatenated, in order, into the
+interviewer's instructions. The end user never edits the file.
 
-Three people feel this as a problem:
+Fixed headings, in this order: `## Purpose` · `## Kinds` · `## Must know` · `## Patterns` ·
+`## Moves` · `## Deliverable`. Subsections under a heading belong to that section. A plugin file
+with a missing, renamed, or reordered contract heading does not load.
 
-- **The plugin author** has no contract. Every new domain looks like it needs bespoke
-  machinery — its own assembly logic, its own completion logic, its own follow-up-question
-  logic — which makes plugin authoring an engineering project instead of a declaration, and
-  makes example plugins unreadable as examples.
-- **The analyst running an elicitation** cannot ask "is this model complete enough to answer
-  my objective?" of a bag of captures. Completion questions are questions about a _model_ —
-  which activities lack duration distributions, which resources are uncounted — and no model
-  exists to ask them of.
-- **The reviewer** cannot audit semantic judgments. If "half a shift" becomes "4 hours"
-  somewhere inside a read path, the interpretation happened invisibly: unattributable,
-  unsupersedable, unreproducible.
+Domain-neutrality rule: nothing in the file may name a domain. A new case that seems to need a
+new row is a finding about the abstraction, decided by review, never content added to a plugin.
 
-## Solution
+## Relation to the three registers
 
-A plugin is **two schemas and two small tables**, all declarative:
+[ADR-0003](../adr/0003-three-register-ir.md) is unchanged. Register 1 is the capture store:
+envelope-wrapped assertions carrying verbatim forms, hedges, absences, provenance. Register 2 is
+the elicited model — a graph of nodes, each of exactly one **kind** from the `Kinds` table, each
+with the slots the `Must know` table names for that kind — derived by a pure fold over active
+captures and never stored. Register 3 is the projections. Write-time-only semantics governs
+assembly: the fold is forbidden to interpret, so every bridge from user language into a slot is a
+capture, and the model is a pure function of the store.
 
-1. declare your domain's node kinds and their slots (the **model schema**);
-2. declare the utterance-shaped typed proposals that fill them (the **proposal catalog**),
-   annotating each with how to elicit it;
-3. say how proposals fold into slots (the **fold table** — almost always empty, because fold
-   rules derive from the slot declarations);
-4. say what your completion anchors demand (the **demand table**).
+## The three machine-read tables
 
-Everything else is harness machinery explained once: a pure fold derives the elicited model
-from active captures (ADR-0003's register 2), slot states report what is known, absent,
-conflicted, or diverged, grades gate promotion, identity resolves by union-find over recorded
-same-as assertions, and follow-up questions fire mechanically off slot states. Semantic
-interpretation happens only at write time, in the sweep, where every bridge is deposited as a
-contestable capture.
+Column sets are fixed; the exemplar is normative for their names, order, and value vocabularies.
 
-For the plugin author this means writing YAML, not code (code remains only in validators and
-projections). For the analyst it means completion computes over model slots, not capture
-counts. For the reviewer it means every model part answers "which captures made you."
-The readability oracle for the whole design: someone who has read the Gherkin plugin should be
-able to write a third plugin by analogy in a sitting.
+| table          | columns                                                                 | read as                                                                                         |
+| -------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `## Kinds`     | `#`, `kind`, `what it is`, `projects to`                                | the closed node-kind catalog (Layer-A property 1); `projects to` is documentation for the loss report, not code |
+| `## Must know` | `kind`, `slot`, `precision`, `"not applicable" allowed`, `why the model needs it` | one demand row per (kind, slot); `precision` is a word from the file's `Precision words` table  |
+| `## Patterns`  | `id`, `when`, `ask`                                                     | discretionary, kind-indexed interviewing patterns; surfaced when a node matches `when` and a slot is unsatisfied |
 
-## User Stories
+Rules the tables carry:
 
-1. As a plugin author, I want to declare my domain as node kinds with slots, so that the
-   harness derives the model shape without me writing assembly code.
-2. As a plugin author, I want a catalog of typed proposals whose interiors I compose from a
-   standard library of stated-form families, so that I don't reinvent "how experts state
-   quantities" for every domain.
-3. As a plugin author, I want fold rules derived from my slot declarations by default, so that
-   I only write fold-table rows for genuine exceptions.
-4. As a plugin author, I want to annotate each proposal type with an elicitation technique and
-   a mechanical firing condition, so that "which technique does this field force?" is a
-   completeness check over one column.
-5. As a plugin author, I want to declare grade orders per slot — referencing a library ladder
-   or declaring my own composition ladder — so that my domain's notion of "more pinned down"
-   drives promotion without new machinery.
-6. As a plugin author writing a thin plugin (Gherkin), I want the registers to collapse
-   gracefully, so that I never pay the thick plugin's ceremony.
-7. As a new plugin author, I want to read the Gherkin example and write my own plugin by
-   analogy in a sitting, so that plugin authoring is tractable without harness expertise.
-8. As a domain expert being interviewed, I want my hedged, low-grade statements ("about
-   3 hours") captured honestly rather than refused or hardened, so that the record reflects
-   what I actually said.
-9. As a domain expert, I want to say "I don't know" or "we don't track that" and have it
-   recorded as a first-class absence, so that I'm not re-asked what I've already disclaimed.
-10. As a domain expert, I want to state a uniformity once ("same everywhere, same crew") and
-    have it cover everything in scope, so that I'm not interrogated per instance.
-11. As a domain expert, I want to correct myself ("flag that as one I got wrong") and have the
-    correction supersede — not overwrite — the original, so that my history stays honest.
-12. As an analyst, I want the elicited model in the expert's vocabulary with every slot in a
-    definite state (unaddressed / stated-at-grade / absent / conflicted / diverged), so that I
-    can see at a glance what the elicitation has and lacks.
-13. As an analyst, I want completion computed as "every objective's demanded slots at demanded
-    grade over a static floor," so that "done" is relative to what I'm trying to answer, not
-    a global checklist.
-14. As an analyst, I want prescribed-vs-practiced divergence surfaced per slot, so that
-    unwritten rules and workarounds are findings, not noise.
-15. As an analyst, I want conflicting statements to fold to a typed conflict — never a silent
-    pick — so that contradictions become questions instead of errors.
-16. As the interviewing agent, I want next-question candidates to fire mechanically off slot
-    states (below demanded grade → quantile protocol; statistic unspecified → "typical, or
-    worst case?"), so that follow-ups are grounded in the model's actual gaps.
-17. As the sweep executor (FE-1392, the write-time mapping of utterances to proposals), I want
-    the proposal catalog compiled to a JSON Schema on my tool input and a decision-tree route
-    over statement forms, so that mapping is two small decisions, not one pick from a flat
-    ~19-type list.
-18. As the sweep executor, I want honest low-grade defaults (verbal form,
-    `statistic: unspecified`) to be legal captures, so that uncertainty degrades to
-    under-typing that cues a follow-up, never to silent hardening.
-19. As a reviewer, I want every semantic bridge — unit parse, identity link, composition,
-    formalization — deposited as an `inferred` capture with evidence spans, so that I can
-    audit, contest, and supersede any interpretation.
-20. As a reviewer, I want the fold forbidden to interpret, so that re-running it on the same
-    store always yields the same model.
-21. As a projection author (net scaffold, loss report, completion table), I want to consume
-    the elicited model without rereading the transcript or interpreting generic capture
-    fields, so that the scaffold and its code obligations are pure functions of register 2.
-22. As a harness developer (FE-1393, the plugin SDK and fold engine), I want every harness
-    mechanism to be a pure function classified by which plugin declaration it reads, so that
-    the harness/plugin boundary is mechanically checkable.
-23. As a team reader, I want example plugins that read as declarations of their domain, so
-    that I can evaluate the product's generality without reading harness internals.
-24. As the artifact-realizing agent, I want each code obligation to name one target field, its
-    semantic intent, available net symbols, supporting captures, and acceptance checks, so that I
-    can write and repair TypeScript without resynthesizing unrelated regions.
+- Every `Must know` row names a kind present in `Kinds`; every kind has at least one row.
+- `precision` maps to an IR grade through the plugin's own `Precision words` table (`named`,
+  `number`, `range`, `spread`, `spelled out`, `at least N`). Grade means narrowing of
+  interpretation space, never claim strength.
+- The static floor and the completion rule are stated in prose under `## Must know`; the harness
+  reads the floor's counts, and the rule itself is fixed by
+  [`elicitation-completion.md`](elicitation-completion.md).
+- Cross-kind attributes (`quantity`, `source-regime`, `rationale`) are declared in prose under
+  `## Kinds` and apply to every kind; a plugin may not scope them to some kinds.
+- Patterns are never mandates. The harness surfaces; the interviewer decides.
 
-## Implementation Decisions
+## Version binding
 
-The shapes below are trimmed from the session's ds-pseudo prototype (an untracked session
-artifact); they encode the decisions more precisely than prose.
+The plugin header declares an immutable version string (`sdcpn/2026-08-25.1`). Every completion
+evaluation, projection output, and delivered report carries that version together with the
+target-document revision it read. A report for one plugin version is not comparable with a model
+folded under another; the caller retries rather than mixing them.
 
-### The three registers (ADR-0003, binding)
+## Code operations (ADR-0005 unchanged)
 
-Assertions (envelope-wrapped typed proposals) → the elicited model (derived by a pure fold,
-never stored) → projections. Write-time-only semantics still governs model assembly: no semantic
-act hides inside the fold, and every bridge from user language into the model is a capture. The
-acceptance oracle: a second projection must consume the model without rereading the transcript or
-semantically interpreting generic capture fields. Promotion, never refusal: low-grade statements
-are captured honestly and never promote to a demanded grade without a higher-grade capture
-superseding them.
+`project` and `validate` remain plugin **code**, pure and snapshot-in/deltas-out (kernel §6.1,
+adjudication C2). For a code-bearing target, `project` emits three outputs from register 2:
 
-### Executable-artifact seam (ADR-0005)
+1. a versioned scaffold with deterministic structure and field-local comments;
+2. a sidecar of typed code obligations — target element and field, semantic intent, available
+   symbols, supporting capture ids, acceptance checks;
+3. the typed loss report (`mapped-exactly / normalized / approximate / collapsed / omitted /
+   defaulted / unrepresentable`, per capture).
 
-Some projection targets contain authored programs rather than declarative fields. For SDCPN, the
-deterministic register-3 output is therefore a scaffold, a typed loss report, and a sidecar of code
-obligations. Artifact realization is a downstream, model-assisted application step; it is not part
-of `project`, the fold, or the persisted IR.
+The sidecar is the machine contract; comments are its readable projection. Artifact realization
+is downstream application work
+([ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md)); realized code is never a capture,
+IR slot, fourth register, or plugin operation. `reconcile` remains optional.
 
-```yaml
-ProjectionResult:
-  draftArtifact: unknown
-  lossReport: LossEntry[]
-  codeObligations: CodeObligation[]
+## Invariants that survive
 
-CodeObligation:
-  id: string
-  target: { elementId: string, field: string }
-  semanticIntent: string
-  availableSymbols: { places: string[], tokenFields: string[], parameters: string[] }
-  supportingCaptureIds: string[]
-  acceptanceChecks: string[]
-```
+- **Acceptance oracle.** A second projection consumes register 2 without rereading the
+  transcript or interpreting generic capture fields; if it cannot, we have a capture ledger, not
+  an IR.
+- **Promotion, never refusal.** Low-precision statements are captured honestly and never promote
+  to a demanded precision without a higher-precision capture superseding them.
+- **Typed conflict, never a silent pick.** Competing active values on one slot fold to
+  `conflicted`; a divergence between `prescribed` and `practiced` is recorded on the same node
+  as an ordinary typed conflict — one model, never two.
+- **Status ≠ precision ≠ confidence.** Epistemic status says how content relates to its source;
+  precision says how narrow the value is; confidence (`firm | hedged | speculative`) says claim
+  strength. None substitutes for another.
+- **The envelope is untouched.** The absence-locator pressure (a field-specific absence cannot
+  name its slot) is adjudicated at the FE-1383 seam, not forked around here.
+- **Smallest honest plugin.** A file whose `Kinds` table has one row and whose `Must know` table
+  demands one `named` slot must load and run (kernel §11.3).
+- **Readability oracle.** Someone who has read `sdcpn-plugin.md` can write the Gherkin plugin
+  file by analogy in a sitting. A harness change that breaks this is a regression even if all
+  tests pass.
 
-The sidecar is authoritative. A projector may mirror `semanticIntent` into the target code field as
-a comment so the incomplete work is visible in the editor, but realization never reconstructs the
-contract by parsing comments. The final gate is deterministic: every obligation is fulfilled, all
-code compiles through Petrinaut, and at least one scenario simulates without a runtime error.
+## Testing
 
-### Harness machinery: pure functions classified by what they read
-
-The harness is the functions; the plugin is the tables they read. This is the
-harness/plugin boundary, stated as a typology:
-
-```yaml
-HarnessMachinery:
-  foldEngine: { reads: foldTable + modelSchema, emits: register-2 model }
-  demandRunner:
-    {
-      reads: demandTable + active anchor captures,
-      emits: demanded grade per slot,
-    }
-  identityResolver: {
-      reads: identity-bearing proposals,
-      emits: canonical names,
-    } # union-find
-  slotStateDeriver:
-    { reads: fold output + open issues + absences, emits: slot state per slot }
-  promotionGuard: { reads: gradeOrder per slot, emits: supersession legality }
-  affordanceCuer:
-    { reads: firesWhen x slot states, emits: next-question candidates }
-  captureEnvelope: fixed # kernel canon; the one non-function; amendable only at the seam
-```
-
-The slot-state algebra, fold engine, grade/promotion mechanism, identity mechanism, and demand
-runner are harness (plugin-SDK) territory; the standard interiors are an importable library;
-the node-kind catalog, proposal catalog, affordance annotations, demand table, and loss
-categories are plugin-authored. (Ratified as FE-1393 design input.)
-
-### The plugin contract
-
-```yaml
-PluginContract:
-  version: immutable string or digest # bound into every completion snapshot/report
-  modelSchema: NodeKind[]           # register 2 — derived, never stored
-  proposalCatalog: ProposalType[]   # register 1 — utterance-shaped, envelope-wrapped
-  foldTable: FoldRow[]              # overrides only; default rules derive from SlotDecl
-  demandTable:
-    { version: immutable string or digest, rows: DemandRow[], staticFloor: DemandClause[] }
-  variantDimension: enum?           # e.g. prescribed | practiced; enables slot state 'diverged'
-  lossCategories: enum[]
-
-NodeKind:
-  name: string                      # closed catalog (Layer-A property 1)
-  slots: map<string, SlotDecl>
-  completionAnchor: boolean
-
-SlotDecl:
-  valueType: string                 # domain type or standard interior
-  cardinality: enum                 # one | set | ordered
-  gradeOrder: enum[]?               # plugin-declared, lowest first; library ladder or composition ladder
-
-ProposalType:
-  name: string                      # named by its semantic act, keyed to its fold target
-  interior: shape                   # composed from the standard-interiors library
-  validators: string[]              # tiered: deterministic / semi-mechanical / residue
-  affordance:
-    technique: string               # ref to an FE-1403/FE-1406 technique card
-    firesWhen: enum                 # closed 7-value set, below
-```
-
-This survives the penciled manifest design as the manifest's `ontology/schema` key: the
-prompt-mechanism keys (techniques, lenses, smells, …) are untouched (FE-1403/FE-1406,
-the technique-card and prompt-mechanism efforts); `checks`/`tools` receive the proposal and
-projection validators; code remains only in validators and projections.
-
-### Typed proposals, not generic field atoms
-
-The generic kind+field EAV union is retired. Register 1 is an enumerated catalog of typed
-semantic proposals with domain-shaped interiors (`duration-estimate` carrying a
-`QuantityStated`, not `quantity-stated` carrying a string). For CPS the first-cut catalog is
-~19 types worked from the C1 baseline transcript (entity-noted, attribute-noted,
-attribute-domain, population, activity-noted, duration-estimate, resource-requirement,
-actor-assignment, precondition-noted, outcome-noted, sequence, trigger, policy-noted,
-relationship-noted, question-to-answer, goal-noted, penalty-noted, rationale-noted, same-as).
-Constraint, data-binding, and validation-criterion stay schema-present but shallow — one
-`*-noted` proposal each — per the September minimum; all three have real C1 instances.
-
-### The standard-interiors library
-
-Finiteness claim: interiors are indexed on _how experts state facts_ — measurement scale
-types plus logical forms — not on domains. Six families over a shared supertype, plus one
-flagged tarpit:
-
-```yaml
-StatedForm: # base — every family extends this
-  verbatim: string # fidelity anchor; never normalized away
-  parsed: shape? # mechanical-tier structure; its absence IS the grade floor
-  # convention: every family declares explicit UNSPECIFIEDNESS MARKERS — slots recording
-  # what the utterance did NOT say. Grade derives from parsed-ness; markers are exactly
-  # what the affordance cuer fires on.
-
-QuantityStated: # 1 — magnitude (ratio/interval): verbal | point | range | quantiles; statistic marker
-ComparisonStated: # 2 — order (ordinal): a/b/dimension/direction; direction-without-magnitude marker
-RankingStated: # 2b — total/partial order over a set
-VocabularyStated: # 3 — category (nominal): dimension + values
-ConditionStated: # 4 — predicate: verbatim < structured < formal (the FV ladder lives here)
-UniformityClaim: # 5 — quantified claim over a ScopeExpr, with exceptions carve-out
-SubjectRef: # 6 — reference/identity; same-as pairs two of them
-TemporalPattern: # flagged tarpit — NOT claimed finite; verbatim-heavy, coarse window only
-```
-
-Number-hedges ("about", "maybe", "roughly") live in `QuantityStated`'s qualifier, not in
-capture confidence — two different homes. Capture-level confidence is the picklist
-`firm | hedged | speculative`, and the store refuses numeric-parsing confidence strings
-(closes remediation item A5).
-
-### Grade is narrowing of interpretation space
-
-Grade means "fewer readings remain," never claim strength (that is envelope confidence —
-orthogonal by design). Two sources: **form grades** fall out of the library (each family's
-ladder is its unspecifiedness markers progressively resolved: verbal < point < range <
-quantiles; informal < vocabulary-bound < formal-parsed) — plugins demand rungs, they don't
-define these ladders; **composition grades** are plugin-declared (Gherkin's given-only <
-given-when < full-gwt is about slot composition, not one statement's form). The fold engine
-reads grade off the interior or the fold output, never off the proposal type name — formal
-verification's `formalization` is a _different proposal type_ folding into the _same slot_ at
-higher grade. Grade orders promotion only: they never choose a winner among active values.
-Beyond formal-parsed lies checking, which is validation, not grade.
-
-### Slot states and fold rules
-
-```yaml
-SlotState: unaddressed | stated(value, grade, supportingCaptureIds)
-         | absent(absence, captureId)          # populatable pending envelope pressure #2
-         | conflicted(openIssueIds)
-         | diverged(prescribed, practiced)     # only if the plugin declares a variant dimension
-
-_foldRuleDerivation:   # foldTable holds overrides only; both example fold tables are empty
-  - cardinality one                 -> unique (grade order, if declared, gates promotion only)
-  - cardinality set                -> set-union (member removal = supersede that member)
-  - cardinality ordered, positions stated in-utterance -> ordered-append
-  - order stated pairwise          -> graph-union, order derived at read
-  - identity-bearing proposal      -> union-find
-  - scope-bearing proposal         -> shared-support
-  # closure: fold behavior = (cardinality) x (graded y/n) + two specials. Finite product
-  # space; the rule enum is its image.
-```
-
-One active value occupies a unique slot. Competing active, un-superseded values — at equal or
-different grades — fold to `conflicted` with a typed issue, never a silent pick. Values that
-are genuine alternatives must be declared as such and handled by the plugin's explicit
-alternative rule; they do not authorize the fold to choose one. A higher-grade value replaces
-a lower-grade value only through an explicit supersession, after which the lower capture is no
-longer active. Regime divergence is per-slot; a regime-split _existence_ (the off-shift wash
-that's prescribed-possible, practiced-never) is the degenerate node-level case. The present
-`diverged` shorthand exposes neither side's grade nor support captures. Completion therefore fails
-a demanded diverged slot with `unevaluable-divergence`; FE-1431 owns an evaluable constituent
-shape and the later author-selectable all-sides/either-side rule.
-
-### Demand, scope, and firing conditions
-
-Requiredness is question-relative: a static floor (≥1 objective; entity coverage; a happy-path
-flow) plus objective-demanded grades (a capacity objective demands quantile-grade durations on
-the activities in its support). `DemandClause` is the smallest sufficient union: a presence clause
-declares minimum cardinality over `ScopeExpr`; a slot clause declares scope, slot,
-minimum grade, accepted epistemic statuses, and accepted absences. Presence clauses express
-objective, entity, and path existence. Slot clauses require every selected slot to pass and an
-empty selection fails. All matched clauses are conjunctive. Every active completion anchor must
-match at least one row. Plugin and demand-table immutable versions are bound with target-document
-revision into every evaluation and report. The complete evaluation and report shape live in the
-provisional [target-document completion contract](elicitation-completion.md).
-`ScopeExpr` has three constructors — `kind`, `where`-filter, `inSupport(anchor)` — and
-**September ships kind-only**; the other two are the named growth path. `support(anchor)` is
-defined as reference closure over a plugin-declared list of support-bearing proposal types
-(proposal interiors carrying SubjectRefs _are_ the edges; the proposal type is the edge type,
-per Layer-A property 4).
-
-`firesWhen` is a closed 7-value enum, every value a predicate over slot states —
-`slot-unaddressed | below-demanded-grade | unspecified-marker-present | conflicted-open |
-absence-uncorroborated | uniformity-unprobed | identity-ambiguous` — so the affordance column
-is mechanically checkable.
-
-### Identity and supersession
-
-Identity assertions (`same-as`) are schema citizens: `inferred`, supersedable; reconciliation
-is deterministic union-find over them; renames are new identity assertions, never edits.
-Retraction residue: a retraction that replaces a claim with a guess-plus-known-unknown is a
-`tentative` superseding capture now, plus an absence capture once the envelope's absence
-locator lands (see Open strains).
-
-### The envelope is untouched
-
-Nothing here amends the capture envelope. The one confirmed pressure — absence captures carry
-no payload, so a field-specific absence cannot name its slot — is recorded at the FE-1383
-seam with three concrete C1 cases; the locator an absence needs is precisely a fold-table
-`target` coordinate. Adjudication happens at the seam, not by forking.
-
-## Testing Decisions
-
-A good test here asserts external behavior at a seam — captures in, slot states out — never
-fold internals or intermediate representations. Three seams, one primary:
-
-1. **The fold** (primary, new, the highest seam available): `fold(pluginContract,
-activeCaptures) → model` is pure by construction, so the whole contract is golden-testable
-   at one seam — hand-worked capture sets in, asserted slot states out. The seed gold set is
-   the FE-1405 worked-instance set from C1: the anchor changeover utterance (~9 captures →
-   four activities with graded durations and one rationale; the asymmetry claim derivable, not
-   captured), the quantile promotion pair (point supersedes to quantiles; slot promotes; no
-   refusal at any step), the regime-split off-shift wash, and the first-pass-yield absence
-   (blocked, and _asserted_ blocked, pending the envelope locator). This gold set doubles as
-   the sweep-accuracy rubric material for FE-1407 (the evaluation/gold-set effort).
-2. **The acceptance oracle, executable**: a second projection consumes the folded model with
-   no transcript access and no generic-field interpretation — enforced structurally by the
-   projection's input type being register 2 only. For a code-bearing target, this proves the
-   scaffold and obligation plan; separate realization gates prove that the resulting artifact
-   compiles and runs. If the scaffold or obligations cannot be written from register 2 alone,
-   the failure is the finding.
-3. **Contract validation**: plugin contract documents validate against the harness
-   meta-schema; the fold-rule derivation is tested as a table-driven pure function over its
-   finite product space (cardinality × gradedness + the two specials).
-
-Everything downstream — demand runner, slot-state deriver, promotion guard, affordance cuer —
-reads off the fold's output, so seam 1 covers them without new seams. Modules under test are
-FE-1393's fold engine and plugin SDK, with the CPS and Gherkin contracts as fixtures. Prior
-art in this repo: the docs-index gate (`test/docs-index.test.ts`) for the table-driven,
-fail-loud style, and the capture-store suite (FE-1390 side) for envelope-adjacent fixtures.
-Test-fit order stands: smallest honest plugin and Gherkin before CPS.
+The primary seam is still the fold: `fold(pluginFile, activeCaptures) → model`, golden-tested
+with hand-worked capture sets in and slot states out. Two gates replace the retired meta-schema
+validation: the **plugin-file parse gate** (headings fixed and complete, three tables parse, every
+`Must know` kind exists, every precision word is declared) and the **completion fixtures** of
+`evaluateCompletion` described in [`elicitation-completion.md`](elicitation-completion.md).
+Test-fit order stands: smallest honest plugin, then Gherkin, then SDCPN.
 
 ## Open strains (first-class, with owners)
 
-Adjudicated in the FE-1405 session; recorded here so settlement doesn't launder them into
-decidedness.
+- **Dependency-slice closure (was strain 5).** "The nodes it depends on" is a `Must know` slot on
+  `objective`; the closure rule over reference-bearing captures still needs one hand-worked pass
+  before it is machine-read. Owner: FE-1393, with the completion fixtures as consumer.
+- **Temporal patterns (strain 6, roped off).** Scheduling stays out of scope; calendar algebra is
+  neither claimed nor planned.
+- **Sweep-time concentration (strain 7).** Write-time-only semantics makes the sweep the single
+  point of semantic failure; mitigations travel with FE-1392/FE-1393/FE-1407.
+- **Absence locator (envelope pressure #2).** Authority remains the active soft edge in
+  [STEERING](../control/STEERING.md#active-soft-edges).
 
-- **Strain 4 — grade sources (resolved in shape, worked pass pending).** Grade = narrowing;
-  form grades library-owned, composition grades plugin-declared. The shape is ratified; no
-  real fold has read a grade yet. Owner: FE-1393 (fold engine), against the gold set.
-- **Strain 5 — support closure (downgraded, worked pass pending).** Typed references already
-  exist (interiors carrying SubjectRefs are edges); `support(anchor)` needs one declared
-  column and a closure rule, and a hand-worked pass over C1 before `inSupport` ships.
-  Owner: FE-1393, with FE-1402 (the completion contract) as consumer.
-- **Strain 6 — temporal patterns (roped off).** Scheduling is out of scope as a modelling
-  area; `TemporalPattern` stays verbatim-heavy, coarse window only, no calendar algebra
-  claimed or planned. Reopening it is a deliberate act, not drift.
-- **Strain 7 — sweep-time concentration (recorded; mitigations must travel).** Write-time-only
-  semantics makes the sweep's utterance→proposal mapping the single point of semantic failure.
-  Mitigations, none yet built: (a) the family index as a decision-tree sweep skill — route by
-  statement form, then fold target (FE-1403 authoring, FE-1392 consumes); (b) the proposal
-  catalog compiled to JSON Schema on the sweep tool input (FE-1392); (c) graceful
-  under-mapping via honest defaults, with over-mapping — silent hardening — as the real
-  failure, targeted by the verbatim-containment validators (FE-1392/FE-1393); (d) the
-  worked-instance gold set as the accuracy rubric (FE-1407).
-- **Envelope pressure #2 — absence locator (seam, unresolved).** Absence captures carry no
-  payload; a field-specific absence cannot name its slot. Three C1 cases logged. The needed
-  locator is a fold-table coordinate. Current authority: the active soft edge in
-  [STEERING](../control/STEERING.md#active-soft-edges), for
-  adjudication — the register-2 `absent` state is representable but not populatable until it
-  lands.
+## Retired 2026-08-25
 
-## Out of Scope
+Retired by [ADR-0006](../adr/0006-plugins-per-target-formalism.md); the full text survives in
+the [archive copy](../archive/specs/plugin-contract-2026-08-25-declarative-draft.md).
 
-- Amending the capture envelope. Pressure #2 is recorded for adjudication at the seam.
-- Scheduling and temporal-pattern modelling (strain 6).
-- The `where` and `inSupport` ScopeExpr constructors shipping in September (kind-only ships;
-  the others are the named growth path).
-- Authoring the sweep skill, technique cards, and prompt-mechanism manifest keys
-  (FE-1392/FE-1403/FE-1406 territory — this spec fixes only the `firesWhen` and `technique`
-  hook points).
-- Implementing artifact realization or the Petrinaut client-tool round trip (FE-1480/FE-1438).
-- The full FE-1397-style ratification pass — it is this spec's _condition_, owed before the
-  provisional marker comes off, not part of its build scope.
-- Loss-category content and projection implementations beyond the oracle projection.
-- Any UI.
-
-## Further Notes
-
-- The provisional CPS technique-card IDs and clarification fragments are now defined in the
-  [FE-1403 CPS interview guidance](cps-interview-guidance.md). Its desk replay is design evidence,
-  not proof that `affordanceCuer` activates those cards correctly at runtime. FE-1403 also exposes
-  a declarative-authoring seam: several supported cards need one technique under multiple
-  `firesWhen` predicates, while `ProposalType.affordance` is singular. FE-1431 must decide binding
-  multiplicity or an evidence-preserving split; the current hook must not silently discard the
-  disjunction.
-- This document is the settled form of the FE-1405 session's working draft and its
-  ds-pseudo YAML rendering — untracked session artifacts (`drafts/`, per the documentation
-  protocol) that collapsed into this spec and are not load-bearing anywhere.
-- The decision this spec builds on is [ADR-0003](../adr/0003-three-register-ir.md); the
-  worked cross-plugin thumbnails (Gherkin thin, formal verification mid, CPS thick) live in
-  the working draft and discharge the ratification bar only provisionally.
-- The authoring story is the product claim to protect: _declare your kinds and slots; declare
-  the proposals that fill them; annotate how to elicit each; say what your anchors demand._
-  Any harness change that breaks the readability oracle — a Gherkin reader can write a third
-  plugin by analogy — is a regression even if all tests pass.
+- **Domain-keyed CPS `DemandTable`** (`where(kind, role=…)` scopes, `ROW-BREAKDOWN` and kin):
+  it keyed demands to one baseline case's domain, so every new case needed new rows.
+- **Typed `ScopeExpr` / `where` / `inSupport` algebra:** demands are now per (kind, slot), and
+  the objective's dependency slice replaces `inSupport`; the algebra had nothing left to select.
+- **`ProposalType.affordance.firesWhen` (closed 7-value enum):** patterns are surfaced by a
+  node matching `when` with an unsatisfied slot, which needs no per-proposal predicate.
+- **`NodeKind.completionAnchor`:** `objective` is the anchor kind by rule, not by flag.
+- **Typed `foldTable` / `demandTable` / `variantDimension` / `lossCategories` declaration:** the
+  fold derives from the `Must know` rows, the demand list *is* that table, `source-regime` is a
+  fixed cross-kind attribute, and loss categories are fixed by kernel §6.1.
+- **Interview cards as separate artifacts:** they became kind-indexed patterns P01–P13 and
+  `Moves` steps in the plugin file (mapping recorded on the
+  [archived guidance](../archive/specs/cps-interview-guidance-2026-08-25.md)).
+- **The `ProposalType` catalog and standard-interiors library as plugin-authored declarations:**
+  utterance-shaped proposal interiors remain a harness concern (FE-1392/FE-1393); the plugin
+  file does not declare them.

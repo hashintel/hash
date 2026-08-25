@@ -11,10 +11,15 @@ Run a steering pass when:
 - a proof succeeds or fails;
 - authorities conflict;
 - an external gate changes or becomes stale;
-- the selected frontier loses value; or
+- the selected frontier loses value;
+- a frontier's durable outputs are all desk, simulated, or evaluation-side, with no production-path
+  code changed by the end of one arc (proxy completion); or
 - arc close detects strategic drift.
 
-Ordinary ticket movement is not a steering trigger.
+Ordinary ticket movement is not a steering trigger. Proxy completion recurs under new names — a
+tracer, a desk rehearsal, a preregistered instrument each stood in for the thing it was meant to
+exercise and became the definition of done. An evaluation instrument larger than the thing it
+evaluates is itself the finding.
 
 ## Orient
 

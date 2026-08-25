@@ -37,7 +37,8 @@ export const CONDITION_3_LOCKED_PATHS = [
   "evaluations/cases/process-model-elicitation/baseline/opening-message.md",
   "evaluations/cases/process-model-elicitation/baseline/situation-pack.md",
   "docs/specs/elicitation-completion.md",
-  "docs/specs/cps-interview-guidance.md",
+  // Archived 2026-08-25 (ADR-0006): the cards became patterns in docs/specs/sdcpn-plugin.md.
+  "docs/archive/specs/cps-interview-guidance-2026-08-25.md",
   "docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md",
   "docs/evidence/evaluations/process-model-elicitation/baseline/readout.md",
   "docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/condition-1.md",

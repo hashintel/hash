@@ -11,6 +11,20 @@ Amended 2026-08-24 by
 [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md): code-bearing projections emit
 deterministic scaffolds and obligations; executable realization is downstream agent work.
 
+### Supersession map (2026-08-25)
+
+The August text below stays as the record of what was decided. Where a later accepted decision
+carries the operating truth, this map names it; the section itself is not rewritten.
+
+| Kernel section                                                                              | Now governed by                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §5 envelope, §8 sweep and supersession, §11.1 "own payload structure"                        | [ADR-0003](../adr/0003-three-register-ir.md): captures are register 1; the elicited model is register 2, derived by a pure fold and never stored; projections are register 3. Envelope semantics unchanged.                                                                                  |
+| §6.1 `project` for code-bearing targets; §14.1 invariants 3 and 8                           | [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md): the pure projection emits a scaffold, a typed code-obligation sidecar, and the loss report; executable realization is downstream application work.                                                                              |
+| §9.5 completion derived, never a gate                                                        | [`elicitation-completion.md`](elicitation-completion.md): the invariants of `evaluateCompletion(model, mustKnowRows)` over the plugin file's `Must know` table, under [ADR-0006](../adr/0006-plugins-per-target-formalism.md).                                                               |
+| §11.1 ElicitationPack (kernel cards, completion contract, clarification hints); §11.2 pack form | [ADR-0006](../adr/0006-plugins-per-target-formalism.md) and [`sdcpn-plugin.md`](sdcpn-plugin.md): a plugin is one sectioned Markdown file per target formalism with fixed headings (`Purpose · Kinds · Must know · Patterns · Moves · Deliverable`); cards became kind-indexed `Patterns`, the completion contract became the `Must know` table, clarification hints became `Moves` steps. Principle v2 still governs the prose sections. `project`/`validate` remain plugin code ([`plugin-contract.md`](plugin-contract.md)). |
+| §11.5 generic strategy cards                                                                 | Unchanged in principle (guidance ownership follows vocabulary ownership); still named, not designed (FE-1406). Any harness-generic guidance would take the same `Patterns`/`Moves` shape.                                                                                                  |
+| §13 portfolio and hybrid order ("both packs authored before the pack interface freezes")     | [ADR-0006](../adr/0006-plugins-per-target-formalism.md): the interface is the heading contract and the three table grammars; the SDCPN file is authored, the Gherkin file is not; sequencing is owned by [STEERING](../control/STEERING.md). §13.1–13.3 target content is unchanged.       |
+
 "Elicitation kernel" and "brunch-lite" are working labels; the real product name is unresolved
 fog. No architectural string bakes in either label (see [Naming](#123-naming--tool-namespacing)).
 

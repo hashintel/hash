@@ -260,7 +260,7 @@ describe("condition 3 frozen envelopes", () => {
           },
         ],
       }),
-    ).toThrow();
+    ).toThrow('Expected "split-run" but received "changeover-accounting"');
   });
 
   test("preserves multiple objective anchors that project to one active row", () => {
@@ -749,7 +749,7 @@ describe("condition 3 frozen envelopes", () => {
           condition1: { ...result.comparisons.condition1, comparison: "" },
         },
       }),
-    ).toThrow();
+    ).toThrow("Invalid length: Expected >=1 but received 0");
     expect(() =>
       v.parse(Condition3ResultSchema, {
         ...result,
@@ -761,6 +761,6 @@ describe("condition 3 frozen envelopes", () => {
           },
         },
       }),
-    ).toThrow();
+    ).toThrow(/Expected "[0-9a-f]{64}" but received "0{64}"/);
   });
 });

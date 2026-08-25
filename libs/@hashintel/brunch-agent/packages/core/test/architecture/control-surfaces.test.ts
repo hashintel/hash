@@ -39,6 +39,13 @@ const strategyEntries = (markdown: string): StrategyEntry[] =>
     ),
   }));
 
+/**
+ * A strategy entry may supersede several earlier entries; the field lists them
+ * comma-separated, or reads `none`.
+ */
+const supersededTargets = (field: string): string[] =>
+  field === "none" ? [] : field.split(",").map((target) => target.trim());
+
 describe.skipIf(!contextRootPresent)("strategic control surfaces", () => {
   const steering = readFileSync(STEERING_PATH, "utf8");
   const strategyLog = readFileSync(STRATEGY_LOG_PATH, "utf8");
@@ -76,19 +83,18 @@ describe.skipIf(!contextRootPresent)("strategic control surfaces", () => {
       reason: "malformed" | "not-earlier";
     }> = [];
     for (const entry of entries) {
-      const supersedes = entry.fields.get("Supersedes")!;
-      if (supersedes !== "none") {
-        if (!/^S-\d{3}$/.test(supersedes)) {
+      for (const target of supersededTargets(entry.fields.get("Supersedes")!)) {
+        if (!/^S-\d{3}$/.test(target)) {
           invalidTargets.push({
             entry: entry.id,
-            target: supersedes,
+            target,
             reason: "malformed",
           });
         }
-        if (!seen.has(supersedes)) {
+        if (!seen.has(target)) {
           invalidTargets.push({
             entry: entry.id,
-            target: supersedes,
+            target,
             reason: "not-earlier",
           });
         }
@@ -107,9 +113,9 @@ describe.skipIf(!contextRootPresent)("strategic control surfaces", () => {
     const referencedIds = [...steering.matchAll(/S-\d{3}/g)].map(([id]) => id);
     const knownIds = new Set(entries.map(({ id }) => id));
     const supersededIds = new Set(
-      entries
-        .map(({ fields }) => fields.get("Supersedes")!)
-        .filter((id) => id !== "none"),
+      entries.flatMap(({ fields }) =>
+        supersededTargets(fields.get("Supersedes")!),
+      ),
     );
     for (const id of referencedIds) {
       expect(knownIds.has(id)).toBe(true);

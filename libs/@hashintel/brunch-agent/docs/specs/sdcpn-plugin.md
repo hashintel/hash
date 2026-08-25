@@ -165,9 +165,15 @@ decides whether and how to use it.
 
 ## Moves
 
-Moves are the mandates: the shape every conversation follows regardless of domain. The harness
-enforces what it can (completion, the sweep list, the ledger); the interviewer is responsible for
-the rest.
+Moves are the mandates: the shape a conversation follows regardless of domain. A plugin carries one
+runbook per **job** it supports; every runbook works over the same `Kinds` and `Must know` tables
+and differs only in kickoff, trajectory, checks, and stopping. This plugin supports two jobs. The
+harness enforces what it can (completion, the sweep list, the ledger, the affected slice); the
+interviewer is responsible for the rest.
+
+### Job: construct
+
+Kickoff: no model exists. The user knows the system; the interviewer knows the kinds.
 
 1. **Open with objectives.** Before anything about structure, establish what the user wants the
    model to answer or decide. Capture each as an `objective` node. Expect to co-construct: these
@@ -202,6 +208,52 @@ the rest.
    meets its demands. Before delivering, summarise per kind, state what is missing or assumed,
    and give the expert one chance to correct you.
 
+### Job: review and revise
+
+Kickoff: a model already exists, with its captures and a projected net. The reviewer may not be
+the original source. They arrive with an element of the net or a region of the model in view and
+one of three intents: understand why it is modelled as it is, correct it, or extend it. The
+engagement brief is the selected element, the intent, and nothing else; the interviewer does not
+reopen the interview.
+
+1. **Orient on the artifact, not the conversation.** State which model node and slot the selected
+   net element projects from, and which captures support that slot — turn, speaker, quote, grade,
+   source-regime. This is the only admissible answer to "why is X modelled like Y": provenance,
+   never domain plausibility. If no capture supports the element, say so plainly: it is an
+   assumption in the ledger or a projection default, and the reviewer is looking at a gap, not at
+   knowledge.
+
+2. **Scope before eliciting.** The harness computes the affected slice: the node, its slots, every
+   `objective` whose dependency slice contains it, and every projected element those produce. State
+   the scope to the reviewer in one sentence. Nothing outside it will change; if the reviewer's
+   intent reaches outside it, say so and let them widen the scope explicitly.
+
+3. **Elicit the correction in three to five turns.** Apply the node's `Must know` rows and any
+   pattern its state triggers — P12 first: what is known, what precision is needed, the smallest
+   delta. The reviewer's statement is evidence at the precision actually given. A correction is a
+   new capture that **supersedes** the old one — single hop, active head — never an edit of it. If
+   the reviewer contradicts the original source rather than refining it, that is a conflict: record
+   both, name it, and ask the reviewer to resolve it explicitly before anything supersedes.
+
+4. **Re-evaluate the slice only.** Completion is recomputed over the affected objectives. Report
+   what moved: a slot that gained or lost precision, an objective newly supported or newly
+   unsupported, a conflict opened or closed. Do not report the rest of the model.
+
+5. **Project the delta.** Projection re-runs over the whole model, deterministically. The expected
+   delta is confined to the scope; show the reviewer which net elements changed, which are
+   unchanged, and which code obligations the change reopened. A change outside the stated scope is
+   a defect to surface, never to explain away.
+
+6. **Hand off.** State what changed, what each change traces to, which obligations remain open,
+   and that unrelated regions are unchanged. Stop when the reviewer's stated correction is captured
+   and projected, or when five turns pass without a superseding capture — say which, and do not
+   loop. Stopping outcomes are distinct and named: `corrected-and-projected`,
+   `corrected-obligation-open`, `conflict-unresolved`, `scope-exceeded`, `reviewer-stopped`.
+
+Checks the harness owns for this job: every changed net element traces to a superseding capture
+made in this session; no capture outside the scope changed; the projection outside the scope is
+identical before and after; the ledger records any default the correction displaced.
+
 ## Deliverable
 
 When the interview ends — complete or not — produce:
@@ -211,6 +263,10 @@ When the interview ends — complete or not — produce:
 2. the assumption ledger;
 3. a loss section: what the model deliberately leaves out, which slots are open and why, which
    objectives are unsupported, and which kinds the net cannot carry.
+
+For the review-and-revise job the deliverable is the **delta report** in place of the whole model:
+the superseding captures made, the slots and objectives whose state moved, the net elements
+changed and the elements confirmed unchanged, the obligations reopened, and the stopping outcome.
 
 The SDCPN scaffold, the code-obligation sidecar, and the typed loss report are derived from the
 model by the plugin's projection; the interviewer does not write them and must not claim the model

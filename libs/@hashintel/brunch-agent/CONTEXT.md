@@ -16,11 +16,12 @@ _Avoid_: host, host-interface, frontend, client
 
 **Harness**:
 The middle shell and the essence of the effort: the generic capability layer of the elicitation system — mechanism and orchestration (the conversation loop, the `ask` API, capture envelope, issue queue, sweep bookkeeping). Injected into plugins as a narrow context; never owned by them.
-_Avoid_: kernel, core, elicitor (as a shell name — "elicitor" may name the whole system). Exempt compound: **kernel card** (below). Exempt name: the package `packages/core` (spec §12.2) — the avoidance applies to "core" as a prose shell name, not to the package path. "Kernel invariants" renamed **harness invariants** (spec §14.1).
+_Avoid_: kernel, core, elicitor (as a shell name — "elicitor" may name the whole system). Exempt name: the package `packages/core` (spec §12.2) — the avoidance applies to "core" as a prose shell name, not to the package path. "Kernel invariants" renamed **harness invariants** (spec §14.1). The former exempt compound "kernel card" is retired with the card (ADR-0006).
+
 
 **Plugin**:
-The innermost shell: target-defining policy. Declares packs, forms, and validators; composes at authoring time; receives harness capabilities by injection. Mostly policy — mechanism stays in the harness.
-_Avoid_: extension, pack (a pack is a unit _within_ a plugin)
+The innermost shell: target-defining policy, one per **target formalism** (`gherkin`, `sdcpn`) and never per domain — the domain is unknown when a conversation starts. Authored as one sectioned Markdown file under the fixed headings `Purpose · Kinds · Must know · Patterns · Moves · Deliverable`, plus the `project` / `validate` code operations (ADR-0006). Receives harness capabilities by injection; mechanism stays in the harness.
+_Avoid_: extension, pack (a pack is a unit _within_ a plugin), domain plugin, scenario plugin
 
 **Binding**:
 The substrate-facing adapter between harness and substrate: implements the harness's named substrate-capability list (tool registration, instruction assembly, persistent state, affordance emission, suspend-for-reply, private model call) in one substrate's dialect. One per substrate; the harness imports no substrate, a binding imports both. Bindings vary in size — each absorbs what its substrate lacks or forbids.
@@ -28,12 +29,16 @@ _Avoid_: adapter (generic), integration, wrapper
 
 ### Sessions & durability
 
-**Target-domain**:
-The artifact family being elicited — what a plugin defines (gherkin scenarios, assurance arguments, BPMN). The family half of the former bare "target".
-_Avoid_: target-paradigm; bare "target" where family/instance is ambiguous
+**Target formalism**:
+The artifact family a plugin projects into (Gherkin scenarios, SDCPNs, assurance arguments, BPMN) — the unit a plugin is written for (ADR-0006). The family half of the former bare "target".
+_Avoid_: target-domain (retired — "domain" now names the expert's operational system, below), target-paradigm; bare "target" where family/instance is ambiguous
+
+**Domain**:
+The operational system the expert knows and the model describes — a packaging line, a truck fleet, a coating plant. Unknown before the conversation starts and discovered during it; never a plugin unit, a heading, a row, or a noun in a plugin file.
+_Avoid_: target-domain, use case (as a synonym), scenario (a scenario is assembled from boundary conditions at simulation time)
 
 **Target-document**:
-The durable unit sessions attach to: one target-domain, its capture store, and its session history. Named by its purpose — its authoritative state is the capture store plus session logs, never the rendered artifact (renders are derived, cacheable, disposable). Endures independently of any session; never locks — completion is a derived status, not a write gate.
+The durable unit sessions attach to: one target formalism, its capture store, and its session history. Named by its purpose — its authoritative state is the capture store plus session logs, never the rendered artifact (renders are derived, cacheable, disposable). Endures independently of any session; never locks — completion is a derived status, not a write gate.
 _Avoid_: spec (as the unit name), workpiece, case, target-output
 
 **Session**:
@@ -71,7 +76,7 @@ _Avoid_: digest (brunch's form)
 ### Envelope & packs
 
 **Intermediate representation (IR)**:
-The elicited conceptual model a target-document accumulates — the middle of three registers (ADR-0003): typed **assertions** (active captures) are folded by a pure, plugin-declared fold into the **model** (the IR proper — node instances with slot states), which **projections** consume without rereading the transcript. Not a second store — the model is a derivation, recomputable from active captures at any time, never a persistence surface; the rendered artifact is one projection of the model, never the model itself. Defining a plugin's IR means writing its contract — model schema, proposal catalog, fold table, demand table (`docs/specs/plugin-contract.md`, provisional). An earlier definition read the capture set itself as the IR; ADR-0003 amends it.
+The elicited conceptual model a target-document accumulates — the middle of three registers (ADR-0003): typed **assertions** (active captures) are folded by a pure, plugin-declared fold into the **model** (the IR proper — node instances with slot states), which **projections** consume without rereading the transcript. Not a second store — the model is a derivation, recomputable from active captures at any time, never a persistence surface; the rendered artifact is one projection of the model, never the model itself. Defining a plugin's IR means writing its `Kinds` and `Must know` tables (ADR-0006); the fold derives from the kinds' slots. An earlier definition read the capture set itself as the IR (ADR-0003 amends it); a later provisional contract declared typed model-schema / proposal-catalog / fold-table / demand-table objects (ADR-0006 retires that form).
 _Avoid_: knowledge store, domain model (as a stored unit), staging area
 
 **Capture envelope**:
@@ -109,10 +114,23 @@ _Avoid_: advisory (a different thing, below)
 A computed, ephemeral, non-blocking fact the harness surfaces to the agent (unaccounted ask, unswept tail, world-moved delta). Never stored in the capture store; never gates anything.
 
 **Pack**:
-A unit within a plugin: **ElicitationPack** (kernel cards, completion contract, clarification hints) or **ProjectionPack** (`project` + `validate`, optional `reconcile`, annotated shapes, typed loss reports). Packs are shapes-to-fill plus behavioral guidance, per Principle v2.
+A unit within a plugin: **ElicitationPack** (the plugin file's `Purpose`, `Must know`, `Patterns`, `Moves`, and `Deliverable` sections) or **ProjectionPack** (`project` + `validate`, optional `reconcile`, annotated shapes, typed loss reports). Packs are shapes-to-fill plus behavioral guidance, per Principle v2.
+
+**Demand row**:
+One row of a plugin's `Must know` table: a slot on a kind, its required precision, whether "not applicable" is accepted, and why the model needs it. Kind-level only — every node of that kind discovered in conversation is checked against it (ADR-0006).
+_Avoid_: demand clause, scope expression, objective row
+
+**Pattern**:
+A discretionary, kind-indexed heuristic in a plugin's `Patterns` table: the model situation that triggers it and the question that resolves it. Surfaced by the harness when a node matches the trigger and the relevant slot is unsatisfied; the interviewer decides whether to use it. Never names a domain.
+_Avoid_: card, kernel card (retired — ADR-0006 replaced Detects/Goal/Questions/Artifacts cards with pattern rows), technique card
+
+**Runbook**:
+The `Moves` for one **job** a plugin supports (`construct`, `review and revise`): kickoff, trajectory, checks, and stopping, over the plugin's one `Kinds` / `Must know` set. A plugin carries one runbook per job.
+_Avoid_: mandate (as the unit name), mode, workflow
 
 **Kernel card**:
-The pack-content unit of elicitation guidance: Detects / Goal / contrastive Questions / Artifacts (brunch `BEHAVIORAL_KERNELS.md` lineage — "kernel" here names a small unit of behavioral guidance, not a shell; the compound is the glossary's one sanctioned "kernel" use). Splits by ownership: domain cards are plugin pack content; a harness-shipped **generic strategy quiver** (cards over envelope vocabulary — conflict, ambiguity, weak evidence) is named in spec §11.5, not designed.
+Retired (ADR-0006). The pack-content unit of elicitation guidance — Detects / Goal / contrastive Questions / Artifacts, brunch `BEHAVIORAL_KERNELS.md` lineage — is replaced by **pattern** rows in the plugin file; the harness-shipped **generic strategy quiver** named in spec §11.5 becomes harness-generic patterns lifted out of plugin files (FE-1406), still not designed.
+_Avoid_: card, kernel card (in new writing)
 
 **PluginContext**:
 The narrow injected context through which a plugin receives harness capabilities (the ask API, envelope, issue queue, sweep bookkeeping). The plugin's entire world at runtime; the four operations remain pure (snapshot-in/deltas-out) regardless.
