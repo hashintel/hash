@@ -35,12 +35,26 @@ const inspect =
 const targetDocumentIdFor = (conversationId: string): string =>
   `petrinaut-local:${conversationId}`;
 
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : null;
+
 const streamElicitorTurn = async (
   conversationId: string,
   dispatch: { readonly message: string; readonly idempotencyKey: string },
   emit: (event: HarnessReplyEvent) => void,
 ): Promise<void> => {
   const voiceTurnId = voiceExperimentDiagnostics.beginTurn(conversationId);
+  if (voiceTurnId) {
+    voiceExperimentDiagnostics.recordTranscript(conversationId, {
+      isPartial: false,
+      speaker: "expert",
+      transcript: dispatch.message,
+      turnId: voiceTurnId,
+    });
+  }
+  let assistantText = "";
   const agent = init(GherkinElicitor, { id: conversationId });
   const receipt = await agent.dispatch({
     ...dispatch,
@@ -49,12 +63,47 @@ const streamElicitorTurn = async (
   const projector = createFlueReplyProjector({
     submissionId: receipt.submissionId,
     emit: (event) => {
+      if (voiceTurnId && event.type === "part-delta" && event.kind === "text") {
+        assistantText += event.delta;
+        voiceExperimentDiagnostics.recordTranscript(conversationId, {
+          isPartial: true,
+          speaker: "assistant",
+          transcript: assistantText,
+          turnId: voiceTurnId,
+        });
+      }
+      if (
+        voiceTurnId &&
+        event.type === "part-end" &&
+        event.kind === "text" &&
+        assistantText
+      ) {
+        voiceExperimentDiagnostics.recordTranscript(conversationId, {
+          isPartial: false,
+          speaker: "assistant",
+          transcript: assistantText,
+          turnId: voiceTurnId,
+        });
+      }
       if (event.type === "tool-input") {
         voiceExperimentDiagnostics.recordToolCall(
           conversationId,
           voiceTurnId,
           event,
         );
+        const question = asRecord(event.input)?.question;
+        if (
+          voiceTurnId &&
+          event.toolName === "brunch_ask" &&
+          typeof question === "string"
+        ) {
+          voiceExperimentDiagnostics.recordTranscript(conversationId, {
+            isPartial: false,
+            speaker: "assistant",
+            transcript: question,
+            turnId: voiceTurnId,
+          });
+        }
       }
       emit(event);
     },

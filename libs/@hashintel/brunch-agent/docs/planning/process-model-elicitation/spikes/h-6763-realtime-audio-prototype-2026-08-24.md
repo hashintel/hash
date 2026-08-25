@@ -22,12 +22,28 @@ is materially better and the team explicitly accepts the demonstrated porting co
 ## Implementation progress
 
 - The shared, URL-selected shell is committed as `2903ed77bc98eeddc3c4fa3df95da7f9c11bcf2f`.
-- The OpenAI path now has a server-owned client-secret endpoint, WebRTC adapter, push-to-talk and
-  barge-in sequence, input/output transcripts, dummy tool handling, and idempotent resource cleanup.
+- The OpenAI path now has a server-owned client-secret endpoint, WebRTC adapter, semantic
+  `semantic_vad` (`eagerness: "low"`), input/output transcripts, dummy tool handling, and
+  idempotent resource cleanup. Start speaks the shared opening question, then each cycle opens the
+  microphone for one expert answer and mutes it while the interviewer responds. Semantic VAD, not
+  a browser commit, closes the expert side of each cycle.
 - The OpenAI code path does not call `/api/chat` and does not import or mutate Lu's Brunch session.
-- Automated endpoint and adapter coverage is in place. A credentialed microphone run is still
-  pending because this worktree has no `OPENAI_API_KEY` configured.
-- The ElevenLabs path remains deliberately unconnected until the next experiment slice.
+- The ElevenLabs path is connected: Speech Engine owns ASR, TTS, and expert endpointing;
+  finalized transcripts go through `BrunchVoiceBridge` into `/api/chat`. It speaks the same opening
+  question as OpenAI before the first expert answer, then alternates one finalized expert answer
+  with one interviewer response; the microphone is muted during Brunch latency and playback.
+  `voice:dev` enables that client override and applies `patient` / `turn_v3` / 10s timeout on the
+  Speech Engine resource, so this path is not still a hold-to-speak prototype. Revised provider
+  turns are serialized behind the interrupted request, and a pending `brunch_ask` is consumed only
+  after Brunch admits its answer.
+- The voice panel's conversation list is driven by the same events as OpenAI. Speech Engine does
+  not stream those events to the browser, so Brunch records the expert utterance and spoken
+  `brunch_ask` question on `/api/chat` and the adapter polls them. Client `user_transcript` copies
+  are ignored so they do not stack as extra Expert bubbles; consecutive expert revisions collapse
+  to one line. Updates appear after the turn (500ms poll), not as live STT partials.
+- Automated endpoint and adapter coverage is in place. Credentialed microphone runs of both
+  experiments remain the next comparison step. Restart the Brunch process on `4321` to pick up
+  transcript recording; restarting `voice:dev` alone is not enough.
 
 ## Accepted placement and boundaries
 
@@ -83,7 +99,8 @@ remaining work to satisfy H-6763.
 
 ## Prototype exclusions
 
-- Open-microphone VAD tuning beyond the explicit push-to-talk barge-in sequence
+- Custom open-microphone VAD of our own; providers own endpointing (`semantic_vad` / Speech Engine
+  `turn_v3`). Tuning beyond the checked-in patient/low settings waits on the comparison recordings.
 - Provider abstraction intended for production reuse
 - Durable transcript persistence
 - Live capture extraction from partial transcripts

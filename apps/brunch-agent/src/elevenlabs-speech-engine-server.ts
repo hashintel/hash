@@ -3,7 +3,10 @@ import { createServer } from "node:http";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
 import { BrunchVoiceBridge } from "./brunch-voice-bridge.ts";
-import { createElevenLabsSpeechEngineCallbacks } from "./elevenlabs-speech-engine.ts";
+import {
+  applySpeechEngineInterviewConfig,
+  createElevenLabsSpeechEngineCallbacks,
+} from "./elevenlabs-speech-engine.ts";
 
 const apiKey = process.env.ELEVENLABS_API_KEY;
 const speechEngineId = process.env.ELEVENLABS_SPEECH_ENGINE_ID;
@@ -26,6 +29,15 @@ const chatEndpoint = new URL("/api/chat", brunchChatOrigin).toString();
 const bridge = new BrunchVoiceBridge({ chatEndpoint });
 const callbacks = createElevenLabsSpeechEngineCallbacks({ bridge });
 const elevenLabs = new ElevenLabsClient({ apiKey });
+
+await applySpeechEngineInterviewConfig({
+  speechEngine: elevenLabs.speechEngine,
+  speechEngineId,
+});
+
+console.log(
+  "Applied Speech Engine interview config (opening message, patient turn_v3)",
+);
 
 const httpServer = createServer((request, response) => {
   if (request.method === "GET" && request.url === "/health") {

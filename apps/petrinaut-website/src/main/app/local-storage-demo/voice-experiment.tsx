@@ -15,6 +15,7 @@ import {
   voiceExperimentLabel,
 } from "./voice-experiment/voice-experiment-selection";
 
+import { getTranscriptEntries } from "./voice-experiment/transcript-entries";
 import type { VoiceExperimentAdapter } from "./voice-experiment/voice-experiment-adapter";
 import type { VoiceExperimentEvent } from "./voice-experiment/voice-experiment-events";
 
@@ -562,52 +563,6 @@ type LoggedEvent = {
   sequence: number;
 };
 
-type TranscriptEntry = {
-  id: number;
-  isPartial: boolean;
-  speaker: "assistant" | "expert";
-  transcript: string;
-  turnId: number;
-};
-
-const getTranscriptEntries = (events: LoggedEvent[]): TranscriptEntry[] => {
-  const entries: TranscriptEntry[] = [];
-  const partialEntryIndexes = new Map<string, number>();
-
-  for (const { event, sequence } of events) {
-    if (
-      event.type === "partial-transcript" ||
-      event.type === "final-transcript"
-    ) {
-      const partialKey = `${event.turnId}:${event.speaker}`;
-      const partialEntryIndex = partialEntryIndexes.get(partialKey);
-      const entry: TranscriptEntry = {
-        id:
-          partialEntryIndex === undefined
-            ? sequence
-            : (entries[partialEntryIndex]?.id ?? sequence),
-        isPartial: event.type === "partial-transcript",
-        speaker: event.speaker,
-        transcript: event.transcript,
-        turnId: event.turnId,
-      };
-
-      if (partialEntryIndex === undefined) {
-        if (event.type === "partial-transcript") {
-          partialEntryIndexes.set(partialKey, entries.length);
-        }
-        entries.push(entry);
-      } else {
-        entries[partialEntryIndex] = entry;
-        if (event.type === "final-transcript") {
-          partialEntryIndexes.delete(partialKey);
-        }
-      }
-    }
-  }
-
-  return entries;
-};
 
 const getEventSummary = (event: VoiceExperimentEvent) => {
   if (event.type === "partial-transcript") {

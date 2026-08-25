@@ -117,9 +117,6 @@ export class BrunchVoiceBridge {
     const state = this.#sessions.get(conversationId) ?? {};
     this.#sessions.set(conversationId, state);
     const pendingAsk = state.pendingAsk;
-    // The answer is consumed when dispatched. A barge-in must not replay that
-    // same affordance after its previous response stream is cancelled.
-    state.pendingAsk = undefined;
 
     const brunchConversationId = `voice:${conversationId}`;
     const body = pendingAsk
@@ -168,9 +165,15 @@ export class BrunchVoiceBridge {
     if (!response.ok || !response.body) {
       throw new Error("Brunch could not answer the voice turn.");
     }
+    if (pendingAsk && state.pendingAsk === pendingAsk) {
+      // Receiving response headers means Brunch admitted the ask reply. Keep
+      // the correlation available when interruption aborts before admission.
+      state.pendingAsk = undefined;
+    }
 
     let assistantMessageId: string | null =
       pendingAsk?.assistantMessageId ?? null;
+    let spokenText = "";
     for await (const chunk of readUiMessageStream(response.body)) {
       if (chunk.type === "start") {
         assistantMessageId = stringProperty(chunk, "messageId");
@@ -180,6 +183,7 @@ export class BrunchVoiceBridge {
       if (chunk.type === "text-delta") {
         const delta = stringProperty(chunk, "delta");
         if (delta) {
+          spokenText += delta;
           yield delta;
         }
         continue;
@@ -197,7 +201,12 @@ export class BrunchVoiceBridge {
         state.pendingAsk = { assistantMessageId, input, toolCallId };
 
         const question = stringProperty(asRecord(input), "question");
-        if (question) {
+        if (
+          question &&
+          !spokenText.trim().toLocaleLowerCase().endsWith(
+            question.trim().toLocaleLowerCase(),
+          )
+        ) {
           yield question;
         }
         continue;

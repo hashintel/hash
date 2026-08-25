@@ -1,5 +1,6 @@
 import type { VoiceExperimentAdapter } from "./voice-experiment-adapter";
 import type { VoiceExperimentEvent } from "./voice-experiment-events";
+import { interviewOpeningQuestion } from "./interview-opening";
 
 const TOKEN_ENDPOINT = "/api/voice-experiment/elevenlabs-conversation-token";
 const DIAGNOSTICS_ENDPOINT =
@@ -14,6 +15,11 @@ type ConversationControl = {
 type SessionOptions = {
   connectionType: "webrtc";
   conversationToken: string;
+  overrides: {
+    agent: {
+      firstMessage: string;
+    };
+  };
   onConnect(event: { conversationId: string }): void;
   onConversationCreated(conversation: ConversationControl): void;
   onDisconnect(details: { reason: string }): void;
@@ -80,6 +86,45 @@ const boundedDiagnosticText = (value: unknown, limit: number): string => {
   return sanitized.replace(/\s+/gu, " ").trim().slice(0, limit);
 };
 
+const parseTranscriptDiagnostic = (
+  value: unknown,
+):
+  | ({ sequence: number } & Extract<
+      VoiceExperimentEvent,
+      { type: "final-transcript" | "partial-transcript" }
+    >)
+    | null => {
+  const record = asRecord(value);
+  const sequence = record?.sequence;
+  const timestampMs = record?.timestampMs;
+  const turnId = record?.turnId;
+  const type = getString(record, "type");
+  const speaker = getString(record, "speaker");
+  const transcript = boundedDiagnosticText(record?.transcript, 4_000);
+  if (
+    !Number.isSafeInteger(sequence) ||
+    Number(sequence) < 1 ||
+    typeof timestampMs !== "number" ||
+    !Number.isFinite(timestampMs) ||
+    !Number.isSafeInteger(turnId) ||
+    Number(turnId) < 1 ||
+    (type !== "final-transcript" && type !== "partial-transcript") ||
+    (speaker !== "assistant" && speaker !== "expert") ||
+    !transcript
+  ) {
+    return null;
+  }
+
+  return {
+    sequence: Number(sequence),
+    speaker,
+    timestampMs,
+    transcript,
+    turnId: Number(turnId),
+    type,
+  };
+};
+
 const parseToolDiagnostic = (
   value: unknown,
 ):
@@ -120,6 +165,16 @@ const parseToolDiagnostic = (
   };
 };
 
+const parseDiagnosticEvent = (
+  value: unknown,
+):
+  | ({ sequence: number } & Extract<
+      VoiceExperimentEvent,
+      | { type: "final-transcript" | "partial-transcript" }
+      | { type: "tool-called" }
+    >)
+  | null => parseTranscriptDiagnostic(value) ?? parseToolDiagnostic(value);
+
 class ElevenLabsAdapter implements VoiceExperimentAdapter {
   readonly #dependencies: ElevenLabsAdapterDependencies;
   readonly #listeners = new Set<(event: VoiceExperimentEvent) => void>();
@@ -133,7 +188,11 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
     null;
   #diagnosticPollInFlight = false;
   #disposed = false;
+  #hasEmittedOpeningQuestion = false;
   #hasConnected = false;
+  #isListening = false;
+  #isMicrophoneMuted = true;
+  #providerMode: "listening" | "speaking" = "listening";
   #responseInProgress = false;
   #turnId = 0;
 
@@ -151,6 +210,9 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
     // Re-arm an adapter that was disposed before it ever owned a session.
     if (this.#disposed && !this.#hasConnected) {
       this.#disposed = false;
+      this.#hasEmittedOpeningQuestion = false;
+      this.#isListening = false;
+      this.#providerMode = "listening";
     }
     if (this.#connected) {
       return;
@@ -166,10 +228,15 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
   }
 
   public async startTurn(): Promise<void> {
-    const conversation = this.#requireConversation();
+    this.#requireConversation();
+    if (this.#isListening) {
+      return;
+    }
+
+    this.#isListening = true;
     this.#turnId += 1;
-    this.#responseInProgress = false;
-    conversation.setMicMuted(false);
+    this.#responseInProgress = this.#providerMode === "speaking";
+    this.#setMicrophoneMuted(this.#providerMode === "speaking");
     this.#emit({
       timestampMs: this.#dependencies.now(),
       turnId: this.#turnId,
@@ -178,7 +245,8 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
   }
 
   public async finishTurn(): Promise<void> {
-    this.#requireConversation().setMicMuted(true);
+    // Start/stop owns the session; Speech Engine owns each spoken turn.
+    this.#requireConversation();
   }
 
   public async dispose(): Promise<void> {
@@ -187,6 +255,7 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
     }
     this.#disposed = true;
     this.#connected = false;
+    this.#isListening = false;
     this.#stopDiagnosticsPolling();
     const conversation = this.#conversation;
     this.#conversation = null;
@@ -255,6 +324,7 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
       if (this.#conversation !== createdConversation) {
         this.#conversation = createdConversation;
         createdConversation.setMicMuted(true);
+        this.#isMicrophoneMuted = true;
       }
       markReadyIfConnected();
     };
@@ -262,6 +332,11 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
     const conversation = await this.#dependencies.startSession({
       connectionType: "webrtc",
       conversationToken,
+      overrides: {
+        agent: {
+          firstMessage: interviewOpeningQuestion,
+        },
+      },
       onConnect: ({ conversationId }) => {
         if (this.#disposed) {
           return;
@@ -293,21 +368,24 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
         this.#responseInProgress = false;
       },
       onMessage: ({ message, role }) => {
-        if (!message.trim() || this.#disposed) {
+        if (role === "user" && message.trim() && !this.#disposed) {
+          // A finalized expert answer closes the listening window before the
+          // silent Brunch latency period, preventing a second admitted turn.
+          this.#setMicrophoneMuted(true);
           return;
         }
-        const turnId = Math.max(this.#turnId, 1);
-        if (role === "user") {
-          this.#emit({
-            speaker: "expert",
-            timestampMs: this.#dependencies.now(),
-            transcript: message,
-            turnId,
-            type: "final-transcript",
-          });
+        if (
+          this.#disposed ||
+          role !== "agent" ||
+          this.#hasEmittedOpeningQuestion ||
+          !message.trim()
+        ) {
           return;
         }
 
+        this.#setMicrophoneMuted(true);
+        this.#hasEmittedOpeningQuestion = true;
+        const turnId = Math.max(this.#turnId, 1);
         this.#emitResponseStarted(turnId);
         this.#emit({
           speaker: "assistant",
@@ -325,8 +403,12 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
         this.#responseInProgress = false;
       },
       onModeChange: ({ mode }) => {
+        this.#providerMode = mode;
         if (mode === "speaking" && !this.#disposed) {
+          this.#setMicrophoneMuted(true);
           this.#emitResponseStarted(Math.max(this.#turnId, 1));
+        } else if (mode === "listening" && this.#isListening) {
+          this.#setMicrophoneMuted(false);
         }
       },
     });
@@ -398,12 +480,34 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
         return;
       }
       for (const value of body.events) {
-        const diagnostic = parseToolDiagnostic(value);
+        const diagnostic = parseDiagnosticEvent(value);
         if (!diagnostic || diagnostic.sequence <= this.#diagnosticCursor) {
           continue;
         }
         this.#diagnosticCursor = diagnostic.sequence;
         const { sequence: _sequence, ...event } = diagnostic;
+        if (
+          event.type === "partial-transcript" ||
+          event.type === "final-transcript"
+        ) {
+          if (event.speaker === "assistant") {
+            this.#emitResponseStarted(event.turnId);
+          }
+          this.#emit(event);
+          if (
+            event.type === "final-transcript" &&
+            event.speaker === "assistant"
+          ) {
+            this.#emit({
+              responseText: event.transcript,
+              timestampMs: event.timestampMs,
+              turnId: event.turnId,
+              type: "response-completed",
+            });
+            this.#responseInProgress = false;
+          }
+          continue;
+        }
         this.#emit(event);
       }
     } catch {
@@ -418,6 +522,14 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
       throw new Error("The ElevenLabs voice session is not connected.");
     }
     return this.#conversation;
+  }
+
+  #setMicrophoneMuted(isMuted: boolean): void {
+    if (!this.#conversation || this.#isMicrophoneMuted === isMuted) {
+      return;
+    }
+    this.#conversation.setMicMuted(isMuted);
+    this.#isMicrophoneMuted = isMuted;
   }
 
   #emit(event: VoiceExperimentEvent): void {

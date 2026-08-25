@@ -121,7 +121,7 @@ describe("OpenAIRealtimeAdapter", () => {
     expect(harness.events).toEqual([{ timestampMs: 1_001, type: "connected" }]);
   });
 
-  test("implements the documented WebRTC push-to-talk sequence", async () => {
+  test("opens with one interviewer question and leaves semantic VAD in control", async () => {
     const harness = createHarness();
     await harness.adapter.connect();
 
@@ -130,6 +130,13 @@ describe("OpenAIRealtimeAdapter", () => {
     expect(harness.microphoneTrack.enabled).toBe(true);
     expect(harness.dataChannel.sent).toEqual([
       { type: "input_audio_buffer.clear" },
+      {
+        type: "response.create",
+        response: {
+          instructions:
+            'Say exactly: "Hi—what process would you like us to model today?" Do not call a tool.',
+        },
+      },
     ]);
     expect(harness.events.at(-1)).toEqual({
       timestampMs: 1_002,
@@ -138,12 +145,18 @@ describe("OpenAIRealtimeAdapter", () => {
     });
 
     await harness.adapter.finishTurn();
+    await harness.adapter.startTurn();
 
-    expect(harness.microphoneTrack.enabled).toBe(false);
+    expect(harness.microphoneTrack.enabled).toBe(true);
     expect(harness.dataChannel.sent).toEqual([
       { type: "input_audio_buffer.clear" },
-      { type: "input_audio_buffer.commit" },
-      { type: "response.create" },
+      {
+        type: "response.create",
+        response: {
+          instructions:
+            'Say exactly: "Hi—what process would you like us to model today?" Do not call a tool.',
+        },
+      },
     ]);
   });
 
@@ -151,7 +164,6 @@ describe("OpenAIRealtimeAdapter", () => {
     const harness = createHarness();
     await harness.adapter.connect();
     await harness.adapter.startTurn();
-    await harness.adapter.finishTurn();
 
     harness.dataChannel.receive({
       type: "input_audio_buffer.committed",
@@ -212,7 +224,32 @@ describe("OpenAIRealtimeAdapter", () => {
     });
   });
 
-  test("keeps the microphone open while server VAD creates distinct turns", async () => {
+  test("listens only between interviewer responses", async () => {
+    const harness = createHarness();
+    await harness.adapter.connect();
+    await harness.adapter.startTurn();
+
+    expect(harness.microphoneTrack.enabled).toBe(true);
+    harness.dataChannel.receive({
+      type: "input_audio_buffer.committed",
+      item_id: "expert-answer",
+    });
+    expect(harness.microphoneTrack.enabled).toBe(false);
+
+    harness.dataChannel.receive({
+      type: "response.created",
+      response: { id: "opening-response" },
+    });
+    expect(harness.microphoneTrack.enabled).toBe(false);
+
+    harness.dataChannel.receive({
+      type: "response.done",
+      response: { id: "opening-response", output: [], status: "completed" },
+    });
+    expect(harness.microphoneTrack.enabled).toBe(true);
+  });
+
+  test("reopens the microphone as server VAD creates distinct expert turns", async () => {
     const harness = createHarness();
     await harness.adapter.connect();
     await harness.adapter.startTurn();
@@ -241,9 +278,16 @@ describe("OpenAIRealtimeAdapter", () => {
       transcript: "Then the incident owner takes over.",
     });
 
-    expect(harness.microphoneTrack.enabled).toBe(true);
+    expect(harness.microphoneTrack.enabled).toBe(false);
     expect(harness.dataChannel.sent).toEqual([
       { type: "input_audio_buffer.clear" },
+      {
+        type: "response.create",
+        response: {
+          instructions:
+            'Say exactly: "Hi—what process would you like us to model today?" Do not call a tool.',
+        },
+      },
     ]);
     expect(harness.events).toContainEqual({
       speaker: "expert",
@@ -261,11 +305,77 @@ describe("OpenAIRealtimeAdapter", () => {
     });
   });
 
+  test("completes a cancelled response on its original turn", async () => {
+    const harness = createHarness();
+    await harness.adapter.connect();
+    await harness.adapter.startTurn();
+
+    harness.dataChannel.receive({
+      type: "response.created",
+      response: { id: "response-1" },
+    });
+    harness.dataChannel.receive({
+      type: "input_audio_buffer.committed",
+      item_id: "expert-item-1",
+    });
+    harness.dataChannel.receive({
+      type: "input_audio_buffer.committed",
+      item_id: "expert-item-2",
+    });
+    harness.dataChannel.receive({
+      type: "response.done",
+      response: { id: "response-1", status: "cancelled" },
+    });
+
+    expect(harness.events.at(-1)).toEqual({
+      timestampMs: 1_004,
+      turnId: 1,
+      type: "response-completed",
+    });
+  });
+
+  test("keeps late assistant transcript events on their response turn", async () => {
+    const harness = createHarness();
+    await harness.adapter.connect();
+    await harness.adapter.startTurn();
+
+    harness.dataChannel.receive({
+      type: "response.created",
+      response: { id: "response-1" },
+    });
+    harness.dataChannel.receive({
+      type: "response.output_item.added",
+      response_id: "response-1",
+      item: { id: "assistant-item-1" },
+    });
+    harness.dataChannel.receive({
+      type: "input_audio_buffer.committed",
+      item_id: "expert-item-1",
+    });
+    harness.dataChannel.receive({
+      type: "input_audio_buffer.committed",
+      item_id: "expert-item-2",
+    });
+    harness.dataChannel.receive({
+      type: "response.output_audio_transcript.delta",
+      response_id: "response-1",
+      item_id: "assistant-item-1",
+      delta: "Interrupted question",
+    });
+
+    expect(harness.events.at(-1)).toEqual({
+      speaker: "assistant",
+      timestampMs: 1_004,
+      transcript: "Interrupted question",
+      turnId: 1,
+      type: "partial-transcript",
+    });
+  });
+
   test("executes only dummy tools and continues the same turn", async () => {
     const harness = createHarness();
     await harness.adapter.connect();
     await harness.adapter.startTurn();
-    await harness.adapter.finishTurn();
     harness.dataChannel.receive({ type: "response.created" });
 
     harness.dataChannel.receive({
@@ -359,7 +469,7 @@ describe("OpenAIRealtimeAdapter", () => {
     });
   });
 
-  test("cancels response audio when the expert barges in", async () => {
+  test("does not manually commit or recreate turns while the mic is open", async () => {
     const harness = createHarness();
     await harness.adapter.connect();
     await harness.adapter.startTurn();
@@ -368,11 +478,17 @@ describe("OpenAIRealtimeAdapter", () => {
 
     await harness.adapter.startTurn();
 
-    expect(harness.dataChannel.sent.slice(-3)).toEqual([
+    expect(harness.dataChannel.sent).toEqual([
       { type: "input_audio_buffer.clear" },
-      { type: "response.cancel" },
-      { type: "output_audio_buffer.clear" },
+      {
+        type: "response.create",
+        response: {
+          instructions:
+            'Say exactly: "Hi—what process would you like us to model today?" Do not call a tool.',
+        },
+      },
     ]);
+    expect(harness.microphoneTrack.enabled).toBe(false);
   });
 
   test("releases media, playback, and connection resources idempotently", async () => {

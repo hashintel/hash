@@ -155,6 +155,109 @@ describe("BrunchVoiceBridge", () => {
     });
   });
 
+  test("retains a pending ask when interruption happens before admission", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        sseResponse(
+          { type: "start", messageId: "assistant-ask" },
+          {
+            type: "tool-input-available",
+            toolCallId: "tool-call-1",
+            toolName: "brunch_ask",
+            input: { question: "Who owns the first response?" },
+          },
+        ),
+      )
+      .mockRejectedValueOnce(new DOMException("Interrupted", "AbortError"))
+      .mockResolvedValueOnce(
+        sseResponse(
+          { type: "start", messageId: "assistant-ask" },
+          { type: "text-delta", id: "text-2", delta: "Understood." },
+        ),
+      );
+    const bridge = new BrunchVoiceBridge({
+      chatEndpoint: "http://127.0.0.1:4321/api/chat",
+      createId: () => "generated-user-message",
+      fetch,
+    });
+
+    await collect(
+      bridge.respond({
+        conversationId: "conv_elevenlabs",
+        signal: new AbortController().signal,
+        transcript: "Help me model our escalation process.",
+      }),
+    );
+    await expect(
+      collect(
+        bridge.respond({
+          conversationId: "conv_elevenlabs",
+          signal: AbortSignal.abort(),
+          transcript: "The support lead.",
+        }),
+      ),
+    ).rejects.toThrow("Interrupted");
+    await collect(
+      bridge.respond({
+        conversationId: "conv_elevenlabs",
+        signal: new AbortController().signal,
+        transcript: "The support lead.",
+      }),
+    );
+
+    for (const callIndex of [1, 2]) {
+      const [, request] = fetch.mock.calls[callIndex] as [string, RequestInit];
+      expect(JSON.parse(request.body as string)).toMatchObject({
+        id: "voice:conv_elevenlabs",
+        messageId: "assistant-ask",
+        messages: [
+          {
+            parts: [
+              {
+                toolCallId: "tool-call-1",
+                output: { answer: "The support lead." },
+              },
+            ],
+          },
+        ],
+      });
+    }
+  });
+
+  test("does not speak an ask question twice when text already ends with it", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      sseResponse(
+        { type: "start", messageId: "assistant-ask" },
+        {
+          type: "text-delta",
+          id: "text-1",
+          delta: "Thanks. Who owns triage?",
+        },
+        {
+          type: "tool-input-available",
+          toolCallId: "tool-call-1",
+          toolName: "brunch_ask",
+          input: { question: "Who owns triage?" },
+        },
+      ),
+    );
+    const bridge = new BrunchVoiceBridge({
+      chatEndpoint: "http://127.0.0.1:4321/api/chat",
+      fetch,
+    });
+
+    await expect(
+      collect(
+        bridge.respond({
+          conversationId: "conv_elevenlabs",
+          signal: new AbortController().signal,
+          transcript: "The support lead.",
+        }),
+      ),
+    ).resolves.toBe("Thanks. Who owns triage?");
+  });
+
   test("forgets provider history and keeps sessions isolated", async () => {
     const fetch = vi
       .fn()

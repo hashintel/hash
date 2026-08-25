@@ -65,6 +65,159 @@ describe("voice experiment diagnostics", () => {
     expect(serialized.length).toBeLessThan(900);
   });
 
+  test("exposes coalesced transcript events for the voice panel", async () => {
+    const diagnostics = new VoiceExperimentDiagnostics({ now: () => 3_000 });
+    const turnId = diagnostics.beginTurn("voice:conv_transcript");
+
+    diagnostics.recordTranscript("voice:conv_transcript", {
+      isPartial: false,
+      speaker: "expert",
+      transcript: "The support lead owns triage.",
+      turnId,
+    });
+    diagnostics.recordTranscript("voice:conv_transcript", {
+      isPartial: true,
+      speaker: "assistant",
+      transcript: "Who ",
+      turnId,
+    });
+    diagnostics.recordTranscript("voice:conv_transcript", {
+      isPartial: true,
+      speaker: "assistant",
+      transcript: "Who owns triage?",
+      turnId,
+    });
+    diagnostics.recordTranscript("voice:conv_transcript", {
+      isPartial: false,
+      speaker: "assistant",
+      transcript: "Who owns triage?",
+      turnId,
+    });
+
+    const handler = createVoiceExperimentDiagnosticsHandler(diagnostics);
+    const response = await handler(
+      new Request(`${DIAGNOSTICS_URL}?conversationId=conv_transcript`, {
+        headers: { "x-voice-experiment": "elevenlabs-brunch" },
+      }),
+    );
+    const body = (await response.json()) as { events: unknown[] };
+
+    expect(body.events).toEqual([
+      {
+        sequence: 1,
+        speaker: "expert",
+        timestampMs: 3_000,
+        transcript: "The support lead owns triage.",
+        turnId: 1,
+        type: "final-transcript",
+      },
+      {
+        sequence: 3,
+        speaker: "assistant",
+        timestampMs: 3_000,
+        transcript: "Who owns triage?",
+        turnId: 1,
+        type: "final-transcript",
+      },
+    ]);
+  });
+
+  test("records the expert utterance and spoken brunch_ask question", async () => {
+    const diagnostics = new VoiceExperimentDiagnostics({ now: () => 4_000 });
+    const turnId = diagnostics.beginTurn("voice:conv_ask");
+    diagnostics.recordTranscript("voice:conv_ask", {
+      isPartial: false,
+      speaker: "expert",
+      transcript: "The support lead owns triage.",
+      turnId,
+    });
+    diagnostics.recordToolCall("voice:conv_ask", turnId, {
+      input: { question: "Who owns the next handoff?" },
+      toolCallId: "call_ask",
+      toolName: "brunch_ask",
+    });
+    diagnostics.recordTranscript("voice:conv_ask", {
+      isPartial: false,
+      speaker: "assistant",
+      transcript: "Who owns the next handoff?",
+      turnId,
+    });
+
+    expect(diagnostics.read("conv_ask", 0)).toEqual([
+      {
+        sequence: 1,
+        speaker: "expert",
+        timestampMs: 4_000,
+        transcript: "The support lead owns triage.",
+        turnId: 1,
+        type: "final-transcript",
+      },
+      {
+        argumentSummary: "Question: Who owns the next handoff?",
+        callId: "call_ask",
+        sequence: 2,
+        timestampMs: 4_000,
+        toolName: "brunch_ask",
+        turnId: 1,
+      },
+      {
+        sequence: 3,
+        speaker: "assistant",
+        timestampMs: 4_000,
+        transcript: "Who owns the next handoff?",
+        turnId: 1,
+        type: "final-transcript",
+      },
+    ]);
+  });
+
+  test("collapses aborted expert retries onto one transcript line", () => {
+    const diagnostics = new VoiceExperimentDiagnostics({ now: () => 5_000 });
+    diagnostics.recordTranscript("voice:conv_retry", {
+      isPartial: false,
+      speaker: "expert",
+      transcript: "Test elicitation.",
+      turnId: diagnostics.beginTurn("voice:conv_retry"),
+    });
+    diagnostics.recordTranscript("voice:conv_retry", {
+      isPartial: false,
+      speaker: "expert",
+      transcript: "Test, elicitation, one, two, three.",
+      turnId: diagnostics.beginTurn("voice:conv_retry"),
+    });
+    diagnostics.recordTranscript("voice:conv_retry", {
+      isPartial: false,
+      speaker: "expert",
+      transcript: "Test, elicitation, one, two, three.",
+      turnId: diagnostics.beginTurn("voice:conv_retry"),
+    });
+    diagnostics.recordTranscript("voice:conv_retry", {
+      isPartial: false,
+      speaker: "assistant",
+      transcript: "What process are we modelling?",
+      turnId: 3,
+    });
+
+    expect(diagnostics.read("conv_retry", 0)).toEqual([
+      {
+        sequence: 2,
+        speaker: "expert",
+        timestampMs: 5_000,
+        transcript: "Test, elicitation, one, two, three.",
+        turnId: 2,
+        type: "final-transcript",
+      },
+      {
+        sequence: 3,
+        speaker: "assistant",
+        timestampMs: 5_000,
+        transcript: "What process are we modelling?",
+        turnId: 3,
+        type: "final-transcript",
+      },
+    ]);
+  });
+
   test("isolates sessions, supports cursors, and rejects untrusted queries", async () => {
     const diagnostics = new VoiceExperimentDiagnostics({ now: () => 2_000 });
     diagnostics.recordToolCall(

@@ -144,6 +144,12 @@ describe("ElevenLabsAdapter", () => {
       expect.objectContaining({
         connectionType: "webrtc",
         conversationToken: "short-lived-token",
+        overrides: {
+          agent: {
+            firstMessage:
+              "Hi—what process would you like us to model today?",
+          },
+        },
       }),
     );
     expect(harness.conversation.setMicMuted).toHaveBeenCalledWith(true);
@@ -164,17 +170,17 @@ describe("ElevenLabsAdapter", () => {
     });
   });
 
-  test("uses microphone mute as the hold-to-speak boundary", async () => {
+  test("leaves the microphone open after the conversation starts", async () => {
     const harness = createHarness();
     await harness.adapter.connect();
 
     await harness.adapter.startTurn();
     await harness.adapter.finishTurn();
+    await harness.adapter.startTurn();
 
     expect(harness.conversation.setMicMuted.mock.calls).toEqual([
       [true],
       [false],
-      [true],
     ]);
     expect(harness.events.at(-1)).toEqual({
       timestampMs: 1_002,
@@ -183,49 +189,70 @@ describe("ElevenLabsAdapter", () => {
     });
   });
 
-  test("normalizes expert and Brunch response events", async () => {
+  test("does not open the mic over an opening question already playing", async () => {
+    const harness = createHarness();
+    await harness.adapter.connect();
+
+    harness.callbacks()?.onModeChange?.({ mode: "speaking" });
+    await harness.adapter.startTurn();
+
+    expect(harness.conversation.setMicMuted.mock.calls).toEqual([[true]]);
+
+    harness.callbacks()?.onModeChange?.({ mode: "listening" });
+    expect(harness.conversation.setMicMuted.mock.calls).toEqual([
+      [true],
+      [false],
+    ]);
+  });
+
+  test("shows only the client opening question before Brunch diagnostics", async () => {
     const harness = createHarness();
     await harness.adapter.connect();
     await harness.adapter.startTurn();
-    await harness.adapter.finishTurn();
 
-    harness.callbacks()?.onMessage?.({
-      event_id: 10,
-      message: "The support lead triages the escalation.",
-      role: "user",
-    });
     harness.callbacks()?.onModeChange?.({ mode: "speaking" });
     harness.callbacks()?.onMessage?.({
+      event_id: 10,
+      message: "Hi—what process would you like us to model today?",
+      role: "agent",
+    });
+    harness.callbacks()?.onModeChange?.({ mode: "listening" });
+    harness.callbacks()?.onMessage?.({
       event_id: 11,
-      message: "Who owns the next handoff?",
+      message: "Test elicitation.",
+      role: "user",
+    });
+    harness.callbacks()?.onMessage?.({
+      event_id: 12,
+      message: "This Brunch response arrives through diagnostics.",
       role: "agent",
     });
 
-    expect(harness.events).toContainEqual({
-      speaker: "expert",
-      timestampMs: 1_003,
-      transcript: "The support lead triages the escalation.",
-      turnId: 1,
-      type: "final-transcript",
-    });
-    expect(harness.events).toContainEqual({
-      timestampMs: 1_004,
-      turnId: 1,
-      type: "response-started",
-    });
-    expect(harness.events).toContainEqual({
-      speaker: "assistant",
-      timestampMs: 1_005,
-      transcript: "Who owns the next handoff?",
-      turnId: 1,
-      type: "final-transcript",
-    });
-    expect(harness.events).toContainEqual({
-      responseText: "Who owns the next handoff?",
-      timestampMs: 1_006,
-      turnId: 1,
-      type: "response-completed",
-    });
+    expect(harness.events).toEqual([
+      { timestampMs: 1_001, type: "connected" },
+      { timestampMs: 1_002, turnId: 1, type: "recording-started" },
+      { timestampMs: 1_003, turnId: 1, type: "response-started" },
+      {
+        speaker: "assistant",
+        timestampMs: 1_004,
+        transcript: "Hi—what process would you like us to model today?",
+        turnId: 1,
+        type: "final-transcript",
+      },
+      {
+        responseText: "Hi—what process would you like us to model today?",
+        timestampMs: 1_005,
+        turnId: 1,
+        type: "response-completed",
+      },
+    ]);
+    expect(harness.conversation.setMicMuted.mock.calls).toEqual([
+      [true],
+      [false],
+      [true],
+      [false],
+      [true],
+    ]);
   });
 
   test("polls normalized Brunch tool diagnostics for the provider conversation", async () => {
@@ -262,6 +289,53 @@ describe("ElevenLabsAdapter", () => {
 
     await harness.adapter.dispose();
     expect(harness.clearInterval).toHaveBeenCalledWith(17);
+  });
+
+  test("surfaces Speech Engine transcripts from diagnostics", async () => {
+    const harness = createHarness();
+    await harness.adapter.connect();
+
+    await harness.pollDiagnostics({
+      events: [
+        {
+          sequence: 1,
+          speaker: "expert",
+          timestampMs: 2_000,
+          transcript: "The support lead triages it.",
+          turnId: 1,
+          type: "final-transcript",
+        },
+        {
+          sequence: 2,
+          speaker: "assistant",
+          timestampMs: 2_100,
+          transcript: "Who owns the next handoff?",
+          turnId: 1,
+          type: "final-transcript",
+        },
+      ],
+    });
+
+    expect(harness.events).toContainEqual({
+      speaker: "expert",
+      timestampMs: 2_000,
+      transcript: "The support lead triages it.",
+      turnId: 1,
+      type: "final-transcript",
+    });
+    expect(harness.events).toContainEqual({
+      speaker: "assistant",
+      timestampMs: 2_100,
+      transcript: "Who owns the next handoff?",
+      turnId: 1,
+      type: "final-transcript",
+    });
+    expect(harness.events).toContainEqual({
+      responseText: "Who owns the next handoff?",
+      timestampMs: 2_100,
+      turnId: 1,
+      type: "response-completed",
+    });
   });
 
   test("releases ElevenLabs microphone, playback, and connection once", async () => {

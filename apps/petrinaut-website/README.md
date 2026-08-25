@@ -54,6 +54,9 @@ Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite
 The OpenAI voice experiment is available at
 `/?voiceExperiment=openai-realtime`. Its same-origin session endpoint returns only a short-lived
 client secret; model, prompt, transcription, and dummy-tool configuration are fixed on the server.
+Start opens with one short interviewer question, then opens the microphone for the answer. OpenAI
+semantic VAD owns the end of each expert answer; the browser mutes while the interviewer responds
+and reopens only when that response completes. The browser does not manually commit turns.
 
 ## ElevenLabs + Brunch voice experiment
 
@@ -61,7 +64,9 @@ The real-elicitor experiment is available at
 `/?voiceExperiment=elevenlabs-brunch`. ElevenLabs owns browser WebRTC, speech recognition,
 turn-taking, speech synthesis, playback, and interruption detection. The Speech Engine server
 forwards only the latest finalized expert transcript into Brunch's existing `/api/chat` transport;
-Brunch remains authoritative for the session and `brunch_ask` state.
+Brunch remains authoritative for the session and `brunch_ask` state. The conversation panel shows
+those Brunch-owned lines (expert utterance and spoken interviewer question) by polling diagnostics;
+it does not receive live Speech Engine STT the way OpenAI Realtime pushes partials over WebRTC.
 
 For local development:
 
@@ -78,8 +83,12 @@ For local development:
 
 The browser receives only a short-lived conversation token. The primary ElevenLabs key is used
 by the website token endpoint and the authenticated Speech Engine server, never by browser code.
-The first slice intentionally uses hold-to-speak; starting a new turn lets ElevenLabs interrupt
-playback and aborts the in-flight Brunch request through the SDK's `AbortSignal`.
+The shell uses the same opening question as OpenAI and starts once. Speech Engine owns expert
+endpointing (`patient` eagerness, `turn_v3`, 10s timeout), while the browser enforces interview
+alternation: it mutes after one finalized expert answer and reopens only after interviewer playback
+ends. `voice:dev` enables the client-supplied opening message and applies the turn config to the
+Speech Engine resource on startup. The server serializes revised provider turns and retains pending
+`brunch_ask` correlation when interruption happens before Brunch admits the answer.
 
 ## Testing the API against the built output
 

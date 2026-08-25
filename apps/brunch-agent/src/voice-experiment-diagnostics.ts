@@ -6,6 +6,7 @@ const MAX_SESSIONS = 100;
 const MAX_EVENTS_PER_SESSION = 50;
 const MAX_IDENTIFIER_CHARACTERS = 96;
 const MAX_SUMMARY_CHARACTERS = 240;
+const MAX_TRANSCRIPT_CHARACTERS = 4_000;
 const providerConversationIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 
 export type VoiceToolDiagnostic = {
@@ -17,8 +18,21 @@ export type VoiceToolDiagnostic = {
   readonly turnId: number;
 };
 
+export type VoiceTranscriptDiagnostic = {
+  readonly sequence: number;
+  readonly speaker: "assistant" | "expert";
+  readonly timestampMs: number;
+  readonly transcript: string;
+  readonly turnId: number;
+  readonly type: "final-transcript" | "partial-transcript";
+};
+
+export type VoiceDiagnosticEvent =
+  | VoiceToolDiagnostic
+  | VoiceTranscriptDiagnostic;
+
 type DiagnosticSession = {
-  events: VoiceToolDiagnostic[];
+  events: VoiceDiagnosticEvent[];
   nextSequence: number;
   nextTurnId: number;
 };
@@ -89,6 +103,63 @@ export class VoiceExperimentDiagnostics {
     const session = this.#sessionFor(conversationId);
     session.nextTurnId += 1;
     return session.nextTurnId;
+  }
+
+  public recordTranscript(
+    conversationId: string,
+    event: {
+      isPartial: boolean;
+      speaker: "assistant" | "expert";
+      transcript: string;
+      turnId: number;
+    },
+  ): void {
+    if (
+      !conversationId.startsWith(VOICE_CONVERSATION_PREFIX) ||
+      !Number.isSafeInteger(event.turnId) ||
+      event.turnId < 1
+    ) {
+      return;
+    }
+
+    const transcript = boundedText(event.transcript, MAX_TRANSCRIPT_CHARACTERS);
+    if (!transcript) {
+      return;
+    }
+
+    const session = this.#sessionFor(conversationId);
+    const type = event.isPartial ? "partial-transcript" : "final-transcript";
+    const last = session.events.at(-1);
+    if (last && "speaker" in last && last.speaker === event.speaker) {
+      if (last.transcript === transcript && last.type === type) {
+        return;
+      }
+
+      const keepSequence = last.type === "partial-transcript" && event.isPartial;
+      if (!keepSequence) {
+        session.nextSequence += 1;
+      }
+      session.events[session.events.length - 1] = {
+        sequence: keepSequence ? last.sequence : session.nextSequence,
+        speaker: event.speaker,
+        timestampMs: this.#dependencies.now(),
+        transcript,
+        turnId: event.turnId,
+        type,
+      };
+      return;
+    }
+
+    session.nextSequence += 1;
+    session.events.push({
+      sequence: session.nextSequence,
+      speaker: event.speaker,
+      timestampMs: this.#dependencies.now(),
+      transcript,
+      turnId: event.turnId,
+      type,
+    });
+    session.events = session.events.slice(-MAX_EVENTS_PER_SESSION);
   }
 
   public recordToolCall(
