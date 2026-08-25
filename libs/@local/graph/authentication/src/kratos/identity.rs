@@ -2,12 +2,11 @@
 
 use core::time::Duration;
 
-use error_stack::{Report, ResultExt as _};
-use reqwest::{Client, Url, redirect};
-use serde::Deserialize;
+use error_stack::Report;
+use reqwest::Url;
 use type_system::principal::actor::{ActorEntityUuid, UserId};
 
-use super::{MetadataPublic, read_response_body};
+use super::{KratosAdminClient, KratosAdminError};
 use crate::{
     actor::{ResolveActor, resolve_user_actor},
     cloudflare::ResolveEmailActor,
@@ -23,29 +22,13 @@ pub struct KratosAdminConfig {
     pub http_timeout: Duration,
 }
 
-/// Deserialized subset of a Kratos admin identity.
-#[derive(Deserialize)]
-struct AdminIdentity {
-    id: String,
-    metadata_public: Option<MetadataPublic>,
-    #[serde(default)]
-    verifiable_addresses: Vec<VerifiableAddress>,
-}
-
-#[derive(Deserialize)]
-struct VerifiableAddress {
-    value: String,
-    verified: bool,
-}
-
 /// Resolves verified email addresses to Graph actors via the Kratos admin API.
 ///
 /// Identities are looked up by credentials identifier. Only an identity whose matching address
 /// is verified resolves. The actor is read from the `graph_actor_id` field in the identity's
 /// `metadata_public` and checked to be an existing user actor in the principal store.
 pub struct KratosEmailActorResolver<R> {
-    http_client: Client,
-    identities_url: Url,
+    admin_client: KratosAdminClient,
     actor_resolver: R,
 }
 
@@ -58,52 +41,35 @@ impl<R> KratosEmailActorResolver<R> {
     /// the identities path.
     #[must_use]
     pub fn new(config: KratosAdminConfig, actor_resolver: R) -> Self {
-        let mut identities_url = config.kratos_admin_url;
-        identities_url
-            .path_segments_mut()
-            .expect("the Kratos admin URL should be a valid base URL")
-            .pop_if_empty()
-            .extend(["admin", "identities"]);
-
         Self {
-            // The identities endpoint never redirects. Following a redirect would forward the
-            // lookup to the redirect target.
-            http_client: Client::builder()
-                .timeout(config.http_timeout)
-                .redirect(redirect::Policy::none())
-                .build()
-                .expect("the HTTP client should build with default TLS configuration"),
-            identities_url,
+            admin_client: KratosAdminClient::new(config.kratos_admin_url, config.http_timeout),
             actor_resolver,
         }
     }
 }
 
+/// Restates an admin API failure as a failure to authenticate.
+fn authentication_error(report: Report<KratosAdminError>) -> Report<AuthenticationError> {
+    let context = match report.current_context() {
+        KratosAdminError::Rejected => AuthenticationError::ProviderRejection,
+        KratosAdminError::InvalidResponse => AuthenticationError::InvalidProviderResponse,
+        // An empty claim names no address to resolve, which is the token's fault rather than the
+        // provider's.
+        KratosAdminError::EmptyIdentifier => AuthenticationError::InvalidAccessToken,
+        KratosAdminError::Unreachable => AuthenticationError::ProviderUnreachable,
+    };
+    report.change_context(context)
+}
+
 /// Looks up the identity owning the given email as a verified address.
 async fn verified_identity(
-    http_client: &Client,
-    identities_url: &Url,
+    admin_client: &KratosAdminClient,
     email: &str,
 ) -> Result<ActorEntityUuid, Report<AuthenticationError>> {
-    let mut url = identities_url.clone();
-    url.query_pairs_mut()
-        .append_pair("credentials_identifier", email);
-
-    // The looked-up address travels in the query string, and a `reqwest::Error` renders the URL it
-    // failed on. Dropping the URL keeps the address out of the report, and therefore out of the
-    // logs and Sentry. The span already carries the base URL.
-    let response = http_client
-        .get(url)
-        .send()
+    let identities = admin_client
+        .list_by_credential(email)
         .await
-        .map_err(reqwest::Error::without_url)
-        .change_context(AuthenticationError::ProviderUnreachable)?;
-
-    let body = read_response_body(response).await?;
-    // An identity listing carries emails and traits, so it stays out of the report.
-    // Failure bodies are Kratos error responses without identity data.
-    let identities: Vec<AdminIdentity> =
-        serde_json::from_str(&body).change_context(AuthenticationError::InvalidProviderResponse)?;
+        .map_err(authentication_error)?;
 
     // A credentials-identifier lookup also returns identities whose matching address is still
     // unverified, so requiring `verified` here is what keeps an unverified address from
@@ -133,12 +99,16 @@ impl<R> ResolveEmailActor for KratosEmailActorResolver<R>
 where
     R: ResolveActor,
 {
-    #[tracing::instrument(level = "debug", skip_all, fields(identities_url = %self.identities_url))]
+    #[tracing::instrument(
+        level = "debug",
+        skip_all,
+        fields(identities_url = %self.admin_client.identities_url())
+    )]
     async fn resolve_email_actor(
         &self,
         email: &str,
     ) -> Result<UserId, Report<AuthenticationError>> {
-        let actor_uuid = verified_identity(&self.http_client, &self.identities_url, email).await?;
+        let actor_uuid = verified_identity(&self.admin_client, email).await?;
         resolve_user_actor(&self.actor_resolver, actor_uuid).await
     }
 }
@@ -271,6 +241,21 @@ mod tests {
             .expect("the email should resolve");
     }
 
+    /// Authentication never reads the traits, so a malformed traits object on a listed identity
+    /// must not fail the login.
+    #[tokio::test]
+    async fn malformed_traits_do_not_fail_authentication() {
+        let actor_id = random_actor();
+        let mut identity = identity_json(Some(actor_id), json!([verified_address(EMAIL)]));
+        identity["traits"] = json!({ "not-the-schema": true });
+        let resolver = resolver_for(json!([identity]), known_user(actor_id)).await;
+
+        resolver
+            .resolve_email_actor(EMAIL)
+            .await
+            .expect("a malformed traits object should not fail authentication");
+    }
+
     #[tokio::test]
     async fn verified_identity_resolves_over_unverified_match() {
         let actor_id = random_actor();
@@ -349,6 +334,33 @@ mod tests {
         assert!(
             expected(report.current_context()),
             "the email should fail resolution, got {:?}",
+            report.current_context()
+        );
+    }
+
+    /// Kratos reads an empty `credentials_identifier` as no filter and answers with every
+    /// identity, so an empty claim must not reach the lookup.
+    #[tokio::test]
+    async fn empty_email_is_rejected_before_the_lookup() {
+        let resolver = resolver_for(
+            json!([identity_json(
+                Some(case_actor()),
+                json!([verified_address("")])
+            )]),
+            known_user(case_actor()),
+        )
+        .await;
+
+        let report = resolver
+            .resolve_email_actor("")
+            .await
+            .expect_err("an empty email should be rejected");
+        assert!(
+            matches!(
+                report.current_context(),
+                AuthenticationError::InvalidAccessToken
+            ),
+            "an empty email should fail as an invalid token, got {:?}",
             report.current_context()
         );
     }

@@ -48,7 +48,7 @@ use hash_graph_postgres_store::store::PostgresStorePool;
 use hash_graph_store::{
     entity::{DeleteEntitiesParams, DeletionSummary, EntityStore as _},
     pool::StorePool as _,
-    user_deletion,
+    user_deletion::{self, UserDeletionError},
 };
 use hash_status::{Status, StatusCode};
 use serde::Deserialize as _;
@@ -66,9 +66,14 @@ use super::{
     status::{BoxedResponse, status_to_response},
 };
 use crate::{
-    email_subscription::MailchimpSubscriptionProvider, identity_provider::KratosIdentityProvider,
-    oauth_provider::HydraOAuthProvider, rest::status::report_to_response,
+    email_subscription::MailchimpSubscriptionProvider,
+    identity_provider::{EmailLookupError, KratosIdentityProvider},
+    oauth_provider::HydraOAuthProvider,
+    rest::status::report_to_response,
 };
+
+/// HTTP timeout for the Kratos admin client.
+const KRATOS_HTTP_TIMEOUT: core::time::Duration = core::time::Duration::from_secs(10);
 
 /// Configuration for external identity services passed to admin routes.
 #[derive(Debug, Clone)]
@@ -107,6 +112,7 @@ where
 
     let kratos = Arc::new(KratosIdentityProvider::new(
         external_services.kratos_admin_url.clone(),
+        KRATOS_HTTP_TIMEOUT,
     ));
 
     probe::router()
@@ -315,11 +321,18 @@ async fn delete_user(
     let (user_id, kratos_identity_id) = match request {
         DeleteUserRequest::ById { user_id } => (UserId::new(user_id), None),
         DeleteUserRequest::ByEmail { email } => {
-            tracing::info!(%email, "resolving user by email");
             let resolved = kratos
                 .find_user_by_email(&email)
                 .await
-                .map_err(report_to_response)?
+                .map_err(|report| {
+                    let code = match report.current_context() {
+                        EmailLookupError::EmptyEmail => StatusCode::InvalidArgument,
+                        EmailLookupError::NotProvisioned { .. }
+                        | EmailLookupError::AmbiguousEmail { .. } => StatusCode::FailedPrecondition,
+                        EmailLookupError::LookupFailed => StatusCode::Unavailable,
+                    };
+                    report_to_response(report.attach(code))
+                })?
                 .ok_or_else(|| {
                     report_to_response(
                         Report::new(AdminError::UserNotFound).attach(StatusCode::NotFound),
@@ -360,7 +373,22 @@ async fn delete_user(
         kratos_identity_id,
     )
     .await
-    .map_err(report_to_response)?;
+    .map_err(|report| {
+        // Only the fatal variants can reach this path; the non-fatal ones are collected into
+        // the outcome.
+        let code = match report.current_context() {
+            UserDeletionError::UserLookup => StatusCode::Unavailable,
+            UserDeletionError::MissingKratosIdentityId => StatusCode::FailedPrecondition,
+            UserDeletionError::EntityDeletion
+            | UserDeletionError::KratosDeletion
+            | UserDeletionError::UnknownIdentity
+            | UserDeletionError::HydraLoginRevocation
+            | UserDeletionError::HydraConsentRevocation
+            | UserDeletionError::EmailSubscription
+            | UserDeletionError::UnknownEmailAddresses => StatusCode::Internal,
+        };
+        report_to_response(report.attach(code))
+    })?;
 
     let message = if outcome.errors.is_ok() {
         "User deleted successfully"

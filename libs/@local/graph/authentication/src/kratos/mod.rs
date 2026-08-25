@@ -1,11 +1,13 @@
 //! Ory Kratos implementations of [`AuthenticationProvider`].
 //!
 //! [`KratosSessionProvider`] verifies end-user sessions against the public API and reads the Graph
-//! actor from the identity's `metadata_public`. This module carries the response handling and the
-//! metadata the Graph exchanges with an identity.
+//! actor from the identity's `metadata_public`. [`KratosAdminClient`] carries the transport for
+//! the admin identity API. This module carries the response handling and the metadata the Graph
+//! exchanges with an identity.
 //!
 //! [`AuthenticationProvider`]: crate::provider::AuthenticationProvider
 
+mod admin;
 mod identity;
 mod session;
 
@@ -15,6 +17,10 @@ use serde::Deserialize;
 use type_system::principal::actor::UserId;
 
 pub use self::{
+    admin::{
+        AdminIdentity, IdentityDeletion, IdentityRecord, IdentityTraits, KratosAdminClient,
+        KratosAdminError, VerifiableAddress,
+    },
     identity::{KratosAdminConfig, KratosEmailActorResolver},
     session::{
         KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME, SESSION_TOKEN_HEADER,
@@ -42,11 +48,74 @@ fn provider_response(status: reqwest::StatusCode, body: Result<String, reqwest::
     format!("provider response ({status}): {snippet}")
 }
 
-/// Reads the body of a successful Kratos response, mapping failure statuses to errors.
+/// How a Kratos response failed before its body could be used.
 ///
-/// Client errors report a provider rejection, any other unsuccessful status reports provider
-/// unavailability. Callers that treat individual client errors as a credential failure check for
-/// those before calling this.
+/// Both Kratos error vocabularies map from this classification, so a status class fails the same
+/// way on every path.
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+enum ProviderFailure {
+    /// Kratos rejected the request with a client error.
+    #[display("the provider rejected the request")]
+    Rejected,
+    /// Kratos redirected or answered with a server error.
+    ///
+    /// A body that cannot be read counts as unavailable as well: the transport failed mid-body.
+    #[display("the provider is unavailable")]
+    Unavailable,
+}
+
+/// Reads the body of a successful Kratos response, classifying failure statuses.
+///
+/// Failure bodies are attached to the report, truncated by [`provider_response`]. Callers that
+/// treat individual client errors as a credential failure check for those before calling this.
+///
+/// # Errors
+///
+/// - [`Rejected`] if Kratos reported a client error
+/// - [`Unavailable`] for any other unsuccessful status, or if the body cannot be read
+///
+/// [`Rejected`]: ProviderFailure::Rejected
+/// [`Unavailable`]: ProviderFailure::Unavailable
+async fn read_provider_body(response: Response) -> Result<String, Report<ProviderFailure>> {
+    let status = response.status();
+    if status.is_client_error() {
+        return Err(Report::new(ProviderFailure::Rejected)
+            .attach(provider_response(status, response.text().await)));
+    }
+    if !status.is_success() {
+        // A redirect reaches here because the redirect policy is disabled. Its body is usually
+        // empty, so the target is what identifies the answering endpoint. The target is echoed
+        // by the server, and a canonicalizing redirect carries the request's query string —
+        // which holds the looked-up address — so only the origin and path survive.
+        let redirect_target = response
+            .headers()
+            .get(reqwest::header::LOCATION)
+            .and_then(|target| target.to_str().ok())
+            .and_then(|target| reqwest::Url::parse(target).ok())
+            .map(|mut target| {
+                target.set_query(None);
+                target.set_fragment(None);
+                format!("redirect target: {target}")
+            });
+
+        let mut report = Report::new(ProviderFailure::Unavailable)
+            .attach(provider_response(status, response.text().await));
+        if let Some(redirect_target) = redirect_target {
+            report = report.attach(redirect_target);
+        }
+        return Err(report);
+    }
+
+    // A `reqwest::Error` renders the URL it failed on, and a lookup URL can carry the address it
+    // was looking up. The instrumented span already records the base URL.
+    response
+        .text()
+        .await
+        .map_err(reqwest::Error::without_url)
+        .change_context(ProviderFailure::Unavailable)
+}
+
+/// Reads a Kratos response body, restating a failure as an [`AuthenticationError`].
 ///
 /// # Errors
 ///
@@ -56,23 +125,13 @@ fn provider_response(status: reqwest::StatusCode, body: Result<String, reqwest::
 /// [`ProviderRejection`]: AuthenticationError::ProviderRejection
 /// [`ProviderUnreachable`]: AuthenticationError::ProviderUnreachable
 async fn read_response_body(response: Response) -> Result<String, Report<AuthenticationError>> {
-    let status = response.status();
-    if status.is_client_error() {
-        return Err(Report::new(AuthenticationError::ProviderRejection)
-            .attach(provider_response(status, response.text().await)));
-    }
-    if !status.is_success() {
-        return Err(Report::new(AuthenticationError::ProviderUnreachable)
-            .attach(provider_response(status, response.text().await)));
-    }
-
-    // A `reqwest::Error` renders the URL it failed on, and a lookup URL can carry the address it
-    // was looking up. The instrumented span already records the base URL.
-    response
-        .text()
-        .await
-        .map_err(reqwest::Error::without_url)
-        .change_context(AuthenticationError::ProviderUnreachable)
+    read_provider_body(response).await.map_err(|report| {
+        let context = match report.current_context() {
+            ProviderFailure::Rejected => AuthenticationError::ProviderRejection,
+            ProviderFailure::Unavailable => AuthenticationError::ProviderUnreachable,
+        };
+        report.change_context(context)
+    })
 }
 
 #[cfg(test)]
