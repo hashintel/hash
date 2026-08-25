@@ -87,6 +87,13 @@ jobs:
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
 
+      # `changeset publish` shells out to `npm publish`, which performs the OIDC trusted-publishing
+      # exchange only from npm 11.5.1 onwards. No Node 22 release bundles a version that new.
+      - name: Install npm with trusted publishing support
+        run: |
+          npm install -g --ignore-scripts npm@11.19.0
+          npm --version
+
       - name: Create Release Pull Request or Publish to npm
         uses: changesets/action@63a615b9cd06ba9a3e6d13796c7fbcb080a60a0b # v1.8.0
         with:
