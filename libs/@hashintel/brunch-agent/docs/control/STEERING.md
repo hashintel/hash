@@ -35,14 +35,14 @@ evaluation apparatus) are not worked until an epicentre needs them.
 
 | Epicentre | Gap | Issue |
 | --- | --- | --- |
-| **E1 — controller read path** | The harness writes captures and never reads them back: no fold to a model, no completion over objective slices, no sweep list, no cue to the next turn. The hollow centre between "captured facts" and "conducted an elicitation". | none yet — proposed new issue in `packages/core` |
+| **E1 — controller read path** | The harness writes captures and never reads them back: no fold to a model, no completion over objective slices, no sweep list, no cue to the next turn. The hollow centre between "captured facts" and "conducted an elicitation". | FE-1497 (gist: harness controller read path) |
 | **E2 — the SDCPN plugin in code** | The plugin file exists as a spec; nothing parses its three tables, folds captures onto its kinds, or projects from them. | FE-1482 (gist: CPS plugin, redefined as the skeleton epicentre) |
 | **E3 — targeted correction** | `supersedes` is unreachable from extraction; no affected-slice computation; no delta; the target-document is still identified with the conversation. | FE-1479 (targeted re-elicitation), FE-1478 (provenance read), FE-1439 (durable session / document boundary) |
 | **E4 — the real entry** | Client-tool results do not return to the elicitor; retry/abandonment semantics unproven; realization gated. | FE-1438, FE-1420, FE-1480 |
 
 ```text
 skeleton (construct job; proves the loop, produces fixtures)
-E1 controller read path -> FE-1482 plugin file + parser + fold
+FE-1497 controller read path -> FE-1482 plugin file + parser + fold
 -> FE-1404 skeleton run against the baseline simulated expert
 
 reviewer lane (review-and-revise job; the acceptance proof)
@@ -83,7 +83,7 @@ No hard blocker chain remains from the retired design queue.
 
 ### Active soft edges
 
-- E1 precedes FE-1482 only by the width of an interface: the fold and completion functions are
+- FE-1497 precedes FE-1482 only by the width of an interface: the fold and completion functions are
   harness code that the plugin's tables parameterise. Build them together on one branch if that is
   faster; do not design the interface before the first plugin exercises it.
 - FE-1420's idempotency and abandonment semantics precede FE-1438's external-tool protocol; FE-1439
@@ -102,7 +102,6 @@ The read-only Linear graph supplies mechanical availability, never priority.
 
 | Gate | Owner / source | Watch trigger | Last checked | Consequence |
 | --- | --- | --- | --- | --- |
-| Controller read path has no owner | E1; no Linear issue exists | An issue is created and a branch opened. | 2026-08-25 | Neither proof can start; the plugin file has nothing to run in. |
 | FE-1480 executable realization unavailable | FE-1438; [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | Client tools return code diagnostics to the elicitor. | 2026-08-25 | Scaffold work may proceed; no runnable FE-1480 proof until the gate opens. |
 | Final use case outstanding | Dora; FE-1476 / September Plan | Dora confirms or changes it. | 2026-08-25 | If creation is required, Proof 1 becomes acceptance-relevant rather than a harness proof; reconcile ADR-0004/proof. |
 | Truck-fleet dossier missing from the repository | FE-1382 is Done but its promised `docs/reference/research/` artifact is absent. | Artifact path/branch is supplied or a reviewed replacement is selected. | 2026-08-25 | The generality half of Proof 1 uses a fixture derived from the inbox truck SDCPN and Layer B's worked example; claim no dossier-backed domain provenance. |
@@ -113,7 +112,7 @@ The read-only Linear graph supplies mechanical availability, never priority.
 | --- | --- | --- |
 | Kind-level rows express the coatings case. | Medium-high; the twenty domain-keyed rows of the FE-1402 rehearsal collapse onto eight kind rows on paper. | Proof 1's first half. |
 | The truck-fleet case adds zero headings and zero rows. | Medium; Layer B was validated against it, but never through this file. | Proof 1's second half. |
-| The controller read path is small. | Medium; `evaluateCompletion` is ~10 invariants over a fold the store already supports. | Build E1; if it exceeds the plugin file in size, stop and look. |
+| The controller read path is small. | Medium; `evaluateCompletion` is nineteen invariants over a fold the store already supports. | Build E1; if it exceeds the plugin file in size, stop and look. |
 | Field-local code obligations support localized realization and repair. | Low-medium; the corpus and Petrinaut diagnostics are field-addressed, but no Brunch run exists. | Realize one stochastic transition without rewriting an unrelated field. |
 | Five turns yield a scoped correction. | Low; unrehearsed. The review-and-revise runbook in the plugin file is the first concrete trajectory. | Run two bounded rehearsals against a fixture model. |
 | Ask carries durable client-tool results. | Medium-low; machine results refused today. | Run one correlated FE-1438 round trip. |
@@ -160,4 +159,3 @@ The read-only Linear graph supplies mechanical availability, never priority.
 - **FE-1476** — September delivery root; intended parent is FE-1357.
 - **FE-1477–FE-1482** — PM-authored outcome roots; intended parent is FE-1476 after overlap review
   and separately approved Linear mutation.
-- **E1 controller read path** — no issue yet; the one new issue this replan proposes.
