@@ -10,7 +10,6 @@ export type TransitionEffect = {
   remove: Record<PlaceID, Set<number> | number>;
   /** One packed token byte block (strideBytes long) per new token. */
   add: Record<PlaceID, Uint8Array[]>;
-  newRngState: number;
 };
 
 export type MonteCarloRunState = {

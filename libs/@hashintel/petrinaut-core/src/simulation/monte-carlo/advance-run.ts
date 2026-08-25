@@ -61,19 +61,25 @@ export function advanceRun(run: MonteCarloRunState): boolean {
         throw new Error(`Compiled transition ${transitionId} not found`);
       }
 
-      const effect = computeTransitionEffect(run, workingFrame, transition);
-      if (!effect) {
+      const { firing, newRngState } = computeTransitionEffect(
+        run,
+        workingFrame,
+        transition,
+      );
+      // Every evaluation's randomness is consumed, fired or not — reusing
+      // the state would re-test the same draw next frame.
+      run.rngState = newRngState;
+      if (!firing) {
         continue;
       }
 
       firedTransitions.add(transitionId);
-      run.rngState = effect.newRngState;
       applyTokenRemovals(
         run.simulation.frameLayout,
         workingFrame,
-        effect.remove,
+        firing.remove,
       );
-      mergeTokenAdditions(tokensToAdd, effect.add);
+      mergeTokenAdditions(tokensToAdd, firing.add);
     }
 
     workingFrame = applyTokenAdditions(run, workingFrame, tokensToAdd);
