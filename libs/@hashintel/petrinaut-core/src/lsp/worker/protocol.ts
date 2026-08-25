@@ -13,7 +13,7 @@
  * upstream package directly.
  */
 import type { PetrinautExtensionSettings } from "../../extensions";
-import type { AdHocScenarioState } from "../../simulation/authoring/scenario/ad-hoc-scenario";
+import type { AdHocScenarioState } from "../../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import type { Scenario, ScenarioParameter, SDCPN } from "../../types/sdcpn";
 import type {
   Diagnostic,

@@ -13,7 +13,7 @@ import {
   type AdHocScenarioState,
   type AdHocSlot,
   type AdHocValue,
-} from "../../simulation/authoring/scenario/ad-hoc-scenario";
+} from "../../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../simulation/authoring/scenario/helpers";
 import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
 import { applyFormWrapper } from "./create-language-service-host";

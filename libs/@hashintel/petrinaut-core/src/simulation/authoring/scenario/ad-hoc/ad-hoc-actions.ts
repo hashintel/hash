@@ -18,7 +18,7 @@ import {
   unshareAdHocColumn,
 } from "./ad-hoc-scenario";
 
-import type { ColorElementType } from "../../../types/sdcpn";
+import type { ColorElementType } from "../../../../types/sdcpn";
 import type {
   AdHocColouredPlace,
   AdHocOptimizeSettings,
