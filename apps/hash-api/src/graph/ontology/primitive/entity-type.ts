@@ -72,6 +72,51 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
 };
 
 /**
+ * Check the requesting user's permissions on multiple entity types at once.
+ *
+ * Uses the bulk `hasPermissionForEntityTypes` check per action, so the number of
+ * graph calls is fixed regardless of how many entity types are passed.
+ */
+export const checkPermissionsOnEntityTypes: ImpureGraphFunction<
+  { entityTypeIds: VersionedUrl[] },
+  Promise<
+    { entityTypeId: VersionedUrl; permissions: UserPermissionsOnEntityType }[]
+  >
+> = async (graphContext, { actorId }, params) => {
+  const { entityTypeIds } = params;
+
+  if (entityTypeIds.length === 0) {
+    return [];
+  }
+
+  const isPublicUser = actorId === publicUserAccountId;
+
+  const [editableIds, instantiableIds] = isPublicUser
+    ? [new Set<VersionedUrl>(), new Set<VersionedUrl>()]
+    : await Promise.all([
+        hasPermissionForEntityTypes(
+          graphContext.graphApi,
+          { actorId },
+          { entityTypeIds, action: "updateEntityType" },
+        ).then((permitted) => new Set(permitted)),
+        hasPermissionForEntityTypes(
+          graphContext.graphApi,
+          { actorId },
+          { entityTypeIds, action: "instantiate" },
+        ).then((permitted) => new Set(permitted)),
+      ]);
+
+  return entityTypeIds.map((entityTypeId) => ({
+    entityTypeId,
+    permissions: {
+      edit: editableIds.has(entityTypeId),
+      instantiate: instantiableIds.has(entityTypeId),
+      view: true,
+    },
+  }));
+};
+
+/**
  * Create an entity type.
  *
  * @param params.webId - the id of the account who owns the entity type

@@ -15,6 +15,7 @@ import { OntologyFunctionsContext } from "./shared/ontology-functions-context";
 import { PropertyTypesOptionsContextProvider } from "./shared/property-types-options-context";
 import { ReadonlyContext } from "./shared/read-only-context";
 
+import type { EntityTypePermissions } from "./shared/entity-types-options-context";
 import type { EditorOntologyFunctions } from "./shared/ontology-functions-context";
 import type {
   DataType,
@@ -52,6 +53,9 @@ export type EntityTypeEditorProps = {
   entityType: EntityTypeWithMetadata;
   // The entity types available for (a) extending or (b) constraining the destination of a link, INCLUDING those used on this entity
   entityTypeOptions: Record<VersionedUrl, EntityTypeWithMetadata>;
+  // The requesting user's permissions on each entity type. When provided, types the
+  // user cannot instantiate are hidden as options for extending (adding as a parent).
+  entityTypePermissions?: Record<VersionedUrl, EntityTypePermissions>;
   // The property types available for assigning to an entity type or property type object, INCLUDING those used on this entity
   propertyTypeOptions: Record<VersionedUrl, PropertyTypeWithMetadata>;
   // functions for creating and updating types. Pass 'null' if not available (editor will be forced into readonly)
@@ -65,6 +69,7 @@ export const EntityTypeEditor = ({
   dataTypeOptions,
   entityType,
   entityTypeOptions,
+  entityTypePermissions,
   propertyTypeOptions,
   ontologyFunctions,
   readonly,
@@ -76,6 +81,7 @@ export const EntityTypeEditor = ({
           <OntologyFunctionsContext.Provider value={ontologyFunctions}>
             <EntityTypesOptionsContextProvider
               entityTypeOptions={entityTypeOptions}
+              entityTypePermissions={entityTypePermissions}
             >
               <PropertyTypesOptionsContextProvider
                 propertyTypeOptions={propertyTypeOptions}

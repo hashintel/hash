@@ -9,6 +9,7 @@ import {
 import {
   archiveEntityType,
   checkPermissionsOnEntityType,
+  checkPermissionsOnEntityTypes,
   createEntityType,
   unarchiveEntityType,
   updateEntityType,
@@ -17,12 +18,14 @@ import {
 import { graphQLContextToImpureGraphContext } from "../util";
 
 import type {
+  EntityTypePermissionsRecord,
   MutationArchiveEntityTypeArgs,
   MutationCreateEntityTypeArgs,
   MutationUnarchiveEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
   MutationUpdateEntityTypesArgs,
   QueryCheckUserPermissionsOnEntityTypeArgs,
+  QueryCheckUserPermissionsOnEntityTypesArgs,
   QueryGetClosedMultiEntityTypesArgs,
   QueryQueryEntityTypesArgs,
   QueryQueryEntityTypeSubgraphArgs,
@@ -152,6 +155,18 @@ export const checkUserPermissionsOnEntityTypeResolver: ResolverFn<
     { ...dataSources, provenance },
     authentication,
     params,
+  );
+
+export const checkUserPermissionsOnEntityTypesResolver: ResolverFn<
+  EntityTypePermissionsRecord[],
+  Record<string, never>,
+  GraphQLContext,
+  QueryCheckUserPermissionsOnEntityTypesArgs
+> = async (_, params, graphQLContext) =>
+  checkPermissionsOnEntityTypes(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    { entityTypeIds: params.entityTypeIds },
   );
 
 export const archiveEntityTypeResolver: ResolverFn<

@@ -13,9 +13,19 @@ export type EntityTypesByVersionedUrl = Record<
   VersionedUrl,
   EntityTypeWithMetadata
 >;
+
+export type EntityTypePermissions = {
+  edit: boolean;
+  instantiate: boolean;
+  view: boolean;
+};
+
 export type EntityTypesContextValue = {
   entityTypes: EntityTypesByVersionedUrl;
   linkTypes: EntityTypesByVersionedUrl;
+  // the requesting user's permissions on each entity type, keyed by entity type id.
+  // undefined when the consumer does not supply permission information.
+  entityTypePermissions?: Record<VersionedUrl, EntityTypePermissions>;
 };
 
 export const EntityTypesOptionsContext =
@@ -67,10 +77,17 @@ export const useEntityTypesOptionsContextValue = (
 export const EntityTypesOptionsContextProvider = ({
   children,
   entityTypeOptions,
+  entityTypePermissions,
 }: PropsWithChildren<{
   entityTypeOptions: Record<VersionedUrl, EntityTypeWithMetadata>;
+  entityTypePermissions?: Record<VersionedUrl, EntityTypePermissions>;
 }>) => {
-  const value = useEntityTypesOptionsContextValue(entityTypeOptions);
+  const typeValue = useEntityTypesOptionsContextValue(entityTypeOptions);
+
+  const value = useMemo(
+    () => ({ ...typeValue, entityTypePermissions }),
+    [typeValue, entityTypePermissions],
+  );
 
   return (
     <EntityTypesOptionsContext.Provider value={value}>
