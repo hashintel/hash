@@ -266,7 +266,7 @@ fn collect_referenced_tables(
     tables: &mut HashSet<TableName<'static>>,
 ) -> ControlFlow<Opaque> {
     expression.visit(&mut |node| {
-        if matches!(node, Expression::Select(_)) {
+        if matches!(node, Expression::Select(_) | Expression::Exists(_)) {
             return ControlFlow::Break(Opaque);
         }
         if let Expression::ColumnReference(column) = node
@@ -293,7 +293,7 @@ impl KeyColumns {
         key_tables: &HashSet<TableName<'static>>,
     ) -> ControlFlow<Opaque> {
         expression.visit(&mut |node| {
-            if matches!(node, Expression::Select(_)) {
+            if matches!(node, Expression::Select(_) | Expression::Exists(_)) {
                 return ControlFlow::Break(Opaque);
             }
             if let Expression::ColumnReference(column) = node
@@ -307,6 +307,45 @@ impl KeyColumns {
             }
             ControlFlow::Continue(())
         })
+    }
+}
+
+#[cfg(test)]
+mod collector_tests {
+    use std::collections::HashSet;
+
+    use super::{KeyColumns, collect_referenced_tables};
+    use crate::store::postgres::query::{
+        Expression, SelectExpression, SelectStatement, SimpleSelect,
+    };
+
+    fn subquery() -> SelectStatement {
+        SimpleSelect::builder()
+            .selects(vec![SelectExpression::new(Expression::Parameter(1))])
+            .build()
+            .into()
+    }
+
+    fn subqueries() -> [Expression; 2] {
+        [
+            Expression::Select(Box::new(subquery())),
+            Expression::exists(subquery()),
+        ]
+    }
+
+    #[test]
+    fn table_collector_rejects_subqueries() {
+        for expression in subqueries() {
+            assert!(collect_referenced_tables(&expression, &mut HashSet::new()).is_break());
+        }
+    }
+
+    #[test]
+    fn key_column_collector_rejects_subqueries() {
+        for expression in subqueries() {
+            let mut columns = KeyColumns::default();
+            assert!(columns.collect(&expression, &HashSet::new()).is_break());
+        }
     }
 }
 

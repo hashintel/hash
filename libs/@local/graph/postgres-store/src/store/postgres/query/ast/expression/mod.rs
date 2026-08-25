@@ -510,9 +510,9 @@ impl From<Constant> for Expression {
 /// Expression-tree traversal.
 ///
 /// Both visitors run in pre-order (the expression itself before its children) and do not descend
-/// into [`Expression::Select`] subqueries: statement-level structures own their traversal. A
-/// visitor with no answer for the tables hiding inside a subquery matches on the variant and
-/// breaks.
+/// into [`Expression::Select`] or [`Expression::Exists`] subqueries. Statement-level structures
+/// own their traversal. A visitor with no answer for the tables hiding inside a subquery matches
+/// on either variant and breaks.
 impl Expression {
     /// Calls `visitor` for this expression and every nested sub-expression, stopping at the first
     /// [`ControlFlow::Break`].
