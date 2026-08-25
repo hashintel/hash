@@ -102,6 +102,12 @@ const initialStateSpacerStyle = css({
   flex: "[1]",
 });
 
+// The inline form while a simulation is live: visible but inert and dimmed,
+// matching the panel's disabled inputs.
+const lockedFormStyle = css({
+  opacity: "[0.5]",
+});
+
 // Left column: the scenario picker and the parameters list share one width.
 const scenarioColumnStyle = css({
   display: "flex",
@@ -647,30 +653,38 @@ const SimulationSettingsContent: React.FC = () => {
               <div className={sectionTitleStyle}>Initial state</div>
               <HelpTooltip content="Token counts and values for this run, without saving a scenario. Every value is an expression and may read parameters.<name>." />
               <span className={initialStateSpacerStyle} />
-              {adHocScenario ? (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  tone="neutral"
-                  onClick={() => setAdHocScenario(null)}
-                >
-                  Clear
-                </Button>
-              ) : null}
+              <Button
+                size="xs"
+                variant="ghost"
+                tone="neutral"
+                disabled={adHocScenario === null || isSimulationActive}
+                onClick={() => setAdHocScenario(null)}
+              >
+                Clear
+              </Button>
             </div>
             <ParametersScrollArea>
-              <AdHocScenarioForm
-                state={adHocScenario ?? EMPTY_AD_HOC_STATE}
-                onChange={setAdHocScenario}
-                context={{
-                  netParameters: [],
-                  places,
-                  types: extensions.colors ? types : [],
-                }}
-                selection="none"
-                withVariables={false}
-                bare
-              />
+              {/* Like every input in this panel, the definition locks while
+                  a simulation is live — an edit would dispose the run. The
+                  scroll container stays interactive so the content can still
+                  be reviewed mid-run. */}
+              <div
+                inert={isSimulationActive}
+                className={cx(isSimulationActive && lockedFormStyle)}
+              >
+                <AdHocScenarioForm
+                  state={adHocScenario ?? EMPTY_AD_HOC_STATE}
+                  onChange={setAdHocScenario}
+                  context={{
+                    netParameters: [],
+                    places,
+                    types: extensions.colors ? types : [],
+                  }}
+                  selection="none"
+                  withVariables={false}
+                  bare
+                />
+              </div>
             </ParametersScrollArea>
           </div>
         )}
