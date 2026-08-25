@@ -114,7 +114,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   scenarios:
     "Named simulation configurations: scenario parameters, parameter bindings, per-place vs code-mode initial state, running and switching scenarios.",
   "ad-hoc-scenarios":
-    "Inline initial state + parameters without saving a scenario: the shared form (scenario.<name> variables, gutter-cycled fixed/dynamic/count-optimized rows, shared columns, phantom row, place totals, live type checking), its three surfaces (quick simulation, experiments, optimizations), and Optimize selections with generated adhoc.* parameter names.",
+    "Inline initial state + parameters without saving a scenario: the shared form (scenario.<name> variables, fixed/dynamic/count-optimized rows chosen from the row gutter's menu, shared columns, phantom row, place totals, live type checking), its three surfaces (quick simulation, experiments, optimizations), and Optimize selections with generated adhoc.* parameter names.",
   experiments:
     "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), lifecycle/statuses, cancel/remove, results (median/mean/p10/p90), active-experiments popover.",
   optimization:
