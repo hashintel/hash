@@ -27,6 +27,7 @@ const dockStyle = css({
   width: "[calc(100vw - 32px)]",
   maxWidth: "[600px]",
   transform: "translateX(-50%)",
+  backgroundColor: "[transparent]",
   pointerEvents: "none",
 });
 
@@ -46,25 +47,7 @@ const panelStyle = css({
   backgroundColor: "neutral.s05",
   boxShadow:
     "[0 24px 72px rgb(15 23 42 / 0.22), 0 2px 8px rgb(15 23 42 / 0.08)]",
-  transformOrigin: "bottom center",
-  transition:
-    "[opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 180ms]",
-});
-
-const collapsedPanelStyle = css({
-  visibility: "hidden",
-  opacity: "0",
-  pointerEvents: "none",
-  transform: "translateY(14px) scale(0.965)",
-});
-
-const expandedPanelStyle = css({
-  visibility: "visible",
-  opacity: "1",
   pointerEvents: "auto",
-  transform: "translateY(0) scale(1)",
-  transition:
-    "[opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s]",
 });
 
 const launcherButtonStyle = css({
@@ -556,8 +539,6 @@ type SessionState =
   | "ended"
   | "error";
 
-const panelTransitionDurationMs = 220;
-
 type LoggedEvent = {
   event: VoiceExperimentEvent;
   sequence: number;
@@ -596,14 +577,11 @@ export const VoiceExperiment = ({
   const [conversationId] = useState(() => crypto.randomUUID());
   const [events, setEvents] = useState<LoggedEvent[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isPanelMounted, setIsPanelMounted] = useState(false);
   const [sessionState, setSessionState] = useState<SessionState>("ready");
   const [isConversationActive, setIsConversationActive] = useState(false);
   const hasToggledPanelRef = useRef(false);
   const launcherButtonRef = useRef<HTMLButtonElement>(null);
   const minimizeButtonRef = useRef<HTMLButtonElement>(null);
-  const panelCloseTimeoutRef = useRef<number | undefined>(undefined);
-  const panelOpenFrameRef = useRef<number | undefined>(undefined);
   const sequenceRef = useRef(0);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollTranscriptRef = useRef(true);
@@ -640,18 +618,6 @@ export const VoiceExperiment = ({
       launcherButtonRef.current?.focus();
     }
   }, [isExpanded]);
-
-  useEffect(
-    () => () => {
-      if (panelCloseTimeoutRef.current !== undefined) {
-        window.clearTimeout(panelCloseTimeoutRef.current);
-      }
-      if (panelOpenFrameRef.current !== undefined) {
-        window.cancelAnimationFrame(panelOpenFrameRef.current);
-      }
-    },
-    [],
-  );
 
   useEffect(() => {
     const dispose = () => {
@@ -700,20 +666,7 @@ export const VoiceExperiment = ({
 
   const openVoiceInterview = () => {
     hasToggledPanelRef.current = true;
-
-    if (panelCloseTimeoutRef.current !== undefined) {
-      window.clearTimeout(panelCloseTimeoutRef.current);
-      panelCloseTimeoutRef.current = undefined;
-    }
-    if (panelOpenFrameRef.current !== undefined) {
-      window.cancelAnimationFrame(panelOpenFrameRef.current);
-    }
-
-    setIsPanelMounted(true);
-    panelOpenFrameRef.current = window.requestAnimationFrame(() => {
-      setIsExpanded(true);
-      panelOpenFrameRef.current = undefined;
-    });
+    setIsExpanded(true);
 
     if (sessionState === "ready") {
       void startConversation();
@@ -723,14 +676,6 @@ export const VoiceExperiment = ({
   const minimizeVoiceInterview = () => {
     hasToggledPanelRef.current = true;
     setIsExpanded(false);
-
-    if (panelCloseTimeoutRef.current !== undefined) {
-      window.clearTimeout(panelCloseTimeoutRef.current);
-    }
-    panelCloseTimeoutRef.current = window.setTimeout(() => {
-      setIsPanelMounted(false);
-      panelCloseTimeoutRef.current = undefined;
-    }, panelTransitionDurationMs);
   };
 
   useEffect(() => {
@@ -845,19 +790,12 @@ export const VoiceExperiment = ({
         />
       </button>
 
-      <aside
-        aria-hidden={!isExpanded}
-        aria-label="Voice experiment"
-        className={[
-          panelStyle,
-          "voice-experiment-panel",
-          isExpanded ? expandedPanelStyle : collapsedPanelStyle,
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        id="voice-experiment-panel"
-        style={{ display: isPanelMounted ? undefined : "none" }}
-      >
+      {isExpanded && (
+        <aside
+          aria-label="Voice experiment"
+          className={`${panelStyle} voice-experiment-panel`}
+          id="voice-experiment-panel"
+        >
         <header className={headerStyle}>
           <div className={headerIdentityStyle}>
             <div className={titleCopyStyle}>
@@ -1068,7 +1006,8 @@ export const VoiceExperiment = ({
             )}
           </div>
         </details>
-      </aside>
+        </aside>
+      )}
     </div>
   );
 };

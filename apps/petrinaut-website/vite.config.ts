@@ -10,6 +10,12 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 const appRoot = fileURLToPath(new URL(".", import.meta.url));
 
 const loadServerEnv = (mode: string) => {
+  // mise injects the repository-wide Compose placeholder before Vite can load
+  // the website's real local key.
+  if (process.env.OPENAI_API_KEY === "dummy") {
+    delete process.env.OPENAI_API_KEY;
+  }
+
   const env = loadEnv(mode, appRoot, "");
 
   for (const [key, value] of Object.entries(env)) {

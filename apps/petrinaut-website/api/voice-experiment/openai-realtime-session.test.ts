@@ -148,10 +148,12 @@ describe("OpenAI Realtime session endpoint", () => {
           input: {
             transcription: { model: "gpt-live-transcribe" },
             turn_detection: {
-              create_response: true,
-              eagerness: "low",
+              create_response: false,
               interrupt_response: true,
-              type: "semantic_vad",
+              prefix_padding_ms: 300,
+              silence_duration_ms: 500,
+              threshold: 0.5,
+              type: "server_vad",
             },
           },
           output: { voice: "marin" },
@@ -167,6 +169,9 @@ describe("OpenAI Realtime session endpoint", () => {
     );
     expect(sessionRequest.session.instructions).toContain(
       "wait_for_user",
+    );
+    expect(sessionRequest.session.instructions).toContain(
+      "before emitting spoken audio",
     );
     expect(sessionRequest.session.instructions).not.toContain(
       "urgent customer support escalation",

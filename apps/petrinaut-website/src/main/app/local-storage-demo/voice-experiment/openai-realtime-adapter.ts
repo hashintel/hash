@@ -179,6 +179,8 @@ const summarizeFunctionCall = ({
 class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
   readonly #dependencies: OpenAIRealtimeAdapterDependencies;
   readonly #listeners = new Set<(event: VoiceExperimentEvent) => void>();
+  readonly #pendingListeningTurnByResponseId = new Map<string, number>();
+  readonly #responsesWithAudio = new Set<string>();
   readonly #transcriptByItemId = new Map<string, string>();
   readonly #turnByItemId = new Map<string, number>();
   readonly #turnByResponseId = new Map<string, number>();
@@ -238,12 +240,7 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
     this.#latestAssistantTranscript = "";
 
     this.#send(dataChannel, { type: "input_audio_buffer.clear" });
-    microphoneTrack.enabled = true;
-    this.#emit({
-      timestampMs: this.#dependencies.now(),
-      turnId: this.#turnId,
-      type: "recording-started",
-    });
+    microphoneTrack.enabled = false;
     this.#send(dataChannel, {
       type: "response.create",
       response: {
@@ -435,7 +432,27 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
     if (
       event.type === "conversation.item.input_audio_transcription.completed"
     ) {
-      this.#handleTranscriptCompleted(event, "expert");
+      const itemId = getString(event, "item_id");
+      const turnId = itemId ? this.#getTurnId(itemId) : this.#latestTurnId;
+      const transcript = this.#handleTranscriptCompleted(event, "expert");
+      if (transcript) {
+        const dataChannel = this.#dataChannel;
+        if (dataChannel?.readyState === "open") {
+          this.#send(dataChannel, { type: "response.create" });
+        }
+      } else {
+        this.#openListeningWindow(turnId);
+      }
+      return;
+    }
+
+    if (event.type === "conversation.item.input_audio_transcription.failed") {
+      const itemId = getString(event, "item_id");
+      const turnId = itemId ? this.#getTurnId(itemId) : this.#latestTurnId;
+      if (itemId) {
+        this.#transcriptByItemId.delete(itemId);
+      }
+      this.#openListeningWindow(turnId);
       return;
     }
 
@@ -467,17 +484,41 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
     }
 
     if (event.type === "response.output_audio_transcript.delta") {
+      const responseId = getString(event, "response_id");
+      if (responseId) {
+        this.#responsesWithAudio.add(responseId);
+      }
       this.#handleTranscriptDelta(event, "assistant");
       return;
     }
 
     if (event.type === "response.output_audio_transcript.done") {
+      const responseId = getString(event, "response_id");
+      if (responseId) {
+        this.#responsesWithAudio.add(responseId);
+      }
       this.#handleTranscriptCompleted(event, "assistant");
       return;
     }
 
     if (event.type === "response.done") {
       this.#handleResponseDone(event);
+      return;
+    }
+
+    if (
+      event.type === "output_audio_buffer.stopped" ||
+      event.type === "output_audio_buffer.cleared"
+    ) {
+      const responseId = getString(event, "response_id");
+      const turnId = responseId
+        ? this.#pendingListeningTurnByResponseId.get(responseId)
+        : undefined;
+      if (responseId && turnId !== undefined) {
+        this.#pendingListeningTurnByResponseId.delete(responseId);
+        this.#responsesWithAudio.delete(responseId);
+        this.#openListeningWindow(turnId);
+      }
       return;
     }
 
@@ -518,16 +559,20 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
   #handleTranscriptCompleted(
     event: RealtimeEvent,
     speaker: "assistant" | "expert",
-  ) {
+  ): string | null {
     const itemId = getString(event, "item_id");
     if (!itemId) {
-      return;
+      return null;
     }
 
     const transcript =
       getString(event, "transcript") ??
       this.#transcriptByItemId.get(itemId) ??
       "";
+    if (!transcript.trim()) {
+      this.#transcriptByItemId.delete(itemId);
+      return null;
+    }
     this.#transcriptByItemId.set(itemId, transcript);
     if (speaker === "assistant") {
       this.#latestAssistantTranscript = transcript;
@@ -540,6 +585,7 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
       turnId: this.#getTurnId(itemId, getString(event, "response_id")),
       type: "final-transcript",
     });
+    return transcript;
   }
 
   #handleResponseDone(event: RealtimeEvent) {
@@ -547,12 +593,12 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
     const responseTurnId = this.#getResponseTurnId(response);
     const status = getString(response, "status");
     if (status === "cancelled") {
-      this.#setMicrophoneEnabled(true);
       this.#emit({
         timestampMs: this.#dependencies.now(),
         turnId: responseTurnId,
         type: "response-completed",
       });
+      this.#openListeningWindow(responseTurnId);
       return;
     }
 
@@ -598,12 +644,12 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
       ) {
         this.#send(dataChannel, { type: "response.create" });
       } else {
-        this.#setMicrophoneEnabled(true);
         this.#emit({
           timestampMs: this.#dependencies.now(),
           turnId: responseTurnId,
           type: "response-completed",
         });
+        this.#openListeningWindow(responseTurnId);
       }
       return;
     }
@@ -614,7 +660,6 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
       return;
     }
 
-    this.#setMicrophoneEnabled(true);
     this.#emit({
       ...(this.#latestAssistantTranscript
         ? { responseText: this.#latestAssistantTranscript }
@@ -623,6 +668,19 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
       turnId: responseTurnId,
       type: "response-completed",
     });
+    const responseId = getString(response, "id");
+    if (
+      responseId &&
+      (this.#responsesWithAudio.has(responseId) ||
+        this.#responseHasAudioOutput(response))
+    ) {
+      this.#pendingListeningTurnByResponseId.set(
+        responseId,
+        responseTurnId,
+      );
+    } else {
+      this.#openListeningWindow(responseTurnId);
+    }
   }
 
   #getFunctionCalls(output: unknown): FunctionCall[] {
@@ -640,6 +698,21 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
       return callId && name
         ? [{ arguments: getString(record, "arguments"), callId, name }]
         : [];
+    });
+  }
+
+  #responseHasAudioOutput(response: Record<string, unknown> | null): boolean {
+    if (!Array.isArray(response?.output)) {
+      return false;
+    }
+    return response.output.some((outputItem) => {
+      const content = asRecord(outputItem)?.content;
+      return (
+        Array.isArray(content) &&
+        content.some(
+          (contentPart) => getString(asRecord(contentPart), "type") === "audio",
+        )
+      );
     });
   }
 
@@ -663,6 +736,22 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
     if (this.#microphoneTrack) {
       this.#microphoneTrack.enabled = enabled;
     }
+  }
+
+  #openListeningWindow(responseTurnId: number): void {
+    const dataChannel = this.#dataChannel;
+    if (dataChannel?.readyState === "open") {
+      this.#send(dataChannel, { type: "input_audio_buffer.clear" });
+    }
+    this.#setMicrophoneEnabled(true);
+    this.#emit({
+      timestampMs: this.#dependencies.now(),
+      turnId:
+        this.#turnByItemId.size === 0
+          ? responseTurnId
+          : Math.max(this.#latestTurnId + 1, responseTurnId + 1),
+      type: "recording-started",
+    });
   }
 
   #requireOpenDataChannel(): RTCDataChannel {
@@ -733,6 +822,8 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
     }
 
     this.#transcriptByItemId.clear();
+    this.#pendingListeningTurnByResponseId.clear();
+    this.#responsesWithAudio.clear();
     this.#turnByItemId.clear();
     this.#turnByResponseId.clear();
     this.#interviewStarted = false;

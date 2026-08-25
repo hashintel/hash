@@ -22,11 +22,14 @@ is materially better and the team explicitly accepts the demonstrated porting co
 ## Implementation progress
 
 - The shared, URL-selected shell is committed as `2903ed77bc98eeddc3c4fa3df95da7f9c11bcf2f`.
-- The OpenAI path now has a server-owned client-secret endpoint, WebRTC adapter, semantic
-  `semantic_vad` (`eagerness: "low"`), input/output transcripts, dummy tool handling, and
+- The OpenAI path now has a server-owned client-secret endpoint, WebRTC adapter,
+  `server_vad` (500ms silence, 300ms prefix padding), input/output transcripts, dummy tool handling, and
   idempotent resource cleanup. Start speaks the shared opening question, then each cycle opens the
-  microphone for one expert answer and mutes it while the interviewer responds. Semantic VAD, not
-  a browser commit, closes the expert side of each cycle.
+  microphone for one expert answer and mutes it while the interviewer responds. The next listening
+  window waits for `output_audio_buffer.stopped`, not merely `response.done`, so buffered playback
+  cannot become an automatic expert turn. Server VAD, not a browser commit, closes the expert side
+  of each cycle; `create_response` is disabled and the adapter admits a model response only after a
+  non-empty finalized expert transcript.
 - The OpenAI code path does not call `/api/chat` and does not import or mutate Lu's Brunch session.
 - The ElevenLabs path is connected: Speech Engine owns ASR, TTS, and expert endpointing;
   finalized transcripts go through `BrunchVoiceBridge` into `/api/chat`. It speaks the same opening
@@ -99,7 +102,7 @@ remaining work to satisfy H-6763.
 
 ## Prototype exclusions
 
-- Custom open-microphone VAD of our own; providers own endpointing (`semantic_vad` / Speech Engine
+- Custom open-microphone VAD of our own; providers own endpointing (`server_vad` / Speech Engine
   `turn_v3`). Tuning beyond the checked-in patient/low settings waits on the comparison recordings.
 - Provider abstraction intended for production reuse
 - Durable transcript persistence

@@ -55,8 +55,10 @@ The OpenAI voice experiment is available at
 `/?voiceExperiment=openai-realtime`. Its same-origin session endpoint returns only a short-lived
 client secret; model, prompt, transcription, and dummy-tool configuration are fixed on the server.
 Start opens with one short interviewer question, then opens the microphone for the answer. OpenAI
-semantic VAD owns the end of each expert answer; the browser mutes while the interviewer responds
-and reopens only when that response completes. The browser does not manually commit turns.
+server VAD owns the end of each expert answer; the browser mutes while the interviewer responds and
+reopens only after OpenAI reports that the WebRTC output-audio buffer has drained. The browser does
+not manually commit turns. Server VAD does not auto-create model responses: as on the ElevenLabs
+path, only a non-empty finalized expert transcript admits the next interviewer response.
 
 ## ElevenLabs + Brunch voice experiment
 

@@ -127,7 +127,7 @@ describe("OpenAIRealtimeAdapter", () => {
 
     await harness.adapter.startTurn();
 
-    expect(harness.microphoneTrack.enabled).toBe(true);
+    expect(harness.microphoneTrack.enabled).toBe(false);
     expect(harness.dataChannel.sent).toEqual([
       { type: "input_audio_buffer.clear" },
       {
@@ -138,16 +138,12 @@ describe("OpenAIRealtimeAdapter", () => {
         },
       },
     ]);
-    expect(harness.events.at(-1)).toEqual({
-      timestampMs: 1_002,
-      turnId: 1,
-      type: "recording-started",
-    });
+    expect(harness.events).toEqual([{ timestampMs: 1_001, type: "connected" }]);
 
     await harness.adapter.finishTurn();
     await harness.adapter.startTurn();
 
-    expect(harness.microphoneTrack.enabled).toBe(true);
+    expect(harness.microphoneTrack.enabled).toBe(false);
     expect(harness.dataChannel.sent).toEqual([
       { type: "input_audio_buffer.clear" },
       {
@@ -197,30 +193,56 @@ describe("OpenAIRealtimeAdapter", () => {
 
     expect(harness.events).toContainEqual({
       speaker: "expert",
-      timestampMs: 1_003,
+      timestampMs: 1_002,
       transcript: "The support lead",
       turnId: 1,
       type: "partial-transcript",
     });
     expect(harness.events).toContainEqual({
       speaker: "expert",
-      timestampMs: 1_004,
+      timestampMs: 1_003,
       transcript: "The support lead owns the escalation.",
       turnId: 1,
       type: "final-transcript",
     });
     expect(harness.events).toContainEqual({
       speaker: "assistant",
-      timestampMs: 1_006,
+      timestampMs: 1_005,
       transcript: "What happens next?",
       turnId: 1,
       type: "partial-transcript",
     });
     expect(harness.events).toContainEqual({
       responseText: "What happens next?",
-      timestampMs: 1_008,
+      timestampMs: 1_007,
       turnId: 1,
       type: "response-completed",
+    });
+  });
+
+  test("does not render an empty finalized expert transcript", async () => {
+    const harness = createHarness();
+    await harness.adapter.connect();
+    await harness.adapter.startTurn();
+
+    harness.dataChannel.receive({
+      type: "input_audio_buffer.committed",
+      item_id: "empty-expert-item",
+    });
+    harness.dataChannel.receive({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "empty-expert-item",
+      transcript: "   ",
+    });
+
+    expect(
+      harness.events.some(
+        (event) =>
+          event.type === "final-transcript" && event.speaker === "expert",
+      ),
+    ).toBe(false);
+    expect(harness.dataChannel.sent).not.toContainEqual({
+      type: "response.create",
     });
   });
 
@@ -229,13 +251,7 @@ describe("OpenAIRealtimeAdapter", () => {
     await harness.adapter.connect();
     await harness.adapter.startTurn();
 
-    expect(harness.microphoneTrack.enabled).toBe(true);
-    harness.dataChannel.receive({
-      type: "input_audio_buffer.committed",
-      item_id: "expert-answer",
-    });
     expect(harness.microphoneTrack.enabled).toBe(false);
-
     harness.dataChannel.receive({
       type: "response.created",
       response: { id: "opening-response" },
@@ -244,7 +260,50 @@ describe("OpenAIRealtimeAdapter", () => {
 
     harness.dataChannel.receive({
       type: "response.done",
-      response: { id: "opening-response", output: [], status: "completed" },
+      response: {
+        id: "opening-response",
+        output: [
+          {
+            type: "message",
+            content: [{ type: "audio", transcript: "Opening question" }],
+          },
+        ],
+        status: "completed",
+      },
+    });
+    expect(harness.microphoneTrack.enabled).toBe(false);
+    harness.dataChannel.receive({
+      type: "output_audio_buffer.stopped",
+      response_id: "opening-response",
+    });
+    expect(harness.microphoneTrack.enabled).toBe(true);
+
+    harness.dataChannel.receive({
+      type: "input_audio_buffer.committed",
+      item_id: "expert-answer",
+    });
+    expect(harness.microphoneTrack.enabled).toBe(false);
+    harness.dataChannel.receive({
+      type: "response.created",
+      response: { id: "answer-response" },
+    });
+    harness.dataChannel.receive({
+      type: "response.done",
+      response: {
+        id: "answer-response",
+        output: [
+          {
+            type: "message",
+            content: [{ type: "audio", transcript: "Next question" }],
+          },
+        ],
+        status: "completed",
+      },
+    });
+    expect(harness.microphoneTrack.enabled).toBe(false);
+    harness.dataChannel.receive({
+      type: "output_audio_buffer.stopped",
+      response_id: "answer-response",
     });
     expect(harness.microphoneTrack.enabled).toBe(true);
   });
@@ -288,10 +347,13 @@ describe("OpenAIRealtimeAdapter", () => {
             'Say exactly: "Hi—what process would you like us to model today?" Do not call a tool.',
         },
       },
+      { type: "response.create" },
+      { type: "input_audio_buffer.clear" },
+      { type: "response.create" },
     ]);
     expect(harness.events).toContainEqual({
       speaker: "expert",
-      timestampMs: 1_003,
+      timestampMs: 1_002,
       transcript: "The support lead triages it.",
       turnId: 1,
       type: "final-transcript",
@@ -327,10 +389,15 @@ describe("OpenAIRealtimeAdapter", () => {
       response: { id: "response-1", status: "cancelled" },
     });
 
-    expect(harness.events.at(-1)).toEqual({
-      timestampMs: 1_004,
+    expect(harness.events).toContainEqual({
+      timestampMs: 1_003,
       turnId: 1,
       type: "response-completed",
+    });
+    expect(harness.events.at(-1)).toEqual({
+      timestampMs: 1_004,
+      turnId: 3,
+      type: "recording-started",
     });
   });
 
@@ -365,7 +432,7 @@ describe("OpenAIRealtimeAdapter", () => {
 
     expect(harness.events.at(-1)).toEqual({
       speaker: "assistant",
-      timestampMs: 1_004,
+      timestampMs: 1_003,
       transcript: "Interrupted question",
       turnId: 1,
       type: "partial-transcript",
@@ -397,7 +464,7 @@ describe("OpenAIRealtimeAdapter", () => {
     expect(harness.events).toContainEqual({
       argumentSummary: "Triage · Assess severity · Owner: Support lead",
       callId: "call-1",
-      timestampMs: 1_004,
+      timestampMs: 1_003,
       toolName: "record_process_step",
       turnId: 1,
       type: "tool-called",
@@ -446,12 +513,12 @@ describe("OpenAIRealtimeAdapter", () => {
     expect(harness.events).toContainEqual({
       argumentSummary: "Silent no-op",
       callId: "call-wait",
-      timestampMs: 1_004,
+      timestampMs: 1_003,
       toolName: "wait_for_user",
       turnId: 1,
       type: "tool-called",
     });
-    expect(harness.dataChannel.sent.at(-1)).toEqual({
+    expect(harness.dataChannel.sent).toContainEqual({
       type: "conversation.item.create",
       item: {
         call_id: "call-wait",
@@ -462,10 +529,15 @@ describe("OpenAIRealtimeAdapter", () => {
     expect(harness.dataChannel.sent).not.toContainEqual({
       type: "response.create",
     });
+    expect(harness.events).toContainEqual({
+      timestampMs: 1_004,
+      turnId: 1,
+      type: "response-completed",
+    });
     expect(harness.events.at(-1)).toEqual({
       timestampMs: 1_005,
       turnId: 1,
-      type: "response-completed",
+      type: "recording-started",
     });
   });
 
