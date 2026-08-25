@@ -246,7 +246,10 @@ export const NetworkGraphSearch = ({
   });
 
   const options = useMemo<NetworkGraphSearchResult[]>(() => {
-    if (!data) {
+    // Apollo retains the last `data` after `skip` flips back to true, so an empty
+    // needle would match every previous label via `includes("")`. Bail on an empty
+    // query so clearing the input clears the results rather than resurfacing them.
+    if (!trimmedQuery || !data) {
       return [];
     }
     const { entities, closedMultiEntityTypes } =
