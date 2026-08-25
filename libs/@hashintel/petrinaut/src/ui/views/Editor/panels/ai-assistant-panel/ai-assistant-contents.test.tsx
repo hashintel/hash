@@ -9,6 +9,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { createElement } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
@@ -18,11 +19,19 @@ import { AiAssistantContents } from "./ai-assistant-contents";
 
 import type { PetrinautAiMessage } from "./types";
 
-const renderMarkdown = vi.hoisted(() =>
-  vi.fn(({ children }: { children: string }) => children),
-);
+const renderMarkdown = vi.hoisted(() => vi.fn());
 
-vi.mock("react-markdown", () => ({ default: renderMarkdown }));
+vi.mock("react-markdown", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-markdown")>();
+
+  return {
+    ...actual,
+    default: (props: Parameters<typeof actual.default>[0]) => {
+      renderMarkdown();
+      return createElement(actual.default, props);
+    },
+  };
+});
 
 const noop = () => {};
 
