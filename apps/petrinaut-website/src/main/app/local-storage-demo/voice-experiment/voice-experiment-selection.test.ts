@@ -19,17 +19,25 @@ describe("getVoiceExperimentSelection", () => {
     expect(getVoiceExperimentSelection({ search: "" })).toBeNull();
   });
 
-  test("enables the provider-independent mock draft flow", () => {
+  test("enables the provider-independent mock projector", () => {
     expect(
       getVoiceExperimentSelection({
-        search: "?voiceProvider=openai&elicitor=brunch&draft=mock",
+        search: "?voiceProvider=openai&elicitor=brunch&projector=mock",
       }),
-    ).toEqual({ draft: "mock", elicitor: "brunch", provider: "openai" });
+    ).toEqual({
+      elicitor: "brunch",
+      projector: "mock",
+      provider: "openai",
+    });
     expect(
       getVoiceExperimentSelection({
-        search: "?voiceProvider=elevenlabs&elicitor=brunch&draft=mock",
+        search: "?voiceProvider=elevenlabs&elicitor=brunch&projector=mock",
       }),
-    ).toEqual({ draft: "mock", elicitor: "brunch", provider: "elevenlabs" });
+    ).toEqual({
+      elicitor: "brunch",
+      projector: "mock",
+      provider: "elevenlabs",
+    });
   });
 
   test("rejects partial, invalid, and unsupported combinations", () => {
@@ -51,7 +59,12 @@ describe("getVoiceExperimentSelection", () => {
     ).toBeNull();
     expect(
       getVoiceExperimentSelection({
-        search: "?voiceProvider=openai&elicitor=brunch&draft=real",
+        search: "?voiceProvider=openai&elicitor=brunch&projector=real",
+      }),
+    ).toBeNull();
+    expect(
+      getVoiceExperimentSelection({
+        search: "?voiceProvider=openai&elicitor=brunch&draft=mock",
       }),
     ).toBeNull();
   });
@@ -67,11 +80,15 @@ describe("getVoiceExperimentSelection", () => {
     ).toEqual(selection);
   });
 
-  test("supports mock drafts on legacy experiment links", () => {
+  test("supports the mock projector on legacy experiment links", () => {
     expect(
       getVoiceExperimentSelection({
-        search: "?voiceExperiment=openai-realtime&draft=mock",
+        search: "?voiceExperiment=openai-realtime&projector=mock",
       }),
-    ).toEqual({ draft: "mock", elicitor: "mock", provider: "openai" });
+    ).toEqual({
+      elicitor: "mock",
+      projector: "mock",
+      provider: "openai",
+    });
   });
 });

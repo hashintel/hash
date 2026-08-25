@@ -237,7 +237,7 @@ export const LocalStorageDemoApp = () => {
   };
 
   const finalizeVoiceInterview =
-    voiceExperiment?.draft === "mock"
+    voiceExperiment?.projector === "mock"
       ? (input: FinalizeInterviewInput) => {
           const result = createMockInterviewDraft(input);
           createNewNet({

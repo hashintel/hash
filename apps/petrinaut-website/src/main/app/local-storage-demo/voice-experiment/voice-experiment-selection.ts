@@ -1,10 +1,10 @@
 export type VoiceProvider = "elevenlabs" | "openai";
 export type VoiceElicitor = "brunch" | "mock";
-export type VoiceDraftMode = "mock";
+export type VoiceProjector = "mock";
 
 export type VoiceExperimentSelection = {
-  draft?: VoiceDraftMode;
   elicitor: VoiceElicitor;
+  projector?: VoiceProjector;
   provider: VoiceProvider;
 };
 
@@ -20,13 +20,13 @@ const legacySelections = {
 } as const satisfies Record<string, VoiceExperimentSelection>;
 
 export const getVoiceExperimentLabel = ({
-  draft,
   elicitor,
+  projector,
   provider,
 }: VoiceExperimentSelection): string =>
   `${provider === "openai" ? "OpenAI Realtime" : "ElevenLabs"} · ${
     elicitor === "brunch" ? "Brunch" : "mock tools"
-  }${draft === "mock" ? " · mock draft" : ""}`;
+  }${projector === "mock" ? " · mock projector" : ""}`;
 
 export const getVoiceExperimentSelection = (
   location: Pick<Location, "search">,
@@ -34,9 +34,12 @@ export const getVoiceExperimentSelection = (
   const searchParams = new URLSearchParams(location.search);
   const provider = searchParams.get("voiceProvider");
   const elicitor = searchParams.get("elicitor");
-  const draft = searchParams.get("draft");
+  const projector = searchParams.get("projector");
 
-  if (draft !== null && draft !== "mock") {
+  if (
+    searchParams.has("draft") ||
+    (projector !== null && projector !== "mock")
+  ) {
     return null;
   }
 
@@ -49,8 +52,8 @@ export const getVoiceExperimentSelection = (
       return null;
     }
     return {
-      ...(draft === "mock" ? { draft } : {}),
       elicitor,
+      ...(projector === "mock" ? { projector } : {}),
       provider,
     };
   }
@@ -59,7 +62,7 @@ export const getVoiceExperimentSelection = (
   return legacyExperiment && Object.hasOwn(legacySelections, legacyExperiment)
     ? {
         ...legacySelections[legacyExperiment as keyof typeof legacySelections],
-        ...(draft === "mock" ? { draft } : {}),
+        ...(projector === "mock" ? { projector } : {}),
       }
     : null;
 };

@@ -69,12 +69,12 @@ The legacy `/?voiceExperiment=openai-realtime` URL continues to select mock mode
 
 ### Mock draft completion
 
-Append `&draft=mock` to any supported voice URL to exercise the complete handoff from interview
+Append `&projector=mock` to any supported voice URL to exercise the complete handoff from interview
 to an opened Petrinaut net:
 
-- `/?voiceProvider=openai&elicitor=mock&draft=mock`
-- `/?voiceProvider=openai&elicitor=brunch&draft=mock`
-- `/?voiceProvider=elevenlabs&elicitor=brunch&draft=mock`
+- `/?voiceProvider=openai&elicitor=mock&projector=mock`
+- `/?voiceProvider=openai&elicitor=brunch&projector=mock`
+- `/?voiceProvider=elevenlabs&elicitor=brunch&projector=mock`
 
 While this mode is active, the stop control reads **Finish and create net**. Finishing disposes the
 voice session, collects the final transcript and any experiment capture calls, passes them through
@@ -82,7 +82,7 @@ the provider-independent draft contract, saves the result in local storage, and 
 editor. OpenAI mock capture calls can produce a state-step-flow graph. Other incomplete interviews
 produce a visibly labelled two-place placeholder so the end-to-end loop remains testable while the
 Brunch projector evolves. The saved record includes the transcript, source conversation id, and
-projector warnings. `draft=mock` is deliberately explicit: URLs without it keep the current
+projector warnings. `projector=mock` is deliberately explicit: URLs without it keep the current
 stop-without-projection behavior.
 
 ## ElevenLabs + Brunch voice experiment
