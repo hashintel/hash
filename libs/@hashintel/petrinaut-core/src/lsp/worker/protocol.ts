@@ -13,7 +13,7 @@
  * upstream package directly.
  */
 import type { PetrinautExtensionSettings } from "../../extensions";
-import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
+import type { Scenario, ScenarioParameter, SDCPN } from "../../types/sdcpn";
 import type {
   Diagnostic,
   DocumentUri,
@@ -143,6 +143,14 @@ type ClientRequest =
       params: {
         sdcpn: SDCPN;
         extensions?: PetrinautExtensionSettings;
+      };
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "sdcpn/lowerScenario";
+      params: {
+        scenario: Pick<Scenario, "parameterOverrides" | "initialState">;
       };
     };
 

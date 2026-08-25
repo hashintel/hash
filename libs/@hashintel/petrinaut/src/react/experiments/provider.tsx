@@ -166,7 +166,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   workerFactory,
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
-  const { requestHirArtifacts } = use(LanguageClientContext);
+  const { requestHirArtifacts, requestScenarioHir } = use(
+    LanguageClientContext,
+  );
   const { addNotification } = use(NotificationsContext);
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
@@ -319,8 +321,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         throw new Error(parsedScenarioValues.errors.join("\n"));
       }
 
+      const scenarioHir = await requestScenarioHir(selectedScenario);
       const compiledScenario = compileScenario(
         selectedScenario,
+        scenarioHir,
         globalParameters,
         sdcpn.places,
         sdcpn.types,

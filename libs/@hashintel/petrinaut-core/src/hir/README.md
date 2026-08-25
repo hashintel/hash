@@ -52,14 +52,14 @@ transition outputs.
 
 ## Compilation coverage
 
-| User-code surface                                     | Compiled through HIR | Compilation and execution path                                                                                                                 |
-| ----------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Differential equations (dynamics)                     | Yes                  | Compiled in the LSP worker; buffer program runs in simulation workers.                                                                         |
-| Transition firing rates and predicates (lambdas)      | Yes                  | Compiled in the LSP worker; buffer program runs during transition enablement checks.                                                           |
-| Transition kernels                                    | Yes                  | Compiled in the LSP worker; buffer program writes kernel staging bytes and defers seeded operations through the engine sink.                   |
-| Timeline and Monte-Carlo expression metrics           | Yes                  | Compiled in the LSP worker; buffer program reads packed frame views in the timeline or Monte-Carlo worker.                                     |
-| Scenario initial-state code and per-place expressions | No                   | Compiled separately by `simulation/authoring/scenario/compile-scenario.ts` using sandboxed `new Function`; evaluated once before a run starts. |
-| Place visualizers                                     | No                   | Compiled in the Petrinaut UI package as JSX and executed during rendering.                                                                     |
+| User-code surface                                     | Compiled through HIR | Compilation and execution path                                                                                                                                                         |
+| ----------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Differential equations (dynamics)                     | Yes                  | Compiled in the LSP worker; buffer program runs in simulation workers.                                                                                                                 |
+| Transition firing rates and predicates (lambdas)      | Yes                  | Compiled in the LSP worker; buffer program runs during transition enablement checks.                                                                                                   |
+| Transition kernels                                    | Yes                  | Compiled in the LSP worker; buffer program writes kernel staging bytes and defers seeded operations through the engine sink.                                                           |
+| Timeline and Monte-Carlo expression metrics           | Yes                  | Compiled in the LSP worker; buffer program reads packed frame views in the timeline or Monte-Carlo worker.                                                                             |
+| Scenario initial-state code and per-place expressions | Yes                  | Lowered by `hir/scenario.ts` (LSP worker in the browser, inline in Node); type-checked and evaluated by the interpreter (`interpret.ts`) in `compile-scenario.ts` — no `new Function`. |
+| Place visualizers                                     | No                   | Compiled in the Petrinaut UI package as JSX and executed during rendering.                                                                                                             |
 
 There is no runtime fallback from an HIR surface to the non-HIR compilers. Code
 outside the supported HIR subset is a blocking diagnostic.

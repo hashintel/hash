@@ -261,7 +261,10 @@ export function foldHir(expr: HirExpr): HirExpr {
     case "constant":
     case "localRef":
     case "paramRef":
+    case "scenarioRef":
       return expr;
+    case "rangeCall":
+      return { ...expr, args: expr.args.map((argument) => foldHir(argument)) };
     case "uuidFrom":
       return { ...expr, operand: foldHir(expr.operand) };
     case "stringCall":
@@ -485,6 +488,14 @@ class Analyzer {
       case "paramRef":
         this.recordParameter(expr.name);
         return SCALAR;
+      case "scenarioRef":
+        return SCALAR;
+      case "rangeCall": {
+        for (const argument of expr.args) {
+          this.evalExpr(argument, env);
+        }
+        return { kind: "array", elements: null, element: SCALAR };
+      }
       case "fieldAccess": {
         const target = this.evalExpr(expr.target, env);
         return this.accessField(target, expr.field);

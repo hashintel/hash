@@ -6,6 +6,7 @@ import {
   petrinautOptimizationEvaluateParamsSchema,
   petrinautOptimizationManifestSchema,
 } from "@hashintel/petrinaut-core";
+import { lowerScenarioToHir } from "@hashintel/petrinaut-core/hir";
 
 import type {
   PetrinautOptimizationDescribeParameter,
@@ -178,6 +179,10 @@ export function createOptimizationProtocol(args: {
     optimizedParameters.map(({ parameter }) => parameter.identifier),
   );
 
+  // Lower the scenario's expressions once per study; each trial re-runs only
+  // the type-check and the interpreter with that trial's parameter values.
+  const scenarioHir = lowerScenarioToHir(scenario);
+
   return {
     describe() {
       return {
@@ -231,6 +236,7 @@ export function createOptimizationProtocol(args: {
 
       const compiledScenario = compileScenario(
         scenario,
+        scenarioHir,
         manifest.model.definition.parameters,
         manifest.model.definition.places,
         manifest.model.definition.types,

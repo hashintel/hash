@@ -197,6 +197,11 @@ class Typechecker {
             } satisfies HirType,
           })),
         };
+      case "scenario-expression":
+      case "scenario-code":
+        // Scenario functions have no declared parameters — `parameters` and
+        // `scenario` are ambient.
+        return HIR_TYPE_UNKNOWN;
       case "metric":
         return {
           kind: "record",
@@ -286,6 +291,70 @@ class Typechecker {
           return HIR_TYPE_UNKNOWN;
         }
         return elementType({ name: parameter.name, type: parameter.type });
+      }
+      case "scenarioRef": {
+        const context = this.context;
+        if (
+          context.surface !== "scenario-expression" &&
+          context.surface !== "scenario-code"
+        ) {
+          this.report(
+            expr.span,
+            "hir:scenario-outside-scenario",
+            "`scenario.<name>` values are only available in scenario code.",
+          );
+          return HIR_TYPE_UNKNOWN;
+        }
+        const parameter = context.scenarioParameters.find(
+          (candidate) => candidate.name === expr.name,
+        );
+        if (!parameter) {
+          this.report(
+            expr.span,
+            "hir:unknown-scenario-parameter",
+            `Unknown scenario parameter \`${expr.name}\`.`,
+          );
+          return HIR_TYPE_UNKNOWN;
+        }
+        switch (parameter.type) {
+          case "boolean":
+            return HIR_TYPE_BOOL;
+          case "integer":
+            return HIR_TYPE_INT;
+          case "real":
+          case "ratio":
+            return HIR_TYPE_REAL;
+        }
+      }
+      case "rangeCall": {
+        if (
+          this.context.surface !== "scenario-expression" &&
+          this.context.surface !== "scenario-code"
+        ) {
+          this.report(
+            expr.span,
+            "hir:range-outside-scenario",
+            "`range(...)` is only available in scenario code.",
+          );
+        }
+        if (expr.args.length < 1 || expr.args.length > 3) {
+          this.report(
+            expr.span,
+            "hir:range-arity",
+            "`range(...)` takes 1 to 3 numeric arguments (end / start, end / start, end, step).",
+          );
+        }
+        for (const argument of expr.args) {
+          const argumentType = this.infer(argument, env);
+          if (!isNumeric(argumentType)) {
+            this.report(
+              argument.span,
+              "hir:type-mismatch",
+              `\`range(...)\` expects numbers, got ${formatHirType(argumentType)}.`,
+            );
+          }
+        }
+        return { kind: "array", element: HIR_TYPE_REAL };
       }
       case "fieldAccess": {
         const targetType = this.infer(expr.target, env);
@@ -755,6 +824,103 @@ class Typechecker {
           );
         }
         return;
+      }
+      case "scenario-expression": {
+        if (context.expected === "boolean") {
+          if (!isBoolish(returnType)) {
+            this.report(
+              bodySpan,
+              "hir:scenario-return",
+              `This expression must produce a boolean, got ${formatHirType(returnType)}.`,
+            );
+          }
+        } else if (!isNumeric(returnType)) {
+          this.report(
+            bodySpan,
+            "hir:scenario-return",
+            `This expression must produce a number, got ${formatHirType(returnType)}.`,
+          );
+        }
+        return;
+      }
+      case "scenario-code": {
+        if (returnType.kind !== "record") {
+          if (returnType.kind !== "unknown") {
+            this.report(
+              bodySpan,
+              "hir:scenario-return",
+              `Scenario initial-state code must return an object mapping place names to token counts or token arrays, got ${formatHirType(returnType)}.`,
+            );
+          }
+          return;
+        }
+        this.checkScenarioInitialState(fn, returnType, context);
+        return;
+      }
+    }
+  }
+
+  /** Checks a scenario code-mode result record against the net's places:
+   * every key must be a place name; uncoloured places take a count, coloured
+   * places an array of token records whose attributes exist on the colour.
+   * Missing attributes are allowed — the compiler fills typed defaults. */
+  private checkScenarioInitialState(
+    fn: HirFunction,
+    returnType: Extract<HirType, { kind: "record" }>,
+    context: Extract<HirSurfaceContext, { surface: "scenario-code" }>,
+  ): void {
+    const placeByName = new Map(
+      context.places.map((place) => [place.name, place]),
+    );
+    const resultRecord = this.resultRecordLit(fn.body);
+
+    for (const field of returnType.fields) {
+      const place = placeByName.get(field.name);
+      const keySpan =
+        resultRecord?.entries.find((entry) => entry.key === field.name)
+          ?.keySpan ?? fn.body.span;
+      if (!place) {
+        this.report(
+          keySpan,
+          "hir:unknown-scenario-place",
+          `\`${field.name}\` is not a place in this net.`,
+        );
+        continue;
+      }
+      if (!place.colored) {
+        if (!isNumeric(field.type)) {
+          this.report(
+            keySpan,
+            "hir:type-mismatch",
+            `\`${field.name}\` is an uncoloured place — provide a token count, got ${formatHirType(field.type)}.`,
+          );
+        }
+        continue;
+      }
+      if (field.type.kind !== "array") {
+        if (field.type.kind !== "unknown") {
+          this.report(
+            keySpan,
+            "hir:type-mismatch",
+            `\`${field.name}\` is a coloured place — provide an array of token records, got ${formatHirType(field.type)}.`,
+          );
+        }
+        continue;
+      }
+      if (field.type.element.kind !== "record") {
+        continue;
+      }
+      const elementByName = new Map(
+        place.elements.map((element) => [element.name, element]),
+      );
+      for (const tokenField of field.type.element.fields) {
+        if (!elementByName.has(tokenField.name)) {
+          this.report(
+            keySpan,
+            "hir:unknown-attribute",
+            `\`${tokenField.name}\` is not an attribute of tokens in \`${field.name}\`.`,
+          );
+        }
       }
     }
   }

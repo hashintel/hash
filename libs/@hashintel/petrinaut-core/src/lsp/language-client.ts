@@ -8,9 +8,9 @@ import {
 
 import type { PetrinautExtensionSettings } from "../extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
-import type { HirCompileResult } from "../hir";
+import type { HirCompileResult, ScenarioHir } from "../hir";
 import type { ReadableStore } from "../store";
-import type { SDCPN } from "../types/sdcpn";
+import type { Scenario, SDCPN } from "../types/sdcpn";
 import type {
   ClientMessage,
   MetricSessionParams,
@@ -94,6 +94,16 @@ export interface LanguageClient {
     sdcpn: SDCPN,
     extensions?: PetrinautExtensionSettings,
   ): Promise<HirCompileResult>;
+
+  /**
+   * Lowers a scenario's expressions and code-mode body to HIR (in the
+   * worker, where the TypeScript frontend lives). Pass the result to
+   * `compileScenario`, which type-checks and interprets it.
+   */
+  requestScenarioHir(
+    this: void,
+    scenario: Pick<Scenario, "parameterOverrides" | "initialState">,
+  ): Promise<ScenarioHir>;
 
   /**
    * Tear down the transport. Pending requests reject with "Worker terminated".
@@ -319,6 +329,9 @@ export function createLanguageClient(
         sdcpn,
         extensions,
       });
+    },
+    requestScenarioHir(scenario) {
+      return sendRequest<ScenarioHir>("sdcpn/lowerScenario", { scenario });
     },
 
     dispose() {

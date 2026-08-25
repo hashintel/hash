@@ -72,7 +72,9 @@ return {
 - `range(start, end)` -- from `start` (inclusive) to `end` (exclusive).
 - `range(start, end, step)` -- stepping by `step`; a negative step counts down.
 
-`range` mirrors Python's `range` and is handy with `.map` for building token arrays, e.g. `range(scenario.number_of_satellites).map((i) => ({ x: 10 * i, y: 10 * i }))`. Standard JavaScript array methods (`.map`, `.filter`, ...) and `Math` work as usual. A single `range` call is capped at 1,000,000 elements; larger calls fail with an error rather than freezing the editor.
+`range` mirrors Python's `range` and is handy with `.map` for building token arrays, e.g. `range(scenario.number_of_satellites).map((i) => ({ x: 10 * i, y: 10 * i }))`. A single `range` call is capped at 1,000,000 elements; larger calls fail with an error rather than freezing the editor.
+
+Scenario code compiles through the same restricted TypeScript subset as the other code surfaces (lambdas, kernels, dynamics, metrics) — it never runs as raw JavaScript. The subset covers `const` bindings, arithmetic and comparisons, ternaries and guard `if`s, `Math.*`, object and array literals, `.map(...)` (with an optional index parameter), `.reduce(...)`, `.concat(...)`, `range(...)`, and `Array.from({ length: n }, ...)`. Other constructs — loops, `.filter`/`.slice`/spread, template literals, `let` — are rejected with an error pointing at the offending code.
 
 For each returned key:
 

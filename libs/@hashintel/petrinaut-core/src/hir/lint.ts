@@ -89,6 +89,11 @@ function canEmitBufferProgram(
       return emitBufferKernelJs(fn, context) !== null;
     case "metric":
       return emitBufferMetricJs(fn, context) !== null;
+    case "scenario-expression":
+    case "scenario-code":
+      // Scenario surfaces are interpreted (`interpret.ts`), never emitted as
+      // buffer programs, so every checked shape can run.
+      return true;
   }
 }
 

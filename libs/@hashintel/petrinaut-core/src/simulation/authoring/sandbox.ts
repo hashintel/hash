@@ -1,7 +1,9 @@
 /**
- * Shared hardening helpers for evaluating user-authored JS expressions
- * (scenario expressions, metric bodies, …). Co-located so the compilers
- * can't drift on what they consider "safe enough".
+ * Shared hardening helpers for evaluating user-authored JavaScript with
+ * `new Function`. The place visualizer (`compile-visualizer.ts` in the UI
+ * package) is the remaining consumer: every other user-code surface —
+ * dynamics, lambdas, kernels, metrics, and scenario code — compiles through
+ * the HIR and never executes raw user text.
  *
  * @layerRoot core.simulation.authoring
  * @role Compiles and sandboxes the code users write inside a net

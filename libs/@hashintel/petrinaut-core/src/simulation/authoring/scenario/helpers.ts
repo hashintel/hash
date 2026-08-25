@@ -1,26 +1,17 @@
 /**
- * Helper functions injected into user-authored scenario code (parameter
+ * Helper functions available to user-authored scenario code (parameter
  * override expressions and "Define as code" initial state).
  *
- * Safety notes for anything added here:
- * - Helpers execute while `runSandboxed` masks `.constructor` on built-in
- *   prototypes, so implementations must not rely on species-creating array
- *   methods returning subclass instances (plain loops and `push` are safe).
- * - Helper functions are handed to user code by reference. Freeze them so
- *   user code cannot attach state that leaks across evaluations. Walking
- *   `helper.constructor` inside the sandbox yields `undefined`, so passing
- *   them in does not reopen the Function-constructor escape.
- * - Declare helpers as arrow functions. `Object.freeze` is shallow, so a
- *   `function` declaration would keep a writable `helper.prototype` object —
- *   a module singleton that user code could hang state on to smuggle values
- *   from one evaluation into the next. Arrow functions have no `prototype`.
- * - Keep `SCENARIO_HELPER_TYPE_DECLARATIONS` below in sync so the code
- *   editors type-check and autocomplete every helper.
+ * Scenario code compiles through the HIR: `range(...)` lowers to a
+ * `rangeCall` node and the interpreter (`hir/interpret.ts`) calls the
+ * implementation here — user code never receives a function reference. Keep
+ * `SCENARIO_HELPER_TYPE_DECLARATIONS` below in sync so the code editors
+ * type-check and autocomplete every helper.
  */
 
 /**
  * Ceiling on how many elements a single `range()` call may produce. Scenario
- * compilation runs synchronously on the UI thread, so an oversized range
+ * evaluation runs synchronously on the UI thread, so an oversized range
  * (e.g. a mistyped parameter) must fail fast instead of freezing the tab.
  */
 export const MAX_RANGE_LENGTH = 1_000_000;
@@ -74,15 +65,6 @@ export const range = (start: number, end?: number, step?: number): number[] => {
   }
   return values;
 };
-
-/**
- * Helpers passed as extra arguments to every user-code evaluation, keyed by
- * the identifier the user code sees.
- */
-export const SCENARIO_HELPERS: Readonly<Record<string, unknown>> =
-  Object.freeze({
-    range: Object.freeze(range),
-  });
 
 /**
  * TypeScript declarations for the helpers, prepended to the virtual files

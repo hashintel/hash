@@ -1,4 +1,5 @@
 import { compileScenario } from "@hashintel/petrinaut-core";
+import { lowerScenarioToHir } from "@hashintel/petrinaut-core/hir";
 
 import type {
   InitialMarking,
@@ -351,6 +352,7 @@ function compileRunScenario(
 
   const outcome = compileScenario(
     scenario,
+    lowerScenarioToHir(scenario),
     sdcpn.parameters,
     sdcpn.places,
     sdcpn.types,

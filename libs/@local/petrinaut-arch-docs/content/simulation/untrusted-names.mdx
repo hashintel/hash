@@ -130,7 +130,7 @@ prototype instead of storing the entry.
     {
       direction: "right",
       label: "`{ __proto__: [...] }` from user code",
-      note: "Never validated; contained by the prototype-free accumulator",
+      note: "The HIR interpreter builds the record without a prototype; unknown place names are type errors",
     },
   ]}
 />

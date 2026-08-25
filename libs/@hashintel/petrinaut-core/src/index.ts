@@ -393,6 +393,13 @@ export {
   type ScenarioCompilationError,
   type ScenarioParameterValues,
 } from "./simulation/authoring/scenario/compile-scenario";
+// Type-only: lowering itself needs the TypeScript compiler and stays in the
+// LSP worker (`requestScenarioHir`) / Node (`lowerScenarioToHir` in ./hir).
+export type {
+  ScenarioHir,
+  ScenarioHirItem,
+  ScenarioLoweringInput,
+} from "./hir/scenario";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
   coerceTokenAttributeValue,

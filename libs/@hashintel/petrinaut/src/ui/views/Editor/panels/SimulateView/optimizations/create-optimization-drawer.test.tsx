@@ -253,6 +253,13 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
     ),
     requestHover: vi.fn(() => Promise.resolve(null)),
     requestSignatureHelp: vi.fn(() => Promise.resolve(null)),
+    requestScenarioHir: vi.fn(() =>
+      Promise.resolve({
+        version: 1 as const,
+        parameterOverrides: {},
+        placeExpressions: {},
+      }),
+    ),
     requestHirArtifacts: vi.fn((sdcpn: SDCPN) =>
       Promise.resolve({
         artifacts: {
