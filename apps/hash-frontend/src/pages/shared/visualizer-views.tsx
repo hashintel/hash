@@ -6,7 +6,11 @@ import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
 import type { SvgIconProps } from "@mui/material";
 import type { ReactElement } from "react";
 
-export type VisualizerView = "Table" | "Graph" | "Grid";
+/**
+ * `NetworkGraph` is the new Atlas-tiled graph view. It sits alongside the
+ * existing `Graph` view during the transition and will eventually replace it.
+ */
+export type VisualizerView = "Table" | "Graph" | "Grid" | "NetworkGraph";
 
 export const visualizerViewIcons: Record<
   VisualizerView,
@@ -15,14 +19,14 @@ export const visualizerViewIcons: Record<
   Table: (
     <ListRegularIcon
       sx={{
-        fontSize: 18,
+        fontSize: 16,
       }}
     />
   ),
   Graph: (
     <ChartNetworkRegularIcon
       sx={{
-        fontSize: 18,
+        fontSize: 16,
       }}
     />
   ),
@@ -33,4 +37,18 @@ export const visualizerViewIcons: Record<
       }}
     />
   ),
+  NetworkGraph: (
+    <ChartNetworkRegularIcon
+      sx={{
+        fontSize: 16,
+      }}
+    />
+  ),
+};
+
+export const visualizerViewLabels: Record<VisualizerView, string> = {
+  Table: "Table view",
+  Graph: "Graph view",
+  Grid: "Grid view",
+  NetworkGraph: "Graph view",
 };
