@@ -16,10 +16,8 @@ export const styles = sva({
     root: {
       "--sc-item-radius": "[calc(var(--sc-radius) - 2px)]",
       // Default-variant active-pill "raise": the pill overhangs its item box on
-      // every side by --sc-raise so it reads as a lifted button while keeping an
-      // even gap to the track all the way around. Constant across sizes, so the
-      // gap (2px track inset − --sc-raise) stays a uniform hairline everywhere.
-      "--sc-raise": "[1.5px]",
+      // every side by --sc-raise. Constant across sizes.
+      "--sc-raise": "[2px]",
       // Rounded to a whole pixel so the item box is integer-sized. zag drives the
       // active pill from the item's integer offsetWidth/offsetHeight; if the item
       // box were fractional the pill's overhanging edges would land off the item
@@ -139,7 +137,7 @@ export const styles = sva({
       width: "var(--width)",
       height: "var(--height)",
       zIndex: "[0]",
-      borderRadius: "[var(--sc-item-radius)]",
+      borderRadius: "[var(--sc-radius)]",
       backgroundColor: "neutral.s05",
       border:
         "[1px solid rgb(from {colors.neutral.s60} calc((r - var(--sc-frost-bg)) / 0.9) calc((g - var(--sc-frost-bg)) / 0.9) calc((b - var(--sc-frost-bg)) / 0.9) / 0.9)]",
@@ -216,19 +214,6 @@ export const styles = sva({
     },
     variant: {
       default: {
-        // The active pill reads as a raised button sitting on the track: it
-        // overhangs the item box by --sc-raise on every side, leaving an even
-        // hairline gap to the track all the way around, which — together with
-        // the pill's light fill and hairline border — reads as a subtle lift.
-        //
-        // The top-left shift uses negative margins, NOT left/top overrides:
-        // zag pins the main-axis position inline (`left` when horizontal, `top`
-        // when vertical), which beats a recipe class, so overriding left/top
-        // would only move the cross axis and the overhang would come out uneven
-        // (and differ between orientations). Margins are never set inline, so
-        // they shift both axes consistently. Width/height then grow by twice
-        // --sc-raise so the bottom-right corner overhangs by the same amount as
-        // the top-left, keeping the gap symmetric.
         indicator: {
           marginTop: "[calc(-1 * var(--sc-raise))]",
           marginLeft: "[calc(-1 * var(--sc-raise))]",
@@ -254,19 +239,10 @@ export const styles = sva({
         // (light from above). Kept deliberately gentle. Black/white alphas here
         // are true shadows and must NOT take the frost treatment.
         indicator: {
-          // Flush to the rail: overhang the item box by the 2px track padding on
-          // every side so the selected pill fills its cell wall-to-wall with no
-          // groove to the well. Negative margins (not left/top) shift the near
-          // corner out — same reason as the default variant, zag pins the
-          // main-axis inset inline — and width/height grow by 4px (2px per edge)
-          // so the far corner reaches the rail too. Radius jumps from the inset
-          // --sc-item-radius up to the rail's own --sc-radius so the now-flush
-          // corners nest against the well instead of leaving a corner crescent.
           marginTop: "[-2px]",
           marginLeft: "[-2px]",
           width: "[calc(var(--width) + 4px)]",
           height: "[calc(var(--height) + 4px)]",
-          borderRadius: "[var(--sc-radius)]",
           boxShadow:
             "[0 1px 2px -1px {colors.black.a15}, 0 1px 1px -1px {colors.black.a10}, inset 0 1px 0 {colors.white.a50}]",
           _dark: {
