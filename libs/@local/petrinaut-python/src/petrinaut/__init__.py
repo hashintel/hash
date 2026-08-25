@@ -9,7 +9,7 @@ serializes requests to it, and shuts it down. "Session" rather than "client"
 because the object carries that lifecycle, not just the wire format.
 
 @layerRoot python-bindings
-@role Python sessions owning one CLI process each, translating protocol frames into methods and exceptions.
+@role Python sessions owning one CLI process each, translating protocol frames into methods and exceptions
 """
 
 from .errors import (

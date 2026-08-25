@@ -71,11 +71,11 @@ const blockCommentPattern = /\/\*\*[\s\S]*?\*\//gu;
 /**
  * The module docstring only: the first statement after blank and `#` lines.
  * A triple-quoted string anywhere else is a value, not an annotation host.
- * String prefixes (`r"""`, `b'''`, ...) still open a docstring, so a raw
- * docstring cannot silently drop a package's `@layerRoot`.
+ * The `r` and `u` prefixes open a docstring too, so a raw docstring carries a
+ * package's `@layerRoot` like a plain one.
  */
 const pythonModuleDocstringPattern =
-  /^(?:[ \t]*(?:#[^\r\n]*)?\r?\n)*[ \t]*[rRbBuUfF]{0,2}("""[\s\S]*?"""|'''[\s\S]*?''')/u;
+  /^(?:[ \t]*(?:#[^\r\n]*)?\r?\n)*[ \t]*[rRuU]{0,2}("""[\s\S]*?"""|'''[\s\S]*?''')/u;
 
 /**
  * Byte offsets of the start of each line, so an offset can be turned into a
