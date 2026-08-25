@@ -28,8 +28,9 @@ existing `compileScenario` already evaluates, so the compiler is untouched.
 
 ## The three shapes
 
-Everything flows through three types declared in
-`core/simulation/authoring/scenario/ad-hoc-scenario.ts`:
+Everything flows through three types declared in the
+[core ad-hoc layer](layer:core.simulation.authoring.adhoc)
+(`core/simulation/authoring/scenario/ad-hoc/ad-hoc-scenario.ts`):
 
 <Pipeline
   title="From form state to the pipeline"
@@ -237,7 +238,7 @@ initial-state body and wrapped override expressions.
   title="The component split"
   lanes={[
     {
-      title: "core.simulation.authoring",
+      title: "core.simulation.authoring.adhoc",
       accent: "core",
       boxes: [
         {
