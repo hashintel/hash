@@ -153,9 +153,7 @@ The read-only Linear graph supplies mechanical availability, never priority.
   whether it joins the cold-start lane or receives a parent.
 - **FE-1334** — surprising-scenario validation gesture; parent or cancel when its owning outcome is
   chosen.
-- **FE-1406** — harness strategy repertoire; shrunk to the post-skeleton lift of harness-generic
-  patterns out of the plugin file.
 - **FE-1472** — unrelated SDK-pin triage; assign an owning map or remove from the project.
 - **FE-1476** — September delivery root; intended parent is FE-1357.
-- **FE-1477–FE-1482** — PM-authored outcome roots; intended parent is FE-1476 after overlap review
-  and separately approved Linear mutation.
+- **FE-1477–FE-1481** — PM-authored outcome roots; intended parent is FE-1476 after overlap review
+  and separately approved Linear mutation. FE-1482 was parented to FE-1476 on 2026-08-25.
