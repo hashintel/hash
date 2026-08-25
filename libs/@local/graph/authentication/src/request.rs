@@ -7,7 +7,7 @@ use http::HeaderMap;
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
-use crate::provider::{Authentication, AuthenticationProvider};
+use crate::provider::AuthenticationProvider;
 
 /// Name of the header carrying an unverified actor ID.
 pub const ACTOR_ID_HEADER: &str = "X-Authenticated-User-Actor-Id";
@@ -138,10 +138,8 @@ where
     // TODO(BE-755): cache verified credentials so repeated requests do not re-verify against the
     //               provider and the principal store each time
     match provider.authenticate(headers).await {
-        ControlFlow::Break(Authentication::Verified(actor)) => {
-            AuthenticationOutcome::Authenticated(actor.into())
-        }
-        ControlFlow::Break(Authentication::Rejected(report)) => {
+        ControlFlow::Break(Ok(actor)) => AuthenticationOutcome::Authenticated(actor.into()),
+        ControlFlow::Break(Err(report)) => {
             let error = report.current_context().clone();
             if matches!(
                 error.status_code(),
@@ -200,6 +198,8 @@ pub fn actor_id_from_header(headers: &HeaderMap) -> Result<ActorEntityUuid, Auth
 
 #[cfg(test)]
 mod tests {
+    use core::mem;
+
     use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
     use http::HeaderMap;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
@@ -288,5 +288,83 @@ mod tests {
             ),
             "a request without credentials should fail authentication"
         );
+    }
+
+    /// One instance of every error variant.
+    ///
+    /// The array length is the variant count, so adding a variant stops compiling here until an
+    /// instance of it is supplied. Distinct discriminants rule out one variant standing in twice
+    /// while another goes missing.
+    fn every_error(
+        identity_id: &str,
+        actor_id: ActorEntityUuid,
+    ) -> [AuthenticationError; mem::variant_count::<AuthenticationError>()] {
+        let errors = [
+            AuthenticationError::MissingCredentials,
+            AuthenticationError::MalformedCredential,
+            AuthenticationError::InvalidActorIdHeader,
+            AuthenticationError::MissingServiceSecret,
+            AuthenticationError::InvalidServiceSecret,
+            AuthenticationError::ProviderUnreachable,
+            AuthenticationError::ProviderRejection,
+            AuthenticationError::InvalidProviderResponse,
+            AuthenticationError::InvalidSession,
+            AuthenticationError::NotProvisioned {
+                identity_id: identity_id.to_owned(),
+            },
+            AuthenticationError::ActorNotFound { actor_id },
+            AuthenticationError::NotAUser { actor_id },
+            AuthenticationError::StoreError,
+        ];
+
+        for (index, error) in errors.iter().enumerate() {
+            let repeated = errors[..index]
+                .iter()
+                .any(|earlier| mem::discriminant(earlier) == mem::discriminant(error));
+            assert!(!repeated, "`{error}` should appear exactly once");
+        }
+
+        errors
+    }
+
+    /// Every error the client can reach reports something.
+    #[test]
+    fn client_messages_are_never_empty() {
+        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
+            assert!(
+                !error.client_message().is_empty(),
+                "`{error}` should report a client message"
+            );
+        }
+    }
+
+    /// The identifiers the client never sees must still reach the logs.
+    #[test]
+    fn log_representations_carry_their_identifiers() {
+        let identity_id = "d290f1ee-6c54-4b01-90e6-d701748f0851";
+        let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+        let errors = [
+            (
+                AuthenticationError::NotProvisioned {
+                    identity_id: identity_id.to_owned(),
+                },
+                identity_id.to_owned(),
+            ),
+            (
+                AuthenticationError::ActorNotFound { actor_id },
+                actor_id.to_string(),
+            ),
+            (
+                AuthenticationError::NotAUser { actor_id },
+                actor_id.to_string(),
+            ),
+        ];
+
+        for (error, identifier) in errors {
+            assert!(
+                error.to_string().contains(&identifier),
+                "the log representation of `{error}` should carry the identifier"
+            );
+        }
     }
 }

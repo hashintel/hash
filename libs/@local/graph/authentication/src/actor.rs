@@ -5,7 +5,9 @@ use alloc::sync::Arc;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::store::{PrincipalStore, error::DetermineActorError};
 use hash_graph_store::pool::StorePool;
-use type_system::principal::actor::{ActorEntityUuid, ActorId};
+use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
+
+use crate::request::AuthenticationError;
 
 /// Resolves an [`ActorEntityUuid`] to the [`ActorId`] stored in the principal store.
 ///
@@ -56,13 +58,46 @@ where
     }
 }
 
+/// Resolves the actor against the principal store and requires it to be a user actor.
+///
+/// # Errors
+///
+/// - [`NotAUser`] if the actor is not a user, or is the public actor
+/// - [`ActorNotFound`] if the actor does not exist
+/// - [`StoreError`] if the underlying store returns an error
+///
+/// [`NotAUser`]: AuthenticationError::NotAUser
+/// [`ActorNotFound`]: AuthenticationError::ActorNotFound
+/// [`StoreError`]: AuthenticationError::StoreError
+pub(crate) async fn resolve_user_actor<R>(
+    actor_resolver: &R,
+    actor_id: ActorEntityUuid,
+) -> Result<UserId, Report<AuthenticationError>>
+where
+    R: ResolveActor,
+{
+    match actor_resolver.resolve_actor(actor_id).await {
+        Ok(Some(ActorId::User(user_id))) => Ok(user_id),
+        Ok(Some(_) | None) => Err(Report::new(AuthenticationError::NotAUser { actor_id })),
+        Err(report) => match report.current_context() {
+            DetermineActorError::ActorNotFound { .. } => {
+                Err(report.change_context(AuthenticationError::ActorNotFound { actor_id }))
+            }
+            DetermineActorError::StoreError => {
+                Err(report.change_context(AuthenticationError::StoreError))
+            }
+        },
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use std::collections::HashMap;
 
     use error_stack::Report;
     use hash_graph_authorization::policies::store::error::DetermineActorError;
-    use type_system::principal::actor::{ActorEntityUuid, ActorId};
+    use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
+    use uuid::Uuid;
 
     use super::ResolveActor;
 
@@ -89,5 +124,16 @@ pub(crate) mod tests {
                 Report::new(DetermineActorError::ActorNotFound { actor_entity_uuid })
             }))
         }
+    }
+
+    pub(crate) fn random_actor() -> ActorEntityUuid {
+        ActorEntityUuid::new(Uuid::new_v4())
+    }
+
+    /// A resolver map holding the given actor as a user.
+    pub(crate) fn known_user(
+        actor_id: ActorEntityUuid,
+    ) -> HashMap<ActorEntityUuid, Option<ActorId>> {
+        HashMap::from([(actor_id, Some(ActorId::User(UserId::new(actor_id))))])
     }
 }

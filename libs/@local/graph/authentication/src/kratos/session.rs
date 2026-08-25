@@ -1,21 +1,19 @@
-//! Ory Kratos implementation of [`AuthenticationProvider`].
+//! Kratos session verification against the public API.
 
 use core::{ops::ControlFlow, time::Duration};
 
 use cookie::Cookie;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::policies::{
-    principal::actor::AuthenticatedActor, store::error::DetermineActorError,
-};
+use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use http::{HeaderMap, header};
 use reqwest::{Client, Url, redirect};
 use serde::Deserialize;
 use type_system::principal::actor::{ActorEntityUuid, ActorId};
-use uuid::Uuid;
 
+use super::{MetadataPublic, provider_response, read_response_body};
 use crate::{
-    actor::ResolveActor,
-    provider::{Authentication, AuthenticationProvider},
+    actor::{ResolveActor, resolve_user_actor},
+    provider::AuthenticationProvider,
     request::AuthenticationError,
 };
 
@@ -74,19 +72,6 @@ fn extract_session_credential(
     None
 }
 
-/// Formats a provider response for report attachments, truncating long bodies.
-fn provider_response(status: reqwest::StatusCode, body: Result<String, reqwest::Error>) -> String {
-    let Ok(body) = body else {
-        return format!("provider response ({status}): <body unavailable>");
-    };
-    let mut chars = body.chars();
-    let mut snippet: String = chars.by_ref().take(512).collect();
-    if !chars.as_str().is_empty() {
-        snippet.push('\u{2026}');
-    }
-    format!("provider response ({status}): {snippet}")
-}
-
 /// Deserialized subset of the Kratos whoami response.
 #[derive(Deserialize)]
 struct WhoamiResponse {
@@ -97,12 +82,7 @@ struct WhoamiResponse {
 #[derive(Deserialize)]
 struct WhoamiIdentity {
     id: String,
-    metadata_public: Option<WhoamiMetadataPublic>,
-}
-
-#[derive(Deserialize)]
-struct WhoamiMetadataPublic {
-    graph_actor_id: Option<Uuid>,
+    metadata_public: Option<MetadataPublic>,
 }
 
 /// Configuration for [`KratosSessionProvider`].
@@ -164,7 +144,7 @@ where
     async fn verify_session(
         &self,
         credential: SessionCredential<'_>,
-    ) -> Result<ActorId, Report<AuthenticationError>> {
+    ) -> Result<ActorEntityUuid, Report<AuthenticationError>> {
         let request = match credential {
             SessionCredential::Token(token) => self
                 .http_client
@@ -183,26 +163,18 @@ where
             .await
             .change_context(AuthenticationError::ProviderUnreachable)?;
 
+        // Kratos answers an unknown or expired session with 401 or 403, which is a credential
+        // failure rather than a provider fault.
         let status = response.status();
         if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
             return Err(Report::new(AuthenticationError::InvalidSession)
                 .attach(provider_response(status, response.text().await)));
         }
-        if status.is_client_error() {
-            return Err(Report::new(AuthenticationError::ProviderRejection)
-                .attach(provider_response(status, response.text().await)));
-        }
-        if !status.is_success() {
-            return Err(Report::new(AuthenticationError::ProviderUnreachable)
-                .attach(provider_response(status, response.text().await)));
-        }
 
-        let body = response
-            .text()
-            .await
-            .change_context(AuthenticationError::ProviderUnreachable)?;
-        // A whoami body carries the identity and its traits, so it stays out of the report.
-        // Failure bodies above are Kratos error responses without identity data.
+        let body = read_response_body(response).await?;
+        // A whoami body carries the identity and its traits, so it stays out of the report. The
+        // bodies that do get attached, here and in `read_response_body`, are Kratos error
+        // responses without identity data.
         let whoami: WhoamiResponse = serde_json::from_str(&body)
             .change_context(AuthenticationError::InvalidProviderResponse)?;
 
@@ -221,20 +193,7 @@ where
                 identity_id: whoami.identity.id,
             }));
         };
-        let actor_id = ActorEntityUuid::new(actor_uuid);
-
-        match self.actor_resolver.resolve_actor(actor_id).await {
-            Ok(Some(resolved @ ActorId::User(_))) => Ok(resolved),
-            Ok(Some(_) | None) => Err(Report::new(AuthenticationError::NotAUser { actor_id })),
-            Err(report) => match report.current_context() {
-                DetermineActorError::ActorNotFound { .. } => {
-                    Err(report.change_context(AuthenticationError::ActorNotFound { actor_id }))
-                }
-                DetermineActorError::StoreError => {
-                    Err(report.change_context(AuthenticationError::StoreError))
-                }
-            },
-        }
+        Ok(ActorEntityUuid::new(actor_uuid))
     }
 }
 
@@ -242,39 +201,50 @@ impl<R> AuthenticationProvider for KratosSessionProvider<R>
 where
     R: ResolveActor,
 {
-    async fn authenticate(&self, headers: &HeaderMap) -> ControlFlow<Authentication> {
-        match extract_session_credential(headers) {
-            None => ControlFlow::Continue(()),
-            Some(Err(report)) => ControlFlow::Break(Authentication::Rejected(report)),
-            Some(Ok(credential)) => {
-                ControlFlow::Break(match self.verify_session(credential).await {
-                    Ok(actor_id) => Authentication::Verified(AuthenticatedActor::Id(actor_id)),
-                    Err(report) => Authentication::Rejected(report),
-                })
-            }
-        }
+    #[tracing::instrument(level = "debug", skip_all, fields(whoami_url = %self.whoami_url))]
+    async fn authenticate(
+        &self,
+        headers: &HeaderMap,
+    ) -> ControlFlow<Result<AuthenticatedActor, Report<AuthenticationError>>> {
+        let credential = match extract_session_credential(headers) {
+            None => return ControlFlow::Continue(()),
+            Some(Err(report)) => return ControlFlow::Break(Err(report)),
+            Some(Ok(credential)) => credential,
+        };
+
+        let resolution = async {
+            let actor_uuid = self.verify_session(credential).await?;
+            resolve_user_actor(&self.actor_resolver, actor_uuid).await
+        };
+
+        ControlFlow::Break(
+            resolution
+                .await
+                .map(|user_id| AuthenticatedActor::Id(ActorId::User(user_id))),
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use core::{net::SocketAddr, ops::ControlFlow, time::Duration};
+    use core::{ops::ControlFlow, time::Duration};
     use std::collections::HashMap;
 
     use axum::{Json, Router, response::IntoResponse as _, routing::get};
-    use error_stack::Report;
     use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
     use http::{HeaderMap, HeaderValue, StatusCode};
     use reqwest::Url;
+    use rstest::rstest;
     use serde_json::{Value as JsonValue, json};
-    use type_system::principal::actor::{ActorEntityUuid, ActorId, MachineId, UserId};
+    use type_system::principal::actor::{ActorEntityUuid, ActorId, MachineId};
     use uuid::Uuid;
 
     use super::{KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME};
     use crate::{
-        actor::tests::FixedActorResolver,
+        actor::tests::{FixedActorResolver, known_user, random_actor},
         delegation::{SERVICE_AUTH_SCHEME, ServiceDelegationProvider},
-        provider::{Authentication, AuthenticationProvider as _},
+        kratos::tests::spawn_fake_kratos,
+        provider::{AuthenticationProvider as _, tests::expect_rejection},
         request::{ACTOR_ID_HEADER, AuthenticationError},
     };
 
@@ -333,31 +303,6 @@ mod tests {
         }
     }
 
-    fn known_user(actor_id: ActorEntityUuid) -> HashMap<ActorEntityUuid, Option<ActorId>> {
-        HashMap::from([(actor_id, Some(ActorId::User(UserId::new(actor_id))))])
-    }
-
-    /// Binds a fake Kratos on an ephemeral port and returns its base URL.
-    async fn spawn_fake_kratos(router: Router) -> Url {
-        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
-            .await
-            .expect("the test server should bind to an ephemeral port");
-        let address = listener
-            .local_addr()
-            .expect("the test listener should report its local address");
-        tokio::spawn(async move {
-            axum::serve(
-                listener,
-                router.into_make_service_with_connect_info::<SocketAddr>(),
-            )
-            .await
-            .expect("the test server should serve requests");
-        });
-
-        Url::parse(&format!("http://{address}"))
-            .expect("the test server address should parse as a URL")
-    }
-
     fn provider_at(
         url: Url,
         actors: HashMap<ActorEntityUuid, Option<ActorId>>,
@@ -405,10 +350,6 @@ mod tests {
         provider_at(spawn_fake_kratos(router).await, actors)
     }
 
-    fn random_actor() -> ActorEntityUuid {
-        ActorEntityUuid::new(Uuid::new_v4())
-    }
-
     fn session_token_header() -> HeaderMap {
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -418,18 +359,6 @@ mod tests {
                 .expect("the session token should be a valid header value"),
         );
         headers
-    }
-
-    #[track_caller]
-    fn expect_rejection(
-        authentication: ControlFlow<Authentication>,
-    ) -> Report<AuthenticationError> {
-        match authentication {
-            ControlFlow::Break(Authentication::Rejected(report)) => report,
-            ControlFlow::Break(Authentication::Verified(_)) | ControlFlow::Continue(()) => {
-                panic!("the credential should be rejected, got {authentication:?}")
-            }
-        }
     }
 
     #[tokio::test]
@@ -442,7 +371,7 @@ mod tests {
         assert!(
             matches!(
                 authentication,
-                ControlFlow::Break(Authentication::Verified(AuthenticatedActor::Id(
+                ControlFlow::Break(Ok(AuthenticatedActor::Id(
                     ActorId::User(user_id)
                 ))) if ActorEntityUuid::new(user_id) == actor_id
             ),
@@ -471,9 +400,7 @@ mod tests {
         assert!(
             matches!(
                 authentication,
-                ControlFlow::Break(Authentication::Verified(AuthenticatedActor::Id(
-                    ActorId::User(_)
-                )))
+                ControlFlow::Break(Ok(AuthenticatedActor::Id(ActorId::User(_))))
             ),
             "a session cookie next to non-ASCII cookies should verify"
         );
@@ -500,104 +427,61 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn unprovisioned_identity_fails_authentication() {
-        let provider = provider_for(FakeSession::unprovisioned(), HashMap::new()).await;
-
-        let report = expect_rejection(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::NotProvisioned { .. }
-            ),
-            "an identity without a provisioned actor should fail authentication"
-        );
-    }
-
-    #[tokio::test]
-    async fn unknown_actor_fails_authentication() {
-        let provider = provider_for(FakeSession::active_for(random_actor()), HashMap::new()).await;
-
-        let report = expect_rejection(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ActorNotFound { .. }
-            ),
-            "a session carrying an unknown actor should fail authentication"
-        );
-    }
-
-    #[tokio::test]
-    async fn machine_actor_fails_authentication() {
-        let actor_id = random_actor();
-        let provider = provider_for(
-            FakeSession::active_for(actor_id),
-            HashMap::from([(actor_id, Some(ActorId::Machine(MachineId::new(actor_id))))]),
+    /// A fixed actor, so a case can point the session and the resolver at the same one.
+    ///
+    /// A real version 4 UUID, because the wire types reject UUIDs without an RFC 4122 version.
+    fn case_actor() -> ActorEntityUuid {
+        ActorEntityUuid::new(
+            Uuid::parse_str("d290f1ee-6c54-4b01-90e6-d701748f0851")
+                .expect("the case UUID should parse"),
         )
-        .await;
-
-        let report = expect_rejection(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::NotAUser { .. }
-            ),
-            "a session resolving to a machine actor should fail authentication"
-        );
     }
 
+    /// Each case covers a distinct rejecting branch of session verification.
+    #[rstest]
+    #[case::unprovisioned_identity(
+        FakeSession::unprovisioned(),
+        HashMap::new(),
+        |error: &AuthenticationError| matches!(error, AuthenticationError::NotProvisioned { .. })
+    )]
+    #[case::unknown_actor(
+        FakeSession::active_for(case_actor()),
+        HashMap::new(),
+        |error: &AuthenticationError| matches!(error, AuthenticationError::ActorNotFound { .. })
+    )]
+    #[case::machine_actor(
+        FakeSession::active_for(case_actor()),
+        HashMap::from([(case_actor(), Some(ActorId::Machine(MachineId::new(case_actor()))))]),
+        |error: &AuthenticationError| matches!(error, AuthenticationError::NotAUser { .. })
+    )]
+    #[case::public_actor(
+        FakeSession::active_for(case_actor()),
+        HashMap::from([(case_actor(), None)]),
+        |error: &AuthenticationError| matches!(error, AuthenticationError::NotAUser { .. })
+    )]
+    #[case::inactive_session(
+        FakeSession::inactive_for(case_actor()),
+        known_user(case_actor()),
+        |error: &AuthenticationError| matches!(error, AuthenticationError::InvalidSession)
+    )]
+    #[case::session_without_active_flag(
+        FakeSession::without_active_flag(case_actor()),
+        known_user(case_actor()),
+        |error: &AuthenticationError| matches!(error, AuthenticationError::InvalidSession)
+    )]
     #[tokio::test]
-    async fn public_actor_fails_authentication() {
-        let actor_id = random_actor();
-        let provider = provider_for(
-            FakeSession::active_for(actor_id),
-            HashMap::from([(actor_id, None)]),
-        )
-        .await;
+    async fn invalid_session_fails_authentication(
+        #[case] session: FakeSession,
+        #[case] actors: HashMap<ActorEntityUuid, Option<ActorId>>,
+        #[case] expected: fn(&AuthenticationError) -> bool,
+    ) {
+        let provider = provider_for(session, actors).await;
 
         let report = expect_rejection(provider.authenticate(&session_token_header()).await);
         assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::NotAUser { .. }
-            ),
-            "a session resolving to the public actor should fail authentication"
-        );
-    }
-
-    #[tokio::test]
-    async fn inactive_session_fails_authentication() {
-        let actor_id = random_actor();
-        let provider =
-            provider_for(FakeSession::inactive_for(actor_id), known_user(actor_id)).await;
-
-        let report = expect_rejection(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidSession
-            ),
-            "an inactive session should fail authentication"
-        );
-    }
-
-    #[tokio::test]
-    async fn session_without_active_flag_fails_authentication() {
-        let actor_id = random_actor();
-        let provider = provider_for(
-            FakeSession::without_active_flag(actor_id),
-            known_user(actor_id),
-        )
-        .await;
-
-        let report = expect_rejection(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidSession
-            ),
-            "a session without an `active` flag should fail authentication"
+            expected(report.current_context()),
+            "the session should fail authentication, got {:?}",
+            report.current_context()
         );
     }
 
@@ -663,34 +547,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn rate_limited_provider_fails_verification() {
-        let provider = provider_with_static_response(StatusCode::TOO_MANY_REQUESTS, "{}").await;
-
-        let report = expect_rejection(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ProviderRejection
-            ),
-            "a rate-limited provider should fail as a provider rejection"
-        );
-    }
-
-    #[tokio::test]
-    async fn provider_error_fails_verification() {
-        let provider = provider_with_static_response(StatusCode::INTERNAL_SERVER_ERROR, "{}").await;
-
-        let report = expect_rejection(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ProviderUnreachable
-            ),
-            "a provider-side error should fail as provider unavailability"
-        );
-    }
-
-    #[tokio::test]
     async fn redirecting_provider_fails_verification() {
         let provider = provider_with_static_response(StatusCode::FOUND, "").await;
 
@@ -701,6 +557,25 @@ mod tests {
                 AuthenticationError::ProviderUnreachable
             ),
             "a redirecting provider should fail verification instead of being followed"
+        );
+    }
+
+    /// A client error that is not 401 or 403 reports the provider, not the session.
+    ///
+    /// Widening the credential-failure check to every client error would tell a caller its session
+    /// is invalid while Kratos is merely throttling.
+    #[tokio::test]
+    async fn rate_limited_provider_fails_verification() {
+        let provider = provider_with_static_response(StatusCode::TOO_MANY_REQUESTS, "{}").await;
+
+        let report = expect_rejection(provider.authenticate(&session_token_header()).await);
+        assert!(
+            matches!(
+                report.current_context(),
+                AuthenticationError::ProviderRejection
+            ),
+            "a rate-limited provider should fail as a provider rejection, not as an invalid \
+             session"
         );
     }
 
@@ -807,7 +682,7 @@ mod tests {
         assert!(
             matches!(
                 decision,
-                ControlFlow::Break(Authentication::Verified(AuthenticatedActor::Id(
+                ControlFlow::Break(Ok(AuthenticatedActor::Id(
                     ActorId::User(user_id)
                 ))) if ActorEntityUuid::new(user_id) == session_actor
             ),
