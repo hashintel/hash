@@ -74,14 +74,21 @@ async fn verified_identity(
     // A credentials-identifier lookup also returns identities whose matching address is still
     // unverified, so requiring `verified` here is what keeps an unverified address from
     // authenticating as its owner.
-    let Some(identity) = identities.into_iter().find(|identity| {
+    let mut matching = identities.into_iter().filter(|identity| {
         identity
             .verifiable_addresses
             .iter()
             .any(|address| address.verified && address.value.eq_ignore_ascii_case(email))
-    }) else {
+    });
+    let Some(identity) = matching.next() else {
         return Err(Report::new(AuthenticationError::IdentityWithoutActor));
     };
+    // The address is the identity's credentials identifier, which the provider keeps unique —
+    // several identities holding it as verified violate that invariant, and picking one would
+    // authenticate an arbitrary account.
+    if matching.next().is_some() {
+        return Err(Report::new(AuthenticationError::InvalidProviderResponse));
+    }
 
     let Some(actor_uuid) = identity
         .metadata_public
@@ -239,6 +246,38 @@ mod tests {
             .resolve_email_actor(lookup)
             .await
             .expect("the email should resolve");
+    }
+
+    /// The address is the provider's unique credentials identifier, so two identities holding it
+    /// as verified violate that invariant — authenticating as either would bind the caller to an
+    /// arbitrary account.
+    #[tokio::test]
+    async fn ambiguous_verified_address_fails_authentication() {
+        let first_actor = random_actor();
+        let second_actor = random_actor();
+        let mut actors = known_user(first_actor);
+        actors.extend(known_user(second_actor));
+        let resolver = resolver_for(
+            json!([
+                identity_json(Some(first_actor), json!([verified_address(EMAIL)])),
+                identity_json(Some(second_actor), json!([verified_address(EMAIL)])),
+            ]),
+            actors,
+        )
+        .await;
+
+        let report = resolver
+            .resolve_email_actor(EMAIL)
+            .await
+            .expect_err("an ambiguous verified address should fail rather than pick an account");
+        assert!(
+            matches!(
+                report.current_context(),
+                AuthenticationError::InvalidProviderResponse
+            ),
+            "the ambiguity should fail as an invalid provider state, got {:?}",
+            report.current_context()
+        );
     }
 
     /// Authentication never reads the traits, so a malformed traits object on a listed identity
