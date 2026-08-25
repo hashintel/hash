@@ -112,6 +112,18 @@ const buildLabelSearchFilter = (query: string): Filter => ({
   ),
 });
 
+/**
+ * Drops link entities from the results. The graph renders links as edges, not
+ * selectable nodes, and the pick pipeline locates each result by its source node
+ * (see `network-graph-view.tsx`) — so a link entity that matched on a
+ * `name`/`title`/`display-name` property would be a dead result that resolves to
+ * nothing. A link entity is exactly one with a left endpoint, so exclude any whose
+ * `leftEntity` resolves.
+ */
+const NON_LINK_ENTITY_FILTER: Filter = {
+  not: { exists: { path: ["leftEntity", "uuid"] } },
+};
+
 export interface NetworkGraphSearchResult {
   entityId: EntityId;
   label: string;
@@ -232,9 +244,13 @@ export const NetworkGraphSearch = ({
   >(queryEntitiesQuery, {
     variables: {
       request: {
-        filter: viewFilter
-          ? { all: [viewFilter, buildLabelSearchFilter(trimmedQuery)] }
-          : buildLabelSearchFilter(trimmedQuery),
+        filter: {
+          all: [
+            NON_LINK_ENTITY_FILTER,
+            ...(viewFilter ? [viewFilter] : []),
+            buildLabelSearchFilter(trimmedQuery),
+          ],
+        },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includeEntityTypes: "resolved",
