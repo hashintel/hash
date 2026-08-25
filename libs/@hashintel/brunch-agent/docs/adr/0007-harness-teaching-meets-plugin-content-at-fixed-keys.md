@@ -1,7 +1,8 @@
 # ADR-0007: Harness teaching meets plugin content at fixed keys
 
 Date: 2026-08-25
-Status: proposed — drafted for Lu's ratification; nothing below governs until accepted
+Status: accepted 2026-08-25 (Lu), with one caveat recorded as decision 9 — the key catalogue of
+decision 2 is a working set that two plugins converge on, not a list frozen by this record
 Amends: [ADR-0006](0006-plugins-per-target-formalism.md), decision 2 (a plugin is no longer one
 Markdown file whose prose is concatenated whole; the machine-read tables become schema-validated
 data and the prose becomes cells under harness-owned keys) and decision 5 (the "later lift" of
@@ -65,8 +66,8 @@ regex over prose and the completion anchor found by naming convention — the si
    with content that names its kinds and never a domain. Rendering interleaves, key by key: the
    key, the harness default, then the plugin's cell if it is not blank. Cells add; they never
    override a default — a default a plugin needs to contradict is a finding about the harness.
-   Adding a key is an amendment to this record; the generality test of ADR-0006 extends to keys —
-   a second formalism or a third job adds zero.
+   Once the catalogue is frozen (decision 9), adding a key is an amendment to this record and the
+   generality test of ADR-0006 extends to keys — a second formalism or a third job adds zero.
 
 2. **The keys, in four groups.** Groups are by nature — data, guidance, procedure, code — not by
    file.
@@ -151,6 +152,23 @@ regex over prose and the completion anchor found by naming convention — the si
    interleaving. Every layer ships with its intent — a package README saying what the layer is for,
    pointing here.
 
+9. **The catalogue converges by co-authoring, not by decree.** Decision 2 names a working set.
+   Fixing it before it has been written against would repeat the record this ADR corrects: a
+   structure affirmed in prose and tested by nothing. The set is stabilised in cycles — write the
+   schema, `plugin-sdcpn`, `plugin-gherkin`, and the repertoire _together_; review whether each key
+   plausibly serves both plugins; run the result where a run is available; edit. Two pressures are
+   applied in every cycle. The first is the two test-case plugins: one schema must read well for
+   both. The second is the process-modelling edge material already in the record (the CPS
+   grilling inputs, the truck-fleet and coating cases, the literature deposit), asked three
+   questions — is the set general enough to cover different elicitations of that kind; is it
+   specific enough that an author can give direction that changes what the interviewer does; does
+   it still fit elicitations of another kind (gherkin now; formal verification as the sketch)?
+   During convergence, adding, merging, or dropping a key is done in the schema and both plugins at
+   once and recorded in the package changelog, not by amending this record. The catalogue is
+   **frozen** when a cycle changes no key and a third-formalism sketch fills cells only; from then
+   decision 1's amendment rule applies. The cycle is the method; its product is the catalogue, the
+   two plugins, and the repertoire, converged at the same time.
+
 ## Condition
 
 Revisit if a second formalism or a third job needs a new key; if a plugin cell must contradict a
@@ -166,8 +184,9 @@ evidence; the audit records three rescopings that cited none.
   as its design and `packages/repertoire` as its deliverable; the 2026-08-25 five-row scope is
   replaced by decision 6. **FE-1431** (declarative plugin authoring) becomes the plugin side of
   decision 8: the schema, `plugin.yaml`, the key reader, and the SDCPN plugin's migration.
-  **FE-1393** keeps its role: the gherkin plugin fills cells only and adds zero keys. These are
-  proposed Linear edits, not ones made here.
+  **FE-1393** keeps its role: the gherkin plugin fills cells only and adds zero keys. Under
+  decision 9 the three advance together in each cycle rather than in sequence; the Linear edits
+  were made on acceptance (2026-08-25).
 - **The SDCPN `construct` runbook shrinks.** Slice, sweep, probe, ledger, and close move to the
   repertoire; the plugin keeps what one case is, its kind order, and its stopping outcomes. The
   `review and revise` runbook keeps orientation, scope, and its job checks. `Patterns` P06, P09,

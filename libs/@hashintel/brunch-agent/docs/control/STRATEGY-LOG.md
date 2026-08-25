@@ -270,3 +270,41 @@ than the plugin it teaches (the instrument-larger-than-the-thing heuristic, appl
 [lineage audit](../evidence/proofs/audits/harness-teaching-lineage-audit.md),
 [penciled directions 2026-08-14](../archive/planning-inputs/penciled-directions-2026-08-14.md),
 [SDCPN plugin file](../../packages/plugin-sdcpn/plugin.md), FE-1406, FE-1431, FE-1393, FE-1497
+
+### S-009
+
+**Date:** 2026-08-25
+
+**Trigger/evidence:** Lu accepted ADR-0007 with one caveat: fixing the precise key catalogue now
+would be counter-productive. The evidence behind the caveat is the FE-1482 arc itself — an agent
+can produce a plausible plugin definition from a given structural and semantic schema in minutes,
+so the design activity being left on the table is not writing the catalogue but pressing it: two
+test-case plugins (`sdcpn`, `gherkin`) that must both read well under one schema, and a body of
+process-modelling edge material (the CPS grilling inputs, the truck-fleet and coating cases, the
+FE-1360 literature deposit) that the key set must be general enough to cover, specific enough to
+direct, and flexible enough not to bind to.
+
+**Decision:** Converge the catalogue by co-authoring. Each cycle writes the schema, both plugin
+files, and the repertoire together; reviews whether every key plausibly serves both plugins and the
+edge material; runs the result where a run exists; edits. FE-1431, FE-1406, and FE-1393 advance in
+the same cycle rather than in the sequence S-008 gave them. Keys may be added, merged, or dropped
+inside a cycle, recorded in the package changelog; the catalogue freezes when a cycle changes no
+key and a third-formalism sketch (formal verification) fills cells only. Rejected: freezing the
+catalogue from the ADR (untested structure, the failure the record shows); and writing the SDCPN
+plugin first with gherkin as an after-the-fact check (the S-007 order, which would let one
+formalism shape the schema before the other pressed it). Complements S-008 (amending its lane
+order); supersedes nothing.
+
+**Consequences/cuts:** STEERING's authoring lane becomes a cycle; the ADR-0007 gate closes; the
+ADR gains decision 9; the three Linear issues are rewritten to advance together. The catalogue's
+changelog lives in `packages/core` beside the schema. A cycle that changes no key is the freeze
+signal, and the first one is a recorded event.
+
+**Revisit when:** three cycles pass without the set shrinking or stabilising (the pressure is not
+converging it); or the two plugins need different groups rather than different cells (the
+one-schema premise fails); or a run contradicts what a review call plausible.
+
+**Supersedes:** none
+
+**Evidence links:** [ADR-0007 decision 9](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md),
+[S-008](#s-008), [grilling inputs](../archive/planning-inputs/), FE-1482, FE-1406, FE-1431, FE-1393

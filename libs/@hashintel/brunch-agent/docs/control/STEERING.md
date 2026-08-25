@@ -19,8 +19,9 @@ evidence under [proof evidence](../evidence/proofs/).
 Governing strategic decisions: [S-001](STRATEGY-LOG.md#s-001), [S-004](STRATEGY-LOG.md#s-004),
 [S-007](STRATEGY-LOG.md#s-007), and [S-008](STRATEGY-LOG.md#s-008). Governing architecture:
 [ADR-0003](../adr/0003-three-register-ir.md), [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md),
-[ADR-0006](../adr/0006-plugins-per-target-formalism.md); [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md)
-is proposed and governs the teaching layer on ratification (see gates).
+[ADR-0006](../adr/0006-plugins-per-target-formalism.md),
+[ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) (accepted
+2026-08-25; its key catalogue is a working set converging under decision 9).
 
 ## Selected frontier: the vertical slice, worked outward from its epicentres
 
@@ -40,7 +41,7 @@ evaluation apparatus) are not worked until an epicentre needs them.
 | **E2 — the SDCPN plugin in code** | The plugin file exists as a spec; nothing parses its three tables, folds captures onto its kinds, or projects from them. | FE-1482 (gist: CPS plugin, redefined as the skeleton epicentre) |
 | **E3 — targeted correction** | `supersedes` is unreachable from extraction; no affected-slice computation; no delta; the target-document is still identified with the conversation. | FE-1479 (targeted re-elicitation), FE-1478 (provenance read), FE-1439 (durable session / document boundary) |
 | **E4 — the real entry** | Client-tool results do not return to the elicitor; retry/abandonment semantics unproven; realization gated. | FE-1438, FE-1420, FE-1480 |
-| **E5 — the teaching layer** | The harness teaches eight sentences; the plugin runbook carries five-sixths harness method that gherkin would repeat; the parser reads the floor and anchor from prose by convention. Opened by E1's landing ([S-008](STRATEGY-LOG.md#s-008)); designed by [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) (proposed). | FE-1431 (authoring surface: schema, `plugin.yaml`, key reader), FE-1406 (`packages/repertoire`), FE-1393 (zero new keys) |
+| **E5 — the teaching layer** | The harness teaches eight sentences; the plugin runbook carries five-sixths harness method that gherkin would repeat; the parser reads the floor and anchor from prose by convention. Opened by E1's landing ([S-008](STRATEGY-LOG.md#s-008)); designed by [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md); converged by co-authoring both plugins ([S-009](STRATEGY-LOG.md#s-009)). | FE-1431 (authoring surface: schema, `plugin.yaml`, key reader), FE-1406 (`packages/repertoire`), FE-1393 (zero new keys) |
 
 ```text
 skeleton (construct job; proves the loop, produces fixtures)
@@ -51,17 +52,19 @@ reviewer lane (review-and-revise job; the acceptance proof)
 FE-1420 retry/abandonment safety -> FE-1438 client-tool return -> FE-1439 durable session
 FE-1478 provenance read -> FE-1480 scaffold/realization -> FE-1479 targeted correction join
 
-authoring lane (E5; alongside the skeleton run, joins it at a second run over the migrated plugin)
-FE-1431 schema + plugin.yaml + key reader; SDCPN plugin migrated
--> FE-1406 packages/repertoire: every guidance and runbook key filled; binding renders key -> default -> cell
--> FE-1393 gherkin fills cells only, adds zero keys (generality check)
+authoring lane (E5; a convergence cycle alongside the skeleton run, joining it at a run over the migrated plugin)
+each cycle: write schema + plugin-sdcpn/plugin.yaml + plugin-gherkin/plugin.yaml + repertoire together
+  -> review: does every key plausibly serve both? press against the CPS edge material
+  -> run where a run exists -> edit; the catalogue freezes when a cycle changes no key
+FE-1431 (schema, plugin.yaml, key reader) | FE-1406 (packages/repertoire) | FE-1393 (gherkin, zero keys) advance together
 ```
 
 Arrows are strategic order. The skeleton lane and the reviewer lane run in parallel; they join at
 FE-1479, whose "affected slice", "re-evaluate", and "delta" moves consume E1's fold and completion.
 No hard blocker chain remains from the retired design queue. The authoring lane's sizing
-(FE-1406 as a package, FE-1431 as the authoring surface) is [S-008](STRATEGY-LOG.md#s-008)'s and
-waits on the ADR-0007 gate before Linear reflects it.
+(FE-1406 as a package, FE-1431 as the authoring surface) is [S-008](STRATEGY-LOG.md#s-008)'s; its
+method — both plugins written together, the catalogue converging — is [S-009](STRATEGY-LOG.md#s-009)'s.
+Linear reflects both as of 2026-08-25.
 
 ### Proof bundle for the selected frontier
 
@@ -109,7 +112,6 @@ The read-only Linear graph supplies mechanical availability, never priority.
 | FE-1480 executable realization unavailable | FE-1438; [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | Client tools return code diagnostics to the elicitor. | 2026-08-25 | Scaffold work may proceed; no runnable FE-1480 proof until the gate opens. |
 | Final use case outstanding | Dora; FE-1476 / September Plan | Dora confirms or changes it. | 2026-08-25 | If creation is required, Proof 1 becomes acceptance-relevant rather than a harness proof; reconcile ADR-0004/proof. |
 | Deferral licensing (completion spec rules 17–19) unbuildable | [elicitation-completion](../specs/elicitation-completion.md) rules 17–19; FE-1480 / [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | A durable projection delivery exists for an evaluated revision. | 2026-08-25 | E1 supplies the report and revision (FE-1497, #9325); rule 18 makes licensing `false` without a delivered projection, so no issue is opened. When FE-1480 delivers, it is one read-time function beside `evaluateCompletion` plus a binding hook at settlement; no new persistence. |
-| ADR-0007 awaiting ratification | Lu; [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md), PR #9327 | Lu accepts, amends, or rejects the record. | 2026-08-25 | Until accepted, FE-1406, FE-1431, and FE-1393 keep their S-007 scope in Linear and E5 is design-only on its branch. On acceptance: the three Linear edits, the glossary and SPEC-LEDGER amendments, then FE-1431 starts. |
 | Truck-fleet dossier missing from the repository | FE-1382 is Done but its promised `docs/reference/research/` artifact is absent. | Artifact path/branch is supplied or a reviewed replacement is selected. | 2026-08-25 | The generality half of Proof 1 uses a fixture derived from the inbox truck SDCPN and Layer B's worked example; claim no dossier-backed domain provenance. |
 
 ## Decision-relevant beliefs and unknowns
@@ -142,6 +144,8 @@ The read-only Linear graph supplies mechanical availability, never priority.
 - The teaching layer is built as topology — a package, fixed keys, a schema, gates — with each layer
   paired with the document that states its intent, never as spec prose alone; and it is not
   rescoped without run evidence ([S-008](STRATEGY-LOG.md#s-008), [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md)).
+- The key catalogue is a working set until a cycle changes no key: fix it by writing both plugins
+  against it, not by decree ([S-009](STRATEGY-LOG.md#s-009), ADR-0007 decision 9).
 
 ## Stop or replan
 

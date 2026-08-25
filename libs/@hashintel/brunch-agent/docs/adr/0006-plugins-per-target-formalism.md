@@ -2,6 +2,9 @@
 
 Date: 2026-08-25
 Status: accepted
+Amended by: [ADR-0007](0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) (2026-08-25),
+decisions 2 and 5 — the machine-read tables become schema-validated data, the prose becomes cells
+under harness-owned keys, and the harness-generic lift is designed there
 Amends: [ADR-0003](0003-three-register-ir.md), first consequence only — the plugin contract's
 _form_ (a sectioned Markdown file with three parsed tables replaces the typed model-schema /
 proposal-catalog / fold-table / demand-table declaration); the three registers are unchanged
