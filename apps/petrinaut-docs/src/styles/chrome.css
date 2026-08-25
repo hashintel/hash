@@ -172,6 +172,11 @@
  * transition target; `allow-discrete` keeps the content painted for the whole
  * collapse rather than dropping it on the first frame. Both features are recent,
  * so the rule is guarded and older browsers keep the instant toggle.
+ *
+ * The transition waits for `data-pnd-ready`, which lands after the first paint.
+ * Starlight restores group state from `sessionStorage` while the page loads, and
+ * a transition already in effect would replay every restored group on each
+ * navigation instead of showing the saved tree.
  */
 @supports selector(::details-content) and (interpolate-size: allow-keywords) {
   @media (prefers-reduced-motion: no-preference) {
@@ -179,7 +184,7 @@
       interpolate-size: allow-keywords;
     }
 
-    .sidebar-content details::details-content {
+    :root[data-pnd-ready] .sidebar-content details::details-content {
       block-size: 0;
       overflow: hidden;
       transition:
@@ -187,7 +192,7 @@
         content-visibility 220ms allow-discrete;
     }
 
-    .sidebar-content details[open]::details-content {
+    :root[data-pnd-ready] .sidebar-content details[open]::details-content {
       block-size: auto;
     }
   }

@@ -150,10 +150,25 @@ import Default from "@astrojs/starlight/components/SiteTitle.astro";
       pane.addEventListener("toggle", markClipped, { capture: true });
     };
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", markLabels, { once: true });
-    } else {
+    // Two frames, so the group state Starlight restores has painted once
+    // before `chrome.css` starts transitioning `::details-content`.
+    const allowGroupAnimation = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          root.dataset.pndReady = "";
+        });
+      });
+    };
+
+    const onReady = () => {
       markLabels();
+      allowGroupAnimation();
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", onReady, { once: true });
+    } else {
+      onReady();
     }
   })();
 </script>
