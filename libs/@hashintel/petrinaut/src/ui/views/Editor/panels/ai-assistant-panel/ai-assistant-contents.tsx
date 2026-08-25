@@ -30,6 +30,8 @@ import type { PetrinautAiMessage } from "./types";
 
 type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
 
+const EMPTY_INTERACTIVE_TOOLS: readonly PetrinautAiInteractiveTool[] = [];
+
 export type AiAssistantContentsProps = {
   error?: Error;
   input: string;
@@ -404,7 +406,7 @@ AiAssistantMessage.displayName = "AiAssistantMessage";
 export const AiAssistantContents = ({
   error,
   input,
-  interactiveTools = [],
+  interactiveTools = EMPTY_INTERACTIVE_TOOLS,
   messages,
   onClearMessages,
   onClose,

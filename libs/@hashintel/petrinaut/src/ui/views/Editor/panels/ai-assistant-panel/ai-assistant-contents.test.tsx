@@ -18,14 +18,47 @@ import { AiAssistantContents } from "./ai-assistant-contents";
 
 import type { PetrinautAiMessage } from "./types";
 
+const renderMarkdown = vi.hoisted(() =>
+  vi.fn(({ children }: { children: string }) => children),
+);
+
+vi.mock("react-markdown", () => ({ default: renderMarkdown }));
+
 const noop = () => {};
 
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
   vi.useRealTimers();
 });
 
 describe("AiAssistantContents", () => {
+  test("keeps completed messages memoized when interactive tools are omitted", () => {
+    const messages: PetrinautAiMessage[] = [
+      {
+        id: "assistant-1",
+        role: "assistant",
+        parts: [{ type: "text", state: "done", text: "Completed response" }],
+      },
+    ];
+    const props = {
+      messages,
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+
+    const { rerender } = render(<AiAssistantContents {...props} input="" />);
+
+    expect(renderMarkdown).toHaveBeenCalledOnce();
+
+    rerender(<AiAssistantContents {...props} input="Next message" />);
+
+    expect(renderMarkdown).toHaveBeenCalledOnce();
+  });
+
   test("renders a host interactive tool and submits its validated output once", () => {
     const parseOutput = vi.fn((raw: unknown) => {
       if (
