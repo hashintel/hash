@@ -1,3 +1,4 @@
+import { createInterviewCapture } from "./interview-draft";
 import { interviewOpeningQuestion } from "./interview-opening";
 
 import type { VoiceExperimentAdapter } from "./voice-experiment-adapter";
@@ -154,15 +155,57 @@ const parseToolDiagnostic = (
   ) {
     return null;
   }
+  const captureRecord = asRecord(record?.capture);
+  const capture =
+    getString(captureRecord, "toolName") === toolName
+      ? createInterviewCapture({
+          captureId:
+            getString(captureRecord, "captureId") ?? `capture-${callId}`,
+          input: captureRecord?.input,
+          toolName,
+        })
+      : null;
 
   return {
     argumentSummary,
     callId,
+    ...(capture ? { capture } : {}),
     sequence: Number(sequence),
     timestampMs,
     toolName,
     turnId: Number(turnId),
     type: "tool-called",
+  };
+};
+
+const parseProjectionReadyDiagnostic = (
+  value: unknown,
+):
+  | ({ sequence: number } & Extract<
+      VoiceExperimentEvent,
+      { type: "projection-ready" }
+    >)
+  | null => {
+  const record = asRecord(value);
+  const sequence = record?.sequence;
+  const timestampMs = record?.timestampMs;
+  const callId = boundedDiagnosticText(record?.callId, 96);
+  if (
+    getString(record, "type") !== "projection-ready" ||
+    !Number.isSafeInteger(sequence) ||
+    Number(sequence) < 1 ||
+    typeof timestampMs !== "number" ||
+    !Number.isFinite(timestampMs) ||
+    !callId
+  ) {
+    return null;
+  }
+
+  return {
+    callId,
+    sequence: Number(sequence),
+    timestampMs,
+    type: "projection-ready",
   };
 };
 
@@ -172,9 +215,13 @@ const parseDiagnosticEvent = (
   | ({ sequence: number } & Extract<
       VoiceExperimentEvent,
       | { type: "final-transcript" | "partial-transcript" }
+      | { type: "projection-ready" }
       | { type: "tool-called" }
     >)
-  | null => parseTranscriptDiagnostic(value) ?? parseToolDiagnostic(value);
+  | null =>
+  parseTranscriptDiagnostic(value) ??
+  parseToolDiagnostic(value) ??
+  parseProjectionReadyDiagnostic(value);
 
 class ElevenLabsAdapter implements VoiceExperimentAdapter {
   readonly #dependencies: ElevenLabsAdapterDependencies;

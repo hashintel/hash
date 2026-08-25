@@ -4,10 +4,16 @@ export type BrunchVoiceToolCall = {
   toolName: string;
 };
 
+export type BrunchVoiceProjectionReady = {
+  output: unknown;
+  toolCallId: string;
+};
+
 type BrunchVoiceBridgeDependencies = {
   chatEndpoint: string;
   createId?: () => string;
   fetch?: typeof globalThis.fetch;
+  onProjectionReady?: (event: BrunchVoiceProjectionReady) => void;
   onToolCall?: (toolCall: BrunchVoiceToolCall) => void;
 };
 
@@ -103,6 +109,9 @@ export class BrunchVoiceBridge {
   readonly #chatEndpoint: string;
   readonly #createId: () => string;
   readonly #fetch: typeof globalThis.fetch;
+  readonly #onProjectionReady:
+    | ((event: BrunchVoiceProjectionReady) => void)
+    | undefined;
   readonly #onToolCall: ((toolCall: BrunchVoiceToolCall) => void) | undefined;
   readonly #sessions = new Map<string, BridgeSessionState>();
 
@@ -110,6 +119,7 @@ export class BrunchVoiceBridge {
     this.#chatEndpoint = dependencies.chatEndpoint;
     this.#createId = dependencies.createId ?? (() => crypto.randomUUID());
     this.#fetch = dependencies.fetch ?? globalThis.fetch;
+    this.#onProjectionReady = dependencies.onProjectionReady;
     this.#onToolCall = dependencies.onToolCall;
   }
 
@@ -183,6 +193,7 @@ export class BrunchVoiceBridge {
     let assistantMessageId: string | null =
       pendingAsk?.assistantMessageId ?? null;
     let spokenText = "";
+    const sweepToolCallIds = new Set<string>();
     for await (const chunk of readUiMessageStream(response.body)) {
       if (chunk.type === "start") {
         assistantMessageId = stringProperty(chunk, "messageId");
@@ -207,6 +218,9 @@ export class BrunchVoiceBridge {
             toolCallId,
             toolName,
           });
+          if (toolName === "brunch_sweep") {
+            sweepToolCallIds.add(toolCallId);
+          }
         }
         if (toolName !== "brunch_ask") {
           continue;
@@ -227,6 +241,19 @@ export class BrunchVoiceBridge {
             .endsWith(question.trim().toLocaleLowerCase())
         ) {
           yield question;
+        }
+        continue;
+      }
+
+      if (chunk.type === "tool-output-available") {
+        const toolCallId = stringProperty(chunk, "toolCallId");
+        const output = asRecord(chunk.output);
+        if (
+          toolCallId &&
+          sweepToolCallIds.has(toolCallId) &&
+          stringProperty(output, "status") === "applied"
+        ) {
+          this.#onProjectionReady?.({ output: chunk.output, toolCallId });
         }
         continue;
       }

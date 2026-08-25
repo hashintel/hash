@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createJsonDocHandle,
@@ -27,7 +27,9 @@ import { VoiceExperiment } from "./voice-experiment";
 import { createElevenLabsAdapter } from "./voice-experiment/elevenlabs-adapter";
 import {
   createMockInterviewDraft,
+  createMockInterviewProjection,
   type FinalizeInterviewInput,
+  type InterviewDraftResult,
 } from "./voice-experiment/interview-draft";
 import { createOpenAIRealtimeAdapter } from "./voice-experiment/openai-realtime-adapter";
 import { getVoiceExperimentSelection } from "./voice-experiment/voice-experiment-selection";
@@ -130,6 +132,9 @@ export const LocalStorageDemoApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
   const voiceExperiment = getVoiceExperimentSelection(window.location);
   const [voiceConversationId] = useState(() => crypto.randomUUID());
+  const lastVoiceProjectionRevisionRef = useRef(0);
+  const voiceDraftEditedRef = useRef(false);
+  const voiceDraftNetIdRef = useRef<string | null>(null);
   const voiceProvider = voiceExperiment?.provider;
   const voiceElicitor = voiceExperiment?.elicitor;
   const voiceExperimentAdapter = useMemo(() => {
@@ -182,6 +187,9 @@ export const LocalStorageDemoApp = () => {
 
     return handle.subscribe((event) => {
       const lastUpdated = new Date().toISOString();
+      if (netId === voiceDraftNetIdRef.current) {
+        voiceDraftEditedRef.current = true;
+      }
 
       setStoredSDCPNs((prev) => {
         const stored = prev[netId] ?? fallbackNet;
@@ -234,22 +242,83 @@ export const LocalStorageDemoApp = () => {
     });
     setActiveHandle(createActiveHandle(newNet));
     setCurrentNetId(newNet.id);
+    return newNet.id;
   };
+
+  const applyVoiceProjection = (result: InterviewDraftResult): boolean => {
+    if (result.revision <= lastVoiceProjectionRevisionRef.current) {
+      return false;
+    }
+    lastVoiceProjectionRevisionRef.current = result.revision;
+    const voiceInterview: NonNullable<SDCPNInLocalStorage["voiceInterview"]> = {
+      conversationId: result.conversationId,
+      revision: result.revision,
+      source: result.source,
+      transcript: result.transcript,
+      warnings: result.warnings,
+    };
+    const voiceDraftNetId = voiceDraftNetIdRef.current;
+    if (!voiceDraftNetId) {
+      voiceDraftNetIdRef.current = createNewNet({
+        petriNetDefinition: result.petriNetDefinition,
+        title: result.title,
+        voiceInterview,
+      });
+      return true;
+    }
+    if (voiceDraftEditedRef.current) {
+      setStoredSDCPNs((previous) => {
+        const existingDraft = previous[voiceDraftNetId];
+        return existingDraft
+          ? {
+              ...previous,
+              [voiceDraftNetId]: {
+                ...existingDraft,
+                lastUpdated: new Date().toISOString(),
+                voiceInterview: {
+                  ...voiceInterview,
+                  warnings: [
+                    ...voiceInterview.warnings,
+                    "A newer projection was not applied because the draft was manually edited.",
+                  ],
+                },
+              },
+            }
+          : previous;
+      });
+      return false;
+    }
+
+    const updatedNet: SDCPNInLocalStorage = {
+      id: voiceDraftNetId,
+      lastUpdated: new Date().toISOString(),
+      sdcpn: result.petriNetDefinition,
+      title: result.title,
+      voiceInterview,
+    };
+    setStoredSDCPNs((previous) => ({
+      ...previous,
+      [voiceDraftNetId]: updatedNet,
+    }));
+    if (currentNetId === voiceDraftNetId) {
+      setActiveHandle(createActiveHandle(updatedNet));
+    }
+    return true;
+  };
+
+  const projectVoiceInterview =
+    voiceExperiment?.projector === "mock"
+      ? (input: FinalizeInterviewInput): boolean => {
+          const result = createMockInterviewProjection(input);
+          return result ? applyVoiceProjection(result) : false;
+        }
+      : undefined;
 
   const finalizeVoiceInterview =
     voiceExperiment?.projector === "mock"
       ? (input: FinalizeInterviewInput) => {
           const result = createMockInterviewDraft(input);
-          createNewNet({
-            petriNetDefinition: result.petriNetDefinition,
-            title: result.title,
-            voiceInterview: {
-              conversationId: result.conversationId,
-              source: result.source,
-              transcript: result.transcript,
-              warnings: result.warnings,
-            },
-          });
+          applyVoiceProjection(result);
         }
       : undefined;
 
@@ -357,6 +426,7 @@ export const LocalStorageDemoApp = () => {
             conversationId={voiceConversationId}
             experiment={voiceExperiment}
             onFinalize={finalizeVoiceInterview}
+            onProject={projectVoiceInterview}
           />
         ) : null}
       </WalkthroughProvider>

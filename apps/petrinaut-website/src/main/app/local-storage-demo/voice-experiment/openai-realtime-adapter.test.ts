@@ -285,6 +285,28 @@ describe("OpenAIRealtimeAdapter", () => {
         { type: "text-delta", id: "text-1", delta: "Thanks. " },
         {
           type: "tool-input-available",
+          toolCallId: "step-1",
+          toolName: "record_process_step",
+          input: {
+            description: "Assess severity",
+            name: "Triage",
+            owner: "Support lead",
+            secret: "must-not-leak",
+          },
+        },
+        {
+          type: "tool-input-available",
+          toolCallId: "sweep-1",
+          toolName: "brunch_sweep",
+          input: {},
+        },
+        {
+          type: "tool-output-available",
+          toolCallId: "sweep-1",
+          output: { status: "applied", appliedCaptureIds: ["capture-1"] },
+        },
+        {
+          type: "tool-input-available",
           toolCallId: "ask-1",
           toolName: "brunch_ask",
           input: { question: "What happens next?" },
@@ -356,6 +378,29 @@ describe("OpenAIRealtimeAdapter", () => {
         transcript: "Thanks. What happens next?",
         turnId: 1,
         type: "final-transcript",
+      }),
+    );
+    expect(harness.events).toContainEqual(
+      expect.objectContaining({
+        capture: {
+          captureId: "capture-step-1",
+          input: {
+            description: "Assess severity",
+            name: "Triage",
+            owner: "Support lead",
+          },
+          toolName: "record_process_step",
+        },
+        callId: "step-1",
+        toolName: "record_process_step",
+        type: "tool-called",
+      }),
+    );
+    expect(JSON.stringify(harness.events)).not.toContain("must-not-leak");
+    expect(harness.events).toContainEqual(
+      expect.objectContaining({
+        callId: "sweep-1",
+        type: "projection-ready",
       }),
     );
     expect(harness.events).toContainEqual(

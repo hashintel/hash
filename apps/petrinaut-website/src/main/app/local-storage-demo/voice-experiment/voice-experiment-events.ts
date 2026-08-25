@@ -33,4 +33,20 @@ export type VoiceExperimentEvent =
       turnId: number;
       type: "tool-called";
     }
+  | {
+      revision: number;
+      timestampMs: number;
+      type: "projection-updated";
+    }
+  | {
+      message: string;
+      revision: number;
+      timestampMs: number;
+      type: "projection-error";
+    }
+  | {
+      callId: string;
+      timestampMs: number;
+      type: "projection-ready";
+    }
   | { message: string; timestampMs: number; type: "error" };

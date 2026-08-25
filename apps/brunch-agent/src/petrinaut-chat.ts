@@ -105,6 +105,9 @@ const streamElicitorTurn = async (
           });
         }
       }
+      if (event.type === "tool-output") {
+        voiceExperimentDiagnostics.recordToolOutput(conversationId, event);
+      }
       emit(event);
     },
   });

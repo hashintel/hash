@@ -1,11 +1,12 @@
 import {
   BrunchVoiceBridge,
+  type BrunchVoiceProjectionReady,
   type BrunchVoiceToolCall,
 } from "@hashintel/brunch-agent-transport-aisdk/voice-bridge";
 
+import { createInterviewCapture } from "./interview-draft";
 import { interviewOpeningQuestion } from "./interview-opening";
 
-import type { InterviewCapture } from "./interview-draft";
 import type { VoiceExperimentAdapter } from "./voice-experiment-adapter";
 import type { VoiceExperimentEvent } from "./voice-experiment-events";
 import type { VoiceElicitor } from "./voice-experiment-selection";
@@ -190,56 +191,12 @@ const summarizeFunctionCall = ({
   return "Arguments hidden";
 };
 
-const createInterviewCapture = (
-  functionCall: FunctionCall,
-): InterviewCapture | null => {
-  const toolName = functionCall.name;
-  if (
-    toolName !== "record_process_state" &&
-    toolName !== "record_process_step" &&
-    toolName !== "record_process_decision" &&
-    toolName !== "record_process_flow" &&
-    toolName !== "record_model_requirement"
-  ) {
-    return null;
-  }
+const parseFunctionCallInput = (functionCall: FunctionCall): unknown => {
   if (!functionCall.arguments) {
     return null;
   }
-
   try {
-    const input = asRecord(JSON.parse(functionCall.arguments));
-    if (!input) {
-      return null;
-    }
-    const allowedProperties = {
-      record_model_requirement: ["category", "description"],
-      record_process_decision: ["condition", "outcomes"],
-      record_process_flow: ["condition", "from", "to"],
-      record_process_state: [
-        "category",
-        "description",
-        "name",
-        "tokenDescription",
-      ],
-      record_process_step: [
-        "description",
-        "name",
-        "owner",
-        "timing",
-        "trigger",
-      ],
-    } satisfies Record<InterviewCapture["toolName"], string[]>;
-    const sanitizedInput = Object.fromEntries(
-      allowedProperties[toolName].flatMap((property) =>
-        input[property] === undefined ? [] : [[property, input[property]]],
-      ),
-    );
-    return {
-      captureId: `capture-${functionCall.callId}`,
-      input: sanitizedInput,
-      toolName,
-    };
+    return JSON.parse(functionCall.arguments);
   } catch {
     return null;
   }
@@ -277,6 +234,8 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
         ? new BrunchVoiceBridge({
             chatEndpoint: BRUNCH_CHAT_ENDPOINT,
             fetch: dependencies.fetch,
+            onProjectionReady: (event) =>
+              this.#emitBrunchProjectionReady(event),
             onToolCall: (toolCall) => this.#emitBrunchToolCall(toolCall),
           })
         : null;
@@ -803,6 +762,13 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
     toolCallId,
     toolName,
   }: BrunchVoiceToolCall): void {
+    const safeToolCallId = boundedSummaryText(toolCallId, 96) || "unknown-call";
+    const safeToolName = boundedSummaryText(toolName, 96) || "unknown-tool";
+    const capture = createInterviewCapture({
+      captureId: `capture-${safeToolCallId}`,
+      input,
+      toolName: safeToolName,
+    });
     const question =
       toolName === "brunch_ask"
         ? boundedSummaryText(asRecord(input)?.question, 220)
@@ -816,11 +782,20 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
           : toolName === "brunch_sweep"
             ? "Settlement requested"
             : "Arguments hidden",
-      callId: boundedSummaryText(toolCallId, 96) || "unknown-call",
+      callId: safeToolCallId,
+      ...(capture ? { capture } : {}),
       timestampMs: this.#dependencies.now(),
-      toolName: boundedSummaryText(toolName, 96) || "unknown-tool",
+      toolName: safeToolName,
       turnId: this.#latestTurnId,
       type: "tool-called",
+    });
+  }
+
+  #emitBrunchProjectionReady({ toolCallId }: BrunchVoiceProjectionReady): void {
+    this.#emit({
+      callId: boundedSummaryText(toolCallId, 96) || "unknown-call",
+      timestampMs: this.#dependencies.now(),
+      type: "projection-ready",
     });
   }
 
@@ -848,7 +823,11 @@ class OpenAIRealtimeAdapter implements VoiceExperimentAdapter {
 
       for (const functionCall of functionCalls) {
         const isWaitForUser = functionCall.name === WAIT_FOR_USER_TOOL_NAME;
-        const capture = createInterviewCapture(functionCall);
+        const capture = createInterviewCapture({
+          captureId: `capture-${functionCall.callId}`,
+          input: parseFunctionCallInput(functionCall),
+          toolName: functionCall.name,
+        });
         this.#emit({
           argumentSummary: summarizeFunctionCall(functionCall),
           callId: functionCall.callId,

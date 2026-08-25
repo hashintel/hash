@@ -11,6 +11,7 @@ export type SDCPNInLocalStorage = {
   title: string;
   voiceInterview?: {
     conversationId: string;
+    revision: number;
     source: "brunch" | "mock";
     transcript: {
       speaker: "assistant" | "expert";

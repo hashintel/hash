@@ -1,12 +1,19 @@
 import { describe, expect, test } from "vitest";
 
-import { createMockInterviewDraft } from "./interview-draft";
+import {
+  createInterviewCapture,
+  createMockInterviewDraft,
+  createMockInterviewProjection,
+  type FinalizeInterviewInput,
+} from "./interview-draft";
 
 describe("createMockInterviewDraft", () => {
   test("creates a visible placeholder net when the elicitor has no structured captures", () => {
     const result = createMockInterviewDraft({
       captures: [],
       conversationId: "conversation-1",
+      readiness: "finalize",
+      revision: 1,
       transcript: [
         {
           speaker: "assistant",
@@ -24,6 +31,7 @@ describe("createMockInterviewDraft", () => {
     expect(result).toMatchObject({
       conversationId: "conversation-1",
       source: "mock",
+      revision: 1,
       title: "Battery charging — mock draft",
     });
     expect(result.petriNetDefinition.places).toHaveLength(2);
@@ -89,6 +97,8 @@ describe("createMockInterviewDraft", () => {
         },
       ],
       conversationId: "conversation-2",
+      readiness: "finalize",
+      revision: 5,
       transcript: [
         {
           speaker: "expert",
@@ -110,6 +120,94 @@ describe("createMockInterviewDraft", () => {
       }),
     ]);
     expect(result.captures).toHaveLength(5);
+    expect(result.revision).toBe(5);
     expect(result.warnings[0]).toContain("mock projector");
+  });
+
+  test("waits for coherent captures before producing a live projection", () => {
+    const input: FinalizeInterviewInput = {
+      captures: [
+        {
+          captureId: "capture-state",
+          toolName: "record_process_state",
+          input: {
+            name: "Battery empty",
+            description: "The battery starts empty.",
+            category: "state",
+          },
+        },
+      ],
+      conversationId: "conversation-live",
+      readiness: "captures",
+      revision: 1,
+      transcript: [
+        {
+          speaker: "expert",
+          transcript: "Battery charging.",
+          turnId: 1,
+        },
+      ],
+    };
+
+    expect(createMockInterviewProjection(input)).toBeNull();
+    expect(
+      createMockInterviewProjection({
+        ...input,
+        captures: [
+          ...input.captures,
+          {
+            captureId: "capture-step",
+            toolName: "record_process_step",
+            input: {
+              name: "Charge battery",
+              description: "The charger fills the battery.",
+            },
+          },
+          {
+            captureId: "capture-flow",
+            toolName: "record_process_flow",
+            input: { from: "Battery empty", to: "Charge battery" },
+          },
+        ],
+        revision: 3,
+      }),
+    ).toMatchObject({
+      revision: 3,
+      source: "mock",
+      title: "Battery charging — mock draft",
+    });
+    expect(
+      createMockInterviewProjection({
+        ...input,
+        readiness: "elicitor",
+        revision: 2,
+      }),
+    ).toMatchObject({
+      revision: 2,
+      title: "Battery charging — mock draft",
+    });
+  });
+
+  test("sanitizes provider capture payloads through one contract", () => {
+    expect(
+      createInterviewCapture({
+        captureId: "capture-1",
+        input: {
+          description: " Assess severity ",
+          name: "Triage",
+          owner: "Support",
+          secret: "must-not-leak",
+        },
+        toolName: "record_process_step",
+      }),
+    ).toEqual({
+      captureId: "capture-1",
+      input: {
+        description: "Assess severity",
+        name: "Triage",
+        owner: "Support",
+      },
+      toolName: "record_process_step",
+    });
   });
 });

@@ -85,6 +85,17 @@ Brunch projector evolves. The saved record includes the transcript, source conve
 projector warnings. `projector=mock` is deliberately explicit: URLs without it keep the current
 stop-without-projection behavior.
 
+The mock projector also models incremental projection. Structured capture calls from either
+provider path are accumulated through the same contract and debounced for 300 ms. Once the captures
+form a coherent state-step-flow graph, the app creates one draft net and updates that same net on
+later capture revisions. Incomplete capture batches do not cause placeholder churn. An applied
+`brunch_sweep` emits a provider-neutral elicitor-readiness signal and projects the best available
+mock draft, falling back to the labelled placeholder when structured captures are unavailable;
+refused sweeps do not trigger projection. **Finish and create net** forces the same behavior if no
+sweep has completed. Revision checks discard stale projector responses. Once the user manually
+edits the live draft, later projections preserve those edits and update only the saved interview
+metadata rather than replacing the net.
+
 ## ElevenLabs + Brunch voice experiment
 
 The real-elicitor experiment is available at

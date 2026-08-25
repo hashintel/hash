@@ -274,6 +274,30 @@ describe("ElevenLabsAdapter", () => {
           toolName: "brunch_ask",
           turnId: 1,
         },
+        {
+          argumentSummary: "Arguments hidden",
+          callId: "call_step",
+          capture: {
+            captureId: "capture-call_step",
+            input: {
+              description: "Assess severity",
+              name: "Triage",
+              owner: "Support lead",
+              secret: "must-not-appear",
+            },
+            toolName: "record_process_step",
+          },
+          sequence: 2,
+          timestampMs: 2_001,
+          toolName: "record_process_step",
+          turnId: 1,
+        },
+        {
+          callId: "sweep-1",
+          sequence: 3,
+          timestampMs: 2_002,
+          type: "projection-ready",
+        },
       ],
     });
 
@@ -286,6 +310,28 @@ describe("ElevenLabsAdapter", () => {
       callId: "call_ask",
       timestampMs: 2_000,
       toolName: "brunch_ask",
+      turnId: 1,
+      type: "tool-called",
+    });
+    expect(harness.events).toContainEqual({
+      callId: "sweep-1",
+      timestampMs: 2_002,
+      type: "projection-ready",
+    });
+    expect(harness.events).toContainEqual({
+      argumentSummary: "Arguments hidden",
+      callId: "call_step",
+      capture: {
+        captureId: "capture-call_step",
+        input: {
+          description: "Assess severity",
+          name: "Triage",
+          owner: "Support lead",
+        },
+        toolName: "record_process_step",
+      },
+      timestampMs: 2_001,
+      toolName: "record_process_step",
       turnId: 1,
       type: "tool-called",
     });

@@ -7,11 +7,19 @@ const MAX_EVENTS_PER_SESSION = 50;
 const MAX_IDENTIFIER_CHARACTERS = 96;
 const MAX_SUMMARY_CHARACTERS = 240;
 const MAX_TRANSCRIPT_CHARACTERS = 4_000;
+const MAX_CAPTURE_VALUE_CHARACTERS = 500;
 const providerConversationIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
+
+type VoiceCaptureDiagnostic = {
+  readonly captureId: string;
+  readonly input: Record<string, string | string[]>;
+  readonly toolName: string;
+};
 
 export type VoiceToolDiagnostic = {
   readonly argumentSummary: string;
   readonly callId: string;
+  readonly capture?: VoiceCaptureDiagnostic;
   readonly sequence: number;
   readonly timestampMs: number;
   readonly toolName: string;
@@ -27,7 +35,15 @@ export type VoiceTranscriptDiagnostic = {
   readonly type: "final-transcript" | "partial-transcript";
 };
 
+export type VoiceProjectionReadyDiagnostic = {
+  readonly callId: string;
+  readonly sequence: number;
+  readonly timestampMs: number;
+  readonly type: "projection-ready";
+};
+
 export type VoiceDiagnosticEvent =
+  | VoiceProjectionReadyDiagnostic
   | VoiceToolDiagnostic
   | VoiceTranscriptDiagnostic;
 
@@ -35,6 +51,7 @@ type DiagnosticSession = {
   events: VoiceDiagnosticEvent[];
   nextSequence: number;
   nextTurnId: number;
+  toolNameByCallId: Map<string, string>;
 };
 
 type VoiceExperimentDiagnosticsDependencies = {
@@ -83,6 +100,63 @@ const summarizeToolInput = (toolName: string, input: unknown): string => {
   }
 
   return "Arguments hidden";
+};
+
+const capturePropertiesByToolName = {
+  record_model_requirement: ["category", "description"],
+  record_process_decision: ["condition", "outcomes"],
+  record_process_flow: ["condition", "from", "to"],
+  record_process_state: ["category", "description", "name", "tokenDescription"],
+  record_process_step: ["description", "name", "owner", "timing", "trigger"],
+} as const;
+
+const createCaptureDiagnostic = ({
+  callId,
+  input,
+  toolName,
+}: {
+  callId: string;
+  input: unknown;
+  toolName: string;
+}): VoiceCaptureDiagnostic | null => {
+  if (!Object.hasOwn(capturePropertiesByToolName, toolName)) {
+    return null;
+  }
+  const inputRecord = asRecord(input);
+  if (!inputRecord) {
+    return null;
+  }
+  const properties =
+    capturePropertiesByToolName[
+      toolName as keyof typeof capturePropertiesByToolName
+    ];
+  const sanitizedInput: Record<string, string | string[]> = {};
+  for (const property of properties) {
+    const value = inputRecord[property];
+    if (typeof value === "string") {
+      const sanitized = boundedText(value, MAX_CAPTURE_VALUE_CHARACTERS);
+      if (sanitized) {
+        sanitizedInput[property] = sanitized;
+      }
+    } else if (Array.isArray(value)) {
+      const sanitized = value
+        .map((item) => boundedText(item, MAX_CAPTURE_VALUE_CHARACTERS))
+        .filter(Boolean)
+        .slice(0, 20);
+      if (sanitized.length > 0) {
+        sanitizedInput[property] = sanitized;
+      }
+    }
+  }
+  if (Object.keys(sanitizedInput).length === 0) {
+    return null;
+  }
+
+  return {
+    captureId: `capture-${callId}`,
+    input: sanitizedInput,
+    toolName,
+  };
 };
 
 export class VoiceExperimentDiagnostics {
@@ -135,7 +209,8 @@ export class VoiceExperimentDiagnostics {
         return;
       }
 
-      const keepSequence = last.type === "partial-transcript" && event.isPartial;
+      const keepSequence =
+        last.type === "partial-transcript" && event.isPartial;
       if (!keepSequence) {
         session.nextSequence += 1;
       }
@@ -181,13 +256,52 @@ export class VoiceExperimentDiagnostics {
     const session = this.#sessionFor(conversationId);
     session.nextSequence += 1;
     const toolName = safeIdentifier(event.toolName, "unknown-tool");
+    const callId = safeIdentifier(event.toolCallId, "unknown-call");
+    const capture = createCaptureDiagnostic({
+      callId,
+      input: event.input,
+      toolName,
+    });
+    session.toolNameByCallId.set(callId, toolName);
     session.events.push({
       argumentSummary: summarizeToolInput(toolName, event.input),
-      callId: safeIdentifier(event.toolCallId, "unknown-call"),
+      callId,
+      ...(capture ? { capture } : {}),
       sequence: session.nextSequence,
       timestampMs: this.#dependencies.now(),
       toolName,
       turnId,
+    });
+    session.events = session.events.slice(-MAX_EVENTS_PER_SESSION);
+  }
+
+  public recordToolOutput(
+    conversationId: string,
+    event: Pick<
+      Extract<HarnessReplyEvent, { type: "tool-output" }>,
+      "output" | "toolCallId"
+    >,
+  ): void {
+    if (!conversationId.startsWith(VOICE_CONVERSATION_PREFIX)) {
+      return;
+    }
+    const session = this.#sessionFor(conversationId);
+    const callId = safeIdentifier(event.toolCallId, "unknown-call");
+    const toolName = session.toolNameByCallId.get(callId);
+    session.toolNameByCallId.delete(callId);
+    if (
+      toolName !== "brunch_sweep" ||
+      asRecord(event.output)?.status !== "applied"
+    ) {
+      return;
+    }
+
+    session.nextSequence += 1;
+    session.events.push({
+      callId,
+      sequence: session.nextSequence,
+      timestampMs: this.#dependencies.now(),
+      type: "projection-ready",
     });
     session.events = session.events.slice(-MAX_EVENTS_PER_SESSION);
   }
@@ -218,6 +332,7 @@ export class VoiceExperimentDiagnostics {
       events: [],
       nextSequence: 0,
       nextTurnId: 0,
+      toolNameByCallId: new Map(),
     };
     this.#sessions.set(conversationId, session);
     return session;

@@ -6,20 +6,24 @@ export type InterviewTranscriptLine = {
   turnId: number;
 };
 
+export type InterviewCaptureToolName =
+  | "record_model_requirement"
+  | "record_process_decision"
+  | "record_process_flow"
+  | "record_process_state"
+  | "record_process_step";
+
 export type InterviewCapture = {
   captureId: string;
   input: Record<string, unknown>;
-  toolName:
-    | "record_model_requirement"
-    | "record_process_decision"
-    | "record_process_flow"
-    | "record_process_state"
-    | "record_process_step";
+  toolName: InterviewCaptureToolName;
 };
 
 export type FinalizeInterviewInput = {
   captures: InterviewCapture[];
   conversationId: string;
+  readiness: "captures" | "elicitor" | "finalize";
+  revision: number;
   transcript: InterviewTranscriptLine[];
 };
 
@@ -27,6 +31,7 @@ export type InterviewDraftResult = {
   captures: InterviewCapture[];
   conversationId: string;
   petriNetDefinition: SDCPN;
+  revision: number;
   source: "brunch" | "mock";
   title: string;
   transcript: InterviewTranscriptLine[];
@@ -43,6 +48,79 @@ const stringProperty = (
 ): string | null => {
   const value = input[property];
   return typeof value === "string" && value.trim() ? value.trim() : null;
+};
+
+const allowedCaptureProperties = {
+  record_model_requirement: ["category", "description"],
+  record_process_decision: ["condition", "outcomes"],
+  record_process_flow: ["condition", "from", "to"],
+  record_process_state: ["category", "description", "name", "tokenDescription"],
+  record_process_step: ["description", "name", "owner", "timing", "trigger"],
+} satisfies Record<InterviewCaptureToolName, string[]>;
+
+const isInterviewCaptureToolName = (
+  toolName: string,
+): toolName is InterviewCaptureToolName =>
+  Object.hasOwn(allowedCaptureProperties, toolName);
+
+const safeCaptureValue = (value: unknown): string | string[] | null => {
+  if (typeof value === "string") {
+    const sanitized = value
+      .normalize("NFKC")
+      .replace(/\s+/gu, " ")
+      .trim()
+      .slice(0, 500);
+    return sanitized || null;
+  }
+  if (Array.isArray(value)) {
+    const sanitized = value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) =>
+        item.normalize("NFKC").replace(/\s+/gu, " ").trim().slice(0, 500),
+      )
+      .filter(Boolean)
+      .slice(0, 20);
+    return sanitized.length > 0 ? sanitized : null;
+  }
+  return null;
+};
+
+export const createInterviewCapture = ({
+  captureId,
+  input,
+  toolName,
+}: {
+  captureId: string;
+  input: unknown;
+  toolName: string;
+}): InterviewCapture | null => {
+  if (
+    !isInterviewCaptureToolName(toolName) ||
+    typeof input !== "object" ||
+    input === null
+  ) {
+    return null;
+  }
+  const inputRecord = input as Record<string, unknown>;
+  const sanitizedInput = Object.fromEntries(
+    allowedCaptureProperties[toolName].flatMap((property) => {
+      const value = safeCaptureValue(inputRecord[property]);
+      return value === null ? [] : [[property, value]];
+    }),
+  );
+  if (Object.keys(sanitizedInput).length === 0) {
+    return null;
+  }
+  const sanitizedCaptureId = captureId.normalize("NFKC").trim().slice(0, 128);
+  if (!sanitizedCaptureId) {
+    return null;
+  }
+
+  return {
+    captureId: sanitizedCaptureId,
+    input: sanitizedInput,
+    toolName,
+  };
 };
 
 const identifierFrom = (value: string, fallback: string): string => {
@@ -289,6 +367,32 @@ export const createMockInterviewDraft = (
     captures: structuredClone(input.captures),
     conversationId: input.conversationId,
     petriNetDefinition: projected.petriNetDefinition,
+    revision: input.revision,
+    source: "mock",
+    title,
+    transcript: structuredClone(input.transcript),
+    warnings: projected.warnings,
+  };
+};
+
+export const createMockInterviewProjection = (
+  input: FinalizeInterviewInput,
+): InterviewDraftResult | null => {
+  const title = titleFrom(input.transcript);
+  const projected =
+    createCapturedDraft(input.captures) ??
+    (input.readiness === "elicitor"
+      ? createFallbackDraft(title.replace(/ — mock draft$/u, ""))
+      : null);
+  if (!projected) {
+    return null;
+  }
+
+  return {
+    captures: structuredClone(input.captures),
+    conversationId: input.conversationId,
+    petriNetDefinition: projected.petriNetDefinition,
+    revision: input.revision,
     source: "mock",
     title,
     transcript: structuredClone(input.transcript),

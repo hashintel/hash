@@ -553,6 +553,29 @@ type LoggedEvent = {
   sequence: number;
 };
 
+const PROJECTION_DEBOUNCE_MS = 300;
+
+const createInterviewInput = (
+  events: readonly LoggedEvent[],
+  conversationId: string,
+  readiness: FinalizeInterviewInput["readiness"],
+  revision: number,
+): FinalizeInterviewInput => ({
+  captures: events.flatMap(({ event }) =>
+    event.type === "tool-called" && event.capture ? [event.capture] : [],
+  ),
+  conversationId,
+  readiness,
+  revision,
+  transcript: getTranscriptEntries(events)
+    .filter((entry) => !entry.isPartial)
+    .map(({ speaker, transcript, turnId }) => ({
+      speaker,
+      transcript,
+      turnId,
+    })),
+});
+
 const getEventSummary = (event: VoiceExperimentEvent) => {
   if (event.type === "partial-transcript") {
     return `${event.type} (${event.speaker}): ${event.transcript}`;
@@ -562,6 +585,15 @@ const getEventSummary = (event: VoiceExperimentEvent) => {
   }
   if (event.type === "tool-called") {
     return `${event.type}: ${event.toolName} · turn ${event.turnId} · call ${event.callId}`;
+  }
+  if (event.type === "projection-updated") {
+    return `${event.type}: revision ${event.revision}`;
+  }
+  if (event.type === "projection-error") {
+    return `${event.type}: revision ${event.revision} · ${event.message}`;
+  }
+  if (event.type === "projection-ready") {
+    return `${event.type}: call ${event.callId}`;
   }
   if (event.type === "error") {
     return `${event.type}: ${event.message}`;
@@ -580,14 +612,17 @@ export const VoiceExperiment = ({
   conversationId,
   experiment,
   onFinalize,
+  onProject,
 }: {
   adapter?: VoiceExperimentAdapter;
   conversationId: string;
   experiment: VoiceExperimentSelection;
   onFinalize?: (input: FinalizeInterviewInput) => Promise<void> | void;
+  onProject?: (input: FinalizeInterviewInput) => boolean | Promise<boolean>;
 }) => {
   const [events, setEvents] = useState<LoggedEvent[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [projectionRequestRevision, setProjectionRequestRevision] = useState(0);
   const [sessionState, setSessionState] = useState<SessionState>("ready");
   const [isConversationActive, setIsConversationActive] = useState(false);
   const hasToggledPanelRef = useRef(false);
@@ -596,6 +631,10 @@ export const VoiceExperiment = ({
   const sequenceRef = useRef(0);
   const finalizationConversationIdRef = useRef(conversationId);
   const finalizationEventsRef = useRef<LoggedEvent[]>([]);
+  const onProjectRef = useRef(onProject);
+  const projectionReadinessRef =
+    useRef<FinalizeInterviewInput["readiness"]>("captures");
+  const projectionRevisionRef = useRef(0);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollTranscriptRef = useRef(true);
 
@@ -608,6 +647,15 @@ export const VoiceExperiment = ({
         event.type === "tool-called"
       ) {
         finalizationEventsRef.current.push(loggedEvent);
+      }
+      if (
+        (event.type === "tool-called" && event.capture) ||
+        event.type === "projection-ready"
+      ) {
+        projectionReadinessRef.current =
+          event.type === "projection-ready" ? "elicitor" : "captures";
+        projectionRevisionRef.current += 1;
+        setProjectionRequestRevision(projectionRevisionRef.current);
       }
       setEvents((previous) => [...previous.slice(-49), loggedEvent]);
 
@@ -629,6 +677,51 @@ export const VoiceExperiment = ({
   );
 
   useEffect(() => adapter?.subscribe(appendEvent), [adapter, appendEvent]);
+
+  useEffect(() => {
+    onProjectRef.current = onProject;
+  }, [onProject]);
+
+  useEffect(() => {
+    if (projectionRequestRevision < 1) {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      const project = onProjectRef.current;
+      if (!project) {
+        return;
+      }
+      const input = createInterviewInput(
+        finalizationEventsRef.current,
+        finalizationConversationIdRef.current,
+        projectionReadinessRef.current,
+        projectionRequestRevision,
+      );
+      void Promise.resolve(project(input))
+        .then((updated) => {
+          if (updated) {
+            appendEvent({
+              revision: projectionRequestRevision,
+              timestampMs: Date.now(),
+              type: "projection-updated",
+            });
+          }
+        })
+        .catch((error: unknown) => {
+          appendEvent({
+            message:
+              error instanceof Error
+                ? error.message
+                : "Live projection failed.",
+            revision: projectionRequestRevision,
+            timestampMs: Date.now(),
+            type: "projection-error",
+          });
+        });
+    }, PROJECTION_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [appendEvent, projectionRequestRevision]);
 
   useEffect(() => {
     if (!hasToggledPanelRef.current) {
@@ -682,21 +775,14 @@ export const VoiceExperiment = ({
     try {
       await adapter.dispose();
       if (onFinalize) {
-        const transcript = getTranscriptEntries(finalizationEventsRef.current)
-          .filter((entry) => !entry.isPartial)
-          .map(({ speaker, transcript: text, turnId }) => ({
-            speaker,
-            transcript: text,
-            turnId,
-          }));
-        const captures = finalizationEventsRef.current.flatMap(({ event }) =>
-          event.type === "tool-called" && event.capture ? [event.capture] : [],
+        await onFinalize(
+          createInterviewInput(
+            finalizationEventsRef.current,
+            finalizationConversationIdRef.current,
+            "finalize",
+            projectionRevisionRef.current + 1,
+          ),
         );
-        await onFinalize({
-          captures,
-          conversationId: finalizationConversationIdRef.current,
-          transcript,
-        });
       }
       setSessionState("ended");
     } catch (error) {

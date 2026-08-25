@@ -28,6 +28,16 @@ describe("voice experiment diagnostics", () => {
       toolCallId: "call_unknown",
       toolName: "unrecognized_tool",
     });
+    diagnostics.recordToolCall("voice:conv_safe", turnId, {
+      input: {
+        description: "Assess severity",
+        name: "Triage",
+        owner: "Support lead",
+        secret: "must-not-leak",
+      },
+      toolCallId: "call_step",
+      toolName: "record_process_step",
+    });
 
     const handler = createVoiceExperimentDiagnosticsHandler(diagnostics);
     const response = await handler(
@@ -57,12 +67,29 @@ describe("voice experiment diagnostics", () => {
         toolName: "unrecognized_tool",
         turnId: 1,
       },
+      {
+        argumentSummary: "Arguments hidden",
+        callId: "call_step",
+        capture: {
+          captureId: "capture-call_step",
+          input: {
+            description: "Assess severity",
+            name: "Triage",
+            owner: "Support lead",
+          },
+          toolName: "record_process_step",
+        },
+        sequence: 3,
+        timestampMs: 1_234,
+        toolName: "record_process_step",
+        turnId: 1,
+      },
     ]);
     expect(serialized).not.toContain("must-not-leak");
     expect(serialized).not.toContain("sk-private");
     expect(serialized).not.toContain("private interview");
     expect(serialized).not.toContain("\\u0000");
-    expect(serialized.length).toBeLessThan(900);
+    expect(serialized.length).toBeLessThan(1_500);
   });
 
   test("exposes coalesced transcript events for the voice panel", async () => {
@@ -119,6 +146,48 @@ describe("voice experiment diagnostics", () => {
         turnId: 1,
         type: "final-transcript",
       },
+    ]);
+  });
+
+  test("emits projection readiness only after an applied sweep", () => {
+    const diagnostics = new VoiceExperimentDiagnostics({ now: () => 5_000 });
+    const turnId = diagnostics.beginTurn("voice:conv_projection");
+    diagnostics.recordToolCall("voice:conv_projection", turnId, {
+      input: {},
+      toolCallId: "sweep_applied",
+      toolName: "brunch_sweep",
+    });
+    diagnostics.recordToolOutput("voice:conv_projection", {
+      output: { status: "applied", appliedCaptureIds: ["capture-1"] },
+      toolCallId: "sweep_applied",
+    });
+    diagnostics.recordToolCall("voice:conv_projection", turnId, {
+      input: {},
+      toolCallId: "sweep_refused",
+      toolName: "brunch_sweep",
+    });
+    diagnostics.recordToolOutput("voice:conv_projection", {
+      output: { status: "refused" },
+      toolCallId: "sweep_refused",
+    });
+
+    expect(diagnostics.read("conv_projection", 0)).toEqual([
+      expect.objectContaining({
+        callId: "sweep_applied",
+        sequence: 1,
+        toolName: "brunch_sweep",
+      }),
+      {
+        callId: "sweep_applied",
+        sequence: 2,
+        timestampMs: 5_000,
+        type: "projection-ready",
+      },
+      expect.objectContaining({
+        callId: "sweep_refused",
+        sequence: 3,
+        toolName: "brunch_sweep",
+      }),
     ]);
   });
 
