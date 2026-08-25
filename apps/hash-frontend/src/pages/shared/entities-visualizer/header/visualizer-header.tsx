@@ -42,7 +42,7 @@ export const VisualizerHeader: FunctionComponent<VisualizerHeaderProps> = ({
       >
         {left}
       </Box>
-      <Box sx={{ display: "flex", alignItems: "center", columnGap: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", columnGap: 1.5 }}>
         {right}
       </Box>
     </Box>

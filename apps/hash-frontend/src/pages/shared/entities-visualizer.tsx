@@ -1,13 +1,12 @@
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
+import { atLeastOne } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   type EntityTableSummary,
   getClosedMultiEntityTypeFromMap,
-  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -29,6 +28,8 @@ import {
   VisualizerHeader,
   visualizerHeaderHeight,
 } from "./entities-visualizer/header";
+import { NetworkGraphView } from "./entities-visualizer/network-graph-view";
+import { buildEntitiesFilter } from "./entities-visualizer/shared/build-filter";
 import { displaysFilesOnly } from "./entities-visualizer/shared/displays-files-only";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
 import {
@@ -37,11 +38,10 @@ import {
 } from "./entities-visualizer/shared/use-available-types";
 import { useEntitiesTableQuery } from "./entities-visualizer/use-entities-table-query";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
-import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { useSlideStack } from "./slide-stack";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
-import { visualizerViewIcons } from "./visualizer-views";
+import { visualizerViewIcons, visualizerViewLabels } from "./visualizer-views";
 
 import type { ColumnSort } from "../../components/grid/utils/sorting";
 import type { ArchivableEntity } from "../../shared/is-archived";
@@ -50,6 +50,7 @@ import type {
   SortableEntitiesTableColumnKey,
 } from "./entities-visualizer/entities-table-data";
 import type { EntitiesFilterState } from "./entities-visualizer/shared/filter-state";
+import type { TypeColorOverrides } from "./entities-visualizer/shared/type-colors";
 import type { EntityEditorProps } from "./entity/entity-editor";
 import type { VisualizerView } from "./visualizer-views";
 import type {
@@ -71,6 +72,11 @@ import type {
   Ordering,
 } from "@local/hash-graph-client";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
+
+// Stable empty sets so a non-graph view passes the same "nothing hidden"
+// references every render.
+const EMPTY_TYPE_ID_SET: ReadonlySet<VersionedUrl> = new Set();
+const EMPTY_BASE_URL_SET: ReadonlySet<BaseUrl> = new Set();
 
 const tableSortKeyByColumnKey = {
   entityLabel: "label",
@@ -215,6 +221,17 @@ export const EntitiesVisualizer: FunctionComponent<{
     [resetCursors],
   );
 
+  const [typeColorOverrides, setTypeColorOverrides] =
+    useState<TypeColorOverrides>(() => new Map());
+
+  const setTypeColor = useCallback((typeId: VersionedUrl, color: string) => {
+    setTypeColorOverrides((prev) => {
+      const next = new Map(prev);
+      next.set(typeId, color);
+      return next;
+    });
+  }, []);
+
   const [view, _setView] = useState<VisualizerView>("Table");
 
   const setView = useCallback(
@@ -224,6 +241,11 @@ export const EntitiesVisualizer: FunctionComponent<{
     },
     [resetCursors],
   );
+
+  // The latest view, for the files-only auto-view effect to read without taking
+  // `view` as a dependency (which would fight a manual view selection).
+  const viewRef = useRef(view);
+  viewRef.current = view;
 
   const [sort, _setSort] = useState<ColumnSort<SortableEntitiesTableColumnKey>>(
     {
@@ -314,6 +336,8 @@ export const EntitiesVisualizer: FunctionComponent<{
     availableEntityTypes,
     pinnedEntityTypeIds,
     propertyFilterData,
+    linkEntityTypeIds,
+    linkOnlyPropertyBaseUrls,
     loading: availableTypesLoading,
     typeUniverse,
     typeUniverseError,
@@ -510,6 +534,65 @@ export const EntitiesVisualizer: FunctionComponent<{
     }
   }, [entitiesData]);
 
+  // The graph filters and colours nodes (non-link entities); its edges (links)
+  // aren't filterable. So in the graph view the filter bar hides link types and
+  // link-only properties, and the graph query drops them — but this is display /
+  // query only: `filterState` keeps them, so a link filter set in the table view
+  // is still there when the user switches back.
+  const isGraphView = view === "NetworkGraph";
+  const hiddenTypeIds = isGraphView ? linkEntityTypeIds : EMPTY_TYPE_ID_SET;
+  const hiddenPropertyBaseUrls = isGraphView
+    ? linkOnlyPropertyBaseUrls
+    : EMPTY_BASE_URL_SET;
+
+  // The network graph reads the same filter the table does, serialized to the exact bytes the atlas
+  // manifest is POSTed — those bytes seal the view into the graph's session (see `NetworkGraphView`).
+  // Stable across renders for an unchanged filter so the session is not needlessly rebound. Link-type
+  // selections and link-only property filters are dropped from the graph's query — its nodes are
+  // non-link entities, so a link-type clause matches nothing and a link-only property clause would
+  // empty the graph — while `filterState` keeps them for the table view.
+  const graphFilter = useMemo(() => {
+    const selectedTypeIds = filterState.type.selectedTypeIds
+      ? new Set(
+          [...filterState.type.selectedTypeIds].filter(
+            (typeId) => !linkEntityTypeIds.has(typeId),
+          ),
+        )
+      : null;
+    const propertyFilters = filterState.propertyFilters.filter(
+      (propertyFilter) => !linkOnlyPropertyBaseUrls.has(propertyFilter.baseUrl),
+    );
+    return JSON.stringify(
+      buildEntitiesFilter({
+        filterState: {
+          ...filterState,
+          type: { selectedTypeIds },
+          propertyFilters,
+        },
+        internalWebIds: internalWebs.map(({ webId }) => webId),
+        pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
+        pinnedEntityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+      }),
+    );
+  }, [
+    filterState,
+    internalWebs,
+    entityTypeBaseUrl,
+    entityTypeId,
+    linkEntityTypeIds,
+    linkOnlyPropertyBaseUrls,
+  ]);
+
+  // The graph colours nodes by their (non-link) entity type, so its palette omits
+  // link types.
+  const graphEntityTypes = useMemo(
+    () =>
+      availableEntityTypes.filter(
+        (type) => !linkEntityTypeIds.has(type.entityTypeId),
+      ),
+    [availableEntityTypes, linkEntityTypeIds],
+  );
+
   useEffect(() => {
     // An errored summary yields EMPTY available types — that is ignorance, not
     // knowledge that the selected types are gone. Pruning against it would wipe
@@ -602,10 +685,18 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const supportGridView = isDisplayingFilesOnly;
 
+  // Prefer the gallery Grid view for files-only content, and leave it again once
+  // the content is no longer files-only (Grid is offered only then). An explicit
+  // NetworkGraph selection is never overridden: the graph is a valid view for any
+  // content, so a filter that narrows the result set — or empties it — must not
+  // eject the user from it (it shows its own "no results" state instead).
   useEffect(() => {
+    if (viewRef.current === "NetworkGraph") {
+      return;
+    }
     if (isDisplayingFilesOnly) {
       setView("Grid");
-    } else {
+    } else if (viewRef.current === "Grid") {
       setView("Table");
     }
   }, [isDisplayingFilesOnly, setView]);
@@ -669,18 +760,6 @@ export const EntitiesVisualizer: FunctionComponent<{
   })`;
 
   const tableHeight = `min(${availableHeight}, 1000px)`;
-
-  const isPrimaryEntity = useCallback(
-    (entity: { metadata: Pick<HashEntity["metadata"], "entityTypeIds"> }) =>
-      entityTypeBaseUrl
-        ? entity.metadata.entityTypeIds.some(
-            (typeId) => extractBaseUrl(typeId) === entityTypeBaseUrl,
-          )
-        : entityTypeId
-          ? entity.metadata.entityTypeIds.includes(entityTypeId)
-          : false,
-    [entityTypeId, entityTypeBaseUrl],
-  );
 
   const [showTableSearch, setShowTableSearch] = useState(false);
 
@@ -782,6 +861,11 @@ export const EntitiesVisualizer: FunctionComponent<{
               internalWebs={internalWebs}
               isTypePinned={isTypePinned}
               setFilterState={(updater) => setFilterState(updater)}
+              showTypeColors={view === "NetworkGraph"}
+              typeColorOverrides={typeColorOverrides}
+              setTypeColor={setTypeColor}
+              hiddenTypeIds={hiddenTypeIds}
+              hiddenPropertyBaseUrls={hiddenPropertyBaseUrls}
             />
           )
         }
@@ -795,11 +879,11 @@ export const EntitiesVisualizer: FunctionComponent<{
                 [
                   "Table",
                   ...(supportGridView ? (["Grid"] as const) : []),
-                  "Graph",
+                  "NetworkGraph",
                 ] as const satisfies VisualizerView[]
               ).map((optionValue) => ({
                 icon: visualizerViewIcons[optionValue],
-                label: `${optionValue} view`,
+                label: visualizerViewLabels[optionValue],
                 value: optionValue,
               }))}
             />
@@ -807,7 +891,16 @@ export const EntitiesVisualizer: FunctionComponent<{
         }
       />
       <Box ref={contentTopRef} />
-      {typeUniverseBlocksResults || queryBlocksResults ? (
+      {view === "NetworkGraph" ? (
+        <Box height={availableHeight} sx={tableContentSx}>
+          <NetworkGraphView
+            availableEntityTypes={graphEntityTypes}
+            typeColorOverrides={typeColorOverrides}
+            filter={graphFilter}
+            onOpenEntity={handleEntityClick}
+          />
+        </Box>
+      ) : typeUniverseBlocksResults || queryBlocksResults ? (
         <Stack
           gap={2}
           sx={[
@@ -866,18 +959,6 @@ export const EntitiesVisualizer: FunctionComponent<{
             <LoadingSpinner size={42} color={theme.palette.blue[60]} />
           </Box>
         </Stack>
-      ) : view === "Graph" ? (
-        <Box height={availableHeight} sx={tableContentSx}>
-          <EntityGraphVisualizer
-            closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
-            entities={entities}
-            loadingComponent={
-              <LoadingSpinner size={42} color={theme.palette.blue[60]} />
-            }
-            isPrimaryEntity={isPrimaryEntity}
-            onEntityClick={handleEntityClick}
-          />
-        </Box>
       ) : view === "Grid" ? (
         <GridView entities={entities} onEntityClick={handleEntityClick} />
       ) : (
