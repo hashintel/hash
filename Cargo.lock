@@ -3512,6 +3512,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-config"
+version = "0.0.0"
+dependencies = [
+ "simple-mermaid",
+]
+
+[[package]]
 name = "hash-graph"
 version = "0.0.0"
 dependencies = [

@@ -10,6 +10,7 @@ members = [
     "libs/@blockprotocol/type-system/rust",
     "libs/@local/codec",
     "libs/@local/codegen",
+    "libs/@local/config",
     "libs/@local/effect-dns/hickory",
     "libs/@local/graph/api",
     "libs/@local/graph/authentication/",
@@ -75,6 +76,7 @@ harpc-types.path                    = "libs/@local/harpc/types"
 harpc-wire-protocol.path            = "libs/@local/harpc/wire-protocol"
 hash-codec.path                     = "libs/@local/codec"
 hash-codegen.path                   = "libs/@local/codegen"
+hash-config.path                    = "libs/@local/config"
 hash-graph-api.path                 = "libs/@local/graph/api"
 hash-graph-authentication.path      = "libs/@local/graph/authentication/"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"

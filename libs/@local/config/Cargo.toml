@@ -1,0 +1,14 @@
+[package]
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+name              = "hash-config"
+publish.workspace = true
+version.workspace = true
+
+[dependencies]
+# Private third-party dependencies
+simple-mermaid = { workspace = true }
+
+[lints]
+workspace = true
