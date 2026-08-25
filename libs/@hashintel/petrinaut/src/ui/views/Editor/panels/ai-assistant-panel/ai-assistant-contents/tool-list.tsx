@@ -305,6 +305,9 @@ export const getToolName = (part: RenderableToolPart) =>
     ? part.toolName
     : part.type.replace(/^tool-/, "");
 
+const hasInteractiveToolInput = (state: string): boolean =>
+  state === "input-available" || state === "output-available";
+
 const getAiToolTarget = (value: unknown): AiToolTarget | undefined => {
   if (typeof value !== "object" || value === null) {
     return undefined;
@@ -461,11 +464,9 @@ export const toToolRenderItem = (
   const summary = getToolSummaryFromPart(part);
   const toolName = getToolName(part);
 
-  const interactiveDefinition = getInteractiveTool(
-    toolName,
-    part.input,
-    interactiveTools,
-  );
+  const interactiveDefinition = hasInteractiveToolInput(state)
+    ? getInteractiveTool(toolName, part.input, interactiveTools)
+    : undefined;
   const interactive = interactiveDefinition
     ? {
         definition: interactiveDefinition,

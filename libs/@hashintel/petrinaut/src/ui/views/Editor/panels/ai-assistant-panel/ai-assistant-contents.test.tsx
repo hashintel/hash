@@ -180,6 +180,79 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText("Approved")).not.toBeNull();
   });
 
+  test("waits for complete host tool input before rendering its widget", () => {
+    const parseInput = vi.fn((raw: unknown) => {
+      if (
+        typeof raw !== "object" ||
+        raw === null ||
+        typeof (raw as { question?: unknown }).question !== "string"
+      ) {
+        throw new Error("Expected a question");
+      }
+
+      return raw as { question: string };
+    });
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "confirmRelease",
+      inputSchema: { parse: parseInput },
+      outputSchema: { parse: (raw: unknown) => raw },
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+    const createMessages = (
+      state: "input-streaming" | "input-available",
+      input: unknown,
+    ) =>
+      [
+        {
+          id: "assistant-host-tool",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "confirmRelease",
+              state,
+              toolCallId: "host-tool-call-1",
+              input,
+            },
+          ],
+        },
+      ] as unknown as PetrinautAiMessage[];
+
+    const { rerender } = render(
+      <AiAssistantContents
+        input=""
+        interactiveTools={[hostTool]}
+        messages={createMessages("input-streaming", {})}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="streaming"
+      />,
+    );
+
+    expect(parseInput).not.toHaveBeenCalled();
+    expect(screen.queryByText("Ship this change?")).toBeNull();
+
+    rerender(
+      <AiAssistantContents
+        input=""
+        interactiveTools={[hostTool]}
+        messages={createMessages("input-available", {
+          question: "Ship this change?",
+        })}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    expect(parseInput).toHaveBeenCalledOnce();
+    expect(screen.getByText("Ship this change?")).not.toBeNull();
+  });
+
   test("allows retry when an interactive tool output is rejected", async () => {
     const onInteractiveToolSubmit = vi
       .fn()
