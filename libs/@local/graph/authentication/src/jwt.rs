@@ -74,6 +74,15 @@ pub struct JwtValidatorConfig {
     pub allowed_algorithms: Vec<Algorithm>,
 }
 
+/// How stale a cached key set may be to satisfy a read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum JwksRead {
+    /// Within the cache TTL.
+    Cached,
+    /// Within the refresh cooldown, which bounds the fetches a crafted `kid` can trigger.
+    Refresh,
+}
+
 /// Validates JWTs against a JWKS endpoint.
 ///
 /// Fetches public keys from the configured JWKS URL and caches them. Keys are refreshed when the
@@ -174,7 +183,7 @@ impl JwtValidator {
     /// If the key ID is not found in the cache, forces a refresh in case of key rotation.
     async fn resolve_decoding_key(&self, kid: &str) -> Result<DecodingKey, Report<JwtError>> {
         // Try cached JWKS first
-        let jwks = self.get_jwks(false).await?;
+        let jwks = self.get_jwks(JwksRead::Cached).await?;
         if let Some(jwk) = jwks.find(kid) {
             return DecodingKey::from_jwk(jwk).change_context(JwtError::UnusableKey {
                 kid: kid.to_owned(),
@@ -182,7 +191,7 @@ impl JwtValidator {
         }
 
         // Key not found -- may be a rotation, force refresh
-        let refreshed = self.get_jwks(true).await?;
+        let refreshed = self.get_jwks(JwksRead::Refresh).await?;
         let jwk = refreshed.find(kid).ok_or_else(|| JwtError::UnknownKeyId {
             kid: kid.to_owned(),
         })?;
@@ -193,14 +202,11 @@ impl JwtValidator {
 
     /// Returns the cached JWKS or fetches a fresh copy.
     ///
-    /// When `force_refresh` is `true`, fetches unless the cache was refreshed within the cooldown
-    /// period (to prevent denial-of-service via crafted `kid` values).
-    ///
     /// The fetch mutex ensures only one outbound JWKS request is in-flight at a time. Concurrent
     /// callers wait for the single fetch to complete and then re-check the cache.
-    async fn get_jwks(&self, force_refresh: bool) -> Result<JwkSet, Report<JwtError>> {
+    async fn get_jwks(&self, read: JwksRead) -> Result<JwkSet, Report<JwtError>> {
         // Fast path: serve from cache without acquiring the HTTP client lock.
-        if let Some(jwks) = self.cached_jwks(force_refresh) {
+        if let Some(jwks) = self.cached_jwks(read) {
             return Ok(jwks);
         }
         self.check_failure_cooldown()?;
@@ -209,7 +215,7 @@ impl JwtValidator {
         let http_client = self.http_client.lock().await;
 
         // Re-check after acquiring the lock: another task may have refreshed while we waited.
-        if let Some(jwks) = self.cached_jwks(force_refresh) {
+        if let Some(jwks) = self.cached_jwks(read) {
             return Ok(jwks);
         }
         self.check_failure_cooldown()?;
@@ -278,13 +284,15 @@ impl JwtValidator {
     }
 
     /// Returns cached JWKS if still valid, or `None` if a fetch is needed.
-    fn cached_jwks(&self, force_refresh: bool) -> Option<JwkSet> {
+    fn cached_jwks(&self, read: JwksRead) -> Option<JwkSet> {
+        let limit = match read {
+            JwksRead::Cached => self.jwks_cache_ttl,
+            JwksRead::Refresh => self.jwks_refresh_cooldown,
+        };
+
         let cache = self.cache.read().unwrap_or_else(PoisonError::into_inner);
         let (fetched_at, jwks) = (*cache).as_ref()?;
-        let age = fetched_at.elapsed();
-        if !force_refresh && age < self.jwks_cache_ttl
-            || force_refresh && age < self.jwks_refresh_cooldown
-        {
+        if fetched_at.elapsed() < limit {
             return Some(jwks.clone());
         }
         drop(cache);

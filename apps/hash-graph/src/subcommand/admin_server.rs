@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{fmt, net::SocketAddr, str::FromStr as _, time::Duration};
+use core::{fmt, net::SocketAddr, num::NonZero, str::FromStr as _, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
@@ -104,10 +104,9 @@ pub struct JwtConfig {
     #[clap(
         long = "jwt-jwks-cache-ttl",
         env = "HASH_GRAPH_JWT_JWKS_CACHE_TTL",
-        default_value_t = 600,
-        value_parser = clap::value_parser!(u64).range(1..)
+        default_value = "600"
     )]
-    pub jwks_cache_ttl_secs: u64,
+    pub jwks_cache_ttl_secs: NonZero<u64>,
 
     /// Minimum interval between forced JWKS refreshes in seconds.
     ///
@@ -115,20 +114,17 @@ pub struct JwtConfig {
     #[clap(
         long = "jwt-jwks-refresh-cooldown",
         env = "HASH_GRAPH_JWT_JWKS_REFRESH_COOLDOWN",
-        default_value_t = 30,
-        // A zero cooldown removes the bound on outbound fetches that this flag exists to impose.
-        value_parser = clap::value_parser!(u64).range(1..)
+        default_value = "30"
     )]
-    pub jwks_refresh_cooldown_secs: u64,
+    pub jwks_refresh_cooldown_secs: NonZero<u64>,
 
     /// HTTP client timeout for JWKS fetches (in seconds).
     #[clap(
         long = "jwt-http-timeout",
         env = "HASH_GRAPH_JWT_HTTP_TIMEOUT",
-        default_value_t = 10,
-        value_parser = clap::value_parser!(u64).range(1..)
+        default_value = "10"
     )]
-    pub http_timeout_secs: u64,
+    pub http_timeout_secs: NonZero<u64>,
 
     /// Algorithms accepted in JWT headers.
     ///
@@ -209,6 +205,13 @@ pub(crate) fn cloudflare_access_config(
         config.jwt.issuer.clone(),
     ) {
         (Some(jwks_url), Some(audience), Some(issuer)) => {
+            // The keys fetched from this URL decide which tokens verify, so a scheme other than
+            // https carries them unauthenticated. Rejecting it here fails at startup rather than
+            // on the first request.
+            if jwks_url.scheme() != "https" {
+                return Err(Report::new(GraphError)
+                    .attach("--jwt-jwks-url (HASH_GRAPH_JWT_JWKS_URL) must be an https URL"));
+            }
             let kratos_admin_url = config
                 .external_services
                 .kratos_admin_url
@@ -232,16 +235,16 @@ pub(crate) fn cloudflare_access_config(
                     jwks_url,
                     audience,
                     issuer,
-                    jwks_cache_ttl: Duration::from_secs(config.jwt.jwks_cache_ttl_secs),
+                    jwks_cache_ttl: Duration::from_secs(config.jwt.jwks_cache_ttl_secs.get()),
                     jwks_refresh_cooldown: Duration::from_secs(
-                        config.jwt.jwks_refresh_cooldown_secs,
+                        config.jwt.jwks_refresh_cooldown_secs.get(),
                     ),
-                    http_timeout: Duration::from_secs(config.jwt.http_timeout_secs),
+                    http_timeout: Duration::from_secs(config.jwt.http_timeout_secs.get()),
                     allowed_algorithms: config.jwt.allowed_algorithms.clone(),
                 },
                 kratos_admin: KratosAdminConfig {
                     kratos_admin_url,
-                    http_timeout: Duration::from_secs(config.jwt.http_timeout_secs),
+                    http_timeout: Duration::from_secs(config.jwt.http_timeout_secs.get()),
                 },
             }))
         }
