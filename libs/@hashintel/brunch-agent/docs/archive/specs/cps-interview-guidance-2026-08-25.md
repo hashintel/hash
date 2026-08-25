@@ -1,7 +1,7 @@
 > **Superseded 2026-08-25.** Moved from `docs/specs/cps-interview-guidance.md` under
 > [ADR-0006](../../adr/0006-plugins-per-target-formalism.md): interview "cards" are no longer
 > separate artifacts; they became kind-indexed patterns in the `Patterns` and `Moves` sections of
-> [`sdcpn-plugin.md`](../../specs/sdcpn-plugin.md). Mapping: CPS-Q01 → P01 · CPS-Q02 → P02 ·
+> [`plugin-sdcpn/plugin.md`](../../../packages/plugin-sdcpn/plugin.md). Mapping: CPS-Q01 → P01 · CPS-Q02 → P02 ·
 > CPS-Q03 → P03 · CPS-Q04 → P04 · CPS-Q05 → P05 · GEN-Q02 → Moves "construct" step 3 (the
 > batching sentence) · HINT-STATUS-GRADE → P12 · HINT-RESPECTFUL-CLOSE → Moves "construct" step 6.
 > The `domain` tag on the CPS cards was a mis-tag: each card names a model situation that occurs

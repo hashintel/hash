@@ -140,7 +140,7 @@ describe("settlement and sweep protocol", () => {
   test("keeps extraction quote-only and delegates the interior contract to the plugin", () => {
     const prompt = buildSweepExtractionPrompt(
       {
-        targetDomain: "gherkin",
+        targetFormalism: "gherkin",
         proposalNames: ["statement-noted"],
       },
       entries.slice(0, 2),

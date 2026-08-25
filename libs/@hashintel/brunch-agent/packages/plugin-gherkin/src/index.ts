@@ -1,5 +1,5 @@
 /**
- * `@hashintel/brunch-agent-plugin-gherkin` — the gherkin target-domain (spec §13.1).
+ * `@hashintel/brunch-agent-plugin-gherkin` — the gherkin target formalism (spec §13.1).
  *
  * The tracer target: cheap enough to wire end-to-end first, and deliberately
  * trivial, so it must not be the plugin that freezes the contract (spec §13's
@@ -46,7 +46,7 @@ export type StatementNotedProposalInput = v.InferInput<
 
 export const gherkin = definePlugin({
   name: "plugin-gherkin",
-  targetDomain: "gherkin",
+  targetFormalism: "gherkin",
   proposalCatalog: [
     {
       name: "statement-noted",

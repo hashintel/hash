@@ -27,7 +27,7 @@ and [S-007](STRATEGY-LOG.md#s-007). Governing architecture:
 production path with one formalism-level plugin, not further design. Every design question still
 open is answered by what the slice forces, and answered in code. The design-convergence frontier is
 closed: its outputs are test-bed material, and its one durable design result is the plugin file
-[`sdcpn-plugin.md`](../specs/sdcpn-plugin.md) ratified by ADR-0006.
+[`plugin-sdcpn/plugin.md`](../../packages/plugin-sdcpn/plugin.md) ratified by ADR-0006.
 
 The slice has four epicentres, ordered by the size of the gap they close. Work starts at the
 centre of each and moves outward; edges (SDK generality, affordance catalogues, UI breadth,
