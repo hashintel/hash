@@ -35,11 +35,23 @@ EXTRA_DEPENDENCIES: dict[str, list[str]] = {
         "@rust/darwin-kperf-events",
         "@rust/darwin-kperf-codegen",
     ],
-    # The frontend's wire-conformance suite decodes the atlas crate's checked-in fixtures
-    "@apps/hash-frontend": ["@rust/hash-graph-atlas"],
     # Test data crates
     "@blockprotocol/type-system-rs": ["@rust/hash-graph-test-data"],
     "@rust/hash-graph-types": ["@rust/hash-graph-test-data"],
+}
+
+# Extras that must not fire on a transitive or prefix match.
+REQUESTED_DEPENDENCIES: dict[str, list[str]] = {
+    # The frontend's wire-conformance suite decodes the atlas crate's checked-in fixtures
+    "@apps/hash-frontend": ["@rust/hash-graph-atlas"],
+    # Brunch core's architecture and contract tests inspect the app and shipped
+    # plugins, but a job whose requested scope is only a sibling or a consumer
+    # of core must not pull those fixtures.
+    "@hashintel/brunch-agent": [
+        "@apps/brunch-agent",
+        "@hashintel/brunch-agent-plugin-gherkin",
+        "@hashintel/brunch-agent-plugin-sdcpn",
+    ],
 }
 
 # Non-workspace paths required by packages in the *requested* scope.
@@ -125,6 +137,20 @@ def turbo_dependency_map() -> dict[str, frozenset[str]]:
         dep_map[item["name"]] = frozenset(deps)
 
     return dep_map
+
+
+def extras_for_requested(requested: Iterable[str]) -> frozenset[str]:
+    """Return extras implied by the job's requested scopes only.
+
+    Exact identity: a name that is a prefix of its siblings must not match them.
+    """
+
+    names = set(requested)
+    extras: set[str] = set()
+    for trigger, additions in REQUESTED_DEPENDENCIES.items():
+        if trigger in names:
+            extras.update(additions)
+    return frozenset(extras)
 
 
 def extra_paths_for_requested(requested: Iterable[str]) -> list[str]:
@@ -281,7 +307,7 @@ def main(argv: list[str] | None = None) -> None:
     }
 
     dependencies = turbo_dependency_map()
-    scopes = fixpoint_expand(initial, dependencies)
+    scopes = fixpoint_expand(initial | extras_for_requested(initial), dependencies)
     turbo_prune(scopes, dry_run=args.dry_run)
     copy_extra_paths(initial, dry_run=args.dry_run)
     stub_missing_members(dry_run=args.dry_run)
