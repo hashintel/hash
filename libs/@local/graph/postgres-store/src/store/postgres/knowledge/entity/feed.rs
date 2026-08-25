@@ -64,51 +64,54 @@ const ENTITY_EVENT_FEED: &str = "
 -- current now. A patch confined to closed decision history never touches this row, so pure
 -- history corrections do not appear. The archived flag lives on the edition rather than the
 -- temporal row, and the foreign key from temporal rows to editions makes the join total.
-SELECT web_id,
-       entity_uuid,
-       entity_edition_id,
-       archived,
-       lower(transaction_time) AS occurred_at,
+SELECT entity_temporal_metadata.web_id,
+       entity_temporal_metadata.entity_uuid,
+       entity_temporal_metadata.entity_edition_id,
+       entity_editions.archived,
+       lower(entity_temporal_metadata.transaction_time) AS occurred_at,
        'updated' AS reason,
        NULL::UUID AS deleted_by_id,
        NULL::TIMESTAMPTZ AS deleted_at_decision_time
 FROM entity_temporal_metadata
 JOIN entity_editions USING (entity_edition_id)
-WHERE draft_id IS NULL
-  AND upper_inf(transaction_time)
-  AND upper_inf(decision_time)
-  AND lower(transaction_time) > $1
+WHERE entity_temporal_metadata.draft_id IS NULL
+  AND upper_inf(entity_temporal_metadata.transaction_time)
+  AND upper_inf(entity_temporal_metadata.decision_time)
+  AND lower(entity_temporal_metadata.transaction_time) > $1
 
 UNION ALL
 
 -- The entity's published present ended without a successor: transaction-current rows remain,
--- every one with a bounded decision axis, and no present row exists anymore. The event's time
--- is the latest write among what remains. No edition travels, because ended means no edition
--- is current. The one production writer of this shape is a purge archiving its target's
--- incoming link entities.
-SELECT closed.web_id,
-       closed.entity_uuid,
+-- every one with a bounded decision axis, and no present row exists anymore. With only decision
+-- and transaction time, a transaction-current row whose decision range closes either has an
+-- open-decision successor or marks the end of the published present. The anti-join distinguishes
+-- those cases. A valid-time axis would require identifying which non-transaction axis ended.
+-- The event's time is the latest write among what remains. No edition travels, because ended
+-- means no edition is current. The one production writer of this shape is a purge archiving its
+-- target's incoming link entities.
+SELECT ended.web_id,
+       ended.entity_uuid,
        NULL::UUID AS entity_edition_id,
        NULL::BOOLEAN AS archived,
-       max(lower(closed.transaction_time)) AS occurred_at,
+       max(lower(ended.transaction_time)) AS occurred_at,
        'ended' AS reason,
        NULL::UUID AS deleted_by_id,
        NULL::TIMESTAMPTZ AS deleted_at_decision_time
-FROM entity_temporal_metadata AS closed
-WHERE closed.draft_id IS NULL
-  AND upper_inf(closed.transaction_time)
-  AND NOT upper_inf(closed.decision_time)
-  AND lower(closed.transaction_time) > $1
+FROM entity_temporal_metadata AS ended
+WHERE ended.draft_id IS NULL
+  AND upper_inf(ended.transaction_time)
+  AND NOT upper_inf(ended.decision_time)
+  AND lower(ended.transaction_time) > $1
   AND NOT EXISTS (
       SELECT 1
       FROM entity_temporal_metadata AS present
-      WHERE present.web_id = closed.web_id
-        AND present.entity_uuid = closed.entity_uuid
+      WHERE present.web_id = ended.web_id
+        AND present.entity_uuid = ended.entity_uuid
         AND present.draft_id IS NULL
         AND upper_inf(present.transaction_time)
         AND upper_inf(present.decision_time)
   )
-GROUP BY closed.web_id, closed.entity_uuid
+GROUP BY ended.web_id, ended.entity_uuid
 
 UNION ALL
 
