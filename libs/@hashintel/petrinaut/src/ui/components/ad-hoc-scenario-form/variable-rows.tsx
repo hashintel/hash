@@ -17,7 +17,8 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { adHocVariableKey } from "./dependency-highlight";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
-import { FormSpreadsheet } from "./form-spreadsheet";
+import { useNavigationGrid } from "./navigation/use-grid-navigation";
+import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
   cellInputStyle,
   cellSelectStyle,
@@ -27,12 +28,11 @@ import {
   phantomCellButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
-} from "./form-table";
-import { GutterCell } from "./gutter-cell";
-import { OptimizeToggle } from "./optimize-toggle";
-import { PhantomLine } from "./phantom-line";
-import { useNavigationGrid } from "./use-grid-navigation";
-import { useRowSelection } from "./use-row-selection";
+} from "./spreadsheet/form-table";
+import { GutterCell } from "./spreadsheet/gutter-cell";
+import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
+import { PhantomLine } from "./spreadsheet/phantom-line";
+import { useRowSelection } from "./spreadsheet/use-row-selection";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocVariable } from "@hashintel/petrinaut-core";

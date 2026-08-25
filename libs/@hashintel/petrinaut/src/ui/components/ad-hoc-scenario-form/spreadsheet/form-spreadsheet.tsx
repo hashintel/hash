@@ -1,7 +1,13 @@
 /**
+ * @layerRoot ui.adhoc-form.spreadsheet
+ * @role The state-agnostic spreadsheet grammar the form's tables compose: shell, gutter cells and menus, phantom add-lines, row selection
+ *
  * The bordered table shell every form spreadsheet renders into: the scroll
  * container that registers as a navigation zone, and the table with the
  * form's fixed layout. The rows inside stay the owning table's business.
+ *
+ * Nothing in this folder knows `AdHocScenarioState` — that is what keeps
+ * the tables thin and the grammar reusable.
  */
 
 import { tableContainerStyle, tableStyle } from "./form-table";

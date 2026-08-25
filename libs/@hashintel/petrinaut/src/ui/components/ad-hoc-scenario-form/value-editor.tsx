@@ -30,8 +30,11 @@ import { adHocSlotKey, adHocTargetLabel } from "@hashintel/petrinaut-core";
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
-import { cellSelectStyle, dependencyHighlightStyle } from "./form-table";
-import { OptimizeToggle } from "./optimize-toggle";
+import {
+  cellSelectStyle,
+  dependencyHighlightStyle,
+} from "./spreadsheet/form-table";
+import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
 
 import type { AdHocValue, AdHocValueTarget } from "@hashintel/petrinaut-core";
 

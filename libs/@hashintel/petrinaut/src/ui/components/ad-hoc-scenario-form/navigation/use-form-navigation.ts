@@ -1,4 +1,7 @@
 /**
+ * @layerRoot ui.adhoc-form.navigation
+ * @role Generic zone and grid keyboard walking for composite forms
+ *
  * Form-wide keyboard navigation between components ("zones"): each grid,
  * section header, place header, or lone cell registers itself as a zone and
  * keeps owning its internal arrow-key movement; when a vertical move runs off
