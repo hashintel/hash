@@ -26,6 +26,16 @@ use rayon::{
 
 use super::{Id, index::IntoSliceIndex, vec::IdVec};
 
+/// Returns the greatest chunk-start offset, or zero when the slice is empty.
+#[inline]
+#[expect(
+    clippy::integer_division,
+    reason = "integer division rounds the slice end down to the containing chunk start"
+)]
+const fn greatest_chunk_start(length: usize, size: NonZero<usize>) -> usize {
+    length.saturating_sub(1) / size * size.get()
+}
+
 /// A slice that uses typed IDs for indexing instead of raw `usize` values.
 ///
 /// `IdSlice<I, T>` is a transparent wrapper around `[T]` that enforces type-safe indexing
@@ -233,6 +243,10 @@ where
     ///
     /// This is equivalent to the ID that would be assigned to a new element if one were added.
     /// Useful for bounds checking: `id < slice.bound()` tests if `id` is valid for this slice.
+    ///
+    /// # Panics
+    ///
+    /// The slice occupies the complete ID domain and no successor ID exists.
     #[inline]
     pub fn bound(&self) -> I {
         I::from_usize(self.len())
@@ -383,7 +397,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics if either `lhs` or `rhs` is out of bounds.
+    /// Either `lhs` or `rhs` is out of bounds.
     ///
     /// [`slice::swap`]: slice::swap
     #[inline]
@@ -457,7 +471,7 @@ where
         size: NonZero<usize>,
     ) -> impl DoubleEndedIterator<Item = (I, &[T])> + ExactSizeIterator + Clone {
         // Elide bound checks from subsequent calls to `I::from_usize`
-        let _: I = I::from_usize(self.len());
+        let _: I = I::from_usize(greatest_chunk_start(self.len(), size));
 
         self.raw
             .chunks(size.get())
@@ -479,7 +493,7 @@ where
     {
         use rayon::slice::ParallelSlice as _;
         // Elide bound checks from subsequent calls to `I::from_usize`
-        let _: I = I::from_usize(self.len());
+        let _: I = I::from_usize(greatest_chunk_start(self.len(), size));
 
         self.raw
             .par_chunks(size.get())
@@ -525,7 +539,7 @@ where
         size: NonZero<usize>,
     ) -> impl DoubleEndedIterator<Item = (I, &mut [T])> + ExactSizeIterator {
         // Elide bound checks from subsequent calls to `I::from_usize`
-        let _: I = I::from_usize(self.len());
+        let _: I = I::from_usize(greatest_chunk_start(self.len(), size));
 
         self.raw
             .chunks_mut(size.get())
@@ -547,7 +561,7 @@ where
     {
         use rayon::slice::ParallelSliceMut as _;
         // Elide bound checks from subsequent calls to `I::from_usize`
-        let _: I = I::from_usize(self.len());
+        let _: I = I::from_usize(greatest_chunk_start(self.len(), size));
 
         self.raw
             .par_chunks_mut(size.get())
@@ -626,6 +640,11 @@ where
     /// # Errors
     ///
     /// Returns the ID where a matching element could be inserted while maintaining sorted order.
+    ///
+    /// # Panics
+    ///
+    /// The insertion position lies beyond the ID domain. This occurs when the slice occupies the
+    /// complete domain and `item` belongs after every element.
     #[inline]
     pub fn binary_search(&self, item: &T) -> Result<I, I>
     where
@@ -658,22 +677,38 @@ where
         IdVec::from_raw(self.raw.to_vec_in(alloc))
     }
 
+    /// Returns the ID of the first element for which `predicate` is false.
+    ///
+    /// See [`slice::partition_point`](prim@slice#method.partition_point) for details.
+    ///
+    /// # Panics
+    ///
+    /// Every element satisfies `predicate` and the exclusive end lies beyond the ID domain.
     #[inline]
     pub fn partition_point(&self, predicate: impl Fn(&T) -> bool) -> I {
         let index = self.raw.partition_point(predicate);
         I::from_usize(index)
     }
 
+    /// Returns the final element, or [`None`] when the slice is empty.
+    ///
+    /// See [`slice::last`](prim@slice#method.last) for details.
     #[inline]
     pub const fn last(&self) -> Option<&T> {
         self.raw.last()
     }
 
+    /// Returns the first element, or [`None`] when the slice is empty.
+    ///
+    /// See [`slice::first`](prim@slice#method.first) for details.
     #[inline]
     pub const fn first(&self) -> Option<&T> {
         self.raw.first()
     }
 
+    /// Fills the slice by cloning `value` into every element.
+    ///
+    /// See [`slice::fill`](prim@slice#method.fill) for details.
     #[inline]
     pub fn fill(&mut self, value: T)
     where
@@ -928,7 +963,7 @@ where
 mod tests {
     #![expect(unsafe_code, clippy::cast_possible_truncation)]
     use alloc::boxed::Box;
-    use core::mem::MaybeUninit;
+    use core::{mem::MaybeUninit, num::NonZero};
 
     use super::IdSlice;
     use crate::id::Id as _;
@@ -936,6 +971,11 @@ mod tests {
     hashql_macros::define_id! {
         #[id(crate = crate)]
         struct TestId(u32 is 0..=0xFFFF_FF00)
+    }
+
+    hashql_macros::define_id! {
+        #[id(crate = crate)]
+        struct FourElementId(u8 is 0..=3)
     }
 
     #[test]
@@ -983,6 +1023,83 @@ mod tests {
 
         assert_eq!(slice.windows_enumerated::<2>().len(), 0);
         assert_eq!(slice.windows_enumerated::<2>().next(), None);
+    }
+
+    #[test]
+    fn chunks_enumerated_full_id_domain() {
+        let mut data = [10, 20, 30, 40];
+        let slice = IdSlice::<FourElementId, _>::from_raw(&data);
+        let chunks: alloc::vec::Vec<_> = slice
+            .chunks_enumerated(NonZero::new(2).expect("two is nonzero"))
+            .collect();
+        assert_eq!(
+            chunks,
+            [
+                (FourElementId::new(0), &[10, 20][..]),
+                (FourElementId::new(2), &[30, 40][..]),
+            ]
+        );
+
+        let slice = IdSlice::<FourElementId, _>::from_raw_mut(&mut data);
+        let starts: alloc::vec::Vec<_> = slice
+            .chunks_enumerated_mut(NonZero::new(3).expect("three is nonzero"))
+            .map(|(id, _)| id)
+            .collect();
+        assert_eq!(starts, [FourElementId::new(0), FourElementId::new(3)]);
+    }
+
+    #[test]
+    #[should_panic(expected = "id value must be between 0<=3")]
+    fn binary_search_after_full_id_domain() {
+        let data = [10, 20, 30, 40];
+        let slice = IdSlice::<FourElementId, _>::from_raw(&data);
+
+        let _result = slice.binary_search(&50);
+    }
+
+    #[test]
+    #[should_panic(expected = "id value must be between 0<=3")]
+    fn partition_point_full_id_domain() {
+        let data = [10, 20, 30, 40];
+        let slice = IdSlice::<FourElementId, _>::from_raw(&data);
+
+        let _partition = slice.partition_point(|_| true);
+    }
+
+    #[test]
+    #[should_panic(expected = "id value must be between 0<=3")]
+    fn bound_full_id_domain() {
+        let data = [10, 20, 30, 40];
+        let slice = IdSlice::<FourElementId, _>::from_raw(&data);
+
+        let _bound = slice.bound();
+    }
+
+    #[cfg(feature = "rayon")]
+    #[test]
+    fn parallel_chunks_enumerated_full_id_domain() {
+        use rayon::iter::ParallelIterator as _;
+
+        let mut data = [10, 20, 30, 40];
+        let slice = IdSlice::<FourElementId, _>::from_raw(&data);
+        let chunks: alloc::vec::Vec<_> = slice
+            .par_chunks_enumerated(NonZero::new(2).expect("two is nonzero"))
+            .map(|(id, chunk)| (id, chunk.to_vec()))
+            .collect();
+        assert_eq!(
+            chunks,
+            [
+                (FourElementId::new(0), alloc::vec![10, 20]),
+                (FourElementId::new(2), alloc::vec![30, 40]),
+            ]
+        );
+
+        let slice = IdSlice::<FourElementId, _>::from_raw_mut(&mut data);
+        let starts: alloc::vec::Vec<_> = slice
+            .par_chunks_enumerated_mut(NonZero::new(3).expect("three is nonzero"))
+            .map(|(id, _)| id)
+            .collect();
+        assert_eq!(starts, [FourElementId::new(0), FourElementId::new(3)]);
     }
 
     #[test]

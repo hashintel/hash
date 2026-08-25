@@ -352,6 +352,10 @@ where
         Self::from_raw(vec)
     }
 
+    /// Converts the vector into a boxed [`IdSlice`] without copying its elements.
+    ///
+    /// The allocation and typed index domain are preserved. See [`Vec::into_boxed_slice`] for the
+    /// capacity behavior of the underlying vector.
     pub fn into_boxed_slice(self) -> Box<IdSlice<I, T>, A> {
         IdSlice::from_boxed_slice(self.raw.into_boxed_slice())
     }

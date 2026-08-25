@@ -161,6 +161,10 @@ where
     #[inline]
     fn index(&self, (row, column): (R, C)) -> &T {
         assert!(
+            row.as_usize() < self.rows(),
+            "the row must lie inside the row domain"
+        );
+        assert!(
             column.as_usize() < self.columns,
             "the column must lie inside the column domain",
         );
