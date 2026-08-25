@@ -15,7 +15,7 @@ Select a place and open the **State** sub-view in its properties:
 
 If no initial marking is set, a place starts empty (zero tokens).
 
-When a [scenario](scenarios.md) is selected in Simulation Settings, the per-place State sub-view becomes read-only ("Defined by scenario") and the scenario's initial state is used instead.
+When a [scenario](scenarios.md) is selected in Simulation Settings, the per-place State sub-view becomes read-only ("Defined by scenario") and the scenario's initial state is used instead. With no scenario selected, an [ad-hoc initial state](ad-hoc-scenarios.md) defined in the panel's Initial state column likewise takes precedence over the manual marking for every place it defines — the State sub-view stays editable, but the run uses the ad-hoc value until you clear the definition.
 
 ## Simulation settings
 
