@@ -1,0 +1,118 @@
+{
+  "id": "m5z0GU9KJPzhOTlx",
+  "messages": [
+    {
+      "parts": [
+        {
+          "type": "text",
+          "text": "Run the FE-1435 transport probe."
+        }
+      ],
+      "id": "6ddgGkjhSxGjOtiv",
+      "role": "user"
+    },
+    {
+      "id": "assistant-fe1435-1",
+      "role": "assistant",
+      "parts": [
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Checking the wire seam**\n\nThe harness stream is translating reasoning parts. It will now drive both server and browser tools.",
+          "providerMetadata": {
+            "petrinaut": {
+              "startedAt": 1787132360061,
+              "finishedAt": 1787132360424
+            }
+          },
+          "state": "done"
+        },
+        {
+          "type": "text",
+          "text": "Harness-streamed text reached Petrinaut before tool execution.",
+          "state": "done"
+        },
+        {
+          "type": "tool-serverProbe",
+          "toolCallId": "tool-server-fe1435",
+          "state": "output-available",
+          "input": {
+            "scope": "real-panel"
+          },
+          "output": {
+            "ok": true,
+            "source": "fake-harness-loop"
+          },
+          "providerExecuted": true
+        },
+        {
+          "type": "tool-addPlace",
+          "toolCallId": "tool-place-fe1435",
+          "state": "output-available",
+          "input": {
+            "id": "place__fe1435_buffer",
+            "name": "SpikeBuffer",
+            "colorId": null,
+            "dynamicsEnabled": false,
+            "differentialEquationId": null,
+            "showAsInitialState": true,
+            "x": 180,
+            "y": 140
+          },
+          "output": {
+            "title": "Added place SpikeBuffer",
+            "target": {
+              "kind": "selection",
+              "item": {
+                "type": "place",
+                "id": "place__fe1435_buffer"
+              }
+            },
+            "applied": true
+          }
+        },
+        {
+          "type": "tool-addTransition",
+          "toolCallId": "tool-transition-fe1435",
+          "state": "output-available",
+          "input": {
+            "id": "transition__fe1435_dispatch",
+            "name": "Spike dispatch",
+            "inputArcs": [],
+            "outputArcs": [],
+            "lambdaType": "predicate",
+            "lambdaCode": "export const Lambda = () => true;",
+            "transitionKernelCode": "export const TransitionKernel = () => ({});",
+            "x": 420,
+            "y": 140
+          },
+          "output": {
+            "title": "Added transition Spike dispatch",
+            "target": {
+              "kind": "selection",
+              "item": {
+                "type": "transition",
+                "id": "transition__fe1435_dispatch"
+              }
+            },
+            "applied": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "petrinaut-diagnostics-context",
+      "role": "user",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Petrinaut diagnostics context only; this is not a user request.\nThe following TypeScript diagnostics reflect the current Petrinaut model after client-side tool execution.\nUse them to decide whether more tool calls are needed before replying to the user.\n\nCurrent TypeScript diagnostics (3 issues):\n- Transition: Spike dispatch lambda: error TS2451 at Ln 1, Col 1: Cannot redeclare block-scoped variable 'Lambda'.\n- Transition: Spike dispatch lambda: error TS2451 at Ln 1, Col 1: Cannot redeclare block-scoped variable 'Lambda'.\n- Transition: Spike dispatch lambda: error TS2451 at Ln 1, Col 14: Cannot redeclare block-scoped variable 'Lambda'."
+        }
+      ]
+    }
+  ],
+  "trigger": "submit-message",
+  "messageId": "assistant-fe1435-1"
+}

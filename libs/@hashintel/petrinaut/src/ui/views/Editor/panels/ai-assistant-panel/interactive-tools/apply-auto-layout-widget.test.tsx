@@ -4,17 +4,18 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { applyAutoLayoutInteractiveTool } from "./apply-auto-layout-widget";
-
-import type { AiToolOutput } from "../tool-summaries";
+import {
+  applyAutoLayoutInteractiveTool,
+  type ApplyAutoLayoutDecision,
+} from "./apply-auto-layout-widget";
 
 const Widget = applyAutoLayoutInteractiveTool.Widget;
 
 afterEach(cleanup);
 
 describe("ApplyAutoLayoutWidget", () => {
-  test("invokes submit with applied: true when the user confirms", () => {
-    const submit = vi.fn<(output: AiToolOutput) => void>();
+  test("submits an apply decision when the user confirms", () => {
+    const submit = vi.fn<(decision: ApplyAutoLayoutDecision) => void>();
 
     render(
       <Widget
@@ -27,12 +28,11 @@ describe("ApplyAutoLayoutWidget", () => {
     fireEvent.click(screen.getByRole("button", { name: /Yes, auto-layout/i }));
 
     expect(submit).toHaveBeenCalledTimes(1);
-    const output: AiToolOutput = submit.mock.calls[0]![0];
-    expect(output).toMatchObject({ applied: true });
+    expect(submit.mock.calls[0]![0]).toEqual({ action: "apply" });
   });
 
-  test("invokes submit with applied: false when the user declines", () => {
-    const submit = vi.fn<(output: AiToolOutput) => void>();
+  test("submits a decline decision when the user declines", () => {
+    const submit = vi.fn<(decision: ApplyAutoLayoutDecision) => void>();
 
     render(
       <Widget
@@ -47,11 +47,7 @@ describe("ApplyAutoLayoutWidget", () => {
     );
 
     expect(submit).toHaveBeenCalledTimes(1);
-    const output: AiToolOutput = submit.mock.calls[0]![0];
-    expect(output).toEqual({
-      applied: false,
-      reason: "User declined auto-layout.",
-    });
+    expect(submit.mock.calls[0]![0]).toEqual({ action: "decline" });
   });
 
   test("renders a static summary once submitted", () => {

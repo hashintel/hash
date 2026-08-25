@@ -1,0 +1,20 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "baseline:run": {
+      "cache": false,
+      "passThroughEnv": [
+        "ANTHROPIC_API_KEY",
+        "BRUNCH_BASELINE_ANTHROPIC_MODULE"
+      ]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "cache": false
+    },
+    "linear:graph": {
+      "cache": false
+    }
+  }
+}
