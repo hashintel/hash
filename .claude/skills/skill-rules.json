@@ -2,27 +2,6 @@
   "version": "2.0",
   "description": "Skill activation triggers for HASH Claude Code. Controls when skills automatically suggest or block actions.",
   "skills": {
-    "ark-ui": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "medium",
-      "description": "Headless component library for React. Use when building UI components with @ark-ui/react, implementing accessible form inputs, overlays, navigation patterns, or needing guidance on Ark UI's data attributes, composition (asChild), and state management patterns.",
-      "promptTriggers": {
-        "keywords": ["ark-ui", "@ark-ui/react", "headless components"],
-        "intentPatterns": [
-          "\\b(use|create|build|implement)\\b.*?\\bark[-\\s]?ui\\b",
-          "\\b(checkbox|combobox|dialog|popover|tooltip)\\b.*?\\b(headless|ark)\\b"
-        ]
-      },
-      "fileTriggers": {
-        "include": [],
-        "exclude": [],
-        "content": [],
-        "create-only": false
-      },
-      "blockMessage": "Skill is required to proceed",
-      "skipConditions": {}
-    },
     "documenting-rust-code": {
       "type": "domain",
       "enforcement": "suggest",
@@ -197,27 +176,6 @@
       "blockMessage": "Skill is required to proceed",
       "skipConditions": {}
     },
-    "mastra": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "medium",
-      "description": "Mastra TypeScript framework for AI agents with memory, tools, workflows, and RAG. Use when working with @mastra/* packages or building AI agents.",
-      "promptTriggers": {
-        "keywords": ["mastra", "@mastra/", "mastra.ai"],
-        "intentPatterns": [
-          "\\b(use|build|create|implement)\\b.*?\\bmastra\\b",
-          "\\b(agent|workflow|rag)\\b.*?\\bmastra\\b"
-        ]
-      },
-      "fileTriggers": {
-        "include": [],
-        "exclude": [],
-        "content": [],
-        "create-only": false
-      },
-      "blockMessage": "Skill is required to proceed",
-      "skipConditions": {}
-    },
     "meaningful-identifiers": {
       "type": "domain",
       "enforcement": "suggest",
@@ -226,27 +184,6 @@
       "promptTriggers": {
         "keywords": ["naming", "rename", "identifier", "variable name"],
         "intentPatterns": []
-      },
-      "fileTriggers": {
-        "include": [],
-        "exclude": [],
-        "content": [],
-        "create-only": false
-      },
-      "blockMessage": "Skill is required to proceed",
-      "skipConditions": {}
-    },
-    "panda-css": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "medium",
-      "description": "Panda CSS styling framework guidance. Use when working with @pandacss packages, styled components, design tokens, or responsive/conditional styles.",
-      "promptTriggers": {
-        "keywords": ["panda-css", "panda css", "pandacss", "@pandacss"],
-        "intentPatterns": [
-          "\\b(use|style|create|configure)\\b.*?\\bpanda(-| )?css\\b",
-          "\\bcss\\b.*?\\b(recipe|pattern|token)s?\\b"
-        ]
       },
       "fileTriggers": {
         "include": [],
@@ -397,35 +334,6 @@
         "intentPatterns": [
           "\\b(write|read|create|parse)\\b.*?\\b(j-?expr|hashql)\\b",
           "\\b(hashql|jexpr)\\b.*?\\b(query|syntax|expression)\\b"
-        ]
-      },
-      "fileTriggers": {
-        "include": [],
-        "exclude": [],
-        "content": [],
-        "create-only": false
-      },
-      "blockMessage": "Skill is required to proceed",
-      "skipConditions": {}
-    },
-    "zod": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "medium",
-      "description": "Zod v4 TypeScript schema validation patterns and best practices. Use when writing or modifying Zod schemas, adding schema annotations/metadata, or validating data with Zod.",
-      "promptTriggers": {
-        "keywords": [
-          "zod",
-          "z.object",
-          "z.string",
-          "z.number",
-          "z.array",
-          "schema validation",
-          "z.infer"
-        ],
-        "intentPatterns": [
-          "\\b(validate|create|define|add)\\b.*?\\b(schema|zod)\\b",
-          "\\bzod\\s+(v4|version|migration)\\b"
         ]
       },
       "fileTriggers": {
