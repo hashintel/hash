@@ -34,7 +34,7 @@ The artifact family a plugin projects into (Gherkin scenarios, SDCPNs, assurance
 _Avoid_: target-domain (retired — "domain" now names the expert's operational system, below), target-paradigm; bare "target" where family/instance is ambiguous
 
 **Domain**:
-The operational system the expert knows and the model describes — a packaging line, a truck fleet, a coating plant. Unknown before the conversation starts and discovered during it; never a plugin unit, a heading, a row, or a noun in a plugin file.
+The operational system the expert knows and the model describes — a packaging line, a truck fleet, a coating plant. Unknown before the conversation starts and discovered during it; never a plugin unit, a key, a row, or a noun in a plugin definition.
 _Avoid_: target-domain, use case (as a synonym), scenario (a scenario is assembled from boundary conditions at simulation time)
 
 **Target-document**:

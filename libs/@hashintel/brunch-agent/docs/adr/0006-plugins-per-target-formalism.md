@@ -41,7 +41,7 @@ streak ≈ controller stopping policy; sealed segments ≈ session archive. The 
 design convergence do not implement SDK surface, projection, …") displaced implementation into
 `evaluations/`, where it does not compound.
 
-Meanwhile [`packages/plugin-sdcpn/plugin.md`](../../packages/plugin-sdcpn/plugin.md) showed that the whole target
+Meanwhile [`packages/plugin-sdcpn/plugin.yaml`](../../packages/plugin-sdcpn/plugin.yaml) showed that the whole target
 fits one file: the twenty domain rows collapse onto kind-level rows instantiated on discovered
 nodes, and the five domain cards become kind-indexed patterns P01–P05. This record ratifies that
 file's shape as the plugin contract.
@@ -55,7 +55,7 @@ file's shape as the plugin contract.
    `Purpose · Kinds · Must know · Patterns · Moves · Deliverable`. The headings are the contract and
    are identical across plugins. The harness parses the `Kinds`, `Must know`, and `Patterns`
    tables into the model vocabulary, the demand list, and the pattern index; every other section
-   concatenates into the interviewer's instructions. `packages/plugin-sdcpn/plugin.md` is the normative
+   concatenates into the interviewer's instructions. `packages/plugin-sdcpn/plugin.yaml` is the normative
    exemplar; it moves unchanged to `packages/plugin-sdcpn/` with the walking skeleton.
 
 3. **Demand rows are kind-level.** Each row is a slot on a kind with a required precision, an

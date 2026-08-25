@@ -1,31 +1,28 @@
 import { describe, expect, test } from "vitest";
 
 import { completionDemands, evaluateCompletion } from "../src/completion";
-import {
-  buildCompletionCueSignal,
-  buildSweepList,
-  completionProtocolInstructionFragments,
-} from "../src/cue";
+import { buildCompletionCueSignal, buildSweepList } from "../src/cue";
 import { foldElicitedModel } from "../src/elicited-model";
+import { HARNESS_PREAMBLE } from "../src/instructions";
 import {
   assertionCapture,
   completeCaptures,
-  fixturePluginFile,
+  fixturePluginDefinition,
   snapshotOf,
   value,
 } from "./slot-fixtures";
 
-const file = fixturePluginFile();
-const demands = completionDemands(file);
+const definition = fixturePluginDefinition();
+const demands = completionDemands(definition);
 
 describe("the sweep list", () => {
   test("pairs every failure with the patterns indexed on the failing node's kind", () => {
     const model = foldElicitedModel(
       snapshotOf(completeCaptures().filter((c) => c.id !== "c-stamp-duration")),
-      file,
+      definition,
     );
     const report = evaluateCompletion(model, demands);
-    const list = buildSweepList(model, report, file.patterns);
+    const list = buildSweepList(model, report, definition.patterns);
     expect(list.unsatisfied.map((f) => f.diagnostic)).toEqual(["unaddressed"]);
     expect(list.patterns).toEqual([
       { id: "P01", nodeId: "step:stamp", ask: "ask how often" },
@@ -33,11 +30,11 @@ describe("the sweep list", () => {
   });
 
   test("surfaces nothing for a complete model", () => {
-    const model = foldElicitedModel(snapshotOf(completeCaptures()), file);
+    const model = foldElicitedModel(snapshotOf(completeCaptures()), definition);
     const list = buildSweepList(
       model,
       evaluateCompletion(model, demands),
-      file.patterns,
+      definition.patterns,
     );
     expect(list).toEqual({ unsatisfied: [], patterns: [] });
   });
@@ -53,13 +50,13 @@ describe("the cue signal", () => {
           value("step", "pack", "who performs it", "named", "nobody"),
         ),
       ]),
-      file,
+      definition,
     );
     const report = evaluateCompletion(model, demands);
     const signal = buildCompletionCueSignal(
       model,
       report,
-      buildSweepList(model, report, file.patterns),
+      buildSweepList(model, report, definition.patterns),
     );
     expect(signal.type).toBe("completion-cue");
     expect(signal.body).toContain(`revision ${report.revision}`);
@@ -82,12 +79,12 @@ describe("the cue signal", () => {
           "c-press-distinctions",
         ].includes(c.id),
     );
-    const model = foldElicitedModel(snapshotOf(captures), file);
+    const model = foldElicitedModel(snapshotOf(captures), definition);
     const report = evaluateCompletion(model, demands);
     const signal = buildCompletionCueSignal(
       model,
       report,
-      buildSweepList(model, report, file.patterns),
+      buildSweepList(model, report, definition.patterns),
       {
         maxItems: 2,
       },
@@ -96,8 +93,8 @@ describe("the cue signal", () => {
     expect(signal.body).toContain(`and ${report.failures.length - 2} more`);
   });
 
-  test("instruction fragments are render-invariant prose", () => {
-    for (const fragment of completionProtocolInstructionFragments()) {
+  test("the harness preamble is render-invariant prose", () => {
+    for (const fragment of HARNESS_PREAMBLE) {
       expect(fragment).not.toMatch(/\$\{|revision [0-9a-f]/u);
     }
   });

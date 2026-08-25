@@ -16,7 +16,7 @@ evaluateCompletion(model, mustKnowRows) -> CompletionReport
 `model` is the register-2 derived model at one target-document revision
 ([ADR-0003](../adr/0003-three-register-ir.md)). `mustKnowRows` is the parsed `## Must know`
 table of one plugin file at one plugin version, with the static floor stated under it
-([`plugin-sdcpn/plugin.md`](../../packages/plugin-sdcpn/plugin.md) is the exemplar). The function is pure and reads nothing
+([`plugin-sdcpn/plugin.yaml`](../../packages/plugin-sdcpn/plugin.yaml) is the exemplar). The function is pure and reads nothing
 else: not the transcript, conversation fluency, turn count, delivery state, session state, or a
 deferral report. Each numbered statement below is a test the implementation must pass; the
 [plain rendering](../evidence/proofs/design/elicitation-completion-plain.md) explains the same

@@ -10,7 +10,7 @@
 
 import { type CompletionFailure, type CompletionReport } from "./completion";
 import { type ElicitedModel } from "./elicited-model";
-import { type PatternRow } from "./plugin-file";
+import { type PatternRow } from "./plugin-definition";
 
 export interface PatternCue {
   readonly id: string;
@@ -104,8 +104,3 @@ export const buildCompletionCueSignal = (
     body: parts.join("\n\n"),
   };
 };
-
-export const completionProtocolInstructionFragments = (): readonly string[] => [
-  "After each applied sweep the harness folds the active captures into the model and reports which demanded slots are unsatisfied and why, with the patterns whose trigger may apply. Read it as a map of what is still unknown, not as an instruction to ask.",
-  "A slot is satisfied only by what the expert said or confirmed, at the precision the row demands. Never state a value the expert did not give; record what you would assume in the assumption ledger and ask.",
-];

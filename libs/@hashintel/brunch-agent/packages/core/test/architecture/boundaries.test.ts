@@ -90,7 +90,7 @@ describe("role prefixes name what a package is architecturally (spec §12.2)", (
   test("every package under packages/ is core or carries a role prefix", () => {
     for (const pkg of PACKAGES.filter((p) => p.kind === "package")) {
       expect(pkg.dir).toMatch(
-        /^(core|plugin-[a-z0-9-]+|binding-[a-z0-9-]+|transport-[a-z0-9-]+)$/,
+        /^(core|repertoire|plugin-[a-z0-9-]+|binding-[a-z0-9-]+|transport-[a-z0-9-]+)$/,
       );
     }
   });
@@ -179,6 +179,19 @@ describe("dependency direction (spec §4, §12.2)", () => {
       for (const dependency of runtimeDependencies(binding)) {
         expect(dependency).not.toMatch(/^@hashintel\/brunch-agent-plugin-/u);
       }
+    }
+  });
+
+  test("the repertoire depends on core only, and only bindings depend on it (ADR-0007)", () => {
+    const repertoire = PACKAGES.find((pkg) => pkg.dir === "repertoire");
+    expect(repertoire).toBeDefined();
+    expect(runtimeDependencies(repertoire!)).toEqual([CORE]);
+    for (const pkg of PACKAGES) {
+      if (pkg.dir === "repertoire" || pkg.dir.startsWith("binding-")) continue;
+      expect({
+        pkg: pkg.dir,
+        dependsOnRepertoire: allDependencies(pkg).includes(repertoire!.name),
+      }).toEqual({ pkg: pkg.dir, dependsOnRepertoire: false });
     }
   });
 

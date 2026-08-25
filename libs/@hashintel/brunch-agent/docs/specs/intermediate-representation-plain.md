@@ -6,7 +6,7 @@
 > findings on FE-1401 (third accrual), the load-bearing one being the loss report's unresolved unit
 > of loss (capture vs. capture-facet).
 >
-> Since 2026-08-25, [`plugin-sdcpn/plugin.md`](../../packages/plugin-sdcpn/plugin.md) is the concrete rendering of Layer B: its
+> Since 2026-08-25, [`plugin-sdcpn/plugin.yaml`](../../packages/plugin-sdcpn/plugin.yaml) is the concrete rendering of Layer B: its
 > `Kinds` and `Must know` tables carry the ten kinds, the cross-kind attributes, and the
 > question-relative completion rule described below as the one authored plugin file.
 

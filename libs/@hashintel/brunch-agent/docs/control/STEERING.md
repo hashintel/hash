@@ -29,7 +29,7 @@ Governing strategic decisions: [S-001](STRATEGY-LOG.md#s-001), [S-004](STRATEGY-
 production path with one formalism-level plugin, not further design. Every design question still
 open is answered by what the slice forces, and answered in code. The design-convergence frontier is
 closed: its outputs are test-bed material, and its one durable design result is the plugin file
-[`plugin-sdcpn/plugin.md`](../../packages/plugin-sdcpn/plugin.md) ratified by ADR-0006.
+[`plugin-sdcpn/plugin.yaml`](../../packages/plugin-sdcpn/plugin.yaml) ratified by ADR-0006.
 
 The slice has five epicentres, ordered by the size of the gap they close. Work starts at the
 centre of each and moves outward; edges (SDK generality, affordance catalogues, UI breadth,
@@ -55,7 +55,9 @@ FE-1478 provenance read -> FE-1480 scaffold/realization -> FE-1479 targeted corr
 authoring lane (E5; a convergence cycle alongside the skeleton run, joining it at a run over the migrated plugin)
 each cycle: write schema + plugin-sdcpn/plugin.yaml + plugin-gherkin/plugin.yaml + repertoire together
   -> review: does every key plausibly serve both? press against the CPS edge material
-  -> run where a run exists -> edit; the catalogue freezes when a cycle changes no key
+  -> run: re-do the simulated interviews (baseline protocol, simulated expert) over the wired agent
+  -> the strains and failures found are the next cycle's input to the ontologies and definitions
+  -> edit; the catalogue freezes when a cycle changes no key
 FE-1431 (schema, plugin.yaml, key reader) | FE-1406 (packages/repertoire) | FE-1393 (gherkin, zero keys) advance together
 ```
 

@@ -12,7 +12,7 @@ import {
   type SlotAssertion,
 } from "@hashintel/brunch-agent";
 
-import { sdcpn, sdcpnPluginFile } from "../src/index";
+import { sdcpn, sdcpnDefinition } from "../src/index";
 
 const proposalOf = (assertion: SlotAssertion) => ({
   evidence: [{ excerpt: "quote" }],
@@ -69,8 +69,8 @@ const capture = (assertion: SlotAssertion): CaptureEnvelope => {
 describe("the SDCPN plugin", () => {
   test("is the parsed file plus one slot-assertion proposal type", () => {
     expect(sdcpn.targetFormalism).toBe("sdcpn");
-    expect(sdcpn.file).toBe(sdcpnPluginFile);
-    expect(sdcpnPluginFile.version).toBe("sdcpn/2026-08-25.1");
+    expect(sdcpn.definition).toBe(sdcpnDefinition);
+    expect(sdcpnDefinition.version).toBe("sdcpn/2026-08-25.2");
     expect(sdcpn.proposalCatalog.map((proposal) => proposal.name)).toEqual([
       "slot-asserted",
     ]);
@@ -256,12 +256,12 @@ describe("the SDCPN plugin", () => {
     ];
     const model = foldElicitedModel(
       { captures, issues: [], events: [] },
-      sdcpnPluginFile,
+      sdcpnDefinition,
     );
     expect(model.unmapped).toEqual([]);
     const report = evaluateCompletion(
       model,
-      completionDemands(sdcpnPluginFile),
+      completionDemands(sdcpnDefinition),
     );
     expect(report.failures).toEqual([]);
     expect(report.complete).toBe(true);
@@ -270,9 +270,9 @@ describe("the SDCPN plugin", () => {
     const partial = evaluateCompletion(
       foldElicitedModel(
         { captures: withoutDuration, issues: [], events: [] },
-        sdcpnPluginFile,
+        sdcpnDefinition,
       ),
-      completionDemands(sdcpnPluginFile),
+      completionDemands(sdcpnDefinition),
     );
     expect(partial.complete).toBe(false);
     expect(

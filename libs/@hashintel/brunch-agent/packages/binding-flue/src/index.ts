@@ -36,7 +36,6 @@ import {
   buildSweepList,
   buildSweepRepairSignal,
   completionDemands,
-  completionProtocolInstructionFragments,
   computeUnaccountedAskAdvisories,
   createSweepExtractionResultSchema,
   createInitialSweepState,
@@ -47,7 +46,7 @@ import {
   mintAskAffordance,
   parseSweepState,
   pendingSweepRepair,
-  pluginFileInstructions,
+  renderInstructions,
   reopenSweepAfterRefusal,
   settlementProtocolInstructionFragments,
   slotAssertionExtractionGuidance,
@@ -59,6 +58,7 @@ import {
   type Plugin,
   type SweepState,
 } from "@hashintel/brunch-agent";
+import { repertoire } from "@hashintel/brunch-agent-repertoire";
 
 import { capturedUserEntryIdsForSession } from "./capture-accounting";
 import {
@@ -113,17 +113,24 @@ export function useElicitation(
   let pendingAtFinish = pending;
   let sweepState = parseSweepState(storedSweepState);
   const extractionResult = createSweepExtractionResultSchema(plugin);
-  const { file } = plugin;
-  const demands = file === undefined ? undefined : completionDemands(file);
+  const { definition } = plugin;
+  // The fold and the completion cue know slot assertions; a definition whose
+  // proposals do not include them has a model the harness cannot yet fold.
+  const slotModel =
+    definition?.proposals.some((p) => p.type === "slot-asserted") === true
+      ? definition
+      : undefined;
+  const demands =
+    slotModel === undefined ? undefined : completionDemands(slotModel);
   // Read-time derivation, never stored: fold the active captures, evaluate
   // completion over the objective slices, and render the cue (ADR-0003,
   // ADR-0006). Returned as a tool result so the model sees a harness fact
   // without any state reaching the instructions.
   const completionCue = (snapshot: CaptureStoreSnapshot) => {
-    if (file === undefined || demands === undefined) return undefined;
-    const model = foldElicitedModel(snapshot, file);
+    if (slotModel === undefined || demands === undefined) return undefined;
+    const model = foldElicitedModel(snapshot, slotModel);
     const report = evaluateCompletion(model, demands);
-    const sweepList = buildSweepList(model, report, file.patterns);
+    const sweepList = buildSweepList(model, report, slotModel.patterns);
     return {
       complete: report.complete,
       revision: report.revision,
@@ -196,9 +203,9 @@ export function useElicitation(
                   proposalNames: plugin.proposalCatalog.map(
                     (proposal) => proposal.name,
                   ),
-                  ...(file === undefined
+                  ...(slotModel === undefined
                     ? {}
-                    : { guidance: slotAssertionExtractionGuidance(file) }),
+                    : { guidance: slotAssertionExtractionGuidance(slotModel) }),
                 },
                 range,
               ),
@@ -255,7 +262,7 @@ export function useElicitation(
             ...("advisories" in applied.value ? applied.value.advisories : []),
             ...computeUnaccountedAskAdvisories(range, accountedEntryIds),
           ],
-          ...(file === undefined
+          ...(slotModel === undefined
             ? {}
             : { completion: completionCue(applied.snapshot) }),
         },
@@ -295,11 +302,8 @@ export function useElicitation(
   return [
     ...askProtocolInstructionFragments(plugin.targetFormalism),
     ...settlementProtocolInstructionFragments(),
-    ...(file === undefined
+    ...(definition === undefined
       ? []
-      : [
-          ...completionProtocolInstructionFragments(),
-          pluginFileInstructions(file),
-        ]),
+      : [renderInstructions(repertoire, definition)]),
   ].join("\n\n");
 }

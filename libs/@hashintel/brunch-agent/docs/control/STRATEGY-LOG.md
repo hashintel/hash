@@ -179,7 +179,7 @@ instrument as definition of done".
 
 **Decision:** Invert S-005 and S-006: implement the vertical slice and design only what the slice
 forces. Adopt [ADR-0006](../adr/0006-plugins-per-target-formalism.md): plugins are per target
-formalism, authored as one sectioned Markdown file; `packages/plugin-sdcpn/plugin.md` is the exemplar.
+formalism, authored as one sectioned Markdown file; `packages/plugin-sdcpn/plugin.yaml` is the exemplar.
 Close the design-convergence queue: FE-1407, FE-1402, and FE-1403 are reclassified as test-bed
 material; FE-1404 is redefined as the skeleton run — condition 3 as the protocol originally
 defined it (kernel harness + real plugin), not the shadow-harness instrument; FE-1406 shrinks to
@@ -211,7 +211,7 @@ heading the contract does not have (ADR-0006's condition).
 **Supersedes:** S-005, S-006
 
 **Evidence links:** [ADR-0006](../adr/0006-plugins-per-target-formalism.md),
-[sdcpn plugin file](../../packages/plugin-sdcpn/plugin.md),
+[sdcpn plugin file](../../packages/plugin-sdcpn/plugin.yaml),
 [IR spec Layer B](../specs/intermediate-representation.md#layer-b--the-cps-plugins-ir),
 [archived drafts](../archive/specs/),
 [baseline situation pack](../../evaluations/cases/process-model-elicitation/baseline/situation-pack.md),
@@ -269,7 +269,7 @@ than the plugin it teaches (the instrument-larger-than-the-thing heuristic, appl
 **Evidence links:** [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md),
 [lineage audit](../evidence/proofs/audits/harness-teaching-lineage-audit.md),
 [penciled directions 2026-08-14](../archive/planning-inputs/penciled-directions-2026-08-14.md),
-[SDCPN plugin file](../../packages/plugin-sdcpn/plugin.md), FE-1406, FE-1431, FE-1393, FE-1497
+[SDCPN plugin file](../../packages/plugin-sdcpn/plugin.yaml), FE-1406, FE-1431, FE-1393, FE-1497
 
 ### S-009
 

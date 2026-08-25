@@ -5,18 +5,18 @@ import {
   absence,
   assertionCapture,
   completeCaptures,
-  fixturePluginFile,
+  fixturePluginDefinition,
   snapshotOf,
   value,
 } from "./slot-fixtures";
 
 import type { JsonValue } from "../src/json-value";
 
-const file = fixturePluginFile();
+const definition = fixturePluginDefinition();
 
 describe("the fold reads only active captures", () => {
   test("groups assertions into nodes and slots keyed by kind:node", () => {
-    const model = foldElicitedModel(snapshotOf(completeCaptures()), file);
+    const model = foldElicitedModel(snapshotOf(completeCaptures()), definition);
     expect(model.pluginVersion).toBe("fixture/2026-08-25.1");
     expect(model.nodes.map((node) => node.id)).toEqual([
       "objective:throughput",
@@ -70,7 +70,7 @@ describe("the fold reads only active captures", () => {
           },
         ],
       ),
-      file,
+      definition,
     );
     const actor = findNode(model, "step:stamp")?.slots["who performs it"];
     expect(actor?.state).toBe("value");
@@ -108,7 +108,7 @@ describe("the fold reads only active captures", () => {
           dedupKey: "manual-key-2",
         },
       ]),
-      file,
+      definition,
     );
     expect(model.nodes).toEqual([]);
     expect(model.unmapped.map((entry) => entry.captureId).sort()).toEqual([
@@ -156,7 +156,7 @@ describe("competing readings", () => {
           canDefault: false,
         },
       ]),
-      file,
+      definition,
     );
     expect(findNode(model, "step:stamp")?.slots["who performs it"]?.state).toBe(
       "conflict",
@@ -183,7 +183,7 @@ describe("competing readings", () => {
       ),
     ];
     const slot = findNode(
-      foldElicitedModel(snapshotOf(captures), file),
+      foldElicitedModel(snapshotOf(captures), definition),
       "step:stamp",
     )?.slots["who performs it"];
     expect(slot).toMatchObject({
@@ -210,7 +210,7 @@ describe("competing readings", () => {
       ),
     ];
     const slot = findNode(
-      foldElicitedModel(snapshotOf(captures), file),
+      foldElicitedModel(snapshotOf(captures), definition),
       "step:stamp",
     )?.slots["who performs it"];
     expect(slot?.state).toBe("divergence");
@@ -231,8 +231,10 @@ describe("competing readings", () => {
       ),
     ];
     expect(
-      findNode(foldElicitedModel(snapshotOf(captures), file), "step:stamp")
-        ?.slots["how long it takes"],
+      findNode(
+        foldElicitedModel(snapshotOf(captures), definition),
+        "step:stamp",
+      )?.slots["how long it takes"],
     ).toEqual({
       state: "absence",
       absence: "unknown-to-user",
@@ -247,10 +249,10 @@ describe("competing readings", () => {
 describe("revision", () => {
   test("is stable for the same active set and changes when it changes", () => {
     const base = completeCaptures();
-    const first = foldElicitedModel(snapshotOf(base), file).revision;
+    const first = foldElicitedModel(snapshotOf(base), definition).revision;
     const again = foldElicitedModel(
       snapshotOf([...base].reverse()),
-      file,
+      definition,
     ).revision;
     const grown = foldElicitedModel(
       snapshotOf([
@@ -260,7 +262,7 @@ describe("revision", () => {
           value("step", "pack", "who performs it", "named", "nobody"),
         ),
       ]),
-      file,
+      definition,
     ).revision;
     expect(again).toBe(first);
     expect(grown).not.toBe(first);

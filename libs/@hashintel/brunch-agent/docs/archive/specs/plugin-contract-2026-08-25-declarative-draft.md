@@ -4,7 +4,7 @@
 > `where` / `inSupport`, `ProposalType.affordance.firesWhen`, `NodeKind.completionAnchor`, the
 > typed `foldTable` / `demandTable` / `variantDimension` / `lossCategories` keys — has no current
 > authority; the current contract is the shrunk [`plugin-contract.md`](../../specs/plugin-contract.md)
-> and the exemplar [`plugin-sdcpn/plugin.md`](../../../packages/plugin-sdcpn/plugin.md). Content is otherwise
+> and the exemplar [`plugin-sdcpn/plugin.yaml`](../../../packages/plugin-sdcpn/plugin.yaml). Content is otherwise
 > verbatim; only relative link targets were re-rooted for the archive location.
 
 # Spec: the plugin contract — two schemas, two tables

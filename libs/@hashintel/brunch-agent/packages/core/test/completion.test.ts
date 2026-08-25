@@ -19,18 +19,18 @@ import {
   absence,
   assertionCapture,
   completeCaptures,
-  fixturePluginFile,
+  fixturePluginDefinition,
   snapshotOf,
   value,
 } from "./slot-fixtures";
 
 import type { CaptureEnvelope } from "../src/capture-store";
 
-const file = fixturePluginFile();
-const demands = completionDemands(file);
+const definition = fixturePluginDefinition();
+const demands = completionDemands(definition);
 
 const modelOf = (captures: readonly CaptureEnvelope[]): ElicitedModel =>
-  foldElicitedModel(snapshotOf(captures), file);
+  foldElicitedModel(snapshotOf(captures), definition);
 
 const without = (id: string): CaptureEnvelope[] =>
   completeCaptures().filter((capture) => capture.id !== id);
@@ -242,7 +242,7 @@ describe("what counts as a value (8–14)", () => {
     expect(diagnosticsOf(inferred)).toEqual([
       ["inadmissible-status", "step:stamp", "how long it takes"],
     ]);
-    const permissive = completionDemands(file, {
+    const permissive = completionDemands(definition, {
       acceptedStatuses: ["explicit", "inferred"],
     });
     expect(evaluateCompletion(modelOf(inferred), permissive).complete).toBe(
