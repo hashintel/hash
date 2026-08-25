@@ -43,7 +43,7 @@ use core::{
 };
 
 use error_stack::Report;
-use futures::{Stream, future::BoxFuture};
+use futures::{Stream, future::BoxFuture, stream::FusedStream};
 use hash_graph_store::error::QueryError;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use postgres_types::{FromSql, Type};
@@ -237,6 +237,7 @@ pin_project_lite::pin_project! {
     /// Where the feed stands: waiting on the statement, or yielding its rows.
     #[project = FeedStateProj]
     enum FeedState<'client> {
+        Terminated,
         Opening {
             #[pin]
             query: Instrumented<BoxFuture<'client, Result<RowStream, tokio_postgres::Error>>>,
@@ -266,19 +267,35 @@ impl Stream for EntityEventStream<'_> {
                 FeedStateProj::Opening { query } => match ready!(query.poll(cx)) {
                     Ok(rows) => this.state.set(FeedState::Streaming { rows }),
                     Err(error) => {
+                        this.state.set(FeedState::Terminated);
                         return Poll::Ready(Some(Err(
                             Report::new(error).change_context(QueryError)
                         )));
                     }
                 },
                 FeedStateProj::Streaming { rows } => {
-                    return Poll::Ready(ready!(rows.poll_next(cx)).map(|row| {
-                        row.and_then(|row| decode_event(&row))
-                            .map_err(|error| Report::new(error).change_context(QueryError))
-                    }));
+                    let Some(result) = ready!(rows.poll_next(cx)) else {
+                        this.state.set(FeedState::Terminated);
+                        return Poll::Ready(None);
+                    };
+
+                    return Poll::Ready(Some(
+                        result
+                            .and_then(|row| decode_event(&row))
+                            .map_err(|error| Report::new(error).change_context(QueryError)),
+                    ));
+                }
+                FeedStateProj::Terminated => {
+                    return Poll::Ready(None);
                 }
             }
         }
+    }
+}
+
+impl FusedStream for EntityEventStream<'_> {
+    fn is_terminated(&self) -> bool {
+        matches!(self.state, FeedState::Terminated)
     }
 }
 
