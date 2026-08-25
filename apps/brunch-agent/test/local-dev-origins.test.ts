@@ -27,6 +27,8 @@ test("petrinaut:dev listens on the panel origin chat CORS already assumes", () =
   expect(defaultPanelOrigins).toEqual([
     "http://127.0.0.1:4915",
     "http://localhost:4915",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
   ]);
   expect(localPanelListen).toEqual({
     host: "127.0.0.1",

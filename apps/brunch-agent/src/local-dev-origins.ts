@@ -17,6 +17,8 @@ export const defaultChatOrigin = `http://${localChatListen.host}:${localChatList
 export const defaultPanelOrigins = [
   `http://${localPanelListen.host}:${localPanelListen.port}`,
   `http://localhost:${localPanelListen.port}`,
+  "http://127.0.0.1:5173",
+  "http://localhost:5173",
 ] as const;
 
 export const petrinautLocalServer = (chatOrigin: string) => ({
