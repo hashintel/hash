@@ -5,28 +5,24 @@
 //!
 //! # Endpoints
 //!
-//! | Method   | Path               | Auth | Availability                        |
-//! |----------|--------------------|------|-------------------------------------|
-//! | `GET`    | `/health`          | --   | Always                              |
-//! | `POST`   | `/entities/delete` | JWT  | Always                              |
-//! | `POST`   | `/snapshot`        | --   | `--unsafe-allow-dev-authentication` |
-//! | `DELETE` | `/accounts`        | --   | `--unsafe-allow-dev-authentication` |
-//! | `DELETE` | `/data-types`      | --   | `--unsafe-allow-dev-authentication` |
-//! | `DELETE` | `/property-types`  | --   | `--unsafe-allow-dev-authentication` |
-//! | `DELETE` | `/entity-types`    | --   | `--unsafe-allow-dev-authentication` |
+//! | Method   | Path               | Availability                   |
+//! |----------|--------------------|--------------------------------|
+//! | `GET`    | `/health`          | Always                         |
+//! | `POST`   | `/entities/delete` | Always                         |
+//! | `POST`   | `/users/delete`    | Always                         |
+//! | `POST`   | `/snapshot`        | `unsafe-dev-endpoints` feature |
+//! | `DELETE` | `/accounts`        | `unsafe-dev-endpoints` feature |
+//! | `DELETE` | `/data-types`      | `unsafe-dev-endpoints` feature |
+//! | `DELETE` | `/entity-types`    | `unsafe-dev-endpoints` feature |
+//! | `DELETE` | `/property-types`  | `unsafe-dev-endpoints` feature |
 //!
 //! # Authentication
 //!
-//! JWT tokens are extracted from headers in order:
-//! 1. `Cf-Access-Jwt-Assertion` (Cloudflare Access)
-//! 2. `Authorization: Bearer <token>`
-//!
-//! When JWT is configured (`--jwt-jwks-url`), the token's `email` claim is resolved to a HASH
-//! user actor for provenance tracking on `/entities/delete`. When JWT is not configured (requires
-//! `--unsafe-allow-dev-authentication`), the `X-Authenticated-User-Actor-Id` header is used
-//! instead. Without JWT and without the flag, the server refuses to start.
-//!
-//! See [`super::jwt`] for validation details.
+//! All routes except `/health` run behind [`auth::authentication_middleware`], with the operator
+//! chain: Cloudflare Access JWT, then service delegation. A Kratos session does **not**
+//! authenticate here — these endpoints erase entities and delete users, and the handlers do not
+//! authorize beyond requiring some actor, so operators arrive through Access and internal services
+//! through the shared secret.
 //!
 //! # Operational runbook
 //!
@@ -37,18 +33,18 @@
 
 use alloc::sync::Arc;
 
-use axum::{
-    Extension, Json, Router,
-    body::Body,
-    extract::FromRequestParts,
-    http::request::Parts,
-    routing::{delete, post},
-};
+use axum::{Extension, Json, Router, routing::post};
+#[cfg(feature = "unsafe-dev-endpoints")]
+use axum::{body::Body, routing::delete};
 use error_stack::Report;
+#[cfg(feature = "unsafe-dev-endpoints")]
 use futures::TryStreamExt as _;
+#[cfg(feature = "unsafe-dev-endpoints")]
 use hash_codec::bytes::JsonLinesDecoder;
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
-use hash_graph_postgres_store::{snapshot::SnapshotStore, store::PostgresStorePool};
+use hash_graph_authentication::provider::AuthenticationProvider;
+#[cfg(feature = "unsafe-dev-endpoints")]
+use hash_graph_postgres_store::snapshot::SnapshotStore;
+use hash_graph_postgres_store::store::PostgresStorePool;
 use hash_graph_store::{
     account::AccountStore as _,
     entity::{DeleteEntitiesParams, DeletionSummary, EntityStore as _},
@@ -57,15 +53,17 @@ use hash_graph_store::{
 };
 use hash_status::{Status, StatusCode};
 use serde::Deserialize as _;
+#[cfg(feature = "unsafe-dev-endpoints")]
 use tokio::io;
+#[cfg(feature = "unsafe-dev-endpoints")]
 use tokio_util::{codec::FramedRead, io::StreamReader};
-use type_system::principal::actor::{ActorEntityUuid, UserId};
+#[cfg(feature = "unsafe-dev-endpoints")]
+use type_system::principal::actor::ActorEntityUuid;
+use type_system::principal::actor::UserId;
 use uuid::Uuid;
 
 use super::{
-    AuthenticatedActorId, auth, http_tracing_layer,
-    jwt::{JwtValidator, OptionalJwtAuthentication},
-    probe,
+    AuthenticatedActorId, auth, http_tracing_layer, probe,
     status::{BoxedResponse, status_to_response},
 };
 use crate::{
@@ -84,38 +82,38 @@ pub struct ExternalServicesConfig {
 
 /// Creates the admin API router.
 ///
-/// JWT and dev mode are mutually exclusive (enforced by the caller).
-///
-/// - **JWT mode** (`Some`): Only `/health`, `/entities/delete`, and `/users/delete` are available.
-///   The token's `email` claim is resolved to a HASH user actor for provenance tracking.
-/// - **Dev mode** (`None`, requires `--unsafe-allow-dev-authentication`): All endpoints are
-///   available. The `X-Authenticated-User-Actor-Id` header is used for authentication. Bulk
-///   destructive endpoints (`/snapshot`, `/accounts`, `/data-types`, `/property-types`,
-///   `/entity-types`) are registered in this mode only.
-pub fn routes(
-    store_pool: PostgresStorePool,
-    jwt_validator: Option<Arc<JwtValidator>>,
+/// All routes except `/health` require authentication through the given provider chain. The bulk
+/// destructive endpoints (`/snapshot`, `/accounts`, `/data-types`, `/property-types`,
+/// `/entity-types`) exist only in builds with the `unsafe-dev-endpoints` feature.
+pub fn routes<P>(
+    store_pool: Arc<PostgresStorePool>,
+    authentication_provider: Arc<P>,
+    service_secret: Arc<str>,
     external_services: ExternalServicesConfig,
-) -> Router {
-    let public = probe::router();
-
-    let mut protected = Router::new()
+) -> Router
+where
+    P: AuthenticationProvider + 'static,
+{
+    let protected = Router::new()
         .route("/entities/delete", post(delete_entities))
         .route("/users/delete", post(delete_user));
 
-    if let Some(validator) = jwt_validator {
-        protected = protected.layer(Extension(validator));
-    } else {
-        protected = protected
-            .route("/snapshot", post(restore_snapshot))
-            .route("/accounts", delete(delete_accounts))
-            .route("/data-types", delete(delete_data_types))
-            .route("/property-types", delete(delete_property_types))
-            .route("/entity-types", delete(delete_entity_types));
-    }
+    #[cfg(feature = "unsafe-dev-endpoints")]
+    let protected = protected
+        .route("/snapshot", post(restore_snapshot))
+        .route("/accounts", delete(delete_accounts))
+        .route("/data-types", delete(delete_data_types))
+        .route("/property-types", delete(delete_property_types))
+        .route("/entity-types", delete(delete_entity_types));
 
-    public
-        .merge(protected)
+    probe::router()
+        .merge(
+            protected.route_layer(axum::middleware::from_fn(move |request, next| {
+                let provider = Arc::clone(&authentication_provider);
+                let service_secret = Arc::clone(&service_secret);
+                auth::authentication_middleware(provider, service_secret, request, next)
+            })),
+        )
         .fallback(|| async {
             status_to_response(Status::<()>::new(
                 StatusCode::NotFound,
@@ -123,90 +121,28 @@ pub fn routes(
                 vec![],
             ))
         })
-        .layer(axum::middleware::from_fn(auth::actor_id_header_middleware))
         .layer(http_tracing_layer::HttpTracingLayer)
-        .layer(Extension(Arc::new(store_pool)))
+        .layer(Extension(store_pool))
         .layer(Extension(Arc::new(external_services)))
         .layer(Extension(Arc::new(reqwest::Client::new())))
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-enum AdminActorError {
-    #[display("JWT claims do not contain an email address")]
-    MissingEmail,
-    #[display("no user account found for the authenticated email")]
+enum AdminError {
+    #[display("no user account found for the given email")]
     UserNotFound,
-    #[display("store pool not configured on admin routes")]
-    StorePoolNotConfigured,
-}
-
-/// Resolves the authenticated admin actor from JWT claims.
-///
-/// When JWT authentication is configured, resolves the actor ID by looking up the email from the
-/// token claims. When JWT is not configured (requires `--unsafe-allow-dev-authentication`), falls
-/// back to the `X-Authenticated-User-Actor-Id` header.
-struct AdminActorId(AuthenticatedActor);
-
-impl<S: Sync> FromRequestParts<S> for AdminActorId {
-    type Rejection = BoxedResponse;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let jwt = OptionalJwtAuthentication::from_request_parts(parts, state).await?;
-
-        let Some(claims) = jwt.0 else {
-            // No JWT configured — fall back to header
-            let AuthenticatedActorId(actor_id) =
-                AuthenticatedActorId::from_request_parts(parts, state).await?;
-            return Ok(Self(actor_id.into()));
-        };
-
-        let email = claims.email.ok_or_else(|| {
-            report_to_response(
-                Report::new(AdminActorError::MissingEmail).attach(StatusCode::Unauthenticated),
-            )
-        })?;
-
-        let pool = parts
-            .extensions
-            .get::<Arc<PostgresStorePool>>()
-            .ok_or_else(|| {
-                report_to_response(
-                    Report::new(AdminActorError::StorePoolNotConfigured)
-                        .attach(StatusCode::Internal),
-                )
-            })?;
-
-        let user_id = pool
-            .acquire(None)
-            .await
-            .map_err(report_to_response)?
-            .get_user_id_by_email(&email)
-            .await
-            .map_err(report_to_response)?
-            .ok_or_else(|| {
-                report_to_response(
-                    Report::new(AdminActorError::UserNotFound).attach(StatusCode::PermissionDenied),
-                )
-            })?;
-
-        Ok(Self(user_id.into()))
-    }
 }
 
 /// Restores a snapshot from a JSON Lines stream, replacing all existing data.
 ///
-/// Only available with `--unsafe-allow-dev-authentication`. See [`SnapshotStore::restore_snapshot`]
-/// for details.
+/// See [`SnapshotStore::restore_snapshot`] for details.
+#[cfg(feature = "unsafe-dev-endpoints")]
 async fn restore_snapshot(
-    jwt: OptionalJwtAuthentication,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<PostgresStorePool>>,
     snapshot: Body,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(
-        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
-        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
-        "restoring snapshot"
-    );
+    tracing::info!(%actor_id, "restoring snapshot");
     let store = store_pool.acquire(None).await.map_err(report_to_response)?;
 
     SnapshotStore::new(store)
@@ -228,20 +164,17 @@ async fn restore_snapshot(
     )))
 }
 
-/// Deletes **all** accounts. Only available with `--unsafe-allow-dev-authentication`.
+/// Deletes **all** accounts.
 ///
 /// See [`PostgresStore::delete_principals`] for details.
 ///
 /// [`PostgresStore::delete_principals`]: hash_graph_postgres_store::store::PostgresStore::delete_principals
+#[cfg(feature = "unsafe-dev-endpoints")]
 async fn delete_accounts(
-    jwt: OptionalJwtAuthentication,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(
-        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
-        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
-        "deleting all accounts"
-    );
+    tracing::info!(%actor_id, "deleting all accounts");
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -256,20 +189,17 @@ async fn delete_accounts(
     )))
 }
 
-/// Deletes **all** data types. Only available with `--unsafe-allow-dev-authentication`.
+/// Deletes **all** data types.
 ///
 /// See [`PostgresStore::delete_data_types`] for details.
 ///
 /// [`PostgresStore::delete_data_types`]: hash_graph_postgres_store::store::PostgresStore::delete_data_types
+#[cfg(feature = "unsafe-dev-endpoints")]
 async fn delete_data_types(
-    jwt: OptionalJwtAuthentication,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(
-        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
-        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
-        "deleting all data types"
-    );
+    tracing::info!(%actor_id, "deleting all data types");
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -284,20 +214,17 @@ async fn delete_data_types(
     )))
 }
 
-/// Deletes **all** property types. Only available with `--unsafe-allow-dev-authentication`.
+/// Deletes **all** property types.
 ///
 /// See [`PostgresStore::delete_property_types`] for details.
 ///
 /// [`PostgresStore::delete_property_types`]: hash_graph_postgres_store::store::PostgresStore::delete_property_types
+#[cfg(feature = "unsafe-dev-endpoints")]
 async fn delete_property_types(
-    jwt: OptionalJwtAuthentication,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(
-        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
-        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
-        "deleting all property types"
-    );
+    tracing::info!(%actor_id, "deleting all property types");
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -312,20 +239,17 @@ async fn delete_property_types(
     )))
 }
 
-/// Deletes **all** entity types. Only available with `--unsafe-allow-dev-authentication`.
+/// Deletes **all** entity types.
 ///
 /// See [`PostgresStore::delete_entity_types`] for details.
 ///
 /// [`PostgresStore::delete_entity_types`]: hash_graph_postgres_store::store::PostgresStore::delete_entity_types
+#[cfg(feature = "unsafe-dev-endpoints")]
 async fn delete_entity_types(
-    jwt: OptionalJwtAuthentication,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
 ) -> Result<BoxedResponse, BoxedResponse> {
-    tracing::info!(
-        sub = jwt.0.as_ref().map(|claims| claims.sub.as_str()),
-        email = jwt.0.as_ref().and_then(|claims| claims.email.as_deref()),
-        "deleting all entity types"
-    );
+    tracing::info!(%actor_id, "deleting all entity types");
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
@@ -347,7 +271,7 @@ async fn delete_entity_types(
 ///
 /// [`EntityStore::delete_entities`]: hash_graph_store::entity::EntityStore::delete_entities
 async fn delete_entities(
-    AdminActorId(actor_id): AdminActorId,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<DeletionSummary>, BoxedResponse> {
@@ -361,7 +285,7 @@ async fn delete_entities(
     pool.acquire(None)
         .await
         .map_err(report_to_response)?
-        .delete_entities(actor_id, params)
+        .delete_entities(actor_id.into(), params)
         .await
         .map(Json)
         .map_err(report_to_response)
@@ -375,7 +299,7 @@ enum DeleteUserRequest {
 }
 
 async fn delete_user(
-    AdminActorId(actor_id): AdminActorId,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
     external_services: Extension<Arc<ExternalServicesConfig>>,
     http_client: Extension<Arc<reqwest::Client>>,
@@ -393,7 +317,7 @@ async fn delete_user(
                 .map_err(report_to_response)?
                 .ok_or_else(|| {
                     report_to_response(
-                        Report::new(AdminActorError::UserNotFound).attach(StatusCode::NotFound),
+                        Report::new(AdminError::UserNotFound).attach(StatusCode::NotFound),
                     )
                 })?
         }
@@ -430,7 +354,7 @@ async fn delete_user(
         &kratos,
         &hydra,
         mailchimp.as_ref(),
-        actor_id,
+        actor_id.into(),
         user_id,
     )
     .await

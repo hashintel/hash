@@ -31,6 +31,7 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 ### Delete entity types
 DELETE http://127.0.0.1:4001/entity-types
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%
     client.test("status", function() {
@@ -40,6 +41,7 @@ DELETE http://127.0.0.1:4001/entity-types
 
 ### Delete property types
 DELETE http://127.0.0.1:4001/property-types
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%
     client.test("status", function() {
@@ -49,6 +51,7 @@ DELETE http://127.0.0.1:4001/property-types
 
 ### Delete data types
 DELETE http://127.0.0.1:4001/data-types
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%
     client.test("status", function() {
@@ -58,6 +61,7 @@ DELETE http://127.0.0.1:4001/data-types
 
 ### Delete principals
 DELETE http://127.0.0.1:4001/accounts
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%
     client.test("status", function() {

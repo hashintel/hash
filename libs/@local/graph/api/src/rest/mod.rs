@@ -15,7 +15,6 @@ pub mod status;
 pub mod admin;
 pub mod auth;
 pub mod http_tracing_layer;
-pub mod jwt;
 pub mod probe;
 
 pub mod hashql;
@@ -516,6 +515,7 @@ where
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
     pub session_auth: auth::KratosSessionConfig,
+    pub cloudflare_access: Option<auth::CloudflareAccessConfig>,
     pub service_secret: String,
     pub compiler: Arc<hashql::CompilerContext>,
     pub clustering: Arc<ClusteringContext>,
@@ -559,12 +559,11 @@ where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
 {
-    let authentication_provider = Arc::new((
-        auth::KratosSessionProvider::new(
-            dependencies.session_auth,
-            auth::StorePoolActorResolver::new(Arc::clone(&dependencies.store)),
-        ),
-        auth::ServiceDelegationProvider::new(dependencies.service_secret.clone()),
+    let authentication_provider = Arc::new(auth::build_authentication_provider(
+        dependencies.session_auth,
+        dependencies.cloudflare_access,
+        dependencies.service_secret.clone(),
+        &dependencies.store,
     ));
     let service_secret: Arc<str> = Arc::from(dependencies.service_secret);
 
