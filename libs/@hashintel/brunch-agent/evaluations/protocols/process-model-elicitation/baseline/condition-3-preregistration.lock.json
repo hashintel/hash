@@ -1,0 +1,50 @@
+{
+  "version": "fe-1404-condition-3/2026-08-25.1",
+  "sealedAt": "2026-08-25T05:46:59Z",
+  "files": [
+    {
+      "path": "evaluations/protocols/process-model-elicitation/baseline/run.ts",
+      "sha256": "9b91791de955b42c866b3bc7585dd4d22a2aa3f837fe320de845a2b1d50c4a90"
+    },
+    {
+      "path": "evaluations/protocols/process-model-elicitation/baseline/condition-3-instrument.ts",
+      "sha256": "6acebc39558af16803876240ee062e6fbe684ac7a1cb2a9d17706d132a273d7c"
+    },
+    {
+      "path": "evaluations/protocols/process-model-elicitation/baseline/condition-3-prompt.md",
+      "sha256": "a07648dd8721e9cce9356fbb34f154acf07ce2c86ca6f11d8e0bc92b4cfa8850"
+    },
+    {
+      "path": "evaluations/protocols/process-model-elicitation/baseline/condition-3-operator.md",
+      "sha256": "d481dca97dc3035dbddc5792012f5b04394538e454b7dce08b8202e1507ce365"
+    },
+    {
+      "path": "evaluations/protocols/process-model-elicitation/baseline/condition-3-preregistration.md",
+      "sha256": "7ccbf35313bee3df3ca1b230687984ed3e291531d1b722782b1b0ffb0b815f27"
+    },
+    {
+      "path": "evaluations/protocols/process-model-elicitation/baseline/protocol.md",
+      "sha256": "77db6117f7f1d8819bd7dd346fea4c81608e171a187f13b86d917d89cb0bd20a"
+    },
+    {
+      "path": "evaluations/cases/process-model-elicitation/baseline/opening-message.md",
+      "sha256": "84ec5faa5fd46699c008b3b2aad49eb9988b8c2ab039c8e147fdb077d562ef54"
+    },
+    {
+      "path": "evaluations/cases/process-model-elicitation/baseline/situation-pack.md",
+      "sha256": "4dbeb44a881c4675ec0ce7a5f068ea46ce1a4968a405b2dd692f92816d33e083"
+    },
+    {
+      "path": "docs/specs/elicitation-completion.md",
+      "sha256": "f076dd6f50b7a901cecbe7310f62bcaefc6987de4667c928711d26b861ddf67d"
+    },
+    {
+      "path": "docs/specs/cps-interview-guidance.md",
+      "sha256": "f434eb101a8087d5227589e6fed7505cdaa5a70e828681ae9f12341fc1a6dcf6"
+    },
+    {
+      "path": "docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md",
+      "sha256": "1d6b4e9ddc684b61067ca6575ffdad3dab8c741acd24b73525e5a14b8cecf279"
+    }
+  ]
+}
