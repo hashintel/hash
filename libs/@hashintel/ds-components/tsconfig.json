@@ -13,12 +13,7 @@
     "types": ["node"],
     "verbatimModuleSyntax": true
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "src/beta/**/*.story.tsx",
-    "src/beta/**/*.stories.ts"
-  ],
+  "exclude": ["node_modules", "dist"],
   "extends": "@tsconfig/strictest/tsconfig.json",
   "include": [
     "src/**/*",
