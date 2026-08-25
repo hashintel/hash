@@ -4,7 +4,11 @@
 // the v0 elicitation prompt. Condition 3 adds the frozen FE-1404 completion and
 // guidance instrument plus a test-only, transcript-bounded operator projection.
 //
-// Usage: ANTHROPIC_API_KEY=... node --experimental-strip-types run.ts <1|2|3> [--resume|--continue-final|--verify-seal]
+// Usage: ANTHROPIC_API_KEY=... node --experimental-strip-types run.ts <1|2|3|4> [--resume|--continue-final|--verify-seal]
+//   Condition 4 is the ADR-0007 teaching layer as prompt only: the interviewer's system prompt is
+//   condition-4-prompt.md plus the harness's rendering of the repertoire and the SDCPN plugin
+//   definition (contract, guidance, construct runbook), with no harness machinery behind it. It
+//   reads the rendering from `@hashintel/brunch-agent`'s built output, so run `turbo build` first.
 //   --resume          continue an interrupted run from its checkpoint
 //   --continue-final  ask the interviewer to finish a final delivery that was cut off at
 //                     max_tokens; C1/C2 merge legacy output, while C3 appends a sealed segment
@@ -140,7 +144,7 @@ interface Condition3OperatorAttempt {
 
 interface RawCheckpoint {
   startedAt: string;
-  condition: "1" | "2" | "3";
+  condition: "1" | "2" | "3" | "4";
   stopReason: string;
   calls: CallRecord[];
   interviewerMessages: ChatMessage[];
@@ -188,14 +192,19 @@ const CONDITION_3_MODEL_CONFIGURATION = {
 
 function usage(): never {
   console.error(
-    "usage: node run.ts <1|2|3> [--resume|--continue-final|--verify-seal]",
+    "usage: node run.ts <1|2|3|4> [--resume|--continue-final|--verify-seal]",
   );
   process.exit(1);
 }
 
 const conditionArg = process.argv[2];
 const mode = process.argv[3] ?? "fresh";
-if (conditionArg !== "1" && conditionArg !== "2" && conditionArg !== "3")
+if (
+  conditionArg !== "1" &&
+  conditionArg !== "2" &&
+  conditionArg !== "3" &&
+  conditionArg !== "4"
+)
   usage();
 if (
   mode !== "fresh" &&
@@ -969,12 +978,49 @@ const openingMessage =
   condition === "3"
     ? `${sharedOpeningMessage}\n\n${singleSessionStimulus}`
     : sharedOpeningMessage;
+/**
+ * Condition 4's system prompt: the hand-written framing for a prompt-only run,
+ * then the harness's own rendering of the repertoire and the SDCPN definition —
+ * the same text the binding would put in front of the interviewer, minus the
+ * preamble about machinery this run does not have.
+ */
+async function renderCondition4System(): Promise<string> {
+  const harness = (await import("@hashintel/brunch-agent")) as {
+    readPluginDefinition: (yaml: string) => unknown;
+    readRepertoire: (yaml: string) => unknown;
+    renderContract: (definition: unknown) => string[];
+    renderGuidance: (repertoire: unknown, definition: unknown) => string[];
+    renderRunbook: (
+      repertoire: unknown,
+      definition: unknown,
+      job: "construct" | "review-and-revise",
+    ) => string;
+  };
+  const packagesDir = fileURLToPath(
+    new URL("../../../../packages/", import.meta.url),
+  );
+  const definition = harness.readPluginDefinition(
+    await readFile(`${packagesDir}plugin-sdcpn/plugin.yaml`, "utf8"),
+  );
+  const repertoire = harness.readRepertoire(
+    await readFile(`${packagesDir}repertoire/repertoire.yaml`, "utf8"),
+  );
+  const rendered = [
+    ...harness.renderContract(definition),
+    ...harness.renderGuidance(repertoire, definition),
+    harness.renderRunbook(repertoire, definition, "construct"),
+  ].join("\n\n");
+  return `${await loadSection("condition-4-prompt.md")}\n\n${rendered}`;
+}
+
 const interviewerSystem =
   condition === "2"
     ? await loadSection("v0-prompt.md")
     : condition === "3"
       ? await loadSection("condition-3-prompt.md")
-      : undefined;
+      : condition === "4"
+        ? await renderCondition4System()
+        : undefined;
 const operatorSystem =
   condition === "3"
     ? `${await loadSection("condition-3-operator.md")}\n\n<PROJECTION_ENVELOPE>\n${JSON.stringify(CONDITION_3_OPERATOR_ENVELOPE, null, 2)}\n</PROJECTION_ENVELOPE>\n\n<FROZEN_DEMAND_TABLE>\n${JSON.stringify(CONDITION_3_DEMAND_CLAUSES)}\n</FROZEN_DEMAND_TABLE>\n\n<FROZEN_ACTIVATION_MATRIX>\n${JSON.stringify(CONDITION_3_ACTIVATION_MATRIX)}\n</FROZEN_ACTIVATION_MATRIX>`
@@ -1125,7 +1171,7 @@ async function writeArtifacts(): Promise<void> {
   );
 
   const header = [
-    `# Baseline control — condition ${condition} (${condition === "1" ? "bare" : condition === "2" ? "v0 prompt" : "completion + reviewed guidance"})`,
+    `# Baseline control — condition ${condition} (${condition === "1" ? "bare" : condition === "2" ? "v0 prompt" : condition === "3" ? "completion + reviewed guidance" : "rendered repertoire + plugin definition, prompt only"})`,
     "",
     `- Run started: ${startedAt}`,
     `- Interviewer: ${INTERVIEWER_MODEL}${
@@ -1133,7 +1179,9 @@ async function writeArtifacts(): Promise<void> {
         ? " + v0-prompt.md"
         : condition === "3"
           ? " + condition-3-prompt.md"
-          : " (no system prompt)"
+          : condition === "4"
+            ? " + condition-4-prompt.md + rendered repertoire.yaml + plugin-sdcpn/plugin.yaml (see condition-4-system.md)"
+            : " (no system prompt)"
     }`,
     `- Simulated expert: ${EXPERT_MODEL} + situation-pack.md`,
     ...(condition === "3"
@@ -1184,6 +1232,12 @@ async function writeArtifacts(): Promise<void> {
     .join("\n\n---\n\n");
 
   await writeFile(`${transcriptDir}/${artifactStem}.md`, header + body + "\n");
+  if (condition === "4" && interviewerSystem !== undefined) {
+    await writeFile(
+      `${transcriptDir}/${artifactStem}-system.md`,
+      `# Condition 4 — assembled interviewer system prompt\n\n${interviewerSystem}\n`,
+    );
+  }
   await writeCheckpoint(stopReason);
   if (condition === "3") {
     await writeFile(

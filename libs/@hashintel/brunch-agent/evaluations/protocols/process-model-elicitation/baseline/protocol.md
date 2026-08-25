@@ -11,8 +11,9 @@ completion diagnostics drive the guidance? The read-out lives in the immutable
 | 1   | `claude-opus-5` | none                         | the incumbent: a strong model told to interview-then-build (the Petrinaut assistant's prompt already mandates interview-first, per the FE-1358 survey) |
 | 2   | `claude-opus-5` | [v0-prompt.md](v0-prompt.md) | the degenerate plugin: the seven-category elicitation surface as pure guidance, no machinery                                                           |
 | 3   | `claude-opus-5` | [condition-3-prompt.md](condition-3-prompt.md) | the reviewed completion-and-guidance treatment plus a labelled test-only operator projection; still no production harness or plugin runtime |
+| 4   | `claude-opus-5` | [condition-4-prompt.md](condition-4-prompt.md) + the harness's rendering of `repertoire.yaml` and `plugin-sdcpn/plugin.yaml` | the ADR-0007 teaching layer as prompt only (fixed keys, repertoire default, plugin cells, `construct` runbook); no captures, fold, or completion machinery. Its 2→4 delta measures what the keys and repertoire buy over the seven-category prompt; a harness-in-the-loop run measures what the machinery buys over this text |
 
-Conditions 1 and 2 receive the identical opening user message
+Conditions 1, 2, and 4 receive the identical opening user message
 ([opening-message.md](../../../cases/process-model-elicitation/baseline/opening-message.md)); the
 v0 system prompt is the only difference between conditions 1 and 2, so the 1→2 delta measures what
 pack content alone buys. Condition 3 uses the same base opening plus its preregistered
@@ -71,7 +72,12 @@ rather than fill).
 Rerun from the HASH root with
 `turbo run baseline:run --filter '@hashintel/brunch-agent' -- 1` /
 `turbo run baseline:run --filter '@hashintel/brunch-agent' -- 2` /
-`turbo run baseline:run --filter '@hashintel/brunch-agent' -- 3` (needs `ANTHROPIC_API_KEY`).
+`turbo run baseline:run --filter '@hashintel/brunch-agent' -- 3` /
+`turbo run baseline:run --filter '@hashintel/brunch-agent' -- 4` (needs `ANTHROPIC_API_KEY`;
+condition 4 imports the harness's built output, so `turbo run build --filter '@hashintel/brunch-agent'`
+first, and writes the assembled system prompt beside its transcript as `condition-4-system.md`).
+Condition 4 otherwise uses conditions 1–2's mechanics: the legacy impatience placement, turn
+budget, and delivery classifier.
 Production transcripts land in
 `docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/`. Tests set
   `BRUNCH_BASELINE_TEST_OUTPUT_DIR` to an isolated directory and never write committed evidence.

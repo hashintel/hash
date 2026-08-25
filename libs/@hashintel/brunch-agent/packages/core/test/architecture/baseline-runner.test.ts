@@ -53,7 +53,7 @@ interface BaselineCopy {
 }
 
 const BaselineCheckpoint = v.object({
-  condition: v.picklist(["1", "2", "3"]),
+  condition: v.picklist(["1", "2", "3", "4"]),
   stopReason: v.string(),
   calls: v.array(v.unknown()),
   interviewerMessages: v.array(
@@ -402,7 +402,7 @@ async function createBaselineCopy(): Promise<BaselineCopy> {
 async function runBaseline(
   baselineCopy: BaselineCopy,
   replies: StubReply[],
-  condition: "1" | "2" | "3" = "1",
+  condition: "1" | "2" | "3" | "4" = "1",
   mode?: "--resume" | "--continue-final",
 ): Promise<{
   checkpoint: v.InferOutput<typeof BaselineCheckpoint>;
