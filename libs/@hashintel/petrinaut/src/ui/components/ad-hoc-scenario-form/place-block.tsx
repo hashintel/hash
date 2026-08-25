@@ -14,12 +14,12 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { resolveAdHocPlaceTotal } from "@hashintel/petrinaut-core";
 
 import { AdHocFormContext } from "./form-context";
-import { TokenTable } from "./token-table";
 import {
   focusLands,
   useNavigationHeader,
   useNavigationZone,
-} from "./use-form-navigation";
+} from "./navigation/use-form-navigation";
+import { TokenTable } from "./token-table";
 import { ValueEditor } from "./value-editor";
 import { VariableRows } from "./variable-rows";
 

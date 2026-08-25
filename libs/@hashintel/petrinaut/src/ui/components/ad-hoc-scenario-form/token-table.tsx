@@ -34,7 +34,11 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { AdHocFormContext } from "./form-context";
-import { FormSpreadsheet } from "./form-spreadsheet";
+import {
+  focusLands,
+  useNavigationZone,
+} from "./navigation/use-form-navigation";
+import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
   cellStyle,
   columnHeaderStyle,
@@ -43,11 +47,10 @@ import {
   phantomCellButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
-} from "./form-table";
-import { GutterCell } from "./gutter-cell";
-import { PhantomLine } from "./phantom-line";
-import { focusLands, useNavigationZone } from "./use-form-navigation";
-import { useRowSelection } from "./use-row-selection";
+} from "./spreadsheet/form-table";
+import { GutterCell } from "./spreadsheet/gutter-cell";
+import { PhantomLine } from "./spreadsheet/phantom-line";
+import { useRowSelection } from "./spreadsheet/use-row-selection";
 import { ValueEditor } from "./value-editor";
 
 // A background image, not a solid color, so it composites over row tints.

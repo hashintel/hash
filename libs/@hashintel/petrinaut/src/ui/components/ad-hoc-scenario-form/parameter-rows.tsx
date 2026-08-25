@@ -10,13 +10,13 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { emptyAdHocValue } from "@hashintel/petrinaut-core";
 
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
-import { FormSpreadsheet } from "./form-spreadsheet";
+import { useNavigationGrid } from "./navigation/use-grid-navigation";
+import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
   cellStyle,
   dependencyHighlightStyle as highlightStyle,
-} from "./form-table";
-import { OptimizeToggle } from "./optimize-toggle";
-import { useNavigationGrid } from "./use-grid-navigation";
+} from "./spreadsheet/form-table";
+import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocNetParameter } from "@hashintel/petrinaut-core";

@@ -41,15 +41,15 @@ import { LanguageClientContext } from "../../../react/lsp/context";
 import { Section, SectionList } from "../section";
 import { computeAdHocHighlight } from "./dependency-highlight";
 import { AdHocFormContext } from "./form-context";
-import { ParameterRows } from "./parameter-rows";
-import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
-import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
-import { useAdHocFormHistory } from "./use-form-history";
 import {
   FormNavigationContext,
   useFormNavigationRegistry,
   useNavigationHeader,
-} from "./use-form-navigation";
+} from "./navigation/use-form-navigation";
+import { ParameterRows } from "./parameter-rows";
+import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
+import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
+import { useAdHocFormHistory } from "./use-form-history";
 import { VariableRows } from "./variable-rows";
 
 import type { AdHocFocusTarget } from "./dependency-highlight";
