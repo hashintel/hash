@@ -1,4 +1,7 @@
 /**
+ * @layerRoot core.simulation.authoring.adhoc
+ * @role The ad-hoc scenario model: serializable form state, pure edit actions, and synthesis to a generated, never-persisted scenario
+ *
  * Ad-hoc scenarios: an inline initial-state + parameters definition compiled
  * into a `Scenario` value at run time and never persisted into the net file.
  *
@@ -36,20 +39,20 @@
  * so it may read `i`.
  */
 
-import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
-import { SCENARIO_HELPERS } from "./helpers";
+import { runSandboxed, SHADOWED_GLOBALS } from "../../sandbox";
+import { SCENARIO_HELPERS } from "../helpers";
 
 import type {
   PetrinautOptimizationManifest,
   PetrinautOptimizationDomain,
-} from "../../../optimization";
+} from "../../../../optimization";
 import type {
   Color,
   Parameter,
   Place,
   Scenario,
   ScenarioParameter,
-} from "../../../types/sdcpn";
+} from "../../../../types/sdcpn";
 
 // -- Form state ---------------------------------------------------------------
 

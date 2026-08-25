@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { compileScenario } from "../compile-scenario";
 import {
   adHocOptimizationBindings,
   adHocRowKindOf,
@@ -16,9 +17,8 @@ import {
   toggleAdHocOptimize,
   unshareAdHocColumn,
 } from "./ad-hoc-scenario";
-import { compileScenario } from "./compile-scenario";
 
-import type { Scenario } from "../../../types/sdcpn";
+import type { Scenario } from "../../../../types/sdcpn";
 import type {
   AdHocColouredPlace,
   AdHocRow,

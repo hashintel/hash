@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { adHocSlotKey } from "../../simulation/authoring/scenario/ad-hoc-scenario";
+import { adHocSlotKey } from "../../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import { getItemFilePath } from "./file-paths";
 import { createSDCPN } from "./helper/create-sdcpn";
@@ -8,7 +8,7 @@ import { createSDCPN } from "./helper/create-sdcpn";
 import type {
   AdHocScenarioState,
   AdHocSlot,
-} from "../../simulation/authoring/scenario/ad-hoc-scenario";
+} from "../../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import type { AdHocSessionData } from "./generate-virtual-files";
 
 /**
