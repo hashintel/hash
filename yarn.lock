@@ -14814,6 +14814,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hash-config@workspace:libs/@local/config":
+  version: 0.0.0-use.local
+  resolution: "@rust/hash-config@workspace:libs/@local/config"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hash-graph-api@workspace:*, @rust/hash-graph-api@workspace:libs/@local/graph/api":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-api@workspace:libs/@local/graph/api"
