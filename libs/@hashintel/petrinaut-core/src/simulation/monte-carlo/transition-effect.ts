@@ -6,7 +6,7 @@ import {
 } from "../engine/buffer-transition";
 import { enumerateWeightedMarkingIndicesGenerator } from "../engine/enumerate-weighted-markings";
 import { nextRandom } from "../engine/seeded-rng";
-import { getPlaceIndex, getTransitionIndex } from "./layout";
+import { getPlaceIndex } from "./layout";
 
 import type { CompiledTransition } from "../engine/types";
 import type { MonteCarloFrameBuffer } from "./frame-buffer";
@@ -28,9 +28,8 @@ export function computeTransitionEffect(
   run: MonteCarloRunState,
   frame: MonteCarloFrameBuffer,
   transition: CompiledTransition,
-): TransitionEffect | null {
+): { firing: TransitionEffect | null; newRngState: number } {
   const { frameLayout } = run.simulation;
-  const transitionIndex = getTransitionIndex(frameLayout, transition.id);
 
   const inputPlaces = transition.inputPlaces.map((inputPlace) => {
     const placeIndex = getPlaceIndex(frameLayout, inputPlace.placeId);
@@ -49,13 +48,13 @@ export function computeTransitionEffect(
       ? inputPlace.count < inputPlace.weight
       : inputPlace.count >= inputPlace.weight,
   );
+  // A disabled transition consumes no randomness.
   if (!enabled) {
-    return null;
+    return { firing: null, newRngState: run.rngState };
   }
 
+  // One uniform draw per evaluated enabled transition, fired or not.
   const [u1, candidateRngState] = nextRandom(run.rngState);
-  const timeSinceLastFiring =
-    (frame.transitionElapsedFrames[transitionIndex] ?? 0) * run.simulation.dt;
   const inputPlacesWithValues = inputPlaces.filter(
     (place) => place.strideBytes > 0 && place.arcType !== "inhibitor",
   );
@@ -109,8 +108,9 @@ export function computeTransitionEffect(
           ? Number.POSITIVE_INFINITY
           : 0
         : lambdaResult;
-    const lambdaValue = lambdaNumeric * timeSinceLastFiring;
-    if (Math.exp(-lambdaValue) > u1) {
+    // Memoryless per-frame firing probability 1 - e^(-lambda * dt), matching
+    // the interactive engine (see compute-possible-transition.ts).
+    if (Math.exp(-lambdaNumeric * run.simulation.dt) > u1) {
       continue;
     }
 
@@ -163,11 +163,11 @@ export function computeTransitionEffect(
     }
 
     return {
-      remove,
-      add,
+      firing: { remove, add },
       newRngState: currentRngState,
     };
   }
 
-  return null;
+  // Enabled but not firing this frame; the draw is still consumed.
+  return { firing: null, newRngState: candidateRngState };
 }

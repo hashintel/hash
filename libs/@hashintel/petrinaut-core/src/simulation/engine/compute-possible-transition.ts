@@ -18,20 +18,26 @@ const EMPTY_TOKEN_BYTES = new Uint8Array(0);
 
 /**
  * Takes an EngineFrame, a SimulationInstance, a TransitionID, and computes the possible transition.
- * Returns null if no transition is possible.
- * Returns a record with:
- * - removed: Map from PlaceID to Set of token indices to remove.
- * - added: Map from PlaceID to array of packed token byte blocks to create.
- * - newRngState: Updated RNG seed after consuming randomness
+ *
+ * Always returns the RNG state after any randomness consumed by the
+ * evaluation — an enabled stochastic transition draws once whether or not it
+ * fires, so the caller must thread `newRngState` forward on every call.
+ * Re-testing the same draw each frame would freeze the outcome.
+ *
+ * `firing` is null when the transition doesn't fire; otherwise it carries:
+ * - remove: Map from PlaceID to Set of token indices to remove.
+ * - add: Map from PlaceID to array of packed token byte blocks to create.
  */
 export function computePossibleTransition(
   frame: EngineFrame,
   simulation: SimulationInstance,
   transitionId: string,
   rngState: number,
-): null | {
-  remove: Record<PlaceID, Set<number> | number>;
-  add: Record<PlaceID, Uint8Array[]>;
+): {
+  firing: null | {
+    remove: Record<PlaceID, Set<number> | number>;
+    add: Record<PlaceID, Uint8Array[]>;
+  };
   newRngState: number;
 } {
   const snapshot = materializeEngineFrame(simulation.frameLayout, frame);
@@ -70,18 +76,17 @@ export function computePossibleTransition(
       : inputPlace.count >= inputPlace.weight,
   );
 
-  // Return null if not enabled
+  // A disabled transition consumes no randomness.
   if (!isTransitionEnabled) {
-    return null;
+    return { firing: null, newRngState: rngState };
   }
 
   //
   // Transition computation logic
   //
 
-  // Generate random number using seeded RNG and update state
+  // One uniform draw per evaluated enabled transition, fired or not.
   const [U1, newRngState] = nextRandom(rngState);
-  const { timeSinceLastFiringMs } = transitionState;
 
   // Shared views over the frame's token byte region.
   const tokenViews = createTokenRegionViews(
@@ -97,8 +102,6 @@ export function computePossibleTransition(
     (place) => place.strideBytes === 0 && place.arcType === "standard",
   );
 
-  // TODO: This should accumulate lambda over time, but for now we just consider that lambda is constant per combination.
-  // (just multiply by time since last transition)
   const tokensCombinations = enumerateWeightedMarkingIndicesGenerator(
     inputPlacesWithTokenValues,
   );
@@ -121,10 +124,6 @@ export function computePossibleTransition(
       );
     }
 
-    // Approximate by just multiplying by elapsed time since last transition,
-    // not a real accumulation over time with lambda varying as the paper suggests.
-    // But prevent having to handle a big buffer of varying lambda values over time,
-    // which should be reordered in case of new tokens arriving.
     let lambdaResult: ReturnType<typeof transition.lambdaFn>;
     try {
       lambdaResult = transition.lambdaFn(
@@ -144,18 +143,23 @@ export function computePossibleTransition(
     }
 
     // Predicate (boolean) lambdas fire in the same step their guard is true —
-    // no stochastic delay. They must not go through the exp() test below:
-    // mapping true to an Infinity rate breaks when timeSinceLastFiringMs is 0
-    // (Infinity * 0 = NaN), which would block firing on the first frame and
-    // on consecutive frames.
+    // no stochastic delay. They must not go through the exp() test below,
+    // which would map true to an Infinity rate.
     //
-    // For numeric rates, find the first combination of tokens where
-    // e^(-lambda) <= U1. We should normally find the minimum for all
-    // possibilities, but we try to reduce as much as we can here.
+    // Numeric rates fire with the memoryless per-frame probability
+    // 1 - e^(-lambda * dt): the exposure window is this frame's dt, so firing
+    // counts converge to Poisson(lambda * t) as dt shrinks. Testing against
+    // the accumulated time since the last firing instead would redraw U1
+    // against an ever-growing CDF, which inflates effective rates — most for
+    // rare events — and makes inter-firing times non-exponential.
+    //
+    // The first combination that passes fires. A shared U1 across
+    // combinations under-approximates the superposition of per-combination
+    // rates; acceptable while at most one firing per transition per frame.
     const fires =
       typeof lambdaResult === "boolean"
         ? lambdaResult
-        : Math.exp(-lambdaResult * timeSinceLastFiringMs) <= U1;
+        : Math.exp(-lambdaResult * simulation.dt) <= U1;
 
     if (fires) {
       // Transition fires! The compiled kernel writes output tokens into the
@@ -195,31 +199,33 @@ export function computePossibleTransition(
       }
 
       return {
-        // Map from place ID to set of token indices to remove
-        // TODO: Need to provide better typing here, to not let TS infer to any[]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        remove: Object.fromEntries([
-          ...standardInputPlacesWithZeroStride.map((inputPlace) => [
-            inputPlace.placeId,
-            inputPlace.weight,
+        firing: {
+          // Map from place ID to set of token indices to remove
+          // TODO: Need to provide better typing here, to not let TS infer to any[]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          remove: Object.fromEntries([
+            ...standardInputPlacesWithZeroStride.map((inputPlace) => [
+              inputPlace.placeId,
+              inputPlace.weight,
+            ]),
+            ...tokenCombinationIndices.flatMap(
+              (placeTokenIndices, placeIndex) => {
+                const inputArc = inputPlacesWithTokenValues[placeIndex]!;
+                return inputArc.arcType === "standard"
+                  ? [[inputArc.placeId, new Set(placeTokenIndices)]]
+                  : [];
+              },
+            ),
           ]),
-          ...tokenCombinationIndices.flatMap(
-            (placeTokenIndices, placeIndex) => {
-              const inputArc = inputPlacesWithTokenValues[placeIndex]!;
-              return inputArc.arcType === "standard"
-                ? [[inputArc.placeId, new Set(placeTokenIndices)]]
-                : [];
-            },
-          ),
-        ]),
-        // Map from place ID to array of packed token byte blocks to
-        // create as per transition kernel output
-        add: addMap,
+          // Map from place ID to array of packed token byte blocks to
+          // create as per transition kernel output
+          add: addMap,
+        },
         newRngState: currentRngState,
       };
     }
   }
 
-  // No transition fired
-  return null;
+  // Enabled but not firing this frame; the draw is still consumed.
+  return { firing: null, newRngState };
 }

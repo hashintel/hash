@@ -16,7 +16,14 @@ const LCG_M = 2147483648; // 2^31
  * randomValue is in range [0, 1)
  */
 export function nextRandom(seed: number): [number, number] {
-  const newSeed = (LCG_A * seed + LCG_C) % LCG_M;
+  // `LCG_A * seed` overflows Number.MAX_SAFE_INTEGER, so plain float
+  // arithmetic computes a *different* map than the LCG above: it diverges
+  // from the exact recurrence on the first step and collapses the state
+  // space to a short cycle (~16k states observed from seed 42), which
+  // starves the distribution's tails. `Math.imul` is the product's exact low
+  // 32 bits; masking to 31 bits is the exact `mod 2^31`.
+  // eslint-disable-next-line no-bitwise -- exact `mod 2^31` on the 32-bit product
+  const newSeed = (Math.imul(LCG_A, seed) + LCG_C) & (LCG_M - 1);
   const randomValue = newSeed / LCG_M;
   return [randomValue, newSeed];
 }

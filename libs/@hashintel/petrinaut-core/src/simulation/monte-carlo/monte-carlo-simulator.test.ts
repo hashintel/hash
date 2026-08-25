@@ -215,6 +215,63 @@ describe("MonteCarloSimulator", () => {
     expect(secondRun.tokenByteCount).toBe(16);
   });
 
+  it("fires a source transition at its configured rate", () => {
+    const rate = 0.213;
+    const dt = 0.1;
+    const frames = 10_000;
+    const sourceNet: SDCPN = {
+      places: [
+        {
+          id: "sink",
+          name: "Sink",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: "t_source",
+          name: "Source",
+          inputArcs: [],
+          outputArcs: [{ placeId: "sink", weight: 1 }],
+          lambdaType: "stochastic",
+          lambdaCode: `export default Lambda((input, parameters) => ${rate});`,
+          transitionKernelCode: "",
+          x: 0,
+          y: 0,
+        },
+      ],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    };
+
+    const simulator = createMonteCarloSimulator({
+      sdcpn: sourceNet,
+      runCount: 1,
+      initialMarking: {},
+      runs: [{ seed: 7, initialMarking: {} }],
+      dt,
+      maxTime: frames * dt,
+      initialTokenByteCapacity: 0,
+    });
+    simulator.runUntilComplete({ maxBatches: 100_000 });
+
+    const run = simulator.getRunSnapshot(0);
+    const fired = run.placeTokenCounts.sink ?? 0;
+
+    // Binomial(frames, 1 - e^(-rate * dt)) within 4 standard deviations —
+    // rejects both the elapsed-time-CDF sampler and a frozen RNG stream.
+    const perFrame = 1 - Math.exp(-rate * dt);
+    const expected = frames * perFrame;
+    expect(Math.abs(fired - expected)).toBeLessThanOrEqual(
+      4 * Math.sqrt(expected * (1 - perFrame)),
+    );
+  });
+
   it("does not consume tokens read by read arcs", () => {
     const productQualityMetric = createMonteCarloUserDefinedMetric({
       id: "product-quality",

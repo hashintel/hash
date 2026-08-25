@@ -31,6 +31,12 @@ const type1: Color = {
   elements: [{ elementId: "e1", name: "x", type: "real" }],
 };
 
+/**
+ * A rate high enough that exp(-rate * dt) is 0 for any test dt — the
+ * stochastic firing test then passes for every possible RNG draw.
+ */
+const CERTAIN_FIRING_RATE = 1e9;
+
 const transitionState = (timeSinceLastFiringMs = 1.0) => ({
   timeSinceLastFiringMs,
   firedInThisFrame: false,
@@ -156,18 +162,25 @@ function makeSimulation({
   };
 }
 
+/**
+ * Test convenience over the engine call: flattens the result back to the
+ * pre-`firing` shape (`null` when nothing fired), which most assertions here
+ * consume. The RNG state consumed by a non-firing evaluation is advanced by
+ * the caller where it matters (see the firing-statistics tests).
+ */
 function computePossibleTransition(
   frame: TestFrame,
   simulation: SimulationInstance,
   transitionId: string,
   rngState: number,
 ) {
-  return computePossibleTransitionImpl(
+  const { firing, newRngState } = computePossibleTransitionImpl(
     frame,
     { ...simulation, frameLayout: frame.layout },
     transitionId,
     rngState,
   );
+  return firing === null ? null : { ...firing, newRngState };
 }
 
 describe("computePossibleTransition", () => {
@@ -232,7 +245,7 @@ describe("computePossibleTransition", () => {
       ],
       transitions: [transition],
       types: [type1],
-      lambdaFns: new Map([["t1", () => 10.0]]),
+      lambdaFns: new Map([["t1", () => CERTAIN_FIRING_RATE]]),
       kernelFns: new Map<string, HirCompiledBufferKernel>([
         [
           "t1",
@@ -340,7 +353,7 @@ describe("computePossibleTransition", () => {
       ],
       transitions: [transition],
       types: [type1],
-      lambdaFns: new Map([["t1", () => 10.0]]),
+      lambdaFns: new Map([["t1", () => CERTAIN_FIRING_RATE]]),
       kernelFns: new Map<string, HirCompiledBufferKernel>([
         [
           "t1",
@@ -370,6 +383,106 @@ describe("computePossibleTransition", () => {
       result!.add.p2!.map((block) => decodeTokenBlock(type1.elements, block)),
     ).toEqual([{ x: 2 }]);
     expect(result?.newRngState).toBeTypeOf("number");
+  });
+
+  describe("stochastic firing statistics", () => {
+    /**
+     * A source transition (no inputs) with a constant rate, evaluated over
+     * many frames by chaining the returned RNG state. The frame is reused
+     * unchanged: firing must depend only on the rate and the frame's dt.
+     */
+    const countFirings = ({
+      rate,
+      dt,
+      frames,
+    }: {
+      rate: number;
+      dt: number;
+      frames: number;
+    }): number => {
+      const transition = makeTransition({
+        id: "t1",
+        inputArcs: [],
+        outputArcs: [{ placeId: "p1", weight: 1 }],
+      });
+      const simulation = {
+        ...makeSimulation({
+          places: [makePlace("p1", "Place 1", null)],
+          transitions: [transition],
+          lambdaFns: new Map([["t1", () => rate]]),
+        }),
+        dt,
+      };
+      const frame = makeTestFrame({
+        places: { p1: { count: 0 } },
+        transitions: { t1: transitionState() },
+      });
+
+      let fired = 0;
+      let rngState = 42;
+      for (let index = 0; index < frames; index++) {
+        const result = computePossibleTransition(
+          frame,
+          simulation,
+          "t1",
+          rngState,
+        );
+        if (result !== null) {
+          fired += 1;
+          rngState = result.newRngState;
+        } else {
+          // A non-firing evaluation still consumed one draw.
+          [, rngState] = nextRandom(rngState);
+        }
+      }
+      return fired;
+    };
+
+    it.each([
+      { rate: 2.0, dt: 0.1 },
+      { rate: 2.0, dt: 0.02 },
+      { rate: 0.2, dt: 0.1 },
+    ])(
+      "fires with per-frame probability 1 - e^(-rate * dt) (rate $rate, dt $dt)",
+      ({ rate, dt }) => {
+        const frames = 4000;
+        const fired = countFirings({ rate, dt, frames });
+
+        const perFrame = 1 - Math.exp(-rate * dt);
+        const expected = frames * perFrame;
+        // 4 standard deviations of the binomial count: loose enough to be
+        // seed-stable, tight enough to reject the elapsed-time-CDF sampler,
+        // which fires several times more often at these rates.
+        const tolerance = 4 * Math.sqrt(frames * perFrame * (1 - perFrame));
+
+        expect(Math.abs(fired - expected)).toBeLessThanOrEqual(tolerance);
+      },
+    );
+
+    it("keeps the firing rate independent of the time since the last firing", () => {
+      const transition = makeTransition({
+        id: "t1",
+        inputArcs: [],
+        outputArcs: [{ placeId: "p1", weight: 1 }],
+      });
+      const simulation = makeSimulation({
+        places: [makePlace("p1", "Place 1", null)],
+        transitions: [transition],
+        lambdaFns: new Map([["t1", () => 0.5]]),
+      });
+
+      // Identical rng state and rate: an idle spell must not raise the
+      // firing probability.
+      const results = [0, 100].map((timeSinceLastFiringMs) => {
+        const frame = makeTestFrame({
+          places: { p1: { count: 0 } },
+          transitions: { t1: transitionState(timeSinceLastFiringMs) },
+        });
+        return computePossibleTransition(frame, simulation, "t1", 42);
+      });
+
+      expect(results[0] === null).toBe(results[1] === null);
+    });
   });
 
   describe("predicate lambdas", () => {
@@ -477,7 +590,7 @@ describe("computePossibleTransition", () => {
               count: Math.round(f64[(base + 8) / 8]!),
               active: u8[base + 16] !== 0,
             };
-            return 10.0;
+            return CERTAIN_FIRING_RATE;
           },
         ],
       ]),
@@ -552,7 +665,7 @@ describe("computePossibleTransition", () => {
         places: uuidPlaces,
         transitions: [transition],
         types: [uuidColor],
-        lambdaFns: new Map([["t1", () => 10.0]]),
+        lambdaFns: new Map([["t1", () => CERTAIN_FIRING_RATE]]),
         kernelFns: new Map([
           [
             "t1",
@@ -729,7 +842,7 @@ describe("computePossibleTransition", () => {
           places: stringPlaces,
           transitions: [transition],
           types: [stringColor],
-          lambdaFns: new Map([["t1", () => 10.0]]),
+          lambdaFns: new Map([["t1", () => CERTAIN_FIRING_RATE]]),
           kernelFns: new Map([
             [
               "t1",

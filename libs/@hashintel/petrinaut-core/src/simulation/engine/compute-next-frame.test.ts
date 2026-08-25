@@ -201,12 +201,11 @@ describe("computeNextFrame", () => {
       { id: parseUuid(otherUuid), x: 2.0 },
     ]);
 
-    // Step until the transition fires: each step integrates dynamics and
-    // copies the frame; the firing step consumes one token (removal +
-    // compaction). Elapsed time is 0 on the first step, so the Infinity-rate
-    // transition fires on the second.
-    let result = computeNextFrame(simulation);
-    result = computeNextFrame(result.simulation);
+    // One step integrates dynamics, and the Infinity-rate transition fires
+    // in it (the firing test's exposure window is the frame's dt, so there
+    // is no elapsed-time warm-up), consuming one token (removal +
+    // compaction).
+    const result = computeNextFrame(simulation);
     expect(result.transitionFired).toBe(true);
 
     const lastFrame =
