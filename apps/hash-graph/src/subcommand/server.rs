@@ -20,6 +20,7 @@ use hash_graph_api::{
         auth::{CloudflareAccessConfig, KratosSessionConfig},
         entity::ClusteringContext,
         hashql::CompilerContext,
+        rate_limit::RateLimitConfig,
         rest_api_router,
     },
     rpc::Dependencies,
@@ -285,6 +286,9 @@ pub struct ServerConfig {
 
     #[clap(flatten)]
     pub api_config: ApiConfig,
+
+    #[clap(flatten)]
+    pub rate_limit: RateLimitConfig,
 
     #[clap(flatten)]
     pub session_auth: KratosSessionAuthConfig,
@@ -554,6 +558,7 @@ where
         session_auth: authentication.session_auth,
         cloudflare_access: authentication.cloudflare_access,
         service_secret: authentication.service_secret,
+        rate_limit: config.rate_limit,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
         serve_api_reference: config.serve_api_reference,

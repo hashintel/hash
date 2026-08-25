@@ -167,6 +167,7 @@ futures-sink                       = { version = "0.3.31", default-features = fa
 futures-util                       = { version = "0.3.31", default-features = false }
 glob                               = { version = "0.3.3" }
 globset                            = { version = "0.4.18", default-features = false }
+governor                           = { version = "0.10.4", default-features = false, features = ["dashmap", "quanta", "std"] }
 guppy                              = { version = "0.17.20", default-features = false }
 hashbrown                          = { version = "0.17.0", default-features = false, features = ["inline-more", "nightly", "raw-entry"] }
 hifijson                           = { version = "0.4.0", default-features = false }
