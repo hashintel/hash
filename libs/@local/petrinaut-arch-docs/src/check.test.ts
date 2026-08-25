@@ -7,7 +7,6 @@ import {
   checkRules,
   withinScope,
 } from "./check";
-
 import { ARCHITECTURE_MODEL_VERSION } from "./model";
 
 import type { ArchitectureModel, Edge, Layer } from "./model";

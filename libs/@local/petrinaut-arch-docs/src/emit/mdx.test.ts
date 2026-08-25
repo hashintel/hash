@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { ARCHITECTURE_MODEL_VERSION } from "../model";
 import {
   buildPages,
   resolveAuthoredLinks,
   resolveDiagramImages,
   layerSlug,
 } from "./mdx";
-
-import { ARCHITECTURE_MODEL_VERSION } from "../model";
 
 import type { ArchitectureModel, Layer } from "../model";
 
