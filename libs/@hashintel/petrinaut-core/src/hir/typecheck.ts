@@ -469,6 +469,24 @@ class Typechecker {
             return HIR_TYPE_BOOL;
           case "==":
           case "!=":
+            // Equality is strict everywhere HIR code runs (the emitters
+            // produce `===`, the interpreter compares with `===`), so a
+            // comparison across kinds has a constant result. `1 == true` was
+            // loosely true in the pre-HIR scenario evaluator; report it
+            // instead of silently flipping the value.
+            if (this.isConstantEquality(leftType, rightType)) {
+              this.report(
+                expr.span,
+                "hir:mixed-equality",
+                `\`${expr.op}\` compares ${formatHirType(leftType)} with ${formatHirType(
+                  rightType,
+                )} — the result is always ${expr.op === "==" ? "false" : "true"}.${
+                  leftType.kind === "bool" || rightType.kind === "bool"
+                    ? " Use the boolean directly, e.g. `flag ? 1 : 0`."
+                    : ""
+                }`,
+              );
+            }
             return HIR_TYPE_BOOL;
           case "<":
           case "<=":
@@ -694,6 +712,20 @@ class Typechecker {
         return HIR_TYPE_DISTRIBUTION;
       }
     }
+  }
+
+  /** Whether strict equality between these types has a constant result:
+   * both kinds are known scalars and neither can equal the other (numbers
+   * compare across int/real; everything else only within its own kind). */
+  private isConstantEquality(left: HirType, right: HirType): boolean {
+    const scalarKinds = ["real", "int", "bool", "string", "uuid"];
+    if (!scalarKinds.includes(left.kind) || !scalarKinds.includes(right.kind)) {
+      return false;
+    }
+    if (isNumeric(left) && isNumeric(right)) {
+      return false;
+    }
+    return left.kind !== right.kind;
   }
 
   private expectNumeric(

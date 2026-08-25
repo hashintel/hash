@@ -138,6 +138,26 @@ describe("scenario typechecking", () => {
     expect(result.diagnostics[0]!.code).toBe("hir:scenario-return");
   });
 
+  it("flags equality across incomparable types as a constant result", () => {
+    const scenarioParams = [
+      { type: "boolean" as const, identifier: "enabled", default: 1 },
+    ];
+    const fn = lowerExpression("scenario.enabled == 1 ? 100 : 5");
+    const result = typecheckHir(
+      fn,
+      buildScenarioExpressionContext(netParameters, scenarioParams, "real"),
+    );
+    expect(result.diagnostics[0]!.code).toBe("hir:mixed-equality");
+    expect(result.diagnostics[0]!.message).toContain("always false");
+
+    // Same-kind and numeric cross-kind comparisons stay silent.
+    const numeric = typecheckHir(
+      lowerExpression("scenario.count == 1.5 ? 1 : 0"),
+      buildScenarioExpressionContext(netParameters, scenarioParameters, "real"),
+    );
+    expect(numeric.diagnostics).toEqual([]);
+  });
+
   it("rejects distributions in scenario code", () => {
     const fn = lowerExpression("Distribution.Gaussian(0, 1)");
     const result = typecheckHir(

@@ -16,14 +16,28 @@ export type ScenarioHirState = {
 };
 
 /** Serializes the parts of a scenario that lowering depends on: its code,
- * not its parameter defaults — tweaking a value must not re-lower. The key
- * doubles as the request payload (parsed back in the effect), so the effect
- * depends on nothing else. */
-const loweringKey = (scenario: Scenario): string =>
-  JSON.stringify({
+ * not its parameter defaults or coloured-place token rows — tweaking a value
+ * or editing a row must not re-lower. The key doubles as the request payload
+ * (parsed back in the effect), so the effect depends on nothing else. */
+const loweringKey = (scenario: Scenario): string => {
+  const initialState =
+    scenario.initialState.type === "per_place"
+      ? {
+          type: "per_place" as const,
+          // Row arrays carry no code and never lower; only expression
+          // strings matter.
+          content: Object.fromEntries(
+            Object.entries(scenario.initialState.content).filter(
+              ([, value]) => typeof value === "string",
+            ),
+          ),
+        }
+      : scenario.initialState;
+  return JSON.stringify({
     parameterOverrides: scenario.parameterOverrides,
-    initialState: scenario.initialState,
+    initialState,
   } satisfies ScenarioLoweringInput);
+};
 
 const PENDING: ScenarioHirState = { hir: null, error: null };
 

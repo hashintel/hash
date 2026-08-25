@@ -71,7 +71,8 @@ the browser (`requestScenarioHir`), or inline in Node
 (`lowerScenarioToHir`). `compileScenario` takes the lowered result,
 type-checks it against the net's parameters and places, and evaluates it with
 the interpreter (`hir/interpret.ts`). One lowering serves many evaluations:
-optimization trials and parameter tweaks re-run only the interpreter.
+optimization trials and parameter tweaks re-run only the type check and the
+interpreter, never the TypeScript frontend.
 
 Two modes, with one asymmetry worth remembering: **per-place mode is keyed by
 place ID, code mode is keyed by place name.** In code mode, unknown names are

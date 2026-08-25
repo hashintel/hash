@@ -167,7 +167,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   workerFactory,
 }) => {
   const sdcpnContext = use(SDCPNContext);
-  const { requestHirArtifacts } = use(LanguageClientContext);
+  const { requestHirArtifacts, requestScenarioHir } = use(
+    LanguageClientContext,
+  );
   const { extensions, petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
 
@@ -371,11 +373,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       ? sdcpn
       : { ...sdcpn, parameters: [] };
     // Snapshot every compile-sensitive input before awaiting the worker so
-    // artifacts and execution always use the same model configuration.
+    // artifacts and execution always use the same model configuration. The
+    // scenario is compiled below rather than read from render state: the
+    // render path lowers asynchronously, and a run started while that
+    // request is in flight must not fall back to manual values.
+    const manualInitialMarking = currentState.initialMarking;
+    const manualParameterValues = simulationExtensions.parameters
+      ? currentState.parameterValues
+      : {};
     // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-    const initialMarking = effectiveInitialMarkingRef.current;
-    // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-    const parameterValues = effectiveParameterValuesRef.current;
+    const scenarioToCompile = tweakedScenarioRef.current;
 
     // Dispose any active simulation before starting a new one. Update both
     // the ref and React state so same-tick callers see the cleared handle.
@@ -391,6 +398,37 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
     let sim: Simulation;
     try {
+      let initialMarking = manualInitialMarking;
+      let parameterValues: Record<string, string> = manualParameterValues;
+      if (scenarioToCompile) {
+        const scenarioHir = await requestScenarioHir({
+          parameterOverrides: scenarioToCompile.parameterOverrides,
+          initialState: scenarioToCompile.initialState,
+        });
+        if (initializationGenerationRef.current !== generation) {
+          return;
+        }
+        const outcome = compileScenario(
+          scenarioToCompile,
+          scenarioHir,
+          simulationExtensions.parameters ? sdcpn.parameters : [],
+          sdcpn.places,
+          sdcpn.types,
+        );
+        if (!outcome.ok) {
+          throw new Error(
+            outcome.errors
+              .map((scenarioError) => scenarioError.message)
+              .join("\n"),
+          );
+        }
+        parameterValues = outcome.result.parameterValues;
+        initialMarking = {
+          ...manualInitialMarking,
+          ...outcome.result.initialState,
+        };
+      }
+
       // Compile the net's user code to HIR artifacts in the language worker —
       // the simulation engine has no compiler of its own.
       const { artifacts } = await requestHirArtifacts(
@@ -552,9 +590,25 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // during render below. React Compiler will memoize based on inputs.
   const scenarioHirState = useScenarioHir(selectedScenario);
 
+  // Build a scenario with user-tweaked parameter values. Also snapshotted by
+  // `initialize`, which compiles the scenario itself so a run started while
+  // the render path's lowering is still in flight cannot fall back to manual
+  // values.
+  const tweakedScenario = selectedScenario
+    ? {
+        ...selectedScenario,
+        scenarioParameters: selectedScenario.scenarioParameters.map((sp) => ({
+          ...sp,
+          default: Number(
+            effectiveScenarioParameterValues[sp.identifier] ?? sp.default,
+          ),
+        })),
+      }
+    : null;
+
   let compiledScenarioResult: CompiledScenarioResult | null = null;
   let scenarioCompilationErrors: ScenarioCompilationError[] | null = null;
-  if (selectedScenario) {
+  if (tweakedScenario) {
     if (scenarioHirState.error !== null) {
       // Keep the errors visible: a failing scenario must not look like an
       // applied one (the marking silently falls back to manual values).
@@ -566,16 +620,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         },
       ];
     } else if (scenarioHirState.hir !== null) {
-      // Build a scenario with user-tweaked parameter values
-      const tweakedScenario = {
-        ...selectedScenario,
-        scenarioParameters: selectedScenario.scenarioParameters.map((sp) => ({
-          ...sp,
-          default: Number(
-            effectiveScenarioParameterValues[sp.identifier] ?? sp.default,
-          ),
-        })),
-      };
       const outcome = compileScenario(
         tweakedScenario,
         scenarioHirState.hir,
@@ -610,10 +654,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     };
   }
 
-  // Keep refs to effective values so `initialize` uses scenario-overridden
-  // values instead of raw stateValues (which don't include compiled output).
-  const effectiveParameterValuesRef = useLatest(effectiveParameterValues);
-  const effectiveInitialMarkingRef = useLatest(effectiveInitialMarking);
+  // `initialize` compiles the scenario itself (lowering included) from this
+  // snapshot, so runs never depend on whether the render path's async
+  // lowering has finished.
+  const tweakedScenarioRef = useLatest(tweakedScenario);
 
   const contextValue: SimulationContextValue = {
     state: simulationState,
