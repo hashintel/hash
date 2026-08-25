@@ -668,6 +668,7 @@ type SessionState =
   | "responding"
   | "ending"
   | "ended"
+  | "start-error"
   | "error";
 
 type LoggedEvent = {
@@ -1012,7 +1013,10 @@ export const VoiceExperiment = ({
   }, [adapter]);
 
   const startConversation = async () => {
-    if (!adapter || sessionState !== "ready") {
+    if (
+      !adapter ||
+      (sessionState !== "ready" && sessionState !== "start-error")
+    ) {
       return;
     }
 
@@ -1026,6 +1030,7 @@ export const VoiceExperiment = ({
       setIsConversationActive(false);
       await adapter.dispose().catch(() => undefined);
       appendEvent(createErrorEvent(error));
+      setSessionState("start-error");
     }
   };
 
@@ -1129,23 +1134,27 @@ export const VoiceExperiment = ({
   const canToggleConversation =
     Boolean(adapter) &&
     !isPending &&
-    (sessionState === "ready" || isConversationActive);
+    (sessionState === "ready" ||
+      sessionState === "start-error" ||
+      isConversationActive);
   const latestEvent = events.at(-1)?.event;
   const statusLabel = !adapter
     ? "Unavailable"
     : sessionState === "ready"
       ? "Ready"
-      : sessionState === "connecting"
-        ? "Connecting"
-        : sessionState === "connected" || sessionState === "responding"
-          ? "Conversation active"
-          : sessionState === "ending"
-            ? "Stopping"
-            : sessionState === "ended"
-              ? "Conversation ended"
-              : latestEvent?.type === "error"
-                ? latestEvent.message
-                : "Connection error";
+      : sessionState === "start-error"
+        ? "Ready to retry"
+        : sessionState === "connecting"
+          ? "Connecting"
+          : sessionState === "connected" || sessionState === "responding"
+            ? "Conversation active"
+            : sessionState === "ending"
+              ? "Stopping"
+              : sessionState === "ended"
+                ? "Conversation ended"
+                : latestEvent?.type === "error"
+                  ? latestEvent.message
+                  : "Connection error";
   const controlLabel = isConversationActive
     ? onFinalize
       ? "Finish and create net"
@@ -1158,9 +1167,11 @@ export const VoiceExperiment = ({
           : "Stopping…"
         : sessionState === "ended"
           ? "Conversation ended"
-          : sessionState === "error"
-            ? "Unavailable"
-            : "Start conversation";
+          : sessionState === "start-error"
+            ? "Retry conversation"
+            : sessionState === "error"
+              ? "Unavailable"
+              : "Start conversation";
 
   return (
     <div

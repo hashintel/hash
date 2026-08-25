@@ -209,13 +209,9 @@ export class VoiceExperimentDiagnostics {
         return;
       }
 
-      const keepSequence =
-        last.type === "partial-transcript" && event.isPartial;
-      if (!keepSequence) {
-        session.nextSequence += 1;
-      }
+      session.nextSequence += 1;
       session.events[session.events.length - 1] = {
-        sequence: keepSequence ? last.sequence : session.nextSequence,
+        sequence: session.nextSequence,
         speaker: event.speaker,
         timestampMs: this.#dependencies.now(),
         transcript,

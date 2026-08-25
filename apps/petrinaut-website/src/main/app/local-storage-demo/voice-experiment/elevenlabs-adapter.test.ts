@@ -106,6 +106,23 @@ describe("ElevenLabsAdapter", () => {
     ]);
   });
 
+  test("can reconnect after disposing a completed connection", async () => {
+    const harness = createHarness();
+
+    await harness.adapter.connect();
+    await harness.adapter.dispose();
+    await harness.adapter.connect();
+
+    await expect(harness.adapter.startTurn()).resolves.toBeUndefined();
+    expect(harness.startSession).toHaveBeenCalledTimes(2);
+    expect(harness.conversation.endSession).toHaveBeenCalledTimes(1);
+    expect(harness.conversation.setMicMuted.mock.calls).toEqual([
+      [true],
+      [true],
+      [false],
+    ]);
+  });
+
   test("does not resolve connect until ElevenLabs reports the session connected", async () => {
     const harness = createHarness({ autoConnect: false });
     let connectionResolved = false;
@@ -200,6 +217,37 @@ describe("ElevenLabsAdapter", () => {
 
     harness.callbacks()?.onModeChange?.({ mode: "listening" });
     expect(harness.conversation.setMicMuted.mock.calls).toEqual([
+      [true],
+      [false],
+    ]);
+  });
+
+  test("keeps the microphone muted while Brunch prepares a response", async () => {
+    const harness = createHarness();
+    await harness.adapter.connect();
+    await harness.adapter.startTurn();
+
+    harness.callbacks()?.onModeChange?.({ mode: "speaking" });
+    harness.callbacks()?.onInterruption?.();
+    harness.callbacks()?.onMessage?.({
+      event_id: 10,
+      message: "The support lead owns triage.",
+      role: "user",
+    });
+    harness.callbacks()?.onModeChange?.({ mode: "listening" });
+
+    expect(harness.conversation.setMicMuted.mock.calls).toEqual([
+      [true],
+      [false],
+      [true],
+    ]);
+
+    harness.callbacks()?.onModeChange?.({ mode: "speaking" });
+    harness.callbacks()?.onModeChange?.({ mode: "listening" });
+
+    expect(harness.conversation.setMicMuted.mock.calls).toEqual([
+      [true],
+      [false],
       [true],
       [false],
     ]);
@@ -386,6 +434,59 @@ describe("ElevenLabsAdapter", () => {
       turnId: 1,
       type: "response-completed",
     });
+  });
+
+  test("polls growing partial transcripts after the latest cursor", async () => {
+    const harness = createHarness();
+    await harness.adapter.connect();
+
+    await harness.pollDiagnostics({
+      events: [
+        {
+          sequence: 1,
+          speaker: "assistant",
+          timestampMs: 2_000,
+          transcript: "Who",
+          turnId: 1,
+          type: "partial-transcript",
+        },
+      ],
+    });
+    await harness.pollDiagnostics({
+      events: [
+        {
+          sequence: 2,
+          speaker: "assistant",
+          timestampMs: 2_100,
+          transcript: "Who owns triage?",
+          turnId: 1,
+          type: "partial-transcript",
+        },
+      ],
+    });
+
+    expect(harness.fetch).toHaveBeenLastCalledWith(
+      "/api/voice-experiment/elevenlabs-brunch-diagnostics?conversationId=conv_123&after=1",
+      { headers: { "x-voice-experiment": "elevenlabs-brunch" } },
+    );
+    expect(
+      harness.events.filter((event) => event.type === "partial-transcript"),
+    ).toEqual([
+      {
+        speaker: "assistant",
+        timestampMs: 2_000,
+        transcript: "Who",
+        turnId: 1,
+        type: "partial-transcript",
+      },
+      {
+        speaker: "assistant",
+        timestampMs: 2_100,
+        transcript: "Who owns triage?",
+        turnId: 1,
+        type: "partial-transcript",
+      },
+    ]);
   });
 
   test("releases ElevenLabs microphone, playback, and connection once", async () => {

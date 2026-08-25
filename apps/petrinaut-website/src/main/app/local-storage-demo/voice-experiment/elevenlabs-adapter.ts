@@ -227,6 +227,7 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
   readonly #dependencies: ElevenLabsAdapterDependencies;
   readonly #listeners = new Set<(event: VoiceExperimentEvent) => void>();
 
+  #awaitingBrunchResponse = false;
   #connectPromise: Promise<void> | null = null;
   #connected = false;
   #conversation: ConversationControl | null = null;
@@ -237,7 +238,6 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
   #diagnosticPollInFlight = false;
   #disposed = false;
   #hasEmittedOpeningQuestion = false;
-  #hasConnected = false;
   #isListening = false;
   #isMicrophoneMuted = true;
   #providerMode: "listening" | "speaking" = "listening";
@@ -254,13 +254,15 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
   }
 
   public async connect(): Promise<void> {
-    // React Strict Mode probes effect cleanup before the first real mount.
-    // Re-arm an adapter that was disposed before it ever owned a session.
-    if (this.#disposed && !this.#hasConnected) {
+    if (this.#disposed) {
+      this.#awaitingBrunchResponse = false;
       this.#disposed = false;
       this.#hasEmittedOpeningQuestion = false;
       this.#isListening = false;
+      this.#isMicrophoneMuted = true;
       this.#providerMode = "listening";
+      this.#responseInProgress = false;
+      this.#turnId = 0;
     }
     if (this.#connected) {
       return;
@@ -302,6 +304,7 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
       return;
     }
     this.#disposed = true;
+    this.#awaitingBrunchResponse = false;
     this.#connected = false;
     this.#isListening = false;
     this.#stopDiagnosticsPolling();
@@ -355,7 +358,6 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
       }
       readinessSettled = true;
       this.#connected = true;
-      this.#hasConnected = true;
       this.#emit({
         ...(this.#diagnosticConversationId
           ? { conversationId: this.#diagnosticConversationId }
@@ -422,6 +424,7 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
         if (role === "user" && message.trim() && !this.#disposed) {
           // A finalized expert answer closes the listening window before the
           // silent Brunch latency period, preventing a second admitted turn.
+          this.#awaitingBrunchResponse = true;
           this.#setMicrophoneMuted(true);
           return;
         }
@@ -456,9 +459,14 @@ class ElevenLabsAdapter implements VoiceExperimentAdapter {
       onModeChange: ({ mode }) => {
         this.#providerMode = mode;
         if (mode === "speaking" && !this.#disposed) {
+          this.#awaitingBrunchResponse = false;
           this.#setMicrophoneMuted(true);
           this.#emitResponseStarted(Math.max(this.#turnId, 1));
-        } else if (mode === "listening" && this.#isListening) {
+        } else if (
+          mode === "listening" &&
+          this.#isListening &&
+          !this.#awaitingBrunchResponse
+        ) {
           this.#setMicrophoneMuted(false);
         }
       },

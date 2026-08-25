@@ -32,7 +32,7 @@ type QueuedVoiceTurn = {
 
 type VoiceTurnState = {
   active: Promise<void> | null;
-  lastCompletedTranscript: string | null;
+  lastCompletedSignal: AbortSignal | null;
   queued: QueuedVoiceTurn | null;
 };
 
@@ -127,7 +127,7 @@ export const createElevenLabsSpeechEngineCallbacks = ({
       )
       .then(() => {
         if (!turn.signal.aborted) {
-          state.lastCompletedTranscript = turn.transcript;
+          state.lastCompletedSignal = turn.signal;
         }
       })
       .catch((error: unknown) => {
@@ -147,7 +147,7 @@ export const createElevenLabsSpeechEngineCallbacks = ({
         if (
           queued &&
           !queued.signal.aborted &&
-          queued.transcript !== state.lastCompletedTranscript
+          queued.signal !== state.lastCompletedSignal
         ) {
           startTurn(conversationId, state, queued);
         }
@@ -178,11 +178,11 @@ export const createElevenLabsSpeechEngineCallbacks = ({
 
       const state = turnStateByConversationId.get(conversationId) ?? {
         active: null,
-        lastCompletedTranscript: null,
+        lastCompletedSignal: null,
         queued: null,
       };
       turnStateByConversationId.set(conversationId, state);
-      if (userTurn === state.lastCompletedTranscript) {
+      if (signal === state.lastCompletedSignal) {
         return;
       }
 

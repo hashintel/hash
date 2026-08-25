@@ -95,22 +95,40 @@ describe("ElevenLabs Speech Engine callbacks", () => {
     const transcript = [
       { role: "user", content: "A finalized answer." },
     ] as const;
+    const signal = new AbortController().signal;
 
-    callbacks.onTranscript?.(
-      [...transcript],
-      new AbortController().signal,
-      session as never,
-    );
+    callbacks.onTranscript?.([...transcript], signal, session as never);
     await response();
-    callbacks.onTranscript?.(
-      [...transcript],
-      new AbortController().signal,
-      session as never,
-    );
+    callbacks.onTranscript?.([...transcript], signal, session as never);
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(respond).toHaveBeenCalledTimes(1);
     expect(session.sendResponse).toHaveBeenCalledTimes(1);
+  });
+
+  test("processes distinct provider turns with identical answers", async () => {
+    const respond = vi.fn(async function* () {
+      yield "Brunch response";
+    });
+    const bridge = { release: vi.fn(), respond };
+    const callbacks = createElevenLabsSpeechEngineCallbacks({ bridge });
+    const { session } = createSession();
+    const transcript = [{ role: "user", content: "Yes." }] as const;
+
+    callbacks.onTranscript?.(
+      [...transcript],
+      new AbortController().signal,
+      session as never,
+    );
+    await vi.waitFor(() => expect(respond).toHaveBeenCalledTimes(1));
+    callbacks.onTranscript?.(
+      [...transcript],
+      new AbortController().signal,
+      session as never,
+    );
+    await vi.waitFor(() => expect(respond).toHaveBeenCalledTimes(2));
+
+    expect(session.sendResponse).toHaveBeenCalledTimes(2);
   });
 
   test("queues the latest turn until the interrupted response settles", async () => {

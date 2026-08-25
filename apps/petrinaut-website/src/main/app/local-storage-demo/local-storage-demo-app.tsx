@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createJsonDocHandle,
+  isSDCPNEqual,
   type MinimalNetMetadata,
   type PetrinautDocHandle,
   type PetrinautHandleCapabilities,
@@ -187,7 +188,10 @@ export const LocalStorageDemoApp = () => {
 
     return handle.subscribe((event) => {
       const lastUpdated = new Date().toISOString();
-      if (netId === voiceDraftNetIdRef.current) {
+      if (
+        netId === voiceDraftNetIdRef.current &&
+        !isSDCPNEqual(event.next, fallbackNet.sdcpn)
+      ) {
         voiceDraftEditedRef.current = true;
       }
 

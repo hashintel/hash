@@ -114,6 +114,19 @@ describe("voice experiment diagnostics", () => {
       transcript: "Who owns triage?",
       turnId,
     });
+
+    expect(diagnostics.read("conv_transcript", 2)).toEqual([
+      {
+        sequence: 3,
+        speaker: "assistant",
+        timestampMs: 3_000,
+        transcript: "Who owns triage?",
+        turnId: 1,
+        type: "partial-transcript",
+      },
+    ]);
+    expect(diagnostics.read("conv_transcript", 0)).toHaveLength(2);
+
     diagnostics.recordTranscript("voice:conv_transcript", {
       isPartial: false,
       speaker: "assistant",
@@ -139,7 +152,7 @@ describe("voice experiment diagnostics", () => {
         type: "final-transcript",
       },
       {
-        sequence: 3,
+        sequence: 4,
         speaker: "assistant",
         timestampMs: 3_000,
         transcript: "Who owns triage?",
