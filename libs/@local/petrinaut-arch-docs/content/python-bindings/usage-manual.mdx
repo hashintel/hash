@@ -147,10 +147,10 @@ CLI serves both from one process, so every `PetrinautSession` method works on
 an `OptimizationSession` too; only an `OptimizationSession` can answer the
 `optimization.*` methods. Pick the class by naming what the process serves:
 
-| You have        | Construct                                   | CLI invocation                        |
-| --------------- | ------------------------------------------- | ------------------------------------- |
-| a model file    | `PetrinautSession.from_model_file(path)`    | `serve --model <path> --stdio`        |
-| a model dict    | `PetrinautSession.from_model(model)`        | `serve --model-stdin --stdio`         |
+| You have        | Construct                                      | CLI invocation                        |
+| --------------- | ---------------------------------------------- | ------------------------------------- |
+| a model file    | `PetrinautSession.from_model_file(path)`       | `serve --model <path> --stdio`        |
+| a model dict    | `PetrinautSession.from_model(model)`           | `serve --model-stdin --stdio`         |
 | a manifest file | `OptimizationSession.from_manifest_file(path)` | `serve --optimization <path> --stdio` |
 | a manifest dict | `OptimizationSession.from_manifest(manifest)`  | `serve --optimization-stdin --stdio`  |
 
