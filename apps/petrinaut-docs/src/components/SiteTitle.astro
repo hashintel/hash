@@ -104,8 +104,10 @@ import Default from "@astrojs/starlight/components/SiteTitle.astro";
       const onMove = (move) => resizeTo(move.clientX);
 
       handle.addEventListener("pointermove", onMove);
+      // `lostpointercapture` covers the cancelled gesture as well as the
+      // released one, so the drag cannot outlive the pointer holding it.
       handle.addEventListener(
-        "pointerup",
+        "lostpointercapture",
         () => handle.removeEventListener("pointermove", onMove),
         { once: true },
       );
