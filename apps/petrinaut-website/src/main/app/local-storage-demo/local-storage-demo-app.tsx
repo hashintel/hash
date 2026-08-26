@@ -17,13 +17,18 @@ import {
 import {
   DefaultChatTransport,
   Petrinaut,
+  type PetrinautAiComposerControl,
+  type PetrinautAiComposerControlContext,
   type PetrinautAiMessage,
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
+import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
+import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
 import { createBrunchPanelTransport } from "./brunch-panel-transport";
+import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
@@ -81,6 +86,23 @@ const DEMO_CAPABILITIES = {
   disabledExtensions: [],
 } satisfies PetrinautHandleCapabilities;
 
+const brunchPreviewConfig = resolveBrunchPreviewConfig(
+  import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
+);
+
+const renderBrunchVoiceComposerControl = (
+  context: PetrinautAiComposerControlContext,
+) => <VoiceInterviewControl {...context} />;
+
+export const getBrunchVoiceComposerControl = (
+  isBrunchConfigured: boolean,
+): PetrinautAiComposerControl | undefined =>
+  isBrunchConfigured ? renderBrunchVoiceComposerControl : undefined;
+
+const brunchVoiceComposerControl = getBrunchVoiceComposerControl(
+  brunchPreviewConfig.isBrunchConfigured,
+);
+
 const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   createJsonDocHandle({
     id: net.id,
@@ -91,7 +113,7 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
 const brunchPrincipal = getOrCreateBrunchPrincipal();
 
 const stockChatTransport = new DefaultChatTransport({
-  api: "/api/chat",
+  api: brunchPreviewConfig.chatEndpoint,
   headers: () => ({
     [BRUNCH_PRINCIPAL_HEADER]: brunchPrincipal,
   }),
@@ -281,6 +303,8 @@ export const LocalStorageDemoApp = () => {
 
   const aiAssistant = useMemo(
     () => ({
+      ...(conversationId === null ? {} : { conversationId }),
+      interactiveTools: [brunchAskInteractiveTool],
       transport: petrinautAiChatTransport,
       messages: flueHistory.ready
         ? flueHistory.messages
@@ -308,9 +332,15 @@ export const LocalStorageDemoApp = () => {
           return next;
         });
       },
+      ...(brunchVoiceComposerControl
+        ? {
+            renderComposerControl: brunchVoiceComposerControl,
+          }
+        : {}),
     }),
     [
       aiMessagesByNetId,
+      conversationId,
       currentNetId,
       flueHistory.messages,
       flueHistory.ready,
