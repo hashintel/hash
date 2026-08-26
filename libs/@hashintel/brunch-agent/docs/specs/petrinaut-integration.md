@@ -4,7 +4,8 @@
 (`docs/adr/0004-in-petrinaut-staging-and-the-monorepo-import.md`) · **Supersedes**:
 `recommendation-demo-vehicle.md` as the September staging plan · **Evidence base**: the
 Petrinaut survey (FE-1358, `research/petrinaut-survey.md`), re-verified against
-`hashintel/hash` source on 2026-08-18.
+`hashintel/hash` source on 2026-08-18 · **Amended**: FE-1506 (stable UI and voice attach
+contract).
 
 ## Problem Statement
 
@@ -44,6 +45,24 @@ which the design needs anyway:
 3. **The storage port seam** (ADR-0002 N5): the owner key is tested as store-level refusals.
 4. **The artifact seam** (`parseSDCPNFile` / `sdcpnFileSchema`): unchanged; net validity
    checked in CI through the pure parser.
+
+## Attach Contract
+
+The panel and the voice edge attach to Brunch through one stable surface:
+
+1. **Chat stream**: the UI sends `POST /api/chat`; a successful response is an AI SDK v6
+   UI-message stream over HTTP/SSE.
+2. **Question affordance**: the client-executed tool is named `brunch_ask`. Its input schema is
+   `{ question: non-empty string }`; its submitted output schema is
+   `{ answer: non-empty string }`.
+3. **Principal identity**: every request carries one non-empty, opaque principal in the
+   `x-brunch-principal` header. The current UI shell keeps that value in localStorage so it is
+   stable across reloads; replacing the local UID with authenticated identity must preserve the
+   same request-level ownership semantics.
+
+These three parts change only with notice to the panel and voice-edge owners. A provider-specific
+voice requirement does not silently alter this surface; it arrives as a generic UI-shell extension
+or triggers an explicit contract revision.
 
 ## User Stories
 
@@ -99,8 +118,8 @@ which the design needs anyway:
 **Topology and packaging**
 
 - The elicitor server is a thin host-authored agent (spec §13) around the harness library,
-  deployed remotely; the demo site addresses it cross-origin, bypassing the site's own
-  `/api/chat` and Vercel function limits.
+  deployed remotely; the demo site's same-origin `/api/chat` route reaches that server without
+  routing through the stock Petrinaut assistant or its prompt.
 - Implemented by FE-1436 (the durable AI SDK transport): package `transport-aisdk` is the
   server end of the ui shell's reply transport. It translates
   harness-level parts to AI SDK v6 UI-message-stream chunks, using the `ai` package for stream
