@@ -196,6 +196,21 @@ R1 — the isolating spike becomes blocking; the panel needs Brunch-specific cod
 `@hashintel/petrinaut` — ADR-0004 boundary, stop; persistence modelling needs a schema the harness
 must know — §9.6 port breach, stop; a move or stream lands with desk-only evidence — not done.
 
+### Parallel partition (2026-08-26)
+
+What can run in separate worktrees now, per the [steering supplement](../agents/steering.md#parallel-partition-brunch-extension-of-ds-steer-step-5).
+The driver worktree owns control documents, Linear, and G0.4 (the legible surface, written after
+W1 and W2 land).
+
+| Effort | Proof | Projection | Write set | Join points (who lands first) | Base |
+| --- | --- | --- | --- | --- | --- |
+| **W1 Triangle wiring + persistence** (G0.1, G0.2) | the one human run at the panel, jointly with W2 | FE-1503 | `apps/brunch-agent/src` (`petrinaut-chat`, `elicitation-session`, `db`, `target-document-path`, dev scripts); `binding-flue` store owner key; `transport-aisdk` principal header; the website ui shell's principal; a Turbo or compose `dev` target | with **Voice**: `petrinaut-chat.ts`, `local-dev-origins.ts`, `local-storage-demo-app.tsx`, the website `vite.config.ts`, three `package.json` — voice lands first or W1 rebases onto it | `main` after the stack merges; until then the driver branch |
+| **W2 Latency floor** (G0.3) | per-purpose `durationMs` in the next run, jointly with W1 | FE-1503, FE-1404 | `binding-flue` turn observation, `harness-run.ts` `observe()`, OpenTelemetry setup in `apps/brunch-agent` | with W1: `apps/brunch-agent/package.json` (dependencies) | as W1 |
+| **W3 Plugin design and testing loop** (P1) | conditions 4 and 5 rerun and reviewed per cycle; a changelog entry or none | FE-1431, FE-1406, FE-1393 | core plugin schema and its `CHANGELOG`; `plugin-sdcpn/plugin.yaml`; `plugin-gherkin/plugin.yaml`; repertoire content; the baseline protocol and its transcripts | with W4: the repertoire's location — W3 keeps the current layout until W4's ADR is accepted, then one mechanical move lands between cycles; with W1: none (the elicitor reads the plugin at runtime) | cut now |
+| **W4 Package topology** (P2) | the ADR accepted; an import-direction architecture test that fails on the current layout and passes after the move | new ADR (issue to create) | `docs/adr/0008-*`; later `packages/core` and `packages/repertoire` and the architecture tests | with W3 as above; with the driver: `CONTEXT.md`, `docs/INDEX.md` | docs first, cut now |
+| **W5 Latency spike** (assessment §6) | frozen turn tails replayed under R1–R3 alternatives | FE-1404 | `evaluations/…/spikes`, evidence | none | available; deferred by Lu |
+| **Voice** (Kostandin, H-6763) | provider comparison; a real `brunch_ask` suspend-and-resume over speech | H-6763 | website `voice-experiment` and `api/voice-experiment`; `transport-aisdk` voice bridge; `apps/brunch-agent` voice diagnostics | with W1 as listed; the attach surface is the contract between them | his branch |
+
 ### Gap assessment (2026-08-26)
 
 | Triangle edge | Today | Gap |

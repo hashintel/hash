@@ -32,6 +32,31 @@ canonical tie-breakers, use **deadline pressure** as Brunch's final tie-breaker.
 
 Linear writes require explicit approval before creation or mutation.
 
+## Parallel partition (Brunch extension of `/ds-steer` step 5)
+
+`ds-steer` selects one proof frontier and leaves other available work as "separate work". Brunch
+adds a partition step after that choice, because slicing a plan into efforts that run in separate
+worktrees is a planning move this context must be able to make. The single frontier stays; the
+partition says what else runs concurrently and how it rejoins.
+
+An **effort** is worktree-separable when it has its own proof (or a named share of a joint proof),
+its own projection, and a **write set** disjoint from every other effort's except at named **join
+points**. For each effort record: proof, projection, write set, join points and who lands first,
+and the base it is cut from. Rules:
+
+- Control documents (`STEERING`, the ledger, the strategy log, `INDEX`, `CONTEXT`) and Linear are
+  written only from the **driver** worktree. Efforts deposit through issue comments, commit and PR
+  bodies, and evidence under their own path; the driver reconciles at each landing through
+  `/ds-steer` (Reconcile). Every other file an effort would share with another effort is a join
+  point to name, and shared manifests (`package.json`, `yarn.lock`, Turbo and compose config) are
+  join points by default.
+- Joined moves (one proof) may be built in separate worktrees; none is done until the joint proof
+  runs from one branch that contains them all.
+- Cut effort branches from `main` once the pending stack has merged; until then cut from the
+  driver branch and rebase at merge. Use Graphite for the stacks.
+- Record the partition in `STEERING.md` as a table and revise it at every steering pass; an effort
+  that has no proof of its own and no share of a joint proof is not an effort but a task inside one.
+
 ## Guidance for procedures that execute the frontier
 
 This section governs the procedure `/ds-steer` selects; `/ds-steer` does not execute the frontier.

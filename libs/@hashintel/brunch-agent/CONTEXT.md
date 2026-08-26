@@ -199,6 +199,18 @@ and the package-topology ADR are streams beside G0. The epicentre map's older wo
 thing is "lane"; it is retained there and not used for new writing.
 _Avoid_: lane (new writing), workstream, track
 
+**Effort**:
+The unit of the parallel partition: work that can run in its own worktree because it has its own
+proof or a named share of a joint proof, its own projection, and a write set disjoint from other
+efforts' except at named join points. A stream is an effort; joined moves may also be efforts,
+done only at the joint proof. The partition is recorded in `docs/control/STEERING.md`.
+_Avoid_: stream (when the work shares a proof), branch (the effort is the work, not its Git ref)
+
+**Join point**:
+A file, package, or manifest two efforts both write, with the order in which they land. Control
+documents and Linear are written only from the driver worktree and are therefore never join points.
+_Avoid_: conflict (a join point is planned; a conflict is what happens when it was not)
+
 **Sequence**:
 Ordered goals where each goal's proof is the precondition of the next (G0 → G1 → G2). Ordering
 inside a sequence is strategic, not mechanical availability.
