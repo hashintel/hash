@@ -432,6 +432,13 @@ decidedness.
 
 ## Further Notes
 
+- The provisional CPS technique-card IDs and clarification fragments are now defined in the
+  [FE-1403 CPS interview guidance](cps-interview-guidance.md). Its desk replay is design evidence,
+  not proof that `affordanceCuer` activates those cards correctly at runtime. FE-1403 also exposes
+  a declarative-authoring seam: several supported cards need one technique under multiple
+  `firesWhen` predicates, while `ProposalType.affordance` is singular. FE-1431 must decide binding
+  multiplicity or an evidence-preserving split; the current hook must not silently discard the
+  disjunction.
 - This document is the settled form of the FE-1405 session's working draft and its
   ds-pseudo YAML rendering — untracked session artifacts (`drafts/`, per the documentation
   protocol) that collapsed into this spec and are not load-bearing anywhere.
