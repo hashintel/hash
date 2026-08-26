@@ -211,6 +211,19 @@ W1 and W2 land).
 | **W5 Latency spike** (assessment §6) | frozen turn tails replayed under R1–R3 alternatives | FE-1404 | `evaluations/…/spikes`, evidence | none | available; deferred by Lu |
 | **Voice** (Kostandin, H-6763) | provider comparison; a real `brunch_ask` suspend-and-resume over speech | H-6763 | website `voice-experiment` and `api/voice-experiment`; `transport-aisdk` voice bridge; `apps/brunch-agent` voice diagnostics | with W1 as listed; the attach surface is the contract between them | his branch |
 
+Worktrees, cut 2026-08-26 per [`partition-worktrees.md`](../agents/partition-worktrees.md). The
+driver is this clone (`hash`).
+
+| Effort | Name | Path | Branch |
+| --- | --- | --- | --- |
+| driver | — | `~/Code/hashintel/hash` | `ln/fe-1431-plugin-authoring-cycle` until the stack merges |
+| W1 | panel | `~/Code/hashintel/hash-panel` | `ln/fe-1504-panel` |
+| W2 | timing | `~/Code/hashintel/hash-timing` | `ln/fe-1505-timing` |
+| W3 | plugins | `~/Code/hashintel/hash-plugins` | `ln/fe-1431-plugins` |
+| W4 | topology | `~/Code/hashintel/hash-topology` | `ln/w4-topology` (holding; no issue yet) |
+| W5 | — | not cut (deferred) | — |
+| Voice | — | not cut (Kostandin's branch) | — |
+
 ### Gap assessment (2026-08-26)
 
 | Triangle edge | Today | Gap |

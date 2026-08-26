@@ -8,7 +8,8 @@ copy lives outside the repo).
 
 The authoritative role topology is defined by the documentation protocol. The role-based zones
 below are authoritative. Agent protocols are registered through `AGENTS.md`; Brunch's supplement
-to `/ds-steer` is [`docs/agents/steering.md`](agents/steering.md).
+to `/ds-steer` is [`docs/agents/steering.md`](agents/steering.md); cutting worktrees for a recorded
+partition is [`docs/agents/partition-worktrees.md`](agents/partition-worktrees.md).
 
 ## Inbox (awaiting settlement)
 

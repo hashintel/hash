@@ -215,6 +215,12 @@ efforts' except at named join points. A stream is an effort; joined moves may al
 done only at the joint proof. The partition is recorded in `docs/control/STEERING.md`.
 _Avoid_: stream (when the work shares a proof), branch (the effort is the work, not its Git ref)
 
+**Driver**:
+The worktree that owns control documents and Linear. Other efforts deposit through issue comments,
+commit and PR bodies, and evidence under their own path; the driver reconciles at each landing.
+The current HASH clone is the driver until a partition says otherwise.
+_Avoid_: main worktree, primary, orchestrator
+
 **Join point**:
 A file, package, or manifest two efforts both write, with the order in which they land. Control
 documents and Linear are written only from the driver worktree and are therefore never join points.

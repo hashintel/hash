@@ -53,5 +53,6 @@ Route by trigger; load only the applicable compact protocol:
 - Produce a significant agent-authored artifact or proof: `docs/agents/legibility.md`.
 - Make an architecture-sensitive move: `docs/agents/posture.md`.
 - Operate on branches, stacks, commits, or PRs: `docs/agents/git-workflow.md`.
+- Create or refresh worktrees for a recorded partition: `docs/agents/partition-worktrees.md`.
 - Close a work arc: run the context-local `arc-close` skill and
   `docs/agents/arc-close.md`.

@@ -53,7 +53,8 @@ and the base it is cut from. Rules:
 - Joined moves (one proof) may be built in separate worktrees; none is done until the joint proof
   runs from one branch that contains them all.
 - Cut effort branches from `main` once the pending stack has merged; until then cut from the
-  driver branch and rebase at merge. Use Graphite for the stacks.
+  driver branch and rebase at merge. Use Graphite for the stacks. Materialize the table with
+  [`partition-worktrees.md`](partition-worktrees.md) when the user asks for the checkouts.
 - Record the partition in `STEERING.md` as a table and revise it at every steering pass; an effort
   that has no proof of its own and no share of a joint proof is not an effort but a task inside one.
 
