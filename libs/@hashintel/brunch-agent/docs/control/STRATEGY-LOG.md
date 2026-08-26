@@ -68,7 +68,8 @@ shared prerequisite.
 
 **Supersedes:** none
 
-**Evidence links:** [STEERING execution tree](STEERING.md#execution-tree), FE-1479
+**Evidence links:** [STEERING](STEERING.md) (the execution tree of that date; the section was
+folded into "Epicentres and lanes" on 2026-08-26), FE-1479
 
 ### S-004
 
@@ -126,7 +127,8 @@ contract from later three-target ratification.
 
 **Supersedes:** S-002
 
-**Evidence links:** [STEERING selected frontier](STEERING.md#selected-frontier-design-convergence),
+**Evidence links:** [STEERING](STEERING.md) (the design-convergence frontier of that date, closed by
+S-007; no current section),
 [plugin contract](../specs/plugin-contract.md), FE-1407, FE-1402, FE-1403, FE-1404, FE-1406,
 FE-1431
 
@@ -153,7 +155,8 @@ decision that the FE-1431 handoff failed to settle.
 
 **Supersedes:** none
 
-**Evidence links:** [STEERING selected frontier](STEERING.md#selected-frontier-design-convergence),
+**Evidence links:** [STEERING](STEERING.md) (the design-convergence frontier of that date, closed by
+S-007; no current section),
 FE-1407, FE-1404, FE-1406, FE-1431
 
 ### S-007
@@ -433,8 +436,9 @@ demo scenario.
 **Supersedes:** none
 
 **Evidence links:** [FE-1503](https://linear.app/hash/issue/FE-1503), [FE-1476](https://linear.app/hash/issue/FE-1476),
-[H-6763 prototype plan](../planning/process-model-elicitation/spikes/h-6763-realtime-audio-prototype-2026-08-24.md)
-(on branch `kostandin/h-6763-support-for-realtime-audio-interviewing-of-domain-experts`),
+the H-6763 prototype plan — `docs/planning/process-model-elicitation/spikes/h-6763-realtime-audio-prototype-2026-08-24.md`
+on branch `kostandin/h-6763-support-for-realtime-audio-interviewing-of-domain-experts` only, not
+on this branch or `main`, so no relative link resolves until it merges —
 [ADR-0004](../adr/0004-in-petrinaut-staging-and-the-monorepo-import.md),
 [Petrinaut integration spec](../specs/petrinaut-integration.md),
 [ledger §9](SPEC-LEDGER.md#sessions--durability-9),
