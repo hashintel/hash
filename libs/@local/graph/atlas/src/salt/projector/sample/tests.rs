@@ -3,6 +3,7 @@
 //! Distribution laws, per-type limits under skew, veto admission, and seeded reproducibility.
 
 use core::num::NonZero;
+use std::alloc::Global;
 
 use hashql_core::id::Id as _;
 use rand::SeedableRng as _;
@@ -116,7 +117,7 @@ fn semantic_draws_are_graph_edges() {
     let graph = semantic_graph(4, &[(0, 1, 0.5), (1, 2, 0.25), (2, 3, 1.0)]);
     let sampler = SemanticEdgeSampler::new(graph.view()).expect("the graph has weight");
 
-    let draws = sampler.sample(64, rng(3));
+    let draws = sampler.sample_in(64, rng(3), Global);
 
     assert_eq!(draws.len(), 64);
     let edges = [pair(0, 1), pair(1, 2), pair(2, 3)];
@@ -152,7 +153,7 @@ fn semantic_draws_follow_the_weights() {
     let graph = semantic_graph(4, &[(0, 1, 1.0), (2, 3, 1.0e-30)]);
     let sampler = SemanticEdgeSampler::new(graph.view()).expect("the graph has weight");
 
-    let draws = sampler.sample(128, rng(5));
+    let draws = sampler.sample_in(128, rng(5), Global);
 
     assert!(
         draws.iter().all(|&drawn| drawn == pair(0, 1)),
@@ -175,13 +176,13 @@ fn semantic_sampling_is_seeded() {
     let sampler = SemanticEdgeSampler::new(graph.view()).expect("the graph has weight");
 
     assert_eq!(
-        sampler.sample(32, rng(7)),
-        sampler.sample(32, rng(7)),
+        sampler.sample_in(32, rng(7), Global),
+        sampler.sample_in(32, rng(7), Global),
         "equal seeds should reproduce a batch"
     );
     assert_ne!(
-        sampler.sample(32, rng(7)),
-        sampler.sample(32, rng(8)),
+        sampler.sample_in(32, rng(7), Global),
+        sampler.sample_in(32, rng(8), Global),
         "different seeds should draw different batches"
     );
 }
@@ -207,7 +208,7 @@ fn relation_caps_bind_per_type_under_skew() {
     let sampler = RelationEdgeSampler::new(&indexes.attraction);
 
     let cap = NonZero::new(3).expect("the cap is nonzero");
-    let draws = sampler.sample(2, cap, rng(11));
+    let draws = sampler.sample_in(2, cap, rng(11), Global);
 
     assert_eq!(draws.len(), 2, "both types should participate");
     for group in &draws {
@@ -240,7 +241,7 @@ fn relation_type_requests_beyond_the_index_return_every_group() {
     );
     let sampler = RelationEdgeSampler::new(&indexes.attraction);
 
-    let draws = sampler.sample(64, NonZero::new(4).expect("nonzero"), rng(13));
+    let draws = sampler.sample_in(64, NonZero::new(4).expect("nonzero"), rng(13), Global);
 
     let relations: Vec<u64> = draws
         .iter()
@@ -263,7 +264,7 @@ fn relation_sampling_is_seeded() {
 
     let draws = |seed: u64| {
         sampler
-            .sample(1, cap, rng(seed))
+            .sample_in(1, cap, rng(seed), Global)
             .into_iter()
             .flat_map(|group| group.edges)
             .map(|edge| edge.edge.as_u64())
@@ -304,7 +305,7 @@ fn negatives_pass_every_veto() {
     // A request for sixteen from an admissible pool of four is pool-limited and exhaustive, so the
     // assertion pins the whole admissible set. The vetoes remove the self pairs, the semantic edge
     // (0, 1), and the protected pair (2, 3).
-    let mut draws = keys(&sampler.sample(16, rng(23)));
+    let mut draws = keys(&sampler.sample_in(16, rng(23), Global));
     draws.sort_unstable();
     assert_eq!(draws, [(0, 2), (0, 3), (1, 2), (1, 3)]);
 }
@@ -316,7 +317,7 @@ fn disabling_ordinary_protection_admits_linked_pairs() {
         .expect("the fixture channels are ordered");
     let sampler = OrdinaryNegativeSampler::new(graph.view(), indexes.protection.view(), config);
 
-    let mut draws = keys(&sampler.sample(16, rng(23)));
+    let mut draws = keys(&sampler.sample_in(16, rng(23), Global));
     draws.sort_unstable();
     assert_eq!(
         draws,
@@ -337,13 +338,13 @@ fn negative_sampling_is_seeded() {
     );
 
     assert_eq!(
-        sampler.sample(8, rng(29)),
-        sampler.sample(8, rng(29)),
+        sampler.sample_in(8, rng(29), Global),
+        sampler.sample_in(8, rng(29), Global),
         "equal seeds should reproduce a batch"
     );
     assert_ne!(
-        keys(&sampler.sample(8, rng(29))),
-        keys(&sampler.sample(8, rng(31))),
+        keys(&sampler.sample_in(8, rng(29), Global)),
+        keys(&sampler.sample_in(8, rng(31), Global)),
         "different seeds should draw different batches"
     );
 }
@@ -361,7 +362,7 @@ fn tiny_domains_return_shorter_batches() {
     );
 
     assert!(
-        sampler.sample(4, rng(37)).is_empty(),
+        sampler.sample_in(4, rng(37), Global).is_empty(),
         "an empty admissible pool should produce an empty batch"
     );
 }

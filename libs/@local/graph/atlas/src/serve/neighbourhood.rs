@@ -272,10 +272,9 @@ impl EdgeColumns {
         &self.origins
     }
 }
-
-#[cfg(test)]
+#[cfg(test)] // The serve tests pin expected edge columns literally.
 impl EdgeColumns {
-    /// Mints columns from one literal wire-form triple per edge: source, target, identity.
+    /// Builds columns from one literal wire-form triple per edge: source, target, identity.
     ///
     /// The triple shape keeps the columns in lockstep at the call site, and the internal row
     /// column numbers the edges in order, because a pinned response never hydrates.

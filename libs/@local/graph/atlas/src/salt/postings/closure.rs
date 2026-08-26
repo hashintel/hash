@@ -212,7 +212,7 @@ impl ClosureMap {
     ///
     /// [`None`] when either row is out of domain.
     #[must_use]
-    #[cfg(test)]
+    #[cfg(test)] // The postings tests probe ancestry pairs directly.
     pub(crate) fn contains(
         &self,
         ancestor: OntologyRowId,

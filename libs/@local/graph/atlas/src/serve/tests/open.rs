@@ -21,9 +21,11 @@ use crate::{
     file::{
         WriteInto as _,
         array::{ArrayVariant, Dim, SizedArrayWriter},
+        generation::{Generation, GenerationRoot},
         identity::{Row, read::IdentityFile},
         postings::{read::PostingsFile, write::Regions},
         quad::{Node, TypeSets, read::QuadFile},
+        repository::FileName,
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
@@ -258,87 +260,140 @@ fn constant_u32_column(path: &Utf8PathBuf, rows: u64, value: u32) {
     writer.finish().expect("the column seals");
 }
 
-/// Every artifact disagreement `open` checks answers with its own variant, and repair restores it.
+/// One published generation with the counts its tamper witnesses compare against.
 ///
-/// The tampers all run against a single published generation, changing one artifact at a time. Each
-/// tamper moves a single domain by one row and leaves that artifact valid at its own format, so the
-/// only thing that moved is the domain under test. The reopen after each repair is the negative
-/// control. The fixture opens again every time, so each rejection belongs to its own tamper rather
-/// than to a fixture that had stopped opening unnoticed.
+/// Every tamper test publishes its own fixture and moves a single domain by one row, leaving
+/// the artifact valid at its own format. The rejection must name the tamper's own variant; the
+/// test then restores the bytes and reopens. The reopen is the negative control: each rejection
+/// belongs to its tamper rather than to a fixture that had stopped opening unnoticed.
 ///
-/// The artifact structure forces which direction a tamper moves a domain. Dropping a node row from
-/// the adjacency would drop that node's edge slots with it and move the edge domain in the same
-/// tamper; narrowing the postings' point domain can strand a membership position outside it, which
-/// the postings contract refuses first and under its own name. Both therefore add a row, and
-/// widening is as much a producer bug as truncation is.
+/// The artifact structure forces which direction a tamper moves a domain. Dropping a node row
+/// from the adjacency would drop that node's edge slots with it and move the edge domain in the
+/// same tamper; narrowing the postings' point domain can strand a membership position outside
+/// it, which the postings contract refuses first and under its own name. Both therefore add a
+/// row, and widening is as much a producer bug as truncation is.
 ///
 /// Both universe variants are absent and cannot be present: `Universe` and `EdgeUniverse` fire
 /// above `u32::MAX` rows, which no fixture constructs. They guard arithmetic the fixture cannot
-/// reach, so no tamper can exercise them. Every other variant of the cross-artifact pass has its
-/// tamper here.
-#[expect(
-    clippy::too_many_lines,
-    reason = "one tamper-and-repair block per cross-artifact variant; the taxonomy is the length"
-)]
+/// reach, so no tamper can exercise them. Every other variant of the cross-artifact pass has a
+/// tamper test over this fixture.
+struct TamperFixture {
+    root: GenerationRoot,
+    generation: Generation,
+    nodes: u64,
+    endpoints: Vec<[NodeRowId; 2]>,
+}
+
+impl TamperFixture {
+    /// Publishes `name`'s generation and reads the untampered counts, proving it opens.
+    async fn publish(name: &str) -> Self {
+        let (root, generation) = fit_fixture(name).await;
+        store_identities(&generation);
+
+        let atlas = Atlas::open(&root, generation.id(), test_open_options())
+            .expect("the published fixture opens");
+        let nodes = atlas.row_ids().len() as u64;
+        let endpoints = atlas.endpoint_pairs().as_raw().to_vec();
+        drop(atlas);
+
+        Self {
+            root,
+            generation,
+            nodes,
+            endpoints,
+        }
+    }
+
+    /// Opens the fixture's generation.
+    fn open(&self) -> Result<Atlas, OpenAtlasError> {
+        Atlas::open(&self.root, self.generation.id(), test_open_options())
+    }
+
+    /// Returns the path of `name`'s artifact.
+    fn path_of(&self, name: &FileName) -> Utf8PathBuf {
+        self.generation.path_of(name)
+    }
+
+    /// The fixture's edge count, the endpoint pairs' own length.
+    fn edges(&self) -> u64 {
+        self.endpoints.len() as u64
+    }
+}
+
+/// A node identity table short of the code column is refused under `Identities`.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn every_cross_artifact_disagreement_names_its_own_variant() {
-    let (root, generation) = fit_fixture("open-consistency").await;
-    store_identities(&generation);
+async fn short_node_identity_table_refuses() {
+    let fixture = TamperFixture::publish("open-node-identities").await;
+    let nodes = fixture.nodes;
+    let files = &fixture.generation.repository().files;
 
-    let open = || Atlas::open(&root, generation.id(), test_open_options());
-    let files = &generation.repository().files;
-
-    // As a control, the untampered fixture opens, so every rejection
-    // below is its tamper's.
-    let atlas = open().expect("the published fixture opens");
-    let nodes = atlas.row_ids().len() as u64;
-    let endpoints = atlas.endpoint_pairs().as_raw().to_vec();
-    let edges = endpoints.len() as u64;
-    drop(atlas);
-
-    let types = IdentityFile::open(generation.path_of(&files.ontology_identities.name()))
-        .expect("the published ontology identities open")
-        .rows();
-
-    // The node identity table against the code column.
-    let node_identities = Saved::of(generation.path_of(&files.node_identities.name()));
+    let node_identities = Saved::of(fixture.path_of(&files.node_identities.name()));
     shorten_entities::<NodeRowId>(&node_identities.path, nodes - 1, 0);
     assert_matches!(
-        open().expect_err("a short node identity table is refused"),
+        fixture.open().expect_err("a short node identity table is refused"),
         OpenAtlasError::Identities { identities, codes }
             if identities == nodes - 1 && codes == nodes,
     );
     node_identities.restore();
-    open().expect("the repaired fixture opens");
+    fixture.open().expect("the repaired fixture opens");
+}
 
-    // The edge identity table against the adjacency's edge domain.
-    let edge_identities = Saved::of(generation.path_of(&files.edge_identities.name()));
+/// An edge identity table short of the adjacency's edge domain is refused under
+/// `EdgeIdentities`.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn short_edge_identity_table_refuses() {
+    let fixture = TamperFixture::publish("open-edge-identities").await;
+    let edges = fixture.edges();
+    let files = &fixture.generation.repository().files;
+
+    let edge_identities = Saved::of(fixture.path_of(&files.edge_identities.name()));
     shorten_entities::<EdgeRowId>(&edge_identities.path, edges - 1, EDGE_SEED);
     assert_matches!(
-        open().expect_err("a short edge identity table is refused"),
+        fixture.open().expect_err("a short edge identity table is refused"),
         OpenAtlasError::EdgeIdentities { identities, edges: spanned }
             if identities == edges - 1 && spanned == edges,
     );
     edge_identities.restore();
-    open().expect("the repaired fixture opens");
+    fixture.open().expect("the repaired fixture opens");
+}
 
-    // The ontology identity table against the postings' type domain.
-    let ontology_identities = Saved::of(generation.path_of(&files.ontology_identities.name()));
+/// An ontology identity table short of the postings' type domain is refused under `Types`.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn short_ontology_identity_table_refuses() {
+    let fixture = TamperFixture::publish("open-ontology-identities").await;
+    let files = &fixture.generation.repository().files;
+    let types = IdentityFile::open(fixture.path_of(&files.ontology_identities.name()))
+        .expect("the published ontology identities open")
+        .rows();
+
+    let ontology_identities = Saved::of(fixture.path_of(&files.ontology_identities.name()));
     shorten_ontology(&ontology_identities.path, types - 1);
     assert_matches!(
-        open().expect_err("a short ontology identity table is refused"),
+        fixture
+            .open()
+            .expect_err("a short ontology identity table is refused"),
         OpenAtlasError::Types { postings, identities }
             if postings == types && identities == types - 1,
     );
     ontology_identities.restore();
-    open().expect("the repaired fixture opens");
+    fixture.open().expect("the repaired fixture opens");
+}
 
-    // A base-order column against the code column.
-    let ranks = Saved::of(generation.path_of(&files.rank_of_position.name()));
+/// A base-order column short of the code column is refused under `Columns`.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn short_rank_column_refuses() {
+    let fixture = TamperFixture::publish("open-rank-column").await;
+    let nodes = fixture.nodes;
+    let files = &fixture.generation.repository().files;
+
+    let ranks = Saved::of(fixture.path_of(&files.rank_of_position.name()));
     shorten_u32_column(&ranks.path, nodes - 1);
     assert_matches!(
-        open().expect_err("a short rank column is refused"),
+        fixture.open().expect_err("a short rank column is refused"),
         OpenAtlasError::Columns {
             codes,
             coordinates,
@@ -354,58 +409,99 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
             && rank_positions == nodes,
     );
     ranks.restore();
-    open().expect("the repaired fixture opens");
+    fixture.open().expect("the repaired fixture opens");
+}
 
-    // The adjacency's node domain against the code column.
-    let adjacency = Saved::of(generation.path_of(&files.adjacency.name()));
+/// An adjacency spanning an extra node row is refused under `Nodes`.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn respanned_adjacency_refuses() {
+    let fixture = TamperFixture::publish("open-adjacency-span").await;
+    let nodes = fixture.nodes;
+    let files = &fixture.generation.repository().files;
+
+    let adjacency = Saved::of(fixture.path_of(&files.adjacency.name()));
     respan_adjacency(
         &adjacency.path,
         usize::try_from(nodes + 1).expect("fixture node counts fit usize"),
-        &endpoints,
+        &fixture.endpoints,
     );
     assert_matches!(
-        open().expect_err("an adjacency spanning an extra node row is refused"),
+        fixture
+            .open()
+            .expect_err("an adjacency spanning an extra node row is refused"),
         OpenAtlasError::Nodes { adjacency: spanned, codes }
             if spanned == nodes + 1 && codes == nodes,
     );
     adjacency.restore();
-    open().expect("the repaired fixture opens");
+    fixture.open().expect("the repaired fixture opens");
+}
 
-    // The endpoint column against the adjacency's edge domain.
-    let endpoint_column = Saved::of(generation.path_of(&files.edge_endpoints.name()));
-    shorten_endpoints(&endpoint_column.path, &endpoints[..endpoints.len() - 1]);
+/// An endpoint column short of the adjacency's edge domain is refused under `Edges`.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn short_endpoint_column_refuses() {
+    let fixture = TamperFixture::publish("open-endpoint-column").await;
+    let edges = fixture.edges();
+    let files = &fixture.generation.repository().files;
+
+    let endpoint_column = Saved::of(fixture.path_of(&files.edge_endpoints.name()));
+    shorten_endpoints(
+        &endpoint_column.path,
+        &fixture.endpoints[..fixture.endpoints.len() - 1],
+    );
     assert_matches!(
-        open().expect_err("a short endpoint column is refused"),
+        fixture.open().expect_err("a short endpoint column is refused"),
         OpenAtlasError::Edges { adjacency: spanned, endpoints: paired }
             if spanned == edges && paired == edges - 1,
     );
     endpoint_column.restore();
-    open().expect("the repaired fixture opens");
+    fixture.open().expect("the repaired fixture opens");
+}
 
-    // The quadtree root's subtree count against the code column.
-    let quad = Saved::of(generation.path_of(&files.quad.name()));
+/// A quadtree root whose subtree count lies below the point count is refused under `Subtree`.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn retargeted_quad_root_refuses() {
+    let fixture = TamperFixture::publish("open-quad-root").await;
+    let nodes = fixture.nodes;
+    let files = &fixture.generation.repository().files;
+
+    let quad = Saved::of(fixture.path_of(&files.quad.name()));
     retarget_quad_root(
         &quad.path,
         u32::try_from(nodes - 1).expect("fixture point counts fit u32"),
     );
     assert_matches!(
-        open().expect_err("a root subtree count below the point count is refused"),
+        fixture
+            .open()
+            .expect_err("a root subtree count below the point count is refused"),
         OpenAtlasError::Subtree { quad: counted, codes }
             if counted == nodes - 1 && codes == nodes,
     );
     quad.restore();
-    open().expect("the repaired fixture opens");
+    fixture.open().expect("the repaired fixture opens");
+}
 
-    // The postings' point domain against the code column.
-    let postings = Saved::of(generation.path_of(&files.postings.name()));
+/// A postings point domain above the code column's count is refused under `Points`.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn retargeted_postings_points_refuses() {
+    let fixture = TamperFixture::publish("open-postings-points").await;
+    let nodes = fixture.nodes;
+    let files = &fixture.generation.repository().files;
+
+    let postings = Saved::of(fixture.path_of(&files.postings.name()));
     retarget_postings_points(&postings.path, nodes + 1);
     assert_matches!(
-        open().expect_err("a postings point domain above the point count is refused"),
+        fixture
+            .open()
+            .expect_err("a postings point domain above the point count is refused"),
         OpenAtlasError::Points { postings: spanned, codes }
             if spanned == nodes + 1 && codes == nodes,
     );
     postings.restore();
-    open().expect("the repaired fixture opens");
+    fixture.open().expect("the repaired fixture opens");
 }
 
 /// Each rank-pair tamper names its own variant, and repair restores the open.

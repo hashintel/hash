@@ -98,7 +98,7 @@ impl DensityBand {
     /// assert_eq!(band.distance(4_500), 500);
     /// ```
     #[must_use]
-    #[cfg(test)]
+    #[cfg(test)] // The density and manifest tests configure bands directly.
     pub(crate) const fn new(lower: NonZero<u64>, upper: NonZero<u64>) -> Option<Self> {
         if upper.get() < lower.get() {
             return None;
@@ -276,13 +276,6 @@ impl DensityPolicy {
         })
     }
 
-    /// Returns the policy's band.
-    #[must_use]
-    #[cfg(test)]
-    pub(crate) const fn band(self) -> DensityBand {
-        self.band
-    }
-
     /// Resolves the delivery-cut offset of one authorized view.
     ///
     /// The offset in `A(V) = { k | k ≤ min(k_sat(V), ceiling) }` minimizing `(dist(C(m + k, V), [L,
@@ -406,7 +399,7 @@ impl ViewOccupancy {
 
     /// Returns whether the view occupies nothing.
     #[must_use]
-    #[cfg(test)]
+    #[cfg(test)] // The density, serve, and manifest tests assert emptiness directly.
     pub(crate) const fn is_empty(&self) -> bool {
         self.occupied[Depth::MIN.get() as usize] == 0
     }

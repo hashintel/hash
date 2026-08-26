@@ -26,7 +26,7 @@ impl Similarity {
     /// Returns the root-mean-square distance from transformed source points to their targets.
     ///
     /// This is the movement a fitted alignment could not explain: after
-    /// [`fit_uniform`](Self::fit_uniform) it measures how far the two fields differ beyond
+    /// [`fit_uniform_par`](Self::fit_uniform_par) it measures how far the two fields differ beyond
     /// scale, rotation, and translation. This applies the transform with coefficients widened
     /// to `f64`, and the squared distances accumulate in double precision, so corpus-scale sums
     /// keep their accuracy. Pairs fold four at a time, and the trailing `len % 4` fold one at a

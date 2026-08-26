@@ -81,22 +81,6 @@ impl<A> ReadingGrid<A> {
         }
     }
 
-    /// Returns the anchor count.
-    #[inline]
-    #[must_use]
-    #[cfg(test)]
-    pub(crate) const fn anchors(&self) -> usize {
-        self.cells.rows()
-    }
-
-    /// Returns the step count of the neighbourhood axis.
-    #[inline]
-    #[must_use]
-    #[cfg(test)]
-    pub(crate) const fn steps(&self) -> usize {
-        self.cells.columns()
-    }
-
     /// Borrows one anchor's reading at one step.
     ///
     /// # Panics
@@ -307,7 +291,7 @@ impl<N> ProbeReadings<N> {
 /// `anchor_types` is parallel to the readings' anchors: each entry lists one anchor's direct
 /// types, and an empty entry leaves its anchor in the whole-probe readings only. Construction
 /// checks the cover once, so a consumer never re-checks the anchor count.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub(crate) struct TypedReadings<'probe, N> {
     /// The probe's readings.
     readings: &'probe ProbeReadings<N>,
@@ -328,5 +312,69 @@ impl<'probe, N> TypedReadings<'probe, N> {
     #[must_use]
     pub(crate) const fn anchor_types(&self) -> &'probe [SmallVec<OntologyRowId, 2>] {
         self.anchor_types
+    }
+}
+
+// Not derived: the fields are references, so copying needs no `N: Copy` bound.
+impl<N> Copy for TypedReadings<'_, N> {}
+
+impl<N> Clone for TypedReadings<'_, N> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rand::SeedableRng as _;
+    use rand_xoshiro::Xoshiro256PlusPlus;
+
+    use super::ReadingGrid;
+    use crate::salt::quality::{
+        probe::{ProbeOptions, probe},
+        tests::{ProbeFixture, irregular_angles},
+    };
+
+    /// The gathered grid holds exactly the input rows' anchor and step counts.
+    #[test]
+    fn from_anchor_cells_dimensions() {
+        let grid = ReadingGrid::from_anchor_cells(vec![vec![0_u8; 2]; 5], 2);
+        assert_eq!(grid.cells.rows(), 5);
+        assert_eq!(grid.cells.columns(), 2);
+    }
+
+    /// The probe builds every space-pair grid at the requested anchor and step counts.
+    #[tokio::test]
+    async fn probe_grid_dimensions() {
+        let fixture = ProbeFixture::on_circle(&irregular_angles(48));
+        let options = ProbeOptions {
+            anchors: 5.try_into().expect("nonzero"),
+            comparisons: 12.try_into().expect("nonzero"),
+            neighbourhoods: vec![
+                2.try_into().expect("nonzero"),
+                4.try_into().expect("nonzero"),
+            ]
+            .into(),
+            ..ProbeOptions::default()
+        };
+
+        let readings = probe(
+            &fixture.dataset(),
+            fixture.corpus(),
+            &options,
+            Xoshiro256PlusPlus::seed_from_u64(7),
+        )
+        .await
+        .expect("the corpus hosts the probe design");
+
+        for grid in [
+            &readings.map_representation,
+            &readings.sampled_map_representation,
+            &readings.sampled_map_canonical,
+            &readings.sampled_representation_canonical,
+        ] {
+            assert_eq!(grid.cells.rows(), 5);
+            assert_eq!(grid.cells.columns(), 2);
+        }
     }
 }

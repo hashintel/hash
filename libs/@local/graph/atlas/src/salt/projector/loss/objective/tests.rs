@@ -594,9 +594,9 @@ fn the_scale_channel_completes_the_derivative_through_a_live_refit() {
     )
     .expect("the generic fixture is a valid gauge");
     let fit = gauge
-        .fit(
-            FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)),
-            FinitePointField::new_unchecked(IdSlice::from_raw(&zero)),
+        .fit_gathered(
+            &FinitePointField::new_unchecked(IdSlice::from_raw(&canonical)).gather(gauge.rows()),
+            &FinitePointField::new_unchecked(IdSlice::from_raw(&zero)).gather(gauge.rows()),
             None,
         )
         .expect("the generic fixture fits");

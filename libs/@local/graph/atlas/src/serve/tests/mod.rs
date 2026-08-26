@@ -52,7 +52,7 @@ use crate::{
     bitset::{CompressedBitSet, DenseBitSlice},
     device::Device,
     file::generation::GenerationRoot,
-    identity::{BasePosition, CardRow, EdgeRowId, NodeRowId, OntologyRowId},
+    identity::{BasePosition, CardRow, EdgeRowId, ImportanceRank, NodeRowId, OntologyRowId},
     postgres::id::ArchivedOntologyTypeUuid,
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
@@ -761,10 +761,11 @@ pub(crate) fn open_artifacts(generation: &Generation) -> Artifacts {
 
 /// Reads the gather column narrowed to the fixture tests' `u32` row vocabulary.
 pub(crate) fn fixture_row_ids(rows: &ArrayFile) -> Vec<u32> {
-    rows.u64_le_elements()
-        .expect("the row column is little-endian u64 rows")
+    rows.column::<BasePosition, NodeRowId>()
+        .expect("the row column is a node-row column")
+        .as_raw()
         .iter()
-        .map(|row| u32::try_from(row.get()).expect("fixture rows fit u32"))
+        .map(|row| row.as_u32())
         .collect()
 }
 
@@ -1048,12 +1049,9 @@ async fn serves_empty_and_deepest_cells() {
         morton,
         quad,
         coordinates,
-        rows,
+        ..
     } = open_artifacts(&generation);
     let points = coordinates.points().expect("wire coordinates are points");
-    let _row_ids = rows
-        .u64_le_elements()
-        .expect("the row column is little-endian u64 rows");
 
     // A valid coordinate with no quad node serves the honest empty
     // tile, byte for byte.
@@ -1525,10 +1523,11 @@ async fn edges_exclude_partially_delivered_pairs() {
     let endpoints = endpoints.as_slice();
     let positions: Vec<u32> = edge_artifacts
         .positions
-        .u32_le_elements()
-        .expect("the position permutation is little-endian u32")
+        .column::<NodeRowId, BasePosition>()
+        .expect("the position column holds base positions")
+        .as_raw()
         .iter()
-        .map(|position| position.get())
+        .map(|position| position.as_u32())
         .collect();
 
     let depth = Depth::new(FIXTURE_LOD.max_tile_depth).expect("the deepest tile depth is valid");
@@ -1588,17 +1587,19 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
     let endpoints = endpoints.as_slice();
     let ranks: Vec<u32> = edge_artifacts
         .ranks
-        .u32_le_elements()
-        .expect("the rank column is little-endian u32")
+        .column::<BasePosition, ImportanceRank>()
+        .expect("the rank column holds importance ranks")
+        .as_raw()
         .iter()
-        .map(|rank| rank.get())
+        .map(|rank| rank.as_u32())
         .collect();
     let positions: Vec<u32> = edge_artifacts
         .positions
-        .u32_le_elements()
-        .expect("the position permutation is little-endian u32")
+        .column::<NodeRowId, BasePosition>()
+        .expect("the position column holds base positions")
+        .as_raw()
         .iter()
-        .map(|position| position.get())
+        .map(|position| position.as_u32())
         .collect();
     let rank_of_row =
         |row: u64| ranks[positions[usize::try_from(row).expect("fixture rows fit usize")] as usize];
@@ -2159,46 +2160,43 @@ async fn locate_ego_graph() {
     }
 }
 
-/// The locate edge cap keeps the nearest partners, and their nodes leave with their edges.
+/// The squared wire-frame distance between two fitted rows, as selection-key bits.
 ///
-/// The selection key is ascending (squared wire-frame distance to the partner, partner
-/// first-visible zoom, link-entity identity bytes). Presentation stays ascending identity bytes.
-/// Proven by hand on the self-loop - its partner is the source itself at distance zero, so it
-/// survives every nonzero cap - and against an independent key derivation swept over every
-/// fixture source and cap.
-#[expect(
-    clippy::too_many_lines,
-    reason = "the hand-derived case and the swept key derivation share one publish"
-)]
+/// The derivation must mirror the selection key bit for bit: a fused `mul_add` rounds differently
+/// and reorders near-ties.
+fn wire_distance_bits(atlas: &Atlas, from: u32, to: u32) -> u32 {
+    let positions = atlas.positions();
+    let origin = positions[atlas.positions_of_row()[NodeRowId::from_u32(from)]];
+    let point = positions[atlas.positions_of_row()[NodeRowId::from_u32(to)]];
+    let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
+    #[expect(
+        clippy::suboptimal_flops,
+        reason = "unfused arithmetic mirrors the selection key exactly"
+    )]
+    (dx * dx + dy * dy).to_bits()
+}
+
+/// The locate edge cap keeps the nearest partner, proven by hand on the self-loop.
+///
+/// Row 2's self-loop partner is the source itself at distance zero, so it survives every
+/// nonzero cap, and partner 1's only edge truncates - the partner leaves with its edge and the
+/// source stands alone.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_cap_nearest_partners() {
+async fn locate_cap_self_loop() {
     use super::locate::LocateLimits;
 
     let (_generation, atlas) = publish("locate-truncation").await;
-    let node_codec = test_codec(&atlas);
-    let accepted = atlas.node_universe();
     let bound = Bound::of(&atlas, &FULL);
     let view = bound.view(&atlas);
-    let distance_of = |from: u32, to: u32| {
-        let positions = atlas.positions();
-        let origin = positions[atlas.positions_of_row()[NodeRowId::from_u32(from)]];
-        let point = positions[atlas.positions_of_row()[NodeRowId::from_u32(to)]];
-        let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
-        // The derivation must mirror the selection key bit for bit:
-        // a fused mul_add rounds differently and reorders near-ties.
-        #[expect(
-            clippy::suboptimal_flops,
-            reason = "unfused arithmetic mirrors the selection key exactly"
-        )]
-        (dx * dx + dy * dy).to_bits()
-    };
 
-    // Row 2 carries the self-loop (edge 2, distance zero) and one
-    // link to row 1 (edge 1). The rows occupy distinct wire
-    // coordinates, which the case asserts so that the hand derivation
-    // cannot degenerate into an unnoticed tie.
-    assert_ne!(distance_of(2, 1), 0, "rows 1 and 2 are not co-located");
+    // The rows occupy distinct wire coordinates, which the case asserts so that the hand
+    // derivation cannot degenerate into an unnoticed tie.
+    assert_ne!(
+        wire_distance_bits(&atlas, 2, 1),
+        0,
+        "rows 1 and 2 are not co-located"
+    );
     let source = atlas
         .resolve_source(&view, &entity_string_of(2))
         .expect("fixture node ids resolve");
@@ -2220,17 +2218,31 @@ async fn locate_cap_nearest_partners() {
         [2],
         "the self-loop is the nearest edge",
     );
-    // Partner 1's only edge truncated, so partner 1 is not
-    // delivered: the source stands alone.
+    // Partner 1's only edge truncated, so partner 1 is not delivered: the source stands alone.
     assert_eq!(delivered_row_ids(&atlas, &capped), [NodeRowId::new(2)]);
     assert_eq!(
         capped.delivered.as_raw(),
         [ViewRow::Base(atlas.positions_of_row()[NodeRowId::new(2)])]
     );
+}
 
-    // The general law, swept: survivors are the cap smallest under
-    // the independent key, presented ascending by wire edge id, and
-    // the delivered nodes are exactly the survivors' partners.
+/// The locate edge cap's survivors match an independent key derivation at every cap.
+///
+/// The selection key is ascending (squared wire-frame distance to the partner, partner
+/// first-visible zoom, link-entity identity bytes). Presentation stays ascending identity
+/// bytes, the delivered nodes are exactly the survivors' partners, and assembly repeats
+/// identically.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_cap_vs_independent_key() {
+    use super::locate::LocateLimits;
+
+    let (_generation, atlas) = publish("locate-truncation-sweep").await;
+    let node_codec = test_codec(&atlas);
+    let accepted = atlas.node_universe();
+    let bound = Bound::of(&atlas, &FULL);
+    let view = bound.view(&atlas);
+
     for source_row in [0_u8, 1, 2, 3, 4, 5, 7, 40] {
         let source = atlas
             .resolve_source(&view, &entity_string_of(source_row))
@@ -2249,9 +2261,8 @@ async fn locate_cap_nearest_partners() {
                 "ego({source_row}) cap {cap}",
             );
 
-            // The independent key runs distance bits, then the
-            // partner's first visible zoom through the public resolve
-            // path (the HEAD fly-to derivation), then the identity
+            // The independent key runs distance bits, then the partner's first visible zoom
+            // through the public resolve path (the HEAD fly-to derivation), then the identity
             // bytes.
             let mut expected = full.edges.clone();
             expected.sort_unstable_by_key(|&(edge, id)| {
@@ -2268,7 +2279,11 @@ async fn locate_cap_nearest_partners() {
                     )
                     .expect("fixture partners resolve")
                     .zoom;
-                (distance_of(u32::from(source_row), partner), zoom, id)
+                (
+                    wire_distance_bits(&atlas, u32::from(source_row), partner),
+                    zoom,
+                    id,
+                )
             });
             expected.truncate(cap);
             expected.sort_unstable_by_key(|&(_, id)| id);

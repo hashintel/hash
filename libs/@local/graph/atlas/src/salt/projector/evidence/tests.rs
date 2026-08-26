@@ -92,7 +92,11 @@ fn live_fit(
     zero: &[Vec2; 6],
 ) -> GaugeFit {
     anchors
-        .fit(frame(canonical), frame(zero), None)
+        .fit_gathered(
+            &frame(canonical).gather(anchors.rows()),
+            &frame(zero).gather(anchors.rows()),
+            None,
+        )
         .expect("the fixture fits")
 }
 

@@ -206,7 +206,7 @@ impl QuadFile {
     }
 
     /// Views the shared type-id array.
-    #[cfg(test)]
+    #[cfg(test)] // `type_set` composes it for the open-tamper and lod tests.
     #[must_use]
     fn ids(&self) -> &[U32<LE>] {
         let bytes = self.map.map().region(
@@ -227,7 +227,7 @@ impl QuadFile {
     /// # Panics
     ///
     /// This panics when `node` is at or beyond the node count.
-    #[cfg(test)]
+    #[cfg(test)] // The open-tamper and lod tests read direct-type sets cross-module.
     #[must_use]
     pub(crate) fn type_set(&self, node: u32) -> &[U32<LE>] {
         let posts = self.posts();

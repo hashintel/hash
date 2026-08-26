@@ -485,17 +485,33 @@ fn replay_children_mask(rows: &[ScopeRow], clamped: &[u8], cell: MortonCell, cut
     })
 }
 
-/// Replays every cut query against the quadratic law over the adversarial row sets: every
-/// admissible offset, every served zoom, every occupied cell and an empty one, the per-bucket
-/// run order, the catch-all tail, `children`, `first_zoom`, `bucket_of`, `root_delivered`,
-/// and `min_resolution`.
-#[test]
-#[expect(
-    clippy::too_many_lines,
-    reason = "the replay sweeps every cut query in one place, and splitting it would part the \
-              oracle from the assertions it feeds"
-)]
-fn cuts_match_the_quadratic_replay() {
+/// One bound cut with the replay context its oracle assertions read.
+///
+/// The driver walks every adversarial row set and every admissible offset, so a facet test
+/// holds one query's law and the sweep stays shared.
+struct ReplayCase<'cut> {
+    /// The row set's index in [`replay_row_sets`], for assertion messages.
+    case: usize,
+    /// The delivery-cut offset.
+    k: u8,
+    /// The grid's span, `span_log2`.
+    span: u8,
+    /// The grid's deepest served zoom.
+    max_tile: u8,
+    /// The cut's deepest bucket, `max_tile + span + k`.
+    deepest: u8,
+    /// The case's rows.
+    rows: &'cut [ScopeRow],
+    /// Each row's natural bucket by the quadratic law, row-parallel.
+    natural: &'cut [u8],
+    /// The natural buckets clamped to the cut's deepest, row-parallel.
+    clamped: &'cut [u8],
+    /// The bound cut under test.
+    cut: &'cut super::cut::ScheduleCut<'cut>,
+}
+
+/// Hands every adversarial row set's every admissible bound cut to `check`.
+fn replay_cuts(check: impl Fn(ReplayCase<'_>)) {
     let grid = Grid::new(FIXTURE_LOD).expect("the fixture lod lies on the key width");
     let span = grid.span_log2();
     let max_tile = grid.max_tile_depth();
@@ -506,42 +522,150 @@ fn cuts_match_the_quadratic_replay() {
             Box::new_in([], MemoryUsageAllocator::global()),
         );
         let natural = replay_natural_buckets(&rows);
-
         let overlay = ArrivalOverlay::empty();
+
+        for k in 0..=33_u8 {
+            let Ok(cut) = schedule.cut(&overlay, grid, CutOffset::new(k)) else {
+                continue;
+            };
+            let deepest = max_tile + span + k;
+            let clamped: Vec<u8> = natural.iter().map(|&at| at.min(deepest)).collect();
+            check(ReplayCase {
+                case,
+                k,
+                span,
+                max_tile,
+                deepest,
+                rows: &rows,
+                natural: &natural,
+                clamped: &clamped,
+                cut: &cut,
+            });
+        }
+    }
+}
+
+/// Every occupied cell of the zoom, plus one cell nothing occupies.
+fn replay_cells(rows: &[ScopeRow], zoom_grid: Depth) -> Vec<MortonCell> {
+    let mut cells: Vec<MortonCell> = rows.iter().map(|row| row.key.cell(zoom_grid)).collect();
+    cells.sort_unstable_by_key(|cell| cell.min_key());
+    cells.dedup();
+    cells.push(MortonKey::from_bits(0x5555_5555_5555_5555).cell(zoom_grid));
+    cells
+}
+
+/// The expected delivery of `cell` over buckets `first..=last`: bucket-major, (key,
+/// rank)-ascending per run, the deepest bucket absorbing the catch-all tail.
+fn replay_delivery(
+    rows: &[ScopeRow],
+    natural: &[u8],
+    deepest: u8,
+    cell: MortonCell,
+    first: u8,
+    last: u8,
+) -> (Vec<ViewRow>, Vec<u32>) {
+    let mut positions = Vec::new();
+    let mut runs = Vec::new();
+    for bucket in first..=last {
+        let mut members: Vec<&ScopeRow> = rows
+            .iter()
+            .zip(natural)
+            .filter(|&(row, &at)| {
+                cell.contains(row.key)
+                    && if bucket == deepest {
+                        at >= deepest
+                    } else {
+                        at == bucket
+                    }
+            })
+            .map(|(row, _)| row)
+            .collect();
+        members.sort_unstable_by_key(|row| (row.key, row.rank));
+        runs.push(u32::try_from(members.len()).expect("fixture rows fit u32"));
+        positions.extend(members.iter().map(|row| row.vessel));
+    }
+    (positions, runs)
+}
+
+/// Binding admits an offset exactly when `max_tile + span + k` lies on the key width, and the
+/// admitted cut's deepest bucket is that sum.
+#[test]
+fn cut_offset_admissibility() {
+    let grid = Grid::new(FIXTURE_LOD).expect("the fixture lod lies on the key width");
+    let span = grid.span_log2();
+    let max_tile = grid.max_tile_depth();
+
+    for (case, rows) in replay_row_sets().into_iter().enumerate() {
+        let schedule = ScopeSchedule::over(rows, Box::new_in([], MemoryUsageAllocator::global()));
+        let overlay = ArrivalOverlay::empty();
+
         for k in 0..=33_u8 {
             let bound = schedule.cut(&overlay, grid, CutOffset::new(k));
             let admissible =
                 u16::from(max_tile) + u16::from(span) + u16::from(k) <= u16::from(Depth::MAX.get());
-            let Ok(cut) = bound else {
-                assert!(
+            match bound {
+                Ok(cut) => {
+                    assert!(
+                        admissible,
+                        "case {case}: binding accepted an offset past the width"
+                    );
+                    assert_eq!(
+                        cut.deepest().get(),
+                        max_tile + span + k,
+                        "case {case} k {k}"
+                    );
+                }
+                Err(_) => assert!(
                     !admissible,
                     "case {case}: binding refused an admissible offset"
-                );
-                continue;
-            };
-            assert!(
-                admissible,
-                "case {case}: binding accepted an offset past the width"
-            );
+                ),
+            }
+        }
+    }
+}
 
-            let deepest = max_tile + span + k;
-            assert_eq!(cut.deepest().get(), deepest, "case {case} k {k}");
-
-            let clamped: Vec<u8> = natural.iter().map(|&at| at.min(deepest)).collect();
-
-            // Root delivery and the deepest occupied bucket.
+/// Root delivery counts the rows at the root's cut depth and the resolution is the deepest
+/// clamped bucket.
+#[test]
+fn root_aggregates_vs_replay() {
+    replay_cuts(
+        |ReplayCase {
+             case,
+             k,
+             span,
+             rows,
+             clamped,
+             cut,
+             ..
+         }| {
             let cut_zero = span + k;
             let delivered = rows
                 .iter()
-                .zip(&clamped)
+                .zip(clamped)
                 .filter(|&(_, &bucket)| bucket <= cut_zero)
                 .count() as u64;
             assert_eq!(cut.root_delivered(), delivered, "case {case} k {k}");
             let resolution = clamped.iter().copied().max().map_or(0, u64::from);
             assert_eq!(cut.min_resolution(), resolution, "case {case} k {k}");
+        },
+    );
+}
 
-            // Position lookups, including one the view never held.
-            for (row, &bucket) in rows.iter().zip(&clamped) {
+/// Position lookups answer the clamped natural bucket and its first zoom, and a position the
+/// view never held answers [`None`].
+#[test]
+fn position_lookups_vs_natural_buckets() {
+    replay_cuts(
+        |ReplayCase {
+             case,
+             k,
+             span,
+             rows,
+             clamped,
+             cut,
+             ..
+         }| {
+            for (row, &bucket) in rows.iter().zip(clamped) {
                 let ViewRow::Base(position) = row.vessel else {
                     unreachable!("the replay sets hold base rows alone")
                 };
@@ -556,67 +680,102 @@ fn cuts_match_the_quadratic_replay() {
             }
             assert_eq!(cut.bucket_of(BasePosition::from_u32(9_999)), None);
             assert_eq!(cut.first_zoom(BasePosition::from_u32(9_999)), None);
+        },
+    );
+}
 
+/// A total delivery carries every bucket from the root to the cell's cut depth.
+#[test]
+fn total_delivery_bucket_major() {
+    replay_cuts(
+        |ReplayCase {
+             case,
+             k,
+             span,
+             max_tile,
+             deepest,
+             rows,
+             natural,
+             cut,
+             ..
+         }| {
             for zoom in 0..=max_tile {
                 let cut_depth = zoom + span + k;
                 let zoom_grid = Depth::new(zoom).expect("served zooms lie within the key width");
-
-                // Every occupied cell of the zoom, plus one cell nothing occupies.
-                let mut cells: Vec<MortonCell> =
-                    rows.iter().map(|row| row.key.cell(zoom_grid)).collect();
-                cells.sort_unstable_by_key(|cell| cell.min_key());
-                cells.dedup();
-                cells.push(MortonKey::from_bits(0x5555_5555_5555_5555).cell(zoom_grid));
-
-                for cell in cells {
-                    // The expected delivery, bucket-major, (key, rank)-ascending per run.
-                    let expect = |first: u8, last: u8| {
-                        let mut positions = Vec::new();
-                        let mut runs = Vec::new();
-                        for bucket in first..=last {
-                            let mut members: Vec<&ScopeRow> = rows
-                                .iter()
-                                .zip(&natural)
-                                .filter(|&(row, &at)| {
-                                    cell.contains(row.key)
-                                        && if bucket == deepest {
-                                            at >= deepest
-                                        } else {
-                                            at == bucket
-                                        }
-                                })
-                                .map(|(row, _)| row)
-                                .collect();
-                            members.sort_unstable_by_key(|row| (row.key, row.rank));
-                            runs.push(u32::try_from(members.len()).expect("fixture rows fit u32"));
-                            positions.extend(members.iter().map(|row| row.vessel));
-                        }
-                        (positions, runs)
-                    };
-
+                for cell in replay_cells(rows, zoom_grid) {
                     let total = cut.total(zoom, cell);
-                    let (positions, runs) = expect(0, cut_depth);
+                    let (positions, runs) =
+                        replay_delivery(rows, natural, deepest, cell, 0, cut_depth);
                     assert_eq!(total.rows, positions, "case {case} k {k} z {zoom}");
                     assert_eq!(total.runs, runs, "case {case} k {k} z {zoom}");
                     assert_eq!(total.first_bucket, 0);
+                }
+            }
+        },
+    );
+}
 
+/// A delta delivery starts at the cell's cut depth, except the root's, which delivers whole.
+#[test]
+fn delta_delivery_first_bucket() {
+    replay_cuts(
+        |ReplayCase {
+             case,
+             k,
+             span,
+             max_tile,
+             deepest,
+             rows,
+             natural,
+             cut,
+             ..
+         }| {
+            for zoom in 0..=max_tile {
+                let cut_depth = zoom + span + k;
+                let zoom_grid = Depth::new(zoom).expect("served zooms lie within the key width");
+                for cell in replay_cells(rows, zoom_grid) {
                     let delta = cut.delta(zoom, cell);
                     let first = if zoom == 0 { 0 } else { cut_depth };
-                    let (positions, runs) = expect(first, cut_depth);
+                    let (positions, runs) =
+                        replay_delivery(rows, natural, deepest, cell, first, cut_depth);
                     assert_eq!(delta.rows, positions, "case {case} k {k} z {zoom}");
                     assert_eq!(delta.runs, runs, "case {case} k {k} z {zoom}");
                     assert_eq!(delta.first_bucket, first);
-
-                    // The occupied-children bitmask against the same law.
-                    let mask = cut.children(zoom, cell);
-                    let expected_mask = if cut_depth >= deepest {
-                        0_u8
-                    } else {
-                        replay_children_mask(&rows, &clamped, cell, cut_depth)
-                    };
-                    assert_eq!(mask, expected_mask, "case {case} k {k} z {zoom}");
                 }
             }
-        }
-    }
+        },
+    );
+}
+
+/// The occupied-children bitmask matches the quadratic law, and a cut at or past the deepest
+/// bucket has no occupied children.
+#[test]
+fn children_mask_vs_quadratic_law() {
+    replay_cuts(
+        |ReplayCase {
+             case,
+             k,
+             span,
+             max_tile,
+             deepest,
+             rows,
+             clamped,
+             cut,
+             ..
+         }| {
+            for zoom in 0..=max_tile {
+                let cut_depth = zoom + span + k;
+                let zoom_grid = Depth::new(zoom).expect("served zooms lie within the key width");
+                for cell in replay_cells(rows, zoom_grid) {
+                    let mask = cut.children(zoom, cell);
+                    let expected = if cut_depth >= deepest {
+                        0_u8
+                    } else {
+                        replay_children_mask(rows, clamped, cell, cut_depth)
+                    };
+                    assert_eq!(mask, expected, "case {case} k {k} z {zoom}");
+                }
+            }
+        },
+    );
 }

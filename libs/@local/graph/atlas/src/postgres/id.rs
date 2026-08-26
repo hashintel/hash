@@ -36,7 +36,7 @@ pub(crate) struct ArchivedEntityUuid([u8; 16]);
 
 impl ArchivedEntityUuid {
     /// Wraps raw uuid bytes.
-    #[cfg(test)]
+    #[cfg(test)] // The serve and delta tests build archived identities from seed bytes.
     pub(crate) const fn from_bytes(bytes: [u8; 16]) -> Self {
         Self(bytes)
     }
@@ -107,7 +107,7 @@ pub(crate) struct ArchivedWebId([u8; 16]);
 
 impl ArchivedWebId {
     /// Wraps raw uuid bytes.
-    #[cfg(test)]
+    #[cfg(test)] // The serve and delta tests build archived identities from seed bytes.
     pub(crate) const fn from_bytes(bytes: [u8; 16]) -> Self {
         Self(bytes)
     }

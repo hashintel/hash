@@ -21,8 +21,6 @@
 mod tests;
 
 use core::{alloc::Allocator, num::NonZero};
-#[cfg(test)]
-use std::alloc::Global;
 use std::collections::HashSet;
 
 use hashql_core::id::{Id, IdSlice};
@@ -106,12 +104,6 @@ where
             as f32;
 
         total
-    }
-
-    /// Draws `count` edges proportional to their weight.
-    #[cfg(test)]
-    pub(crate) fn sample(&self, count: usize, rng: impl Rng) -> Vec<NodePair<N>> {
-        self.sample_in(count, rng, Global)
     }
 
     /// Draws `count` edges proportional to their weight, allocating the pairs in `alloc`.
@@ -208,21 +200,10 @@ where
         }
     }
 
-    /// Draws up to `types` relation types with at most `cap` edges each.
+    /// Draws up to `types` relation types, allocating the draw list in `alloc`.
     ///
     /// Fewer types than requested means every type participates; a group smaller than the cap
     /// contributes all its edges.
-    #[cfg(test)]
-    pub(crate) fn sample(
-        &self,
-        types: usize,
-        cap: NonZero<usize>,
-        rng: impl Rng,
-    ) -> Vec<SampledRelationEdges<'index, N, E>> {
-        self.sample_in(types, cap, rng, Global)
-    }
-
-    /// Draws up to `types` relation types, allocating the draw list in `alloc`.
     ///
     /// The per-group edge vectors stay on the global allocator: they belong to
     /// [`SampledRelationEdges`], whose layout does not vary with the caller's arena.
@@ -301,20 +282,13 @@ where
         }
     }
 
-    /// Draws up to `count` distinct admissible pairs.
+    /// Draws up to `count` distinct admissible pairs, allocating them in `alloc`.
     ///
     /// The attempt budget bounds rejection and guarantees termination when the admissible pool is
     /// smaller than the request (a dense small corpus, aggressive protection), where the honest
     /// outcome is a shorter batch. At corpus scale the vetoed fraction of all pairs is vanishing
-    /// and the budget never binds.
-    #[cfg(test)]
-    pub(crate) fn sample(&self, count: usize, rng: impl Rng) -> Vec<NodePair<N>> {
-        self.sample_in(count, rng, Global)
-    }
-
-    /// Draws up to `count` distinct admissible pairs, allocating them in `alloc`.
-    ///
-    /// The rejection bookkeeping is scratch and stays on the global allocator.
+    /// and the budget never binds. The rejection bookkeeping is scratch and stays on the global
+    /// allocator.
     pub(crate) fn sample_in<A: Allocator>(
         &self,
         count: usize,

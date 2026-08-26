@@ -70,7 +70,7 @@ impl WireSecret {
 
     /// Wraps raw key bytes.
     #[must_use]
-    #[cfg(test)]
+    #[cfg(test)] // The serve tests pin fixture secrets.
     pub(crate) const fn new(bytes: [u8; Self::BYTES]) -> Self {
         Self(SecretHexBytes::new(bytes))
     }

@@ -9,6 +9,11 @@ use crate::{
     morton::{Depth, MortonCell, MortonKey},
 };
 
+/// Returns the policy's band.
+const fn band_of(policy: DensityPolicy) -> DensityBand {
+    policy.band
+}
+
 /// The fixtures' span exponent.
 ///
 /// A view's cut at offset `k` is depth `1 + k`.
@@ -388,16 +393,14 @@ fn resolution_is_a_function_of_the_count_profile(
     // The resolved offset lies in the candidate range, and it is the argmin the law states.
     let cut = depth(SPAN + resolved.get());
     let view = occupancy(&keys);
-    let distance = policy.band().distance(view.occupied_cells(cut));
+    let distance = band_of(policy).distance(view.occupied_cells(cut));
     prop_assert!(resolved.get() <= CEILING);
     for offset in 0..=CEILING {
         if offset > view.saturation_depth().get().saturating_sub(SPAN) {
             continue;
         }
 
-        let candidate = policy
-            .band()
-            .distance(view.occupied_cells(depth(SPAN + offset)));
+        let candidate = band_of(policy).distance(view.occupied_cells(depth(SPAN + offset)));
         prop_assert!(
             distance < candidate || (distance == candidate && resolved.get() <= offset),
             "offset {} beats the resolved {}",

@@ -124,7 +124,7 @@ impl<T: Id> CompressedBitSet<T> {
     ///
     /// This panics when a row lies above the representable domain.
     #[must_use]
-    #[cfg(test)]
+    #[cfg(test)] // The bitset and serve tests build masks from row lists cross-module.
     pub(crate) fn from_rows(rows: impl IntoIterator<Item = T>) -> Self {
         let mut set = Self::new();
         for row in rows {

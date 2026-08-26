@@ -705,7 +705,7 @@ where
 ///
 /// Returns an error when the corpus has at most one row, when the confidence is degenerate
 /// ([`SampleConfidence`](KnnError::SampleConfidence)), or when a backend query fails.
-#[cfg(test)]
+#[cfg(test)] // The knn tests score fixture backends through the full sampling path.
 pub(crate) fn spot_check<N, I>(
     index: &I,
     embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,

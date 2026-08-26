@@ -95,7 +95,7 @@ impl<'schedule> ScheduleCut<'schedule> {
     }
 
     /// Returns the deepest scope bucket: the catch-all.
-    #[cfg(test)]
+    #[cfg(test)] // The schedule tests read the catch-all bound for the replay oracle.
     pub(crate) const fn deepest(&self) -> Depth {
         self.deepest
     }

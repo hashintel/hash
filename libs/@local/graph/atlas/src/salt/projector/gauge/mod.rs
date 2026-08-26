@@ -168,44 +168,6 @@ where
         })
     }
 
-    /// Fits the alignment over the whole gauge population and evaluates its exact adjoints.
-    ///
-    /// Fits canonical onto zero with [`Similarity::fit_uniform_par`] over the anchors'
-    /// coordinates gathered from both live fields, then reads the normalized residual against
-    /// the frozen spread and evaluates `∂s/∂x_c(g)` and `∂s/∂x₀(g)` per anchor in parallel. The
-    /// residual bar binds when declared.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`GaugeRefusal`] carrying the first failed reading, from the closed form's own
-    /// refusals through an above-bar residual to an adjoint outside the finite f32 range.
-    ///
-    /// The fields cover one row domain holding every anchor row - a wiring contract whose
-    /// length half is checked in debug builds and whose domain half panics at the gather's
-    /// indexing.
-    ///
-    /// # Panics
-    ///
-    /// This panics at the gather when an anchor row lies outside the fields' row domain.
-    #[cfg(test)]
-    pub(crate) fn fit(
-        &self,
-        canonical: &FinitePointField<N>,
-        zero: &FinitePointField<N>,
-        residual_bar: Option<Positive>,
-    ) -> Result<GaugeFit, GaugeRefusal> {
-        debug_assert_eq!(
-            canonical.len(),
-            zero.len(),
-            "the canonical and zero fields should cover the same rows"
-        );
-
-        let source = canonical.gather(&self.rows);
-        let target = zero.gather(&self.rows);
-
-        self.fit_gathered(&source, &target, residual_bar)
-    }
-
     /// Fits the alignment over pre-gathered anchor constellations in draw order.
     ///
     /// The trainer's per-step evaluation holds the anchors' coordinates in a batch-local frame

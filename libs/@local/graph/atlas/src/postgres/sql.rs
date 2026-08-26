@@ -373,7 +373,7 @@ pub(crate) fn nearest_declared_icon(types: Aliased<EntityTypes>) -> SelectStatem
 /// statement at execution with an unread-parameter error. The scan also catches a placeholder
 /// rendered without a bind, which the kit cannot produce but a hand-assembled statement could
 /// reintroduce.
-#[cfg(test)]
+#[cfg(test)] // Every statement module's tests assert placeholder density.
 #[track_caller]
 pub(crate) fn assert_placeholders_dense(sql: &str, parameter_count: usize) {
     use alloc::collections::BTreeSet;
@@ -403,7 +403,7 @@ pub(crate) fn assert_placeholders_dense(sql: &str, parameter_count: usize) {
 }
 
 /// Collapses whitespace so statement comparisons survive indentation changes.
-#[cfg(test)]
+#[cfg(test)] // The stream tests compare statements modulo whitespace.
 pub(crate) fn normalize(sql: &str) -> String {
     sql.split_whitespace().collect::<Vec<_>>().join(" ")
 }

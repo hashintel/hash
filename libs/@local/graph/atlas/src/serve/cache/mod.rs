@@ -177,41 +177,6 @@ impl PendingCacheEntry {
             occupancy,
         })
     }
-
-    /// Pairs `proof` with the empty view's census and schedule.
-    ///
-    /// The cache neither reads a census or schedule nor derives one, so its own tests - over
-    /// holding, refreshing and expiring entries - need no walked ones. Production keeps exactly
-    /// one constructor, [`Self::of`], which censuses and schedules the proof it stores.
-    #[cfg(test)]
-    fn with_empty_view(proof: VisibilityProof) -> Self {
-        Self {
-            proof,
-            masking: MaskingActor {
-                id: None,
-                instance_admin: false,
-            },
-            census: ViewCensus::EMPTY,
-            schedule: ViewSchedule::Scope(
-                Arc::new(super::schedule::ScopeSchedule::empty()),
-                super::schedule::ArrivalOverlay::empty(),
-            ),
-            filter: None,
-            cohort: None,
-            occupancy: None,
-            weight: weight_of(0, None),
-        }
-    }
-
-    /// Binds `snapshot` as the pending entry's cohort.
-    ///
-    /// The cache neither reads a cohort nor resolves one, so its tests bind snapshots directly
-    /// where production receives them through [`Self::of`].
-    #[cfg(test)]
-    fn with_cohort(mut self, snapshot: Arc<DeltaSnapshot>) -> Self {
-        self.cohort = Some(snapshot);
-        self
-    }
 }
 
 /// One resolved scope, as the cache holds it.

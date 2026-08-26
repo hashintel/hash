@@ -458,7 +458,7 @@ const FIXTURE_CAPACITY: usize = 48 * PROJECTOR_DIMENSIONS;
 /// coordinates are the circle point itself. Chord length and cosine distance are both monotone in
 /// the angular gap, so equal embedding and map angles make all three spaces order every universe
 /// identically - a perfect map.
-struct ProbeFixture {
+pub(crate) struct ProbeFixture {
     node_ids: Vec<MemoryNodeId>,
     storage: BoxedVecN<FIXTURE_CAPACITY>,
     rows: usize,
@@ -467,7 +467,7 @@ struct ProbeFixture {
 }
 
 impl ProbeFixture {
-    fn on_circle(angles: &[f32]) -> Self {
+    pub(crate) fn on_circle(angles: &[f32]) -> Self {
         Self::new(angles, angles)
     }
 
@@ -500,7 +500,7 @@ impl ProbeFixture {
         }
     }
 
-    fn dataset(&self) -> MemoryDataset {
+    pub(crate) fn dataset(&self) -> MemoryDataset {
         MemoryDataset::new(
             Vec::new(),
             Vec::new(),
@@ -515,7 +515,7 @@ impl ProbeFixture {
             .expect("boxed storage is aligned")
     }
 
-    fn corpus(&self) -> ProbeCorpus<'_, MemoryNodeId> {
+    pub(crate) fn corpus(&self) -> ProbeCorpus<'_, MemoryNodeId> {
         ProbeCorpus::new(
             IdSlice::from_raw(&self.node_ids),
             IdSlice::from_raw(self.representations()),
@@ -527,7 +527,7 @@ impl ProbeFixture {
 /// Irregularly spaced angles inside a quarter circle.
 ///
 /// No two gaps coincide, so no space carries distance ties.
-fn irregular_angles(rows: usize) -> Vec<f32> {
+pub(crate) fn irregular_angles(rows: usize) -> Vec<f32> {
     #[expect(
         clippy::cast_precision_loss,
         reason = "fixture row counts stay far inside exact f32 integers"
@@ -571,8 +571,6 @@ async fn probe_reads_a_faithful_map_as_perfect() {
         &readings.sampled_map_canonical,
         &readings.sampled_representation_canonical,
     ] {
-        assert_eq!(grid.anchors(), 5);
-        assert_eq!(grid.steps(), 2);
         for step in 0..2 {
             let overall = grid.overall(Step::from_usize(step));
             assert_eq!(overall.queries(), 5);

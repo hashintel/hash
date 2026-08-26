@@ -531,10 +531,7 @@ impl StagedGeneration {
         self.persist(&document, &staged, &destination)
             .map_err(SealError::Io)?;
 
-        Ok(PublishedGeneration {
-            id,
-            path: destination,
-        })
+        Ok(PublishedGeneration { id })
     }
 
     fn persist(
@@ -584,11 +581,6 @@ pub(crate) fn document_digest(bytes: &[u8]) -> Sha256Digest {
 #[derive(Debug)]
 pub(crate) struct PublishedGeneration {
     pub id: GenerationId,
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "the publish tests read the directory")
-    )]
-    pub path: Utf8PathBuf,
 }
 
 impl PublishedGeneration {

@@ -13,7 +13,7 @@
 
 use hashql_core::id::{Id as _, IdSlice};
 
-use super::{DuplicateClassId, GaugeAnchors, GaugeOrdinal, GaugeRefusal, SpreadFloor};
+use super::{DuplicateClassId, GaugeAnchors, GaugeFit, GaugeOrdinal, GaugeRefusal, SpreadFloor};
 use crate::{
     identity::NodeRowId,
     math::{DNonNegative, DPositive, FinitePointField, Positive, Vec2},
@@ -22,6 +22,20 @@ use crate::{
 /// Views a finite coordinate array as a proven-finite whole-corpus field.
 fn frame(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
     FinitePointField::new_unchecked(IdSlice::from_raw(points))
+}
+
+/// Gathers both whole-corpus fields over the gauge's anchor draw and fits the alignment.
+fn fit_fields(
+    gauge: &GaugeAnchors<NodeRowId>,
+    canonical: &FinitePointField<NodeRowId>,
+    zero: &FinitePointField<NodeRowId>,
+    residual_bar: Option<Positive>,
+) -> Result<GaugeFit, GaugeRefusal> {
+    gauge.fit_gathered(
+        &canonical.gather(gauge.rows()),
+        &zero.gather(gauge.rows()),
+        residual_bar,
+    )
 }
 
 fn class(id: u32) -> DuplicateClassId {
@@ -75,9 +89,8 @@ fn recovers_an_exact_similarity_with_exact_adjoints() {
     assert_eq!(gauge.effective_count(), DNonNegative::from_usize(4));
     assert_eq!(gauge.rows.len(), 4);
 
-    let fit = gauge
-        .fit(frame(&CANONICAL), frame(&ZERO), None)
-        .expect("the exact fixture fits");
+    let fit =
+        fit_fields(&gauge, frame(&CANONICAL), frame(&ZERO), None).expect("the exact fixture fits");
 
     assert_eq!(fit.scale().get(), 2.0);
     assert_eq!(fit.similarity.rotation().cos(), 0.0);
@@ -179,8 +192,7 @@ fn adjoints_match_finite_differences() {
         None,
     )
     .expect("the generic fixture is a valid gauge");
-    let fit = gauge
-        .fit(frame(&canonical), frame(&zero), None)
+    let fit = fit_fields(&gauge, frame(&canonical), frame(&zero), None)
         .expect("the generic fixture fits");
 
     let source: Vec<(f64, f64)> = canonical
@@ -247,17 +259,15 @@ fn adjoints_match_finite_differences() {
 #[test]
 fn adjoints_are_invariant_under_zero_field_translation() {
     let gauge = square_gauge(&ZERO);
-    let fit = gauge
-        .fit(frame(&CANONICAL), frame(&ZERO), None)
-        .expect("the exact fixture fits");
+    let fit =
+        fit_fields(&gauge, frame(&CANONICAL), frame(&ZERO), None).expect("the exact fixture fits");
 
     let shifted: Vec<Vec2> = ZERO
         .iter()
         .map(|point| Vec2::new(point.x() + 16.0, point.y() - 8.0))
         .collect();
     let shifted_gauge = square_gauge(&shifted);
-    let shifted_fit = shifted_gauge
-        .fit(frame(&CANONICAL), frame(&shifted), None)
+    let shifted_fit = fit_fields(&shifted_gauge, frame(&CANONICAL), frame(&shifted), None)
         .expect("the shifted fixture fits");
 
     assert_eq!(fit.canonical_adjoints(), shifted_fit.canonical_adjoints());
@@ -355,7 +365,12 @@ fn the_residual_bar_binds_at_the_fit() {
     )
     .expect("the deformed fixture is a valid gauge");
 
-    let refused = gauge.fit(frame(&canonical), frame(&zero), Some(positive(0.25)));
+    let refused = fit_fields(
+        &gauge,
+        frame(&canonical),
+        frame(&zero),
+        Some(positive(0.25)),
+    );
     let Err(GaugeRefusal::ResidualAboveBar { residual, bar }) = refused else {
         panic!("expected a residual refusal, got {refused:?}");
     };
@@ -363,8 +378,7 @@ fn the_residual_bar_binds_at_the_fit() {
     // RMS 0.5 against the frozen spread √1.25.
     assert!((residual - 0.5 / f64::from(gauge.frozen_spread())).abs() < 1e-12);
 
-    let admitted = gauge
-        .fit(frame(&canonical), frame(&zero), Some(positive(0.5)))
+    let admitted = fit_fields(&gauge, frame(&canonical), frame(&zero), Some(positive(0.5)))
         .expect("the residual sits under the raised bar");
     assert_eq!(admitted.scale().get(), 1.0);
     assert_eq!(admitted.similarity.rotation().cos(), 1.0);
@@ -377,7 +391,7 @@ fn coincident_anchors_refuse_the_fit() {
     let gauge = square_gauge(&ZERO);
     let coincident = [Vec2::new(1.0, 1.0); 6];
 
-    let refused = gauge.fit(frame(&coincident), frame(&ZERO), None);
+    let refused = fit_fields(&gauge, frame(&coincident), frame(&ZERO), None);
 
     assert_eq!(refused, Err(GaugeRefusal::FitRefused));
 }

@@ -206,49 +206,6 @@ impl ArrayFile {
         <[f32]>::ref_from_bytes(self.data()).ok()
     }
 
-    // NOTE: **why** are they still used in tests? Makes no sense. Shouldn't they use `column()`
-    /// Views the data as little-endian `u32` elements.
-    ///
-    /// The view exists exactly when the file holds little-endian `u32` elements in a flat shape;
-    /// the empty shape is the zero-element file. The element type carries the byte order, so the
-    /// view is exact on every architecture.
-    #[must_use]
-    #[cfg(test)]
-    pub(crate) fn u32_le_elements(&self) -> Option<&[zerocopy::U32<LE>]> {
-        use zerocopy::U32;
-
-        if self.header().variant() != ArrayVariant::U32Le {
-            return None;
-        }
-
-        match self.header().shape.dims() {
-            [] | [_] => {}
-            _ => return None,
-        }
-
-        <[U32<LE>]>::ref_from_bytes(self.data()).ok()
-    }
-
-    /// Views the data as little-endian `u64` elements.
-    ///
-    /// The view exists exactly when the file holds little-endian `u64` elements in a flat shape;
-    /// the empty shape is the zero-element file. The element type carries the byte order, so the
-    /// view is exact on every architecture.
-    #[must_use]
-    #[cfg(test)]
-    pub(crate) fn u64_le_elements(&self) -> Option<&[U64<LE>]> {
-        if self.header().variant() != ArrayVariant::U64Le {
-            return None;
-        }
-
-        match self.header().shape.dims() {
-            [] | [_] => {}
-            _ => return None,
-        }
-
-        <[U64<LE>]>::ref_from_bytes(self.data()).ok()
-    }
-
     /// Views the data as little-endian `u64` pairs in row order.
     ///
     /// The view exists exactly when the file holds little-endian `u64` elements shaped `[T, 2]`;

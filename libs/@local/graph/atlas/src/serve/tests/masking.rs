@@ -58,17 +58,11 @@ async fn resolve_collapses_every_failure_to_one_none() {
 ///
 /// The delivered rows and their positions column equal the reference over exactly the visible
 /// rows - a visible row may sit shallower than the corpus schedule placed it, because its
-/// hidden competitor is out of its view - and a fully masked populated tile answers
-/// byte-identically to a tile that never had rows (empty is empty: the head's occupancy fields
-/// carry no evidence of hidden points).
-#[expect(
-    clippy::too_many_lines,
-    reason = "two modes and the empty-cell byte identity share one publish"
-)]
+/// hidden competitor is out of its view.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
-    let (generation, atlas) = publish("masked-tile").await;
+    let (_, atlas) = publish("masked-tile").await;
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
     let node_codec = test_codec(&atlas);
 
@@ -131,19 +125,22 @@ async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
             .collect();
         assert_eq!(masked_positions, expected_positions);
     }
+}
 
-    // A fully masked populated cell answers byte-identically to a
-    // cell that never had rows: same empty runs, zero children bits.
+/// A fully masked populated tile answers byte-identically to a tile that never had rows.
+///
+/// Empty is empty: the runs and children bits match a never-populated cell's, and the head's
+/// occupancy fields carry no evidence of hidden points.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn fully_masked_tile_vs_empty_tile() {
+    let (generation, atlas) = publish("masked-tile-empty").await;
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+
     let Artifacts {
-        morton: _,
-        quad,
-        coordinates,
-        rows,
+        quad, coordinates, ..
     } = open_artifacts(&generation);
     let points = coordinates.points().expect("wire coordinates are points");
-    let _row_ids = rows
-        .u64_le_elements()
-        .expect("the row column is little-endian u64 rows");
     let root_cell = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists");
     let mut nodes = Vec::new();
     walk(&quad, 0, root_cell, &mut nodes);

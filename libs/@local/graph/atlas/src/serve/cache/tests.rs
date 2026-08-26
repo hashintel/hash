@@ -19,12 +19,44 @@ use crate::{
     identity::{BasePosition, EdgeRowId, NodeRowId},
     salt::wire::{Mode, tests::section},
     serve::{
-        CutOffset, TileLimits, View, VisibilityProof,
-        delta::PlacementCohort,
+        CutOffset, TileLimits, View, ViewCensus, VisibilityProof,
+        delta::{DeltaSnapshot, PlacementCohort},
         hydrate::MaskingActor,
+        schedule::{ArrivalOverlay, ScopeSchedule, ViewSchedule},
         tests::{ROW_IDS, mask_hiding, narrow_usize, publish, request, test_codec, withdrawing},
     },
 };
+
+/// Pairs `proof` with the empty view's census and schedule.
+///
+/// The cache neither reads a census or schedule nor derives one, so the tests here - over
+/// holding, refreshing and expiring entries - need no walked ones. Production keeps exactly
+/// one constructor, [`PendingCacheEntry::of`], which censuses and schedules the proof it
+/// stores.
+fn with_empty_view(proof: VisibilityProof) -> PendingCacheEntry {
+    PendingCacheEntry {
+        proof,
+        masking: MaskingActor {
+            id: None,
+            instance_admin: false,
+        },
+        census: ViewCensus::EMPTY,
+        schedule: ViewSchedule::Scope(Arc::new(ScopeSchedule::empty()), ArrivalOverlay::empty()),
+        filter: None,
+        cohort: None,
+        occupancy: None,
+        weight: weight_of(0, None),
+    }
+}
+
+/// Binds `snapshot` as the pending entry's cohort.
+///
+/// The cache neither reads a cohort nor resolves one, so the tests here bind snapshots directly
+/// where production receives them through [`PendingCacheEntry::of`].
+fn with_cohort(mut entry: PendingCacheEntry, snapshot: Arc<DeltaSnapshot>) -> PendingCacheEntry {
+    entry.cohort = Some(snapshot);
+    entry
+}
 
 const SOFT: Duration = Duration::from_mins(8);
 const HARD: Duration = Duration::from_mins(10);
@@ -80,7 +112,7 @@ macro_rules! answering {
 
         async move || {
             calls.fetch_add(1, Ordering::Relaxed);
-            Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of($rows)))
+            Ok::<_, ()>(with_empty_view(proof_of($rows)))
         }
     }};
 }
@@ -349,7 +381,7 @@ async fn entry_census_folded_occupancy_unfolded() {
 /// occupancy pins that the harness holds the condition.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn the_mint_occupancy_ignores_the_folded_snapshot() {
+async fn mint_occupancy_ignores_fold() {
     let (_generation, atlas) = publish("cache-mint-occupancy").await;
     let atlas = Arc::new(atlas);
 
@@ -606,7 +638,7 @@ async fn stale_refresh_publishes_nothing() {
                 // before this task was first polled or after.
                 gate.notified().await;
                 calls.fetch_add(1, Ordering::Relaxed);
-                Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of(&[1, 2, 3])))
+                Ok::<_, ()>(with_empty_view(proof_of(&[1, 2, 3])))
             }
         })
         .await
@@ -679,7 +711,7 @@ async fn refresh_scoped_to_own_entry() {
             async move {
                 gate.notified().await;
                 calls.fetch_add(1, Ordering::Relaxed);
-                Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of(&[1, 2, 3])))
+                Ok::<_, ()>(with_empty_view(proof_of(&[1, 2, 3])))
             }
         })
         .await
@@ -748,7 +780,7 @@ async fn removed_entry_refresh_noop() {
             async move {
                 gate.notified().await;
                 calls.fetch_add(1, Ordering::Relaxed);
-                Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of(&[1, 2, 3])))
+                Ok::<_, ()>(with_empty_view(proof_of(&[1, 2, 3])))
             }
         })
         .await
@@ -843,11 +875,7 @@ async fn entry_exposes_bound_cohort() {
     let bound = cache
         .resolve(key(), now, {
             let snapshot = Arc::clone(&snapshot);
-            async move || {
-                Ok::<_, ()>(
-                    PendingCacheEntry::with_empty_view(proof_of(&[1])).with_cohort(snapshot),
-                )
-            }
+            async move || Ok::<_, ()>(with_cohort(with_empty_view(proof_of(&[1])), snapshot))
         })
         .await
         .expect("the resolution answers");
@@ -859,7 +887,7 @@ async fn entry_exposes_bound_cohort() {
 
     let unbound = cache
         .resolve(key_of(12), now, async || {
-            Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of(&[2])))
+            Ok::<_, ()>(with_empty_view(proof_of(&[2])))
         })
         .await
         .expect("the resolution answers");
@@ -910,11 +938,7 @@ async fn folded_matches_bound_publication() {
     let scoped = cache
         .resolve(key(), now, {
             let snapshot = Arc::clone(&snapshot);
-            async move || {
-                Ok::<_, ()>(
-                    PendingCacheEntry::with_empty_view(proof_of(&[1])).with_cohort(snapshot),
-                )
-            }
+            async move || Ok::<_, ()>(with_cohort(with_empty_view(proof_of(&[1])), snapshot))
         })
         .await
         .expect("the resolution answers");
@@ -928,10 +952,10 @@ async fn folded_matches_bound_publication() {
         .resolve(key_of(12), now, {
             let snapshot = Arc::clone(&snapshot);
             async move || {
-                Ok::<_, ()>(
-                    PendingCacheEntry::with_empty_view(VisibilityProof::full_visibility())
-                        .with_cohort(snapshot),
-                )
+                Ok::<_, ()>(with_cohort(
+                    with_empty_view(VisibilityProof::full_visibility()),
+                    snapshot,
+                ))
             }
         })
         .await
@@ -943,7 +967,7 @@ async fn folded_matches_bound_publication() {
 
     let unbound = cache
         .resolve(key_of(13), now, async || {
-            Ok::<_, ()>(PendingCacheEntry::with_empty_view(proof_of(&[2])))
+            Ok::<_, ()>(with_empty_view(proof_of(&[2])))
         })
         .await
         .expect("the resolution answers");

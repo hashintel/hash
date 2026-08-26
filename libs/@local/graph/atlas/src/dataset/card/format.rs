@@ -78,7 +78,7 @@ impl Card {
     /// zero truncation passes, and the token count is [`HeuristicTokenizer`]'s deterministic byte
     /// estimate.
     #[must_use]
-    #[cfg(test)]
+    #[cfg(test)] // The dataset, serve, and fit tests build cards without rendering.
     pub(crate) fn verbatim(card_text: String) -> Self {
         let Ok(token_count) = HeuristicTokenizer.count_tokens(&card_text);
 

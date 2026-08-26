@@ -101,8 +101,8 @@ pub(crate) struct SolverRun {
         not(test),
         expect(
             dead_code,
-            reason = "recorded solver evidence: the solver tests pin the derived threshold and \
-                      its tie case; no production reader consumes the stored copy"
+            reason = "recorded solver evidence: the generation evidence's stats are the designed \
+                      reader; writing it into the generation metadata is registered wiring work"
         )
     )]
     pub certificate: Option<CertificateEvidence>,

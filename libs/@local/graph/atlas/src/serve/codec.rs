@@ -113,10 +113,10 @@ where
 /// A row id as it crosses the wire.
 ///
 /// The value relates to an internal row id only through the owning generation's [`RowCodec`]:
-/// [`RowCodec::encode`] mints egress values, and deserialization admits client-echoed values whose
-/// meaning only [`RowCodec::decode`] assigns - an arbitrary `u32` is a well-formed [`WireRow`] that
-/// decodes to [`None`] outside the encoded image. Comparisons order wire values, so a tie broken on
-/// [`WireRow`] is client-observable without exposing internal order.
+/// [`RowCodec::encode`] produces egress values, and deserialization admits client-echoed values
+/// whose meaning only [`RowCodec::decode`] assigns - an arbitrary `u32` is a well-formed
+/// [`WireRow`] that decodes to [`None`] outside the encoded image. Comparisons order wire values,
+/// so a tie broken on [`WireRow`] is client-observable without exposing internal order.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, schemars::JsonSchema)]
 #[repr(transparent)]
 #[schemars(transparent)]
@@ -130,10 +130,9 @@ impl<I> WireRow<I> {
         self.0
     }
 }
-
-#[cfg(test)]
+#[cfg(test)] // The serve tests pin wire values without an encoding pass.
 impl<I> WireRow<I> {
-    /// Mints a wire value from its literal wire-domain representation.
+    /// Pins a wire value at its literal wire-domain representation.
     ///
     /// The value already carries its wire form, and this constructor encodes nothing.
     pub(crate) const fn pinned(value: u32) -> Self {

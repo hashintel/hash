@@ -46,7 +46,7 @@ impl ViewCensus {
     ///
     /// [`Walk::visible_census`] answers this for a proof admitting nothing, with zero delivered
     /// points, an absent extent, and a depth of zero.
-    #[cfg(test)]
+    #[cfg(test)] // The cache tests pair proofs with the empty view.
     pub(crate) const EMPTY: Self = Self {
         visible: 0,
         bounds: None,

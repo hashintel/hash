@@ -13,8 +13,6 @@
 //! ruled split's other half - the mint's occupancy input ignoring the fold - is the cache
 //! entry's own contract, witnessed beside its type.
 
-use alloc::sync::Arc;
-
 use hashql_core::{
     collections::fast_hash_set,
     id::{Id as _, IdSlice},
@@ -626,39 +624,21 @@ async fn a_folded_proof_delivers_the_subtracted_rows_with_nothing_to_subtract() 
     );
 }
 
-/// The scoped root's aggregates follow the fold, and the corpus root's stay generation-computed.
+/// The withdrawal seeds that part every root aggregate from the unfolded view's.
 ///
-/// The fold rewrites the proof's masks, so the scoped census and cascade - the root's global
-/// map, extent included - describe the surviving rows rather than the resolution's. A withdrawn
-/// row aggregates exactly as a hidden row does: the scoped cascade is visible-only, and the
-/// aggregates follow the view. The corpus arm serves the same withdrawal as an ingress
-/// subtraction, whose aggregates stay generation-computed because a withdrawn extreme point
-/// keeps stretching the corpus extent until refit. One snapshot therefore pins both regimes,
-/// and this witness records the split between them. The owner ruled the split as it stands at
-/// the fold's landing, so the witness pins settled law.
-#[expect(
-    clippy::too_many_lines,
-    reason = "the three aggregate axes and their corpus and unfolded contrasts share one publish"
-)]
-#[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn the_folded_scoped_root_publishes_the_folded_views_aggregates() {
-    let (generation, atlas) = publish("withdrawal-fold-aggregates").await;
-    let Artifacts {
-        coordinates,
-        rows,
-        morton,
-        ..
-    } = open_artifacts(&generation);
-    let points = coordinates.points().expect("wire coordinates are points");
-    let row_ids = fixture_row_ids(&rows);
-
-    // Withdraw the rows attaining the extent's four extremes, the rest of one root cell, and
-    // every row of the deepest occupied bucket, so the extent, the count, and the depth all part
-    // from the unfolded view's: an aggregate that fails to follow the fold is a detectable answer
-    // on each axis. The root cell is what parts the count on any layout, because a cell keeping
-    // one surviving row keeps its representative and delivers the same number of rows as before.
-    let (corpus, mut withdrawn) = extremes_vacating_a_root_cell(&atlas, points, &row_ids);
+/// The set withdraws the rows attaining the extent's four extremes, the rest of one root cell,
+/// and every row of the deepest occupied bucket, so the extent, the count, and the depth all
+/// part from the unfolded view's: an aggregate that fails to follow the fold is a detectable
+/// answer on each axis. The root cell is what parts the count on any layout, because a cell
+/// keeping one surviving row keeps its representative and delivers the same number of rows as
+/// before. Returns the corpus extent and the withdrawn rows beside their seeds.
+fn aggregate_parting_seeds(
+    atlas: &Atlas,
+    points: &[Vec2],
+    row_ids: &[u32],
+    morton: &super::MortonFile,
+) -> (Bounds2, Vec<u32>, Vec<u8>) {
+    let (corpus, mut withdrawn) = extremes_vacating_a_root_cell(atlas, points, row_ids);
     let lengths = morton.fenceposts().lengths();
     let (deepest, _) = lengths
         .iter()
@@ -679,6 +659,31 @@ async fn the_folded_scoped_root_publishes_the_folded_views_aggregates() {
         .iter()
         .map(|&row| u8::try_from(row).expect("fixture rows fit u8"))
         .collect();
+    (corpus, withdrawn, seeds)
+}
+
+/// The scoped root's aggregates follow the fold.
+///
+/// The fold rewrites the proof's masks, so the scoped census and cascade - the root's global
+/// map, extent included - describe the surviving rows rather than the resolution's. A withdrawn
+/// row aggregates exactly as a hidden row does: the scoped cascade is visible-only, and the
+/// aggregates follow the view. The same view unfolded publishes the resolution's own numbers on
+/// every axis, so each equality distinguishes the folded view rather than restating it. The
+/// owner ruled the aggregate split at the fold's landing, so the witness pins settled law.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_folded_scoped_root_publishes_the_folded_views_aggregates() {
+    let (generation, atlas) = publish("withdrawal-fold-aggregates").await;
+    let Artifacts {
+        coordinates,
+        rows,
+        morton,
+        ..
+    } = open_artifacts(&generation);
+    let points = coordinates.points().expect("wire coordinates are points");
+    let row_ids = fixture_row_ids(&rows);
+
+    let (corpus, withdrawn, seeds) = aggregate_parting_seeds(&atlas, points, &row_ids, &morton);
     let snapshot = withdrawing(&atlas, &seeds);
     assert!(snapshot.withdraws_any_node(), "the fold resolved the rows");
 
@@ -736,20 +741,6 @@ async fn the_folded_scoped_root_publishes_the_folded_views_aggregates() {
         "the published depth is the folded view's deepest occupied scope bucket"
     );
 
-    // The corpus root under the same snapshot subtracts delivered rows and moves no aggregate:
-    // full domains decline the fold, and the unmasked census reads the artifacts.
-    let full_baseline = head_global(
-        section(&tile_with(&atlas, &FULL, None, &tile), HEAD).expect("HEAD is present"),
-    );
-    assert_eq!(
-        head_global(
-            section(&tile_with(&atlas, &FULL, Some(&snapshot), &tile), HEAD)
-                .expect("HEAD is present"),
-        ),
-        full_baseline,
-        "the corpus aggregates stay generation-computed under the same withdrawal"
-    );
-
     // And the same view unfolded publishes the resolution's own numbers, so the assertions
     // above distinguish the folded view from the unfolded one rather than restating it. A
     // failure here is fixture drift - the withdrawal set no longer moves the aggregate - not a
@@ -772,6 +763,43 @@ async fn the_folded_scoped_root_publishes_the_folded_views_aggregates() {
         min_resolution < bare_depth,
         "fixture drift: the withdrawal set no longer vacates the deepest occupied bucket, so the \
          folded-depth equality above has lost its teeth"
+    );
+}
+
+/// The corpus root's aggregates stay generation-computed under the same withdrawal.
+///
+/// The corpus arm serves the withdrawal as an ingress subtraction: full domains decline the
+/// fold and the unmasked census reads the artifacts, so a withdrawn extreme point keeps
+/// stretching the corpus extent until refit. One snapshot therefore pins both regimes against
+/// the scoped witness above, recording the split the owner ruled at the fold's landing.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn corpus_root_aggregates_ignore_fold() {
+    let (generation, atlas) = publish("withdrawal-fold-corpus-aggregates").await;
+    let Artifacts {
+        coordinates,
+        rows,
+        morton,
+        ..
+    } = open_artifacts(&generation);
+    let points = coordinates.points().expect("wire coordinates are points");
+    let row_ids = fixture_row_ids(&rows);
+
+    let (_, _, seeds) = aggregate_parting_seeds(&atlas, points, &row_ids, &morton);
+    let snapshot = withdrawing(&atlas, &seeds);
+    assert!(snapshot.withdraws_any_node(), "the fold resolved the rows");
+
+    let tile = request(0, 0, 0, Mode::Delta);
+    let full_baseline = head_global(
+        section(&tile_with(&atlas, &FULL, None, &tile), HEAD).expect("HEAD is present"),
+    );
+    assert_eq!(
+        head_global(
+            section(&tile_with(&atlas, &FULL, Some(&snapshot), &tile), HEAD)
+                .expect("HEAD is present"),
+        ),
+        full_baseline,
+        "the corpus aggregates stay generation-computed under the same withdrawal"
     );
 }
 

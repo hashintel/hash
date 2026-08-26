@@ -56,7 +56,7 @@ impl Scaling {
 
     /// The diagonal in flat contrast-major layout.
     #[inline]
-    #[cfg(test)]
+    #[cfg(test)] // The solver tests compare the assembled diagonal against hand values.
     pub(super) const fn diagonal(&self) -> &AlignedDVecN<SOLVER_DIMENSIONS> {
         &self.diagonal
     }

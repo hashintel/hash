@@ -238,20 +238,20 @@ fn sealed_generation_is_complete_and_verifiable() {
     let staging = root.stage().expect("the staging should create");
     stage_all(&staging, &repository);
     let published = staging.seal(&repository).expect("the staging should seal");
-
-    // The generation is where the root says it is.
-    assert_eq!(published.path, root.generation_path(published.id()));
+    // The generation is where the root says it is: the seal writes to the root's own
+    // generation path, so the directory is derived rather than stored.
+    let published_path = root.generation_path(published.id());
 
     // Every manifest file is present with its staged bytes.
     for entry in repository.files.files() {
-        let bytes = fs::read(published.path.join(entry.name.as_str()))
+        let bytes = fs::read(published_path.join(entry.name.as_str()))
             .expect("a published file should read");
         assert_eq!(bytes, entry.name.as_str().as_bytes());
     }
 
     // The directory name is the SHA-256 of the metadata document, so the
     // identity is recomputable from the published bytes alone.
-    let document = fs::read(published.path.join(METADATA_FILE)).expect("the document should read");
+    let document = fs::read(published_path.join(METADATA_FILE)).expect("the document should read");
     let mut hasher = Sha256::new();
     hasher.update(&document);
     assert_eq!(hasher.finalize(), published.id().digest());
@@ -270,6 +270,7 @@ fn sealed_files_refuse_rewriting() {
     let staging = root.stage().expect("the staging should create");
     stage_all(&staging, &repository);
     let published = staging.seal(&repository).expect("the staging should seal");
+    let published_path = root.generation_path(published.id());
 
     // Every published file, the metadata document included, is read-only and
     // refuses a write handle: the permission drop turns a rewriting accident
@@ -281,7 +282,7 @@ fn sealed_files_refuse_rewriting() {
         .collect();
     names.push(METADATA_FILE.to_owned());
     for name in names {
-        let path = published.path.join(&name);
+        let path = published_path.join(&name);
         assert!(
             fs::metadata(&path)
                 .expect("a published file should stat")
@@ -426,7 +427,7 @@ fn activated_generation_opens_verified() {
     let generation = root.open(id).expect("the active generation should open");
 
     assert_eq!(generation.id(), published.id());
-    assert_eq!(generation.path(), published.path);
+    assert_eq!(generation.path(), root.generation_path(published.id()));
     assert_eq!(generation.repository(), &repository);
 
     // Every manifest file is where path_of points, with its bytes.
@@ -455,7 +456,7 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
     stage_all(&staging, &repository);
     let published = staging.seal(&repository).expect("the staging should seal");
 
-    let document_path = published.path.join(METADATA_FILE);
+    let document_path = root.generation_path(published.id()).join(METADATA_FILE);
     let mut document = fs::read(&document_path).expect("the document should read");
     document.push(b'\n');
     make_writable(&document_path);

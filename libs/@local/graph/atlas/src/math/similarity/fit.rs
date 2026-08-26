@@ -152,7 +152,7 @@ impl Similarity {
     /// assert!((fitted.scale() - expected.scale()).abs() < 1e-5);
     /// ```
     #[must_use]
-    #[cfg(test)]
+    #[cfg(test)] // The similarity and transform tests fit small exact fixtures serially.
     pub(crate) fn fit_uniform<I: Id>(
         source: &FinitePointField<I>,
         target: &FinitePointField<I>,

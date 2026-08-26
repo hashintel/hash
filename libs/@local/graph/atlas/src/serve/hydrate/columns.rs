@@ -82,7 +82,7 @@ impl<'doc> DeliveredNodes<'doc> {
     /// Returns the delivered count the details must cover.
     #[inline]
     #[must_use]
-    #[cfg(test)]
+    #[cfg(test)] // The serve tests size expected trailers from delivered columns.
     pub(crate) const fn count(&self) -> usize {
         self.delivered.len()
     }
@@ -135,7 +135,7 @@ impl<'details> NodeDetails<'details> {
 
     /// All-`null` details covering `count` points, the result when no id can resolve.
     #[must_use]
-    #[cfg(test)]
+    #[cfg(test)] // The serve tests build unresolved-detail fixtures.
     pub(crate) fn empty(count: usize) -> Self {
         Self {
             labels: vec![Label::EMPTY; count],

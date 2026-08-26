@@ -476,7 +476,7 @@ where
     /// Returns the stored entry count, counting each pair twice.
     #[inline]
     #[must_use]
-    #[cfg(test)]
+    #[cfg(test)] // The relation tests count stored pairs.
     pub(crate) fn entries(&self) -> usize {
         self.0.nnz()
     }

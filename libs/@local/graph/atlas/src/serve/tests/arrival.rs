@@ -844,24 +844,36 @@ fn locate_by_row(wire: crate::serve::WireRow<NodeRowId>) -> LocateRequest {
     }
 }
 
-/// Locate serves a placed arrival from both ingress domains, byte-exact against the directly
-/// built wire document.
+/// Inverts the scope's cut rule over the arrival's bucket at `k = 0`.
 ///
-/// The entity-keyed and the wire-keyed resolutions must agree on one `SourcePoint`, whose zoom is
-/// the scope's own cut rule inverted over the arrival's bucket and whose cell is the projected
-/// coordinate's tile there. The ego-graph is the source alone and complete, because the
-/// generation's adjacency never names a cohort slot and this cohort publishes no link at it.
-/// The saturated shape must agree on the zoom
-/// through its overlay, which pins both scoped bucket sources against one law. A second assembly
-/// must produce identical bytes.
-#[expect(
-    clippy::too_many_lines,
-    reason = "the source-point law and the byte-exact envelope share one publish"
-)]
+/// The scope folds its arrivals into its own cascade, so the bucket is the separation law over
+/// the visible fitted keys, clamped into the catch-all, the zoom inverts it, and the fly-to
+/// cell is the projected coordinate's tile at that zoom.
+fn arrival_zoom_and_cell(
+    atlas: &Atlas,
+    proof: &VisibilityProof,
+    wire: Vec2,
+) -> (u8, TileCoordinate) {
+    let deepest = FIXTURE_LOD.max_tile_depth + FIXTURE_LOD.span.get();
+    let bucket = expected_bucket(atlas, proof, wire, deepest);
+    let zoom = bucket.saturating_sub(FIXTURE_LOD.span.get());
+    let [x, y] = WIRE_FRAME.quantize(wire);
+    let cell = coordinate_of(
+        MortonKey::new(x, y).cell(Depth::new(zoom).expect("a served zoom is a depth")),
+    );
+    (zoom, cell)
+}
+
+/// Both ingress domains resolve a placed arrival to one source point under the cut rule.
+///
+/// The entity-keyed and the wire-keyed resolutions must agree on one `SourcePoint`, whose zoom
+/// is the scope's own cut rule inverted over the arrival's bucket and whose cell is the
+/// projected coordinate's tile there. The saturated shape must agree on the zoom through its
+/// overlay, which pins both scoped bucket sources against one law.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_serves_placed_arrival_from_both_ingress_domains() {
-    let (generation, atlas) = publish("arrival-locate").await;
+async fn arrival_source_point_cut_rule() {
+    let (_, atlas) = publish("arrival-source-point").await;
     let (wire, _) = vacant_cell(&atlas);
     let snapshot = arriving(&atlas, wire);
     let slot = NodeRowId::from_usize(atlas.node_universe().size());
@@ -870,16 +882,7 @@ async fn locate_serves_placed_arrival_from_both_ingress_domains() {
 
     let bound = Bound::resolved(&atlas, &proof, cohort, CutOffset::ZERO);
     let view = bound.view(&atlas);
-
-    // The scope folds its arrivals into its own cascade, so the bucket is the separation law
-    // over the visible fitted keys, clamped into the catch-all, and zoom inverts it at k = 0.
-    let deepest = FIXTURE_LOD.max_tile_depth + FIXTURE_LOD.span.get();
-    let bucket = expected_bucket(&atlas, &proof, wire, deepest);
-    let zoom = bucket.saturating_sub(FIXTURE_LOD.span.get());
-    let [x, y] = WIRE_FRAME.quantize(wire);
-    let cell = coordinate_of(
-        MortonKey::new(x, y).cell(Depth::new(zoom).expect("a served zoom is a depth")),
-    );
+    let (zoom, cell) = arrival_zoom_and_cell(&atlas, &proof, wire);
 
     let source = atlas
         .resolve_source(&view, &entity_string_of(ARRIVAL_SEED))
@@ -917,10 +920,28 @@ async fn locate_serves_placed_arrival_from_both_ingress_domains() {
         through_overlay.zoom, zoom,
         "the overlay inverts identically"
     );
+}
 
-    // The full envelope delivers the arrival alone. The columns carry its projected coordinate
-    // and slot wire id, and the trailer carries the captured display under the
-    // store-resolution gate. The edge columns stay empty.
+/// Locate serves a placed arrival from both ingress domains, byte-exact against the directly
+/// built wire document.
+///
+/// The full envelope delivers the arrival alone and complete, because the generation's
+/// adjacency never names a cohort slot and this cohort publishes no link at it. The columns
+/// carry its projected coordinate and slot wire id, the trailer carries the captured display
+/// once the store resolution answers, and the edge columns stay empty. A second assembly must
+/// produce identical bytes.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_serves_placed_arrival_from_both_ingress_domains() {
+    let (generation, atlas) = publish("arrival-locate").await;
+    let (wire, _) = vacant_cell(&atlas);
+    let snapshot = arriving(&atlas, wire);
+    let slot = NodeRowId::from_usize(atlas.node_universe().size());
+    let cohort = PlacementCohort::of(Some(&snapshot));
+    let proof = widened(&atlas, &[0], &[slot]);
+    let (_, cell) = arrival_zoom_and_cell(&atlas, &proof, wire);
+    let slot_wire = test_codec(&atlas).encode(slot, snapshot.universe());
+
     let assemble = |request: &LocateRequest| {
         let bound = Bound::resolved(&atlas, &proof, cohort, CutOffset::ZERO);
         atlas

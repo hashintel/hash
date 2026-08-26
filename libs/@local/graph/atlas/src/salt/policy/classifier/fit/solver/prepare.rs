@@ -124,8 +124,8 @@ pub(crate) struct Prepared<'corpus> {
         not(test),
         expect(
             dead_code,
-            reason = "recorded solver evidence: the solver and fit tests pin the weighted \
-                      class-mass accumulation; no production reader consumes the stored copy"
+            reason = "recorded solver evidence: the generation evidence's stats are the designed \
+                      reader; writing it into the generation metadata is registered wiring work"
         )
     )]
     pub class_mass: [f64; GeometryClass::COUNT],

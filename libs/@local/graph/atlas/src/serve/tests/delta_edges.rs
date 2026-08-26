@@ -37,7 +37,7 @@ use super::{
 use crate::{
     bitset::{CompressedBitSet, DenseBitSlice},
     dataset::auxiliary::{Icon, Label, OwnedIcon, OwnedLabel},
-    identity::{BasePosition, EdgeRowId, NodeRowId},
+    identity::{BasePosition, EdgeRowId, ImportanceRank, NodeRowId},
     math::Vec2,
     morton::Depth,
     postgres::{
@@ -663,17 +663,19 @@ fn endpoint_ranks(generation: &Generation) -> (Vec<[u64; 2]>, Vec<u32>) {
         .collect();
     let ranks: Vec<u32> = artifacts
         .ranks
-        .u32_le_elements()
-        .expect("the rank column is little-endian u32")
+        .column::<BasePosition, ImportanceRank>()
+        .expect("the rank column holds importance ranks")
+        .as_raw()
         .iter()
-        .map(|rank| rank.get())
+        .map(|rank| rank.as_u32())
         .collect();
     let row_ranks = artifacts
         .positions
-        .u32_le_elements()
-        .expect("the position permutation is little-endian u32")
+        .column::<NodeRowId, BasePosition>()
+        .expect("the position column holds base positions")
+        .as_raw()
         .iter()
-        .map(|position| ranks[position.get() as usize])
+        .map(|position| ranks[position.as_usize()])
         .collect();
 
     (endpoints, row_ranks)
@@ -1230,6 +1232,57 @@ enum OracleRank {
     Arrival(ArchivedEntityId),
 }
 
+/// The oracle union over one trial's survivors, keyed by (worse endpoint rank, identity).
+///
+/// Fitted rows enter minus the withdrawn identities, and every drawn link whose endpoints both
+/// resolve enters with the worse endpoint's rank, so the union is exactly what the fold may
+/// select from.
+fn fold_oracle_union(
+    atlas: &Atlas,
+    endpoints: &[[u64; 2]],
+    row_ranks: &[u32],
+    fitted: &[(u32, u32, ArchivedEntityId)],
+    withdrawn_edges: &[u8],
+    links: &[(u8, u8, u8)],
+    slot_wire: u32,
+) -> Vec<OracleCandidate<OracleRank>> {
+    let mut union: Vec<OracleCandidate<OracleRank>> = Vec::new();
+    for (row, (&[source, target], &triple)) in endpoints.iter().zip(fitted).enumerate() {
+        if withdrawn_edges.contains(&(super::EDGE_SEED + u8::try_from(row).expect("small"))) {
+            continue;
+        }
+        let worse = row_ranks[usize::try_from(source).expect("small")]
+            .max(row_ranks[usize::try_from(target).expect("small")]);
+        union.push(((OracleRank::Fitted(worse), triple.2), triple));
+    }
+    for &(seed, source, target) in links {
+        let resolve = |endpoint: u8| -> Option<(OracleRank, u32)> {
+            if endpoint == ARRIVAL {
+                Some((OracleRank::Arrival(archived_id(ARRIVAL)), slot_wire))
+            } else if usize::from(endpoint) < row_ranks.len() {
+                Some((
+                    OracleRank::Fitted(row_ranks[usize::from(endpoint)]),
+                    node_wire(atlas, endpoint),
+                ))
+            } else {
+                None
+            }
+        };
+        let (Some((source_rank, source_wire)), Some((target_rank, target_wire))) =
+            (resolve(source), resolve(target))
+        else {
+            continue;
+        };
+
+        union.push((
+            (source_rank.max(target_rank), archived_id(seed)),
+            (source_wire, target_wire, archived_id(seed)),
+        ));
+    }
+    union.sort_unstable_by_key(|&(key, _)| key);
+    union
+}
+
 /// Differential: the fold's selection equals full-sort-then-truncate, at every cap.
 ///
 /// Randomised cohorts over the published fixture, each swept across every cap from zero to one
@@ -1237,10 +1290,6 @@ enum OracleRank {
 /// (worse endpoint rank, identity), truncated, re-sorted by identity, with `complete` read as
 /// `union.len() <= cap`. Withdrawn fitted link identities put non-qualifying candidates in the
 /// walk, so the exactly-cap completeness law is under test at every trial.
-#[expect(
-    clippy::too_many_lines,
-    reason = "the cohort draw, the oracle, and the cap sweep share one trial loop"
-)]
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn fold_matches_full_sort() {
@@ -1287,40 +1336,15 @@ async fn fold_matches_full_sort() {
         let cohort = PlacementCohort::of(Some(&snapshot));
         let slot_wire = test_codec(&atlas).encode(slot, snapshot.universe()).get();
 
-        let mut union: Vec<OracleCandidate<OracleRank>> = Vec::new();
-        for (row, (&[source, target], &triple)) in endpoints.iter().zip(&fitted).enumerate() {
-            if withdrawn_edges.contains(&(super::EDGE_SEED + u8::try_from(row).expect("small"))) {
-                continue;
-            }
-            let worse = row_ranks[usize::try_from(source).expect("small")]
-                .max(row_ranks[usize::try_from(target).expect("small")]);
-            union.push(((OracleRank::Fitted(worse), triple.2), triple));
-        }
-        for &(seed, source, target) in &links {
-            let resolve = |endpoint: u8| -> Option<(OracleRank, u32)> {
-                if endpoint == ARRIVAL {
-                    Some((OracleRank::Arrival(archived_id(ARRIVAL)), slot_wire))
-                } else if usize::from(endpoint) < row_ranks.len() {
-                    Some((
-                        OracleRank::Fitted(row_ranks[usize::from(endpoint)]),
-                        node_wire(&atlas, endpoint),
-                    ))
-                } else {
-                    None
-                }
-            };
-            let (Some((source_rank, source_wire)), Some((target_rank, target_wire))) =
-                (resolve(source), resolve(target))
-            else {
-                continue;
-            };
-
-            union.push((
-                (source_rank.max(target_rank), archived_id(seed)),
-                (source_wire, target_wire, archived_id(seed)),
-            ));
-        }
-        union.sort_unstable_by_key(|&(key, _)| key);
+        let union = fold_oracle_union(
+            &atlas,
+            &endpoints,
+            &row_ranks,
+            &fitted,
+            &withdrawn_edges,
+            &links,
+            slot_wire,
+        );
 
         for cap in 0..=(union.len() + 1) {
             let mut kept: Vec<(u32, u32, ArchivedEntityId)> =
@@ -2127,22 +2151,63 @@ impl LocateStore for ResolvedEmptyDetails {
     }
 }
 
-/// Captured displays reach the locate trailer's node and link labels, byte-exact.
-///
-/// The register captures a revised display for fitted node 3 and for its one incident fitted
-/// link, and the locate response serves both captured labels while the unrevised partner keeps
-/// its payload label. The control cohort captures an identity the response never delivers and
-/// must answer the all-payload baseline byte-exactly.
-#[expect(
-    clippy::too_many_lines,
-    reason = "the capture fixture and the directly built envelope share one publish"
-)]
-#[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn captured_displays_reach_locate_labels() {
-    let (generation, atlas) = publish("delta-locate-labels").await;
+/// Captures each `(seed, label)`'s display with a revised icon over one register and publishes.
+fn capturing_displays(atlas: &Atlas, captures: &[(u8, &OwnedLabel)]) -> DeltaSnapshot {
+    let mut register = DeltaRegister::new(
+        atlas.node_universe(),
+        atlas.edge_universe(),
+        atlas.ontology_universe(),
+    );
+    for &(seed, label) in captures {
+        let event = EntityEvent::Updated(EntityUpdate {
+            entity: store_id(seed),
+            edition: EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
+            archived: false,
+            changed_at: Timestamp::from_unix_timestamp(1),
+        });
+        register.apply(DeltaEvent::from(&event));
+        register
+            .capture_display(
+                archived_id(seed),
+                EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
+                label,
+                Icon::new("revised-icon"),
+                fixture_type(),
+                atlas,
+            )
+            .expect("the fixture ontology domain has room");
+    }
 
-    // Fixture edge row 5 joins rows 3 and 7, the only edge at either row.
+    register.snapshot(
+        atlas,
+        DeltaRevision::FIRST,
+        Timestamp::from_unix_timestamp(2),
+    )
+}
+
+/// Serves fitted node 3's locate under `snapshot`.
+fn locate_node_three(atlas: &Atlas, snapshot: Option<&DeltaSnapshot>) -> Vec<u8> {
+    let bound = viewing_delta(atlas, &FULL, PlacementCohort::of(snapshot), None);
+    atlas
+        .locate(
+            &locate_request(entity_string_of(3)),
+            ServeLimits::default(),
+            bound.view(atlas),
+            ResolvedEmptyDetails,
+        )
+        .expect("the locate request serves")
+}
+
+/// The expected node-3 locate envelope, built directly.
+///
+/// Fixture edge row 5 joins rows 3 and 7, the only edge at either row, so only the two label
+/// arguments separate a capture's envelope from the baseline.
+fn expected_node_three_envelope(
+    atlas: &Atlas,
+    generation: &Generation,
+    source_label: &Label,
+    link_label: &Label,
+) -> Vec<u8> {
     let source_row = NodeRowId::from_u32(3);
     let partner_row = NodeRowId::from_u32(7);
     let link_seed = 64 + 5;
@@ -2152,146 +2217,115 @@ async fn captured_displays_reach_locate_labels() {
         "the witness revises fitted edge row 5"
     );
 
+    let bound = viewing_delta(atlas, &FULL, PlacementCohort::EMPTY, None);
+    let view = bound.view(atlas);
+    let cell = atlas
+        .resolve_source(&view, &entity_string_of(3))
+        .expect("fixture node ids resolve")
+        .cell;
+    let positions_of_row = atlas.positions_of_row();
+    let codec = test_codec(atlas);
+    let wire = |row: NodeRowId| codec.encode(row, atlas.node_universe());
+    let columns = EdgeColumns::pinned([(
+        wire(source_row).get(),
+        wire(partner_row).get(),
+        archived_id(link_seed),
+    )]);
+    let empty_map = PropertyMap::new_unchecked(Vec::new());
+    let link_flags: Box<DenseBitSlice<crate::serve::hydrate::EdgeSlot>> =
+        DenseBitSlice::new_empty(1);
+
+    LocateResponse {
+        generation: generation.id().digest(),
+        variant: 0,
+        cell,
+        complete: true,
+        entity_id: archived_id(3),
+        type_ids_complete: false,
+        properties_complete: true,
+        delivered: IdSlice::from_raw(&[
+            ViewRow::Base(positions_of_row[source_row]),
+            ViewRow::Base(positions_of_row[partner_row]),
+        ]),
+        arrivals: IdSlice::from_raw(&[]),
+        positions: atlas.positions(),
+        rows: atlas.wire_rows(),
+        masks: None,
+        edges: &columns,
+        trailer: LocateTrailer {
+            type_table: IdSlice::from_raw(&[]),
+            property_table: IdSlice::from_raw(&[]),
+            labels: IdSlice::from_raw(&[source_label, Label::EMPTY]),
+            type_ids: IdSlice::from_raw(&[None, None]),
+            properties: Some(&empty_map),
+            link_labels: IdSlice::from_raw(&[link_label]),
+            link_type_ids: IdSlice::from_raw(&[Vec::new()]),
+            link_type_ids_complete: &link_flags,
+            link_properties: IdSlice::from_raw(&[Some(&empty_map)]),
+            link_properties_complete: &link_flags,
+        },
+    }
+    .encode()
+}
+
+/// Captured displays reach the locate trailer's node and link labels, byte-exact.
+///
+/// The register captures a revised display for fitted node 3 and for its one incident fitted
+/// link, and the locate response serves both captured labels at their own slots.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn captured_displays_reach_locate_labels() {
+    let (generation, atlas) = publish("delta-locate-labels").await;
+
     let renamed = OwnedLabel::from("renamed");
     let rewired = OwnedLabel::from("rewired");
-    let capturing = |captures: &[(u8, &OwnedLabel)]| -> DeltaSnapshot {
-        let mut register = DeltaRegister::new(
-            atlas.node_universe(),
-            atlas.edge_universe(),
-            atlas.ontology_universe(),
-        );
-        for &(seed, label) in captures {
-            let event = EntityEvent::Updated(EntityUpdate {
-                entity: store_id(seed),
-                edition: EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
-                archived: false,
-                changed_at: Timestamp::from_unix_timestamp(1),
-            });
-            register.apply(DeltaEvent::from(&event));
-            register
-                .capture_display(
-                    archived_id(seed),
-                    EntityEditionId::new(Uuid::from_u128(u128::from(seed))),
-                    label,
-                    Icon::new("revised-icon"),
-                    fixture_type(),
-                    &atlas,
-                )
-                .expect("the fixture ontology domain has room");
-        }
+    let captured = capturing_displays(&atlas, &[(3, &renamed), (64 + 5, &rewired)]);
 
-        register.snapshot(
-            &atlas,
-            DeltaRevision::FIRST,
-            Timestamp::from_unix_timestamp(2),
-        )
-    };
-
-    let locate = |snapshot: Option<&DeltaSnapshot>| -> Vec<u8> {
-        let bound = viewing_delta(&atlas, &FULL, PlacementCohort::of(snapshot), None);
-        atlas
-            .locate(
-                &locate_request(entity_string_of(3)),
-                ServeLimits::default(),
-                bound.view(&atlas),
-                ResolvedEmptyDetails,
-            )
-            .expect("the locate request serves")
-    };
-
-    // The expected envelope, built directly: only the two captured labels separate it from
-    // the baseline.
-    let expected = |source_label: &Label, link_label: &Label| -> Vec<u8> {
-        let bound = viewing_delta(&atlas, &FULL, PlacementCohort::EMPTY, None);
-        let view = bound.view(&atlas);
-        let cell = atlas
-            .resolve_source(&view, &entity_string_of(3))
-            .expect("fixture node ids resolve")
-            .cell;
-        let positions_of_row = atlas.positions_of_row();
-        let codec = test_codec(&atlas);
-        let wire = |row: NodeRowId| codec.encode(row, atlas.node_universe());
-        let columns = EdgeColumns::pinned([(
-            wire(source_row).get(),
-            wire(partner_row).get(),
-            archived_id(link_seed),
-        )]);
-        let empty_map = PropertyMap::new_unchecked(Vec::new());
-        let link_flags: Box<DenseBitSlice<crate::serve::hydrate::EdgeSlot>> =
-            DenseBitSlice::new_empty(1);
-
-        LocateResponse {
-            generation: generation.id().digest(),
-            variant: 0,
-            cell,
-            complete: true,
-            entity_id: archived_id(3),
-            type_ids_complete: false,
-            properties_complete: true,
-            delivered: IdSlice::from_raw(&[
-                ViewRow::Base(positions_of_row[source_row]),
-                ViewRow::Base(positions_of_row[partner_row]),
-            ]),
-            arrivals: IdSlice::from_raw(&[]),
-            positions: atlas.positions(),
-            rows: atlas.wire_rows(),
-            masks: None,
-            edges: &columns,
-            trailer: LocateTrailer {
-                type_table: IdSlice::from_raw(&[]),
-                property_table: IdSlice::from_raw(&[]),
-                labels: IdSlice::from_raw(&[source_label, Label::EMPTY]),
-                type_ids: IdSlice::from_raw(&[None, None]),
-                properties: Some(&empty_map),
-                link_labels: IdSlice::from_raw(&[link_label]),
-                link_type_ids: IdSlice::from_raw(&[Vec::new()]),
-                link_type_ids_complete: &link_flags,
-                link_properties: IdSlice::from_raw(&[Some(&empty_map)]),
-                link_properties_complete: &link_flags,
-            },
-        }
-        .encode()
-    };
-
-    let captured = capturing(&[(3, &renamed), (link_seed, &rewired)]);
     assert_eq!(
-        locate(Some(&captured)),
-        expected(&renamed, &rewired),
+        locate_node_three(&atlas, Some(&captured)),
+        expected_node_three_envelope(&atlas, &generation, &renamed, &rewired),
         "both captured labels serve at their own slots"
     );
+}
 
-    let baseline = locate(None);
+/// An empty cohort serves the payload labels.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_baseline_payload_labels() {
+    let (generation, atlas) = publish("delta-locate-baseline").await;
+
     assert_eq!(
-        baseline,
-        expected(Label::EMPTY, Label::EMPTY),
+        locate_node_three(&atlas, None),
+        expected_node_three_envelope(&atlas, &generation, Label::EMPTY, Label::EMPTY),
         "the baseline serves the payload labels"
     );
+}
 
-    // Same-path control: a capture the response never delivers moves no byte.
-    let unrelated = capturing(&[(60, &renamed)]);
+/// Same-path control: a capture the response never delivers moves no byte.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn unrelated_capture_baseline_bytes() {
+    let (_generation, atlas) = publish("delta-locate-unrelated").await;
+
+    let renamed = OwnedLabel::from("renamed");
+    let unrelated = capturing_displays(&atlas, &[(60, &renamed)]);
+
     assert_eq!(
-        locate(Some(&unrelated)),
-        baseline,
+        locate_node_three(&atlas, Some(&unrelated)),
+        locate_node_three(&atlas, None),
         "a capture the response never names moves nothing"
     );
 }
 
-/// A published link whose arrival endpoint's holder stands withdrawn at publication.
+/// Publishes the dormant-arrival shape into one register.
 ///
-/// The register places the arrival, classifies and captures the link, and only then folds the
-/// arrival's own end. The slot stays allocated, so the link still resolves both endpoint rows
-/// and publishes, while the `nodes` map drops the dormant holder. Every read must refuse the
+/// The arrival arrives live, classifies, and places, so its slot allocates and stands for the
+/// register's life. The link then attaches fitted row 0 to that arrival, live and captured. The
+/// arrival's own end lands last, the feed order the register cannot forbid. The link therefore
+/// keeps standing live while the `nodes` map drops the dormant holder. Every read must refuse the
 /// link through `node_at`'s absent answer instead of resolving a slot no arrival table holds.
-/// At locate that wrong path panics on the request path or serves a mis-indexed partner.
-#[expect(
-    clippy::too_many_lines,
-    reason = "one register walks the feed order whose three route refusals share its premises"
-)]
-#[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn dormant_arrival_endpoint_refuses_its_link() {
-    let (_generation, atlas) = publish("probe-dormant-arrival").await;
-    let (vacant, _) = vacant_cell(&atlas);
+fn dormant_arrival_snapshot(atlas: &Atlas) -> DeltaSnapshot {
+    let (vacant, _) = vacant_cell(atlas);
 
     let mut register = DeltaRegister::new(
         atlas.node_universe(),
@@ -2299,8 +2333,6 @@ async fn dormant_arrival_endpoint_refuses_its_link() {
         atlas.ontology_universe(),
     );
 
-    // The arrival arrives live, classifies, and places: the slot allocates here and stands for
-    // the register's life.
     let arrival_live = EntityEvent::Updated(EntityUpdate {
         entity: store_id(ARRIVAL),
         edition: EntityEditionId::new(Uuid::from_u128(u128::from(ARRIVAL))),
@@ -2321,11 +2353,10 @@ async fn dormant_arrival_endpoint_refuses_its_link() {
                 icon: OwnedIcon::from("arrival-icon"),
                 representative: fixture_type(),
             },
-            &atlas,
+            atlas,
         )
         .expect("the fixture universe is far from the wire's row domain");
 
-    // The link attaches fitted row 0 to that arrival, live and captured.
     let link_live = EntityEvent::Updated(EntityUpdate {
         entity: store_id(HIGH_LINK),
         edition: EntityEditionId::new(Uuid::from_u128(u128::from(HIGH_LINK))),
@@ -2349,26 +2380,32 @@ async fn dormant_arrival_endpoint_refuses_its_link() {
             &OwnedLabel::from("link"),
             &OwnedIcon::from("link-icon"),
             fixture_type(),
-            &atlas,
+            atlas,
         )
         .expect("the fixture ontology domain has room");
 
-    // The arrival's end lands after the link's classification, the feed order the register
-    // cannot forbid. The link keeps standing live.
     let arrival_end = EntityEvent::Ended(EntityEnd {
         entity: store_id(ARRIVAL),
         ended_at: Timestamp::from_unix_timestamp(3),
     });
     register.apply(DeltaEvent::from(&arrival_end));
 
-    let snapshot = register.snapshot(
-        &atlas,
+    register.snapshot(
+        atlas,
         DeltaRevision::FIRST,
         Timestamp::from_unix_timestamp(3),
-    );
+    )
+}
+
+/// The dormant-arrival publication keeps the link and withdraws the identity, while the holder
+/// leaves the nodes map.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn dormant_arrival_publication_shape() {
+    let (_generation, atlas) = publish("probe-dormant-shape").await;
+    let snapshot = dormant_arrival_snapshot(&atlas);
     let slot = NodeRowId::from_usize(atlas.node_universe().size());
 
-    // The publication is the shape the dormancy arm exists for.
     assert!(
         snapshot.edge(archived_id(HIGH_LINK)).is_some(),
         "the link publishes even though its arrival endpoint stands withdrawn",
@@ -2384,15 +2421,21 @@ async fn dormant_arrival_endpoint_refuses_its_link() {
 
     let cohort = PlacementCohort::of(Some(&snapshot));
     let bound = viewing_delta(&atlas, &FULL, cohort, None);
-    let view = bound.view(&atlas);
-
     assert!(
-        view.arrivals().is_empty(),
+        bound.view(&atlas).arrivals().is_empty(),
         "the view's arrival table holds no dormant holder",
     );
+}
 
-    // Locate: the fold must refuse the link rather than mint an arrival endpoint whose identity
-    // the arrival table cannot index.
+/// Locate refuses the dormant-endpoint link rather than minting an unindexable endpoint.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_refuses_dormant_link() {
+    let (_generation, atlas) = publish("probe-dormant-locate").await;
+    let snapshot = dormant_arrival_snapshot(&atlas);
+    let bound = viewing_delta(&atlas, &FULL, PlacementCohort::of(Some(&snapshot)), None);
+    let view = bound.view(&atlas);
+
     let source = atlas
         .resolve_source(&view, &entity_string_of(0))
         .expect("fixture node ids resolve");
@@ -2409,8 +2452,16 @@ async fn dormant_arrival_endpoint_refuses_its_link() {
         2,
         "the fitted ego graph delivers the source and its one fitted partner alone",
     );
+}
 
-    // Translate: the same refusal keyed by identity.
+/// Translate answers an absent key for the dormant-endpoint link.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn translate_dormant_link_absent() {
+    let (_generation, atlas) = publish("probe-dormant-translate").await;
+    let snapshot = dormant_arrival_snapshot(&atlas);
+    let cohort = PlacementCohort::of(Some(&snapshot));
+
     let response = atlas
         .translate(
             TranslateRequest {
@@ -2426,8 +2477,16 @@ async fn dormant_arrival_endpoint_refuses_its_link() {
         response.edges.is_empty() && response.nodes.is_empty(),
         "translate answers an absent key for the dormant-endpoint link",
     );
+}
 
-    // Edges: the delivered set must not hold it either.
+/// The edges route's delivered set refuses the dormant-endpoint link.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn edges_refuse_dormant_link() {
+    let (_generation, atlas) = publish("probe-dormant-edges").await;
+    let snapshot = dormant_arrival_snapshot(&atlas);
+    let cohort = PlacementCohort::of(Some(&snapshot));
+
     let served = edges_with(
         &atlas,
         &FULL,
