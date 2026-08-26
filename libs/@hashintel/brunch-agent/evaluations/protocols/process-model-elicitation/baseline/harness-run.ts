@@ -25,6 +25,7 @@
  *     BRUNCH_SDCPN_MODEL                           interviewer model id; this runner defaults it to claude-opus-5
  *     BRUNCH_BASELINE_ANTHROPIC_MODULE             test-only stand-in for the expert's Anthropic client
  *     BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE  test-only pi provider module (default export) for the interviewer
+ *     BRUNCH_BASELINE_OUTPUT_DIR                   optional run-specific production output directory
  *     BRUNCH_BASELINE_TEST_OUTPUT_DIR              test-only output directory; requires both stand-ins
  *
  * Artifacts (beside the other conditions' transcripts unless the test directory is set):
@@ -104,6 +105,7 @@ const EXPERT_MAX_TOKENS = 1_500;
 // Environment and stand-ins.
 // ---------------------------------------------------------------------------
 
+const outputDirectory = process.env["BRUNCH_BASELINE_OUTPUT_DIR"];
 const testOutputDirectory = process.env["BRUNCH_BASELINE_TEST_OUTPUT_DIR"];
 const expertClientModule = process.env["BRUNCH_BASELINE_ANTHROPIC_MODULE"];
 const interviewerProviderModule =
@@ -141,6 +143,7 @@ const caseDir = fileURLToPath(
 );
 const transcriptDir =
   testOutputDirectory ??
+  outputDirectory ??
   fileURLToPath(
     new URL(
       "../../../../docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/",
@@ -540,13 +543,15 @@ const formatPurposeTiming = (
   timings: readonly TurnTimingRecord[],
   purpose: TurnTimingPurpose,
 ): string => {
-  const matching = timings.filter((timing) => timing.purpose === purpose);
-  if (matching.length === 0) return "—";
-  const durationMs = matching.reduce(
+  const matchingTimings = timings.filter(
+    (timing) => timing.purpose === purpose,
+  );
+  if (matchingTimings.length === 0) return "—";
+  const durationMs = matchingTimings.reduce(
     (total, timing) => total + timing.durationMs,
     0,
   );
-  return `${durationMs} ms (${matching.length} call${matching.length === 1 ? "" : "s"})`;
+  return `${durationMs} ms (${matchingTimings.length} call${matchingTimings.length === 1 ? "" : "s"})`;
 };
 
 function renderTranscript(

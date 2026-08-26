@@ -102,7 +102,9 @@ agent composition: `turbo run baseline:harness --filter '@apps/brunch-agent'` (b
 first; writes `condition-5.md`, `condition-5.raw.json`, `condition-5-model.md`,
 `condition-5-captures.json`, `condition-5-system.md`, and `condition-5.timings.jsonl`). `run.ts`
 accepts only `1`, `2`, and `4`; condition 3 has no entry point. Production transcripts land in
-`docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/`. Tests set
+`docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/`; set
+`BRUNCH_BASELINE_OUTPUT_DIR` to preserve a run under a separate production evidence directory.
+Tests set
   `BRUNCH_BASELINE_TEST_OUTPUT_DIR` to an isolated directory and never write committed evidence;
   the condition-5 test additionally swaps both models for stand-ins
   (`BRUNCH_BASELINE_ANTHROPIC_MODULE`, `BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE`).

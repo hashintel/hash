@@ -41,7 +41,7 @@ export const createTurnTimingRecorder = (): TurnTimingRecorder => {
   const nestedPromptOperationIds = new Set<string>();
   const purposeByOperation = new Map<string, TurnTimingPurpose>();
   const purposeByFlueTurn = new Map<string, TurnTimingPurpose>();
-  const records: TurnTimingRecord[] = [];
+  const timingRecords: TurnTimingRecord[] = [];
 
   return {
     startInterviewerTurn(interviewerTurn) {
@@ -98,7 +98,7 @@ export const createTurnTimingRecorder = (): TurnTimingRecorder => {
       if (event.type !== "turn" || currentInterviewerTurn === undefined) {
         return;
       }
-      records.push({
+      timingRecords.push({
         interviewerTurn: currentInterviewerTurn,
         flueTurnId: event.turnId,
         purpose:
@@ -112,12 +112,12 @@ export const createTurnTimingRecorder = (): TurnTimingRecorder => {
       purposeByFlueTurn.delete(event.turnId);
     },
     forInterviewerTurn(interviewerTurn) {
-      return records.filter(
-        (record) => record.interviewerTurn === interviewerTurn,
+      return timingRecords.filter(
+        (timingRecord) => timingRecord.interviewerTurn === interviewerTurn,
       );
     },
     all() {
-      return records;
+      return timingRecords;
     },
   };
 };

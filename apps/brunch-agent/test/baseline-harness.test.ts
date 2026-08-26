@@ -89,21 +89,21 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
   expect(timingRecords.length).toBeGreaterThan(0);
   expect(
     timingRecords.every(
-      (record) =>
-        record.interviewerTurn >= 1 &&
-        record.durationMs >= 0 &&
-        ["interview", "sweep", "repair"].includes(record.purpose),
+      (timingRecord) =>
+        timingRecord.interviewerTurn >= 1 &&
+        timingRecord.durationMs >= 0 &&
+        ["interview", "sweep", "repair"].includes(timingRecord.purpose),
     ),
   ).toBe(true);
   expect(
-    new Set(timingRecords.map((record) => record.purpose)),
+    new Set(timingRecords.map((timingRecord) => timingRecord.purpose)),
     JSON.stringify(timingRecords, null, 2),
   ).toEqual(new Set(["interview", "sweep", "repair"]));
   expect(timingRecords).toHaveLength(run.usage.interviewer.calls);
   expect(run.timings).toEqual(timingRecords);
   expect(run.turns.flatMap((turn) => turn.timings)).toEqual(timingRecords);
   expect(
-    timingRecords.filter((record) => record.purpose === "repair"),
+    timingRecords.filter((timingRecord) => timingRecord.purpose === "repair"),
   ).toHaveLength(2);
 
   // Turn 1 asks; the expert's reply is bound to that ask on the next dispatch.
