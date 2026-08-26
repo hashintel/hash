@@ -105,11 +105,11 @@ describe.skipIf(!contextRootPresent)("strategic control surfaces", () => {
   });
 
   test("every strategy ID in steering resolves and is unsuperseded", () => {
-    const governingLine = steering.match(
-      /Governing strategic decisions:([\s\S]*?)\n\n/,
+    const governingSection = steering.match(
+      /^## Governing concerns\n([\s\S]*?)(?=^## |(?![\s\S]))/m,
     );
-    expect(governingLine).not.toBeNull();
-    expect(governingLine![1]).toMatch(/S-\d{3}/);
+    expect(governingSection).not.toBeNull();
+    expect(governingSection![1]).toMatch(/S-\d{3}/);
     const referencedIds = [...steering.matchAll(/S-\d{3}/g)].map(([id]) => id);
     const knownIds = new Set(entries.map(({ id }) => id));
     const supersededIds = new Set(
