@@ -81,10 +81,29 @@ function scenarioHirContextForFile(
 ): HirSurfaceContext | null {
   const netParameters = extensions.parameters ? sdcpn.parameters : [];
 
-  const overrideMatch = /\/param_overrides\/([^/]+)\/code\.ts$/.exec(filePath);
-  if (overrideMatch) {
+  // Scenario session files (see `file-paths.ts`) end in
+  // `.../param_overrides/<paramId>/code.ts`,
+  // `.../initial_state/<placeId>/code.ts`, or
+  // `.../initial_state_code/code.ts`.
+  const segments = filePath.split("/");
+  if (segments.at(-1) !== "code.ts") {
+    return null;
+  }
+  const parent = segments.at(-2);
+  const grandparent = segments.at(-3);
+
+  if (parent === "initial_state_code") {
+    return buildScenarioCodeContext(
+      netParameters,
+      session.scenarioParameters,
+      sdcpn.places,
+      extensions.colors ? sdcpn.types : [],
+    );
+  }
+
+  if (grandparent === "param_overrides") {
     const parameter = sdcpn.parameters.find(
-      (candidate) => candidate.id === overrideMatch[1],
+      (candidate) => candidate.id === parent,
     );
     if (!parameter) {
       return null;
@@ -96,20 +115,11 @@ function scenarioHirContextForFile(
     );
   }
 
-  if (/\/initial_state\/[^/]+\/code\.ts$/.test(filePath)) {
+  if (grandparent === "initial_state") {
     return buildScenarioExpressionContext(
       netParameters,
       session.scenarioParameters,
       "real",
-    );
-  }
-
-  if (filePath.endsWith("/initial_state_code/code.ts")) {
-    return buildScenarioCodeContext(
-      netParameters,
-      session.scenarioParameters,
-      sdcpn.places,
-      extensions.colors ? sdcpn.types : [],
     );
   }
 

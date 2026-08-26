@@ -259,6 +259,9 @@ function evalExpr(
     case "recordLit": {
       const record = createUserKeyedRecord<HirValue>();
       for (const entry of expr.entries) {
+        // The record has no prototype (see `createUserKeyedRecord`), so any
+        // key, `__proto__` included, is an ordinary own property.
+        // nosemgrep: javascript.express.security.audit.remote-property-injection.remote-property-injection
         record[entry.key] = evalExpr(entry.value, env, bindings);
       }
       return record;
