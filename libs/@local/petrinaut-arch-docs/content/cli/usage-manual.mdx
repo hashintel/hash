@@ -306,10 +306,12 @@ response stays `{ "objective": ... }` alone:
 }
 ```
 
-The seeded runs execute sequentially within the evaluate request, so a
-trial's wall-clock time grows linearly with `seedsPerTrial` — budget the
-protocol timeout accordingly. Parallelising them is deferred to the shared
-experiment-backend interface.
+The seeded runs execute as one [Monte Carlo experiment](doc:simulation/worker-sharding):
+one run per seed, split across `worker_threads` shards, one worker per logical
+core minus one and never more than `seedsPerTrial`. Sharding never changes the
+replicate values — each run's seed is pinned explicitly — only how fast the
+trial finishes. When the worker bundle is unavailable (running the CLI from
+source), runs fall back to the calling thread and the CLI says so on stderr.
 
 ## Driving the CLI from Python
 
