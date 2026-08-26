@@ -239,9 +239,9 @@ Re-braid (restack and resolve, then diverge again). Length follows how fine the 
 
 | Triangle edge | Today | Gap |
 | --- | --- | --- |
-| **Panel → Brunch** | W1 routes the real panel's `/api/chat` to the SDCPN elicitor; `yarn dev:brunch` starts both services; `brunch_ask` round-trips. | Re-braid W1 with W2, then conduct the human Proof 0 run. |
+| **Panel → Brunch** | W1 routes the real panel's `/api/chat` to the SDCPN elicitor; `yarn dev:brunch` starts both services; `brunch_ask` round-trips. | Conduct the human Proof 0 run from the re-braided `hash-timing` checkout. |
 | **Persistence modelled** | W1 sends one stable ui-shell principal on every request, resolves it to one target document and namespaced sessions, and stamps an opaque owner key that refuses cross-principal reads and writes. SQLite and per-document JSON remain. | Witness reload against the re-braided live surface; no persistence design gap remains for G0. |
-| **Real elicitation** | The production SDCPN elicitor is reachable from the panel on W1; captures, sweep outcomes, and completion are rendered readably, and the attach contract is recorded. | Re-braid timing onto the W1 line, then conduct the eight-turn human run with a screen recording and a plain-language account under proof evidence. |
+| **Real elicitation** | The production SDCPN elicitor is reachable from the panel on W1; captures, sweep outcomes, and completion are rendered readably, and the attach contract is recorded. | Conduct the eight-turn human run from `hash-timing`, with a screen recording and a plain-language account under proof evidence. |
 | **Deployment (G2)** | — | Was Linear-gated behind gherkin via FE-1423 ← FE-1396; that blocker was removed 2026-08-26. FE-1440/FE-1441 remain the owners. |
 
 ### Tool inventory — current truth and intent
