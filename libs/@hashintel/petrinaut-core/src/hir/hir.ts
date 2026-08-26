@@ -37,11 +37,23 @@ export type HirNodeId = number;
  * `metric` — Monte-Carlo/timeline metrics: a bare function *body* over a
  *   `state` object (statements ending in `return <number>`), not an
  *   `export default` module.
+ * `scenario-expression` — one scenario expression (a parameter override or
+ *   an uncoloured place's initial token count), with `parameters` and
+ *   `scenario` ambient.
+ * `scenario-code` — a scenario's code-mode initial state: a bare function
+ *   *body* ending in `return <record keyed by place name>`, with the same
+ *   ambient bindings.
  *
- * Scenario expressions are expressible with the same node set but do not
- * have a lowering entry point yet (see `README.md`).
+ * The scenario surfaces are evaluated by the HIR interpreter
+ * (`interpret.ts`), not emitted as JavaScript.
  */
-export type HirSurfaceKind = "dynamics" | "lambda" | "kernel" | "metric";
+export type HirSurfaceKind =
+  | "dynamics"
+  | "lambda"
+  | "kernel"
+  | "metric"
+  | "scenario-expression"
+  | "scenario-code";
 
 /** Scalar and structural types inferred over HIR nodes. */
 export type HirType =
@@ -197,6 +209,20 @@ export type HirParamRef = HirNodeBase & {
   name: string;
 };
 
+/** Scenario parameter access — lowered from `scenario.<name>` (scenario
+ * surfaces only). */
+export type HirScenarioRef = HirNodeBase & {
+  kind: "scenarioRef";
+  name: string;
+};
+
+/** Python-style `range(...)` helper call (scenario surfaces only) — 1 to 3
+ * numeric arguments, evaluated by the interpreter with a length ceiling. */
+export type HirRangeCall = HirNodeBase & {
+  kind: "rangeCall";
+  args: HirExpr[];
+};
+
 /** Record field access: `target.field` / `target["field"]`. */
 export type HirFieldAccess = HirNodeBase & {
   kind: "fieldAccess";
@@ -336,6 +362,8 @@ export type HirExpr =
   | HirConstant
   | HirLocalRef
   | HirParamRef
+  | HirScenarioRef
+  | HirRangeCall
   | HirFieldAccess
   | HirIndexAccess
   | HirLength
@@ -392,7 +420,10 @@ export function hirChildren(expr: HirExpr): HirExpr[] {
     case "constant":
     case "localRef":
     case "paramRef":
+    case "scenarioRef":
       return [];
+    case "rangeCall":
+      return expr.args;
     case "uuidFrom":
       return [expr.operand];
     case "stringCall":

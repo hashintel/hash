@@ -37,6 +37,7 @@ import {
   snapshotTypeElements,
   type TypeElementsSnapshot,
 } from "./provider/migrate-initial-marking";
+import { useScenarioHir } from "./use-scenario-hir";
 
 /**
  * Internal state for the simulation provider.
@@ -166,7 +167,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   workerFactory,
 }) => {
   const sdcpnContext = use(SDCPNContext);
-  const { requestHirArtifacts } = use(LanguageClientContext);
+  const { requestHirArtifacts, requestScenarioHir } = use(
+    LanguageClientContext,
+  );
   const { extensions, petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
 
@@ -370,11 +373,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       ? sdcpn
       : { ...sdcpn, parameters: [] };
     // Snapshot every compile-sensitive input before awaiting the worker so
-    // artifacts and execution always use the same model configuration.
+    // artifacts and execution always use the same model configuration. The
+    // scenario is compiled below rather than read from render state: the
+    // render path lowers asynchronously, and a run started while that
+    // request is in flight must not fall back to manual values.
+    const manualInitialMarking = currentState.initialMarking;
+    const manualParameterValues = simulationExtensions.parameters
+      ? currentState.parameterValues
+      : {};
     // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-    const initialMarking = effectiveInitialMarkingRef.current;
-    // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-    const parameterValues = effectiveParameterValuesRef.current;
+    const scenarioToCompile = tweakedScenarioRef.current;
 
     // Dispose any active simulation before starting a new one. Update both
     // the ref and React state so same-tick callers see the cleared handle.
@@ -390,6 +398,37 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
     let sim: Simulation;
     try {
+      let initialMarking = manualInitialMarking;
+      let parameterValues: Record<string, string> = manualParameterValues;
+      if (scenarioToCompile) {
+        const scenarioHir = await requestScenarioHir({
+          parameterOverrides: scenarioToCompile.parameterOverrides,
+          initialState: scenarioToCompile.initialState,
+        });
+        if (initializationGenerationRef.current !== generation) {
+          return;
+        }
+        const outcome = compileScenario(
+          scenarioToCompile,
+          scenarioHir,
+          simulationExtensions.parameters ? sdcpn.parameters : [],
+          sdcpn.places,
+          sdcpn.types,
+        );
+        if (!outcome.ok) {
+          throw new Error(
+            outcome.errors
+              .map((scenarioError) => scenarioError.message)
+              .join("\n"),
+          );
+        }
+        parameterValues = outcome.result.parameterValues;
+        initialMarking = {
+          ...manualInitialMarking,
+          ...outcome.result.initialState,
+        };
+      }
+
       // Compile the net's user code to HIR artifacts in the language worker —
       // the simulation engine has no compiler of its own.
       const { artifacts } = await requestHirArtifacts(
@@ -541,17 +580,19 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       ? stateValues.scenarioParameterValues
       : {};
 
-  // Compile scenario when one is selected — computed during render.
-  // React Compiler will memoize based on inputs.
-  let compiledScenarioResult: CompiledScenarioResult | null = null;
-  let scenarioCompilationErrors: ScenarioCompilationError[] | null = null;
-  if (effectiveSelectedScenarioId) {
-    const selectedScenario = petriNetDefinition.scenarios?.find(
-      (s) => s.id === effectiveSelectedScenarioId,
-    );
-    if (selectedScenario) {
-      // Build a scenario with user-tweaked parameter values
-      const tweakedScenario = {
+  const selectedScenario = effectiveSelectedScenarioId
+    ? petriNetDefinition.scenarios?.find(
+        (s) => s.id === effectiveSelectedScenarioId,
+      )
+    : undefined;
+  // Scenario code is lowered to HIR in the language worker (async, keyed on
+  // the scenario's code); type checking and interpretation run synchronously
+  // during render below. React Compiler will memoize based on inputs.
+  const scenarioHirState = useScenarioHir(selectedScenario);
+
+  // Build a scenario with user-tweaked parameter values.
+  const tweakedScenario = selectedScenario
+    ? {
         ...selectedScenario,
         scenarioParameters: selectedScenario.scenarioParameters.map((sp) => ({
           ...sp,
@@ -559,9 +600,26 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
             effectiveScenarioParameterValues[sp.identifier] ?? sp.default,
           ),
         })),
-      };
+      }
+    : null;
+
+  let compiledScenarioResult: CompiledScenarioResult | null = null;
+  let scenarioCompilationErrors: ScenarioCompilationError[] | null = null;
+  if (tweakedScenario) {
+    if (scenarioHirState.error !== null) {
+      // Keep the errors visible: a failing scenario must not look like an
+      // applied one (the marking silently falls back to manual values).
+      scenarioCompilationErrors = [
+        {
+          source: "initialState",
+          itemId: "__lowering__",
+          message: `Scenario code could not be compiled: ${scenarioHirState.error}`,
+        },
+      ];
+    } else if (scenarioHirState.hir !== null) {
       const outcome = compileScenario(
         tweakedScenario,
+        scenarioHirState.hir,
         extensions.parameters ? petriNetDefinition.parameters : [],
         petriNetDefinition.places,
         petriNetDefinition.types,
@@ -569,11 +627,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       if (outcome.ok) {
         compiledScenarioResult = outcome.result;
       } else {
-        // Keep the errors visible: a failing scenario must not look like an
-        // applied one (the marking silently falls back to manual values).
         scenarioCompilationErrors = outcome.errors;
       }
     }
+    // While lowering is in flight both stay null: the scenario is neither
+    // applied nor failing for this render, matching a just-selected scenario.
   }
 
   // When a scenario is compiled, override parameterValues and initialMarking
@@ -593,10 +651,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     };
   }
 
-  // Keep refs to effective values so `initialize` uses scenario-overridden
-  // values instead of raw stateValues (which don't include compiled output).
-  const effectiveParameterValuesRef = useLatest(effectiveParameterValues);
-  const effectiveInitialMarkingRef = useLatest(effectiveInitialMarking);
+  // Snapshot for `initialize`, which compiles the scenario itself.
+  const tweakedScenarioRef = useLatest(tweakedScenario);
 
   const contextValue: SimulationContextValue = {
     state: simulationState,

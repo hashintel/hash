@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../hir";
+import { lowerScenarioToHir } from "../hir/scenario";
 import { compileScenario } from "../simulation/authoring/scenario/compile-scenario";
 import { buildSimulation } from "../simulation/engine/build-simulation";
 import { computeNextFrame } from "../simulation/engine/compute-next-frame";
@@ -32,6 +33,7 @@ function compile(
 ): CompiledScenarioResult {
   const outcome = compileScenario(
     constellationScenario!,
+    lowerScenarioToHir(constellationScenario!),
     petriNetDefinition.parameters,
     petriNetDefinition.places,
     petriNetDefinition.types,

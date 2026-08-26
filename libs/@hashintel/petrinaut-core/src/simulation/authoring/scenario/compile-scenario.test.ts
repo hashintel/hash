@@ -1,10 +1,29 @@
 import { describe, expect, it } from "vitest";
 
+import { lowerScenarioToHir } from "../../../hir/scenario";
 import { compileScenario } from "./compile-scenario";
 
 import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
+import type { CompileScenarioOptions } from "./compile-scenario";
 
 // -- Helpers ------------------------------------------------------------------
+
+/** `compileScenario` with the scenario lowered inline, as Node callers do. */
+const compile = (
+  testScenario: Scenario,
+  netParameters: Parameter[] = [],
+  places: Place[] = [],
+  types: Color[] = [],
+  options: CompileScenarioOptions = {},
+): ReturnType<typeof compileScenario> =>
+  compileScenario(
+    testScenario,
+    lowerScenarioToHir(testScenario),
+    netParameters,
+    places,
+    types,
+    options,
+  );
 
 const param = (
   id: string,
@@ -54,7 +73,7 @@ const color = (id: string): Color => ({
 describe("compileScenario", () => {
   describe("basic evaluation", () => {
     it("returns net parameter defaults when no overrides", () => {
-      const result = compileScenario(scenario(), [param("p1", "x", "10")]);
+      const result = compile(scenario(), [param("p1", "x", "10")]);
 
       expect(result).toEqual({
         ok: true,
@@ -67,10 +86,9 @@ describe("compileScenario", () => {
     });
 
     it("evaluates a constant parameter override", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: "42" } }),
-        [param("p1", "x", "10")],
-      );
+      const result = compile(scenario({ parameterOverrides: { p1: "42" } }), [
+        param("p1", "x", "10"),
+      ]);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -79,10 +97,10 @@ describe("compileScenario", () => {
     });
 
     it("preserves boolean defaults and overrides as boolean strings", () => {
-      const withDefault = compileScenario(scenario(), [
+      const withDefault = compile(scenario(), [
         param("enabled", "enabled", "true", "boolean"),
       ]);
-      const withOverride = compileScenario(
+      const withOverride = compile(
         scenario({ parameterOverrides: { enabled: "false" } }),
         [param("enabled", "enabled", "true", "boolean")],
       );
@@ -98,7 +116,7 @@ describe("compileScenario", () => {
     });
 
     it("rejects fractional integer parameter overrides", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({ parameterOverrides: { count: "1.5" } }),
         [param("count", "count", "1", "integer")],
       );
@@ -117,7 +135,7 @@ describe("compileScenario", () => {
     });
 
     it("evaluates an initial state expression", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: { type: "per_place", content: { place1: "100" } },
         }),
@@ -131,7 +149,7 @@ describe("compileScenario", () => {
     });
 
     it("treats empty expressions as defaults", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           parameterOverrides: { p1: "", p2: "  " },
           initialState: { type: "per_place", content: { place1: "" } },
@@ -149,7 +167,7 @@ describe("compileScenario", () => {
 
   describe("scenario parameters", () => {
     it("makes scenario parameters accessible via scenario object", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           scenarioParameters: [
             { type: "real", identifier: "rate", default: 3.5 },
@@ -166,7 +184,7 @@ describe("compileScenario", () => {
     });
 
     it("allows scenario params in initial state expressions", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           scenarioParameters: [
             { type: "integer", identifier: "count", default: 50 },
@@ -186,7 +204,7 @@ describe("compileScenario", () => {
     });
 
     it("exposes boolean scenario parameters as booleans to bindings", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           scenarioParameters: [
             { type: "boolean", identifier: "enabled", default: 1 },
@@ -203,7 +221,7 @@ describe("compileScenario", () => {
     });
 
     it("uses supplied scenario parameter values over defaults", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           scenarioParameters: [
             { type: "integer", identifier: "count", default: 50 },
@@ -228,7 +246,7 @@ describe("compileScenario", () => {
     });
 
     it("rejects non-finite supplied scenario parameter values", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           scenarioParameters: [
             { type: "real", identifier: "rate", default: 1 },
@@ -255,7 +273,7 @@ describe("compileScenario", () => {
 
   describe("expression features", () => {
     it("supports Math functions", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({ parameterOverrides: { p1: "Math.sqrt(144)" } }),
         [param("p1", "x", "0")],
       );
@@ -267,7 +285,7 @@ describe("compileScenario", () => {
     });
 
     it("supports complex expressions with both parameters and scenario", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           scenarioParameters: [
             { type: "real", identifier: "altitude", default: 80 },
@@ -288,7 +306,7 @@ describe("compileScenario", () => {
     });
 
     it("supports ternary expressions", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           scenarioParameters: [
             { type: "boolean", identifier: "large", default: 1 },
@@ -308,7 +326,7 @@ describe("compileScenario", () => {
     });
 
     it("rounds initial state to integers", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: { type: "per_place", content: { place1: "3.7" } },
         }),
@@ -322,7 +340,7 @@ describe("compileScenario", () => {
     });
 
     it("clamps negative initial state to 0", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: { type: "per_place", content: { place1: "-5" } },
         }),
@@ -338,7 +356,7 @@ describe("compileScenario", () => {
 
   describe("colored places (number[][] data)", () => {
     it("converts number[][] to token records", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: {
             type: "per_place",
@@ -386,7 +404,7 @@ describe("compileScenario", () => {
     });
 
     it("converts typed token row values to token records", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: {
             type: "per_place",
@@ -430,7 +448,7 @@ describe("compileScenario", () => {
     });
 
     it("handles empty token array", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: {
             type: "per_place",
@@ -447,7 +465,7 @@ describe("compileScenario", () => {
     });
 
     it("converts empty colored token rows to zero-valued token records", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: {
             type: "per_place",
@@ -469,7 +487,7 @@ describe("compileScenario", () => {
     });
 
     it("handles mixed colored and uncolored places", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: {
             type: "per_place",
@@ -501,7 +519,7 @@ describe("compileScenario", () => {
     });
 
     it("reports colored token rows when place metadata is missing", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: {
             type: "per_place",
@@ -527,7 +545,7 @@ describe("compileScenario", () => {
     });
 
     it("reports empty colored token rows when place metadata is missing", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: {
             type: "per_place",
@@ -553,7 +571,7 @@ describe("compileScenario", () => {
     });
 
     it("reports colored token rows when color elements are missing", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: {
             type: "per_place",
@@ -580,7 +598,7 @@ describe("compileScenario", () => {
     });
 
     it("reports empty colored token rows when color elements are missing", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: {
             type: "per_place",
@@ -620,7 +638,7 @@ describe("compileScenario", () => {
     };
 
     const compileRows = (rows: (number | boolean | string)[][]) =>
-      compileScenario(
+      compile(
         scenario({
           initialState: { type: "per_place", content: { place1: rows } },
         }),
@@ -688,7 +706,7 @@ describe("compileScenario", () => {
     };
 
     const compileRows = (rows: (number | boolean | string)[][]) =>
-      compileScenario(
+      compile(
         scenario({
           initialState: { type: "per_place", content: { place1: rows } },
         }),
@@ -737,7 +755,7 @@ describe("compileScenario", () => {
 
   describe("evaluation order", () => {
     it("initial state sees overridden parameter values", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           parameterOverrides: { p1: "99" },
           initialState: {
@@ -758,10 +776,9 @@ describe("compileScenario", () => {
 
   describe("error handling", () => {
     it("reports syntax errors in expressions", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: "1 +" } }),
-        [param("p1", "x", "0")],
-      );
+      const result = compile(scenario({ parameterOverrides: { p1: "1 +" } }), [
+        param("p1", "x", "0"),
+      ]);
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -772,19 +789,19 @@ describe("compileScenario", () => {
     });
 
     it("reports non-numeric results", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({ parameterOverrides: { p1: '"hello"' } }),
         [param("p1", "x", "0")],
       );
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.errors[0]!.message).toContain("expected a number");
+        expect(result.errors[0]!.message).toContain("must produce a number");
       }
     });
 
     it("reports NaN results", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: { type: "per_place", content: { place1: "0 / 0" } },
         }),
@@ -798,7 +815,7 @@ describe("compileScenario", () => {
     });
 
     it("reports runtime errors (undefined variable)", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({ parameterOverrides: { p1: "nonexistent" } }),
         [param("p1", "x", "0")],
       );
@@ -810,7 +827,7 @@ describe("compileScenario", () => {
     });
 
     it("collects multiple errors", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           parameterOverrides: { p1: "bad +", p2: '"string"' },
           initialState: {
@@ -828,135 +845,59 @@ describe("compileScenario", () => {
     });
   });
 
-  describe("sandboxing", () => {
-    it("blocks access to window", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: "typeof window" } }),
+  // Scenario code compiles through the HIR and is interpreted: there is no
+  // `new Function` on this path, so escape routes are compile errors rather
+  // than sandbox behaviours.
+  describe("restricted subset", () => {
+    const rejects = (expression: string) => {
+      const result = compile(
+        scenario({ parameterOverrides: { p1: expression } }),
         [param("p1", "x", "0")],
       );
-
-      // "typeof window" returns "undefined" (a string), not a number
       expect(result.ok).toBe(false);
+      return result.ok ? [] : result.errors;
+    };
+
+    it("rejects global identifiers (window, globalThis, process, Function)", () => {
+      rejects("typeof window");
+      rejects("globalThis");
+      rejects("process.pid");
+      rejects("typeof Function");
     });
 
-    it("blocks access to globalThis", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: "typeof globalThis" } }),
-        [param("p1", "x", "0")],
+    it("rejects constructor-chain walks as out-of-subset calls", () => {
+      rejects("({}).constructor.constructor('return 1')()");
+      rejects(
+        "(function*(){}).constructor('return process.pid')().next().value",
       );
-
-      expect(result.ok).toBe(false);
+      rejects("(1n).constructor.constructor('return process.pid')()");
     });
 
-    it("blocks direct access to Node process globals", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: "process.pid" } }),
-        [param("p1", "x", "0")],
+    it("rejects reads of undeclared parameter properties", () => {
+      // `parameters.constructor` is not a declared net parameter.
+      const errors = rejects("parameters.constructor");
+      expect(
+        errors.some((error) => error.message.includes("Unknown parameter")),
+      ).toBe(true);
+    });
+
+    it("rejects array methods outside the subset", () => {
+      // `.filter` / `.slice` / `.flatMap` are not part of the compiled
+      // subset — only `.map`, `.reduce` and `.concat` lower.
+      const errors = rejects(
+        "[1, 2, 3].map((n) => n * 2).filter((n) => n > 2).slice(0).concat([0]).length",
       );
-
-      expect(result.ok).toBe(false);
+      expect(
+        errors.some((error) => error.message.includes("calls are supported")),
+      ).toBe(true);
     });
 
-    it("blocks prototype chain escape", () => {
-      const result = compileScenario(
-        scenario({
-          parameterOverrides: {
-            p1: "parameters.constructor",
-          },
-        }),
-        [param("p1", "x", "0")],
-      );
-
-      // parameters.constructor is undefined (prototype-less object)
-      // so the result is not a number
-      expect(result.ok).toBe(false);
+    it("rejects helper property access", () => {
+      rejects("range.constructor === undefined ? 1 : 2");
     });
 
-    it("blocks Function constructor escape", () => {
-      const result = compileScenario(
-        scenario({
-          parameterOverrides: { p1: "typeof Function" },
-        }),
-        [param("p1", "x", "0")],
-      );
-
-      // Function is shadowed to undefined, typeof undefined is "undefined" (a string)
-      expect(result.ok).toBe(false);
-    });
-
-    it("blocks literal .constructor.constructor escape", () => {
-      // ({}).constructor is Object, Object.constructor is Function (real).
-      // Invoking it with a body would escape to globalThis. runSandboxed
-      // temporarily blocks `.constructor` on built-in prototypes so even this
-      // literal-based walk fails.
-      const result = compileScenario(
-        scenario({
-          parameterOverrides: {
-            p1: "({}).constructor.constructor('return 1')()",
-          },
-        }),
-        [param("p1", "x", "0")],
-      );
-
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.errors.some((e) => /constructor/i.test(e.message))).toBe(
-          true,
-        );
-      }
-    });
-
-    it("blocks generator-constructor access to Node globals", () => {
-      const result = compileScenario(
-        scenario({
-          parameterOverrides: {
-            p1: "(function*(){}).constructor('return process.pid')().next().value",
-          },
-        }),
-        [param("p1", "x", "0")],
-      );
-
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(
-          result.errors.some((error) => /constructor/i.test(error.message)),
-        ).toBe(true);
-      }
-    });
-
-    it("blocks primitive-constructor access to Node globals", () => {
-      const result = compileScenario(
-        scenario({
-          parameterOverrides: {
-            p1: "(1n).constructor.constructor('return process.pid')()",
-          },
-        }),
-        [param("p1", "x", "0")],
-      );
-
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(
-          result.errors.some((error) => /constructor/i.test(error.message)),
-        ).toBe(true);
-      }
-    });
-
-    it("restores .constructor after evaluation", () => {
-      // Sanity: the sandbox must revert its prototype patches even when the
-      // evaluation throws, so surrounding code keeps working.
-      compileScenario(
-        scenario({
-          parameterOverrides: { p1: "({}).constructor.constructor" },
-        }),
-        [param("p1", "x", "0")],
-      );
-      expect({}.constructor).toBe(Object);
-      expect(Object.constructor).toBe(Function);
-    });
-
-    it("allows Math (safe global)", () => {
-      const result = compileScenario(
+    it("allows Math", () => {
+      const result = compile(
         scenario({ parameterOverrides: { p1: "Math.PI" } }),
         [param("p1", "x", "0")],
       );
@@ -967,40 +908,28 @@ describe("compileScenario", () => {
       }
     });
 
-    it("allows array methods that read .constructor internally", () => {
-      // Array.prototype.map/filter/slice/concat/flatMap read the array's
-      // `constructor` (ArraySpeciesCreate). The sandbox masks it as
-      // `undefined`, which the spec treats as "use the default Array" — a
-      // throwing getter here would break everyday user code.
-      const result = compileScenario(
+    it("allows the subset's array methods", () => {
+      const result = compile(
         scenario({
           parameterOverrides: {
-            p1: "[1, 2, 3].map((n) => n * 2).filter((n) => n > 2).slice(0).concat([0]).length",
+            p1: "[1, 2, 3].map((n) => n * 2).concat([0]).length",
           },
         }),
         [param("p1", "x", "0")],
       );
 
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.result.parameterValues.x).toBe("3");
-      }
+      expect(result).toMatchObject({
+        ok: true,
+        result: { parameterValues: { x: "4" } },
+      });
     });
 
-    it("masks .constructor on helpers so they cannot leak Function", () => {
-      const result = compileScenario(
-        scenario({
-          parameterOverrides: {
-            p1: "range.constructor === undefined ? 1 : 2",
-          },
-        }),
-        [param("p1", "x", "0")],
-      );
-
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.result.parameterValues.x).toBe("1");
-      }
+    it("does not mutate built-in prototypes while evaluating", () => {
+      compile(scenario({ parameterOverrides: { p1: "1 + 1" } }), [
+        param("p1", "x", "0"),
+      ]);
+      expect({}.constructor).toBe(Object);
+      expect(Object.constructor).toBe(Function);
     });
   });
 
@@ -1011,11 +940,53 @@ describe("compileScenario", () => {
     ];
     const netTypes = [color("c1")];
 
+    it("reports unknown place names even when the checker cannot see them", () => {
+      // A ternary over records with different keys collapses the inferred
+      // return type to unknown, so the type checker cannot flag `Nowhere`;
+      // evaluation reports it instead of silently skipping.
+      const result = compile(
+        scenario({
+          initialState: {
+            type: "code",
+            content: "return 1 > 2 ? { Queue: 1 } : { Nowhere: 1 };",
+          },
+        }),
+        [],
+        netPlaces,
+        netTypes,
+      );
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors[0]!.message).toContain(
+          "`Nowhere`, which is not a place",
+        );
+      }
+    });
+
+    it("matches JavaScript truncation for Array.from lengths", () => {
+      const result = compile(
+        scenario({
+          initialState: {
+            type: "code",
+            content: "return { Queue: Array.from({ length: 2.7 }).length };",
+          },
+        }),
+        [],
+        netPlaces,
+        netTypes,
+      );
+      // `Array.from({ length: 2.7 })` has 2 elements in JavaScript.
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.pl2).toBe(2);
+      }
+    });
+
     it("builds colored tokens from Array.from(...).map(...)", () => {
       // Regression: this exact shape used to fail with "Access to
       // .constructor is blocked inside user code." because `.map` reads the
       // array's constructor internally.
-      const result = compileScenario(
+      const result = compile(
         scenario({
           scenarioParameters: [
             { identifier: "number_of_satellites", type: "integer", default: 3 },
@@ -1046,7 +1017,7 @@ describe("compileScenario", () => {
     });
 
     it("builds colored tokens from range(...).map(...)", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           scenarioParameters: [
             { identifier: "number_of_satellites", type: "integer", default: 2 },
@@ -1075,7 +1046,7 @@ describe("compileScenario", () => {
     });
 
     it("reports code errors with the __code__ item id", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: {
             type: "code",
@@ -1099,7 +1070,7 @@ describe("compileScenario", () => {
 
   describe("range helper", () => {
     it("is available in parameter override expressions", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           parameterOverrides: {
             p1: "range(3).length + range(2, 6).length",
@@ -1115,7 +1086,7 @@ describe("compileScenario", () => {
     });
 
     it("is available in per-place initial state expressions", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           initialState: {
             type: "per_place",
@@ -1133,7 +1104,7 @@ describe("compileScenario", () => {
     });
 
     it("reports the length-cap error instead of freezing", () => {
-      const result = compileScenario(
+      const result = compile(
         scenario({
           parameterOverrides: { p1: "range(1e12).length" },
         }),

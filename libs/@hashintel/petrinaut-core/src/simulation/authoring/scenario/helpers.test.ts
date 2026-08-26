@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { runSandboxed } from "../sandbox";
-import { MAX_RANGE_LENGTH, range, SCENARIO_HELPERS } from "./helpers";
+import { MAX_RANGE_LENGTH, range } from "./helpers";
 
 describe("range", () => {
   it("range(n) counts from 0 to n-1", () => {
@@ -69,46 +68,5 @@ describe("range", () => {
 
   it("allows the cap-sized range exactly", () => {
     expect(range(MAX_RANGE_LENGTH)).toHaveLength(MAX_RANGE_LENGTH);
-  });
-
-  it("works inside runSandboxed (no species-creating array methods)", () => {
-    expect(runSandboxed(() => range(3))).toEqual([0, 1, 2]);
-  });
-});
-
-describe("SCENARIO_HELPERS", () => {
-  it("exposes frozen helpers so user code cannot mutate them", () => {
-    expect(Object.isFrozen(SCENARIO_HELPERS)).toBe(true);
-    for (const helper of Object.values(SCENARIO_HELPERS)) {
-      expect(Object.isFrozen(helper)).toBe(true);
-    }
-  });
-
-  it("exposes no writable `prototype` for user code to hang state on", () => {
-    // `Object.freeze` is shallow: freezing a `function` declaration leaves its
-    // `prototype` object writable, and because helpers are module singletons
-    // that object would carry state from one evaluation into the next. Arrow
-    // functions have no `prototype` at all.
-    for (const helper of Object.values(SCENARIO_HELPERS)) {
-      expect(typeof helper).toBe("function");
-      expect((helper as { prototype?: unknown }).prototype).toBeUndefined();
-    }
-  });
-
-  it("cannot smuggle state between evaluations via a helper", () => {
-    const helper = SCENARIO_HELPERS.range as typeof range;
-
-    // What user code would attempt: stash a value on the shared helper during
-    // one evaluation and read it back during a later, separate one.
-    expect(() =>
-      runSandboxed(() => {
-        (helper as unknown as Record<string, unknown>).saved = "leaked";
-        return 0;
-      }),
-    ).toThrow();
-
-    expect(
-      runSandboxed(() => (helper as unknown as Record<string, unknown>).saved),
-    ).toBeUndefined();
   });
 });

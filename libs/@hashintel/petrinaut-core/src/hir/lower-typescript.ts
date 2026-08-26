@@ -37,7 +37,14 @@ export type LowerTypeScriptResult =
   | { ok: true; fn: HirFunction; diagnostics: HirDiagnostic[] }
   | { ok: false; diagnostics: HirDiagnostic[] };
 
-const CONSTRUCTOR_NAMES: Record<Exclude<HirSurfaceKind, "metric">, string> = {
+/** Bare-body surfaces are wrapped for parsing instead of expecting an
+ * `export default <Ctor>(...)` module. */
+type HirModuleSurfaceKind = Exclude<
+  HirSurfaceKind,
+  "metric" | "scenario-expression" | "scenario-code"
+>;
+
+const CONSTRUCTOR_NAMES: Record<HirModuleSurfaceKind, string> = {
   dynamics: "Dynamics",
   lambda: "Lambda",
   kernel: "TransitionKernel",
@@ -52,6 +59,50 @@ const CONSTRUCTOR_NAMES: Record<Exclude<HirSurfaceKind, "metric">, string> = {
  */
 const METRIC_PREFIX = "(state) => {\n";
 const METRIC_SUFFIX = "\n}";
+
+/**
+ * Scenario code-mode initial state is a bare function *body* like metric
+ * code, with `parameters` and `scenario` ambient and no declared parameters.
+ */
+const SCENARIO_CODE_PREFIX = "() => {\n";
+const SCENARIO_CODE_SUFFIX = "\n}";
+
+/**
+ * A scenario expression (parameter override / uncoloured place count) is a
+ * single expression; the parentheses force expression parsing (an object
+ * literal would otherwise parse as a block).
+ */
+const SCENARIO_EXPRESSION_PREFIX = "() => (\n";
+const SCENARIO_EXPRESSION_SUFFIX = "\n)";
+
+/** Bare-body surfaces: wrapped in prefix/suffix for parsing, spans shifted
+ * back onto the raw user text afterwards. */
+const WRAPPED_SURFACES: Partial<
+  Record<
+    HirSurfaceKind,
+    {
+      prefix: string;
+      suffix: string;
+      lower: (lowering: Lowering) => HirFunction;
+    }
+  >
+> = {
+  metric: {
+    prefix: METRIC_PREFIX,
+    suffix: METRIC_SUFFIX,
+    lower: (lowering) => lowering.lowerMetricModule(),
+  },
+  "scenario-code": {
+    prefix: SCENARIO_CODE_PREFIX,
+    suffix: SCENARIO_CODE_SUFFIX,
+    lower: (lowering) => lowering.lowerScenarioModule("scenario-code"),
+  },
+  "scenario-expression": {
+    prefix: SCENARIO_EXPRESSION_PREFIX,
+    suffix: SCENARIO_EXPRESSION_SUFFIX,
+    lower: (lowering) => lowering.lowerScenarioModule("scenario-expression"),
+  },
+};
 
 const DISTRIBUTION_FACTORIES: Record<string, HirDistributionKind> = {
   Gaussian: "gaussian",
@@ -109,7 +160,22 @@ type LowerScope = {
   parameterAliases: Map<string, string>;
   /** Name of the `parameters` function parameter, if declared. */
   parametersName: string | null;
+  /** Identifiers introduced by destructuring the ambient scenario object,
+   * mapped to the scenario parameter they read. */
+  scenarioAliases: Map<string, string>;
+  /** Name of the ambient scenario object (scenario surfaces only). */
+  scenarioName: string | null;
 };
+
+/** Introduces `name` as a local, shadowing any distribution marking,
+ * destructured-field routing, or ambient alias it previously had. */
+function shadowAsLocal(scope: LowerScope, name: string): void {
+  scope.locals.add(name);
+  scope.distributionLocals.delete(name);
+  scope.destructuredFields.delete(name);
+  scope.parameterAliases.delete(name);
+  scope.scenarioAliases.delete(name);
+}
 
 function childScope(scope: LowerScope): LowerScope {
   return {
@@ -118,6 +184,8 @@ function childScope(scope: LowerScope): LowerScope {
     destructuredFields: new Map(scope.destructuredFields),
     parameterAliases: new Map(scope.parameterAliases),
     parametersName: scope.parametersName,
+    scenarioAliases: new Map(scope.scenarioAliases),
+    scenarioName: scope.scenarioName,
   };
 }
 
@@ -194,6 +262,8 @@ class Lowering {
       // `parameters` is not a declared function argument. Scenario parameters
       // are not exposed.
       parametersName: "parameters",
+      scenarioAliases: new Map(),
+      scenarioName: null,
     };
     const body = this.lowerBlock(arrowBody, scope);
     return {
@@ -205,12 +275,77 @@ class Lowering {
     };
   }
 
-  lowerModule(): HirFunction {
-    if (this.surface === "metric") {
-      // Metric code has no module wrapper — see `lowerMetricModule`.
-      return this.lowerMetricModule();
+  /** The scope scenario code starts in: no locals, both ambient objects. */
+  private scenarioScope(): LowerScope {
+    return {
+      locals: new Set(),
+      distributionLocals: new Set(),
+      destructuredFields: new Map(),
+      parameterAliases: new Map(),
+      // Net parameters and scenario parameters are both ambient:
+      // `parameters.<name>` / `scenario.<name>` (and destructuring from
+      // either) lower to parameter reads.
+      parametersName: "parameters",
+      scenarioAliases: new Map(),
+      scenarioName: "scenario",
+    };
+  }
+
+  /**
+   * Lowers a wrapped scenario surface (see `SCENARIO_CODE_PREFIX` /
+   * `SCENARIO_EXPRESSION_PREFIX`): `scenario-code` takes a block body ending
+   * in `return`, `scenario-expression` a single expression.
+   */
+  lowerScenarioModule(
+    surface: "scenario-code" | "scenario-expression",
+  ): HirFunction {
+    const fail = (): LowerError =>
+      new LowerError({
+        code: "hir:unsupported-syntax",
+        message:
+          surface === "scenario-code"
+            ? "Scenario initial-state code must be a function body ending in `return`."
+            : "Scenario expressions must be a single expression.",
+        severity: "error",
+        span: { start: 0, length: Math.max(this.sourceFile.text.length, 1) },
+      });
+    const [statement, ...rest] = this.sourceFile.statements;
+    const arrow =
+      rest.length === 0 &&
+      statement &&
+      ts.isExpressionStatement(statement) &&
+      ts.isArrowFunction(statement.expression)
+        ? statement.expression
+        : null;
+    if (!arrow) {
+      throw fail();
     }
-    const constructorName = CONSTRUCTOR_NAMES[this.surface];
+    if (ts.isBlock(arrow.body) !== (surface === "scenario-code")) {
+      throw fail();
+    }
+    const body = ts.isBlock(arrow.body)
+      ? this.lowerBlock(arrow.body, this.scenarioScope())
+      : this.lowerExpr(arrow.body, this.scenarioScope());
+    return {
+      hirVersion: 1,
+      surface,
+      params: [],
+      body,
+      span: this.spanOf(arrow),
+    };
+  }
+
+  lowerModule(): HirFunction {
+    // Wrapped bare-body surfaces (metric, scenario) dispatch in
+    // `lowerTypeScriptToHir` and never reach this method.
+    const constructorName = CONSTRUCTOR_NAMES[
+      this.surface as HirModuleSurfaceKind
+    ] as string | undefined;
+    if (!constructorName) {
+      throw new Error(
+        `Surface "${this.surface}" is lowered via its wrapped-body entry point.`,
+      );
+    }
     let exportAssignment: ts.ExportAssignment | undefined;
 
     for (const statement of this.sourceFile.statements) {
@@ -290,6 +425,8 @@ class Lowering {
       destructuredFields: new Map(),
       parameterAliases: new Map(),
       parametersName: null,
+      scenarioAliases: new Map(),
+      scenarioName: null,
     };
 
     for (const [index, parameter] of fnArg.parameters.entries()) {
@@ -534,13 +671,9 @@ class Lowering {
     const pattern = declaration.name;
 
     const registerBinding = (name: string, value: HirExpr): void => {
-      scope.locals.add(name);
-      scope.destructuredFields.delete(name);
-      scope.parameterAliases.delete(name);
+      shadowAsLocal(scope, name);
       if (this.isDistributionValued(value, scope)) {
         scope.distributionLocals.add(name);
-      } else {
-        scope.distributionLocals.delete(name);
       }
     };
 
@@ -551,19 +684,22 @@ class Lowering {
       return [{ name: pattern.text, nameSpan: this.spanOf(pattern), value }];
     }
 
-    // Destructuring from the parameters object binds parameter reads
-    // directly: const { a, b: alias } = parameters
+    // Destructuring from the parameters or scenario object binds parameter
+    // reads directly: const { a, b: alias } = parameters
     if (
       ts.isObjectBindingPattern(pattern) &&
       ts.isIdentifier(initializer) &&
-      initializer.text === scope.parametersName &&
+      (initializer.text === scope.parametersName ||
+        initializer.text === scope.scenarioName) &&
       !scope.locals.has(initializer.text)
     ) {
+      const kind =
+        initializer.text === scope.parametersName ? "paramRef" : "scenarioRef";
       const bindings: HirLetBinding[] = [];
       for (const element of pattern.elements) {
         const bound = this.bindingElementParts(element);
         const value = this.make(element, {
-          kind: "paramRef",
+          kind,
           name: bound.sourceName,
         });
         registerBinding(bound.name, value);
@@ -830,14 +966,21 @@ class Lowering {
     if (aliasedParameter !== undefined) {
       return this.make(node, { kind: "paramRef", name: aliasedParameter });
     }
+    const aliasedScenarioParameter = scope.scenarioAliases.get(name);
+    if (aliasedScenarioParameter !== undefined) {
+      return this.make(node, {
+        kind: "scenarioRef",
+        name: aliasedScenarioParameter,
+      });
+    }
     if (scope.locals.has(name)) {
       return this.make(node, { kind: "localRef", name });
     }
-    if (name === scope.parametersName) {
+    if (name === scope.parametersName || name === scope.scenarioName) {
       this.fail(
         node,
         "hir:bare-parameters-object",
-        `The parameters object can only be used via property access, e.g. \`${name}.rate\`.`,
+        `The ${name} object can only be used via property access, e.g. \`${name}.rate\`.`,
       );
     }
     this.fail(
@@ -924,6 +1067,10 @@ class Lowering {
       ) {
         return this.make(node, { kind: "paramRef", name: property });
       }
+
+      if (objectName === scope.scenarioName && !scope.locals.has(objectName)) {
+        return this.make(node, { kind: "scenarioRef", name: property });
+      }
     }
 
     if (property === "length") {
@@ -941,11 +1088,50 @@ class Lowering {
     });
   }
 
+  private isScenarioSurface(): boolean {
+    return (
+      this.surface === "scenario-expression" || this.surface === "scenario-code"
+    );
+  }
+
   private lowerCall(node: ts.CallExpression, scope: LowerScope): HirExpr {
     const callee = node.expression;
 
+    // range(...) — the scenario helper (Python-style, end-exclusive).
+    if (
+      this.isScenarioSurface() &&
+      ts.isIdentifier(callee) &&
+      callee.text === "range" &&
+      !scope.locals.has("range")
+    ) {
+      if (node.arguments.length < 1 || node.arguments.length > 3) {
+        this.fail(
+          node,
+          "hir:range-arity",
+          "`range(...)` takes 1 to 3 numeric arguments.",
+        );
+      }
+      return this.make(node, {
+        kind: "rangeCall",
+        args: node.arguments.map((argument) => this.lowerExpr(argument, scope)),
+      });
+    }
+
     if (ts.isPropertyAccessExpression(callee)) {
       const method = callee.name.text;
+
+      // Array.from({ length: n }, callback?) — desugared to
+      // `range(n).map(callback)`. The callback's element parameter is the
+      // index (JavaScript would pass `undefined`), so callbacks that ignore
+      // it behave identically.
+      if (
+        this.isScenarioSurface() &&
+        ts.isIdentifier(callee.expression) &&
+        callee.expression.text === "Array" &&
+        method === "from"
+      ) {
+        return this.lowerArrayFrom(node, scope);
+      }
 
       // Math.fn(...)
       if (
@@ -1076,6 +1262,73 @@ class Lowering {
     );
   }
 
+  /**
+   * Lowers `Array.from({ length: n }, callback?)` to a `rangeCall` (plus an
+   * `arrayMap` when a callback is given). Only the `{ length }` array-like
+   * form is supported; the callback's element parameter receives the index.
+   */
+  private lowerArrayFrom(node: ts.CallExpression, scope: LowerScope): HirExpr {
+    if (node.arguments.length < 1 || node.arguments.length > 2) {
+      this.fail(
+        node,
+        "hir:unsupported-call",
+        "`Array.from(...)` takes `{ length: n }` and an optional callback.",
+      );
+    }
+    const lengthArg = node.arguments[0]!;
+    let lengthExpr: ts.Expression | null = null;
+    if (ts.isObjectLiteralExpression(lengthArg)) {
+      const [property, ...restProperties] = lengthArg.properties;
+      if (property && restProperties.length === 0) {
+        if (
+          ts.isPropertyAssignment(property) &&
+          ts.isIdentifier(property.name) &&
+          property.name.text === "length"
+        ) {
+          lengthExpr = property.initializer;
+        } else if (
+          ts.isShorthandPropertyAssignment(property) &&
+          property.name.text === "length"
+        ) {
+          lengthExpr = property.name;
+        }
+      }
+    }
+    if (!lengthExpr) {
+      this.fail(
+        lengthArg,
+        "hir:unsupported-call",
+        "`Array.from(...)` only supports the `{ length: n }` form — or use `range(n)`.",
+      );
+    }
+    // JavaScript's `Array.from` truncates the length toward zero
+    // (`ToLength`), while `range` is end-exclusive over the raw value:
+    // `range(2.7)` has 3 elements where `Array.from({ length: 2.7 })` has 2.
+    // Truncating preserves the JavaScript element count.
+    const truncatedLength = this.make(lengthExpr, {
+      kind: "mathCall",
+      fn: "trunc",
+      args: [this.lowerExpr(lengthExpr, scope)],
+    });
+    const rangeExpr = this.make(node, {
+      kind: "rangeCall",
+      args: [truncatedLength],
+    });
+
+    const callback = node.arguments[1];
+    if (!callback) {
+      return rangeExpr;
+    }
+    if (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) {
+      this.fail(
+        callback,
+        "hir:map-callback",
+        "`Array.from(...)` expects an inline function callback.",
+      );
+    }
+    return this.lowerInlineCallbackMap(node, rangeExpr, callback, scope);
+  }
+
   private lowerReduceCall(
     node: ts.CallExpression,
     callee: ts.PropertyAccessExpression,
@@ -1120,10 +1373,7 @@ class Lowering {
         name: parameter.name.text,
         span: this.spanOf(parameter.name),
       };
-      bodyScope.locals.add(bound.name);
-      bodyScope.distributionLocals.delete(bound.name);
-      bodyScope.destructuredFields.delete(bound.name);
-      bodyScope.parameterAliases.delete(bound.name);
+      shadowAsLocal(bodyScope, bound.name);
       return bound;
     };
 
@@ -1177,6 +1427,17 @@ class Lowering {
         "`.map(...)` expects an inline function, e.g. `.map((token) => ...)`.",
       );
     }
+    return this.lowerInlineCallbackMap(node, target, callback, scope);
+  }
+
+  /** Lowers an inline `(element, index?) => body` callback into an
+   * `arrayMap` over `target` (shared by `.map(...)` and `Array.from`). */
+  private lowerInlineCallbackMap(
+    node: ts.CallExpression,
+    target: HirExpr,
+    callback: ts.ArrowFunction | ts.FunctionExpression,
+    scope: LowerScope,
+  ): HirExpr {
     if (callback.parameters.length > 2) {
       this.fail(
         callback.parameters[2]!,
@@ -1196,10 +1457,7 @@ class Lowering {
         name: firstParam.name.text,
         span: this.spanOf(firstParam.name),
       };
-      bodyScope.locals.add(param.name);
-      bodyScope.distributionLocals.delete(param.name);
-      bodyScope.destructuredFields.delete(param.name);
-      bodyScope.parameterAliases.delete(param.name);
+      shadowAsLocal(bodyScope, param.name);
     } else if (ts.isObjectBindingPattern(firstParam.name)) {
       param = { name: "__element", span: this.spanOf(firstParam.name) };
       for (const element of firstParam.name.elements) {
@@ -1241,10 +1499,7 @@ class Lowering {
         name: secondParam.name.text,
         span: this.spanOf(secondParam.name),
       };
-      bodyScope.locals.add(indexParam.name);
-      bodyScope.distributionLocals.delete(indexParam.name);
-      bodyScope.destructuredFields.delete(indexParam.name);
-      bodyScope.parameterAliases.delete(indexParam.name);
+      shadowAsLocal(bodyScope, indexParam.name);
     }
 
     const body = ts.isBlock(callback.body)
@@ -1323,10 +1578,7 @@ class Lowering {
 
     const bodyScope = childScope(scope);
     const paramName = parameter.name.text;
-    bodyScope.locals.add(paramName);
-    bodyScope.distributionLocals.delete(paramName);
-    bodyScope.destructuredFields.delete(paramName);
-    bodyScope.parameterAliases.delete(paramName);
+    shadowAsLocal(bodyScope, paramName);
 
     const body = ts.isBlock(callback.body)
       ? this.lowerBlock(callback.body, bodyScope)
@@ -1409,18 +1661,19 @@ class Lowering {
 }
 
 /**
- * Shifts a span from wrapped-metric-source coordinates back onto the raw
- * user body: subtracts the prefix length and clamps the result into
+ * Shifts a span from wrapped-source coordinates back onto the raw user body:
+ * subtracts the wrapper prefix length and clamps the result into
  * `[0, codeLength]` (spans covering the synthetic prefix/suffix collapse to
  * the nearest edge of the user text).
  */
-function shiftMetricSpan(span: Span, codeLength: number): void {
-  const start = Math.min(
-    Math.max(0, span.start - METRIC_PREFIX.length),
-    codeLength,
-  );
+function shiftWrappedSpan(
+  span: Span,
+  codeLength: number,
+  prefixLength: number,
+): void {
+  const start = Math.min(Math.max(0, span.start - prefixLength), codeLength);
   const end = Math.min(
-    Math.max(start, span.start + span.length - METRIC_PREFIX.length),
+    Math.max(start, span.start + span.length - prefixLength),
     codeLength,
   );
   // eslint-disable-next-line no-param-reassign -- in-place span rebasing over freshly-built nodes is the point of this helper
@@ -1429,44 +1682,49 @@ function shiftMetricSpan(span: Span, codeLength: number): void {
   span.length = end - start;
 }
 
-/** Shifts every span in a lowered metric function (nodes, binding names,
- * record keys, callback params, fn/params spans) onto the raw user body. */
-function shiftMetricFunctionSpans(fn: HirFunction, codeLength: number): void {
-  shiftMetricSpan(fn.span, codeLength);
+/** Shifts every span in a lowered wrapped-body function (nodes, binding
+ * names, record keys, callback params, fn/params spans) onto the raw user
+ * body. */
+function shiftWrappedFunctionSpans(
+  fn: HirFunction,
+  codeLength: number,
+  prefixLength: number,
+): void {
+  shiftWrappedSpan(fn.span, codeLength, prefixLength);
   for (const param of fn.params) {
-    shiftMetricSpan(param.span, codeLength);
+    shiftWrappedSpan(param.span, codeLength, prefixLength);
   }
   walkHir(fn.body, (node) => {
-    shiftMetricSpan(node.span, codeLength);
+    shiftWrappedSpan(node.span, codeLength, prefixLength);
     switch (node.kind) {
       case "fieldAccess":
-        shiftMetricSpan(node.fieldSpan, codeLength);
+        shiftWrappedSpan(node.fieldSpan, codeLength, prefixLength);
         break;
       case "let":
         for (const binding of node.bindings) {
-          shiftMetricSpan(binding.nameSpan, codeLength);
+          shiftWrappedSpan(binding.nameSpan, codeLength, prefixLength);
         }
         break;
       case "recordLit":
         for (const entry of node.entries) {
-          shiftMetricSpan(entry.keySpan, codeLength);
+          shiftWrappedSpan(entry.keySpan, codeLength, prefixLength);
         }
         break;
       case "arrayMap":
-        shiftMetricSpan(node.param.span, codeLength);
+        shiftWrappedSpan(node.param.span, codeLength, prefixLength);
         if (node.indexParam) {
-          shiftMetricSpan(node.indexParam.span, codeLength);
+          shiftWrappedSpan(node.indexParam.span, codeLength, prefixLength);
         }
         break;
       case "arrayReduce":
-        shiftMetricSpan(node.accParam.span, codeLength);
-        shiftMetricSpan(node.param.span, codeLength);
+        shiftWrappedSpan(node.accParam.span, codeLength, prefixLength);
+        shiftWrappedSpan(node.param.span, codeLength, prefixLength);
         if (node.indexParam) {
-          shiftMetricSpan(node.indexParam.span, codeLength);
+          shiftWrappedSpan(node.indexParam.span, codeLength, prefixLength);
         }
         break;
       case "distributionMap":
-        shiftMetricSpan(node.param.span, codeLength);
+        shiftWrappedSpan(node.param.span, codeLength, prefixLength);
         break;
       default:
         break;
@@ -1499,15 +1757,21 @@ function parseErrorDiagnostics(
 }
 
 /**
- * Lowers a metric function body (`state` in scope, statements ending in
- * `return`). The body is wrapped as `(state) => { ... }` for parsing; all
- * spans in the result (including diagnostics) are shifted back so they are
- * relative to the raw user body.
+ * Lowers a wrapped bare-body surface (metric or scenario). The body is
+ * wrapped in `prefix`/`suffix` for parsing; all spans in the result
+ * (including diagnostics) are shifted back so they are relative to the raw
+ * user text.
  */
-function lowerMetricBodyToHir(code: string): LowerTypeScriptResult {
-  const wrapped = METRIC_PREFIX + code + METRIC_SUFFIX;
+function lowerWrappedBodyToHir(
+  code: string,
+  surface: HirSurfaceKind,
+  prefix: string,
+  suffix: string,
+  lower: (lowering: Lowering) => HirFunction,
+): LowerTypeScriptResult {
+  const wrapped = prefix + code + suffix;
   const sourceFile = ts.createSourceFile(
-    "user-metric.ts",
+    "user-code.ts",
     wrapped,
     ts.ScriptTarget.ES2020,
     /* setParentNodes */ true,
@@ -1515,7 +1779,7 @@ function lowerMetricBodyToHir(code: string): LowerTypeScriptResult {
 
   const shiftDiagnostic = (diagnostic: HirDiagnostic): HirDiagnostic => {
     const span = { ...diagnostic.span };
-    shiftMetricSpan(span, code.length);
+    shiftWrappedSpan(span, code.length, prefix.length);
     return { ...diagnostic, span };
   };
 
@@ -1525,8 +1789,8 @@ function lowerMetricBodyToHir(code: string): LowerTypeScriptResult {
   }
 
   try {
-    const fn = new Lowering(sourceFile, "metric").lowerMetricModule();
-    shiftMetricFunctionSpans(fn, code.length);
+    const fn = lower(new Lowering(sourceFile, surface));
+    shiftWrappedFunctionSpans(fn, code.length, prefix.length);
     return { ok: true, fn, diagnostics: [] };
   } catch (error) {
     if (error instanceof LowerError) {
@@ -1540,8 +1804,9 @@ function lowerMetricBodyToHir(code: string): LowerTypeScriptResult {
  * Lowers user-authored TypeScript to an `HirFunction`.
  *
  * For module surfaces (dynamics/lambda/kernel), `code` must be the
- * user-visible `export default Ctor(...)` module; for the `metric` surface it
- * is a bare function body with `state` in scope. All spans in the result are
+ * user-visible `export default Ctor(...)` module. For the `metric` and
+ * `scenario-code` surfaces it is a bare function body ending in `return`;
+ * for `scenario-expression` a single expression. All spans in the result are
  * relative to `code`. Returns `ok: false` with a positioned diagnostic when
  * the code is syntactically invalid or falls outside the analyzable subset.
  */
@@ -1549,8 +1814,15 @@ export function lowerTypeScriptToHir(
   code: string,
   surface: HirSurfaceKind,
 ): LowerTypeScriptResult {
-  if (surface === "metric") {
-    return lowerMetricBodyToHir(code);
+  const wrapped = WRAPPED_SURFACES[surface];
+  if (wrapped) {
+    return lowerWrappedBodyToHir(
+      code,
+      surface,
+      wrapped.prefix,
+      wrapped.suffix,
+      wrapped.lower,
+    );
   }
 
   const sourceFile = ts.createSourceFile(

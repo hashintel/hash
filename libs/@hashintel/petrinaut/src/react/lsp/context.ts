@@ -8,6 +8,8 @@ import type {
   Hover,
   PetrinautExtensionSettings,
   Position,
+  ScenarioHir,
+  ScenarioLoweringInput,
   SDCPN,
   SignatureHelp,
 } from "@hashintel/petrinaut-core";
@@ -50,6 +52,12 @@ export interface LanguageClientContextValue {
     sdcpn: SDCPN,
     extensions?: PetrinautExtensionSettings,
   ) => Promise<HirCompileResult>;
+  /**
+   * Lower a scenario's expressions and code-mode body to HIR (in the
+   * language worker). `compileScenario` type-checks and interprets the
+   * result.
+   */
+  requestScenarioHir: (scenario: ScenarioLoweringInput) => Promise<ScenarioHir>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;
   /** Update a scenario editing session. */
@@ -83,6 +91,12 @@ const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
         metrics: {},
       },
       failures: [],
+    }),
+  requestScenarioHir: () =>
+    Promise.resolve({
+      version: 1,
+      parameterOverrides: {},
+      placeExpressions: {},
     }),
   initializeScenarioSession: () => {},
   updateScenarioSession: () => {},
