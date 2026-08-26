@@ -5,9 +5,8 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { compilePetrinautModel } from "@hashintel/petrinaut-core/compiled-model";
-
 import { serializeDocument } from "@hashintel/petrinaut-core";
+import { compilePetrinautModel } from "@hashintel/petrinaut-core/compiled-model";
 
 import {
   createOptimizationProtocol,

@@ -52,6 +52,11 @@ type ServeStdioOptions = (
   input?: Readable;
   output?: Writable;
   errorOutput?: Writable;
+  /**
+   * Threads for seeded optimization replicates. 1 simulates on the calling
+   * thread with no worker spawned; absent behaves as 1.
+   */
+  simulationThreads?: number;
 };
 
 function writeResponse(output: Writable, value: unknown): void {
@@ -118,11 +123,19 @@ export async function serveStdio(options: ServeStdioOptions): Promise<void> {
   }
 
   const model = compilePetrinautModel({ sdcpn });
+  const simulationThreads = options.simulationThreads ?? 1;
   const optimization = optimizationManifest
     ? createOptimizationProtocol({
         manifest: optimizationManifest,
         model,
-        createWorker: createNodeSimulationWorkerFactory({ errorOutput }),
+        // One thread means no worker at all: the in-process worker runs the
+        // same protocol on the calling thread without a spawn.
+        ...(simulationThreads > 1
+          ? {
+              createWorker: createNodeSimulationWorkerFactory({ errorOutput }),
+              shardCount: simulationThreads,
+            }
+          : {}),
       })
     : undefined;
 

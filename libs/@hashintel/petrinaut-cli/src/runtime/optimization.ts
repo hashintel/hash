@@ -182,6 +182,11 @@ export function createOptimizationProtocol(args: {
    * parallelism.
    */
   createWorker?: WorkerFactory;
+  /**
+   * Upper bound on worker shards per trial; the experiment caps it at the
+   * replicate count. Absent means one shard.
+   */
+  shardCount?: number;
   /** Test seam: observe or fake the experiment a trial runs as. */
   createExperiment?: typeof createMonteCarloExperiment;
 }): OptimizationProtocol {
@@ -313,6 +318,9 @@ export function createOptimizationProtocol(args: {
         runCount: seedsPerTrial,
         runs: trialSeeds.map((seed) => ({ seed })),
         createWorker,
+        ...(args.shardCount === undefined
+          ? {}
+          : { shardCount: args.shardCount }),
         metricSpecs: [
           {
             kind: "expression",

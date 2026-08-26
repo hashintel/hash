@@ -37,20 +37,23 @@ function detectHardwareConcurrency(): number | null {
 }
 
 /**
- * Default shard count for an experiment of `runCount` runs.
+ * Default shard count for a host whose `navigator` reports a core count.
  *
- * One core is left for the main thread so the editor stays responsive while an
- * experiment runs, and the count never exceeds the number of runs — an empty
- * shard would have nothing to simulate. Falls back to a single shard when the
- * host reports no core count, matching the previous single-worker behaviour.
+ * This is a **host-side** helper: the experiment itself never inspects the
+ * environment and defaults to one shard, so whoever constructs the worker
+ * factory also decides the parallelism. One core is left for the calling
+ * thread, which merges shard messages and (in the editor) runs the UI. Hosts
+ * without the hint get a single shard. Pass `runCount` to cap the count when
+ * it is already known; `planMonteCarloShards` applies the same cap anyway, so
+ * an uncapped value is safe to bind before the run count exists.
  */
-export function getDefaultMonteCarloShardCount(runCount: number): number {
+export function getDefaultMonteCarloShardCount(runCount?: number): number {
   const cores = detectHardwareConcurrency();
   if (cores === null) {
     return 1;
   }
 
-  return Math.max(1, Math.min(runCount, cores - 1));
+  return Math.max(1, Math.min(runCount ?? Number.POSITIVE_INFINITY, cores - 1));
 }
 
 /**

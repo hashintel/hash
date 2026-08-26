@@ -46,8 +46,13 @@ the results behind it.
 The worker side of the protocol is `attachMonteCarloWorker(runtime)`, and a
 runtime is three functions: post a message, receive messages, yield between
 batches. The main-thread side asks only for a `WorkerFactory` returning a
-structural `WorkerLike`. Each host supplies its own pair and everything between
-them — sharding, seed derivation, the metric merge — is shared:
+structural `WorkerLike`. The host also decides **how many**: the experiment is
+pure and defaults to one shard, so the editor passes
+`getDefaultMonteCarloShardCount()` (from `navigator.hardwareConcurrency`) and
+the CLI derives its `--threads` default from `os.availableParallelism()`, both
+leaving one core for the thread that merges shard messages. Each host supplies
+its own pair and everything between them — sharding, seed derivation, the
+metric merge — is shared:
 
 - the **editor** builds workers from a Vite `?worker` import;
 - the **CLI** spawns `worker_threads` from a bundle built beside `cli.js`,
