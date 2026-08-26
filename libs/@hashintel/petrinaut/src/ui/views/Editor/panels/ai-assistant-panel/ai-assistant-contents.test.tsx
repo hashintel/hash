@@ -7,23 +7,316 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
+import { createElement } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
+import { definePetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import { AiAssistantContents } from "./ai-assistant-contents";
 
 import type { PetrinautAiMessage } from "./types";
+
+const renderMarkdown = vi.hoisted(() => vi.fn());
+
+vi.mock("react-markdown", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-markdown")>();
+
+  return {
+    ...actual,
+    default: (props: Parameters<typeof actual.default>[0]) => {
+      renderMarkdown();
+      return createElement(actual.default, props);
+    },
+  };
+});
 
 const noop = () => {};
 
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
   vi.useRealTimers();
 });
 
 describe("AiAssistantContents", () => {
+  test("keeps completed messages memoized when interactive tools are omitted", () => {
+    const messages: PetrinautAiMessage[] = [
+      {
+        id: "assistant-1",
+        role: "assistant",
+        parts: [{ type: "text", state: "done", text: "Completed response" }],
+      },
+    ];
+    const props = {
+      messages,
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+
+    const { rerender } = render(<AiAssistantContents {...props} input="" />);
+
+    expect(renderMarkdown).toHaveBeenCalledOnce();
+
+    rerender(<AiAssistantContents {...props} input="Next message" />);
+
+    expect(renderMarkdown).toHaveBeenCalledOnce();
+  });
+
+  test("renders a host interactive tool and submits its validated output once", () => {
+    const parseOutput = vi.fn((raw: unknown) => {
+      if (
+        typeof raw !== "object" ||
+        raw === null ||
+        typeof (raw as { approved?: unknown }).approved !== "boolean"
+      ) {
+        throw new Error("Expected an approval output");
+      }
+
+      return raw as { approved: boolean };
+    });
+    const onInteractiveToolSubmit = vi.fn();
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "confirmRelease",
+      inputSchema: {
+        parse: (raw: unknown) => {
+          if (
+            typeof raw !== "object" ||
+            raw === null ||
+            typeof (raw as { question?: unknown }).question !== "string"
+          ) {
+            throw new Error("Expected a question");
+          }
+
+          return raw as { question: string };
+        },
+      },
+      outputSchema: { parse: parseOutput },
+      component: ({ input, state, submit, submittedOutput, toolCallId }) => (
+        <div>
+          <span>{`${toolCallId}:${input.question}:${state}`}</span>
+          {state === "awaiting" ? (
+            <button type="button" onClick={() => submit({ approved: true })}>
+              Approve
+            </button>
+          ) : (
+            <span>{submittedOutput.approved ? "Approved" : "Declined"}</span>
+          )}
+        </div>
+      ),
+    });
+    const awaitingMessages = [
+      {
+        id: "assistant-host-tool",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "confirmRelease",
+            state: "input-available",
+            toolCallId: "host-tool-call-1",
+            input: { question: "Ship this change?" },
+          },
+        ],
+      },
+    ] as unknown as PetrinautAiMessage[];
+
+    const { rerender } = render(
+      <AiAssistantContents
+        input=""
+        interactiveTools={[hostTool]}
+        messages={awaitingMessages}
+        onClose={noop}
+        onInputChange={noop}
+        onInteractiveToolSubmit={onInteractiveToolSubmit}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    expect(
+      screen.getByText("host-tool-call-1:Ship this change?:awaiting"),
+    ).not.toBeNull();
+
+    const approveButton = screen.getByRole("button", { name: "Approve" });
+    fireEvent.click(approveButton);
+    fireEvent.click(approveButton);
+
+    expect(parseOutput).toHaveBeenCalledOnce();
+    expect(onInteractiveToolSubmit).toHaveBeenCalledOnce();
+    expect(onInteractiveToolSubmit).toHaveBeenCalledWith({
+      toolCallId: "host-tool-call-1",
+      toolName: "confirmRelease",
+      output: { approved: true },
+    });
+
+    const submittedMessages = [
+      {
+        ...awaitingMessages[0],
+        parts: [
+          {
+            ...awaitingMessages[0]!.parts[0],
+            state: "output-available",
+            output: { approved: true },
+          },
+        ],
+      },
+    ] as unknown as PetrinautAiMessage[];
+
+    rerender(
+      <AiAssistantContents
+        input=""
+        interactiveTools={[hostTool]}
+        messages={submittedMessages}
+        onClose={noop}
+        onInputChange={noop}
+        onInteractiveToolSubmit={onInteractiveToolSubmit}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    expect(
+      screen.getByText("host-tool-call-1:Ship this change?:submitted"),
+    ).not.toBeNull();
+    expect(screen.getByText("Approved")).not.toBeNull();
+  });
+
+  test("waits for complete host tool input before rendering its widget", () => {
+    const parseInput = vi.fn((raw: unknown) => {
+      if (
+        typeof raw !== "object" ||
+        raw === null ||
+        typeof (raw as { question?: unknown }).question !== "string"
+      ) {
+        throw new Error("Expected a question");
+      }
+
+      return raw as { question: string };
+    });
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "confirmRelease",
+      inputSchema: { parse: parseInput },
+      outputSchema: { parse: (raw: unknown) => raw },
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+    const createMessages = (
+      state: "input-streaming" | "input-available",
+      input: unknown,
+    ) =>
+      [
+        {
+          id: "assistant-host-tool",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "confirmRelease",
+              state,
+              toolCallId: "host-tool-call-1",
+              input,
+            },
+          ],
+        },
+      ] as unknown as PetrinautAiMessage[];
+
+    const { rerender } = render(
+      <AiAssistantContents
+        input=""
+        interactiveTools={[hostTool]}
+        messages={createMessages("input-streaming", {})}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="streaming"
+      />,
+    );
+
+    expect(parseInput).not.toHaveBeenCalled();
+    expect(screen.queryByText("Ship this change?")).toBeNull();
+
+    rerender(
+      <AiAssistantContents
+        input=""
+        interactiveTools={[hostTool]}
+        messages={createMessages("input-available", {
+          question: "Ship this change?",
+        })}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    expect(parseInput).toHaveBeenCalledOnce();
+    expect(screen.getByText("Ship this change?")).not.toBeNull();
+  });
+
+  test("allows retry when an interactive tool output is rejected", async () => {
+    const onInteractiveToolSubmit = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Output was not accepted"))
+      .mockResolvedValueOnce(undefined);
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "confirmRelease",
+      inputSchema: { parse: () => ({ question: "Ship this change?" }) },
+      outputSchema: { parse: () => ({ approved: true }) },
+      component: ({ submit }) => (
+        <button type="button" onClick={() => submit({ approved: true })}>
+          Approve
+        </button>
+      ),
+    });
+    const messages = [
+      {
+        id: "assistant-host-tool",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "confirmRelease",
+            state: "input-available",
+            toolCallId: "host-tool-call-1",
+            input: { question: "Ship this change?" },
+          },
+        ],
+      },
+    ] as unknown as PetrinautAiMessage[];
+
+    render(
+      <AiAssistantContents
+        input=""
+        interactiveTools={[hostTool]}
+        messages={messages}
+        onClose={noop}
+        onInputChange={noop}
+        onInteractiveToolSubmit={onInteractiveToolSubmit}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    const approveButton = screen.getByRole("button", { name: "Approve" });
+    fireEvent.click(approveButton);
+    await waitFor(() => expect(onInteractiveToolSubmit).toHaveBeenCalledOnce());
+
+    fireEvent.click(approveButton);
+    await waitFor(() =>
+      expect(onInteractiveToolSubmit).toHaveBeenCalledTimes(2),
+    );
+  });
+
   test("renders the empty assistant state", () => {
     render(
       <AiAssistantContents

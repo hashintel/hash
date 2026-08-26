@@ -29,16 +29,16 @@ const editorRootStyle = css({
   backgroundColor: "neutral.s25",
 });
 
+import type { PetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
 } from "./views/Editor/panels/ai-assistant-panel";
-import type { PetrinautAiInteractiveTool } from "./views/Editor/panels/ai-assistant-panel/interactive-tools/types";
 
 export type PetrinautAiChatTransport = PetrinautAiTransport;
-export type { PetrinautAiInteractiveTool };
 
 export type PetrinautAiAssistant = {
+  /** Host-owned dynamic tools that render inline in the AI conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   messages?: PetrinautAiMessage[];
   onClearMessages?: () => void;
