@@ -259,10 +259,17 @@ function evalExpr(
     case "recordLit": {
       const record = createUserKeyedRecord<HirValue>();
       for (const entry of expr.entries) {
-        // The record has no prototype (see `createUserKeyedRecord`), so any
-        // key, `__proto__` included, is an ordinary own property.
-        // nosemgrep: javascript.express.security.audit.remote-property-injection.remote-property-injection
-        record[entry.key] = evalExpr(entry.value, env, bindings);
+        // `defineProperty` rather than assignment: the record has no
+        // prototype (see `createUserKeyedRecord`), so assignment would
+        // behave identically for any key, `__proto__` included, and
+        // `defineProperty` is the form scanners recognise as safe for
+        // user-controlled keys.
+        Object.defineProperty(record, entry.key, {
+          value: evalExpr(entry.value, env, bindings),
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
       }
       return record;
     }

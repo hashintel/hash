@@ -87,11 +87,14 @@ function scenarioHirContextForFile(
 
   switch (parsed.fileType) {
     case "scenario-initial-state-full-code":
+      // Types are passed ungated: `compileScenario`'s callers pass the net's
+      // types regardless of the colors extension, and the lint must match
+      // what compilation will accept.
       return buildScenarioCodeContext(
         netParameters,
         session.scenarioParameters,
         sdcpn.places,
-        extensions.colors ? sdcpn.types : [],
+        sdcpn.types,
       );
     case "scenario-param-override-code": {
       const parameter = sdcpn.parameters.find(

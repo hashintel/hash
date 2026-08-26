@@ -61,9 +61,17 @@ describe("scenario-expression lowering", () => {
     expect(lowered.ok).toBe(true);
   });
 
-  it("desugars Array.from({ length }) to range", () => {
+  it("desugars Array.from({ length }) to range over a truncated length", () => {
     const bare = lowerExpression("Array.from({ length: 4 })");
     expect(bare.body.kind).toBe("rangeCall");
+    // `Array.from` truncates the length toward zero; the desugared range
+    // receives `Math.trunc(length)` so the element count matches.
+    if (bare.body.kind === "rangeCall") {
+      expect(bare.body.args[0]).toMatchObject({
+        kind: "mathCall",
+        fn: "trunc",
+      });
+    }
 
     const withCallback = lowerExpression(
       "Array.from({ length: 4 }, (v, i) => i * 2)",
@@ -216,6 +224,47 @@ describe("scenario typechecking", () => {
       expect(typecheckHir(wrongShape.fn, context).diagnostics[0]!.code).toBe(
         "hir:type-mismatch",
       );
+    }
+  });
+
+  it("rejects coloured-place arrays whose elements are not token records", () => {
+    const places = [
+      {
+        id: "pl1",
+        name: "Fleet",
+        colorId: "c1",
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+      },
+    ];
+    const types = [
+      {
+        id: "c1",
+        name: "Ship",
+        iconSlug: "circle",
+        displayColor: "#000000",
+        elements: [{ elementId: "e1", name: "x", type: "real" as const }],
+      },
+    ];
+    const context = buildScenarioCodeContext(
+      netParameters,
+      scenarioParameters,
+      places,
+      types,
+    );
+    // `range(3)` is an array of numbers; the runtime would drop every
+    // element and produce an empty marking.
+    const lowered = lowerTypeScriptToHir(
+      "return { Fleet: range(3) };",
+      "scenario-code",
+    );
+    expect(lowered.ok).toBe(true);
+    if (lowered.ok) {
+      const result = typecheckHir(lowered.fn, context);
+      expect(result.diagnostics[0]!.code).toBe("hir:type-mismatch");
+      expect(result.diagnostics[0]!.message).toContain("token records");
     }
   });
 });

@@ -1301,9 +1301,18 @@ class Lowering {
         "`Array.from(...)` only supports the `{ length: n }` form — or use `range(n)`.",
       );
     }
+    // JavaScript's `Array.from` truncates the length toward zero
+    // (`ToLength`), while `range` is end-exclusive over the raw value:
+    // `range(2.7)` has 3 elements where `Array.from({ length: 2.7 })` has 2.
+    // Truncating preserves the JavaScript element count.
+    const truncatedLength = this.make(lengthExpr, {
+      kind: "mathCall",
+      fn: "trunc",
+      args: [this.lowerExpr(lengthExpr, scope)],
+    });
     const rangeExpr = this.make(node, {
       kind: "rangeCall",
-      args: [this.lowerExpr(lengthExpr, scope)],
+      args: [truncatedLength],
     });
 
     const callback = node.arguments[1];

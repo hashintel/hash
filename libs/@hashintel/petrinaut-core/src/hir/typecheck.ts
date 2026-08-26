@@ -940,6 +940,16 @@ class Typechecker {
         continue;
       }
       if (field.type.element.kind !== "record") {
+        // An array whose elements are not token records (e.g. `range(n)`)
+        // would evaluate to an empty marking: the runtime drops non-record
+        // tokens.
+        if (field.type.element.kind !== "unknown") {
+          this.report(
+            keySpan,
+            "hir:type-mismatch",
+            `\`${field.name}\` is a coloured place — its array must hold token records, got ${formatHirType(field.type.element)} elements.`,
+          );
+        }
         continue;
       }
       const elementByName = new Map(

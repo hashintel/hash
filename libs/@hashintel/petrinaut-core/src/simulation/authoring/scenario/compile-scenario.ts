@@ -258,7 +258,15 @@ function compileCodeModeInitialState(args: {
   for (const [placeName, tokens] of Object.entries(evaluated.value)) {
     const place = placeByName.get(placeName);
     if (!place) {
-      continue; // Unknown place name — skip silently
+      // Reported at evaluation as well as by the type checker: the checker
+      // cannot see keys when the inferred return type collapses to unknown
+      // (e.g. a ternary whose branches return different records).
+      errors.push({
+        source: "initialState",
+        itemId: "__code__",
+        message: `Initial state code returned \`${placeName}\`, which is not a place in this net.`,
+      });
+      continue;
     }
 
     if (typeof tokens === "number") {

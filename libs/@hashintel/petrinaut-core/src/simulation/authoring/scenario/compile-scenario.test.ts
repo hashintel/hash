@@ -940,6 +940,48 @@ describe("compileScenario", () => {
     ];
     const netTypes = [color("c1")];
 
+    it("reports unknown place names even when the checker cannot see them", () => {
+      // A ternary over records with different keys collapses the inferred
+      // return type to unknown, so the type checker cannot flag `Nowhere`;
+      // evaluation reports it instead of silently skipping.
+      const result = compile(
+        scenario({
+          initialState: {
+            type: "code",
+            content: "return 1 > 2 ? { Queue: 1 } : { Nowhere: 1 };",
+          },
+        }),
+        [],
+        netPlaces,
+        netTypes,
+      );
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors[0]!.message).toContain(
+          "`Nowhere`, which is not a place",
+        );
+      }
+    });
+
+    it("matches JavaScript truncation for Array.from lengths", () => {
+      const result = compile(
+        scenario({
+          initialState: {
+            type: "code",
+            content: "return { Queue: Array.from({ length: 2.7 }).length };",
+          },
+        }),
+        [],
+        netPlaces,
+        netTypes,
+      );
+      // `Array.from({ length: 2.7 })` has 2 elements in JavaScript.
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.pl2).toBe(2);
+      }
+    });
+
     it("builds colored tokens from Array.from(...).map(...)", () => {
       // Regression: this exact shape used to fail with "Access to
       // .constructor is blocked inside user code." because `.map` reads the

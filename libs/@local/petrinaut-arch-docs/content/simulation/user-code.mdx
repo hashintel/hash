@@ -75,9 +75,10 @@ optimization trials and parameter tweaks re-run only the type check and the
 interpreter, never the TypeScript frontend.
 
 Two modes, with one asymmetry worth remembering: **per-place mode is keyed by
-place ID, code mode is keyed by place name.** In code mode, unknown names are
-silently dropped at evaluation, and the type checker reports them
-(`hir:unknown-scenario-place`).
+place ID, code mode is keyed by place name.** In code mode, an unknown name is
+an error twice over: the type checker flags it in the editor
+(`hir:unknown-scenario-place`), and evaluation reports it for the shapes the
+checker cannot see (a return type that collapses to unknown).
 
 In per-place mode an uncoloured place takes an expression evaluated with
 parameters in scope, rounded and clamped at zero; a coloured place takes row
