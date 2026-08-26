@@ -8,7 +8,6 @@ use axum::{
     routing::{post, put},
 };
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_postgres_store::{
     ontology::patch_id_and_parse,
     store::error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
@@ -330,7 +329,7 @@ where
     )
 )]
 async fn query_property_types<S>(
-    AuthenticatedActorId(actor_id): AuthenticatedActorId,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -340,6 +339,7 @@ async fn query_property_types<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetPropertyTypes(&request));
     }
@@ -404,7 +404,7 @@ struct QueryPropertyTypeSubgraphResponse {
     )
 )]
 async fn query_property_type_subgraph<S>(
-    AuthenticatedActorId(actor_id): AuthenticatedActorId,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -414,6 +414,7 @@ async fn query_property_type_subgraph<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetPropertyTypeSubgraph(&request));
     }
@@ -744,7 +745,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .has_permission_for_property_types(AuthenticatedActor::from(actor), params)
+        .has_permission_for_property_types(actor, params)
         .await
         .map(Json)
         .map_err(report_to_response)

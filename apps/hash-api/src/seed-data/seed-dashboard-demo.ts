@@ -21,8 +21,6 @@
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { outgoingHopEdges } from "@local/hash-isomorphic-utils/dashboard-types";
@@ -48,6 +46,7 @@ import { logger } from "../logger";
 import type { ImpureGraphContext } from "../graph/context-types";
 import type {
   BaseUrl,
+  MachineId,
   PropertyPatchOperation,
   PropertyValueWithMetadata,
   PropertyWithMetadata,
@@ -475,14 +474,9 @@ const seedDashboardDemo = async () => {
   const temporalClient = await createTemporalClient();
   const context = { graphApi, provenance, temporalClient };
 
-  const hashBotActorId = await getMachineIdByIdentifier(
-    context,
-    { actorId: publicUserAccountId },
-    { identifier: "h" },
-  );
-  if (!hashBotActorId) {
-    throw new Error("Failed to get hash bot machine actor");
-  }
+  const hashBotActorId = await graphApi
+    .getOrCreateSystemMachine("h")
+    .then(({ data: machineId }) => machineId as MachineId);
   const botAuthentication = { actorId: hashBotActorId };
 
   /*

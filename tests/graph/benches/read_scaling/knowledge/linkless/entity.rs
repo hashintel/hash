@@ -23,7 +23,7 @@ use type_system::{
     },
     ontology::entity_type::EntityType,
     principal::{
-        actor::{ActorEntityUuid, ActorId, ActorType},
+        actor::{ActorId, ActorType, UserId},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -36,7 +36,7 @@ const DB_NAME: &str = "entity_scale";
 
 #[expect(clippy::too_many_lines)]
 async fn seed_db(
-    account_id: ActorEntityUuid,
+    account_id: ActorId,
     store_wrapper: &mut StoreWrapper,
     total: usize,
 ) -> Vec<Entity> {
@@ -165,7 +165,7 @@ pub fn bench_get_entity_by_id(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &RefCell<&mut Store>,
-    actor_id: ActorEntityUuid,
+    actor_id: ActorId,
     entity_metadata_list: &[Entity],
 ) {
     bencher.to_async(runtime).iter_batched(
@@ -182,7 +182,7 @@ pub fn bench_get_entity_by_id(
             store
                 .borrow_mut()
                 .query_entities(
-                    actor_id,
+                    Some(actor_id),
                     QueryEntitiesParams {
                         filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
                         temporal_axes: QueryTemporalAxesUnresolved::all(),
@@ -210,9 +210,9 @@ fn bench_scaling_read_entity(crit: &mut Criterion) {
     let mut group = crit.benchmark_group(group_id);
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(
+    let account_id = ActorId::User(UserId::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    );
+    ));
 
     for size in [1, 10, 100, 1_000, 10_000] {
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id);

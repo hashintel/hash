@@ -8,7 +8,7 @@
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
 Authorization: HASH-Service hash-svc-wrong
-X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+X-Authenticated-User-Actor-Id: 11111111-1111-1111-1111-111111111111
 
 > {%
   client.test("status", function() {
@@ -44,11 +44,27 @@ X-Authenticated-User-Actor-Id: not-a-uuid
   });
 %}
 
-### Actor-ID header without the service secret is rejected
+### The valid secret without an actor header names the missing delegated actor
+GET http://127.0.0.1:4000/actors/machine/identifier/h
+Content-Type: application/json
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("message names the delegated actor", function() {
+    client.assert(
+      response.body.message === "the service credential carries no delegated actor",
+      `Unexpected message: ${response.body.message}`
+    );
+  });
+%}
+
+### Actor-ID header without the service secret does not authenticate
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
 Authorization: <omit>
-X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+X-Authenticated-User-Actor-Id: 11111111-1111-1111-1111-111111111111
 
 > {%
   client.test("status", function() {
@@ -56,17 +72,17 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
   });
   client.test("message names the missing credential", function() {
     client.assert(
-      response.body.message === "the request requires the service credential",
-      "Response message is not the client-safe text"
+      response.body.message === "no credentials provided",
+      `Unexpected message: ${response.body.message}`
     );
   });
 %}
 
-### Admin API: the actor-ID header alone is rejected
+### Admin API: the actor-ID header alone does not authenticate
 POST http://127.0.0.1:4001/users/delete
 Content-Type: application/json
 Authorization: <omit>
-X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+X-Authenticated-User-Actor-Id: 11111111-1111-1111-1111-111111111111
 
 {
   "email": "must-not-be-reached@example.com"
@@ -78,7 +94,7 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
   });
   client.test("message names the missing credential", function() {
     client.assert(
-      response.body.message === "the request requires the service credential",
+      response.body.message === "no credentials provided",
       `Unexpected message: ${response.body.message}`
     );
   });
@@ -88,7 +104,7 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 POST http://127.0.0.1:4001/users/delete
 Content-Type: application/json
 Authorization: HASH-Service hash-svc-wrong
-X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+X-Authenticated-User-Actor-Id: 11111111-1111-1111-1111-111111111111
 
 {
   "email": "must-not-be-reached@example.com"
@@ -109,6 +125,62 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 ### Admin API: the health route stays open
 GET http://127.0.0.1:4001/health
 Authorization: <omit>
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+### Admin API: a snapshot upload without the secret is rejected
+POST http://127.0.0.1:4001/snapshot
+Authorization: <omit>
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("message names the missing credential", function() {
+    client.assert(
+      response.body.message === "the request requires the service credential",
+      `Unexpected message: ${response.body.message}`
+    );
+  });
+%}
+
+### Admin API: a snapshot upload with a wrong secret is rejected
+POST http://127.0.0.1:4001/snapshot
+Authorization: HASH-Service hash-svc-wrong
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("message names the invalid credential", function() {
+    client.assert(
+      response.body.message === "service credential is invalid",
+      `Unexpected message: ${response.body.message}`
+    );
+  });
+%}
+
+### An anonymous query succeeds without any credential
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+Authorization: <omit>
+
+{
+  "filter": { "all": [] },
+  "temporalAxes": {
+    "pinned": { "axis": "transactionTime", "timestamp": null },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": { "start": null, "end": null }
+    }
+  },
+  "includeDrafts": false,
+  "includePermissions": false
+}
 
 > {%
   client.test("status", function() {

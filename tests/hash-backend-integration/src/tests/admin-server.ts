@@ -2,7 +2,14 @@ import { createReadStream } from "node:fs";
 
 import fetch from "node-fetch";
 
+import {
+  ensureHashSystemAccountExists,
+  systemAccountId,
+} from "@apps/hash-api/src/graph/system-account";
+import { Logger } from "@local/hash-backend-utils/logger";
 import { StatusCode } from "@local/status";
+
+import { createTestImpureGraphContext } from "./util";
 
 import type { GraphStatus } from "@rust/hash-graph-type-defs/typescript/status";
 
@@ -21,17 +28,39 @@ const assertRunningInSnapshotGroup = (operation: string) => {
 // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 const port = process.env.HASH_GRAPH_ADMIN_PORT || "4001";
 
-const serviceDelegationHeaders = {
-  Authorization: `HASH-Service ${
-    process.env.HASH_GRAPH_SERVICE_SECRET ?? "hash-svc-local-dev-secret"
-  }`,
-  "X-Authenticated-User-Actor-Id": "00000000-0000-0000-0000-000000000000",
+const serviceSecret =
+  process.env.HASH_GRAPH_SERVICE_SECRET ?? "hash-svc-local-dev-secret";
+
+const logger = new Logger({
+  environment: "test",
+  level: "debug",
+  serviceName: "integration-tests",
+});
+
+const secretHeaders = { Authorization: `HASH-Service ${serviceSecret}` };
+
+/**
+ * Headers naming the system machine as the acting actor.
+ *
+ * Every call re-seeds and re-reads: the operations here wipe the principals and the actions their
+ * policies reference, so neither the machine nor the actions survive between calls.
+ */
+const actorHeaders = async () => {
+  const context = createTestImpureGraphContext();
+
+  await context.graphApi.seedSystemPolicies();
+  await ensureHashSystemAccountExists({ logger, context });
+
+  return {
+    ...secretHeaders,
+    "X-Authenticated-User-Actor-Id": systemAccountId,
+  };
 };
 
 const deleteRecords = async (endpoint: string) => {
   await fetch(`http://127.0.0.1:${port}/${endpoint}`, {
     method: "DELETE",
-    headers: serviceDelegationHeaders,
+    headers: secretHeaders,
   }).then(async (response) => {
     const status = (await response.json()) as GraphStatus;
     if (status.code !== StatusCode.Ok) {
@@ -86,7 +115,7 @@ export const deleteEntities = async () => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...serviceDelegationHeaders,
+      ...(await actorHeaders()),
     },
     body: JSON.stringify({
       filter: { all: [] },
@@ -124,7 +153,7 @@ export const restoreSnapshot = async (snapshotPath: string) => {
 
   await fetch(`http://127.0.0.1:${port}/snapshot`, {
     method: "POST",
-    headers: serviceDelegationHeaders,
+    headers: secretHeaders,
     body: createReadStream(snapshotPath),
   }).then(async (response) => {
     const status = (await response.json()) as GraphStatus;
@@ -146,7 +175,7 @@ export const deleteUser = async (
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...serviceDelegationHeaders,
+      ...(await actorHeaders()),
     },
     body: JSON.stringify(params),
   });

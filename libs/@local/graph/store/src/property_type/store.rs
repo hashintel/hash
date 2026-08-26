@@ -3,9 +3,7 @@ use core::iter;
 use std::collections::HashSet;
 
 use error_stack::Report;
-use hash_graph_authorization::policies::{
-    action::ActionName, principal::actor::AuthenticatedActor,
-};
+use hash_graph_authorization::policies::action::ActionName;
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
@@ -15,7 +13,7 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata, PropertyTypeWithMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    principal::actor::ActorEntityUuid,
+    principal::actor::ActorId,
 };
 
 use crate::{
@@ -268,7 +266,7 @@ pub trait PropertyTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_property_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreatePropertyTypeParams,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, Report<InsertionError>>> + Send
     where
@@ -293,7 +291,7 @@ pub trait PropertyTypeStore {
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
     fn create_property_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>> + Send
     where
@@ -301,27 +299,33 @@ pub trait PropertyTypeStore {
 
     /// Count the number of [`PropertyType`]s specified by the [`CountPropertyTypesParams`].
     ///
+    /// [`None`] reads as the public actor.
+    ///
     /// # Errors
     ///
     /// - if the underlying store fails to count the property types.
     fn count_property_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: CountPropertyTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
     /// Get the [`Subgraph`] specified by the [`QueryPropertyTypeSubgraphParams`].
+    ///
+    /// [`None`] reads as the public actor.
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
     fn query_property_type_subgraph(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryPropertyTypeSubgraphParams<'_>,
     ) -> impl Future<Output = Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>>> + Send;
 
     /// Get the [`PropertyTypes`] specified by the [`QueryPropertyTypesParams`].
+    ///
+    /// [`None`] reads as the public actor.
     ///
     /// # Errors
     ///
@@ -330,7 +334,7 @@ pub trait PropertyTypeStore {
     /// [`PropertyTypes`]: PropertyType
     fn query_property_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryPropertyTypesParams<'_>,
     ) -> impl Future<Output = Result<QueryPropertyTypesResponse, Report<QueryError>>> + Send;
 
@@ -341,7 +345,7 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`] doesn't exist.
     fn update_property_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: UpdatePropertyTypesParams,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, Report<UpdateError>>> + Send
     where
@@ -363,7 +367,7 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`]s do not exist.
     fn update_property_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>> + Send
     where
@@ -376,7 +380,7 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`] doesn't exist.
     fn archive_property_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
 
         params: ArchivePropertyTypeParams<'_>,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
@@ -388,14 +392,14 @@ pub trait PropertyTypeStore {
     /// - if the [`PropertyType`] doesn't exist.
     fn unarchive_property_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
 
         params: UnarchivePropertyTypeParams<'_>,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, Report<UpdateError>>> + Send;
 
     fn update_property_type_embeddings(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
 
         params: UpdatePropertyTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
@@ -412,7 +416,7 @@ pub trait PropertyTypeStore {
     /// [`StoreError`]: CheckPermissionError::StoreError
     fn has_permission_for_property_types(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         params: HasPermissionForPropertyTypesParams<'_>,
     ) -> impl Future<Output = Result<HashSet<VersionedUrl>, Report<CheckPermissionError>>> + Send;
 }

@@ -7,7 +7,7 @@ use http::HeaderMap;
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
-use crate::provider::AuthenticationProvider;
+use crate::provider::{AuthenticationProvider, Caller};
 
 /// Name of the header carrying an unverified actor ID.
 pub const ACTOR_ID_HEADER: &str = "X-Authenticated-User-Actor-Id";
@@ -30,6 +30,9 @@ pub enum AuthenticationError {
     /// The service secret does not match.
     #[display("service credential is invalid")]
     InvalidServiceSecret,
+    /// The service credential is verified but carries no delegated actor.
+    #[display("the service credential carries no delegated actor")]
+    MissingDelegatedActor,
     /// The credential provider could not be reached.
     #[display("failed to verify the credential against the provider")]
     ProviderUnreachable,
@@ -86,6 +89,7 @@ impl AuthenticationError {
             Self::MissingCredentials
             | Self::MissingServiceSecret
             | Self::InvalidServiceSecret
+            | Self::MissingDelegatedActor
             | Self::InvalidSession
             | Self::InvalidAccessToken
             | Self::IdentityWithoutActor
@@ -111,6 +115,7 @@ impl AuthenticationError {
             }
             Self::MissingServiceSecret => "the request requires the service credential",
             Self::InvalidServiceSecret => "service credential is invalid",
+            Self::MissingDelegatedActor => "the service credential carries no delegated actor",
             Self::ProviderUnreachable => "failed to verify the credential against the provider",
             Self::ProviderRejection => "the credential provider rejected the verification request",
             Self::InvalidProviderResponse => "the credential provider returned an invalid response",
@@ -125,30 +130,31 @@ impl AuthenticationError {
     }
 }
 
-/// The result of resolving a request's credentials.
-#[derive(Debug, Clone)]
-pub enum AuthenticationOutcome {
-    /// The request carries accepted credentials for this actor.
-    Authenticated(ActorEntityUuid),
-    /// The request carries no or invalid credentials.
-    Failed(AuthenticationError),
-}
-
 /// Resolves the acting principal from the request headers.
 ///
 /// The provider is the only credential path: a request whose credential is rejected fails, and a
-/// request without a recognized credential fails as [`MissingCredentials`]. Chain providers as
-/// pairs, nested for more than two, to accept several credential kinds.
+/// request without a recognized credential resolves through [`Caller::anonymous`]. Chain providers
+/// as pairs, nested for more than two, to accept several credential kinds.
+///
+/// # Errors
+///
+/// - the rejection reason of the provider that recognized the credential
+/// - [`MissingCredentials`] if no provider recognized a credential and the caller type requires an
+///   actor
 ///
 /// [`MissingCredentials`]: AuthenticationError::MissingCredentials
-pub async fn resolve_request_actor<P>(provider: &P, headers: &HeaderMap) -> AuthenticationOutcome
+pub async fn resolve_request_actor<P, C>(
+    provider: &P,
+    headers: &HeaderMap,
+) -> Result<C, AuthenticationError>
 where
-    P: AuthenticationProvider,
+    P: AuthenticationProvider<C>,
+    C: Caller,
 {
     // TODO(BE-755): cache verified credentials so repeated requests do not re-verify against the
     //               provider and the principal store each time
     match provider.authenticate(headers).await {
-        ControlFlow::Break(Ok(actor)) => AuthenticationOutcome::Authenticated(actor.into()),
+        ControlFlow::Break(Ok(caller)) => Ok(caller),
         ControlFlow::Break(Err(report)) => {
             let error = report.current_context().clone();
             if matches!(
@@ -171,16 +177,21 @@ where
                 AuthenticationError::MissingServiceSecret
                     | AuthenticationError::InvalidServiceSecret
             ) {
-                // Legitimate senders of this credential pair are internal services, so a
+                // Legitimate senders of this credential are internal services, so a
                 // mismatch points at deployment configuration.
                 tracing::warn!(error = ?report, "credential rejected due to a service credential mismatch");
             } else {
                 tracing::debug!(error = ?report, "credential rejected");
             }
-            AuthenticationOutcome::Failed(error)
+            Err(error)
         }
         ControlFlow::Continue(()) => {
-            AuthenticationOutcome::Failed(AuthenticationError::MissingCredentials)
+            if headers.contains_key(ACTOR_ID_HEADER) {
+                // An actor-ID header without its credential says the caller believed it was
+                // delegating, so resolving it as anonymous points at a configuration fault.
+                tracing::warn!("actor-ID header carried no recognized credential");
+            }
+            C::anonymous()
         }
     }
 }
@@ -189,15 +200,15 @@ where
 ///
 /// # Errors
 ///
-/// - [`MissingCredentials`] if the header is absent
+/// - [`MissingDelegatedActor`] if the header is absent
 /// - [`InvalidActorIdHeader`] if the header is not a valid UUID
 ///
-/// [`MissingCredentials`]: AuthenticationError::MissingCredentials
+/// [`MissingDelegatedActor`]: AuthenticationError::MissingDelegatedActor
 /// [`InvalidActorIdHeader`]: AuthenticationError::InvalidActorIdHeader
 pub fn actor_id_from_header(headers: &HeaderMap) -> Result<ActorEntityUuid, AuthenticationError> {
     let header_value = headers
         .get(ACTOR_ID_HEADER)
-        .ok_or(AuthenticationError::MissingCredentials)?;
+        .ok_or(AuthenticationError::MissingDelegatedActor)?;
 
     header_value
         .to_str()
@@ -211,18 +222,15 @@ pub fn actor_id_from_header(headers: &HeaderMap) -> Result<ActorEntityUuid, Auth
 mod tests {
     use core::mem;
 
-    use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
     use http::HeaderMap;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
-    use super::{AuthenticationError, AuthenticationOutcome, resolve_request_actor};
+    use super::{AuthenticationError, resolve_request_actor};
     use crate::provider::StaticAuthenticationProvider;
 
-    fn random_user() -> AuthenticatedActor {
-        AuthenticatedActor::Id(ActorId::User(UserId::new(ActorEntityUuid::new(
-            Uuid::new_v4(),
-        ))))
+    fn random_user() -> ActorId {
+        ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::new_v4())))
     }
 
     fn actor_id_header(actor_id: ActorEntityUuid) -> HeaderMap {
@@ -242,14 +250,10 @@ mod tests {
         let actor_id = random_user();
         let provider = StaticAuthenticationProvider::Verified(actor_id);
 
-        let outcome = resolve_request_actor(&provider, &HeaderMap::new()).await;
+        let outcome: Result<ActorId, _> = resolve_request_actor(&provider, &HeaderMap::new()).await;
 
         assert!(
-            matches!(
-                outcome,
-                AuthenticationOutcome::Authenticated(resolved)
-                    if resolved == ActorEntityUuid::from(actor_id)
-            ),
+            matches!(outcome, Ok(resolved) if resolved == actor_id),
             "a verified credential should authenticate its actor"
         );
     }
@@ -259,13 +263,10 @@ mod tests {
         let provider = StaticAuthenticationProvider::Rejected;
         let headers = actor_id_header(ActorEntityUuid::new(Uuid::new_v4()));
 
-        let outcome = resolve_request_actor(&provider, &headers).await;
+        let outcome: Result<ActorId, _> = resolve_request_actor(&provider, &headers).await;
 
         assert!(
-            matches!(
-                outcome,
-                AuthenticationOutcome::Failed(AuthenticationError::InvalidSession)
-            ),
+            matches!(outcome, Err(AuthenticationError::InvalidSession)),
             "a rejected credential should fail even when an actor-ID header is present"
         );
     }
@@ -275,13 +276,10 @@ mod tests {
         let provider = StaticAuthenticationProvider::NotRecognized;
         let headers = actor_id_header(ActorEntityUuid::new(Uuid::new_v4()));
 
-        let outcome = resolve_request_actor(&provider, &headers).await;
+        let outcome: Result<ActorId, _> = resolve_request_actor(&provider, &headers).await;
 
         assert!(
-            matches!(
-                outcome,
-                AuthenticationOutcome::Failed(AuthenticationError::MissingCredentials)
-            ),
+            matches!(outcome, Err(AuthenticationError::MissingCredentials)),
             "the actor-ID header should not resolve without a provider recognizing it"
         );
     }
@@ -290,13 +288,10 @@ mod tests {
     async fn missing_credentials_fail_authentication() {
         let provider = StaticAuthenticationProvider::NotRecognized;
 
-        let outcome = resolve_request_actor(&provider, &HeaderMap::new()).await;
+        let outcome: Result<ActorId, _> = resolve_request_actor(&provider, &HeaderMap::new()).await;
 
         assert!(
-            matches!(
-                outcome,
-                AuthenticationOutcome::Failed(AuthenticationError::MissingCredentials)
-            ),
+            matches!(outcome, Err(AuthenticationError::MissingCredentials)),
             "a request without credentials should fail authentication"
         );
     }
@@ -316,6 +311,7 @@ mod tests {
             AuthenticationError::InvalidActorIdHeader,
             AuthenticationError::MissingServiceSecret,
             AuthenticationError::InvalidServiceSecret,
+            AuthenticationError::MissingDelegatedActor,
             AuthenticationError::ProviderUnreachable,
             AuthenticationError::ProviderRejection,
             AuthenticationError::InvalidProviderResponse,

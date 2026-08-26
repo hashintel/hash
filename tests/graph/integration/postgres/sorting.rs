@@ -67,7 +67,7 @@ async fn test_root_sorting(
             definitions: _,
             entity_permissions: _,
         } = Box::pin(api.query_entity_subgraph(
-            actor_id,
+            Some(actor_id),
             QueryEntitySubgraphParams::Paths {
                 traversal_paths: Vec::new(),
                 request: QueryEntitiesParams {

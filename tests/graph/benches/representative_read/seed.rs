@@ -15,7 +15,7 @@ use type_system::{
     },
     ontology::{VersionedUrl, entity_type::EntityType},
     principal::{
-        actor::{ActorEntityUuid, ActorId, ActorType},
+        actor::{ActorId, ActorType},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -122,7 +122,7 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
 /// single point to swap out the seeding of test data when we can invest time in creating a
 /// representative environment.
 #[expect(clippy::too_many_lines)]
-pub(crate) async fn seed_db(account_id: ActorEntityUuid, store_wrapper: &mut StoreWrapper) {
+pub(crate) async fn seed_db(account_id: ActorId, store_wrapper: &mut StoreWrapper) {
     let mut transaction = store_wrapper
         .store
         .transaction()
@@ -286,11 +286,11 @@ pub(crate) async fn seed_db(account_id: ActorEntityUuid, store_wrapper: &mut Sto
 
 /// DOC - TODO.
 pub struct Samples {
-    pub entities: HashMap<ActorEntityUuid, HashMap<VersionedUrl, Vec<EntityUuid>>>,
-    pub entity_types: HashMap<ActorEntityUuid, Vec<VersionedUrl>>,
+    pub entities: HashMap<ActorId, HashMap<VersionedUrl, Vec<EntityUuid>>>,
+    pub entity_types: HashMap<ActorId, Vec<VersionedUrl>>,
 }
 
-async fn get_samples(account_id: ActorEntityUuid, store_wrapper: &StoreWrapper) -> Samples {
+async fn get_samples(account_id: ActorId, store_wrapper: &StoreWrapper) -> Samples {
     let mut entity_types = HashMap::new();
     entity_types.insert(
         account_id,
@@ -363,7 +363,7 @@ async fn get_samples(account_id: ActorEntityUuid, store_wrapper: &StoreWrapper) 
 
 pub async fn setup_and_extract_samples(
     store_wrapper: &mut StoreWrapper,
-    account_id: ActorEntityUuid,
+    account_id: ActorId,
 ) -> Samples {
     // We use the existence of the account ID as a marker for if the DB has been seeded already
     let already_seeded: bool = store_wrapper
