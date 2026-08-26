@@ -5,9 +5,8 @@
 //! store serves, so the pipeline cannot tell the difference. Each stream file is one rkyv
 //! archive read in place out of the mapped file. A stream call borrows the archived records as it
 //! yields each item, so an item's embedding is a borrow of the mapped bytes rather than a copy;
-//! nothing decodes ahead of use. The
-//! [`dump`](dump::dump) command writes these directories from a live dataset and its embedding
-//! provider.
+//! nothing decodes ahead of use. The [`dump`] module writes these directories from a live
+//! dataset and its embedding provider.
 //!
 //! # Acceptance
 //!

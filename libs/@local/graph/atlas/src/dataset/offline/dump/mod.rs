@@ -1,7 +1,7 @@
 //! Writing a dump directory from a live [`Dataset`].
 //!
-//! [`dump()`] drains every stream of one dataset into the directory layout
-//! [`OfflineDataset`](super::OfflineDataset) accepts and mints the embeddings an offline fit
+//! A dump drains every stream of one dataset into the directory layout
+//! [`OfflineDataset`](super::OfflineDataset) accepts and stores the embeddings an offline fit
 //! will look up. Each stream file serializes as one rkyv archive straight to disk through a
 //! digesting writer, and the manifest seals the directory last, so an interrupted dump leaves a
 //! directory the reader refuses instead of a truncated dataset that parses. A stale manifest
@@ -10,7 +10,7 @@
 //!
 //! The work splits into a read phase ([`read`]) that drains the dataset and an embed phase
 //! ([`embed`]) that spends the provider budget and seals the manifest, so a caller may close
-//! its source snapshot between the two. [`dump()`] runs both over one live dataset.
+//! its source snapshot between the two.
 //!
 //! # Canonical coverage
 //!
