@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
-import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
-import { use, useEffect, useRef, useState } from "react";
+import { generateId, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 
 import {
   aiCommandActionInputSchemas,
@@ -54,6 +54,10 @@ import {
 } from "./ai-assistant-panel/tool-summaries";
 
 import type { PetrinautAiAssistant } from "../../../petrinaut";
+import type {
+  PetrinautAiComposerControlContext,
+  PetrinautAiComposerSubmitTextResult,
+} from "../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
 
 export type {
@@ -322,6 +326,9 @@ export const AiAssistantPanel = ({
     status,
     stop,
   } = useChat<PetrinautAiMessage>({
+    ...(aiAssistant.conversationId === undefined
+      ? {}
+      : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
     transport: diagnosticsTransportState.transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
@@ -557,6 +564,197 @@ export const AiAssistantPanel = ({
     },
   });
 
+  const composerSubmissionStateRef = useRef({
+    addToolOutput,
+    interactiveTools: aiAssistant.interactiveTools,
+    messages,
+    sendMessage,
+    status,
+  });
+  useEffect(() => {
+    composerSubmissionStateRef.current = {
+      addToolOutput,
+      interactiveTools: aiAssistant.interactiveTools,
+      messages,
+      sendMessage,
+      status,
+    };
+  }, [
+    addToolOutput,
+    aiAssistant.interactiveTools,
+    messages,
+    sendMessage,
+    status,
+  ]);
+
+  const composerToolSubmissionsRef = useRef(new Set<string>());
+  useEffect(() => {
+    const pendingToolCallIds = new Set<string>();
+    for (const message of messages) {
+      for (const part of message.parts) {
+        if (part.type === "dynamic-tool" && part.state === "input-available") {
+          pendingToolCallIds.add(part.toolCallId);
+        }
+      }
+    }
+
+    for (const toolCallId of composerToolSubmissionsRef.current) {
+      if (!pendingToolCallIds.has(toolCallId)) {
+        composerToolSubmissionsRef.current.delete(toolCallId);
+      }
+    }
+  }, [messages]);
+
+  // Hosts retain this callback across transport-driven rerenders, so its
+  // identity is part of the public composer-control contract. The ref keeps
+  // its implementation current without forcing host controls to resubscribe.
+  const submitText = useCallback(
+    async ({
+      id,
+      text,
+    }: {
+      id?: string;
+      text: string;
+    }): Promise<PetrinautAiComposerSubmitTextResult> => {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        const submissionError = new Error(
+          "AI assistant text must not be empty.",
+        );
+        setStreamError(submissionError);
+        throw submissionError;
+      }
+
+      const {
+        addToolOutput: submitToolOutput,
+        interactiveTools,
+        messages: currentMessages,
+        sendMessage: submitMessage,
+        status: currentStatus,
+      } = composerSubmissionStateRef.current;
+      if (currentStatus === "submitted" || currentStatus === "streaming") {
+        const submissionError = new Error(
+          "Wait for the current AI response before submitting more text.",
+        );
+        setStreamError(submissionError);
+        throw submissionError;
+      }
+
+      const mappedToolCalls: {
+        input: unknown;
+        mapText: (params: { input: unknown; text: string }) => unknown;
+        toolCallId: string;
+        toolName: string;
+      }[] = [];
+      for (const message of currentMessages) {
+        for (const part of message.parts) {
+          if (
+            part.type !== "dynamic-tool" ||
+            part.state !== "input-available"
+          ) {
+            continue;
+          }
+
+          const definition = getInteractiveTool(
+            part.toolName,
+            part.input,
+            interactiveTools,
+          );
+          if (!definition?.fromComposerText) {
+            continue;
+          }
+
+          mappedToolCalls.push({
+            input: part.input,
+            mapText: definition.fromComposerText,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+          });
+        }
+      }
+
+      if (mappedToolCalls.length > 1) {
+        const submissionError = new Error(
+          "Text matches more than one pending interactive AI tool.",
+        );
+        setStreamError(submissionError);
+        throw submissionError;
+      }
+
+      const mappedToolCall = mappedToolCalls[0];
+      if (mappedToolCall) {
+        if (composerToolSubmissionsRef.current.has(mappedToolCall.toolCallId)) {
+          const submissionError = new Error(
+            "This interactive AI tool is already being submitted.",
+          );
+          setStreamError(submissionError);
+          throw submissionError;
+        }
+
+        let output: unknown;
+        try {
+          output = mappedToolCall.mapText({
+            input: mappedToolCall.input,
+            text: trimmed,
+          });
+        } catch (caught) {
+          const submissionError =
+            caught instanceof Error ? caught : new Error(String(caught));
+          setStreamError(submissionError);
+          throw submissionError;
+        }
+
+        setInput("");
+        setStreamError(null);
+        setStopped(false);
+        stopRequestedRef.current = false;
+        composerToolSubmissionsRef.current.add(mappedToolCall.toolCallId);
+        try {
+          await addDynamicToolOutput(submitToolOutput, {
+            output,
+            tool: mappedToolCall.toolName,
+            toolCallId: mappedToolCall.toolCallId,
+          });
+        } catch (caught) {
+          composerToolSubmissionsRef.current.delete(mappedToolCall.toolCallId);
+          const submissionError =
+            caught instanceof Error ? caught : new Error(String(caught));
+          setStreamError(submissionError);
+          throw submissionError;
+        }
+
+        return {
+          kind: "interactive-tool",
+          toolCallId: mappedToolCall.toolCallId,
+        };
+      }
+
+      const messageId = id ?? generateId();
+      setInput("");
+      setStreamError(null);
+      setStopped(false);
+      stopRequestedRef.current = false;
+      await submitMessage({
+        id: messageId,
+        parts: [{ text: trimmed, type: "text" }],
+        role: "user",
+      });
+      return { kind: "message", messageId };
+    },
+    [],
+  );
+
+  const stopStateRef = useRef(stop);
+  useEffect(() => {
+    stopStateRef.current = stop;
+  }, [stop]);
+
+  // Like submitText, stop is exposed to host controls and must stay stable.
+  const stopComposer = useCallback(async () => {
+    stopRequestedRef.current = true;
+    await stopStateRef.current();
+  }, []);
+
   useEffect(() => {
     const trimmedInitialMessage = initialMessage?.trim();
     if (!trimmedInitialMessage) {
@@ -606,8 +804,24 @@ export const AiAssistantPanel = ({
       : STARTER_CHIPS
     : REVIEW_CHIPS;
 
+  const composerControlContext: PetrinautAiComposerControlContext = {
+    conversationId: aiAssistant.conversationId,
+    messages,
+    status,
+    stop: stopComposer,
+    submitText,
+  };
+  /* eslint-disable react-hooks-js/refs -- The public render prop receives
+     stable event callbacks that read their refs only when the host invokes
+     them from an event handler or effect. */
+  const composerControl = aiAssistant.renderComposerControl?.(
+    composerControlContext,
+  );
+  /* eslint-enable react-hooks-js/refs */
+
   return (
     <AiAssistantContents
+      composerControl={composerControl}
       error={streamError ?? error}
       input={input}
       interactiveTools={aiAssistant.interactiveTools}
@@ -696,34 +910,17 @@ export const AiAssistantPanel = ({
         })
       }
       onSendPrompt={(prompt) => {
-        const trimmed = prompt.trim();
-        if (!trimmed) {
-          return;
-        }
-        setInput("");
-        setStreamError(null);
-        setStopped(false);
-        stopRequestedRef.current = false;
-        void sendMessage({ text: trimmed });
+        void submitText({ text: prompt }).catch(() => {});
       }}
       onStop={() => {
         // Flag the deliberate stop, then abort. The actual settling of the
         // partial transcript and the "Response stopped" note happen in
         // `onFinish`, once the SDK has fully unwound the stream — finalizing
         // here would race the chunks the SDK is still flushing.
-        stopRequestedRef.current = true;
-        void stop();
+        void stopComposer();
       }}
       onSubmit={() => {
-        const trimmed = input.trim();
-        if (!trimmed) {
-          return;
-        }
-        setInput("");
-        setStreamError(null);
-        setStopped(false);
-        stopRequestedRef.current = false;
-        void sendMessage({ text: trimmed });
+        void submitText({ text: input }).catch(() => {});
       }}
       promptChips={promptChips}
       rightOffset={hasSelection ? propertiesPanelWidth + PANEL_MARGIN : 0}

@@ -19,6 +19,12 @@ While a response is streaming you can:
 - Press **Stop AI response** (the send button turns into a stop icon) to halt the current response.
 - Type your next message in the composer -- it is queued for after the current response ends.
 
+The application embedding Petrinaut may place an additional control beside the message box. For
+example, a host can offer another way to enter finalized text. Text submitted by that control
+behaves like text sent with the keyboard: it joins the same conversation and, when an inline
+question is waiting for an answer, completes that question rather than starting an unrelated
+message.
+
 **Clear AI chat** via the delete button in the top right of the panel: wipes the conversation, stops any in-flight stream, and tells the host app to forget the messages (if the host persists them).
 
 ## What the assistant can do
@@ -56,4 +62,7 @@ When the assistant edits code surfaces (lambdas, kernels, dynamics, visualizers,
 
 ## Host configuration
 
-Whether the assistant is available, where the conversation is stored (in-memory, in your host app's database, or anywhere else), and the model behind it are all controlled by the host application that embeds Petrinaut. Read-only documents and the simulate-mode restrictions described above always apply when applicable.
+Whether the assistant is available, which additional composer controls appear, where the
+conversation is stored (in-memory, in your host app's database, or anywhere else), and the model
+behind it are all controlled by the host application that embeds Petrinaut. Read-only documents
+and the simulate-mode restrictions described above always apply when applicable.

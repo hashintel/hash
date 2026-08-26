@@ -68,6 +68,34 @@ describe("AiAssistantContents", () => {
     expect(renderMarkdown).toHaveBeenCalledOnce();
   });
 
+  test("renders a host composer control between the textarea and send button", () => {
+    render(
+      <AiAssistantContents
+        composerControl={
+          <button type="button" aria-label="Alternate input">
+            Alternate
+          </button>
+        }
+        input=""
+        messages={[]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    const control = screen.getByRole("button", { name: "Alternate input" });
+    const sendButton = screen.getByRole("button", { name: "Send message" });
+
+    expect(textarea.nextElementSibling).toBe(control);
+    expect(control.nextElementSibling?.contains(sendButton)).toBe(true);
+  });
+
   test("renders a host interactive tool and submits its validated output once", () => {
     const parseOutput = vi.fn((raw: unknown) => {
       if (

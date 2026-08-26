@@ -62,6 +62,7 @@ export const getInteractiveTool = (
             shouldHandle: () => true,
             parseInput: hostDefinition.parseInput,
             parseOutput: hostDefinition.parseOutput,
+            fromComposerText: hostDefinition.fromComposerText,
             Widget: hostDefinition.component,
           }
         : undefined;
