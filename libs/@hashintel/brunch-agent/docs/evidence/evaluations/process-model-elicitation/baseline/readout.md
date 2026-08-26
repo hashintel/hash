@@ -8,6 +8,10 @@ against the same simulated master scheduler, single-shot each — every claim be
 evidence from one run per condition, not a rate estimate. Condition 4 (the ADR-0007 teaching
 layer rendered as a prompt only, run and scored 2026-08-25) is appended at the end under its own
 heading; the sections between are the 2026-08-13 read-out of conditions 1 and 2, unchanged.
+Condition 5 (the shipped harness in the loop) ran on 2026-08-25; its transcript, raw record, and
+folded store are in [`transcripts/`](transcripts/) and its
+[turn latency assessment](condition-5-turn-latency.md) is written, but its read-out on the
+dimensions below is **pending review** and not part of this document yet.
 
 ## Headline findings
 

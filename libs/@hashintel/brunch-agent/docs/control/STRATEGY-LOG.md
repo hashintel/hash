@@ -308,3 +308,51 @@ one-schema premise fails); or a run contradicts what a review call plausible.
 
 **Evidence links:** [ADR-0007 decision 9](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md),
 [S-008](#s-008), [grilling inputs](../archive/planning-inputs/), FE-1482, FE-1406, FE-1431, FE-1393
+
+### S-010
+
+**Date:** 2026-08-25 (decision), recorded 2026-08-26
+
+**Trigger/evidence:** The first S-009 cycle reached its "run" step and the baseline protocol had to
+say what a run is. Condition 4 (the rendered ADR-0007 teaching layer as a prompt only, run and
+scored 2026-08-25) showed the inherited delivery classifier producing a false negative — a
+regex over the interviewer's text judging whether a model had been delivered — which is the
+instrument weakness S-007 named, recurring in miniature. Condition 3's preregistered instrument
+(operator, projection schema, lock) had never run and would have measured a hand-operated
+projection of completion machinery the harness now ships. The harness itself exposes facts a
+classifier can only guess at: captures applied, sweeps refused and why, completion computed
+over the store after each turn. Lu's direction: "Retire 3, freeze 1 and 2, and start on
+condition 5 now."
+
+**Decision:** The baseline protocol's arms are re-cut. Conditions 1 and 2 are **frozen** as the
+2026-08-13 reference; condition 3 is **retired, never run**, its preregistration and lock kept as
+the record of what was planned; conditions 4 and 5 are the **live arms, rerun once per authoring
+cycle**. Condition 5 puts the shipped harness in the loop: the runner starts the Flue runtime
+in-process with the production SDCPN elicitor and the same simulated expert, and its deliverable
+is the capture store, not a delivered text — **harness facts replace the classifier** as the
+instrument for anything the harness can report. This amends S-007's sentence "running condition 3
+with the shadow harness … would measure an instrument the product will never ship": the run
+S-007 wanted is condition 5; the number 3 stays with the retired instrument. Rejected: running the
+condition-3 instrument once "for the record", because it would measure the instrument; and
+scoring condition 5 with the text classifier, because condition 4 had just shown it wrong.
+
+**Consequences/cuts:** The first condition-5 run (2026-08-25) is committed as evidence; STEERING
+records its result under Proof 1 and its latency as an immediate concern with its own assessment.
+FE-1404 is that run under a different number; its Linear body and its salvage-and-delete
+expectation for the condition-3 instrument are unreconciled (Linear edit pending approval; the
+instrument is frozen in place with an amendment). The runner's `stalled` stop label misnames a
+deliberate interviewer self-stop and is renamed when the runner is next touched. No spec, key,
+or sequencing cut changes.
+
+**Revisit when:** a condition-5 rerun needs a judgment the harness cannot report (then a scoring
+step is added to the protocol, not a classifier); or the frozen conditions 1–2 stop being a fair
+reference because the expert or situation pack changes.
+
+**Supersedes:** none (amends S-007's condition-3 sentence; complements S-009)
+
+**Evidence links:** [baseline protocol](../../evaluations/protocols/process-model-elicitation/baseline/protocol.md),
+[condition-3 preregistration (amended)](../../evaluations/protocols/process-model-elicitation/baseline/condition-3-preregistration.md),
+[condition-5 transcript](../evidence/evaluations/process-model-elicitation/baseline/transcripts/condition-5.md),
+[condition-4 read-out](../evidence/evaluations/process-model-elicitation/baseline/readout.md),
+[turn latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md),
+FE-1404, FE-1431, FE-1361

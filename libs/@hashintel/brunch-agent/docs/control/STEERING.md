@@ -17,7 +17,8 @@ superseding capture while an unrelated region stays stable. Preserve runnable an
 evidence under [proof evidence](../evidence/proofs/).
 
 Governing strategic decisions: [S-001](STRATEGY-LOG.md#s-001), [S-004](STRATEGY-LOG.md#s-004),
-[S-007](STRATEGY-LOG.md#s-007), and [S-008](STRATEGY-LOG.md#s-008). Governing architecture:
+[S-007](STRATEGY-LOG.md#s-007), [S-008](STRATEGY-LOG.md#s-008), and [S-010](STRATEGY-LOG.md#s-010).
+Governing architecture:
 [ADR-0003](../adr/0003-three-register-ir.md), [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md),
 [ADR-0006](../adr/0006-plugins-per-target-formalism.md),
 [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) (accepted
@@ -47,6 +48,7 @@ evaluation apparatus) are not worked until an epicentre needs them.
 skeleton (construct job; proves the loop, produces fixtures)
 FE-1497 controller read path -> FE-1482 plugin file + parser + fold
 -> FE-1404 skeleton run against the baseline simulated expert
+   (first run 2026-08-25 as baseline protocol condition 5: loop closes, completion not reached)
 
 reviewer lane (review-and-revise job; the acceptance proof)
 FE-1420 retry/abandonment safety -> FE-1438 client-tool return -> FE-1439 durable session
@@ -55,7 +57,8 @@ FE-1478 provenance read -> FE-1480 scaffold/realization -> FE-1479 targeted corr
 authoring lane (E5; a convergence cycle alongside the skeleton run, joining it at a run over the migrated plugin)
 each cycle: write schema + plugin-sdcpn/plugin.yaml + plugin-gherkin/plugin.yaml + repertoire together
   -> review: does every key plausibly serve both? press against the CPS edge material
-  -> run: re-do the simulated interviews (baseline protocol, simulated expert) over the wired agent
+  -> run: re-do the simulated interviews over the wired agent — baseline conditions 4 (the rendered
+     layer as prompt only) and 5 (the shipped harness in the loop); 1–2 are frozen, 3 retired (S-010)
   -> the strains and failures found are the next cycle's input to the ontologies and definitions
   -> edit; the catalogue freezes when a cycle changes no key
 FE-1431 (schema, plugin.yaml, key reader) | FE-1406 (packages/repertoire) | FE-1393 (gherkin, zero keys) advance together
@@ -66,7 +69,31 @@ FE-1479, whose "affected slice", "re-evaluate", and "delta" moves consume E1's f
 No hard blocker chain remains from the retired design queue. The authoring lane's sizing
 (FE-1406 as a package, FE-1431 as the authoring surface) is [S-008](STRATEGY-LOG.md#s-008)'s; its
 method — both plugins written together, the catalogue converging — is [S-009](STRATEGY-LOG.md#s-009)'s.
-Linear reflects both as of 2026-08-25.
+Linear reflects both as of 2026-08-25. Numbering note: S-007 redefined FE-1404 as "condition 3 as the
+protocol originally defined it"; in the protocol that run is now **condition 5**, and the retired
+prompt-plus-operator instrument keeps the number 3. FE-1404's body still says condition 3 and still
+expects the instrument salvaged and deleted; neither has happened (Linear edit pending approval;
+the instrument is frozen in place with an amendment, not deleted).
+
+### Next arc — candidate streams awaiting selection (2026-08-26)
+
+Lu's post-run concerns, chunked so each could run in its own worktree. None is selected yet; the
+latency concern below cuts across A and B and is the first thing any of them must measure.
+
+- **A — harness mechanics finished and proven.** Persistence of captures and sessions
+  (per-target-document store, many sessions to one document — designed, unreachable from any
+  surface), referential stability of capture and node identity across sessions, resumable
+  elicitation. Owning issues: FE-1439, FE-1420; §9.1 in the ledger.
+- **B — observed runs instead of desk proofs.** Run the app under `herdr`, instrument time per
+  turn purpose ([latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md) R0),
+  and answer from evidence: how fast, whether sweeps succeed, whether typed extraction holds up.
+  Owning issue: FE-1404 (second run).
+- **C — end to end with server- and client-side tools.** The elicitor uses sweep, completion, and
+  next-question on the server and reads or mutates the net on the client. Owning issues: FE-1438,
+  FE-1420, FE-1480.
+- **D — legible topology.** One document that shows what the elicitor sees — the system-prompt
+  sources and the merged result, progressive disclosure, tool definitions — and the source of the
+  baseline prompt. Owning issues: FE-1431, FE-1406; documentation protocol.
 
 ### Proof bundle for the selected frontier
 
@@ -76,12 +103,24 @@ Linear reflects both as of 2026-08-25.
   2 on the inherited dimensions, with the FE-1407 failure catalogue as the oracle list. Then the
   truck-fleet case (Layer B's validation case; fixture from the inbox SDCPN nets if the dossier
   stays missing) through the **unchanged** plugin file: zero new headings, zero new rows.
+  **First half, first run (2026-08-25, condition 5):** snapshot at
+  [`transcripts/condition-5.*`](../evidence/evaluations/process-model-elicitation/baseline/transcripts/)
+  (transcript with harness facts, raw record, folded model, captures, reconstructed system prompt).
+  Observed: the loop closes mechanically — ask, settlement nudge, sweep, fold, completion cue, all
+  through the production Flue path; 12 turns, 267 captures, 69 nodes across 9 of 10 kinds, 0
+  unmapped, 3 sweep batches refused on the verbatim floor and repaired in-turn; the interviewer
+  stopped itself after the impatience probe. Failures: completion not reached (46 unsatisfied),
+  mostly through identity — 7 objective nodes for 2 objective questions, 30 open conflicts, 167
+  possibly-equivalent advisories — and 145 s per turn (see the immediate concern below). Narrowed
+  claim: **the harness conducts an elicitation; it does not yet converge one.** The C1/C2-dimension
+  scoring and the FE-1407 oracle pass are pending review. Second half (truck fleet) not run.
 - **Proof 2 — the acceptance run** as stated in the objective, on the reviewer lane.
 - **Inputs:** the plugin file; the baseline situation pack, transcripts, and readout (coatings
   plant, not truck fleet); the FE-1407 catalogue; the FE-1402 invariants as tests on
   `evaluateCompletion`; the 44-prefix rehearsal as a golden-fixture candidate once re-expressed at
   kind level. No new evaluation instrument is built for September: the simulated expert and the
-  C1/C2 scoring are the fixed instrument.
+  C1/C2 scoring are the fixed instrument, and for condition 5 the harness's own facts (captures,
+  sweep results, completion report) replace any text classifier ([S-010](STRATEGY-LOG.md#s-010)).
 - **Durable outputs:** production-path code in `packages/core` and `packages/plugin-sdcpn`; the
   skeleton transcript and readout under evaluation evidence; amendments to the plugin file only
   where the run forces them.
@@ -107,6 +146,30 @@ Linear reflects both as of 2026-08-25.
 
 The read-only Linear graph supplies mechanical availability, never priority.
 
+## Immediate concern — per-turn latency (raised 2026-08-25, open)
+
+The first condition-5 run took **29 minutes for 12 interviewer turns, ~145 s per turn**, on the
+production path. Lu: "not going to be viable at all, for a working application." Diagnosis and
+recommended actions are in the
+[condition-5 turn latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md);
+the short form:
+
+- **Where the time goes (by output volume; wall-clock per call was not recorded):** ~97% of the
+  interviewer's 152k output tokens are extraction — 267 captures at ~350 tokens each, two thirds
+  of every capture restating text the harness already holds, plus ~40k tokens of whole-batch
+  re-emission after three refusals — generated on the critical path between the expert's answer
+  and the next question, on `claude-opus-5` at default thinking, three serial calls per turn. Input
+  is not the problem (970k tokens cache-read against 74 uncached).
+- **Recommended, in order:** R0 instrument (`durationMs` per turn purpose in the runner;
+  `@flue/opentelemetry` in the app; set a target — proposed 10 s to a visible question, 60 s to a
+  settled sweep, <5k output tokens per steady-state turn); R1 take the sweep off the critical
+  path; R2 extraction on a cheaper model at low thinking via `OperationOptions`; R3 abbreviated
+  verbatim quotes, rationale only when given, per-proposal rather than per-batch refusal; R4 sweep
+  against the store's node index and for unsatisfied rows first.
+- **Status:** the isolating spike (assessment §6) is designed and **deferred by Lu on 2026-08-26**.
+  No latency target is set; R0 is the precondition for every other action. Any next arc that runs
+  the harness records time per purpose or it is a desk proof.
+
 ## Active gates
 
 | Gate | Owner / source | Watch trigger | Last checked | Consequence |
@@ -120,7 +183,10 @@ The read-only Linear graph supplies mechanical availability, never priority.
 
 | Belief or unknown | Confidence / evidence | Cheapest probe |
 | --- | --- | --- |
-| Kind-level rows express the coatings case. | Medium-high; the twenty domain-keyed rows of the FE-1402 rehearsal collapse onto eight kind rows on paper. | Proof 1's first half. |
+| Kind-level rows express the coatings case. | High; condition 5 folded 267 captures onto 69 nodes across 9 of the 10 kinds with 0 unmapped, through the production fold — every fact the sweep proposed had a kind and a slot. Not yet shown: that the rows are sufficient for completion (46 unsatisfied at close, largely through conflict). | The condition-5 read-out on the C1/C2 dimensions; a second run with identity handling. |
+| Typed extraction on the verbatim floor holds up in a live run. | Medium-high; 8 of 11 sweep batches applied first time, the 3 refusals (`evidence-quote-not-found`) were repaired in the same turn, none abandoned. Cost is the open question, not correctness. | Latency assessment R0 + the §6 spike: does a cheaper extraction model keep kind/node/slot agreement? |
+| The shipped loop converges to completion. | Low; condition 5 never reached it — 7 objective nodes for 2 questions, 30 open conflicts, 167 possibly-equivalent advisories: the fold has no identity step and the sweep cannot see the store's nodes. | Give the sweep the node index (R4); rerun condition 5; count objective nodes. |
+| Per-turn latency is dominated by extraction, and removable from the critical path. | Medium; 97% of output tokens are extraction, but no per-call `durationMs` exists to confirm the time split (see the immediate concern). | R0, then the §6 spike on frozen turn tails. |
 | The truck-fleet case adds zero headings and zero rows. | Medium; Layer B was validated against it, but never through this file. | Proof 1's second half. |
 | The controller read path is small. | The tripwire fired: E1 landed on FE-1497 (#9325) at 1055 code lines (excluding comments) against the plugin file's 225 non-blank lines — 378 parse the file and narrow the proposal schema, 677 are the fold, completion, and cue. Rules 17–19 are deferred (see gates). The parser question is answered: ADR-0007 decision 8 makes the contract schema-validated data (E5). | Watch whether FE-1479's affected-slice and delta moves fit inside the 677-line engine, and whether FE-1431's key reader lands well under 378 lines. |
 | Harness teaching that has a package survives rescoping. | Low; the [lineage audit](../evidence/proofs/audits/harness-teaching-lineage-audit.md) shows four prose-only rescopings since 2026-08-11, none citing run evidence, and no test of the converse yet. | The first arc after `packages/repertoire` lands: does any rescoping of it cite a run? |
@@ -154,7 +220,12 @@ The read-only Linear graph supplies mechanical availability, never priority.
 - Dora requires cold-start creation.
 - **Proxy completion:** an arc ends with durable outputs that are all desk, simulated, or
   evaluation-side and no production-path code changed (recurred twice: tracer-as-done,
-  instrument-as-done).
+  instrument-as-done). Watched, not fired, for the 2026-08-25/26 arc: production delta was
+  `cue.ts` +3/−2 and `sdcpn-elicitor.ts` +11/−4 against an 891-line evaluation-side runner — but
+  the runner's output is run evidence over the production path, the thing the heuristic exists
+  to force. The next arc must move production code or the trigger fires.
+- The next run over the harness reports tokens but not time per turn purpose (the latency concern
+  stays a hypothesis), or a latency target is still unset when a stream A–D is selected.
 - Proof 1 shows a `Must know` that kind-level rows cannot express, or the truck-fleet case needs a
   new heading (ADR-0006's revisit condition).
 - E1 exceeds the plugin file in size, or needs a persistence surface.

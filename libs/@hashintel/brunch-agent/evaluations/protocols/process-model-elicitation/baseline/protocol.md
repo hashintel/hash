@@ -133,6 +133,10 @@ Production transcripts land in
    completion, and how it uses the completion cue and the settlement nudge.
 6. **Excavation checks**: did the interviewer surface the _(tacit)_ facts, correct the
    _(believes)_ errors, and record the _(doesn't know)_ absences as absences?
+7. **Turn cost (condition 5 only)**: tokens per turn by purpose (interview, sweep, repair) and,
+   once the runner records Flue's `turn` event `durationMs`, wall-clock per purpose and time to
+   the visible question. The first run recorded tokens and the run window only; see the
+   [turn latency assessment](../../../../docs/evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md).
 
 ## Threats to validity (acknowledged)
 
