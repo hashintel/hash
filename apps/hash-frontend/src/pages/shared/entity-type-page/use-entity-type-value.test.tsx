@@ -102,6 +102,17 @@ const schemaWithout = (
   return schema as unknown as ConstructEntityTypeParams;
 };
 
+/**
+ * `convertToLinkType` passes the rewritten schema without removing `$id`,
+ * where the save handler destructures it out. `rewriteSchemasToNextVersion`
+ * leaves `$id` on the version it was given.
+ */
+const schemaWithId = (): ConstructEntityTypeParams =>
+  ({
+    ...schemaWithout([]),
+    $id: childTypeId,
+  }) as unknown as ConstructEntityTypeParams;
+
 const renderUpdateCallback = () => {
   const variableMatcher = vi.fn().mockReturnValue(true);
 
@@ -135,6 +146,44 @@ const primaryUpdateFrom = (variableMatcher: ReturnType<typeof vi.fn>) => {
 
   return variables.updates[0]!;
 };
+
+describe("useEntityTypeValue update payload $id", () => {
+  it("carries no $id when the caller removed it, as the save handler does", async () => {
+    const { result, variableMatcher } = renderUpdateCallback();
+
+    await waitFor(() => {
+      expect(result.current[0]).not.toBeNull();
+    });
+
+    const [, , , updateEntityType] = result.current;
+
+    await act(async () => {
+      await updateEntityType(schemaWithout([]), []);
+    });
+
+    const primaryUpdate = primaryUpdateFrom(variableMatcher);
+
+    expect(primaryUpdate.updatedEntityType).not.toHaveProperty("$id");
+  });
+
+  it("carries $id when the caller left it on, as convertToLinkType does", async () => {
+    const { result, variableMatcher } = renderUpdateCallback();
+
+    await waitFor(() => {
+      expect(result.current[0]).not.toBeNull();
+    });
+
+    const [, , , updateEntityType] = result.current;
+
+    await act(async () => {
+      await updateEntityType(schemaWithId(), []);
+    });
+
+    const primaryUpdate = primaryUpdateFrom(variableMatcher);
+
+    expect(primaryUpdate.updatedEntityType.$id).toBe(childTypeId);
+  });
+});
 
 describe("useEntityTypeValue update", () => {
   it("sends the schema it is given rather than falling back to the stored one", async () => {
