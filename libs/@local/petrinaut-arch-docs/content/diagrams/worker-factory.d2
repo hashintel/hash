@@ -1,0 +1,20 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: right
+
+hosts: "one WorkerFactory per host" {
+  style.stroke-dash: 4
+  editor: "editor\nVite ?worker import" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+  cli: "CLI\nworker_threads bundle" {style.fill: "#fbe3e8"; style.stroke: "#ad3a5b"}
+  inprocess: "tests, source runs\nin-process loopback" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+}
+
+experiment: "createMonteCarloExperiment\n(one transport per shard)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+transport: "createWorkerTransport\n(queue until ready)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+attach: "attachMonteCarloWorker\n(runtime-agnostic protocol)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+hosts.editor -> experiment: createWorker
+hosts.cli -> experiment: createWorker
+hosts.inprocess -> experiment: createWorker
+experiment -> transport: per shard
+transport -> attach: "init(runs slice) / start / cancel"
+attach -> transport: "progress / metricFrames /\nrunResults / complete"
