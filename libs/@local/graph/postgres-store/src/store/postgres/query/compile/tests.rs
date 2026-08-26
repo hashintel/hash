@@ -2118,9 +2118,8 @@ mod property_masking {
             &compiler,
             r#"
             SELECT ("entity_editions_0_1_0"."properties" - (CASE WHEN
-                ("entity_temporal_metadata_0_0_0"."entity_uuid" != $1)
-                AND ("entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$2]::text[])
-                THEN ARRAY[$3]::text[]
+                ("entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$1]::text[])
+                THEN ARRAY[$2]::text[]
                 ELSE ARRAY[]::text[] END))
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
             INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
@@ -2132,7 +2131,6 @@ mod property_masking {
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
             "#,
             &[
-                &Uuid::nil(),
                 &"https://hash.ai/@h/types/entity-type/user/",
                 &"https://hash.ai/@h/types/property-type/email/",
             ],
