@@ -260,6 +260,10 @@ export async function createGpuMonteCarloExperiment(
     status,
     progress,
     metrics,
+    // Metrics reduce on-device into aggregates, so per-run values never reach
+    // the host; the store stays empty. Callers needing replicates use the CPU
+    // backend.
+    runResults: createReadableStore(new Map()),
     events,
     start() {
       if (disposed || running) {

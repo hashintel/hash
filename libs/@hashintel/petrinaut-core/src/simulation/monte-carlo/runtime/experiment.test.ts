@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { compileHirArtifacts } from "../../../hir/compile";
+import { createInProcessMonteCarloWorker } from "../worker/in-process-worker";
 import { createMonteCarloExperiment } from "./experiment";
 
 import type { WorkerLike } from "../../../environment";
@@ -178,6 +179,149 @@ const flushMicrotasks = async () => {
   await Promise.resolve();
   await Promise.resolve();
 };
+
+describe("createMonteCarloExperiment run results", () => {
+  it("slices explicit run configs to each shard's global range", async () => {
+    const mocks: ReturnType<typeof makeMockTransport>[] = [];
+    void createMonteCarloExperiment({
+      createWorker: () => {
+        const mock = makeMockTransport();
+        mocks.push(mock);
+        const worker: WorkerLike = {
+          postMessage: (message) => {
+            mock.transport.send(message);
+          },
+          addEventListener: (_type, listener) => {
+            mock.transport.onMessage((message) => {
+              listener({ data: message });
+            });
+          },
+          terminate: () => {
+            mock.transport.terminate();
+          },
+        };
+        return worker;
+      },
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 10,
+      runCount: 5,
+      shardCount: 2,
+      runs: [10, 11, 12, 13, 14].map((seed) => ({ seed })),
+    });
+    await flushMicrotasks();
+
+    expect(
+      mocks.map((mock) => {
+        const init = mock.sent.find((message) => message.type === "init");
+        return init?.type === "init" ? init.runs?.map((run) => run.seed) : null;
+      }),
+    ).toStrictEqual([
+      [10, 11, 12],
+      [13, 14],
+    ]);
+  });
+
+  it("rejects a runs list whose length differs from runCount", async () => {
+    await expect(
+      createMonteCarloExperiment({
+        createWorker: () => {
+          throw new Error("must not be called");
+        },
+        sdcpn: empty(),
+        initialMarking: {},
+        parameterValues: {},
+        seed: 1,
+        dt: 1,
+        maxTime: 10,
+        runCount: 3,
+        runs: [{ seed: 1 }],
+      }),
+    ).rejects.toThrow("3 runs");
+  });
+
+  it("collects per-run final values across in-process worker shards", async () => {
+    const experiment = await createMonteCarloExperiment({
+      createWorker: createInProcessMonteCarloWorker,
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 2,
+      runCount: 3,
+      shardCount: 2,
+      runs: [{ seed: 7 }, { seed: 8 }, { seed: 9 }],
+      metricSpecs: [
+        {
+          kind: "expression",
+          id: "objective",
+          label: "Objective",
+          sampleRuns: "all",
+          code: "return 42;",
+          artifact: metricArtifact("return 42;"),
+        },
+      ],
+    });
+
+    const complete = new Promise<void>((resolve) => {
+      experiment.events.subscribe((event) => {
+        if (event.type === "complete") {
+          resolve();
+        }
+      });
+    });
+    experiment.start();
+    await complete;
+
+    expect(experiment.status.get()).toBe("Complete");
+    expect([...experiment.runResults.get().entries()]).toStrictEqual([
+      [0, { objective: 42 }],
+      [1, { objective: 42 }],
+      [2, { objective: 42 }],
+    ]);
+    experiment.dispose();
+  });
+
+  it("keeps each run's own final value on the local path", async () => {
+    const experiment = await createMonteCarloExperiment({
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 2,
+      runCount: 2,
+      metrics: [
+        {
+          id: "run-index",
+          label: "Run index",
+          sampleRuns: "all",
+          measure: ({ runIndex }) => runIndex,
+        },
+      ],
+    });
+
+    const complete = new Promise<void>((resolve) => {
+      experiment.events.subscribe((event) => {
+        if (event.type === "complete") {
+          resolve();
+        }
+      });
+    });
+    experiment.start();
+    await complete;
+
+    expect([...experiment.runResults.get().entries()]).toStrictEqual([
+      [0, { "run-index": 0 }],
+      [1, { "run-index": 1 }],
+    ]);
+    experiment.dispose();
+  });
+});
 
 describe("createMonteCarloExperiment sharding", () => {
   it("splits runs across shards with global run index offsets", async () => {

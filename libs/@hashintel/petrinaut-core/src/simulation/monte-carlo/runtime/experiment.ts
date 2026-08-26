@@ -35,7 +35,11 @@ import type {
   MonteCarloUserDefinedMetricConfig,
   MonteCarloUserDefinedMetricFrame,
 } from "../metrics";
-import type { MonteCarloAdvanceResult, MonteCarloSimulator } from "../types";
+import type {
+  MonteCarloAdvanceResult,
+  MonteCarloRunConfig,
+  MonteCarloSimulator,
+} from "../types";
 import type {
   MonteCarloToMainMessage,
   MonteCarloWorkerProgress,
@@ -70,6 +74,15 @@ type CreateMonteCarloExperimentBaseConfig = {
    * dynamics/lambda/kernel user code in the net. */
   hirArtifacts?: HirArtifacts;
   runCount: number;
+  /**
+   * Per-run overrides, indexed by global run index; length must equal
+   * `runCount` when present.
+   *
+   * Explicit seeds are how optimization replicates keep their contract: the
+   * first replicate reuses the base seed verbatim, which the default
+   * derivation does not.
+   */
+  runs?: readonly MonteCarloRunConfig[];
   batchSize?: number;
   /**
    * How many workers to split the runs across.
@@ -113,10 +126,24 @@ export type CreateMonteCarloExperimentConfig =
         }
     );
 
+/** Each run's final metric values, keyed by global run index then metric id. */
+export type MonteCarloExperimentRunResults = ReadonlyMap<
+  number,
+  Readonly<Record<string, number>>
+>;
+
 export interface MonteCarloExperiment {
   readonly status: ReadableStore<MonteCarloExperimentState>;
   readonly progress: ReadableStore<MonteCarloWorkerProgress | null>;
   readonly metrics: ReadableStore<MonteCarloExperimentMetrics>;
+  /**
+   * Per-run final metric values, populated as runs finish.
+   *
+   * Metric frames aggregate across runs; this keeps the run axis, which is
+   * what optimization replicates read. Complete once the `complete` event has
+   * fired.
+   */
+  readonly runResults: ReadableStore<MonteCarloExperimentRunResults>;
   readonly events: EventStream<MonteCarloExperimentEvent>;
 
   start(this: void): void;
@@ -255,6 +282,9 @@ function createLocalMonteCarloExperiment(
   const metrics = createReadableStore<MonteCarloExperimentMetrics>(
     createEmptyMetricsState(),
   );
+  const runResults = createReadableStore<MonteCarloExperimentRunResults>(
+    new Map(),
+  );
   const events = createEventStream<MonteCarloExperimentEvent>();
   let disposed = false;
   let running = false;
@@ -275,8 +305,26 @@ function createLocalMonteCarloExperiment(
       maxTime: config.maxTime,
       hirArtifacts: config.hirArtifacts,
       runCount: config.runCount,
+      runs: config.runs,
       metrics: userMetrics,
     });
+
+    const publishRunResults = () => {
+      const byRunIndex = new Map<number, Record<string, number>>();
+      for (const metric of userMetrics) {
+        for (const [runIndex, value] of metric.getRunValues()) {
+          let values = byRunIndex.get(runIndex);
+          if (!values) {
+            values = {};
+            byRunIndex.set(runIndex, values);
+          }
+          values[metric.id] = value;
+        }
+      }
+      if (byRunIndex.size > 0) {
+        runResults.set(byRunIndex);
+      }
+    };
 
     const syncStores = (nextProgress: MonteCarloWorkerProgress | null) => {
       const nextMetricFrames = takePendingMetricFrames(
@@ -340,6 +388,7 @@ function createLocalMonteCarloExperiment(
 
           if (result.allFinished) {
             running = false;
+            publishRunResults();
             status.set("Complete");
             events.emit({ type: "complete", progress: nextProgress });
             return;
@@ -354,6 +403,7 @@ function createLocalMonteCarloExperiment(
       status,
       progress,
       metrics,
+      runResults,
       events,
       start() {
         if (disposed || running) {
@@ -445,6 +495,14 @@ export function createMonteCarloExperiment(
     });
   }
 
+  if (config.runs && config.runs.length !== config.runCount) {
+    return Promise.reject(
+      new Error(
+        `Monte Carlo experiment received ${config.runs.length} run configs for ${config.runCount} runs`,
+      ),
+    );
+  }
+
   // A caller-supplied transport is a single channel, so it cannot be sharded.
   // `createWorker` can be called once per shard.
   let shards: MonteCarloShardPlanEntry[];
@@ -480,6 +538,9 @@ export function createMonteCarloExperiment(
   const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
   const metrics = createReadableStore<MonteCarloExperimentMetrics>(
     createEmptyMetricsState(),
+  );
+  const runResults = createReadableStore<MonteCarloExperimentRunResults>(
+    new Map(),
   );
   const events = createEventStream<MonteCarloExperimentEvent>();
   let disposed = false;
@@ -630,6 +691,7 @@ export function createMonteCarloExperiment(
       status,
       progress,
       metrics,
+      runResults,
       events,
       start() {
         if (disposed) {
@@ -732,6 +794,16 @@ export function createMonteCarloExperiment(
             publishMetricFrames(merger.accept(shardIndex, message.frames));
             break;
           }
+          case "runResults": {
+            // Run indices are global and shards own disjoint slices, so a
+            // plain union cannot collide.
+            const merged = new Map(runResults.get());
+            for (const { runIndex, values } of message.results) {
+              merged.set(runIndex, values);
+            }
+            runResults.set(merged);
+            break;
+          }
           case "progress":
             shardProgress[shardIndex] = message.progress;
             publishProgress();
@@ -788,6 +860,10 @@ export function createMonteCarloExperiment(
           hirArtifacts: config.hirArtifacts,
           runCount: shard.runCount,
           runIndexOffset: shard.runIndexOffset,
+          runs: config.runs?.slice(
+            shard.runIndexOffset,
+            shard.runIndexOffset + shard.runCount,
+          ),
           batchSize: config.batchSize,
           metricSpecs: "metricSpecs" in config ? config.metricSpecs : undefined,
         });

@@ -232,5 +232,14 @@ export type MonteCarloUserDefinedMetric = MonteCarloFrameMetric & {
   readonly label: string;
   readonly frames: readonly MonteCarloUserDefinedMetricFrame[];
   getLatestFrame: () => MonteCarloUserDefinedMetricFrame | null;
+  /**
+   * Latest sampled value per run index.
+   *
+   * A run keeps its frozen state once it completes, so after the experiment
+   * finishes each entry holds the run's final-frame value — what a single-run
+   * evaluation of the same metric would report. Optimization replicates read
+   * their per-seed objectives from this.
+   */
+  getRunValues: () => ReadonlyMap<number, number>;
   clear: () => void;
 };
