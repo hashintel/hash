@@ -246,6 +246,10 @@
                   "minLength": 1
                 }
               },
+              "slot": {
+                "type": "string",
+                "minLength": 1
+              },
               "when": {
                 "type": "string",
                 "minLength": 1

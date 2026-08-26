@@ -70,7 +70,7 @@ describe("the SDCPN plugin", () => {
   test("is the parsed file plus one slot-assertion proposal type", () => {
     expect(sdcpn.targetFormalism).toBe("sdcpn");
     expect(sdcpn.definition).toBe(sdcpnDefinition);
-    expect(sdcpnDefinition.version).toBe("sdcpn/2026-08-25.2");
+    expect(sdcpnDefinition.version).toBe("sdcpn/2026-08-26.1");
     expect(sdcpn.proposalCatalog.map((proposal) => proposal.name)).toEqual([
       "slot-asserted",
     ]);

@@ -13,7 +13,7 @@
 
 plugin:
   id: sdcpn
-  version: sdcpn/2026-08-25.2
+  version: sdcpn/2026-08-26.1
   formalism: stochastic dynamic coloured Petri nets (Petrinaut)
   jobs: [construct, review-and-revise]
   purpose: |
@@ -257,6 +257,7 @@ patterns:
   items:
     - id: P01
       on: [activity]
+      slot: "how often it occurs, if it is an event rather than a step"
       when: >-
         an `activity` is an event that can befall the system — a failure, an interruption, an
         unplanned arrival — rather than a step in the flow
@@ -266,6 +267,7 @@ patterns:
         round a range up to a spread.
     - id: P02
       on: [activity]
+      slot: "what is lost when it changes the system's mode"
       when: >-
         an `activity` changes the system's mode — a setup, changeover, restart, warm-up,
         reconfiguration, handover

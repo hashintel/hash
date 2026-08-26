@@ -81,6 +81,8 @@ export interface PatternRow {
   readonly ask: string;
   /** The kinds whose nodes can trigger it; empty means any node. */
   readonly kinds: readonly string[];
+  /** When present, the pattern applies only while this demanded slot fails. */
+  readonly slot?: string;
 }
 
 /** The completion anchor, declared: the kind whose dependency slot is the slice. */
@@ -265,6 +267,7 @@ export const PluginDefinitionSchema = v.strictObject({
       v.strictObject({
         id: v.pipe(v.string(), v.regex(/^P\d{2}$/u)),
         on: v.array(text),
+        slot: v.optional(text),
         when: text,
         ask: text,
       }),
@@ -395,7 +398,26 @@ export function readPluginDefinition(yamlText: string): PluginDefinition {
   }
   const patterns: PatternRow[] = input.patterns.items.map((row) => {
     for (const kind of row.on) knownKind(kind, `pattern ${row.id}`);
-    return { id: row.id, when: row.when, ask: row.ask, kinds: row.on };
+    if (row.slot !== undefined) {
+      const kindWithoutSlot = row.on.find(
+        (kind) =>
+          !mustKnow.some(
+            (demand) => demand.kind === kind && demand.slot === row.slot,
+          ),
+      );
+      if (kindWithoutSlot !== undefined) {
+        fail(
+          `pattern ${row.id} names slot \`${row.slot}\`, which \`${kindWithoutSlot}\` does not demand`,
+        );
+      }
+    }
+    return {
+      id: row.id,
+      when: row.when,
+      ask: row.ask,
+      kinds: row.on,
+      ...(row.slot === undefined ? {} : { slot: row.slot }),
+    };
   });
 
   const jobs = input.plugin.jobs;

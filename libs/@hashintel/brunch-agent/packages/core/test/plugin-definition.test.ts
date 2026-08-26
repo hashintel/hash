@@ -78,6 +78,13 @@ describe("the synthetic fixture definition", () => {
     ]);
   });
 
+  test("reads a pattern predicate on one of its kinds' demanded slots", () => {
+    expect(definition.patterns[0]).toMatchObject({
+      id: "P01",
+      slot: "how long it takes",
+    });
+  });
+
   test("flattens guidance and runbook cells with their key paths", () => {
     expect(
       guidanceEntries(definition.guidance).map((entry) => entry.path),
@@ -143,6 +150,14 @@ describe("contract violations fail to load", () => {
       "a pattern on an unknown kind",
       FIXTURE_PLUGIN_YAML.replace("on: [step]", "on: [queue]"),
       /pattern P01 names kind `queue`/u,
+    ],
+    [
+      "a pattern predicate on a slot its kind does not demand",
+      FIXTURE_PLUGIN_YAML.replace(
+        "on: [step], slot: how long it takes",
+        "on: [step], slot: queue capacity",
+      ),
+      /pattern P01 names slot `queue capacity`, which `step` does not demand/u,
     ],
     [
       "a runbook for an undeclared job",
@@ -212,5 +227,26 @@ describe.skipIf(!contextRootPresent)("the shipped plugin definitions", () => {
     const gherkin = readShipped("plugin-gherkin");
     expect(sdcpn.anchor.kind).not.toBe(gherkin.anchor.kind);
     expect(sdcpn.proposals.map((p) => p.type)).toEqual(["slot-asserted"]);
+  });
+
+  test("ambiguous kind-indexed patterns declare the slot that keeps them live", () => {
+    const sdcpn = readShipped("plugin-sdcpn");
+    const gherkin = readShipped("plugin-gherkin");
+    expect(
+      sdcpn.patterns
+        .filter((pattern) => ["P01", "P02"].includes(pattern.id))
+        .map((pattern) => [pattern.id, pattern.slot]),
+    ).toEqual([
+      ["P01", "how often it occurs, if it is an event rather than a step"],
+      ["P02", "what is lost when it changes the system's mode"],
+    ]);
+    expect(
+      gherkin.patterns
+        .filter((pattern) => ["P01", "P03"].includes(pattern.id))
+        .map((pattern) => [pattern.id, pattern.slot]),
+    ).toEqual([
+      ["P01", "the examples that illustrate it"],
+      ["P03", "the observable outcome"],
+    ]);
   });
 });

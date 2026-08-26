@@ -151,3 +151,10 @@ written against.
 - `movements` fixed to `{slice, sweep}` — every formalism examined fits the
   pair; a single-walkthrough formalism would leave `sweep` empty, which the
   schema allows for plugins.
+
+## Cycle 2 — implementation, 2026-08-26
+
+- Added optional `patterns.items[*].slot`. The reader rejects a slot that an
+  explicitly indexed kind does not demand; the cue surfaces a slot-scoped
+  pattern only for a failure on that slot. SDCPN P01/P02 and Gherkin P01/P03
+  now declare the predicates identified by the cycle-1 pressure review.

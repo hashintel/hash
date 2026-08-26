@@ -38,7 +38,15 @@ export const buildSweepList = (
   for (const node of model.nodes) {
     if (!failingNodeIds.has(node.id)) continue;
     for (const pattern of patterns) {
-      if (pattern.kinds.length === 0 || pattern.kinds.includes(node.kind)) {
+      const kindMatches =
+        pattern.kinds.length === 0 || pattern.kinds.includes(node.kind);
+      const slotMatches =
+        pattern.slot === undefined ||
+        report.failures.some(
+          (failure) =>
+            failure.nodeId === node.id && failure.slot === pattern.slot,
+        );
+      if (kindMatches && slotMatches) {
         cues.push({ id: pattern.id, nodeId: node.id, ask: pattern.ask });
       }
     }

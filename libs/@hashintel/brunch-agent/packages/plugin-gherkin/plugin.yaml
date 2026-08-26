@@ -10,7 +10,7 @@
 
 plugin:
   id: gherkin
-  version: gherkin/2026-08-25.1
+  version: gherkin/2026-08-26.1
   formalism: Gherkin — executable specifications as features, rules, and examples
   jobs: [construct, review-and-revise]
   purpose: |
@@ -125,6 +125,7 @@ patterns:
   items:
     - id: P01
       on: [rule]
+      slot: the examples that illustrate it
       when: a rule has a statement but no example.
       ask: Ask for the last time this rule mattered — what was the situation, what happened, what was seen.
     - id: P02
@@ -133,6 +134,7 @@ patterns:
       ask: Ask what distinguishes the two situations; the difference is a missing part of the context or a missing rule.
     - id: P03
       on: [example]
+      slot: the observable outcome
       when: an outcome is stated as an intention ("should work", "is handled") rather than something observable.
       ask: Ask what someone watching would see, and where.
     - id: P04
