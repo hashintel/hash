@@ -102,6 +102,15 @@ export type PetrinautRunResult = {
 
 export type PetrinautCompiledModel = {
   readonly metadata: PetrinautCompiledModelMetadata;
+  /**
+   * The sanitized SDCPN and its compiled HIR artifacts, as `run` uses them.
+   *
+   * Exposed so a caller can hand the same pair to `createMonteCarloExperiment`
+   * (optimization replicates run as one experiment) without recompiling or
+   * re-deriving the sanitization.
+   */
+  readonly sdcpn: SDCPN;
+  readonly hirArtifacts: HirArtifacts;
   run(this: void, config: PetrinautRunConfig): PetrinautRunResult;
 };
 
@@ -367,6 +376,8 @@ export function compilePetrinautModel(
 
   return {
     metadata,
+    sdcpn,
+    hirArtifacts: artifacts,
     run(runConfig) {
       const runtimeConfig: Partial<PetrinautRunOptions> & {
         maxTime?: number | null;
