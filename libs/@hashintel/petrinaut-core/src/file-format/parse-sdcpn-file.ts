@@ -120,11 +120,6 @@ const fillMissingVisualInfo = (sdcpn: {
   }) as SDCPNWithTitle;
 
 /**
- * Parses raw JSON data into an SDCPN, handling versioned, legacy, and old
- * pre-2025-11-28 formats. Pure — no DOM, no I/O. Callers (e.g. the `/ui`
- * file-picker wrapper) are responsible for sourcing the data.
- */
-/**
  * File-import trust boundary for identity strings. The file schemas accept
  * any string as an id or element name, but downstream these strings key
  * records and appear in compiled code, so names colliding with
@@ -141,19 +136,32 @@ const checkRecordKeys = (sdcpn: SDCPN): ImportResult | null => {
       };
 };
 
+/** Successful parse of either format: fill visual info, then apply the
+ * record-key boundary check. */
+const toImportResult = (
+  sdcpnData: Parameters<typeof fillMissingVisualInfo>[0],
+): ImportResult => {
+  const sdcpn = fillMissingVisualInfo(sdcpnData);
+  return (
+    checkRecordKeys(sdcpn) ?? {
+      ok: true,
+      sdcpn,
+      hadMissingPositions: hasMissingPositions(sdcpnData),
+    }
+  );
+};
+
+/**
+ * Parses raw JSON data into an SDCPN, handling versioned, legacy, and old
+ * pre-2025-11-28 formats. Pure — no DOM, no I/O. Callers (e.g. the `/ui`
+ * file-picker wrapper) are responsible for sourcing the data.
+ */
 export const parseSDCPNFile = (data: unknown): ImportResult => {
   // Try the versioned format first
   const versioned = sdcpnFileSchema.safeParse(data);
   if (versioned.success) {
     const { version: _version, meta: _meta, ...sdcpnData } = versioned.data;
-    const sdcpn = fillMissingVisualInfo(sdcpnData);
-    return (
-      checkRecordKeys(sdcpn) ?? {
-        ok: true,
-        sdcpn,
-        hadMissingPositions: hasMissingPositions(sdcpnData),
-      }
-    );
+    return toImportResult(sdcpnData);
   }
 
   // If the data has a `version` field but failed the versioned schema, reject it
@@ -181,14 +189,7 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
   // Fall back to legacy format (current schema without version/meta)
   const legacy = legacySdcpnFileSchema.safeParse(data);
   if (legacy.success) {
-    const sdcpn = fillMissingVisualInfo(legacy.data);
-    return (
-      checkRecordKeys(sdcpn) ?? {
-        ok: true,
-        sdcpn,
-        hadMissingPositions: hasMissingPositions(legacy.data),
-      }
-    );
+    return toImportResult(legacy.data);
   }
 
   return {

@@ -434,6 +434,7 @@ export {
 } from "./validation/display-name";
 export { entityNameSchema, validateEntityName } from "./validation/entity-name";
 export {
+  cloneUserKeyedRecord,
   createUserKeyedRecord,
   DANGEROUS_RECORD_KEYS,
   describeDangerousSdcpnKeys,

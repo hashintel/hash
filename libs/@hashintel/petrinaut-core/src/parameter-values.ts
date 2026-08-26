@@ -1,4 +1,8 @@
-import { createUserKeyedRecord, getOwn } from "./validation/record-keys";
+import {
+  cloneUserKeyedRecord,
+  createUserKeyedRecord,
+  getOwn,
+} from "./validation/record-keys";
 
 import type { Parameter } from "./types/sdcpn";
 
@@ -86,12 +90,9 @@ export function mergeParameterValues(
   defaultValues: DefaultParameterValues,
   parameters: readonly Parameter[] = [],
 ): DefaultParameterValues {
-  // Prototype-free: keys are parameter variable names from the net
-  // definition plus arbitrary keys from stored run inputs.
-  const merged = Object.assign(
-    createUserKeyedRecord<number | boolean>(),
-    defaultValues,
-  );
+  // Keys are parameter variable names from the net definition plus arbitrary
+  // keys from stored run inputs.
+  const merged = cloneUserKeyedRecord(defaultValues);
   const parameterTypes = new Map(
     parameters.map((parameter) => [parameter.variableName, parameter.type]),
   );

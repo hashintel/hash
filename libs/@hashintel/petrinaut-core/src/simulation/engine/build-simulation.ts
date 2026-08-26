@@ -698,12 +698,10 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       const placeParameterValues =
         flattened.placeParameterValues.get(place.id) ?? parameterValues;
 
-      const artifact: HirDynamicsArtifact | undefined = input.hirArtifacts
-        ? getOwn(
-            input.hirArtifacts.dynamics,
-            sourceItemId(differentialEquation.id),
-          )
-        : undefined;
+      const artifact: HirDynamicsArtifact | undefined = getOwn(
+        input.hirArtifacts?.dynamics,
+        sourceItemId(differentialEquation.id),
+      );
       if (!artifact) {
         throw missingArtifactError(
           "dynamics",
@@ -747,12 +745,14 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         parameterValues:
           flattened.transitionParameterValues.get(transition.id) ??
           parameterValues,
-        lambdaArtifact: input.hirArtifacts
-          ? getOwn(input.hirArtifacts.lambdas, sourceItemId(transition.id))
-          : undefined,
-        kernelArtifact: input.hirArtifacts
-          ? getOwn(input.hirArtifacts.kernels, sourceItemId(transition.id))
-          : undefined,
+        lambdaArtifact: getOwn(
+          input.hirArtifacts?.lambdas,
+          sourceItemId(transition.id),
+        ),
+        kernelArtifact: getOwn(
+          input.hirArtifacts?.kernels,
+          sourceItemId(transition.id),
+        ),
         stringPool,
       }),
     );

@@ -5,10 +5,13 @@ import { instantiateHirBufferLambda } from "./instantiate";
 
 /**
  * The emitter reads parameters as `__params["<name>"]` (see
- * `emit-buffer-js.ts`), so these sources mirror that shape directly.
+ * `emit-buffer-js.ts`), so these sources mirror that shape directly. Fixed
+ * literals: no source is constructed from variables.
  */
-const lambdaSourceReading = (name: string): string =>
-  `(f64, u64, u8, placeBases, indices) => __params[${JSON.stringify(name)}]`;
+const CONSTRUCTOR_READING_SOURCE =
+  '(f64, u64, u8, placeBases, indices) => __params["constructor"]';
+const TOSTRING_READING_SOURCE =
+  '(f64, u64, u8, placeBases, indices) => __params["toString"]';
 
 const callLambda = (
   fn: ReturnType<typeof instantiateHirBufferLambda>,
@@ -24,7 +27,7 @@ const callLambda = (
 describe("instantiate parameter binding", () => {
   it("reads a parameter named after an Object.prototype member", () => {
     const fn = instantiateHirBufferLambda(
-      lambdaSourceReading("constructor"),
+      CONSTRUCTOR_READING_SOURCE,
       { constructor: 42 },
       new StringPool(),
     );
@@ -33,7 +36,7 @@ describe("instantiate parameter binding", () => {
 
   it("reads missing parameters as undefined instead of inherited members", () => {
     const fn = instantiateHirBufferLambda(
-      lambdaSourceReading("toString"),
+      TOSTRING_READING_SOURCE,
       {},
       new StringPool(),
     );

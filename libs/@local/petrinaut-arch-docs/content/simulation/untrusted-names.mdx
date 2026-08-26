@@ -14,7 +14,7 @@ colour element names. They arrive from imported `.petrinaut` files, whose
 schema accepts any string as an id. The engine, the HIR compiler and the UI
 all key records by these strings, so a name chosen to collide with
 `Object.prototype` corrupts whichever record it touches. CodeQL reports this
-class as `js/remote-property-injection` (FE-523).
+class as `js/remote-property-injection`.
 
 ## What a hostile name does to a plain object
 
@@ -148,7 +148,7 @@ so they keep a live record, created with no prototype at construction
 
 Names that survive the editor validators can still collide: `constructor` is
 the one `Object.prototype` member that is valid lower_snake_case. The
-validators now reject it, and every record on the path stores it as an own
+validators reject it, and every record on the path stores it as an own
 property, so nets that already contain one keep working.
 
 Code trust is the other half of this story:

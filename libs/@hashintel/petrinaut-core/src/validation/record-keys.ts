@@ -57,12 +57,24 @@ export const createUserKeyedRecord = <T>(): Record<string, T> =>
 /**
  * Own-property read of a user-keyed record. Use for records that may have a
  * normal prototype (revived from `JSON.parse` or `structuredClone`), where a
- * missing key would otherwise return an `Object.prototype` member.
+ * missing key would otherwise return an `Object.prototype` member. A missing
+ * record reads as a missing key.
  */
 export const getOwn = <T>(
-  record: Readonly<Record<string, T>>,
+  record: Readonly<Record<string, T>> | undefined,
   key: string,
-): T | undefined => (Object.hasOwn(record, key) ? record[key] : undefined);
+): T | undefined =>
+  record !== undefined && Object.hasOwn(record, key) ? record[key] : undefined;
+
+/**
+ * Copies a record's own enumerable entries into a prototype-free record.
+ * Use when a record of user-authored keys arrives from outside: spreading
+ * onto `{}` keeps `Object.prototype`, and assigning into it goes through
+ * the `__proto__` setter.
+ */
+export const cloneUserKeyedRecord = <T>(
+  source: Readonly<Record<string, T>>,
+): Record<string, T> => Object.assign(createUserKeyedRecord<T>(), source);
 
 export type DangerousSdcpnKey = {
   /** Human-readable location, e.g. `transition id` or `parameter variable name`. */
@@ -117,8 +129,7 @@ const collectNetKeys = (
  * Collects every identity string of an SDCPN (ids, parameter variable names,
  * colour element names) that would collide with `Object.prototype` when used
  * as a record key. Empty result means the definition is safe to key records
- * by. Called at the file-import boundary (`parseSDCPNFile`) and at the
- * simulation boundary (`buildSimulation`).
+ * by.
  */
 export const findDangerousSdcpnKeys = (sdcpn: SDCPN): DangerousSdcpnKey[] => {
   const found: DangerousSdcpnKey[] = [];
