@@ -399,6 +399,14 @@ export function readPluginDefinition(yamlText: string): PluginDefinition {
   const patterns: PatternRow[] = input.patterns.items.map((row) => {
     for (const kind of row.on) knownKind(kind, `pattern ${row.id}`);
     if (row.slot !== undefined) {
+      if (
+        row.on.length === 0 &&
+        !mustKnow.some((demand) => demand.slot === row.slot)
+      ) {
+        fail(
+          `pattern ${row.id} names slot \`${row.slot}\`, which no kind demands`,
+        );
+      }
       const kindWithoutSlot = row.on.find(
         (kind) =>
           !mustKnow.some(

@@ -79,7 +79,7 @@ describe("the synthetic fixture definition", () => {
   });
 
   test("reads a pattern predicate on one of its kinds' demanded slots", () => {
-    expect(definition.patterns[0]).toMatchObject({
+    expect(definition.patterns.at(0)).toMatchObject({
       id: "P01",
       slot: "how long it takes",
     });
@@ -158,6 +158,14 @@ describe("contract violations fail to load", () => {
         "on: [step], slot: queue capacity",
       ),
       /pattern P01 names slot `queue capacity`, which `step` does not demand/u,
+    ],
+    [
+      "a wildcard pattern predicate on a slot no kind demands",
+      FIXTURE_PLUGIN_YAML.replace(
+        "id: P03, on: [], when:",
+        "id: P03, on: [], slot: queue capacity, when:",
+      ),
+      /pattern P03 names slot `queue capacity`, which no kind demands/u,
     ],
     [
       "a runbook for an undeclared job",

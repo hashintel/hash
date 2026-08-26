@@ -52,7 +52,9 @@ describe("the sweep list", () => {
 
   test("a slot-scoped pattern does not fire for another failure on the same node", () => {
     const model = foldElicitedModel(
-      snapshotOf(completeCaptures().filter((c) => c.id !== "c-stamp-actor")),
+      snapshotOf(
+        completeCaptures().filter((capture) => capture.id !== "c-stamp-actor"),
+      ),
       definition,
     );
     const report = evaluateCompletion(model, demands);
