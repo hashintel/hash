@@ -1,3 +1,4 @@
+import { useReactFlow } from "@xyflow/react";
 import { use, useEffect, useRef } from "react";
 
 import { parseArcId } from "@hashintel/petrinaut-core";
@@ -5,7 +6,8 @@ import { parseArcId } from "@hashintel/petrinaut-core";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { recenterToFitViewport, getViewportRect } from "../../../lib/viewport";
 
-import type { PetrinautReactFlowInstance, NodeType } from "../reactflow-types";
+import type { ArcEdgeType, NodeType } from "../reactflow-types";
+import type { Size } from "@hashintel/petrinaut-core";
 
 const RE_CENTER_PADDING = 20;
 
@@ -14,11 +16,8 @@ const RE_CENTER_PADDING = 20;
  * check whether those nodes are still visible in the reduced viewport
  * and pan to bring them into view if needed.
  */
-export function useRecenterOnPanelOpen(
-  canvasRef: React.RefObject<HTMLElement | null>,
-  reactFlowInstance: PetrinautReactFlowInstance | null,
-  nodes: NodeType[],
-) {
+export function useRecenterOnPanelOpen(containerSize: Size, nodes: NodeType[]) {
+  const reactFlow = useReactFlow<NodeType, ArcEdgeType>();
   const {
     isBottomPanelOpen,
     isLeftSidebarOpen,
@@ -42,8 +41,6 @@ export function useRecenterOnPanelOpen(
     prevBottomPanelOpen.current = isBottomPanelOpen;
     prevHasSelection.current = hasSelection;
 
-    if (!reactFlowInstance) return;
-    if (!canvasRef.current) return;
     if (!bottomJustOpened && !propertiesJustOpened && !leftJustOpened) return;
     if (selection.size === 0) return;
 
@@ -63,18 +60,14 @@ export function useRecenterOnPanelOpen(
     const selectedNodes = nodes.filter((node) => selectedNodeIds.has(node.id));
     if (selectedNodes.length === 0) return;
 
-    const originalViewport = reactFlowInstance.getViewport();
-    const viewport = getViewportRect(canvasRef.current, originalViewport, {
+    const originalViewport = reactFlow.getViewport();
+    const viewport = getViewportRect(containerSize, originalViewport, {
       left: isLeftSidebarOpen ? leftSidebarWidth : 0,
       bottom: isBottomPanelOpen ? bottomPanelHeight : 0,
       right: hasSelection ? propertiesPanelWidth : 0,
     });
 
-    const adjustment = recenterToFitViewport(
-      reactFlowInstance,
-      viewport,
-      selectedNodes,
-    );
+    const adjustment = recenterToFitViewport(viewport, selectedNodes);
 
     if (adjustment && (adjustment.x !== 0 || adjustment.y !== 0)) {
       const paddingX =
@@ -90,7 +83,7 @@ export function useRecenterOnPanelOpen(
             ? RE_CENTER_PADDING * -1
             : RE_CENTER_PADDING;
       // adjustment is in flow coordinates; convert to screen pixels for the viewport transform
-      reactFlowInstance
+      reactFlow
         .setViewport({
           x: originalViewport.x - paddingX - adjustment.x * viewport.zoom,
           y: originalViewport.y - paddingY - adjustment.y * viewport.zoom,
@@ -99,7 +92,7 @@ export function useRecenterOnPanelOpen(
         .catch(() => {});
     }
   }, [
-    canvasRef,
+    containerSize,
     isBottomPanelOpen,
     bottomPanelHeight,
     leftSidebarWidth,
@@ -108,6 +101,6 @@ export function useRecenterOnPanelOpen(
     selection,
     propertiesPanelWidth,
     nodes,
-    reactFlowInstance,
+    reactFlow,
   ]);
 }

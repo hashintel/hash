@@ -1,6 +1,6 @@
 import type { SimulationFrameReader } from "../../../react/simulation/context";
 import type { InputArc } from "@hashintel/petrinaut-core";
-import type { Edge, Node, ReactFlowInstance } from "@xyflow/react";
+import type { Edge, Node } from "@xyflow/react";
 
 type TransitionFrameState = NonNullable<
   ReturnType<SimulationFrameReader["getTransitionState"]>
@@ -90,11 +90,3 @@ export type PetrinautReactFlowDefinitionObject = {
   edges: EdgeType[];
   nodes: NodeType[];
 };
-
-/**
- * ReactFlow instance type for Petrinaut.
- */
-export type PetrinautReactFlowInstance = ReactFlowInstance<
-  NodeType,
-  ArcEdgeType
->;

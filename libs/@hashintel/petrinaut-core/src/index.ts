@@ -156,9 +156,19 @@ export type {
 export { mutationActionInputSchemas } from "./action-schemas";
 export {
   calculateGraphLayout,
+  classicNodeDimensions,
+  compactNodeDimensions,
+  getBoundsOfCenteredBoxes,
+  getComponentInstanceHeight,
+  getMinZoomForBounds,
   layoutNodeDimensions,
   type LayoutDimensions,
+  type NodeDimensions,
   type NodePosition,
+  type Rect,
+  type RenderNodeDimensions,
+  type Size,
+  ZOOM_PADDING,
 } from "./layout";
 
 // --- AI ---
