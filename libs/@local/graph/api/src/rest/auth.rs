@@ -5,12 +5,13 @@
 //! service secret with its actor header — and rejects the request when they are invalid. A
 //! request without credentials resolves through the chain's [`Caller`] type: a chain over
 //! [`ActorId`] rejects it, a chain over `Option<ActorId>` verifies it as anonymous. The
-//! resolution is stored as a private request extension. The [`AuthenticatedActorId`] extractor
+//! resolution is stored as a request extension. The [`AuthenticatedActorId`] extractor
 //! hands the acting actor to handlers that need it, and taking it as an `Option` is how a handler
 //! serves anonymous callers.
 //!
-//! The bootstrap routes require the service secret regardless of the chain. The OpenAPI and probe
-//! routes are served outside the middleware.
+//! The bootstrap routes require the service secret regardless of the chain. The OpenAPI routes
+//! carry no credential and resolve as anonymous. The probe route is served outside the
+//! middleware.
 
 use alloc::sync::Arc;
 
@@ -113,7 +114,18 @@ where
 
 /// The resolved authentication of a request, stored as a request extension.
 #[derive(Clone)]
-struct ResolvedAuthentication(Result<Option<ActorId>, AuthenticationError>);
+pub(crate) struct ResolvedAuthentication(Result<Option<ActorId>, AuthenticationError>);
+
+impl ResolvedAuthentication {
+    #[cfg(test)]
+    pub(crate) const fn new(outcome: Result<Option<ActorId>, AuthenticationError>) -> Self {
+        Self(outcome)
+    }
+
+    pub(crate) const fn outcome(&self) -> &Result<Option<ActorId>, AuthenticationError> {
+        &self.0
+    }
+}
 
 /// Converts an authentication failure into the response returned to the client.
 ///

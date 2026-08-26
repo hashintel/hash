@@ -63,6 +63,7 @@ derive_more                        = { workspace = true, features = ["display", 
 error-stack                        = { workspace = true, features = ["futures", "spantrace", "unstable"] }
 frunk                              = { workspace = true }
 futures                            = { workspace = true }
+governor                           = { workspace = true }
 hyper                              = { workspace = true }
 include_dir                        = { workspace = true }
 md-5                               = { workspace = true }
@@ -75,7 +76,7 @@ serde                              = { workspace = true, features = ['derive'] }
 serde_json                         = { workspace = true, features = ["raw_value"] }
 simple-mermaid                     = { workspace = true }
 time                               = { workspace = true }
-tokio                              = { workspace = true }
+tokio                              = { workspace = true, features = ["rt", "time"] }
 tokio-util                         = { workspace = true, features = ["codec", "io"] }
 tower                              = { workspace = true }
 tracing-opentelemetry              = { workspace = true }
@@ -85,7 +86,7 @@ uuid                               = { workspace = true }
 
 [dev-dependencies]
 hash-graph-authentication = { workspace = true, features = ["test-utils"] }
-tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tokio                     = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tower                     = { workspace = true, features = ["util"] }
 uuid                      = { workspace = true, features = ["v4"] }
 
