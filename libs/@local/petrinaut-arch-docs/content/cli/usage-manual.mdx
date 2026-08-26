@@ -307,11 +307,13 @@ response stays `{ "objective": ... }` alone:
 ```
 
 The seeded runs execute as one [Monte Carlo experiment](doc:simulation/worker-sharding):
-one run per seed, split across `worker_threads` shards, one worker per logical
-core minus one and never more than `seedsPerTrial`. Sharding never changes the
-replicate values — each run's seed is pinned explicitly — only how fast the
-trial finishes. When the worker bundle is unavailable (running the CLI from
-source), runs fall back to the calling thread and the CLI says so on stderr.
+one run per seed, split across `worker_threads` shards. `--threads <n>` sets
+the shard count; the default is one per logical core minus one, and it is never
+more than `seedsPerTrial`. `--threads 1` spawns no workers at all and simulates
+on the calling thread. Sharding never changes the replicate values — each run's
+seed is pinned explicitly — only how fast the trial finishes. When the worker
+bundle is unavailable (running the CLI from source), runs fall back to the
+calling thread and the CLI says so on stderr.
 
 ## Driving the CLI from Python
 

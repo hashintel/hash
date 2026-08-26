@@ -13,6 +13,7 @@ import {
   type InitialMarking,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
+  getDefaultMonteCarloShardCount,
   type WorkerFactory,
   type Scenario,
   type ScenarioParameter,
@@ -583,9 +584,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             Promise.resolve(
               createWorkerPoolExperimentBackend({
                 createWorker: workerFactoryRef.current,
-                ...(shardCountRef.current === undefined
-                  ? {}
-                  : { shardCount: shardCountRef.current }),
+                // The experiment never inspects the host, so the provider — the
+                // piece that knows this is a browser — states the parallelism.
+                shardCount:
+                  shardCountRef.current ?? getDefaultMonteCarloShardCount(),
               }),
             ),
         });
