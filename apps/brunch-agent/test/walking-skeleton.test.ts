@@ -29,6 +29,8 @@ test("the dev app suspends for free-text replies without instruction wakes", asy
     durableOutput: true,
     markdownFloor: true,
     noInstructionWake: true,
+    openTelemetryContentSuppressed: true,
+    openTelemetrySpans: true,
     pendingAskSuppressedSettlement: true,
     quoteAbsentFromPreviousArchive: true,
     refusalStopReopenedRange: true,

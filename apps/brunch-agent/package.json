@@ -16,6 +16,7 @@
     "test:unit": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
+    "@flue/opentelemetry": "2.0.3",
     "@flue/react": "2.0.3",
     "@flue/runtime": "2.0.3",
     "@flue/sdk": "2.0.3",
@@ -24,6 +25,7 @@
     "@hashintel/brunch-agent-plugin-gherkin": "workspace:*",
     "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*",
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
+    "@opentelemetry/api": "1.9.1",
     "hono": "4.13.2",
     "react": "19.2.6",
     "react-dom": "19.2.6",
@@ -32,6 +34,8 @@
   "devDependencies": {
     "@earendil-works/pi-ai": "0.83.0",
     "@flue/vite": "2.0.3",
+    "@opentelemetry/sdk-trace-base": "2.9.0",
+    "@opentelemetry/sdk-trace-node": "2.9.0",
     "@types/node": "22.18.13",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",

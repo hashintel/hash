@@ -12,7 +12,13 @@ import {
   type Context,
 } from "@earendil-works/pi-ai";
 import { start } from "@flue/runtime/node";
+import { CONTENT_ATTR } from "@flue/runtime/telemetry";
 import { createFlueClient } from "@flue/sdk";
+import {
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from "@opentelemetry/sdk-trace-base";
+import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 
 import { toolName } from "@hashintel/brunch-agent";
 import {
@@ -25,11 +31,17 @@ import {
   GHERKIN_MODEL_ID,
   GherkinElicitor,
 } from "../src/agents/gherkin-elicitor.ts";
-import app from "../src/app.ts";
 import { GHERKIN_AGENT_ROUTE } from "../src/routes.ts";
 import { targetDocumentPath } from "../src/target-document-path.ts";
 
 import type { StatementNotedProposalInput } from "@hashintel/brunch-agent-plugin-gherkin";
+
+const spanExporter = new InMemorySpanExporter();
+const traceProvider = new NodeTracerProvider({
+  spanProcessors: [new SimpleSpanProcessor(spanExporter)],
+});
+traceProvider.register();
+const { default: app } = await import("../src/app.ts");
 
 const ask = toolName("ask");
 const sweep = toolName("sweep");
@@ -37,6 +49,10 @@ const omittedQuote = "A shopper completes checkout.";
 const newlyCapturedQuote = "Payment is authorized before fulfillment.";
 const repairedQuote = "Refunds require approval.";
 const missingQuote = "This quote is not in the conversation.";
+const exceptionContentAttributes = [
+  "exception.message",
+  "exception.stacktrace",
+] as const;
 const statementNoted = (quote: string): StatementNotedProposalInput => ({
   evidence: [{ excerpt: quote }],
   epistemicStatus: "explicit",
@@ -275,6 +291,8 @@ try {
   });
   const serializedReplyContext =
     replyContext === undefined ? undefined : JSON.stringify(replyContext);
+  await traceProvider.forceFlush();
+  const spans = spanExporter.getFinishedSpans();
 
   process.stdout.write(
     `WALKING_SKELETON_RESULT ${JSON.stringify({
@@ -299,6 +317,24 @@ try {
       noInstructionWake: !JSON.stringify(history.messages)
         .toLowerCase()
         .includes("instructions updated"),
+      openTelemetrySpans:
+        spans.some((span) => span.name.startsWith("invoke_agent ")) &&
+        spans.some((span) => span.name.startsWith("chat ")) &&
+        spans.some((span) => span.name.startsWith("execute_tool ")),
+      openTelemetryContentSuppressed: spans.every((span) =>
+        [
+          Object.values(CONTENT_ATTR).every(
+            (attributeName) => span.attributes[attributeName] === undefined,
+          ),
+          span.status.message === undefined,
+          span.events.every((event) =>
+            exceptionContentAttributes.every(
+              (attributeName) =>
+                event.attributes?.[attributeName] === undefined,
+            ),
+          ),
+        ].every(Boolean),
+      ),
       pendingAskSuppressedSettlement: !firstHistory.messages.some(
         (message) => message.signal?.tagName === "settlement-check",
       ),
@@ -333,5 +369,6 @@ try {
 } finally {
   delete process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR;
   await flue.stop();
+  await traceProvider.shutdown();
   await rm(targetDirectory, { recursive: true });
 }
