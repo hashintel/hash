@@ -402,6 +402,7 @@ mod tests {
     /// Checks one `f32` lane against its reference.
     ///
     /// NaN must map to NaN. Every other pair must lie within `tolerance` representation steps.
+    #[track_caller]
     fn assert_lane_f32(name: &str, at: f32, kernel: f32, reference: f32, tolerance: u64) {
         if reference.is_nan() {
             assert!(

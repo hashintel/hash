@@ -13,10 +13,15 @@ pub(crate) struct Scored(u8);
 
 impl Scored {
     /// Every speakable presence bit.
-    const ALL: u8 = Self::LINK | Self::SOURCE | Self::TARGET;
-    const LINK: u8 = 1 << 0;
-    const SOURCE: u8 = 1 << 1;
-    const TARGET: u8 = 1 << 2;
+    const ALL: Self = Self::LINK | Self::SOURCE | Self::TARGET;
+    /// No score present.
+    pub(crate) const EMPTY: Self = Self(0);
+    /// The link score's presence bit.
+    pub(crate) const LINK: Self = Self(1 << 0);
+    /// The source-attachment score's presence bit.
+    pub(crate) const SOURCE: Self = Self(1 << 1);
+    /// The target-attachment score's presence bit.
+    pub(crate) const TARGET: Self = Self(1 << 2);
 
     /// Returns the presence bits as their wire encoding.
     #[inline]
@@ -31,51 +36,21 @@ impl Scored {
     #[inline]
     #[must_use]
     pub(crate) const fn from_bits(bits: u8) -> Option<Self> {
-        if bits & !Self::ALL != 0 {
+        if bits & !Self::ALL.to_bits() != 0 {
             return None;
         }
 
         Some(Self(bits))
     }
+}
 
-    /// Creates presence bits from the three score flags.
+const impl core::ops::BitOr for Scored {
+    type Output = Self;
+
+    /// Unions the presence bits.
     #[inline]
-    #[must_use]
-    pub(crate) const fn new(link: bool, source: bool, target: bool) -> Self {
-        let mut bits = 0;
-
-        if link {
-            bits |= Self::LINK;
-        }
-        if source {
-            bits |= Self::SOURCE;
-        }
-        if target {
-            bits |= Self::TARGET;
-        }
-
-        Self(bits)
-    }
-
-    /// Returns whether the link score was present.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn link(self) -> bool {
-        self.0 & Self::LINK != 0
-    }
-
-    /// Returns whether the source-attachment score was present.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn source(self) -> bool {
-        self.0 & Self::SOURCE != 0
-    }
-
-    /// Returns whether the target-attachment score was present.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn target(self) -> bool {
-        self.0 & Self::TARGET != 0
+    fn bitor(self, rhs: Self) -> Self {
+        Self(self.0 | rhs.0)
     }
 }
 
@@ -101,11 +76,9 @@ impl RelationConfidence {
     /// 1. The provenance bits record which scores were present.
     #[must_use]
     pub(crate) fn effective(self) -> EffectiveConfidence {
-        let scored = Scored::new(
-            self.link.is_some(),
-            self.source.is_some(),
-            self.target.is_some(),
-        );
+        let scored = self.link.map_or(Scored::EMPTY, |_| Scored::LINK)
+            | self.source.map_or(Scored::EMPTY, |_| Scored::SOURCE)
+            | self.target.map_or(Scored::EMPTY, |_| Scored::TARGET);
 
         let link = self.link.unwrap_or(UnitFraction::ONE);
         let source = self.source.unwrap_or(UnitFraction::ONE);
@@ -147,5 +120,43 @@ impl EffectiveConfidence {
     #[must_use]
     pub(crate) const fn scored(self) -> Scored {
         self.scored
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{RelationConfidence, Scored};
+    use crate::math::{UnitFraction, unit_fraction};
+
+    #[test]
+    fn effective_confidence_combines_scores_exactly() {
+        // 0.5 · √(0.25 · 0.25): every factor is a power of two, so the product 0.125 is exact.
+        let confidence = RelationConfidence {
+            link: Some(unit_fraction!(0.5)),
+            source: Some(unit_fraction!(0.25)),
+            target: Some(unit_fraction!(0.25)),
+        };
+        let effective = confidence.effective();
+        assert_eq!(effective.value(), unit_fraction!(0.125));
+        assert_eq!(
+            effective.scored(),
+            Scored::LINK | Scored::SOURCE | Scored::TARGET
+        );
+    }
+
+    #[test]
+    fn unscored_confidences_are_neutral_with_provenance() {
+        let effective = RelationConfidence::default().effective();
+        assert_eq!(effective.value(), UnitFraction::ONE);
+        assert_eq!(effective.scored(), Scored::EMPTY);
+
+        let partial = RelationConfidence {
+            link: None,
+            source: Some(unit_fraction!(0.25)),
+            target: None,
+        }
+        .effective();
+        assert_eq!(partial.value(), unit_fraction!(0.5));
+        assert_eq!(partial.scored(), Scored::SOURCE);
     }
 }

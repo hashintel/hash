@@ -2514,7 +2514,7 @@ fn entity_id_of(seed: u8) -> crate::postgres::id::ArchivedEntityId {
 /// The `webId~entityUuid` string form of [`entity_id_of`]'s identity.
 ///
 /// Narrows a fixture-sized index into the wire's `u32` row domain.
-fn narrow_usize(value: usize) -> u32 {
+pub(crate) fn narrow_usize(value: usize) -> u32 {
     u32::try_from(value).expect("fixture indexes fit u32")
 }
 
@@ -3412,6 +3412,7 @@ fn head_counts(head: &[u8]) -> (u64, Vec<u64>) {
 /// The runs-against-delivered law lives in [`head_counts`], which every head reader calls. This
 /// adds the caller's own count, so a head agreeing with itself but not with the response still
 /// fails.
+#[track_caller]
 fn assert_head_delivers(bytes: &[u8], delivered: u64) {
     let (counted, _runs) = head_counts(section(bytes, HEAD).expect("HEAD is present"));
     assert_eq!(counted, delivered, "the head counts the delivered rows");

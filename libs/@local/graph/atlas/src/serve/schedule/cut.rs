@@ -94,6 +94,12 @@ impl<'schedule> ScheduleCut<'schedule> {
         })
     }
 
+    /// Returns the deepest scope bucket: the catch-all.
+    #[cfg(test)]
+    pub(crate) const fn deepest(&self) -> Depth {
+        self.deepest
+    }
+
     /// Views the arrival table the view's [`ViewRow::Arrival`] vessels address.
     ///
     /// The overlay's table when the overlay holds the view's arrivals, and the schedule's own
@@ -122,16 +128,6 @@ impl ScheduleCut<'_> {
             "the schedule serves zooms 0..=max_tile_depth",
         );
         Depth::new(cut).expect("binding validated the deepest cut against the key width")
-    }
-
-    /// Returns the resolved offset this cut binds.
-    pub(crate) const fn offset(&self) -> CutOffset {
-        self.k
-    }
-
-    /// Returns the deepest scope bucket: the catch-all.
-    pub(crate) const fn deepest(&self) -> Depth {
-        self.deepest
     }
 
     /// Feeds one bucket's delivered rows inside `cell` to `deliver`, ascending by `(key, rank)`,

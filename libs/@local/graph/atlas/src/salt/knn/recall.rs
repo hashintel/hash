@@ -1,6 +1,6 @@
 //! Exact recall spot check for approximate search backends.
 //!
-//! For each sampled node row, [`spot_check`] compares an approximate query with a brute-force
+//! For each sampled node row, the check compares an approximate neighbour list with a brute-force
 //! cosine ranking over the same projector matrix. Both rankings exclude the query row and resolve
 //! equal distances by ascending row. Recall is the total intersection count divided by the total
 //! number of exact neighbours across the sample, and the check admits a backend when that
@@ -29,8 +29,8 @@
 //!
 //! The exact side of the check stands alone as [`ExactReference`]: one sampled brute-force
 //! reference scores any number of backends or backend settings, so a parameter sweep pays the exact
-//! rankings once instead of once per grid point. [`spot_check`] is the one-backend composition of
-//! the two halves.
+//! rankings once instead of once per grid point. [`spot_check_lists`] composes the two halves
+//! over already-constructed neighbour lists.
 
 use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, default::Default, num::NonZero, time::Duration};
@@ -664,7 +664,7 @@ where
 /// Measures recall of constructed lists against exact cosine rankings, sizing the sample in three
 /// stages.
 ///
-/// The sizing mirrors [`spot_check`], and scoring reads the lists in place, so the verdict sample
+/// Sizing runs the three stages above, and scoring reads the lists in place, so the verdict sample
 /// pays only for its exact rankings.
 ///
 /// # Errors
@@ -705,6 +705,7 @@ where
 ///
 /// Returns an error when the corpus has at most one row, when the confidence is degenerate
 /// ([`SampleConfidence`](KnnError::SampleConfidence)), or when a backend query fails.
+#[cfg(test)]
 pub(crate) fn spot_check<N, I>(
     index: &I,
     embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,

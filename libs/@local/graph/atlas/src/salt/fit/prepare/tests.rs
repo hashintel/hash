@@ -101,7 +101,7 @@ async fn representations_persist_row_aligned_with_the_node_stream() {
     let header = PaddedFileHeader::try_ref_from_bytes(&bytes[..PAGE_BYTES])
         .expect("a finished file should carry a valid header");
     assert_eq!(header.variant(), ArrayVariant::F32);
-    let extents: Vec<u64> = header.shape().dims().iter().map(|dim| dim.get()).collect();
+    let extents: Vec<u64> = header.shape.dims().iter().map(|dim| dim.get()).collect();
     assert_eq!(extents, [3, PROJECTOR_DIMENSIONS as u64]);
     assert_eq!(header.expected_file_len(), Some(bytes.len() as u64));
 
@@ -136,7 +136,7 @@ async fn empty_dataset_seals_an_empty_matrix() {
     assert_eq!(bytes.len(), PAGE_BYTES);
     let header = PaddedFileHeader::try_ref_from_bytes(bytes.as_slice())
         .expect("a finished file should carry a valid header");
-    assert!(header.shape().dims().is_empty());
+    assert!(header.shape.dims().is_empty());
 }
 
 #[test]

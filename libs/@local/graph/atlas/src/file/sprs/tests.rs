@@ -196,11 +196,11 @@ fn written_matrix_reopens_as_the_same_view() {
     let file = SprsFile::open(&path).expect("the written file reopens");
     assert_eq!(file.matrix_shape(), (3, 3));
     assert_eq!(file.nnz(), 6);
-    assert_eq!(file.value(), ValueTag::F32);
-    assert_eq!(file.value_width(), 4);
-    assert_eq!(file.index(), IndexVariant::U32);
-    assert_eq!(file.iptr(), IndexVariant::U64);
-    assert_eq!(file.order(), StorageVariant::Csr);
+    assert_eq!(file.header().value(), ValueTag::F32);
+    assert_eq!(file.header().value_width(), 4);
+    assert_eq!(file.header().index(), IndexVariant::U32);
+    assert_eq!(file.header().iptr(), IndexVariant::U64);
+    assert_eq!(file.header().order(), StorageVariant::Csr);
 
     let reopened = file
         .matrix::<f32, u32, u64>()
@@ -358,8 +358,8 @@ fn opaque_values_are_identified_by_width_alone() {
     std::fs::write(&path, &bytes).expect("the file writes");
 
     let file = SprsFile::open(&path).expect("the written file reopens");
-    assert_eq!(file.value(), ValueTag::Opaque);
-    assert_eq!(file.value_width(), 8);
+    assert_eq!(file.header().value(), ValueTag::Opaque);
+    assert_eq!(file.header().value_width(), 8);
 
     // The written type reads back bit-exactly.
     let reopened = file
@@ -405,7 +405,7 @@ fn column_compressed_matrix_round_trips() {
     std::fs::write(&path, &bytes).expect("the file writes");
 
     let file = SprsFile::open(&path).expect("the written file reopens");
-    assert_eq!(file.order(), StorageVariant::Csc);
+    assert_eq!(file.header().order(), StorageVariant::Csc);
 
     let reopened = file
         .matrix::<f32, u32, u64>()
@@ -435,8 +435,8 @@ fn structure_only_matrix_reopens_with_conjured_units() {
     std::fs::write(&path, &bytes).expect("the file writes");
 
     let file = SprsFile::open(&path).expect("the written file reopens");
-    assert_eq!(file.value(), ValueTag::Unit);
-    assert_eq!(file.value_width(), 0);
+    assert_eq!(file.header().value(), ValueTag::Unit);
+    assert_eq!(file.header().value_width(), 0);
     assert_eq!(file.nnz(), 3);
 
     // No value bytes exist on disk: the file ends where the value

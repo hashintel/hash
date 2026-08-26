@@ -58,6 +58,10 @@ const _: () = {
 // initialized. The derive cannot compute this because its padding proof sizes each field and
 // special-cases only a trailing slice. `str` is layout-identical to `[u8]` but not a slice type.
 unsafe impl zerocopy::IntoBytes for Legend {
+    #[expect(
+        dead_code,
+        reason = "required by the trait; unsatisfiable on an unsized type by design"
+    )]
     fn only_derive_is_allowed_to_implement_this_trait() {}
 }
 

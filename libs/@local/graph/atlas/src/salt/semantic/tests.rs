@@ -319,7 +319,7 @@ fn agrees_with_the_scalar_reference() {
             compared += 1;
         }
     }
-    assert_eq!(compared, view.entries());
+    assert_eq!(compared, view.0.nnz());
     assert_eq!(compared, reference.len());
 }
 
@@ -348,7 +348,7 @@ fn union_support_covers_every_directed_edge() {
     let graph = SemanticGraph::build(&knn.view(), options());
     let view = graph.view();
 
-    for row in 0..knn.rows() {
+    for row in 0..knn.view().rows() {
         for neighbour in knn.view().row(NodeRowId::from_usize(row)) {
             assert!(
                 view.row(NodeRowId::from_usize(row))
@@ -416,7 +416,7 @@ fn published_graph_reopens_mapped() {
     let owned = graph.view();
     let reopened = mapped.view();
     assert_eq!(reopened.rows(), owned.rows());
-    assert_eq!(reopened.entries(), owned.entries());
+    assert_eq!(reopened.0.nnz(), owned.0.nnz());
     for row in 0..owned.rows() {
         let row = NodeRowId::from_usize(row);
         let owned_row: Vec<(u64, f64)> = owned

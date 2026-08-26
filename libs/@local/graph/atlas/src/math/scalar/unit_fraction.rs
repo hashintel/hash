@@ -119,7 +119,7 @@ impl UnitFraction {
     /// # Examples
     ///
     /// ```ignore
-    /// let low = UnitFraction::HALF;
+    /// let low = unit_fraction!(0.5);
     /// let high = UnitFraction::new(0.75).expect("0.75 lies inside [0, 1]");
     /// // A midpoint of two fractions cannot leave [0, 1]: the sum rounds within
     /// // [0, 2] because both endpoints are representable, and halving is exact.

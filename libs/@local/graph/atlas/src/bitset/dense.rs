@@ -129,9 +129,8 @@ struct RawDenseBitSlice<T> {
 /// [`DenseBitSlice::try_from_prefix`] performs itself.
 ///
 /// The set is unsized. Create one in place behind a box with [`DenseBitSlice::new_empty`], or
-/// borrow one from existing bytes with [`DenseBitSlice::try_from_prefix`] and
-/// [`DenseBitSlice::try_from_prefix_mut`]. The domain is fixed at creation, and mutation never
-/// moves the storage.
+/// borrow one from existing bytes with [`DenseBitSlice::try_from_prefix`]. The domain is fixed at
+/// creation, and mutation never moves the storage.
 ///
 /// Sets are equal when they draw from the same domain and admit the same rows.
 ///
@@ -233,50 +232,6 @@ impl<T> DenseBitSlice<T> {
         })
     }
 
-    /// Reads one frame off the front of `bytes` mutably, returning the set and the remaining
-    /// bytes.
-    ///
-    /// # Errors
-    ///
-    /// - [`ParseDenseBitSliceError::Header`]: the bytes end before the 8-byte domain header.
-    /// - [`ParseDenseBitSliceError::WordCount`]: the buffer carries fewer whole words than the
-    ///   header's domain occupies.
-    /// - [`ParseDenseBitSliceError::ExcessBits`]: a bit above the domain is set in the final word.
-    #[expect(
-        clippy::integer_division,
-        clippy::integer_division_remainder_used,
-        reason = "the error reports the whole words the buffer carries, which is the floored byte \
-                  quotient"
-    )]
-    pub(crate) fn try_from_prefix_mut(
-        bytes: &mut [u8],
-    ) -> Result<(&mut Self, &mut [u8]), ParseDenseBitSliceError> {
-        let frame_bytes = bytes.len();
-        let (domain_size, trailing) = U64::<LE>::read_from_prefix(&*bytes)
-            .map_err(|_error| ParseDenseBitSliceError::Header { bytes: frame_bytes })?;
-        let domain_size = domain_size.get();
-
-        // A word count above the address space matches no buffer the address space holds.
-        let trailing_len = trailing.len();
-        let words = usize::try_from(num_words(domain_size)).map_err(|_error| {
-            ParseDenseBitSliceError::WordCount {
-                domain_size,
-                words: trailing_len / WORD_BYTES,
-            }
-        })?;
-
-        Self::try_mut_from_prefix_with_elems(bytes, words).map_err(|error| match error {
-            ConvertError::Alignment(_) => unreachable!("the set reads at any alignment"),
-            ConvertError::Size(_) => ParseDenseBitSliceError::WordCount {
-                domain_size,
-                words: trailing_len / WORD_BYTES,
-            },
-            // The cast's word count comes from the header, so the count clause of the frame
-            // invariant is true by construction and only excess bits can refuse validity.
-            ConvertError::Validity(_) => ParseDenseBitSliceError::ExcessBits,
-        })
-    }
-
     /// Borrows one frame from `bytes` without validating it.
     ///
     /// # Safety
@@ -346,17 +301,6 @@ impl<T> DenseBitSlice<T> {
             .iter()
             .map(|word| u64::from(word.get().count_ones()))
             .sum()
-    }
-
-    /// Returns whether the set admits no rows.
-    #[must_use]
-    pub(crate) fn is_empty(&self) -> bool {
-        self.words.iter().all(|word| word.get() == 0)
-    }
-
-    /// Removes every row from the set.
-    pub(crate) fn clear(&mut self) {
-        self.words.fill(U64::new(0));
     }
 
     /// Sets `self = op(self, rhs)` word by word, reporting whether any word changed.
@@ -655,6 +599,10 @@ impl<T: Id> fmt::Debug for DenseBitSlice<T> {
 /// compile-time-asserted by the cast in the body. Refusing valid-but-incoherent frames on top is
 /// sound, because `is_bit_valid` may always be conservative.
 unsafe impl<T> zerocopy::TryFromBytes for DenseBitSlice<T> {
+    #[expect(
+        dead_code,
+        reason = "required by the trait; unsatisfiable on a slice DST by design"
+    )]
     fn only_derive_is_allowed_to_implement_this_trait()
     where
         Self: Sized,
@@ -1014,12 +962,6 @@ impl<T> DenseBitSliceArray<T> {
         self.frames.len() / self.stride()
     }
 
-    /// Returns whether the array holds no frames.
-    #[must_use]
-    pub(crate) const fn is_empty(&self) -> bool {
-        self.frames.is_empty()
-    }
-
     /// Returns the byte stride of one frame.
     fn stride(&self) -> usize {
         usize::try_from(DenseBitSlice::<T>::total_byte_len(self.domain_size.get()))
@@ -1105,6 +1047,10 @@ impl<T: Id> fmt::Debug for DenseBitSliceArray<T> {
 /// claim is compile-time-asserted by the cast in the body. Refusing valid-but-incoherent regions
 /// on top is sound, because `is_bit_valid` may always be conservative.
 unsafe impl<T> zerocopy::TryFromBytes for DenseBitSliceArray<T> {
+    #[expect(
+        dead_code,
+        reason = "required by the trait; unsatisfiable on a slice DST by design"
+    )]
     fn only_derive_is_allowed_to_implement_this_trait()
     where
         Self: Sized,

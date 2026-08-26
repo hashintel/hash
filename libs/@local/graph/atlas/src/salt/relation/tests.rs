@@ -111,42 +111,6 @@ fn config(hard: (f32, f32), ordinary: (f32, f32)) -> ProtectionConfig {
 }
 
 #[test]
-fn effective_confidence_combines_scores_exactly() {
-    // 0.5 · √(0.25 · 0.25): every factor is a power of two, so the
-    // product 0.125 is exact.
-    let confidence = RelationConfidence {
-        link: Some(unit_fraction!(0.5)),
-        source: Some(unit_fraction!(0.25)),
-        target: Some(unit_fraction!(0.25)),
-    };
-    let effective = confidence.effective();
-    assert_eq!(effective.value(), unit_fraction!(0.125));
-    assert!(effective.scored().link());
-    assert!(effective.scored().source());
-    assert!(effective.scored().target());
-}
-
-#[test]
-fn unscored_confidences_are_neutral_with_provenance() {
-    let effective = RelationConfidence::default().effective();
-    assert_eq!(effective.value(), UnitFraction::ONE);
-    assert!(!effective.scored().link());
-    assert!(!effective.scored().source());
-    assert!(!effective.scored().target());
-
-    let partial = RelationConfidence {
-        link: None,
-        source: Some(unit_fraction!(0.25)),
-        target: None,
-    }
-    .effective();
-    assert_eq!(partial.value(), 0.5);
-    assert!(!partial.scored().link());
-    assert!(partial.scored().source());
-    assert!(!partial.scored().target());
-}
-
-#[test]
 fn degree_normalization_counts_the_relations_complete_instance_set() {
     // Node 0 sources three instances and node 1 receives three, so the
     // 0 → 1 edge sees (1 + 3)(1 + 3) = 16 and ν = 0.25 exactly.
@@ -607,6 +571,7 @@ fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
 }
 
 /// Asserts two builds produced identical indexes, component by component.
+#[track_caller]
 fn assert_indexes_equal(
     one: &RelationIndexes<NodeRowId, EdgeRowId>,
     other: &RelationIndexes<NodeRowId, EdgeRowId>,
@@ -894,10 +859,9 @@ fn published_attraction_index_reopens_mapped() {
         let group = mapped.group(index);
         assert_eq!(group.relation(), resident.relation());
         assert_eq!(group.weights(), resident.weights());
-        assert_eq!(group.len(), resident.edges().len());
+        assert_eq!(group.edges().len(), resident.edges().len());
         let edges: Vec<_> = group.edges().collect();
         assert_eq!(edges, resident.edges());
-        assert_eq!(group.edge(0), resident.edges()[0]);
     }
 
     // The digest is the written bytes' identity.

@@ -63,13 +63,13 @@ impl Error for OpenCoordinatesError {
 pub(super) struct Coordinates {
     /// The staged column's typed repository binding.
     pub binding: Binding<artifact::Coordinates>,
-    /// The mapping. Held for its lifetime alone: every read goes through `points`.
-    file: ArrayFile,
     /// The mapped point slice, validated as finite at construction.
     ///
-    /// The pointee lives inside the mapping owned by `file`, whose address is stable under moves
+    /// The pointee lives inside the mapping owned by `_file`, whose address is stable under moves
     /// of this handle, so the pointer stays valid for exactly as long as the handle lives.
     points: NonNull<[Vec2]>,
+    /// The mapping. Held for its lifetime alone: every read goes through `points`.
+    _file: ArrayFile,
 }
 
 impl Coordinates {
@@ -96,14 +96,14 @@ impl Coordinates {
 
         Ok(Self {
             binding,
-            file,
+            _file: file,
             points,
         })
     }
 }
 
 // SAFETY: the mapping is read-only for the handle's whole life, `points` points into memory
-// owned by `file` within the same value, and no interior mutability exists, so moving the handle
+// owned by `_file` within the same value, and no interior mutability exists, so moving the handle
 // or sharing it across threads leaves every read valid.
 unsafe impl Send for Coordinates {}
 // SAFETY: shared access only ever reads the immutable mapping. See the `Send` proof above.
@@ -113,7 +113,7 @@ impl Deref for Coordinates {
     type Target = FinitePointField<NodeRowId>;
 
     fn deref(&self) -> &Self::Target {
-        // SAFETY: `points` was derived from the mapping owned by `self.file` at construction, the
+        // SAFETY: `points` was derived from the mapping owned by `self._file` at construction, the
         // mapping is immutable and lives as long as `self`, and the returned borrow is tied to
         // `&self`, so the pointee is valid and unaliased by writes for the borrow's life.
         let points = unsafe { &*self.points.as_ptr() };

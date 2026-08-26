@@ -46,8 +46,6 @@ impl Negative {
     }
 
     /// Creates a value the caller proves finite and strictly negative.
-    ///
-    /// Where the proof is not immediate, [`new`](Self::new) checks instead.
     // Not `unsafe`: no unsafe code trusts the range, a broken promise yields a wrong value
     // rather than UB. Revisit if the value ever feeds an unchecked index.
     #[inline]
@@ -59,13 +57,6 @@ impl Negative {
         );
 
         Self(value)
-    }
-
-    /// Returns the value.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn get(self) -> f32 {
-        self.0
     }
 }
 

@@ -266,6 +266,7 @@ impl CertifiedPolicies {
     ///
     /// Returns [`None`] when the rows are not strictly ascending by relation row.
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn new(policies: Vec<RelationPolicy>) -> Option<Self> {
         policies
             .is_sorted_by(|left, right| left.relation < right.relation)

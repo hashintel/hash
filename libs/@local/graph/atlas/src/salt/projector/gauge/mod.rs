@@ -187,6 +187,7 @@ where
     /// # Panics
     ///
     /// This panics at the gather when an anchor row lies outside the fields' row domain.
+    #[cfg(test)]
     pub(crate) fn fit(
         &self,
         canonical: &FinitePointField<N>,
@@ -210,15 +211,14 @@ where
     /// The trainer's per-step evaluation holds the anchors' coordinates in a batch-local frame
     /// rather than in whole-corpus fields, so this entry takes the two constellations already
     /// gathered - `source` the anchors' canonical coordinates and `target` their zero-frame
-    /// coordinates, both in draw order. [`fit`](Self::fit) is the whole-field wrapper over this
-    /// path, and the contract is the same one.
+    /// coordinates, both in draw order.
     ///
     /// Both constellations cover the anchor draw - a wiring contract checked in debug builds,
     /// since the gather and the frozen draw come from one gauge.
     ///
     /// # Errors
     ///
-    /// Returns [`GaugeRefusal`] carrying the first failed reading, as in [`fit`](Self::fit).
+    /// Returns [`GaugeRefusal`] carrying the first failed reading.
     pub(crate) fn fit_gathered(
         &self,
         source: &FinitePointField<GaugeOrdinal>,
@@ -269,13 +269,6 @@ where
         &self.rows
     }
 
-    /// Borrows the anchors' duplicate classes in draw order.
-    #[inline]
-    #[must_use]
-    pub(crate) fn classes(&self) -> &IdSlice<GaugeOrdinal, DuplicateClassId> {
-        &self.classes
-    }
-
     /// Returns `spread_G(Z_K)`, the anchors' frozen centred RMS spread.
     #[inline]
     #[must_use]
@@ -288,13 +281,6 @@ where
     #[must_use]
     pub(crate) const fn effective_count(&self) -> DNonNegative {
         self.effective_count
-    }
-
-    /// Returns the anchor count.
-    #[inline]
-    #[must_use]
-    pub(crate) fn len(&self) -> usize {
-        self.rows.len()
     }
 }
 
@@ -318,13 +304,6 @@ pub(crate) struct GaugeFit {
 }
 
 impl GaugeFit {
-    /// Returns the fitted similarity, canonical onto zero.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn similarity(&self) -> Similarity {
-        self.similarity
-    }
-
     /// Returns the fitted scale `s`.
     #[inline]
     #[must_use]

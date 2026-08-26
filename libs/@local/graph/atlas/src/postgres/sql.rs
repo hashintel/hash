@@ -374,6 +374,7 @@ pub(crate) fn nearest_declared_icon(types: Aliased<EntityTypes>) -> SelectStatem
 /// rendered without a bind, which the kit cannot produce but a hand-assembled statement could
 /// reintroduce.
 #[cfg(test)]
+#[track_caller]
 pub(crate) fn assert_placeholders_dense(sql: &str, parameter_count: usize) {
     use alloc::collections::BTreeSet;
 

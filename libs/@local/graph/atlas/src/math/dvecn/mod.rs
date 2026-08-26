@@ -307,10 +307,10 @@ impl<const N: usize> DVecN<N> {
     ///
     /// The first pass takes the largest magnitude as the scale ([`max_abs`](Self::max_abs)); the
     /// second divides every component by it (one division each - no reciprocal, so every ratio
-    /// lies in `[0, 1]` exactly) and accumulates the squared ratios through the same interleaved
-    /// fused-multiply-add pair as [`dot`](Self::dot). The result is `scale · √Σratio²`: subnormal
-    /// components keep their norm and magnitudes near [`f64::MAX`] stay finite where naive
-    /// squared accumulation would overflow. This is the norm kernel of solvers whose control
+    /// lies in `[0, 1]` exactly) and accumulates the squared ratios eight fused lanes at a time
+    /// into two interleaved accumulators. The result is `scale · √Σratio²`:
+    /// subnormal components keep their norm and magnitudes near [`f64::MAX`] stay finite where
+    /// naive squared accumulation would overflow. This is the norm kernel of solvers whose control
     /// decisions must survive extreme scales.
     ///
     /// The all-zero and empty vectors have norm `0.0`. A vector containing NaN or an infinity
@@ -685,7 +685,8 @@ impl<const N: usize> AlignedDVecN<N> {
 
     /// Returns the dot product of the two vectors.
     ///
-    /// The fold shape matches [`DVecN::dot`].
+    /// The fold is eight fused lanes into two interleaved accumulators with a fused scalar
+    /// tail, in a fixed order.
     #[inline]
     pub(crate) fn dot(&self, other: &Self) -> Derivation<DFinite> {
         Derivation::raw(self.dot_impl(other))
@@ -804,7 +805,8 @@ impl<const N: usize> AlignedDVecN<N> {
         DNonNegative::new_unchecked(self.stable_l2_impl())
     }
 
-    /// Returns the Euclidean norm of [`stable_l2`](Self::stable_l2) when the result is finite.
+    /// Returns the Euclidean norm through the scaled two-pass sum of squares of
+    /// [`DVecN::stable_l2`], over the lane view, when the result is finite.
     ///
     /// Subnormal-only vectors keep their norm and magnitudes near [`f64::MAX`] stay finite where
     /// naive squared accumulation would not. The norm of the empty and the all-zero vector is

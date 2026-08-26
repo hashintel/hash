@@ -35,6 +35,10 @@ use crate::{
 /// decile at all, so no sentinel value exists to misread as a bucket.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
+#[expect(
+    dead_code,
+    reason = "the variants are constructed through `ALL`'s discriminant transmute"
+)]
 enum Decile {
     D1 = 1,
     D2 = 2,
@@ -180,11 +184,27 @@ impl BudgetBreakdown {
     /// Returns the run-wide summary over every relation-active node.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn overall(&self) -> &BudgetSummary {
         &self.overall
     }
 
     /// Returns the per-relation-type summaries, ascending by ontology row.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) fn types(&self) -> impl Iterator<Item = (OntologyRowId, &BudgetSummary)> {
         self.by_type
             .iter()
@@ -194,6 +214,14 @@ impl BudgetBreakdown {
     /// Returns the per-degree-decile summaries, ascending.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn deciles(&self) -> &[BudgetSummary; Decile::COUNT] {
         &self.by_decile
     }
@@ -273,6 +301,14 @@ impl DisplacementMoments {
     /// Returns the recorded displacement count.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn count(&self) -> u64 {
         self.count
     }
@@ -280,6 +316,14 @@ impl DisplacementMoments {
     /// Returns the displacement sum.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn sum(&self) -> DNonNegative {
         self.sum
     }
@@ -287,6 +331,14 @@ impl DisplacementMoments {
     /// Returns the sum of squared displacements.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn sum_squares(&self) -> DNonNegative {
         self.sum_squares
     }
@@ -294,6 +346,14 @@ impl DisplacementMoments {
     /// Returns the largest recorded displacement, zero when empty.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn maximum(&self) -> NonNegative {
         self.maximum
     }
@@ -314,15 +374,6 @@ pub(crate) struct DisplacementHistogram {
     moments: DisplacementMoments,
 }
 
-impl Default for DisplacementHistogram {
-    fn default() -> Self {
-        Self {
-            counts: [0; EXPONENT_BUCKETS],
-            moments: DisplacementMoments::default(),
-        }
-    }
-}
-
 impl DisplacementHistogram {
     /// Records one displacement reading.
     ///
@@ -337,6 +388,14 @@ impl DisplacementHistogram {
     /// Returns the per-exponent bucket counts.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn counts(&self) -> &[u64; EXPONENT_BUCKETS] {
         &self.counts
     }
@@ -344,8 +403,25 @@ impl DisplacementHistogram {
     /// Returns the summary statistics over every recorded value.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn moments(&self) -> &DisplacementMoments {
         &self.moments
+    }
+}
+
+impl Default for DisplacementHistogram {
+    fn default() -> Self {
+        Self {
+            counts: [0; EXPONENT_BUCKETS],
+            moments: DisplacementMoments::default(),
+        }
     }
 }
 
@@ -417,11 +493,27 @@ impl DisplacementSummary {
     /// Returns the whole-corpus histogram.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn overall(&self) -> &DisplacementHistogram {
         &self.overall
     }
 
     /// Returns the per-relation-type moments, ascending by ontology row.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) fn types(&self) -> impl Iterator<Item = (OntologyRowId, &DisplacementMoments)> {
         self.by_type
             .iter()
@@ -431,6 +523,14 @@ impl DisplacementSummary {
     /// Returns the per-degree-decile histograms, ascending.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn deciles(&self) -> &[DisplacementHistogram; Decile::COUNT] {
         &self.by_decile
     }

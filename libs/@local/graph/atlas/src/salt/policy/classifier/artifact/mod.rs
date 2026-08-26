@@ -98,41 +98,6 @@ impl fmt::Display for InvalidClassifierFile {
 
 impl Error for InvalidClassifierFile {}
 
-impl WriteAs<crate::file::salt::artifact::Classifier> for Classifier {}
-
-impl WriteInto for Classifier {
-    type Error = io::Error;
-
-    /// Writes the model as a classifier file.
-    ///
-    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
-    /// published file.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the underlying writer fails.
-    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
-        let mut writer = Writer {
-            accumulator: Sha256::new(),
-            writer: write,
-        };
-
-        let coefficients =
-            core::array::from_fn(|class| self.coefficients[class].as_array().as_slice());
-        write_regions(
-            self.temperature,
-            self.intercepts,
-            coefficients,
-            self.applicability.standardization.mean.as_array(),
-            self.applicability.standardization.inverse_scales.as_array(),
-            DNonNegative::slice_as_raw(&self.applicability.distances),
-            &mut writer,
-        )?;
-
-        Ok(writer.accumulator.finalize())
-    }
-}
-
 impl Classifier {
     /// Reads a model out of its opened file, validating the domain invariants once.
     ///
@@ -223,5 +188,40 @@ impl Classifier {
                 distances,
             },
         })
+    }
+}
+
+impl WriteAs<crate::file::salt::artifact::Classifier> for Classifier {}
+
+impl WriteInto for Classifier {
+    type Error = io::Error;
+
+    /// Writes the model as a classifier file.
+    ///
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the underlying writer fails.
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+        let mut writer = Writer {
+            accumulator: Sha256::new(),
+            writer: write,
+        };
+
+        let coefficients =
+            core::array::from_fn(|class| self.coefficients[class].as_array().as_slice());
+        write_regions(
+            self.temperature,
+            self.intercepts,
+            coefficients,
+            self.applicability.standardization.mean.as_array(),
+            self.applicability.standardization.inverse_scales.as_array(),
+            DNonNegative::slice_as_raw(&self.applicability.distances),
+            &mut writer,
+        )?;
+
+        Ok(writer.accumulator.finalize())
     }
 }

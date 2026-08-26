@@ -116,18 +116,6 @@ impl<'buf> CborWriter<'buf> {
         self.bytes.extend_from_slice(value);
     }
 
-    /// Emits a zero-filled byte string of `length` bytes and returns its content slice.
-    ///
-    /// This appends the head and the zeroed content to the buffer immediately. The returned slice
-    /// is the content region, ready for in-place writes.
-    pub(crate) fn bytes_zeroed(&mut self, length: usize) -> &mut [u8] {
-        self.head(Self::MAJOR_BYTES, length as u64);
-        let start = self.bytes.len();
-        self.bytes.resize(start + length, 0);
-
-        &mut self.bytes[start..]
-    }
-
     /// Emits a text string.
     pub(crate) fn text(&mut self, value: &str) {
         self.head(Self::MAJOR_TEXT, value.len() as u64);

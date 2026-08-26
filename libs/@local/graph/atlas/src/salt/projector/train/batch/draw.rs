@@ -233,13 +233,6 @@ where
         })
     }
 
-    /// Returns the semantic graph's total positive edge weight.
-    #[inline]
-    #[must_use]
-    pub(crate) fn total_weight(&self) -> f32 {
-        self.semantic.total_weight()
-    }
-
     /// Draws one step's populations at the context's lens step.
     ///
     /// At a zero `eta` the draw structurally skips the relation family, because the relation

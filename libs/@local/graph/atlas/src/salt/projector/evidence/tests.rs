@@ -27,6 +27,16 @@ fn positive(value: f32) -> Positive {
     Positive::new(value).expect("test value is positive")
 }
 
+/// The frame bridge, gauge frame to corpus frame: undoing the gauge fit and applying the corpus
+/// fit. Composition can leave the representable coefficient range, in which case the two recorded
+/// ends remain the complete evidence.
+fn bridge(evidence: &EvaluationEvidence) -> Option<Similarity> {
+    evidence
+        .gauge_similarity
+        .inverse()
+        .then(evidence.corpus_similarity)
+}
+
 /// The boundary snapshot is an exact square of gauge anchors at rows 1, 2, 4, 5 with two far
 /// fillers, centred so every fitted translation vanishes. The anchors' frozen spread is exactly
 /// 1, so normalized residuals read unscaled.
@@ -135,7 +145,7 @@ fn a_common_shrink_separates_every_reading() {
     // The whole corpus moved as one similarity, so both bridge ends agree and the bridge is
     // exactly the identity.
     assert_eq!(evidence.corpus_similarity, evidence.gauge_similarity);
-    assert_eq!(evidence.bridge(), Some(Similarity::IDENTITY));
+    assert_eq!(bridge(&evidence), Some(Similarity::IDENTITY));
 
     // The shrunk zero field fits onto `Z_K` at exactly twice the scale, with no rotation and
     // no translation - the common mode read out.
@@ -360,7 +370,7 @@ fn the_objective_reading_enters_no_bridge_end() {
     assert_eq!(evidence.scale.get(), 1.0);
     assert_eq!(evidence.gauge_similarity, Similarity::IDENTITY);
     assert_eq!(evidence.corpus_similarity, Similarity::IDENTITY);
-    assert_eq!(evidence.bridge(), Some(Similarity::IDENTITY));
+    assert_eq!(bridge(&evidence), Some(Similarity::IDENTITY));
 }
 
 /// The bridge converts a gauge-frame reading into the corpus frame by recorded arithmetic
@@ -395,7 +405,7 @@ fn the_bridge_composes_the_two_recorded_ends() {
     evidence.gauge_similarity = gauge_similarity;
     evidence.corpus_similarity = Similarity::IDENTITY;
 
-    let bridge = evidence.bridge().expect("the composition is in range");
+    let bridge = bridge(&evidence).expect("the composition is in range");
     assert_eq!(bridge.scale().get(), 0.5);
     assert_eq!(bridge.apply(Vec2::new(4.0, -2.0)), Vec2::new(2.0, -1.0));
 }

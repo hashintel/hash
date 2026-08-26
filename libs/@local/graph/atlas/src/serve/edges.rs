@@ -63,10 +63,6 @@ pub(crate) enum EdgesError {
         /// The requested y index.
         y: u32,
     },
-    /// The request names a feature this build does not serve.
-    ///
-    /// The carried name is the request field.
-    Unsupported(&'static str),
     /// The delivery view did not bind.
     ///
     /// A binding refusal converts into this variant through [`From`], so one error union carries a
@@ -94,9 +90,6 @@ impl fmt::Display for EdgesError {
             }
             Self::Grid { z, x, y } => {
                 write!(fmt, "({x}, {y}) lies outside the 2^{z} tile grid")
-            }
-            Self::Unsupported(feature) => {
-                write!(fmt, "this build does not serve {feature} requests")
             }
             Self::View(error) => error.fmt(fmt),
             Self::Details(error) => error.fmt(fmt),

@@ -122,6 +122,14 @@ impl<'run, N> GaugeDraw<'run, N> {
     ///
     /// This panics when the two slices disagree in length. Both come from one draw, so a
     /// mismatch is a wiring defect.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the band trainer constructs the target inputs from the admitted gauge draw; \
+                      the test fixture is today's only constructor"
+        )
+    )]
     pub(crate) fn new(rows: &'run [N], classes: &'run [DuplicateClassId]) -> Self {
         assert_eq!(
             rows.len(),

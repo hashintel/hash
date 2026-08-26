@@ -256,7 +256,7 @@ fn empty_domain_reopens() {
     let file = PostingsFile::open(&path).expect("the empty file reopens");
     assert_eq!(file.types(), 0);
     assert_eq!(file.points(), 0);
-    assert!(file.flags().is_empty());
+    assert_eq!(file.flags().count(), 0);
     assert_eq!(file.list_posts().len(), 1);
     assert!(file.list_entries().is_empty());
     assert_eq!(file.parent_posts().len(), 1);

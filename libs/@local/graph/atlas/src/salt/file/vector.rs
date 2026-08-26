@@ -53,13 +53,13 @@ impl Error for OpenVectorError {
 /// identification lives with the theorem's owner - the quotient's `training()` reborrows the corpus
 /// under the distinct domain instead of retyping the handle.
 pub(crate) struct VectorFile<I, const N: usize> {
-    /// The mapping. Held for its lifetime alone: every read goes through `rows`.
-    file: ArrayFile,
     /// The mapped row slice, validated at construction.
     ///
-    /// The pointee lives inside the mapping owned by `file`, whose address is stable under moves
+    /// The pointee lives inside the mapping owned by `_file`, whose address is stable under moves
     /// of this handle, so the pointer stays valid for exactly as long as the handle lives.
     rows: NonNull<[AlignedVecN<N>]>,
+    /// The mapping. Held for its lifetime alone: every read goes through `rows`.
+    _file: ArrayFile,
     _marker: PhantomData<fn(&I)>,
 }
 
@@ -78,7 +78,7 @@ where
         let rows = NonNull::from(rows);
 
         Ok(Self {
-            file,
+            _file: file,
             rows,
             _marker: PhantomData,
         })
@@ -99,7 +99,7 @@ where
 }
 
 // SAFETY: the mapping is read-only for the handle's whole life, `rows` points into memory owned
-// by `file` within the same value, and no interior mutability exists, so moving the handle or
+// by `_file` within the same value, and no interior mutability exists, so moving the handle or
 // sharing it across threads leaves every read valid.
 unsafe impl<I, const N: usize> Send for VectorFile<I, N> {}
 // SAFETY: shared access only ever reads the immutable mapping. See the `Send` proof above.
@@ -112,7 +112,7 @@ where
     type Target = IdSlice<I, AlignedVecN<N>>;
 
     fn deref(&self) -> &Self::Target {
-        // SAFETY: `rows` was derived from the mapping owned by `self.file` at construction, the
+        // SAFETY: `rows` was derived from the mapping owned by `self._file` at construction, the
         // mapping is immutable and lives as long as `self`, and the returned borrow is tied to
         // `&self`, so the pointee is valid and unaliased by writes for the borrow's life.
         let rows = unsafe { &*self.rows.as_ptr() };

@@ -59,8 +59,8 @@ where
 
 /// The failed reading beside everything a refused run measured before it.
 ///
-/// The consequence is decision 9's ruled arm: the run publishes no activation candidate, makes
-/// no target claim, and the prior active generation stays the serving one. The refusal is an
+/// A refusal ends the run with no activation candidate and no target claim, so the prior active
+/// generation stays the serving one. The refusal is an
 /// outcome rather than an error, so the run record cannot die with an unwinding call. What the
 /// record holds at each refusal stage is fixed. The boundary record is present exactly when
 /// the radius freeze completed, and the target record exactly when the phase froze. The
@@ -76,6 +76,14 @@ pub(crate) struct TargetRefusal<N> {
     /// The run record as accumulated at the refusal, with the boundary record and the target
     /// record sealed into it. Rows in the record name the trainer's own row domain: the record
     /// is a reading of the run that refused, so no later boundary re-labels it.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "a boundary refusal carries its sealed run record for the training \
+                      supervisor to persist at attempt close; that supervisor is not yet wired"
+        )
+    )]
     pub evidence: Box<TrainingEvidence<N>>,
 }
 

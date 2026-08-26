@@ -22,13 +22,13 @@
 use core::{
     cmp::Ordering,
     error::Error,
-    fmt, mem,
+    fmt,
     num::NonZero,
     ops::{Index, IndexMut},
 };
 use std::collections::HashSet;
 
-use hashql_core::id::{Id, IdSlice, IdVec, bit_vec::DenseBitSet};
+use hashql_core::id::{Id, IdArray, IdSlice, IdVec, bit_vec::DenseBitSet};
 use rand::{Rng, RngExt as _, SeedableRng};
 use rayon::{
     iter::{IndexedParallelIterator as _, IntoParallelIterator as _, ParallelIterator as _},
@@ -47,27 +47,26 @@ use crate::math::{DPositive, UnitFraction};
     PartialOrd,
     Ord,
     Hash,
+    hashql_core::id::Id,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::Unaligned,
     zerocopy::KnownLayout,
     zerocopy::TryFromBytes,
 )]
+#[id(const)]
 #[repr(u8)]
 pub(crate) enum SubgroupDimension {
-    Density = 0,
-    Language = 1,
-    Source = 2,
-    EntityRole = 3,
-    TypeFamily = 4,
-    Community = 5,
-    TemporalCohort = 6,
+    Density,
+    Language,
+    Source,
+    EntityRole,
+    TypeFamily,
+    Community,
+    TemporalCohort,
 }
 
 impl SubgroupDimension {
-    /// The number of stratification axes.
-    pub(crate) const COUNT: usize = mem::variant_count::<Self>();
-
     /// Returns the axis name.
     const fn name(self) -> &'static str {
         match self {
@@ -94,21 +93,23 @@ impl SubgroupDimension {
     zerocopy::Immutable,
     zerocopy::KnownLayout,
 )]
-pub(crate) struct SubgroupAxes([u32; SubgroupDimension::COUNT]);
+pub(crate) struct SubgroupAxes(
+    IdArray<SubgroupDimension, u32, { SubgroupDimension::VARIANT_COUNT }>,
+);
 
 const impl Index<SubgroupDimension> for SubgroupAxes {
     type Output = u32;
 
     #[inline]
     fn index(&self, index: SubgroupDimension) -> &u32 {
-        &self.0[index as usize]
+        &self.0[index]
     }
 }
 
 const impl IndexMut<SubgroupDimension> for SubgroupAxes {
     #[inline]
     fn index_mut(&mut self, index: SubgroupDimension) -> &mut u32 {
-        &mut self.0[index as usize]
+        &mut self.0[index]
     }
 }
 

@@ -471,8 +471,8 @@ fn from_lists_over_the_smallest_fixture_measures_the_miri_cost() {
         .expect("the fixture is well-formed");
     let elapsed = start.elapsed();
 
-    assert_eq!(knn.rows(), 3);
-    assert_eq!(knn.neighbours(), 1);
+    assert_eq!(knn.view().rows(), 3);
+    assert_eq!(knn.view().neighbours(), 1);
 
     // Not a correctness assertion: printed so the harness's transcript carries the measurement
     // whether or not `--nocapture` is passed by the caller measuring it under miri.
@@ -506,8 +506,8 @@ fn build_matches_hand_computed_neighbours() {
         .expect("the fixture is well-formed");
     let knn = Knn::from_lists::<!>(&lists, two_neighbours()).expect("the fixture is well-formed");
 
-    assert_eq!(knn.rows(), 4);
-    assert_eq!(knn.neighbours(), 2);
+    assert_eq!(knn.view().rows(), 4);
+    assert_eq!(knn.view().neighbours(), 2);
 
     let embeddings = matrix.view();
     let distance = |left: usize, right: usize| {
@@ -728,8 +728,8 @@ fn descent_passes_the_admission_gate() {
 
     let knn = Knn::from_lists::<!>(&lists, DEFAULT_NEIGHBOURS)
         .expect("the table assembles and validates");
-    assert_eq!(knn.rows(), 128);
-    assert_eq!(knn.neighbours(), 30);
+    assert_eq!(knn.view().rows(), 128);
+    assert_eq!(knn.view().neighbours(), 30);
 
     let check = recall::spot_check_lists::<_, !>(
         &lists,
@@ -1450,6 +1450,7 @@ fn uniform_rows() -> Vec<[f32; PROJECTOR_DIMENSIONS]> {
 ///
 /// The production path puts a fresh backend behind the construction wrapper. Exact recall admits
 /// the lists, and the table comes from those same lists.
+#[track_caller]
 fn assert_construction_path_admits(
     base: &camino::Utf8Path,
     embeddings: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
@@ -1481,8 +1482,8 @@ fn assert_construction_path_admits(
 
     let knn = Knn::from_lists::<!>(&lists, DEFAULT_NEIGHBOURS)
         .expect("the table assembles and validates");
-    assert_eq!(knn.rows(), 128);
-    assert_eq!(knn.neighbours(), 30);
+    assert_eq!(knn.view().rows(), 128);
+    assert_eq!(knn.view().neighbours(), 30);
 
     let check = recall::spot_check_lists::<_, !>(
         &lists,

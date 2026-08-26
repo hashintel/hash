@@ -10,6 +10,7 @@ use crate::identity::OntologyRowId;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum RelationIndexError {
     /// The policies are not strictly ascending by relation row.
+    #[cfg(any(test, feature = "bench"))]
     PolicyOrder {
         position: usize,
         relation: OntologyRowId,
@@ -23,6 +24,7 @@ pub(crate) enum RelationIndexError {
 impl fmt::Display for RelationIndexError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
+            #[cfg(any(test, feature = "bench"))]
             Self::PolicyOrder { position, relation } => write!(
                 fmt,
                 "policy position {position} stores relation row {relation}, breaking the strictly \

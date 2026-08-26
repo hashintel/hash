@@ -71,7 +71,6 @@ time                      = { workspace = true }
 tracing                   = { workspace = true }
 tracing-subscriber        = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
 unicode-segmentation      = { workspace = true }
-unidecode                 = { workspace = true }
 zeroize                   = { workspace = true, features = ["alloc"] }
 
 [dev-dependencies]

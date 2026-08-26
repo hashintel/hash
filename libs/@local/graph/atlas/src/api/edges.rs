@@ -139,13 +139,6 @@ pub(super) async fn handler(
                 error.to_string(),
             ));
         }
-        Err(error @ EdgesError::Unsupported(_)) => {
-            return Err(Problem::new(
-                StatusCode::NOT_IMPLEMENTED,
-                ProblemType::UnsupportedFeature,
-                error.to_string(),
-            ));
-        }
         // A stale sealed offset answers the uniform refusal. A mismatched pair or width names
         // an input this process produced and answers the internal problem.
         Err(EdgesError::View(error)) => return Err(view_problem(error)),

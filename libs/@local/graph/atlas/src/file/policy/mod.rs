@@ -186,6 +186,13 @@ impl FileHeader {
     /// Returns the row region's byte order.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the mapped policy-table re-read is the designed reader, not yet implemented"
+        )
+    )]
     pub(crate) const fn architecture(&self) -> Architecture {
         self.machine.architecture()
     }
@@ -193,6 +200,13 @@ impl FileHeader {
     /// Returns the policy count `P`.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the mapped policy-table re-read is the designed reader, not yet implemented"
+        )
+    )]
     pub(crate) const fn policies(&self) -> u64 {
         self.policies.get()
     }
@@ -202,6 +216,13 @@ impl FileHeader {
     /// Opening rejects a file whose length differs from this value. Returns `None` when the
     /// geometry overflows `u64`, in which case no real file matches the header.
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the mapped policy-table re-read is the designed reader, not yet implemented"
+        )
+    )]
     pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let row_bytes = self.policies().checked_mul(size_of::<PolicyRow>() as u64)?;
         PAGE.checked_add(row_bytes)

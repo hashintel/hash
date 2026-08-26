@@ -73,16 +73,16 @@ fn recovers_an_exact_similarity_with_exact_adjoints() {
     // Frozen spread: the zero-frame anchors are 2 from their centroid in every direction.
     assert_eq!(gauge.frozen_spread().get(), 2.0);
     assert_eq!(gauge.effective_count(), DNonNegative::from_usize(4));
-    assert_eq!(gauge.len(), 4);
+    assert_eq!(gauge.rows.len(), 4);
 
     let fit = gauge
         .fit(frame(&CANONICAL), frame(&ZERO), None)
         .expect("the exact fixture fits");
 
     assert_eq!(fit.scale().get(), 2.0);
-    assert_eq!(fit.similarity().rotation().cos(), 0.0);
-    assert_eq!(fit.similarity().rotation().sin(), 1.0);
-    assert_eq!(fit.similarity().translation(), Vec2::new(1.0, -2.0));
+    assert_eq!(fit.similarity.rotation().cos(), 0.0);
+    assert_eq!(fit.similarity.rotation().sin(), 1.0);
+    assert_eq!(fit.similarity.translation(), Vec2::new(1.0, -2.0));
     assert_eq!(fit.residual(), 0.0);
 
     // Hand-evaluated adjoints at anchor 0 (canonical (1, 0), centred zero (0, 2), D = 4):
@@ -263,10 +263,7 @@ fn adjoints_are_invariant_under_zero_field_translation() {
     assert_eq!(fit.canonical_adjoints(), shifted_fit.canonical_adjoints());
     assert_eq!(fit.zero_adjoints(), shifted_fit.zero_adjoints());
     assert_eq!(fit.scale(), shifted_fit.scale());
-    assert_eq!(
-        shifted_fit.similarity().translation(),
-        Vec2::new(17.0, -10.0)
-    );
+    assert_eq!(shifted_fit.similarity.translation(), Vec2::new(17.0, -10.0));
 }
 
 /// The minimum-spread rule binds at the freeze, inclusively at its edge.
@@ -370,8 +367,8 @@ fn the_residual_bar_binds_at_the_fit() {
         .fit(frame(&canonical), frame(&zero), Some(positive(0.5)))
         .expect("the residual sits under the raised bar");
     assert_eq!(admitted.scale().get(), 1.0);
-    assert_eq!(admitted.similarity().rotation().cos(), 1.0);
-    assert_eq!(admitted.similarity().rotation().sin(), 0.0);
+    assert_eq!(admitted.similarity.rotation().cos(), 1.0);
+    assert_eq!(admitted.similarity.rotation().sin(), 0.0);
 }
 
 /// Coincident canonical anchors are the closed form's own refusal.

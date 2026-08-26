@@ -101,8 +101,6 @@ pub(crate) struct Point {
     pub ef_search: usize,
     /// Aggregate recall@50 against the exact reference.
     pub recall: f64,
-    /// Wall clock of the scoring pass (sampled queries, parallel).
-    pub wall: Duration,
 }
 
 /// One index build and its search-breadth readings.
@@ -386,7 +384,6 @@ fn score_grid(
                 sample_seed: *sample_seed,
                 ef_search,
                 recall: reading.recall(),
-                wall: query_wall,
             });
         }
     }

@@ -29,7 +29,7 @@ use crate::{
         array::ArrayFile,
         attraction::read::AttractionFile,
         classifier::read::ClassifierFile,
-        generation::GenerationRoot,
+        generation::{GenerationRoot, METADATA_FILE},
         identity::{Key, read::IdentityFile},
         landmark::read::LandmarkFile,
         morton::read::MortonFile,
@@ -78,7 +78,10 @@ use crate::{
             train::{BatchPlan, RelationLens, TrainError, TrainingSchedule},
             verdict::{PlacementClass, ReviewedVerdicts},
         },
-        relation::artifact::{AttractionArchive, ProtectionArchive},
+        relation::{
+            Scored,
+            artifact::{AttractionArchive, ProtectionArchive},
+        },
         semantic::artifact::SemanticGraphArchive,
     },
 };
@@ -489,6 +492,7 @@ fn fixture_input() -> ClassifierInput {
 /// Asserts the complete-generation fixture's snapshot counts and its multiplicity histogram.
 ///
 /// The dataset streamed two single-typed edges, so the histogram is a single k = 1 entry.
+#[track_caller]
 fn assert_complete_generation_snapshot(repository: &SaltRepository) {
     assert_eq!(repository.metadata.snapshot.nodes, NODES as u64);
     assert_eq!(repository.metadata.snapshot.edges, 2);
@@ -501,6 +505,7 @@ fn assert_complete_generation_snapshot(repository: &SaltRepository) {
 }
 
 /// Asserts every file the manifest lists matches its recorded digest byte for byte.
+#[track_caller]
 fn assert_digests_match(path: &Utf8Path, repository: &SaltRepository) {
     for entry in repository.files.files() {
         let bytes = fs::read(path.join(entry.name.as_str())).expect("a published file should read");
@@ -540,11 +545,10 @@ async fn fit_publishes_a_complete_generation() {
 
     // The manifest deserializes and its digests match the published
     // files byte for byte.
-    let document =
-        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let document = fs::read(published.path.join(METADATA_FILE)).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
-    assert_digests_match(published.path(), &repository);
+    assert_digests_match(&published.path, &repository);
 
     // The call supplied no verdicts, so the manifest records the absence.
     assert!(repository.files.reviewed_verdicts.is_none());
@@ -590,12 +594,12 @@ async fn fit_publishes_a_complete_generation() {
     assert_eq!(repository.metadata.evidence.policy.relations, 1);
     assert_eq!(repository.metadata.evidence.policy.overridden, 0);
 
-    assert_rows_sit_on_landmarks(published.path());
-    assert_identities_translate(published.path());
+    assert_rows_sit_on_landmarks(&published.path);
+    assert_identities_translate(&published.path);
 
     // The postings restate the fixture's memberships and parent graph
     // in base delivery order.
-    assert_postings_read_back(published.path(), &repository);
+    assert_postings_read_back(&published.path, &repository);
 
     // No transient state outlives the run: the root holds exactly the
     // generation and nothing dot-prefixed.
@@ -612,6 +616,7 @@ async fn fit_publishes_a_complete_generation() {
 
 /// Asserts every row's baseline coordinate is bit-equal to its assigned landmark's layout
 /// coordinate in the published skeleton.
+#[track_caller]
 fn assert_rows_sit_on_landmarks(published: &Utf8Path) {
     let coordinates =
         ArrayFile::open(published.join("coordinates.arr")).expect("the coordinates should map");
@@ -639,6 +644,7 @@ fn assert_rows_sit_on_landmarks(published: &Utf8Path) {
 ///
 /// Node ids are the fixture's row numbers and edge ids its 100 and 101. Every row's display
 /// payload reads back as the fixture's text.
+#[track_caller]
 fn assert_identities_translate(published: &Utf8Path) {
     let nodes = IdentityTableArchive::<MemoryNodeId, NodeRowId>::new(
         IdentityFile::open(published.join("node-identities.idnt"))
@@ -706,6 +712,7 @@ fn assert_identities_translate(published: &Utf8Path) {
 /// Every position carries its row's direct type, only the link type names a parent, and the
 /// evidence records the representation split - at 48 points the dense threshold is one member and a
 /// dense run costs two words, so both node types go dense and the empty link type stays a list.
+#[track_caller]
 fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) {
     let postings = PostingsArchive::new(
         PostingsFile::open(published.join("postings.post")).expect("the postings should map"),
@@ -731,11 +738,16 @@ fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) 
             "position {position} should carry row {row}'s direct type",
         );
     }
+    let domain = BasePosition::from_usize(0)
+        ..BasePosition::from_usize(
+            usize::try_from(postings.points()).expect("the point count fits usize"),
+        );
     let members = |type_row: u64| {
         postings
             .membership(OntologyRowId::new(type_row))
             .expect("the fixture types lie in the type domain")
-            .count()
+            .positions_in(domain.clone())
+            .count() as u64
     };
     assert_eq!(members(0), members(1), "rows alternate the node types");
     assert_eq!(members(0) + members(1), NODES as u64);
@@ -781,7 +793,7 @@ async fn policy_artifacts_publish_and_read_back() {
 
     // The published classifier reads back to the supplied model.
     let reopened = Classifier::from_artifact(
-        &ClassifierFile::open(published.path().join("classifier.clsf"))
+        &ClassifierFile::open(published.path.join("classifier.clsf"))
             .expect("the classifier should map"),
     )
     .expect("the classifier should validate");
@@ -789,7 +801,7 @@ async fn policy_artifacts_publish_and_read_back() {
 
     // The policy table holds one policy: the fixture's link type.
     let policies = PolicyTableArchive::new(
-        PolicyFile::open(published.path().join("policy.plcy")).expect("the table should map"),
+        PolicyFile::open(published.path.join("policy.plcy")).expect("the table should map"),
     )
     .expect("the table should validate");
     assert_eq!(policies.len(), 1);
@@ -799,7 +811,7 @@ async fn policy_artifacts_publish_and_read_back() {
 
     // The resolved values are the classifier's own prediction of the
     // staged card embedding, narrowed at the resolution boundary.
-    let cards = ArrayFile::open(published.path().join("card-embeddings.arr"))
+    let cards = ArrayFile::open(published.path.join("card-embeddings.arr"))
         .expect("the card matrix should map");
     let embeddings: &[AlignedVecN<CANONICAL_DIMENSIONS>] = cards
         .vectors()
@@ -837,7 +849,7 @@ async fn lod_columns_publish_in_base_order() {
     .expect("the fit should publish");
 
     let column = |name: &str| -> Vec<u32> {
-        let file = ArrayFile::open(published.path().join(name)).expect("the column should map");
+        let file = ArrayFile::open(published.path.join(name)).expect("the column should map");
         file.u32_le_elements()
             .expect("the column holds little-endian u32 elements")
             .iter()
@@ -846,7 +858,7 @@ async fn lod_columns_publish_in_base_order() {
     };
     let position_of_row = column("position-of-row.arr");
     let row_of_position: Vec<u64> = {
-        let file = ArrayFile::open(published.path().join("row-of-position.arr"))
+        let file = ArrayFile::open(published.path.join("row-of-position.arr"))
             .expect("the gather column should map");
         file.u64_le_elements()
             .expect("the gather column holds little-endian u64 rows")
@@ -869,12 +881,12 @@ async fn lod_columns_publish_in_base_order() {
 
     // The morton column covers every row, bucket-segmented.
     let morton =
-        MortonFile::open(published.path().join("morton.mrtn")).expect("the codes should map");
+        MortonFile::open(published.path.join("morton.mrtn")).expect("the codes should map");
     assert_eq!(morton.count(), NODES as u64);
 
     // The wire column lies inside the wire frame, and rows the baseline
     // placed on one landmark stay coincident on the wire.
-    let wire = ArrayFile::open(published.path().join("wire-coordinates.arr"))
+    let wire = ArrayFile::open(published.path.join("wire-coordinates.arr"))
         .expect("the wire column should map");
     let wire = wire.points().expect("the wire column holds 2D points");
     assert_eq!(wire.len(), NODES);
@@ -885,7 +897,7 @@ async fn lod_columns_publish_in_base_order() {
         "wire coordinates stay inside the [-1, 1] frame",
     );
 
-    let canonical = ArrayFile::open(published.path().join("coordinates.arr"))
+    let canonical = ArrayFile::open(published.path.join("coordinates.arr"))
         .expect("the coordinates should map");
     let canonical = canonical.points().expect("the coordinates are 2D points");
     for (left, right) in (0..NODES).zip(1..NODES) {
@@ -901,8 +913,7 @@ async fn lod_columns_publish_in_base_order() {
 
     // The metadata records the histogram over every row and the
     // default incident-degree ranking origin.
-    let document =
-        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let document = fs::read(published.path.join(METADATA_FILE)).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
     assert_eq!(
@@ -954,8 +965,7 @@ async fn supplied_verdicts_publish_verbatim() {
     .expect("the fit should publish");
 
     // The manifest binds the role to the supplied file's identity.
-    let manifest =
-        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let manifest = fs::read(published.path.join(METADATA_FILE)).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&manifest).expect("the document should deserialize");
     let entry = repository
@@ -968,7 +978,7 @@ async fn supplied_verdicts_publish_verbatim() {
 
     // The published bytes are the supplied file verbatim, and they
     // still read back through the verdict reader the trainer uses.
-    let bytes = fs::read(published.path().join("reviewed-verdicts.json"))
+    let bytes = fs::read(published.path.join("reviewed-verdicts.json"))
         .expect("the published file should read");
     assert_eq!(bytes, document.as_bytes());
     let read_back = ReviewedVerdicts::from_slice(&bytes).expect("the published bytes still parse");
@@ -1119,11 +1129,10 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
 
     // The manifest binds the corpus role to the supplied file's
     // identity, and every staged file matches its recorded digest.
-    let manifest =
-        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let manifest = fs::read(published.path.join(METADATA_FILE)).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&manifest).expect("the document should deserialize");
-    assert_digests_match(published.path(), &repository);
+    assert_digests_match(&published.path, &repository);
     let corpus_entry = repository
         .files
         .annotation_corpus
@@ -1133,7 +1142,7 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
     assert_eq!(corpus_entry.hash(), supplied.hash());
 
     // The published corpus bytes are the supplied file verbatim.
-    let bytes = fs::read(published.path().join("annotation-corpus.json"))
+    let bytes = fs::read(published.path.join("annotation-corpus.json"))
         .expect("the published corpus should read");
     assert_eq!(bytes, document.as_bytes());
 
@@ -1141,7 +1150,7 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
     // and the holdout rows after them, at the canonical width.
     assert!(repository.files.annotation_embeddings.is_some());
     assert!(repository.files.annotation_hashes.is_some());
-    let embeddings = ArrayFile::open(published.path().join("annotation-embeddings.arr"))
+    let embeddings = ArrayFile::open(published.path.join("annotation-embeddings.arr"))
         .expect("the annotation matrix should map");
     let rows: &[AlignedVecN<CANONICAL_DIMENSIONS>] = embeddings
         .vectors()
@@ -1150,7 +1159,7 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
 
     // The staged classifier is the fitted model, reading back valid.
     let reopened = Classifier::from_artifact(
-        &ClassifierFile::open(published.path().join("classifier.clsf"))
+        &ClassifierFile::open(published.path.join("classifier.clsf"))
             .expect("the classifier should map"),
     )
     .expect("the fitted classifier validates");
@@ -1250,7 +1259,7 @@ async fn prior_generation_seeds_reuse_and_retention() {
     )
     .await
     .expect("the second fit should publish");
-    let document = fs::read(second.path().join("metadata.json")).expect("the document should read");
+    let document = fs::read(second.path.join(METADATA_FILE)).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
 
@@ -1315,7 +1324,7 @@ async fn override_supersedes_the_classifier() {
     .expect("the fit should publish");
 
     let policies = PolicyTableArchive::new(
-        PolicyFile::open(published.path().join("policy.plcy")).expect("the table should map"),
+        PolicyFile::open(published.path.join("policy.plcy")).expect("the table should map"),
     )
     .expect("the table should validate");
     let policy = policies
@@ -1333,8 +1342,7 @@ async fn override_supersedes_the_classifier() {
 
     // The document echoes the overrides and admission verbatim: the
     // record round-trips through the metadata schema.
-    let document =
-        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let document = fs::read(published.path.join(METADATA_FILE)).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
     assert_eq!(repository.metadata.reproducibility.config, config);
@@ -1585,8 +1593,7 @@ async fn forceless_projector_publishes_the_baseline_step() {
     .await
     .expect("the fit should publish");
 
-    let document =
-        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let document = fs::read(published.path.join(METADATA_FILE)).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
 
@@ -1613,7 +1620,7 @@ async fn forceless_projector_publishes_the_baseline_step() {
     // the column's bit-exact relationship to the checkpoint; here the
     // column covers the corpus rows.
     let coordinates =
-        ArrayFile::open(published.path().join("coordinates.arr")).expect("the column maps");
+        ArrayFile::open(published.path.join("coordinates.arr")).expect("the column maps");
     assert_eq!(
         coordinates
             .points()
@@ -1630,6 +1637,7 @@ async fn forceless_projector_publishes_the_baseline_step() {
 /// candidate pool. The trained fixture holds 48 rows and the two full-force edges (0, 1) and
 /// (2, 3), so the pair domain censuses 2 oriented pairs and both draw, while the 44 rows
 /// outside the edges form the control pool and `m = n = 2` controls draw from it.
+#[track_caller]
 fn assert_paired_replay(published: &Utf8Path, repository: &SaltRepository) {
     let paired = repository
         .metadata
@@ -1743,8 +1751,7 @@ async fn trained_lens_publishes_the_canonical_step_aligned() {
     .await
     .expect("the fit should publish");
 
-    let document =
-        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let document = fs::read(published.path.join(METADATA_FILE)).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
 
@@ -1784,13 +1791,13 @@ async fn trained_lens_publishes_the_canonical_step_aligned() {
 
     // The paired-movement readout lands beside the steps, and its salt and draw replay from
     // the published document alone.
-    assert_paired_replay(published.path(), &repository);
+    assert_paired_replay(&published.path, &repository);
 
     // The publish boundary's certificates (`compute::projector::tests`) pin the column's
     // bit-exact relationship to the checkpoint and the recorded alignment; here the column
     // covers the corpus rows.
     let coordinates =
-        ArrayFile::open(published.path().join("coordinates.arr")).expect("the column maps");
+        ArrayFile::open(published.path.join("coordinates.arr")).expect("the column maps");
     assert_eq!(
         coordinates
             .points()
@@ -1882,6 +1889,7 @@ fn duplicate_dataset() -> MemoryDataset {
 ///
 /// The cluster's first entry is its representation's first occurrence. Every other member shares
 /// that entry's neighbour list, landmark ordinal, and published coordinate bit for bit.
+#[track_caller]
 fn assert_cluster_shares_one_point(
     table: &KnnView<'_, NodeRowId>,
     assignment: &IdSlice<NodeRowId, LandmarkOrdinal>,
@@ -1985,26 +1993,25 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
 
     // Every published artifact covers the full row domain.
     let knn = KnnArchive::new(
-        SprsFile::open(published.path().join("knn.sprs")).expect("the table should map"),
+        SprsFile::open(published.path.join("knn.sprs")).expect("the table should map"),
     )
     .expect("the table should validate");
     let table = knn.view();
     assert_eq!(table.rows(), NODES);
 
     let semantic = SemanticGraphArchive::<NodeRowId>::new(
-        SprsFile::open(published.path().join("semantic.sprs")).expect("the graph should map"),
+        SprsFile::open(published.path.join("semantic.sprs")).expect("the graph should map"),
     )
     .expect("the graph should validate");
     assert_eq!(semantic.view().rows(), NODES);
 
-    let coordinates = ArrayFile::open(published.path().join("coordinates.arr"))
+    let coordinates = ArrayFile::open(published.path.join("coordinates.arr"))
         .expect("the coordinates should map");
     let placed = coordinates.points().expect("the coordinates are 2D points");
     assert_eq!(placed.len(), NODES);
 
     let skeleton = LandmarkSkeletonArchive::new(
-        LandmarkFile::open(published.path().join("landmarks.lndm"))
-            .expect("the skeleton should map"),
+        LandmarkFile::open(published.path.join("landmarks.lndm")).expect("the skeleton should map"),
     )
     .expect("the skeleton should validate");
     assert_eq!(skeleton.rows(), NODES as u64);
@@ -2116,8 +2123,7 @@ async fn vacuous_placement_trains_without_reviews() {
     .await
     .expect("the vacuous placement should publish");
 
-    let document =
-        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let document = fs::read(published.path.join(METADATA_FILE)).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
 
@@ -2143,7 +2149,7 @@ async fn vacuous_placement_trains_without_reviews() {
     // The relation artifacts publish real force regardless: only the
     // trainer's view was vacuous.
     let attraction = AttractionArchive::new(
-        AttractionFile::<NodeRowId, EdgeRowId>::open(published.path().join("attraction.atrc"))
+        AttractionFile::<NodeRowId, EdgeRowId>::open(published.path.join("attraction.atrc"))
             .expect("the attraction artifact should open"),
     )
     .expect("the attraction artifact should validate");
@@ -2152,7 +2158,7 @@ async fn vacuous_placement_trains_without_reviews() {
         "the published attraction index still carries the corpus's force",
     );
 
-    let coordinates = ArrayFile::open(published.path().join("coordinates.arr"))
+    let coordinates = ArrayFile::open(published.path.join("coordinates.arr"))
         .expect("the coordinate column should open");
     assert_eq!(
         coordinates
@@ -2316,6 +2322,7 @@ fn edge_rows(list: Option<EdgeList<'_>>) -> Vec<u64> {
 ///
 /// The parallel pair leaves node 0, the self-loop occupies both slots of node 3, and untouched
 /// nodes hold empty runs.
+#[track_caller]
 fn assert_adjacency_reads_back(published: &Utf8Path) {
     let adjacency = AdjacencyArchive::new(
         SprsFile::open(published.join("adjacency.sprs")).expect("the adjacency should map"),
@@ -2328,9 +2335,12 @@ fn assert_adjacency_reads_back(published: &Utf8Path) {
     assert_eq!(edge_rows(adjacency.incoming(NodeRowId::new(1))), [0, 3]);
     assert_eq!(edge_rows(adjacency.outgoing(NodeRowId::new(3))), [2]);
     assert_eq!(edge_rows(adjacency.incoming(NodeRowId::new(3))), [1, 2]);
-    assert_eq!(edge_rows(adjacency.incident(NodeRowId::new(3))), [2, 1, 2]);
     assert!(
-        edge_rows(adjacency.incident(NodeRowId::new(7))).is_empty(),
+        edge_rows(adjacency.outgoing(NodeRowId::new(7))).is_empty(),
+        "an untouched node holds empty runs",
+    );
+    assert!(
+        edge_rows(adjacency.incoming(NodeRowId::new(7))).is_empty(),
         "an untouched node holds empty runs",
     );
 }
@@ -2340,6 +2350,7 @@ fn assert_adjacency_reads_back(published: &Utf8Path) {
 /// Relation 2 retains three instances and relation 3 retains one, since the self-loop reading
 /// carries no force and the drain discards it. The overridden weights and confidence provenance
 /// stay intact.
+#[track_caller]
 fn assert_attraction_reads_back(attraction: &AttractionArchive<NodeRowId, EdgeRowId>) {
     assert_eq!(attraction.rows(), NODES as u64);
     assert_eq!(attraction.group_count(), 2);
@@ -2347,10 +2358,10 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive<NodeRowId, EdgeRo
 
     let employment = attraction.group(0);
     assert_eq!(employment.relation(), OntologyRowId::new(2));
-    assert_eq!(employment.len(), 3);
+    assert_eq!(employment.edges().len(), 3);
     let membership = attraction.group(1);
     assert_eq!(membership.relation(), OntologyRowId::new(3));
-    assert_eq!(membership.len(), 1);
+    assert_eq!(membership.edges().len(), 1);
 
     // The group weights are the overridden distribution: the Proximal
     // weight is p*_P = 1 · 0.5, and the Coincident weight vanishes
@@ -2367,14 +2378,15 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive<NodeRowId, EdgeRo
         .find(|edge| edge.edge.as_u64() == 0)
         .expect("edge row 0 is retained under relation 2");
     assert_eq!(scored.confidence.value(), unit_fraction!(0.5));
-    assert!(scored.confidence.scored().link());
-    assert!(!scored.confidence.scored().source());
-    assert!(!scored.confidence.scored().target());
+    assert_eq!(scored.confidence.scored(), Scored::LINK);
 
-    let neutral = membership.edge(0);
+    let neutral = membership
+        .edges()
+        .next()
+        .expect("the membership group retains an edge");
     assert_eq!(neutral.edge.as_u64(), 1);
     assert_eq!(neutral.confidence.value(), unit_fraction!(1.0));
-    assert!(!neutral.confidence.scored().link());
+    assert_eq!(neutral.confidence.scored(), Scored::EMPTY);
 }
 
 #[tokio::test]
@@ -2416,7 +2428,7 @@ async fn edge_artifacts_publish_and_read_back() {
 
     // The endpoint column is the edge stream's (source, target) pairs
     // in row order, little-endian by variant.
-    let endpoints = ArrayFile::open(published.path().join("edge-endpoints.arr"))
+    let endpoints = ArrayFile::open(published.path.join("edge-endpoints.arr"))
         .expect("the endpoint column should map");
     assert_eq!(
         endpoints
@@ -2425,14 +2437,14 @@ async fn edge_artifacts_publish_and_read_back() {
         [[0, 1], [2, 3], [3, 3], [0, 1]].map(|pair| pair.map(U64::<LE>::new)),
     );
 
-    assert_adjacency_reads_back(published.path());
+    assert_adjacency_reads_back(&published.path);
 
     // The delivery ranking runs on incident degree by default: node
     // row 3 (three incident slots) outranks every other row, so it
     // holds base rank 0 regardless of the seed.
-    let position_of_rank = ArrayFile::open(published.path().join("position-of-rank.arr"))
+    let position_of_rank = ArrayFile::open(published.path.join("position-of-rank.arr"))
         .expect("the rank column should map");
-    let row_of_position = ArrayFile::open(published.path().join("row-of-position.arr"))
+    let row_of_position = ArrayFile::open(published.path.join("row-of-position.arr"))
         .expect("the gather column should map");
     let first_position = position_of_rank
         .u32_le_elements()
@@ -2450,7 +2462,7 @@ async fn edge_artifacts_publish_and_read_back() {
     // The attraction index groups the retained instances by relation,
     // asserted against the fixture readings by hand.
     let attraction = AttractionArchive::new(
-        AttractionFile::open(published.path().join("attraction.atrc"))
+        AttractionFile::open(published.path.join("attraction.atrc"))
             .expect("the attraction index should map"),
     )
     .expect("the attraction index should validate");
@@ -2458,17 +2470,17 @@ async fn edge_artifacts_publish_and_read_back() {
 
     // The protection index and the quadtree publish beside them.
     let _protection = ProtectionArchive::<NodeRowId>::new(
-        SprsFile::open(published.path().join("protection.sprs"))
+        SprsFile::open(published.path.join("protection.sprs"))
             .expect("the protection index should map"),
     )
     .expect("the protection index should validate");
     let _quad =
-        QuadFile::open(published.path().join("quadtree.quad")).expect("the quadtree should map");
+        QuadFile::open(published.path.join("quadtree.quad")).expect("the quadtree should map");
 
     // The ontology identities translate type rows to source ids and
     // back: the fixture's type ids are its row numbers.
     let ontology_ids = IdentityTableArchive::<MemoryOntologyId, OntologyRowId>::new(
-        IdentityFile::open(published.path().join("ontology-identities.idnt"))
+        IdentityFile::open(published.path.join("ontology-identities.idnt"))
             .expect("the ontology identities should map"),
     )
     .expect("the ontology identities should validate");
@@ -2485,8 +2497,7 @@ async fn edge_artifacts_publish_and_read_back() {
     // The metadata document accounts for every reading: four retained
     // instances, nothing pruned at the zero threshold, one
     // self-reference dropped.
-    let document =
-        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let document = fs::read(published.path.join(METADATA_FILE)).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
     assert_eq!(repository.metadata.snapshot.edges, 4);

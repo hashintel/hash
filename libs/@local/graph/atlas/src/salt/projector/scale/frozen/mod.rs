@@ -291,6 +291,15 @@ where
     ///
     /// The coordinates cover the frozen row count - a wiring contract checked in debug builds,
     /// since the field and the ruler come from one run.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the band trainer's bounded-staleness check is the designed reader: the live \
+                      field re-measured over the frozen neighbour sets; that trainer is not yet \
+                      wired"
+        )
+    )]
     pub(crate) fn live_scales(
         &self,
         coordinates: &FinitePointField<N>,
@@ -342,6 +351,14 @@ where
     /// This panics when the row is outside the node-row domain.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "called by live_scales for the bounded-staleness check; tests are today's \
+                      readers"
+        )
+    )]
     pub(crate) const fn frozen_set(&self, row: N) -> &IdSlice<NeighbourSlot, N>
     where
         N: [const] Id,
@@ -352,15 +369,17 @@ where
     /// Borrows the frozen local scales `ρ₀` in node-row order.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the calibration evidence writer is the designed reader: it serializes the \
+                      admitted ruler tables and scale identity beside the fitted artifacts; that \
+                      writer is not yet wired"
+        )
+    )]
     pub(crate) fn scales(&self) -> &IdSlice<N, NonNegative> {
         &self.scales
-    }
-
-    /// Borrows the frozen neighbour index sets as one matrix, a set per node row.
-    #[inline]
-    #[must_use]
-    pub(super) const fn neighbour_sets(&self) -> &IdMatrix<N, NeighbourSlot, N> {
-        &self.neighbours
     }
 
     /// Returns `s_ref`, the boundary field's RMS spread about its centroid.
@@ -387,6 +406,15 @@ where
     /// Returns the node-row count.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the calibration evidence writer is the designed reader: it serializes the \
+                      admitted ruler tables and scale identity beside the fitted artifacts; that \
+                      writer is not yet wired"
+        )
+    )]
     pub(crate) fn len(&self) -> usize {
         self.scales.len()
     }

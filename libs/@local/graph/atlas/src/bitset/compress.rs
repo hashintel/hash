@@ -32,12 +32,15 @@ use roaring::RoaringBitmap;
 /// assert_eq!(visible.count(), 2);
 /// ```
 ///
-/// A set built in one pass collects from an iterator, and iterates back in ascending row order:
+/// Iteration ascends by row, whatever the insertion order:
 ///
 /// ```ignore
 /// use crate::identity::EdgeRowId;
 ///
-/// let links = CompressedBitSet::from_rows([4, 1, 2].map(EdgeRowId::new));
+/// let mut links = CompressedBitSet::new();
+/// for row in [4, 1, 2].map(EdgeRowId::new) {
+///     links.insert(row);
+/// }
 ///
 /// assert_eq!(
 ///     links.iter().collect::<Vec<_>>(),
@@ -47,13 +50,7 @@ use roaring::RoaringBitmap;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CompressedBitSet<T> {
     rows: RoaringBitmap,
-    marker: PhantomData<T>,
-}
-
-impl<T> Default for CompressedBitSet<T> {
-    fn default() -> Self {
-        Self::new()
-    }
+    marker: PhantomData<fn() -> T>,
 }
 
 impl<T> CompressedBitSet<T> {
@@ -127,6 +124,7 @@ impl<T: Id> CompressedBitSet<T> {
     ///
     /// This panics when a row lies above the representable domain.
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn from_rows(rows: impl IntoIterator<Item = T>) -> Self {
         let mut set = Self::new();
         for row in rows {
@@ -162,5 +160,11 @@ impl<T: Id> CompressedBitSet<T> {
     /// Iterates the rows the set admits, in ascending order.
     pub(crate) fn iter(&self) -> impl Iterator<Item = T> + '_ {
         self.rows.iter().map(T::from_u32)
+    }
+}
+
+impl<T> Default for CompressedBitSet<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }

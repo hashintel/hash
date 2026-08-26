@@ -60,7 +60,7 @@ impl Error for WireSecretError {}
 /// fully redacted.
 ///
 /// [`WireSecret::from_hex`] decodes the configured form - exactly 64 lowercase hexadecimal
-/// characters - and [`WireSecret::new`] takes the raw bytes directly.
+/// characters.
 #[derive(Clone)]
 pub(crate) struct WireSecret(SecretHexBytes<{ Self::BYTES }>);
 
@@ -70,6 +70,7 @@ impl WireSecret {
 
     /// Wraps raw key bytes.
     #[must_use]
+    #[cfg(test)]
     pub(crate) const fn new(bytes: [u8; Self::BYTES]) -> Self {
         Self(SecretHexBytes::new(bytes))
     }

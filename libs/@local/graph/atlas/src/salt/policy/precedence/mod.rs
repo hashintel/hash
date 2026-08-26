@@ -8,7 +8,6 @@
 //! > human-reviewed soft label
 //! > direct synthetic soft label
 //! > calibrated classifier prediction
-//! > Overlay fallback for unclassifiable relations
 //! ```
 //!
 //! The classifier is the default operational source. Resolution needs no exhaustive policy table,
@@ -29,7 +28,8 @@
 //! A Coincident prediction that fails admission becomes Overlay, never Proximal. The policy row
 //! keeps the Coincident and Proximal components alone. Overlay is the remainder, so the mix reduces
 //! to scaling both stored components by `a`. An override asserts its distribution and has
-//! applicability 1. Unclassifiable relations fall back to pure Overlay with applicability 0.
+//! applicability 1. [`Classification`] admits exactly one outcome, a classifier prediction, so
+//! no fallback source sits below the classifier.
 //! Strength is the unit multiplier while the strength head is off.
 //!
 //! Resolution is where policy values leave the solver's double precision and narrow to
@@ -92,8 +92,6 @@ impl Error for ResolveError {}
 pub(crate) enum Classification {
     /// The classifier produced a prediction.
     Predicted(Prediction),
-    /// The relation has no card, so it falls back to Overlay for every channel.
-    Unclassified,
 }
 
 /// A higher-precedence policy record, declared in descending precedence.
@@ -193,13 +191,6 @@ pub(crate) fn resolve(
                 (None, Classification::Predicted(prediction)) => (
                     ClassProbabilities::from_posterior(&prediction.calibrated),
                     prediction.applicability,
-                ),
-                (None, Classification::Unclassified) => (
-                    ClassProbabilities {
-                        coincident: UnitFraction::ZERO,
-                        proximal: UnitFraction::ZERO,
-                    },
-                    UnitFraction::ZERO,
                 ),
             };
             RelationPolicy {

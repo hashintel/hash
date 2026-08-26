@@ -294,8 +294,6 @@ pub(crate) fn softplus(value: f32) -> f32 {
 /// magnitude exceeds the `f32` range, the infinities, and NaN all yield [`None`]. Negative zero
 /// narrows to negative zero, preserving the sign bit.
 ///
-/// For a conversion that also demands bit-exact representability, use [`narrow_f32_exact`].
-///
 /// # Examples
 ///
 /// ```ignore
@@ -316,42 +314,6 @@ pub(crate) const fn narrow_f32(value: f64) -> Option<f32> {
     let narrowed = value as f32;
 
     if narrowed.is_finite() {
-        Some(narrowed)
-    } else {
-        None
-    }
-}
-
-/// Narrows an `f64` to `f32` when the value is exactly representable.
-///
-/// The conversion succeeds precisely when the input is finite and widening the narrowed result back
-/// to `f64` reproduces the input bit for bit. The returned `f32` therefore denotes the same real
-/// number as the input. Values that would round, overflow the `f32` range, or fail to be finite
-/// yield [`None`]. Negative zero is exactly representable and keeps its sign bit.
-///
-/// For a conversion that tolerates rounding, use [`narrow_f32`].
-///
-/// # Examples
-///
-/// ```ignore
-/// assert_eq!(narrow_f32_exact(0.25), Some(0.25_f32));
-/// // 0.1 has no exact `f32` representation.
-/// assert_eq!(narrow_f32_exact(0.1), None);
-/// ```
-#[inline]
-#[must_use]
-pub(crate) const fn narrow_f32_exact(value: f64) -> Option<f32> {
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the truncating cast is the operation itself; the result is checked for \
-                  bit-exact round-tripping before being returned"
-    )]
-    let narrowed = value as f32;
-    // `f64::from` is not callable in const contexts; the widening cast is
-    // lossless.
-    let widened = narrowed as f64;
-
-    if narrowed.is_finite() && widened.to_bits() == value.to_bits() {
         Some(narrowed)
     } else {
         None

@@ -44,8 +44,9 @@ impl Similarity {
     /// # Examples
     ///
     /// ```ignore
-    /// let expected = Similarity::new(2.0, Rotation::from_cos_sin(0.0, 1.0), Vec2::new(1.0, -2.0))
-    ///     .expect("scale 2.0 is normal and positive");
+    /// let expected =
+    ///     Similarity::new(positive!(2.0), Rotation::from_cos_sin(0.0, 1.0), Vec2::new(1.0, -2.0))
+    ///         .expect("scale 2.0 is normal and positive");
     /// let source = [
     ///     Vec2::new(0.0, 0.0),
     ///     Vec2::new(4.0, 0.0),
@@ -133,8 +134,9 @@ impl Similarity {
     /// # Examples
     ///
     /// ```ignore
-    /// let expected = Similarity::new(0.5, Rotation::from_cos_sin(1.0, 0.0), Vec2::new(3.0, 1.0))
-    ///     .expect("scale 0.5 is normal and positive");
+    /// let expected =
+    ///     Similarity::new(positive!(0.5), Rotation::from_cos_sin(1.0, 0.0), Vec2::new(3.0, 1.0))
+    ///         .expect("scale 0.5 is normal and positive");
     /// let source = [
     ///     Vec2::new(0.0, 0.0),
     ///     Vec2::new(2.0, 0.0),
@@ -150,6 +152,7 @@ impl Similarity {
     /// assert!((fitted.scale() - expected.scale()).abs() < 1e-5);
     /// ```
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn fit_uniform<I: Id>(
         source: &FinitePointField<I>,
         target: &FinitePointField<I>,
@@ -163,10 +166,9 @@ impl Similarity {
 
     /// Fits the unweighted Procrustes alignment of large fields in parallel.
     ///
-    /// The contract is identical to [`fit_uniform`](Self::fit_uniform). The chunked reduction
-    /// carries [`fit_par`](Self::fit_par)'s units-in-the-last-place caveat and the same break-even
-    /// near a hundred thousand pairs. Work splits into chunks of
-    /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
+    /// The contract is [`fit_par`](Self::fit_par)'s with unit weights: the chunked reduction
+    /// carries the same units-in-the-last-place caveat and the same break-even near a hundred
+    /// thousand pairs. Work splits into chunks of [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
     #[inline]
     #[must_use]
     pub(crate) fn fit_uniform_par<I: Id>(

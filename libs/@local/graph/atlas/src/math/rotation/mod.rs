@@ -13,25 +13,22 @@ mod tests;
 /// A rotation about the origin, stored as the unit vector `(cos, sin)`.
 ///
 /// The decomposed representation is the contract of this type. It computes the angle's cosine and
-/// sine once, or accepts them directly, and every later operation is plain arithmetic on them.
-/// Composing two rotations via [`then`](Self::then) multiplies the unit vectors, which adds the
-/// angles without any trigonometric calls. [`inverse`](Self::inverse) negates the sine, which is
-/// exact, so no rounding occurs at all.
+/// sine once, or accepts them directly, and every later operation is plain arithmetic on them:
+/// composing two rotations multiplies the unit vectors, which adds the angles without any
+/// trigonometric calls, and inverting negates the sine, which is exact.
 ///
 /// Angles follow the mathematical convention: radians, counterclockwise, with `x` growing right and
 /// `y` growing up. In a `y`-down space (such as screen coordinates) the visual direction of
 /// rotation reverses.
 ///
-/// Note that long chains of [`then`](Self::then) accumulate rounding in the stored vector, letting
-/// it drift off the unit circle by about one unit in the last place per composition. Call
-/// [`renormalize`](Self::renormalize) periodically when composing rotations incrementally.
-/// Renormalizing leaves the angle alone and corrects only the vector's length.
+/// Note that long composition chains accumulate rounding in the stored vector, letting it drift
+/// off the unit circle by about one unit in the last place per composition. Renormalizing
+/// periodically corrects the vector's length and leaves the angle alone.
 ///
 /// # Examples
 ///
 /// ```ignore
-/// let eighth = Rotation::from_radians(core::f32::consts::FRAC_PI_4);
-/// let quarter = eighth.then(eighth);
+/// let quarter = Rotation::from_radians(core::f32::consts::FRAC_PI_2);
 ///
 /// let rotated = quarter.apply(Vec2::new(1.0, 0.0));
 /// assert!(rotated.x().abs() < 1e-6);

@@ -25,24 +25,10 @@ use crate::{
 ///
 /// Every stored ordinal lies below [`landmarks`](Self::landmarks), the length of the selection
 /// whose ordinals it stores, so consumers index landmark-domain tables without re-validation.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LandmarkAssignment<N> {
     landmark_by_row: Box<IdSlice<N, LandmarkOrdinal>>,
     landmarks: usize,
-}
-
-// Not derived: the boxed slice clones through the `Id` machinery, which the derive's `N: Clone`
-// bound cannot prove.
-impl<N> Clone for LandmarkAssignment<N>
-where
-    N: Id,
-{
-    fn clone(&self) -> Self {
-        Self {
-            landmark_by_row: self.landmark_by_row.clone(),
-            landmarks: self.landmarks,
-        }
-    }
 }
 
 impl<N> LandmarkAssignment<N>
@@ -70,17 +56,6 @@ where
             landmark_by_row,
             landmarks,
         }
-    }
-
-    /// Returns the assigned landmark ordinal of one node row.
-    ///
-    /// # Panics
-    ///
-    /// This panics when `row` is outside the assigned corpus.
-    #[inline]
-    #[must_use]
-    pub(crate) fn get(&self, row: N) -> LandmarkOrdinal {
-        self.landmark_by_row[row]
     }
 
     /// Borrows every assignment ordinal in node-row order.

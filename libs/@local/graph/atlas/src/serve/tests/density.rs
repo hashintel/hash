@@ -52,6 +52,7 @@ fn prefix_census(keys: &[MortonKey], depth: Depth) -> u64 {
 }
 
 /// Asserts a census matches the independent prefix count at every depth.
+#[track_caller]
 fn assert_census(occupancy: &ViewOccupancy, keys: &[MortonKey]) {
     let distinct: HashSet<u64> = keys.iter().map(|key| key.to_bits()).collect();
     assert_eq!(

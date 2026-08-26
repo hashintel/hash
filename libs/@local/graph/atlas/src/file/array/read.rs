@@ -4,9 +4,9 @@ use core::{error::Error, fmt};
 use std::path::Path;
 
 use hashql_core::id::{Id, IdSlice};
-use zerocopy::{FromBytes as _, LE, U32, U64};
+use zerocopy::{FromBytes as _, LE, U64};
 
-use super::{Architecture, ArrayShape, ArrayVariant, FileHeader, write::ColumnScalar};
+use super::{Architecture, ArrayVariant, FileHeader, write::ColumnScalar};
 use crate::{
     file::region::{
         PAGE_BYTES,
@@ -118,20 +118,6 @@ impl ArrayFile {
         self.map.header()
     }
 
-    /// Returns the element variant.
-    #[inline]
-    #[must_use]
-    pub(crate) fn variant(&self) -> ArrayVariant {
-        self.header().variant()
-    }
-
-    /// Borrows the shape.
-    #[inline]
-    #[must_use]
-    pub(crate) fn shape(&self) -> &ArrayShape {
-        &self.header().shape
-    }
-
     /// Borrows the packed elements, 4096-byte aligned.
     #[inline]
     #[must_use]
@@ -220,13 +206,17 @@ impl ArrayFile {
         <[f32]>::ref_from_bytes(self.data()).ok()
     }
 
+    // NOTE: **why** are they still used in tests? Makes no sense. Shouldn't they use `column()`
     /// Views the data as little-endian `u32` elements.
     ///
     /// The view exists exactly when the file holds little-endian `u32` elements in a flat shape;
     /// the empty shape is the zero-element file. The element type carries the byte order, so the
     /// view is exact on every architecture.
     #[must_use]
-    pub(crate) fn u32_le_elements(&self) -> Option<&[U32<LE>]> {
+    #[cfg(test)]
+    pub(crate) fn u32_le_elements(&self) -> Option<&[zerocopy::U32<LE>]> {
+        use zerocopy::U32;
+
         if self.header().variant() != ArrayVariant::U32Le {
             return None;
         }
@@ -245,6 +235,7 @@ impl ArrayFile {
     /// the empty shape is the zero-element file. The element type carries the byte order, so the
     /// view is exact on every architecture.
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn u64_le_elements(&self) -> Option<&[U64<LE>]> {
         if self.header().variant() != ArrayVariant::U64Le {
             return None;

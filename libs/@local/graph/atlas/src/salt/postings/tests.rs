@@ -101,6 +101,14 @@ fn mapped(dir: &Utf8PathBuf, name: &str, postings: &Postings) -> PostingsArchive
         .expect("the fixture postings should validate")
 }
 
+/// The member-position count, over both encodings.
+fn count(membership: &Membership<'_>) -> u64 {
+    match membership {
+        Membership::List(positions) => positions.len() as u64,
+        Membership::Dense(set) => set.count(),
+    }
+}
+
 fn collect(membership: &Membership<'_>, range: core::ops::Range<u32>) -> Vec<u32> {
     let range = BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end);
     membership
@@ -126,13 +134,13 @@ fn build_matches_the_hand_computed_runs() {
     // Type 0 went dense: five members over eight points.
     let type0 = mapped.membership(id(0)).expect("type 0 is in domain");
     assert_matches!(type0, Membership::Dense(set) if *set == *dense_set(8, &[1, 2, 3, 4, 6]));
-    assert_eq!(type0.count(), 5);
+    assert_eq!(count(&type0), 5);
     assert_eq!(collect(&type0, 0..8), [1, 2, 3, 4, 6]);
 
     // Type 1 stayed a list.
     let type1 = mapped.membership(id(1)).expect("type 1 is in domain");
     assert_matches!(type1, Membership::List(list) if *list == [5, 7].map(BasePosition::from_u32));
-    assert_eq!(type1.count(), 2);
+    assert_eq!(count(&type1), 2);
 
     // Type 2 stayed a list: three members cost fewer bytes than the dense set.
     let type2 = mapped.membership(id(2)).expect("type 2 is in domain");
@@ -145,7 +153,7 @@ fn build_matches_the_hand_computed_runs() {
     // Type 3 is the empty list.
     let type3 = mapped.membership(id(3)).expect("type 3 is in domain");
     assert_matches!(type3, Membership::List(&[]));
-    assert_eq!(type3.count(), 0);
+    assert_eq!(count(&type3), 0);
 
     // Beyond the type domain there is no membership.
     assert!(mapped.membership(id(4)).is_none());
@@ -1048,7 +1056,7 @@ fn built_postings_uphold_the_membership_contract(
             .map(BasePosition::as_u32)
             .collect();
         prop_assert_eq!(&full, &expected, "type {}'s member positions", type_row);
-        prop_assert_eq!(membership.count(), expected.len() as u64);
+        prop_assert_eq!(count(&membership), expected.len() as u64);
 
         for position in 0..points {
             prop_assert_eq!(

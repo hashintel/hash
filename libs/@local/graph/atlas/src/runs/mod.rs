@@ -140,6 +140,13 @@ impl<I, T> Runs<I, T>
 where
     I: Id,
 {
+    /// Returns the run count: the key domain's size.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn runs(&self) -> usize {
+        self.posts.len() - 1
+    }
+
     /// Wraps existing fencepost and items columns as a validated structure.
     ///
     /// # Errors
@@ -156,13 +163,6 @@ where
             posts,
             items: items.into_boxed_slice(),
         })
-    }
-
-    /// Returns the run count: the key domain's size.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn runs(&self) -> usize {
-        self.posts.len() - 1
     }
 
     /// Borrows the whole items column, every run back to back in key order.
@@ -356,13 +356,6 @@ where
         }
     }
 
-    /// Returns the run count: the key domain's size.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn runs(&self) -> usize {
-        self.posts.len() - 1
-    }
-
     /// Borrows the whole items column, every run back to back in key order.
     #[inline]
     #[must_use]
@@ -377,7 +370,7 @@ where
     ///
     /// # Panics
     ///
-    /// This panics when `key` is not below [`runs`](Self::runs).
+    /// This panics when `key` is not below the view's run count.
     #[inline]
     #[must_use]
     pub(crate) fn run(&self, key: I) -> &'map [T] {

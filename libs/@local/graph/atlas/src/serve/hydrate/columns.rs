@@ -82,6 +82,7 @@ impl<'doc> DeliveredNodes<'doc> {
     /// Returns the delivered count the details must cover.
     #[inline]
     #[must_use]
+    #[cfg(test)]
     pub(crate) const fn count(&self) -> usize {
         self.delivered.len()
     }
@@ -134,6 +135,7 @@ impl<'details> NodeDetails<'details> {
 
     /// All-`null` details covering `count` points, the result when no id can resolve.
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn empty(count: usize) -> Self {
         Self {
             labels: vec![Label::EMPTY; count],
@@ -214,17 +216,6 @@ impl<'details> LocateNodeDetails<'details> {
         }
     }
 
-    /// All-`null` details covering `count` points, the result when no id can resolve.
-    #[must_use]
-    pub(crate) fn empty(count: usize) -> Self {
-        Self {
-            labels: IdVec::from_elem(Label::EMPTY, count),
-            type_urls: IdVec::from_elem(Vec::new(), count),
-            source_properties: None,
-            source_properties_complete: false,
-        }
-    }
-
     /// Views the label column, slot order.
     #[inline]
     pub(crate) const fn labels(&self) -> &IdSlice<NodeSlot, &'details Label> {
@@ -295,18 +286,6 @@ impl<'details> LocateLinkDetails<'details> {
         }
     }
 
-    /// All-`null` details covering `count` edges, the result when no id can resolve.
-    #[must_use]
-    pub(crate) fn empty(count: usize) -> Self {
-        Self {
-            labels: IdVec::from_elem(Label::EMPTY, count),
-            type_urls: IdVec::from_elem(Vec::new(), count),
-            type_urls_complete: DenseBitSlice::new_empty(count),
-            properties: IdVec::from_elem(None, count),
-            properties_complete: DenseBitSlice::new_empty(count),
-        }
-    }
-
     /// Views the link label column, slot order.
     #[inline]
     pub(crate) const fn labels(&self) -> &IdSlice<EdgeSlot, &'details Label> {
@@ -360,15 +339,6 @@ impl<'details> EdgeLinkDetails<'details> {
         Self {
             labels,
             representative_type_urls,
-        }
-    }
-
-    /// All-`null` details covering `count` edges, the result when no id can resolve.
-    #[must_use]
-    pub(crate) fn empty(count: usize) -> Self {
-        Self {
-            labels: IdVec::from_elem(Label::EMPTY, count),
-            representative_type_urls: IdVec::from_elem(None, count),
         }
     }
 

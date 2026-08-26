@@ -99,7 +99,6 @@
     generic_atomic,
     impl_trait_in_assoc_type,
     integer_casts,
-    iter_intersperse,
     iter_map_windows,
     iterator_try_collect,
     nonpoison_mutex,
@@ -113,16 +112,19 @@
     variant_count,
     file_buffered,
 )]
-// The dashboard's interrupt path leaves through an exit code, and it is
-// the only consumer of the feature.
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]
+#![cfg_attr(test, feature(iter_intersperse))]
 #![expect(
-    dead_code,
     unsafe_code,
     clippy::float_arithmetic,
     clippy::future_not_send,
     clippy::indexing_slicing
 )]
+// Operator-command machinery is unconditional library code whose one consumer, the command
+// shell, sits behind `cli`, so a build without `cli` marks that machinery dead rather than
+// finding real rot. Bench machinery carries `cfg(any(test, feature = "bench"))` per item, so the
+// dead-code lint is live on every other item in every unit with `cli` on.
+#![cfg_attr(not(feature = "cli"), allow(dead_code))]
 // The documentation's audience is the crate's developers. Module docs link private items on
 // purpose, and readers view the docs under `--document-private-items`, where those links resolve.
 #![allow(rustdoc::private_intra_doc_links)]

@@ -173,43 +173,8 @@ impl SprsFile {
     /// Borrows the parsed header at the head of the mapping.
     #[inline]
     #[must_use]
-    fn header(&self) -> &FileHeader {
+    pub(crate) fn header(&self) -> &FileHeader {
         self.map.header()
-    }
-
-    /// Returns the value type tag.
-    #[inline]
-    #[must_use]
-    pub(crate) fn value(&self) -> ValueTag {
-        self.header().value()
-    }
-
-    /// Returns the value entry width in bytes.
-    #[inline]
-    #[must_use]
-    pub(crate) fn value_width(&self) -> u64 {
-        self.header().value_width()
-    }
-
-    /// Returns the column-index element type.
-    #[inline]
-    #[must_use]
-    pub(crate) fn index(&self) -> IndexVariant {
-        self.header().index()
-    }
-
-    /// Returns the pointer element type.
-    #[inline]
-    #[must_use]
-    pub(crate) fn iptr(&self) -> IndexVariant {
-        self.header().iptr()
-    }
-
-    /// Returns the compressed dimension.
-    #[inline]
-    #[must_use]
-    pub(crate) fn order(&self) -> StorageVariant {
-        self.header().order()
     }
 
     /// Returns the `(rows, columns)` shape.
@@ -230,9 +195,9 @@ impl SprsFile {
 
     /// Views the matrix at its described element types.
     ///
-    /// The view exists exactly for the element combination the header describes
-    /// ([`value`](Self::value) tag and [`value_width`](Self::value_width) both,
-    /// [`index`](Self::index), [`iptr`](Self::iptr)), so a region is never read at the wrong width.
+    /// The view exists exactly for the element combination the header describes (value tag and
+    /// width, column-index width, row-pointer width), so a region is never read at the wrong
+    /// width.
     /// An [`Opaque`](ValueTag::Opaque) value carries no identity beyond its width, which is that
     /// tag's documented contract. A [`Unit`](ValueTag::Unit) matrix stores no value bytes. Its `()`
     /// entries materialize at the recorded entry count, so the structure-only view drives sparse

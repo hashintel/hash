@@ -145,7 +145,7 @@ What the crate does guarantee, independent of the surrounding service:
 ## Limitations
 
 - Each process serves one generation, pinning `current` at startup and never hot-swapping. Restart to serve a newly activated generation.
-- The server rejects `filter` fields by name (`unsupported-feature`) rather than ignoring them - the specification defines the filter surface, and no handler serves it.
+- The server rejects `filter` fields rather than ignoring them: request bodies deny unknown members at parse and answer `invalid-body`. The specification defines the filter surface, and no handler serves it.
 - Row ids do not survive a refit. A client persists anything it keeps in entity-identity terms and re-translates it per generation.
 - The server secret keys wire ids per generation, and nothing fingerprints the secret. Changing it for an already-served generation re-keys every wire id under unchanged cache identity. Treat the secret as immutable per generation, and rotate generations to rotate secrets.
 - Output-affecting serving limits (edge truncation, locate limits) are the same class of operator contract. Nothing fingerprints them, so keep them stable while a generation serves, or rotate the generation and clear application caches.

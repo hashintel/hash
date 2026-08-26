@@ -92,15 +92,6 @@ where
         self.universe
     }
 
-    /// Returns the allocated identities beside their rows, in allocation order.
-    pub(crate) fn allocated(&self) -> impl Iterator<Item = (R, K)> + '_ {
-        let bound = self.bound();
-        self.delta_reverse
-            .iter()
-            .enumerate()
-            .map(move |(index, &id)| (R::from_u64(bound + index as u64), id))
-    }
-
     /// Estimates the extension's resident bytes: the forward map and the reverse index.
     #[must_use]
     pub(crate) fn resident_estimate(&self) -> usize {

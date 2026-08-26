@@ -3,7 +3,9 @@
 use core::{error::Error, fmt};
 use std::path::Path;
 
-use zerocopy::{FromBytes as _, LE, U32, U64};
+#[cfg(test)]
+use zerocopy::U32;
+use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{FileHeader, Node};
 use crate::{
@@ -204,6 +206,7 @@ impl QuadFile {
     }
 
     /// Views the shared type-id array.
+    #[cfg(test)]
     #[must_use]
     fn ids(&self) -> &[U32<LE>] {
         let bytes = self.map.map().region(
@@ -224,6 +227,7 @@ impl QuadFile {
     /// # Panics
     ///
     /// This panics when `node` is at or beyond the node count.
+    #[cfg(test)]
     #[must_use]
     pub(crate) fn type_set(&self, node: u32) -> &[U32<LE>] {
         let posts = self.posts();

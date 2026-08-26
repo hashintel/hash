@@ -17,6 +17,13 @@ use crate::salt::projector::model::Projector;
 pub(crate) type TrainerOptimizer<B> = OptimizerAdaptor<Adam, Projector<B>, B>;
 
 /// Per-parameter Adam moments for the trainer's optimizer.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "the resume checkpoint record is its consumer, and nothing resumes yet"
+    )
+)]
 pub(crate) type TrainerOptimizerRecord<B> =
     <TrainerOptimizer<B> as Optimizer<Projector<B>, B>>::Record;
 
@@ -54,8 +61,8 @@ pub(crate) fn scheduler(schedule: TrainingSchedule) -> CosineAnnealingLrSchedule
 /// The terminal state of one run segment.
 ///
 /// A segment either completes with the advanced training state or ends at the target refusal.
-/// The refusal arm is decision 9's ruled consequence made structural. The record measured
-/// before the refusal rides the refusal as a value, so no unwinding call can drop it.
+/// The record measured before the refusal rides the refusal as a value, so no unwinding call
+/// can drop it.
 // No Debug: the optimizer adaptor inside `Training` does not implement it.
 #[expect(
     clippy::large_enum_variant,

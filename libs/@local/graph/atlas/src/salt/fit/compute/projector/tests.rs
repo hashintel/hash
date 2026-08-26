@@ -294,6 +294,7 @@ fn staged_column(staging: &StagedGeneration) -> Vec<Vec2> {
 
 /// Asserts the staged column is the staged checkpoint's canonical-step projection under the
 /// recorded alignment, bit for bit: checkpoint, evidence, and column describe one field.
+#[track_caller]
 fn assert_column_is_aligned_projection(
     staging: &StagedGeneration,
     options: &ProjectorOptions,
@@ -348,6 +349,7 @@ fn tick_fractions() -> [RefreshFraction; 2] {
 ///
 /// The shares run their own chains, so the agreement is a relative tolerance, not bit
 /// equality.
+#[track_caller]
 fn assert_per_type_additivity(ladder: &LadderEvidence) {
     for step in &ladder.steps {
         let shares = &step.relation_losses;
@@ -535,6 +537,7 @@ fn capped_estimand_draw_probability() {
 }
 
 /// Asserts the persisted calibration body echoes the boundary and the tick readings.
+#[track_caller]
 fn assert_calibration_body(evidence: &ProjectorEvidence, boundary: &BoundaryEvidence) {
     let calibration = evidence
         .proximal_calibration

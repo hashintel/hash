@@ -120,6 +120,14 @@ pub(crate) struct Prepared<'corpus> {
     /// The validated L2 penalty `λ` that preparation applied to the corpus.
     pub regularization: DPositive,
     /// Aggregate weighted class mass `Σ_i w_i u_ic`, positive for every class.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "recorded solver evidence: the solver and fit tests pin the weighted \
+                      class-mass accumulation; no production reader consumes the stored copy"
+        )
+    )]
     pub class_mass: [f64; GeometryClass::COUNT],
     /// The scaled-coordinate diagonal derived from the initial Hessian diagonal.
     pub scaling: Scaling,

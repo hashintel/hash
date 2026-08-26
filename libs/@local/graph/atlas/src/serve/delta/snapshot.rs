@@ -68,18 +68,6 @@ pub(crate) struct DeltaSnapshot {
 }
 
 impl DeltaSnapshot {
-    /// Returns this publication's position in publication order.
-    #[must_use]
-    pub(crate) const fn revision(&self) -> DeltaRevision {
-        self.revision
-    }
-
-    /// Returns the feed position the register had folded through at publication.
-    #[must_use]
-    pub(crate) const fn watermark(&self) -> Timestamp<TransactionTime> {
-        self.watermark
-    }
-
     /// Returns the accepted row universe at publication.
     ///
     /// The bound covers every allocated row whatever its holder's standing, so a wire id a
@@ -88,13 +76,6 @@ impl DeltaSnapshot {
     #[must_use]
     pub(crate) const fn universe(&self) -> Universe<NodeRowId> {
         self.node_rows.universe()
-    }
-
-    /// Returns the accepted edge row universe at publication, under the same one-value law as
-    /// [`Self::universe`].
-    #[must_use]
-    pub(crate) const fn edge_universe(&self) -> Universe<EdgeRowId> {
-        self.edge_rows.universe()
     }
 
     /// Returns whether the snapshot withdraws the entity `id` names, fitted or not.
@@ -169,13 +150,6 @@ impl DeltaSnapshot {
     /// checks answer from one withdrawn set.
     pub(crate) fn withdrawn_edge_rows(&self) -> impl Iterator<Item = EdgeRowId> + '_ {
         self.withdrawn_edges.iter()
-    }
-
-    /// Returns the staged edition of the arrival `id` names, or [`None`] for an identity with no
-    /// staged arrival.
-    #[must_use]
-    pub(crate) fn staged(&self, id: ArchivedEntityId) -> Option<EntityEditionId> {
-        self.staged.get(&id).copied()
     }
 
     /// Returns every staged arrival, keyed to its newest feed edition.
@@ -371,16 +345,6 @@ impl<'scope> PlacementCohort<'scope> {
     pub(crate) const fn universe(self, base: Universe<NodeRowId>) -> Universe<NodeRowId> {
         match self.snapshot {
             Some(snapshot) => snapshot.universe(),
-            None => base,
-        }
-    }
-
-    /// Returns the accepted edge row universe reads under this cohort take, `base` for an
-    /// empty one, under the same one-value law as [`Self::universe`].
-    #[must_use]
-    pub(crate) const fn edge_universe(self, base: Universe<EdgeRowId>) -> Universe<EdgeRowId> {
-        match self.snapshot {
-            Some(snapshot) => snapshot.edge_universe(),
             None => base,
         }
     }

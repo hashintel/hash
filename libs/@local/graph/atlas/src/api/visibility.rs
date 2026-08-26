@@ -102,11 +102,6 @@ pub(super) struct Resolved {
 }
 
 impl Resolved {
-    /// Returns the rows the scope may see.
-    pub(super) fn proof(&self) -> &VisibilityProof {
-        self.entry.proof()
-    }
-
     /// Returns the scope's occupancy aggregate, absent for a corpus proof.
     ///
     /// The corpus schedule has one cut per zoom and takes no offset, so an operator scope holds

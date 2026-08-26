@@ -83,6 +83,7 @@ use crate::{
 
 pub(crate) mod auxiliary;
 pub(crate) mod card;
+#[cfg(test)]
 pub(crate) mod memory;
 pub(crate) mod offline;
 pub(crate) mod ontology;

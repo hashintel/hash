@@ -29,8 +29,8 @@ mod tests;
 /// re-validating.
 ///
 /// The primary workflow is: gather the extent of a point set with
-/// [`from_points`](Self::from_points), then map it onto a target region with [`fit`](Self::fit),
-/// which yields a [`Transform`] to apply to the points (in batches via [`Transform::apply_x4`]).
+/// [`from_points`](Self::from_points), then map the points onto a target region with
+/// [`normalize_into`](Self::normalize_into), the per-axis affine box-to-box map.
 ///
 /// # Examples
 ///
@@ -236,7 +236,7 @@ impl Bounds2 {
     /// Symmetrically around its centre.
     ///
     /// This repairs degenerate boxes (all points on a line, or a single point) before operations
-    /// that divide by the extent, such as [`fit`](Self::fit) or density rasterization.
+    /// that divide by the extent, such as box-to-box fitting or density rasterization.
     #[inline]
     #[must_use]
     pub(crate) fn with_minimum_extent(self, minimum: f32) -> Self {
@@ -260,7 +260,7 @@ impl Bounds2 {
     /// This is the viewport operation for a grid of square cells. A point set drawn on `across` by
     /// `down` cells keeps its own shape when this method grows its extent to `across / down` first,
     /// because equal extent per cell on both axes is what one square cell means. Fitting the grown
-    /// box with [`fit`](Self::fit) then scales both axes by the same factor.
+    /// box onto its target then scales both axes by the same factor.
     ///
     /// An axis with no extent grows out of the other one, so a point set collapsed onto a line
     /// still yields a viewport. A box degenerate on both axes has no extent to take a ratio of and

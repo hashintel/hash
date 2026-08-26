@@ -13,7 +13,7 @@
 //! A unit's weight retains exactly the released factors that are unit mass. The per-instance
 //! effective confidence and degree normalization enter, and so does the relation's frozen
 //! strength multiplier. The class masses stay out because they weight the penalty family's class
-//! energies, which decision 4 owns. The composite objective's term coefficient stays out because
+//! energies rather than unit mass. The composite objective's term coefficient stays out because
 //! composition carries no per-unit structure. The step factor selects the canonical condition and
 //! never multiplies, so the canonical coordinates handed to this term are the canonical step's
 //! field and no lens factor exists here. The force-pruning threshold decides population
@@ -46,18 +46,24 @@ use crate::{
     salt::projector::gauge::{GaugeFit, GaugeOrdinal},
 };
 
-/// The declared decision-5 unit law: what one estimand unit is, over the admitted attraction
-/// instances.
+/// The declaration of what one estimand unit is, over the admitted attraction instances.
 ///
-/// The unit of account is domain identity - decision 5's open row - and d6 fixes only the
-/// factorization conditional on the declaration. The trainer therefore consumes the law as a
-/// declared input and conditions every population derivation on it, closing nothing the
-/// ledger keeps open: a ruling adds a variant here and its derivations at the match arms the
-/// compiler names.
+/// The unit of account is domain identity, declared rather than derived, and only the
+/// factorization conditional on that declaration is fixed here. The trainer consumes the law as
+/// a declared input and conditions every population derivation on it: a new declaration adds a
+/// variant here and its derivations at the match arms the compiler names.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum UnitLaw {
     /// One unit per admitted force-bearing link instance, weighted by the released census
     /// factors - the released pipeline's own unit of account.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the selected unit law for the planned calibration; consumed when the band \
+                      trainer is wired"
+        )
+    )]
     PerLinkInstance,
 }
 
@@ -65,7 +71,7 @@ pub(crate) enum UnitLaw {
 ///
 /// The endpoint rows speak the coordinate domain the term evaluates against. The ruler is the
 /// pair's frozen band-reference scale, gathered from the frozen table before re-indexing. The
-/// weight is the unit's declared mass, aggregated over the unit's instances as decision 5
+/// weight is the unit's declared mass, aggregated over the unit's instances as the unit law
 /// declares. The inclusion probability is the draw law's full first-order probability for this
 /// unit, the divisor that makes the batch sum unbiased.
 #[derive(Debug, Copy, Clone, PartialEq)]

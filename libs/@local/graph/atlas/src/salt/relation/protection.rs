@@ -78,12 +78,6 @@ pub(crate) struct PairEvidence {
     pub undiscounted: f32,
 }
 
-impl SprsValue for PairEvidence {
-    // Opaque on purpose: the pair is this stage's vocabulary, not a scalar the format vocabulary
-    // pins. Width is the wire identity.
-    const TAG: ValueTag = ValueTag::Opaque;
-}
-
 impl PairEvidence {
     /// Returns the pair's evidence mass under an applicability floor.
     ///
@@ -94,6 +88,12 @@ impl PairEvidence {
     pub(crate) fn mass(self, floor: f32) -> f32 {
         self.discounted.max(floor * self.undiscounted)
     }
+}
+
+impl SprsValue for PairEvidence {
+    // Opaque on purpose: the pair is this stage's vocabulary, not a scalar the format vocabulary
+    // pins. Width is the wire identity.
+    const TAG: ValueTag = ValueTag::Opaque;
 }
 
 /// One protection channel's applicability floor and admission threshold, valid by construction.
@@ -283,6 +283,7 @@ impl PairVerdict {
 
 /// One protected partner of a row.
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg(any(test, feature = "bench"))]
 pub(crate) struct ProtectedPartner<N> {
     /// The other endpoint's node row.
     pub partner: N,
@@ -475,6 +476,7 @@ where
     /// Returns the stored entry count, counting each pair twice.
     #[inline]
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn entries(&self) -> usize {
         self.0.nnz()
     }
@@ -484,6 +486,7 @@ where
     /// # Panics
     ///
     /// This panics when `row` is outside the matrix's row domain.
+    #[cfg(any(test, feature = "bench"))]
     pub(crate) fn row(&self, row: N) -> impl Iterator<Item = ProtectedPartner<N>> + '_ {
         let (columns, evidence) = self
             .0

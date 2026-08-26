@@ -716,6 +716,7 @@ async fn corpus_readings_match_a_sorting_reference() {
 ///
 /// Under singleton labels the collapse is the identity, so any disagreement is a defect in the
 /// collapse itself rather than in the grouping.
+#[track_caller]
 fn assert_singleton_collapse_matches_plain_recall(
     clumps: &ClumpReadings,
     readings: &ProbeReadings<NodeRowId>,

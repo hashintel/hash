@@ -163,6 +163,7 @@ impl<'policy> Policies<'policy> {
     /// # Errors
     ///
     /// Returns an error when the policies are not strictly ascending by relation row.
+    #[cfg(any(test, feature = "bench"))]
     pub(crate) fn new(
         policies: &'policy [RelationPolicy],
     ) -> Result<Self, error::RelationIndexError> {
@@ -229,6 +230,7 @@ impl BuildMeasurements {
     /// This quantity audits the pruning threshold: a threshold is admissible while the omitted
     /// fraction stays numerically negligible. An instance set without positive mass omits nothing.
     #[must_use]
+    #[cfg(any(test, feature = "bench"))]
     pub(crate) fn omitted_mass_fraction(&self) -> UnitFraction {
         let total = self.retained_mass.get() + self.pruned_mass.get();
 

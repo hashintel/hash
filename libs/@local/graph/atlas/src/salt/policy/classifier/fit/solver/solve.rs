@@ -97,6 +97,14 @@ pub(crate) struct SolverRun {
     /// Control state at termination, counters included.
     pub control: SolverControl,
     /// Certificate evidence, present once the solve derives the threshold.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "recorded solver evidence: the solver tests pin the derived threshold and \
+                      its tie case; no production reader consumes the stored copy"
+        )
+    )]
     pub certificate: Option<CertificateEvidence>,
     /// One receipt per started outer iteration under a debugging request. A routine fit leaves
     /// this empty.

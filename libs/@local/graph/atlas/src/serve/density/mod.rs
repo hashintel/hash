@@ -98,6 +98,7 @@ impl DensityBand {
     /// assert_eq!(band.distance(4_500), 500);
     /// ```
     #[must_use]
+    #[cfg(test)]
     pub(crate) const fn new(lower: NonZero<u64>, upper: NonZero<u64>) -> Option<Self> {
         if upper.get() < lower.get() {
             return None;
@@ -248,8 +249,6 @@ impl DensityPolicy {
     ///
     /// let span = Log2::new(6).expect("6 lies below the shift width");
     /// let policy = DensityPolicy::new(DensityBand::default(), span, 18)?;
-    ///
-    /// assert_eq!(policy.band(), DensityBand::default());
     /// ```
     pub(crate) fn new(
         band: DensityBand,

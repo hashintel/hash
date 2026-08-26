@@ -8,7 +8,6 @@ fn zeroed_matrix_reads_zero_everywhere() {
     let matrix = MatrixN::<8>::zeroed(3);
 
     assert_eq!(matrix.len(), 3);
-    assert!(!matrix.is_empty());
     assert_eq!(matrix.as_components(), &[0.0; 24]);
     assert_eq!(matrix.rows().len(), 3);
 }
@@ -66,7 +65,6 @@ fn clone_is_equal_and_independent() {
 fn empty_matrix_is_well_formed() {
     let matrix = MatrixN::<8>::zeroed(0);
 
-    assert!(matrix.is_empty());
     assert!(matrix.rows().is_empty());
     assert!(matrix.as_components().is_empty());
     assert_eq!(matrix, matrix.clone());

@@ -162,23 +162,13 @@ where
 /// The pairing claims one row domain and nothing more. Scales are detached measurements that a
 /// consumer may read against a re-forwarded frame from a later step, so which frame measured them
 /// stays the call site's contract rather than this type's.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct ScaledFrame<'frame, N> {
     /// The placed coordinates.
     coordinates: &'frame FinitePointField<N>,
     /// The rows' local scales.
     scales: &'frame LocalScales<N>,
 }
-
-// Manual, so the copy exists for every `N`: the derives would demand `N: Copy` for two borrowed
-// fields that copy regardless.
-impl<N> Clone for ScaledFrame<'_, N> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<N> Copy for ScaledFrame<'_, N> {}
 
 impl<'frame, N> ScaledFrame<'frame, N>
 where

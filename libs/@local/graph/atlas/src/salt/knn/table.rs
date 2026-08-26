@@ -280,25 +280,6 @@ where
         Self::new(matrix).map_err(From::from)
     }
 
-    /// Returns the node-row count.
-    #[inline]
-    #[must_use]
-    pub(crate) fn rows(&self) -> usize {
-        self.0.rows()
-    }
-
-    /// Returns the stored non-self neighbours per row.
-    #[expect(
-        clippy::integer_division,
-        clippy::integer_division_remainder_used,
-        reason = "the row count divides the entry count exactly by the uniform-rows invariant"
-    )]
-    #[inline]
-    #[must_use]
-    pub(crate) fn neighbours(&self) -> usize {
-        self.0.nnz() / self.0.rows()
-    }
-
     /// Borrows the table.
     #[inline]
     #[must_use]
@@ -311,13 +292,6 @@ where
     #[must_use]
     pub(crate) fn matrix(&self) -> KnnMatrixView<'_> {
         self.0.view()
-    }
-
-    /// Unwraps the neighbour matrix.
-    #[inline]
-    #[must_use]
-    pub(crate) fn into_matrix(self) -> KnnMatrix {
-        self.0
     }
 }
 

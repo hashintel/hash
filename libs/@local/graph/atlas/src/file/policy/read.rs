@@ -1,4 +1,11 @@
 //! Opened policy files.
+#![cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "the mapped policy-table re-read is the designed reader, not yet implemented"
+    )
+)]
 
 use core::{error::Error, fmt};
 use std::path::Path;

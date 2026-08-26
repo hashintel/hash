@@ -17,11 +17,19 @@ use super::{
     phrase::Phrase,
     prelude::Prelude,
     select::{Candidate, DEFAULT_GROUP_SLOT_CAP, Group, Selected, select_diverse_examples},
-    text::slugify,
     token::{HeuristicTokenizer, ReservedTokenError, Tokenizer as _},
 };
 
 const BIG: usize = 10_000_000;
+
+/// Normalizes a label into a slug.
+///
+/// Transliterated to ASCII, lowercased, and joined by hyphens at word boundaries.
+fn slugify(label: &str) -> String {
+    let mut label: String = label.split_whitespace().intersperse("-").collect();
+    label.make_ascii_lowercase();
+    label
+}
 
 fn context() -> CardContext<UnicodeSegmenter, HeuristicTokenizer> {
     CardContext {
@@ -348,20 +356,6 @@ fn single_simple_pair_keeps_the_legacy_unambiguous_sections() {
     assert!(!text.contains("Endpoint constraints:"));
     assert!(text.contains("Source types:\n  - Person\n"));
     assert!(text.contains("Target types:\n  - Asset\n"));
-}
-
-#[test]
-fn slugify_transliterates_and_joins_words() {
-    assert_eq!(slugify("part of"), "part-of");
-    assert_eq!(slugify("Caf\u{e9} P2P"), "cafe-p2p");
-    // Transliterations that emit separators ("Bei ", "1/2") become word
-    // boundaries.
-    assert_eq!(
-        slugify("\u{5317}\u{4eac} Restaurant"),
-        "bei-jing-restaurant"
-    );
-    assert_eq!(slugify("\u{bd} split"), "1-2-split");
-    assert_eq!(slugify("  "), "");
 }
 
 #[test]

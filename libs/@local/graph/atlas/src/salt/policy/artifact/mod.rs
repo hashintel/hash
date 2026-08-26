@@ -5,7 +5,14 @@
 //! reopens the file over a whole-file mapping and validates the table invariants once. An open
 //! table then serves its rows as a borrowed [`RelationPolicy`] slice. The domain type's `repr(C)`
 //! layout is the file's pinned wire row, so reads decode nothing.
-
+#![cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "the mapped policy-table re-read is the designed reader, the consumer is work in \
+                  progress"
+    )
+)]
 use core::{error::Error, fmt, mem::offset_of};
 use std::io;
 

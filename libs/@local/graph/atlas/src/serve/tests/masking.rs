@@ -641,6 +641,7 @@ async fn composition_law_holds_under_random_masks() {
 /// exactly the visible rows, and no hidden row shows up - the intersection with the corpus
 /// schedule is not the law, because a visible row may claim a shallower cell once its hidden
 /// competitor is out of its view.
+#[track_caller]
 fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hidden: &[u32]) {
     let node_codec = test_codec(atlas);
     let hidden_wire: HashSet<u32> = hidden
@@ -706,14 +707,8 @@ fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hid
     }
 }
 
-/// Returns whether `part` occurs in `whole` in order.
-fn is_subsequence(part: &[u32], whole: &[u32]) -> bool {
-    let mut candidates = whole.iter();
-    part.iter()
-        .all(|target| candidates.any(|candidate| candidate == target))
-}
-
 /// The masked grid answers the qualifying computation over the visible row set, byte for byte.
+#[track_caller]
 fn assert_edges_mask_by_intersection(
     generation: &Generation,
     atlas: &Atlas,
@@ -743,6 +738,7 @@ fn assert_edges_mask_by_intersection(
 
 /// Every fixture identity translates exactly when visible (nodes) or when both endpoints are
 /// (edges).
+#[track_caller]
 fn assert_translate_masks_by_visibility(atlas: &Atlas, proof: &VisibilityProof, hidden: &[u32]) {
     use crate::serve::translate::{TranslateLimits, TranslateRequest};
 
@@ -792,6 +788,7 @@ fn assert_translate_masks_by_visibility(atlas: &Atlas, proof: &VisibilityProof, 
 /// exactly the visible cardinality. Hidden partners drop before selection, so the tight cap
 /// truncates nothing and delivers the whole visible set, complete and independent of the truncation
 /// key. Selecting first and masking after would come up short in exactly these configurations.
+#[track_caller]
 fn assert_locate_delivers_the_visible_ego_graph(
     atlas: &Atlas,
     proof: &VisibilityProof,

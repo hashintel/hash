@@ -70,7 +70,7 @@ fn shipped_shape_parses() {
     assert!(verdicts.pair_verdicts().is_empty());
     assert_eq!(
         verdicts
-            .sources()
+            .sources
             .get("cards.jsonl")
             .expect("the fixture records one source")
             .to_string(),

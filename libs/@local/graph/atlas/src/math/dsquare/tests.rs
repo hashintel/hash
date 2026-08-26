@@ -329,7 +329,7 @@ fn the_strict_upper_triangle_never_reaches_the_factor() {
 fn the_zero_matrix_reads_zero_everywhere() {
     let matrix = DSquareMatrix::zeroed(3);
 
-    assert_eq!(matrix.order(), 3);
+    assert_eq!(matrix.order, 3);
     for row in 0..3 {
         assert_eq!(matrix.row(row).len(), 3);
         assert!(
@@ -392,7 +392,7 @@ fn the_empty_matrix_factors_and_solves() {
         .cholesky()
         .expect("no pivots exist to fail");
 
-    assert_eq!(factor.order(), 0);
+    assert_eq!(factor.order, 0);
     factor.solve_in_place(&mut []);
 }
 
@@ -409,7 +409,7 @@ fn exact_factor_reports_its_order_and_debug_forms() {
     assert_eq!(format!("{matrix:?}"), "[[4.0, 2.0], [2.0, 5.0]]");
 
     let factor = matrix.cholesky().expect("the matrix is positive definite");
-    assert_eq!(factor.order(), 2);
+    assert_eq!(factor.order, 2);
     assert_eq!(format!("{factor:?}"), "[[2.0], [1.0, 2.0]]");
 }
 

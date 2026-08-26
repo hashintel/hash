@@ -178,14 +178,6 @@ impl PendingCacheEntry {
         })
     }
 
-    /// Returns the scope's occupancy aggregate, absent for a corpus proof.
-    ///
-    /// The value [`CacheEntry::occupancy`] seals, aggregated from the store's answer alone,
-    /// before the entry folded its snapshot's withdrawals.
-    pub(crate) const fn occupancy(&self) -> Option<&ViewOccupancy> {
-        self.occupancy.as_ref()
-    }
-
     /// Pairs `proof` with the empty view's census and schedule.
     ///
     /// The cache neither reads a census or schedule nor derives one, so its own tests - over

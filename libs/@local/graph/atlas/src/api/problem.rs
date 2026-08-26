@@ -37,9 +37,6 @@ pub(super) enum ProblemType {
     /// A generation path segment that is not a sha256 generation id.
     #[serde(rename = "/problems/atlas/invalid-generation")]
     InvalidGeneration,
-    /// A surface the contract pins but this build does not serve.
-    #[serde(rename = "/problems/atlas/unsupported-feature")]
-    UnsupportedFeature,
     /// An edges body listing more tiles than the manifest's cap.
     #[serde(rename = "/problems/atlas/too-many-tiles")]
     TooManyTiles,

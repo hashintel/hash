@@ -209,7 +209,7 @@ async fn embeds_each_unique_text_once_in_row_order() {
     );
 
     let view = table.view();
-    assert_eq!(view.len(), 3);
+    assert_eq!(view.hashes.len(), 3);
     assert_eq!(component_zero(view, 0), 5.0);
     assert_eq!(component_zero(view, 1), 4.0);
     assert_eq!(component_zero(view, 2), 5.0);
@@ -453,7 +453,7 @@ async fn embeds_nothing_for_an_empty_card_list() {
 
     assert!(embedder.calls().is_empty());
     assert_eq!(stats, CardEmbeddingStats::default());
-    assert!(table.view().is_empty());
+    assert!(table.view().hashes.is_empty());
 
     let mut bytes = Vec::new();
     table
@@ -470,7 +470,7 @@ fn view_exists_exactly_for_row_aligned_columns() {
 
     let view = CardEmbeddingView::new(fingerprint(b"contract"), &hashes, rows)
         .expect("one row per hash should form a view");
-    assert_eq!(view.len(), 2);
+    assert_eq!(view.hashes.len(), 2);
     assert!(view.embedding(OntologyRowId::new(2)).is_none());
 
     // The count clause, violated from either side.
@@ -524,7 +524,7 @@ async fn writes_the_embedding_matrix_as_an_array_file() {
     let header = PaddedFileHeader::try_ref_from_bytes(&bytes[..PAGE_BYTES])
         .expect("the written header should parse");
     assert_eq!(header.variant(), ArrayVariant::F32);
-    let extents: Vec<u64> = header.shape().dims().iter().map(|dim| dim.get()).collect();
+    let extents: Vec<u64> = header.shape.dims().iter().map(|dim| dim.get()).collect();
     assert_eq!(extents, [3, CANONICAL_DIMENSIONS as u64]);
     assert_eq!(
         header.expected_file_len(),
@@ -565,7 +565,7 @@ async fn writes_the_hash_column_as_an_array_file() {
     let header = PaddedFileHeader::try_ref_from_bytes(&bytes[..PAGE_BYTES])
         .expect("the written header should parse");
     assert_eq!(header.variant(), ArrayVariant::U8);
-    let extents: Vec<u64> = header.shape().dims().iter().map(|dim| dim.get()).collect();
+    let extents: Vec<u64> = header.shape.dims().iter().map(|dim| dim.get()).collect();
     assert_eq!(extents, [3, 32]);
     assert_eq!(header.expected_file_len(), Some(bytes.len() as u64));
 

@@ -142,6 +142,12 @@ pub(crate) enum Version {
 }
 
 /// The element type of an array file.
+#[expect(
+    dead_code,
+    reason = "currently unused variants constitute valid variantions and may be used in the \
+              immediate future, omitting them now means that the variant indices would be out of \
+              order and would require breaking changes."
+)]
 #[derive(
     Debug,
     Copy,
@@ -173,9 +179,7 @@ pub(crate) enum ArrayVariant {
     F32 = 0x0D,
     F64 = 0x0E,
     F128 = 0x0F,
-    // The little-endian block mirrors the native block in order:
-    // these variants carry their byte order in the element type and
-    // read identically on every architecture.
+
     U8Le = 0x10,
     U16Le = 0x11,
     U32Le = 0x12,
@@ -398,13 +402,6 @@ impl FileHeader {
     #[must_use]
     pub(crate) const fn architecture(&self) -> Architecture {
         self.machine.architecture()
-    }
-
-    /// Borrows the shape.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn shape(&self) -> &ArrayShape {
-        &self.shape
     }
 
     /// Returns the data length in bytes.

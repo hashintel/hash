@@ -81,15 +81,13 @@ impl Similarity {
 
     /// Returns the root-mean-square residual of large fields in parallel.
     ///
-    /// The contract is identical to [`rms_residual`](Self::rms_residual), including its
-    /// panics. The chunked reduction carries [`fit_par`](Self::fit_par)'s
-    /// units-in-the-last-place caveat and the same break-even near a hundred thousand pairs.
-    /// Work splits into chunks of [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
+    /// The chunked reduction carries [`fit_par`](Self::fit_par)'s units-in-the-last-place
+    /// caveat and the same break-even near a hundred thousand pairs. Work splits into chunks of
+    /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
     ///
     /// # Panics
     ///
-    /// This panics when the field lengths differ or the fields are empty, exactly as
-    /// [`rms_residual`](Self::rms_residual) does.
+    /// This panics when the field lengths differ or the fields are empty.
     #[must_use]
     pub(crate) fn rms_residual_par<I: Id>(
         self,

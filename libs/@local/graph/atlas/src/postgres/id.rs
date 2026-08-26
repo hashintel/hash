@@ -36,6 +36,7 @@ pub(crate) struct ArchivedEntityUuid([u8; 16]);
 
 impl ArchivedEntityUuid {
     /// Wraps raw uuid bytes.
+    #[cfg(test)]
     pub(crate) const fn from_bytes(bytes: [u8; 16]) -> Self {
         Self(bytes)
     }
@@ -106,6 +107,7 @@ pub(crate) struct ArchivedWebId([u8; 16]);
 
 impl ArchivedWebId {
     /// Wraps raw uuid bytes.
+    #[cfg(test)]
     pub(crate) const fn from_bytes(bytes: [u8; 16]) -> Self {
         Self(bytes)
     }
@@ -237,15 +239,6 @@ impl ArchivedOntologyTypeUuid {
     #[inline]
     pub(crate) fn from_url(url: &VersionedUrl) -> Self {
         Self::from(OntologyTypeUuid::from_url(url).into_uuid())
-    }
-
-    /// Views store uuids through their archived representation, without copying.
-    pub(crate) const fn from_slice(slice: &[OntologyTypeUuid]) -> &[Self] {
-        // SAFETY: `Self` is `repr(transparent)` over a 16-byte array, and `OntologyTypeUuid`
-        // is `repr(transparent)` over `Uuid`, itself `repr(transparent)` over the same 16-byte
-        // array. Both element types therefore share size 16 and alignment 1, every bit pattern
-        // is valid for both, and the element count carries over unchanged.
-        unsafe { core::slice::from_raw_parts(slice.as_ptr().cast::<Self>(), slice.len()) }
     }
 
     /// Views archived uuids through the store's uuid type, without copying.

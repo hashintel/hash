@@ -425,6 +425,7 @@ impl ScopeSchedule {
     }
 
     /// Builds the empty schedule: nothing delivers, and no cell holds a row at any depth.
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self::over(Vec::new(), Box::new_in([], MemoryUsageAllocator::global()))
     }

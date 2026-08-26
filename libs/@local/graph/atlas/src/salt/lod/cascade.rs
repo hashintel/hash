@@ -164,6 +164,7 @@ pub(crate) fn separation_buckets<T>(
 
 /// A cell some published prefix fails to cover.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg(any(test, feature = "bench"))]
 pub(crate) struct CoverageGap {
     /// The grid depth of the uncovered cell.
     pub depth: Depth,
@@ -181,6 +182,7 @@ pub(crate) struct CoverageGap {
 /// # Panics
 ///
 /// This panics when `keys` and `buckets` disagree on the row count.
+#[cfg(any(test, feature = "bench"))]
 #[expect(
     clippy::panic_in_result_fn,
     reason = "mismatched row counts are a programmer error, not a coverage gap"

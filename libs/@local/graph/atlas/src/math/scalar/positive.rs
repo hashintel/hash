@@ -6,7 +6,7 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use super::{DPositive, Negative, raw_interop, unsafe_impl_try_from_bytes};
+use super::{DPositive, Finite, Negative, raw_interop, unsafe_impl_try_from_bytes};
 
 /// Validates a positive literal at compile time.
 ///
@@ -291,6 +291,20 @@ const impl From<Positive> for f64 {
     fn from(value: Positive) -> Self {
         // `f64::from` is not const-callable. The widening cast is lossless.
         value.0 as f64
+    }
+}
+
+const impl core::ops::Sub for Positive {
+    type Output = Finite;
+
+    /// Subtracts, into the finite domain.
+    ///
+    /// The difference of two positive finite values is finite, with no re-validation: its
+    /// magnitude never exceeds the larger operand, so the subtraction cannot overflow. Equal
+    /// operands give `+0.0`.
+    #[inline]
+    fn sub(self, rhs: Self) -> Finite {
+        Finite::new_unchecked(self.0 - rhs.0)
     }
 }
 

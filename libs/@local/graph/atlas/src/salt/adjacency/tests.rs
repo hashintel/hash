@@ -81,39 +81,11 @@ fn build_matches_the_hand_computed_lists() {
     assert_eq!(list(mapped.incoming(NodeRowId::new(1))), [0, 3]);
     assert_eq!(list(mapped.incoming(NodeRowId::new(3))), [1, 2]);
 
-    // The incident slice concatenates the runs; the self-loop occurs
-    // in both.
-    assert_eq!(list(mapped.incident(NodeRowId::new(3))), [2, 1, 2]);
-    assert_eq!(mapped.degree(NodeRowId::new(3)), Some(3));
-    assert_eq!(mapped.degree(NodeRowId::new(4)), Some(0));
+    assert_eq!(list(mapped.incoming(NodeRowId::new(4))), [] as [u64; 0]);
 
     // Out-of-domain rows answer None.
     assert!(mapped.outgoing(NodeRowId::new(5)).is_none());
-    assert!(mapped.degree(NodeRowId::new(5)).is_none());
-}
-
-#[test]
-fn contains_agrees_with_a_linear_scan() {
-    let dir = scratch("contains");
-    let adjacency = Adjacency::build(ROWS, &ENDPOINTS);
-    let mapped = mapped(&dir, "fixture.sprs", &adjacency);
-
-    for node in 0..ROWS as u64 {
-        for direction in [
-            mapped.outgoing(NodeRowId::new(node)),
-            mapped.incoming(NodeRowId::new(node)),
-        ] {
-            let run = direction.expect("the node row is in domain");
-            for edge in 0..ENDPOINTS.len() as u64 {
-                let linear = run.iter().any(|held| held.as_u64() == edge);
-                assert_eq!(
-                    run.contains(EdgeRowId::new(edge)),
-                    linear,
-                    "node {node} edge {edge}",
-                );
-            }
-        }
-    }
+    assert!(mapped.incoming(NodeRowId::new(5)).is_none());
 }
 
 #[test]
@@ -124,12 +96,8 @@ fn edgeless_corpus_builds_empty_lists() {
 
     assert_eq!(mapped.rows(), 2);
     assert_eq!(mapped.edges(), 0);
-    assert!(
-        mapped
-            .incident(NodeRowId::new(0))
-            .expect("row 0 is in domain")
-            .is_empty()
-    );
+    assert_eq!(list(mapped.outgoing(NodeRowId::new(0))), [] as [u64; 0]);
+    assert_eq!(list(mapped.incoming(NodeRowId::new(0))), [] as [u64; 0]);
 }
 
 /// Writes a hand-built structure-only matrix and opens it as a mapped adjacency.
@@ -255,8 +223,8 @@ fn build_is_independent_of_the_endpoint_values_within_a_row() {
     let mapped = mapped(&dir, "permuted.sprs", &adjacency);
 
     assert_eq!(list(mapped.outgoing(NodeRowId::new(0))), [0, 2]);
+    assert_eq!(list(mapped.outgoing(NodeRowId::new(3))), [3]);
     assert_eq!(list(mapped.incoming(NodeRowId::new(3))), [1, 3]);
-    assert_eq!(list(mapped.incident(NodeRowId::new(3))), [3, 1, 3]);
 }
 
 /// Wide indices read back through the same accessors.

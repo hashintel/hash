@@ -96,19 +96,6 @@ impl Grid {
         (0..=cut.get()).map(|bucket| Depth::new(bucket).expect("bounded by the validated cut"))
     }
 
-    /// Iterates the delta schedule of zoom `z`: the buckets the zoom newly delivers.
-    ///
-    /// The root delivers its whole cut range. Every deeper zoom delivers exactly its cut.
-    ///
-    /// # Panics
-    ///
-    /// As [`cut`](Self::cut).
-    pub(super) fn level_buckets(self, z: u8) -> impl Iterator<Item = Depth> {
-        let cut = self.cut(z);
-        let first = if z == 0 { 0 } else { cut.get() };
-        (first..=cut.get()).map(|bucket| Depth::new(bucket).expect("bounded by the validated cut"))
-    }
-
     /// Returns the first zoom whose cumulative schedule delivers bucket `bucket`.
     ///
     /// Bucket `b` first enters the schedule at zoom `b - span`, clamped to the root for the buckets

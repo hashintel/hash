@@ -412,11 +412,6 @@ impl<'doc> PropertyMap<'doc> {
         Self { entries }
     }
 
-    /// Views the entries, keys ascending.
-    pub(crate) const fn entries(&self) -> &[PropertyEntry<'doc>] {
-        &self.entries
-    }
-
     fn encode(&self, cbor: &mut CborWriter<'_>) {
         cbor.map(self.entries.len() as u64);
         for &(index, ref value) in &self.entries {

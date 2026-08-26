@@ -54,10 +54,18 @@ pub(crate) enum CheckpointError {
     /// The decoded parameters do not describe the architecture.
     Architecture(ArchitectureMismatch),
     /// The decoded schedule fields do not form a valid schedule.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "no fit caller resumes from a checkpoint yet")
+    )]
     InvalidSchedule,
     /// The decoded scheduler position does not sit at the schedule's boundary.
     ///
     /// The record's parts describe two different runs.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "no fit caller resumes from a checkpoint yet")
+    )]
     SchedulerPosition { position: usize, boundary: usize },
 }
 

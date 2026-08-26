@@ -146,6 +146,7 @@ fn component(gradient: DVec2, axis: usize) -> f32 {
     [gradient.x(), gradient.y()][axis] as f32
 }
 
+#[track_caller]
 fn assert_derivative_close(derivative: f32, difference: f32, context: &str) {
     assert!(
         (derivative - difference).abs() <= 2e-2_f32.mul_add(difference.abs(), 1e-3),
@@ -371,12 +372,12 @@ fn gradient_field_accumulates_and_resets() {
     field.accumulate(BatchRowId::new(0), Vec2::new(0.5, 0.5));
     field.accumulate(BatchRowId::new(2), Vec2::new(-1.0, 4.0));
 
-    assert_eq!(field.rows(), 3);
+    assert_eq!(field.0.len(), 3);
     assert_eq!(gradient(&field, 0), DVec2::from(Vec2::new(1.5, -1.5)));
     assert_eq!(gradient(&field, 1), DVec2::from(Vec2::splat(0.0)));
     assert_eq!(gradient(&field, 2), DVec2::from(Vec2::new(-1.0, 4.0)));
 
-    field.reset();
+    field.0.fill(DVec2::ZERO);
     assert!(field.as_slice().iter().all(|&entry| entry == DVec2::ZERO));
 }
 

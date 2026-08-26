@@ -196,8 +196,30 @@ pub(crate) enum NodeRole {
     /// A knowledge-graph entity.
     KnowledgeEntity,
     /// An ontology type projected as a first-class map citizen.
+    ///
+    /// The role axis sizes trained models by variant count, so the variant stays in every unit
+    /// while only the training corpus generators construct it today.
+    #[cfg_attr(
+        not(any(test, feature = "bench")),
+        expect(
+            dead_code,
+            reason = "no production path constructs this role yet; the variant count sizes the \
+                      trained role table, so retiring it is a model-format change"
+        )
+    )]
     OntologyType,
     /// A supported row that is neither of the above.
+    ///
+    /// The role axis sizes trained models by variant count, so the variant stays in every unit
+    /// while only the training corpus generators construct it today.
+    #[cfg_attr(
+        not(any(test, feature = "bench")),
+        expect(
+            dead_code,
+            reason = "no production path constructs this role yet; the variant count sizes the \
+                      trained role table, so retiring it is a model-format change"
+        )
+    )]
     Other,
 }
 

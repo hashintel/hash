@@ -495,7 +495,7 @@ fn replay_children_mask(rows: &[ScopeRow], clamped: &[u8], cell: MortonCell, cut
     reason = "the replay sweeps every cut query in one place, and splitting it would part the \
               oracle from the assertions it feeds"
 )]
-fn schedule_cuts_match_the_quadratic_replay_over_adversarial_rows() {
+fn cuts_match_the_quadratic_replay() {
     let grid = Grid::new(FIXTURE_LOD).expect("the fixture lod lies on the key width");
     let span = grid.span_log2();
     let max_tile = grid.max_tile_depth();

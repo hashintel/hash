@@ -516,7 +516,10 @@ fn assignment_maps_rows_to_their_nearest_landmark() {
         assignment.as_slice().as_raw(),
         &*ordinals(&[0, 0, 1, 1, 2, 2])
     );
-    assert_eq!(assignment.get(NodeRowId::new(3)), LandmarkOrdinal::new(1));
+    assert_eq!(
+        assignment.as_slice()[NodeRowId::new(3)],
+        LandmarkOrdinal::new(1)
+    );
     assert_eq!(assignment.landmarks(), 3);
 }
 

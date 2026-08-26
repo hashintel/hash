@@ -252,12 +252,4 @@ impl<'scope> View<'scope> {
     pub(super) const fn cohort(&self) -> PlacementCohort<'scope> {
         self.cohort
     }
-
-    /// Returns whether the view serves the generation's corpus schedule.
-    ///
-    /// True exactly for an operator proof, which is what binding proved when it accepted the pair.
-    #[must_use]
-    pub(crate) const fn is_full(&self) -> bool {
-        self.cut.is_none()
-    }
 }

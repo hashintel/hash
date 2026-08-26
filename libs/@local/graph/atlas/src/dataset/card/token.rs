@@ -3,6 +3,9 @@ use std::sync::LazyLock;
 
 use tiktoken_rs::cl100k_base_singleton;
 
+#[cfg(test)]
+pub(crate) use self::heuristic::HeuristicTokenizer;
+
 /// Tokenizes text for structural card budgets.
 pub(crate) trait Tokenizer {
     /// The failure this tokenizer reports when it cannot count `text`.
@@ -60,15 +63,20 @@ impl Tokenizer for Cl100kTokenizer {
     }
 }
 
-/// Deterministic offline tokenizer: `ceil(utf8_bytes / 4)`.
-#[derive(Debug, Copy, Clone, Default)]
-pub(crate) struct HeuristicTokenizer;
+#[cfg(test)]
+mod heuristic {
+    use super::Tokenizer;
 
-impl Tokenizer for HeuristicTokenizer {
-    type Error = !;
+    /// Deterministic offline tokenizer: `ceil(utf8_bytes / 4)`.
+    #[derive(Debug, Copy, Clone, Default)]
+    pub(crate) struct HeuristicTokenizer;
 
-    #[inline]
-    fn count_tokens(&self, text: &str) -> Result<usize, Self::Error> {
-        Ok(text.len().div_ceil(4))
+    impl Tokenizer for HeuristicTokenizer {
+        type Error = !;
+
+        #[inline]
+        fn count_tokens(&self, text: &str) -> Result<usize, Self::Error> {
+            Ok(text.len().div_ceil(4))
+        }
     }
 }

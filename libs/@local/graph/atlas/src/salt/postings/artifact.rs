@@ -295,15 +295,6 @@ pub(crate) enum Membership<'map> {
 }
 
 impl Membership<'_> {
-    /// Returns the number of member positions.
-    #[must_use]
-    pub(crate) fn count(&self) -> u64 {
-        match self {
-            Self::List(positions) => positions.len() as u64,
-            Self::Dense(set) => set.count(),
-        }
-    }
-
     /// Returns whether `position` is a member.
     #[must_use]
     pub(crate) fn contains(&self, position: BasePosition) -> bool {

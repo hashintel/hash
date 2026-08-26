@@ -156,6 +156,27 @@ enum IndexFault<N> {
     RowNotIndexed(N),
 }
 
+impl<N> IndexFault<N> {
+    /// Maps the row the fault names into another row domain.
+    fn map_rows<M>(self, row: impl FnOnce(N) -> M) -> IndexFault<M> {
+        match self {
+            Self::Hannoy(error) => IndexFault::Hannoy(error),
+            Self::Heed(error) => IndexFault::Heed(error),
+            Self::Io(error) => IndexFault::Io(error),
+            Self::Locked(error) => IndexFault::Locked(error),
+            Self::RowOutOfRange(error) => IndexFault::RowOutOfRange(error),
+            Self::RowNotIndexed(unindexed) => IndexFault::RowNotIndexed(row(unindexed)),
+        }
+    }
+}
+
+impl IndexFault<!> {
+    /// Widens the never-typed fault into any row domain: no variant names a row.
+    fn widen<N>(self) -> IndexFault<N> {
+        self.map_rows(|row| row)
+    }
+}
+
 impl<N> fmt::Display for IndexFault<N>
 where
     N: fmt::Display,
@@ -187,27 +208,6 @@ where
             Self::RowOutOfRange(error) => Some(error),
             Self::RowNotIndexed(_) => None,
         }
-    }
-}
-
-impl<N> IndexFault<N> {
-    /// Maps the row the fault names into another row domain.
-    fn map_rows<M>(self, row: impl FnOnce(N) -> M) -> IndexFault<M> {
-        match self {
-            Self::Hannoy(error) => IndexFault::Hannoy(error),
-            Self::Heed(error) => IndexFault::Heed(error),
-            Self::Io(error) => IndexFault::Io(error),
-            Self::Locked(error) => IndexFault::Locked(error),
-            Self::RowOutOfRange(error) => IndexFault::RowOutOfRange(error),
-            Self::RowNotIndexed(unindexed) => IndexFault::RowNotIndexed(row(unindexed)),
-        }
-    }
-}
-
-impl IndexFault<!> {
-    /// Widens the never-typed fault into any row domain: no variant names a row.
-    fn widen<N>(self) -> IndexFault<N> {
-        self.map_rows(|row| row)
     }
 }
 

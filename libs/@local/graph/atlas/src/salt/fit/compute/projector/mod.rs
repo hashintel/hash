@@ -321,7 +321,6 @@ impl<'fit> PlacementPass<'fit> {
                     quotient: self.inputs.distinct.quotient,
                     knn: self.inputs.distinct.knn.view(),
                     attraction: &self.inputs.distinct.indexes.attraction,
-                    unresolved_verdicts: self.inputs.resolution.unresolved,
                     snapshot: self.inputs.snapshot,
                     reproducibility: self.inputs.reproducibility,
                 },

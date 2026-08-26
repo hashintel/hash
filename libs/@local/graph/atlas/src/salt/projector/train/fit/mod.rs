@@ -101,6 +101,10 @@ pub(crate) enum FitOutcome<N, B: AutodiffBackend> {
 
 /// A decoded resume checkpoint holding the boundary state and the run's batch-draw stream.
 // No Debug: `BoundaryState` carries the optimizer adaptor, which does not implement it.
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "no fit caller resumes from a checkpoint yet")
+)]
 pub(crate) struct ResumePoint<N, B: AutodiffBackend<FloatElem = f32>> {
     /// The training state at entry of the boundary step.
     pub state: BoundaryState<N, B>,
@@ -114,6 +118,10 @@ pub(crate) struct ResumePoint<N, B: AutodiffBackend<FloatElem = f32>> {
 /// segment ran under. The scheduler position is redundant with the boundary by construction, and
 /// the open path rejects a record where the two disagree. The generator rides as the generator's
 /// own 32 state bytes, which pins the pipeline's generator algorithm.
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "no fit caller resumes from a checkpoint yet")
+)]
 #[derive(Record)]
 struct ResumeRecord<B: AutodiffBackend<FloatElem = f32>> {
     model: ProjectorRecord<B>,
@@ -159,6 +167,10 @@ impl<N, B: AutodiffBackend<FloatElem = f32>> BoundaryState<N, B> {
     /// # Errors
     ///
     /// Returns an error when encoding or writing fails.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "no fit caller resumes from a checkpoint yet")
+    )]
     pub(crate) fn write_checkpoint(
         &self,
         generator: &Xoshiro256PlusPlus,
@@ -209,6 +221,10 @@ impl<N, B: AutodiffBackend<FloatElem = f32>> BoundaryState<N, B> {
     ///
     /// Returns an error when reading or decoding fails or any decoded value fails its
     /// verification.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "no fit caller resumes from a checkpoint yet")
+    )]
     #[tracing::instrument(skip_all)]
     pub(crate) fn open_checkpoint(
         mut reader: impl io::Read,

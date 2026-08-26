@@ -158,6 +158,7 @@ impl<I> Fenceposts<I> {
     ///
     /// Returns the first [`FencepostError`]: a first post other than zero, or a post smaller than
     /// its predecessor.
+    #[cfg(test)]
     #[expect(
         clippy::large_types_passed_by_value,
         reason = "the constructor stores the array; by value states the transfer and moves the \

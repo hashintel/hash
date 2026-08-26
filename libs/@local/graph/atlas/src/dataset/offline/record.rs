@@ -86,11 +86,6 @@ impl<const N: usize> Embedding<N> {
         Self(*components)
     }
 
-    /// Borrows the components in place.
-    pub(super) const fn components(&self) -> &[f32; N] {
-        &self.0
-    }
-
     /// Borrows the components in place as an aligned vector.
     pub(super) const fn aligned(&self) -> &AlignedVecN<N> {
         const { Self::LAYOUT }
@@ -152,6 +147,13 @@ unsafe impl<const N: usize, C: rkyv::rancor::Fallible + ?Sized> rkyv::bytecheck:
 /// The open checks that equality once, so a consumer zips them without a per-row bound. The
 /// embedding column is declared ahead of the record column because the writer streams it to
 /// disk first and validation claims the columns in declaration order.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "used as a schema declaration, only the rkyv derived version is used"
+    )
+)]
 #[derive(rkyv::Archive, rkyv::Serialize)]
 #[rkyv(derive(Debug))]
 pub(crate) struct NodesRoot {
@@ -181,6 +183,13 @@ pub(crate) struct NodeRecord {
 /// open checks every named position against the column's length once. The embedding column is
 /// declared ahead of the record column because the writer streams it to disk first and
 /// validation claims the columns in declaration order.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "used as a schema declaration, only the rkyv derived version is used"
+    )
+)]
 #[derive(rkyv::Archive, rkyv::Serialize)]
 pub(crate) struct EdgesRoot {
     /// The present edge embeddings, in edge row order.

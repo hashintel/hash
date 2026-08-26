@@ -1,10 +1,12 @@
 use alloc::{alloc::Allocator, borrow::Cow};
 use core::{error::Error, fmt, fmt::Write as _};
 
+#[cfg(test)]
+use super::token::HeuristicTokenizer;
 use super::{
     contents::{CardContents, TruncationPass},
     lint::{IdentifierLeakError, lint_card_text},
-    token::{HeuristicTokenizer, Tokenizer},
+    token::Tokenizer,
 };
 
 // Pass order is normative: diagnostics recorded on persisted cards name
@@ -76,6 +78,7 @@ impl Card {
     /// zero truncation passes, and the token count is [`HeuristicTokenizer`]'s deterministic byte
     /// estimate.
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn verbatim(card_text: String) -> Self {
         let Ok(token_count) = HeuristicTokenizer.count_tokens(&card_text);
 
@@ -90,8 +93,7 @@ impl Card {
     /// Reassembles a card from its persisted fields.
     ///
     /// Every field is adopted unchanged, with nothing recomputed, so a card restored from
-    /// storage compares equal to the card that was stored, diagnostics included. Use
-    /// [`verbatim`](Self::verbatim) for fresh text, which computes its own token count.
+    /// storage compares equal to the card that was stored, diagnostics included.
     #[must_use]
     pub(crate) const fn from_parts(
         card_text: String,

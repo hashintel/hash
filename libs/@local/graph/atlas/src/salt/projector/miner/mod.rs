@@ -125,12 +125,6 @@ pub(crate) struct SpatialField<'frame, N> {
     tree: KdTree<'frame, N>,
 }
 
-impl<N> fmt::Debug for SpatialField<'_, N> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("SpatialField").finish_non_exhaustive()
-    }
-}
-
 impl<'frame, N> SpatialField<'frame, N>
 where
     N: Id,
@@ -176,6 +170,12 @@ pub(crate) struct HardNegativeMiner<'view, N> {
     protection: ProtectionView<'view, N>,
     config: ProtectionConfig,
     options: MinerOptions,
+}
+
+impl<N> fmt::Debug for SpatialField<'_, N> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("SpatialField").finish_non_exhaustive()
+    }
 }
 
 impl<'view, N> HardNegativeMiner<'view, N>

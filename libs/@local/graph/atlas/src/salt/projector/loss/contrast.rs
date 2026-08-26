@@ -80,13 +80,6 @@ impl ContrastEnergy {
         }
     }
 
-    /// Returns the fitted alignment scale `s`.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn fitted_scale(self) -> Positive {
-        self.fitted_scale
-    }
-
     /// Evaluates one pair's violation and its partials in the two distances and the scale.
     ///
     /// `ruler` is the pair's frozen `σ₀`, strictly positive by construction of the frozen table,

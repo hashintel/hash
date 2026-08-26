@@ -10,6 +10,14 @@
 //! flat edge array, the same factorization the resident index stores. [`AttractionArchive`] reopens
 //! it the same way and validates the index invariants once, so relation-edge sampling reads groups
 //! and edges from the page cache.
+#![cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "hard-negative mining is the designed reader of the mapped evidence, not yet \
+                  implemented"
+    )
+)]
 
 use core::{error::Error, fmt, marker::PhantomData};
 use std::io;
@@ -419,23 +427,6 @@ where
             proximal: self.record.proximal(),
             strength: self.record.strength(),
         }
-    }
-
-    /// Returns the group's retained instance count, at least one.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn len(&self) -> usize {
-        self.records.len()
-    }
-
-    /// Returns one instance, ascending by `(source, target, edge)`.
-    ///
-    /// # Panics
-    ///
-    /// This panics when `offset` is not below [`len`](Self::len).
-    #[must_use]
-    pub(crate) fn edge(&self, offset: usize) -> AttractionEdge<N, E> {
-        decode(&self.records[offset])
     }
 
     /// Iterates the instances, ascending by `(source, target, edge)`.

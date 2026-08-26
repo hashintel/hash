@@ -45,6 +45,7 @@ fn full_scan(frame: &IdSlice<RowId, Vec2>, row: RowId, k: usize) -> Vec<KdNeighb
 }
 
 /// Asserts every row's readout equals the full scan, for each of the given `k`.
+#[track_caller]
 fn assert_matches_full_scan(points: &[Vec2], ks: &[usize]) {
     let frame = frame(points);
     let tree = KdTree::build(frame);

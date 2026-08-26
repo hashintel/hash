@@ -25,10 +25,10 @@ impl Transform {
     /// Returns [`None`] when the field lengths differ, the caller passes fewer than three pairs
     /// (six coefficients need three correspondences, and two points are always collinear), the
     /// source scatter's determinant is not a normal positive number (coincident or collinear
-    /// source points collapse an axis, the same degeneracy [`inverse`](Self::inverse) refuses),
+    /// source points collapse an axis, leaving no invertible linear part),
     /// or a fitted coefficient leaves the finite `f32` range. A nearly collinear source
     /// constellation conditions the solve poorly and the coefficients grow accordingly, exactly
-    /// as they do under a near-singular [`inverse`](Self::inverse).
+    /// as a near-singular matrix inflates its inverse.
     ///
     /// # Examples
     ///

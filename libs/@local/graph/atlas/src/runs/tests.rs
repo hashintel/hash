@@ -72,7 +72,7 @@ fn view_wraps_mapped_columns() {
     let view = RunsView::<NodeRowId, u32>::from_parts(&posts, &items)
         .expect("anchored, non-decreasing fenceposts closing at the item count are valid");
 
-    assert_eq!(view.runs(), 3);
+    assert_eq!(view.posts.len() - 1, 3);
     assert_eq!(view.items(), items);
     assert_eq!(view.run(node(0)), [10, 11]);
     assert_eq!(view.run(node(1)), [0_u32; 0]);

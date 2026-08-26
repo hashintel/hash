@@ -198,6 +198,7 @@ impl MortonKey {
     /// Returns the cell containing this key at `depth`.
     #[inline]
     #[must_use]
+    #[cfg(any(test, feature = "bench"))]
     pub const fn cell(self, depth: Depth) -> MortonCell {
         MortonCell {
             min: self.0 & !low_mask(depth),

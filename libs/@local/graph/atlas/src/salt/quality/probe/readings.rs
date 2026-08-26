@@ -84,6 +84,7 @@ impl<A> ReadingGrid<A> {
     /// Returns the anchor count.
     #[inline]
     #[must_use]
+    #[cfg(test)]
     pub(crate) const fn anchors(&self) -> usize {
         self.cells.rows()
     }
@@ -91,6 +92,7 @@ impl<A> ReadingGrid<A> {
     /// Returns the step count of the neighbourhood axis.
     #[inline]
     #[must_use]
+    #[cfg(test)]
     pub(crate) const fn steps(&self) -> usize {
         self.cells.columns()
     }
@@ -263,6 +265,10 @@ pub(crate) struct ProbeReadings<N> {
     /// The shared comparison-point pairs the triplet readings sample.
     ///
     /// As indices into the comparison rows.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "the probe replay in this module's tests reads it")
+    )]
     pub triplet_pairs: Box<[[u32; 2]]>,
     /// Per-anchor triplet agreement between map and representation, over the sampled distances.
     pub triplet_map_representation: Box<[TripletAggregate]>,
@@ -301,23 +307,13 @@ impl<N> ProbeReadings<N> {
 /// `anchor_types` is parallel to the readings' anchors: each entry lists one anchor's direct
 /// types, and an empty entry leaves its anchor in the whole-probe readings only. Construction
 /// checks the cover once, so a consumer never re-checks the anchor count.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct TypedReadings<'probe, N> {
     /// The probe's readings.
     readings: &'probe ProbeReadings<N>,
     /// Each anchor's direct types, parallel to the readings' anchors.
     anchor_types: &'probe [SmallVec<OntologyRowId, 2>],
 }
-
-// Manual, so the copy exists for every `N`: the derives would demand `N: Copy` for two borrowed
-// fields that copy regardless.
-impl<N> Clone for TypedReadings<'_, N> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<N> Copy for TypedReadings<'_, N> {}
 
 impl<'probe, N> TypedReadings<'probe, N> {
     /// Borrows the probe's readings.

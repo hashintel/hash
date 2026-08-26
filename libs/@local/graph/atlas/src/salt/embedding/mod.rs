@@ -64,13 +64,6 @@ impl EmbedderFingerprint {
     pub(crate) const fn new(digest: Sha256Digest) -> Self {
         Self(digest)
     }
-
-    /// Returns the contract digest.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn digest(self) -> Sha256Digest {
-        self.0
-    }
 }
 
 /// A provider turning card texts into canonical embeddings.
@@ -149,20 +142,6 @@ impl<'table> CardEmbeddingView<'table> {
     #[must_use]
     pub(crate) const fn fingerprint(&self) -> EmbedderFingerprint {
         self.fingerprint
-    }
-
-    /// Returns the number of rows.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn len(&self) -> usize {
-        self.hashes.len()
-    }
-
-    /// Returns whether the view has no rows.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn is_empty(&self) -> bool {
-        self.hashes.is_empty()
     }
 
     /// Borrows the card-text hash column.
@@ -318,7 +297,6 @@ impl<R: Id, E: Error + 'static> Error for CardEmbeddingError<R, E> {
 
 /// One distinct card text awaiting an embedding.
 struct UniqueCard<'card, R> {
-    hash: Sha256Digest,
     text: &'card str,
     /// Card rows carrying this text, ascending.
     rows: Vec<R>,
@@ -358,7 +336,6 @@ pub(crate) async fn embed_cards<R: Id, E: CardEmbedder + Sync, P: Progress + Syn
         let entry = unique.entry(hash).or_insert_with(|| {
             ordering.push(hash);
             UniqueCard {
-                hash,
                 text: card.card_text(),
                 rows: vec![],
             }

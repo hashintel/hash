@@ -127,7 +127,7 @@ fn header_parse_pins_identity() {
     let parsed =
         PaddedFileHeader::try_ref_from_bytes(&bytes).expect("valid header bytes should parse");
     assert_eq!(parsed.variant(), ArrayVariant::F32);
-    assert_eq!(extents(parsed.shape()), [16]);
+    assert_eq!(extents(&parsed.shape), [16]);
     assert_eq!(parsed.as_bytes(), bytes);
 
     // Wrong magic, unsupported version, and unknown variant all fail to
@@ -230,8 +230,8 @@ fn writer_and_file_round_trip_aligned_vectors() {
     let file = TempFile::create(buffer.get_ref());
     let opened = ArrayFile::open(&file.path).expect("a sealed file should open");
 
-    assert_eq!(opened.variant(), ArrayVariant::F32);
-    assert_eq!(extents(opened.shape()), [3, 8]);
+    assert_eq!(opened.header().variant(), ArrayVariant::F32);
+    assert_eq!(extents(&opened.header().shape), [3, 8]);
     assert!(opened.data().as_ptr().is_aligned_to(4096));
 
     let vectors = opened
@@ -261,7 +261,7 @@ fn zero_rows_seal_as_the_empty_array() {
     // every dimension.
     let file = TempFile::create(buffer.get_ref());
     let opened = ArrayFile::open(&file.path).expect("an empty array should open");
-    assert!(opened.shape().dims().is_empty());
+    assert!(opened.header().shape.dims().is_empty());
     assert!(opened.vectors::<512>().expect("zero rows").is_empty());
     assert!(opened.vectors::<8>().expect("zero rows").is_empty());
 }

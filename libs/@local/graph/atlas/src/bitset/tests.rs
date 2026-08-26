@@ -180,7 +180,6 @@ fn dense_bit_slice_starts_empty() {
     let set = DenseBitSlice::<NodeRowId>::new_empty(130);
 
     assert_eq!(set.domain_size(), 130);
-    assert!(set.is_empty());
     assert_eq!(set.count(), 0);
     assert_eq!(set.iter().next(), None);
     assert!(!set.contains(NodeRowId::new(0)));
@@ -296,18 +295,6 @@ fn dense_bit_slice_zero_domain_packs_to_no_words() {
     assert!(set.words().is_empty());
 }
 
-#[test]
-fn dense_bit_slice_clear_removes_every_row() {
-    let mut set = DenseBitSlice::new_empty(130);
-    set.insert(NodeRowId::new(3));
-    set.insert(NodeRowId::new(129));
-
-    set.clear();
-
-    assert!(set.is_empty());
-    assert_eq!(set.domain_size(), 130);
-}
-
 /// A live set and its frame are the same bytes in both directions.
 #[test]
 fn dense_bit_slice_frames_round_trip() {
@@ -322,23 +309,6 @@ fn dense_bit_slice_frames_round_trip() {
     assert!(rest.is_empty());
 }
 
-/// A frame borrowed mutably takes ordinary mutations, and the bytes keep them.
-#[test]
-fn dense_bit_slice_frames_mutate_in_place() {
-    let mut set = DenseBitSlice::new_empty(130);
-    set.insert(NodeRowId::new(3));
-    let mut bytes = set.as_bytes().to_vec();
-
-    let (read, _rest) =
-        DenseBitSlice::<NodeRowId>::try_from_prefix_mut(&mut bytes).expect("the frame parses");
-    assert!(read.insert(NodeRowId::new(64)));
-    assert!(read.remove(NodeRowId::new(3)));
-
-    let (reread, _rest) =
-        DenseBitSlice::<NodeRowId>::try_from_prefix(&bytes).expect("the frame parses");
-    assert_eq!(reread.iter().collect::<Vec<_>>(), [NodeRowId::new(64)]);
-}
-
 #[test]
 fn dense_bit_slice_zero_domain_frames_parse() {
     let set = DenseBitSlice::<NodeRowId>::new_empty(0);
@@ -346,7 +316,7 @@ fn dense_bit_slice_zero_domain_frames_parse() {
 
     let (read, rest) =
         DenseBitSlice::<NodeRowId>::try_from_prefix(set.as_bytes()).expect("the frame parses");
-    assert!(read.is_empty());
+    assert_eq!(read.count(), 0);
     assert_eq!(read.domain_size(), 0);
     assert!(rest.is_empty());
 }
@@ -497,7 +467,7 @@ fn dense_bit_slice_relations_against_an_in_memory_set() {
     );
 
     assert!(slice.subtract(&other));
-    assert!(slice.is_empty());
+    assert_eq!(slice.count(), 0);
     assert!(
         !slice.subtract(&other),
         "subtracting from an empty set changes nothing"
@@ -582,7 +552,7 @@ fn dense_bit_slice_relations_apply_between_slices() {
     );
 
     assert!(target.subtract(&*other));
-    assert!(target.is_empty());
+    assert_eq!(target.count(), 0);
 }
 
 #[test]
@@ -598,7 +568,6 @@ fn dense_bit_slice_array_starts_as_empty_frames() {
     let sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 3);
 
     assert_eq!(sets.len(), 3);
-    assert!(!sets.is_empty());
     assert_eq!(sets.domain_size(), 130);
     assert_eq!(
         Some(sets.as_bytes().len() as u64),
@@ -607,7 +576,7 @@ fn dense_bit_slice_array_starts_as_empty_frames() {
     );
     for rank in 0..3 {
         assert_eq!(sets[rank].domain_size(), 130);
-        assert!(sets[rank].is_empty());
+        assert_eq!(sets[rank].count(), 0);
     }
 }
 
@@ -656,13 +625,12 @@ fn dense_bit_slice_array_of_no_frames() {
     let sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 0);
 
     assert_eq!(sets.len(), 0);
-    assert!(sets.is_empty());
     assert_eq!(sets.domain_size(), 130);
     assert_eq!(sets.as_bytes().len(), 8);
 
     let read = DenseBitSliceArray::<NodeRowId>::try_from_bytes(sets.as_bytes(), 130, 0)
         .expect("the header-only region parses");
-    assert!(read.is_empty());
+    assert_eq!(read.len(), 0);
     assert_eq!(read.domain_size(), 130);
 }
 
@@ -753,7 +721,7 @@ fn dense_bit_slice_array_zerocopy_doors_carry_the_region_invariant() {
     let empty = DenseBitSliceArray::<NodeRowId>::new_empty(64, 0);
     let read = DenseBitSliceArray::<NodeRowId>::try_ref_from_bytes(empty.as_bytes())
         .expect("the header-only region is valid");
-    assert!(read.is_empty());
+    assert_eq!(read.len(), 0);
     assert_eq!(read.domain_size(), 64);
 }
 

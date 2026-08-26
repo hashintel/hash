@@ -21,7 +21,9 @@
 mod tests;
 
 use core::{alloc::Allocator, num::NonZero};
-use std::{alloc::Global, collections::HashSet};
+#[cfg(test)]
+use std::alloc::Global;
+use std::collections::HashSet;
 
 use hashql_core::id::{Id, IdSlice};
 use rand::{Rng, RngExt as _};
@@ -107,6 +109,7 @@ where
     }
 
     /// Draws `count` edges proportional to their weight.
+    #[cfg(test)]
     pub(crate) fn sample(&self, count: usize, rng: impl Rng) -> Vec<NodePair<N>> {
         self.sample_in(count, rng, Global)
     }
@@ -209,6 +212,7 @@ where
     ///
     /// Fewer types than requested means every type participates; a group smaller than the cap
     /// contributes all its edges.
+    #[cfg(test)]
     pub(crate) fn sample(
         &self,
         types: usize,
@@ -303,6 +307,7 @@ where
     /// smaller than the request (a dense small corpus, aggressive protection), where the honest
     /// outcome is a shorter batch. At corpus scale the vetoed fraction of all pairs is vanishing
     /// and the budget never binds.
+    #[cfg(test)]
     pub(crate) fn sample(&self, count: usize, rng: impl Rng) -> Vec<NodePair<N>> {
         self.sample_in(count, rng, Global)
     }

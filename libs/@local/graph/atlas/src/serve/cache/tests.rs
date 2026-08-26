@@ -22,7 +22,7 @@ use crate::{
         CutOffset, TileLimits, View, VisibilityProof,
         delta::PlacementCohort,
         hydrate::MaskingActor,
-        tests::{ROW_IDS, mask_hiding, publish, request, test_codec, withdrawing},
+        tests::{ROW_IDS, mask_hiding, narrow_usize, publish, request, test_codec, withdrawing},
     },
 };
 
@@ -336,6 +336,74 @@ async fn entry_census_folded_occupancy_unfolded() {
         entry.occupancy,
         Some(atlas.visible_occupancy(&proof)),
         "the entry's occupancy is the unfolded proof's own"
+    );
+}
+
+/// The occupancy aggregate a mint reads ignores the entry's folded snapshot.
+///
+/// The entry aggregates occupancy from the store's answer before folding withdrawals, so the cut
+/// offset a mint resolves is a function of the resolution alone and no snapshot moves it. The
+/// witness withdraws every row of one occupied cell, because occupancy counts cells over the
+/// fixture's co-located points and a lesser withdrawal cannot move it - which is exactly what
+/// makes the equal aggregates a statement rather than a tautology, and the folded proof's own
+/// occupancy pins that the harness holds the condition.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_mint_occupancy_ignores_the_folded_snapshot() {
+    let (_generation, atlas) = publish("cache-mint-occupancy").await;
+    let atlas = Arc::new(atlas);
+
+    // Every row of the deepest grid's first occupied cell, by its position's Morton key. Fixture
+    // node row `r` owns seed `r`, so the cell's rows withdraw as their own seeds.
+    let row_ids = atlas.rows.view();
+    let first_key = atlas.morton.code(BasePosition::MIN);
+    let cell_seeds: Vec<u8> = (0..row_ids.len())
+        .map(narrow_usize)
+        .map(BasePosition::from_u32)
+        .filter(|&position| atlas.morton.code(position) == first_key)
+        .map(|position| u8::try_from(row_ids[position].as_u32()).expect("fixture rows fit u8"))
+        .collect();
+
+    let proof = mask_hiding(&atlas, &[]);
+    let masking = MaskingActor {
+        id: None,
+        instance_admin: false,
+    };
+    let snapshot = Arc::new(withdrawing(&atlas, &cell_seeds));
+
+    let folded = PendingCacheEntry::of(
+        Arc::clone(&atlas),
+        proof.clone(),
+        masking,
+        None,
+        Some(Arc::clone(&snapshot)),
+    )
+    .await
+    .expect("the folded entry builds");
+    let bare = PendingCacheEntry::of(Arc::clone(&atlas), proof.clone(), masking, None, None)
+        .await
+        .expect("the bare entry builds");
+
+    assert!(
+        folded.occupancy.is_some(),
+        "a scoped entry holds its aggregate",
+    );
+    assert_eq!(
+        folded.occupancy, bare.occupancy,
+        "no snapshot moves a mint's input",
+    );
+    assert_eq!(
+        folded.occupancy,
+        Some(atlas.visible_occupancy(&proof)),
+        "the aggregate is the unfolded proof's own",
+    );
+
+    let mut hand_folded = proof.clone();
+    hand_folded.fold_withdrawn(&snapshot);
+    assert_ne!(
+        atlas.visible_occupancy(&hand_folded),
+        atlas.visible_occupancy(&proof),
+        "the folded proof's occupancy differs, so the equalities above have teeth",
     );
 }
 

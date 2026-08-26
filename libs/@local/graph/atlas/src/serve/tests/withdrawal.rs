@@ -1,17 +1,17 @@
 //! Admission-subtraction witnesses: the ingress snapshot's withdrawn rows leave served tiles.
 //!
 //! Every case runs the served assembly path with a real published snapshot, folded from feed
-//! events exactly as the consumer folds them, so the witnesses cover the seam rather than the
-//! subtraction walk alone. The corpus-proof case is the exposure the register exists to close,
-//! because `full_visibility` builds no masks and nothing else subtracts on that path. Each case
-//! carries a same-path negative control, which repeats the request and the walk under a snapshot
-//! whose withdrawals touch nothing the tile delivers.
+//! events exactly as the consumer folds them, so the witnesses cover the crossing from feed
+//! events to served bytes rather than the subtraction walk alone. The corpus-proof case is the
+//! exposure the register exists to close, because `full_visibility` builds no masks and nothing
+//! else subtracts on that path. Each case carries a same-path negative control, which repeats the
+//! request and the walk under a snapshot whose withdrawals touch nothing the tile delivers.
 //!
 //! The fold cases pin the law's resolution-time form. A folded scoped proof and the admission
-//! walk hide the same withdrawn rows, and a corpus proof declines the fold whole. The occupancy
-//! aggregate a mint reads ignores the folded snapshot, while the root's global aggregates follow
-//! the folded view - a split the owner ruled as it stands at the fold's landing, so its
-//! witnesses pin settled law.
+//! walk hide the same withdrawn rows, a corpus proof declines the fold whole, and the root's
+//! global aggregates follow the folded view, as the owner ruled at the fold's landing. The
+//! ruled split's other half - the mint's occupancy input ignoring the fold - is the cache
+//! entry's own contract, witnessed beside its type.
 
 use alloc::sync::Arc;
 
@@ -35,9 +35,7 @@ use crate::{
     salt::wire::tile::{DeliveredSet, GlobalHead, TileCoordinate},
     serve::{
         VisibilityProof,
-        cache::PendingCacheEntry,
         delta::{DeltaSnapshot, PlacementCohort},
-        hydrate::MaskingActor,
         walk::full::occupied_children,
     },
 };
@@ -837,75 +835,6 @@ async fn the_fold_removes_link_tombstones_and_withdrawn_delta_identities() {
         "a withdrawn identity leaves the admitted set",
     );
     assert!(proof.admits_delta_link(retained), "its sibling stays");
-}
-
-/// The occupancy aggregate a mint reads ignores the entry's folded snapshot.
-///
-/// The entry aggregates occupancy from the store's answer before folding withdrawals, so the cut
-/// offset a mint resolves is a function of the resolution alone and no snapshot moves it. The
-/// witness withdraws every row of one occupied cell, because occupancy counts cells over the
-/// fixture's co-located points and a lesser withdrawal cannot move it - which is exactly what
-/// makes the equal aggregates a statement rather than a tautology, and the folded proof's own
-/// occupancy pins that the harness holds the condition.
-#[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn the_mint_occupancy_ignores_the_folded_snapshot() {
-    let (_generation, atlas) = publish("withdrawal-fold-occupancy").await;
-    let atlas = Arc::new(atlas);
-
-    // Every row of the deepest grid's first occupied cell, by its position's Morton key. Fixture
-    // node row `r` owns seed `r`, so the cell's rows withdraw as their own seeds.
-    let row_ids = atlas.rows.view();
-    let first_key = atlas.morton.code(BasePosition::MIN);
-    let cell_seeds: Vec<u8> = (0..row_ids.len())
-        .map(super::narrow_usize)
-        .map(BasePosition::from_u32)
-        .filter(|&position| atlas.morton.code(position) == first_key)
-        .map(|position| u8::try_from(row_ids[position].as_u32()).expect("fixture rows fit u8"))
-        .collect();
-
-    let proof = mask_hiding(&atlas, &[]);
-    let masking = MaskingActor {
-        id: None,
-        instance_admin: false,
-    };
-    let snapshot = Arc::new(withdrawing(&atlas, &cell_seeds));
-
-    let folded = PendingCacheEntry::of(
-        Arc::clone(&atlas),
-        proof.clone(),
-        masking,
-        None,
-        Some(Arc::clone(&snapshot)),
-    )
-    .await
-    .expect("the folded entry builds");
-    let bare = PendingCacheEntry::of(Arc::clone(&atlas), proof.clone(), masking, None, None)
-        .await
-        .expect("the bare entry builds");
-
-    assert!(
-        folded.occupancy().is_some(),
-        "a scoped entry holds its aggregate",
-    );
-    assert_eq!(
-        folded.occupancy(),
-        bare.occupancy(),
-        "no snapshot moves a mint's input",
-    );
-    assert_eq!(
-        folded.occupancy(),
-        Some(&atlas.visible_occupancy(&proof)),
-        "the aggregate is the unfolded proof's own",
-    );
-
-    let mut hand_folded = proof.clone();
-    hand_folded.fold_withdrawn(&snapshot);
-    assert_ne!(
-        atlas.visible_occupancy(&hand_folded),
-        atlas.visible_occupancy(&proof),
-        "the folded proof's occupancy differs, so the equalities above have teeth",
-    );
 }
 
 /// A withdrawal published after the entry's fold subtracts as the residue.

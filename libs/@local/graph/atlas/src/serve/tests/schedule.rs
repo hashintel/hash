@@ -829,6 +829,7 @@ async fn saturated_scopes_share_one_cascade() {
 
 /// Sweeps the whole fixture grid at one offset for
 /// [`an_all_row_scope_serves_the_restricted_contract`].
+#[track_caller]
 fn assert_saturated_scope_grid(
     atlas: &Atlas,
     all_rows: &VisibilityProof,
@@ -1021,6 +1022,7 @@ impl CapCounts {
 }
 
 /// Asserts every binding cap of one scoped source, and counts what the sweep saw.
+#[track_caller]
 fn assert_scoped_caps(
     atlas: &Atlas,
     view: &crate::serve::View<'_>,

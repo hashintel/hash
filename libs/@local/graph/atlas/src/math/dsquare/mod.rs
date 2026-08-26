@@ -12,9 +12,9 @@
 //!
 //! Every reduction folds in a fixed order that depends only on the operand lengths. Prefix dots
 //! fold eight fused lanes at a time into two interleaved accumulators and finish with a scalar
-//! tail, the fold shape of [`DVecN::dot`](super::DVecN::dot). Factoring the same bytes therefore
-//! yields bit-identical factors. Solving with the same factor and right-hand side yields
-//! bit-identical solutions. The kernels are single-threaded by construction.
+//! tail. Factoring the same bytes therefore yields bit-identical factors. Solving with the same
+//! factor and right-hand side yields bit-identical solutions. The kernels are single-threaded by
+//! construction.
 //!
 //! # Layout
 //!
@@ -98,9 +98,9 @@ impl DSquareRowBlock {
 
     /// Returns the dot product of two equal-length views in a fixed fold order.
     ///
-    /// The fold shape matches [`DVecN::dot`](super::DVecN::dot). Fused products accumulate eight
-    /// lanes at a time into two interleaved accumulators, and the trailing `len % 8` components
-    /// fold scalarly, so the summation order depends only on the length.
+    /// Fused products accumulate eight lanes at a time into two interleaved accumulators, and
+    /// the trailing `len % 8` components fold scalarly, so the summation order depends only on
+    /// the length.
     #[inline]
     fn dot(&self, other: &Self) -> f64 {
         debug_assert_eq!(self.len(), other.len());

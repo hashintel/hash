@@ -170,7 +170,7 @@ fn shipped_shape_parses() {
 
     assert_eq!(
         corpus
-            .sources()
+            .sources
             .get("cards.jsonl")
             .expect("the fixture records one source")
             .to_string(),

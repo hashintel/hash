@@ -373,17 +373,6 @@ impl EvaluationEvidence {
             enforcement: EnforcementSummary::read(references.record),
         })
     }
-
-    /// Returns the frame bridge, gauge frame to corpus frame.
-    ///
-    /// Both ends are recorded, so the bridge is arithmetic: undoing the gauge fit and applying
-    /// the corpus fit converts a gauge-frame reading into the corpus frame the published field
-    /// keeps. Composition can leave the representable coefficient range, in which case the two
-    /// recorded ends remain the complete evidence.
-    #[must_use]
-    pub(crate) const fn bridge(&self) -> Option<Similarity> {
-        self.gauge_similarity.inverse().then(self.corpus_similarity)
-    }
 }
 
 impl<N> BandProjection<N>

@@ -7,7 +7,7 @@
 //! the contract: a query selects exactly the rows that sorting every other row's
 //! [`Vec2::distance_squared_wide`] reading would select. The tree only accelerates that
 //! selection, and no readout depends on its internal shape. A point query
-//! ([`KdTree::nearest_point`]) answers the exact `k` nearest frame rows of any finite point
+//! ([`KdTree::nearest_point_in`]) answers the exact `k` nearest frame rows of any finite point
 //! under the same contract, with no row excluded.
 //!
 //! Readouts are deterministic. A readout is a function of the frame bytes, the query, and `k`,

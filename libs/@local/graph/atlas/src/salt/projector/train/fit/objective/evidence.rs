@@ -55,6 +55,15 @@ where
     }
 
     /// Borrows the frozen `ρ₀` readings, in node-row order.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the calibration evidence writer is the designed reader: it serializes the \
+                      admitted ruler tables and scale identity beside the fitted artifacts; that \
+                      writer is not yet wired"
+        )
+    )]
     pub(crate) fn scales(&self) -> &IdSlice<N, NonNegative> {
         &self.scales
     }
@@ -63,11 +72,29 @@ where
     ///
     /// Each row's entries keep the freeze's own order - ascending stored distance with ties in
     /// row order.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the calibration evidence writer is the designed reader: it serializes the \
+                      admitted ruler tables and scale identity beside the fitted artifacts; that \
+                      writer is not yet wired"
+        )
+    )]
     pub(crate) const fn neighbours(&self) -> &IdMatrix<N, NeighbourSlot, N> {
         &self.neighbours
     }
 
     /// Neighbour entries per row.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the calibration evidence writer is the designed reader: it serializes the \
+                      admitted ruler tables and scale identity beside the fitted artifacts; that \
+                      writer is not yet wired"
+        )
+    )]
     pub(crate) const fn width(&self) -> usize {
         self.neighbours.columns()
     }

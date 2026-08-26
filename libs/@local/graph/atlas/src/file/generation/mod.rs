@@ -27,7 +27,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use uuid::Uuid;
 
 use super::{
-    WriteAs, WriteInto,
+    WriteAs,
     repository::{Artifact, Binding, FileName},
     salt::SaltRepository,
 };
@@ -256,7 +256,7 @@ impl GenerationRoot {
         let path = self.path.join(format!(".scratch-{}", Uuid::now_v7()));
         fs::create_dir_all(&path)?;
 
-        Ok(ScratchDirectory { path })
+        Ok(ScratchDirectory::new(path))
     }
 
     /// Creates a staging directory for assembling one generation.
@@ -347,7 +347,7 @@ impl ScratchDirectory {
     /// Adopts an existing directory as a scratch root.
     ///
     /// Dropping the value removes the directory and everything inside.
-    pub(crate) const fn rooted(path: Utf8PathBuf) -> Self {
+    pub(crate) const fn new(path: Utf8PathBuf) -> Self {
         Self { path }
     }
 
@@ -373,19 +373,6 @@ impl ScratchDirectory {
         fs::create_dir_all(&self.path)?;
 
         File::create(&path).map(|file| (path, file))
-    }
-
-    pub(crate) fn write<A>(&self, name: &str, artifact: A) -> io::Result<Utf8PathBuf>
-    where
-        A: WriteInto<Error = io::Error>,
-    {
-        let (path, file) = self.file(name)?;
-        let mut writer = BufWriter::new(file);
-
-        let _digest = artifact.write_into(&mut writer)?;
-        writer.flush()?;
-
-        Ok(path)
     }
 }
 
@@ -597,6 +584,10 @@ pub(crate) fn document_digest(bytes: &[u8]) -> Sha256Digest {
 #[derive(Debug)]
 pub(crate) struct PublishedGeneration {
     pub id: GenerationId,
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "the publish tests read the directory")
+    )]
     pub path: Utf8PathBuf,
 }
 
@@ -606,12 +597,5 @@ impl PublishedGeneration {
     #[must_use]
     pub(crate) const fn id(&self) -> GenerationId {
         self.id
-    }
-
-    /// Returns the generation's directory.
-    #[inline]
-    #[must_use]
-    pub(crate) fn path(&self) -> &Utf8Path {
-        &self.path
     }
 }

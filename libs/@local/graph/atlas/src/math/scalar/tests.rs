@@ -7,15 +7,14 @@
 use core::hash::{Hash, Hasher as _};
 use std::hash::DefaultHasher;
 
-use proptest::{prop_assert, prop_assert_eq, prop_assert_ne, prop_oneof, property_test};
+use proptest::{prop_assert, prop_assert_eq, prop_assert_ne, property_test};
 use zerocopy::TryFromBytes as _;
 
 use crate::math::{
     d_finite, finite, non_negative, positive,
     scalar::{
         DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, NonNegative,
-        OpenUnitFraction, Positive, PositiveUnitFraction, UnitFraction, narrow_f32,
-        narrow_f32_exact, softplus,
+        OpenUnitFraction, Positive, PositiveUnitFraction, UnitFraction, narrow_f32, softplus,
     },
 };
 
@@ -367,9 +366,7 @@ fn huber_saturates_instead_of_overflowing() {
 #[test]
 fn narrowing_round_trips_powers_of_two() {
     assert_eq!(narrow_f32(0.25), Some(0.25_f32));
-    assert_eq!(narrow_f32_exact(0.25), Some(0.25_f32));
     assert_eq!(narrow_f32(-1024.0), Some(-1024.0_f32));
-    assert_eq!(narrow_f32_exact(-1024.0), Some(-1024.0_f32));
 }
 
 #[test]
@@ -377,26 +374,19 @@ fn narrow_f32_rounds_where_exact_rejects() {
     // 0.1 has no exact binary representation at either width; narrowing
     // rounds to the nearest f32, which is what the 0.1_f32 literal denotes.
     assert_eq!(narrow_f32(0.1), Some(0.1_f32));
-    assert_eq!(narrow_f32_exact(0.1), None);
 }
 
 #[test]
 fn narrowing_rejects_overflow_and_nan() {
     assert_eq!(narrow_f32(1e300), None);
-    assert_eq!(narrow_f32_exact(1e300), None);
     assert_eq!(narrow_f32(f64::INFINITY), None);
-    assert_eq!(narrow_f32_exact(f64::NEG_INFINITY), None);
     assert!(narrow_f32(f64::NAN).is_none());
-    assert!(narrow_f32_exact(f64::NAN).is_none());
 }
 
 #[test]
 fn narrowing_preserves_negative_zero() {
     let rounded = narrow_f32(-0.0).expect("negative zero is finite");
     assert_eq!(rounded.to_bits(), (-0.0_f32).to_bits());
-
-    let exact = narrow_f32_exact(-0.0).expect("negative zero is exactly representable");
-    assert_eq!(exact.to_bits(), (-0.0_f32).to_bits());
 }
 
 /// Softplus is non-negative and satisfies the shift identity.
@@ -489,40 +479,6 @@ fn huber_is_monotone_in_the_magnitude(
 #[property_test]
 fn narrow_f32_round_trips_every_finite_f32(#[strategy = -f32::MAX..=f32::MAX] value: f32) {
     prop_assert_eq!(narrow_f32(f64::from(value)), Some(value));
-    prop_assert_eq!(narrow_f32_exact(f64::from(value)), Some(value));
-}
-
-/// Exact narrowing is rounding narrowing filtered by round-trip.
-///
-/// Whenever `narrow_f32_exact` succeeds, `narrow_f32` succeeds with the same bits and that value
-/// round-trips back to the input bit for bit. Whenever `narrow_f32` succeeds but `narrow_f32_exact`
-/// does not, the narrowed value must have lost information: it does not round-trip.
-/// `narrow_f32_exact` never succeeds where `narrow_f32` fails, since a bit-exact narrowing is in
-/// particular a round-to-nearest narrowing.
-#[property_test]
-fn narrow_f32_exact_is_narrow_f32_filtered_by_round_trip(
-    #[strategy = prop_oneof![
-        (-f32::MAX..=f32::MAX).prop_map(f64::from),
-        -4e38_f64..=4e38_f64,
-    ]]
-    value: f64,
-) {
-    match (narrow_f32(value), narrow_f32_exact(value)) {
-        (Some(rounded), Some(exact)) => {
-            prop_assert_eq!(exact.to_bits(), rounded.to_bits());
-            prop_assert_eq!(f64::from(rounded).to_bits(), value.to_bits());
-        }
-        (Some(rounded), None) => {
-            prop_assert_ne!(f64::from(rounded).to_bits(), value.to_bits());
-        }
-        (None, Some(_)) => {
-            prop_assert!(
-                false,
-                "narrow_f32_exact succeeded while narrow_f32 failed for {value}"
-            );
-        }
-        (None, None) => {}
-    }
 }
 
 /// The whole `u8` domain, exhaustively: exactly the shiftable exponents construct.

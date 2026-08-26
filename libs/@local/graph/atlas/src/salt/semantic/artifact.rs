@@ -4,6 +4,14 @@
 //! [`SemanticMatrix`](super::SemanticMatrix) verbatim. [`SemanticGraphArchive`] reopens the file
 //! over a whole-file mapping and validates the graph invariants once, so training and release
 //! evaluation read the same weights from the page cache without holding them on the heap.
+#![cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "training and release evaluation are the designed readers of the mapped graph, \
+                  not yet implemented"
+    )
+)]
 
 use core::{error::Error, fmt, marker::PhantomData};
 use std::io;

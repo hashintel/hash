@@ -3,9 +3,9 @@
 //! A similarity is the transform family produced by Procrustes alignment: it changes size,
 //! orientation, and position while preserving every angle and every length ratio, so aligned
 //! layouts keep their shape. [`Similarity`] restricts [`Transform`] to exactly this family, which
-//! buys a guarantee the general type gives up, a total inverse. Where [`Transform::inverse`]
-//! returns an [`Option`] because an affine map can collapse an axis, a similarity's scale is
-//! positive by construction and [`Similarity::inverse`] always succeeds.
+//! buys a guarantee the general type gives up, a total inverse. An affine map can collapse an
+//! axis and lose its inverse. A similarity's scale is positive by construction, so every
+//! similarity inverts.
 //!
 //! Use [`Similarity`] for a value that is a rigid motion plus uniform scaling (such as aligning one
 //! generation's layout onto the previous one). Widen to [`Transform`] (via [`From`]) only when
@@ -36,32 +36,27 @@ mod tests;
 ///
 /// The scale of every value and its reciprocal are both strictly positive normal numbers:
 /// [`new`](Self::new) and [`from_array`](Self::from_array) return [`None`] for anything else.
-/// Reciprocals of accepted scales are themselves accepted, so [`inverse`](Self::inverse) is total
-/// and every similarity has an inverse. [`then`](Self::then) revalidates its composed scale and
-/// returns [`None`] where the product leaves the range.
+/// Reciprocals of accepted scales are themselves accepted, so every similarity's inverse is
+/// again a lawful similarity.
 ///
 /// Obtain one from weighted point correspondences with [`fit`](Self::fit), the closed-form
 /// Procrustes alignment, or with [`fit_par`](Self::fit_par) when the pairs number in the hundreds
-/// of thousands. Combine similarities with [`then`](Self::then), which reads in application order.
-/// Apply one to a single vector with [`apply`](Self::apply) or to a whole [`Vec2x4T`] batch with
-/// [`apply_x4`](Self::apply_x4), which stays entirely in SIMD registers. A similarity widens
-/// losslessly into a [`Transform`] via [`From`], so it also composes with general affine transforms
+/// of thousands. Apply one to a single vector with [`apply`](Self::apply). A similarity widens
+/// losslessly into a [`Transform`] via [`From`], so it composes with general affine transforms
 /// through [`Transform::then`].
 ///
-/// The coefficients round-trip through [`to_array`](Self::to_array) and
-/// [`from_array`](Self::from_array) in the persistence order `[scale, cos, sin, x, y]`.
+/// The coefficients persist in the order `[scale, cos, sin, x, y]`, the layout
+/// [`from_array`](Self::from_array) reads.
 ///
 /// # Examples
 ///
 /// ```ignore
 /// // Double the size, quarter-turn counterclockwise, then move right.
-/// let similarity = Similarity::new(2.0, Rotation::from_cos_sin(0.0, 1.0), Vec2::new(10.0, 0.0))
-///     .expect("scale is normal and positive");
+/// let similarity =
+///     Similarity::new(positive!(2.0), Rotation::from_cos_sin(0.0, 1.0), Vec2::new(10.0, 0.0))
+///         .expect("scale is normal and positive");
 ///
 /// assert_eq!(similarity.apply(Vec2::new(3.0, 4.0)), Vec2::new(2.0, 6.0));
-///
-/// let inverse = similarity.inverse();
-/// assert_eq!(inverse.apply(Vec2::new(2.0, 6.0)), Vec2::new(3.0, 4.0));
 /// ```
 // No `FromBytes` and no `FromZeros`: byte-level construction could mint a
 // zero, negative, subnormal, or non-finite scale in safe code, bypassing
@@ -94,8 +89,8 @@ impl Similarity {
     ///
     /// Returns [`None`] unless `scale` and its reciprocal are both strictly positive normal
     /// numbers, which accepts magnitudes from [`f32::MIN_POSITIVE`] up to about `8.5e37`. The
-    /// reciprocal bound is what makes [`inverse`](Self::inverse) total and closed, because
-    /// reciprocals of accepted scales are themselves accepted.
+    /// reciprocal bound keeps inversion closed, because reciprocals of accepted scales are
+    /// themselves accepted.
     #[inline]
     #[must_use]
     pub(crate) const fn new(
@@ -249,8 +244,8 @@ impl Similarity {
 
     /// Creates a similarity from its five coefficients.
     ///
-    /// This reads the array as `[scale, cos, sin, x, y]`, the layout [`to_array`](Self::to_array)
-    /// produces. The caller keeps the cosine and sine on the unit circle up to rounding, matching
+    /// This reads the array as `[scale, cos, sin, x, y]`, the persisted coefficient layout. The
+    /// caller keeps the cosine and sine on the unit circle up to rounding, matching
     /// the contract of [`Rotation::from_cos_sin`].
     ///
     /// Returns [`None`] unless the scale lies in the range [`new`](Self::new) accepts.

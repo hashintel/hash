@@ -220,6 +220,7 @@ mod tests {
     }
 
     /// The invariant every case below re-checks: the runs re-sum to the delivered count.
+    #[track_caller]
     fn assert_partitioned(delivered: &DeliveredPoints, runs: &[u32]) {
         assert_eq!(
             delivered.count() as u64,

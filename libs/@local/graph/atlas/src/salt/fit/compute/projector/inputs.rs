@@ -64,9 +64,8 @@ pub(crate) struct DistinctInputs<'fit> {
 /// The training-domain views the publish half reads.
 ///
 /// The quotient, the neighbour table, and the attraction index carry the ladder's per-level loss
-/// measurements over the distinct rows, and the unresolved-verdict count echoes into the
-/// placement's evidence. The metadata document's input sections ride beside them as the
-/// paired-movement salt preimage.
+/// measurements over the distinct rows. The metadata document's input sections ride beside them
+/// as the paired-movement salt preimage.
 pub(crate) struct PublishInputs<'fit> {
     /// The corpus-to-distinct row quotient.
     pub quotient: &'fit Quotient<'fit, PROJECTOR_DIMENSIONS>,
@@ -74,8 +73,6 @@ pub(crate) struct PublishInputs<'fit> {
     pub knn: KnnView<'fit, DistinctRowId>,
     /// The distinct-domain attraction index.
     pub attraction: &'fit AttractionIndex<DistinctRowId, EdgeRowId>,
-    /// Verdicts naming no row of this corpus.
-    pub unresolved_verdicts: usize,
     /// The metadata document's `snapshot` section, the value the seal serializes.
     ///
     /// With [`Self::reproducibility`] it forms the paired-movement salt preimage, so the

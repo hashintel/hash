@@ -376,7 +376,7 @@ mod tests {
                 std::process::id(),
             ));
         std::fs::create_dir_all(&directory).expect("the temp directory is writable");
-        ScratchDirectory::rooted(directory)
+        ScratchDirectory::new(directory)
     }
 
     /// The quotient's two maps as raw positions, for compact assertions.
@@ -506,8 +506,8 @@ mod tests {
             .expand_neighbours(&table.view())
             .expect("a real quotient expands");
 
-        assert_eq!(expanded.rows(), 5);
-        assert_eq!(expanded.neighbours(), 1);
+        assert_eq!(expanded.view().rows(), 5);
+        assert_eq!(expanded.view().neighbours(), 1);
         let view = expanded.view();
         let lists: Vec<_> = (0..5)
             .flat_map(|row| {

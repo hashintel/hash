@@ -274,13 +274,6 @@ impl ReviewedVerdicts {
         &self.pair_verdicts
     }
 
-    /// Returns the review corpus's recorded source-artifact digests.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn sources(&self) -> &BTreeMap<Box<str>, Sha256Digest> {
-        &self.sources
-    }
-
     /// Resolves every type verdict against a corpus type table.
     ///
     /// `ontology` is the type table in ontology row order, keyed by the corpus's own id type. Each

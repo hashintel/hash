@@ -225,8 +225,8 @@ fn the_full_inclusion_divisor_is_unbiased_where_the_group_factor_is_not() {
     // The draw law admits three batches: {a1} and {a2} at probability 1/4 each, {b1} at 1/2.
     let mut expectation = 0.0_f64;
     for (probability, member) in [(0.25_f64, 0_usize), (0.25, 1), (0.5, 2)] {
-        canonical_field.reset();
-        zero_field.reset();
+        canonical_field.0.fill(DVec2::ZERO);
+        zero_field.0.fill(DVec2::ZERO);
         let drawn = estimator
             .evaluate(
                 canonical,

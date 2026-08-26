@@ -73,11 +73,6 @@ impl MemoryEdgeId {
     pub(crate) const fn new(id: u64) -> Self {
         Self(U64::new(id))
     }
-
-    /// Returns the integer value.
-    pub(crate) const fn get(self) -> u64 {
-        self.0.get()
-    }
 }
 
 impl Key for MemoryEdgeId {

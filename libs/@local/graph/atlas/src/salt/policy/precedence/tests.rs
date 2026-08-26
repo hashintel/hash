@@ -68,27 +68,6 @@ fn prediction_resolves_through_the_applicability_mix() {
 }
 
 #[test]
-fn unclassifiable_relation_falls_back_to_overlay() {
-    let policies = resolve(
-        &[(relation(3), Classification::Unclassified)],
-        &[],
-        CoincidentAdmission::default(),
-    )
-    .expect("the fallback resolves");
-
-    let policy = policies[0];
-    assert_eq!(
-        policy.selected,
-        ClassProbabilities {
-            coincident: unit_fraction!(0.0),
-            proximal: unit_fraction!(0.0),
-        },
-    );
-    assert_eq!(policy.attraction, policy.selected);
-    assert_eq!(policy.applicability, 0.0);
-}
-
-#[test]
 fn overrides_supersede_predictions_by_precedence() {
     let classifications = [(
         relation(1),
@@ -171,8 +150,14 @@ fn admission_reroutes_failing_coincident_mass() {
 fn contract_violations_are_rejected() {
     let duplicate = resolve(
         &[
-            (relation(1), Classification::Unclassified),
-            (relation(1), Classification::Unclassified),
+            (
+                relation(1),
+                Classification::Predicted(prediction([0.5, 0.25, 0.25], 0.5)),
+            ),
+            (
+                relation(1),
+                Classification::Predicted(prediction([0.5, 0.25, 0.25], 0.5)),
+            ),
         ],
         &[],
         CoincidentAdmission::default(),
@@ -186,7 +171,10 @@ fn contract_violations_are_rejected() {
     );
 
     let ambiguous = resolve(
-        &[(relation(1), Classification::Unclassified)],
+        &[(
+            relation(1),
+            Classification::Predicted(prediction([0.5, 0.25, 0.25], 0.5)),
+        )],
         &[
             PolicyOverride {
                 relation: relation(1),
@@ -211,7 +199,10 @@ fn contract_violations_are_rejected() {
     );
 
     let unknown = resolve(
-        &[(relation(1), Classification::Unclassified)],
+        &[(
+            relation(1),
+            Classification::Predicted(prediction([0.5, 0.25, 0.25], 0.5)),
+        )],
         &[PolicyOverride {
             relation: relation(2),
             source: PolicySource::Human,
@@ -237,7 +228,10 @@ fn resolution_feeds_the_certified_policy_table() {
             relation(9),
             Classification::Predicted(prediction([0.25, 0.5, 0.25], 0.75)),
         ),
-        (relation(2), Classification::Unclassified),
+        (
+            relation(2),
+            Classification::Predicted(prediction([0.5, 0.25, 0.25], 0.5)),
+        ),
         (
             relation(5),
             Classification::Predicted(prediction([0.0, 1.0, 0.0], 1.0)),

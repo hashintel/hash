@@ -18,11 +18,27 @@ pub(crate) enum Penalty {
     ///
     /// Every unit keeps corrective force, and a satisfied pair's negative violation subtracts
     /// value.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the selected penalty for the planned calibration; consumed when the band \
+                      trainer is wired"
+        )
+    )]
     Identity,
     /// `φ(v) = max(0, v)²` with slope `2·max(0, v)`: smooth at the hinge and dead below it.
     ///
     /// The slope vanishes at a zero violation, so this shape keeps corrective force at distance
     /// equality only through a positive margin. Admission enforces that pairing.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the unselected product-target alternative; the planned calibration selects \
+                      Identity"
+        )
+    )]
     QuadraticHinge,
 }
 

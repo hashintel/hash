@@ -301,6 +301,15 @@ where
     /// Returns `β`, the enforced dimensionless radius.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the calibration evidence writer is the designed reader: it serializes the \
+                      admitted ruler tables and scale identity beside the fitted artifacts; that \
+                      writer is not yet wired"
+        )
+    )]
     pub(crate) const fn dimensionless_radius(&self) -> Positive {
         self.dimensionless_radius
     }
@@ -308,6 +317,15 @@ where
     /// Returns `s_ref(Z_K)`, the reference spread the radius reconstructs against.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the calibration evidence writer is the designed reader: it serializes the \
+                      admitted ruler tables and scale identity beside the fitted artifacts; that \
+                      writer is not yet wired"
+        )
+    )]
     pub(crate) const fn reference_spread(&self) -> Positive {
         self.reference_spread
     }

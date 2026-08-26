@@ -212,6 +212,7 @@ impl ClosureMap {
     ///
     /// [`None`] when either row is out of domain.
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn contains(
         &self,
         ancestor: OntologyRowId,

@@ -211,7 +211,7 @@ fn unarchive_replaces_tombstone() {
     let snapshot = snapshot(&register, &tables);
     assert!(!snapshot.withdraws(entity(1)));
     assert!(!snapshot.withdraws_node(NodeRowId::new(4)));
-    assert_eq!(snapshot.staged(entity(1)), None);
+    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
 }
 
 #[test]
@@ -284,7 +284,10 @@ fn equal_version_live_editions_converge() {
     );
 
     assert_eq!(
-        snapshot(&ascending, &tables).staged(entity(1)),
+        snapshot(&ascending, &tables)
+            .staged
+            .get(&entity(1))
+            .copied(),
         Some(edition(11))
     );
     assert_eq!(
@@ -325,7 +328,7 @@ fn withdrawn_unfitted_identity_only() {
     let snapshot = snapshot(&register, &tables);
     assert!(snapshot.withdraws(entity(9)));
     assert!(!snapshot.withdraws_node(NodeRowId::new(4)));
-    assert_eq!(snapshot.staged(entity(9)), None);
+    assert_eq!(snapshot.staged.get(&entity(9)).copied(), None);
 }
 
 #[test]
@@ -341,7 +344,7 @@ fn live_fitted_identity_resolves_to_nothing() {
     let snapshot = snapshot(&register, &tables);
     assert!(!snapshot.withdraws(entity(1)));
     assert!(!snapshot.withdraws_node(NodeRowId::new(4)));
-    assert_eq!(snapshot.staged(entity(1)), None);
+    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
 }
 
 #[test]
@@ -355,7 +358,7 @@ fn arrival_stages_on_node_verdict() {
 
     // Unclassified, the arrival publishes nowhere while everything else proceeds.
     let unclassified = snapshot(&register, &tables);
-    assert_eq!(unclassified.staged(entity(1)), None);
+    assert_eq!(unclassified.staged.get(&entity(1)).copied(), None);
     assert_eq!(unclassified.edge(entity(1)), None);
     assert!(unclassified.withdraws(entity(2)));
 
@@ -365,7 +368,7 @@ fn arrival_stages_on_node_verdict() {
     );
 
     assert_eq!(
-        snapshot(&register, &tables).staged(entity(1)),
+        snapshot(&register, &tables).staged.get(&entity(1)).copied(),
         Some(edition(11))
     );
 }
@@ -412,7 +415,7 @@ fn classification_final() {
     );
 
     let snapshot = snapshot(&register, &tables);
-    assert_eq!(snapshot.staged(entity(1)), Some(edition(10)));
+    assert_eq!(snapshot.staged.get(&entity(1)).copied(), Some(edition(10)));
     assert_eq!(snapshot.edge(entity(1)), None);
 }
 
@@ -492,7 +495,7 @@ fn publish_withholds_uncaptured() {
         })
     );
     assert_eq!(snapshot.legend_of(entity(1)), Some(&*legend("wrote")));
-    assert_eq!(snapshot.staged(entity(1)), None);
+    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
     assert!(!snapshot.withdraws(entity(1)));
 }
 
@@ -656,7 +659,7 @@ fn incomplete_link_publishes_nowhere() {
     );
 
     let snapshot = snapshot(&register, &tables);
-    assert_eq!(snapshot.staged(entity(1)), None);
+    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
     assert_eq!(snapshot.edge(entity(1)), None);
     assert!(!snapshot.withdraws(entity(1)));
     // The verdict holds, so the identity never re-lists for classification.
@@ -676,7 +679,7 @@ fn classify_withdrawn_no_input_change() {
 
     let snapshot = snapshot(&register, &tables);
     assert!(snapshot.withdraws(entity(1)));
-    assert_eq!(snapshot.staged(entity(1)), None);
+    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
 }
 
 #[test]
@@ -693,13 +696,13 @@ fn withdraw_unarchive_keeps_verdict() {
 
     let withdrawn = snapshot(&register, &tables);
     assert!(withdrawn.withdraws(entity(1)));
-    assert_eq!(withdrawn.staged(entity(1)), None);
+    assert_eq!(withdrawn.staged.get(&entity(1)).copied(), None);
 
     // The unarchive re-stages through the held verdict, with no second lookup owed.
     assert!(register.apply(event(1, 3, live(11))));
     assert_eq!(register.unclassified(&tables).collect::<Vec<_>>(), []);
     assert_eq!(
-        snapshot(&register, &tables).staged(entity(1)),
+        snapshot(&register, &tables).staged.get(&entity(1)).copied(),
         Some(edition(11))
     );
 }
@@ -817,18 +820,18 @@ fn cell_swaps_publications_whole() {
     cell.publish(register.snapshot(&Tables::default(), DeltaRevision::FIRST, at(1)));
     let first = cell.load();
     assert_eq!(
-        first.as_ref().map(|snapshot| snapshot.revision()),
+        first.as_ref().map(|snapshot| snapshot.revision),
         Some(DeltaRevision::FIRST)
     );
 
     cell.publish(register.snapshot(&Tables::default(), DeltaRevision::FIRST.next(), at(2)));
     assert_eq!(
-        cell.load().as_ref().map(|snapshot| snapshot.revision()),
+        cell.load().as_ref().map(|snapshot| snapshot.revision),
         Some(DeltaRevision::FIRST.next())
     );
     // The guard loaded before the swap keeps reading its own publication.
     assert_eq!(
-        first.as_ref().map(|snapshot| snapshot.watermark()),
+        first.as_ref().map(|snapshot| snapshot.watermark),
         Some(at(1))
     );
 }
@@ -1076,7 +1079,7 @@ fn placed_arrival_leaves_staged() {
     );
 
     let snapshot = snapshot(&register, &Tables::default());
-    assert_eq!(snapshot.staged(entity(1)), None);
+    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
     assert_eq!(
         snapshot.node(entity(1)),
         Some(&DeltaNode {
@@ -1138,14 +1141,14 @@ fn post_withdrawal_placement_unserved() {
 
     let withdrawn = snapshot(&register, &Tables::default());
     assert!(withdrawn.withdraws(entity(1)));
-    assert_eq!(withdrawn.staged(entity(1)), None);
+    assert_eq!(withdrawn.staged.get(&entity(1)).copied(), None);
     assert_eq!(withdrawn.node(entity(1)), None);
 
     // The unarchive republishes the recorded coordinate on its former slot without re-entering
     // the staged set.
     register.apply(event(1, 3, live(11)));
     let restored = snapshot(&register, &Tables::default());
-    assert_eq!(restored.staged(entity(1)), None);
+    assert_eq!(restored.staged.get(&entity(1)).copied(), None);
     assert_eq!(
         restored.node(entity(1)),
         Some(&DeltaNode {
@@ -1171,7 +1174,7 @@ fn unclassified_placement_unpublished() {
     );
 
     let snapshot = snapshot(&register, &Tables::default());
-    assert_eq!(snapshot.staged(entity(1)), None);
+    assert_eq!(snapshot.staged.get(&entity(1)).copied(), None);
     assert_eq!(snapshot.node(entity(1)), None);
 }
 
@@ -1284,7 +1287,7 @@ fn exhausted_universe_refuses_placement() {
     );
 
     let snapshot = snapshot(&register, &Tables::default());
-    assert_eq!(snapshot.staged(entity(1)), Some(edition(10)));
+    assert_eq!(snapshot.staged.get(&entity(1)).copied(), Some(edition(10)));
     assert_eq!(snapshot.node(entity(1)), None);
     assert_eq!(snapshot.universe(), Universe::new(bound));
 }

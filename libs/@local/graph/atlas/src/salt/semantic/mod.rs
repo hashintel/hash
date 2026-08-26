@@ -212,13 +212,6 @@ where
         Self::new(union).expect("the union of validated memberships satisfies every invariant")
     }
 
-    /// Returns the node-row count.
-    #[inline]
-    #[must_use]
-    pub(crate) fn rows(&self) -> usize {
-        self.0.rows()
-    }
-
     /// Borrows the graph.
     #[inline]
     #[must_use]
@@ -266,13 +259,6 @@ where
     #[must_use]
     pub(crate) fn rows(&self) -> usize {
         self.0.rows()
-    }
-
-    /// Returns the stored edge count, counting each edge twice.
-    #[inline]
-    #[must_use]
-    pub(crate) fn entries(&self) -> usize {
-        self.0.nnz()
     }
 
     /// Borrows the weight matrix for sparse operations.

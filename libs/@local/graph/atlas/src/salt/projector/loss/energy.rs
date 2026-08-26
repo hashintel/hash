@@ -33,13 +33,6 @@ impl AffinityEnergy {
         (curve.b() >= 0.5).then_some(Self { curve, epsilon })
     }
 
-    /// Returns the logarithm offset.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn epsilon(self) -> Positive {
-        self.epsilon
-    }
-
     /// Evaluates the attraction energy and its derivative in the squared distance.
     ///
     /// Returns `(-ln(q + ε), d/du of the same)`. The derivative is zero at `u = 0`: a coincident

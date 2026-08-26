@@ -339,6 +339,7 @@ impl TypeSets {
     ///
     /// This panics when `node` is at or beyond the node count.
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn set(&self, node: usize) -> &[u32] {
         let start = usize::try_from(self.posts[node]).expect("resident sets fit the address space");
         let end =

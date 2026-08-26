@@ -648,13 +648,6 @@ impl AnnotationCorpus {
     pub(crate) const fn cards(&self) -> &[Card] {
         &self.cards
     }
-
-    /// Returns the upstream artifacts the document derives from, by name and content digest.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn sources(&self) -> &BTreeMap<Box<str>, Sha256Digest> {
-        &self.sources
-    }
 }
 
 /// One card's admission under the wire contract.

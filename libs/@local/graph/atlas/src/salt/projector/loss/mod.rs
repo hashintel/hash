@@ -109,11 +109,6 @@ where
         Self(IdVec::from_elem(DVec2::ZERO, rows).into_boxed_slice())
     }
 
-    /// Zeroes every entry, keeping the allocation.
-    pub(crate) fn reset(&mut self) {
-        self.0.fill(DVec2::ZERO);
-    }
-
     /// Adds a gradient contribution to one node.
     #[inline]
     pub(crate) fn accumulate(&mut self, row: N, gradient: Vec2) {
@@ -138,13 +133,6 @@ where
     #[must_use]
     pub(crate) fn as_slice(&self) -> &IdSlice<N, DVec2> {
         &self.0
-    }
-
-    /// Returns the node count the field covers.
-    #[inline]
-    #[must_use]
-    pub(crate) fn rows(&self) -> usize {
-        self.0.len()
     }
 }
 

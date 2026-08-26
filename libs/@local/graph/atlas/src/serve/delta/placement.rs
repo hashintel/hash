@@ -165,17 +165,6 @@ pub(crate) struct Placer {
     forward_rows: core::num::NonZero<usize>,
 }
 
-impl core::fmt::Debug for Placer {
-    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        fmt.debug_struct("Placer")
-            .field("condition", &self.condition)
-            .field("alignment", &self.alignment)
-            .field("world", &self.world)
-            .field("forward_rows", &self.forward_rows)
-            .finish_non_exhaustive()
-    }
-}
-
 impl Placer {
     /// Opens the generation's publish path for online projection.
     ///
@@ -457,6 +446,17 @@ impl Placer {
         }
 
         Ok(aligned)
+    }
+}
+
+impl core::fmt::Debug for Placer {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        fmt.debug_struct("Placer")
+            .field("condition", &self.condition)
+            .field("alignment", &self.alignment)
+            .field("world", &self.world)
+            .field("forward_rows", &self.forward_rows)
+            .finish_non_exhaustive()
     }
 }
 

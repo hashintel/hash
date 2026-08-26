@@ -148,19 +148,6 @@ pub(crate) enum Standing {
     Withdrawn,
 }
 
-impl Standing {
-    /// Returns the tie rank at equal versions, where a withdrawal outranks a live standing.
-    ///
-    /// Equal-version conflicting standings are a writer-clock pathology, and the rank resolves the
-    /// tie toward [`Standing::Withdrawn`], failing closed in the direction the register exists for.
-    const fn rank(self) -> u8 {
-        match self {
-            Self::Live { .. } => 0,
-            Self::Withdrawn => 1,
-        }
-    }
-}
-
 /// One feed event resolved into the standing it implies for serving.
 ///
 /// Conversion is the one place feed vocabulary becomes register vocabulary. A purge and an ended

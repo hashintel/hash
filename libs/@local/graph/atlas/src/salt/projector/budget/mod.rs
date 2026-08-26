@@ -76,6 +76,14 @@ impl BudgetSummary {
     /// Creates an empty summary.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn new() -> Self {
         Self {
             nodes: 0,
@@ -92,6 +100,14 @@ impl BudgetSummary {
     /// Returns the recorded node count.
     #[inline]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) const fn nodes(&self) -> usize {
         self.nodes
     }
@@ -106,6 +122,14 @@ impl BudgetSummary {
         reason = "narrowing the double-precision mean is the accessor's contract"
     )]
     #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "the generation evidence's training stats are the designed reader; writing \
+                      them into the generation metadata is registered wiring work"
+        )
+    )]
     pub(crate) fn mean_ratio(&self) -> Option<f32> {
         if self.nodes == 0 {
             return None;

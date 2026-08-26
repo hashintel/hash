@@ -544,10 +544,6 @@ pub(crate) enum LocateError {
         /// The cap the manifest publishes as `limits.coloredTypeIds`.
         maximum: u32,
     },
-    /// The request names a feature this build does not serve.
-    ///
-    /// The carried name is the request field.
-    Unsupported(&'static str),
     /// The delivery view did not bind.
     ///
     /// A binding refusal converts into this variant through [`From`], so one error union carries a
@@ -576,9 +572,6 @@ impl core::fmt::Display for LocateError {
                     fmt,
                     "the request carries {count} coloredTypeIds where the cap admits {maximum}"
                 )
-            }
-            Self::Unsupported(feature) => {
-                write!(fmt, "this build does not serve {feature} requests")
             }
             Self::View(error) => error.fmt(fmt),
             Self::Details(error) => error.fmt(fmt),

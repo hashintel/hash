@@ -9,7 +9,7 @@
 //! caller writes it.
 //!
 //! ```ignore
-//! // Fit a layout's extent and map it onto a viewport in one transform.
+//! // Gather a layout's extent and map its points onto a viewport.
 //! let points = [
 //!     Vec2::new(-2.0, 0.0),
 //!     Vec2::new(6.0, 4.0),
@@ -18,8 +18,8 @@
 //! let bounds = Bounds2::from_points(points).expect("points are finite");
 //! let viewport = Bounds2::new(Vec2::ZERO, Vec2::splat(10.0)).expect("corners are ordered");
 //!
-//! let transform = bounds.fit(viewport).expect("the layout has extent");
-//! assert_eq!(transform.apply(Vec2::new(2.0, 2.0)), Vec2::new(5.0, 5.0));
+//! let mapped = bounds.normalize_into(viewport, &points);
+//! assert_eq!(mapped[2], Vec2::new(5.0, 5.0));
 //! ```
 //!
 //! # The types, by role
@@ -52,10 +52,9 @@
 //! Layout fitting: [`AffinityCurve`] evaluates the affinity curve of UMAP-style layouts and its
 //! attraction/repulsion gradients over batches. Its parameters come from [`AffinityCurve::fit`].
 //!
-//! Scalar helpers: [`softplus`] and the checked narrowings [`narrow_f32`] /
-//! [`narrow_f32_exact`](scalar::narrow_f32_exact). The Huber penalty and the logistic function
-//! live on [`NonNegative`] as
-//! [`huber`](NonNegative::huber) and [`sigmoid`](NonNegative::sigmoid).
+//! Scalar helpers: [`softplus`] and the checked narrowing [`narrow_f32`]. The Huber penalty and
+//! the logistic function live on [`NonNegative`] as [`huber`](NonNegative::huber) and
+//! [`sigmoid`](NonNegative::sigmoid).
 //!
 //! Unclaimed folds: [`Derivation`] is a data-dependent fold's raw value bound for its
 //! validated [`Domain`](derivation::Domain), claiming nothing until
@@ -79,6 +78,11 @@
 //!
 //! [`Simd`]: core::simd::Simd
 #![expect(unsafe_code)]
+#![expect(
+    dead_code,
+    reason = "math code is correct either way, and moves in and out of use. Functions are \
+              incrementally added, but not removed, to not duplicate work."
+)]
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 mod affinity;

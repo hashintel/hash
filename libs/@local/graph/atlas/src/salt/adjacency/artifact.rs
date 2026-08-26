@@ -106,7 +106,7 @@ impl AdjacencyArchive {
     /// Returns an error when the file violates the list contract.
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidAdjacencyFile> {
-        let (width, (nodes, edges)) = match file.index() {
+        let (width, (nodes, edges)) = match file.header().index() {
             IndexVariant::U16 => (Width::U16, validate::<u16>(&file)?),
             IndexVariant::U32 => (Width::U32, validate::<u32>(&file)?),
             // The writer emits unsigned widths only. The signed index
@@ -190,30 +190,6 @@ impl AdjacencyArchive {
     pub(crate) fn incoming(&self, node: NodeRowId) -> Option<EdgeList<'_>> {
         let posts = self.posts(node)?;
         Some(self.run(posts + 1, posts + 2))
-    }
-
-    /// Returns every edge row touching `node`.
-    ///
-    /// The contiguous outgoing run followed by the incoming run - when the node row is in domain.
-    ///
-    /// A self-loop at `node` occurs in both runs, so a consumer merging the directions has to
-    /// dedupe.
-    #[must_use]
-    pub(crate) fn incident(&self, node: NodeRowId) -> Option<EdgeList<'_>> {
-        let posts = self.posts(node)?;
-        Some(self.run(posts, posts + 2))
-    }
-
-    /// Returns the number of edge slots touching `node`.
-    ///
-    /// The incident run's length, a self-loop counting twice - when the node row is in domain.
-    #[must_use]
-    pub(crate) fn degree(&self, node: NodeRowId) -> Option<usize> {
-        let posts = self.posts(node)?;
-        let fenceposts = self.fenceposts();
-        let length = fenceposts[posts + 2] - fenceposts[posts];
-
-        Some(usize::try_from(length).expect("slots fit the address space"))
     }
 }
 
@@ -311,13 +287,6 @@ impl EdgeValues<'_> {
         }
     }
 
-    /// Returns whether the array holds no slots.
-    #[inline]
-    #[must_use]
-    const fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     /// Returns the edge row id in slot `index`.
     ///
     /// # Panics
@@ -361,55 +330,8 @@ pub(crate) struct EdgeList<'map> {
 }
 
 impl EdgeList<'_> {
-    /// Returns the number of edge rows in the list.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn len(&self) -> usize {
-        self.values.len()
-    }
-
-    /// Returns whether the list is empty.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn is_empty(&self) -> bool {
-        self.values.is_empty()
-    }
-
-    /// Returns the edge row at `index`.
-    ///
-    /// # Panics
-    ///
-    /// This panics when `index` is at or beyond [`len`](Self::len), like a slice.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn get(&self, index: usize) -> EdgeRowId {
-        EdgeRowId::new(self.values.get(index))
-    }
-
     /// Iterates the edge rows in list order.
     pub(crate) fn iter(self) -> impl ExactSizeIterator<Item = EdgeRowId> {
         self.values.iter().map(EdgeRowId::new)
-    }
-
-    /// Returns whether the list holds `edge`, by binary search.
-    ///
-    /// Correct over [`outgoing`](AdjacencyArchive::outgoing) and
-    /// [`incoming`](AdjacencyArchive::incoming) lists, whose runs are strictly ascending. An
-    /// [`incident`](AdjacencyArchive::incident) list concatenates two ascending runs and is not
-    /// globally sorted. Query each direction on its own.
-    #[must_use]
-    pub(crate) const fn contains(&self, edge: EdgeRowId) -> bool {
-        let mut low = 0;
-        let mut high = self.len();
-        while low < high {
-            let middle = usize::midpoint(low, high);
-            if self.values.get(middle) < edge.as_u64() {
-                low = middle + 1;
-            } else {
-                high = middle;
-            }
-        }
-
-        low < self.len() && self.values.get(low) == edge.as_u64()
     }
 }

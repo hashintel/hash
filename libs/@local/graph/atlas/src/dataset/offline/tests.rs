@@ -15,7 +15,7 @@ use super::{
         card::Card,
     },
     OfflineDataset, OpenDumpError,
-    dump::{DumpOptions, dump},
+    dump::{Dump, DumpError, DumpOptions, embed, read},
     format::{Manifest, StreamKind},
     record::{ArchivedNodesRoot, EdgeRecord, EdgesRoot, Embedding, NodeRecord, NodesRoot},
 };
@@ -30,6 +30,13 @@ use crate::{
         policy::annotation::assembly::AssemblyConfig,
     },
 };
+
+/// A nonzero literal, checked at compile time.
+macro_rules! nz {
+    ($value:expr) => {
+        const { NonZero::new($value).expect("the literal is nonzero") }
+    };
+}
 
 /// A fresh per-test dump directory under the system temp directory.
 fn scratch(name: &str) -> Utf8PathBuf {
@@ -73,6 +80,7 @@ fn vector<const N: usize>(seed: u8) -> BoxedVecN<N> {
     clippy::ptr_arg,
     reason = "the assertion discriminates the Cow's arms, so the Cow itself is the subject"
 )]
+#[track_caller]
 fn assert_borrowed_from<const N: usize>(map: &[u8], embedding: &Cow<'_, AlignedVecN<N>>) {
     let Cow::Borrowed(vector) = embedding else {
         panic!("the served embedding is owned rather than borrowed from the mapping");
@@ -134,6 +142,125 @@ struct Fixture {
     node_legends: Vec<OwnedLegend>,
     edge_legends: Vec<OwnedLegend>,
     ontology_icons: Vec<OwnedIcon>,
+}
+
+impl Fixture {
+    /// A four-node fixture exercising every record shape.
+    ///
+    /// Node confidences and type lists cover present and absent, one edge carries an embedding and
+    /// full confidences while the other carries neither, one icon is empty, and the third card
+    /// repeats the first card's text so the card-embedding stream's dedupe has work to do. The
+    /// canonical map covers every node, so any probe sample is servable.
+    fn new() -> Self {
+        let nodes = vec![
+            Node {
+                id: entity(1),
+                ontology: smallvec![OntologyRowId::new(0), OntologyRowId::new(1)],
+                embedding: Cow::Owned(vector(1)),
+                confidence: Some(unit_fraction!(0.75)),
+            },
+            Node {
+                id: entity(2),
+                ontology: smallvec![OntologyRowId::new(2)],
+                embedding: Cow::Owned(vector(2)),
+                confidence: None,
+            },
+            Node {
+                id: entity(3),
+                ontology: smallvec![],
+                embedding: Cow::Owned(vector(3)),
+                confidence: Some(unit_fraction!(1.0)),
+            },
+            Node {
+                id: entity(4),
+                ontology: smallvec![OntologyRowId::new(0)],
+                embedding: Cow::Owned(vector(4)),
+                confidence: None,
+            },
+        ];
+
+        let canonical = nodes
+            .iter()
+            .zip([10_u8, 11, 12, 13])
+            .map(|(node, seed)| (node.id, vector(seed)))
+            .collect();
+
+        Self {
+            nodes,
+            edges: vec![
+                Edge {
+                    id: entity(21),
+                    source: NodeRowId::new(0),
+                    target: NodeRowId::new(1),
+                    ontology: smallvec![OntologyRowId::new(1)],
+                    embedding: Some(Cow::Owned(vector(21))),
+                    confidence: Some(unit_fraction!(0.5)),
+                    source_confidence: Some(unit_fraction!(0.25)),
+                    target_confidence: Some(unit_fraction!(1.0)),
+                },
+                Edge {
+                    id: entity(22),
+                    source: NodeRowId::new(2),
+                    target: NodeRowId::new(0),
+                    ontology: smallvec![],
+                    embedding: None,
+                    confidence: None,
+                    source_confidence: None,
+                    target_confidence: None,
+                },
+            ],
+            ontology: vec![
+                Ontology {
+                    id: ontology_type(31),
+                    parents: smallvec![],
+                },
+                Ontology {
+                    id: ontology_type(32),
+                    parents: smallvec![OntologyRowId::new(0)],
+                },
+                Ontology {
+                    id: ontology_type(33),
+                    parents: smallvec![OntologyRowId::new(0), OntologyRowId::new(1)],
+                },
+            ],
+            canonical,
+            cards: vec![
+                Card::verbatim("Root type card".to_owned()),
+                Card::from_parts(
+                    "Truncated type card".to_owned(),
+                    7,
+                    vec![Cow::Borrowed("examples"), Cow::Borrowed("constraints")],
+                    true,
+                ),
+                Card::verbatim("Root type card".to_owned()),
+            ],
+            node_legends: vec![
+                OwnedLegend::new(OntologyRowId::new(0), Label::new("person")),
+                OwnedLegend::new(OntologyRowId::new(2), Label::new("company")),
+                OwnedLegend::new(OntologyRowId::new(0), Label::EMPTY),
+                OwnedLegend::new(OntologyRowId::new(0), Label::new("a longer display label")),
+            ],
+            edge_legends: vec![
+                OwnedLegend::new(OntologyRowId::new(1), Label::new("employed by")),
+                OwnedLegend::new(OntologyRowId::new(0), Label::EMPTY),
+            ],
+            ontology_icons: vec![
+                OwnedIcon::from("A"),
+                OwnedIcon::default(),
+                OwnedIcon::from("BC"),
+            ],
+        }
+    }
+
+    /// Dumps this fixture into `directory`, running the read phase and then the embed phase.
+    async fn dump(
+        &self,
+        directory: &Utf8Path,
+        options: DumpOptions<'_>,
+    ) -> Result<Dump, DumpError<!, !>> {
+        let reading = read(self, directory, &options).await?;
+        embed(&FixtureEmbedder, reading, directory, &options, &NoProgress).await
+    }
 }
 
 impl Dataset for Fixture {
@@ -240,119 +367,12 @@ impl Dataset for Fixture {
     }
 }
 
-/// A four-node fixture exercising every record shape.
-///
-/// Node confidences and type lists cover present and absent, one edge carries an embedding and
-/// full confidences while the other carries neither, one icon is empty, and the third card
-/// repeats the first card's text so the card-embedding stream's dedupe has work to do. The
-/// canonical map covers every node, so any probe sample is servable.
-fn fixture() -> Fixture {
-    let nodes = vec![
-        Node {
-            id: entity(1),
-            ontology: smallvec![OntologyRowId::new(0), OntologyRowId::new(1)],
-            embedding: Cow::Owned(vector(1)),
-            confidence: Some(unit_fraction!(0.75)),
-        },
-        Node {
-            id: entity(2),
-            ontology: smallvec![OntologyRowId::new(2)],
-            embedding: Cow::Owned(vector(2)),
-            confidence: None,
-        },
-        Node {
-            id: entity(3),
-            ontology: smallvec![],
-            embedding: Cow::Owned(vector(3)),
-            confidence: Some(unit_fraction!(1.0)),
-        },
-        Node {
-            id: entity(4),
-            ontology: smallvec![OntologyRowId::new(0)],
-            embedding: Cow::Owned(vector(4)),
-            confidence: None,
-        },
-    ];
-
-    let canonical = nodes
-        .iter()
-        .zip([10_u8, 11, 12, 13])
-        .map(|(node, seed)| (node.id, vector(seed)))
-        .collect();
-
-    Fixture {
-        nodes,
-        edges: vec![
-            Edge {
-                id: entity(21),
-                source: NodeRowId::new(0),
-                target: NodeRowId::new(1),
-                ontology: smallvec![OntologyRowId::new(1)],
-                embedding: Some(Cow::Owned(vector(21))),
-                confidence: Some(unit_fraction!(0.5)),
-                source_confidence: Some(unit_fraction!(0.25)),
-                target_confidence: Some(unit_fraction!(1.0)),
-            },
-            Edge {
-                id: entity(22),
-                source: NodeRowId::new(2),
-                target: NodeRowId::new(0),
-                ontology: smallvec![],
-                embedding: None,
-                confidence: None,
-                source_confidence: None,
-                target_confidence: None,
-            },
-        ],
-        ontology: vec![
-            Ontology {
-                id: ontology_type(31),
-                parents: smallvec![],
-            },
-            Ontology {
-                id: ontology_type(32),
-                parents: smallvec![OntologyRowId::new(0)],
-            },
-            Ontology {
-                id: ontology_type(33),
-                parents: smallvec![OntologyRowId::new(0), OntologyRowId::new(1)],
-            },
-        ],
-        canonical,
-        cards: vec![
-            Card::verbatim("Root type card".to_owned()),
-            Card::from_parts(
-                "Truncated type card".to_owned(),
-                7,
-                vec![Cow::Borrowed("examples"), Cow::Borrowed("constraints")],
-                true,
-            ),
-            Card::verbatim("Root type card".to_owned()),
-        ],
-        node_legends: vec![
-            OwnedLegend::new(OntologyRowId::new(0), Label::new("person")),
-            OwnedLegend::new(OntologyRowId::new(2), Label::new("company")),
-            OwnedLegend::new(OntologyRowId::new(0), Label::EMPTY),
-            OwnedLegend::new(OntologyRowId::new(0), Label::new("a longer display label")),
-        ],
-        edge_legends: vec![
-            OwnedLegend::new(OntologyRowId::new(1), Label::new("employed by")),
-            OwnedLegend::new(OntologyRowId::new(0), Label::EMPTY),
-        ],
-        ontology_icons: vec![
-            OwnedIcon::from("A"),
-            OwnedIcon::default(),
-            OwnedIcon::from("BC"),
-        ],
-    }
-}
-
 /// Dump options under probe coverage: a two-row sample over the fixture's four nodes.
 fn options() -> DumpOptions<'static> {
     DumpOptions {
         seed: 7,
-        anchors: NonZero::new(1).expect("one is nonzero"),
-        comparisons: NonZero::new(1).expect("one is nonzero"),
+        anchors: nz!(1),
+        comparisons: nz!(1),
         all_canonicals: false,
         annotations: None,
         assembly: AssemblyConfig::default(),
@@ -395,7 +415,8 @@ async fn dump_roundtrips_byte_identically() {
     let first = scratch("roundtrip-first");
     let second = scratch("roundtrip-second");
 
-    let written = dump(&fixture(), &FixtureEmbedder, &first, options(), &NoProgress)
+    let written = Fixture::new()
+        .dump(&first, options())
         .await
         .expect("the fixture dumps cleanly");
 
@@ -405,7 +426,11 @@ async fn dump_roundtrips_byte_identically() {
     let embedder = opened
         .embedder()
         .expect("the embedder builds over the dump");
-    let reread = dump(&opened, &embedder, &second, options(), &NoProgress)
+    let options = options();
+    let reading = read::<_, !>(&opened, &second, &options)
+        .await
+        .expect("the reopened dump reads cleanly");
+    let reread = embed::<!, _, _>(&embedder, reading, &second, &options, &NoProgress)
         .await
         .expect("the reopened dump dumps cleanly");
 
@@ -449,16 +474,11 @@ async fn dump_roundtrips_byte_identically() {
 )]
 async fn offline_dataset_serves_the_row_streams_verbatim() {
     let directory = scratch("row-oracle");
-    let source = fixture();
-    dump(
-        &source,
-        &FixtureEmbedder,
-        &directory,
-        options(),
-        &NoProgress,
-    )
-    .await
-    .expect("the fixture dumps cleanly");
+    let source = Fixture::new();
+    source
+        .dump(&directory, options())
+        .await
+        .expect("the fixture dumps cleanly");
 
     let opened = OfflineDataset::open(&directory).expect("the dump opens whole");
 
@@ -545,19 +565,17 @@ async fn offline_dataset_serves_the_row_streams_verbatim() {
 )]
 async fn offline_dataset_serves_the_request_streams_verbatim() {
     let directory = scratch("request-oracle");
-    let source = fixture();
-    dump(
-        &source,
-        &FixtureEmbedder,
-        &directory,
-        DumpOptions {
-            all_canonicals: true,
-            ..options()
-        },
-        &NoProgress,
-    )
-    .await
-    .expect("the fixture dumps cleanly");
+    let source = Fixture::new();
+    source
+        .dump(
+            &directory,
+            DumpOptions {
+                all_canonicals: true,
+                ..options()
+            },
+        )
+        .await
+        .expect("the fixture dumps cleanly");
 
     let opened = OfflineDataset::open(&directory).expect("the dump opens whole");
 
@@ -599,19 +617,17 @@ async fn offline_dataset_serves_the_request_streams_verbatim() {
 )]
 async fn served_embeddings_borrow_the_mapped_stream_files() {
     let directory = scratch("borrow-proof");
-    let source = fixture();
-    dump(
-        &source,
-        &FixtureEmbedder,
-        &directory,
-        DumpOptions {
-            all_canonicals: true,
-            ..options()
-        },
-        &NoProgress,
-    )
-    .await
-    .expect("the fixture dumps cleanly");
+    let source = Fixture::new();
+    source
+        .dump(
+            &directory,
+            DumpOptions {
+                all_canonicals: true,
+                ..options()
+            },
+        )
+        .await
+        .expect("the fixture dumps cleanly");
 
     let opened = OfflineDataset::open(&directory).expect("the dump opens whole");
 
@@ -657,15 +673,10 @@ async fn served_embeddings_borrow_the_mapped_stream_files() {
 )]
 async fn offline_embedder_serves_hits_and_refuses_misses() {
     let directory = scratch("embedder-hit-miss");
-    dump(
-        &fixture(),
-        &FixtureEmbedder,
-        &directory,
-        options(),
-        &NoProgress,
-    )
-    .await
-    .expect("the fixture dumps cleanly");
+    Fixture::new()
+        .dump(&directory, options())
+        .await
+        .expect("the fixture dumps cleanly");
 
     let opened = OfflineDataset::open(&directory).expect("the dump opens whole");
     let embedder = opened
@@ -697,15 +708,10 @@ async fn offline_embedder_serves_hits_and_refuses_misses() {
 )]
 async fn open_refuses_a_tampered_stream() {
     let directory = scratch("digest-tamper");
-    dump(
-        &fixture(),
-        &FixtureEmbedder,
-        &directory,
-        options(),
-        &NoProgress,
-    )
-    .await
-    .expect("the fixture dumps cleanly");
+    Fixture::new()
+        .dump(&directory, options())
+        .await
+        .expect("the fixture dumps cleanly");
 
     let path = directory.join(StreamKind::Nodes.file_name());
     let mut bytes = fs::read(&path).expect("the dump holds the node stream");
@@ -738,15 +744,10 @@ async fn open_refuses_a_tampered_stream() {
 )]
 async fn open_refuses_a_defective_archive() {
     let directory = scratch("archive-defect");
-    dump(
-        &fixture(),
-        &FixtureEmbedder,
-        &directory,
-        options(),
-        &NoProgress,
-    )
-    .await
-    .expect("the fixture dumps cleanly");
+    Fixture::new()
+        .dump(&directory, options())
+        .await
+        .expect("the fixture dumps cleanly");
 
     // The node root sits at the file's tail, and its trailing eight bytes are the embedding
     // column's length. An absurd length makes the column escape the file, which is exactly the
@@ -778,15 +779,10 @@ async fn open_refuses_a_defective_archive() {
 )]
 async fn open_refuses_an_embedding_position_outside_the_column() {
     let directory = scratch("edge-position");
-    dump(
-        &fixture(),
-        &FixtureEmbedder,
-        &directory,
-        options(),
-        &NoProgress,
-    )
-    .await
-    .expect("the fixture dumps cleanly");
+    Fixture::new()
+        .dump(&directory, options())
+        .await
+        .expect("the fixture dumps cleanly");
 
     // A defective writer's edge record naming a position its column does not hold is invisible
     // to byte-level validation, because each field is valid alone. The open's cross-field check
