@@ -34,6 +34,7 @@
  *     condition-5-model.md        the capture store folded into the elicited model, with the completion report
  *     condition-5-captures.json   the capture-store snapshot verbatim
  *     condition-5-system.md       the interviewer's instructions, reconstructed with the binding's own functions
+ *     condition-5.timings.jsonl   each observed Flue model call, tagged by interviewer-turn purpose
  */
 
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -71,6 +72,12 @@ import {
 } from "@hashintel/brunch-agent-binding-flue";
 import { sdcpn, sdcpnDefinition } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { repertoire } from "@hashintel/brunch-agent-repertoire";
+
+import {
+  createTurnTimingRecorder,
+  type TurnTimingPurpose,
+  type TurnTimingRecord,
+} from "./turn-timing.ts";
 
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Provider } from "@earendil-works/pi-ai";
@@ -198,6 +205,8 @@ export interface HarnessTurnRecord {
   readonly settlement?: "failed" | "aborted";
   /** The one question left open for the expert, if any. */
   readonly pendingQuestion?: string;
+  /** Flue model-call timings observed while this interviewer turn ran. */
+  readonly timings: readonly TurnTimingRecord[];
   /** The harness's read-time completion over the capture store after this turn. */
   readonly completion: HarnessCompletionRecord;
   /** What the expert was then sent: their reply, or a stimulus. */
@@ -216,6 +225,7 @@ export interface HarnessRunRecord {
   readonly conversationId: string;
   readonly stopReason: string;
   readonly turns: readonly HarnessTurnRecord[];
+  readonly timings: readonly TurnTimingRecord[];
   readonly usage: { readonly interviewer: Usage; readonly expert: Usage };
   readonly history: FlueConversationSnapshot;
   readonly store: CaptureStoreSnapshot;
@@ -334,7 +344,10 @@ const sweepRecordOf = (output: unknown): HarnessSweepRecord => {
 /** Everything the interviewer did between two of our dispatches. */
 function readTurn(
   messages: readonly FlueConversationMessage[],
-): Omit<HarnessTurnRecord, "turn" | "completion" | "pendingQuestion"> {
+): Omit<
+  HarnessTurnRecord,
+  "turn" | "completion" | "pendingQuestion" | "timings"
+> {
   const text: string[] = [];
   const asks: HarnessTurnRecord["asks"][number][] = [];
   const sweeps: HarnessSweepRecord[] = [];
@@ -523,6 +536,19 @@ function renderModel(
 const formatUsage = (usage: Usage): string =>
   `${usage.input} in (+${usage.cacheWrite} cache write, +${usage.cacheRead} cache read) / ${usage.output} out across ${usage.calls} calls`;
 
+const formatPurposeTiming = (
+  timings: readonly TurnTimingRecord[],
+  purpose: TurnTimingPurpose,
+): string => {
+  const matching = timings.filter((timing) => timing.purpose === purpose);
+  if (matching.length === 0) return "—";
+  const durationMs = matching.reduce(
+    (total, timing) => total + timing.durationMs,
+    0,
+  );
+  return `${durationMs} ms (${matching.length} call${matching.length === 1 ? "" : "s"})`;
+};
+
 function renderTranscript(
   run: HarnessRunRecord,
   openingMessage: string,
@@ -552,7 +578,12 @@ function renderTranscript(
     openingMessage,
   ];
   const body = run.turns.map((turn) => {
-    const parts: string[] = ["---", "", "**Interviewer**:", ""];
+    const parts: string[] = [
+      "---",
+      "",
+      `**Interviewer — turn ${turn.turn}** | interview ${formatPurposeTiming(turn.timings, "interview")} | sweep ${formatPurposeTiming(turn.timings, "sweep")} | repair ${formatPurposeTiming(turn.timings, "repair")}`,
+      "",
+    ];
     if (turn.text.length === 0 && turn.asks.length === 0) {
       parts.push("_(no visible text this turn)_");
     }
@@ -675,7 +706,9 @@ const interviewerUsage: Usage = {
   cacheWrite: 0,
   calls: 0,
 };
+const turnTimingRecorder = createTurnTimingRecorder();
 const stopObserving = observe((event) => {
+  turnTimingRecorder.observe(event);
   if (event.type !== "turn") return;
   interviewerUsage.calls += 1;
   const usage = event.response.usage;
@@ -727,6 +760,7 @@ async function writeArtifacts(): Promise<void> {
     conversationId,
     stopReason,
     turns,
+    timings: turnTimingRecorder.all(),
     usage: { interviewer: interviewerUsage, expert: expertUsage },
     history,
     store: storeSnapshot,
@@ -743,6 +777,13 @@ async function writeArtifacts(): Promise<void> {
   await writeFile(
     `${stem}.md`,
     renderTranscript(run, openingMessage, sweepTally),
+  );
+  await writeFile(
+    `${stem}.timings.jsonl`,
+    `${turnTimingRecorder
+      .all()
+      .map((timing) => JSON.stringify(timing))
+      .join("\n")}\n`,
   );
   await writeFile(`${stem}-model.md`, renderModel(model, report, record));
   await writeFile(
@@ -780,6 +821,7 @@ try {
   while (turns.length < HARD_STOP_AT) {
     const turnNumber = turns.length + 1;
     console.error(`turn ${turnNumber} (interviewer)`);
+    turnTimingRecorder.startInterviewerTurn(turnNumber);
     await dispatch(outgoing, initial);
     initial = false;
 
@@ -802,6 +844,7 @@ try {
       turn: turnNumber,
       ...observed,
       ...(pendingQuestion === undefined ? {} : { pendingQuestion }),
+      timings: turnTimingRecorder.forInterviewerTurn(turnNumber),
       completion,
     };
     turns.push(turn);

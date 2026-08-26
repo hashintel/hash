@@ -100,8 +100,8 @@ Condition 4 otherwise uses conditions 1–2's mechanics: the legacy impatience p
 budget, and delivery classifier. Condition 5 runs from the application package, which owns the
 agent composition: `turbo run baseline:harness --filter '@apps/brunch-agent'` (builds the workspace
 first; writes `condition-5.md`, `condition-5.raw.json`, `condition-5-model.md`,
-`condition-5-captures.json`, and `condition-5-system.md`). `run.ts` accepts only `1`, `2`, and `4`;
-condition 3 has no entry point. Production transcripts land in
+`condition-5-captures.json`, `condition-5-system.md`, and `condition-5.timings.jsonl`). `run.ts`
+accepts only `1`, `2`, and `4`; condition 3 has no entry point. Production transcripts land in
 `docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/`. Tests set
   `BRUNCH_BASELINE_TEST_OUTPUT_DIR` to an isolated directory and never write committed evidence;
   the condition-5 test additionally swaps both models for stand-ins
@@ -128,9 +128,10 @@ condition 3 has no entry point. Production transcripts land in
    completion, and how it uses the completion cue and the settlement nudge.
 6. **Excavation checks**: did the interviewer surface the _(tacit)_ facts, correct the
    _(believes)_ errors, and record the _(doesn't know)_ absences as absences?
-7. **Turn cost (condition 5 only)**: tokens per turn by purpose (interview, sweep, repair) and,
-   once the runner records Flue's `turn` event `durationMs`, wall-clock per purpose and time to
-   the visible question. The first run recorded tokens and the run window only; see the
+7. **Turn cost (condition 5 only)**: Flue's `turn` event `durationMs` per model call, grouped by
+   interviewer turn and tagged as interview, sweep, or repair from harness signal order. The raw
+   record, transcript turn headers, and JSONL timing artifact carry the measurements. The first run
+   recorded tokens and the run window only; see the
    [turn latency assessment](../../../../docs/evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md).
 
 ## Threats to validity (acknowledged)

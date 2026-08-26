@@ -55,6 +55,11 @@ const objectiveProposal: SlotAssertedProposalInput = {
   },
 };
 
+const refusedObjectiveProposal: SlotAssertedProposalInput = {
+  ...objectiveProposal,
+  evidence: [{ excerpt: "This quote is deliberately absent." }],
+};
+
 const countToolCalls = (context: Context, name: string): number => {
   let count = 0;
   for (const message of context.messages) {
@@ -66,18 +71,45 @@ const countToolCalls = (context: Context, name: string): number => {
   return count;
 };
 
+const latestUserText = (context: Context): string | undefined => {
+  const latestMessage = context.messages.at(-1);
+  if (latestMessage?.role !== "user") return undefined;
+  return typeof latestMessage.content === "string"
+    ? latestMessage.content
+    : latestMessage.content
+        .filter((part) => part.type === "text")
+        .map((part) => part.text)
+        .join("\n");
+};
+
 const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: SDCPN_MODEL_ID }],
 });
 
+let extractionCalls = 0;
 faux.setResponses(
   Array.from({ length: 64 }, () => (context: Context) => {
     if (context.tools?.some((tool) => tool.name === "finish")) {
+      extractionCalls += 1;
       return fauxAssistantMessage(
-        [fauxToolCall("finish", { proposals: [objectiveProposal] })],
+        [
+          fauxToolCall("finish", {
+            proposals: [
+              process.env["BASELINE_STUB_REFUSE_FIRST_SWEEP"] === "1" &&
+              extractionCalls === 1
+                ? refusedObjectiveProposal
+                : objectiveProposal,
+            ],
+          }),
+        ],
         { stopReason: "toolUse" },
       );
+    }
+    if (latestUserText(context)?.startsWith("<sweep-repair")) {
+      return fauxAssistantMessage([fauxToolCall(sweep, {})], {
+        stopReason: "toolUse",
+      });
     }
     const asks = countToolCalls(context, ask);
     const sweeps = countToolCalls(context, sweep);
