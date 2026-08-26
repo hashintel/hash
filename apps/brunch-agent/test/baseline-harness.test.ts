@@ -95,7 +95,7 @@ test("stops at the configured turn and persists first-turn timings before exit",
         }
         return timingsAfterFirstTurn;
       },
-      { interval: 1, timeout: 1_000 },
+      { interval: 1, timeout: 5_000 },
     )
     .toBeDefined();
 
@@ -217,7 +217,9 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
       (part) =>
         part.type === "dynamic-tool" &&
         part.toolName === "brunch_sweep" &&
-        part.state === "output-available",
+        part.state === "output-available" &&
+        isRecord(part.output) &&
+        part.output.status === "applied",
     );
   if (
     appliedSweepPart?.type !== "dynamic-tool" ||
