@@ -17,12 +17,7 @@ microseconds against roughly a microsecond of per-frame work. A GPU path shaped
 like the CPU one would be _slower_ than the CPU. So the host dispatches a chunk of
 frames and results come back as aggregates.
 
-```text
-HIR -> generate WGSL -> shader (1 invocation per run)
-                          |- per frame: workgroup atomics -> per-frame histogram
-                          |- at end:    compact per-run summary
-                          -> one readback -> metric frames
-```
+![One experiment through the GPU](@diagrams/gpu-experiment-pipeline.svg)
 
 Two consequences of that shape:
 
