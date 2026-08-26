@@ -10,7 +10,9 @@ import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa6";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { selectCanonicalSpeechSegments } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
+import { SpeechPlaybackController } from "./speech-playback-controller";
 import {
   VoiceTurnController,
   type VoiceTurnSnapshot,
@@ -89,6 +91,12 @@ const statusStyle = css({
   lineHeight: "relaxed",
 });
 
+const disclosureStyle = css({
+  color: "neutral.s70",
+  fontSize: "xs",
+  lineHeight: "relaxed",
+});
+
 const liveRegionStyle = css({
   position: "absolute",
   width: "[1px]",
@@ -162,6 +170,10 @@ const statusText = (snapshot: VoiceTurnSnapshot): string => {
       return "Microphone off. Sending the finalized transcript to Brunch.";
     case "waiting":
       return "Microphone off. Waiting for Brunch.";
+    case "synthesizing":
+      return "Microphone off. Creating AI-generated speech.";
+    case "playing":
+      return "Microphone off. Playing AI-generated speech.";
     case "recoverable-error":
       return `Microphone off. ${snapshot.errorMessage}`;
   }
@@ -238,6 +250,9 @@ export const VoiceInterviewControlView = ({
       {!isIdle && (
         <section className={panelStyle} aria-label="Voice input status">
           <p className={statusStyle}>{statusText(snapshot)}</p>
+          <p className={disclosureStyle}>
+            Spoken responses use an AI-generated OpenAI voice.
+          </p>
           {snapshot.partialText && (
             <p className={partialStyle}>
               <span className={partialLabelStyle}>
@@ -311,8 +326,15 @@ const AvailableVoiceInterviewControl = ({
       getUserMedia: (constraints) =>
         navigator.mediaDevices.getUserMedia(constraints),
     });
+    const playback = new SpeechPlaybackController({
+      createAudio: (source) => new Audio(source),
+      createObjectURL: (blob) => URL.createObjectURL(blob),
+      fetch: globalThis.fetch.bind(globalThis),
+      revokeObjectURL: (url) => URL.revokeObjectURL(url),
+    });
     const controller = new VoiceTurnController({
       conversationId: context.conversationId,
+      playback,
       session,
       submitText: context.submitVoiceInput,
     });
@@ -331,8 +353,11 @@ const AvailableVoiceInterviewControl = ({
   const [correction, setCorrection] = useState("");
 
   useLayoutEffect(() => {
-    store.controller.updateChatStatus(context.status);
-  }, [context.status, store]);
+    store.controller.updateChat({
+      canonicalSegments: selectCanonicalSpeechSegments(context.messages),
+      status: context.status,
+    });
+  }, [context.messages, context.status, store]);
 
   useEffect(
     () => () => {

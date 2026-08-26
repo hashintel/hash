@@ -1,3 +1,4 @@
+import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type {
   OpenAIRealtimeSessionEvent,
   OpenAIRealtimeTranscriptKey,
@@ -10,6 +11,8 @@ export type VoiceTurnPhase =
   | "transcribing"
   | "delivering"
   | "waiting"
+  | "synthesizing"
+  | "playing"
   | "recoverable-error";
 
 export interface VoiceTurnSnapshot {
@@ -34,10 +37,24 @@ interface SubmitTextInput {
   readonly text: string;
 }
 
+interface SpeechPlayback {
+  cancel(): void;
+  play(
+    segment: CanonicalSpeechSegment,
+    events?: { readonly onPlaying?: () => void },
+  ): Promise<void>;
+}
+
 interface VoiceTurnControllerDependencies {
   readonly conversationId: string;
+  readonly playback: SpeechPlayback;
   readonly session: RealtimeSession;
   readonly submitText: (input: SubmitTextInput) => Promise<unknown>;
+}
+
+interface ChatUpdate {
+  readonly canonicalSegments: CanonicalSpeechSegment[];
+  readonly status: ChatStatus;
 }
 
 type SnapshotListener = (snapshot: VoiceTurnSnapshot) => void;
@@ -67,25 +84,32 @@ const initialSnapshot: VoiceTurnSnapshot = {
 export class VoiceTurnController {
   readonly #conversationId: string;
   readonly #listeners = new Set<SnapshotListener>();
+  readonly #playback: SpeechPlayback;
   readonly #session: RealtimeSession;
   readonly #submitText: (input: SubmitTextInput) => Promise<unknown>;
   readonly #completedKeys = new Set<string>();
+  readonly #seenSpeechSegmentIds = new Set<string>();
+  readonly #speechQueue: CanonicalSpeechSegment[] = [];
   #activeEpoch: number | null = null;
   #activeItemId: string | null = null;
   #activeKey: string | null = null;
+  #activeSpeechSegmentId: string | null = null;
   #awaitingChatCycle = false;
   #chatStatus: ChatStatus = "ready";
   #generation = 0;
   #pendingDelivery: SubmitTextInput | null = null;
   #sawBusyChatStatus = false;
   #snapshot = initialSnapshot;
+  #speechLoopGeneration: number | null = null;
 
   public constructor({
     conversationId,
+    playback,
     session,
     submitText,
   }: VoiceTurnControllerDependencies) {
     this.#conversationId = conversationId;
+    this.#playback = playback;
     this.#session = session;
     this.#submitText = submitText;
     session.subscribe((event) => this.#handleSessionEvent(event));
@@ -124,12 +148,13 @@ export class VoiceTurnController {
       this.#activeItemId = null;
       this.#activeKey = null;
       this.#completedKeys.clear();
-      const canListen = this.#isChatReady();
+      const canListen = this.#isChatReady() && this.#speechQueue.length === 0;
       this.#session.setMicrophoneEnabled(canListen);
       this.#update({
         partialText: "",
         phase: canListen ? "listening" : "waiting",
       });
+      this.#startSpeechQueueIfNeeded();
     } catch (error) {
       if (generation !== this.#generation) {
         return;
@@ -150,9 +175,13 @@ export class VoiceTurnController {
     this.#activeEpoch = null;
     this.#activeItemId = null;
     this.#activeKey = null;
+    this.#activeSpeechSegmentId = null;
     this.#awaitingChatCycle = false;
     this.#pendingDelivery = null;
     this.#sawBusyChatStatus = false;
+    this.#speechLoopGeneration = null;
+    this.#speechQueue.length = 0;
+    this.#playback.cancel();
     this.#session.setMicrophoneEnabled(false);
     await this.#session.disconnect();
     this.#update({
@@ -186,58 +215,69 @@ export class VoiceTurnController {
     });
   }
 
-  public updateChatStatus(status: ChatStatus): void {
+  public updateChat({ canonicalSegments, status }: ChatUpdate): void {
     this.#chatStatus = status;
-    if (!this.#awaitingChatCycle) {
-      if (status === "ready" && this.#pendingDelivery !== null) {
-        const pendingDelivery = this.#pendingDelivery;
-        this.#pendingDelivery = null;
-        this.#session.setMicrophoneEnabled(false);
-        this.#update({ errorMessage: "", phase: "delivering" });
-        void this.#deliver(pendingDelivery);
-        return;
+    const canQueueSpeech =
+      status !== "error" &&
+      this.#snapshot.phase !== "idle" &&
+      this.#snapshot.phase !== "recoverable-error";
+    for (const segment of canonicalSegments) {
+      if (this.#seenSpeechSegmentIds.has(segment.id)) {
+        continue;
       }
-      if (
-        (status === "submitted" || status === "streaming") &&
-        (this.#snapshot.phase === "listening" ||
-          this.#snapshot.phase === "transcribing")
-      ) {
-        this.#session.setMicrophoneEnabled(false);
-        this.#update({ phase: "waiting" });
-      } else if (
-        status === "ready" &&
-        this.#activeEpoch !== null &&
-        this.#snapshot.phase === "waiting"
-      ) {
-        this.#session.setMicrophoneEnabled(true);
-        this.#update({ errorMessage: "", phase: "listening" });
-      } else if (status === "error" && this.#snapshot.phase === "waiting") {
-        this.#session.setMicrophoneEnabled(false);
-        this.#update({
-          errorMessage:
-            "Brunch could not complete the current turn. Use the composer to retry.",
-          phase: "recoverable-error",
-        });
+      this.#seenSpeechSegmentIds.add(segment.id);
+      if (canQueueSpeech) {
+        this.#speechQueue.push(segment);
       }
+    }
+
+    if (
+      status === "ready" &&
+      !this.#awaitingChatCycle &&
+      this.#pendingDelivery !== null
+    ) {
+      const pendingDelivery = this.#pendingDelivery;
+      this.#pendingDelivery = null;
+      this.#session.setMicrophoneEnabled(false);
+      this.#update({ errorMessage: "", phase: "delivering" });
+      void this.#deliver(pendingDelivery);
       return;
     }
 
-    if (status === "submitted" || status === "streaming") {
-      this.#sawBusyChatStatus = true;
-      this.#update({ phase: "waiting" });
-      return;
-    }
     if (status === "error") {
+      if (this.#snapshot.phase === "idle") {
+        return;
+      }
+      const errorMessage = this.#awaitingChatCycle
+        ? "Brunch could not accept the voice turn. Use the composer to retry."
+        : "Brunch could not complete the current turn. Use the composer to retry.";
       this.#awaitingChatCycle = false;
+      this.#sawBusyChatStatus = false;
+      this.#speechQueue.length = 0;
+      this.#activeSpeechSegmentId = null;
+      this.#speechLoopGeneration = null;
+      this.#playback.cancel();
       this.#session.setMicrophoneEnabled(false);
-      this.#update({
-        errorMessage:
-          "Brunch could not accept the voice turn. Use the composer to retry.",
-        phase: "recoverable-error",
-      });
+      this.#update({ errorMessage, phase: "recoverable-error" });
       return;
     }
-    this.#reopenListeningIfReady();
+
+    this.#startSpeechQueueIfNeeded();
+    if (status === "submitted" || status === "streaming") {
+      if (this.#awaitingChatCycle) {
+        this.#sawBusyChatStatus = true;
+      }
+      this.#session.setMicrophoneEnabled(false);
+      if (
+        this.#speechLoopGeneration === null &&
+        this.#snapshot.phase !== "idle" &&
+        this.#snapshot.phase !== "recoverable-error"
+      ) {
+        this.#update({ phase: "waiting" });
+      }
+      return;
+    }
+    this.#settleListeningIfReady();
   }
 
   async #deliver(input: SubmitTextInput): Promise<void> {
@@ -260,7 +300,7 @@ export class VoiceTurnController {
         return;
       }
       this.#update({ phase: "waiting" });
-      this.#reopenListeningIfReady();
+      this.#settleListeningIfReady();
     } catch {
       if (generation !== this.#generation) {
         return;
@@ -299,6 +339,10 @@ export class VoiceTurnController {
       this.#awaitingChatCycle = false;
       this.#pendingDelivery = null;
       this.#sawBusyChatStatus = false;
+      this.#activeSpeechSegmentId = null;
+      this.#speechLoopGeneration = null;
+      this.#speechQueue.length = 0;
+      this.#playback.cancel();
       this.#session.setMicrophoneEnabled(false);
       this.#update({ errorMessage: event.message, phase: "recoverable-error" });
       return;
@@ -358,12 +402,11 @@ export class VoiceTurnController {
     this.#activeItemId = null;
     this.#activeKey = null;
     if (!finalText) {
-      const canListen = this.#isChatReady();
-      this.#session.setMicrophoneEnabled(canListen);
       this.#update({
         partialText: "",
-        phase: canListen ? "listening" : "waiting",
+        phase: "waiting",
       });
+      this.#settleListeningIfReady();
       return;
     }
 
@@ -386,16 +429,117 @@ export class VoiceTurnController {
     }
   }
 
-  #reopenListeningIfReady(): void {
+  #startSpeechQueueIfNeeded(): void {
     if (
-      !this.#awaitingChatCycle ||
-      !this.#sawBusyChatStatus ||
-      this.#chatStatus !== "ready"
+      this.#speechLoopGeneration !== null ||
+      this.#speechQueue.length === 0 ||
+      this.#activeEpoch === null
     ) {
       return;
     }
-    this.#awaitingChatCycle = false;
-    this.#sawBusyChatStatus = false;
+
+    const generation = this.#generation;
+    this.#speechLoopGeneration = generation;
+    this.#session.setMicrophoneEnabled(false);
+    this.#update({ errorMessage: "", phase: "synthesizing" });
+    void this.#drainSpeechQueue(generation);
+  }
+
+  async #drainSpeechQueue(generation: number): Promise<void> {
+    while (
+      generation === this.#generation &&
+      this.#speechLoopGeneration === generation &&
+      this.#activeEpoch !== null
+    ) {
+      const segment = this.#speechQueue.shift();
+      if (!segment) {
+        break;
+      }
+
+      this.#activeSpeechSegmentId = segment.id;
+      this.#session.setMicrophoneEnabled(false);
+      this.#update({ errorMessage: "", phase: "synthesizing" });
+      try {
+        await this.#playback.play(segment, {
+          onPlaying: () => {
+            if (
+              generation === this.#generation &&
+              this.#speechLoopGeneration === generation &&
+              this.#activeSpeechSegmentId === segment.id
+            ) {
+              this.#update({ phase: "playing" });
+            }
+          },
+        });
+      } catch {
+        if (
+          generation !== this.#generation ||
+          this.#speechLoopGeneration !== generation
+        ) {
+          return;
+        }
+        this.#activeSpeechSegmentId = null;
+        this.#speechLoopGeneration = null;
+        this.#speechQueue.length = 0;
+        this.#session.setMicrophoneEnabled(false);
+        this.#update({
+          errorMessage:
+            "The response could not be spoken. Read the visible text instead.",
+          phase: "recoverable-error",
+        });
+        return;
+      }
+
+      if (
+        generation !== this.#generation ||
+        this.#speechLoopGeneration !== generation
+      ) {
+        return;
+      }
+      this.#activeSpeechSegmentId = null;
+    }
+
+    if (
+      generation !== this.#generation ||
+      this.#speechLoopGeneration !== generation
+    ) {
+      return;
+    }
+    this.#activeSpeechSegmentId = null;
+    this.#speechLoopGeneration = null;
+    this.#settleListeningIfReady();
+  }
+
+  #settleListeningIfReady(): void {
+    if (
+      this.#activeEpoch === null ||
+      this.#snapshot.phase === "recoverable-error" ||
+      this.#speechLoopGeneration !== null ||
+      this.#speechQueue.length > 0
+    ) {
+      return;
+    }
+
+    if (this.#awaitingChatCycle) {
+      if (!this.#sawBusyChatStatus || this.#chatStatus !== "ready") {
+        this.#session.setMicrophoneEnabled(false);
+        return;
+      }
+      this.#awaitingChatCycle = false;
+      this.#sawBusyChatStatus = false;
+    }
+
+    if (!this.#isChatReady()) {
+      this.#session.setMicrophoneEnabled(false);
+      if (
+        this.#snapshot.phase !== "transcribing" &&
+        this.#snapshot.phase !== "delivering"
+      ) {
+        this.#update({ phase: "waiting" });
+      }
+      return;
+    }
+
     this.#session.setMicrophoneEnabled(true);
     this.#update({ errorMessage: "", phase: "listening" });
   }

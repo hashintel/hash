@@ -1,0 +1,243 @@
+import { hashCanonicalSpeechText } from "../../canonical-speech-fingerprint";
+import { getOpenAIVoiceAvailability } from "./openai-voice-policy";
+
+const OPENAI_SPEECH_ENDPOINT = "https://api.openai.com/v1/audio/speech";
+const MAX_REQUEST_BYTES = 32_768;
+const MAX_SPEECH_CHARACTERS = 4_096;
+const SPEECH_ERROR_MESSAGE =
+  "The response could not be spoken. Read the visible text instead.";
+const timeoutError = new DOMException("Upstream timed out", "TimeoutError");
+
+export const OPENAI_SPEECH_TIMEOUT_MS = 25_000;
+
+interface VoiceEnvironment {
+  readonly NODE_ENV?: string;
+  readonly OPENAI_VOICE_API_KEY?: string;
+  readonly PETRINAUT_OPENAI_VOICE_ENABLED?: string;
+  readonly VERCEL_ENV?: string;
+}
+
+interface OpenAISpeechDependencies {
+  readonly environment: VoiceEnvironment;
+  readonly fetch: typeof globalThis.fetch;
+}
+
+interface SpeechRequest {
+  readonly segmentId: string;
+  readonly text: string;
+}
+
+const response = (
+  body: BodyInit | null,
+  status: number,
+  headers?: HeadersInit,
+): Response => {
+  const responseHeaders = new Headers(headers);
+  responseHeaders.set("cache-control", "no-store");
+  return new Response(body, { headers: responseHeaders, status });
+};
+
+const readRequestBody = async (
+  request: Request,
+): Promise<string | Response> => {
+  const declaredLengthHeader = request.headers.get("content-length");
+  if (declaredLengthHeader !== null) {
+    const declaredLength = Number(declaredLengthHeader);
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_REQUEST_BYTES) {
+      return response("The speech request is too large.", 413);
+    }
+  }
+
+  if (!request.body) {
+    return "";
+  }
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  let requestComplete = false;
+
+  while (!requestComplete) {
+    const { done, value } = await reader.read();
+    if (done) {
+      requestComplete = true;
+      continue;
+    }
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_REQUEST_BYTES) {
+      await reader.cancel();
+      return response("The speech request is too large.", 413);
+    }
+    chunks.push(value);
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(body);
+};
+
+const isSpeechRequest = (value: unknown): value is SpeechRequest => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (
+    Object.keys(record).length !== 2 ||
+    typeof record.segmentId !== "string" ||
+    typeof record.text !== "string"
+  ) {
+    return false;
+  }
+
+  return (
+    record.segmentId.length <= 1_200 &&
+    /^canonical-speech:[^:]+:[^:]+:fnv1a32:[0-9a-f]{8}$/u.test(
+      record.segmentId,
+    ) &&
+    record.segmentId.endsWith(`:${hashCanonicalSpeechText(record.text)}`) &&
+    Boolean(record.text.trim()) &&
+    Array.from(record.text).length <= MAX_SPEECH_CHARACTERS
+  );
+};
+
+const proxyAudioStream = (
+  upstreamBody: ReadableStream<Uint8Array>,
+  abortController: AbortController,
+  cleanup: () => void,
+): ReadableStream<Uint8Array> => {
+  const reader = upstreamBody.getReader();
+  let finished = false;
+  const finish = () => {
+    if (!finished) {
+      finished = true;
+      cleanup();
+    }
+  };
+
+  return new ReadableStream({
+    async cancel(reason) {
+      abortController.abort(reason);
+      try {
+        await reader.cancel(reason);
+      } finally {
+        finish();
+      }
+    },
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          finish();
+          return;
+        }
+        controller.enqueue(value);
+      } catch (error) {
+        controller.error(error);
+        finish();
+      }
+    },
+  });
+};
+
+export const createOpenAISpeechHandler =
+  ({ environment, fetch }: OpenAISpeechDependencies) =>
+  async (request: Request): Promise<Response> => {
+    if (request.method !== "POST") {
+      return response("Method not allowed.", 405, { allow: "POST" });
+    }
+
+    if (request.headers.get("origin") !== new URL(request.url).origin) {
+      return response("Forbidden.", 403);
+    }
+
+    const contentType = request.headers
+      .get("content-type")
+      ?.split(";", 1)[0]
+      ?.trim()
+      .toLowerCase();
+    if (contentType !== "application/json") {
+      return response("The request must contain JSON.", 415);
+    }
+
+    if (!getOpenAIVoiceAvailability(environment).available) {
+      return response("Not found.", 404);
+    }
+
+    let parsedBody: unknown;
+    try {
+      const body = await readRequestBody(request);
+      if (body instanceof Response) {
+        return body;
+      }
+      parsedBody = JSON.parse(body);
+    } catch {
+      return response("The speech request is invalid.", 400);
+    }
+
+    if (!isSpeechRequest(parsedBody)) {
+      return response("The speech request is invalid.", 400);
+    }
+
+    const abortController = new AbortController();
+    const abortForTimeout = () => abortController.abort(timeoutError);
+    const abortForRequest = () => abortController.abort();
+    const timeout = globalThis.setTimeout(
+      abortForTimeout,
+      OPENAI_SPEECH_TIMEOUT_MS,
+    );
+    request.signal.addEventListener("abort", abortForRequest, { once: true });
+    const cleanup = () => {
+      globalThis.clearTimeout(timeout);
+      request.signal.removeEventListener("abort", abortForRequest);
+    };
+
+    try {
+      const upstreamResponse = await fetch(OPENAI_SPEECH_ENDPOINT, {
+        body: JSON.stringify({
+          input: parsedBody.text,
+          model: "gpt-4o-mini-tts",
+          response_format: "mp3",
+          stream_format: "audio",
+          voice: "marin",
+        }),
+        headers: {
+          authorization: `Bearer ${environment.OPENAI_VOICE_API_KEY!.trim()}`,
+          "content-type": "application/json",
+        },
+        method: "POST",
+        signal: abortController.signal,
+      });
+      const upstreamContentType = upstreamResponse.headers
+        .get("content-type")
+        ?.split(";", 1)[0]
+        ?.trim()
+        .toLowerCase();
+      if (
+        !upstreamResponse.ok ||
+        upstreamContentType !== "audio/mpeg" ||
+        !upstreamResponse.body
+      ) {
+        await upstreamResponse.body?.cancel();
+        cleanup();
+        return response(SPEECH_ERROR_MESSAGE, 502);
+      }
+
+      return response(
+        proxyAudioStream(upstreamResponse.body, abortController, cleanup),
+        200,
+        { "content-type": "audio/mpeg" },
+      );
+    } catch {
+      cleanup();
+      return response(
+        SPEECH_ERROR_MESSAGE,
+        abortController.signal.reason === timeoutError ? 504 : 502,
+      );
+    }
+  };

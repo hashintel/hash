@@ -73,6 +73,26 @@ production recovery or public availability.
   acoustic-pronunciation guarantee requires a new decision. Exact lexical input to Speech is the
   enforceable fidelity contract in this record.
 
+## Voice PR 3 implementation evidence
+
+- The website selects only finalized assistant text parts and schema-validated
+  `brunch_ask.input.question` values. Segment identity combines the AI SDK message ID, text-part
+  index or tool-call ID, and an exact-text fingerprint. Reasoning, user/system text, partial text,
+  tool output, malformed asks, and other tools are excluded.
+- The Brunch projection test fixes the structured-ask boundary: an awaiting `brunch_ask` emits no
+  duplicate plain-text question. If that contract changes, the projection must be corrected
+  rather than hiding duplicates with fuzzy text matching in the voice layer.
+- The app-owned Speech edge forwards the exact selected text to OpenAI's dedicated Speech API with
+  fixed server policy: `gpt-4o-mini-tts`, the `marin` voice, MP3 response format, and no delivery
+  instruction. The Realtime session remains transcription-only.
+- The turn controller receives chat status and canonical segments atomically, queues speech in
+  order, seeds pre-existing segments as already seen, and rejects stale playback generations.
+  The microphone cannot reopen between Brunch becoming ready and speech being queued; ending or
+  reconnecting cancels synthesis and playback before media teardown.
+- The preview visibly discloses that spoken responses use an AI-generated OpenAI voice. Speech
+  failure keeps the canonical response visible, closes the microphone, and requires an explicit
+  recovery action.
+
 ## Revisit condition
 
 Revisit if the unified OpenAI WebRTC initialization API cannot enforce server-owned transcription

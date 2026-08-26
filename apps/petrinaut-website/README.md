@@ -61,20 +61,20 @@ provides a fake optimizer for isolated UI development.
 
 ## Environment variables
 
-| Name                             | Required         | Used by          | Notes                                                      |
-| -------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------- |
-| `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.         |
-| `OPENAI_VOICE_API_KEY`           | for voice input  | voice API        | Dedicated OpenAI key used only by the Realtime call proxy. |
-| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice outside production.          |
-| `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                     |
-| `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                |
-| `VITE_BRUNCH_CHAT_ENDPOINT`      | for voice input  | website          | Full Brunch Petrinaut chat endpoint used by the panel.     |
-| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the optimization route.         |
-| `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.  |
+| Name                             | Required         | Used by          | Notes                                                     |
+| -------------------------------- | ---------------- | ---------------- | --------------------------------------------------------- |
+| `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.        |
+| `OPENAI_VOICE_API_KEY`           | for voice        | voice API        | Dedicated OpenAI key used by Realtime and Speech proxies. |
+| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice outside production.         |
+| `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                    |
+| `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.               |
+| `VITE_BRUNCH_CHAT_ENDPOINT`      | for voice input  | website          | Full Brunch Petrinaut chat endpoint used by the panel.    |
+| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the optimization route.        |
+| `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time. |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
 
-### Brunch voice-input preview
+### Brunch voice preview
 
 Voice input is disabled by default and always unavailable when `VERCEL_ENV` is
 `production`. To exercise the preview locally or in a Vercel preview, set a
@@ -89,6 +89,14 @@ Only finalized transcripts enter the existing Petrinaut composer and Brunch AI
 SDK transport. Partial transcripts remain display-only. The preview derives a
 stable conversation id from the locally saved net; it is diagnostic identity,
 not production authentication or conversation authority.
+
+While voice is active, finalized assistant text and validated structured Brunch
+questions are spoken with OpenAI's dedicated Speech API. The server fixes the
+model and voice and forwards the selected canonical text without rewriting it;
+Realtime remains transcription-only. The microphone stays closed while Brunch
+is working and while AI-generated speech is being synthesized or played. The UI
+discloses that the voice is AI-generated. Ending voice cancels playback, and a
+speech failure leaves the exact response visible for reading.
 
 The Brunch deployment must allow the website origin through its
 `BRUNCH_PETRINAUT_ORIGINS` setting. Starting voice input requests browser
