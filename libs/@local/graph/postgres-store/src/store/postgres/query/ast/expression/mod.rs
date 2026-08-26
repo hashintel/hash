@@ -939,7 +939,6 @@ mod tests {
         let expected_parameters = compiler
             .compile()
             .1
-            .iter()
             .map(|parameter| format!("{parameter:?}"))
             .collect::<Vec<_>>();
 

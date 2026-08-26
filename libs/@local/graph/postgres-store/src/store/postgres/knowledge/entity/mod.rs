@@ -100,7 +100,7 @@ use type_system::{
 use uuid::Uuid;
 
 use crate::store::{
-    AsClient, PostgresStore,
+    AsClient, GenericClientIter as _, PostgresStore,
     error::{EntityDoesNotExist, RaceConditionOnUpdate},
     postgres::{
         BeginReadOnlyTransaction, InTransaction, TransactionState, TraversalContext,
@@ -647,7 +647,7 @@ where
 
         let rows = self
             .as_client()
-            .query(&statement, parameters)
+            .query_params_iter(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -1032,10 +1032,10 @@ where
 {
     /// Rebuilds the entity edition cache and the inherited `entity_is_of_type` rows.
     ///
-    /// This is inherent rather than only an [`EntityStore`] method so that code paths already
-    /// operating inside an enclosing transaction — snapshot restore and entity-type reindexing —
-    /// can rebuild the cache without requiring the [`EntityStore`] impl, whose snapshot-consistent
-    /// reads are only available where [`BeginReadOnlyTransaction`] is implemented.
+    /// This is inherent rather than only an [`EntityStore`] method so that snapshot restore and
+    /// entity-type reindexing, which already operate inside an enclosing transaction, can rebuild
+    /// the cache without requiring the [`EntityStore`] impl, whose snapshot-consistent reads are
+    /// only available where [`BeginReadOnlyTransaction`] is implemented.
     ///
     /// # Errors
     ///
@@ -1099,7 +1099,7 @@ where
     ///
     /// This is inherent rather than only an [`EntityStore`] method because the snapshot-consistent
     /// read implementations invoke it on the [`InTransaction`] store, where the [`EntityStore`]
-    /// impl — bounded on [`BeginReadOnlyTransaction`] — is not available.
+    /// impl, bounded on [`BeginReadOnlyTransaction`], is not available.
     ///
     /// # Errors
     ///
@@ -1158,7 +1158,7 @@ where
         let (statement, parameters) = compiler.compile();
         let () = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -1979,7 +1979,7 @@ where
 
         let rows = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",

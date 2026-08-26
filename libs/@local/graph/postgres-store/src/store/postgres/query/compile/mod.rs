@@ -757,7 +757,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         skip_all,
         fields(statement.shape = tracing::field::Empty)
     )]
-    pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
+    pub fn compile(
+        &self,
+    ) -> (
+        String,
+        impl ExactSizeIterator<Item = &(dyn ToSql + Sync)> + Sync + Send,
+    ) {
         let (shape, statement) = match self.shape {
             StatementShape::SinglePass => {
                 (StatementShape::SinglePass, self.single_pass_statement())
@@ -774,7 +779,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         };
 
         tracing::Span::current().record("statement.shape", shape.as_str());
-        (statement.transpile_to_string(), &self.artifacts.parameters)
+        (
+            statement.transpile_to_string(),
+            self.artifacts.parameters.iter().copied(),
+        )
     }
 
     /// Lays out the statement as one flat `SELECT` over all joins.
