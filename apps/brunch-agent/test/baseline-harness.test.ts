@@ -14,6 +14,9 @@ import { runNodeScript } from "./run-node-script";
 
 import type { HarnessRunRecord } from "../../../libs/@hashintel/brunch-agent/evaluations/protocols/process-model-elicitation/baseline/harness-run.ts";
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
 const testDirectory = import.meta.dirname;
 const contextRoot = join(
   testDirectory,
@@ -94,6 +97,56 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
     captures: 1,
     complete: false,
   });
+  const appliedSweepPart = run.history.messages
+    .flatMap((message) => message.parts)
+    .find(
+      (part) =>
+        part.type === "dynamic-tool" &&
+        part.toolName === "brunch_sweep" &&
+        part.state === "output-available",
+    );
+  if (
+    appliedSweepPart?.type !== "dynamic-tool" ||
+    appliedSweepPart.state !== "output-available" ||
+    !isRecord(appliedSweepPart.output)
+  ) {
+    throw new Error("The applied sweep did not expose a readable output.");
+  }
+  expect(appliedSweepPart.output.status).toBe("applied");
+  expect(appliedSweepPart.output.title).toBe("Sweep applied");
+  expect(appliedSweepPart.output.detail).toBe(
+    "1 new capture · 1 total · incomplete",
+  );
+  const { items } = appliedSweepPart.output;
+  expect(Array.isArray(items)).toBe(true);
+  if (!Array.isArray(items)) throw new Error("Sweep items were not a list.");
+  expect(
+    items.some(
+      (item) =>
+        typeof item === "string" && item.includes(EXPERT_OBJECTIVE_QUOTE),
+    ),
+  ).toBe(true);
+  expect(
+    items.some(
+      (item) =>
+        typeof item === "string" &&
+        item.includes("Completion: 5 requirements remain"),
+    ),
+  ).toBe(true);
+  const { completion } = appliedSweepPart.output;
+  if (!isRecord(completion) || !Array.isArray(completion.failures)) {
+    throw new Error("The sweep did not expose its completion report.");
+  }
+  expect(completion.complete).toBe(false);
+  expect(completion.failures).toHaveLength(5);
+  expect(
+    completion.failures.every(
+      (failure) =>
+        isRecord(failure) &&
+        typeof failure.diagnostic === "string" &&
+        typeof failure.message === "string",
+    ),
+  ).toBe(true);
 
   // Then the interviewer closes without asking; the runner counts three such
   // turns before the wrap and declares the interview stalled — no classifier.
