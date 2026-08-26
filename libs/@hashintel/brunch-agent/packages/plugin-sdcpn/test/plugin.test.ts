@@ -102,6 +102,12 @@ describe("the SDCPN plugin", () => {
     ).toEqual({ kind: "word", word: "spread" });
   });
 
+  test("does not collect unsupported rationale on every kind", () => {
+    expect(
+      sdcpnDefinition.ontology.attributes.map((attribute) => attribute.name),
+    ).not.toContain("rationale");
+  });
+
   test("accepts an assertion addressed to a kind and slot the file names", () => {
     const schema = createSweepExtractionResultSchema(sdcpn);
     const proposal = proposalOf(

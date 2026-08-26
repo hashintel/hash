@@ -166,7 +166,7 @@ written against.
   splitting either semantic slot.
 - Added repertoire-item `for_precision`, a non-empty list of precision words.
   Rendering now omits an annotated default unless the plugin demands at least
-  one listed word. The seven quantity and observed-practice entries identified
+  one listed word. The eight quantity and observed-practice entries identified
   by the cycle review use the facet, so Gherkin is no longer taught numeric or
   retrospective elicitation merely because it shares the fixed key catalogue.
 - Completed the cycle-two content pass without adding or removing a key. The
@@ -179,3 +179,26 @@ written against.
   dynamics noise and the missed edge material. Gherkin's duplicate
   rule-without-example failure mode was removed. A gate now rejects exact
   sentence repetition between repertoire defaults and plugin cells.
+
+### Cycle-two review dispositions
+
+- Objective identity and deduplication do not change the key catalogue. They are
+  register semantics: plugins name the `objective` kind and its slots, while the
+  harness must decide whether a later statement refers to an existing objective
+  or creates another one.
+- Removed the SDCPN `rationale` attribute. The cycle found no evidence that
+  rationale should be collected on every kind, so a universal plugin facet
+  would create noise; targeted "why" questions remain available in patterns and
+  guidance where they resolve a known model gap.
+- Recounted the cycle-one condition-five evidence before considering finer
+  `must_know` rows. Its 267 captures use 22 unique slot names, all exact names
+  declared by the plugin; the larger observed count was slot instances across
+  nodes, not undeclared slot vocabulary. The catalogue therefore keeps the
+  current slot granularity until a run demonstrates a recurring unresolved
+  sub-slot.
+- Clarified that pattern matching is kind plus optional unsatisfied demanded
+  slot. Pattern prose explains why the surfaced candidate applies; it does not
+  add a hidden machine predicate.
+- Restricted "One incident is not a rate" to plugins demanding `range` or
+  `spread`, removed unqualified grade terminology from SDCPN prose, and shared
+  demand formatting between completion diagnostics and rendered instructions.

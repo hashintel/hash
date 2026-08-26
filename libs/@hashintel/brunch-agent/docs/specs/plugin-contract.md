@@ -191,7 +191,8 @@ Full text survives in the
 - **Typed `ScopeExpr` / `where` / `inSupport` algebra:** demands are now per (kind, slot), and
   the anchor's dependency slice replaces `inSupport`; the algebra had nothing left to select.
 - **`ProposalType.affordance.firesWhen` (closed 7-value enum):** patterns are surfaced by a
-  node matching `when` with an unsatisfied slot, which needs no per-proposal predicate.
+  matching kind plus an optional unsatisfied demanded slot; `when` remains explanatory prose for
+  interviewer judgment, so no per-proposal predicate is needed.
 - **`NodeKind.completionAnchor`:** replaced first by rule, then by the declared `schema.anchor`.
 - **Typed `foldTable` / `demandTable` / `variantDimension` / `lossCategories` declaration:** the
   fold derives from the `must_know` rows, the demand list *is* that key, `source-regime` is a

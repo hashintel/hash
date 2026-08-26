@@ -96,7 +96,7 @@ ontology:
     - name: quantity
       on: any kind
       text: >-
-        Any duration, rate, probability, count, or capacity. Preserve the precision the expert
+        Any duration, rate, probability, count, or capacity. Preserve the value grade the expert
         reached; the row's demand says what further narrowing completion requires.
     - name: source-regime
       on: any kind
@@ -105,9 +105,6 @@ ontology:
         One model, not two: when the manual and the floor disagree, both are recorded on the same
         node and the divergence is an ordinary typed conflict for the expert to resolve —
         elicitation gold, not an error.
-    - name: rationale
-      on: any kind
-      text: Why the expert says it is so — on any kind, never only on objectives.
 
 schema:
   preamble: |
@@ -267,7 +264,7 @@ patterns:
         unplanned arrival — rather than a step in the flow
       ask: >-
         occurrence and duration are two slots. Ask how often, as a range, for each named event
-        separately; then how long, as a spread. Keep the precision the expert actually gave; never
+        separately; then how long, as a spread. Keep the value grade the expert actually gave; never
         round a range up to a spread.
     - id: P02
       on: [activity]
@@ -350,11 +347,11 @@ guidance:
         `boundary-condition`, not only on the work itself. Ask for both the work time and the
         availability rule.
   techniques:
-    - name: precision is about the value, not its source
+    - name: value grade is not evidence
       text: >-
-        "About three hours" from the expert is an honest `number` at the wrong precision; "three
-        hours" supplied by the interviewer is at the right precision and is not evidence at all.
-        Track both and let neither substitute for the other.
+        "About three hours" from the expert is an honest `number` below the demanded grade; "three
+        hours" supplied by the interviewer may look narrow enough and is not evidence at all. Track
+        grade and evidence separately and let neither substitute for the other.
     - name: stress the binding resource
       text: >-
         Before deepening every duration into a distribution, ask which `entity-type` actually
@@ -449,7 +446,7 @@ guidance:
         Establish the `validation-criterion` and accuracy bar at kickoff even though they do not
         project today. For `data-binding`, stop after the variable, source, and any evidence gap;
         implementation detail belongs in the loss report.
-    - name: precision below what the expert observes
+    - name: grade finer than what the expert observes
       text: >-
         Do not decompose a quantity below the granularity the expert can observe. Record the coarser
         value and a deposit naming where finer evidence could come from.
@@ -488,7 +485,7 @@ runbooks:
       - name: the deliverable
         text: >-
           Summarise per kind. Deliver the model with every node in the expert's own vocabulary,
-          each slot's value and precision as actually obtained and its source-regime where both were
+          each slot's value grade as actually obtained and its source-regime where both were
           given; the assumption ledger; and a loss section — what the model deliberately leaves
           out, which slots are open and why, which objectives are unsupported, and which kinds the
           net cannot carry.

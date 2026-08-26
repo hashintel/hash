@@ -43,6 +43,17 @@ export type PrecisionDemand =
   | { readonly kind: "any-of"; readonly words: readonly PrecisionWord[] }
   | { readonly kind: "at-least"; readonly count: number };
 
+export const formatPrecisionDemand = (demand: PrecisionDemand): string => {
+  switch (demand.kind) {
+    case "word":
+      return demand.word;
+    case "any-of":
+      return demand.words.join(" or ");
+    case "at-least":
+      return `at least ${demand.count}`;
+  }
+};
+
 /** What each precision word means; harness vocabulary, rendered for every plugin. */
 export const PRECISION_LADDER: Readonly<
   Record<PrecisionWord | "at least N", string>

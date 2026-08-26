@@ -77,6 +77,7 @@ guidance:
     - name: One incident is not a rate
       text: A memorable incident gives consequence and mechanism, not frequency. Ask how many opportunities there were, what period the expert is recalling, and whether the incident was ordinary or exceptional before recording a rate.
       source: evaluations/protocols/process-model-elicitation/baseline/condition-1.md (outage frequency); docs/archive/specs/cps-interview-guidance-2026-08-25.md CPS-Q01
+      for_precision: [range, spread]
   movements:
     slice:
       - name: One concrete case end to end
@@ -91,7 +92,7 @@ guidance:
         source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Slice, then sweep); docs/control/SPEC-LEDGER.md §11.5
         for_precision: [number, range, spread]
       - name: Ask for absences
-        text: 'Near the end of each topic ask for cases that never happen and for exceptions or constraints not yet discussed. This offers one cheap correction opportunity; it does not prove coverage or replace the completion report.'
+        text: "Near the end of each topic ask for cases that never happen and for exceptions or constraints not yet discussed. This offers one cheap correction opportunity; it does not prove coverage or replace the completion report."
         source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Ask for absences); docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-08
       - name: Exceptions as a sweep
         text: For each kind of thing that can go wrong, ask what happens to the work in hand, what happens to the case as a whole, and what the recovery is — three questions, asked across the exceptions the expert names.

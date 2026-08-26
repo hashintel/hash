@@ -91,6 +91,7 @@ describe("the shipped repertoire", () => {
       ["Quantiles, never three points", ["spread"]],
       ["The clairvoyant test", ["number", "range", "spread"]],
       ["Premortem", ["range", "spread"]],
+      ["One incident is not a rate", ["range", "spread"]],
       ["One property across one stratum", ["number", "range", "spread"]],
       ["Quantify better when relevant", ["number", "range", "spread"]],
     ]);

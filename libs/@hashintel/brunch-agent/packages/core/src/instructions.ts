@@ -21,10 +21,10 @@ import {
   type Job,
 } from "./keys";
 import {
+  formatPrecisionDemand,
   PRECISION_LADDER,
   type GuidanceItem,
   type PluginDefinition,
-  type PrecisionDemand,
   type PrecisionWord,
 } from "./plugin-definition";
 import { type Repertoire } from "./repertoire";
@@ -74,17 +74,6 @@ const applicableRepertoireItems = (
       item.forPrecision.some((precision) => precisions.has(precision)),
   );
 
-const renderDemand = (demand: PrecisionDemand): string => {
-  switch (demand.kind) {
-    case "word":
-      return demand.word;
-    case "any-of":
-      return demand.words.join(" or ");
-    case "at-least":
-      return `at least ${demand.count}`;
-  }
-};
-
 const paragraphs = (...parts: (string | undefined)[]): string[] =>
   parts.flatMap((part) =>
     part === undefined || part.trim() === "" ? [] : [part.trim()],
@@ -111,7 +100,7 @@ export const renderContract = (definition: PluginDefinition): string[] => {
       .filter((row) => row.kind === kindRow.kind)
       .map(
         (row) =>
-          `  - ${row.slot} — ${renderDemand(row.precision)}${row.notApplicableAllowed ? '; "not applicable" is accepted' : ""}. _Why:_ ${row.why}`,
+          `  - ${row.slot} — ${formatPrecisionDemand(row.precision)}${row.notApplicableAllowed ? '; "not applicable" is accepted' : ""}. _Why:_ ${row.why}`,
       );
     return [`- \`${kindRow.kind}\``, ...own].join("\n");
   });

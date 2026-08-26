@@ -135,7 +135,7 @@ patterns:
     - id: P03
       on: [example]
       slot: the observable outcome
-      when: an outcome is stated as an intention ("should work", "is handled") rather than something observable.
+      when: the observable-outcome slot is unsatisfied; intentions such as "should work" and "is handled" are common below-grade forms.
       ask: Ask what someone watching would see, and where.
     - id: P04
       on: [step]
