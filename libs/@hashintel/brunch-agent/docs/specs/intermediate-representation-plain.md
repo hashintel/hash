@@ -5,6 +5,10 @@
 > a review instrument: seven places where the source resisted plain rendering are recorded as
 > findings on FE-1401 (third accrual), the load-bearing one being the loss report's unresolved unit
 > of loss (capture vs. capture-facet).
+>
+> Since 2026-08-25, [`sdcpn-plugin.md`](sdcpn-plugin.md) is the concrete rendering of Layer B: its
+> `Kinds` and `Must know` tables carry the ten kinds, the cross-kind attributes, and the
+> question-relative completion rule described below as the one authored plugin file.
 
 This design was resolved on 13 August 2026 and ratified on worked examples by FE-1397. It has two layers. Layer A defines what an intermediate representation (IR) is for any plugin. Layer B is the concrete design for the CPS plugin — the design the September demo will run on. The design draws on the kernel spec, the Petrinaut survey's format facts, Dora's PRO-98 ontology, the open-questions document, and the FE-1363 use-case resolution.
 

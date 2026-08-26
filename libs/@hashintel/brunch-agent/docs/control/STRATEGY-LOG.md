@@ -155,3 +155,65 @@ decision that the FE-1431 handoff failed to settle.
 
 **Evidence links:** [STEERING selected frontier](STEERING.md#selected-frontier-design-convergence),
 FE-1407, FE-1404, FE-1406, FE-1431
+
+### S-007
+
+**Date:** 2026-08-25
+
+**Trigger/evidence:** The S-005 design-convergence queue ran to its end without changing a line of
+production-path code. FE-1402's rehearsal needed an oracle and authored a DemandTable keyed to the
+baseline coatings-plant domain (`where(kind, role=…)` scopes, `ROW-BREAKDOWN`-style objective rows), below
+the level at which the IR spec's Layer B had already defined the plugin; the contract's "September
+ships kind-only" was correct and the oracle was wrong. FE-1403's five `domain` cards each lift to a
+kind-level pattern. FE-1404 produced a 5,400-line preregistered instrument through nine rejected
+review renderings, never ran, and committed the rejected draft lock (stale hashes, missing paths;
+its own `--verify-seal` refuses it); structurally it is a shadow harness — operator, projection
+schema, diagnostic priority, novelty streak, and sealed segments each mirror a harness component
+that the S-005 cut forbade building. The whole queue worked the cold-start lane while the
+objective is review-and-revise (S-001: cold-start does not gate it; fixtures supply the prebuilt
+model). Factual correction: STEERING's proof bundle named "truck-fleet baseline transcripts"; the
+baseline situation pack is a coatings plant (Vestera Coatings, Production Process
+Scheduling), and truck-fleet is Layer B's validation case, whose dossier is still missing (see the
+FE-1382 gate). "Tracer as definition of done" recurred as "desk rehearsal / preregistered
+instrument as definition of done".
+
+**Decision:** Invert S-005 and S-006: implement the vertical slice and design only what the slice
+forces. Adopt [ADR-0006](../adr/0006-plugins-per-target-formalism.md): plugins are per target
+formalism, authored as one sectioned Markdown file; `docs/specs/sdcpn-plugin.md` is the exemplar.
+Close the design-convergence queue: FE-1407, FE-1402, and FE-1403 are reclassified as test-bed
+material; FE-1404 is redefined as the skeleton run — condition 3 as the protocol originally
+defined it (kernel harness + real plugin), not the shadow-harness instrument; FE-1406 shrinks to
+lifting harness-generic patterns out of plugin files; FE-1431 mostly dissolves (a file format and
+a parser, not seven authoring seams); FE-1393 is demoted to a post-skeleton generality check (a
+second formalism adds zero headings). Promote the reviewer lane (FE-1420 → FE-1438 → FE-1439) and
+the semantic lane (FE-1478 → FE-1480 → FE-1479) to primary. The skeleton epicentre is FE-1482 plus
+a harness controller read path (captures → model → next move), which has no issue yet. Rejected:
+finishing the design queue as planned, because its outputs are desk artefacts that cannot be
+wrong in a way the product would notice, and running condition 3 with the shadow harness, because
+it would measure an instrument the product will never ship and displace the kernel a second time.
+
+**Consequences/cuts:** The hard-blocker chain FE-1407 → FE-1404 → FE-1406 → FE-1431 recorded by
+S-006 is removed; Linear mutation remains a separately approved step. The plugin-contract,
+completion, and interview-guidance drafts are archived; the specs shrink to the heading contract,
+table grammar, `project`/`validate` seam, and `evaluateCompletion` invariants. The FE-1404
+instrument is archived as test-bed; its Valibot projection schema and validators are salvage.
+Beliefs updated: "the design queue can run without HITL" is retired as answered-but-irrelevant —
+it ran, and proved nothing the product needed; "CPS establishes the minimum plugin contract"
+rises to high, evidenced by the one-file plugin. New heuristic recorded in the steering protocol:
+an evaluation instrument larger than the thing it evaluates is itself the finding; a frontier whose
+durable outputs are all desk, simulated, or evaluation-side, with no production-path code changed
+by the end of one arc, triggers replan.
+
+**Revisit when:** The skeleton's parser, fold, or `evaluateCompletion` cannot be built from the
+sectioned file without a typed declaration the file cannot carry, or a second formalism needs a
+heading the contract does not have (ADR-0006's condition).
+
+**Supersedes:** S-005, S-006
+
+**Evidence links:** [ADR-0006](../adr/0006-plugins-per-target-formalism.md),
+[sdcpn plugin file](../specs/sdcpn-plugin.md),
+[IR spec Layer B](../specs/intermediate-representation.md#layer-b--the-cps-plugins-ir),
+[archived drafts](../archive/specs/),
+[baseline situation pack](../../evaluations/cases/process-model-elicitation/baseline/situation-pack.md),
+[condition-3 instrument](../../evaluations/protocols/process-model-elicitation/baseline/),
+FE-1402, FE-1403, FE-1404, FE-1406, FE-1431, FE-1482

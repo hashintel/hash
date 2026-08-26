@@ -2,11 +2,12 @@
 
 Branches are managed with **Graphite** (`gt`), matching HASH's repository-wide use of Graphite
 (its CI runs the Graphite optimizer). The standalone repository's late `gh stack` convention does
-not carry over. The unit of branching is the **Linear issue**: one stacked branch per issue tackled,
-created when work on that issue starts. Work discovered while
-resolving the issue (slices, refinements, side-fixes it requires) stays on its branch; only a
-different issue gets a new branch. Branches predating this convention (and the trunk) may mix
-multiple issues.
+not carry over. The unit of branching is the **Linear issue**: every stacked branch answers to at
+least one issue, created when work on that issue starts, and a branch may carry several issues
+when they are built together (two epicentres that settle one interface, for instance). Work
+discovered while resolving an issue (slices, refinements, side-fixes, a pivot it forces) stays on
+that issue's branch rather than getting a branch of its own; work with no issue behind it never
+gets a branch. Branches predating this convention (and the trunk) may mix multiple issues.
 
 ## git vs gt boundary
 
