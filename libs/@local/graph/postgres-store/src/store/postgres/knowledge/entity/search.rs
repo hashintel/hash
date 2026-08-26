@@ -285,12 +285,10 @@ where
             ))
             .await
             .change_context(QueryError)?
-            .and_then(|row| {
-                core::future::ready(Ok(EntityId {
-                    web_id: row.get(0),
-                    entity_uuid: row.get(1),
-                    draft_id: row.get(2),
-                }))
+            .map_ok(|row| EntityId {
+                web_id: row.get(0),
+                entity_uuid: row.get(1),
+                draft_id: row.get(2),
             })
             .try_collect()
             .await
