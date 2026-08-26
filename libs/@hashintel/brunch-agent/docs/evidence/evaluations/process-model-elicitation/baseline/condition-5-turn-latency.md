@@ -1,8 +1,9 @@
 # Condition 5 — turn latency assessment and recommended actions
 
 > **Provenance.** Agent-authored diagnosis, 2026-08-26, of the first condition-5 run
-> (2026-08-25, [transcript](transcripts/condition-5.md), [raw record](transcripts/condition-5.raw.json),
-> [folded store](transcripts/condition-5-captures.json)). Commissioned by Lu after the read-out
+> (2026-08-25, [transcript](transcripts/cycle-1/condition-5.md),
+> [raw record](transcripts/cycle-1/condition-5.raw.json),
+> [folded store](transcripts/cycle-1/condition-5-captures.json)). Commissioned by Lu after the read-out
 > showed 2.4 minutes per interviewer turn: "not going to be viable at all, for a working
 > application". Inputs: the raw record's per-turn tool calls, signals, sweep results, and usage
 > totals; the runner [`harness-run.ts`](../../../../../evaluations/protocols/process-model-elicitation/baseline/harness-run.ts);

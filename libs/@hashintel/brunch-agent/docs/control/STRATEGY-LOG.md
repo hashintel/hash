@@ -357,7 +357,7 @@ reference because the expert or situation pack changes.
 
 **Evidence links:** [baseline protocol](../../evaluations/protocols/process-model-elicitation/baseline/protocol.md),
 [condition-3 preregistration (amended)](../../evaluations/protocols/process-model-elicitation/baseline/condition-3-preregistration.md),
-[condition-5 transcript](../evidence/evaluations/process-model-elicitation/baseline/transcripts/condition-5.md),
+[first condition-5 transcript](../evidence/evaluations/process-model-elicitation/baseline/transcripts/cycle-1/condition-5.md),
 [condition-4 read-out](../evidence/evaluations/process-model-elicitation/baseline/readout.md),
 [turn latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md),
 FE-1404, FE-1431, FE-1361

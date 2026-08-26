@@ -535,7 +535,8 @@ What the keys bought (observed, one run each):
 6. **`source-regime` used as designed.** "*Prescribed form:* **none exists** — *"there's no
    posted rule at all."*" (`:1119`); "prescribed and practiced coincide — she reports no
    divergence, which is itself the finding" (`:635`).
-7. **Read-back in the expert's words.** 204 quotation marks in `condition-4-model.txt` versus 24
+7. **Read-back in the expert's words.** 204 quotation marks in
+   `cycle-1/condition-4-model.txt` versus 24
    in `condition-2-model.txt`; the model's declared convention is "Quoted text is hers" (`:966`).
    Condition 2's attribution was narrative; condition 4's is per slot.
 8. **The stop honoured, the losses delivered, the net not claimed.** `Honour a stop` produced
@@ -626,7 +627,7 @@ strain; the last group lists what fired as designed, so the next cycle does not 
 
 **Duplication in the render**
 
-- Quantiles ×3: `plugin.ontology.attributes.quantity`, `repertoire.guidance.techniques."Quantiles, never three points"`, `plugin.guidance.techniques."quantiles, never triangles"` (`condition-4-system.md:71, 166, 171`).
+- Quantiles ×3: `plugin.ontology.attributes.quantity`, `repertoire.guidance.techniques."Quantiles, never three points"`, `plugin.guidance.techniques."quantiles, never triangles"` (`cycle-1/condition-4-system.md:71, 166, 171`).
 - Batching ×3: `repertoire.guidance.licenses."Batch breadth, sequence depth"`, `repertoire.guidance.smells."Many questions in one turn"`, `repertoire.guidance.failure_modes."Opening overload"`.
 - Queues ×3: `plugin.ontology.not_kinds`, `plugin.guidance.rabbit_holes."eliciting queues or scenarios"`, `plugin.guidance.smells."a queue as a node"`.
 - Mode-change loss ×3, vary-by-type ×3, shared-resource ×3 (`plugin.ontology.not_kinds.resource`, `plugin.patterns.P05`, `plugin.guidance.motifs."shared resource"`), unwritten rules ×2 (`plugin.ontology.kinds.constraint` "written or unwritten", `plugin.guidance.movements.sweep."the unwritten constraints"`).
@@ -699,9 +700,10 @@ Cycle two reran both live arms against `sdcpn/2026-08-26.2` and
   ([model](transcripts/condition-5-model.md):7–10). The unsatisfied rows are visible rather than
   silently filled.
 - **The evidence boundary held.** Five sweep attempts were refused when quotations were not
-  verbatim or occurred only in non-user entries; a later sweep admitted only deposits grounded
-  in the expert's words ([transcript](transcripts/condition-5.md):379–406). This cost turns, but
-  it did not corrupt the store.
+  verbatim or occurred only in non-user entries
+  ([transcript](transcripts/condition-5.md):255, 379–384); the closing sweep admitted only two
+  deposits grounded in the expert's words (`:420–422`). This cost turns, but it did not corrupt
+  the store.
 - **Node identity remains the dominant harness defect.** One wash-versus-idle question became
   six near-duplicate objective nodes plus a separate exchange-rate objective
   ([model](transcripts/condition-5-model.md):163–196); entity types, policies, constraints, and
@@ -721,6 +723,13 @@ arrival demands, explicit absences with deposits, mode-change loss, dynamics noi
 criteria, source bindings, and a typed partial close. No observed fact required a new guidance,
 runbook, ontology, schema, pattern, or machinery key. Missing model content is represented by
 existing unsatisfied rows; adding keys would not repair it.
+
+The final third-formalism check also fills cells only. Reapplying the cycle-one
+[formal-verification sketch](../../../proofs/design/plugin-keys-pressure-review-cycle-1.md#14-flexibility--formal-verification-sketch-tlamodel-checking-properties-not-written-to-a-file)
+to the cycle-two contract leaves its five kinds, anchor, and guidance cells unchanged. Its demands
+use only `spelled out`, `named`, and `at least N`, all still accepted; the new applicability facet
+omits the quantity and policy-versus-practice defaults that the sketch identified as noise. It
+needs neither another key nor a contradiction of the default.
 
 Freeze means the authoring interface is stable, not that the harness is finished. Node
 identity/deduplication, quote-repair efficiency, the condition-4 delivery classifier, and the

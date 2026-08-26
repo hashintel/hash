@@ -207,7 +207,10 @@ written against.
 
 Conditions 4 and 5 completed against the cycle-two definitions on 2026-08-26.
 The review found no fact that required adding, merging, or dropping a key. The
-fixed catalogue therefore freezes at cycle two.
+formal-verification sketch still fills cells only against the final contract:
+its `named`, `spelled out`, and `at least N` demands remain accepted, while the
+applicability facet omits the quantity and policy-versus-practice defaults it
+identified as noise. The fixed catalogue therefore freezes at cycle two.
 
 The runs did expose residual harness work: node identity and deduplication,
 quote-repair efficiency, prompt-only delivery classification, and a terminal act
