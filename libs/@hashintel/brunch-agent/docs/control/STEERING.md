@@ -77,10 +77,26 @@ assessed as none (the validators encoded the domain-keyed DemandTable S-007 rule
 kind-level fold and `evaluateCompletion` now do the job), and the instrument, lock, operator
 documents, `run.ts` paths, and test were deleted; the preregistration and prompt remain as record.
 
-### Next arc — candidate streams awaiting selection (2026-08-26)
+### Next arc — the black triangle, then the streams (2026-08-26)
 
-Lu's post-run concerns, chunked so each could run in its own worktree. None is selected yet; the
-latency concern below cuts across A and B and is the first thing any of them must measure.
+**Standing directive (Lu, 2026-08-26).** Before the streams below are worked for their own sake,
+the frontier must reach the **full end-to-end flow** — the "black triangle": dev services running,
+persistence fully modelled, brunch-agent wired through the Petrinaut assistant interface, and a
+real elicitation possible through that surface. In Lu's words: "The first version of this will
+surely be poor and deficient but it will reveal gaps, and it will establish invariants we can hold
+while we continue." Three reasons, all external to the harness: team visibility; CEO and PM
+confidence; and a colleague building a voice mode on top of this interface, who needs "a clean
+and stable surface to work from as soon as possible, even while we will continue to change the
+underlying implementation". Consequence for sequencing: the streams are worked *inside* the
+end-to-end slice — each lands as a change the deployed flow exercises — not as separate proofs
+that join it later. The stable surface is the Petrinaut assistant interface and the transport
+contract beneath it; those change deliberately, with notice, while everything behind them may
+churn.
+
+The recommended order below (B+D, then A, then C) was agreed by Lu with that caveat and is
+**provisional**: Lu has further next-steps input to give before the arc is cut, and the strategy
+entry (S-011) is appended when it lands. None of A–D is selected as an arc yet; the latency
+concern cuts across A and B and is the first thing any of them must measure.
 
 - **A — harness mechanics finished and proven.** Persistence of captures and sessions
   (per-target-document store, many sessions to one document — designed, unreachable from any
@@ -115,7 +131,8 @@ latency concern below cuts across A and B and is the first thing any of them mus
   mostly through identity — 7 objective nodes for 2 objective questions, 30 open conflicts, 167
   possibly-equivalent advisories — and 145 s per turn (see the immediate concern below). Narrowed
   claim: **the harness conducts an elicitation; it does not yet converge one.** The C1/C2-dimension
-  scoring and the FE-1407 oracle pass are pending review. Second half (truck fleet) not run.
+  scoring and the FE-1407 oracle pass are deferred until after the latency spike (Lu,
+  2026-08-26; see the immediate concern). Second half (truck fleet) not run.
 - **Proof 2 — the acceptance run** as stated in the objective, on the reviewer lane.
 - **Inputs:** the plugin file; the baseline situation pack, transcripts, and readout (coatings
   plant, not truck fleet); the FE-1407 catalogue; the FE-1402 invariants as tests on
@@ -168,9 +185,14 @@ the short form:
   path; R2 extraction on a cheaper model at low thinking via `OperationOptions`; R3 abbreviated
   verbatim quotes, rationale only when given, per-proposal rather than per-batch refusal; R4 sweep
   against the store's node index and for unsatisfied rows first.
-- **Status:** the isolating spike (assessment §6) is designed and **deferred by Lu on 2026-08-26**.
-  No latency target is set; R0 is the precondition for every other action. Any next arc that runs
+- **Status (2026-08-26):** the targets above are **adopted provisionally** on Lu's decision.
+  The isolating spike (assessment §6) is designed; running it as the first task of the next arc
+  is Lu's provisional intent, held open because Lu has further input to give on next steps
+  before the arc is cut. R0 is the precondition for every other action. Any next arc that runs
   the harness records time per purpose or it is a desk proof.
+- **Deferred behind the spike (Lu, 2026-08-26):** the condition-5 read-out on the C1/C2
+  dimensions and the FE-1407 oracle — the unmet half of FE-1404's done-when — is written after
+  the spike, not before it.
 
 ## Active gates
 
