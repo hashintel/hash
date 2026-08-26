@@ -13,8 +13,16 @@ const nodeBuiltins = new Set([
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(packageRoot, "src/cli.ts"),
-      fileName: () => "cli.js",
+      entry: {
+        cli: resolve(packageRoot, "src/cli.ts"),
+        // Spawned per shard by node-simulation-worker.ts, which resolves it as
+        // a sibling of cli.js.
+        "simulation-worker": resolve(
+          packageRoot,
+          "src/runtime/simulation-worker.entry.ts",
+        ),
+      },
+      fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],
     },
     minify: false,
@@ -26,7 +34,10 @@ export default defineConfig({
         id.startsWith("@hashintel/petrinaut-core/") ||
         nodeBuiltins.has(id),
       output: {
-        banner: "#!/usr/bin/env node",
+        // Only the executable gets the shebang; a hashbang line is legal in
+        // any ES module but has no place in a worker bundle.
+        banner: (chunk) =>
+          chunk.fileName === "cli.js" ? "#!/usr/bin/env node" : "",
       },
     },
   },

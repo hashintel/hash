@@ -61,6 +61,23 @@ const metadata: PetrinautCompiledModel["metadata"] = {
   ],
 };
 
+const emptySdcpn = {
+  places: [],
+  transitions: [],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+};
+
+const emptyHirArtifacts = {
+  version: 4 as const,
+  fingerprint: "test",
+  dynamics: {},
+  lambdas: {},
+  kernels: {},
+  metrics: {},
+};
+
 function createModel(modelMetadata = metadata) {
   const runMock = vi.fn(() => ({
     seed: 42,
@@ -73,6 +90,8 @@ function createModel(modelMetadata = metadata) {
   }));
   return {
     metadata: modelMetadata,
+    sdcpn: emptySdcpn,
+    hirArtifacts: emptyHirArtifacts,
     run: runMock,
     runMock,
   };
