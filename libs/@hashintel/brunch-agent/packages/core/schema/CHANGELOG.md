@@ -202,3 +202,16 @@ written against.
 - Restricted "One incident is not a rate" to plugins demanding `range` or
   `spread`, removed unqualified grade terminology from SDCPN prose, and shared
   demand formatting between completion diagnostics and rendered instructions.
+
+### Catalogue freeze
+
+Conditions 4 and 5 completed against the cycle-two definitions on 2026-08-26.
+The review found no fact that required adding, merging, or dropping a key. The
+fixed catalogue therefore freezes at cycle two.
+
+The runs did expose residual harness work: node identity and deduplication,
+quote-repair efficiency, prompt-only delivery classification, and a terminal act
+for an incomplete engagement after the expert stops. Those findings belong to
+the sweep/fold, evaluation, and session-control machinery; none is repaired by a
+new plugin-authoring key. The evidence and full verdict are recorded in the
+[baseline read-out](../../../docs/evidence/evaluations/process-model-elicitation/baseline/readout.md).

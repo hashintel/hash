@@ -4,441 +4,384 @@ The harness's own deliverable: `foldElicitedModel` over the active captures, the
 `evaluateCompletion` against the sdcpn definition. Nothing here was written by the
 interviewer; every value is a capture the sweep extracted and the store admitted.
 
-- Plugin version: `sdcpn/2026-08-25.2`
-- Revision: `26a8219a17118558`
-- Active captures: 267
-- Complete: **no** — 46 unsatisfied, 53 node(s) outside every objective's slice, 0 unmapped capture(s)
+- Plugin version: `sdcpn/2026-08-26.2`
+- Revision: `34f9da8a0149564c`
+- Active captures: 166
+- Complete: **no** — 93 unsatisfied, 16 node(s) outside every objective's slice, 0 unmapped capture(s)
 
 ## Nodes
 
-### entity-type (12)
+### entity-type (6)
 
-#### `entity-type:line`
-- **how many there are, or the population's shape** — conflict — 2 readings
-- **state that rides along with each instance** — "What it is currently running — e.g. mid-run on a tint, which sets the colour it would have to be washed down from — and whether it is jammed/down awaiting repair." — spelled out, inferred, practiced — _A line is spoken of as carrying what it is currently running (its colour state) and whether it is down._
+#### `entity-type:changeover crew`
+- **how many there are, or the population's shape** — conflict — 3 readings
+- **state that rides along with each instance** — "free, or tied up / about to be pulled onto Line 1 or Line 3 for something else — if tied up, the wash-down option isn't available and the job queues behind whoever else needs them" — spelled out, explicit, practiced — _The crew is either free or tied up on another line; that state gates whether a changeover can start._
 - **the distinctions the process treats apart** — conflict — 2 readings
 
-#### `entity-type:line (Line 1 / Line 2)`
-- **how many there are, or the population's shape** — conflict — 2 readings
-- **the distinctions the process treats apart** — conflict — 3 readings
+#### `entity-type:line`
+- **how many there are, or the population's shape** — "Three lines — Line 1, Line 2, Line 3" — number, explicit — _Expert named three lines as the scheduling scope._
 
-#### `entity-type:Line 1 and Line 2`
-- **how many there are, or the population's shape** — "Two lines — Line 1 and Line 2." — number, explicit — _The expert speaks only of Line 1 and Line 2 throughout._
-- **state that rides along with each instance** — "What order is on it, how far through that order is, and what family (tint or white) it is currently running — the last decides washdown cost and direction." — spelled out, explicit
-- **the distinctions the process treats apart** — conflict — 3 readings
-
-#### `entity-type:mix, mill, tint, fill`
-- **how many there are, or the population's shape** — absence: unknown-to-user → how much overlap happens and how often mixing is blocked by a full tank is not tracked by the scheduler (explicit)
-- **the distinctions the process treats apart** — divergence — prescribed {"value":"On the sheet the line is one row treated as one thing: the order occupies it for its whole run, mix through fill, and nothing else is scheduled on it until it is done."}; practiced {"value":"Physically four separate tanks and separate kit strung together with small holding tanks in between; the mixer can start the next order's batch while the fill head is still finishing the last, if there is room in the holding tank — the crew will get a head start on mixing the next batch if the tank ahead of it has space."}
-
-#### `entity-type:mix, mill, tint, fill kit and holding tanks`
-- **how many there are, or the population's shape** — absence: deferred → engineering drawings (explicit)
-- **the distinctions the process treats apart** — "Mix, mill, tint and fill are separate tanks and separate kit strung together, with small holding tanks between them." — spelled out, explicit, practiced
-
-#### `entity-type:mix, mill, tint, fill stages`
-- **how many there are, or the population's shape** — absence: deferred → engineering drawings (tank sizes) — expert does not carry them in his head (explicit)
-- **the distinctions the process treats apart** — "Mix, mill, tint, fill are separate tanks and separate kit strung together with small holding tanks in between; the mixer can be starting the next order's batch while the fill head is still finishing the last one, if the holding tank between mix and mill, or mill and fill, has room." — spelled out, explicit, practiced — _The floor's account: four separately contended pieces of kit per line, buffered by small holding tanks._
+#### `entity-type:lines`
+- **how many there are, or the population's shape** — "three lines — Line 1, Line 2, Line 3" — number, explicit — _Three lines, named Line 1, Line 2, Line 3._
 
 #### `entity-type:order`
-- **how many there are, or the population's shape** — absence: unknown-to-user → demand book / ERP (inferred)
+- **how many there are, or the population's shape** — conflict — 2 readings
 - **state that rides along with each instance** — conflict — 6 readings
 - **the distinctions the process treats apart** — conflict — 6 readings
 
-#### `entity-type:order (demand book line item)`
-- **state that rides along with each instance** — "Quantity, due date, SKU; plus remaining quantity and the customer's identity, which the expert weighs when an order slips." — spelled out, inferred — _Quantity, due date and SKU are explicit; remaining quantity and customer identity are named later as things the answer hangs on._
-- **the distinctions the process treats apart** — "Orders are treated apart by whose order it is: a distributor sliding two days is a shrug, a small account sliding a week is fine, an awkward account that gets prickly is a second problem." — spelled out, explicit, practiced
+#### `entity-type:the changeover crew`
+- **how many there are, or the population's shape** — conflict — 2 readings
+- **the distinctions the process treats apart** — conflict — 2 readings
 
-#### `entity-type:order (line item in the demand book)`
-- **state that rides along with each instance** — "Quantity, due date, SKU; the customer (distributor / small account / awkward account); which line and week-slot it has been allocated to; whether it has gone late and by how many days." — spelled out, explicit — _Quantity, due date, SKU come from ERP; customer type is used in the slip judgement; line allocation is set at step one._
-- **the distinctions the process treats apart** — "Orders are line items with quantity, due date and SKU. Treated apart: whites (tint stage barely there, more of a pass-through than a real letdown step) vs tints (real letdown); and by customer — a distributor sliding two days is a shrug, a small account sliding a week is fine, an awkward account that gets prickly is a second problem." — spelled out, explicit — _Whites vs tints differ in the tint stage and in run time by line; customer identity differs in slip tolerance._
+#### `entity-type:the three lines`
+- **how many there are, or the population's shape** — conflict — 3 readings
+- **the distinctions the process treats apart** — conflict — 3 readings
 
-#### `entity-type:product family (white vs tint)`
-- **the distinctions the process treats apart** — "Whites versus tints: for a white the tint stage is barely there, more of a pass-through than a real letdown step; tints run at nearly the same speed on both lines while whites do not; and the tint-to-white changeover direction is the expensive one." — spelled out, explicit
+### boundary-condition (3)
 
-#### `entity-type:stage kit (mix, mill, tint, fill)`
-- **the distinctions the process treats apart** — "Four separate pieces of kit per line — mixer, mill, tint, fill head — each usable independently, with small holding tanks buffering between mix/mill and mill/fill." — spelled out, explicit, practiced — _Each stage is separately contended kit._
+#### `boundary-condition:demand book release`
+- **the arrival or availability pattern** — "Orders arrive by release into the demand book from ERP on a weekly book cycle, re-planned by the morning huddle; releases occur within the day (e.g. an order \"was going to be released from the demand book that afternoon\"). No rate or shape given" — named, explicit, practiced — _Expert described the cycle and replan rhythm but gave no rate or shape._
 
-#### `entity-type:the four stages — mix, mill, tint, fill`
-- **how many there are, or the population's shape** — "Four stages in series per line — mix, mill, tint, fill — with small holding tanks between them; how often blocking occurs is not tracked." — named, explicit — _Count of stages is stated; occupancy/blocking frequency is explicitly untracked._
-- **the distinctions the process treats apart** — "Physically mix, mill, tint and fill are separate tanks and separate kit strung together with small holding tanks in between; the mixer can start the next order's batch while the fill head finishes the last one if the tank ahead has space." — spelled out, explicit, practiced — _The floor's version of the line: four contended stages with buffers, not one resource._
+#### `boundary-condition:release from the demand book`
+- **the arrival or availability pattern** — "Releases follow the demand book's weekly cycle, re-planned every morning at the huddle; past a week the book is soft and gets revised. Rate and shape of arrivals not yet given." — spelled out, explicit — _The expert gives the release cycle (weekly demand book, re-planned each morning at the huddle) but no rate or shape of arrivals._
+- **the starting state** — "An order lands in the demand book from ERP — that is \"released\" — with an SKU, quantity and due date." — spelled out, explicit — _Orders enter the expert's world on release into the demand book from ERP, carrying SKU, quantity and due date._
 
-### boundary-condition (2)
+#### `boundary-condition:the demand book`
+- **the arrival or availability pattern** — conflict — 3 readings
+- **the starting state** — conflict — 2 readings
 
-#### `boundary-condition:demand book from ERP`
-- **the arrival or availability pattern** — conflict — 2 readings
-- **the starting state** — conflict — 3 readings
+### activity (16)
 
-#### `boundary-condition:demand book line items out of ERP`
-- **the starting state** — "An order starts life as a line item in the demand book once ERP spits that out, carrying quantity, due date and SKU." — spelled out, explicit
+#### `activity:a breakdown on a line`
+- **how often it occurs, if it is an event rather than a step** — absence: deferred → next round with the expert (breakdowns) — one recalled instance: a breakdown chewed up two days on Line 1 in the odd weeks the model must reproduce (explicit)
 
-### activity (15)
+#### `activity:breakdown on a line`
+- **how long it takes** — conflict — 2 readings
+- **how often it occurs, if it is an event rather than a step** — conflict — 2 readings
 
-#### `activity:allocation`
-- **what it needs before it can start** — conflict — 5 readings
-- **what it produces or changes** — conflict — 5 readings
-- **who or what performs it** — conflict — 3 readings
+#### `activity:changeover (washdown)`
+- **what is lost when it changes the system's mode** — "A wash that \"we can't get back\", counted by the expert as changeover hours; no quantity given yet" — named, tentative, practiced — _Expert named the loss qualitatively (a wash, changeover hours) but gave no figure in this range._
+- **what it needs before it can start** — "The changeover crew must be free — \"If they're tied up elsewhere, my 'wash down now' option isn't even really available\" — and the line must have finished its current run" — spelled out, explicit, practiced — _Crew availability is the stated precondition._
+- **what it produces or changes** — "Converts the line from the previous colour to the next — \"a full white-to-tint changeover is a wash we can't get back\"; a white-to-white succession needs \"no changeover\"" — spelled out, explicit — _The changeover converts the line's colour state; same-colour succession needs none._
+- **who or what performs it** — "entity-type:changeover crew — one crew of two techs" — named, explicit — _Directly named performer._
 
-#### `activity:allocation onto a line and a slot in the week`
-- **what it needs before it can start** — "A line item in the demand book out of ERP, with quantity, due date and SKU." — spelled out, explicit
-- **what it produces or changes** — "The order is placed onto a named line and a slot in the week." — spelled out, explicit
-- **who or what performs it** — "The master scheduler, on the sheet." — named, explicit
+#### `activity:changeover wash down`
+- **what is lost when it changes the system's mode** — "a full white-to-tint changeover is \"a wash we can't get back\"; the amount of time or capacity lost was not quantified" — named, explicit — _The expert names the loss qualitatively — a full white-to-tint changeover is a wash that cannot be recovered — without giving hours._
+- **what it needs before it can start** — "The changeover crew must be free; if they are tied up on another line the wash-down option isn't available and the job queues behind whoever else needs them." — spelled out, explicit, practiced — _Availability of the shared changeover crew gates the start of a wash down._
+- **who or what performs it** — "the changeover crew — one crew, two techs, shared across all three lines" — named, explicit — _The changeover crew performs the wash down._
 
-#### `activity:filler jam`
-- **how long it takes** — conflict — 5 readings
-- **how often it occurs, if it is an event rather than a step** — conflict — 3 readings
-- **what it needs before it can start** — "Repair duration is not known at the time of the decision — \"which I never know at the time\"; only \"could be quick, could be long\"." — spelled out, explicit — _At the time of the decision the repair length is unobservable to the scheduler._
-- **what it produces or changes** — conflict — 5 readings
-- **who or what performs it** — "A tech — comes over, clears whatever's jammed, resets." — named, explicit — _Repair is done by a tech._
+#### `activity:clears QA hold`
+- **what it produces or changes** — "The order clears QA hold and ships; the due date is judged against when it clears, not when it comes off the line — a batch can be done Tuesday and still ship late if the lab's backed up." — spelled out, explicit, practiced — _Clearing QA is the event against which lateness is judged and the point the order leaves the expert's scope._
 
-#### `activity:filler jam on Line 2`
-- **how long it takes** — "Repair: typical thirty to forty-five minutes; quick one-in-ten ten to fifteen minutes (basically a false alarm); bad one-in-ten four to five hours when something is actually broken in the filler head, occasionally eating the rest of the shift." — spread, explicit, practiced
-- **how often it occurs, if it is an event rather than a step** — "Every week or two; low end once every three weeks, high end twice a week. Not seasonal, but runs streaks of bad weeks." — range, explicit, practiced
-- **what it produces or changes** — "The run stops and time is lost inside the run — the big bad days (twelve to thirteen hours) are the breakdown showing up inside the run rather than the run being slow." — spelled out, explicit
-- **who or what performs it** — "A tech comes over, clears whatever's jammed and resets." — named, explicit
-
-#### `activity:filler jammed`
-- **how long it takes** — "Two kinds of repair: the \"half hour\" kind and the \"half a shift\" kind. The most recent Line 2 filler jam came back in about two hours." — range, explicit, practiced — _Two recognised repair kinds bracket the duration; the recent instance fell between them._
-- **what it produces or changes** — "The line's filler stops mid-run with an unknown ETA, putting the order on it at risk and forcing a decision to wait out the repair or move the order to the other line." — spelled out, explicit — _An event that befalls the line mid-run and forces the switch-or-wait decision._
-
-#### `activity:Line 2 filler jam`
-- **how long it takes** — "Repairs come in a \"half hour\" kind and a \"half a shift\" kind; the recent instance came back in about two hours." — range, explicit, practiced — _Expert described two kinds of repair — half an hour and half a shift — and one observed instance of about two hours; quantiles not yet elicited._
-- **what it produces or changes** — "Line 2 stops producing until repaired (half a shift lost in the recent case); the order sitting on Line 2 is at risk of its due date, forcing a decision to wait out the repair or shift the order to Line 1." — spelled out, explicit, practiced — _The event takes the line out of production and puts the order sitting on it at risk, forcing a wait-or-move decision._
-
-#### `activity:mix/mill/tint/fill`
-- **what it produces or changes** — "Runs the order through four stages every product goes through — mix, mill, tint, fill and pack — producing filled and packed product that comes off the fill line." — spelled out, explicit — _Stated as the production step common to all products._
-- **whether its quantities vary by type** — "Yes — the stages are the same for every product, but for a white the tint stage is barely there, a pass-through rather than a real letdown step." — named, explicit — _Explicit type-dependence at the tint stage; stage durations themselves not yet given._
-
-#### `activity:production run (mix, mill, tint, fill)`
-- **how long it takes** — conflict — 3 readings
-- **what it needs before it can start** — "The order allocated to a line and a slot in the week; then it runs the same four stages every product goes through — mix, mill, tint, fill and pack." — spelled out, explicit
-- **what it produces or changes** — "Packed product coming off the fill line, which then goes into QA hold." — spelled out, explicit
-- **whether its quantities vary by type** — "Yes — run time varies by product family and line: whites are much slower on Line 1, tints are nearly the same speed on either line; the \"Line 2 is twice as fast\" figure is really a whites number. No explanation for the tint case; it is sheet-derived." — named, explicit
+#### `activity:full white-to-tint changeover`
+- **what it needs before it can start** — "The next job is a different colour class than the one just run — a white-to-tint switch requires the changeover; a white order following white needs no changeover." — spelled out, explicit, practiced — _The changeover is triggered by a colour change from white to tint; same-colour succession needs none._
+- **what it produces or changes** — "The line is washed down and set for tint; it is \"a wash we can't get back\" — the changeover hours are consumed capacity." — spelled out, explicit, practiced — _Expert's own characterisation of the outcome of the changeover._
+- **whether its quantities vary by type** — "Yes by colour pair: white-to-tint is a full washdown, white-to-white needs no changeover at all." — named, explicit — _The expert distinguishes white-to-tint (full wash) from white-to-white (none); other direction/colour pairs not yet stated._
 
 #### `activity:QA hold`
-- **how long it takes** — conflict — 7 readings
-- **what it needs before it can start** — "The order has come off the fill line; it then sits in the lab's queue awaiting check." — spelled out, explicit — _Stated as the precondition and the waiting arrangement._
+- **how long it takes** — conflict — 3 readings
+- **what it needs before it can start** — conflict — 3 readings
 - **what it produces or changes** — conflict — 3 readings
+- **whether its quantities vary by type** — conflict — 3 readings
+- **who or what performs it** — conflict — 3 readings
+
+#### `activity:run on the line`
+- **how long it takes** — absence: deferred → the sheet the scheduler will bring next round, which answers the run-rate question (explicit)
+
+#### `activity:specialty changeover`
+- **how long it takes** — conflict — 3 readings
 - **whether its quantities vary by type** — conflict — 2 readings
-- **who or what performs it** — conflict — 7 readings
 
-#### `activity:release and ship`
-- **what it produces or changes** — conflict — 4 readings
+#### `activity:the hold-or-change-over call`
+- **how often it occurs, if it is an event rather than a step** — "three or four times a month" — range, explicit, practiced — _Frequency of the decision point the model is meant to test._
+- **who or what performs it** — "The master scheduler, by gut judgment" — named, explicit — _The expert makes the call themselves, by gut._
 
-#### `activity:run it through mix/mill/tint/fill`
-- **how long it takes** — conflict — 6 readings
+#### `activity:the run`
+- **how long it takes** — "For that big-volume Meridian white order: on the line most of the day — started Wednesday morning and wrapped Wednesday evening; exact hours would have to be checked on the sheet." — number, explicit — _Only a single recalled case at roughly a day; the expert explicitly says exact hours would need the sheet, so no range or spread was reached._
+- **what it needs before it can start** — "The order must be in the Line 2 column on the sheet and must wait its turn behind whatever is already running on that line; if the job ahead is the same family, no changeover is needed — a straight run-into-run." — spelled out, explicit — _Precondition stated in the walkthrough: the line free of the previous job, and either same family (no changeover) or a completed changeover._
+- **what it produces or changes** — "Mix, mill, tint stage (skipped for a white), through fill and pack; the finished order is palletized and moved off the line into the queue for the lab." — spelled out, explicit — _The run's output as described._
+- **who or what performs it** — "The line itself (Line 2 in the recalled case); no changeover crew involved — \"that's the easy case, no crew involved\". The expert does not watch it minute by minute." — named, explicit — _The expert names the line as what runs the order and says he does not watch the operators minute by minute; no crew is involved in a run-into-run._
+
+#### `activity:the run (mix, mill, fill and pack)`
+- **how long it takes** — conflict — 2 readings
 - **what it needs before it can start** — conflict — 2 readings
 - **what it produces or changes** — conflict — 2 readings
-- **whether its quantities vary by type** — conflict — 3 readings
-- **who or what performs it** — conflict — 2 readings
+- **who or what performs it** — "The production line (this order ran on Line 2); no crew involvement for a run-into-run" — named, explicit — _Performed by the line itself; the scheduler does not track the operators._
 
-#### `activity:run the batch (mix/mill/tint/fill)`
-- **how long it takes** — absence: deferred → the expert's scheduling sheet (roughly how long a batch of a given SKU takes end to end on each line) (explicit)
-- **what it produces or changes** — "The order is produced through the same four stages every product goes through — mix, mill, tint, fill and pack — and comes off the fill line." — spelled out, explicit — _The production run through the four stages._
-- **whether its quantities vary by type** — absence: deferred → the historian (stage-by-stage times: how long does mixing take, how long does milling take) (explicit)
-
-#### `activity:the run (mix, mill, tint, fill)`
-- **how long it takes** — conflict — 4 readings
-- **what it needs before it can start** — "The order allocated onto a line and a slot in the week (\"I slot it onto Line 2 on the sheet, that's step one, allocation\")." — spelled out, explicit
-- **what it produces or changes** — "Filled and packed product coming off the fill line, which then goes into QA hold." — spelled out, explicit
-- **whether its quantities vary by type** — "Yes — run time varies by family and by line: whites are about twice as fast on Line 2 as Line 1, tints run at nearly the same speed on both; and different SKUs are slow at different stages." — named, explicit
-- **who or what performs it** — "The line (Line 1 or Line 2) — its mix, mill, tint and fill kit — worked by the crew." — named, explicit
-
-#### `activity:tint stage`
-- **whether its quantities vary by type** — "Yes — for a white the tint stage is barely there, more of a pass-through than a real letdown step." — named, explicit — _Explicit variation by product type._
+#### `activity:tint-to-white changeover`
+- **how long it takes** — "Quickest maybe two and a half hours (everything clean, crew fresh); on a bad day — dried pigment in a fitting — it has crept toward four hours; three hours typical, the number actually used on the sheet." — range, explicit, practiced — _Low two and a half hours, high toward four hours, typical three hours — a range with a typical._
+- **what is lost when it changes the system's mode** — "A full washdown — two and a half to four hours of line time, three typical — because any pigment left behind wrecks a white batch; direction matters, it is not symmetric with white-to-tint." — range, explicit, practiced — _Loss is the full washdown time on the line plus the crew, driven by the direction of the change._
+- **whether its quantities vary by type** — "Yes — changeover duration varies by direction and family: white-to-tint is the cheap direction, tint-to-white the expensive one, specialty its own animal." — named, explicit — _Explicit answer that changeover duration varies by direction and family._
 
 #### `activity:tint-to-white washdown`
-- **how long it takes** — conflict — 6 readings
-- **what is lost when it changes the system's mode** — conflict — 8 readings
-- **what it needs before it can start** — conflict — 7 readings
-- **what it produces or changes** — conflict — 4 readings
-- **who or what performs it** — "The crew, on the line being changed over (Line 1 in the incident described)." — named, explicit
+- **how long it takes** — conflict — 2 readings
+- **what is lost when it changes the system's mode** — "A full washdown, because any pigment left behind wrecks a white batch — direction absolutely matters, it's not symmetric: tint-to-white is the expensive one (three hours typical) versus white-to-tint (45 minutes to an hour). \"A full white-to-tint changeover is a wash we can't get back.\"" — spelled out, explicit, practiced — _Directional asymmetry and its reason; loss is the full washdown time, not recoverable._
+- **what it produces or changes** — "A full washdown of the line so no pigment is left behind; any pigment left behind wrecks a white batch." — spelled out, explicit — _Purpose and consequence of omission._
+- **who or what performs it** — "entity-type:the changeover crew (two techs)" — named, explicit — _Same shared crew._
 
-### ordering/flow (8)
+#### `activity:white-to-tint changeover`
+- **how long it takes** — conflict — 2 readings
+- **what it needs before it can start** — "The changeover crew must be free; if they are tied up on another line the wash-down option is not available and the line queues behind whoever else needs them." — spelled out, explicit — _Crew availability gates the changeover._
+- **whether its quantities vary by type** — "Yes — direction absolutely matters and is not symmetric: white-to-tint is the cheap direction, tint-to-white the expensive one, and specialty is its own animal again." — named, explicit — _Explicit answer that duration varies by direction and family._
+- **who or what performs it** — conflict — 2 readings
 
-#### `ordering/flow:allocate → run → QA hold → release and ship`
-- **the order things happen in** — conflict — 2 readings
+#### `activity:white-to-tint changeover on Line 2`
+- **how long it takes** — "Quickest maybe 40 minutes (crew right there, nothing fighting them); longest about an hour twenty on a bad day (crew stretched thin or something stuck); typically lands around 45 minutes to an hour. The \"cheap\" direction." — range, explicit, practiced — _Low, high and a typical band given — a range with a typical, not a full spread; not rounded up._
+- **what is lost when it changes the system's mode** — "Line time consumed by the changeover: 40 minutes to an hour twenty, typically 45 minutes to an hour, plus occupancy of the two-tech crew for that period." — range, explicit, practiced — _The loss on this mode change is the line time consumed by the wash; the expert gave it as the changeover duration._
+- **what it needs before it can start** — "The previous run on the line finished and the changeover crew free; if the crew is tied up on another line, the changeover cannot start and the line queues behind whoever else needs them." — spelled out, explicit — _Precondition: previous run finished and the shared crew available._
+- **who or what performs it** — "The changeover crew — one crew, two techs, shared across all three lines." — named, explicit — _All changeovers are performed by the shared two-tech crew._
 
-#### `ordering/flow:line occupancy across the four stages`
-- **the order things happen in** — divergence — prescribed {"value":"On the sheet, Line 2 is one row: the order occupies Line 2 for its whole run, mix through fill, and nothing else is scheduled on it until it is done."}; practiced {"value":"Physically the stages overlap: the mixer can start the next order's batch while the fill head is still finishing the last one, if there is room in the holding tank between mix and mill, or mill and fill; the crew will get a head start on mixing if the tank ahead has space."}
+### ordering/flow (1)
 
-#### `ordering/flow:order flow from demand book to ship`
-- **the order things happen in** — "Allocate it onto a line and a slot in the week → run it through mix/mill/tint/fill → QA hold → release and ship against the due date." — spelled out, explicit
+#### `ordering/flow:release to cleared QA`
+- **how a branch or merge is decided** — conflict — 3 readings
+- **the order things happen in** — conflict — 5 readings
 
-#### `ordering/flow:order flow from demand book to shipment`
-- **the order things happen in** — "allocate it onto a line and a slot in the week → run it through mix/mill/tint/fill (fill and pack) → QA hold → release and ship. Four steps if QA and shipping are counted as one, five if split." — spelled out, explicit — _Given verbatim as the end-to-end sequence for the Meridian white order._
+### policy (6)
 
-#### `ordering/flow:order flow, allocate to ship`
-- **the order things happen in** — "Allocate the order onto a line and a slot in the week → run it through mix / mill / tint / fill and pack → QA hold → release and ship. Four steps if QA and shipping count as one, five if split." — spelled out, explicit — _The end-to-end order stated by the expert._
+#### `policy:Meridian-to-Line-2`
+- **the rule as actually practiced** — absence: deferred → the expert will check whether Meridian-to-Line-2 is written in stone or just habit before next round (explicit)
 
-#### `ordering/flow:order life on the floor`
-- **the order things happen in** — "allocate it onto a line and a slot in the week → run it through mix/mill/tint/fill → QA hold → release and ship" — spelled out, explicit — _Expert's own summary of the end-to-end sequence._
+#### `policy:sit the line for an expected same-colour order`
+- **the rule as actually practiced** — "When a same-colour order is expected to be released later the same day, hold the line idle rather than change over — because a full white-to-tint changeover is a wash that can't be got back, versus an hour of idle time. Judged by gut, three or four times a month." — spelled out, explicit, practiced — _The practiced rule behind the decision, given as gut judgment on a real occasion; not yet elicited as a general rule with conditions._
 
-#### `ordering/flow:order lifecycle: allocate, run, QA hold, release and ship`
-- **how a branch or merge is decided** — "The scheduler slots the order onto a line on the sheet at allocation; on a disruption the choice is re-decided — shift it to the other line or wait out the repair." — spelled out, explicit — _The line choice is made by the scheduler at allocation and can be revisited on disruption._
-- **the order things happen in** — "allocate it onto a line and a slot in the week → run it through mix/mill/tint/fill → QA hold → release and ship" — spelled out, explicit
+#### `policy:the wash-versus-idle call`
+- **the rule as actually practiced** — "Weigh changeover hours against idle hours by gut in the moment; a changeover is treated as a wash you can't get back, so the line is sat idle when a same-family order is expected soon." — spelled out, explicit, practiced — _The practiced heuristic behind the decision the model must test._
 
-#### `ordering/flow:stage overlap on a line`
-- **how a branch or merge is decided** — absence: unknown-to-user (explicit)
-- **the order things happen in** — conflict — 3 readings
+#### `policy:we just don't do that (Meridian never slips)`
+- **the rule as actually practiced** — "A Meridian order is never allowed to slip its due date — it is a \"we just don't do that\" rule rather than a traded-off cost, because a Meridian miss means a fine plus ammunition for them to delist a line item at next contract review, and commercial and the boss get calls. Non-Meridian distributor orders that slip 2-3 days are handled with a phone call." — spelled out, explicit, practiced — _An unwritten rule stated by the expert as absolute, with its organisational consequence._
+- **what overrides it** — absence: explicitly-absent → no number of small late orders flips it in any range seen in a week (explicit)
 
-### policy (5)
+#### `policy:who gets the changeover crew`
+- **the rule as actually practiced** — conflict — 2 readings
+- **what overrides it** — "Maintenance can pull the crew mid-job for a genuine emergency — a line leaking, something needing isolating right now. Rare, and not the scheduler's call; a real fight escalates over his head to the ops director." — spelled out, explicit, practiced — _Named override with escalation path._
 
-#### `policy:a line is occupied for the whole run`
-- **the rule as actually practiced** — "On the sheet, a line is one row: the order occupies that line for its whole run, mix through fill, and nothing else is scheduled on it till it's done." — spelled out, explicit, prescribed — _P08: the scheduling sheet's rule, which the expert says lies to him a bit._
-- **what overrides it** — "On the floor the crew will get a head start on mixing the next batch if the tank ahead of it has space — the mixer can start the next order while the fill head finishes the last one. How much overlap happens, and how often it is blocked because a tank is full, is not tracked." — spelled out, explicit, practiced — _P08 divergence: floor practice overlaps stages when buffer space allows._
-
-#### `policy:Meridian on time`
-- **the rule as actually practiced** — "A Meridian-style order ships on time, full stop; it is not traded off against anything." — spelled out, explicit, practiced — _Hard constraint on the scheduling decision._
-- **what overrides it** — "Only when there is truly no way through." — spelled out, explicit, practiced — _Only exception stated._
-
-#### `policy:Meridian ships on time, full stop`
-- **the rule as actually practiced** — "The Meridian order ships on time, full stop; it is not traded off against washdown hours or other orders' due dates." — spelled out, explicit, practiced — _Stated as an absolute the scheduler protects ahead of all other considerations._
-- **what overrides it** — "Only when there is truly no way through; otherwise nothing overrides it." — spelled out, explicit, practiced — _Expert named the sole override in general terms; the practiced test for "no way through" is not yet on record._
-
-#### `policy:wait for the repair or shift the order to Line 1`
-- **the rule as actually practiced** — "Gut math at the huddle: weigh the gamble that the repair is the \"half hour\" kind against the tint-to-white washdown plus the bumped tint order going late. In the Meridian case he went with waiting; it came back in about two hours and just scraped the Thursday due date." — spelled out, explicit, practiced
-- **what overrides it** — "The Meridian-style on-time due date overrides the weighing — a line he won't cross unless there's truly no way through." — spelled out, explicit
-
-#### `policy:who can absorb the slip`
-- **the rule as actually practiced** — conflict — 7 readings
-- **what overrides it** — conflict — 4 readings
+#### `policy:who gets the crew`
+- **the rule as actually practiced** — conflict — 2 readings
+- **what overrides it** — conflict — 2 readings
 
 ### objective (7)
 
-#### `objective:is the mill-to-fill tank on Line 1 slowing the line down`
-- **the nodes it depends on** — conflict — 3 readings
-- **the question, in the expert's words** — "\"Is the mill-to-fill tank on Line 1 actually slowing the line down, or is that just a story I tell myself?\"" — spelled out, explicit — _Second question the expert wrote out as he would type it._
-- **what "better" means, and trade-off weights** — "The model showing \"here's where Line 1 loses its time\" — something to take to engineering other than a hunch; no numeric weighting given." — spelled out, explicit — _Qualitative: showing where Line 1 loses its time, in a form usable with engineering._
+#### `objective:Meridian-versus-small-orders exchange rate`
+- **what "better" means, and trade-off weights** — absence: deferred → commercial — would have to be got in a room and forced to say it out loud (explicit)
 
-#### `objective:switch or wait when Line 2 goes down`
-- **the nodes it depends on** — ["entity-type:order","entity-type:line","activity:run it through mix/mill/tint/fill","activity:tint-to-white washdown","activity:filler jam","policy:who can absorb the slip"] — named, explicit — _The expert listed what the answer hangs on: the protected run and its due date, the state of Line 1, the changeover and its direction, the jam duration, and whose order gets bumped._
-- **the question, in the expert's words** — "\"If Line 2 goes down mid-run, is it cheaper to wait for the repair or shift the order to Line 1, given what that costs the order already running there?\"" — spelled out, explicit — _The expert wrote the question as he would type it into the tool._
-- **what "better" means, and trade-off weights** — "Hard line: days late on Meridian, anything above zero is bad news. Underneath that, weighed by judgment with no formula: washdown hours, and whether the bumped order goes late and by how much and for which customer." — spelled out, explicit, practiced — _Expert gave a lexicographic hard constraint plus unweighted second-order criteria, explicitly denying a formula._
+#### `objective:the wash-versus-idle call`
+- **the nodes it depends on** — ["entity-type:order","entity-type:the three lines","entity-type:the changeover crew","boundary-condition:the demand book","activity:white-to-tint changeover on Line 2","activity:tint-to-white changeover","activity:specialty changeover","activity:the run","activity:QA hold","ordering/flow:release to cleared QA","policy:who gets the crew","constraint:no Meridian misses"] — named, explicit — _The expert named the scope of the decision: orders, three lines, the shared crew, the changeovers, the run and the QA hold up to cleared-QA._
+- **the question, in the expert's words** — "Whether to wash down Line 2 for the tint order right then, or let Line 2 sit idle for about an hour waiting for a smaller white order that needs no changeover — a judgment made by gut maybe three or four times a month, never verified." — spelled out, explicit, practiced — _The expert's own framing of the decision the model must inform, given as a real recent case._
+- **what "better" means, and trade-off weights** — "Better = no Meridian late orders first (not tradeable — three small late orders beat one Meridian miss, and even twenty small late orders would not flip it), then late-order count, with changeover hours and idle time as the expert's own diagnostics rather than the graded measure." — spelled out, explicit, practiced — _A lexicographic ranking, not a weight: Meridian misses are refused at any exchange rate the expert would see in a week._
 
-#### `objective:switch or wait when Line 2 goes down mid-run`
-- **the nodes it depends on** — ["entity-type:order","entity-type:Line 1 and Line 2","activity:the run (mix, mill, tint, fill)","activity:filler jam","activity:tint-to-white washdown","policy:who can absorb the slip","constraint:Meridian ships on time"] — named, explicit — _The expert listed what the answer hangs on._
-- **the question, in the expert's words** — "\"If Line 2 goes down mid-run, is it cheaper to wait for the repair or shift the order to Line 1, given what that costs the order already running there?\"" — spelled out, explicit — _The expert wrote the question as they would type it into the tool._
-- **what "better" means, and trade-off weights** — "Meridian on time is non-negotiable (days late on Meridian, anything above zero is bad news); underneath that, washdown hours and whether the bumped order goes late and by how much are weighed by judgment — \"I don't have a formula for it.\"" — spelled out, explicit — _Hard constraint plus unweighted secondary measures; the expert explicitly denied having a formula._
+#### `objective:wash down for the tint now, or sit the line for the white order coming later`
+- **the nodes it depends on** — ["activity:full white-to-tint changeover","entity-type:order","policy:we just don't do that (Meridian never slips)"] — named, inferred — _The expert names changeover hours, idle hours and late orders as the things the model must put on the same page._
+- **the question, in the expert's words** — "Whether to wash down for the tint right then, or let the line sit idle for about an hour waiting for another same-colour (white) order that will be released from the demand book later that day — i.e. whether sitting the line was actually the cheaper choice or just the safer-feeling one." — spelled out, explicit, practiced — _The expert's own recent decision, stated as the first question to put to the model._
+- **what "better" means, and trade-off weights** — "Graded on the late-order count, with Meridian orders weighted extra heavy in practice though nobody has written that down; three non-Meridian orders a day late each is the better week than one Meridian order a day late, and the trade does not flip even at twenty small orders versus one Meridian — so no exchange rate exists; a real number would require getting commercial in a room and forcing them to say it out loud." — spelled out, explicit, practiced — _Better = fewer late orders with Meridian dominating; the expert explicitly refuses an exchange rate and names where a number would have to come from._
 
-#### `objective:wait or shift when Line 2 goes down`
-- **the nodes it depends on** — "entity-type:order (demand book line item) — its due date and remaining quantity; entity-type:line (Line 1 / Line 2) — what is on Line 1 and how far through; entity-type:product family (white vs tint); activity:production run (mix, mill, tint, fill); activity:filler jam on Line 2 — repair length unknown at the time; activity:tint-to-white washdown — including its direction and ramp scrap; policy:who can absorb the slip — whose tint got bumped" — named, explicit
-- **the question, in the expert's words** — "\"If Line 2 goes down mid-run, is it cheaper to wait for the repair or shift the order to Line 1, given what that costs the order already running there?\"" — spelled out, explicit — _The expert wrote the question as he would type it into the tool._
-- **what "better" means, and trade-off weights** — "Lexicographic: days late on Meridian first, anything above zero is bad; below that, weigh washdown hours against whether the bumped order goes late and by how much and who the customer is. No formula — judgment on who can absorb the slip." — spelled out, explicit, practiced
+#### `objective:wash down for the tint right then, or let Line 2 sit idle`
+- **the nodes it depends on** — ["entity-type:order","entity-type:the three lines","entity-type:the changeover crew","boundary-condition:the demand book","activity:the run (mix, mill, fill and pack)","activity:QA hold","activity:white-to-tint changeover","activity:tint-to-white washdown","activity:specialty changeover","ordering/flow:release to cleared QA","policy:who gets the changeover crew","constraint:we just don't do that (Meridian)"] — named, inferred — _The scheduler named the scope of the decision: orders, three lines, the shared crew, the changeovers, the run, QA and the demand book._
+- **the question, in the expert's words** — "Whether to wash down for a tint order right away, or hold the line idle (about an hour) for an expected same-family white order that has not yet been released — a call made by gut three or four times a month, never verified." — spelled out, explicit, practiced — _The decision the model exists to test, stated as a real recurring call._
+- **what "better" means, and trade-off weights** — "Judged on late-order count, with Meridian orders weighted extra heavy in practice though written nowhere; changeover hours and idle time are the scheduler's own concern, currently tracked separately. No numeric exchange rate for a Meridian miss exists — it would take commercial in a room to say it out loud." — spelled out, explicit, practiced — _Ranking given, with an explicit refusal to supply an exchange rate for Meridian._
 
-#### `objective:where Line 1 loses its time`
-- **the nodes it depends on** — conflict — 3 readings
-- **the question, in the expert's words** — conflict — 3 readings
+#### `objective:wash down now or sit Line 2 idle`
+- **the nodes it depends on** — ["entity-type:lines","entity-type:changeover crew","entity-type:order","boundary-condition:release from the demand book","activity:changeover wash down","activity:clears QA hold","ordering/flow:release to cleared QA","constraint:no Meridian misses"] — named, explicit — _The expert names the scheduling unit (three lines plus the one crew) and the span of an order (release to cleared QA) as what the decision turns on._
+- **the question, in the expert's words** — "Whether to wash down for the tint right then, or let Line 2 sit idle for about an hour waiting for another white order (smaller, still white, no changeover needed) to be released from the demand book that afternoon — a call made by gut three or four times a month, never provably right." — spelled out, explicit, practiced — _The expert's own statement of the decision the model must inform, given as a recent real case._
+- **what "better" means, and trade-off weights** — "Graded on late-order count, with Meridian orders weighted extra heavy in practice though nobody has written that down; a Meridian miss is a \"we just don't do that\" rule, not a traded-off cost; changeover hours and idle hours are the expert's own concern because wasted capacity turns into missed due dates later in the week." — spelled out, explicit, practiced — _Better is judged on late orders, with Meridian misses as an unwritten hard rule rather than a weight; changeover and idle hours are the expert's own diagnostics._
 
-#### `objective:which option actually loses less`
-- **the nodes it depends on** — conflict — 3 readings
-- **the question, in the expert's words** — conflict — 3 readings
-- **what "better" means, and trade-off weights** — conflict — 3 readings
+#### `objective:wash down now or sit the line idle`
+- **the nodes it depends on** — ["entity-type:order","entity-type:changeover crew","entity-type:line","activity:changeover (washdown)","activity:QA hold","ordering/flow:release to cleared QA","boundary-condition:demand book release","constraint:no Meridian miss"] — named, inferred — _The expert named the scheduling unit (three lines plus the one crew) and the span release-to-cleared-QA as what the decision turns on._
+- **the question, in the expert's words** — "Whether to \"wash down for the tint right then, or let Line 2 sit idle for about an hour\" waiting for another white order that needs no changeover — a call made \"by gut maybe three or four times a month\"" — spelled out, explicit, practiced — _The expert's own recent decision, stated as the first question for the model._
+- **what "better" means, and trade-off weights** — "Graded on \"the late-order count, maybe with Meridian orders weighted extra heavy in practice even though nobody's written that down anywhere\"; a Meridian miss never trades against small late orders — \"I don't think it does flip, not in any range I'd actually see in a week\"; \"changeover hours and the idle time are more my own concern\" as diagnostics. No numeric exchange rate: \"you'd have to get commercial in a room and force them to say it out loud\"" — spelled out, explicit, practiced — _Expert gave a qualitative ranking and explicitly refused a numeric exchange rate._
 
-#### `objective:which option loses less`
-- **the nodes it depends on** — conflict — 2 readings
-- **the question, in the expert's words** — conflict — 2 readings
-- **what "better" means, and trade-off weights** — conflict — 2 readings
+#### `objective:wash-versus-idle call on Line 2`
+- **the nodes it depends on** — ["entity-type:order","entity-type:changeover crew","entity-type:the three lines","boundary-condition:the demand book","activity:the run (mix, mill, fill and pack)","activity:white-to-tint changeover","activity:tint-to-white washdown","activity:specialty changeover","activity:QA hold","ordering/flow:release to cleared QA","policy:who gets the crew","constraint:we just don't do that (Meridian)"] — named, inferred — _Nodes the expert named as inside the scheduling unit and the lateness clock._
+- **the question, in the expert's words** — "Whether to wash down for the tint right then, or let Line 2 sit idle for about an hour waiting for a same-colour (white) order expected to be released that afternoon — a judgment made by gut maybe three or four times a month, never proven right or wrong." — spelled out, explicit, practiced — _The anchoring decision the model must inform, given as a real recent case._
+- **what "better" means, and trade-off weights** — "No Meridian misses first (a hard rule, not a weight — does not flip even at twenty small orders late versus one Meridian), then late-order count, with changeover hours and idle time as the scheduler's own diagnostics. A real exchange rate between Meridian and small late orders would have to come from commercial being put in a room and forced to say it out loud." — spelled out, explicit, practiced — _Ranking rather than a weight; expert explicitly refused an exchange rate and named where one would come from._
 
-### constraint (8)
+### constraint (6)
 
-#### `constraint:holding tank capacity between stages`
-- **the limit and what happens when it is hit** — "A stage can only get a head start if there's room in the holding tank ahead of it; when a tank's full, mixing has to wait. How often that blocking happens is not tracked by the expert." — spelled out, explicit — _Blocking consequence stated; frequency and size not tracked._
+#### `constraint:no Meridian miss`
+- **the limit and what happens when it is hit** — "A Meridian order must not miss its due date — a \"we just don't do that\" rule, written nowhere; if hit: \"it's a fine, and it's ammunition for them to delist a line item next contract review. Commercial gets calls, my boss gets calls.\"" — spelled out, explicit, practiced — _Stated as an unwritten absolute rule with named consequences._
 
-#### `constraint:Meridian on time`
-- **the limit and what happens when it is hit** — "The hard-line customer's order must ship on or before its due date — days late must be zero. The line is not crossed unless there is truly no way through; if it is crossed, the scheduler has to go explain it." — spelled out, explicit, practiced — _Stated as non-negotiable with a named consequence._
-
-#### `constraint:Meridian ships on time`
-- **the limit and what happens when it is hit** — "Meridian ships on time, full stop; days late above zero is bad news the scheduler has to go explain. Only crossed \"unless there's truly no way through\"." — spelled out, explicit
-
-#### `constraint:Meridian-style due date is a line I won't cross`
-- **the limit and what happens when it is hit** — "The protected order must ship on time; days late above zero is bad news the scheduler has to go explain. The line is crossed only if there's truly no way through." — spelled out, explicit, practiced
-
-#### `constraint:published line rate`
-- **the limit and what happens when it is hit** — divergence — prescribed {"value":"Engineering's position is that the line rate is what it is regardless of the tanks."}; practiced {"value":"In practice Line 1 feels sluggish and blocked in ways the published line rate does not account for; the expert suspects the mill-to-fill tank costs more than people admit, but has no proof."}
-
-#### `constraint:small holding tank between mill and fill on Line 1`
-- **the limit and what happens when it is hit** — "Holding tanks between stages are small — especially the one between mill and fill on Line 1. When there is room, the upstream stage can start the next order's batch; when the tank is full, the upstream stage is blocked and mixing has to wait. Actual tank capacity is not held by the expert; engineering's position is that the line rate is what it is regardless." — spelled out, explicit — _Qualitative blocking rule stated; the numeric capacity is not available from the expert._
-
-#### `constraint:small holding tanks`
+#### `constraint:no Meridian misses`
 - **the limit and what happens when it is hit** — conflict — 2 readings
 
-#### `constraint:small holding tanks between stages`
-- **the limit and what happens when it is hit** — conflict — 3 readings
+#### `constraint:one crew serving three lines`
+- **the limit and what happens when it is hit** — "Only one changeover can be served at a time by the single two-tech crew. When two lines want them at once, the losing line sits clean but idle waiting its turn — close to two hours in the recalled case — and that wasted line time does not show up anywhere as a problem." — spelled out, explicit, practiced — _Capacity limit with its practiced consequence: the losing line idles and the loss is invisible in reporting._
 
-### data-binding (10)
+#### `constraint:one-week planning horizon`
+- **the limit and what happens when it is hit** — conflict — 2 readings
 
-#### `data-binding:filler repair times from the CMMS`
-- **the variable and its feed** — absence: deferred → maintenance work-order times in the CMMS (explicit)
+#### `constraint:planning horizon`
+- **the limit and what happens when it is hit** — "One week is the horizon that must hold; two weeks is watched only for \"the big minimum-run stuff, specialty especially\"; beyond a month the plan is refused — \"too much changes\" and the book itself gets revised" — spelled out, explicit, practiced — _Horizon over which the plan must remain useful, with the expert's stated failure beyond it._
 
-#### `data-binding:filler repair work-order times in the CMMS`
-- **the variable and its feed** — "Actual filler repair durations — feed: maintenance work-order times in the CMMS; never pulled by the expert." — named, explicit
+#### `constraint:we just don't do that (Meridian)`
+- **the limit and what happens when it is hit** — conflict — 2 readings
 
-#### `data-binding:stage-by-stage durations from the historian`
-- **the variable and its feed** — "Stage-by-stage durations (how long mixing takes, how long milling takes) per SKU and line — feed: the historian. Never pulled apart; only end-to-end batch time per SKU per line is on the scheduling sheet." — named, explicit — _Stage-level rates exist as data but not in the expert's head; feed named._
+### data-binding (4)
 
-#### `data-binding:stage-by-stage rates from the historian`
-- **the variable and its feed** — "Stage-by-stage durations (how long mixing takes, how long milling takes) — feed: the plant historian; never pulled apart, not known to the scheduler." — named, explicit — _Stage-level durations are needed for the separate-stage model and exist only in the historian._
+#### `data-binding:changeover log`
+- **the variable and its feed** — "Changeover hours, fed by the plant's changeover log (tracked separately from the late-order report)" — named, explicit — _Named existing record of changeover hours._
 
-#### `data-binding:stage-by-stage times`
-- **the variable and its feed** — "Stage-by-stage durations (how long mixing takes, how long milling takes) — the historian." — named, explicit — _Named feed for stage durations._
+#### `data-binding:changeover log and late-order report`
+- **the variable and its feed** — conflict — 3 readings
 
-#### `data-binding:stage-level rates`
-- **the variable and its feed** — "Stage-by-stage durations/rates (how long mixing takes, how long milling takes, mill speed versus fill speed on Line 1) — feed: the historian." — named, explicit — _Expert named the system where the missing stage-level numbers live._
+#### `data-binding:changeover log, late-order report and the sheet`
+- **the variable and its feed** — "Changeover hours from the changeover log; late orders from the late-order report — currently never put on the same page; run rates and exact run hours from the sheet, to be brought next session." — named, explicit — _Three existing records named as feeds, currently unlinked._
 
-#### `data-binding:stage-level times from the historian and tank sizes from engineering drawings`
-- **the variable and its feed** — absence: deferred → the historian (stage-by-stage times) and engineering drawings (tank sizes) (explicit)
-
-#### `data-binding:stage-level times in the historian`
-- **the variable and its feed** — "Stage-by-stage durations (how long mixing takes, how long milling takes) — feed: the historian; never pulled apart by the expert." — named, explicit
-
-#### `data-binding:tank sizes`
-- **the variable and its feed** — conflict — 2 readings
-
-#### `data-binding:tank sizes from engineering drawings`
-- **the variable and its feed** — "Holding tank sizes, especially mill-to-fill on Line 1 — feed: engineering drawings." — named, explicit
+#### `data-binding:late-order report`
+- **the variable and its feed** — "Late-order count, fed by the late-order report (tracked separately from the changeover log)" — named, explicit — _Named existing record of late orders, the boss's grading measure._
 
 ### validation-criterion (2)
 
-#### `validation-criterion:stage rates must come from data, not gut-feel`
-- **how the expert would know the model is right** — "Stage-level rates and tank sizes must not be taken from the expert's gut-feel — he can supply gut-feel and known bottleneck stories, but real numbers must come from the historian and engineering drawings." — spelled out, explicit — _Expert explicitly bounds what his own testimony can support._
+#### `validation-criterion:recognize the shape of a real month`
+- **how the expert would know the model is right** — conflict — 3 readings
 
-#### `validation-criterion:the sheet's end-to-end batch times`
-- **how the expert would know the model is right** — "The model's end-to-end batch time for a given SKU on each line should match what the scheduler's sheet shows; and it would have to speak to engineering's claim that \"the line rate is what it is regardless\"." — named, explicit — _The only figures the expert holds first-hand are sheet-level end-to-end times per SKU per line; engineering's counter-claim is that the line rate is what it is regardless of the tanks._
+#### `validation-criterion:the shape of a real month`
+- **how the expert would know the model is right** — "Feed it last month's demand book: it must land roughly on the actual late-order count and the same kind of misses (at least two Meridian scrapes and a handful of small ones) — getting the kind wrong is worse than getting the count wrong; changeover hours on Lines 2 and 3 must be recognisable, and Line 3 must not sit idle half the week waiting on the crew; it must reproduce the odd weeks, including a breakdown that ate two days on Line 1. Not a single number — the shape of a real month." — spelled out, explicit — _Replay test stated in the expert's own terms._
 
 ## Completion report
 
-- [unsupported-active-objective] objective:is the mill-to-fill tank on Line 1 slowing the line down depends on nothing the model contains; an objective that depends on nothing is unsupported. (`objective:is the mill-to-fill tank on Line 1 slowing the line down` — the nodes it depends on)
-- [unsupported-active-objective] objective:wait or shift when Line 2 goes down depends on nothing the model contains; an objective that depends on nothing is unsupported. (`objective:wait or shift when Line 2 goes down` — the nodes it depends on)
-- [unsupported-active-objective] objective:where Line 1 loses its time depends on nothing the model contains; an objective that depends on nothing is unsupported. (`objective:where Line 1 loses its time` — the nodes it depends on)
-- [unsupported-active-objective] objective:which option actually loses less depends on nothing the model contains; an objective that depends on nothing is unsupported. (`objective:which option actually loses less` — the nodes it depends on)
-- [unsupported-active-objective] objective:which option loses less depends on nothing the model contains; an objective that depends on nothing is unsupported. (`objective:which option loses less` — the nodes it depends on)
-- [open-conflict] "what it produces or changes" on activity:filler jam has competing active captures; an explicit, user-cited resolution must close it. (`activity:filler jam` — what it produces or changes)
-- [open-conflict] "how long it takes" on activity:filler jam has competing active captures; an explicit, user-cited resolution must close it. (`activity:filler jam` — how long it takes)
-- [open-conflict] "how often it occurs, if it is an event rather than a step" on activity:filler jam has competing active captures; an explicit, user-cited resolution must close it. (`activity:filler jam` — how often it occurs, if it is an event rather than a step)
-- [unaddressed] "what is lost when it changes the system's mode" has not been addressed on activity:filler jam. (`activity:filler jam` — what is lost when it changes the system's mode)
-- [unaddressed] "whether its quantities vary by type" has not been addressed on activity:filler jam. (`activity:filler jam` — whether its quantities vary by type)
-- [open-conflict] "what it needs before it can start" on activity:run it through mix/mill/tint/fill has competing active captures; an explicit, user-cited resolution must close it. (`activity:run it through mix/mill/tint/fill` — what it needs before it can start)
-- [open-conflict] "what it produces or changes" on activity:run it through mix/mill/tint/fill has competing active captures; an explicit, user-cited resolution must close it. (`activity:run it through mix/mill/tint/fill` — what it produces or changes)
-- [open-conflict] "who or what performs it" on activity:run it through mix/mill/tint/fill has competing active captures; an explicit, user-cited resolution must close it. (`activity:run it through mix/mill/tint/fill` — who or what performs it)
-- [open-conflict] "how long it takes" on activity:run it through mix/mill/tint/fill has competing active captures; an explicit, user-cited resolution must close it. (`activity:run it through mix/mill/tint/fill` — how long it takes)
-- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:run it through mix/mill/tint/fill. (`activity:run it through mix/mill/tint/fill` — how often it occurs, if it is an event rather than a step)
-- [unaddressed] "what is lost when it changes the system's mode" has not been addressed on activity:run it through mix/mill/tint/fill. (`activity:run it through mix/mill/tint/fill` — what is lost when it changes the system's mode)
-- [open-conflict] "whether its quantities vary by type" on activity:run it through mix/mill/tint/fill has competing active captures; an explicit, user-cited resolution must close it. (`activity:run it through mix/mill/tint/fill` — whether its quantities vary by type)
-- [open-conflict] "how long it takes" on activity:the run (mix, mill, tint, fill) has competing active captures; an explicit, user-cited resolution must close it. (`activity:the run (mix, mill, tint, fill)` — how long it takes)
-- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:the run (mix, mill, tint, fill). (`activity:the run (mix, mill, tint, fill)` — how often it occurs, if it is an event rather than a step)
-- [unaddressed] "what is lost when it changes the system's mode" has not been addressed on activity:the run (mix, mill, tint, fill). (`activity:the run (mix, mill, tint, fill)` — what is lost when it changes the system's mode)
-- [open-conflict] "what it needs before it can start" on activity:tint-to-white washdown has competing active captures; an explicit, user-cited resolution must close it. (`activity:tint-to-white washdown` — what it needs before it can start)
-- [open-conflict] "what it produces or changes" on activity:tint-to-white washdown has competing active captures; an explicit, user-cited resolution must close it. (`activity:tint-to-white washdown` — what it produces or changes)
+- [unsupported-active-objective] objective:Meridian-versus-small-orders exchange rate depends on nothing the model contains; an objective that depends on nothing is unsupported. (`objective:Meridian-versus-small-orders exchange rate` — the nodes it depends on)
+- [unaddressed] "how long it takes" has not been addressed on activity:changeover (washdown). (`activity:changeover (washdown)` — how long it takes)
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:changeover (washdown). (`activity:changeover (washdown)` — how often it occurs, if it is an event rather than a step)
+- [inadmissible-status] "what is lost when it changes the system's mode" on activity:changeover (washdown) is held under status tentative; accepted: explicit. (`activity:changeover (washdown)` — what is lost when it changes the system's mode)
+- [unaddressed] "whether its quantities vary by type" has not been addressed on activity:changeover (washdown). (`activity:changeover (washdown)` — whether its quantities vary by type)
+- [unaddressed] "what it produces or changes" has not been addressed on activity:changeover wash down. (`activity:changeover wash down` — what it produces or changes)
+- [unaddressed] "how long it takes" has not been addressed on activity:changeover wash down. (`activity:changeover wash down` — how long it takes)
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:changeover wash down. (`activity:changeover wash down` — how often it occurs, if it is an event rather than a step)
+- [below-required-precision] "what is lost when it changes the system's mode" on activity:changeover wash down is known as a named; the model needs range. Smallest delta: move it from named to range. (`activity:changeover wash down` — what is lost when it changes the system's mode)
+- [unaddressed] "whether its quantities vary by type" has not been addressed on activity:changeover wash down. (`activity:changeover wash down` — whether its quantities vary by type)
+- [unaddressed] "what it needs before it can start" has not been addressed on activity:clears QA hold. (`activity:clears QA hold` — what it needs before it can start)
+- [unaddressed] "who or what performs it" has not been addressed on activity:clears QA hold. (`activity:clears QA hold` — who or what performs it)
+- [unaddressed] "how long it takes" has not been addressed on activity:clears QA hold. (`activity:clears QA hold` — how long it takes)
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:clears QA hold. (`activity:clears QA hold` — how often it occurs, if it is an event rather than a step)
+- [unaddressed] "what is lost when it changes the system's mode" has not been addressed on activity:clears QA hold. (`activity:clears QA hold` — what is lost when it changes the system's mode)
+- [unaddressed] "whether its quantities vary by type" has not been addressed on activity:clears QA hold. (`activity:clears QA hold` — whether its quantities vary by type)
+- [unaddressed] "who or what performs it" has not been addressed on activity:full white-to-tint changeover. (`activity:full white-to-tint changeover` — who or what performs it)
+- [unaddressed] "how long it takes" has not been addressed on activity:full white-to-tint changeover. (`activity:full white-to-tint changeover` — how long it takes)
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:full white-to-tint changeover. (`activity:full white-to-tint changeover` — how often it occurs, if it is an event rather than a step)
+- [unaddressed] "what is lost when it changes the system's mode" has not been addressed on activity:full white-to-tint changeover. (`activity:full white-to-tint changeover` — what is lost when it changes the system's mode)
+- [open-conflict] "what it needs before it can start" on activity:QA hold has competing active captures; an explicit, user-cited resolution must close it. (`activity:QA hold` — what it needs before it can start)
+- [open-conflict] "what it produces or changes" on activity:QA hold has competing active captures; an explicit, user-cited resolution must close it. (`activity:QA hold` — what it produces or changes)
+- [open-conflict] "who or what performs it" on activity:QA hold has competing active captures; an explicit, user-cited resolution must close it. (`activity:QA hold` — who or what performs it)
+- [open-conflict] "how long it takes" on activity:QA hold has competing active captures; an explicit, user-cited resolution must close it. (`activity:QA hold` — how long it takes)
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:QA hold. (`activity:QA hold` — how often it occurs, if it is an event rather than a step)
+- [unaddressed] "what is lost when it changes the system's mode" has not been addressed on activity:QA hold. (`activity:QA hold` — what is lost when it changes the system's mode)
+- [open-conflict] "whether its quantities vary by type" on activity:QA hold has competing active captures; an explicit, user-cited resolution must close it. (`activity:QA hold` — whether its quantities vary by type)
+- [unaddressed] "what it needs before it can start" has not been addressed on activity:specialty changeover. (`activity:specialty changeover` — what it needs before it can start)
+- [unaddressed] "what it produces or changes" has not been addressed on activity:specialty changeover. (`activity:specialty changeover` — what it produces or changes)
+- [unaddressed] "who or what performs it" has not been addressed on activity:specialty changeover. (`activity:specialty changeover` — who or what performs it)
+- [open-conflict] "how long it takes" on activity:specialty changeover has competing active captures; an explicit, user-cited resolution must close it. (`activity:specialty changeover` — how long it takes)
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:specialty changeover. (`activity:specialty changeover` — how often it occurs, if it is an event rather than a step)
+- [unaddressed] "what is lost when it changes the system's mode" has not been addressed on activity:specialty changeover. (`activity:specialty changeover` — what is lost when it changes the system's mode)
+- [open-conflict] "whether its quantities vary by type" on activity:specialty changeover has competing active captures; an explicit, user-cited resolution must close it. (`activity:specialty changeover` — whether its quantities vary by type)
+- [below-required-precision] "how long it takes" on activity:the run is known as a number; the model needs spread. Smallest delta: move it from number to spread. (`activity:the run` — how long it takes)
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:the run. (`activity:the run` — how often it occurs, if it is an event rather than a step)
+- [unaddressed] "what is lost when it changes the system's mode" has not been addressed on activity:the run. (`activity:the run` — what is lost when it changes the system's mode)
+- [unaddressed] "whether its quantities vary by type" has not been addressed on activity:the run. (`activity:the run` — whether its quantities vary by type)
+- [open-conflict] "what it needs before it can start" on activity:the run (mix, mill, fill and pack) has competing active captures; an explicit, user-cited resolution must close it. (`activity:the run (mix, mill, fill and pack)` — what it needs before it can start)
+- [open-conflict] "what it produces or changes" on activity:the run (mix, mill, fill and pack) has competing active captures; an explicit, user-cited resolution must close it. (`activity:the run (mix, mill, fill and pack)` — what it produces or changes)
+- [open-conflict] "how long it takes" on activity:the run (mix, mill, fill and pack) has competing active captures; an explicit, user-cited resolution must close it. (`activity:the run (mix, mill, fill and pack)` — how long it takes)
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:the run (mix, mill, fill and pack). (`activity:the run (mix, mill, fill and pack)` — how often it occurs, if it is an event rather than a step)
+- [unaddressed] "what is lost when it changes the system's mode" has not been addressed on activity:the run (mix, mill, fill and pack). (`activity:the run (mix, mill, fill and pack)` — what is lost when it changes the system's mode)
+- [unaddressed] "whether its quantities vary by type" has not been addressed on activity:the run (mix, mill, fill and pack). (`activity:the run (mix, mill, fill and pack)` — whether its quantities vary by type)
+- [unaddressed] "what it needs before it can start" has not been addressed on activity:tint-to-white changeover. (`activity:tint-to-white changeover` — what it needs before it can start)
+- [unaddressed] "what it produces or changes" has not been addressed on activity:tint-to-white changeover. (`activity:tint-to-white changeover` — what it produces or changes)
+- [unaddressed] "who or what performs it" has not been addressed on activity:tint-to-white changeover. (`activity:tint-to-white changeover` — who or what performs it)
+- [below-required-precision] "how long it takes" on activity:tint-to-white changeover is known as a range; the model needs spread. Smallest delta: move it from range to spread. (`activity:tint-to-white changeover` — how long it takes)
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:tint-to-white changeover. (`activity:tint-to-white changeover` — how often it occurs, if it is an event rather than a step)
+- [unaddressed] "what it needs before it can start" has not been addressed on activity:tint-to-white washdown. (`activity:tint-to-white washdown` — what it needs before it can start)
 - [open-conflict] "how long it takes" on activity:tint-to-white washdown has competing active captures; an explicit, user-cited resolution must close it. (`activity:tint-to-white washdown` — how long it takes)
 - [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:tint-to-white washdown. (`activity:tint-to-white washdown` — how often it occurs, if it is an event rather than a step)
-- [open-conflict] "what is lost when it changes the system's mode" on activity:tint-to-white washdown has competing active captures; an explicit, user-cited resolution must close it. (`activity:tint-to-white washdown` — what is lost when it changes the system's mode)
+- [below-required-precision] "what is lost when it changes the system's mode" on activity:tint-to-white washdown is known as a spelled out; the model needs range. Smallest delta: move it from spelled out to range. (`activity:tint-to-white washdown` — what is lost when it changes the system's mode)
 - [unaddressed] "whether its quantities vary by type" has not been addressed on activity:tint-to-white washdown. (`activity:tint-to-white washdown` — whether its quantities vary by type)
-- [open-conflict] "the distinctions the process treats apart" on entity-type:line has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:line` — the distinctions the process treats apart)
-- [inadmissible-status] "state that rides along with each instance" on entity-type:line is held under status inferred; accepted: explicit. (`entity-type:line` — state that rides along with each instance)
-- [open-conflict] "how many there are, or the population's shape" on entity-type:line has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:line` — how many there are, or the population's shape)
-- [open-conflict] "the distinctions the process treats apart" on entity-type:Line 1 and Line 2 has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:Line 1 and Line 2` — the distinctions the process treats apart)
-- [below-required-precision] "how many there are, or the population's shape" on entity-type:Line 1 and Line 2 is known as a number; the model needs range. Smallest delta: move it from number to range. (`entity-type:Line 1 and Line 2` — how many there are, or the population's shape)
+- [unaddressed] "what it produces or changes" has not been addressed on activity:white-to-tint changeover. (`activity:white-to-tint changeover` — what it produces or changes)
+- [open-conflict] "who or what performs it" on activity:white-to-tint changeover has competing active captures; an explicit, user-cited resolution must close it. (`activity:white-to-tint changeover` — who or what performs it)
+- [open-conflict] "how long it takes" on activity:white-to-tint changeover has competing active captures; an explicit, user-cited resolution must close it. (`activity:white-to-tint changeover` — how long it takes)
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:white-to-tint changeover. (`activity:white-to-tint changeover` — how often it occurs, if it is an event rather than a step)
+- [unaddressed] "what is lost when it changes the system's mode" has not been addressed on activity:white-to-tint changeover. (`activity:white-to-tint changeover` — what is lost when it changes the system's mode)
+- [unaddressed] "what it produces or changes" has not been addressed on activity:white-to-tint changeover on Line 2. (`activity:white-to-tint changeover on Line 2` — what it produces or changes)
+- [below-required-precision] "how long it takes" on activity:white-to-tint changeover on Line 2 is known as a range; the model needs spread. Smallest delta: move it from range to spread. (`activity:white-to-tint changeover on Line 2` — how long it takes)
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:white-to-tint changeover on Line 2. (`activity:white-to-tint changeover on Line 2` — how often it occurs, if it is an event rather than a step)
+- [unaddressed] "whether its quantities vary by type" has not been addressed on activity:white-to-tint changeover on Line 2. (`activity:white-to-tint changeover on Line 2` — whether its quantities vary by type)
+- [unaddressed] "the starting state" has not been addressed on boundary-condition:demand book release. (`boundary-condition:demand book release` — the starting state)
+- [below-required-precision] "the arrival or availability pattern" on boundary-condition:demand book release is known as a named; the model needs spread or spelled out. Smallest delta: move it from named to one of spread or spelled out. (`boundary-condition:demand book release` — the arrival or availability pattern)
+- [open-conflict] "the starting state" on boundary-condition:the demand book has competing active captures; an explicit, user-cited resolution must close it. (`boundary-condition:the demand book` — the starting state)
+- [open-conflict] "the arrival or availability pattern" on boundary-condition:the demand book has competing active captures; an explicit, user-cited resolution must close it. (`boundary-condition:the demand book` — the arrival or availability pattern)
+- [open-conflict] "the limit and what happens when it is hit" on constraint:no Meridian misses has competing active captures; an explicit, user-cited resolution must close it. (`constraint:no Meridian misses` — the limit and what happens when it is hit)
+- [open-conflict] "the limit and what happens when it is hit" on constraint:we just don't do that (Meridian) has competing active captures; an explicit, user-cited resolution must close it. (`constraint:we just don't do that (Meridian)` — the limit and what happens when it is hit)
+- [open-conflict] "the distinctions the process treats apart" on entity-type:changeover crew has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:changeover crew` — the distinctions the process treats apart)
+- [open-conflict] "how many there are, or the population's shape" on entity-type:changeover crew has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:changeover crew` — how many there are, or the population's shape)
+- [unaddressed] "the distinctions the process treats apart" has not been addressed on entity-type:line. (`entity-type:line` — the distinctions the process treats apart)
+- [unaddressed] "state that rides along with each instance" has not been addressed on entity-type:line. (`entity-type:line` — state that rides along with each instance)
+- [below-required-precision] "how many there are, or the population's shape" on entity-type:line is known as a number; the model needs range. Smallest delta: move it from number to range. (`entity-type:line` — how many there are, or the population's shape)
+- [unaddressed] "the distinctions the process treats apart" has not been addressed on entity-type:lines. (`entity-type:lines` — the distinctions the process treats apart)
+- [unaddressed] "state that rides along with each instance" has not been addressed on entity-type:lines. (`entity-type:lines` — state that rides along with each instance)
+- [below-required-precision] "how many there are, or the population's shape" on entity-type:lines is known as a number; the model needs range. Smallest delta: move it from number to range. (`entity-type:lines` — how many there are, or the population's shape)
 - [open-conflict] "the distinctions the process treats apart" on entity-type:order has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:order` — the distinctions the process treats apart)
 - [open-conflict] "state that rides along with each instance" on entity-type:order has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:order` — state that rides along with each instance)
-- [inadmissible-status] "how many there are, or the population's shape" on entity-type:order is held under status inferred; accepted: explicit. (`entity-type:order` — how many there are, or the population's shape)
-- [below-required-precision] "what "better" means, and trade-off weights" on objective:is the mill-to-fill tank on Line 1 slowing the line down is known as a spelled out; the model needs range. Smallest delta: move it from spelled out to range. (`objective:is the mill-to-fill tank on Line 1 slowing the line down` — what "better" means, and trade-off weights)
-- [below-required-precision] "what "better" means, and trade-off weights" on objective:switch or wait when Line 2 goes down is known as a spelled out; the model needs range. Smallest delta: move it from spelled out to range. (`objective:switch or wait when Line 2 goes down` — what "better" means, and trade-off weights)
-- [below-required-precision] "what "better" means, and trade-off weights" on objective:switch or wait when Line 2 goes down mid-run is known as a spelled out; the model needs range. Smallest delta: move it from spelled out to range. (`objective:switch or wait when Line 2 goes down mid-run` — what "better" means, and trade-off weights)
-- [below-required-precision] "what "better" means, and trade-off weights" on objective:wait or shift when Line 2 goes down is known as a spelled out; the model needs range. Smallest delta: move it from spelled out to range. (`objective:wait or shift when Line 2 goes down` — what "better" means, and trade-off weights)
-- [open-conflict] "the question, in the expert's words" on objective:where Line 1 loses its time has competing active captures; an explicit, user-cited resolution must close it. (`objective:where Line 1 loses its time` — the question, in the expert's words)
-- [unaddressed] "what "better" means, and trade-off weights" has not been addressed on objective:where Line 1 loses its time. (`objective:where Line 1 loses its time` — what "better" means, and trade-off weights)
-- [open-conflict] "the question, in the expert's words" on objective:which option actually loses less has competing active captures; an explicit, user-cited resolution must close it. (`objective:which option actually loses less` — the question, in the expert's words)
-- [open-conflict] "what "better" means, and trade-off weights" on objective:which option actually loses less has competing active captures; an explicit, user-cited resolution must close it. (`objective:which option actually loses less` — what "better" means, and trade-off weights)
-- [open-conflict] "the question, in the expert's words" on objective:which option loses less has competing active captures; an explicit, user-cited resolution must close it. (`objective:which option loses less` — the question, in the expert's words)
-- [open-conflict] "what "better" means, and trade-off weights" on objective:which option loses less has competing active captures; an explicit, user-cited resolution must close it. (`objective:which option loses less` — what "better" means, and trade-off weights)
-- [open-conflict] "the rule as actually practiced" on policy:who can absorb the slip has competing active captures; an explicit, user-cited resolution must close it. (`policy:who can absorb the slip` — the rule as actually practiced)
-- [open-conflict] "what overrides it" on policy:who can absorb the slip has competing active captures; an explicit, user-cited resolution must close it. (`policy:who can absorb the slip` — what overrides it)
+- [open-conflict] "how many there are, or the population's shape" on entity-type:order has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:order` — how many there are, or the population's shape)
+- [open-conflict] "the distinctions the process treats apart" on entity-type:the changeover crew has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:the changeover crew` — the distinctions the process treats apart)
+- [unaddressed] "state that rides along with each instance" has not been addressed on entity-type:the changeover crew. (`entity-type:the changeover crew` — state that rides along with each instance)
+- [open-conflict] "how many there are, or the population's shape" on entity-type:the changeover crew has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:the changeover crew` — how many there are, or the population's shape)
+- [open-conflict] "the distinctions the process treats apart" on entity-type:the three lines has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:the three lines` — the distinctions the process treats apart)
+- [unaddressed] "state that rides along with each instance" has not been addressed on entity-type:the three lines. (`entity-type:the three lines` — state that rides along with each instance)
+- [open-conflict] "how many there are, or the population's shape" on entity-type:the three lines has competing active captures; an explicit, user-cited resolution must close it. (`entity-type:the three lines` — how many there are, or the population's shape)
+- [unaddressed] "the question, in the expert's words" has not been addressed on objective:Meridian-versus-small-orders exchange rate. (`objective:Meridian-versus-small-orders exchange rate` — the question, in the expert's words)
+- [unaddressed] "what "better" means, and trade-off weights" on objective:Meridian-versus-small-orders exchange rate is open: the expert answered "deferred", pointing at commercial — would have to be got in a room and forced to say it out loud; that is not a value. (`objective:Meridian-versus-small-orders exchange rate` — what "better" means, and trade-off weights)
+- [open-conflict] "the order things happen in" on ordering/flow:release to cleared QA has competing active captures; an explicit, user-cited resolution must close it. (`ordering/flow:release to cleared QA` — the order things happen in)
+- [open-conflict] "how a branch or merge is decided" on ordering/flow:release to cleared QA has competing active captures; an explicit, user-cited resolution must close it. (`ordering/flow:release to cleared QA` — how a branch or merge is decided)
+- [open-conflict] "the rule as actually practiced" on policy:who gets the changeover crew has competing active captures; an explicit, user-cited resolution must close it. (`policy:who gets the changeover crew` — the rule as actually practiced)
+- [open-conflict] "the rule as actually practiced" on policy:who gets the crew has competing active captures; an explicit, user-cited resolution must close it. (`policy:who gets the crew` — the rule as actually practiced)
+- [open-conflict] "what overrides it" on policy:who gets the crew has competing active captures; an explicit, user-cited resolution must close it. (`policy:who gets the crew` — what overrides it)
 
 ## Outside every objective's slice
 
-- `activity:allocation` — 7 open
-- `activity:allocation onto a line and a slot in the week` — 4 open
-- `activity:filler jam on Line 2` — 3 open
-- `activity:filler jammed` — 6 open
-- `activity:Line 2 filler jam` — 6 open
-- `activity:mix/mill/tint/fill` — 5 open
-- `activity:production run (mix, mill, tint, fill)` — 4 open
-- `activity:QA hold` — 6 open
-- `activity:release and ship` — 7 open
-- `activity:run the batch (mix/mill/tint/fill)` — 6 open
-- `activity:tint stage` — 6 open
-- `boundary-condition:demand book from ERP` — 2 open
-- `boundary-condition:demand book line items out of ERP` — 1 open
-- `constraint:holding tank capacity between stages` — 0 open
-- `constraint:Meridian on time` — 0 open
-- `constraint:Meridian-style due date is a line I won't cross` — 0 open
-- `constraint:published line rate` — 1 open
-- `constraint:small holding tank between mill and fill on Line 1` — 0 open
-- `constraint:small holding tanks` — 1 open
-- `constraint:small holding tanks between stages` — 1 open
-- `data-binding:filler repair times from the CMMS` — 1 open
-- `data-binding:filler repair work-order times in the CMMS` — 0 open
-- `data-binding:stage-by-stage durations from the historian` — 0 open
-- `data-binding:stage-by-stage rates from the historian` — 0 open
-- `data-binding:stage-by-stage times` — 0 open
-- `data-binding:stage-level rates` — 0 open
-- `data-binding:stage-level times from the historian and tank sizes from engineering drawings` — 1 open
-- `data-binding:stage-level times in the historian` — 0 open
-- `data-binding:tank sizes` — 1 open
-- `data-binding:tank sizes from engineering drawings` — 0 open
-- `entity-type:line (Line 1 / Line 2)` — 3 open
-- `entity-type:mix, mill, tint, fill` — 3 open
-- `entity-type:mix, mill, tint, fill kit and holding tanks` — 2 open
-- `entity-type:mix, mill, tint, fill stages` — 2 open
-- `entity-type:order (demand book line item)` — 2 open
-- `entity-type:order (line item in the demand book)` — 1 open
-- `entity-type:product family (white vs tint)` — 2 open
-- `entity-type:stage kit (mix, mill, tint, fill)` — 2 open
-- `entity-type:the four stages — mix, mill, tint, fill` — 2 open
-- `ordering/flow:allocate → run → QA hold → release and ship` — 2 open
-- `ordering/flow:line occupancy across the four stages` — 2 open
-- `ordering/flow:order flow from demand book to ship` — 1 open
-- `ordering/flow:order flow from demand book to shipment` — 1 open
-- `ordering/flow:order flow, allocate to ship` — 1 open
-- `ordering/flow:order life on the floor` — 1 open
-- `ordering/flow:order lifecycle: allocate, run, QA hold, release and ship` — 0 open
-- `ordering/flow:stage overlap on a line` — 2 open
-- `policy:a line is occupied for the whole run` — 0 open
-- `policy:Meridian on time` — 0 open
-- `policy:Meridian ships on time, full stop` — 0 open
-- `policy:wait for the repair or shift the order to Line 1` — 0 open
-- `validation-criterion:stage rates must come from data, not gut-feel` — 0 open
-- `validation-criterion:the sheet's end-to-end batch times` — 1 open
+- `activity:a breakdown on a line` — 7 open
+- `activity:breakdown on a line` — 7 open
+- `activity:run on the line` — 7 open
+- `activity:the hold-or-change-over call` — 5 open
+- `constraint:one crew serving three lines` — 0 open
+- `constraint:one-week planning horizon` — 1 open
+- `constraint:planning horizon` — 0 open
+- `data-binding:changeover log` — 0 open
+- `data-binding:changeover log and late-order report` — 1 open
+- `data-binding:changeover log, late-order report and the sheet` — 0 open
+- `data-binding:late-order report` — 0 open
+- `policy:Meridian-to-Line-2` — 2 open
+- `policy:sit the line for an expected same-colour order` — 1 open
+- `policy:the wash-versus-idle call` — 1 open
+- `validation-criterion:recognize the shape of a real month` — 1 open
+- `validation-criterion:the shape of a real month` — 0 open
 
 ## The harness's cue at close
 
 ```
-The harness folded the model at revision 26a8219a17118558 (plugin sdcpn/2026-08-25.2): 69 node(s) from 267 active capture(s). Complete: no.
+The harness folded the model at revision 34f9da8a0149564c (plugin sdcpn/2026-08-26.2): 51 node(s) from 166 active capture(s). Complete: no.
 
 Unsatisfied, in file order:
-- [unsupported-active-objective] objective:is the mill-to-fill tank on Line 1 slowing the line down depends on nothing the model contains; an objective that depends on nothing is unsupported.
-- [unsupported-active-objective] objective:wait or shift when Line 2 goes down depends on nothing the model contains; an objective that depends on nothing is unsupported.
-- [unsupported-active-objective] objective:where Line 1 loses its time depends on nothing the model contains; an objective that depends on nothing is unsupported.
-- [unsupported-active-objective] objective:which option actually loses less depends on nothing the model contains; an objective that depends on nothing is unsupported.
-- [unsupported-active-objective] objective:which option loses less depends on nothing the model contains; an objective that depends on nothing is unsupported.
-- [open-conflict] "what it produces or changes" on activity:filler jam has competing active captures; an explicit, user-cited resolution must close it.
-- [open-conflict] "how long it takes" on activity:filler jam has competing active captures; an explicit, user-cited resolution must close it.
-- [open-conflict] "how often it occurs, if it is an event rather than a step" on activity:filler jam has competing active captures; an explicit, user-cited resolution must close it.
-- [unaddressed] "what is lost when it changes the system's mode" has not been addressed on activity:filler jam.
-- [unaddressed] "whether its quantities vary by type" has not been addressed on activity:filler jam.
-- [open-conflict] "what it needs before it can start" on activity:run it through mix/mill/tint/fill has competing active captures; an explicit, user-cited resolution must close it.
-- [open-conflict] "what it produces or changes" on activity:run it through mix/mill/tint/fill has competing active captures; an explicit, user-cited resolution must close it.
-- … and 34 more.
+- [unsupported-active-objective] objective:Meridian-versus-small-orders exchange rate depends on nothing the model contains; an objective that depends on nothing is unsupported.
+- [unaddressed] "how long it takes" has not been addressed on activity:changeover (washdown).
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:changeover (washdown).
+- [inadmissible-status] "what is lost when it changes the system's mode" on activity:changeover (washdown) is held under status tentative; accepted: explicit.
+- [unaddressed] "whether its quantities vary by type" has not been addressed on activity:changeover (washdown).
+- [unaddressed] "what it produces or changes" has not been addressed on activity:changeover wash down.
+- [unaddressed] "how long it takes" has not been addressed on activity:changeover wash down.
+- [unaddressed] "how often it occurs, if it is an event rather than a step" has not been addressed on activity:changeover wash down.
+- [below-required-precision] "what is lost when it changes the system's mode" on activity:changeover wash down is known as a named; the model needs range. Smallest delta: move it from named to range.
+- [unaddressed] "whether its quantities vary by type" has not been addressed on activity:changeover wash down.
+- [unaddressed] "what it needs before it can start" has not been addressed on activity:clears QA hold.
+- [unaddressed] "who or what performs it" has not been addressed on activity:clears QA hold.
+- … and 81 more.
 
 Patterns whose trigger may apply (discretionary):
-- P01 on activity:filler jam: occurrence and duration are two slots. Ask how often, as a range, for each named event separately; then how long, as a spread. Keep the precision the expert actually gave; never round a range up to a spread.
-- P02 on activity:filler jam: ask what is lost in the transition, as a range, after a *named* transition. If the expert does not know, ask what they would treat as an authoritative source — never convert "unknown" into a value.
-- P08 on activity:filler jam: record both on the same node under `source-regime`, with the expert's account of when they diverge. Do not average them and do not pick one.
-- P05 on entity-type:line: ask which wins, what overrides that, how ties break, and for a recent borderline case that shows the practiced rule. Never infer the rule from a schedule or a document.
-- P07 on entity-type:line: ask explicitly whether it varies by type. Record "no" as a value; it is load-bearing.
-- P04 on policy:who can absorb the slip: replace any time-shaped approximation ("about two days before") with the practiced event or state that makes it runnable, who or what flips it, and where that is observable.
+- P01 on activity:changeover (washdown): occurrence and duration are two slots. Ask how often, as a range, for each named event separately; then how long, as a spread. Keep the value grade the expert actually gave; never round a range up to a spread.
+- P02 on activity:changeover (washdown): ask what is lost in the transition, as a range, after a *named* transition. If the expert does not know, ask what they would treat as an authoritative source — never convert "unknown" into a value. Ask before recording an explicit "not applicable"; an ordinary activity with no mode change is a useful negative answer, not a reason to skip the slot.
+- P08 on activity:changeover (washdown): record both on the same node under `source-regime`, with the expert's account of when they diverge. Do not average them and do not pick one.
+- P04 on boundary-condition:demand book release: replace any time-shaped approximation ("about two days before") with the practiced event or state that makes it runnable, who or what flips it, and where that is observable.
+- P05 on entity-type:changeover crew: ask which wins, what overrides that, how ties break, and for a recent borderline case that shows the practiced rule. Never infer the rule from a schedule or a document.
+- P07 on entity-type:changeover crew: ask explicitly whether it varies by type. Record "no" as a value; it is load-bearing.
+- P03 on ordering/flow:release to cleared QA: ask what the group is, the smallest sensible one, whether a group must stay together, and what an extra split costs (extra mode changes, extra loss) on the activities it touches.
 
-53 node(s) lie outside every objective's dependency slice and are recorded but not demanded.
+16 node(s) lie outside every objective's dependency slice and are recorded but not demanded.
 
 Completion is computed from the model, never from the conversation; it does not decide whether to continue. Choose the next question, or none.
 ```
