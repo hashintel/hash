@@ -20,12 +20,7 @@ run and the verdict can never be about a different thing.
 Instantiation can still fail, but only for `environment` or `capacity` reasons. A
 device that will not allocate is not the net's fault.
 
-```text
-registrations (preference order)
-  -> load -> assess -> blockers?  -> record refusal, try next
-                    -> eligible   -> instantiate -> failed? -> record, try next
-                                                 -> handle  -> run
-```
+![Choosing a backend for one experiment](@diagrams/backend-selection.svg)
 
 ## Refusal is a value
 
