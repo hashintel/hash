@@ -2,6 +2,7 @@ import { parseArgs } from "node:util";
 
 import { serve } from "./commands/serve";
 import { serveStdio } from "./commands/stdio";
+import { resolveSimulationThreads } from "./runtime/simulation-threads";
 
 function printUsage(): void {
   process.stderr.write(`Usage:
@@ -16,6 +17,7 @@ Model sources:
   --model-stdin           Read a legacy model JSON object from the first stdin line
   --optimization <path>  Load an optimization manifest from a JSON file (stdio only)
   --optimization-stdin   Read an optimization manifest from the first stdin line (stdio only)
+  --threads <n>          Threads for seeded optimization replicates (default: cores - 1; 1 = no worker threads)
 
 Methods:
   healthz
@@ -43,6 +45,7 @@ async function main(): Promise<void> {
       "optimization-stdin": { type: "boolean" },
       socket: { type: "string" },
       stdio: { type: "boolean" },
+      threads: { type: "string" },
       help: { type: "boolean", short: "h" },
     },
     allowPositionals: false,
@@ -95,14 +98,17 @@ async function main(): Promise<void> {
       modelPath,
       socketPath: parsed.values.socket,
     });
-  } else if (modelStdin) {
-    await serveStdio({ modelStdin: true });
-  } else if (modelPath) {
-    await serveStdio({ modelPath });
-  } else if (optimizationStdin) {
-    await serveStdio({ optimizationStdin: true });
-  } else if (optimizationPath) {
-    await serveStdio({ optimizationPath });
+  } else {
+    const simulationThreads = resolveSimulationThreads(parsed.values.threads);
+    if (modelStdin) {
+      await serveStdio({ modelStdin: true, simulationThreads });
+    } else if (modelPath) {
+      await serveStdio({ modelPath, simulationThreads });
+    } else if (optimizationStdin) {
+      await serveStdio({ optimizationStdin: true, simulationThreads });
+    } else if (optimizationPath) {
+      await serveStdio({ optimizationPath, simulationThreads });
+    }
   }
 }
 

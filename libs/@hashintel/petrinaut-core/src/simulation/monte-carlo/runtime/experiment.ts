@@ -13,10 +13,7 @@ import {
   createEventStream,
   createReadableStore,
 } from "./experiment-stores";
-import {
-  getDefaultMonteCarloShardCount,
-  planMonteCarloShards,
-} from "./shard-plan";
+import { planMonteCarloShards } from "./shard-plan";
 
 import type { AbortSignalLike } from "../../../environment";
 import type { PetrinautExtensionSettings } from "../../../extensions";
@@ -85,13 +82,16 @@ type CreateMonteCarloExperimentBaseConfig = {
   runs?: readonly MonteCarloRunConfig[];
   batchSize?: number;
   /**
-   * How many workers to split the runs across.
+   * How many workers to split the runs across; never more than `runCount`.
    *
-   * Defaults to one per logical core minus one (capped at `runCount`). Runs are
-   * independent and seeds derive from the global run index, so shard count
-   * changes only how fast an experiment finishes, never what it reports. Only
-   * honoured for `createWorker` experiments — a caller-supplied `transport` is a
-   * single channel and always runs as one shard.
+   * Defaults to **one**: the experiment is pure and never inspects the host,
+   * so hardware detection belongs to whoever supplies `createWorker` — the
+   * editor passes `getDefaultMonteCarloShardCount()`, the CLI derives it from
+   * `os.availableParallelism()`. Runs are independent and seeds derive from
+   * the global run index, so shard count changes only how fast an experiment
+   * finishes, never what it reports. Only honoured for `createWorker`
+   * experiments — a caller-supplied `transport` is a single channel and always
+   * runs as one shard.
    */
   shardCount?: number;
   signal?: AbortSignalLike;
@@ -513,10 +513,7 @@ export function createMonteCarloExperiment(
   } else if ("createWorker" in config && config.createWorker !== undefined) {
     const { createWorker } = config;
     try {
-      shards = planMonteCarloShards(
-        config.runCount,
-        config.shardCount ?? getDefaultMonteCarloShardCount(config.runCount),
-      );
+      shards = planMonteCarloShards(config.runCount, config.shardCount ?? 1);
     } catch (error) {
       return Promise.reject(
         error instanceof Error

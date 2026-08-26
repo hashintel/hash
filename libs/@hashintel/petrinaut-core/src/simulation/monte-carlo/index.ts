@@ -1,6 +1,10 @@
 export { createMonteCarloSimulator } from "./monte-carlo-simulator";
 export { deriveRunSeed } from "./run-state";
 export {
+  getDefaultMonteCarloShardCount,
+  planMonteCarloShards,
+} from "./runtime/shard-plan";
+export {
   addAllMonteCarloMetricValues,
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
