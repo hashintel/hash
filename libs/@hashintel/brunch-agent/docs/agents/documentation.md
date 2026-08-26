@@ -70,13 +70,14 @@ accumulates run history.
 
 ## Mutable controls
 
-`STEERING.md` is the one compact mutable strategic control: current objective, proof frontier, soft
-edges, choices, gates, beliefs, exceptional roots, and stop conditions. `STRATEGY-LOG.md` is
-immutable append-only rationale for material strategic choices; it is distinct from ADRs, which own
-accepted architecture. `SPEC-LEDGER.md` remains a separate conditional obligation control. Link
-evidence and history instead of copying chronology: Git is the mutable-control history. Do not add
-diary or status entries to either strategic control. Linear owns issue state, hierarchy, assignment,
-and hard blockers.
+`STEERING.md` is the one compact mutable strategic control: current objective, selected proof
+frontier, governing concerns, soft edges, cuts, gates, beliefs, exceptional roots, and stop or
+replan conditions. Linear's mechanical frontier filters for available work; it does not select the
+proof frontier. `STRATEGY-LOG.md` is immutable append-only rationale for material strategic choices;
+it is distinct from ADRs, which own accepted architecture. `SPEC-LEDGER.md` remains a separate
+conditional obligation control. Link evidence and history instead of copying chronology: Git is the
+mutable-control history. Do not add diary or status entries to either strategic control. Linear
+owns issue state, hierarchy, assignment, and hard blockers.
 
 ## Index and link rules
 

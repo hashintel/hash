@@ -1,10 +1,13 @@
-# Strategic steering: orient, choose, execute, reconcile, replan
+# Brunch steering supplement
 
-Use this protocol to keep Brunch aimed at a current, falsifiable proof rather than at whatever
-issue happens to be available. The arc driver owns trigger evaluation. Current truth lives in
-`STEERING`, which references governing `STRATEGY-LOG` IDs; this document owns only the control loop.
+The `ds-steering` judgment and user-invoked `/ds-steer` procedure own orientation, strategic
+reconciliation, proof-frontier choice, minimal control updates, and completion. This supplement
+adds only Brunch-specific triggers, metadata, tie-breaking, and execution guidance. `AGENTS.md`
+routes steering passes here through `/ds-steer`.
 
-Run a steering pass when:
+## Triggers
+
+The arc driver evaluates steering triggers. Invoke `/ds-steer` when:
 
 - work starts or resumes without a current proof target;
 - the objective, deadline, use case, or pressure changes;
@@ -13,49 +16,25 @@ Run a steering pass when:
 - an external gate changes or becomes stale;
 - the selected frontier loses value;
 - a frontier's durable outputs are all desk, simulated, or evaluation-side, with no production-path
-  code changed by the end of one arc (proxy completion); or
+  code changed by the end of one arc (**proxy completion**); or
 - arc close detects strategic drift.
 
 Ordinary ticket movement is not a steering trigger. Proxy completion recurs under new names — a
-tracer, a desk rehearsal, a preregistered instrument each stood in for the thing it was meant to
-exercise and became the definition of done. An evaluation instrument larger than the thing it
+tracer, a desk rehearsal, and a preregistered instrument each stood in for the thing it was meant
+to exercise and became the definition of done. An evaluation instrument larger than the thing it
 evaluates is itself the finding.
 
-## Orient
+## Brunch control fields
 
-Classify every load-bearing input as one of:
+External gates in `docs/control/STEERING.md` carry **owner**, **source**, **watch trigger**,
+**last-checked date**, and **consequence**. After the skills' posture-aware frontier ranking and
+canonical tie-breakers, use **deadline pressure** as Brunch's final tie-breaker.
 
-- **fact**;
-- **belief** with confidence and cited evidence;
-- **unknown** with its cheapest probe; or
-- **external gate** with owner, source, watch trigger, last-checked date, and consequences.
+Linear writes require explicit approval before creation or mutation.
 
-Do not turn confidence into fact. A confidence change cites the evidence that changed it.
+## Guidance for procedures that execute the frontier
 
-## Choose
-
-Treat the mechanical frontier (open, unblocked issues) as a filter, not a priority rule. Rank
-eligible moves by objective contribution, risk retired, information gain,
-deadline pressure, and cost/reversibility.
-
-Select one proof frontier, or a deliberate pair whose join is named. Record:
-
-- **claim** — the proposition this frontier can validate;
-- **proof bundle** — the fields below;
-- **cut** — work explicitly excluded before the proof;
-- **issue/gap projection** — existing issues and uncovered work needed to execute it; and
-- **stop/replan trigger** — the observation that ends or redirects the attempt.
-
-An ordered frontier is an epistemic strategy, not a queue of tasks. Before dispatch, each step
-names the evidence it consumes, the claim it can establish, and the later decision or proof it
-informs; a terminal step records `none`. Do not dispatch a successor merely because the preceding
-issue moved: first pass the independent review gate in [legibility](legibility.md), reconcile what
-the result changed in current truth and confidence, and prepare the successor's dispatch brief from
-that result. Deposit any durable change in its owning authority before launch; a dispatch brief is
-not a substitute authority. Parallelize steps only after recording why neither step's scope or
-interpretation depends on the other's findings and defining the claim and inputs at their join.
-
-## Execute
+This section governs the procedure `/ds-steer` selects; `/ds-steer` does not execute the frontier.
 
 Exercise real production entrypoints and wiring. A fixture may supply domain inputs, but it must
 not supply product wiring absent from the product. Require both a runnable proof and an immutable
@@ -89,38 +68,3 @@ inputs to the interviewee or elicitor under evaluation.
 At selection time, initialize the prospective fields. After independent review, finalize the
 result-dependent fields and deposit changed truth in the owning authorities before dispatching a
 successor.
-
-## Reconcile
-
-Deposit each changed truth into exactly one authority and link to it elsewhere:
-
-| Truth | Authority |
-| --- | --- |
-| Current objective, proof frontier, soft edges, cuts, beliefs, gates, and exceptional roots | `STEERING` |
-| Material strategic decision rationale | append-only `STRATEGY-LOG` |
-| Issue state, hierarchy, and hard blockers | Linear |
-| Required behavior | `docs/specs/` |
-| Accepted decisions | `docs/adr/` |
-| Observed proof and witness snapshots | `docs/evidence/proofs/` |
-| Evaluation runs and readouts | `docs/evidence/evaluations/` |
-| Stable explanation and source material | `docs/reference/` |
-| Superseded or settled historical context | `docs/archive/` |
-
-Linear writes require explicit approval before creation or mutation. Link; do not copy history or
-evidence into mutable controls. Follow [documentation](documentation.md) for placement and
-promotion, [legibility](legibility.md) for the second-register read,
-[issue-tracker](issue-tracker.md) for tracker mechanics, and [arc-close](arc-close.md) for the
-closing control pass.
-
-## Replan
-
-If a trigger fired, return to orient and choose. Otherwise continue the selected frontier; do not
-replan merely because ticket state moved.
-
-Append IDs monotonically. A conflicting decision names the governing ID it supersedes; a
-complementary decision uses `none`. Only unsuperseded governing IDs remain in `STEERING`. A no-op
-writes nothing.
-
-The pass is complete when inputs are classified, one frontier (or named pair) has all choice
-fields, its proof bundle is runnable and indexed, every changed truth has exactly one authority,
-confidence changes cite evidence, and the next stop/replan trigger is explicit.

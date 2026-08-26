@@ -153,6 +153,38 @@ The narrow injected context through which a plugin receives harness capabilities
 **Storage port**:
 The harness-defined contract for the capture store (atomic sweep application, envelope invariants as store-level refusals), implemented by the binding for its deploy target. Plugins are storage-blind. In code the port's type is `CaptureStore` (`packages/core/src/capture-store.ts`) — grep for that, not for "storage port". Scope includes the **session-log archive** (archive-on-read; spec §9.6): session logs live with the target-document, retained indefinitely — the substrate's conversation store is the live transport copy, never the provenance record.
 
+### Strategic control
+
+**Concern**:
+A durable question, invariant, risk, assumption, design axis, or obligation that can govern work
+across several temporary activities.
+_Avoid_: issue (an issue can be one temporary activity acting on a concern)
+
+**Steering projection**:
+A bounded map, issue, proof, or decision activity created to investigate or act on a concern. The
+qualified term keeps steering usage distinct from the IR's projection register.
+_Avoid_: projection (unqualified in strategic-control prose), concern record
+
+**Operative force**:
+What a governing concern presently requires work to preserve, avoid, test, or account for.
+_Avoid_: status, priority
+
+**Commission**:
+The relationship by which a strategic owner gives a map its intended contribution, governing
+concerns, and related-map context.
+_Avoid_: request, assignment
+
+**Landing**:
+A map's terminal account of its outcome, strategic changes, durable dispositions, affected maps,
+and residual uncertainty. Landing precedes reconciliation and does not itself close a commissioned
+map or resolve its concerns.
+_Avoid_: closure, completion report
+
+**Journey**:
+The causal strategic change between a map's commission and landing that future navigation still
+needs, excluding operational chronology.
+_Avoid_: history, activity log
+
 ### September demo
 
 **Demo shell**:

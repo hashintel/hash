@@ -43,7 +43,8 @@ workspace.
 Route by trigger; load only the applicable compact protocol:
 
 - Start or resume without a proof target, or when objectives, pressure, proof, authority, external
-  gates, frontier value, or arc-close findings change: `docs/agents/steering.md`.
+  gates, frontier value, or arc-close findings change: invoke `/ds-steer`, which consults the Brunch
+  supplement at `docs/agents/steering.md`.
 - Create, mutate, triage, or structure issues: `docs/agents/issue-tracker.md`,
   `docs/agents/issue-writing.md`, and `docs/agents/triage-labels.md`.
 - Add, move, settle, or index documents: `docs/agents/documentation.md`.

@@ -16,13 +16,101 @@ realization, compilation, and optimisation handoff. The changed element traces t
 superseding capture while an unrelated region stays stable. Preserve runnable and legibility
 evidence under [proof evidence](../evidence/proofs/).
 
-Governing strategic decisions: [S-001](STRATEGY-LOG.md#s-001), [S-004](STRATEGY-LOG.md#s-004),
-[S-007](STRATEGY-LOG.md#s-007), [S-008](STRATEGY-LOG.md#s-008), and [S-010](STRATEGY-LOG.md#s-010).
-Governing architecture:
-[ADR-0003](../adr/0003-three-register-ir.md), [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md),
-[ADR-0006](../adr/0006-plugins-per-target-formalism.md),
-[ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) (accepted
-2026-08-25; its key catalogue is a working set converging under decision 9).
+## Governing concerns
+
+- [ADR-0003](../adr/0003-three-register-ir.md) — the elicited model is a pure fold between
+  assertions and projections; operative force: read paths make no new semantic judgments and every
+  model part traces to captures.
+- [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) — deterministic projection ends at a
+  scaffold and typed obligations; operative force: executable TypeScript is authored downstream
+  through Petrinaut and passes compile and simulation gates.
+- [ADR-0006](../adr/0006-plugins-per-target-formalism.md) — each plugin serves one target formalism
+  and no domain; operative force: the production SDCPN slice, not a generic or domain-keyed
+  contract, sets the exercised interface.
+- [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) — harness-owned
+  fixed keys join defaults to plugin cells; operative force: the key catalogue converges by
+  co-authoring and remains a working set until a cycle changes no key.
+- [S-001](STRATEGY-LOG.md#s-001) — review-and-revise is the current proof, not permanent scope;
+  operative force: cold-start work does not gate the bounded correction run unless the use case
+  changes.
+- [S-004](STRATEGY-LOG.md#s-004) — code-bearing projections split into deterministic scaffolds and
+  model-assisted realization; operative force: executable claims require Petrinaut client tools,
+  compilation, and simulation.
+- [S-007](STRATEGY-LOG.md#s-007) — the production vertical slice, not another design instrument,
+  answers the remaining design questions; operative force: every arc must change or directly
+  exercise production-path code.
+- [S-008](STRATEGY-LOG.md#s-008) — harness teaching is package and schema topology rather than
+  free-floating prose; operative force: rescoping requires run evidence and keeps the declared
+  boundaries executable.
+- [S-009](STRATEGY-LOG.md#s-009) — the key catalogue converges by co-authoring both plugins;
+  operative force: schema, repertoire, SDCPN, and gherkin advance together until a cycle changes no
+  key.
+- [S-010](STRATEGY-LOG.md#s-010) — the shipped harness's facts replace the shadow classifier;
+  operative force: conditions 4 and 5 are the live arms and no text proxy decides what the harness
+  can report directly.
+- **One production read model** — fold, completion, cue, and later correction share one derived
+  path; operative force: no correction-side parallel model. Source: [ADR-0003](../adr/0003-three-register-ir.md).
+  Steering projection: FE-1497 (controller read path).
+- **Formalism-first contract pressure** — the first SDCPN implementation, not another generic
+  design, establishes the exercised seam; operative force: domain knowledge stays in the plugin.
+  Source: [ADR-0006](../adr/0006-plugins-per-target-formalism.md). Steering projection:
+  FE-1482 (SDCPN plugin skeleton).
+- **Live-loop viability** — the production harness conducts an elicitation but does not yet
+  converge one within viable latency; operative force: measure per-purpose time and address
+  identity before strengthening the completion claim. Source: [condition-5 evidence](../evidence/evaluations/process-model-elicitation/baseline/transcripts/).
+  Steering projection: FE-1404 (condition-5 skeleton run).
+- **Completion remains invariant-driven** — the production fold, not a domain-keyed instrument,
+  supplies the completion state; operative force: preserve the accepted invariant set as executable
+  tests. Source: [elicitation completion](../specs/elicitation-completion.md). Steering projection:
+  FE-1402 (completion contract).
+- **Failure detection stays an oracle, not authority** — the catalogue tests production evidence;
+  operative force: apply it after the latency spike without letting evaluation material select the
+  strategy. Source: [failure catalogue](../reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md).
+  Steering projection: FE-1407 (failure catalogue).
+- **Reply transactions survive retries and abandonment** — duplicate or stale replies must not
+  bind or apply; operative force: this safety floor precedes external client tools. Source:
+  [elicitation-kernel spec](../specs/elicitation-kernel.md). Steering projection:
+  FE-1420 (retry and abandonment safety).
+- **Machine results remain correlated and non-user** — client-tool results retain field identity
+  without becoming evidence; operative force: executable realization stays gated on the round
+  trip. Source: [Petrinaut integration spec](../specs/petrinaut-integration.md). Steering projection:
+  FE-1438 (client-tool return).
+- **Review sessions survive reload without crossing principals** — durability and privacy are one
+  boundary; operative force: the reviewer proof cannot claim continuity until both hold. Source:
+  [Petrinaut integration spec](../specs/petrinaut-integration.md). Steering projection:
+  FE-1439 (durable private sessions).
+- **Artifact elements remain source-traceable** — generated structure points back to supporting
+  captures; operative force: provenance reads precede targeted correction. Source:
+  [ADR-0003](../adr/0003-three-register-ir.md). Steering projection:
+  FE-1478 (provenance read).
+- **Realization stays field-local** — typed obligations become executable without unrelated
+  resynthesis; operative force: Petrinaut diagnostics and deterministic gates bound every repair.
+  Source: [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md). Steering projection:
+  FE-1480 (field-local realization).
+- **Correction preserves unaffected structure** — targeted re-elicitation joins semantic and
+  reviewer work; operative force: supersede the changed capture while an unrelated region remains
+  stable. Source: [objective](#objective-and-acceptance-proof). Steering projection:
+  FE-1479 (targeted correction).
+- **Plugin authoring is executable topology** — schema and key reader replace prose conventions;
+  operative force: the surface stays smaller than the parser it retires. Source:
+  [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md). Steering projection:
+  FE-1431 (plugin authoring surface).
+- **Harness teaching has one owner** — repertoire defaults fill every guidance and runbook key;
+  operative force: plugins specialize those keys without importing harness method. Source:
+  [S-008](STRATEGY-LOG.md#s-008). Steering projection:
+  FE-1406 (harness repertoire).
+- **A second formalism tests generality after the tracer** — gherkin pressures the settled SDCPN
+  surface; operative force: it follows the production slice and adds no harness-owned key. Source:
+  [S-009](STRATEGY-LOG.md#s-009). Steering projection:
+  FE-1393 (gherkin generality check).
+- **The delivery surface must become visible early** — the watched use case and voice consumer
+  require a stable Petrinaut boundary; operative force: end-to-end visibility precedes stream-local
+  optimization, while use-case confirmation may reframe Proof 1. Source: [September Plan](https://www.notion.so/hashintel/Brunch-September-Plan-3b33c81fe02480a5af6bf3089c3ee640).
+  Steering projection: FE-1476 (September delivery).
+- **The generality case needs recoverable provenance** — the truck-fleet source artifact is absent
+  from the repository; operative force: until it returns, the case carries no dossier-backed
+  provenance claim. Source: [S-007](STRATEGY-LOG.md#s-007). Steering projection: FE-1382
+  (truck-fleet dossier).
 
 ## Selected frontier: the vertical slice, worked outward from its epicentres
 
@@ -48,7 +136,7 @@ evaluation apparatus) are not worked until an epicentre needs them.
 skeleton (construct job; proves the loop, produces fixtures)
 FE-1497 controller read path -> FE-1482 plugin file + parser + fold
 -> FE-1404 skeleton run against the baseline simulated expert
-   (first run 2026-08-25 as baseline protocol condition 5: loop closes, completion not reached)
+   (condition 5 currently proves that the loop closes but does not reach completion)
 
 reviewer lane (review-and-revise job; the acceptance proof)
 FE-1420 retry/abandonment safety -> FE-1438 client-tool return -> FE-1439 durable session
@@ -66,37 +154,21 @@ FE-1431 (schema, plugin.yaml, key reader) | FE-1406 (packages/repertoire) | FE-1
 
 Arrows are strategic order. The skeleton lane and the reviewer lane run in parallel; they join at
 FE-1479, whose "affected slice", "re-evaluate", and "delta" moves consume E1's fold and completion.
-No hard blocker chain remains from the retired design queue. The authoring lane's sizing
-(FE-1406 as a package, FE-1431 as the authoring surface) is [S-008](STRATEGY-LOG.md#s-008)'s; its
-method — both plugins written together, the catalogue converging — is [S-009](STRATEGY-LOG.md#s-009)'s.
-Linear reflects both as of 2026-08-25. Numbering note: S-007 redefined FE-1404 as "condition 3 as the
-protocol originally defined it"; in the protocol that run is now **condition 5**, and the retired
-prompt-plus-operator instrument keeps the number 3. FE-1404's body still says condition 3 (Linear
-edit pending approval). Its salvage-and-delete expectation was settled on 2026-08-26: salvage
-assessed as none (the validators encoded the domain-keyed DemandTable S-007 ruled out; the
-kind-level fold and `evaluateCompletion` now do the job), and the instrument, lock, operator
-documents, `run.ts` paths, and test were deleted; the preregistration and prompt remain as record.
+The authoring lane's sizing is [S-008](STRATEGY-LOG.md#s-008)'s; its co-authoring method is
+[S-009](STRATEGY-LOG.md#s-009)'s.
 
-### Next arc — the black triangle, then the streams (2026-08-26)
+### Immediate frontier — the black triangle, then the streams
 
-**Standing directive (Lu, 2026-08-26).** Before the streams below are worked for their own sake,
-the frontier must reach the **full end-to-end flow** — the "black triangle": dev services running,
-persistence fully modelled, brunch-agent wired through the Petrinaut assistant interface, and a
-real elicitation possible through that surface. In Lu's words: "The first version of this will
-surely be poor and deficient but it will reveal gaps, and it will establish invariants we can hold
-while we continue." Three reasons, all external to the harness: team visibility; CEO and PM
-confidence; and a colleague building a voice mode on top of this interface, who needs "a clean
-and stable surface to work from as soon as possible, even while we will continue to change the
-underlying implementation". Consequence for sequencing: the streams are worked *inside* the
-end-to-end slice — each lands as a change the deployed flow exercises — not as separate proofs
-that join it later. The stable surface is the Petrinaut assistant interface and the transport
-contract beneath it; those change deliberately, with notice, while everything behind them may
-churn.
+Before the streams below are worked for their own sake, the frontier reaches the **full end-to-end
+flow** — the "black triangle": dev services running, persistence fully modelled, brunch-agent wired
+through the Petrinaut assistant interface, and a real elicitation possible through that surface.
+This is the earliest proof that exposes production gaps while establishing an interface the team
+and the voice-mode consumer can use. Each stream therefore lands as a change exercised by the
+end-to-end flow, not as a separate proof that joins it later. The Petrinaut assistant interface and
+transport contract are the stable surface; everything behind them may churn.
 
-The recommended order below (B+D, then A, then C) was agreed by Lu with that caveat and is
-**provisional**: Lu has further next-steps input to give before the arc is cut, and the strategy
-entry (S-011) is appended when it lands. None of A–D is selected as an arc yet; the latency
-concern cuts across A and B and is the first thing any of them must measure.
+The provisional stream order is B+D, then A, then C. Further next-steps input may change that order;
+latency cuts across A and B and is the first measurement in any selected stream.
 
 - **A — harness mechanics finished and proven.** Persistence of captures and sessions
   (per-target-document store, many sessions to one document — designed, unreachable from any
@@ -121,18 +193,10 @@ concern cuts across A and B and is the first thing any of them must measure.
   2 on the inherited dimensions, with the FE-1407 failure catalogue as the oracle list. Then the
   truck-fleet case (Layer B's validation case; fixture from the inbox SDCPN nets if the dossier
   stays missing) through the **unchanged** plugin file: zero new headings, zero new rows.
-  **First half, first run (2026-08-25, condition 5):** snapshot at
-  [`transcripts/condition-5.*`](../evidence/evaluations/process-model-elicitation/baseline/transcripts/)
-  (transcript with harness facts, raw record, folded model, captures, reconstructed system prompt).
-  Observed: the loop closes mechanically — ask, settlement nudge, sweep, fold, completion cue, all
-  through the production Flue path; 12 turns, 267 captures, 69 nodes across 9 of 10 kinds, 0
-  unmapped, 3 sweep batches refused on the verbatim floor and repaired in-turn; the interviewer
-  stopped itself after the impatience probe. Failures: completion not reached (46 unsatisfied),
-  mostly through identity — 7 objective nodes for 2 objective questions, 30 open conflicts, 167
-  possibly-equivalent advisories — and 145 s per turn (see the immediate concern below). Narrowed
-  claim: **the harness conducts an elicitation; it does not yet converge one.** The C1/C2-dimension
-  scoring and the FE-1407 oracle pass are deferred until after the latency spike (Lu,
-  2026-08-26; see the immediate concern). Second half (truck fleet) not run.
+  Existing [condition-5 evidence](../evidence/evaluations/process-model-elicitation/baseline/transcripts/)
+  narrows the claim: **the harness conducts an elicitation; it does not yet converge one.** Identity
+  and latency remain open. The next run adds per-purpose timing before the C1/C2 and FE-1407
+  read-out; the truck-fleet half remains unrun.
 - **Proof 2 — the acceptance run** as stated in the objective, on the reviewer lane.
 - **Inputs:** the plugin file; the baseline situation pack, transcripts, and readout (coatings
   plant, not truck fleet); the FE-1407 catalogue; the FE-1402 invariants as tests on
@@ -165,58 +229,38 @@ concern cuts across A and B and is the first thing any of them must measure.
 
 The read-only Linear graph supplies mechanical availability, never priority.
 
-## Immediate concern — per-turn latency (raised 2026-08-25, open)
+## Immediate concern — per-turn latency
 
-The first condition-5 run took **29 minutes for 12 interviewer turns, ~145 s per turn**, on the
-production path. Lu: "not going to be viable at all, for a working application." Diagnosis and
-recommended actions are in the
-[condition-5 turn latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md);
-the short form:
-
-- **Where the time goes (by output volume; wall-clock per call was not recorded):** ~97% of the
-  interviewer's 152k output tokens are extraction — 267 captures at ~350 tokens each, two thirds
-  of every capture restating text the harness already holds, plus ~40k tokens of whole-batch
-  re-emission after three refusals — generated on the critical path between the expert's answer
-  and the next question, on `claude-opus-5` at default thinking, three serial calls per turn. Input
-  is not the problem (970k tokens cache-read against 74 uncached).
-- **Recommended, in order:** R0 instrument (`durationMs` per turn purpose in the runner;
-  `@flue/opentelemetry` in the app; set a target — proposed 10 s to a visible question, 60 s to a
-  settled sweep, <5k output tokens per steady-state turn); R1 take the sweep off the critical
-  path; R2 extraction on a cheaper model at low thinking via `OperationOptions`; R3 abbreviated
-  verbatim quotes, rationale only when given, per-proposal rather than per-batch refusal; R4 sweep
-  against the store's node index and for unsatisfied rows first.
-- **Status (2026-08-26):** the targets above are **adopted provisionally** on Lu's decision.
-  The isolating spike (assessment §6) is designed; running it as the first task of the next arc
-  is Lu's provisional intent, held open because Lu has further input to give on next steps
-  before the arc is cut. R0 is the precondition for every other action. Any next arc that runs
-  the harness records time per purpose or it is a desk proof.
-- **Deferred behind the spike (Lu, 2026-08-26):** the condition-5 read-out on the C1/C2
-  dimensions and the FE-1407 oracle — the unmet half of FE-1404's done-when — is written after
-  the spike, not before it.
+The production run is not viable at its observed ~145 seconds per interviewer turn. The
+[latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md)
+owns the diagnosis and intervention sequence. Operative force here: every next harness run records
+`durationMs` per turn purpose, and the isolating spike precedes the C1/C2 and FE-1407 read-out.
+Provisional targets are 10 seconds to a visible question, 60 seconds to a settled sweep, and fewer
+than 5,000 output tokens per steady-state turn.
 
 ## Active gates
 
 | Gate | Owner / source | Watch trigger | Last checked | Consequence |
 | --- | --- | --- | --- | --- |
-| FE-1480 executable realization unavailable | FE-1438; [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | Client tools return code diagnostics to the elicitor. | 2026-08-25 | Scaffold work may proceed; no runnable FE-1480 proof until the gate opens. |
-| Final use case outstanding | Dora; FE-1476 / September Plan | Dora confirms or changes it. | 2026-08-25 | If creation is required, Proof 1 becomes acceptance-relevant rather than a harness proof; reconcile ADR-0004/proof. |
-| Deferral licensing (completion spec rules 17–19) unbuildable | [elicitation-completion](../specs/elicitation-completion.md) rules 17–19; FE-1480 / [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | A durable projection delivery exists for an evaluated revision. | 2026-08-25 | E1 supplies the report and revision (FE-1497, #9325); rule 18 makes licensing `false` without a delivered projection, so no issue is opened. When FE-1480 delivers, it is one read-time function beside `evaluateCompletion` plus a binding hook at settlement; no new persistence. |
-| Truck-fleet dossier missing from the repository | FE-1382 is Done but its promised `docs/reference/research/` artifact is absent. | Artifact path/branch is supplied or a reviewed replacement is selected. | 2026-08-25 | The generality half of Proof 1 uses a fixture derived from the inbox truck SDCPN and Layer B's worked example; claim no dossier-backed domain provenance. |
+| FE-1480 executable realization unavailable | FE-1438; [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | Client tools return code diagnostics to the elicitor. | 2026-08-26 | Scaffold work may proceed; no runnable FE-1480 proof until the gate opens. |
+| Final use case outstanding | Dora; FE-1476 / September Plan | Dora confirms or changes it. | 2026-08-26 | If creation is required, Proof 1 becomes acceptance-relevant rather than a harness proof; reconcile ADR-0004/proof. |
+| Deferral licensing (completion spec rules 17–19) unbuildable | [elicitation-completion](../specs/elicitation-completion.md) rules 17–19; FE-1480 / [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | A durable projection delivery exists for an evaluated revision. | 2026-08-26 | E1 supplies the report and revision; rule 18 makes licensing `false` without a delivered projection, so no issue is opened. When FE-1480 delivers, it is one read-time function beside `evaluateCompletion` plus a binding hook at settlement; no new persistence. |
+| Truck-fleet dossier missing from the repository | FE-1382 (truck-fleet dossier) promised a `docs/reference/research/` artifact that is absent. | Artifact path/branch is supplied or a reviewed replacement is selected. | 2026-08-26 | The generality half of Proof 1 uses a fixture derived from the inbox truck SDCPN and Layer B's worked example; claim no dossier-backed domain provenance. |
 
 ## Decision-relevant beliefs and unknowns
 
 | Belief or unknown | Confidence / evidence | Cheapest probe |
 | --- | --- | --- |
-| Kind-level rows express the coatings case. | High; condition 5 folded 267 captures onto 69 nodes across 9 of the 10 kinds with 0 unmapped, through the production fold — every fact the sweep proposed had a kind and a slot. Not yet shown: that the rows are sufficient for completion (46 unsatisfied at close, largely through conflict). | The condition-5 read-out on the C1/C2 dimensions; a second run with identity handling. |
-| Typed extraction on the verbatim floor holds up in a live run. | Medium-high; 8 of 11 sweep batches applied first time, the 3 refusals (`evidence-quote-not-found`) were repaired in the same turn, none abandoned. Cost is the open question, not correctness. | Latency assessment R0 + the §6 spike: does a cheaper extraction model keep kind/node/slot agreement? |
-| The shipped loop converges to completion. | Low; condition 5 never reached it — 7 objective nodes for 2 questions, 30 open conflicts, 167 possibly-equivalent advisories: the fold has no identity step and the sweep cannot see the store's nodes. | Give the sweep the node index (R4); rerun condition 5; count objective nodes. |
-| Per-turn latency is dominated by extraction, and removable from the critical path. | Medium; 97% of output tokens are extraction, but no per-call `durationMs` exists to confirm the time split (see the immediate concern). | R0, then the §6 spike on frozen turn tails. |
+| Kind-level rows express the coatings case. | High; [condition-5 evidence](../evidence/evaluations/process-model-elicitation/baseline/transcripts/) maps every proposed fact to a kind and slot, but does not yet show that the rows suffice for completion. | The condition-5 read-out on the C1/C2 dimensions; a second run with identity handling. |
+| Typed extraction on the verbatim floor holds up in a live run. | Medium-high; the [latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md) records repaired refusals and leaves cost, not correctness, as the open question. | R0 + the assessment's §6 spike: does a cheaper extraction model keep kind/node/slot agreement? |
+| The shipped loop converges to completion. | Low; [condition-5 evidence](../evidence/evaluations/process-model-elicitation/baseline/transcripts/) exposes unresolved identity and conflict rather than completion. | Give the sweep the node index (R4); rerun condition 5; count objective nodes. |
+| Per-turn latency is dominated by extraction, and removable from the critical path. | Medium; the [latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md) infers the split from output volume because per-call timing is absent. | R0, then the assessment's §6 spike on frozen turn tails. |
 | The truck-fleet case adds zero headings and zero rows. | Medium; Layer B was validated against it, but never through this file. | Proof 1's second half. |
-| The controller read path is small. | The tripwire fired: E1 landed on FE-1497 (#9325) at 1055 code lines (excluding comments) against the plugin file's 225 non-blank lines — 378 parse the file and narrow the proposal schema, 677 are the fold, completion, and cue. Rules 17–19 are deferred (see gates). The parser question is answered: ADR-0007 decision 8 makes the contract schema-validated data (E5). | Watch whether FE-1479's affected-slice and delta moves fit inside the 677-line engine, and whether FE-1431's key reader lands well under 378 lines. |
-| Harness teaching that has a package survives rescoping. | Low; the [lineage audit](../evidence/proofs/audits/harness-teaching-lineage-audit.md) shows four prose-only rescopings since 2026-08-11, none citing run evidence, and no test of the converse yet. | The first arc after `packages/repertoire` lands: does any rescoping of it cite a run? |
+| The controller read path is small. | Low; the current implementation exceeds the plugin file in size. The parser question is answered by ADR-0007 decision 8; completion rules 17–19 remain behind the delivery gate. | Watch whether FE-1479's affected-slice and delta moves fit inside the existing engine, and whether FE-1431's key reader stays smaller than the parser it replaces. |
+| Harness teaching that has a package survives rescoping. | Low; the [lineage audit](../evidence/proofs/audits/harness-teaching-lineage-audit.md) shows four prose-only rescopings without run evidence, and no test of the converse yet. | The first arc after `packages/repertoire` lands: does any rescoping of it cite a run? |
 | Field-local code obligations support localized realization and repair. | Low-medium; the corpus and Petrinaut diagnostics are field-addressed, but no Brunch run exists. | Realize one stochastic transition without rewriting an unrelated field. |
 | Five turns yield a scoped correction. | Low; unrehearsed. The review-and-revise runbook in the plugin file is the first concrete trajectory. | Run two bounded rehearsals against a fixture model. |
-| Ask carries durable client-tool results. | Medium-low; machine results refused today. | Run one correlated FE-1438 round trip. |
+| Ask carries durable client-tool results. | Medium-low; the current protocol refuses machine results. | Run one correlated FE-1438 round trip. |
 | Structured export explains provenance/delta. | Medium; FE-1481 permits it. | Witness one rehearsal. |
 
 ## Sequencing cuts
@@ -243,11 +287,8 @@ the short form:
 
 - Dora requires cold-start creation.
 - **Proxy completion:** an arc ends with durable outputs that are all desk, simulated, or
-  evaluation-side and no production-path code changed (recurred twice: tracer-as-done,
-  instrument-as-done). Watched, not fired, for the 2026-08-25/26 arc: production delta was
-  `cue.ts` +3/−2 and `sdcpn-elicitor.ts` +11/−4 against an 891-line evaluation-side runner — but
-  the runner's output is run evidence over the production path, the thing the heuristic exists
-  to force. The next arc must move production code or the trigger fires.
+  evaluation-side and no production-path code changed. The next arc must move production code or
+  the trigger fires.
 - The next run over the harness reports tokens but not time per turn purpose (the latency concern
   stays a hypothesis), or a latency target is still unset when a stream A–D is selected.
 - Proof 1 shows a `Must know` that kind-level rows cannot express, or the truck-fleet case needs a
@@ -269,4 +310,4 @@ the short form:
 - **FE-1472** — unrelated SDK-pin triage; assign an owning map or remove from the project.
 - **FE-1476** — September delivery root; intended parent is FE-1357.
 - **FE-1477–FE-1481** — PM-authored outcome roots; intended parent is FE-1476 after overlap review
-  and separately approved Linear mutation. FE-1482 was parented to FE-1476 on 2026-08-25.
+  and separately approved Linear mutation.

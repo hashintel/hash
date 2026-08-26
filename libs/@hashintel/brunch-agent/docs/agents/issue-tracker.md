@@ -18,9 +18,11 @@ for one named operation does not authorize adjacent mutations.
 
 - **Default team**: `FE`. **Project**: `brunch-agent`. Every approved new issue is created with
   `linear issue create --team FE --project brunch-agent --assignee self`, plus `--parent` when it
-  is not a root. Verify assignee, project, and parent after creation. Assignment denotes accountable
-  human ownership, never an agent claim. The project is the
-  ownership boundary for this codebase — see the registry rule below.
+  is not a root. The exception is a Wayfinder child: create it unassigned so `/ds-wayfind` can claim
+  it by assigning the driving developer before work. Verify assignee, project, and parent after
+  creation. Assignment denotes accountable human ownership; on a Wayfinder child it also serves as
+  the canonical claim. The project is the ownership boundary for this codebase — see the registry
+  rule below.
 - Related work also lives on teams `PRO` (product) and `H` (HASH) — read/reference those freely;
   create there only when asked. The legacy `brunch` project holds the old brunch product's
   history and is not this codebase's tracker.
@@ -74,27 +76,39 @@ update. Publish it to the `brunch-agent` project.
 
 ## Wayfinding operations
 
-Used by the `ds-wayfind` skill. The **map** is a Linear issue with one **child** sub-issue per
-ticket. Linear owns issue facts: state, hierarchy, project membership, assignment, and hard
-blockers. `STEERING` projects only current soft edges and chooses strategic work by objective
-contribution, risk retired, and information gain.
+Used by `/ds-wayfind`. The **map** is a Linear issue with one **child** sub-issue per ticket.
+Linear owns issue facts: state, hierarchy, project membership, assignment, and hard blockers.
+`docs/control/STEERING.md` is the strategic control and commissions every Brunch map. The
+mechanical frontier filters for available work; `/ds-steer` selects the proof frontier.
 
-- **Map**: an FE issue in project `brunch-agent`, labeled `wayfinder → map` (label group `wayfinder`,
-  children `map` / `research` / `prototype` / `grilling` / `manual-task` — created 2026-08-11;
-  `manual-task` stands in for the skills' `task` type because the workspace already has an
-  unrelated "Task" label). The issue description holds the map body: Destination / Notes /
-  Decisions so far / Not yet specified / Out of scope.
+- **Activity kind**: the canonical skills require semantic kind `wayfind` on maps and tickets and
+  `dogsled:unframed` on child tickets. Those labels are not configured in this Linear workspace.
+  `/ds-wayfind` therefore routes to `/ds-setup` before creating a new map; loading an existing map
+  does not authorize metadata backfill. All Linear writes remain approval-gated.
+- **Map**: an FE root issue in project `brunch-agent`, labeled `wayfinder → map` (label group
+  `wayfinder`, children `map` / `research` / `prototype` / `grilling` / `manual-task` — created
+  2026-08-11; `manual-task` stands in for the skills' `task` type because the workspace already has
+  an unrelated "Task" label). The map body is Destination / Strategic context / Notes / Landing
+  evidence / Decisions so far / Not yet specified / Out of scope. Strategic context is required
+  and names `STEERING.md` as owner, the intended contribution, governing concerns with operative
+  meaning, and related maps.
 - **Child ticket**: a sub-issue of the map (native parent relation), same team and project,
-  carrying its `wayfinder → <type>` label. The description holds the question.
-- **Blocking**: Linear's native **blocks / blocked-by** relations. A ticket is unblocked when
-  every issue blocking it is closed (Done or Canceled).
-- **Mechanical frontier**: open, unblocked sub-issues of the map — lowest issue number first. This
-  is an availability filter, not the strategic proof frontier. Before work, inspect issue state and
-  any active branch or PR to avoid duplicate execution.
-- **Resolve**: post the answer as a comment on the issue, set state **Done**, then append a
-  one-line gist + link to the map issue's _Decisions so far_ section (edit the map description).
-- **Out of scope**: set state **Canceled** and record the gist + reason in the map's
-  _Out of scope_ section.
+  carrying its `wayfinder → <type>` label. Its compact decision contract holds Question / Context /
+  Resolution evidence / Out of scope.
+- **Blocking**: Linear's native **blocks / blocked-by** relations. A ticket is unblocked when every
+  issue blocking it is closed (Done or Canceled).
+- **Mechanical frontier**: open, unblocked, unclaimed sub-issues of the map — lowest issue number
+  first. This is an availability filter, not the strategic proof frontier. Before work, inspect
+  issue state and any active branch or PR to avoid duplicate execution.
+- **Resolve**: post the answer as a comment on the issue, set state **Done**, then append a one-line
+  gist + link to the map issue's _Decisions so far_ section (edit the map description).
+- **Out of scope**: set state **Canceled** and record the gist + reason in the map's _Out of scope_
+  section.
+- **Landing**: append the `/ds-wayfind` Landing section only after every child is Done or Canceled
+  and _Not yet specified_ is empty. An empty mechanical frontier is insufficient. The commissioned
+  map stays open and routes to `/ds-steer`, which reconciles `STEERING.md`, satisfies the root-issue
+  close contract, and closes the map. Landing or closure changes execution state only; neither
+  resolves a governing concern.
 - Pre-existing product issues (the PM's stubs) are **referenced** from map tickets via _related_
   relations — never duplicated as wayfinder tickets and never closed by the map. A wayfinder
   ticket that validates a product issue links to it and records its verdict in the resolution
