@@ -1,7 +1,8 @@
 /**
- * Turns the real TypeScript import graph into layer-level edges.
+ * Turns the real import graphs into layer-level edges.
  *
- * dependency-cruiser supplies the file-level truth; the layer assignment comes
+ * One provider per language supplies the file-level truth: dependency-cruiser
+ * for TypeScript, `python-imports.ts` for Python. The layer assignment comes
  * from `extract.ts`. Aggregating one against the other is what makes the
  * diagrams trustworthy: an import edge appears because imports exist, never
  * because someone drew it. The one annotation-drawn kind, a `@talksTo` edge for
@@ -26,6 +27,7 @@ import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config";
 
 import { error, warning, type Diagnostic } from "./diagnostics";
 import { toPosix } from "./paths";
+import { collectPythonImports } from "./python-imports";
 import {
   exclusionPattern,
   sourceExtensions,
@@ -38,6 +40,14 @@ import type { ArchitecturePackage, DeclaredEdge, Edge, Layer } from "./model";
 
 /** How many representative file pairs to record per edge. */
 const examplesPerEdge = 3;
+
+/** One file-level import, the record every language provider emits. */
+export interface FileDependency {
+  /** Repo-relative posix path of the importing file. */
+  from: string;
+  /** Repo-relative posix path of the imported file. */
+  to: string;
+}
 
 interface Alias {
   alias: string;
@@ -132,7 +142,7 @@ const deriveAliases = (
 
 export interface GraphOptions {
   repoRoot: string;
-  /** TypeScript packages only; callers filter before reaching here. */
+  /** Every covered package; `buildGraph` splits them by language. */
   packages: ArchitecturePackage[];
   tsconfigPath: string;
   ignoredDirectories: string[];
@@ -326,22 +336,60 @@ export const resolveDeclaredEdges = (options: {
   return { edges, diagnostics };
 };
 
-export const buildGraph = async (
+/**
+ * Runs dependency-cruiser over the TypeScript packages and flattens the result
+ * to file-level records, so aggregation reads one shape from every language.
+ */
+const collectTypeScriptImports = async (
   options: GraphOptions,
-): Promise<GraphResult> => {
-  const { repoRoot, fileLayers, layers } = options;
+): Promise<{ dependencies: FileDependency[]; diagnostics: Diagnostic[] }> => {
+  // Nothing to cruise; also keeps Python-only tests off dependency-cruiser.
+  if (options.packages.length === 0) {
+    return { dependencies: [], diagnostics: [] };
+  }
 
   const aliases: Alias[] = [];
   const diagnostics: Diagnostic[] = [];
 
   for (const pkg of options.packages) {
-    const derived = deriveAliases(repoRoot, pkg);
+    const derived = deriveAliases(options.repoRoot, pkg);
     aliases.push(...derived.aliases);
     diagnostics.push(...derived.diagnostics);
   }
 
   const modules = await cruiseModules(options, aliases);
-  diagnostics.push(...checkCoverage(modules, fileLayers));
+  diagnostics.push(...checkCoverage(modules, options.fileLayers));
+
+  const dependencies: FileDependency[] = modules.flatMap((module) =>
+    module.dependencies.map((dependency) => ({
+      from: toPosix(module.source),
+      to: toPosix(dependency.resolved),
+    })),
+  );
+
+  return { dependencies, diagnostics };
+};
+
+export const buildGraph = async (
+  options: GraphOptions,
+): Promise<GraphResult> => {
+  const { repoRoot, fileLayers, layers } = options;
+
+  const byLanguage = (language: ArchitecturePackage["language"]) =>
+    options.packages.filter((pkg) => pkg.language === language);
+
+  const typescript = await collectTypeScriptImports({
+    ...options,
+    packages: byLanguage("typescript"),
+  });
+  const python = await collectPythonImports({
+    repoRoot,
+    packages: byLanguage("python"),
+    fileLayers,
+  });
+
+  const dependencies = [...typescript.dependencies, ...python.dependencies];
+  const diagnostics = [...typescript.diagnostics, ...python.diagnostics];
 
   interface EdgeAccumulator {
     fileDependencies: number;
@@ -350,39 +398,35 @@ export const buildGraph = async (
 
   const accumulated = new Map<string, EdgeAccumulator>();
 
-  for (const module of modules) {
-    const fromFile = toPosix(module.source);
+  for (const { from: fromFile, to: toFile } of dependencies) {
     const fromLayer = fileLayers.get(fromFile);
+    const toLayer = fileLayers.get(toFile);
 
     if (fromLayer === undefined) {
       continue;
     }
 
-    for (const dependency of module.dependencies) {
-      const toFile = toPosix(dependency.resolved);
-      const toLayer = fileLayers.get(toFile);
-
-      // Imports landing outside any layer: node_modules, uncovered packages.
-      // A file *inside* the covered roots is reported by `checkCoverage`.
-      if (toLayer === undefined || toLayer === fromLayer) {
-        continue;
-      }
-
-      // `>` cannot occur in a layer id, which is dot-separated kebab-case, so
-      // the pair round-trips. An earlier version used a NUL byte for this and
-      // left two raw NULs in the file, which made every text tool treat the
-      // source as binary.
-      const key = `${fromLayer}>${toLayer}`;
-      const edge = accumulated.get(key) ?? {
-        fileDependencies: 0,
-        examples: [],
-      };
-      edge.fileDependencies += 1;
-      if (edge.examples.length < examplesPerEdge) {
-        edge.examples.push({ from: fromFile, to: toFile });
-      }
-      accumulated.set(key, edge);
+    // Imports landing outside any layer: node_modules, uncovered packages.
+    // A file *inside* the covered roots is reported by `checkCoverage` for
+    // TypeScript and by `extract` for Python.
+    if (toLayer === undefined || toLayer === fromLayer) {
+      continue;
     }
+
+    // `>` cannot occur in a layer id, which is dot-separated kebab-case, so
+    // the pair round-trips. An earlier version used a NUL byte for this and
+    // left two raw NULs in the file, which made every text tool treat the
+    // source as binary.
+    const key = `${fromLayer}>${toLayer}`;
+    const edge = accumulated.get(key) ?? {
+      fileDependencies: 0,
+      examples: [],
+    };
+    edge.fileDependencies += 1;
+    if (edge.examples.length < examplesPerEdge) {
+      edge.examples.push({ from: fromFile, to: toFile });
+    }
+    accumulated.set(key, edge);
   }
 
   const packageOf = new Map(layers.map((layer) => [layer.id, layer.package]));

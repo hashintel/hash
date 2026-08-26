@@ -85,7 +85,7 @@ export const LayerRelations = ({
     <Direction title="Depended on by" entries={dependedOnBy} />
     <Direction title="Depends on" entries={dependsOn} />
     <p className="arch-rel-note">
-      Counts are file-level imports, aggregated from TypeScript packages only.
+      Counts are file-level imports, aggregated across every covered package.
       Dashed labels are <code>@talksTo</code> declarations: the protocol text is
       the annotation's claim, and only the endpoints are checked.
     </p>
