@@ -199,6 +199,15 @@ and the package-topology ADR are streams beside G0. The epicentre map's older wo
 thing is "lane"; it is retained there and not used for new writing.
 _Avoid_: lane (new writing), workstream, track
 
+**Partition**:
+The planning move, made after the proof frontier is selected, that divides the mechanically
+available work into efforts that can run concurrently in separate worktrees, naming each effort's
+proof, projection, write set, join points, and base. The partition is recorded as a table in
+`docs/control/STEERING.md` and revised at every steering pass; it never changes which frontier is
+selected. Brunch extension of `/ds-steer` step 5 (`docs/agents/steering.md`).
+_Avoid_: plan (the partition is one section of the strategic control, not a plan document),
+breakdown (that is ticket decomposition, `/ds-write-tickets`), parallelisation
+
 **Effort**:
 The unit of the parallel partition: work that can run in its own worktree because it has its own
 proof or a named share of a joint proof, its own projection, and a write set disjoint from other
