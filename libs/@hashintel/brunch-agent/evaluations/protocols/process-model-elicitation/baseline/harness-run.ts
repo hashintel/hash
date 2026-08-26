@@ -25,6 +25,7 @@
  *     BRUNCH_SDCPN_MODEL                           interviewer model id; this runner defaults it to claude-opus-5
  *     BRUNCH_BASELINE_ANTHROPIC_MODULE             test-only stand-in for the expert's Anthropic client
  *     BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE  test-only pi provider module (default export) for the interviewer
+ *     BRUNCH_BASELINE_HARD_STOP                     positive interviewer-turn limit; defaults to 24
  *     BRUNCH_BASELINE_OUTPUT_DIR                   optional run-specific production output directory
  *     BRUNCH_BASELINE_TEST_OUTPUT_DIR              test-only output directory; requires both stand-ins
  *
@@ -38,7 +39,15 @@
  *     condition-5.timings.jsonl   each observed Flue model call, tagged by interviewer-turn purpose
  */
 
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  appendFile,
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -91,7 +100,7 @@ const CONDITION = "5";
 const EXPERT_MODEL = "claude-sonnet-5";
 const DEFAULT_INTERVIEWER_MODEL = "claude-opus-5";
 const FORCE_WRAP_AT = 20;
-const HARD_STOP_AT = 24;
+const DEFAULT_HARD_STOP_AT = 24;
 const IMPATIENCE_AT = 8;
 const IMPATIENCE_LINE =
   "(Sorry — I've just seen the time, I have the floor huddle in ten minutes. How much more do you need?)";
@@ -111,6 +120,15 @@ const expertClientModule = process.env["BRUNCH_BASELINE_ANTHROPIC_MODULE"];
 const interviewerProviderModule =
   process.env["BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE"];
 const apiKey = process.env["ANTHROPIC_API_KEY"];
+const configuredHardStop = process.env["BRUNCH_BASELINE_HARD_STOP"];
+const hardStopAt =
+  configuredHardStop === undefined
+    ? DEFAULT_HARD_STOP_AT
+    : Number(configuredHardStop);
+
+if (!Number.isSafeInteger(hardStopAt) || hardStopAt <= 0) {
+  throw new Error("BRUNCH_BASELINE_HARD_STOP must be a positive integer");
+}
 
 if (testOutputDirectory && !(expertClientModule && interviewerProviderModule)) {
   console.error(
@@ -150,6 +168,9 @@ const transcriptDir =
       import.meta.url,
     ),
   );
+await mkdir(transcriptDir, { recursive: true });
+const timingsPath = join(transcriptDir, `condition-${CONDITION}.timings.jsonl`);
+await writeFile(timingsPath, "");
 
 // ---------------------------------------------------------------------------
 // Records.
@@ -566,7 +587,7 @@ function renderTranscript(
     `- Run started: ${run.startedAt}`,
     `- Interviewer: ${run.interviewerModel} as the shipped SDCPN elicitor in the Flue runtime — binding-flue's ask, settlement nudge, sweep, fold, and completion (instructions reconstructed in condition-5-system.md)`,
     `- Simulated expert: ${run.expertModel} + situation-pack.md`,
-    `- Interviewer turns: ${run.turns.length} (impatience probe at ${IMPATIENCE_AT}, forced wrap at ${FORCE_WRAP_AT}, hard stop ${HARD_STOP_AT})`,
+    `- Interviewer turns: ${run.turns.length} (impatience probe at ${IMPATIENCE_AT}, forced wrap at ${FORCE_WRAP_AT}, hard stop ${hardStopAt})`,
     `- Stop reason: ${run.stopReason}`,
     last === undefined
       ? "- Harness at close: no turn completed"
@@ -783,13 +804,6 @@ async function writeArtifacts(): Promise<void> {
     `${stem}.md`,
     renderTranscript(run, openingMessage, sweepTally),
   );
-  await writeFile(
-    `${stem}.timings.jsonl`,
-    `${turnTimingRecorder
-      .all()
-      .map((timing) => JSON.stringify(timing))
-      .join("\n")}\n`,
-  );
   await writeFile(`${stem}-model.md`, renderModel(model, report, record));
   await writeFile(
     `${stem}-captures.json`,
@@ -823,7 +837,7 @@ try {
   );
   let outgoing = openingMessage;
   let initial = true;
-  while (turns.length < HARD_STOP_AT) {
+  while (turns.length < hardStopAt) {
     const turnNumber = turns.length + 1;
     console.error(`turn ${turnNumber} (interviewer)`);
     turnTimingRecorder.startInterviewerTurn(turnNumber);
@@ -845,14 +859,19 @@ try {
               !ask.rejected && `affordance_${ask.toolCallId}` === pendingId,
           )?.question;
     const { record: completion } = readCompletion(await store.read());
+    const turnTimings = turnTimingRecorder.forInterviewerTurn(turnNumber);
     const turn: HarnessTurnRecord = {
       turn: turnNumber,
       ...observed,
       ...(pendingQuestion === undefined ? {} : { pendingQuestion }),
-      timings: turnTimingRecorder.forInterviewerTurn(turnNumber),
+      timings: turnTimings,
       completion,
     };
     turns.push(turn);
+    await appendFile(
+      timingsPath,
+      `${turnTimings.map((timing) => JSON.stringify(timing)).join("\n")}\n`,
+    );
     console.error(
       `  harness: ${completion.captures} captures, complete ${yesNo(completion.complete)}, ${completion.unsatisfied} unsatisfied; sweeps ${observed.sweeps.map((sweep) => sweep.status).join(",") || "none"}; ask ${pendingQuestion === undefined ? "none" : "pending"}`,
     );
@@ -878,7 +897,7 @@ try {
     } else {
       turnsWithoutAsk = 0;
     }
-    if (turns.length >= HARD_STOP_AT) break;
+    if (turns.length >= hardStopAt) break;
 
     // What the expert sees: the interviewer's visible text and its question.
     const visible = [

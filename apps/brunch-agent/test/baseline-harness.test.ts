@@ -45,6 +45,80 @@ afterEach(async () => {
   );
 });
 
+test("stops at the configured turn and persists first-turn timings before exit", async () => {
+  const outputDirectory = await mkdtemp(
+    join(tmpdir(), "brunch-baseline-c5-short-test-"),
+  );
+  temporaryDirectories.push(outputDirectory);
+  const expertRepliesPath = join(outputDirectory, "expert-replies.json");
+  await writeFile(
+    expertRepliesPath,
+    JSON.stringify([
+      { text: EXPERT_OBJECTIVE_QUOTE },
+      { text: "Better is fewer late promises, then fewer changeovers." },
+      { text: "Alright. Anything else?" },
+      { text: "Then I'll get back to the floor." },
+      { text: "Cheers." },
+    ]),
+  );
+
+  let runCompleted = false;
+  const runPromise = runNodeScript(runner, join(testDirectory, "../../.."), {
+    BRUNCH_BASELINE_HARD_STOP: "2",
+    BRUNCH_BASELINE_TEST_OUTPUT_DIR: outputDirectory,
+    BRUNCH_BASELINE_ANTHROPIC_MODULE: expertStub,
+    BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE: interviewer,
+    BASELINE_STUB_REPLIES_PATH: expertRepliesPath,
+    BRUNCH_SDCPN_MODEL: "claude-haiku-4-5",
+  }).finally(() => {
+    runCompleted = true;
+  });
+
+  const timingsPath = join(outputDirectory, "condition-5.timings.jsonl");
+  let timingsAfterFirstTurn: string | undefined;
+  await expect
+    .poll(
+      async () => {
+        try {
+          const timings = await readFile(timingsPath, "utf8");
+          if (timings.includes('"interviewerTurn":1')) {
+            timingsAfterFirstTurn = timings;
+          }
+        } catch (error) {
+          if (
+            !(error instanceof Error) ||
+            !("code" in error) ||
+            error.code !== "ENOENT"
+          ) {
+            throw error;
+          }
+        }
+        return timingsAfterFirstTurn;
+      },
+      { interval: 1, timeout: 1_000 },
+    )
+    .toBeDefined();
+
+  expect(timingsAfterFirstTurn).toContain('"interviewerTurn":1');
+  expect(
+    timingsAfterFirstTurn
+      ?.trim()
+      .split("\n")
+      .every(
+        (line) => (JSON.parse(line) as TurnTimingRecord).interviewerTurn === 1,
+      ),
+  ).toBe(true);
+  expect(runCompleted).toBe(false);
+
+  const { exitCode, stderr } = await runPromise;
+  expect(exitCode, stderr).toBe(0);
+  const run = JSON.parse(
+    await readFile(join(outputDirectory, "condition-5.raw.json"), "utf8"),
+  ) as HarnessRunRecord;
+  expect(run.turns).toHaveLength(2);
+  expect(run.stopReason).toBe("hard-stop");
+});
+
 test("condition 5 drives the shipped elicitor through the binding and reads the harness's facts back", async () => {
   const outputDirectory = await mkdtemp(
     join(tmpdir(), "brunch-baseline-c5-test-"),
