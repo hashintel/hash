@@ -46,11 +46,12 @@ which the design needs anyway:
 4. **The artifact seam** (`parseSDCPNFile` / `sdcpnFileSchema`): unchanged; net validity
    checked in CI through the pure parser.
 5. **The generic composer seam**: a host may render a control beside Petrinaut's text composer and
-   receive stable `submitText` and `stop` callbacks plus conversation state. Finalized alternate
-   text uses the same AI SDK `useChat` instance as keyboard input. When exactly one unresolved
-   interactive tool registers a schema-validated text mapper, `submitText` completes that tool;
-   otherwise it submits a stable-ID user message. Ambiguous mapped tools are refused. A host may
-   explicitly target an ordinary message for a correction that must not answer the pending tool.
+   receive stable `submitText` and `stop` callbacks plus the effective AI SDK conversation identity
+   and state. Finalized alternate text uses the same AI SDK `useChat` instance as keyboard input.
+   When exactly one unresolved interactive tool registers a schema-validated text mapper,
+   `submitText` completes that tool; otherwise it submits a stable-ID user message. Ambiguous mapped
+   tools are refused. A host may explicitly target an ordinary message for a correction that must
+   not answer the pending tool.
 
 ## Attach Contract
 
@@ -66,11 +67,11 @@ The panel and the voice edge attach to Brunch through one stable surface:
    stable across reloads; replacing the local UID with authenticated identity must preserve the
    same request-level ownership semantics.
 4. **Composer submission**: Petrinaut accepts an optional stable conversation ID and host composer
-   control. Keyboard and alternate finalized text both enter the same `submitText` function. A
-   pending `brunch_ask` is answered only through the existing correlated tool-output path; text is
-   not silently downgraded to an ordinary user message when more than one mapped ask is pending.
-   Explicit corrections target new messages rather than silently mutating or answering another
-   pending ask.
+   control, then exposes the effective host-supplied or generated identity to that control. Keyboard
+   and alternate finalized text both enter the same `submitText` function. A pending `brunch_ask`
+   is answered only through the existing correlated tool-output path; text is not silently
+   downgraded to an ordinary user message when more than one mapped ask is pending. Explicit
+   corrections target new messages rather than silently mutating or answering another pending ask.
 
 These four parts change only with notice to the panel and voice-edge owners. A provider-specific
 voice requirement does not silently alter this surface; provider code and policy remain in the
@@ -177,7 +178,8 @@ host application under ADR-0009, while reusable Petrinaut and Brunch packages st
 **Generic composer control**
 
 - `@hashintel/petrinaut` accepts an optional conversation ID and host render callback. The callback
-  receives current AI SDK messages and status plus stable `submitText` and `stop` functions.
+  receives the effective host-supplied or generated AI SDK conversation identity, current messages
+  and status, plus stable `submitText` and `stop` functions.
 - A host interactive tool may define `fromComposerText({ input, text })`. Petrinaut parses the
   pending input, invokes the mapper, and parses its output before submitting the correlated tool
   result. Unknown or unmapped tools preserve ordinary message submission; multiple eligible tools

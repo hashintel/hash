@@ -39,7 +39,7 @@ import type {
 export type PetrinautAiChatTransport = PetrinautAiTransport;
 
 export type PetrinautAiAssistant = {
-  /** Stable identity for this host-owned conversation. */
+  /** Optional host-owned identity; `useChat` generates one when omitted. */
   conversationId?: string;
   /** Host-owned dynamic tools that render inline in the AI conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];

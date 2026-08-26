@@ -8,6 +8,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { useEffect } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
@@ -31,6 +32,7 @@ import { definePetrinautAiInteractiveTool } from "../../../types/ai-interactive-
 import { AiAssistantPanel } from "./ai-assistant-panel";
 
 import type { PetrinautAiAssistant } from "../../../petrinaut";
+import type { PetrinautAiComposerControlContext } from "../../../types/ai-assistant-composer-control";
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
@@ -112,6 +114,22 @@ const textChunks = (id: string, text: string): UIMessageChunk[] => [
   { type: "text-end", id },
 ];
 
+const SubmitForSecondConversation = ({
+  conversationId,
+  submitText,
+}: Pick<
+  PetrinautAiComposerControlContext,
+  "conversationId" | "submitText"
+>) => {
+  useEffect(() => {
+    if (conversationId === "conversation-2") {
+      void submitText({ id: "second-turn", text: "Second conversation" });
+    }
+  }, [conversationId, submitText]);
+
+  return null;
+};
+
 const testInstances: ReturnType<typeof createPetrinaut>[] = [];
 
 const renderTestPanel = ({
@@ -140,18 +158,25 @@ const renderTestPanel = ({
     getItemType: () => null,
   };
 
-  render(
+  const renderPanel = (nextAiAssistant: PetrinautAiAssistant) => (
     <PetrinautInstanceContext.Provider value={instance}>
       <EditorContext.Provider value={editorContextValue}>
         <SDCPNContext.Provider value={sdcpnContext}>
           <AiAssistantPanel
-            aiAssistant={aiAssistant}
+            aiAssistant={nextAiAssistant}
             initialMessage={initialMessage}
           />
         </SDCPNContext.Provider>
       </EditorContext.Provider>
-    </PetrinautInstanceContext.Provider>,
+    </PetrinautInstanceContext.Provider>
   );
+  const rendered = render(renderPanel(aiAssistant));
+
+  return {
+    ...rendered,
+    rerenderPanel: (nextAiAssistant: PetrinautAiAssistant) =>
+      rendered.rerender(renderPanel(nextAiAssistant)),
+  };
 };
 
 afterEach(() => {
@@ -162,6 +187,80 @@ afterEach(() => {
 });
 
 describe("AiAssistantPanel composer submissions", () => {
+  test("exposes the generated useChat conversation identity to host controls", async () => {
+    const chatIds: string[] = [];
+    const observedConversationIds = new Set<string>();
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ chatId }) => {
+        chatIds.push(chatId);
+        return Promise.resolve(
+          streamChunks(
+            textChunks("generated-id-response", "Generated ID used"),
+          ),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: (context) => {
+          observedConversationIds.add(context.conversationId);
+          return (
+            <button
+              type="button"
+              onClick={() => {
+                void context.submitText({ text: "Use generated identity" });
+              }}
+            >
+              Submit with generated identity
+            </button>
+          );
+        },
+        transport,
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit with generated identity" }),
+    );
+    await screen.findByText("Generated ID used");
+
+    expect(chatIds).toHaveLength(1);
+    expect(chatIds[0]).toBeTruthy();
+    expect(observedConversationIds).toEqual(new Set(chatIds));
+  });
+
+  test("submits to the current chat when the conversation identity changes", async () => {
+    const chatIds: string[] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ chatId }) => {
+        chatIds.push(chatId);
+        return Promise.resolve(
+          streamChunks(textChunks("second-response", "Second chat used")),
+        );
+      }),
+    };
+    const createAiAssistant = (
+      conversationId: string,
+    ): PetrinautAiAssistant => ({
+      conversationId,
+      renderComposerControl: (context) => (
+        <SubmitForSecondConversation {...context} />
+      ),
+      transport,
+    });
+    const rendered = renderTestPanel({
+      aiAssistant: createAiAssistant("conversation-1"),
+    });
+
+    rendered.rerenderPanel(createAiAssistant("conversation-2"));
+    await waitFor(() => expect(chatIds).toHaveLength(1));
+
+    expect(chatIds).toEqual(["conversation-2"]);
+  });
+
   test("shares one stable submission path between alternate and keyboard text", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const chatIds: string[] = [];

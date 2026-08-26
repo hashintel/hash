@@ -58,9 +58,10 @@ production recovery or public availability.
 ## Consequences
 
 - Petrinaut's public API gains a generic host control with stable `submitText`, `stop`, messages,
-  status, and optional conversation identity. Interactive tools may opt into a schema-validated
-  text-to-output mapper. Keyboard and alternate finalized text therefore cannot bypass ask
-  correlation by default; the host may explicitly target a separate message for a correction.
+  status, and the effective host-supplied or generated conversation identity. Interactive tools may
+  opt into a schema-validated text-to-output mapper. Keyboard and alternate finalized text therefore
+  cannot bypass ask correlation by default; the host may explicitly target a separate message for
+  a correction.
 - OpenAI implementation names and policy stay in `apps/petrinaut-website`. The existing
   `transport-aisdk` package remains the sole browser-to-Brunch conversation transport.
 - Preview PRs may demonstrate transcription and exact canonical speech before production

@@ -17,6 +17,7 @@ import {
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 
+import { useLatest } from "../../../../react/hooks/use-latest";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { LanguageClientContext } from "../../../../react/lsp/context";
 import {
@@ -319,6 +320,7 @@ export const AiAssistantPanel = ({
 
   const {
     error,
+    id: conversationId,
     messages,
     addToolOutput,
     sendMessage,
@@ -564,28 +566,13 @@ export const AiAssistantPanel = ({
     },
   });
 
-  const composerSubmissionStateRef = useRef({
+  const composerSubmissionStateRef = useLatest({
     addToolOutput,
     interactiveTools: aiAssistant.interactiveTools,
     messages,
     sendMessage,
     status,
   });
-  useEffect(() => {
-    composerSubmissionStateRef.current = {
-      addToolOutput,
-      interactiveTools: aiAssistant.interactiveTools,
-      messages,
-      sendMessage,
-      status,
-    };
-  }, [
-    addToolOutput,
-    aiAssistant.interactiveTools,
-    messages,
-    sendMessage,
-    status,
-  ]);
 
   const composerToolSubmissionsRef = useRef(new Set<string>());
   useEffect(() => {
@@ -743,19 +730,16 @@ export const AiAssistantPanel = ({
       });
       return { kind: "message", messageId };
     },
-    [],
+    [composerSubmissionStateRef],
   );
 
-  const stopStateRef = useRef(stop);
-  useEffect(() => {
-    stopStateRef.current = stop;
-  }, [stop]);
+  const stopStateRef = useLatest(stop);
 
   // Like submitText, stop is exposed to host controls and must stay stable.
   const stopComposer = useCallback(async () => {
     stopRequestedRef.current = true;
     await stopStateRef.current();
-  }, []);
+  }, [stopStateRef]);
 
   useEffect(() => {
     const trimmedInitialMessage = initialMessage?.trim();
@@ -807,7 +791,7 @@ export const AiAssistantPanel = ({
     : REVIEW_CHIPS;
 
   const composerControlContext: PetrinautAiComposerControlContext = {
-    conversationId: aiAssistant.conversationId,
+    conversationId,
     messages,
     status,
     stop: stopComposer,
