@@ -190,13 +190,13 @@ proves them together ([CONTEXT](../../CONTEXT.md#strategic-control) "Move"; [S-0
 | **G0.3 Latency floor** | R0: `durationMs` per purpose and OpenTelemetry spans on every turn; a human-witnessed number replaces the inferred split | FE-1505, FE-1404 |
 | **G0.4 Legible surface** | captures, sweep results, and completion readable during a live panel session; the attach contract stated in the Petrinaut integration spec with a changes-with-notice rule. Depends on G0.1–G0.2 landing; built on W1, stacked on FE-1504's branch (reassigned from the driver this pass: it consumes W1's code and write set, and the driver branch is the tip of the plugin PR) | FE-1506 |
 
-**Current move:** FE-1506 completes the production-path surface required for the Proof 0 witness.
-Its implementation is committed on W1 and its affected acceptance oracles are green; it remains
-the current move until normal-shell repository verification closes the issue. It outranks other
-mechanically available work because it is the last open G0 implementation move; W2's live figure
-and P1's gherkin proof are in flight beside it. FE-1504's implementation is accepted in its issue
-record, but Linear still marks it In progress and still blocks FE-1506; the tracker owner must
-reconcile those facts before closure. G0.1 and G0.2 are not done as moves until the joint human run.
+**Current move: the Proof 0 human run.** All four G0 moves are implemented — FE-1504 and FE-1506
+on W1 (FE-1506 Done, repository verification passed outside the sandbox), FE-1505's R0 timing on W2
+— and none is done as a move until one human elicitation from one branch proves them together. The
+run outranks everything mechanically available because it is the objective's precondition and the
+first evidence with a person as witness; W2's condition-5 figure and P1's gherkin proof run beside
+it. Tracker residue: FE-1504 was Done and is now In progress with a closing comment in place — it
+should return to Done (Linear mutation, approval pending).
 
 **Streams beside G0** — parallel, separately proven, blocking nothing:
 
@@ -220,7 +220,7 @@ names it. An effort blocked on a gate stays an effort; only the driver drops a r
 
 | Effort | Carries | Projection | Write set | Join points (who lands first) | Base | Worktree |
 | --- | --- | --- | --- | --- | --- | --- |
-| **W1** | G0.1, G0.2 (implemented), G0.4 (implemented; repository verification and tracker closure remain) | FE-1506, stacked on the FE-1504 branch | as before plus the panel or dev-diagnostics read of captures, sweep results, and completion; `docs/specs/petrinaut-integration.md` (attach contract) | with **Voice**: `petrinaut-chat.ts`, `local-dev-origins.ts`, `local-storage-demo-app.tsx`, the website `vite.config.ts`, three `package.json` — voice lands first or W1 rebases onto it; with W2: `apps/brunch-agent/package.json` (W2 already touched it) | driver branch until the stack merges | panel |
+| **W1** | G0.1, G0.2, G0.4 (all implemented; FE-1506 Done; awaiting the Proof 0 run) | FE-1503's run, from the re-braided line | as before plus the panel or dev-diagnostics read of captures, sweep results, and completion; `docs/specs/petrinaut-integration.md` (attach contract) | with **Voice**: `petrinaut-chat.ts`, `local-dev-origins.ts`, `local-storage-demo-app.tsx`, the website `vite.config.ts`, three `package.json` — voice lands first or W1 rebases onto it; with W2: `apps/brunch-agent/package.json` (W2 already touched it) | driver branch until the stack merges | panel |
 | **W2** | G0.3 (implemented; the live condition-5 purpose split is running) | FE-1505 | `binding-flue` turn observation, `harness-run.ts` `observe()`, OpenTelemetry setup in `apps/brunch-agent`; `condition-5.timings.jsonl` under evidence | with W1: `apps/brunch-agent/package.json`, `yarn.lock` | as W1 | timing |
 | **W3** | P1 (cycle two landed, FE-1431 Done; next: the gherkin generality proof) | FE-1393 | `plugin-gherkin/plugin.yaml` and its tests; a gherkin interview case and readout under evidence; the schema `CHANGELOG` | W4 is complete: restack onto a line containing `ln/w4-topology` before FE-1393 edits prompt data; with W1: none | W4 after the driver reconciles it | plugins |
 
@@ -230,7 +230,7 @@ Re-braid (restack and resolve, then diverge again). Length follows how fine the 
 
 | When | Who | Onto |
 | --- | --- | --- |
-| Before the Proof 0 human run | panel (after FE-1506) and timing | one branch containing both — all four G0 moves; FE-1503's proof runs from it |
+| **Due now** — before the Proof 0 human run | timing, once W2's current step is committed | first `gt restack` onto the driver, then `gt move --onto ln/fe-1506-legible-panel-status`, giving driver → 1504 → 1506 → 1505. The one file both lines touch, `apps/brunch-agent/src/agents/sdcpn-elicitor.ts`, resolves to W1's version (`ownerKey`); `apps/brunch-agent/package.json` auto-merges. FE-1503's run happens from the `timing` checkout, which then holds all four moves |
 | Now: #9320 and #9321 merged under the driver | driver first, then every effort | driver `gt restack` onto the moved stack; efforts restack onto the driver |
 | A join point is about to be written from a second effort | the efforts that share it | the line that already landed, else driver then `main` |
 | Voice lands | panel | Voice (join: voice first) |
@@ -243,7 +243,7 @@ Re-braid (restack and resolve, then diverge again). Length follows how fine the 
 | --- | --- | --- |
 | **Panel → Brunch** | W1 routes the real panel's `/api/chat` to the SDCPN elicitor; `yarn dev:brunch` starts both services; `brunch_ask` round-trips. | Re-braid W1 with W2, then conduct the human Proof 0 run. |
 | **Persistence modelled** | W1 sends one stable ui-shell principal on every request, resolves it to one target document and namespaced sessions, and stamps an opaque owner key that refuses cross-principal reads and writes. SQLite and per-document JSON remain. | Witness reload against the re-braided live surface; no persistence design gap remains for G0. |
-| **Real elicitation** | The production SDCPN elicitor is reachable from the panel on W1; captures, sweep outcomes, and completion are rendered readably, and the attach contract is recorded. | Finish FE-1506's normal-shell repository verification, re-braid W1 with W2, then conduct the eight-turn human run. |
+| **Real elicitation** | The production SDCPN elicitor is reachable from the panel on W1; captures, sweep outcomes, and completion are rendered readably, and the attach contract is recorded. | Re-braid timing onto the W1 line, then conduct the eight-turn human run with a screen recording and a plain-language account under proof evidence. |
 | **Deployment (G2)** | — | Was Linear-gated behind gherkin via FE-1423 ← FE-1396; that blocker was removed 2026-08-26. FE-1440/FE-1441 remain the owners. |
 
 ### Tool inventory — current truth and intent
@@ -356,7 +356,9 @@ The production run is not viable at its observed ~145 seconds per interviewer tu
 owns the diagnosis and intervention sequence. Operative force here: every next harness run records
 `durationMs` per turn purpose (R0 lands inside G0), R1 opens G1, and the isolating spike runs when
 a human at the panel cannot get a question within target; the C1/C2 and FE-1407 read-out follows
-the spike. Provisional targets (adopted 2026-08-26) are 10 seconds to a visible question, 60
+the spike. The first per-purpose figure comes from the Proof 0 panel run, not from another
+simulated condition-5 run: W2's R0 instrumentation is committed and FE-1505 accepts a panel run.
+The simulated baseline is a cross-check, and it runs only once a short-run knob makes it cheap. Provisional targets (adopted 2026-08-26) are 10 seconds to a visible question, 60
 seconds to a settled sweep, and fewer than 5,000 output tokens per steady-state turn. The triangle
 changes the witness: latency is no longer a number in a transcript but a person waiting.
 
@@ -364,7 +366,7 @@ changes the witness: latency is no longer a number in a transcript but a person 
 
 | Gate | Owner / source | Watch trigger | Last checked | Consequence |
 | --- | --- | --- | --- | --- |
-| G0's baseline lives on a partly merged stack | Lu; #9320 and #9321 merged 2026-08-26; #9322, #9325, #9327 (approved) and #9337 (draft) remain, carrying `ln/fe-1431-plugin-authoring-cycle` | The rest of the stack merges to `main`. | 2026-08-26 | The driver and every effort need a restack now (`gt ls` flags it). All efforts stay based on the driver; the Proof 0 line re-braids panel and timing; every line restacks onto `main` when #9337 merges. |
+| G0's baseline lives on a partly merged stack | Lu; #9320 and #9321 merged 2026-08-26; #9322, #9325, #9327 (approved) and #9337 (draft) remain, carrying `ln/fe-1431-plugin-authoring-cycle` | The rest of the stack merges to `main`. | 2026-08-26 | #9337 (draft) is now the bottleneck: two fans hang on it — the G0 line (1504 → 1506 → 1505) and the plugin line (1431-plugins → w4-topology → FE-1393). Nothing from either reaches `main` until it merges. Cycle two and ADR-0008 have superseded its draft scope; take it out of draft and merge the four remaining PRs, then every line restacks onto `main`. |
 | FE-1480 executable realization unavailable | FE-1438; [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | Client tools return code diagnostics to the elicitor. | 2026-08-26 | Scaffold work may proceed; no runnable FE-1480 proof until the gate opens. |
 | Final use case outstanding | Dora; FE-1476 / September Plan | Dora confirms or changes it. | 2026-08-26 | If creation is required, Proof 1 becomes acceptance-relevant rather than a harness proof; reconcile ADR-0004/proof. |
 | Deferral licensing (completion spec rules 17–19) unbuildable | [elicitation-completion](../specs/elicitation-completion.md) rules 17–19; FE-1480 / [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | A durable projection delivery exists for an evaluated revision. | 2026-08-26 | E1 supplies the report and revision; rule 18 makes licensing `false` without a delivered projection, so no issue is opened. When FE-1480 delivers, it is one read-time function beside `evaluateCompletion` plus a binding hook at settlement; no new persistence. |
@@ -380,6 +382,8 @@ changes the witness: latency is no longer a number in a transcript but a person 
 | Typed extraction on the verbatim floor holds up in a live run. | Medium-high; the [latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md) records repaired refusals and leaves cost, not correctness, as the open question. | R0 + the assessment's §6 spike: does a cheaper extraction model keep kind/node/slot agreement? |
 | The shipped loop converges to completion. | Low; both condition-5 runs ([cycle one](../evidence/evaluations/process-model-elicitation/baseline/transcripts/cycle-1/), [cycle two](../evidence/evaluations/process-model-elicitation/baseline/transcripts/)) end with node identity the dominant defect and no terminal act for an expert-stopped engagement; the cycle-two readout routes both to FE-1383 as harness work, not catalogue gaps. | Give the sweep the node index (R4); rerun condition 5; count objective nodes. |
 | Per-turn latency is dominated by extraction, and removable from the critical path. | Medium; the [latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md) infers the split from output volume because per-call timing is absent. | R0, then the assessment's §6 spike on frozen turn tails. |
+| The condition-5 instrument is too expensive to iterate on. | High; a full run is 12–24 turns at ~145 s each (30–60 min), `harness-run.ts` writes every artefact only at the end, `HARD_STOP_AT = 24` is hard-coded with no short-run knob, and W2's afternoon (2026-08-26, ~3 h after the credential fix) produced attribution fixes and no completed figure. The instrument's cost is now a bound on the P1 cycle and on every harness fix. | A `BRUNCH_BASELINE_HARD_STOP` env (a 3-turn run yields the purpose split in under 10 min); the §6 frozen-tail replay; and taking the first split from the Proof 0 panel run, which FE-1505 already accepts ("harness **or** panel run"). |
+| The baseline and the panel measure the same interviewer. | Low; `harness-run.ts` defaults `BRUNCH_SDCPN_MODEL` to `claude-opus-5`, `sdcpn-elicitor.ts` defaults it to `claude-haiku-4-5`. The 145 s figure is opus in the baseline; the panel's production default is unmeasured and undecided. | Lu names the Proof 0 interviewer model before the run; the run records it in the proof bundle. |
 | The truck-fleet case adds zero headings and zero rows. | Medium; Layer B was validated against it, but never through this file. | Proof 1's second half. |
 | The controller read path is small. | Low; the current implementation exceeds the plugin file in size. The parser question is answered by ADR-0007 decision 8; completion rules 17–19 remain behind the delivery gate. | Watch whether FE-1479's affected-slice and delta moves fit inside the existing engine, and whether FE-1431's key reader stays smaller than the parser it replaces. |
 | Executable ownership survives a topology correction without rescoping the teaching. | Medium; W4 moved the repertoire byte-identically into core and strengthened the import guard, but no later content edit has tested the run-evidence discipline. | On the first post-W4 teaching edit, require run evidence and confirm the architecture gate still prevents plugin imports. |
