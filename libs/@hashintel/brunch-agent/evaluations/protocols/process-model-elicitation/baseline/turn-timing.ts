@@ -109,7 +109,10 @@ export const createTurnTimingRecorder = (): TurnTimingRecorder => {
       }
       if (event.type === "turn_request") {
         const operationId =
-          event.operationId ?? activePromptOperationIds.at(-1);
+          event.operationId !== undefined &&
+          purposeByOperation.has(event.operationId)
+            ? event.operationId
+            : activePromptOperationIds.at(-1);
         const operationPurpose =
           operationId === undefined
             ? undefined

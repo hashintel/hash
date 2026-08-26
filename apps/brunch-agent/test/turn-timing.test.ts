@@ -100,11 +100,18 @@ test("attributes post-sweep compaction to the completed harness purpose", () => 
     observation({
       type: "turn_request",
       turnId: "sweep-compaction",
+      operationId: "sweep-compaction-operation",
       purpose: "compaction",
       request: request(),
     }),
   );
-  recorder.observe(completedTurn("sweep-compaction", undefined, "compaction"));
+  recorder.observe(
+    completedTurn(
+      "sweep-compaction",
+      "sweep-compaction-operation",
+      "compaction",
+    ),
+  );
 
   expect(
     Object.fromEntries(
@@ -185,11 +192,18 @@ test("attributes an inline retry after a refused sweep as repair", () => {
     observation({
       type: "turn_request",
       turnId: "repair-compaction",
+      operationId: "repair-compaction-operation",
       purpose: "compaction",
       request: request(),
     }),
   );
-  recorder.observe(completedTurn("repair-compaction", undefined, "compaction"));
+  recorder.observe(
+    completedTurn(
+      "repair-compaction",
+      "repair-compaction-operation",
+      "compaction",
+    ),
+  );
   recorder.observe(
     observation({
       type: "turn_request",
