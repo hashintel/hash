@@ -103,8 +103,16 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
   expect(run.timings).toEqual(timingRecords);
   expect(run.turns.flatMap((turn) => turn.timings)).toEqual(timingRecords);
   expect(
+    run.turns.every(
+      (turn) =>
+        turn.timings.filter(
+          (timingRecord) => timingRecord.purpose === "interview",
+        ).length === 1,
+    ),
+  ).toBe(true);
+  expect(
     timingRecords.filter((timingRecord) => timingRecord.purpose === "repair"),
-  ).toHaveLength(2);
+  ).toHaveLength(3);
 
   // Turn 1 asks; the expert's reply is bound to that ask on the next dispatch.
   expect(run.turns[0]?.pendingQuestion).toBe(FIRST_QUESTION);

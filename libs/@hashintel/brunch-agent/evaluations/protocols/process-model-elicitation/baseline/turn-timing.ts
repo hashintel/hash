@@ -121,7 +121,9 @@ export const createTurnTimingRecorder = (): TurnTimingRecorder => {
           operationId !== undefined && nestedPromptOperationIds.has(operationId)
             ? (operationPurpose ?? "sweep")
             : event.purpose === "agent"
-              ? (signalPurpose(event.request) ?? "interview")
+              ? (signalPurpose(event.request) ??
+                operationPurpose ??
+                "interview")
               : (operationPurpose ?? "interview");
         purposeByFlueTurn.set(event.turnId, purpose);
         if (
